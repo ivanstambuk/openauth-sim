@@ -1,102 +1,214 @@
 package io.openauth.sim.core.credentials.ocra;
 
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/**
- * Phase 1/T004: skeleton verifying OCRA credential creation/validation once the domain exists.
- *
- * <p>The class is intentionally disabled so the codebase stays green while we finish Phase 2.
- * Remove {@link Disabled} after implementing tasks T007–T010; the methods are structured so the
- * suite fails fast if production logic is missing.
- */
 @Tag("ocra")
-@Disabled("Pending Phase 2 OCRA credential implementation (tasks T007–T010)")
 final class OcraCredentialFactoryTest {
 
-  @DisplayName("valid OCRA payload samples create credentials without error")
+  private static final Map<String, String> DEFAULT_METADATA = Map.of("issuer", "Example Bank");
+
+  private final OcraCredentialFactory factory = new OcraCredentialFactory();
+
+  @DisplayName("valid OCRA payload samples create descriptors and pass auxiliary validation")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("validPayloads")
-  void validPayloadsShouldCreateCredentials(OcraValidVector vector) {
-    fail("Implement OCRA credential factory to satisfy valid payload: " + vector.description());
+  void validPayloadsShouldCreateDescriptors(OcraValidVector vector) {
+    OcraCredentialRequest request =
+        new OcraCredentialRequest(
+            vector.name(),
+            vector.ocraSuite(),
+            vector.sharedSecretHex(),
+            vector.counterValue(),
+            vector.pinHashHex(),
+            vector.allowedDrift(),
+            DEFAULT_METADATA);
+
+    OcraCredentialDescriptor descriptor =
+        assertDoesNotThrow(() -> factory.createDescriptor(request));
+
+    assertAll(
+        () -> assertEquals(vector.name(), descriptor.name()),
+        () -> assertEquals(vector.ocraSuite(), descriptor.suite().value()),
+        () -> assertEquals(vector.counterValue(), descriptor.counter().orElse(null)),
+        () ->
+            assertEquals(
+                vector.pinHashHex() == null,
+                descriptor.pinHash().isEmpty(),
+                "pin hash presence should match request"),
+        () -> assertEquals(DEFAULT_METADATA, descriptor.metadata()));
+
+    factory.validateChallenge(descriptor, vector.challenge());
+    factory.validateSessionInformation(descriptor, vector.sessionInformation());
+
+    if (vector.timestamp() != null) {
+      factory.validateTimestamp(descriptor, vector.timestamp(), vector.referenceInstant());
+    } else {
+      factory.validateTimestamp(descriptor, null, null);
+    }
   }
 
   @DisplayName("malformed OCRA payloads are rejected with descriptive errors")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("invalidPayloads")
   void invalidPayloadsAreRejected(OcraInvalidVector vector) {
-    fail("Implement OCRA credential validation to reject: " + vector.description());
+    OcraCredentialRequest request =
+        new OcraCredentialRequest(
+            "invalid-" + vector.description().replace(' ', '-').toLowerCase(),
+            vector.ocraSuite(),
+            vector.sharedSecretInput(),
+            vector.counterValue(),
+            vector.pinHashHex(),
+            vector.allowedDrift(),
+            Map.of());
+
+    IllegalArgumentException exception =
+        assertThrows(IllegalArgumentException.class, () -> factory.createDescriptor(request));
+
+    assertNotNull(exception.getMessage());
+    if (vector.expectedErrorSubstring() != null) {
+      // Compare case-insensitively to keep assertions stable.
+      String message = exception.getMessage().toLowerCase();
+      String expected = vector.expectedErrorSubstring().toLowerCase();
+      if (!message.contains(expected)) {
+        throw new AssertionError(
+            "Expected message to contain '%s' but was '%s'".formatted(expected, message));
+      }
+    }
   }
 
   @DisplayName("counter and PIN combinations respect suite requirements")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("counterAndPinCombinations")
   void counterAndPinCombinationsEnforceSuiteOptions(OcraCounterPinVector vector) {
-    fail("Implement counter/PIN handling for combination: " + vector.description());
+    OcraCredentialRequest request =
+        new OcraCredentialRequest(
+            "combo-" + vector.description().replace(' ', '-').toLowerCase(),
+            vector.ocraSuite(),
+            "31323334",
+            vector.counterValue(),
+            vector.pinHashHex(),
+            null,
+            Map.of());
+
+    if (vector.expectSuccess()) {
+      OcraCredentialDescriptor descriptor = factory.createDescriptor(request);
+      assertEquals(vector.counterValue(), descriptor.counter().orElse(null));
+      assertEquals(vector.pinHashHex() != null, descriptor.pinHash().isPresent());
+    } else {
+      IllegalArgumentException ex =
+          assertThrows(IllegalArgumentException.class, () -> factory.createDescriptor(request));
+      if (vector.expectedErrorSubstring() != null) {
+        String message = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
+        String expected = vector.expectedErrorSubstring().toLowerCase();
+        if (!message.contains(expected)) {
+          throw new AssertionError(
+              "Expected message to contain '%s' but was '%s'".formatted(expected, message));
+        }
+      }
+    }
   }
 
   @DisplayName("timestamp inputs honour the declared drift window")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("timestampDriftVectors")
   void timestampDriftIsValidated(OcraTimestampVector vector) {
-    fail("Implement timestamp handling for vector: " + vector.description());
+    OcraCredentialRequest request =
+        new OcraCredentialRequest(
+            "timestamp-" + vector.description().replace(' ', '-').toLowerCase(),
+            vector.ocraSuite(),
+            "3132333435363738393031323334353637383930",
+            null,
+            null,
+            vector.allowedDriftOverride(),
+            Map.of());
+
+    OcraCredentialDescriptor descriptor = factory.createDescriptor(request);
+
+    if (vector.expectedErrorSubstring() == null) {
+      factory.validateTimestamp(descriptor, vector.timestamp(), vector.referenceInstant());
+    } else {
+      IllegalArgumentException ex =
+          assertThrows(
+              IllegalArgumentException.class,
+              () ->
+                  factory.validateTimestamp(
+                      descriptor, vector.timestamp(), vector.referenceInstant()));
+      String message = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
+      String expected = vector.expectedErrorSubstring().toLowerCase();
+      if (!message.contains(expected)) {
+        throw new AssertionError(
+            "Expected message to contain '%s' but was '%s'".formatted(expected, message));
+      }
+    }
   }
 
   private static Stream<OcraValidVector> validPayloads() {
     return Stream.of(
         new OcraValidVector(
             "Counter-based suite with static challenge + PIN",
-            "OCRA-1:HOTP-SHA1-6:QC10-PSHA1",
+            "counter-suite",
+            "OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1",
             "3132333435363738393031323334353637383930",
             1L,
             "5e884898da28047151d0e56f8dc6292773603d0d",
             Duration.ofMinutes(5),
-            "1234567890",
+            "12345678",
+            null,
+            null,
             null),
         new OcraValidVector(
             "Time-based suite with session information",
+            "totp-suite",
             "OCRA-1:HOTPT30SHA256-7:QN08-SH512",
             "31323334353637383930313233343536373839304142434445464748495051525354555657585960",
             null,
             null,
             Duration.ofSeconds(30),
-            "ABCDEF12",
-            "session:device-login"));
+            "12345678",
+            "session:device-login",
+            Instant.parse("2025-09-27T12:00:00Z"),
+            Instant.parse("2025-09-27T11:59:45Z")));
   }
 
   private static Stream<OcraInvalidVector> invalidPayloads() {
     return Stream.of(
         new OcraInvalidVector(
             "Missing secret material",
-            "OCRA-1:HOTP-SHA1-6:QC10",
+            "OCRA-1:HOTP-SHA1-6:C-QN08",
             null,
             0L,
             null,
-            Instant.parse("2025-09-27T12:00:00Z"),
-            "sharedSecretKey missing"),
+            null,
+            "sharedSecretKey"),
         new OcraInvalidVector(
             "Hash suite mismatch between PIN hash and declared suite",
             "OCRA-1:HOTP-SHA256-8:QC08-PSHA256",
             "48656C6C6F576F726C64",
-            4L,
-            "legacy-sha1-hash",
-            Instant.parse("2025-09-27T12:00:00Z"),
-            "pinHash must use SHA256"),
+            null,
+            "5e884898da28047151d0e56f8dc6292773603d0d",
+            null,
+            "pinHash must use sha256"),
         new OcraInvalidVector(
             "Counter supplied for pure time-based suite",
             "OCRA-1:HOTPT30SHA512-8:QN10",
             "00112233445566778899AABBCCDDEEFF",
             8L,
             null,
-            Instant.parse("2025-09-27T12:05:00Z"),
+            null,
             "counterValue not permitted"));
   }
 
@@ -104,46 +216,58 @@ final class OcraCredentialFactoryTest {
     return Stream.of(
         new OcraCounterPinVector(
             "Suite requests counter but caller omitted it",
-            "OCRA-1:HOTP-SHA1-6:QC10",
+            "OCRA-1:HOTP-SHA1-6:C-QN08",
             null,
-            "counterValue required for QC suites"),
+            null,
+            false,
+            "counterValue required"),
         new OcraCounterPinVector(
-            "Suite accepts optional PIN hash and it is provided",
-            "OCRA-1:HOTP-SHA1-6:QC10-PSHA1",
+            "Suite requiring counter + PIN accepts provided values",
+            "OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1",
+            3L,
             "5e884898da28047151d0e56f8dc6292773603d0d",
+            true,
             null),
         new OcraCounterPinVector(
             "Suite without PIN option rejects supplied hash",
-            "OCRA-1:HOTP-SHA1-6:QC10",
+            "OCRA-1:HOTP-SHA1-6:C-QN08",
+            2L,
             "5e884898da28047151d0e56f8dc6292773603d0d",
-            "pinHash not supported"));
+            false,
+            "pinHash not permitted"));
   }
 
   private static Stream<OcraTimestampVector> timestampDriftVectors() {
+    Instant base = Instant.parse("2025-09-27T12:00:00Z");
     return Stream.of(
         new OcraTimestampVector(
             "Timestamp within 30 second window",
             "OCRA-1:HOTPT30SHA256-7:QN08",
-            Instant.parse("2025-09-27T12:00:00Z"),
+            base.plusSeconds(20),
+            base,
             Duration.ofSeconds(30),
             null),
         new OcraTimestampVector(
             "Timestamp outside allowed drift",
             "OCRA-1:HOTPT30SHA256-7:QN08",
-            Instant.parse("2025-09-27T12:04:01Z"),
+            base.plus(Duration.ofMinutes(3)),
+            base,
             Duration.ofSeconds(30),
             "timestamp outside permitted drift"));
   }
 
   private record OcraValidVector(
       String description,
+      String name,
       String ocraSuite,
       String sharedSecretHex,
       Long counterValue,
       String pinHashHex,
       Duration allowedDrift,
       String challenge,
-      String sessionInformation) {
+      String sessionInformation,
+      Instant timestamp,
+      Instant referenceInstant) {
 
     @Override
     public String toString() {
@@ -156,8 +280,8 @@ final class OcraCredentialFactoryTest {
       String ocraSuite,
       String sharedSecretInput,
       Long counterValue,
-      String pinHash,
-      Instant timestamp,
+      String pinHashHex,
+      Duration allowedDrift,
       String expectedErrorSubstring) {
 
     @Override
@@ -167,7 +291,12 @@ final class OcraCredentialFactoryTest {
   }
 
   private record OcraCounterPinVector(
-      String description, String ocraSuite, String pinHashHex, String expectedErrorSubstring) {
+      String description,
+      String ocraSuite,
+      Long counterValue,
+      String pinHashHex,
+      boolean expectSuccess,
+      String expectedErrorSubstring) {
 
     @Override
     public String toString() {
@@ -179,7 +308,8 @@ final class OcraCredentialFactoryTest {
       String description,
       String ocraSuite,
       Instant timestamp,
-      Duration allowedDrift,
+      Instant referenceInstant,
+      Duration allowedDriftOverride,
       String expectedErrorSubstring) {
 
     @Override

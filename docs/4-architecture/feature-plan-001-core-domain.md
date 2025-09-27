@@ -36,6 +36,10 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 4. Update documentation touchpoints (spec Clarifications, this plan, tasks checklist) and prep follow-up tasks to begin re-enabling Phase 1 tests in T008/T009.
 5. Run `./gradlew spotlessApply check`, capture results in this plan, and perform self-review before committing the increment.
 
+Re-enable scope for Phase 1 suites during T008: only restore the unit tests introduced in T004 once validation/factory utilities pass them; defer the property-based (T005) and ArchUnit (T006) suites until T009/T010 unlock the required functionality.
+
+2025-09-27 – Phase 2/T008 delivered: Added `OcraCredentialFactory`, tightened descriptor validation error messaging, re-enabled the T004 unit suite, and confirmed `./gradlew spotlessApply check` success at 23:16Z while keeping T005/T006 disabled per plan.
+
 ## Dependencies
 
 - Align with roadmap Workstreams 2–6 to ensure downstream modules consume the same types.

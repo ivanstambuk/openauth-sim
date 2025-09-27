@@ -4,7 +4,6 @@ import io.openauth.sim.core.model.SecretMaterial;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 /** Factory for normalising raw inputs into {@link OcraCredentialDescriptor} instances. */
@@ -19,10 +18,15 @@ public final class OcraCredentialDescriptorFactory {
       Duration allowedTimestampDrift,
       Map<String, String> metadata) {
 
-    Objects.requireNonNull(name, "name");
-    Objects.requireNonNull(ocraSuite, "ocraSuite");
-    Objects.requireNonNull(sharedSecretHex, "sharedSecretHex");
-    Objects.requireNonNull(metadata, "metadata");
+    if (name == null || name.isBlank()) {
+      throw new IllegalArgumentException("name must not be blank");
+    }
+    if (ocraSuite == null || ocraSuite.isBlank()) {
+      throw new IllegalArgumentException("ocraSuite must not be blank");
+    }
+    if (sharedSecretHex == null || sharedSecretHex.isBlank()) {
+      throw new IllegalArgumentException("sharedSecretKey must not be blank");
+    }
 
     OcraSuite suite = OcraSuiteParser.parse(ocraSuite);
     SecretMaterial sharedSecret = SecretMaterial.fromHex(normaliseHex(sharedSecretHex));
@@ -36,7 +40,11 @@ public final class OcraCredentialDescriptorFactory {
     drift.ifPresent(OcraCredentialDescriptorFactory::validateDriftWindow);
 
     return new OcraCredentialDescriptor(
-        name, suite, sharedSecret, counter, pinHash, drift, metadata);
+        name.trim(), suite, sharedSecret, counter, pinHash, drift, metadataOrEmpty(metadata));
+  }
+
+  private static Map<String, String> metadataOrEmpty(Map<String, String> metadata) {
+    return metadata == null ? Map.of() : metadata;
   }
 
   private static void validateCounter(Optional<Long> counter, OcraSuite suite) {
@@ -65,7 +73,19 @@ public final class OcraCredentialDescriptorFactory {
       throw new IllegalArgumentException("pinHash not permitted for suite: " + suite.value());
     }
 
-    return Optional.of(SecretMaterial.fromHex(normaliseHex(pinHashHex)));
+    String normalised = normaliseHex(pinHashHex);
+    OcraHashAlgorithm hashAlgorithm = suite.dataInput().pin().orElseThrow().hashAlgorithm();
+    int expectedHexLength = hashAlgorithm.hexLength();
+    if (normalised.length() != expectedHexLength) {
+      throw new IllegalArgumentException(
+          "pinHash must use "
+              + hashAlgorithm.token()
+              + " and contain "
+              + expectedHexLength
+              + " hex characters");
+    }
+
+    return Optional.of(SecretMaterial.fromHex(normalised));
   }
 
   private static void validateDriftWindow(Duration drift) {

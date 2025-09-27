@@ -71,6 +71,9 @@ Design a protocol-aware credential domain inside the `core` module that models c
 - 2025-09-27 – OCRA test cadence: Commit Phase 1 test skeletons as disabled JUnit 5 cases capturing failing expectations; document the manual failure proof while keeping `./gradlew spotlessApply check` passing until the OCRA implementation lands.
 - 2025-09-27 – OCRA property tests: Phase 1/T005 delivers disabled property-based tests that exercise secret encoding/decoding scenarios; they remain annotated with `@Disabled` until the codec implementation (T009) is ready, at which point the annotation is removed and the assertions replace placeholder `fail(...)` calls.
 - 2025-09-27 – OCRA ArchUnit rules: Introduce ArchUnit tests under `core` that assert only designated entrypoints interact with `io.openauth.sim.core.credentials.ocra` internals. Keep the suite disabled until the package structure and public API are fully defined (Phase 2), then re-enable once descriptors/factories ship.
+- 2025-09-27 – OCRA descriptor parsing: Descriptor creation parses the RFC 6287 suite into structured components (hash algorithm, response length, data inputs, drift) so subsequent factories reuse the normalised view instead of reparsing.
+- 2025-09-27 – OCRA descriptor secret handling: Descriptors store secret material as the shared `SecretMaterial` type immediately; input normalisation happens ahead of descriptor construction to keep downstream code consistent.
+- 2025-09-27 – OCRA Phase 1 test strategy for T008: Re-enable only the previously disabled unit tests from T004 once validation/factory utilities are ready; keep the property-based suite (T005) and ArchUnit guards (T006) disabled until the corresponding functionality lands in T009/T010.
 
 ## References
 - `docs/4-architecture/feature-plan-001-core-domain.md`

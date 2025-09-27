@@ -18,6 +18,20 @@ public enum OcraHashAlgorithm {
     return token;
   }
 
+  /** Expected digest length in bytes. */
+  public int digestLengthBytes() {
+    return switch (this) {
+      case SHA1 -> 20;
+      case SHA256 -> 32;
+      case SHA512 -> 64;
+    };
+  }
+
+  /** Expected hexadecimal character count for the digest. */
+  public int hexLength() {
+    return digestLengthBytes() * 2;
+  }
+
   public static OcraHashAlgorithm fromToken(String token) {
     if (token == null || token.isBlank()) {
       throw new IllegalArgumentException("Hash algorithm token must not be blank");
