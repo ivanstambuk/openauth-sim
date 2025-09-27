@@ -8,6 +8,11 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - **Confirm prerequisites.** Ensure `JAVA_HOME` points to a Java 17 JDK before invoking Gradle or Git hooks.
 - **Prime the knowledge map.** Skim `docs/4-architecture/knowledge-map.md` before planning so new work reinforces the architectural relationships already captured there.
 
+## Session Kickoff
+- Follow `docs/5-operations/runbook-session-reset.md` whenever a chat session starts without prior context.
+- Begin every fresh interaction by summarising roadmap status, feature plan progress, and open questions for the user.
+- Request clarification on outstanding questions before planning or implementation; log any new questions immediately.
+
 ## VDD Feedback Loops
 - **Update specs before code.** For every task, refresh the relevant feature plan and note open questions; only move forward once the plan reflects the desired change.
 - **Test-first cadence.** Write or extend executable specifications (unit, behaviour, or scenario tests) ahead of implementation, confirm they fail, and then drive code to green before refactoring.
