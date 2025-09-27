@@ -14,6 +14,7 @@ This living map captures the explicit relationships between modules, data flows,
 ## Current Links
 - Core module owns protocol-specific credential models consumed by facade modules.
 - MapDB-backed persistence layer (planned) will expose repositories consumed by CLI, REST API, UI, and JMeter plugin.
+- JMeter plugin drives high-volume scenarios by invoking the core credential domain directly (no REST dependency).
 - Quality automation (ArchUnit, mutation testing, security prompts) enforces boundary rules across modules.
 
 ## Open Items
@@ -46,7 +47,7 @@ CredentialDomain --> CryptoHelpers
 CLI --> CredentialDomain
 RestAPI --> CredentialDomain
 UI --> RestAPI
-JMeter --> RestAPI
+JMeter --> CredentialDomain
 Persistence --> CredentialDomain
 CredentialDomain --> Persistence
 Quality --> Core

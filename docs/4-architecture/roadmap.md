@@ -19,7 +19,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 3 | CLI tooling (Picocli) | Provide command-line flows to import, list, update, and delete credentials; accept secrets via arguments/stdin | Not started | Should integrate with `CredentialStore` API |
 | 4 | REST API (Spring Boot) | Expose emulator capabilities over REST with OpenAPI documentation | Not started | Requires Workstreams 1 & 2 |
 | 5 | Server-rendered UI | Build an operator UI consuming the REST API for manual operations | Not started | Shares DTOs with Workstream 4 |
-| 6 | JMeter plugin facade | Offer a load-testing UI facade to drive the emulator for performance scenarios | Not started | Depends on REST API surface |
+| 6 | JMeter plugin facade | Offer a load-testing UI facade to drive the emulator for performance scenarios | Not started | Depends on core credential APIs and persistence |
 | 7 | ArchUnit & quality automation | Enforce architecture boundaries, expand test/coverage checks, integrate CI badges | Not started | Should accompany each new module |
 | 8 | Specification alignment | Document references and compliance notes for FIDO2/WebAuthn, OCRA, EUDI, EMV | Not started | Capture findings in `docs/3-reference` |
 
