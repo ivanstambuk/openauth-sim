@@ -5,7 +5,7 @@ _Last updated: 2025-09-27_
 
 ## Objective
 
-Design and implement a protocol-aware credential domain in the `core` module, enabling the emulator to represent FIDO2/WebAuthn, OATH/OCRA, EUDI mDL, EMV/CA, and generic credentials with appropriate metadata, secret handling, and validation hooks.
+Design and implement a protocol-aware credential domain in the `core` module, enabling the emulator to represent FIDO2/WebAuthn, OATH/OCRA, EUDI mDL, EMV/CAP, and generic credentials with appropriate metadata, secret handling, and validation hooks.
 
 Reference specification: `docs/4-architecture/specs/feature-001-core-credential-domain.md`.
 

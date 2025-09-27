@@ -4,7 +4,7 @@ _Status: Draft_
 _Last updated: 2025-09-27_
 
 ## Overview
-Design a protocol-aware credential domain inside the `core` module that models credentials for FIDO2/WebAuthn, OATH/OCRA, EUDI mobile Driving Licence (mDL), EMV/CA, and generic use cases. The domain must provide deterministic validation and transformation logic so downstream facades (CLI, REST, UI, JMeter plugin) can consume credential data without duplicating cryptographic rules.
+Design a protocol-aware credential domain inside the `core` module that models credentials for FIDO2/WebAuthn, OATH/OCRA, EUDI mobile Driving Licence (mDL), EMV/CAP, and generic use cases. The domain must provide deterministic validation and transformation logic so downstream facades (CLI, REST, UI, JMeter plugin) can consume credential data without duplicating cryptographic rules.
 
 ## Objectives & Success Criteria
 - Provide typed credential descriptors per protocol with clearly defined required and optional fields.
@@ -19,7 +19,7 @@ Design a protocol-aware credential domain inside the `core` module that models c
 | FR-001 | Represent FIDO2/WebAuthn credentials with AAGUID, credential ID, public key material, attestation/protocol metadata, and lifecycle flags. | Creating a WebAuthn credential succeeds only when these attributes are present and valid. |
 | FR-002 | Model OATH/OCRA credentials with issuer, suite definition, counter/time parameters, and shared secret encodings. | Validation rejects missing suite identifiers or malformed secrets. |
 | FR-003 | Support EUDI mDL credential attributes including document number, issuing authority, data groups, and expiry metadata. | mDL credentials expose typed getters and validation catches missing mandatory data groups. |
-| FR-004 | Support EMV/CA credential attributes such as PAN, issuer country, application PAN sequence number, and CA public keys. | EMV credential factories block construction when checksum or key sizes are invalid. |
+| FR-004 | Support EMV/CAP credential attributes such as PAN, issuer country, application PAN sequence number, and CA public keys. | EMV credential factories block construction when checksum or key sizes are invalid. |
 | FR-005 | Provide a generic credential type for protocols not yet modeled while preserving secret handling contracts. | Generic credentials can be created with arbitrary metadata/secret pairs and reuse validation utilities. |
 | FR-006 | Offer unified factories/builders that normalise mixed user input (hex/Base64/raw) into canonical internal representations. | Attempting to create credentials with malformed encodings results in descriptive exceptions. |
 | FR-007 | Expose protocol capability introspection so facades can advertise supported credential operations. | A registry returns metadata about each credential type, including required attributes and supported crypto functions. |
