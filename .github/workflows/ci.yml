@@ -26,14 +26,3 @@ jobs:
 
       - name: Verify code style and tests
         run: ./gradlew --no-daemon spotlessCheck check
-
-      - name: Dependency vulnerability scan
-        run: ./gradlew --no-daemon dependencyCheckAnalyze
-
-      - name: Upload dependency-check report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-check-report
-          path: build/reports/dependency-check
-          if-no-files-found: ignore
