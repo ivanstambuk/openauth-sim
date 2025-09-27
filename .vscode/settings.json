@@ -1,5 +1,0 @@
-{
-    "java.configuration.updateBuildConfiguration": "automatic",
-    "java.compile.nullAnalysis.mode": "automatic",
-    "markdown-preview-enhanced.plantumlJarPath": "/home/ivan/dev/openauth-sim/tools/plantuml/plantuml.jar"
-}
