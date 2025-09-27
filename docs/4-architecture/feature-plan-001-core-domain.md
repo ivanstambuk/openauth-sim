@@ -22,6 +22,7 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - Detailed execution steps live in `docs/4-architecture/tasks/feature-001-core-credential-domain.md`. Update that checklist as work progresses and mirror status changes here; current sequencing delivers the OCRA package first with other protocols queued.
 - Map task outcomes back to the specification requirements (FR/NFR IDs) to maintain traceability; metadata capture for OCRA now covers FR-002 and FR-010.
 - Record Gradle command outputs (`./gradlew spotlessApply check`) and analysis-gate results after each work session.
+- 2025-09-27 – Phase 1/T004 landed: disabled OCRA unit-test skeleton in place; `./gradlew spotlessApply check` passed post-change.
 
 ## Dependencies
 

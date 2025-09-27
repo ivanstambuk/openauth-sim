@@ -68,6 +68,7 @@ Design a protocol-aware credential domain inside the `core` module that models c
 - 2025-09-27 – Cryptography extension point: Credential classes remain data/validation focused; all protocol cryptographic operations delegate to pluggable strategy interfaces (option 1: co-locate crypto in domain – rejected; option 2: pluggable strategies – accepted).
 - 2025-09-27 – Persistence evolution: Persist credentials using a versioned envelope with per-record `schemaVersion`, plus an upgrade pipeline that transforms stored documents into the current model during load (option 1: per-record versioned envelope – accepted; option 2: versioned collections – rejected; option 3: singleton registry flag – rejected).
 - 2025-09-27 – OCRA credential metadata: Minimum persisted fields are `name` (globally unique), `ocraSuite`, `sharedSecretKey`, optional `counterValue` when the suite specifies `C`, and optional `pinHash` when the suite specifies `P{hash}`; challenge, session, and timestamp inputs remain per-transaction values guided by the suite definition. Custom credential metadata is supported via an arbitrary key/value map that is returned on query operations but excluded from cryptographic material.
+- 2025-09-27 – OCRA test cadence: Commit Phase 1 test skeletons as disabled JUnit 5 cases capturing failing expectations; document the manual failure proof while keeping `./gradlew spotlessApply check` passing until the OCRA implementation lands.
 
 ## References
 - `docs/4-architecture/feature-plan-001-core-domain.md`
