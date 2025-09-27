@@ -1,6 +1,6 @@
 # Open Questions Log
 
-Use this file to capture outstanding questions or ambiguities before starting work. Each entry should include:
+Use this file to capture outstanding questions or ambiguities before starting work. Limit each feature to a maximum of five high-impact questions per the clarification gate. Each entry should include:
 
 - **Date** the question was raised
 - **Context** (feature plan / file / task)

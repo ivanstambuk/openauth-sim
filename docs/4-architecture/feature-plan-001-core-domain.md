@@ -7,6 +7,8 @@ _Last updated: 2025-09-27_
 
 Design and implement a protocol-aware credential domain in the `core` module, enabling the emulator to represent FIDO2/WebAuthn, OATH/OCRA, EUDI mDL, EMV/CA, and generic credentials with appropriate metadata, secret handling, and validation hooks.
 
+Reference specification: `docs/4-architecture/specs/feature-001-core-credential-domain.md`.
+
 ## Success Criteria
 
 - Typed credential descriptors exist for each targeted protocol with clearly defined required/optional attributes.
@@ -17,19 +19,15 @@ Design and implement a protocol-aware credential domain in the `core` module, en
 
 ## Task Tracker
 
-| ID | Task | Owner | Status | Notes |
-|----|------|-------|--------|-------|
-| T1 | Produce protocol capability matrix and glossary in `docs/1-concepts` | TBD | ☐ Not started | Outline fields, cryptographic primitives, lifetimes |
-| T2 | Introduce sealed interface/record hierarchy for credential types in `core` | TBD | ☐ Not started | Preserve backward compatibility with existing `Credential` record |
-| T3 | Implement protocol-specific validation + factory methods | TBD | ☐ Not started | Consider builder pattern for clarity |
-| T4 | Extend `SecretMaterial` helpers for hashing/derivation needs | TBD | ☐ Not started | e.g., convert to HMAC key, derive mDL data groups |
-| T5 | Add comprehensive JUnit/ArchUnit tests for the new domain model | TBD | ☐ Not started | Include property-based tests where possible |
-| T6 | Document migration guidance and update README/roadmap references | TBD | ☐ Not started | Summarise usage for downstream modules |
+- Detailed execution steps live in `docs/4-architecture/tasks/feature-001-core-credential-domain.md`. Update that checklist as work progresses and mirror status changes here.
+- Map task outcomes back to the specification requirements (FR/NFR IDs) to maintain traceability.
+- Record Gradle command outputs (`./gradlew spotlessApply check`) and analysis-gate results after each work session.
 
 ## Dependencies
 
 - Align with roadmap Workstreams 2–6 to ensure downstream modules consume the same types.
 - Surface any new security/privacy considerations as ADRs.
+- Complete the analysis gate checklist (`docs/5-operations/analysis-gate-checklist.md`) before implementation sessions begin.
 
 ## Open Questions
 

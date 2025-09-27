@@ -7,10 +7,12 @@ Detection (Alerts/Queries):
 - User opens with "Project status" or otherwise indicates a fresh session.
 
 Immediate actions:
-1. Read `AGENTS.md` to refresh global working agreements.
+1. Read `AGENTS.md` to refresh global working agreements and the project constitution link.
 2. Review `docs/4-architecture/roadmap.md` for current workstreams and milestones.
-3. Inspect the active feature plan(s) in `docs/4-architecture/feature-plan-*.md`.
-4. Check `docs/4-architecture/open-questions.md` for unresolved clarifications.
+3. Inspect the active feature specification(s) in `docs/4-architecture/specs/`.
+4. Inspect the corresponding feature plan(s) in `docs/4-architecture/feature-plan-*.md`.
+5. Review the per-feature tasks in `docs/4-architecture/tasks/`.
+6. Check `docs/4-architecture/open-questions.md` for unresolved clarifications.
 
 Diagnosis tree:
 - If open questions exist, prepare a clarification request before planning.
@@ -20,7 +22,7 @@ Diagnosis tree:
 Remediation:
 - Summarise project status back to the user (roadmap state, open questions, next suggested action).
 - Request clarifications where needed and wait for responses before coding.
-- Once direction is confirmed, proceed with planning/implementation per `AGENTS.md` guidelines.
+- Once direction is confirmed, ensure the analysis gate (`docs/5-operations/analysis-gate-checklist.md`) is satisfied, then proceed with planning/implementation per `AGENTS.md` guidelines.
 
 Owner/On-call escalation:
 - Escalate to the user when:

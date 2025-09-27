@@ -14,7 +14,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 
 | # | Workstream | Goal | Status | Notes |
 |---|------------|------|--------|-------|
-| 1 | Core credential domain | Model protocol-specific credential types (FIDO2, OATH/OCRA, EUDI mDL, EMV/CA) with validation and crypto helpers | In planning | Feature plan: [Feature Plan 001](feature-plan-001-core-domain.md) |
+| 1 | Core credential domain | Model protocol-specific credential types (FIDO2, OATH/OCRA, EUDI mDL, EMV/CA) with validation and crypto helpers | In planning | Spec: [Feature 001](specs/feature-001-core-credential-domain.md), Plan: [Feature Plan 001](feature-plan-001-core-domain.md), Tasks: [Feature 001 Tasks](tasks/feature-001-core-credential-domain.md) |
 | 2 | Persistence & caching hardening | Tune MapDB + Caffeine (encryption options, compaction, metrics) | Not started | Depends on Workstream 1 definitions |
 | 3 | CLI tooling (Picocli) | Provide command-line flows to import, list, update, and delete credentials; accept secrets via arguments/stdin | Not started | Should integrate with `CredentialStore` API |
 | 4 | REST API (Spring Boot) | Expose emulator capabilities over REST with OpenAPI documentation | Not started | Requires Workstreams 1 & 2 |

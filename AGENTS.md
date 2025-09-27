@@ -1,12 +1,19 @@
 # Agent Playbook
 
-_Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `rest-api/`, `ui/`) sit on top, and long-form docs reside under `docs/`._
+_Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `rest-api/`, `ui/`) sit on top, and long-form docs reside under `docs/`._ Read the project constitution in `docs/6-decisions/project-constitution.md` before acting.
 
 ## Before You Code
-- **Clarify ambiguity first.** Do not plan or implement until every requirement is understood. Ask the user, record unresolved items in `docs/4-architecture/open-questions.md`, and wait for answers.
+- **Clarify ambiguity first.** Do not plan or implement until every requirement is understood. Ask the user, record unresolved items in `docs/4-architecture/open-questions.md`, and wait for answers. Capture accepted answers in the relevant specification under `## Clarifications`.
 - **Work in small steps.** Deliver self-contained changes that finish in ≤10 minutes, run `./gradlew spotlessApply check`, and commit with a conventional message.
 - **Confirm prerequisites.** Ensure `JAVA_HOME` points to a Java 17 JDK before invoking Gradle or Git hooks.
 - **Prime the knowledge map.** Skim `docs/4-architecture/knowledge-map.md` before planning so new work reinforces the architectural relationships already captured there.
+
+## Specification Pipeline
+- Start every feature by updating or creating its specification in `docs/4-architecture/specs/`.
+- Use up to five high-impact clarification questions per feature; log them in `docs/4-architecture/open-questions.md` and record resolutions in the spec.
+- Generate or refresh the feature plan (`docs/4-architecture/feature-plan-*.md`) only after the specification is current and clarifications resolved.
+- Maintain a per-feature tasks checklist under `docs/4-architecture/tasks/` that mirrors the plan, orders tests before code, and keeps increments ≤10 minutes.
+- Run the analysis gate in `docs/5-operations/analysis-gate-checklist.md` once spec, plan, and tasks agree; address findings before implementation.
 
 ## Session Kickoff
 - Follow `docs/5-operations/runbook-session-reset.md` whenever a chat session starts without prior context.
@@ -19,7 +26,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - **Reflection checkpoint.** After loops close, record lessons, coverage deltas, and follow-ups back into the feature plan or roadmap to keep the vibe-driven history auditable.
 
 ## During Implementation
-- **Sync context to disk.** Update the roadmap (`docs/4-architecture/roadmap.md`) and feature plans (`docs/4-architecture/feature-plan-*.md`) as progress is made. Use ADRs only for final decisions.
+- **Sync context to disk.** Update the roadmap (`docs/4-architecture/roadmap.md`), feature specs, feature plans, and tasks documents as progress is made. Use ADRs only for final decisions.
 - **Tests are compulsory.** Always run `./gradlew spotlessApply check`. If a test remains red, disable it with a TODO, note the reason, and capture the follow-up in the relevant plan.
 - **Maintain the knowledge map.** Add, adjust, or prune entries in `docs/4-architecture/knowledge-map.md` whenever new modules, dependencies, or contracts appear.
 - **RCI self-review.** Before hand-off, review your own changes, rerun checks, and ensure documentation/test coverage matches the behaviour.
@@ -32,7 +39,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - **Escalation policy.** Propose risky refactors, persistence changes, or dependency updates to the user before touching code—record approvals in the relevant plan.
 
 ## Tracking & Documentation
-- **Implementation plans.** Keep high-level plans in `docs/4-architecture/roadmap.md` and feature-specific plans alongside them. Remove plans once work is complete.
+- **Implementation plans.** Keep high-level plans in `docs/4-architecture/roadmap.md`, specifications in `docs/4-architecture/specs/`, feature plans alongside them, and per-feature tasks under `docs/4-architecture/tasks/`. Remove plans once work is complete.
 - **Open questions.** Log open questions in `docs/4-architecture/open-questions.md` and mark them resolved when answered.
 - **Decisions.** Record only confirmed architectural decisions as ADRs under `docs/6-decisions/`.
 - **Local overrides.** If a subdirectory requires different instructions, add an `AGENTS.md` there and reference it from the roadmap/feature plan.
