@@ -65,10 +65,10 @@ Long-form documentation lives in `/docs`:
 
 ## Next steps
 
-1. Flesh out the credential domain model (metadata, key material lifecycles, crypto primitives).
-2. Instrument ArchUnit tests in `core` to keep packages honest as we expand.
-3. Implement CLI ingestion flows (Picocli) wired to `CredentialStore`.
-4. Stand up REST + UI modules (Spring Boot) with shared DTO contracts generated into `docs/3-reference`.
-5. Add a JMeter plugin facade to provide a familiar load-testing UI against the emulator.
+See the living [Implementation Roadmap](docs/4-architecture/roadmap.md) for up-to-date priorities. The current focus areas are:
+
+- Finalise the protocol-aware credential domain (`core`).
+- Stand up operator tooling (CLI, REST, UI) atop the shared credential model.
+- Prepare load and compliance tooling, including the planned JMeter facade and specification references.
 
 Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before raising PRs.
