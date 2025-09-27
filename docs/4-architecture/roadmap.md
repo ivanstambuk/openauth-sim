@@ -34,5 +34,6 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 - [ ] Create detailed feature plans for Workstreams 2–6 (Feature Plan 001 covers Workstream 1).
 - [ ] Capture ADRs for crypto design decisions (key formats, hashing algorithms, etc.).
 - [ ] Identify specification links for inclusion in docs once network lookups are permitted.
+- [x] Bootstrap architecture knowledge map in `docs/4-architecture/knowledge-map.md`.
 
 Keep this roadmap synced with each significant decision or completion event.

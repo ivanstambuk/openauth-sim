@@ -10,6 +10,6 @@ Use this file to capture outstanding questions or ambiguities before starting wo
 
 | Date | Context | Question | Status | Resolution |
 |------|---------|----------|--------|------------|
-| _TBD_ | _TBD_ | _Describe the uncertainty_ | Open |  |
+| 2025-09-27 | Feature Plan 001 / Knowledge Map | Confirm MapDB caching topology (shared vs per facade) | Open |  |
 
 Update entries as soon as the user clarifies them, then mark the row as resolved.
