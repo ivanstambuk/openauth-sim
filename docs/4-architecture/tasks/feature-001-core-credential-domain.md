@@ -22,7 +22,7 @@ _Last updated: 2025-09-27_
 |----|------|----------------------|-----------|
 | T003 | [x] Capture the minimum OCRA metadata set (suite string, secret material requirements, optional counter/PIN handling) and document it under spec clarifications alongside global name/custom metadata rules. | FR-002, FR-010 | No |
 | T004 | [x] Create OCRA unit test skeletons covering valid/invalid payload samples, counter/time drifts, and hash suite mismatches (landed disabled per spec clarification). | FR-002, NFR-004 | No |
-| T005 | Add property-based tests for OCRA secret material encoding/decoding utilities. | FR-006, NFR-004 | No |
+| T005 | [x] Add property-based tests for OCRA secret material encoding/decoding utilities (committed disabled pending helper implementation). | FR-006, NFR-004 | No |
 | T006 | Define ArchUnit rules ensuring only the OCRA package accesses its internals from outside `core`. | FR-007, NFR-004 | No |
 
 ## Phase 2 – OCRA Core Implementation

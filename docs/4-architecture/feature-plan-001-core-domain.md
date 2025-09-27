@@ -23,6 +23,7 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - Map task outcomes back to the specification requirements (FR/NFR IDs) to maintain traceability; metadata capture for OCRA now covers FR-002 and FR-010.
 - Record Gradle command outputs (`./gradlew spotlessApply check`) and analysis-gate results after each work session.
 - 2025-09-27 – Phase 1/T004 landed: disabled OCRA unit-test skeleton in place; `./gradlew spotlessApply check` passed post-change.
+- 2025-09-27 – Phase 1/T005 landed: disabled property-based secret material tests in place; `./gradlew spotlessApply check` executed successfully after commit preparation.
 
 ## Dependencies
 
