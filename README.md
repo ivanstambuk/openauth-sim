@@ -67,5 +67,6 @@ Long-form documentation lives in `/docs`:
 2. Instrument ArchUnit tests in `core` to keep packages honest as we expand.
 3. Implement CLI ingestion flows (Picocli) wired to `CredentialStore`.
 4. Stand up REST + UI modules (Spring Boot) with shared DTO contracts generated into `docs/3-reference`.
+5. Add a JMeter plugin facade to provide a familiar load-testing UI against the emulator.
 
 Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before raising PRs.
