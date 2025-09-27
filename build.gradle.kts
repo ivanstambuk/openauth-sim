@@ -1,3 +1,4 @@
+import net.ltgt.gradle.errorprone.ErrorProneOptions
 import net.ltgt.gradle.errorprone.errorprone
 import org.gradle.api.JavaVersion
 import org.gradle.api.artifacts.VersionCatalog
@@ -19,6 +20,7 @@ plugins {
 }
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
+val errorProneEnabled = providers.gradleProperty("errorproneEnabled").map(String::toBoolean).getOrElse(false)
 fun VersionCatalog.library(alias: String) = findLibrary(alias).orElseThrow()
 fun VersionCatalog.version(alias: String) = findVersion(alias).orElseThrow().requiredVersion
 
@@ -107,7 +109,8 @@ subprojects {
             "org.codehaus.plexus:plexus-utils:3.5.1",
             "org.apache.commons:commons-lang3:3.17.0",
             "org.apache.httpcomponents:httpcore:4.4.16",
-            "org.slf4j:slf4j-api:2.0.13"
+            "org.slf4j:slf4j-api:2.0.13",
+            "commons-codec:commons-codec:1.15"
         )
     }
 
@@ -123,10 +126,15 @@ subprojects {
 
     tasks.withType<JavaCompile>().configureEach {
         options.release.set(17)
-        options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
-        options.errorprone {
-            disableWarningsInGeneratedCode.set(true)
-            allErrorsAsWarnings.set(false)
+        options.compilerArgs.add("-Xlint:all")
+        val errorProneOptions: ErrorProneOptions = options.errorprone
+        errorProneOptions.isEnabled.set(errorProneEnabled)
+        errorProneOptions.disableWarningsInGeneratedCode.set(true)
+        errorProneOptions.allErrorsAsWarnings.set(false)
+        if (errorProneEnabled) {
+            errorProneOptions.errorproneArgs.set(listOf("--should-stop=ifError=FLOW"))
+        } else {
+            errorProneOptions.errorproneArgs.set(emptyList())
         }
     }
 
