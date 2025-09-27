@@ -10,4 +10,3 @@ Use this file to capture outstanding questions or ambiguities before starting wo
 
 | Date | Context | Question | Status | Resolution |
 |------|---------|----------|--------|------------|
-| 2025-09-27 | Feature Plan 001 – Core Credential Domain | What minimum metadata set must the OCRA protocol expose to satisfy emulator scenarios? | Open | Pending – document under spec clarifications once answered |

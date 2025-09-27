@@ -1,6 +1,6 @@
 # Feature 001 – Core Credential Domain Tasks
 
-_Status: Not started_
+_Status: In progress_
 _Last updated: 2025-09-27_
 
 ## Execution Notes
@@ -20,7 +20,7 @@ _Last updated: 2025-09-27_
 ## Phase 1 – OCRA Specification Tests
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|
-| T003 | Capture the minimum OCRA metadata set (issuer label, suite string, counter/time settings, secret encoding policy) and document it under spec clarifications. | FR-002 | No |
+| T003 | [x] Capture the minimum OCRA metadata set (suite string, secret material requirements, optional counter/PIN handling) and document it under spec clarifications alongside global name/custom metadata rules. | FR-002, FR-010 | No |
 | T004 | Create OCRA unit test skeletons covering valid/invalid payload samples, counter/time drifts, and hash suite mismatches. | FR-002, NFR-004 | No |
 | T005 | Add property-based tests for OCRA secret material encoding/decoding utilities. | FR-006, NFR-004 | No |
 | T006 | Define ArchUnit rules ensuring only the OCRA package accesses its internals from outside `core`. | FR-007, NFR-004 | No |

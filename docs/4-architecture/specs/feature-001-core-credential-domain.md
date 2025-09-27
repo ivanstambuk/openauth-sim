@@ -25,6 +25,7 @@ Design a protocol-aware credential domain inside the `core` module that models c
 | FR-007 | Expose protocol capability introspection so facades can advertise supported credential operations. | A registry returns metadata about each credential type, including required attributes and supported crypto functions. |
 | FR-008 | Produce error diagnostics suitable for CLI/REST responses without leaking secret material. | Validation errors redact secrets and point to offending fields. |
 | FR-009 | Simulate EUDI wallet registration (issuance) and authentication (presentation) flows, including OpenID4VCI, OpenID4VP, and ISO/IEC 18013-7 session requirements. | Credential domain surfaces factories, state markers, and validation hooks supporting both issuance and presentation lifecycle stages. |
+| FR-010 | Ensure every credential instance exposes a globally unique `name` plus an extensible key/value metadata map returned by lookup operations but ignored by crypto flows. | Creating credentials without a unique name or with malformed custom metadata must fail fast with descriptive errors. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |
@@ -66,6 +67,7 @@ Design a protocol-aware credential domain inside the `core` module that models c
 - 2025-09-27 – Protocol packaging cadence: Maintain one package per protocol (`io.openauth.sim.core.credentials.{ocra|fido2|eudiw|emvcap}`), deliver them as separate increments, and begin detailed design/implementation with OCRA while parking the other protocols until their dedicated plans are prepared.
 - 2025-09-27 – Cryptography extension point: Credential classes remain data/validation focused; all protocol cryptographic operations delegate to pluggable strategy interfaces (option 1: co-locate crypto in domain – rejected; option 2: pluggable strategies – accepted).
 - 2025-09-27 – Persistence evolution: Persist credentials using a versioned envelope with per-record `schemaVersion`, plus an upgrade pipeline that transforms stored documents into the current model during load (option 1: per-record versioned envelope – accepted; option 2: versioned collections – rejected; option 3: singleton registry flag – rejected).
+- 2025-09-27 – OCRA credential metadata: Minimum persisted fields are `name` (globally unique), `ocraSuite`, `sharedSecretKey`, optional `counterValue` when the suite specifies `C`, and optional `pinHash` when the suite specifies `P{hash}`; challenge, session, and timestamp inputs remain per-transaction values guided by the suite definition. Custom credential metadata is supported via an arbitrary key/value map that is returned on query operations but excluded from cryptographic material.
 
 ## References
 - `docs/4-architecture/feature-plan-001-core-domain.md`
