@@ -25,6 +25,16 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - 2025-09-27 – Phase 1/T004 landed: disabled OCRA unit-test skeleton in place; `./gradlew spotlessApply check` passed post-change.
 - 2025-09-27 – Phase 1/T005 landed: disabled property-based secret material tests in place; `./gradlew spotlessApply check` executed successfully after commit preparation.
 - 2025-09-27 – Phase 1/T006 landed: disabled ArchUnit guardrails prevent cross-package leakage; revisit in Phase 2 to re-enable once descriptors exist.
+- 2025-09-27 – Clarification resolved: OCRA descriptors parse the suite during construction and store secrets using `SecretMaterial`, guiding the T007 implementation approach.
+- 2025-09-27 – Phase 2/T007: descriptor parser + factory landed with OCRA suite coverage; `./gradlew spotlessApply check` succeeded (27s, configuration cache reused).
+
+## Phase 2 – Upcoming Increment (T007 OCRA Descriptor Foundation)
+
+1. Draft descriptor-focused tests under `core/src/test/java/io/openauth/sim/core/credentials/ocra` covering suite parsing results, secret material expectations, and metadata exposure. Leave existing disabled suites untouched; the new tests will fail until descriptors exist.
+2. Introduce descriptor/model types in `io.openauth.sim.core.credentials.ocra` that encapsulate the parsed RFC 6287 suite components alongside `SecretMaterial` and custom attributes.
+3. Provide factories/builders that accept raw inputs, normalise them (delegating to shared helpers where available), and surface validation messages for missing/invalid data while keeping persistence-ready output immutable.
+4. Update documentation touchpoints (spec Clarifications, this plan, tasks checklist) and prep follow-up tasks to begin re-enabling Phase 1 tests in T008/T009.
+5. Run `./gradlew spotlessApply check`, capture results in this plan, and perform self-review before committing the increment.
 
 ## Dependencies
 
@@ -45,11 +55,5 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
   - Planned work remains compliant with constitution principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
   - Tooling readiness captured (`./gradlew spotlessApply check`) and this analysis record stored here.
   - Outcome: PASS – proceed to test design (Phase 1 tasks).
-
-## Open Questions
-
-- What minimum metadata is required for each protocol to satisfy emulator goals?
-- Should the domain expose cryptographic operations directly or delegate to strategy interfaces?
-- How will persistence versioning be handled when credential schemas evolve?
 
 Update this plan as tasks progress: check off completed items, add new tasks, and note blockers.

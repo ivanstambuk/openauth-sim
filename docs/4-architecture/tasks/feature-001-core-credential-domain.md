@@ -33,6 +33,13 @@ _Last updated: 2025-09-27_
 | T009 | Extend secret material helpers to normalise raw/hex/Base64 inputs for OCRA secrets. | FR-006, NFR-002 | No |
 | T010 | Wire OCRA entries into the credential registry with capability metadata. | FR-007, NFR-002 | No |
 
+### T007 – Descriptor Implementation Checklist
+- [x] Create descriptor-focused tests (JUnit) defining expected suite parsing output, secret material handling, and metadata exposure; ensure they fail prior to implementation.
+- [x] Add `io.openauth.sim.core.credentials.ocra` package with descriptor record(s) and suite parsing value objects that materialise the RFC 6287 components.
+- [x] Implement descriptor factory/builders that accept raw inputs, invoke shared normalisation (pre-`SecretMaterial`), and produce immutable descriptors with validation hooks for missing/invalid data.
+- [x] Update documentation touchpoints (spec clarifications already updated, feature plan checklist) and note readiness to re-enable Phase 1 tests in subsequent tasks.
+- [x] Run `./gradlew spotlessApply check`, record outcome in the feature plan, and perform self-review before committing.
+
 ## Phase 3 – Integration & Observability
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|
