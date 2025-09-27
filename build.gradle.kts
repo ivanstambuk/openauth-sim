@@ -96,7 +96,7 @@ subprojects {
             "org.apache.commons:commons-lang3:3.17.0",
             "org.apache.httpcomponents:httpcore:4.4.16",
             "org.slf4j:slf4j-api:2.0.13",
-            "commons-codec:commons-codec:1.15"
+            "commons-codec:commons-codec:1.19.0"
         )
     }
 
