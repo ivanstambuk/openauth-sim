@@ -61,7 +61,7 @@ Long-form documentation lives in `/docs`:
 | `docs/8-compliance`      | Security & compliance posture (stub)         |
 | `docs/_assets`           | Diagram sources and shared images            |
 
-`agents.md` outlines expectations for AI agents managing the repository.
+`AGENTS.md` outlines expectations for AI agents managing the repository.
 
 ## Next steps
 
