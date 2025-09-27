@@ -1,13 +1,25 @@
 # Agent Playbook
 
-This repository is intentionally agent-driven. To keep collaboration predictable across sessions, follow these guardrails whenever an AI agent takes control:
+This repository is intentionally agent-driven. Follow these guardrails to keep work predictable across sessions.
 
-1. **Stay incremental.** Deliver self-contained changes that land in &lt;10 minutes, run `spotlessApply check`, and commit with a conventional message. Decompose big tasks rather than landing monolithic diffs.
-2. **Sync context to disk.** Update the appropriate files under `docs/` (overview, ADRs, runbooks, changelog) as you learn new facts or change behaviour so the next agent can resume without replaying the conversation.
-3. **Tests are compulsory.** Never skip `JAVA_HOME="$JAVA_HOME" ./gradlew spotlessApply check`. Ensure `JAVA_HOME` resolves to a Java 17 installation (e.g., `/usr/lib/jvm/java-17-openjdk-amd64` on Ubuntu/WSL). If something must remain red temporarily, disable the failing test with a TODO and document the reason in an ADR or issue.
-4. **No surprises.** Avoid destructive commands (e.g. `rm -rf`, `git reset --hard`) unless explicitly instructed. Never mutate files outside the repo without prior agreement.
-5. **Flag anomalies.** If you notice unexpected local changes, missing assets, or security-sensitive material, stop and raise it in the conversation before proceeding.
-6. **Document decisions.** Major architectural/protocol/storage choices require an ADR entry under `docs/6-decisions/`.
-7. **Respect secrets.** Treat all credential material as synthetic; never paste real secrets or production data into the repo or transcripts.
+## Before You Code
+- **Clarify ambiguity first.** Do not plan or implement until every requirement is understood. Ask the user, record unresolved items in `docs/4-architecture/open-questions.md`, and wait for answers.
+- **Work in small steps.** Deliver self-contained changes that finish in ≤10 minutes, run `./gradlew spotlessApply check`, and commit with a conventional message.
+- **Confirm prerequisites.** Ensure `JAVA_HOME` points to a Java 17 JDK before invoking Gradle or Git hooks.
+
+## During Implementation
+- **Sync context to disk.** Update the roadmap (`docs/4-architecture/roadmap.md`) and feature plans (`docs/4-architecture/feature-plan-*.md`) as progress is made. Use ADRs only for final decisions.
+- **Tests are compulsory.** Always run `./gradlew spotlessApply check`. If something stays red, disable the failing test with a TODO, note the reason, and capture the follow-up in the relevant plan.
+- **RCI self-review.** Before hand-off, review your own changes, rerun checks, and ensure documentation/test coverage matches the behaviour.
+- **Dependency discipline.** Never add or upgrade libraries without explicit user approval. When granted, document the rationale in the feature plan.
+- **No surprises.** Avoid destructive commands (e.g., `rm -rf`, `git reset --hard`) unless the user requests them. Stay within the repository sandbox.
+
+## Tracking & Documentation
+- **Implementation plans.** Keep high-level plans in `docs/4-architecture/roadmap.md` and feature-specific plans alongside them. Remove plans once work is complete.
+- **Open questions.** Log open questions in `docs/4-architecture/open-questions.md` and mark them resolved when answered.
+- **Decisions.** Record only confirmed architectural decisions as ADRs under `docs/6-decisions/`.
+
+## Security & Secrets
+- Keep credential data synthetic; hard-coded secrets are acceptable for tests only. Do not leak user data or modify files outside the repository.
 
 Following this playbook keeps the project reproducible and auditable across asynchronous agent hand-offs.
