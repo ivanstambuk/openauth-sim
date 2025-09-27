@@ -1,3 +1,29 @@
-# Versions and dependencies will be defined as the project evolves.
-
 [versions]
+archunit = "1.4.1"
+caffeine = "3.2.2"
+checkstyle = "11.0.1"
+errorprone = "2.42.0"
+googleJavaFormat = "1.28.0"
+junit = "5.12.2"
+mapdb = "3.1.0"
+mockito = "5.20.0"
+spotbugs = "4.9.6"
+
+[libraries]
+archunit-junit5 = { group = "com.tngtech.archunit", name = "archunit-junit5", version.ref = "archunit" }
+caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine", version.ref = "caffeine" }
+checkstyle = { group = "com.puppycrawl.tools", name = "checkstyle", version.ref = "checkstyle" }
+errorprone-core = { group = "com.google.errorprone", name = "error_prone_core", version.ref = "errorprone" }
+errorprone-annotations = { group = "com.google.errorprone", name = "error_prone_annotations", version.ref = "errorprone" }
+googleJavaFormat = { group = "com.google.googlejavaformat", name = "google-java-format", version.ref = "googleJavaFormat" }
+junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter" }
+mapdb = { group = "org.mapdb", name = "mapdb", version.ref = "mapdb" }
+mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
+spotbugs-annotations = { group = "com.github.spotbugs", name = "spotbugs-annotations", version.ref = "spotbugs" }
+
+[plugins]
+errorprone = { id = "net.ltgt.errorprone", version = "3.1.0" }
+spotless = { id = "com.diffplug.spotless", version = "6.25.0" }
+spotbugs = { id = "com.github.spotbugs", version = "6.0.14" }
+dependencycheck = { id = "org.owasp.dependencycheck", version = "10.0.3" }
