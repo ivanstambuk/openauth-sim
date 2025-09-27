@@ -55,4 +55,6 @@ Quality --> Facades
 @enduml
 ```
 
+_Preview note: VS Code is configured to render PlantUML blocks through the Kroki server (`.vscode/settings.json`), avoiding the need for a local `plantuml.jar`._
+
 Update the diagram together with the bullet list whenever the architecture shifts. If PlantUML becomes unwieldy, replace it with another markdown-embedded viewpoint and document how to regenerate it.

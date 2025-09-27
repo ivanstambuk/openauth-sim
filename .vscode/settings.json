@@ -1,0 +1,5 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "markdown-preview-enhanced.plantumlServer": "https://kroki.io/plantuml/svg/"
+}
