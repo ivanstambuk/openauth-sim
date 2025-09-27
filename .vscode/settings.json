@@ -1,5 +1,5 @@
 {
     "java.configuration.updateBuildConfiguration": "automatic",
     "java.compile.nullAnalysis.mode": "automatic",
-    "markdown-preview-enhanced.plantumlServer": "https://kroki.io/plantuml/svg/"
+    "markdown-preview-enhanced.plantumlJarPath": "/home/ivan/dev/openauth-sim/tools/plantuml/plantuml.jar"
 }
