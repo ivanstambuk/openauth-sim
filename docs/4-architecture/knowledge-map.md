@@ -26,7 +26,6 @@ This living map captures the explicit relationships between modules, data flows,
 ```plantuml
 @startuml ArchitectureKnowledgeMap
 skinparam backgroundColor #ffffff
-skinparam handwritten false
 
 rectangle Core {
   component "Credential Domain" as CredentialDomain
