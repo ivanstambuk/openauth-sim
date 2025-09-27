@@ -5,11 +5,11 @@ Use this file to capture outstanding questions or ambiguities before starting wo
 - **Date** the question was raised
 - **Context** (feature plan / file / task)
 - **Question**
-- **Status** (`Open` or `Resolved`)
-- **Resolution** (who clarified and when)
+- **Status** (always `Open`; remove the row once clarified)
+- **Resolution target** (note where the answer is documented when you remove the row)
 
 | Date | Context | Question | Status | Resolution |
 |------|---------|----------|--------|------------|
-| 2025-09-27 | Feature Plan 001 / Knowledge Map | Confirm MapDB caching topology (shared vs per facade) | Resolved | Resolved 2025-09-27 – Adopt a single shared MapDB store with a shared core-managed cache for all facades. |
 
-Update entries as soon as the user clarifies them, then mark the row as resolved.
+_No open questions logged._
+When a question is answered, document the decision in the appropriate spec/ADR/runbook and delete the row from this log.
