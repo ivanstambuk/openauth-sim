@@ -26,7 +26,7 @@ Thanks for helping shape OpenAuth Simulator! We build this project in deliberate
 ## Security & compliance
 
 - Never place real credential material in the repository. Use synthetic fixtures and document their purpose in `docs/8-compliance`.
-- Dependencies are vulnerability-scanned via OWASP Dependency Check—investigate high/critical findings promptly.
+- Dependabot runs weekly to surface dependency and GitHub Actions updates; review and land generated PRs promptly, especially when security alerts are raised.
 
 ## Questions & suggestions
 

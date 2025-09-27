@@ -14,7 +14,6 @@ import org.gradle.kotlin.dsl.getByType
 plugins {
     base
     alias(libs.plugins.spotless)
-    alias(libs.plugins.dependencycheck)
     alias(libs.plugins.spotbugs) apply false
     alias(libs.plugins.errorprone) apply false
 }
@@ -54,19 +53,6 @@ spotless {
         trimTrailingWhitespace()
         indentWithSpaces()
         endWithNewline()
-    }
-}
-
-dependencyCheck {
-    failBuildOnCVSS = 7.0F
-    analyzers.apply {
-        assemblyEnabled = false
-        nodeEnabled = false
-        nodeAudit.enabled = false
-    }
-    val suppression = layout.projectDirectory.file("config/dependency-check/suppressions.xml")
-    if (suppression.asFile.exists()) {
-        suppressionFile = suppression.asFile.absolutePath
     }
 }
 
