@@ -24,9 +24,11 @@ OpenAuth Simulator is a Java&nbsp;17, Gradle-based lab environment for emulating
 ## Development quick start
 
 ```bash
-# ensure JAVA_HOME points to a Java 17 JDK; the repository bundles one under .jdks/
-JAVA_HOME="$PWD/.jdks/jdk-17.0.16+8" ./gradlew spotlessApply check
+# ensure JAVA_HOME points to your system's Java 17 installation
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a Java 17 JDK}" ./gradlew spotlessApply check
 ```
+
+> On Ubuntu/WSL, install Java 17 via `sudo apt install openjdk-17-jdk` and set `JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64`. Use `sudo update-alternatives --config java` / `--config javac` to select the 17 toolchain.
 
 Optional: point Git to the bundled hook to auto-run the command before every commit:
 
