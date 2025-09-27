@@ -60,7 +60,7 @@ Design a protocol-aware credential domain inside the `core` module that models c
 - Protocol-specific network operations (e.g., actual WebAuthn ceremony simulation).
 
 ## Clarifications
-_No outstanding clarifications. Track new questions in `docs/4-architecture/open-questions.md`; mirror resolved answers here._
+- 2025-09-27 – Persistence topology: Use a single shared MapDB store with a core-managed shared in-memory cache that all facades consume.
 
 ## References
 - `docs/4-architecture/feature-plan-001-core-domain.md`

@@ -10,6 +10,6 @@ Use this file to capture outstanding questions or ambiguities before starting wo
 
 | Date | Context | Question | Status | Resolution |
 |------|---------|----------|--------|------------|
-| 2025-09-27 | Feature Plan 001 / Knowledge Map | Confirm MapDB caching topology (shared vs per facade) | Open |  |
+| 2025-09-27 | Feature Plan 001 / Knowledge Map | Confirm MapDB caching topology (shared vs per facade) | Resolved | Resolved 2025-09-27 – Adopt a single shared MapDB store with a shared core-managed cache for all facades. |
 
 Update entries as soon as the user clarifies them, then mark the row as resolved.

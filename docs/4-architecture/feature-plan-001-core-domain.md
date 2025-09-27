@@ -28,6 +28,18 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - Align with roadmap Workstreams 2–6 to ensure downstream modules consume the same types.
 - Surface any new security/privacy considerations as ADRs.
 - Complete the analysis gate checklist (`docs/5-operations/analysis-gate-checklist.md`) before implementation sessions begin.
+- Shared persistence decision: MapDB store and core-managed cache are shared across all facades (2025-09-27).
+
+## Analysis Gate
+
+- 2025-09-27 – Checklist reviewed.
+  - Specification objectives, FR/NFR tables, and clarifications are populated and current.
+  - Open questions log shows no blocking entries for this feature.
+  - Plan references the correct spec/tasks and mirrors success criteria and dependencies.
+  - Task list covers FR-001–FR-008/NFRs with tests scheduled ahead of implementation work and ≤10 minute increments.
+  - Planned work remains compliant with constitution principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
+  - Tooling readiness captured (`./gradlew spotlessApply check`) and this analysis record stored here.
+  - Outcome: PASS – proceed to test design (Phase 1 tasks).
 
 ## Open Questions
 

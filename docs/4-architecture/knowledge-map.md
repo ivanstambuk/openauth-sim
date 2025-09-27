@@ -20,7 +20,7 @@ This living map captures the explicit relationships between modules, data flows,
 ## Open Items
 | Date | Topic | Question | Status | Follow-up |
 |------|-------|----------|--------|-----------|
-| 2025-09-27 | Persistence design | Confirm MapDB caching topology (shared vs per facade) | Open | Add to feature plan once clarified |
+| 2025-09-27 | Persistence design | Confirm MapDB caching topology (shared vs per facade) | Resolved | Resolved 2025-09-27 – Shared MapDB store with core-managed shared cache for all facades |
 
 ## PlantUML Sketch
 ```plantuml
