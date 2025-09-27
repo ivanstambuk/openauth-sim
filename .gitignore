@@ -16,3 +16,9 @@ build/
 
 # Tooling
 .jdks/
+
+# Java tooling caches
+**/bin/
+**/.settings/
+.classpath
+.project
