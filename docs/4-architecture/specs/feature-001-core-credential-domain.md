@@ -4,7 +4,7 @@ _Status: Draft_
 _Last updated: 2025-09-27_
 
 ## Overview
-Design a protocol-aware credential domain inside the `core` module that models credentials for FIDO2/WebAuthn, OATH/OCRA, EUDI mobile Driving Licence (mDL), EMV/CAP, and generic use cases. The domain must provide deterministic validation and transformation logic so downstream facades (CLI, REST, UI, JMeter plugin) can consume credential data without duplicating cryptographic rules.
+Design a protocol-aware credential domain inside the `core` module that models credentials for FIDO2/WebAuthn, OATH/OCRA, the EU Digital Identity Wallet (ISO/IEC 18013-5 mDL, ISO/IEC 23220-2 mdoc profiles, SD-JWT and W3C Verifiable Credentials, and lifecycle protocols OpenID4VCI, OpenID4VP, ISO/IEC 18013-7), EMV/CAP, and generic use cases. Each protocol will live in its own Java package (`io.openauth.sim.core.credentials.ocra`, `...fido2`, `...eudiw`, `...emvcap`) so teams can roll out implementations independently. The domain must provide deterministic validation and transformation logic so downstream facades (CLI, REST, UI, JMeter plugin) can consume credential data without duplicating cryptographic rules.
 
 ## Objectives & Success Criteria
 - Provide typed credential descriptors per protocol with clearly defined required and optional fields.
@@ -18,12 +18,13 @@ Design a protocol-aware credential domain inside the `core` module that models c
 |----|-------------|-------------------|
 | FR-001 | Represent FIDO2/WebAuthn credentials with AAGUID, credential ID, public key material, attestation/protocol metadata, and lifecycle flags. | Creating a WebAuthn credential succeeds only when these attributes are present and valid. |
 | FR-002 | Model OATH/OCRA credentials with issuer, suite definition, counter/time parameters, and shared secret encodings. | Validation rejects missing suite identifiers or malformed secrets. |
-| FR-003 | Support EUDI mDL credential attributes including document number, issuing authority, data groups, and expiry metadata. | mDL credentials expose typed getters and validation catches missing mandatory data groups. |
+| FR-003 | Support EUDI wallet credential suites (ISO/IEC 18013-5 mDL, ISO/IEC 23220-2 mdoc payloads, SD-JWT and W3C Verifiable Credentials) with document metadata, issuer attestations, data groups, and expiry controls. | EUDI credentials expose typed getters per protocol profile and validation catches missing mandatory elements. |
 | FR-004 | Support EMV/CAP credential attributes such as PAN, issuer country, application PAN sequence number, and CA public keys. | EMV credential factories block construction when checksum or key sizes are invalid. |
 | FR-005 | Provide a generic credential type for protocols not yet modeled while preserving secret handling contracts. | Generic credentials can be created with arbitrary metadata/secret pairs and reuse validation utilities. |
 | FR-006 | Offer unified factories/builders that normalise mixed user input (hex/Base64/raw) into canonical internal representations. | Attempting to create credentials with malformed encodings results in descriptive exceptions. |
 | FR-007 | Expose protocol capability introspection so facades can advertise supported credential operations. | A registry returns metadata about each credential type, including required attributes and supported crypto functions. |
 | FR-008 | Produce error diagnostics suitable for CLI/REST responses without leaking secret material. | Validation errors redact secrets and point to offending fields. |
+| FR-009 | Simulate EUDI wallet registration (issuance) and authentication (presentation) flows, including OpenID4VCI, OpenID4VP, and ISO/IEC 18013-7 session requirements. | Credential domain surfaces factories, state markers, and validation hooks supporting both issuance and presentation lifecycle stages. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |
@@ -61,6 +62,10 @@ Design a protocol-aware credential domain inside the `core` module that models c
 
 ## Clarifications
 - 2025-09-27 – Persistence topology: Use a single shared MapDB store with a core-managed shared in-memory cache that all facades consume.
+- 2025-09-27 – EUDI wallet coverage: Support ISO/IEC 18013-5 mDL, ISO/IEC 23220-2 mdoc payloads, SD-JWT + W3C VC 2.0 formats, and lifecycle flows for OpenID4VCI issuance plus OpenID4VP/ISO/IEC 18013-7 presentations so both registration and authentication scenarios are simulatable.
+- 2025-09-27 – Protocol packaging cadence: Maintain one package per protocol (`io.openauth.sim.core.credentials.{ocra|fido2|eudiw|emvcap}`), deliver them as separate increments, and begin detailed design/implementation with OCRA while parking the other protocols until their dedicated plans are prepared.
+- 2025-09-27 – Cryptography extension point: Credential classes remain data/validation focused; all protocol cryptographic operations delegate to pluggable strategy interfaces (option 1: co-locate crypto in domain – rejected; option 2: pluggable strategies – accepted).
+- 2025-09-27 – Persistence evolution: Persist credentials using a versioned envelope with per-record `schemaVersion`, plus an upgrade pipeline that transforms stored documents into the current model during load (option 1: per-record versioned envelope – accepted; option 2: versioned collections – rejected; option 3: singleton registry flag – rejected).
 
 ## References
 - `docs/4-architecture/feature-plan-001-core-domain.md`
