@@ -2,7 +2,6 @@ package io.openauth.sim.core.credentials.ocra;
 
 import io.openauth.sim.core.model.SecretMaterial;
 import java.time.Duration;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -12,7 +11,7 @@ public final class OcraCredentialDescriptorFactory {
   public OcraCredentialDescriptor create(
       String name,
       String ocraSuite,
-      String sharedSecretHex,
+      SecretMaterial sharedSecret,
       Long counterValue,
       String pinHashHex,
       Duration allowedTimestampDrift,
@@ -24,12 +23,11 @@ public final class OcraCredentialDescriptorFactory {
     if (ocraSuite == null || ocraSuite.isBlank()) {
       throw new IllegalArgumentException("ocraSuite must not be blank");
     }
-    if (sharedSecretHex == null || sharedSecretHex.isBlank()) {
-      throw new IllegalArgumentException("sharedSecretKey must not be blank");
+    if (sharedSecret == null) {
+      throw new IllegalArgumentException("sharedSecret must not be null");
     }
 
     OcraSuite suite = OcraSuiteParser.parse(ocraSuite);
-    SecretMaterial sharedSecret = SecretMaterial.fromHex(normaliseHex(sharedSecretHex));
 
     Optional<Long> counter = Optional.ofNullable(counterValue);
     validateCounter(counter, suite);
@@ -73,7 +71,7 @@ public final class OcraCredentialDescriptorFactory {
       throw new IllegalArgumentException("pinHash not permitted for suite: " + suite.value());
     }
 
-    String normalised = normaliseHex(pinHashHex);
+    String normalised = OcraSecretMaterialSupport.normaliseHex(pinHashHex);
     OcraHashAlgorithm hashAlgorithm = suite.dataInput().pin().orElseThrow().hashAlgorithm();
     int expectedHexLength = hashAlgorithm.hexLength();
     if (normalised.length() != expectedHexLength) {
@@ -92,27 +90,5 @@ public final class OcraCredentialDescriptorFactory {
     if (drift.isNegative() || drift.isZero()) {
       throw new IllegalArgumentException("allowedTimestampDrift must be positive");
     }
-  }
-
-  private static String normaliseHex(String value) {
-    String trimmed = value.trim();
-    if (trimmed.startsWith("0x") || trimmed.startsWith("0X")) {
-      trimmed = trimmed.substring(2);
-    }
-    String normalised = trimmed.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
-    if (normalised.isEmpty()) {
-      throw new IllegalArgumentException("Hex value must not be empty");
-    }
-    if ((normalised.length() & 1) != 0) {
-      throw new IllegalArgumentException("Hex value must contain an even number of characters");
-    }
-    if (!normalised.chars().allMatch(OcraCredentialDescriptorFactory::isHexCharacter)) {
-      throw new IllegalArgumentException("Value must be hexadecimal");
-    }
-    return normalised;
-  }
-
-  private static boolean isHexCharacter(int ch) {
-    return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f');
   }
 }

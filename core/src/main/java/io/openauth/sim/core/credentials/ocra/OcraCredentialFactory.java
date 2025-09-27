@@ -1,5 +1,7 @@
 package io.openauth.sim.core.credentials.ocra;
 
+import io.openauth.sim.core.model.SecretEncoding;
+import io.openauth.sim.core.model.SecretMaterial;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -23,10 +25,14 @@ public final class OcraCredentialFactory {
 
   public OcraCredentialDescriptor createDescriptor(OcraCredentialRequest request) {
     Objects.requireNonNull(request, "request");
+    SecretMaterial sharedSecret =
+        OcraSecretMaterialSupport.normaliseSharedSecret(
+            request.sharedSecret(), request.sharedSecretEncoding());
+
     return descriptorFactory.create(
         request.name(),
         request.ocraSuite(),
-        request.sharedSecretHex(),
+        sharedSecret,
         request.counterValue(),
         request.pinHashHex(),
         request.allowedTimestampDrift(),
@@ -133,7 +139,8 @@ public final class OcraCredentialFactory {
   public record OcraCredentialRequest(
       String name,
       String ocraSuite,
-      String sharedSecretHex,
+      String sharedSecret,
+      SecretEncoding sharedSecretEncoding,
       Long counterValue,
       String pinHashHex,
       Duration allowedTimestampDrift,
@@ -142,7 +149,8 @@ public final class OcraCredentialFactory {
     public OcraCredentialRequest {
       Objects.requireNonNull(name, "name");
       Objects.requireNonNull(ocraSuite, "ocraSuite");
-      // sharedSecretHex and others validated downstream to share diagnostics.
+      Objects.requireNonNull(sharedSecretEncoding, "sharedSecretEncoding");
+      // sharedSecret and other values are validated downstream to share diagnostics.
       metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
     }
   }

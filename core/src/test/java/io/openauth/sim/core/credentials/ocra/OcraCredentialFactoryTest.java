@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
+import io.openauth.sim.core.model.SecretEncoding;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -31,7 +32,8 @@ final class OcraCredentialFactoryTest {
         new OcraCredentialRequest(
             vector.name(),
             vector.ocraSuite(),
-            vector.sharedSecretHex(),
+            vector.sharedSecret(),
+            vector.secretEncoding(),
             vector.counterValue(),
             vector.pinHashHex(),
             vector.allowedDrift(),
@@ -44,6 +46,7 @@ final class OcraCredentialFactoryTest {
         () -> assertEquals(vector.name(), descriptor.name()),
         () -> assertEquals(vector.ocraSuite(), descriptor.suite().value()),
         () -> assertEquals(vector.counterValue(), descriptor.counter().orElse(null)),
+        () -> assertEquals(vector.secretEncoding(), descriptor.sharedSecret().encoding()),
         () ->
             assertEquals(
                 vector.pinHashHex() == null,
@@ -70,6 +73,7 @@ final class OcraCredentialFactoryTest {
             "invalid-" + vector.description().replace(' ', '-').toLowerCase(),
             vector.ocraSuite(),
             vector.sharedSecretInput(),
+            vector.secretEncoding(),
             vector.counterValue(),
             vector.pinHashHex(),
             vector.allowedDrift(),
@@ -99,6 +103,7 @@ final class OcraCredentialFactoryTest {
             "combo-" + vector.description().replace(' ', '-').toLowerCase(),
             vector.ocraSuite(),
             "31323334",
+            SecretEncoding.HEX,
             vector.counterValue(),
             vector.pinHashHex(),
             null,
@@ -131,6 +136,7 @@ final class OcraCredentialFactoryTest {
             "timestamp-" + vector.description().replace(' ', '-').toLowerCase(),
             vector.ocraSuite(),
             "3132333435363738393031323334353637383930",
+            SecretEncoding.HEX,
             null,
             null,
             vector.allowedDriftOverride(),
@@ -163,6 +169,7 @@ final class OcraCredentialFactoryTest {
             "counter-suite",
             "OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1",
             "3132333435363738393031323334353637383930",
+            SecretEncoding.HEX,
             1L,
             "5e884898da28047151d0e56f8dc6292773603d0d",
             Duration.ofMinutes(5),
@@ -175,13 +182,40 @@ final class OcraCredentialFactoryTest {
             "totp-suite",
             "OCRA-1:HOTPT30SHA256-7:QN08-SH512",
             "31323334353637383930313233343536373839304142434445464748495051525354555657585960",
+            SecretEncoding.HEX,
             null,
             null,
             Duration.ofSeconds(30),
             "12345678",
             "session:device-login",
             Instant.parse("2025-09-27T12:00:00Z"),
-            Instant.parse("2025-09-27T11:59:45Z")));
+            Instant.parse("2025-09-27T11:59:45Z")),
+        new OcraValidVector(
+            "Base64 shared secret with numeric challenge",
+            "base64-suite",
+            "OCRA-1:HOTP-SHA1-6:QN08",
+            "X1NpbXVsYXRvck9DUkFf",
+            SecretEncoding.BASE64,
+            null,
+            null,
+            null,
+            "12345678",
+            null,
+            null,
+            null),
+        new OcraValidVector(
+            "Raw shared secret with alphanumeric challenge",
+            "raw-suite",
+            "OCRA-1:HOTP-SHA1-6:QA08",
+            "RAW-SECRET",
+            SecretEncoding.RAW,
+            null,
+            null,
+            null,
+            "ABCDEFGH",
+            null,
+            null,
+            null));
   }
 
   private static Stream<OcraInvalidVector> invalidPayloads() {
@@ -190,6 +224,7 @@ final class OcraCredentialFactoryTest {
             "Missing secret material",
             "OCRA-1:HOTP-SHA1-6:C-QN08",
             null,
+            SecretEncoding.HEX,
             0L,
             null,
             null,
@@ -197,7 +232,8 @@ final class OcraCredentialFactoryTest {
         new OcraInvalidVector(
             "Hash suite mismatch between PIN hash and declared suite",
             "OCRA-1:HOTP-SHA256-8:QC08-PSHA256",
-            "48656C6C6F576F726C64",
+            "SGVsbG9Xb3JsZA",
+            SecretEncoding.BASE64,
             null,
             "5e884898da28047151d0e56f8dc6292773603d0d",
             null,
@@ -206,6 +242,7 @@ final class OcraCredentialFactoryTest {
             "Counter supplied for pure time-based suite",
             "OCRA-1:HOTPT30SHA512-8:QN10",
             "00112233445566778899AABBCCDDEEFF",
+            SecretEncoding.HEX,
             8L,
             null,
             null,
@@ -260,7 +297,8 @@ final class OcraCredentialFactoryTest {
       String description,
       String name,
       String ocraSuite,
-      String sharedSecretHex,
+      String sharedSecret,
+      SecretEncoding secretEncoding,
       Long counterValue,
       String pinHashHex,
       Duration allowedDrift,
@@ -279,6 +317,7 @@ final class OcraCredentialFactoryTest {
       String description,
       String ocraSuite,
       String sharedSecretInput,
+      SecretEncoding secretEncoding,
       Long counterValue,
       String pinHashHex,
       Duration allowedDrift,

@@ -1,27 +1,23 @@
 package io.openauth.sim.core.credentials.ocra;
 
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.openauth.sim.core.model.SecretEncoding;
+import io.openauth.sim.core.model.SecretMaterial;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HexFormat;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-/**
- * Phase 1/T005: property-based style tests for secret encoding helpers used by the OCRA domain.
- *
- * <p>Pending implementation of Tasks T009/T010, these tests stay disabled and rely on placeholder
- * assertions. Replace the {@link Disabled} annotation and {@link fail(String)} calls once the
- * normalisation utilities exist.
- */
+/** Phase 1/T005: property-based style tests for secret encoding helpers used by the OCRA domain. */
 @Tag("ocra")
-@Disabled("Pending Phase 2/T009 secret material helpers")
 @TestInstance(Lifecycle.PER_CLASS)
 final class OcraSecretMaterialPropertyTest {
 
@@ -33,7 +29,13 @@ final class OcraSecretMaterialPropertyTest {
     String rawSecret = randomAsciiSecret(32);
     String mixedCaseHex = randomisedHexCasing(rawSecret);
 
-    fail("Implement OCRA secret normalisation for hex input: " + mixedCaseHex);
+    SecretMaterial material =
+        OcraSecretMaterialSupport.normaliseSharedSecret(mixedCaseHex, SecretEncoding.HEX);
+
+    String expectedHex = HexFormat.of().formatHex(rawSecret.getBytes(StandardCharsets.US_ASCII));
+
+    assertEquals(SecretEncoding.HEX, material.encoding());
+    assertEquals(expectedHex, material.asHex());
   }
 
   @DisplayName("base64 secrets round-trip to raw bytes and back")
@@ -42,7 +44,12 @@ final class OcraSecretMaterialPropertyTest {
     byte[] seed = randomBytes(32);
     String base64 = Base64.getEncoder().withoutPadding().encodeToString(seed);
 
-    fail("Implement OCRA secret base64 round-trip for payload: " + base64);
+    SecretMaterial material =
+        OcraSecretMaterialSupport.normaliseSharedSecret(base64, SecretEncoding.BASE64);
+
+    assertEquals(SecretEncoding.BASE64, material.encoding());
+    assertArrayEquals(seed, material.value());
+    assertEquals(base64, material.asBase64());
   }
 
   @DisplayName("invalid encodings surface descriptive errors")
@@ -50,7 +57,16 @@ final class OcraSecretMaterialPropertyTest {
   void invalidEncodingsAreRejected() {
     String malformedInput = randomMalformedSecret();
 
-    fail("Implement OCRA secret validation failure for input: " + malformedInput);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> OcraSecretMaterialSupport.normaliseSharedSecret(malformedInput, SecretEncoding.HEX));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            OcraSecretMaterialSupport.normaliseSharedSecret(malformedInput, SecretEncoding.BASE64));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> OcraSecretMaterialSupport.normaliseSharedSecret("  ", SecretEncoding.RAW));
   }
 
   private static String randomAsciiSecret(int length) {

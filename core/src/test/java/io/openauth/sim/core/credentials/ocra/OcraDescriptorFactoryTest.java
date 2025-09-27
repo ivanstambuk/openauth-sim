@@ -26,7 +26,8 @@ final class OcraDescriptorFactoryTest {
         factory.create(
             "demo-token",
             "OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1",
-            "3132333435363738393031323334353637383930",
+            SecretMaterial.fromHex(
+                OcraSecretMaterialSupport.normaliseHex("3132333435363738393031323334353637383930")),
             1L,
             "5e884898da28047151d0e56f8dc6292773603d0d",
             Duration.ofMinutes(5),
@@ -68,7 +69,9 @@ final class OcraDescriptorFactoryTest {
         factory.create(
             "totp-token",
             "OCRA-1:HOTPT30SHA256-7:QN08-SH512",
-            "31323334353637383930313233343536373839304142434445464748495051525354555657585960",
+            SecretMaterial.fromHex(
+                OcraSecretMaterialSupport.normaliseHex(
+                    "31323334353637383930313233343536373839304142434445464748495051525354555657585960")),
             null,
             null,
             Duration.ofSeconds(30),
@@ -111,7 +114,8 @@ final class OcraDescriptorFactoryTest {
                 factory.create(
                     "counter-missing",
                     "OCRA-1:HOTP-SHA1-6:C-QN08",
-                    "3132333435363738",
+                    SecretMaterial.fromHex(
+                        OcraSecretMaterialSupport.normaliseHex("3132333435363738")),
                     null,
                     null,
                     null,
@@ -130,7 +134,8 @@ final class OcraDescriptorFactoryTest {
                 factory.create(
                     "pin-mismatch",
                     "OCRA-1:HOTP-SHA1-6:QN08",
-                    "3132333435363738",
+                    SecretMaterial.fromHex(
+                        OcraSecretMaterialSupport.normaliseHex("3132333435363738")),
                     null,
                     "5e884898da28047151d0e56f8dc6292773603d0d",
                     null,
@@ -148,7 +153,8 @@ final class OcraDescriptorFactoryTest {
             factory.create(
                 "bad-secret",
                 "OCRA-1:HOTP-SHA1-6:QN08",
-                "this-is-not-hex",
+                OcraSecretMaterialSupport.normaliseSharedSecret(
+                    "this-is-not-hex", SecretEncoding.HEX),
                 null,
                 null,
                 null,
