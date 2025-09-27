@@ -28,6 +28,12 @@ OpenAuth Simulator is a Java&nbsp;17, Gradle-based lab environment for emulating
 JAVA_HOME="$PWD/.jdks/jdk-17.0.16+8" ./gradlew spotlessApply check
 ```
 
+Optional: point Git to the bundled hook to auto-run the command before every commit:
+
+```bash
+git config core.hooksPath githooks
+```
+
 The default build disables Error Prone for now because plugin 3.1.0 and recent Error Prone drops raise `--should-stop` incompatibilities. Re-enable once a compatible plugin is published by passing `-PerrorproneEnabled=true` and addressing any diagnostics during the run.
 
 ### Conventions

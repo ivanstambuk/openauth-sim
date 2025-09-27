@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR=$(git rev-parse --show-toplevel)
+JAVA_HOME="${JAVA_HOME:-$ROOT_DIR/.jdks/jdk-17.0.16+8}" \
+  "$ROOT_DIR"/gradlew --no-daemon spotlessApply check
