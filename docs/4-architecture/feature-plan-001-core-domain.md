@@ -24,6 +24,7 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - Record Gradle command outputs (`./gradlew spotlessApply check`) and analysis-gate results after each work session.
 - 2025-09-27 – Phase 1/T004 landed: disabled OCRA unit-test skeleton in place; `./gradlew spotlessApply check` passed post-change.
 - 2025-09-27 – Phase 1/T005 landed: disabled property-based secret material tests in place; `./gradlew spotlessApply check` executed successfully after commit preparation.
+- 2025-09-27 – Phase 1/T006 landed: disabled ArchUnit guardrails prevent cross-package leakage; revisit in Phase 2 to re-enable once descriptors exist.
 
 ## Dependencies
 

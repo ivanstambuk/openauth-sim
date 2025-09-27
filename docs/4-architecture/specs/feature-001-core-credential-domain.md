@@ -70,6 +70,7 @@ Design a protocol-aware credential domain inside the `core` module that models c
 - 2025-09-27 – OCRA credential metadata: Minimum persisted fields are `name` (globally unique), `ocraSuite`, `sharedSecretKey`, optional `counterValue` when the suite specifies `C`, and optional `pinHash` when the suite specifies `P{hash}`; challenge, session, and timestamp inputs remain per-transaction values guided by the suite definition. Custom credential metadata is supported via an arbitrary key/value map that is returned on query operations but excluded from cryptographic material.
 - 2025-09-27 – OCRA test cadence: Commit Phase 1 test skeletons as disabled JUnit 5 cases capturing failing expectations; document the manual failure proof while keeping `./gradlew spotlessApply check` passing until the OCRA implementation lands.
 - 2025-09-27 – OCRA property tests: Phase 1/T005 delivers disabled property-based tests that exercise secret encoding/decoding scenarios; they remain annotated with `@Disabled` until the codec implementation (T009) is ready, at which point the annotation is removed and the assertions replace placeholder `fail(...)` calls.
+- 2025-09-27 – OCRA ArchUnit rules: Introduce ArchUnit tests under `core` that assert only designated entrypoints interact with `io.openauth.sim.core.credentials.ocra` internals. Keep the suite disabled until the package structure and public API are fully defined (Phase 2), then re-enable once descriptors/factories ship.
 
 ## References
 - `docs/4-architecture/feature-plan-001-core-domain.md`
