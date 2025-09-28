@@ -36,6 +36,8 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - 2025-09-28 – Phase 3/T013 initiated: Add structured validation telemetry for OCRA flows, emitting redacted diagnostics suitable for future observability pipelines while keeping constitution logging rules intact.
 - 2025-09-28 – Phase 3/T013 delivered: Structured debug telemetry added to OCRA validations with log capture tests; `./gradlew spotlessApply check` succeeded (2025-09-28T16:58:00Z, 18s, configuration cache reused).
 - 2025-09-28 – Phase 4/T014 delivered: `docs/1-concepts/README.md` now includes the OCRA capability matrix, glossary, and telemetry reference; `./gradlew spotlessApply check` succeeded (2025-09-28T17:05:00Z, reuse configuration cache).
+- 2025-09-28 – Phase 4/T015 initiated: Refresh knowledge map to highlight telemetry flows, documentation touchpoints, and pending protocol packages.
+- 2025-09-28 – Phase 4/T015 delivered: Knowledge map now references the OCRA documentation/telemetry contract and flags pending protocol packages for future plans.
 
 ## Phase 4 – Next Increment (T014 OCRA Documentation Sync)
 
