@@ -117,13 +117,21 @@ subprojects {
             "org.apache.httpcomponents:httpcore:4.4.16",
             "org.slf4j:slf4j-api:2.0.13",
             "commons-codec:commons-codec:1.19.0",
+            "com.github.ben-manes.caffeine:caffeine:${libsCatalog.version("caffeine")}",
             "org.junit.jupiter:junit-jupiter:$junitVersion",
             "org.junit.jupiter:junit-jupiter-api:$junitVersion",
             "org.junit.jupiter:junit-jupiter-params:$junitVersion",
             "org.junit.jupiter:junit-jupiter-engine:$junitVersion",
             "org.junit.platform:junit-platform-commons:$junitPlatformVersion",
             "org.junit.platform:junit-platform-engine:$junitPlatformVersion",
-            "org.junit.platform:junit-platform-launcher:$junitPlatformVersion"
+            "org.junit.platform:junit-platform-launcher:$junitPlatformVersion",
+            "io.micrometer:micrometer-observation:1.13.4",
+            "io.micrometer:micrometer-commons:1.13.4",
+            "net.bytebuddy:byte-buddy:1.14.19",
+            "net.bytebuddy:byte-buddy-agent:1.14.19",
+            "org.hamcrest:hamcrest:2.2",
+            "org.jspecify:jspecify:1.0.0",
+            "net.minidev:json-smart:2.5.1"
         )
     }
 

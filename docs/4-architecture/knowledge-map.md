@@ -27,6 +27,7 @@ This living map captures the explicit relationships between modules, data flows,
 - Caffeine cache layer exposes per-profile defaults (in-memory, file-backed, container) with expire-after-access/write strategies to sustain ≥10k RPS targets while keeping overrides available via builder hooks; operators can reference `docs/2-how-to/configure-persistence-profiles.md` for configuration steps.
 - JMeter plugin drives high-volume scenarios by invoking the core credential domain directly (no REST dependency).
 - Quality automation (ArchUnit, mutation testing, security prompts) enforces boundary rules across modules.
+- REST API will surface session-aware OCRA evaluation endpoint reusing core calculator, sharing telemetry contract with CLI (spec drafted 2025-09-28).
 
 ## Open Items
 | Date | Topic | Question | Status | Follow-up |
