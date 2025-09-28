@@ -1,17 +1,23 @@
 package io.openauth.sim.rest.ocra;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.openauth.sim.core.credentials.ocra.OcraChallengeFormat;
 import io.openauth.sim.core.credentials.ocra.OcraChallengeQuestion;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
+import io.openauth.sim.core.credentials.ocra.OcraTimestampSpecification;
 import io.openauth.sim.core.model.SecretEncoding;
 import java.io.Serial;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,10 +25,16 @@ class OcraEvaluationService {
 
   private final OcraCredentialFactory credentialFactory;
   private final OcraEvaluationTelemetry telemetry;
+  private final Clock clock;
 
-  OcraEvaluationService(OcraEvaluationTelemetry telemetry) {
-    this.telemetry = Objects.requireNonNull(telemetry, "telemetry");
-    this.credentialFactory = new OcraCredentialFactory();
+  @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
+  OcraEvaluationService(OcraEvaluationTelemetry telemetry, ObjectProvider<Clock> clockProvider) {
+    OcraEvaluationTelemetry resolvedTelemetry = Objects.requireNonNull(telemetry, "telemetry");
+    OcraCredentialFactory resolvedFactory = new OcraCredentialFactory();
+    Clock resolvedClock = clockProvider.getIfAvailable(Clock::systemUTC);
+    this.telemetry = resolvedTelemetry;
+    this.credentialFactory = resolvedFactory;
+    this.clock = resolvedClock;
   }
 
   OcraEvaluationResponse evaluate(OcraEvaluationRequest rawRequest) {
@@ -38,6 +50,9 @@ class OcraEvaluationService {
       String challenge = request.challenge();
       validateChallenge(descriptor, challenge);
       credentialFactory.validateSessionInformation(descriptor, request.sessionHex());
+      Instant referenceInstant = Instant.now(clock);
+      Instant timestampInstant = resolveTimestamp(descriptor, request.timestampHex());
+      credentialFactory.validateTimestamp(descriptor, timestampInstant, referenceInstant);
 
       OcraResponseCalculator.OcraExecutionContext context =
           new OcraResponseCalculator.OcraExecutionContext(
@@ -121,6 +136,48 @@ class OcraEvaluationService {
 
   private String nextTelemetryId() {
     return "rest-ocra-" + UUID.randomUUID();
+  }
+
+  private static Instant resolveTimestamp(
+      OcraCredentialDescriptor descriptor, String timestampHex) {
+    if (!hasText(timestampHex)) {
+      return null;
+    }
+
+    var timestampSpec = descriptor.suite().dataInput().timestamp();
+    if (timestampSpec.isEmpty()) {
+      throw new ValidationError(
+          "timestampHex",
+          "timestamp_not_permitted",
+          "timestampHex is not permitted for the requested suite");
+    }
+
+    String normalized = timestampHex.toUpperCase(Locale.ROOT);
+    long timeSteps;
+    try {
+      timeSteps = Long.parseUnsignedLong(normalized, 16);
+    } catch (NumberFormatException ex) {
+      throw new ValidationError(
+          "timestampHex",
+          "timestamp_invalid",
+          "timestampHex must be a valid hexadecimal time window");
+    }
+
+    Duration step = timestampSpec.map(OcraTimestampSpecification::step).orElse(Duration.ZERO);
+    long stepSeconds = step.getSeconds();
+    if (stepSeconds <= 0) {
+      return null;
+    }
+
+    long epochSeconds;
+    try {
+      epochSeconds = Math.multiplyExact(timeSteps, stepSeconds);
+    } catch (ArithmeticException ex) {
+      throw new ValidationError(
+          "timestampHex", "timestamp_invalid", "timestampHex exceeds supported range");
+    }
+
+    return Instant.ofEpochSecond(epochSeconds);
   }
 
   private static long toMillis(long started) {
@@ -340,6 +397,30 @@ class OcraEvaluationService {
         field = "sharedSecretHex";
         reasonCode = "missing_required";
         message = "sharedSecretHex is required";
+      } else if (message.contains("timestamp outside permitted drift")) {
+        field = "timestampHex";
+        reasonCode = "timestamp_drift_exceeded";
+        message = "timestampHex is outside the permitted drift window";
+      } else if (message.contains("timestamp not permitted")) {
+        field = "timestampHex";
+        reasonCode = "timestamp_not_permitted";
+        message = "timestampHex is not permitted for the requested suite";
+      } else if (message.contains("timestamp")) {
+        field = "timestampHex";
+        reasonCode = "timestamp_invalid";
+        message = "timestampHex must represent a valid time window";
+      } else if (message.contains("pinHash must")) {
+        field = "pinHashHex";
+        reasonCode = "pin_hash_mismatch";
+        message = "pinHashHex must match the suite hash format";
+      } else if (message.contains("pinHash required")) {
+        field = "pinHashHex";
+        reasonCode = "pin_hash_required";
+        message = "pinHashHex is required for the requested suite";
+      } else if (message.contains("pinHash not permitted")) {
+        field = "pinHashHex";
+        reasonCode = "pin_hash_not_permitted";
+        message = "pinHashHex is not permitted for the requested suite";
       }
 
       return new FailureDetails(field, reasonCode, message, true);

@@ -50,6 +50,10 @@ Update this checklist as tasks progress and link back to the feature plan with o
 ## Phase 5 – Timestamp & PIN Validation Hardening
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|
-| R010 | [ ] Extend integration/unit tests to cover timestamp drift violations and PIN hash mismatch scenarios, asserting reason codes `timestamp_drift_exceeded` and `pin_hash_mismatch` plus sanitized telemetry. | FR-REST-003, FR-REST-005, NFR-REST-004 | No |
-| R011 | [ ] Reuse `OcraCredentialFactory.validateTimestamp` within REST pre-validation and compare runtime PIN hashes against descriptor expectations; surface field-specific validation errors with the new reason codes. | FR-REST-002, FR-REST-005 | No |
-| R012 | [ ] Refresh OpenAPI examples, operator docs, and telemetry snapshot if response bodies or log formats change after the new validations. | FR-REST-004, NFR-REST-004 | No |
+| R010 | [x] Extend integration/unit tests to cover timestamp drift violations and PIN hash mismatch scenarios, asserting reason codes `timestamp_drift_exceeded` and `pin_hash_mismatch` plus sanitized telemetry. | FR-REST-003, FR-REST-005, NFR-REST-004 | No |
+| R011 | [x] Reuse `OcraCredentialFactory.validateTimestamp` within REST pre-validation and compare runtime PIN hashes against descriptor expectations; surface field-specific validation errors with the new reason codes. | FR-REST-002, FR-REST-005 | No |
+| R012 | [x] Refresh OpenAPI examples, operator docs, and telemetry snapshot if response bodies or log formats change after the new validations. | FR-REST-004, NFR-REST-004 | No |
+
+2025-09-28 – R010 executed test-first: added timestamp drift and PIN mismatch MockMvc cases; initial `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest` (RED – expected pending R011). Follow-up run after R011 passed (green).
+2025-09-28 – R011 wired `Clock` injection + timestamp gating, mapped new reason codes; `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest` (PASS, ~14s).
+2025-09-28 – R012 refreshed operator docs and telemetry snapshot; captured new log lines via `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest --info --rerun-tasks`.

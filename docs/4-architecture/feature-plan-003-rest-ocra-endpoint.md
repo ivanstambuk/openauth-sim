@@ -34,6 +34,8 @@ Reference specification: `docs/4-architecture/specs/feature-003-rest-ocra-evalua
 - 2025-09-28 – Input hardening direction set: validate all hex fields, enforce non-negative counters, and enrich telemetry with `reasonCode`/`sanitized` attributes to support alerting while preserving redaction guarantees.
 - 2025-09-28 – R007–R009 complete: expanded MockMvc coverage for malformed hex/counter flows, added pre-validation and telemetry reason codes, and captured green runs (`./gradlew :rest-api:test` PASS, `./gradlew spotlessApply check` PASS).
 - 2025-09-28 – Timestamp validation will reuse `OcraCredentialFactory.validateTimestamp` drift rules (reason code `timestamp_drift_exceeded`); runtime PIN mismatches will emit `pin_hash_mismatch` and be pre-validated before calculator execution.
+- 2025-09-28 – R010/R011 delivered: timestamp drift + PIN mismatch MockMvc coverage now green; REST service resolves timestampHex with suite metadata, injects `Clock` for deterministic tests, and maps reason codes (`timestamp_drift_exceeded`, `pin_hash_mismatch`, etc.).
+- 2025-09-28 – R012 complete: operator how-to and telemetry snapshot updated with new reason codes; captured fresh logs via `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest --info --rerun-tasks`.
 
 ## Dependencies
 - Relies on the existing OCRA core package; ensure no modifications are required in `core/` for this feature.

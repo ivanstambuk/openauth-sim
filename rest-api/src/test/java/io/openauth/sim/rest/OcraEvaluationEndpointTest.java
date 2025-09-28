@@ -9,6 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -22,6 +26,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -39,6 +45,10 @@ final class OcraEvaluationEndpointTest {
   private static final String SESSION_HEX_128 = SESSION_HEX_64 + SESSION_HEX_64;
   private static final String SESSION_HEX_256 = SESSION_HEX_128 + SESSION_HEX_128;
   private static final String SESSION_HEX_512 = SESSION_HEX_256 + SESSION_HEX_256;
+  private static final String PIN_SUITE = "OCRA-1:HOTP-SHA1-6:QA08-PSHA1";
+  private static final String TIMESTAMP_SUITE = "OCRA-1:HOTPT30SHA256-7:QN08";
+  private static final Duration TIMESTAMP_STEP = Duration.ofSeconds(30);
+  private static final Instant FIXED_NOW = Instant.parse("2025-09-28T12:00:00Z");
   private static final Logger TELEMETRY_LOGGER =
       Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
 
@@ -160,6 +170,29 @@ final class OcraEvaluationEndpointTest {
   }
 
   private static Stream<Arguments> invalidRequests() {
+    Instant futureTimestamp = FIXED_NOW.plus(Duration.ofMinutes(5));
+    String timestampDriftRequest =
+        String.format(
+            Locale.ROOT,
+            "{"
+                + "%n  \"suite\": \"%s\","
+                + "%n  \"sharedSecretHex\": \"%s\","
+                + "%n  \"challenge\": \"12345678\","
+                + "%n  \"timestampHex\": \"%s\"%n}",
+            TIMESTAMP_SUITE,
+            SHARED_SECRET_HEX,
+            timestampHexFor(futureTimestamp, TIMESTAMP_STEP));
+
+    String pinHashMismatchRequest =
+        """
+            {
+              \"suite\": \"OCRA-1:HOTP-SHA1-6:QA08-PSHA1\",
+              \"sharedSecretHex\": \"31323334353637383930313233343536\",
+              \"challenge\": \"SESSION01\",
+              \"pinHashHex\": \"5e884898da28047151d0e56f8dc6292773603d\"
+            }
+            """;
+
     String missingSession =
         """
             {
@@ -253,7 +286,29 @@ final class OcraEvaluationEndpointTest {
             "counter must be",
             "counter",
             "counter_negative",
-            "\"counter\": -1"));
+            "\"counter\": -1"),
+        Arguments.of(
+            "Timestamp drift outside tolerance rejected",
+            timestampDriftRequest,
+            "timestamp",
+            "timestampHex",
+            "timestamp_drift_exceeded",
+            "313233"),
+        Arguments.of(
+            "Pin hash mismatch rejected",
+            pinHashMismatchRequest,
+            "pinHash",
+            "pinHashHex",
+            "pin_hash_mismatch",
+            "5e8848"));
+  }
+
+  @TestConfiguration
+  static class FixedClockConfig {
+    @Bean
+    Clock fixedClock() {
+      return Clock.fixed(FIXED_NOW, ZoneOffset.UTC);
+    }
   }
 
   private static String requestJson(String suite, String sessionHex) {
@@ -267,6 +322,12 @@ final class OcraEvaluationEndpointTest {
         suite,
         SHARED_SECRET_HEX,
         sessionHex);
+  }
+
+  private static String timestampHexFor(Instant instant, Duration step) {
+    long timeSteps = Math.floorDiv(instant.getEpochSecond(), step.getSeconds());
+    String hex = Long.toHexString(timeSteps).toUpperCase(Locale.ROOT);
+    return String.format(Locale.ROOT, "%16s", hex).replace(' ', '0');
   }
 
   private static TestLogHandler registerTelemetryHandler() {

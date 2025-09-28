@@ -66,7 +66,7 @@ If payload validation fails (for example, omitting the `sessionHex` field or sup
 }
 ```
 
-The `reasonCode` pinpoints why validation failed (`session_required`, `not_hexadecimal`, `invalid_hex_length`, `counter_required`, etc.), while `sanitized=true` confirms the payload was scrubbed before logging. All telemetry identifiers are synthetic; secrets never appear in responses or logs. Use the telemetry ID to trace execution in downstream monitoring systems and correlate with the structured log lines described in `docs/3-reference/rest-ocra-telemetry-snapshot.md`.
+The `reasonCode` pinpoints why validation failed (`session_required`, `counter_required`, `timestamp_drift_exceeded`, `pin_hash_mismatch`, etc.), while `sanitized=true` confirms the payload was scrubbed before logging. All telemetry identifiers are synthetic; secrets never appear in responses or logs. Use the telemetry ID to trace execution in downstream monitoring systems and correlate with the structured log lines described in `docs/3-reference/rest-ocra-telemetry-snapshot.md`.
 
 ## Next Steps
 - For additional suites (S128/S256/S512) adjust `sessionHex` to the appropriate fixture.

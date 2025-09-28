@@ -81,7 +81,7 @@ Expose the existing `OcraResponseCalculator` via the Spring Boot REST facade so 
 - Emit a structured event with keys: `event=rest.ocra.evaluate`, `suite`, `hasSessionPayload`, `hasClientChallenge`, `hasServerChallenge`, `hasPin`, `hasTimestamp`, `status`, `durationMillis`.
 - Include additional attributes `reasonCode` (when applicable) and `sanitized` (boolean) so alerting rules can track redaction state.
 - Secrets (`sharedSecretHex`, full session payload, challenges) must never appear in logs/telemetry; tests enforce this via log capture.
-- Expected validation reason codes now include `session_required`, `session_not_permitted`, `challenge_length`, `challenge_format`, `counter_required`, `counter_negative`, `not_hexadecimal`, `invalid_hex_length`, `timestamp_drift_exceeded`, and `pin_hash_mismatch` (extend tests as new cases emerge).
+- Expected validation reason codes now include `session_required`, `session_not_permitted`, `challenge_length`, `challenge_format`, `counter_required`, `counter_negative`, `not_hexadecimal`, `invalid_hex_length`, `timestamp_drift_exceeded`, `timestamp_not_permitted`, `timestamp_invalid`, `pin_hash_mismatch`, `pin_hash_required`, and `pin_hash_not_permitted` (extend tests as new cases emerge).
 
 ## Test Strategy
 - **Unit tests**: Validate request DTO parsing, rejection of malformed inputs, and telemetry emission using mocked logger/appender.
