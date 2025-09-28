@@ -15,6 +15,11 @@ _Last updated: 2025-09-28_
 | T201 | Establish benchmark harness and baseline metrics for MapDB + Caffeine. | FR-202, NFR-201, NFR-202 | No |
 | T202 | Add structured metrics/logging (hit/miss, latency) with secret redaction checks. | FR-202, NFR-203, NFR-204 | No |
 
+### T201 – Benchmark Harness Checklist
+- [x] Introduced `MapDbCredentialStoreBaselineBenchmark` with opt-in execution flag/environment variable.
+- [x] Captured baseline in-memory metrics (writes ≈1.7k ops/s; reads ≈567k ops/s; P99 ≈0.0043 ms) on 2025-09-28.
+- [ ] Document rerun instructions and persist sample output for future comparisons.
+
 ## Phase 1 – Cache Strategy
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|
