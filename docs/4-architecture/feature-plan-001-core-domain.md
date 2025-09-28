@@ -42,6 +42,8 @@ Re-enable scope for Phase 1 suites during T008: only restore the unit tests intr
 
 2025-09-27 – Phase 2/T009 delivered: Introduced shared secret normalisation helpers covering RAW/HEX/Base64 inputs, updated descriptor/factory flows to consume canonical `SecretMaterial`, re-enabled the property-based suite from T005, and recorded `./gradlew spotlessApply check` success at 23:34Z.
 
+2025-09-27 – Phase 2/T010 delivered: Added `CredentialCapability` and `CredentialRegistry` seeded with OCRA metadata and factory wiring, validated via registry tests, and recorded `./gradlew spotlessApply check` pending post-doc update.
+
 ## Dependencies
 
 - Align with roadmap Workstreams 2–6 to ensure downstream modules consume the same types.

@@ -31,7 +31,7 @@ _Last updated: 2025-09-27_
 | T007 | [x] Implement OCRA credential descriptors inside `io.openauth.sim.core.credentials.ocra`. | FR-002, NFR-003 | No |
 | T008 | [x] Implement OCRA validation/factory utilities with descriptive error messaging; re-enable only the unit tests from T004 once green, keep T005/T006 disabled. | FR-002, FR-006, NFR-005 | No |
 | T009 | [x] Extend secret material helpers to normalise raw/hex/Base64 inputs for OCRA secrets. | FR-006, NFR-002 | No |
-| T010 | Wire OCRA entries into the credential registry with capability metadata. | FR-007, NFR-002 | No |
+| T010 | [x] Wire OCRA entries into the credential registry with capability metadata. | FR-007, NFR-002 | No |
 
 ### T007 – Descriptor Implementation Checklist
 - [x] Create descriptor-focused tests (JUnit) defining expected suite parsing output, secret material handling, and metadata exposure; ensure they fail prior to implementation.
@@ -51,6 +51,12 @@ _Last updated: 2025-09-27_
 - [x] Updated descriptor and credential factories to accept canonicalised `SecretMaterial` instances and expose encoding metadata to callers.
 - [x] Reworked `OcraSecretMaterialPropertyTest` to run active property-based checks for hex canonicalisation, base64 round-trips, and invalid input rejection.
 - [x] Ran `./gradlew spotlessApply check` (2025-09-27T23:34Z) – PASS.
+
+### T010 – Registry Capability Checklist
+- [x] Introduced `CredentialCapability` model and `CredentialRegistry` with default OCRA registration.
+- [x] Captured OCRA capability metadata (required/optional attributes, supported crypto functions, RFC reference).
+- [x] Added `CredentialRegistryTest` to validate capability exposure and factory lookup.
+- [x] Ran `./gradlew spotlessApply check` (2025-09-27T23:40Z) – PASS.
 
 ## Phase 3 – Integration & Observability
 | ID | Task | Related Requirements | Parallel? |

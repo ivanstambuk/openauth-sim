@@ -74,6 +74,7 @@ Design a protocol-aware credential domain inside the `core` module that models c
 - 2025-09-27 – OCRA descriptor parsing: Descriptor creation parses the RFC 6287 suite into structured components (hash algorithm, response length, data inputs, drift) so subsequent factories reuse the normalised view instead of reparsing.
 - 2025-09-27 – OCRA descriptor secret handling: Descriptors store secret material as the shared `SecretMaterial` type immediately; input normalisation happens ahead of descriptor construction to keep downstream code consistent.
 - 2025-09-27 – OCRA secret normalisation (T009): Shared secret inputs accept RAW, HEX, or Base64 encodings via helper utilities that canonicalise to `SecretMaterial` while surfacing descriptive validation errors for malformed input; property-based tests (T005) now execute against these helpers.
+- 2025-09-27 – Credential registry (T010): Introduced a core `CredentialRegistry` exposing `CredentialCapability` metadata and wiring the OCRA factory so facades can enumerate required attributes, optional fields, and supported hash functions for the protocol.
 - 2025-09-27 – OCRA Phase 1 test strategy for T008: Re-enable only the previously disabled unit tests from T004 once validation/factory utilities are ready; keep the property-based suite (T005) and ArchUnit guards (T006) disabled until the corresponding functionality lands in T009/T010.
 
 ## References
