@@ -264,19 +264,32 @@
         const credentialRequired = document.querySelectorAll('[data-credential-required]');
         const policySelect = document.getElementById('policyPreset');
         const inlinePresetRaw = '[[${policyPresetJson}]]';
-        let inlinePresets = [];
-        try {
-          const decoded = JSON.parse(inlinePresetRaw);
-          inlinePresets = Array.isArray(decoded) ? decoded : JSON.parse(decoded);
-        } catch (error) {
-          inlinePresets = [];
+
+        function parseInlinePresets(raw) {
+          let value = raw;
+          for (let i = 0; i < 2; i += 1) {
+            try {
+              const parsed = JSON.parse(value);
+              value = parsed;
+            } catch (error) {
+              break;
+            }
+          }
+          return Array.isArray(value) ? value : [];
         }
-        const presetMap = Array.isArray(inlinePresets)
-          ? inlinePresets.reduce((acc, preset) => {
-              acc[preset.key] = preset.sample;
-              return acc;
-            }, {})
-          : {};
+
+        const inlinePresets = parseInlinePresets(inlinePresetRaw);
+        const presetMap = inlinePresets.reduce((acc, preset) => {
+          if (
+            preset &&
+            typeof preset.key === 'string' &&
+            preset.sample &&
+            typeof preset.sample === 'object'
+          ) {
+            acc[preset.key] = preset.sample;
+          }
+          return acc;
+        }, Object.create(null));
         const inlineModeRadio = document.getElementById('mode-inline');
         const suiteInput = document.getElementById('suite');
         const sharedSecretInput = document.getElementById('sharedSecretHex');
