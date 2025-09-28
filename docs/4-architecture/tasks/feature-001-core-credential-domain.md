@@ -106,7 +106,25 @@ _Last updated: 2025-09-27_
 - [x] Capture lessons learned/self-review items in the feature plan and ensure open follow-ups remain accurate.
 - [x] Confirm action items list mirrors post-telemetry state and highlight upcoming increments.
 
-## Phase 5 – Future Protocol Packages (Pending Separate Plans)
+## Phase 5 – RFC 6287 Test Vectors
+| ID | Task | Related Requirements | Parallel? |
+|----|------|----------------------|-----------|
+| T017 | Catalogue the official RFC 6287 reference vectors and document their provenance within the spec/plan before adding fixtures. | FR-002, NFR-004 | No |
+| T018 | Add failing-first OCRA response tests that exercise the RFC vectors (counter/time/challenge suites) and wire them to the execution helper once available. | FR-002, FR-006, NFR-004 | No |
+
+### T017 – Vector Catalogue & Documentation Checklist
+- [ ] Identify the authoritative RFC 6287 appendix containing sample credentials, suite definitions, challenge inputs, and expected OTP outputs.
+- [ ] Record vector details and licensing notes in the feature specification (`## Clarifications`) and feature plan, ensuring attribution is clear.
+- [ ] Introduce fixtures or helper methods to load the vectors while keeping shared secrets redacted outside test scope.
+- [ ] Update open follow-ups/analysis gate notes to reflect the new compliance coverage requirement.
+
+### T018 – RFC Vector Test Harness Checklist
+- [ ] Add parameterised tests that feed the RFC counter-, time-, and challenge-based vectors through the OCRA descriptor + response calculation path, initially asserting TODO/expected failures until the engine is available.
+- [ ] Ensure tests verify both successful OTP outputs and error handling (e.g., drift tolerance) per the RFC examples.
+- [ ] Guard telemetry/log output so secrets remain redacted, adding assertions where necessary.
+- [ ] Run `./gradlew spotlessApply check` once the harness and implementation pass, recording timing and outcomes in the feature plan.
+
+## Phase 6 – Future Protocol Packages (Pending Separate Plans)
 | Protocol | Notes |
 |----------|-------|
 | FIDO2/WebAuthn | Await dedicated clarification on minimum metadata, lifecycle expectations, and package rollout tasks. |

@@ -40,6 +40,7 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - 2025-09-28 – Phase 4/T015 delivered: Knowledge map now references the OCRA documentation/telemetry contract and flags pending protocol packages for future plans.
 - 2025-09-28 – Phase 4/T016 initiated: Update roadmap status and capture lessons/self-review notes following the telemetry+documentation increments.
 - 2025-09-28 – Phase 4/T016 delivered: Roadmap and action items refreshed (Workstream 1 now In progress, OCRA documentation noted); self-review captured in this plan.
+- Phase 5/T017–T018 planned: Add official RFC 6287 reference vector coverage to ensure OCRA response calculations match the published challenge/OTP pairs once the execution helpers land.
 
 ## Phase 4 – Next Increment (T016 Roadmap & Self-Review)
 
@@ -47,6 +48,13 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 2. Capture lessons learned, test outcomes, and telemetry documentation notes within this feature plan and associated tasks.
 3. Verify action items/follow-ups are current and archive completed TODOs.
 4. Run `./gradlew spotlessApply check`, capture timing, and self-review before committing/pushing.
+
+## Phase 5 – RFC 6287 Verification (T017–T018)
+
+1. Extend the specification/tasks to cover integration of the official RFC 6287 (OCRA) reference vectors, documenting the source and expected OTP outcomes.
+2. Introduce failing tests that exercise the descriptor + forthcoming OTP engine against the published vectors (covering counter-, time-, and challenge-based suites) before implementation.
+3. Implement or wire a harness that drives the vectors through the core OCRA response calculator once available, keeping secrets redacted in logs and asserting exact RFC outputs.
+4. Capture the new coverage notes, Gradle command results, and any follow-up actions within this plan after the tests pass.
 
 ## Dependencies
 
