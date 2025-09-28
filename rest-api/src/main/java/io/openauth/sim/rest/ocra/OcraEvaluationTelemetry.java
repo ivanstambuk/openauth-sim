@@ -20,19 +20,20 @@ class OcraEvaluationTelemetry {
       boolean hasPin,
       boolean hasTimestamp,
       long durationMillis) {
-    LOGGER.log(
+    log(
         Level.INFO,
-        buildMessage(
-            "success",
-            telemetryId,
-            suite,
-            hasSession,
-            hasClientChallenge,
-            hasServerChallenge,
-            hasPin,
-            hasTimestamp,
-            durationMillis,
-            null));
+        "success",
+        telemetryId,
+        suite,
+        hasSession,
+        hasClientChallenge,
+        hasServerChallenge,
+        hasPin,
+        hasTimestamp,
+        "success",
+        null,
+        true,
+        durationMillis);
   }
 
   void recordValidationFailure(
@@ -43,21 +44,24 @@ class OcraEvaluationTelemetry {
       boolean hasServerChallenge,
       boolean hasPin,
       boolean hasTimestamp,
+      String reasonCode,
       String reason,
+      boolean sanitized,
       long durationMillis) {
-    LOGGER.log(
+    log(
         Level.WARNING,
-        buildMessage(
-            "invalid",
-            telemetryId,
-            suite,
-            hasSession,
-            hasClientChallenge,
-            hasServerChallenge,
-            hasPin,
-            hasTimestamp,
-            durationMillis,
-            sanitize(reason)));
+        "invalid",
+        telemetryId,
+        suite,
+        hasSession,
+        hasClientChallenge,
+        hasServerChallenge,
+        hasPin,
+        hasTimestamp,
+        reasonCode,
+        reason,
+        sanitized,
+        durationMillis);
   }
 
   void recordError(
@@ -68,12 +72,44 @@ class OcraEvaluationTelemetry {
       boolean hasServerChallenge,
       boolean hasPin,
       boolean hasTimestamp,
+      String reasonCode,
       String reason,
+      boolean sanitized,
+      long durationMillis) {
+    log(
+        Level.SEVERE,
+        "error",
+        telemetryId,
+        suite,
+        hasSession,
+        hasClientChallenge,
+        hasServerChallenge,
+        hasPin,
+        hasTimestamp,
+        reasonCode,
+        reason,
+        sanitized,
+        durationMillis);
+  }
+
+  private void log(
+      Level level,
+      String status,
+      String telemetryId,
+      String suite,
+      boolean hasSession,
+      boolean hasClientChallenge,
+      boolean hasServerChallenge,
+      boolean hasPin,
+      boolean hasTimestamp,
+      String reasonCode,
+      String reason,
+      boolean sanitized,
       long durationMillis) {
     LOGGER.log(
-        Level.SEVERE,
+        level,
         buildMessage(
-            "error",
+            status,
             telemetryId,
             suite,
             hasSession,
@@ -81,8 +117,10 @@ class OcraEvaluationTelemetry {
             hasServerChallenge,
             hasPin,
             hasTimestamp,
-            durationMillis,
-            sanitize(reason)));
+            reasonCode,
+            sanitize(reason),
+            sanitized,
+            durationMillis));
   }
 
   private static String buildMessage(
@@ -94,8 +132,10 @@ class OcraEvaluationTelemetry {
       boolean hasServerChallenge,
       boolean hasPin,
       boolean hasTimestamp,
-      long durationMillis,
-      String reason) {
+      String reasonCode,
+      String reason,
+      boolean sanitized,
+      long durationMillis) {
     String base =
         String.format(
             Locale.ROOT,
@@ -110,6 +150,12 @@ class OcraEvaluationTelemetry {
             hasPin,
             hasTimestamp,
             durationMillis);
+    base +=
+        String.format(
+            Locale.ROOT,
+            " reasonCode=%s sanitized=%s",
+            Objects.requireNonNullElse(reasonCode, "unspecified"),
+            sanitized);
     if (reason == null) {
       return base;
     }

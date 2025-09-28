@@ -7,6 +7,8 @@ import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.model.SecretEncoding;
+import java.io.Serial;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -31,6 +33,7 @@ class OcraEvaluationService {
     NormalizedRequest request = null;
     try {
       request = NormalizedRequest.from(rawRequest);
+      validateHexInputs(request);
       OcraCredentialDescriptor descriptor = createDescriptor(request);
       String challenge = request.challenge();
       validateChallenge(descriptor, challenge);
@@ -61,6 +64,7 @@ class OcraEvaluationService {
     } catch (IllegalArgumentException ex) {
       long durationMillis = toMillis(started);
       String suite = suiteOrUnknown(request, rawRequest);
+      FailureDetails failure = FailureDetails.fromException(ex);
       telemetry.recordValidationFailure(
           telemetryId,
           suite,
@@ -69,9 +73,18 @@ class OcraEvaluationService {
           hasServerChallenge(request, rawRequest),
           hasPin(request, rawRequest),
           hasTimestamp(request, rawRequest),
-          ex.getMessage(),
+          failure.reasonCode(),
+          failure.message(),
+          failure.sanitized(),
           durationMillis);
-      throw new OcraEvaluationValidationException(telemetryId, suite, ex.getMessage(), ex);
+      throw new OcraEvaluationValidationException(
+          telemetryId,
+          suite,
+          failure.field(),
+          failure.reasonCode(),
+          failure.message(),
+          failure.sanitized(),
+          ex);
     } catch (RuntimeException ex) {
       long durationMillis = toMillis(started);
       String suite = suiteOrUnknown(request, rawRequest);
@@ -83,7 +96,9 @@ class OcraEvaluationService {
           hasServerChallenge(request, rawRequest),
           hasPin(request, rawRequest),
           hasTimestamp(request, rawRequest),
+          "unexpected_error",
           ex.getMessage(),
+          false,
           durationMillis);
       throw ex;
     }
@@ -163,6 +178,33 @@ class OcraEvaluationService {
     return (value >= '0' && value <= '9') || (value >= 'A' && value <= 'F');
   }
 
+  private static void validateHexInputs(NormalizedRequest request) {
+    requireHex(request.sharedSecretHex(), "sharedSecretHex", true);
+    requireHex(request.sessionHex(), "sessionHex", false);
+    requireHex(request.pinHashHex(), "pinHashHex", false);
+    requireHex(request.timestampHex(), "timestampHex", false);
+  }
+
+  private static void requireHex(String value, String field, boolean required) {
+    if (!hasText(value)) {
+      if (required) {
+        throw new ValidationError(field, "missing_required", field + " is required");
+      }
+      return;
+    }
+
+    String uppercase = value.toUpperCase(Locale.ROOT);
+    if (!uppercase.chars().allMatch(OcraEvaluationService::isHexCharacter)) {
+      throw new ValidationError(
+          field, "not_hexadecimal", field + " must contain only hexadecimal characters (0-9, A-F)");
+    }
+
+    if ((uppercase.length() & 1) == 1) {
+      throw new ValidationError(
+          field, "invalid_hex_length", field + " must contain an even number of characters");
+    }
+  }
+
   private static String suiteOrUnknown(NormalizedRequest normalized, OcraEvaluationRequest raw) {
     if (normalized != null) {
       return normalized.suite();
@@ -234,6 +276,80 @@ class OcraEvaluationService {
         throw new IllegalArgumentException(fieldName + " is required");
       }
       return value.trim();
+    }
+  }
+
+  private static final class ValidationError extends IllegalArgumentException {
+    @Serial private static final long serialVersionUID = 1L;
+    private final String field;
+    private final String reasonCode;
+
+    ValidationError(String field, String reasonCode, String message) {
+      super(message);
+      this.field = field;
+      this.reasonCode = reasonCode;
+    }
+  }
+
+  private record FailureDetails(
+      String field, String reasonCode, String message, boolean sanitized) {
+
+    static FailureDetails fromException(IllegalArgumentException ex) {
+      if (ex instanceof ValidationError error) {
+        return new FailureDetails(error.field, error.reasonCode, ex.getMessage(), true);
+      }
+
+      String message = messageOrDefault(ex.getMessage());
+      String reasonCode = "invalid_input";
+      String field = "request";
+
+      if (message.contains("sessionInformation required")) {
+        field = "sessionHex";
+        reasonCode = "session_required";
+        message = "sessionHex is required for the requested suite";
+      } else if (message.contains("session information not permitted")
+          || message.contains("sessionInformation not permitted")) {
+        field = "sessionHex";
+        reasonCode = "session_not_permitted";
+        message = "sessionHex is not permitted for the requested suite";
+      } else if (message.contains("challengeQuestion must contain")) {
+        field = "challenge";
+        reasonCode = "challenge_length";
+        message = "challenge must match the required length";
+      } else if (message.contains("challengeQuestion must match format")) {
+        field = "challenge";
+        reasonCode = "challenge_format";
+        message = "challenge must match the suite format requirements";
+      } else if (message.contains("challengeQuestion required")) {
+        field = "challenge";
+        reasonCode = "challenge_required";
+        message = "challenge is required for the requested suite";
+      } else if (message.contains("counterValue required")) {
+        field = "counter";
+        reasonCode = "counter_required";
+        message = "counter is required for the requested suite";
+      } else if (message.contains("counterValue must be >= 0")) {
+        field = "counter";
+        reasonCode = "counter_negative";
+        message = "counter must be a non-negative number";
+      } else if (message.contains("counterValue not permitted")) {
+        field = "counter";
+        reasonCode = "counter_not_permitted";
+        message = "counter is not permitted for the requested suite";
+      } else if (message.contains("sharedSecretHex is required")) {
+        field = "sharedSecretHex";
+        reasonCode = "missing_required";
+        message = "sharedSecretHex is required";
+      }
+
+      return new FailureDetails(field, reasonCode, message, true);
+    }
+
+    private static String messageOrDefault(String message) {
+      if (message == null || message.isBlank()) {
+        return "Invalid input";
+      }
+      return message.trim();
     }
   }
 }

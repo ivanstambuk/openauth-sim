@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.http.HttpStatus;
@@ -61,17 +62,20 @@ class OcraEvaluationController {
   @ExceptionHandler(OcraEvaluationValidationException.class)
   ResponseEntity<OcraEvaluationErrorResponse> handleValidationError(
       OcraEvaluationValidationException exception) {
+    Map<String, String> details = new LinkedHashMap<>();
+    details.put("telemetryId", exception.telemetryId());
+    details.put("status", "invalid");
+    details.put("suite", exception.suite());
+    if (exception.field() != null) {
+      details.put("field", exception.field());
+    }
+    if (exception.reasonCode() != null) {
+      details.put("reasonCode", exception.reasonCode());
+    }
+    details.put("sanitized", Boolean.toString(exception.sanitized()));
+
     OcraEvaluationErrorResponse body =
-        new OcraEvaluationErrorResponse(
-            "invalid_input",
-            exception.getMessage(),
-            Map.of(
-                "telemetryId",
-                exception.telemetryId(),
-                "status",
-                "invalid",
-                "suite",
-                exception.suite()));
+        new OcraEvaluationErrorResponse("invalid_input", exception.getMessage(), details);
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
   }
 

@@ -8,12 +8,24 @@ final class OcraEvaluationValidationException extends RuntimeException {
 
   private final String telemetryId;
   private final String suite;
+  private final String field;
+  private final String reasonCode;
+  private final boolean sanitized;
 
   OcraEvaluationValidationException(
-      String telemetryId, String suite, String message, Throwable cause) {
+      String telemetryId,
+      String suite,
+      String field,
+      String reasonCode,
+      String message,
+      boolean sanitized,
+      Throwable cause) {
     super(message, cause);
     this.telemetryId = telemetryId;
     this.suite = suite;
+    this.field = field;
+    this.reasonCode = reasonCode;
+    this.sanitized = sanitized;
   }
 
   String telemetryId() {
@@ -22,5 +34,17 @@ final class OcraEvaluationValidationException extends RuntimeException {
 
   String suite() {
     return suite;
+  }
+
+  String field() {
+    return field;
+  }
+
+  String reasonCode() {
+    return reasonCode;
+  }
+
+  boolean sanitized() {
+    return sanitized;
   }
 }

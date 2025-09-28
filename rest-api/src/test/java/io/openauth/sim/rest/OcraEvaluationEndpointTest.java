@@ -70,8 +70,12 @@ final class OcraEvaluationEndpointTest {
           () -> "secret material leaked in response: " + responseBody);
       assertTrue(
           handler.records().stream()
-              .anyMatch(record -> record.getMessage().contains("rest.ocra.evaluate")),
-          "telemetry event missing");
+              .anyMatch(
+                  record ->
+                      record.getMessage().contains("rest.ocra.evaluate")
+                          && record.getMessage().contains("reasonCode=success")
+                          && record.getMessage().contains("sanitized=true")),
+          "telemetry event missing required attributes");
       assertFalse(
           handler.loggedSecrets(secretSnippet),
           () -> "secret material leaked in telemetry: " + handler.records());
@@ -84,7 +88,12 @@ final class OcraEvaluationEndpointTest {
   @MethodSource("invalidRequests")
   @DisplayName("Invalid requests receive HTTP 400 without leaking secrets")
   void evaluateReturnsValidationErrors(
-      String description, String requestJson, String expectedMessage, String secretSnippet)
+      String description,
+      String requestJson,
+      String expectedMessage,
+      String expectedField,
+      String expectedReasonCode,
+      String secretSnippet)
       throws Exception {
     TestLogHandler handler = registerTelemetryHandler();
     try {
@@ -102,10 +111,22 @@ final class OcraEvaluationEndpointTest {
       JsonNode response = MAPPER.readTree(responseBody);
       assertEquals("invalid_input", response.get("error").asText());
       assertTrue(response.get("message").asText().contains(expectedMessage));
+      JsonNode details = response.get("details");
+      assertNotNull(details, "details must be present");
+      assertEquals(expectedField, details.get("field").asText());
+      assertEquals(expectedReasonCode, details.get("reasonCode").asText());
+      assertEquals("true", details.get("sanitized").asText());
       assertFalse(
           responseBody.toLowerCase(Locale.ROOT).contains(secretSnippet.toLowerCase(Locale.ROOT)),
           () -> "secret material leaked in validation response: " + responseBody);
-      assertTrue(handler.records().stream().anyMatch(record -> record.getLevel() == Level.WARNING));
+      assertTrue(
+          handler.records().stream()
+              .anyMatch(
+                  record ->
+                      record.getLevel() == Level.WARNING
+                          && record.getMessage().contains("reasonCode=" + expectedReasonCode)
+                          && record.getMessage().contains("sanitized=true")),
+          "telemetry event missing reasonCode/sanitized attributes");
       assertFalse(
           handler.loggedSecrets(secretSnippet),
           () -> "secret material leaked in telemetry: " + handler.records());
@@ -151,17 +172,88 @@ final class OcraEvaluationEndpointTest {
     String wrongChallengeLength =
         requestJson("OCRA-1:HOTP-SHA256-8:QA08-S064", SESSION_HEX_64).replace("SESSION01", "SHORT");
 
+    String nonHexSecret =
+        """
+            {
+              \"suite\": \"OCRA-1:HOTP-SHA256-8:QA08-S064\",
+              \"sharedSecretHex\": \"ZZ313233\",
+              \"challenge\": \"SESSION01\",
+              \"sessionHex\": \"00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567\"
+            }
+            """;
+
+    String oddLengthSession =
+        """
+            {
+              \"suite\": \"OCRA-1:HOTP-SHA256-8:QA08-S064\",
+              \"sharedSecretHex\": \"3132333435363738393031323334353637383930313233343536373839303132\",
+              \"challenge\": \"SESSION01\",
+              \"sessionHex\": \"001122334455667\"
+            }
+            """;
+
+    String missingCounter =
+        """
+            {
+              \"suite\": \"OCRA-1:HOTP-SHA1-6:C-QN08\",
+              \"sharedSecretHex\": \"31323334353637383930313233343536\",
+              \"challenge\": \"12345678\"
+            }
+            """;
+
+    String negativeCounter =
+        """
+            {
+              \"suite\": \"OCRA-1:HOTP-SHA1-6:C-QN08\",
+              \"sharedSecretHex\": \"31323334353637383930313233343536\",
+              \"challenge\": \"12345678\",
+              \"counter\": -1
+            }
+            """;
+
     return Stream.of(
         Arguments.of(
             "Missing session returns validation error",
             missingSession,
-            "sessionInformation",
+            "sessionHex",
+            "sessionHex",
+            "session_required",
             "SESSION01"),
         Arguments.of(
             "Challenge length mismatch returns validation error",
             wrongChallengeLength,
             "challenge",
-            "SHORT"));
+            "challenge",
+            "challenge_length",
+            "SHORT"),
+        Arguments.of(
+            "Non-hex shared secret rejected",
+            nonHexSecret,
+            "sharedSecretHex",
+            "sharedSecretHex",
+            "not_hexadecimal",
+            "ZZ313233"),
+        Arguments.of(
+            "Odd-length session hex rejected",
+            oddLengthSession,
+            "sessionHex",
+            "sessionHex",
+            "invalid_hex_length",
+            "001122334455667"),
+        Arguments.of(
+            "Missing counter rejected",
+            missingCounter,
+            "counter",
+            "counter",
+            "counter_required",
+            "313233"),
+        Arguments.of(
+            "Negative counter rejected",
+            negativeCounter,
+            "counter must be",
+            "counter",
+            "counter_negative",
+            "\"counter\": -1"));
   }
 
   private static String requestJson(String suite, String sessionHex) {
