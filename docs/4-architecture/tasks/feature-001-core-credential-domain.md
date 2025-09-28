@@ -161,9 +161,9 @@ _Last updated: 2025-09-28_
 - [x] Capture TODO notes pointing to T024 and run `./gradlew :cli:test` to confirm the new tests exercise the current failure path (exit code 1, unknown command).
 
 ### T024 – CLI Session Helper Wiring Checklist
-- [ ] Implement the CLI command changes so session payloads feed into `OcraResponseCalculator`, ensuring secrets remain redacted in logs/errors.
-- [ ] Update CLI documentation/help text to mention supported session lengths and reference the draft generator fixtures.
-- [ ] Re-run `./gradlew spotlessApply check` plus targeted CLI tests, update plan/tasks/spec with outcomes, and remove any temporary TODO markers.
+- [x] Implement the CLI command changes so session payloads feed into `OcraResponseCalculator`, ensuring secrets remain redacted in logs/errors.
+- [x] Update CLI documentation/help text to mention supported session lengths and reference the draft generator fixtures.
+- [x] Re-run `./gradlew spotlessApply check` plus targeted CLI tests, update plan/tasks/spec with outcomes, and remove any temporary TODO markers (2025-09-28 – PASS, `./gradlew :cli:test`; `./gradlew spotlessApply check`).
 
 ## Phase 7 – Future Protocol Packages (Pending Separate Plans)
 | Protocol | Notes |
@@ -175,4 +175,4 @@ _Last updated: 2025-09-28_
 ## Open Follow-ups
 - Populate task outcomes and timestamps upon completion.
 - Attach Gradle command outputs and analysis gate results to the feature plan when tasks close.
-- Complete T024 to wire the CLI session helper and flip the new regression tests to assert expected OTP outputs.
+- Scope REST/API integration for session-aware helpers now that CLI wiring is live.

@@ -1,6 +1,7 @@
 package io.openauth.sim.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -32,7 +33,7 @@ final class MaintenanceCliSessionTest {
               + "89ABCDEF0123456789ABCDEF01234567")
           .toUpperCase(Locale.ROOT);
 
-  @DisplayName("Session-aware command is not yet available")
+  @DisplayName("Session-aware command reproduces known OTP outputs")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("sessionScenarios")
   void sessionAwareCommandNotYetAvailable(SessionScenario scenario) {
@@ -46,18 +47,24 @@ final class MaintenanceCliSessionTest {
             new PrintStream(stdout, true, StandardCharsets.UTF_8),
             new PrintStream(stderr, true, StandardCharsets.UTF_8));
 
-    assertEquals(1, exitCode, "session helper command should fail until T024 wires it in");
-    String errorOutput = stderr.toString(StandardCharsets.UTF_8);
+    assertEquals(0, exitCode, "session helper command should succeed");
+    String output = stdout.toString(StandardCharsets.UTF_8);
     assertTrue(
-        errorOutput.contains("unknown command"),
-        () -> "expected unknown command error, got: " + errorOutput);
-    assertEquals("", stdout.toString(StandardCharsets.UTF_8));
+        output.contains("otp=" + scenario.expectedOtp()),
+        () -> "expected OTP not found, stdout was: " + output);
+    assertTrue(output.contains("suite=" + scenario.suite()));
+    assertFalse(
+        output.contains(STANDARD_KEY_32.substring(0, 6)),
+        () -> "shared secret leaked in stdout: " + output);
+    assertEquals("", stderr.toString(StandardCharsets.UTF_8));
   }
 
   private Stream<SessionScenario> sessionScenarios() {
     return Stream.of(
         new SessionScenario(
             "S064",
+            "OCRA-1:HOTP-SHA256-8:QA08-S064",
+            "17477202",
             new String[] {
               "ocra",
               "--suite=OCRA-1:HOTP-SHA256-8:QA08-S064",
@@ -67,6 +74,8 @@ final class MaintenanceCliSessionTest {
             }),
         new SessionScenario(
             "S128",
+            "OCRA-1:HOTP-SHA256-8:QA08-S128",
+            "18468077",
             new String[] {
               "ocra",
               "--suite=OCRA-1:HOTP-SHA256-8:QA08-S128",
@@ -76,6 +85,8 @@ final class MaintenanceCliSessionTest {
             }),
         new SessionScenario(
             "S256",
+            "OCRA-1:HOTP-SHA256-8:QA08-S256",
+            "77715695",
             new String[] {
               "ocra",
               "--suite=OCRA-1:HOTP-SHA256-8:QA08-S256",
@@ -85,6 +96,8 @@ final class MaintenanceCliSessionTest {
             }),
         new SessionScenario(
             "S512",
+            "OCRA-1:HOTP-SHA256-8:QA08-S512",
+            "05806151",
             new String[] {
               "ocra",
               "--suite=OCRA-1:HOTP-SHA256-8:QA08-S512",
@@ -102,7 +115,8 @@ final class MaintenanceCliSessionTest {
     return builder.toString();
   }
 
-  private record SessionScenario(String description, String[] arguments) {
+  private record SessionScenario(
+      String description, String suite, String expectedOtp, String[] arguments) {
 
     @Override
     public String toString() {

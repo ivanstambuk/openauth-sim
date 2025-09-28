@@ -1,5 +1,10 @@
 package io.openauth.sim.cli;
 
+import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
+import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
+import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
+import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
+import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.MapDbCredentialStore;
 import io.openauth.sim.core.store.MapDbCredentialStore.MaintenanceBundle;
 import io.openauth.sim.core.store.MapDbCredentialStore.MaintenanceHelper;
@@ -11,6 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,7 +36,22 @@ public final class MaintenanceCli {
 
   /** Execute the CLI using the provided streams. Visible for testing. */
   int run(String[] args, PrintStream out, PrintStream err) {
-    ParsedArguments parsed = parseArguments(args, err);
+    if (args == null || args.length == 0) {
+      err.println(usage());
+      return 1;
+    }
+
+    String command = args[0].toLowerCase(Locale.ROOT);
+
+    if ("ocra".equals(command)) {
+      OcraArguments ocraArguments = parseOcraArguments(args, err);
+      if (ocraArguments == null) {
+        return 1;
+      }
+      return runOcra(ocraArguments, out, err);
+    }
+
+    ParsedArguments parsed = parseMaintenanceArguments(args, err);
     if (parsed == null || !parsed.valid()) {
       return 1;
     }
@@ -83,12 +105,7 @@ public final class MaintenanceCli {
     return result.status() == MaintenanceStatus.FAIL ? 2 : 0;
   }
 
-  private ParsedArguments parseArguments(String[] args, PrintStream err) {
-    if (args == null || args.length == 0) {
-      err.println("usage: maintenance <compact|verify> --database=<path>");
-      return ParsedArguments.invalid();
-    }
-
+  private ParsedArguments parseMaintenanceArguments(String[] args, PrintStream err) {
     MaintenanceOperation operation;
     String command = args[0].toLowerCase(Locale.ROOT);
     switch (command) {
@@ -121,8 +138,121 @@ public final class MaintenanceCli {
     return new ParsedArguments(operation, databasePath, true);
   }
 
+  private int runOcra(OcraArguments arguments, PrintStream out, PrintStream err) {
+    try {
+      OcraCredentialFactory factory = new OcraCredentialFactory();
+      String name = "cli-ocra-" + Integer.toHexString(arguments.suite().hashCode());
+      OcraCredentialDescriptor descriptor =
+          factory.createDescriptor(
+              new OcraCredentialRequest(
+                  name,
+                  arguments.suite(),
+                  arguments.sharedSecretHex(),
+                  SecretEncoding.HEX,
+                  arguments.counter().orElse(null),
+                  arguments.pinHashHex().orElse(null),
+                  null,
+                  Map.of("source", "cli-ocra")));
+
+      OcraResponseCalculator.OcraExecutionContext context =
+          new OcraResponseCalculator.OcraExecutionContext(
+              arguments.counter().orElse(null),
+              arguments.challenge().orElse(null),
+              arguments.sessionInformation().orElse(null),
+              arguments.clientChallenge().orElse(null),
+              arguments.serverChallenge().orElse(null),
+              arguments.pinHashHex().orElse(null),
+              arguments.timestampHex().orElse(null));
+
+      String otp = OcraResponseCalculator.generate(descriptor, context);
+      out.printf(Locale.ROOT, "suite=%s otp=%s%n", arguments.suite(), otp);
+      return 0;
+    } catch (IllegalArgumentException ex) {
+      err.println("error: " + ex.getMessage());
+      return 1;
+    } catch (Exception ex) {
+      err.println("error: ocra command failed - " + ex.getMessage());
+      return 1;
+    }
+  }
+
+  private OcraArguments parseOcraArguments(String[] args, PrintStream err) {
+    String suite = null;
+    String key = null;
+    String challenge = null;
+    String session = null;
+    String client = null;
+    String server = null;
+    String pin = null;
+    String timestamp = null;
+    Long counter = null;
+
+    for (int i = 1; i < args.length; i++) {
+      String arg = args[i];
+      if (arg.startsWith("--suite=")) {
+        suite = arg.substring("--suite=".length()).trim();
+      } else if (arg.startsWith("--key=")) {
+        key = arg.substring("--key=".length()).trim();
+      } else if (arg.startsWith("--challenge=")) {
+        challenge = arg.substring("--challenge=".length()).trim();
+      } else if (arg.startsWith("--session=")) {
+        session = arg.substring("--session=".length()).trim();
+      } else if (arg.startsWith("--client=")) {
+        client = arg.substring("--client=".length()).trim();
+      } else if (arg.startsWith("--server=")) {
+        server = arg.substring("--server=".length()).trim();
+      } else if (arg.startsWith("--pin=")) {
+        pin = arg.substring("--pin=".length()).trim();
+      } else if (arg.startsWith("--timestamp=")) {
+        timestamp = arg.substring("--timestamp=".length()).trim();
+      } else if (arg.startsWith("--counter=")) {
+        String raw = arg.substring("--counter=".length()).trim();
+        try {
+          counter = Long.parseLong(raw);
+        } catch (NumberFormatException nfe) {
+          err.println("error: counter must be a long value");
+          return null;
+        }
+      } else if ("--help".equals(arg) || "-h".equals(arg)) {
+        err.println(usage());
+        return null;
+      } else {
+        err.printf(Locale.ROOT, "error: unrecognised option '%s'%n", arg);
+        err.println(usage());
+        return null;
+      }
+    }
+
+    if (suite == null || suite.isBlank()) {
+      err.println("error: --suite=<ocra-suite> is required");
+      return null;
+    }
+    if (key == null || key.isBlank()) {
+      err.println("error: --key=<hex-shared-secret> is required");
+      return null;
+    }
+
+    return new OcraArguments(
+        suite.trim(),
+        key.replace(" ", "").trim(),
+        optionalTrimmed(challenge),
+        optionalTrimmed(session),
+        optionalTrimmed(client),
+        optionalTrimmed(server),
+        optionalTrimmed(pin),
+        optionalTrimmed(timestamp),
+        Optional.ofNullable(counter));
+  }
+
+  private static Optional<String> optionalTrimmed(String value) {
+    if (value == null || value.isBlank()) {
+      return Optional.empty();
+    }
+    return Optional.of(value.trim());
+  }
+
   private String usage() {
-    return "usage: maintenance <compact|verify> --database=<path>";
+    return "usage: maintenance <compact|verify> --database=<path> | ocra --suite=<suite> --key=<hex> [--challenge=...] [--session=...] [--counter=...] [--client=...] [--server=...] [--pin=...] [--timestamp=...]";
   }
 
   private record ParsedArguments(MaintenanceOperation operation, Path databasePath, boolean valid) {
@@ -130,5 +260,18 @@ public final class MaintenanceCli {
     static ParsedArguments invalid() {
       return new ParsedArguments(null, null, false);
     }
+  }
+
+  private record OcraArguments(
+      String suite,
+      String sharedSecretHex,
+      Optional<String> challenge,
+      Optional<String> sessionInformation,
+      Optional<String> clientChallenge,
+      Optional<String> serverChallenge,
+      Optional<String> pinHashHex,
+      Optional<String> timestampHex,
+      Optional<Long> counter) {
+    // Marker record – no additional members.
   }
 }
