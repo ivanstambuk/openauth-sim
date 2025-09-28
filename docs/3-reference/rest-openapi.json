@@ -26,8 +26,8 @@
           "required" : true
         },
         "responses" : {
-          "400" : {
-            "description" : "Invalid request payload",
+          "500" : {
+            "description" : "Unexpected server error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -46,12 +46,30 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected server error",
+          "400" : {
+            "description" : "Invalid request payload",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
+                },
+                "examples" : {
+                  "Missing session payload" : {
+                    "summary" : "Validation failure with reason code",
+                    "description" : "Missing session payload",
+                    "value" : {
+                      "error" : "invalid_input",
+                      "message" : "sessionHex is required for the requested suite",
+                      "details" : {
+                        "telemetryId" : "rest-ocra-<uuid>",
+                        "status" : "invalid",
+                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
+                        "field" : "sessionHex",
+                        "reasonCode" : "session_required",
+                        "sanitized" : "true"
+                      }
+                    }
+                  }
                 }
               }
             }

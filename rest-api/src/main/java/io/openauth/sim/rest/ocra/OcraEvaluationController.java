@@ -2,6 +2,7 @@ package io.openauth.sim.rest.ocra;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -44,7 +45,24 @@ class OcraEvaluationController {
             content =
                 @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = OcraEvaluationErrorResponse.class))),
+                    schema = @Schema(implementation = OcraEvaluationErrorResponse.class),
+                    examples =
+                        @ExampleObject(
+                            name = "Missing session payload",
+                            summary = "Validation failure with reason code",
+                            value =
+                                "{\n"
+                                    + "  \"error\": \"invalid_input\",\n"
+                                    + "  \"message\": \"sessionHex is required for the requested suite\",\n"
+                                    + "  \"details\": {\n"
+                                    + "    \"telemetryId\": \"rest-ocra-<uuid>\",\n"
+                                    + "    \"status\": \"invalid\",\n"
+                                    + "    \"suite\": \"OCRA-1:HOTP-SHA256-8:QA08-S064\",\n"
+                                    + "    \"field\": \"sessionHex\",\n"
+                                    + "    \"reasonCode\": \"session_required\",\n"
+                                    + "    \"sanitized\": \"true\"\n"
+                                    + "  }\n"
+                                    + "}"))),
         @ApiResponse(
             responseCode = "500",
             description = "Unexpected server error",
