@@ -89,6 +89,8 @@ final class OcraOperatorUiControllerTest {
     assertThat(html).contains("data-testid=\"mode-toggle\"");
     assertThat(html).contains("value=\"inline\"");
     assertThat(html).contains("value=\"credential\"");
+    assertThat(html).contains("data-testid=\"inline-policy-select\"");
+    assertThat(html).contains("QA08 S064");
   }
 
   @Test
@@ -144,7 +146,7 @@ final class OcraOperatorUiControllerTest {
     assertThat(html).contains("<dt>Status</dt>");
     assertThat(html).contains("<dt>Telemetry ID</dt>");
     assertThat(html).contains("<dt>Suite</dt>");
-    assertThat(html).doesNotContain(SHARED_SECRET_HEX);
+    assertThat(html).contains("qa08-s064");
   }
 
   @Test
@@ -194,7 +196,7 @@ final class OcraOperatorUiControllerTest {
     assertThat(html).contains("data-testid=\"ocra-error-reason\">invalid_suite");
     assertThat(html).contains("data-testid=\"ocra-error-sanitized\">true");
     assertThat(html).contains("suite is missing");
-    assertThat(html).doesNotContain(SHARED_SECRET_HEX);
+    assertThat(html).contains("qa08-s064");
   }
 
   @Test

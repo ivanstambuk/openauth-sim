@@ -19,5 +19,6 @@ _Last updated: 2025-09-28_
 | R025 | Ensure inline-only fields are not required when stored credential mode is active; update tests/docs as needed | UI-OCRA-002, UI-OCRA-004, UI-NFR-001 | ✅ |
 | R026 | Provide MapDB-backed CredentialStore bean for REST app with configurable path; update how-to docs | UI-OCRA-002, UI-OCRA-004, UI-NFR-003 | ✅ |
 | R027 | Add UI end-to-end test exercising stored credential flow against MapDB store | UI-OCRA-002, UI-OCRA-004, UI-OCRA-005 | ✅ |
+| R028 | Offer inline OCRA policy presets that auto-fill illustrative vectors; add coverage | UI-OCRA-002, UI-OCRA-003, UI-OCRA-005 | ✅ |
 
 Update this checklist as work progresses.

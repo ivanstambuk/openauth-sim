@@ -19,6 +19,7 @@ public final class OcraEvaluationForm {
   private String pinHashHex;
   private String timestampHex;
   private Long counter;
+  private String policyPreset;
 
   public String getMode() {
     return mode;
@@ -115,6 +116,14 @@ public final class OcraEvaluationForm {
 
   public void setCounter(Long counter) {
     this.counter = counter;
+  }
+
+  public String getPolicyPreset() {
+    return policyPreset;
+  }
+
+  public void setPolicyPreset(String policyPreset) {
+    this.policyPreset = trimOrNull(policyPreset);
   }
 
   public boolean isInlineMode() {

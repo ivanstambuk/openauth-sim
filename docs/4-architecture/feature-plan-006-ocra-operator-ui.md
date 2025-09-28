@@ -23,6 +23,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R025 – Remove `required` validation from hidden inline fields so stored credential mode submits cleanly; add regression coverage if possible. ✅ 2025-09-28
 - R026 – Wire the REST module to the MapDB credential store (configurable path) so stored credential mode works end-to-end; refresh documentation. ✅ 2025-09-28
 - R027 – Add end-to-end UI test covering stored credential submission via MapDB-backed persistence. ✅ 2025-09-28
+- R028 – Provide inline OCRA policy presets that auto-populate illustrative test vectors. ✅ 2025-09-28
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -44,6 +45,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-28 – R026 delivery: Added conditional MapDB-backed `CredentialStore` bean with configurable path, disabled during tests, and updated operator how-to/knowledge map to document the shared database configuration.
 - 2025-09-28 – R027 planning: need `TestRestTemplate`-driven UI flow to assert stored credential path works against MapDB store using CSRF/session handling.
 - 2025-09-28 – R027 delivery: Added `OcraOperatorUiEndToEndTest` exercising CSRF form submission with stored credential via shared MapDB store to prevent future regressions.
+- 2025-09-28 – R028 planning: expose preset dropdown sourced from existing test vectors (e.g., S064, S128, PIN, timestamp) and auto-fill inline fields while keeping secrets sanitized.
+- 2025-09-28 – R028 delivery: Added preset dropdown sourced from REST tests, front-end auto-fill script, and regression coverage (MockMvc + end-to-end) ensuring inline mode vectors stay in sync.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

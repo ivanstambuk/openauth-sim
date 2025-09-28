@@ -22,7 +22,8 @@ telemetry.
 
 ## Choosing an Evaluation Mode
 - **Inline parameters** – Provide the OCRA suite and shared secret as hex. Use this for ad-hoc
-  checks when you do not want to rely on persisted credentials.
+  checks when you do not want to rely on persisted credentials. A preset dropdown loads sample
+  vectors (derived from the automated tests) to speed up manual verification.
 - **Stored credential** – Supply a credential identifier that already exists in the simulator.
   The UI forwards only the identifier; secrets stay in persistence. The REST app loads
   credentials from the MapDB file referenced by `openauth.sim.persistence.database-path`.

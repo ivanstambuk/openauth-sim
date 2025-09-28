@@ -65,6 +65,23 @@
               submission.
             </p>
             <div>
+              <label for="policyPreset">Load a sample vector</label>
+              <select
+                id="policyPreset"
+                name="policyPreset"
+                th:value="${form.policyPreset}"
+                data-testid="inline-policy-select"
+              >
+                <option value="">Select a sample</option>
+                <option
+                  th:each="preset : ${policyPresets}"
+                  th:value="${preset.key}"
+                  th:text="${preset.label}"
+                ></option>
+              </select>
+              <p class="hint">Selecting a preset fills the inline fields with illustrative data.</p>
+            </div>
+            <div>
               <label for="suite">Suite</label>
               <input
                 id="suite"
@@ -239,12 +256,30 @@
       </section>
     </main>
 
-    <script>
+    <script th:inline="javascript">
       (function () {
         const modeInputs = document.querySelectorAll('input[name="mode"]');
         const sections = document.querySelectorAll('[data-mode-section]');
         const inlineRequired = document.querySelectorAll('[data-inline-required]');
         const credentialRequired = document.querySelectorAll('[data-credential-required]');
+        const policySelect = document.getElementById('policyPreset');
+        const inlinePresets = /*[[${policyPresetJson}]]*/ [];
+        const presetMap = Array.isArray(inlinePresets)
+          ? inlinePresets.reduce((acc, preset) => {
+              acc[preset.key] = preset.sample;
+              return acc;
+            }, {})
+          : {};
+        const inlineModeRadio = document.getElementById('mode-inline');
+        const suiteInput = document.getElementById('suite');
+        const sharedSecretInput = document.getElementById('sharedSecretHex');
+        const challengeInput = document.getElementById('challenge');
+        const sessionInput = document.getElementById('sessionHex');
+        const clientChallengeInput = document.getElementById('clientChallenge');
+        const serverChallengeInput = document.getElementById('serverChallenge');
+        const pinHashInput = document.getElementById('pinHashHex');
+        const timestampInput = document.getElementById('timestampHex');
+        const counterInput = document.getElementById('counter');
 
         function updateSections() {
           const selected = document.querySelector('input[name="mode"]:checked');
@@ -282,11 +317,59 @@
           });
         }
 
+        function applyPreset(presetKey) {
+          if (!presetKey) {
+            return;
+          }
+          const sample = presetMap[presetKey];
+          if (!sample) {
+            return;
+          }
+          if (inlineModeRadio) {
+            inlineModeRadio.checked = true;
+          }
+          updateSections();
+          if (suiteInput) {
+            suiteInput.value = sample && sample.suite ? sample.suite : '';
+          }
+          if (sharedSecretInput) {
+            sharedSecretInput.value = sample && sample.sharedSecretHex ? sample.sharedSecretHex : '';
+          }
+          if (challengeInput) {
+            challengeInput.value = sample && sample.challenge ? sample.challenge : '';
+          }
+          if (sessionInput) {
+            sessionInput.value = sample && sample.sessionHex ? sample.sessionHex : '';
+          }
+          if (clientChallengeInput) {
+            clientChallengeInput.value = sample && sample.clientChallenge ? sample.clientChallenge : '';
+          }
+          if (serverChallengeInput) {
+            serverChallengeInput.value = sample && sample.serverChallenge ? sample.serverChallenge : '';
+          }
+          if (pinHashInput) {
+            pinHashInput.value = sample && sample.pinHashHex ? sample.pinHashHex : '';
+          }
+          if (timestampInput) {
+            timestampInput.value = sample && sample.timestampHex ? sample.timestampHex : '';
+          }
+          if (counterInput) {
+            counterInput.value = sample && sample.counter != null ? sample.counter : '';
+          }
+        }
+
         modeInputs.forEach((input) => {
           input.addEventListener('change', updateSections);
         });
 
+        if (policySelect) {
+          policySelect.addEventListener('change', () => applyPreset(policySelect.value));
+        }
+
         updateSections();
+        if (policySelect && policySelect.value) {
+          applyPreset(policySelect.value);
+        }
       })();
     </script>
   </body>
