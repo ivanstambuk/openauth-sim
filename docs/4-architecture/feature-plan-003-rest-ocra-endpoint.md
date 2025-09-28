@@ -12,7 +12,7 @@ Reference specification: `docs/4-architecture/specs/feature-003-rest-ocra-evalua
 - Endpoint accepts all supported runtime inputs (suite, shared secret hex, optional counter/challenges/session/pin/timestamp) and produces deterministic OTPs.
 - Integration tests exercise the endpoint against the known RFC vector fixtures, keeping responses in sync with the core module.
 - Telemetry verifies redaction rules and captures execution metadata (`rest.ocra.evaluate`).
-- OpenAPI documentation and operator how-to references describe the endpoint contract and sample payloads.
+- OpenAPI documentation (via SpringDoc `/v3/api-docs`) and operator how-to references describe the endpoint contract and sample payloads.
 
 ## Task Tracker
 - Detailed increments live in `docs/4-architecture/tasks/feature-003-rest-ocra-endpoint.md`. Keep each task ≤10 minutes and commit after every green build.
@@ -20,6 +20,8 @@ Reference specification: `docs/4-architecture/specs/feature-003-rest-ocra-evalua
 - Initial scope covers synchronous evaluation only; follow-up tickets will address persistence-backed credential lookup and authentication.
 
 ### Timeline & Notes
+- 2025-09-28 – Owner approved adopting SpringDoc OpenAPI starter for R005 to auto-generate REST docs; dependency addition will be recorded alongside Gradle lock refresh.
+- 2025-09-28 – R005 implementation: integrated SpringDoc 2.4.0 with enforced Spring Boot BOM, added OpenAPI documentation tests, and generated the initial snapshot under docs/3-reference/rest-openapi.json.
 - 2025-09-28 – Option A confirmed: REST facade receives dedicated spec/plan/tasks separate from Feature 001.
 - 2025-09-28 – Current focus on Task R001 (documentation uplift) before implementing the endpoint (R002–R004).
 - 2025-09-28 – R001 complete: spec/plan/tasks created; queued next steps R002/R003 (tests first).
@@ -36,6 +38,7 @@ Reference specification: `docs/4-architecture/specs/feature-003-rest-ocra-evalua
 ## Self-Review & Analysis Gate
 - 2025-09-28 (analysis gate) – Checklist completed prior to R004 implementation: specification and tasks remain in sync, no open questions, tests sequenced ahead of code, dependencies unchanged, and Gradle command readiness confirmed. No remediation items identified.
 - 2025-09-28 – Self-review complete for R004: verified telemetry logging redacts secrets, confirmed new request/response DTO constructors normalize inputs, and captured Gradle command outputs noted above.
+- 2025-09-28 – Self-review for R005: validated SpringDoc 2.4.0 alignment with Spring Boot 3.3.4 (enforced BOM), confirmed new OpenAPI tests guard `/v3/api-docs`, regenerated `docs/3-reference/rest-openapi.json`, and documented operator workflow in `docs/2-how-to/use-ocra-evaluation-endpoint.md`.
 - Self-review notes, Gradle command outputs, and telemetry assertions should be appended as tasks close.
 
 Update this plan as each task completes, mirroring task checklist status and documenting build/analysis results.

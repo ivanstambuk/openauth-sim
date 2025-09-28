@@ -1,5 +1,10 @@
 package io.openauth.sim.rest.ocra;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.http.HttpStatus;
@@ -20,6 +25,33 @@ class OcraEvaluationController {
     this.service = Objects.requireNonNull(service, "service");
   }
 
+  @Operation(
+      summary = "Evaluate an OCRA request",
+      description = "Computes an OCRA OTP for the supplied suite and runtime parameters.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Evaluation successful",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = OcraEvaluationResponse.class))),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid request payload",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = OcraEvaluationErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = OcraEvaluationErrorResponse.class)))
+      })
   @PostMapping(path = "/evaluate")
   ResponseEntity<OcraEvaluationResponse> evaluate(@RequestBody OcraEvaluationRequest request) {
     OcraEvaluationResponse response = service.evaluate(request);

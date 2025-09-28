@@ -11,6 +11,7 @@ mapdb = "3.1.0"
 mockito = "5.11.0"
 spotbugs = "4.8.3"
 springBoot = "3.3.4"
+springdoc = "2.4.0"
 
 [libraries]
 archunit-junit5 = { group = "com.tngtech.archunit", name = "archunit-junit5", version.ref = "archunit" }
@@ -27,6 +28,7 @@ spotbugs-annotations = { group = "com.github.spotbugs", name = "spotbugs-annotat
 spring-boot-bom = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "springBoot" }
 spring-boot-starter-web = { group = "org.springframework.boot", name = "spring-boot-starter-web" }
 spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
+springdoc-openapi-starter-webmvc-ui = { group = "org.springdoc", name = "springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 
 [plugins]
 errorprone = { id = "net.ltgt.errorprone", version = "4.3.0" }

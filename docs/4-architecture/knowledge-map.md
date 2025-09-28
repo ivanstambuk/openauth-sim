@@ -29,6 +29,7 @@ This living map captures the explicit relationships between modules, data flows,
 - Quality automation (ArchUnit, mutation testing, security prompts) enforces boundary rules across modules.
 - REST API spec for session-aware OCRA evaluation was drafted 2025-09-28; broader facade endpoints remain pending.
 - REST API now serves `/api/v1/ocra/evaluate`, delegating to `OcraResponseCalculator` and emitting redaction-friendly telemetry aligned with the CLI helper.
+- REST API publishes an auto-generated OpenAPI contract (`/v3/api-docs`) with a checked-in snapshot at `docs/3-reference/rest-openapi.json` for downstream integrations.
 
 ## Open Items
 | Date | Topic | Question | Status | Follow-up |

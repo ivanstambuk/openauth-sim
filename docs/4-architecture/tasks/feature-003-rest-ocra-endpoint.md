@@ -24,7 +24,7 @@ _Last updated: 2025-09-28_
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|
 | R004 | [x] Implement synchronous controller/service wiring to `OcraResponseCalculator`; ensure tests from R002/R003 pass. | FR-REST-001–FR-REST-003 | No |
-| R005 | Generate/update OpenAPI documentation and how-to references. | FR-REST-004 | No |
+| R005 | [x] Integrate SpringDoc OpenAPI, generate the spec, and refresh how-to references. | FR-REST-004 | No |
 
 ## Phase 3 – Wrap-up
 | ID | Task | Related Requirements | Parallel? |
@@ -32,5 +32,6 @@ _Last updated: 2025-09-28_
 | R006 | Rerun `./gradlew spotlessApply check`, capture telemetry output, and update knowledge map/roadmap with REST facade coverage. | NFR-REST-001–NFR-REST-004 | No |
 
 2025-09-28 – R004 closed: `./gradlew :rest-api:test` (PASS, ~14s) and `./gradlew spotlessApply check` (PASS, ~26s); telemetry assertions confirmed secrets remain redacted.
+2025-09-28 – R005 closed: SpringDoc 2.4.0 integrated with enforced Spring Boot BOM; generated rest-openapi.json snapshot via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.rest.OpenApiSnapshotTest`; verification `./gradlew :rest-api:test --tests io.openauth.sim.rest.OpenApiDocumentationTest`.
 
 Update this checklist as tasks progress and link back to the feature plan with outcomes and build logs.

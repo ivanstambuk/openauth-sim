@@ -11,12 +11,15 @@ dependencies {
     val springBootBom = libsCatalog.findLibrary("spring-boot-bom").get()
     val springBootStarterWeb = libsCatalog.findLibrary("spring-boot-starter-web").get()
     val springBootStarterTest = libsCatalog.findLibrary("spring-boot-starter-test").get()
+    val springDocStarter =
+        libsCatalog.findLibrary("springdoc-openapi-starter-webmvc-ui").get()
 
-    implementation(platform(springBootBom))
+    implementation(enforcedPlatform(springBootBom))
     implementation(projects.core)
     implementation(springBootStarterWeb)
+    implementation(springDocStarter)
 
-    testImplementation(platform(springBootBom))
+    testImplementation(enforcedPlatform(springBootBom))
     testImplementation(springBootStarterTest)
 
     constraints {

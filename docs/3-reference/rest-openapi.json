@@ -1,0 +1,131 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "OpenAPI definition",
+    "version" : "v0"
+  },
+  "servers" : [ {
+    "url" : "http://localhost",
+    "description" : "Generated server url"
+  } ],
+  "paths" : {
+    "/api/v1/ocra/evaluate" : {
+      "post" : {
+        "tags" : [ "ocra-evaluation-controller" ],
+        "summary" : "Evaluate an OCRA request",
+        "description" : "Computes an OCRA OTP for the supplied suite and runtime parameters.",
+        "operationId" : "evaluate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OcraEvaluationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "400" : {
+            "description" : "Invalid request payload",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation successful",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "OcraEvaluationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "suite" : {
+            "type" : "string"
+          },
+          "sharedSecretHex" : {
+            "type" : "string"
+          },
+          "challenge" : {
+            "type" : "string"
+          },
+          "sessionHex" : {
+            "type" : "string"
+          },
+          "clientChallenge" : {
+            "type" : "string"
+          },
+          "serverChallenge" : {
+            "type" : "string"
+          },
+          "pinHashHex" : {
+            "type" : "string"
+          },
+          "timestampHex" : {
+            "type" : "string"
+          },
+          "counter" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "OcraEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "OcraEvaluationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "suite" : {
+            "type" : "string"
+          },
+          "otp" : {
+            "type" : "string"
+          },
+          "telemetryId" : {
+            "type" : "string"
+          }
+        }
+      }
+    }
+  }
+}

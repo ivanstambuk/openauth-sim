@@ -11,6 +11,7 @@ Expose the existing `OcraResponseCalculator` via the Spring Boot REST facade so 
 - 2025-09-28 – Endpoint will be implemented as a synchronous `POST` under `/api/v1/ocra/evaluate`, returning the computed OTP in the response payload. No long-polling or async job orchestration is required for this feature.
 - 2025-09-28 – The endpoint accepts hex-encoded secret material supplied per-request; persistence-backed credential lookup remains out of scope until a future task.
 - 2025-09-28 – Spring Boot 3.3.4 (`spring-boot-starter-web` and `spring-boot-starter-test`) introduced to the `rest-api` module with dependency locks refreshed to align shared tooling (Mockito, ByteBuddy, Caffeine, json-smart, jspecify).
+- 2025-09-28 – Adopt SpringDoc OpenAPI (Option A) to generate `/v3/api-docs` for REST surfaces; manual YAML authoring stays as a contingency plan if generation fails the analysis gate.
 - 2025-09-28 – Controller validation tests (R003) will mirror current 404 behavior with TODOs referencing R004, keeping the build green while signalling future expectations.
 
 ## Objectives & Success Criteria
@@ -80,6 +81,7 @@ Expose the existing `OcraResponseCalculator` via the Spring Boot REST facade so 
 
 ## Dependencies & Out of Scope
 - Reuses core OCRA factories/calculator; no changes to core module for this feature.
+- Adds `org.springdoc:springdoc-openapi-starter-webmvc-ui` to the REST facade so `/v3/api-docs` and Swagger UI stay aligned with implementation; rationale and approval recorded in Feature Plan 003 (R005).
 - Credential persistence lookup, authentication/authorization, and rate limiting remain out of scope.
 - Future async/batch evaluation endpoints will require separate specifications.
 
