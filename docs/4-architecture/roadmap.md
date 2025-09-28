@@ -15,7 +15,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | # | Workstream | Goal | Status | Notes |
 |---|------------|------|--------|-------|
 | 1 | Core credential domain | Model protocol-specific credential types (FIDO2, OATH/OCRA, EU Digital Identity Wallet suites, EMV/CAP) with validation, issuance, and presentation helpers | In progress | Spec: [Feature 001](specs/feature-001-core-credential-domain.md), Plan: [Feature Plan 001](feature-plan-001-core-domain.md), Tasks: [Feature 001 Tasks](tasks/feature-001-core-credential-domain.md); Recent increments: T011–T015 (persistence envelopes, telemetry, documentation, knowledge map) |
-| 2 | Persistence & caching hardening | Tune MapDB + Caffeine (encryption options, compaction, metrics) | Not started | Depends on Workstream 1 definitions |
+| 2 | Persistence & caching hardening | Tune MapDB + Caffeine (encryption options, compaction, metrics) | In planning | Spec: [Feature 002](specs/feature-002-persistence-hardening.md), Plan: [Feature Plan 002](feature-plan-002-persistence-hardening.md), Tasks: [Feature 002 Tasks](tasks/feature-002-persistence-hardening.md) |
 | 3 | CLI tooling (Picocli) | Provide command-line flows to import, list, update, and delete credentials; accept secrets via arguments/stdin | Not started | Should integrate with `CredentialStore` API |
 | 4 | REST API (Spring Boot) | Expose emulator capabilities over REST with OpenAPI documentation | Not started | Requires Workstreams 1 & 2 |
 | 5 | Server-rendered UI | Build an operator UI consuming the REST API for manual operations | Not started | Shares DTOs with Workstream 4 |

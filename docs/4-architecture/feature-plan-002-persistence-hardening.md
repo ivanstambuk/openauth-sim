@@ -1,0 +1,40 @@
+# Feature Plan 002 – Persistence & Caching Hardening
+
+_Status: In planning_
+_Last updated: 2025-09-28_
+
+## Objective
+Enhance the persistence layer so MapDB + Caffeine can sustain ≥10,000 RPS while providing robust observability, maintenance hooks, and optional at-rest protections—all without changing the `CredentialStore` interface.
+
+Reference specification: `docs/4-architecture/specs/feature-002-persistence-hardening.md`.
+
+## Success Criteria
+- Benchmark harness demonstrates ≥10,000 RPS with latency targets from the specification and documents configuration used.
+- Cache and store emit metrics/logs (hit/miss ratios, load latencies, compaction events) without leaking secrets.
+- Maintenance operations (compaction, integrity checks) can be triggered via APIs/tests and complete without data loss.
+- Optional encryption hooks exist with documentation while default behaviour remains plaintext for tests.
+- Documentation (concepts, knowledge map, roadmap) reflects new persistence capabilities and configuration profiles.
+
+## Task Tracker
+- Detailed execution steps reside in `docs/4-architecture/tasks/feature-002-persistence-hardening.md`.
+- Map benchmark and profiling results back to NFR-201/NFR-202 as tasks close.
+- Record outcomes of `./gradlew spotlessApply check` and benchmarks in this plan to maintain traceability.
+
+## Upcoming Increments
+1. **T201 – Baseline Metrics & Benchmark Harness**: introduce synthetic load tests and logging scaffolding to capture current performance.
+2. **T202 – Cache Strategy Tuning**: adjust Caffeine configuration (size, TTL, eviction policies) guided by metrics.
+3. **T203 – MapDB Maintenance Hooks**: add compaction/integrity routines and ensure safe invocation.
+4. **T204 – Optional Encryption Hooks**: define interface and default implementation; document usage.
+5. **T205 – Documentation & Self-Review**: propagate findings to concepts/knowledge map/roadmap and capture lessons learned.
+
+## Dependencies & Considerations
+- Benchmarks may require additional tooling (JMH or custom harness) – ensure they run without network access.
+- Observe any platform constraints (CI resources) when defining RPS scenarios.
+- Coordinate with future Workstreams (CLI/REST) so their persistence assumptions match new configuration profiles.
+
+## Analysis Gate
+- [ ] Specification reviewed and aligned with clarifications.
+- [ ] Open questions logged/resolved before implementation.
+- [ ] Tasks ordered with tests/benchmarks preceding behavioural changes.
+
+Update this plan as tasks progress: check off completed items, add new tasks, and note blockers.
