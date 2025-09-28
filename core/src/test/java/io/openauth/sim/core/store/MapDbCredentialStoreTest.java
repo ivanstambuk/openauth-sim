@@ -10,10 +10,13 @@ import com.github.benmanes.caffeine.cache.Cache;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
+import io.openauth.sim.core.store.encryption.AesGcmPersistenceEncryption;
+import io.openauth.sim.core.store.encryption.PersistenceEncryption;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -253,6 +256,41 @@ class MapDbCredentialStoreTest {
                 assertFalse(
                     payload.containsKey("secret"), "Payload must not expose secret fields"));
     payloadBySource.values().forEach(payload -> assertEquals("FILE", payload.get("storeProfile")));
+  }
+
+  @Test
+  void encryptionEncryptsSecretsAtRestAndDecryptsOnRead() throws Exception {
+    byte[] key = new byte[32];
+    Arrays.fill(key, (byte) 0x5A);
+    PersistenceEncryption encryption =
+        AesGcmPersistenceEncryption.withKeySupplier(() -> key.clone());
+
+    Path dbPath = tempDir.resolve("encrypted.db");
+    Credential original =
+        Credential.create(
+            "secure",
+            CredentialType.GENERIC,
+            SecretMaterial.fromStringUtf8("super-secret"),
+            Map.of("purpose", "test"));
+
+    try (var store = MapDbCredentialStore.file(dbPath).encryption(encryption).open()) {
+      store.save(original);
+    }
+
+    VersionedCredentialRecord rawRecord = readRawRecord(dbPath, "secure");
+    assertNotEquals(
+        original.secret().asBase64(),
+        SecretMaterial.fromBytes(rawRecord.secret().value()).asBase64(),
+        "secret should be encrypted at rest");
+    assertTrue(rawRecord.attributes().containsKey("encryption.algorithm"));
+
+    try (var store = MapDbCredentialStore.file(dbPath).encryption(encryption).open()) {
+      Credential loaded = store.findByName("secure").orElseThrow();
+      assertEquals(original.secret(), loaded.secret());
+      assertEquals("test", loaded.attributes().get("purpose"));
+      assertFalse(loaded.attributes().containsKey("encryption.algorithm"));
+      assertFalse(loaded.attributes().containsKey("encryption.nonce"));
+    }
   }
 
   @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(

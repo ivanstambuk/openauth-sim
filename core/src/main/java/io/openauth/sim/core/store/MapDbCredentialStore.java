@@ -4,6 +4,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.openauth.sim.core.model.Credential;
+import io.openauth.sim.core.model.SecretMaterial;
+import io.openauth.sim.core.store.encryption.PersistenceEncryption;
+import io.openauth.sim.core.store.encryption.PersistenceEncryption.EncryptedSecret;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.nio.file.Path;
@@ -28,6 +31,9 @@ public final class MapDbCredentialStore implements CredentialStore {
   private static final String MAP_NAME = "credentials";
   private static final Logger TELEMETRY_LOGGER =
       Logger.getLogger("io.openauth.sim.core.store.persistence");
+  private static final String ENCRYPTION_METADATA_PREFIX = "encryption.";
+  private static final String ENCRYPTION_FLAG_KEY = ENCRYPTION_METADATA_PREFIX + "status";
+  private static final String ENCRYPTION_FLAG_VALUE = "ENABLED";
 
   static {
     TELEMETRY_LOGGER.setLevel(Level.FINE);
@@ -38,18 +44,21 @@ public final class MapDbCredentialStore implements CredentialStore {
   private final Cache<String, Credential> cache;
   private final List<VersionedCredentialRecordMigration> migrations;
   private final String storeProfile;
+  private final PersistenceEncryption encryption;
 
   private MapDbCredentialStore(
       DB db,
       ConcurrentMap<String, VersionedCredentialRecord> backing,
       Cache<String, Credential> cache,
       List<VersionedCredentialRecordMigration> migrations,
-      String storeProfile) {
+      String storeProfile,
+      PersistenceEncryption encryption) {
     this.db = db;
     this.backing = backing;
     this.cache = cache;
     this.migrations = migrations;
     this.storeProfile = storeProfile;
+    this.encryption = encryption;
     upgradePersistedRecords();
   }
 
@@ -67,7 +76,8 @@ public final class MapDbCredentialStore implements CredentialStore {
     Objects.requireNonNull(credential, "credential");
     long start = System.nanoTime();
     VersionedCredentialRecord record = VersionedCredentialRecordMapper.toRecord(credential);
-    backing.put(credential.name(), record);
+    VersionedCredentialRecord persisted = encryptIfNeeded(record);
+    backing.put(credential.name(), persisted);
     db.commit();
     cache.put(credential.name(), credential);
     logMutationEvent(credential.name(), MutationOperation.SAVE, System.nanoTime() - start);
@@ -85,7 +95,8 @@ public final class MapDbCredentialStore implements CredentialStore {
     VersionedCredentialRecord record = backing.get(name);
     if (record != null) {
       VersionedCredentialRecord upgraded = ensureLatest(name, record);
-      Credential credential = VersionedCredentialRecordMapper.toCredential(upgraded);
+      VersionedCredentialRecord decrypted = decryptIfNeeded(upgraded);
+      Credential credential = VersionedCredentialRecordMapper.toCredential(decrypted);
       cache.put(name, credential);
       logLookupEvent(name, false, LookupSource.MAPDB, System.nanoTime() - start);
       return Optional.of(credential);
@@ -98,9 +109,10 @@ public final class MapDbCredentialStore implements CredentialStore {
   public List<Credential> findAll() {
     return backing.entrySet().stream()
         .map(
-            entry ->
-                VersionedCredentialRecordMapper.toCredential(
-                    ensureLatest(entry.getKey(), entry.getValue())))
+            entry -> {
+              VersionedCredentialRecord latest = ensureLatest(entry.getKey(), entry.getValue());
+              return VersionedCredentialRecordMapper.toCredential(decryptIfNeeded(latest));
+            })
         .toList();
   }
 
@@ -159,10 +171,22 @@ public final class MapDbCredentialStore implements CredentialStore {
       return this;
     }
 
+    public Builder encryption(PersistenceEncryption encryption) {
+      this.encryption = Objects.requireNonNull(encryption, "encryption");
+      return this;
+    }
+
+    private PersistenceEncryption encryption;
+
     public MapDbCredentialStore open() {
       Components components = prepareComponents();
       return new MapDbCredentialStore(
-          components.db, components.backing, components.cache, migrations, components.storeProfile);
+          components.db,
+          components.backing,
+          components.cache,
+          migrations,
+          components.storeProfile,
+          encryption);
     }
 
     public MaintenanceBundle openWithMaintenance() {
@@ -173,7 +197,8 @@ public final class MapDbCredentialStore implements CredentialStore {
               components.backing,
               components.cache,
               migrations,
-              components.storeProfile);
+              components.storeProfile,
+              encryption);
       MaintenanceHelper maintenance = store.new MaintenanceHelper();
       return new MaintenanceBundle(store, maintenance);
     }
@@ -311,6 +336,53 @@ public final class MapDbCredentialStore implements CredentialStore {
     TELEMETRY_LOGGER.log(Level.FINE, "persistence.credential.maintenance", new Object[] {payload});
   }
 
+  private VersionedCredentialRecord encryptIfNeeded(VersionedCredentialRecord record) {
+    if (encryption == null) {
+      return record;
+    }
+    EncryptedSecret encrypted = encryption.encrypt(record.name(), record.secret());
+    Map<String, String> attributes = new LinkedHashMap<>(record.attributes());
+    attributes.keySet().removeIf(key -> key.startsWith(ENCRYPTION_METADATA_PREFIX));
+    attributes.putAll(encrypted.metadata());
+    attributes.put(ENCRYPTION_FLAG_KEY, ENCRYPTION_FLAG_VALUE);
+    return new VersionedCredentialRecord(
+        record.schemaVersion(),
+        record.name(),
+        record.type(),
+        encrypted.secret(),
+        record.createdAt(),
+        record.updatedAt(),
+        attributes);
+  }
+
+  private VersionedCredentialRecord decryptIfNeeded(VersionedCredentialRecord record) {
+    if (encryption == null) {
+      return record;
+    }
+    String status = record.attributes().get(ENCRYPTION_FLAG_KEY);
+    if (!ENCRYPTION_FLAG_VALUE.equals(status)) {
+      return record;
+    }
+    Map<String, String> metadata = new LinkedHashMap<>();
+    for (Map.Entry<String, String> entry : record.attributes().entrySet()) {
+      if (entry.getKey().startsWith(ENCRYPTION_METADATA_PREFIX)) {
+        metadata.put(entry.getKey(), entry.getValue());
+      }
+    }
+    SecretMaterial decryptedSecret = encryption.decrypt(record.name(), record.secret(), metadata);
+    Map<String, String> attributes = new LinkedHashMap<>(record.attributes());
+    attributes.keySet().removeIf(key -> key.startsWith(ENCRYPTION_METADATA_PREFIX));
+    attributes.remove(ENCRYPTION_FLAG_KEY);
+    return new VersionedCredentialRecord(
+        record.schemaVersion(),
+        record.name(),
+        record.type(),
+        decryptedSecret,
+        record.createdAt(),
+        record.updatedAt(),
+        attributes);
+  }
+
   private enum LookupSource {
     CACHE,
     MAPDB,
@@ -370,7 +442,7 @@ public final class MapDbCredentialStore implements CredentialStore {
           if (upgraded != current) {
             entriesRepaired++;
           }
-          VersionedCredentialRecordMapper.toCredential(upgraded);
+          VersionedCredentialRecordMapper.toCredential(decryptIfNeeded(upgraded));
         } catch (RuntimeException ex) {
           issues.add(formatIssue(credentialName, ex));
         }

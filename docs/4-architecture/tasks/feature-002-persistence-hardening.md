@@ -69,6 +69,12 @@ _Last updated: 2025-09-28_
 | T207 | Define encryption provider interface and default AES-GCM implementation with callback-supplied keys. | FR-204, NFR-204 | No |
 | T208 | Add documentation/tests covering encryption hook behaviour and key rotation guidance. | FR-204 | No |
 
+### T207 – Encryption Hooks Checklist
+- [x] Confirm AES-GCM with in-memory key callbacks as initial encryption approach (2025-09-28).
+- [x] Introduce `PersistenceEncryption` interface and AES-GCM implementation with unit coverage (2025-09-28).
+- [x] Integrate encryption into `MapDbCredentialStore` and ensure attributes returned to callers exclude metadata (2025-09-28).
+- [ ] Provide operator/key rotation documentation updates (planned for T208).
+
 ## Phase 4 – Wrap-up
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|
