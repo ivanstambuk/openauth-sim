@@ -1,0 +1,20 @@
+# Feature 006 – OCRA Operator UI Tasks
+
+_Status: Draft_
+_Last updated: 2025-09-28_
+
+## Execution Notes
+- Specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui.md`.
+- Keep each task ≤10 minutes; commit after every passing build.
+- Follow test-first cadence: add/extend MVC tests before implementing controllers/templates.
+- Capture telemetry/logging decisions in plan/spec if adjustments arise.
+
+## Tasks
+| ID | Task | Related Requirements | Status |
+|----|------|----------------------|--------|
+| R021 | Draft spec, feature plan, tasks; update roadmap + knowledge map | UI-OCRA-001–UI-OCRA-006 | ✅ |
+| R022 | Add failing MockMvc + template tests for landing page, evaluation flow, sanitized error handling, CSRF token presence | UI-OCRA-001–UI-OCRA-006 | ☐ |
+| R023 | Introduce templating dependency, MVC controller, REST client wiring, and Thymeleaf templates to satisfy tests (ensure CSRF + accessibility basics) | UI-OCRA-001–UI-OCRA-006, UI-NFR-001–UI-NFR-004 | ☐ |
+| R024 | Polish UX (labels, telemetry panel), update operator docs/how-to, log sanitization notes, run `./gradlew spotlessApply check` | UI-OCRA-001–UI-OCRA-006, UI-NFR-001–UI-NFR-004 | ☐ |
+
+Update this checklist as work progresses.
