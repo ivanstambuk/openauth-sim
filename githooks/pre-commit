@@ -19,3 +19,13 @@ EOF
 fi
 
 gitleaks detect --no-banner --redact --staged --source "$ROOT_DIR"
+
+if ! command -v gitlint >/dev/null 2>&1; then
+  cat >&2 <<'EOF'
+[pre-commit] gitlint CLI is required but was not found on PATH.
+[pre-commit] Install it (https://github.com/jorisroovers/gitlint#installation) and rerun the commit.
+EOF
+  exit 1
+fi
+
+gitlint --staged
