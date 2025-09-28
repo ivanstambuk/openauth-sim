@@ -71,6 +71,12 @@ _Last updated: 2025-09-27_
 - [x] Implement the OCRA adapter leveraging existing `SecretMaterial` utilities while preserving immutable metadata handling.
 - [x] Capture adapter behaviour and follow-ups back in the feature plan/tasks after the build passes.
 
+### T012 – MapDB Envelope Integration Checklist
+- [x] Add persistence tests covering schema-v1 and simulated legacy records, ensuring upgrade hooks materialise OCRA descriptors and invalidate caches appropriately.
+- [x] Introduce migration helper APIs translating legacy envelopes to the latest schema, including safe defaults for unsupported versions.
+- [x] Update `MapDbCredentialStore` (and related persistence utilities) to read/write `VersionedCredentialRecord` instances via registered adapters.
+- [x] Document migration behaviour and any remaining protocol gaps across spec, plan, and knowledge map.
+
 ## Phase 4 – Documentation & Cleanup
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|

@@ -31,14 +31,16 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - 2025-09-27 – Phase 2/T009 delivered: Introduced shared secret normalisation helpers covering RAW/HEX/Base64 inputs, updated descriptor/factory flows to consume canonical `SecretMaterial`, re-enabled the property-based suite from T005, and recorded `./gradlew spotlessApply check` success at 23:34Z.
 - 2025-09-27 – Phase 2/T010 delivered: Added `CredentialCapability` and `CredentialRegistry` seeded with OCRA metadata and factory wiring, validated via registry tests, and recorded `./gradlew spotlessApply check` pending post-doc update.
 - 2025-09-28 – Phase 3/T011 delivered: Introduced versioned credential record + persistence adapter interfaces, added OCRA descriptor round-trip tests, implemented the adapter, and captured `./gradlew spotlessApply check` success (2025-09-28T15:17:00Z, 33s, configuration cache reused).
+- 2025-09-28 – Phase 3/T012 initiated: Wire `VersionedCredentialRecord` envelopes into `MapDbCredentialStore`, add upgrade hooks for future schema versions, and prove OCRA record migrations via targeted persistence tests.
+- 2025-09-28 – Phase 3/T012 delivered: Migrated `MapDbCredentialStore` to versioned envelopes with OCRA-focused upgrade pipeline, added legacy schema-0 migration coverage, and logged `./gradlew spotlessApply check` success (2025-09-28T16:12:00Z, 33s, configuration cache reused).
 
-## Phase 3 – Next Increment (T011 OCRA Persistence Bridge)
+## Phase 3 – Next Increment (T012 MapDB Envelope Integration)
 
-1. Capture persistence adapter requirements in tests under `core/src/test/java/io/openauth/sim/core/credentials/ocra`, asserting descriptor ⇄ record round-trips and mandatory attribute enforcement.
-2. Introduce core serialization contracts for versioned credential records without binding to a concrete store implementation.
-3. Implement the OCRA adapter that maps descriptors to the persistence record, ensuring shared secret handling reuses existing `SecretMaterial` utilities and metadata remains immutable.
-4. Document the adapter footprint in feature tasks/plan and prepare follow-up hooks for future persistence wiring (T012/T013).
-5. Run `./gradlew spotlessApply check`, capture results in this plan, and perform self-review before committing the increment.
+1. Extend persistence layer tests to cover storing and reloading `VersionedCredentialRecord` instances through `MapDbCredentialStore`, including backwards-compatibility scenarios.
+2. Implement migration helpers that upgrade legacy schema versions to the current descriptor form, surfacing descriptive diagnostics when migration paths are missing.
+3. Integrate the OCRA persistence adapter with MapDB so save/load flows round-trip via schema envelopes while keeping in-memory caches in sync.
+4. Update roadmap artifacts (tasks/spec/plan) with migration outcomes and document follow-up work for additional protocol adapters.
+5. Run `./gradlew spotlessApply check`, capture timing in this plan, and self-review before committing/pushing. ✅ (2025-09-28T16:12:00Z, PASS)
 
 ## Dependencies
 

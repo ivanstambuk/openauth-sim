@@ -4,7 +4,9 @@ import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.serialization.CredentialPersistenceAdapter;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -21,13 +23,20 @@ public final class OcraCredentialPersistenceAdapter
   public static final String ATTR_METADATA_PREFIX = "ocra.metadata.";
 
   private final OcraCredentialDescriptorFactory descriptorFactory;
+  private final Clock clock;
 
   public OcraCredentialPersistenceAdapter() {
-    this(new OcraCredentialDescriptorFactory());
+    this(new OcraCredentialDescriptorFactory(), Clock.systemUTC());
   }
 
   public OcraCredentialPersistenceAdapter(OcraCredentialDescriptorFactory descriptorFactory) {
+    this(descriptorFactory, Clock.systemUTC());
+  }
+
+  public OcraCredentialPersistenceAdapter(
+      OcraCredentialDescriptorFactory descriptorFactory, Clock clock) {
     this.descriptorFactory = Objects.requireNonNull(descriptorFactory, "descriptorFactory");
+    this.clock = Objects.requireNonNull(clock, "clock");
   }
 
   @Override
@@ -55,8 +64,9 @@ public final class OcraCredentialPersistenceAdapter
         .metadata()
         .forEach((key, value) -> attributes.put(ATTR_METADATA_PREFIX + key, value));
 
+    Instant now = clock.instant();
     return new VersionedCredentialRecord(
-        SCHEMA_VERSION, descriptor.name(), type(), descriptor.sharedSecret(), attributes);
+        SCHEMA_VERSION, descriptor.name(), type(), descriptor.sharedSecret(), now, now, attributes);
   }
 
   @Override

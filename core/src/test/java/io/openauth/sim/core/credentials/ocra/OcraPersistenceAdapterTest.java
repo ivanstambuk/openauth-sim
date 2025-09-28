@@ -8,7 +8,10 @@ import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,11 +21,14 @@ class OcraPersistenceAdapterTest {
 
   private OcraCredentialFactory factory;
   private OcraCredentialPersistenceAdapter adapter;
+  private Clock fixedClock;
 
   @BeforeEach
   void setUp() {
     factory = new OcraCredentialFactory();
-    adapter = new OcraCredentialPersistenceAdapter();
+    fixedClock = Clock.fixed(Instant.parse("2025-09-28T12:00:00Z"), ZoneOffset.UTC);
+    adapter =
+        new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), fixedClock);
   }
 
   @Test
@@ -35,6 +41,8 @@ class OcraPersistenceAdapterTest {
     assertEquals("token-1", record.name());
     assertEquals(CredentialType.OATH_OCRA, record.type());
     assertEquals(descriptor.sharedSecret(), record.secret());
+    assertEquals(fixedClock.instant(), record.createdAt());
+    assertEquals(fixedClock.instant(), record.updatedAt());
     assertEquals(
         descriptor.suite().value(),
         record.attributes().get(OcraCredentialPersistenceAdapter.ATTR_SUITE));
@@ -69,6 +77,8 @@ class OcraPersistenceAdapterTest {
             "persisted-token",
             CredentialType.OATH_OCRA,
             SecretMaterial.fromHex("3132333435363738393031323334353637383930"),
+            Instant.parse("2025-09-20T10:15:30Z"),
+            Instant.parse("2025-09-21T11:16:31Z"),
             attributes);
 
     OcraCredentialDescriptor descriptor = adapter.deserialize(record);
@@ -94,6 +104,8 @@ class OcraPersistenceAdapterTest {
             "broken-token",
             CredentialType.OATH_OCRA,
             SecretMaterial.fromBase64("YWJj"),
+            fixedClock.instant(),
+            fixedClock.instant(),
             attributes);
 
     IllegalArgumentException ex =
