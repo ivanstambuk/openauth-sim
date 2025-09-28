@@ -158,11 +158,6 @@ final class OcraOperatorUiSeleniumTest {
     return "http://localhost:" + port + path;
   }
 
-  private void waitForValue(By locator, String expected) {
-    new WebDriverWait(driver, Duration.ofSeconds(5))
-        .until(ExpectedConditions.attributeToBe(locator, "value", expected));
-  }
-
   private void waitForElementEnabled(By locator) {
     new WebDriverWait(driver, Duration.ofSeconds(5))
         .until(ExpectedConditions.elementToBeClickable(locator));
