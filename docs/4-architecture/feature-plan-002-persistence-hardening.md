@@ -33,8 +33,8 @@ Reference specification: `docs/4-architecture/specs/feature-002-persistence-hard
 - Coordinate with future Workstreams (CLI/REST) so their persistence assumptions match new configuration profiles.
 
 ## Analysis Gate
-- [ ] Specification reviewed and aligned with clarifications.
-- [ ] Open questions logged/resolved before implementation.
-- [ ] Tasks ordered with tests/benchmarks preceding behavioural changes.
+- [x] Specification reviewed and aligned with clarifications.
+- [x] Open questions resolved (clarifications recorded on 2025-09-28; none outstanding).
+- [x] Tasks ordered with benchmarks/metrics preceding behavioural changes.
 
 Update this plan as tasks progress: check off completed items, add new tasks, and note blockers.
