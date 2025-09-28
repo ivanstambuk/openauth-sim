@@ -71,6 +71,9 @@ subprojects {
         lockAllConfigurations()
     }
 
+    val junitVersion = libsCatalog.version("junit")
+    val junitPlatformVersion = libsCatalog.version("junitPlatform")
+
     extensions.configure<JavaPluginExtension> {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -96,7 +99,14 @@ subprojects {
             "org.apache.commons:commons-lang3:3.17.0",
             "org.apache.httpcomponents:httpcore:4.4.16",
             "org.slf4j:slf4j-api:2.0.13",
-            "commons-codec:commons-codec:1.19.0"
+            "commons-codec:commons-codec:1.19.0",
+            "org.junit.jupiter:junit-jupiter:$junitVersion",
+            "org.junit.jupiter:junit-jupiter-api:$junitVersion",
+            "org.junit.jupiter:junit-jupiter-params:$junitVersion",
+            "org.junit.jupiter:junit-jupiter-engine:$junitVersion",
+            "org.junit.platform:junit-platform-commons:$junitPlatformVersion",
+            "org.junit.platform:junit-platform-engine:$junitPlatformVersion",
+            "org.junit.platform:junit-platform-launcher:$junitPlatformVersion"
         )
     }
 
