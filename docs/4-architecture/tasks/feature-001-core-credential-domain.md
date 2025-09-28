@@ -149,7 +149,23 @@ _Last updated: 2025-09-28_
 - [x] Update documentation (spec/plan) with the new OTP expectations and note generator usage.
 - [x] Run `./gradlew spotlessApply check`, capture timing, and update plan/tasks with results once tests pass (2025-09-28 – PASS, ~27s, configuration cache reused).
 
-## Phase 6 – Future Protocol Packages (Pending Separate Plans)
+## Phase 6 – CLI Session Helper Integration
+| ID | Task | Related Requirements | Parallel? |
+|----|------|----------------------|-----------|
+| T023 | Add CLI regression tests proving session-aware helpers surface S064/S128/S256/S512 execution (initially expect failure). | FR-002, FR-007, NFR-004 | No |
+| T024 | Wire the CLI maintenance/verification command to invoke the session-aware helper, ensuring new tests pass and telemetry stays redacted. | FR-002, FR-007, NFR-005 | No |
+
+### T023 – CLI Session Test Harness Checklist
+- [ ] Extend the CLI feature spec/plan with session validation expectations and reference the generator provenance.
+- [ ] Add parameterised CLI integration tests invoking the maintenance command with S064/S128/S256/S512 payloads and assert expected OTP outputs (initially marked to fail pending implementation).
+- [ ] Capture TODO notes pointing to T024 and run `./gradlew :cli:test` to confirm the new tests fail due to missing wiring.
+
+### T024 – CLI Session Helper Wiring Checklist
+- [ ] Implement the CLI command changes so session payloads feed into `OcraResponseCalculator`, ensuring secrets remain redacted in logs/errors.
+- [ ] Update CLI documentation/help text to mention supported session lengths and reference the draft generator fixtures.
+- [ ] Re-run `./gradlew spotlessApply check` plus targeted CLI tests, update plan/tasks/spec with outcomes, and remove any temporary TODO markers.
+
+## Phase 7 – Future Protocol Packages (Pending Separate Plans)
 | Protocol | Notes |
 |----------|-------|
 | FIDO2/WebAuthn | Await dedicated clarification on minimum metadata, lifecycle expectations, and package rollout tasks. |
