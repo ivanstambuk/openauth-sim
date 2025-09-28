@@ -93,6 +93,25 @@ Ensure the container mounts a volume with sufficient space and grants write perm
 3. **Run the benchmark harness** (optional) with `./gradlew :core:test --tests io.openauth.sim.core.store.MapDbCredentialStoreBaselineBenchmark -Dio.openauth.sim.benchmark=true` and record the results in the feature plan.
 4. **Monitor cache metrics** by adjusting log level to `FINE` if additional insight is needed.
 
+## Run Maintenance Operations via CLI
+
+MapDB stores occasionally require compaction or integrity verification. The CLI module now exposes a `maintenance` command that wraps the core `MaintenanceHelper` so operators can trigger these routines without writing Java code.
+
+1. Build the project (if necessary): `./gradlew :cli:build`
+2. Run compaction against a file-backed store:
+
+   ```bash
+   ./gradlew :cli:run --args="compact --database=/path/to/credentials.db"
+   ```
+
+3. Run an integrity check instead:
+
+   ```bash
+   ./gradlew :cli:run --args="verify --database=/path/to/credentials.db"
+   ```
+
+The command prints the structured maintenance result (operation, status, duration, entries scanned/repaired, issue count). A non-zero exit code indicates the helper reported `FAIL`, in which case investigate the listed issues before continuing.
+
 ## Follow-ups
 
 - Benchmark results after cache tuning should be captured under Feature 002 plan task T201 once rerun.

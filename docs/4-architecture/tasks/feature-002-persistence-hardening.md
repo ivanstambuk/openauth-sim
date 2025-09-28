@@ -61,7 +61,7 @@ _Last updated: 2025-09-28_
 - [x] Confirm operator surface via CLI command(s) invoking `MaintenanceHelper` (2025-09-28).
 - [x] Add failing-first CLI tests covering `compact` and `verify` commands with MapDB file stores (2025-09-28).
 - [x] Implement CLI command runner emitting `MaintenanceResult` fields to STDOUT (2025-09-28).
-- [ ] Document maintenance CLI usage and integrate into operator how-to guide.
+- [x] Document maintenance CLI usage and integrate into operator how-to guide (2025-09-28).
 
 ## Phase 3 – Optional Protections
 | ID | Task | Related Requirements | Parallel? |

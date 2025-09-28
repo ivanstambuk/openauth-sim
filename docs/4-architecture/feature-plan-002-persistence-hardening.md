@@ -31,6 +31,7 @@ Reference specification: `docs/4-architecture/specs/feature-002-persistence-hard
 - 2025-09-28 – T205 maintenance helper tests: Added failing-first regression coverage for compaction/integrity operations and verified telemetry payloads via `MapDbCredentialStoreTest.maintenanceHelperEmitsResultsAndTelemetry`; `./gradlew :core:test --tests io.openauth.sim.core.store.MapDbCredentialStoreTest.maintenanceHelperEmitsResultsAndTelemetry` (pass) and full `./gradlew spotlessApply check` (pass, SpotBugs still notes missing `org.opentest4j.MultipleFailuresError`) executed post-implementation.
 - 2025-09-28 – T206 scope clarified: Expose maintenance operations via CLI command(s) that wrap the new `MaintenanceHelper`; REST/UI layers will follow in future increments.
 - 2025-09-28 – T206 CLI implementation: Added `maintenance <compact|verify>` command with tests (`./gradlew :cli:test --tests io.openauth.sim.cli.MaintenanceCliTest`) and verified full build via `./gradlew spotlessApply check`.
+- 2025-09-28 – T206 documentation: Updated `docs/2-how-to/configure-persistence-profiles.md` with CLI maintenance instructions so operators can trigger compaction/integrity routines via Gradle run tasks.
 
 ## Upcoming Increments
 1. **T201 – Baseline Metrics & Benchmark Harness**: introduce synthetic load tests and logging scaffolding to capture current performance.
