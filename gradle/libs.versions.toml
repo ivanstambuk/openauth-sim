@@ -30,6 +30,7 @@ spotbugs-annotations = { group = "com.github.spotbugs", name = "spotbugs-annotat
 spring-boot-bom = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "springBoot" }
 spring-boot-starter-web = { group = "org.springframework.boot", name = "spring-boot-starter-web" }
 spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
+spring-boot-starter-thymeleaf = { group = "org.springframework.boot", name = "spring-boot-starter-thymeleaf" }
 springdoc-openapi-starter-webmvc-ui = { group = "org.springdoc", name = "springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 
 [plugins]

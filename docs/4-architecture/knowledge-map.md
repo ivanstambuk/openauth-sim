@@ -33,7 +33,7 @@ This living map captures the explicit relationships between modules, data flows,
 - REST OCRA telemetry snapshot is archived under `docs/3-reference/rest-ocra-telemetry-snapshot.md` to illustrate redaction guarantees for operators.
 - REST OCRA telemetry events now emit `reasonCode` and `sanitized` attributes so downstream alerting can distinguish validation failures from unexpected errors without leaking secrets.
 - REST OCRA evaluation supports credential lookup via `credentialId`, resolving descriptors from the persistence adapter while preserving the existing inline secret mode.
-- Operator UI workstream will introduce server-rendered views within the `rest-api` module, consuming the existing REST endpoints while presenting evaluation workflows and sanitized telemetry to human operators.
+- REST module now hosts Thymeleaf-backed operator views under `/ui/ocra`, delegating evaluations to the existing REST endpoint while emitting sanitized telemetry and enforcing session-backed CSRF tokens.
 
 ## Open Items
 | Date | Topic | Question | Status | Follow-up |

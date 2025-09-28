@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>OCRA Evaluation</title>
+  </head>
+  <body>
+    <main>
+      <h1>OCRA Evaluation Console</h1>
+      <section aria-labelledby="evaluate-heading">
+        <h2 id="evaluate-heading">Evaluate an OCRA response</h2>
+        <form
+          th:action="@{/ui/ocra/evaluate}"
+          method="post"
+          data-testid="ocra-evaluate-form"
+        >
+          <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+          <input type="hidden" name="mode" value="inline" />
+
+          <div>
+            <label for="suite">Suite</label>
+            <input
+              id="suite"
+              name="suite"
+              type="text"
+              autocomplete="off"
+              th:value="${form.suite}"
+              required
+            />
+          </div>
+
+          <div>
+            <label for="sharedSecretHex">Shared Secret (hex)</label>
+            <input
+              id="sharedSecretHex"
+              name="sharedSecretHex"
+              type="password"
+              autocomplete="off"
+              value=""
+              placeholder="Hex encoded secret"
+              required
+            />
+          </div>
+
+          <div>
+            <label for="challenge">Challenge</label>
+            <input
+              id="challenge"
+              name="challenge"
+              type="text"
+              th:value="${form.challenge}"
+              autocomplete="off"
+            />
+          </div>
+
+          <div>
+            <label for="sessionHex">Session (hex)</label>
+            <textarea
+              id="sessionHex"
+              name="sessionHex"
+              rows="3"
+              th:text="${form.sessionHex}"
+            ></textarea>
+          </div>
+
+          <button type="submit">Evaluate</button>
+        </form>
+      </section>
+
+      <section th:if="${viewState.hasResult()}" aria-live="polite">
+        <h2>Evaluation Result</h2>
+        <p data-testid="ocra-otp" th:text="${viewState.payload['otp']}"></p>
+        <p data-testid="ocra-telemetry-id" th:text="${viewState.payload['telemetryId']}"></p>
+        <p data-testid="ocra-reason-code" th:text="${viewState.payload['reasonCode']}"></p>
+        <p data-testid="ocra-sanitized-flag" th:text="${viewState.payload['sanitized']}"></p>
+      </section>
+
+      <section th:if="${viewState.hasError()}" aria-live="assertive" role="alert">
+        <div data-testid="ocra-error-banner">
+          <p>Evaluation failed.</p>
+          <p data-testid="ocra-error-reason" th:text="${viewState.payload['reasonCode']}"></p>
+          <p data-testid="ocra-error-sanitized" th:text="${viewState.payload['sanitized']}"></p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

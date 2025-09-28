@@ -13,8 +13,8 @@ _Last updated: 2025-09-28_
 | ID | Task | Related Requirements | Status |
 |----|------|----------------------|--------|
 | R021 | Draft spec, feature plan, tasks; update roadmap + knowledge map | UI-OCRA-001–UI-OCRA-006 | ✅ |
-| R022 | Add failing MockMvc + template tests for landing page, evaluation flow, sanitized error handling, CSRF token presence | UI-OCRA-001–UI-OCRA-006 | ☐ |
-| R023 | Introduce templating dependency, MVC controller, REST client wiring, and Thymeleaf templates to satisfy tests (ensure CSRF + accessibility basics) | UI-OCRA-001–UI-OCRA-006, UI-NFR-001–UI-NFR-004 | ☐ |
+| R022 | Add failing MockMvc + template tests for landing page, evaluation flow, sanitized error handling, CSRF token presence | UI-OCRA-001–UI-OCRA-006 | ✅ |
+| R023 | Introduce templating dependency, MVC controller, REST client wiring, and Thymeleaf templates to satisfy tests (ensure CSRF + accessibility basics) | UI-OCRA-001–UI-OCRA-006, UI-NFR-001–UI-NFR-004 | ✅ |
 | R024 | Polish UX (labels, telemetry panel), update operator docs/how-to, log sanitization notes, run `./gradlew spotlessApply check` | UI-OCRA-001–UI-OCRA-006, UI-NFR-001–UI-NFR-004 | ☐ |
 
 Update this checklist as work progresses.

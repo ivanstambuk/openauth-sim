@@ -32,6 +32,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 
 ## Intent & Tooling Log
 - 2025-09-28 – Session kickoff recorded decisions from user (UI hosted in REST module, REST integration, evaluation-only scope); created spec + plan skeleton.
+- 2025-09-28 – R022: Added MockMvc-driven UI tests (landing, evaluation success, sanitized errors, CSRF enforcement) to drive Thymeleaf implementation; tests currently red pending controller/templates.
+- 2025-09-28 – R023: Added `spring-boot-starter-thymeleaf`, manual session-backed CSRF tokens, MVC controller, and Thymeleaf templates; tests now green, sanitizing secrets from rendered HTML and verifying REST delegation.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes
