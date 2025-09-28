@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record OcraEvaluationRequest(
+    String credentialId,
     String suite,
     String sharedSecretHex,
     String challenge,
@@ -17,6 +18,7 @@ public record OcraEvaluationRequest(
     Long counter) {
 
   public OcraEvaluationRequest {
+    credentialId = trimOrNull(credentialId);
     suite = trimOrNull(suite);
     sharedSecretHex = trimOrNull(sharedSecretHex);
     challenge = trimOrNull(challenge);

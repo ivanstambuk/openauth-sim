@@ -36,16 +36,6 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation successful",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
-                }
-              }
-            }
-          },
           "400" : {
             "description" : "Invalid request payload",
             "content" : {
@@ -73,6 +63,16 @@
                 }
               }
             }
+          },
+          "200" : {
+            "description" : "Evaluation successful",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -83,6 +83,9 @@
       "OcraEvaluationRequest" : {
         "type" : "object",
         "properties" : {
+          "credentialId" : {
+            "type" : "string"
+          },
           "suite" : {
             "type" : "string"
           },

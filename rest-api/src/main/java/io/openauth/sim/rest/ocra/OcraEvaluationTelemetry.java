@@ -14,6 +14,7 @@ class OcraEvaluationTelemetry {
   void recordSuccess(
       String telemetryId,
       String suite,
+      boolean hasCredentialReference,
       boolean hasSession,
       boolean hasClientChallenge,
       boolean hasServerChallenge,
@@ -25,6 +26,7 @@ class OcraEvaluationTelemetry {
         "success",
         telemetryId,
         suite,
+        hasCredentialReference,
         hasSession,
         hasClientChallenge,
         hasServerChallenge,
@@ -39,6 +41,7 @@ class OcraEvaluationTelemetry {
   void recordValidationFailure(
       String telemetryId,
       String suite,
+      boolean hasCredentialReference,
       boolean hasSession,
       boolean hasClientChallenge,
       boolean hasServerChallenge,
@@ -53,6 +56,7 @@ class OcraEvaluationTelemetry {
         "invalid",
         telemetryId,
         suite,
+        hasCredentialReference,
         hasSession,
         hasClientChallenge,
         hasServerChallenge,
@@ -67,6 +71,7 @@ class OcraEvaluationTelemetry {
   void recordError(
       String telemetryId,
       String suite,
+      boolean hasCredentialReference,
       boolean hasSession,
       boolean hasClientChallenge,
       boolean hasServerChallenge,
@@ -81,6 +86,7 @@ class OcraEvaluationTelemetry {
         "error",
         telemetryId,
         suite,
+        hasCredentialReference,
         hasSession,
         hasClientChallenge,
         hasServerChallenge,
@@ -97,6 +103,7 @@ class OcraEvaluationTelemetry {
       String status,
       String telemetryId,
       String suite,
+      boolean hasCredentialReference,
       boolean hasSession,
       boolean hasClientChallenge,
       boolean hasServerChallenge,
@@ -112,6 +119,7 @@ class OcraEvaluationTelemetry {
             status,
             telemetryId,
             suite,
+            hasCredentialReference,
             hasSession,
             hasClientChallenge,
             hasServerChallenge,
@@ -127,6 +135,7 @@ class OcraEvaluationTelemetry {
       String status,
       String telemetryId,
       String suite,
+      boolean hasCredentialReference,
       boolean hasSession,
       boolean hasClientChallenge,
       boolean hasServerChallenge,
@@ -139,11 +148,12 @@ class OcraEvaluationTelemetry {
     String base =
         String.format(
             Locale.ROOT,
-            "event=rest.ocra.evaluate status=%s telemetryId=%s suite=%s hasSessionPayload=%s "
-                + "hasClientChallenge=%s hasServerChallenge=%s hasPin=%s hasTimestamp=%s durationMillis=%d",
+            "event=rest.ocra.evaluate status=%s telemetryId=%s suite=%s hasCredentialReference=%s "
+                + "hasSessionPayload=%s hasClientChallenge=%s hasServerChallenge=%s hasPin=%s hasTimestamp=%s durationMillis=%d",
             status,
             Objects.requireNonNullElse(telemetryId, "unknown"),
             Objects.requireNonNullElse(suite, "unknown"),
+            hasCredentialReference,
             hasSession,
             hasClientChallenge,
             hasServerChallenge,

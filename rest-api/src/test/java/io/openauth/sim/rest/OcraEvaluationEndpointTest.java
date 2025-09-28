@@ -9,11 +9,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
+import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
+import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
+import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
+import io.openauth.sim.core.model.Credential;
+import io.openauth.sim.core.model.SecretEncoding;
+import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
+import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Locale;
+import java.util.Map;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -49,6 +59,7 @@ final class OcraEvaluationEndpointTest {
   private static final String TIMESTAMP_SUITE = "OCRA-1:HOTPT30SHA256-7:QN08";
   private static final Duration TIMESTAMP_STEP = Duration.ofSeconds(30);
   private static final Instant FIXED_NOW = Instant.parse("2025-09-28T12:00:00Z");
+  private static final String STORED_CREDENTIAL_ID = "rest-ocra-stored";
   private static final Logger TELEMETRY_LOGGER =
       Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
 
@@ -167,6 +178,118 @@ final class OcraEvaluationEndpointTest {
             requestJson("OCRA-1:HOTP-SHA256-8:QA08-S512", SESSION_HEX_512),
             "05806151",
             "313233"));
+  }
+
+  @DisplayName("Credential-backed requests return expected OTP")
+  @org.junit.jupiter.api.Test
+  void evaluateWithCredentialIdReturnsOtp() throws Exception {
+    TestLogHandler handler = registerTelemetryHandler();
+    String requestJson =
+        """
+            {
+              "credentialId": "rest-ocra-stored",
+              "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+              "challenge": "SESSION01",
+              "sessionHex": "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
+            }
+            """;
+
+    try {
+      String responseBody =
+          mockMvc
+              .perform(
+                  post("/api/v1/ocra/evaluate")
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(requestJson))
+              .andExpect(status().isOk())
+              .andReturn()
+              .getResponse()
+              .getContentAsString();
+
+      JsonNode response = MAPPER.readTree(responseBody);
+      assertEquals("17477202", response.get("otp").asText());
+      assertEquals("OCRA-1:HOTP-SHA256-8:QA08-S064", response.get("suite").asText());
+      assertNotNull(response.get("telemetryId").asText());
+      assertTrue(
+          handler.records().stream()
+              .anyMatch(
+                  record ->
+                      record.getMessage().contains("hasCredentialReference=true")
+                          && record.getMessage().contains("reasonCode=success")));
+    } finally {
+      deregisterTelemetryHandler(handler);
+    }
+  }
+
+  @DisplayName("Missing credential reference returns descriptive error")
+  @org.junit.jupiter.api.Test
+  void evaluateCredentialIdNotFoundReturnsError() throws Exception {
+    TestLogHandler handler = registerTelemetryHandler();
+    String requestJson =
+        """
+            {
+              "credentialId": "missing-credential",
+              "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+              "challenge": "SESSION01",
+              "sessionHex": "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
+            }
+            """;
+
+    try {
+      String responseBody =
+          mockMvc
+              .perform(
+                  post("/api/v1/ocra/evaluate")
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(requestJson))
+              .andExpect(status().isBadRequest())
+              .andReturn()
+              .getResponse()
+              .getContentAsString();
+
+      JsonNode response = MAPPER.readTree(responseBody);
+      JsonNode details = response.get("details");
+      assertEquals("credentialId", details.get("field").asText());
+      assertEquals("credential_not_found", details.get("reasonCode").asText());
+    } finally {
+      deregisterTelemetryHandler(handler);
+    }
+  }
+
+  @DisplayName("Requests must not supply credential reference and inline secrets together")
+  @org.junit.jupiter.api.Test
+  void evaluateCredentialConflictRejected() throws Exception {
+    TestLogHandler handler = registerTelemetryHandler();
+    String requestJson =
+        """
+            {
+              "credentialId": "rest-ocra-stored",
+              "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+              "sharedSecretHex": "3132333435363738393031323334353637383930313233343536373839303132",
+              "challenge": "SESSION01",
+              "sessionHex": "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
+            }
+            """;
+
+    try {
+      String responseBody =
+          mockMvc
+              .perform(
+                  post("/api/v1/ocra/evaluate")
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(requestJson))
+              .andExpect(status().isBadRequest())
+              .andReturn()
+              .getResponse()
+              .getContentAsString();
+
+      JsonNode response = MAPPER.readTree(responseBody);
+      JsonNode details = response.get("details");
+      assertEquals("request", details.get("field").asText());
+      assertEquals("credential_conflict", details.get("reasonCode").asText());
+    } finally {
+      deregisterTelemetryHandler(handler);
+    }
   }
 
   private static Stream<Arguments> invalidRequests() {
@@ -309,6 +432,28 @@ final class OcraEvaluationEndpointTest {
     Clock fixedClock() {
       return Clock.fixed(FIXED_NOW, ZoneOffset.UTC);
     }
+
+    @Bean
+    CredentialStore inMemoryCredentialStore() {
+      InMemoryCredentialStore store = new InMemoryCredentialStore();
+      OcraCredentialFactory factory = new OcraCredentialFactory();
+      OcraCredentialRequest request =
+          new OcraCredentialRequest(
+              STORED_CREDENTIAL_ID,
+              "OCRA-1:HOTP-SHA256-8:QA08-S064",
+              SHARED_SECRET_HEX,
+              SecretEncoding.HEX,
+              null,
+              null,
+              null,
+              Map.of("source", "test"));
+      OcraCredentialDescriptor descriptor = factory.createDescriptor(request);
+      OcraCredentialPersistenceAdapter adapter = new OcraCredentialPersistenceAdapter();
+      VersionedCredentialRecord record = adapter.serialize(descriptor);
+      Credential credential = VersionedCredentialRecordMapper.toCredential(record);
+      store.save(credential);
+      return store;
+    }
   }
 
   private static String requestJson(String suite, String sessionHex) {
@@ -366,6 +511,36 @@ final class OcraEvaluationEndpointTest {
 
     java.util.List<LogRecord> records() {
       return java.util.List.copyOf(records);
+    }
+  }
+
+  private static final class InMemoryCredentialStore implements CredentialStore {
+
+    private final Map<String, Credential> store = new java.util.concurrent.ConcurrentHashMap<>();
+
+    @Override
+    public void save(Credential credential) {
+      store.put(credential.name(), credential);
+    }
+
+    @Override
+    public java.util.Optional<Credential> findByName(String name) {
+      return java.util.Optional.ofNullable(store.get(name));
+    }
+
+    @Override
+    public java.util.List<Credential> findAll() {
+      return java.util.List.copyOf(store.values());
+    }
+
+    @Override
+    public boolean delete(String name) {
+      return store.remove(name) != null;
+    }
+
+    @Override
+    public void close() {
+      store.clear();
     }
   }
 }

@@ -27,4 +27,10 @@ Reference specification: `docs/4-architecture/specs/feature-004-rest-ocra-creden
 ## Analysis Gate Notes
 - TBD after tests and implementation planning are fleshed out.
 
+## Timeline & Notes
+- 2025-09-28 – R013 complete: spec/plan/tasks drafted for dual-mode credential resolution.
+- 2025-09-28 – R014 delivered test-first MockMvc coverage (lookup success/missing/conflict/legacy); initial run red prior to implementation.
+- 2025-09-28 – R015 implemented credential store integration, input mode validation, `hasCredentialReference` telemetry; MockMvc suite green.
+- 2025-09-28 – R016 refreshed OpenAPI snapshot, operator how-to, telemetry docs; full build (`./gradlew :rest-api:test`, `./gradlew spotlessApply check`) green.
+
 Update this plan as increments progress. Remove once Feature 004 ships.

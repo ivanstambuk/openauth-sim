@@ -32,6 +32,7 @@ This living map captures the explicit relationships between modules, data flows,
 - REST API publishes an auto-generated OpenAPI contract (`/v3/api-docs`) with a checked-in snapshot at `docs/3-reference/rest-openapi.json` for downstream integrations.
 - REST OCRA telemetry snapshot is archived under `docs/3-reference/rest-ocra-telemetry-snapshot.md` to illustrate redaction guarantees for operators.
 - REST OCRA telemetry events now emit `reasonCode` and `sanitized` attributes so downstream alerting can distinguish validation failures from unexpected errors without leaking secrets.
+- REST OCRA evaluation supports credential lookup via `credentialId`, resolving descriptors from the persistence adapter while preserving the existing inline secret mode.
 
 ## Open Items
 | Date | Topic | Question | Status | Follow-up |

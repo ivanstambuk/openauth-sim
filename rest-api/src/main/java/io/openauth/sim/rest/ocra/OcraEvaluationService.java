@@ -6,9 +6,12 @@ import io.openauth.sim.core.credentials.ocra.OcraChallengeQuestion;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
+import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.credentials.ocra.OcraTimestampSpecification;
 import io.openauth.sim.core.model.SecretEncoding;
+import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.io.Serial;
 import java.time.Clock;
 import java.time.Duration;
@@ -26,15 +29,26 @@ class OcraEvaluationService {
   private final OcraCredentialFactory credentialFactory;
   private final OcraEvaluationTelemetry telemetry;
   private final Clock clock;
+  private final CredentialStore credentialStore;
+  private final OcraCredentialPersistenceAdapter persistenceAdapter;
 
   @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
-  OcraEvaluationService(OcraEvaluationTelemetry telemetry, ObjectProvider<Clock> clockProvider) {
+  OcraEvaluationService(
+      OcraEvaluationTelemetry telemetry,
+      ObjectProvider<Clock> clockProvider,
+      ObjectProvider<CredentialStore> credentialStoreProvider) {
     OcraEvaluationTelemetry resolvedTelemetry = Objects.requireNonNull(telemetry, "telemetry");
     OcraCredentialFactory resolvedFactory = new OcraCredentialFactory();
-    Clock resolvedClock = clockProvider.getIfAvailable(Clock::systemUTC);
+    Clock resolvedClock = clockProvider.getIfAvailable();
+    if (resolvedClock == null) {
+      resolvedClock = Clock.systemUTC();
+    }
+    CredentialStore resolvedStore = credentialStoreProvider.getIfAvailable();
     this.telemetry = resolvedTelemetry;
     this.credentialFactory = resolvedFactory;
     this.clock = resolvedClock;
+    this.credentialStore = resolvedStore;
+    this.persistenceAdapter = new OcraCredentialPersistenceAdapter();
   }
 
   OcraEvaluationResponse evaluate(OcraEvaluationRequest rawRequest) {
@@ -45,8 +59,15 @@ class OcraEvaluationService {
     NormalizedRequest request = null;
     try {
       request = NormalizedRequest.from(rawRequest);
-      validateHexInputs(request);
-      OcraCredentialDescriptor descriptor = createDescriptor(request);
+      InputMode mode = determineInputMode(request);
+      if (mode == InputMode.INLINE_SECRET && !hasText(request.suite())) {
+        throw new ValidationError("suite", "missing_required", "suite is required");
+      }
+      validateHexInputs(request, mode);
+      OcraCredentialDescriptor descriptor =
+          mode == InputMode.CREDENTIAL_REFERENCE
+              ? resolveDescriptorFromStore(request)
+              : createDescriptorFromInline(request);
       String challenge = request.challenge();
       validateChallenge(descriptor, challenge);
       credentialFactory.validateSessionInformation(descriptor, request.sessionHex());
@@ -69,6 +90,7 @@ class OcraEvaluationService {
       telemetry.recordSuccess(
           telemetryId,
           descriptor.suite().value(),
+          mode == InputMode.CREDENTIAL_REFERENCE,
           hasText(request.sessionHex()),
           hasText(request.clientChallenge()),
           hasText(request.serverChallenge()),
@@ -83,6 +105,7 @@ class OcraEvaluationService {
       telemetry.recordValidationFailure(
           telemetryId,
           suite,
+          hasCredentialReference(request, rawRequest),
           hasSession(request, rawRequest),
           hasClientChallenge(request, rawRequest),
           hasServerChallenge(request, rawRequest),
@@ -106,6 +129,7 @@ class OcraEvaluationService {
       telemetry.recordError(
           telemetryId,
           suite,
+          hasCredentialReference(request, rawRequest),
           hasSession(request, rawRequest),
           hasClientChallenge(request, rawRequest),
           hasServerChallenge(request, rawRequest),
@@ -119,7 +143,7 @@ class OcraEvaluationService {
     }
   }
 
-  private OcraCredentialDescriptor createDescriptor(NormalizedRequest request) {
+  private OcraCredentialDescriptor createDescriptorFromInline(NormalizedRequest request) {
     OcraCredentialRequest credentialRequest =
         new OcraCredentialRequest(
             "rest-ocra-" + Integer.toHexString(request.suite().hashCode()),
@@ -132,6 +156,42 @@ class OcraEvaluationService {
             Map.of("source", "rest-api"));
 
     return credentialFactory.createDescriptor(credentialRequest);
+  }
+
+  private OcraCredentialDescriptor resolveDescriptorFromStore(NormalizedRequest request) {
+    if (credentialStore == null) {
+      throw new ValidationError(
+          "credentialId",
+          "credential_not_found",
+          "credentialId " + request.credentialId() + " not found");
+    }
+    return credentialStore
+        .findByName(request.credentialId())
+        .map(VersionedCredentialRecordMapper::toRecord)
+        .map(persistenceAdapter::deserialize)
+        .orElseThrow(
+            () ->
+                new ValidationError(
+                    "credentialId",
+                    "credential_not_found",
+                    "credentialId " + request.credentialId() + " not found"));
+  }
+
+  private static InputMode determineInputMode(NormalizedRequest request) {
+    boolean hasCredential = hasText(request.credentialId());
+    boolean hasSecret = hasText(request.sharedSecretHex());
+
+    if (hasCredential && hasSecret) {
+      throw new ValidationError(
+          "request",
+          "credential_conflict",
+          "Provide either credentialId or sharedSecretHex, not both");
+    }
+    if (!hasCredential && !hasSecret) {
+      throw new ValidationError(
+          "request", "credential_missing", "credentialId or sharedSecretHex must be provided");
+    }
+    return hasCredential ? InputMode.CREDENTIAL_REFERENCE : InputMode.INLINE_SECRET;
   }
 
   private String nextTelemetryId() {
@@ -235,8 +295,8 @@ class OcraEvaluationService {
     return (value >= '0' && value <= '9') || (value >= 'A' && value <= 'F');
   }
 
-  private static void validateHexInputs(NormalizedRequest request) {
-    requireHex(request.sharedSecretHex(), "sharedSecretHex", true);
+  private static void validateHexInputs(NormalizedRequest request, InputMode mode) {
+    requireHex(request.sharedSecretHex(), "sharedSecretHex", mode == InputMode.INLINE_SECRET);
     requireHex(request.sessionHex(), "sessionHex", false);
     requireHex(request.pinHashHex(), "pinHashHex", false);
     requireHex(request.timestampHex(), "timestampHex", false);
@@ -263,7 +323,7 @@ class OcraEvaluationService {
   }
 
   private static String suiteOrUnknown(NormalizedRequest normalized, OcraEvaluationRequest raw) {
-    if (normalized != null) {
+    if (normalized != null && hasText(normalized.suite())) {
       return normalized.suite();
     }
     String suite = raw.suite();
@@ -296,7 +356,18 @@ class OcraEvaluationService {
     return normalized != null ? hasText(normalized.timestampHex()) : hasText(raw.timestampHex());
   }
 
+  private static boolean hasCredentialReference(
+      NormalizedRequest normalized, OcraEvaluationRequest raw) {
+    return normalized != null ? hasText(normalized.credentialId()) : hasText(raw.credentialId());
+  }
+
+  private enum InputMode {
+    CREDENTIAL_REFERENCE,
+    INLINE_SECRET
+  }
+
   private record NormalizedRequest(
+      String credentialId,
       String suite,
       String sharedSecretHex,
       String challenge,
@@ -309,8 +380,9 @@ class OcraEvaluationService {
 
     static NormalizedRequest from(OcraEvaluationRequest request) {
       return new NormalizedRequest(
-          requireText(request.suite(), "suite"),
-          requireText(request.sharedSecretHex(), "sharedSecretHex"),
+          normalize(request.credentialId()),
+          normalize(request.suite()),
+          normalize(request.sharedSecretHex()),
           normalize(request.challenge()),
           normalize(request.sessionHex()),
           normalize(request.clientChallenge()),
@@ -326,13 +398,6 @@ class OcraEvaluationService {
       }
       String trimmed = value.trim();
       return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private static String requireText(String value, String fieldName) {
-      if (value == null || value.isBlank()) {
-        throw new IllegalArgumentException(fieldName + " is required");
-      }
-      return value.trim();
     }
   }
 
