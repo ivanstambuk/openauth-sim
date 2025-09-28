@@ -25,6 +25,10 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R027 – Add end-to-end UI test covering stored credential submission via MapDB-backed persistence. ✅ 2025-09-28
 - R028 – Provide inline OCRA policy presets that auto-populate illustrative test vectors. ✅ 2025-09-28
 - R029 – Add Selenium-based system test to validate UI presets and stored credential flow end-to-end. ✅ 2025-09-28
+- R030 – Plan asynchronous JSON submission workflow, update spec/tasks with clarified scope. ✅ 2025-09-28
+- R031 – Author failing tests covering fetch-based submissions (MockMvc JSON expectations, UI script behaviour). ☐
+- R032 – Implement fetch-driven submission, remove form POST round-trip, and surface JSON errors in-page. ☐
+- R033 – Update Selenium and documentation to reflect the JavaScript-only flow, verify telemetry and accessibility. ☐
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -50,6 +54,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-28 – R028 planning: expose preset dropdown sourced from existing test vectors (e.g., S064, S128, PIN, timestamp) and auto-fill inline fields while keeping secrets sanitized.
 - 2025-09-28 – R028 delivery: Added preset dropdown sourced from REST tests, front-end auto-fill script, and regression coverage (MockMvc + end-to-end) ensuring inline mode vectors stay in sync.
 - 2025-09-28 – R029 delivery: Introduced HtmlUnit-driven Selenium system test covering inline preset auto-fill and stored credential submissions, wired new test dependency, and adjusted UI script for broader JS engine compatibility.
+- 2025-09-28 – R030 planning: Captured decision to submit evaluations via JSON fetch calls (no form POST fallback) targeting `/api/v1/ocra/evaluate`; tasks and upcoming increments updated accordingly.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

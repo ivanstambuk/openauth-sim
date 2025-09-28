@@ -21,5 +21,9 @@ _Last updated: 2025-09-28_
 | R027 | Add UI end-to-end test exercising stored credential flow against MapDB store | UI-OCRA-002, UI-OCRA-004, UI-OCRA-005 | ✅ |
 | R028 | Offer inline OCRA policy presets that auto-fill illustrative vectors; add coverage | UI-OCRA-002, UI-OCRA-003, UI-OCRA-005 | ✅ |
 | R029 | Add Selenium-based system test for UI preset + stored credential flows | UI-OCRA-002, UI-OCRA-005 | ✅ |
+| R030 | Plan async JSON submission workflow; update spec/plan/tasks with clarified scope | UI-OCRA-002, UI-OCRA-004 | ✅ |
+| R031 | Add failing tests asserting fetch-based submission behaviour (MockMvc + UI script) | UI-OCRA-002, UI-OCRA-004, UI-OCRA-005 | ☐ |
+| R032 | Implement fetch-based submission, remove form POST, expose JSON-driven result rendering | UI-OCRA-002, UI-OCRA-004, UI-OCRA-005 | ☐ |
+| R033 | Refresh Selenium + docs to reflect JavaScript-only flow and telemetry/accessibility guarantees | UI-OCRA-002, UI-OCRA-005, UI-NFR-001 | ☐ |
 
 Update this checklist as work progresses.

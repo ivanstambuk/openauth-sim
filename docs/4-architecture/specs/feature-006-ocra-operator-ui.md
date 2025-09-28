@@ -11,6 +11,8 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-28 – UI interactions will invoke the REST API (`/api/v1/ocra/...`) even though the UI is co-hosted, preserving facade contracts (user chose option A).
 - 2025-09-28 – Initial scope covers an evaluation console: credential selection/entry, request parameter capture, OTP result display, and telemetry summary; credential import/delete remains out of scope (user chose option A).
 - 2025-09-28 – Selenium-based system tests may depend on `org.seleniumhq.selenium:htmlunit-driver` in test scope to keep browser automation headless and deterministic (user chose option A).
+- 2025-09-28 – Evaluation submissions will transition to an asynchronous JSON `fetch` call targeting `/api/v1/ocra/evaluate`, reusing the existing request/response schema (user confirmed option A).
+- 2025-09-28 – The server-rendered form POST flow will be removed; the UI is allowed to depend entirely on JavaScript for submissions (user confirmed option B).
 
 ## Objectives & Success Criteria
 - Provide browser-accessible pages that let operators evaluate OCRA responses using stored credentials or inline parameters, mirroring REST validation semantics.
