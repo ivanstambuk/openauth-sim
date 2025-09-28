@@ -1,6 +1,6 @@
 # Feature Plan 002 – Persistence & Caching Hardening
 
-_Status: In planning_
+_Status: Complete_
 _Last updated: 2025-09-28_
 
 ## Objective
@@ -37,13 +37,15 @@ Reference specification: `docs/4-architecture/specs/feature-002-persistence-hard
 - 2025-09-28 – T207 encryption implementation: Added `PersistenceEncryption` interface with AES-GCM provider, integrated secret encryption into `MapDbCredentialStore`, and verified via `MapDbCredentialStoreTest.encryptionEncryptsSecretsAtRestAndDecryptsOnRead` alongside full `./gradlew spotlessApply check`.
 - 2025-09-28 – T208 coverage & docs: Extended tests for key-mismatch failure (`MapDbCredentialStoreTest.encryptionFailsWhenKeyDoesNotMatch`) and documented operator guidance/key rotation in `docs/2-how-to/configure-persistence-profiles.md`; `./gradlew spotlessApply check` remains green.
 - 2025-09-28 – T209 wrap-up: Knowledge map, roadmap, and concepts guide updated with maintenance/encryption context; no outstanding documentation gaps remain before T210.
+- 2025-09-28 – T210 wrap-up: Recorded final benchmark metrics (writes ≈2.57k ops/s, reads ≈330k ops/s, P99 ≈0.02283 ms), confirmed no open questions, and prepared final build verification/self-review notes.
+- 2025-09-28 – T210 build verification: `./gradlew spotlessApply check` (pass, configuration cache reused); self-review confirmed documentation-only delta.
 
 ## Upcoming Increments
-1. **T201 – Baseline Metrics & Benchmark Harness**: introduce synthetic load tests and logging scaffolding to capture current performance.
-2. **T202 – Structured Metrics & Logging**: add Level.FINE telemetry events for cache hits/misses and persistence latencies with redaction guarantees, capturing payload contract from the specification.
-3. **T203 – Cache Strategy Tuning**: tighten Caffeine defaults and override hooks based on benchmark findings.
-4. **T204 – Optional Encryption Hooks**: define interface and default implementation; document usage.
-5. **T205 – Documentation & Self-Review**: propagate findings to concepts/knowledge map/roadmap and capture lessons learned.
+All scoped increments (T201–T210) delivered as of 2025-09-28; no additional work remains for Feature 002.
+
+## Wrap-up Notes
+- 2025-09-28 – Self-review: Diff limited to documentation updates closing Feature 002; benchmarks and telemetry already covered by prior tasks.
+- 2025-09-28 – Follow-ups: None. Feature 002 closed with roadmap/spec/tasks in sync and no open questions.
 
 ## Dependencies & Considerations
 - Benchmarks may require additional tooling (JMH or custom harness) – ensure they run without network access.

@@ -1,6 +1,6 @@
 # Feature 002 – Persistence & Caching Hardening Specification
 
-_Status: Draft_
+_Status: Complete_
 _Last updated: 2025-09-28_
 
 ## Overview
