@@ -5,22 +5,22 @@ _Last updated: 2025-09-28_
 
 ## Objective
 
-Design and implement a protocol-aware credential domain in the `core` module, enabling the emulator to represent FIDO2/WebAuthn, OATH/OCRA, EU Digital Identity Wallet credential suites (ISO/IEC 18013-5 mDL, ISO/IEC 23220-2 mdoc, SD-JWT + W3C VC 2.0, OpenID4VCI/4VP/ISO/IEC 18013-7), EMV/CAP, and generic credentials with appropriate metadata, secret handling, and validation hooks. Each protocol will be isolated in its own package (`io.openauth.sim.core.credentials.{ocra|fido2|eudiw|emvcap}`) so we can deliver them sequentially, starting with OCRA.
+Deliver an OCRA-focused credential domain inside the `core` module that normalises RFC 6287 descriptors, shared secret handling, validation, persistence, and execution helpers for downstream facades. Future protocol packages (FIDO2/WebAuthn, EUDI wallet suites, EMV/CAP, generic credentials) will be scoped under separate specifications.
 
 Reference specification: `docs/4-architecture/specs/feature-001-core-credential-domain.md`.
 
 ## Success Criteria
 
-- Typed credential descriptors exist for each targeted protocol and EUDIW issuance/presentation profile with clearly defined required/optional attributes, recorded within their dedicated packages.
-- Secret material utilities support common encodings (raw, hex, Base64) and protocol-specific preprocessing (e.g., HMAC seeds for OATH, credential IDs for FIDO2).
-- Validation logic rejects incomplete or inconsistent credential payloads and enforces lifecycle-stage constraints for EUDIW issuance vs presentation, implemented incrementally per protocol package.
-- Unit tests cover creation, serialization, issuance (registration), and presentation (authentication) flows for each credential type, beginning with OCRA before expanding to others.
-- Documentation updates summarise the domain model in `docs/1-concepts` and reference relevant specifications.
+- OCRA credential descriptors capture suite metadata, optional counter/PIN inputs, and user-defined metadata.
+- Shared secret utilities canonicalise RAW/HEX/Base64 encodings ahead of descriptor construction.
+- Validation, persistence, and telemetry layers enforce OCRA-specific constraints while redacting sensitive data.
+- RFC 6287 response generation and regression tests cover baseline and session-aware suites (S064/S128/S256/S512).
+- Documentation summarises the OCRA domain model in `docs/1-concepts`, with other protocols deferred to future specs.
 
 ## Task Tracker
 
-- Detailed execution steps live in `docs/4-architecture/tasks/feature-001-core-credential-domain.md`. Update that checklist as work progresses and mirror status changes here; current sequencing delivers the OCRA package first with other protocols queued.
-- Map task outcomes back to the specification requirements (FR/NFR IDs) to maintain traceability; metadata capture for OCRA now covers FR-002 and FR-010.
+- Detailed execution steps live in `docs/4-architecture/tasks/feature-001-core-credential-domain.md`. Update that checklist as work progresses; other protocol packages will move to separate plans when opened.
+- Map task outcomes back to the specification requirements (FR/NFR IDs) to maintain traceability; metadata capture for OCRA now covers FR-001 through FR-008.
 - Record Gradle command outputs (`./gradlew spotlessApply check`) and analysis-gate results after each work session.
 - 2025-09-27 – Phase 1/T004 landed: disabled OCRA unit-test skeleton in place; `./gradlew spotlessApply check` passed post-change.
 - 2025-09-27 – Phase 1/T005 landed: disabled property-based secret material tests in place; `./gradlew spotlessApply check` executed successfully after commit preparation.
@@ -69,7 +69,7 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 
 ## Dependencies
 
-- Align with roadmap Workstreams 2–6 to ensure downstream modules consume the same types.
+- Align with roadmap Workstreams 2–5 to ensure downstream modules consume the same types.
 - Surface any new security/privacy considerations as ADRs.
 - Complete the analysis gate checklist (`docs/5-operations/analysis-gate-checklist.md`) before implementation sessions begin.
 - Shared persistence decision: MapDB store and core-managed cache are shared across all facades (2025-09-27).
@@ -79,7 +79,7 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 ## Self-Review Notes (2025-09-28)
 - Telemetry logging remains at `Level.FINE` to avoid operator noise; tests assert payload redaction to prevent regressions.
 - SpotBugs suppression limited to the test harness attaching log handlers; production code avoids suppressions.
-- Roadmap/action items updated to reference completed documentation work, keeping future contributors oriented toward remaining plans (Workstreams 2–6, crypto ADRs).
+- Roadmap/action items updated to reference completed documentation work, keeping future contributors oriented toward remaining plans (Workstreams 2–5, crypto ADRs).
 
 ## Analysis Gate
 

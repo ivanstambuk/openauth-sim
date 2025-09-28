@@ -4,28 +4,26 @@ _Status: Draft_
 _Last updated: 2025-09-28_
 
 ## Overview
-Design a protocol-aware credential domain inside the `core` module that models credentials for FIDO2/WebAuthn, OATH/OCRA, the EU Digital Identity Wallet (ISO/IEC 18013-5 mDL, ISO/IEC 23220-2 mdoc profiles, SD-JWT and W3C Verifiable Credentials, and lifecycle protocols OpenID4VCI, OpenID4VP, ISO/IEC 18013-7), EMV/CAP, and generic use cases. Each protocol will live in its own Java package (`io.openauth.sim.core.credentials.ocra`, `...fido2`, `...eudiw`, `...emvcap`) so teams can roll out implementations independently. The domain must provide deterministic validation and transformation logic so downstream facades (CLI, REST, UI) can consume credential data without duplicating cryptographic rules.
+Design an OCRA-focused credential domain inside the `core` module that normalises RFC 6287 credential descriptors, shared secret material, and evaluation helpers for downstream facades. The scope of Feature 001 is limited to OCRA; future protocol packages (FIDO2, EUDI wallets, EMV/CAP, generic credentials) will be delivered through separate specifications once prioritised. The domain must provide deterministic validation and transformation logic so CLI, REST, and UI surfaces consume OCRA data without duplicating cryptographic rules.
 
 ## Objectives & Success Criteria
-- Provide typed credential descriptors per protocol with clearly defined required and optional fields.
-- Support secret material encodings (raw bytes, hexadecimal, Base64) and protocol-specific pre-processing hooks.
-- Reject invalid credential payloads via validation rules with actionable error messages.
-- Supply serialization/deserialization helpers for persistence and caching layers.
-- Document the domain model in `docs/1-concepts` and keep the knowledge map in sync.
+- Provide immutable OCRA credential descriptors with clearly defined required and optional fields.
+- Canonicalise shared secret encodings (raw bytes, hexadecimal, Base64) ahead of descriptor construction.
+- Reject invalid OCRA payloads via validation rules with actionable error messages and redacted telemetry.
+- Supply serialization/deserialization helpers for persistence and caching layers using versioned envelopes.
+- Deliver an execution helper that produces RFC 6287-compliant OTP responses and expose results to core consumers.
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
 |----|-------------|-------------------|
-| FR-001 | Represent FIDO2/WebAuthn credentials with AAGUID, credential ID, public key material, attestation/protocol metadata, and lifecycle flags. | Creating a WebAuthn credential succeeds only when these attributes are present and valid. |
-| FR-002 | Model OATH/OCRA credentials with issuer, suite definition, counter/time parameters, and shared secret encodings. | Validation rejects missing suite identifiers or malformed secrets. |
-| FR-003 | Support EUDI wallet credential suites (ISO/IEC 18013-5 mDL, ISO/IEC 23220-2 mdoc payloads, SD-JWT and W3C Verifiable Credentials) with document metadata, issuer attestations, data groups, and expiry controls. | EUDI credentials expose typed getters per protocol profile and validation catches missing mandatory elements. |
-| FR-004 | Support EMV/CAP credential attributes such as PAN, issuer country, application PAN sequence number, and CA public keys. | EMV credential factories block construction when checksum or key sizes are invalid. |
-| FR-005 | Provide a generic credential type for protocols not yet modeled while preserving secret handling contracts. | Generic credentials can be created with arbitrary metadata/secret pairs and reuse validation utilities. |
-| FR-006 | Offer unified factories/builders that normalise mixed user input (hex/Base64/raw) into canonical internal representations. | Attempting to create credentials with malformed encodings results in descriptive exceptions. |
-| FR-007 | Expose protocol capability introspection so facades can advertise supported credential operations. | A registry returns metadata about each credential type, including required attributes and supported crypto functions. |
-| FR-008 | Produce error diagnostics suitable for CLI/REST responses without leaking secret material. | Validation errors redact secrets and point to offending fields. |
-| FR-009 | Simulate EUDI wallet registration (issuance) and authentication (presentation) flows, including OpenID4VCI, OpenID4VP, and ISO/IEC 18013-7 session requirements. | Credential domain surfaces factories, state markers, and validation hooks supporting both issuance and presentation lifecycle stages. |
-| FR-010 | Ensure every credential instance exposes a globally unique `name` plus an extensible key/value metadata map returned by lookup operations but ignored by crypto flows. | Creating credentials without a unique name or with malformed custom metadata must fail fast with descriptive errors. |
+| FR-001 | Represent OCRA credentials with immutable descriptors capturing name, suite definition, shared secret, and optional counter/PIN metadata. | Constructing a descriptor with valid inputs succeeds; missing or malformed inputs produce descriptive validation failures. |
+| FR-002 | Normalise shared secret encodings (RAW/HEX/Base64) into a unified `SecretMaterial` representation. | Property-based tests confirm round-trips for valid encodings and reject malformed inputs with actionable errors. |
+| FR-003 | Expose credential factories and registry metadata describing required attributes, optional fields, and supported hash algorithms for OCRA. | Registry lookups return the correct capability metadata and factory references for OCRA credentials. |
+| FR-004 | Support persistence round-trips using versioned credential envelopes with upgrade hooks for legacy records. | Stored OCRA credentials reload without data loss; loading a legacy schema triggers the upgrade pipeline and preserves semantics. |
+| FR-005 | Provide an `OcraResponseCalculator` that evaluates RFC 6287 suites, including session-aware variants (S064/S128/S256/S512). | Compliance tests covering RFC 6287 Appendix C and IETF draft vectors pass using the calculator outputs. |
+| FR-006 | Emit structured validation telemetry that redacts shared secrets while signalling failure stages for downstream observers. | Telemetry capture tests confirm events include expected metadata and exclude sensitive payloads. |
+| FR-007 | Surface deterministic error diagnostics suitable for CLI/REST responses without leaking secret material. | Validation exceptions redact secret inputs and map to user-facing error identifiers. |
+| FR-008 | Ensure every OCRA credential exposes a globally unique `name` plus an extensible metadata map returned on lookup but ignored by crypto flows. | Creating credentials without a unique name or with malformed metadata fails fast with descriptive errors. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |

@@ -12,8 +12,8 @@ This living map captures the explicit relationships between modules, data flows,
 4. Note outstanding follow-ups or ambiguities in the **Open Items** table and mirror them in `docs/4-architecture/open-questions.md`.
 
 ## Current Links
-- Core module owns protocol-specific credential models consumed by facade modules, grouped into per-protocol packages (ocra, fido2, eudiw, emvcap) for staged rollout.
-- Core module will surface issuance and presentation simulators for EU Digital Identity Wallet flows that facades consume for registration/authentication journeys.
+- Core module currently exposes the OCRA credential domain consumed by facade modules; additional protocol packages will be introduced via future specifications.
+- Future work will surface issuance and presentation simulators for EU Digital Identity Wallet flows once the dedicated features are prioritised.
 - Core OCRA package normalises RFC 6287 suites into descriptor records consumed by the credential registry and future factory helpers.
 - Core persistence serialization contracts convert protocol descriptors into versioned credential records, now stored by `MapDbCredentialStore` with schema-aware migrations.
 - OCRA validation telemetry emits structured debug events that future observability modules can ingest without exposing secret material.

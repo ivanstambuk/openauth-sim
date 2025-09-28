@@ -5,8 +5,7 @@ _Last updated: 2025-09-28_
 
 ## Execution Notes
 - Follow the specification in `docs/4-architecture/specs/feature-001-core-credential-domain.md`.
-- Maintain discrete Java packages per protocol (`io.openauth.sim.core.credentials.{ocra|fido2|eudiw|emvcap}`) and roll out one protocol at a time.
-- Start with OCRA; keep other protocol tasks pending until their dedicated plans are approved.
+- Scope covers only the OCRA credential domain; additional protocol packages will launch via new features/specifications.
 - Keep each task to ≤10 minutes of focused work and commit after completing one task cluster.
 - Tests precede implementations; mark tasks as complete (`[x]`) as they ship.
 - Use this checklist with the analysis gate before coding.
@@ -165,12 +164,8 @@ _Last updated: 2025-09-28_
 - [x] Update CLI documentation/help text to mention supported session lengths and reference the draft generator fixtures.
 - [x] Re-run `./gradlew spotlessApply check` plus targeted CLI tests, update plan/tasks/spec with outcomes, and remove any temporary TODO markers (2025-09-28 – PASS, `./gradlew :cli:test`; `./gradlew spotlessApply check`).
 
-## Phase 7 – Future Protocol Packages (Pending Separate Plans)
-| Protocol | Notes |
-|----------|-------|
-| FIDO2/WebAuthn | Await dedicated clarification on minimum metadata, lifecycle expectations, and package rollout tasks. |
-| EUDI Wallet suites | Depends on broader clarifications already logged; schedule after OCRA delivery. |
-| EMV/CAP | Pending tailored plan mirroring the OCRA approach. |
+## Future Scope
+- Capture new tasks for non-OCRA protocol packages (FIDO2/WebAuthn, EUDI wallet suites, EMV/CAP, generic credentials) in dedicated specifications once prioritised.
 
 ## Phase 7 – REST Session Helper Integration
 All REST-focused work migrated to Feature 003 (see `docs/4-architecture/specs/feature-003-rest-ocra-evaluation-endpoint.md`). Future updates should occur there.
@@ -178,4 +173,4 @@ All REST-focused work migrated to Feature 003 (see `docs/4-architecture/specs/fe
 ## Open Follow-ups
 - Populate task outcomes and timestamps upon completion.
 - Attach Gradle command outputs and analysis gate results to the feature plan when tasks close.
-- Scope REST/API integration for session-aware helpers now that CLI wiring is live.
+- Track REST/API integration for session-aware helpers under Feature 003 now that CLI wiring is live.
