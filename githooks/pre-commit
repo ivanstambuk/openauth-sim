@@ -2,9 +2,29 @@
 set -euo pipefail
 
 ROOT_DIR=$(git rev-parse --show-toplevel)
+MAX_FILE_SIZE_BYTES=$((1024 * 1024)) # 1 MB
 
 if [[ -z "${JAVA_HOME:-}" ]]; then
   echo "[pre-commit] JAVA_HOME must point to a Java 17 JDK before committing." >&2
+  exit 1
+fi
+
+large_files=()
+while IFS= read -r file; do
+  [[ -f "$file" ]] || continue
+  size_bytes=$(wc -c <"$file")
+  if (( size_bytes > MAX_FILE_SIZE_BYTES )); then
+    human_size=$(numfmt --to=iec --suffix=B "$size_bytes" 2>/dev/null || echo "${size_bytes}B")
+    large_files+=("$file ($human_size)")
+  fi
+done < <(git diff --cached --name-only --diff-filter=AM)
+
+if (( ${#large_files[@]} > 0 )); then
+  {
+    echo "[pre-commit] The following staged files exceed the 1 MB limit:";
+    printf '  - %s\n' "${large_files[@]}";
+    echo "[pre-commit] Remove or split large files before committing.";
+  } >&2
   exit 1
 fi
 
