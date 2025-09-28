@@ -15,10 +15,10 @@ Reference specification: `docs/4-architecture/specs/feature-005-cli-ocra-operati
 - Documentation (`docs/2-how-to`, command help) explains the new commands.
 
 ## Proposed Increments
-- R017 – Draft/align spec, plan, and tasks; identify open questions if any.
-- R018 – Add failing CLI tests (command parsing + persistence interactions) covering import/list/delete/evaluate flows, including credential-id vs inline mode.
-- R019 – Implement CLI command handlers, persistence wiring, and telemetry/logging updates.
-- R020 – Update docs/how-to, add usage examples, refresh telemetry snapshot if CLI logs change, rerun builds (`./gradlew :cli:test`, `./gradlew spotlessApply check`).
+- R017 – Draft/align spec, plan, and tasks; identify open questions if any. ✅ 2025-09-28
+- R018 – ✅ 2025-09-28 Add failing CLI tests (Picocli harness) covering import/list/delete/evaluate flows, including credential-id vs inline mode; telemetry assertions now codified in new `OcraCliCommandTest`.
+- R019 – ✅ 2025-09-28 Implemented Picocli CLI handlers for import/list/delete/evaluate, wired to `MapDbCredentialStore` + OCRA adapters, and emitted sanitized telemetry lines (`./gradlew :cli:test`).
+- R020 – ✅ 2025-09-28 Updated CLI how-to, captured telemetry snapshot for `cli.ocra` events, reran `./gradlew :cli:test` and `./gradlew spotlessApply check`.
 
 ## Dependencies
 - Picocli CLI framework already in the project (`MaintenanceCli`): extend or add new command classes.

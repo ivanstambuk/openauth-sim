@@ -3,7 +3,8 @@
 Document deterministic runbooks for common tasks. Published topics:
 
 1. [Evaluate OCRA challenges via REST](use-ocra-evaluation-endpoint.md)
-2. Configuring MapDB persistence profiles (`configure-persistence-profiles.md`).
+2. [Manage OCRA credentials via CLI](use-ocra-cli-operations.md)
+3. Configuring MapDB persistence profiles (`configure-persistence-profiles.md`).
 
 Planned additions:
 
