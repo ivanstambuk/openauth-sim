@@ -26,6 +26,7 @@ Reference specification: `docs/4-architecture/specs/feature-003-rest-ocra-evalua
 - 2025-09-28 – R002 complete: Spring Boot dependencies added, integration test asserts current 404 response (TODO to flip on R004); dependency locks updated after aligning transitive versions; `./gradlew spotlessApply check` (PASS, 2025-09-28, ~99s).
 - 2025-09-28 – R003 clarification: controller validation tests will keep 404 expectations with TODOs to flip when R004 lands.
 - 2025-09-28 – `./gradlew spotlessApply check` (PASS, config cache reused) after documentation updates.
+- 2025-09-28 – R004 delivered: wired `POST /api/v1/ocra/evaluate` controller/service to `OcraResponseCalculator`, flipped MockMvc tests to assert 200/400 with telemetry captures, and added error DTOs; `./gradlew :rest-api:test` (PASS, ≈14s) and `./gradlew spotlessApply check` (PASS, ≈26s) recorded.
 
 ## Dependencies
 - Relies on the existing OCRA core package; ensure no modifications are required in `core/` for this feature.
@@ -33,7 +34,8 @@ Reference specification: `docs/4-architecture/specs/feature-003-rest-ocra-evalua
 - Telemetry logging must align with constitution redaction rules already in place for CLI/core helpers.
 
 ## Self-Review & Analysis Gate
-- Run `docs/5-operations/analysis-gate-checklist.md` once tasks R001–R004 are defined; record findings here.
+- 2025-09-28 (analysis gate) – Checklist completed prior to R004 implementation: specification and tasks remain in sync, no open questions, tests sequenced ahead of code, dependencies unchanged, and Gradle command readiness confirmed. No remediation items identified.
+- 2025-09-28 – Self-review complete for R004: verified telemetry logging redacts secrets, confirmed new request/response DTO constructors normalize inputs, and captured Gradle command outputs noted above.
 - Self-review notes, Gradle command outputs, and telemetry assertions should be appended as tasks close.
 
 Update this plan as each task completes, mirroring task checklist status and documenting build/analysis results.
