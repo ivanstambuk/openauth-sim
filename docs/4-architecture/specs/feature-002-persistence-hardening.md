@@ -35,6 +35,7 @@ Elevate the persistence layer backing the `CredentialStore` so it reliably suppo
 - 2025-09-28 – Performance goal: Target ultra-low latency/ultra-high throughput with capability to handle ≥10,000 RPS.
 - 2025-09-28 – API surface: Stay within the existing `CredentialStore` abstraction; no new public repositories.
 - 2025-09-28 – Auditing & redaction: Enforce secret redaction; auditing remains governed by log levels.
+- 2025-09-28 – Telemetry contract (T202): Emit Level.FINE events `persistence.credential.lookup` and `persistence.credential.mutation` with payload fields limited to `storeProfile` (`IN_MEMORY` or `FILE`), `credentialName`, cache outcome (`cacheHit` boolean, `source` of data), optional `latencyMicros` when MapDB is consulted, `operation` (`SAVE`/`DELETE`), and `redacted` flag; payloads must never include raw secret material.
 
 ## References
 - `docs/4-architecture/feature-plan-002-persistence-hardening.md`

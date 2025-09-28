@@ -20,10 +20,12 @@ Reference specification: `docs/4-architecture/specs/feature-002-persistence-hard
 - Map benchmark and profiling results back to NFR-201/NFR-202 as tasks close.
 - Record outcomes of `./gradlew spotlessApply check` and benchmarks in this plan to maintain traceability.
 - 2025-09-28 – T201 baseline benchmark (`MapDbCredentialStoreBaselineBenchmark`) captured in-memory metrics: writes ≈1.7k ops/s (20k dataset, 11.6 s), reads ≈567k ops/s with P50≈0.0006 ms, P90≈0.0012 ms, P99≈0.0043 ms. Rerun via `./gradlew :core:test --tests io.openauth.sim.core.store.MapDbCredentialStoreBaselineBenchmark -Dio.openauth.sim.benchmark=true` or set `IO_OPENAUTH_SIM_BENCHMARK=true` in the environment.
+- 2025-09-28 – T202 structured telemetry: MapDB store now emits `persistence.credential.lookup` (cache hit/miss, latency) and `persistence.credential.mutation` (save/delete latency) Level.FINE events with redacted payloads. Validation covered by `MapDbCredentialStoreTest.structuredTelemetryEmittedForPersistenceOperations`.
+- 2025-09-28 – Gradle verification: `./gradlew :core:test` (pass) and `./gradlew spotlessApply check` (pass, includes SpotBugs note about missing `org.opentest4j.MultipleFailuresError`, non-fatal) recorded cache/persistence telemetry behaviour.
 
 ## Upcoming Increments
 1. **T201 – Baseline Metrics & Benchmark Harness**: introduce synthetic load tests and logging scaffolding to capture current performance.
-2. **T202 – Cache Strategy Tuning**: adjust Caffeine configuration (size, TTL, eviction policies) guided by metrics.
+2. **T202 – Structured Metrics & Logging**: add Level.FINE telemetry events for cache hits/misses and persistence latencies with redaction guarantees, capturing payload contract from the specification.
 3. **T203 – MapDB Maintenance Hooks**: add compaction/integrity routines and ensure safe invocation.
 4. **T204 – Optional Encryption Hooks**: define interface and default implementation; document usage.
 5. **T205 – Documentation & Self-Review**: propagate findings to concepts/knowledge map/roadmap and capture lessons learned.

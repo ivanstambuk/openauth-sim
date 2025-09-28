@@ -20,6 +20,12 @@ _Last updated: 2025-09-28_
 - [x] Captured baseline in-memory metrics (writes ≈1.7k ops/s; reads ≈567k ops/s; P99 ≈0.0043 ms) on 2025-09-28.
 - [x] Documented rerun instructions (`./gradlew :core:test --tests io.openauth.sim.core.store.MapDbCredentialStoreBaselineBenchmark -Dio.openauth.sim.benchmark=true` or `IO_OPENAUTH_SIM_BENCHMARK=true ./gradlew :core:test --tests ...`) and recorded sample output in the feature plan.
 
+### T202 – Structured Metrics & Logging Checklist
+- [x] Document telemetry contract and payload fields in spec/plan (2025-09-28).
+- [x] Emit `persistence.credential.lookup` and `persistence.credential.mutation` events with redacted payloads.
+- [x] Add tests covering cache hit/miss logging and redaction expectations.
+- [x] Record Gradle `:core:test` and `spotlessApply check` outcomes in plan/tasks once passing (2025-09-28).
+
 ## Phase 1 – Cache Strategy
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|

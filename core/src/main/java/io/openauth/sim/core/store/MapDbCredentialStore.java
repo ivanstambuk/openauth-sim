@@ -7,11 +7,15 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
@@ -20,21 +24,30 @@ import org.mapdb.Serializer;
 public final class MapDbCredentialStore implements CredentialStore {
 
   private static final String MAP_NAME = "credentials";
+  private static final Logger TELEMETRY_LOGGER =
+      Logger.getLogger("io.openauth.sim.core.store.persistence");
+
+  static {
+    TELEMETRY_LOGGER.setLevel(Level.FINE);
+  }
 
   private final DB db;
   private final ConcurrentMap<String, VersionedCredentialRecord> backing;
   private final Cache<String, Credential> cache;
   private final List<VersionedCredentialRecordMigration> migrations;
+  private final String storeProfile;
 
   private MapDbCredentialStore(
       DB db,
       ConcurrentMap<String, VersionedCredentialRecord> backing,
       Cache<String, Credential> cache,
-      List<VersionedCredentialRecordMigration> migrations) {
+      List<VersionedCredentialRecordMigration> migrations,
+      String storeProfile) {
     this.db = db;
     this.backing = backing;
     this.cache = cache;
     this.migrations = migrations;
+    this.storeProfile = storeProfile;
     upgradePersistedRecords();
   }
 
@@ -50,10 +63,12 @@ public final class MapDbCredentialStore implements CredentialStore {
   @Override
   public void save(Credential credential) {
     Objects.requireNonNull(credential, "credential");
+    long start = System.nanoTime();
     VersionedCredentialRecord record = VersionedCredentialRecordMapper.toRecord(credential);
     backing.put(credential.name(), record);
     db.commit();
     cache.put(credential.name(), credential);
+    logMutationEvent(credential.name(), MutationOperation.SAVE, System.nanoTime() - start);
   }
 
   @Override
@@ -61,15 +76,19 @@ public final class MapDbCredentialStore implements CredentialStore {
     Objects.requireNonNull(name, "name");
     Credential cached = cache.getIfPresent(name);
     if (cached != null) {
+      logLookupEvent(name, true, LookupSource.CACHE, 0L);
       return Optional.of(cached);
     }
+    long start = System.nanoTime();
     VersionedCredentialRecord record = backing.get(name);
     if (record != null) {
       VersionedCredentialRecord upgraded = ensureLatest(name, record);
       Credential credential = VersionedCredentialRecordMapper.toCredential(upgraded);
       cache.put(name, credential);
+      logLookupEvent(name, false, LookupSource.MAPDB, System.nanoTime() - start);
       return Optional.of(credential);
     }
+    logLookupEvent(name, false, LookupSource.MAPDB_MISS, System.nanoTime() - start);
     return Optional.empty();
   }
 
@@ -86,10 +105,12 @@ public final class MapDbCredentialStore implements CredentialStore {
   @Override
   public boolean delete(String name) {
     Objects.requireNonNull(name, "name");
+    long start = System.nanoTime();
     VersionedCredentialRecord removed = backing.remove(name);
     if (removed != null) {
       db.commit();
       cache.invalidate(name);
+      logMutationEvent(name, MutationOperation.DELETE, System.nanoTime() - start);
       return true;
     }
     return false;
@@ -144,7 +165,8 @@ public final class MapDbCredentialStore implements CredentialStore {
               db.hashMap(MAP_NAME, Serializer.STRING, Serializer.JAVA).createOrOpen();
       Cache<String, Credential> cache =
           Caffeine.newBuilder().maximumSize(cacheMaximumSize).expireAfterWrite(cacheTtl).build();
-      return new MapDbCredentialStore(db, map, cache, migrations);
+      String profile = inMemory ? "IN_MEMORY" : "FILE";
+      return new MapDbCredentialStore(db, map, cache, migrations, profile);
     }
   }
 
@@ -178,5 +200,50 @@ public final class MapDbCredentialStore implements CredentialStore {
     }
     backing.put(name, current);
     return current;
+  }
+
+  private void logLookupEvent(
+      String credentialName, boolean cacheHit, LookupSource source, long latencyNanos) {
+    if (!TELEMETRY_LOGGER.isLoggable(Level.FINE)) {
+      return;
+    }
+    Map<String, String> payload = new LinkedHashMap<>();
+    payload.put("storeProfile", storeProfile);
+    payload.put("credentialName", credentialName);
+    payload.put("cacheHit", Boolean.toString(cacheHit));
+    payload.put("source", source.name());
+    if (source != LookupSource.CACHE) {
+      payload.put(
+          "latencyMicros",
+          Long.toString(TimeUnit.NANOSECONDS.toMicros(Math.max(latencyNanos, 0L))));
+    }
+    payload.put("redacted", Boolean.TRUE.toString());
+    TELEMETRY_LOGGER.log(Level.FINE, "persistence.credential.lookup", new Object[] {payload});
+  }
+
+  private void logMutationEvent(
+      String credentialName, MutationOperation operation, long latencyNanos) {
+    if (!TELEMETRY_LOGGER.isLoggable(Level.FINE)) {
+      return;
+    }
+    Map<String, String> payload = new LinkedHashMap<>();
+    payload.put("storeProfile", storeProfile);
+    payload.put("credentialName", credentialName);
+    payload.put("operation", operation.name());
+    payload.put(
+        "latencyMicros", Long.toString(TimeUnit.NANOSECONDS.toMicros(Math.max(latencyNanos, 0L))));
+    payload.put("redacted", Boolean.TRUE.toString());
+    TELEMETRY_LOGGER.log(Level.FINE, "persistence.credential.mutation", new Object[] {payload});
+  }
+
+  private enum LookupSource {
+    CACHE,
+    MAPDB,
+    MAPDB_MISS
+  }
+
+  private enum MutationOperation {
+    SAVE,
+    DELETE
   }
 }
