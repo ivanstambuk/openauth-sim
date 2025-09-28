@@ -15,6 +15,8 @@ dependencies {
         libsCatalog.findLibrary("spring-boot-starter-thymeleaf").get()
     val springDocStarter =
         libsCatalog.findLibrary("springdoc-openapi-starter-webmvc-ui").get()
+    val seleniumHtmlUnitDriver =
+        libsCatalog.findLibrary("selenium-htmlunit-driver").get()
 
     implementation(enforcedPlatform(springBootBom))
     implementation(projects.core)
@@ -24,6 +26,7 @@ dependencies {
 
     testImplementation(enforcedPlatform(springBootBom))
     testImplementation(springBootStarterTest)
+    testImplementation(seleniumHtmlUnitDriver)
 
     constraints {
         implementation("com.github.spotbugs:spotbugs-annotations:4.8.3")

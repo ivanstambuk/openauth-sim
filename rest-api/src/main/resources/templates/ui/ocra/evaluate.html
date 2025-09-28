@@ -256,6 +256,12 @@
       </section>
     </main>
 
+    <script
+      id="ocra-policy-presets"
+      type="application/json"
+      th:utext="${policyPresetJson}"
+    ></script>
+
     <script th:inline="javascript">
       (function () {
         const modeInputs = document.querySelectorAll('input[name="mode"]');
@@ -263,23 +269,12 @@
         const inlineRequired = document.querySelectorAll('[data-inline-required]');
         const credentialRequired = document.querySelectorAll('[data-credential-required]');
         const policySelect = document.getElementById('policyPreset');
-        const inlinePresetRaw = '[[${policyPresetJson}]]';
-
-        function parseInlinePresets(raw) {
-          let value = raw;
-          for (let i = 0; i < 2; i += 1) {
-            try {
-              const parsed = JSON.parse(value);
-              value = parsed;
-            } catch (error) {
-              break;
-            }
-          }
-          return Array.isArray(value) ? value : [];
-        }
-
-        const inlinePresets = parseInlinePresets(inlinePresetRaw);
-        const presetMap = inlinePresets.reduce((acc, preset) => {
+        const inlinePresetElement = document.getElementById('ocra-policy-presets');
+        const inlinePresets =
+          inlinePresetElement && inlinePresetElement.textContent
+            ? JSON.parse(inlinePresetElement.textContent)
+            : [];
+        const presetMap = inlinePresets.reduce(function (acc, preset) {
           if (
             preset &&
             typeof preset.key === 'string' &&
@@ -290,6 +285,7 @@
           }
           return acc;
         }, Object.create(null));
+        window.__ocraPresetMap = presetMap;
         const inlineModeRadio = document.getElementById('mode-inline');
         const suiteInput = document.getElementById('suite');
         const sharedSecretInput = document.getElementById('sharedSecretHex');
@@ -307,7 +303,7 @@
             return;
           }
           const inlineActive = selected.value === 'inline';
-          sections.forEach((section) => {
+          sections.forEach(function (section) {
             const active = section.getAttribute('data-mode-section') === selected.value;
             if (active) {
               section.removeAttribute('hidden');
@@ -317,7 +313,7 @@
               section.setAttribute('aria-hidden', 'true');
             }
           });
-          inlineRequired.forEach((input) => {
+          inlineRequired.forEach(function (input) {
             if (inlineActive) {
               input.setAttribute('required', 'required');
               input.removeAttribute('disabled');
@@ -326,7 +322,7 @@
               input.setAttribute('disabled', 'disabled');
             }
           });
-          credentialRequired.forEach((input) => {
+          credentialRequired.forEach(function (input) {
             if (inlineActive) {
               input.removeAttribute('required');
               input.setAttribute('disabled', 'disabled');
@@ -378,13 +374,18 @@
           }
         }
 
-        modeInputs.forEach((input) => {
+        modeInputs.forEach(function (input) {
           input.addEventListener('change', updateSections);
         });
 
         if (policySelect) {
-          policySelect.addEventListener('change', () => applyPreset(policySelect.value));
+          policySelect.addEventListener('change', function () {
+            applyPreset(policySelect.value);
+          });
         }
+
+        window.__ocraApplyPreset = applyPreset;
+        window.__ocraUpdateSections = updateSections;
 
         updateSections();
         if (policySelect && policySelect.value) {

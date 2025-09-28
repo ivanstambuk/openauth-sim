@@ -10,6 +10,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-28 – Operator UI will ship as server-rendered views inside the existing Spring Boot `rest-api` service (user chose option C); we will introduce a templating engine dependency (e.g., `spring-boot-starter-thymeleaf`) with approval captured by this decision.
 - 2025-09-28 – UI interactions will invoke the REST API (`/api/v1/ocra/...`) even though the UI is co-hosted, preserving facade contracts (user chose option A).
 - 2025-09-28 – Initial scope covers an evaluation console: credential selection/entry, request parameter capture, OTP result display, and telemetry summary; credential import/delete remains out of scope (user chose option A).
+- 2025-09-28 – Selenium-based system tests may depend on `org.seleniumhq.selenium:htmlunit-driver` in test scope to keep browser automation headless and deterministic (user chose option A).
 
 ## Objectives & Success Criteria
 - Provide browser-accessible pages that let operators evaluate OCRA responses using stored credentials or inline parameters, mirroring REST validation semantics.

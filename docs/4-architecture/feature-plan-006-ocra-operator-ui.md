@@ -24,10 +24,12 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R026 – Wire the REST module to the MapDB credential store (configurable path) so stored credential mode works end-to-end; refresh documentation. ✅ 2025-09-28
 - R027 – Add end-to-end UI test covering stored credential submission via MapDB-backed persistence. ✅ 2025-09-28
 - R028 – Provide inline OCRA policy presets that auto-populate illustrative test vectors. ✅ 2025-09-28
+- R029 – Add Selenium-based system test to validate UI presets and stored credential flow end-to-end. ✅ 2025-09-28
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
 - Reuse existing REST DTOs/service beans; no direct access to persistence from views.
+- Add `org.seleniumhq.selenium:htmlunit-driver` as a test-scoped dependency to enable Selenium-based system testing (approved 2025-09-28).
 
 ## Risks & Mitigations
 - **Template security:** Ensure HTML escapes dynamic values by default; add tests verifying sanitized output.
@@ -47,6 +49,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-28 – R027 delivery: Added `OcraOperatorUiEndToEndTest` exercising CSRF form submission with stored credential via shared MapDB store to prevent future regressions.
 - 2025-09-28 – R028 planning: expose preset dropdown sourced from existing test vectors (e.g., S064, S128, PIN, timestamp) and auto-fill inline fields while keeping secrets sanitized.
 - 2025-09-28 – R028 delivery: Added preset dropdown sourced from REST tests, front-end auto-fill script, and regression coverage (MockMvc + end-to-end) ensuring inline mode vectors stay in sync.
+- 2025-09-28 – R029 delivery: Introduced HtmlUnit-driven Selenium system test covering inline preset auto-fill and stored credential submissions, wired new test dependency, and adjusted UI script for broader JS engine compatibility.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

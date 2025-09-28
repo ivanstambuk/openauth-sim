@@ -20,5 +20,6 @@ _Last updated: 2025-09-28_
 | R026 | Provide MapDB-backed CredentialStore bean for REST app with configurable path; update how-to docs | UI-OCRA-002, UI-OCRA-004, UI-NFR-003 | ✅ |
 | R027 | Add UI end-to-end test exercising stored credential flow against MapDB store | UI-OCRA-002, UI-OCRA-004, UI-OCRA-005 | ✅ |
 | R028 | Offer inline OCRA policy presets that auto-fill illustrative vectors; add coverage | UI-OCRA-002, UI-OCRA-003, UI-OCRA-005 | ✅ |
+| R029 | Add Selenium-based system test for UI preset + stored credential flows | UI-OCRA-002, UI-OCRA-005 | ✅ |
 
 Update this checklist as work progresses.

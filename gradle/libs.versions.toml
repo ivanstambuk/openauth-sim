@@ -13,6 +13,7 @@ picocli = "4.7.6"
 spotbugs = "4.8.3"
 springBoot = "3.3.4"
 springdoc = "2.4.0"
+seleniumHtmlUnitDriver = "4.13.0"
 
 [libraries]
 archunit-junit5 = { group = "com.tngtech.archunit", name = "archunit-junit5", version.ref = "archunit" }
@@ -32,6 +33,7 @@ spring-boot-starter-web = { group = "org.springframework.boot", name = "spring-b
 spring-boot-starter-test = { group = "org.springframework.boot", name = "spring-boot-starter-test" }
 spring-boot-starter-thymeleaf = { group = "org.springframework.boot", name = "spring-boot-starter-thymeleaf" }
 springdoc-openapi-starter-webmvc-ui = { group = "org.springdoc", name = "springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+selenium-htmlunit-driver = { group = "org.seleniumhq.selenium", name = "htmlunit-driver", version.ref = "seleniumHtmlUnitDriver" }
 
 [plugins]
 errorprone = { id = "net.ltgt.errorprone", version = "4.3.0" }
