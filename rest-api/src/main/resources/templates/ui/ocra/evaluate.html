@@ -263,7 +263,13 @@
         const inlineRequired = document.querySelectorAll('[data-inline-required]');
         const credentialRequired = document.querySelectorAll('[data-credential-required]');
         const policySelect = document.getElementById('policyPreset');
-        const inlinePresets = /*[[${policyPresetJson}]]*/ [];
+        const inlinePresetRaw = '[[${policyPresetJson}]]';
+        let inlinePresets = [];
+        try {
+          inlinePresets = JSON.parse(inlinePresetRaw);
+        } catch (error) {
+          inlinePresets = [];
+        }
         const presetMap = Array.isArray(inlinePresets)
           ? inlinePresets.reduce((acc, preset) => {
               acc[preset.key] = preset.sample;
