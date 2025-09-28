@@ -1,6 +1,6 @@
 # Feature 003 – REST OCRA Evaluation Endpoint Specification
 
-_Status: Draft_
+_Status: Accepted_
 _Last updated: 2025-09-28_
 
 ## Overview

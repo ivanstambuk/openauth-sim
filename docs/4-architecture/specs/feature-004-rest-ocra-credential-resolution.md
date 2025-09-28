@@ -1,6 +1,6 @@
 # Feature 004 – REST OCRA Credential Resolution Specification
 
-_Status: Draft_
+_Status: Accepted_
 _Last updated: 2025-09-28_
 
 ## Overview

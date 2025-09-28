@@ -33,4 +33,7 @@ Reference specification: `docs/4-architecture/specs/feature-004-rest-ocra-creden
 - 2025-09-28 – R015 implemented credential store integration, input mode validation, `hasCredentialReference` telemetry; MockMvc suite green.
 - 2025-09-28 – R016 refreshed OpenAPI snapshot, operator how-to, telemetry docs; full build (`./gradlew :rest-api:test`, `./gradlew spotlessApply check`) green.
 
+## Status
+- 2025-09-28 – Feature delivered; plan retained for historical context until archived.
+
 Update this plan as increments progress. Remove once Feature 004 ships.

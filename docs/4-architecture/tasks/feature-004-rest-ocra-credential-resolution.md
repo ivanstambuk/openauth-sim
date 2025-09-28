@@ -16,6 +16,9 @@ _Last updated: 2025-09-28_
 | R015 | Implement credential resolver integration, mutual exclusivity validation, and telemetry updates | FR-REST-010–FR-REST-013 | ✅ |
 | R016 | Refresh OpenAPI/docs/telemetry snapshot; rerun `./gradlew :rest-api:test` and `./gradlew spotlessApply check` | FR-REST-010–FR-REST-013 | ✅ |
 
+## Completion Notes
+- 2025-09-28 – Feature 004 tasks complete; final builds: `./gradlew :rest-api:test`, `./gradlew spotlessApply check`.
+
 Update this checklist as work progresses.
 
 2025-09-28 – R014 executed test-first: added credential lookup/conflict MockMvc cases; initial `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest.evaluateWithCredentialIdReturnsOtp` (RED – prior to implementation).
