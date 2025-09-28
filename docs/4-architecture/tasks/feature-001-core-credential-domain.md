@@ -175,4 +175,4 @@ _Last updated: 2025-09-28_
 ## Open Follow-ups
 - Populate task outcomes and timestamps upon completion.
 - Attach Gradle command outputs and analysis gate results to the feature plan when tasks close.
-- Complete T022 to add S128/S256/S512 session coverage assertions and documentation updates once tests pass.
+- Complete T024 to wire the CLI session helper and flip the new regression tests to assert expected OTP outputs.
