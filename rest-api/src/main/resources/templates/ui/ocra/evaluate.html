@@ -266,7 +266,8 @@
         const inlinePresetRaw = '[[${policyPresetJson}]]';
         let inlinePresets = [];
         try {
-          inlinePresets = JSON.parse(inlinePresetRaw);
+          const decoded = JSON.parse(inlinePresetRaw);
+          inlinePresets = Array.isArray(decoded) ? decoded : JSON.parse(decoded);
         } catch (error) {
           inlinePresets = [];
         }
