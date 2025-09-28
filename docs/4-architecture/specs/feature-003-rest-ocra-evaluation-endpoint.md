@@ -19,6 +19,7 @@ Expose the existing `OcraResponseCalculator` via the Spring Boot REST facade so 
 - 2025-09-28 – Telemetry hardening: structured log events gain `reasonCode` and `sanitized=true|false` attributes and continue to rely on WARN/ERROR levels for downstream alerting.
 - 2025-09-28 – Timestamp validation will reuse the descriptor-configured drift window from `OcraCredentialFactory.validateTimestamp` and surface `timestamp_drift_exceeded` when outside tolerance.
 - 2025-09-28 – Runtime PIN hash mismatches emit a dedicated `pin_hash_mismatch` reason code; REST pre-validation compares the supplied hash against descriptor expectations before invoking the calculator.
+- 2025-09-28 – Authentication/authorization is not required for this endpoint; treat the route as an internal operator surface with no additional auth layer.
 
 ## Objectives & Success Criteria
 - Provide a deterministic REST endpoint that accepts all runtime inputs required by session-enabled OCRA suites (challenge, client/server data, session payloads, timestamp, counter, PIN hash).
