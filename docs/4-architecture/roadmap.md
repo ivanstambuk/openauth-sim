@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-_Last updated: 2025-09-27_
+_Last updated: 2025-09-28_
 
 This roadmap tracks the major workstreams required to reach a feature-complete OpenAuth Simulator. Update this file whenever scope or status changes so future sessions can pick up without replaying prior conversations.
 
@@ -14,7 +14,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 
 | # | Workstream | Goal | Status | Notes |
 |---|------------|------|--------|-------|
-| 1 | Core credential domain | Model protocol-specific credential types (FIDO2, OATH/OCRA, EU Digital Identity Wallet suites, EMV/CAP) with validation, issuance, and presentation helpers | In planning | Spec: [Feature 001](specs/feature-001-core-credential-domain.md), Plan: [Feature Plan 001](feature-plan-001-core-domain.md), Tasks: [Feature 001 Tasks](tasks/feature-001-core-credential-domain.md) |
+| 1 | Core credential domain | Model protocol-specific credential types (FIDO2, OATH/OCRA, EU Digital Identity Wallet suites, EMV/CAP) with validation, issuance, and presentation helpers | In progress | Spec: [Feature 001](specs/feature-001-core-credential-domain.md), Plan: [Feature Plan 001](feature-plan-001-core-domain.md), Tasks: [Feature 001 Tasks](tasks/feature-001-core-credential-domain.md); Recent increments: T011–T015 (persistence envelopes, telemetry, documentation, knowledge map) |
 | 2 | Persistence & caching hardening | Tune MapDB + Caffeine (encryption options, compaction, metrics) | Not started | Depends on Workstream 1 definitions |
 | 3 | CLI tooling (Picocli) | Provide command-line flows to import, list, update, and delete credentials; accept secrets via arguments/stdin | Not started | Should integrate with `CredentialStore` API |
 | 4 | REST API (Spring Boot) | Expose emulator capabilities over REST with OpenAPI documentation | Not started | Requires Workstreams 1 & 2 |
@@ -35,5 +35,6 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 - [ ] Capture ADRs for crypto design decisions (key formats, hashing algorithms, etc.).
 - [ ] Identify specification links for inclusion in docs once network lookups are permitted.
 - [x] Bootstrap architecture knowledge map in `docs/4-architecture/knowledge-map.md`.
+- [x] Publish OCRA capability matrix and telemetry contract in `docs/1-concepts` (T014).
 
 Keep this roadmap synced with each significant decision or completion event.

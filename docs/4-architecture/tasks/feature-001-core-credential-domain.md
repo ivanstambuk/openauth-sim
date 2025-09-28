@@ -101,6 +101,11 @@ _Last updated: 2025-09-27_
 - [x] Note pending protocol packages explicitly in the map to signal future work.
 - [x] Ensure references stay aligned with the updated `docs/1-concepts` material.
 
+### T016 – Roadmap & Self-Review Checklist
+- [x] Refresh Workstream 1 status and notes in `docs/4-architecture/roadmap.md`.
+- [x] Capture lessons learned/self-review items in the feature plan and ensure open follow-ups remain accurate.
+- [x] Confirm action items list mirrors post-telemetry state and highlight upcoming increments.
+
 ## Phase 5 – Future Protocol Packages (Pending Separate Plans)
 | Protocol | Notes |
 |----------|-------|

@@ -38,13 +38,15 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - 2025-09-28 – Phase 4/T014 delivered: `docs/1-concepts/README.md` now includes the OCRA capability matrix, glossary, and telemetry reference; `./gradlew spotlessApply check` succeeded (2025-09-28T17:05:00Z, reuse configuration cache).
 - 2025-09-28 – Phase 4/T015 initiated: Refresh knowledge map to highlight telemetry flows, documentation touchpoints, and pending protocol packages.
 - 2025-09-28 – Phase 4/T015 delivered: Knowledge map now references the OCRA documentation/telemetry contract and flags pending protocol packages for future plans.
+- 2025-09-28 – Phase 4/T016 initiated: Update roadmap status and capture lessons/self-review notes following the telemetry+documentation increments.
+- 2025-09-28 – Phase 4/T016 delivered: Roadmap and action items refreshed (Workstream 1 now In progress, OCRA documentation noted); self-review captured in this plan.
 
-## Phase 4 – Next Increment (T014 OCRA Documentation Sync)
+## Phase 4 – Next Increment (T016 Roadmap & Self-Review)
 
-1. Extend `docs/1-concepts/README.md` with an OCRA capability matrix (required/optional attributes, telemetry identifiers) and glossary entries summarising validations.
-2. Cross-link the documentation to the feature specification and highlight structured telemetry usage for operators.
-3. Ensure knowledge map references stay aligned and note any pending documentation gaps for future protocols.
-4. Run `./gradlew spotlessApply check`, capture timing in this plan, and self-review before committing/pushing.
+1. Update `docs/4-architecture/roadmap.md` to reflect Workstream 1 progress (T011–T015) and surface upcoming actions.
+2. Capture lessons learned, test outcomes, and telemetry documentation notes within this feature plan and associated tasks.
+3. Verify action items/follow-ups are current and archive completed TODOs.
+4. Run `./gradlew spotlessApply check`, capture timing, and self-review before committing/pushing.
 
 ## Dependencies
 
@@ -54,6 +56,11 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - Shared persistence decision: MapDB store and core-managed cache are shared across all facades (2025-09-27).
 - Crypto strategy decision: keep credential packages pure data/validation and integrate pluggable strategy interfaces for crypto execution (preferred option recorded 2025-09-27).
 - Persistence evolution decision: adopt per-record schema versioning with a migration pipeline that upgrades records on read/write (preferred option recorded 2025-09-27).
+
+## Self-Review Notes (2025-09-28)
+- Telemetry logging remains at `Level.FINE` to avoid operator noise; tests assert payload redaction to prevent regressions.
+- SpotBugs suppression limited to the test harness attaching log handlers; production code avoids suppressions.
+- Roadmap/action items updated to reference completed documentation work, keeping future contributors oriented toward remaining plans (Workstreams 2–6, crypto ADRs).
 
 ## Analysis Gate
 
