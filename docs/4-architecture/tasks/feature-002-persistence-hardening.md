@@ -19,6 +19,7 @@ _Last updated: 2025-09-28_
 - [x] Introduced `MapDbCredentialStoreBaselineBenchmark` with opt-in execution flag/environment variable.
 - [x] Captured baseline in-memory metrics (writes ≈1.7k ops/s; reads ≈567k ops/s; P99 ≈0.0043 ms) on 2025-09-28.
 - [x] Documented rerun instructions (`./gradlew :core:test --tests io.openauth.sim.core.store.MapDbCredentialStoreBaselineBenchmark -Dio.openauth.sim.benchmark=true` or `IO_OPENAUTH_SIM_BENCHMARK=true ./gradlew :core:test --tests ...`) and recorded sample output in the feature plan.
+- [x] Reran benchmark after cache tuning on 2025-09-28 (`--rerun-tasks --info`); observed writes ≈2.86k ops/s, reads ≈351k ops/s, P50≈0.00093 ms, P90≈0.00249 ms, P99≈0.0208 ms.
 
 ### T202 – Structured Metrics & Logging Checklist
 - [x] Document telemetry contract and payload fields in spec/plan (2025-09-28).
