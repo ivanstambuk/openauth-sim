@@ -29,6 +29,7 @@ Reference specification: `docs/4-architecture/specs/feature-003-rest-ocra-evalua
 - 2025-09-28 – R003 clarification: controller validation tests will keep 404 expectations with TODOs to flip when R004 lands.
 - 2025-09-28 – `./gradlew spotlessApply check` (PASS, config cache reused) after documentation updates.
 - 2025-09-28 – R004 delivered: wired `POST /api/v1/ocra/evaluate` controller/service to `OcraResponseCalculator`, flipped MockMvc tests to assert 200/400 with telemetry captures, and added error DTOs; `./gradlew :rest-api:test` (PASS, ≈14s) and `./gradlew spotlessApply check` (PASS, ≈26s) recorded.
+- 2025-09-28 – R006 wrap-up: reran `./gradlew spotlessApply check` (PASS), captured telemetry output via `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest --info`, archived sample logs in `docs/3-reference/rest-ocra-telemetry-snapshot.md`, and verified roadmap/knowledge map consistency.
 
 ## Dependencies
 - Relies on the existing OCRA core package; ensure no modifications are required in `core/` for this feature.
