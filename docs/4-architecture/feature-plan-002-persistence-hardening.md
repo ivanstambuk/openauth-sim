@@ -35,6 +35,7 @@ Reference specification: `docs/4-architecture/specs/feature-002-persistence-hard
 - 2025-09-28 – T207 encryption scope: Select AES-GCM with in-memory key supplier callback as the initial optional at-rest protection strategy; update spec/tasks accordingly before test-first implementation.
 - 2025-09-28 – T207 encryption implementation: Added `PersistenceEncryption` interface with AES-GCM provider, integrated secret encryption into `MapDbCredentialStore`, and verified via `MapDbCredentialStoreTest.encryptionEncryptsSecretsAtRestAndDecryptsOnRead` alongside full `./gradlew spotlessApply check`.
 - 2025-09-28 – T208 coverage & docs: Extended tests for key-mismatch failure (`MapDbCredentialStoreTest.encryptionFailsWhenKeyDoesNotMatch`) and documented operator guidance/key rotation in `docs/2-how-to/configure-persistence-profiles.md`; `./gradlew spotlessApply check` remains green.
+- 2025-09-28 – T209 wrap-up: Knowledge map, roadmap, and concepts guide updated with maintenance/encryption context; no outstanding documentation gaps remain before T210.
 
 ## Upcoming Increments
 1. **T201 – Baseline Metrics & Benchmark Harness**: introduce synthetic load tests and logging scaffolding to capture current performance.

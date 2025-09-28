@@ -81,6 +81,11 @@ _Last updated: 2025-09-28_
 | T209 | Update concepts/knowledge map/roadmap with persistence findings and telemetry references. | FR-201–FR-204 | Yes |
 | T210 | Record final benchmarks/self-review outcomes in the feature plan and close open questions. | NFR-201–NFR-204 | No |
 
+### T209 – Wrap-up Checklist
+- [x] Knowledge map captures maintenance helper and AES-GCM encryption relationships (2025-09-28).
+- [x] Roadmap includes replay/verification + simulator UI workstreams informed by persistence work (2025-09-28).
+- [x] Concepts documentation updated with maintenance helper and AES-GCM definitions (2025-09-28).
+
 ## Open Follow-ups
 - Populate benchmark results and decisions as tasks complete.
 - Track any approval needed for additional tooling or dependencies before implementation.

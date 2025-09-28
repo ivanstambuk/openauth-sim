@@ -30,9 +30,13 @@ OATH Challenge-Response Algorithm (OCRA) credentials are the first protocol slic
 - **OCRA Descriptor** – Immutable record containing suite metadata, shared secret, optional counter/PIN/timestamp drift settings, and custom metadata.
 - **Versioned Credential Record** – Persistence envelope (current schema v1) capturing credential data, timestamps, and namespaced attributes. MapDB migrations upgrade legacy schemas on load.
 - **Structured Validation Telemetry** – Debug log events emitted when descriptor creation or auxiliary validations fail, designed for future observability pipelines without exposing sensitive material.
+- **Persistence Maintenance Helper** – Opt-in MapDB helper that performs compaction and integrity checks synchronously, emitting `persistence.credential.maintenance` telemetry for observability.
+- **Persistence Encryption** – Optional AES-GCM layer that encrypts credential secrets at rest using caller-supplied in-memory keys while preserving the `CredentialStore` API contract.
 
 ## References
 
 - `docs/4-architecture/specs/feature-001-core-credential-domain.md`
 - `docs/4-architecture/feature-plan-001-core-domain.md`
 - `core/src/main/java/io/openauth/sim/core/credentials/ocra/OcraCredentialFactory.java`
+- `core/src/main/java/io/openauth/sim/core/store/encryption/PersistenceEncryption.java`
+- `docs/2-how-to/configure-persistence-profiles.md`
