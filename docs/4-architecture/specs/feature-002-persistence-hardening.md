@@ -40,6 +40,7 @@ Elevate the persistence layer backing the `CredentialStore` so it reliably suppo
 - 2025-09-28 – Maintenance API scope (T205): Expose MapDB maintenance operations through a dedicated helper produced by `MapDbCredentialStore.Builder` so `CredentialStore` stays unchanged and callers opt in explicitly.
 - 2025-09-28 – Maintenance execution (T205): Helper provides synchronous compaction/integrity methods that block until completion; asynchronous scheduling can be layered externally if needed.
 - 2025-09-28 – Maintenance diagnostics (T205): Maintenance helper returns a `MaintenanceResult` record including `operation` (`COMPACTION` or `INTEGRITY_CHECK`), `duration`, `entriesScanned`, `entriesRepaired`, `issues` (list of warnings/errors), and `status` (`SUCCESS`, `WARN`, `FAIL`); the same data is emitted via Level.FINE telemetry.
+- 2025-09-28 – Maintenance triggers (T206): Initial operator surface delivered via CLI command(s) that invoke the maintenance helper; REST/UI hooks can layer on later once facades stabilize.
 
 ## Deployment Profiles
 

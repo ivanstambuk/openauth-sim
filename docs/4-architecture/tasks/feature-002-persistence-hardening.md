@@ -49,13 +49,19 @@ _Last updated: 2025-09-28_
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|
 | T205 | Implement MapDB compaction and integrity verification hooks with tests. | FR-203 | No |
-| T206 | Surface admin APIs/tests to trigger maintenance safely. | FR-203 | No |
+| T206 | Surface CLI commands/tests to trigger maintenance helper operations safely. | FR-203 | No |
 
 ### T205 – Maintenance Hooks Checklist
 - [x] Builder returns dedicated maintenance helper exposing compaction/integrity operations (decision recorded 2025-09-28).
 - [x] Helper methods execute synchronously on the caller thread; document assumption in spec/plan (2025-09-28).
 - [x] Define structured maintenance result (operation, duration, entries scanned/repaired, issues, status) and Level.FINE telemetry payload before implementing tests (2025-09-28).
 - [x] Write failing tests covering compaction/integrity flows via maintenance helper (2025-09-28).
+
+### T206 – Maintenance CLI Checklist
+- [x] Confirm operator surface via CLI command(s) invoking `MaintenanceHelper` (2025-09-28).
+- [x] Add failing-first CLI tests covering `compact` and `verify` commands with MapDB file stores (2025-09-28).
+- [x] Implement CLI command runner emitting `MaintenanceResult` fields to STDOUT (2025-09-28).
+- [ ] Document maintenance CLI usage and integrate into operator how-to guide.
 
 ## Phase 3 – Optional Protections
 | ID | Task | Related Requirements | Parallel? |
