@@ -24,10 +24,11 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - Record Gradle command outputs (`./gradlew spotlessApply check`) and analysis-gate results after each work session.
 - 2025-09-27 – Phase 1/T004 landed: disabled OCRA unit-test skeleton in place; `./gradlew spotlessApply check` passed post-change.
 - 2025-09-27 – Phase 1/T005 landed: disabled property-based secret material tests in place; `./gradlew spotlessApply check` executed successfully after commit preparation.
-- 2025-09-27 – Phase 1/T006 landed: disabled ArchUnit guardrails prevent cross-package leakage; revisit in Phase 2 to re-enable once descriptors exist.
+- 2025-09-27 – Phase 1/T006 landed: introduced ArchUnit guardrails to prevent cross-package leakage, initially disabled pending descriptor rollout.
 - 2025-09-27 – Clarification resolved: OCRA descriptors parse the suite during construction and store secrets using `SecretMaterial`, guiding the T007 implementation approach.
 - 2025-09-27 – Phase 2/T007: descriptor parser + factory landed with OCRA suite coverage; `./gradlew spotlessApply check` succeeded (27s, configuration cache reused).
-- 2025-09-27 – Phase 2/T008 delivered: Added `OcraCredentialFactory`, tightened descriptor validation error messaging, re-enabled the T004 unit suite, and confirmed `./gradlew spotlessApply check` success at 23:16Z while keeping T005/T006 disabled per plan.
+- 2025-09-27 – Phase 2/T008 delivered: Added `OcraCredentialFactory`, tightened descriptor validation error messaging, re-enabled the T004 unit suite, and confirmed `./gradlew spotlessApply check` success at 23:16Z.
+- 2025-09-28 – Phase 1/T006 follow-up: Re-enabled the ArchUnit guardrails now that the OCRA package surface is stable; `./gradlew spotlessApply check` confirmed the rules pass (configuration cache reused).
 - 2025-09-27 – Phase 2/T009 delivered: Introduced shared secret normalisation helpers covering RAW/HEX/Base64 inputs, updated descriptor/factory flows to consume canonical `SecretMaterial`, re-enabled the property-based suite from T005, and recorded `./gradlew spotlessApply check` success at 23:34Z.
 - 2025-09-27 – Phase 2/T010 delivered: Added `CredentialCapability` and `CredentialRegistry` seeded with OCRA metadata and factory wiring, validated via registry tests, and recorded `./gradlew spotlessApply check` pending post-doc update.
 - 2025-09-28 – Phase 3/T011 delivered: Introduced versioned credential record + persistence adapter interfaces, added OCRA descriptor round-trip tests, implemented the adapter, and captured `./gradlew spotlessApply check` success (2025-09-28T15:17:00Z, 33s, configuration cache reused).
