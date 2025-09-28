@@ -50,6 +50,7 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - 2025-09-28 – Phase 6 scope defined: Proceed with Option A (CLI first) for session-aware helper wiring; queued tasks T023 (tests) and T024 (implementation) under the new CLI Session Helper Integration phase.
 - 2025-09-28 – Phase 6/T023 delivered: Added parameterised CLI regression tests covering S064/S128/S256/S512 session payloads; initial assertions captured the missing command behaviour prior to T024 (`./gradlew :cli:test` – PASS, exercises failure path).
 - 2025-09-28 – Phase 6/T024 delivered: Wired the CLI `ocra` command to `OcraResponseCalculator`, returning deterministic OTP output, redacting shared secrets, and flipping the new regression tests to green (`./gradlew :cli:test` – PASS, configuration cache reused; `./gradlew spotlessApply check` – PASS, ~12s).
+- 2025-09-28 – REST integration decision: Adopt Option A (synchronous endpoint) for the next session helper rollout; document plan for REST task sequencing post-CLI delivery.
 
 ## Phase 4 – Next Increment (T016 Roadmap & Self-Review)
 

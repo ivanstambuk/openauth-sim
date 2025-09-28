@@ -172,6 +172,12 @@ _Last updated: 2025-09-28_
 | EUDI Wallet suites | Depends on broader clarifications already logged; schedule after OCRA delivery. |
 | EMV/CAP | Pending tailored plan mirroring the OCRA approach. |
 
+## Phase 7 – REST Session Helper Integration (Planned)
+| ID | Task | Related Requirements | Parallel? |
+|----|------|----------------------|-----------|
+| T025 | Update REST spec/plan to cover synchronous OCRA evaluation endpoint leveraging existing calculator fixtures. | FR-002, FR-007 | No |
+| T026 | Implement REST endpoint/tests to expose session-aware evaluation, ensuring telemetry redaction and OpenAPI documentation. | FR-002, FR-007, NFR-005 | No |
+
 ## Open Follow-ups
 - Populate task outcomes and timestamps upon completion.
 - Attach Gradle command outputs and analysis gate results to the feature plan when tasks close.

@@ -88,6 +88,7 @@ Design a protocol-aware credential domain inside the `core` module that models c
 - 2025-09-28 – OCRA session compliance (T022): Extended `OcraRfc6287ComplianceTest` to assert each S064/S128/S256/S512 vector produces its published OTP and that parsed suite metadata exposes the expected session byte lengths without leaking session payloads in validation errors. citeturn0search0turn0search5
 - 2025-09-28 – Session-aware helper rollout: Begin wiring the session-enabled execution helpers into the CLI facade first, providing operators a deterministic way to validate S-length inputs before expanding to REST/UI surfaces (Option A selected over REST/UI/shared helper alternatives). citeturn0search0turn0search5
 - 2025-09-28 – CLI session helper (T024): Added the `maintenance ocra` command accepting suite/key/challenge/session inputs, routing them through `OcraResponseCalculator`, printing redaction-friendly `suite=`/`otp=` output, and reusing the generator-derived S064/S128/S256/S512 vectors for regression coverage. citeturn0search0turn0search5
+- 2025-09-28 – Session helper rollout (next step): Extend the REST API facade with a synchronous OCRA evaluation endpoint reusing the CLI-tested calculator so automated clients can exercise session lengths (Option A accepted over async/UI/shared-only alternatives). citeturn0search0turn0search5
 
 ## References
 - `docs/4-architecture/feature-plan-001-core-domain.md`
