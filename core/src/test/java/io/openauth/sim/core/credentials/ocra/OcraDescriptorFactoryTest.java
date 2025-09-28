@@ -98,8 +98,8 @@ final class OcraDescriptorFactoryTest {
         () -> assertTrue(descriptor.pinHashSpecification().isEmpty()),
         () ->
             assertEquals(
-                OcraHashAlgorithm.SHA512,
-                descriptor.suite().dataInput().sessionInformation().orElseThrow().hashAlgorithm()),
+                OcraHashAlgorithm.SHA512.digestLengthBytes(),
+                descriptor.suite().dataInput().sessionInformation().orElseThrow().lengthBytes()),
         () ->
             assertEquals(Duration.ofSeconds(30), descriptor.allowedTimestampDrift().orElseThrow()));
   }

@@ -2,6 +2,7 @@ package io.openauth.sim.core.credentials.ocra;
 
 import io.openauth.sim.core.model.SecretEncoding;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Test-only catalogue of RFC 6287 Appendix C vectors.
@@ -19,6 +20,12 @@ final class OcraRfc6287VectorFixtures {
           + "3132333435363738393031323334353637383930"
           + "3132333435363738393031323334353637383930"
           + "31323334";
+  static final String SESSION_HEX_64 =
+      ("00112233445566778899AABBCCDDEEFF"
+              + "102132435465768798A9BACBDCEDF0EF"
+              + "112233445566778899AABBCCDDEEFF00"
+              + "89ABCDEF0123456789ABCDEF01234567")
+          .toUpperCase(Locale.ROOT);
   static final String PIN_SHA1_HASH = "7110eda4d09e062aa5e4a390b0a572ac0d2c0220";
 
   private OcraRfc6287VectorFixtures() {
@@ -483,6 +490,21 @@ final class OcraRfc6287VectorFixtures {
             null,
             "132d0b6",
             "36209546"));
+  }
+
+  static List<OneWayVector> sessionInformationVectors() {
+    return List.of(
+        new OneWayVector(
+            "Session information S064 with alphanumeric challenge",
+            "OCRA-1:HOTP-SHA256-8:QA08-S064",
+            STANDARD_KEY_32,
+            SecretEncoding.HEX,
+            "SESSION01",
+            null,
+            null,
+            SESSION_HEX_64,
+            null,
+            "17477202"));
   }
 
   static List<MutualVector> mutualSha256ServerVectors() {

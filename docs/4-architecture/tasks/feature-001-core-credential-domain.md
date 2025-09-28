@@ -135,10 +135,10 @@ _Last updated: 2025-09-28_
 - [x] Record helper behaviour/decisions in spec + feature plan and ensure no telemetry leaks shared secrets.
 
 ### T020 – RFC Vector Assertion Flip Checklist
-- [x] Update RFC vector tests to assert actual OTP values from Appendix C, including mutual and timed suites (`OcraRfc6287ComplianceTest`). citeturn1search5
-- [x] Add negative test coverage verifying errors when required runtime inputs are absent (counter, timestamp, etc.).
+- [x] Update RFC vector tests to assert actual OTP values from Appendix C, including mutual, session, and timed suites (`OcraRfc6287ComplianceTest`). citeturn1search5
+- [x] Add negative test coverage verifying errors when required runtime inputs are absent (counter, session information, timestamp).
 - [x] Ensure telemetry assertions continue passing (no secret leakage) after helper integration.
-- [x] Run `./gradlew spotlessApply check`, capture timing, and update feature plan/tasks with results (2025-09-28 – PASS, ~58s, configuration cache reused).
+- [x] Run `./gradlew spotlessApply check`, capture timing, and update feature plan/tasks with results (2025-09-28 – PASS, ~72s, configuration cache reused).
 
 ## Phase 6 – Future Protocol Packages (Pending Separate Plans)
 | Protocol | Notes |
@@ -150,3 +150,4 @@ _Last updated: 2025-09-28_
 ## Open Follow-ups
 - Populate task outcomes and timestamps upon completion.
 - Attach Gradle command outputs and analysis gate results to the feature plan when tasks close.
+- Expand session-information coverage when suites introduce non-default `Snnn` lengths beyond 64 bytes.

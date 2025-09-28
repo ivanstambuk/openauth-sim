@@ -2,14 +2,15 @@ package io.openauth.sim.core.credentials.ocra;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.Objects;
 
-/** Session information hashing declaration in an OCRA suite. */
-public record OcraSessionSpecification(OcraHashAlgorithm hashAlgorithm) implements Serializable {
+/** Session information declaration in an OCRA suite. */
+public record OcraSessionSpecification(int lengthBytes) implements Serializable {
 
   @Serial private static final long serialVersionUID = 1L;
 
   public OcraSessionSpecification {
-    Objects.requireNonNull(hashAlgorithm, "hashAlgorithm");
+    if (lengthBytes <= 0) {
+      throw new IllegalArgumentException("Session length must be positive");
+    }
   }
 }

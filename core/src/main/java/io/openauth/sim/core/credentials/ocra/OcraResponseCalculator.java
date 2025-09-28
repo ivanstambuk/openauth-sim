@@ -70,8 +70,13 @@ public final class OcraResponseCalculator {
       passwordHex = HEX.formatHex(material.value()).toUpperCase(Locale.ROOT);
     }
 
+    String sessionHex = "";
     if (dataInput.sessionInformation().isPresent()) {
-      throw new UnsupportedOperationException("Session information inputs not supported yet");
+      sessionHex =
+          encodeSession(
+              dataInput.sessionInformation().orElseThrow(),
+              context.sessionInformation(),
+              suite.value());
     }
 
     String timeHex = "";
@@ -83,7 +88,7 @@ public final class OcraResponseCalculator {
     }
 
     return computeReferenceOcra(
-        suite.value(), keyHex, counterHex, questionHex, passwordHex, "", timeHex);
+        suite.value(), keyHex, counterHex, questionHex, passwordHex, sessionHex, timeHex);
   }
 
   private static String formatQuestion(
@@ -111,6 +116,26 @@ public final class OcraResponseCalculator {
           HEX.formatHex(value.toUpperCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII))
               .toUpperCase(Locale.ROOT);
     };
+  }
+
+  private static String encodeSession(
+      OcraSessionSpecification specification, String sessionInformation, String suite) {
+    if (sessionInformation == null || sessionInformation.isBlank()) {
+      throw new IllegalArgumentException("session information required for suite: " + suite);
+    }
+    String normalized = normalizeHex(sessionInformation);
+    int targetLength = specification.lengthBytes() * 2;
+    if (normalized.length() > targetLength) {
+      throw new IllegalArgumentException(
+          "session information exceeds declared length of "
+              + specification.lengthBytes()
+              + " bytes");
+    }
+    StringBuilder builder = new StringBuilder(normalized);
+    while (builder.length() < targetLength) {
+      builder.insert(0, '0');
+    }
+    return builder.toString();
   }
 
   private static String resolveChallengeInput(OcraExecutionContext context) {

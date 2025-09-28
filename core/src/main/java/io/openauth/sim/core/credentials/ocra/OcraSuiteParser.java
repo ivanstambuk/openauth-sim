@@ -131,13 +131,17 @@ final class OcraSuiteParser {
       }
 
       if (trimmed.startsWith("S")) {
-        String algorithmToken = trimmed.substring(1);
-        if (algorithmToken.isEmpty()) {
-          sessionSpecification = new OcraSessionSpecification(OcraHashAlgorithm.SHA1);
+        String sessionToken = trimmed.substring(1).trim();
+        int lengthBytes;
+        if (sessionToken.isEmpty()) {
+          lengthBytes = 64;
+        } else if (sessionToken.chars().allMatch(Character::isDigit)) {
+          lengthBytes = Integer.parseInt(sessionToken);
         } else {
-          sessionSpecification =
-              new OcraSessionSpecification(OcraHashAlgorithm.fromToken(algorithmToken));
+          OcraHashAlgorithm algorithm = OcraHashAlgorithm.fromToken(sessionToken);
+          lengthBytes = algorithm.digestLengthBytes();
         }
+        sessionSpecification = new OcraSessionSpecification(lengthBytes);
         continue;
       }
 

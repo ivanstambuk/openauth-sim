@@ -59,6 +59,13 @@ final class OcraRfc6287ComplianceTest {
     assertMatchesPublishedOtp(vector);
   }
 
+  @DisplayName("Session-information vectors match expected OCRA outputs")
+  @ParameterizedTest(name = "{index} ⇒ {0}")
+  @MethodSource("sessionInformationVectors")
+  void sessionInformationVectors(OcraRfc6287VectorFixtures.OneWayVector vector) {
+    assertMatchesPublishedOtp(vector);
+  }
+
   @DisplayName("Mutual challenge-response server vectors match RFC 6287 Appendix C outputs")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("mutualServerVectors")
@@ -107,6 +114,24 @@ final class OcraRfc6287ComplianceTest {
         !ex.getMessage()
             .toLowerCase(Locale.ROOT)
             .contains(vector.sharedSecretHex().substring(0, 6).toLowerCase(Locale.ROOT)));
+  }
+
+  @Test
+  @DisplayName("Missing session information triggers descriptive error")
+  void missingSessionInformationThrowsDescriptiveError() {
+    OcraRfc6287VectorFixtures.OneWayVector vector =
+        OcraRfc6287VectorFixtures.sessionInformationVectors().get(0);
+
+    OcraCredentialDescriptor descriptor = descriptorFor(vector.description(), vector);
+    OcraResponseCalculator.OcraExecutionContext context =
+        new OcraResponseCalculator.OcraExecutionContext(
+            null, vector.question(), null, null, null, vector.pinHashHex(), null);
+
+    IllegalArgumentException ex =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> OcraResponseCalculator.generate(descriptor, context));
+    assertTrue(ex.getMessage().toLowerCase(Locale.ROOT).contains("session"));
   }
 
   private void assertMatchesPublishedOtp(OcraRfc6287VectorFixtures.OneWayVector vector) {
@@ -225,6 +250,10 @@ final class OcraRfc6287ComplianceTest {
 
   private Stream<OcraRfc6287VectorFixtures.OneWayVector> timeBasedVectors() {
     return OcraRfc6287VectorFixtures.timeBasedSha512Vectors().stream();
+  }
+
+  private Stream<OcraRfc6287VectorFixtures.OneWayVector> sessionInformationVectors() {
+    return OcraRfc6287VectorFixtures.sessionInformationVectors().stream();
   }
 
   private Stream<OcraRfc6287VectorFixtures.MutualVector> mutualServerVectors() {
