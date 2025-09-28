@@ -38,6 +38,16 @@ Elevate the persistence layer backing the `CredentialStore` so it reliably suppo
 - 2025-09-28 – Telemetry contract (T202): Emit Level.FINE events `persistence.credential.lookup` and `persistence.credential.mutation` with payload fields limited to `storeProfile` (`IN_MEMORY` or `FILE`), `credentialName`, cache outcome (`cacheHit` boolean, `source` of data), optional `latencyMicros` when MapDB is consulted, `operation` (`SAVE`/`DELETE`), and `redacted` flag; payloads must never include raw secret material.
 - 2025-09-28 – Cache tuning (T203): Default Caffeine profiles – in-memory (max 250k entries, expire-after-access 2 minutes), file-backed (max 150k entries, expire-after-write 10 minutes), container (max 500k entries, expire-after-access 15 minutes) – with overrides available via builder hooks.
 
+## Deployment Profiles
+
+| Profile | Target Scenario | Default Cache Settings | Storage Notes | Override Guidance |
+|---------|-----------------|------------------------|---------------|-------------------|
+| `IN_MEMORY` | Embedded tests, ephemeral benchmarks | Max 250k entries, expire after access 2 minutes | MapDB runs fully in-memory; disk persistence disabled. | Use `MapDbCredentialStore.inMemory().cacheSettings(...)` to shrink footprint for unit tests or increase TTL during long benchmarks. |
+| `FILE` | Local disk deployments, developer machines | Max 150k entries, expire after write 10 minutes | File DB with mmap (when supported) and transactional commits. | Override TTL if the write frequency is low; prefer `cacheExpirationStrategy(AFTER_WRITE)` for durability alignment. |
+| `CONTAINER` | Shared container/volume-backed services | Max 500k entries, expire after access 15 minutes | Intended for future builder helpers; use `cacheSettings(CacheSettings.containerDefaults())` and provide volume mounts. | Adjust maximum size based on container memory limits, keeping ≥15 minutes TTL only when hit ratios stay above 90%. |
+
+All profiles redact secrets in telemetry and obey the `CredentialStore` abstraction. Additional deployment instructions live in `docs/2-how-to/configure-persistence-profiles.md` and must stay consistent with this table.
+
 ## References
 - `docs/4-architecture/feature-plan-002-persistence-hardening.md`
 - `docs/4-architecture/tasks/feature-002-persistence-hardening.md`

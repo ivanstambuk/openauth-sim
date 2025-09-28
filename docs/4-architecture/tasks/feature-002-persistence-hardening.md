@@ -38,6 +38,12 @@ _Last updated: 2025-09-28_
 - [x] Add regression tests verifying expiration strategy, TTL, and maximum size per profile and override paths.
 - [x] Record benchmark follow-up needs and Gradle command outcomes once passing (2025-09-28).
 
+### T204 – Deployment Profiles Checklist
+- [x] Align spec/plan with deployment documentation scope (2025-09-28).
+- [x] Author operator-facing guide covering in-memory, file-backed, and container profiles with defaults and overrides (2025-09-28).
+- [x] Cross-reference guide from tasks/spec/knowledge map and capture follow-up benchmark action (2025-09-28).
+- [x] Record Gradle command status (spotlessApply check, 2025-09-28 – pass, SpotBugs warns missing `org.opentest4j.MultipleFailuresError`).
+
 ## Phase 2 – Storage Maintenance
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|

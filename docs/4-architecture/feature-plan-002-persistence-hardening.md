@@ -24,6 +24,8 @@ Reference specification: `docs/4-architecture/specs/feature-002-persistence-hard
 - 2025-09-28 – Gradle verification: `./gradlew :core:test` (pass) and `./gradlew spotlessApply check` (pass, includes SpotBugs note about missing `org.opentest4j.MultipleFailuresError`, non-fatal) recorded cache/persistence telemetry behaviour.
 - 2025-09-28 – T203 cache tuning scope: Adopt per-profile Caffeine defaults (in-memory: 250k max, 2 min expire-after-access; file-backed: 150k max, 10 min expire-after-write; container: 500k max, 15 min expire-after-access) and expose builder overrides for future deployment profiles.
 - 2025-09-28 – T203 implementation: `MapDbCredentialStore` builder applies cache profiles with override hooks; regression tests cover default/override strategies. `./gradlew :core:test` and `./gradlew spotlessApply check` passing (SpotBugs still logs missing `org.opentest4j.MultipleFailuresError`). Follow-up: rerun benchmark harness post-cache tuning to confirm RPS/latency deltas.
+- 2025-09-28 – T204 scope: Publish deployment profile reference covering in-memory, file-backed, and container defaults (cache sizing, TTL, storage hints, override examples) and wire docs into spec/tasks.
+- 2025-09-28 – T204 documentation: Authored `docs/2-how-to/configure-persistence-profiles.md`, updated spec/tasks/knowledge map, and recorded `./gradlew spotlessApply check` (pass; SpotBugs warning about missing `org.opentest4j.MultipleFailuresError`). Follow-up remains to rerun MapDB benchmark with tuned caches.
 
 ## Upcoming Increments
 1. **T201 – Baseline Metrics & Benchmark Harness**: introduce synthetic load tests and logging scaffolding to capture current performance.
