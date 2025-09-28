@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -290,6 +291,33 @@ class MapDbCredentialStoreTest {
       assertEquals("test", loaded.attributes().get("purpose"));
       assertFalse(loaded.attributes().containsKey("encryption.algorithm"));
       assertFalse(loaded.attributes().containsKey("encryption.nonce"));
+    }
+  }
+
+  @Test
+  void encryptionFailsWhenKeyDoesNotMatch() throws Exception {
+    byte[] key = new byte[32];
+    Arrays.fill(key, (byte) 0x11);
+    PersistenceEncryption encryption =
+        AesGcmPersistenceEncryption.withKeySupplier(() -> key.clone());
+
+    Path dbPath = tempDir.resolve("encrypted-mismatch.db");
+
+    try (var store = MapDbCredentialStore.file(dbPath).encryption(encryption).open()) {
+      store.save(
+          Credential.create(
+              "mismatch", CredentialType.GENERIC, SecretMaterial.fromHex("deadbeef"), Map.of()));
+    }
+
+    byte[] wrongKey = new byte[32];
+    Arrays.fill(wrongKey, (byte) 0x22);
+    PersistenceEncryption wrongEncryption =
+        AesGcmPersistenceEncryption.withKeySupplier(() -> wrongKey.clone());
+
+    try (var store = MapDbCredentialStore.file(dbPath).encryption(wrongEncryption).open()) {
+      IllegalStateException thrown =
+          assertThrows(IllegalStateException.class, () -> store.findByName("mismatch"));
+      assertTrue(thrown.getMessage().contains("decrypt"));
     }
   }
 

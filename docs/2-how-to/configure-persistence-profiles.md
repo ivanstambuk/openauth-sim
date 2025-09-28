@@ -112,6 +112,31 @@ MapDB stores occasionally require compaction or integrity verification. The CLI 
 
 The command prints the structured maintenance result (operation, status, duration, entries scanned/repaired, issue count). A non-zero exit code indicates the helper reported `FAIL`, in which case investigate the listed issues before continuing.
 
+## Enable Optional AES Encryption
+
+When running in environments that require secrets encrypted at rest, configure `MapDbCredentialStore` with the AES-GCM encryption helper added in Feature 002:
+
+```java
+byte[] key = ...; // 16/24/32-byte AES key supplied by your key-management system
+PersistenceEncryption encryption =
+    AesGcmPersistenceEncryption.withKeySupplier(() -> key.clone());
+
+try (MapDbCredentialStore store =
+    MapDbCredentialStore.file(Paths.get("./data/credentials.db"))
+        .encryption(encryption)
+        .open()) {
+  // store credentials – secrets will be encrypted at rest
+}
+```
+
+Key rotation guidance:
+
+1. Use the current key to read and re-encrypt credentials with the new key in a controlled maintenance window.
+2. Restart dependent facades with the new key supplier once the migration finishes.
+3. Keep key material in memory only; avoid environment variables for long-term storage. Integrators can wrap the supplier to fetch keys from HSM/KMS APIs.
+
+If the wrong key is provided during startup, credential reads will raise an `IllegalStateException` and log details—verify keys before deploying to production.
+
 ## Follow-ups
 
 - Benchmark results after cache tuning should be captured under Feature 002 plan task T201 once rerun.
