@@ -20,6 +20,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R022 – Author failing Spring MVC/MockMvc tests covering landing page, evaluation form validation (stored vs inline), and rendering of sanitized responses/errors. ✅ 2025-09-28
 - R023 – Introduce templating dependency (Thymeleaf) + MVC controller/template scaffolding to satisfy tests, ensuring REST client wiring and CSRF handling. ✅ 2025-09-28
 - R024 – Polish UX (aria landmarks, field hints, telemetry panel copy helpers), document operator workflow + sanitized telemetry expectations, and rerun `./gradlew spotlessApply check` prior to commit. ✅ 2025-09-28
+- R025 – Remove `required` validation from hidden inline fields so stored credential mode submits cleanly; add regression coverage if possible. ✅ 2025-09-28
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -36,6 +37,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-28 – R023: Added `spring-boot-starter-thymeleaf`, manual session-backed CSRF tokens, MVC controller, and Thymeleaf templates; tests now green, sanitizing secrets from rendered HTML and verifying REST delegation.
 - 2025-09-28 – R024 planning: identified accessibility gaps (form mode toggle lacks labels, results lack summary semantics) and documentation work items (how-to guide, telemetry/logging notes, roadmap status update) to address before final polish.
 - 2025-09-28 – R024 delivery: Introduced radio-based mode toggle with accessible sections, expanded templates to surface telemetry summary + sanitized error messaging, refreshed operator how-to/knowledge map, and recorded UX polish in roadmap/tasks.
+- 2025-09-28 – R025: Relaxed `required` attributes and disabled inactive inputs so stored credential submissions pass native validation; retained accessibility hints and kept MockMvc suite green.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

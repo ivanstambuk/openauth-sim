@@ -72,8 +72,8 @@
                 type="text"
                 autocomplete="off"
                 th:value="${form.suite}"
-                aria-describedby="inline-describe"
-                required
+                th:attr="aria-describedby=${'inline-describe'},required=${form.inlineMode} ? 'required' : null"
+                data-inline-required="true"
               />
             </div>
             <div>
@@ -84,9 +84,9 @@
                 type="password"
                 autocomplete="off"
                 value=""
-                aria-describedby="inline-describe"
                 placeholder="Hex encoded secret"
-                required
+                th:attr="aria-describedby=${'inline-describe'},required=${form.inlineMode} ? 'required' : null"
+                data-inline-required="true"
               />
             </div>
             <div>
@@ -122,6 +122,8 @@
                 autocomplete="off"
                 th:value="${form.credentialId}"
                 aria-describedby="credential-describe"
+                th:attr="required=${form.credentialMode} ? 'required' : null"
+                data-credential-required="true"
               />
             </div>
           </section>
@@ -241,12 +243,15 @@
       (function () {
         const modeInputs = document.querySelectorAll('input[name="mode"]');
         const sections = document.querySelectorAll('[data-mode-section]');
+        const inlineRequired = document.querySelectorAll('[data-inline-required]');
+        const credentialRequired = document.querySelectorAll('[data-credential-required]');
 
         function updateSections() {
           const selected = document.querySelector('input[name="mode"]:checked');
           if (!selected) {
             return;
           }
+          const inlineActive = selected.value === 'inline';
           sections.forEach((section) => {
             const active = section.getAttribute('data-mode-section') === selected.value;
             if (active) {
@@ -255,6 +260,24 @@
             } else {
               section.setAttribute('hidden', 'hidden');
               section.setAttribute('aria-hidden', 'true');
+            }
+          });
+          inlineRequired.forEach((input) => {
+            if (inlineActive) {
+              input.setAttribute('required', 'required');
+              input.removeAttribute('disabled');
+            } else {
+              input.removeAttribute('required');
+              input.setAttribute('disabled', 'disabled');
+            }
+          });
+          credentialRequired.forEach((input) => {
+            if (inlineActive) {
+              input.removeAttribute('required');
+              input.setAttribute('disabled', 'disabled');
+            } else {
+              input.setAttribute('required', 'required');
+              input.removeAttribute('disabled');
             }
           });
         }
