@@ -1,6 +1,6 @@
 package io.openauth.sim.core.credentials.ocra;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11,150 +11,141 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/**
- * Placeholder parameterised tests covering the RFC 6287 vectors.
- *
- * <p>TODO(#T018): Replace the UnsupportedOperationException assertions with real OTP comparisons
- * once the execution helper is implemented.
- */
+/** Proves the built-in execution helper reproduces RFC 6287 Appendix C reference vectors. */
 @Tag("ocra")
 @TestInstance(Lifecycle.PER_CLASS)
-final class OcraRfc6287PlaceholderTest {
+final class OcraRfc6287ComplianceTest {
 
   private final OcraCredentialFactory factory = new OcraCredentialFactory();
 
-  @DisplayName("Standard OCRA challenge vectors await execution helper")
+  @DisplayName("Standard numeric challenge vectors match RFC 6287 Appendix C outputs")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("standardChallengeVectors")
-  void standardChallengeVectorsThrowUntilHelperArrives(
-      OcraRfc6287VectorFixtures.OneWayVector vector) {
-    assertUnsupported(vector, contextFor(vector));
+  void standardChallengeVectors(OcraRfc6287VectorFixtures.OneWayVector vector) {
+    assertMatchesPublishedOtp(vector);
   }
 
-  @DisplayName("Counter + PIN vectors await execution helper")
+  @DisplayName("Counter + PIN vectors match RFC 6287 Appendix C outputs")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("counterAndPinVectors")
-  void counterAndPinVectorsThrowUntilHelperArrives(OcraRfc6287VectorFixtures.OneWayVector vector) {
-    assertUnsupported(vector, contextFor(vector));
+  void counterPinVectors(OcraRfc6287VectorFixtures.OneWayVector vector) {
+    assertMatchesPublishedOtp(vector);
   }
 
-  @DisplayName("Hashed PIN question vectors await execution helper")
+  @DisplayName("Hashed PIN vectors without counter match RFC 6287 Appendix C outputs")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("hashedPinVectors")
-  void hashedPinVectorsThrowUntilHelperArrives(OcraRfc6287VectorFixtures.OneWayVector vector) {
-    assertUnsupported(vector, contextFor(vector));
+  void hashedPinVectors(OcraRfc6287VectorFixtures.OneWayVector vector) {
+    assertMatchesPublishedOtp(vector);
   }
 
-  @DisplayName("Counter-only SHA512 vectors await execution helper")
+  @DisplayName("Counter-only SHA512 vectors match RFC 6287 Appendix C outputs")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("counterOnlyVectors")
-  void counterOnlyVectorsThrowUntilHelperArrives(OcraRfc6287VectorFixtures.OneWayVector vector) {
-    assertUnsupported(vector, contextFor(vector));
+  void counterOnlyVectors(OcraRfc6287VectorFixtures.OneWayVector vector) {
+    assertMatchesPublishedOtp(vector);
   }
 
-  @DisplayName("Time-based SHA512 vectors await execution helper")
+  @DisplayName("Time-based SHA512 vectors match RFC 6287 Appendix C outputs")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("timeBasedVectors")
-  void timeBasedVectorsThrowUntilHelperArrives(OcraRfc6287VectorFixtures.OneWayVector vector) {
-    assertUnsupported(vector, contextFor(vector));
+  void timeBasedVectors(OcraRfc6287VectorFixtures.OneWayVector vector) {
+    assertMatchesPublishedOtp(vector);
   }
 
-  @DisplayName("Mutual challenge-response server vectors await execution helper")
+  @DisplayName("Mutual challenge-response server vectors match RFC 6287 Appendix C outputs")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("mutualServerVectors")
-  void mutualServerVectorsThrowUntilHelperArrives(OcraRfc6287VectorFixtures.MutualVector vector) {
-    assertUnsupported(vector, contextFor(vector));
+  void mutualServerVectors(OcraRfc6287VectorFixtures.MutualVector vector) {
+    assertMatchesPublishedOtp(vector);
   }
 
-  @DisplayName("Mutual challenge-response client vectors await execution helper")
+  @DisplayName("Mutual challenge-response client vectors match RFC 6287 Appendix C outputs")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("mutualClientVectors")
-  void mutualClientVectorsThrowUntilHelperArrives(OcraRfc6287VectorFixtures.MutualVector vector) {
-    assertUnsupported(vector, contextFor(vector));
+  void mutualClientVectors(OcraRfc6287VectorFixtures.MutualVector vector) {
+    assertMatchesPublishedOtp(vector);
   }
 
-  @DisplayName("Plain signature vectors await execution helper")
+  @DisplayName("Plain signature vectors match RFC 6287 Appendix C outputs")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("plainSignatureVectors")
-  void plainSignatureVectorsThrowUntilHelperArrives(
-      OcraRfc6287VectorFixtures.PlainSignatureVector vector) {
-    assertUnsupported(vector, contextFor(vector));
+  void plainSignatureVectors(OcraRfc6287VectorFixtures.PlainSignatureVector vector) {
+    assertMatchesPublishedOtp(vector);
   }
 
-  @DisplayName("Timed signature vectors await execution helper")
+  @DisplayName("Timed signature vectors match RFC 6287 Appendix C outputs")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("timedSignatureVectors")
-  void timedSignatureVectorsThrowUntilHelperArrives(
-      OcraRfc6287VectorFixtures.PlainSignatureVector vector) {
-    assertUnsupported(vector, contextFor(vector));
+  void timedSignatureVectors(OcraRfc6287VectorFixtures.PlainSignatureVector vector) {
+    assertMatchesPublishedOtp(vector);
   }
 
-  private void assertUnsupported(
-      OcraRfc6287VectorFixtures.OneWayVector vector,
-      OcraResponseCalculator.OcraExecutionContext context) {
+  @Test
+  @DisplayName("Missing counter input triggers descriptive error without leaking secrets")
+  void missingCounterThrowsDescriptiveError() {
+    OcraRfc6287VectorFixtures.OneWayVector vector =
+        OcraRfc6287VectorFixtures.counterAndPinVectors().get(0);
+
     OcraCredentialDescriptor descriptor = descriptorFor(vector.description(), vector);
-    UnsupportedOperationException ex =
+    OcraResponseCalculator.OcraExecutionContext context =
+        new OcraResponseCalculator.OcraExecutionContext(
+            null, vector.question(), null, null, null, vector.pinHashHex(), null);
+
+    IllegalArgumentException ex =
         assertThrows(
-            UnsupportedOperationException.class,
+            IllegalArgumentException.class,
             () -> OcraResponseCalculator.generate(descriptor, context));
-    assertNoSecretLeak(vector.sharedSecretHex(), ex);
+    assertTrue(ex.getMessage().toLowerCase(Locale.ROOT).contains("counter"));
+    assertTrue(
+        !ex.getMessage()
+            .toLowerCase(Locale.ROOT)
+            .contains(vector.sharedSecretHex().substring(0, 6).toLowerCase(Locale.ROOT)));
   }
 
-  private void assertUnsupported(
-      OcraRfc6287VectorFixtures.MutualVector vector,
-      OcraResponseCalculator.OcraExecutionContext context) {
+  private void assertMatchesPublishedOtp(OcraRfc6287VectorFixtures.OneWayVector vector) {
     OcraCredentialDescriptor descriptor = descriptorFor(vector.description(), vector);
-    UnsupportedOperationException ex =
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> OcraResponseCalculator.generate(descriptor, context));
-    assertNoSecretLeak(vector.sharedSecretHex(), ex);
+    OcraResponseCalculator.OcraExecutionContext context =
+        new OcraResponseCalculator.OcraExecutionContext(
+            vector.counter(),
+            vector.question(),
+            vector.sessionInformation(),
+            null,
+            null,
+            vector.pinHashHex(),
+            vector.timestampHex());
+    String otp = OcraResponseCalculator.generate(descriptor, context);
+    assertEquals(vector.expectedOtp(), otp);
   }
 
-  private void assertUnsupported(
-      OcraRfc6287VectorFixtures.PlainSignatureVector vector,
-      OcraResponseCalculator.OcraExecutionContext context) {
+  private void assertMatchesPublishedOtp(OcraRfc6287VectorFixtures.MutualVector vector) {
     OcraCredentialDescriptor descriptor = descriptorFor(vector.description(), vector);
-    UnsupportedOperationException ex =
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> OcraResponseCalculator.generate(descriptor, context));
-    assertNoSecretLeak(vector.sharedSecretHex(), ex);
+    OcraResponseCalculator.OcraExecutionContext context =
+        new OcraResponseCalculator.OcraExecutionContext(
+            null,
+            null,
+            null,
+            vector.challengeA(),
+            vector.challengeB(),
+            vector.pinHashHex(),
+            vector.timestampHex());
+    String otp = OcraResponseCalculator.generate(descriptor, context);
+    assertEquals(vector.expectedOtp(), otp);
   }
 
-  private OcraResponseCalculator.OcraExecutionContext contextFor(
-      OcraRfc6287VectorFixtures.OneWayVector vector) {
-    return new OcraResponseCalculator.OcraExecutionContext(
-        vector.counter(),
-        vector.question(),
-        vector.sessionInformation(),
-        null,
-        null,
-        vector.pinHashHex(),
-        vector.timestampHex());
-  }
-
-  private OcraResponseCalculator.OcraExecutionContext contextFor(
-      OcraRfc6287VectorFixtures.MutualVector vector) {
-    return new OcraResponseCalculator.OcraExecutionContext(
-        null,
-        null,
-        null,
-        vector.challengeA(),
-        vector.challengeB(),
-        vector.pinHashHex(),
-        vector.timestampHex());
-  }
-
-  private OcraResponseCalculator.OcraExecutionContext contextFor(
-      OcraRfc6287VectorFixtures.PlainSignatureVector vector) {
-    return new OcraResponseCalculator.OcraExecutionContext(
-        null, vector.question(), null, null, null, null, vector.timestampHex());
+  private void assertMatchesPublishedOtp(OcraRfc6287VectorFixtures.PlainSignatureVector vector) {
+    OcraCredentialDescriptor descriptor = descriptorFor(vector.description(), vector);
+    OcraResponseCalculator.OcraExecutionContext context =
+        new OcraResponseCalculator.OcraExecutionContext(
+            null, vector.question(), null, null, null, null, vector.timestampHex());
+    String otp = OcraResponseCalculator.generate(descriptor, context);
+    assertEquals(vector.expectedOtp(), otp);
   }
 
   private OcraCredentialDescriptor descriptorFor(
@@ -169,7 +160,7 @@ final class OcraRfc6287PlaceholderTest {
             vector.pinHashHex(),
             null,
             Map.of("source", "rfc6287"));
-    return assertDoesNotThrow(() -> factory.createDescriptor(request));
+    return factory.createDescriptor(request);
   }
 
   private OcraCredentialDescriptor descriptorFor(
@@ -184,7 +175,7 @@ final class OcraRfc6287PlaceholderTest {
             vector.pinHashHex(),
             null,
             Map.of("source", "rfc6287"));
-    return assertDoesNotThrow(() -> factory.createDescriptor(request));
+    return factory.createDescriptor(request);
   }
 
   private OcraCredentialDescriptor descriptorFor(
@@ -199,23 +190,7 @@ final class OcraRfc6287PlaceholderTest {
             null,
             null,
             Map.of("source", "rfc6287"));
-    return assertDoesNotThrow(() -> factory.createDescriptor(request));
-  }
-
-  private static void assertNoSecretLeak(String sharedSecretHex, UnsupportedOperationException ex) {
-    assertTrue(
-        OcraResponseCalculator.UNIMPLEMENTED_MESSAGE.equals(ex.getMessage()),
-        "Exception message should reflect placeholder state");
-    if (sharedSecretHex == null) {
-      return;
-    }
-    String prefix =
-        sharedSecretHex
-            .substring(0, Math.min(sharedSecretHex.length(), 8))
-            .toLowerCase(Locale.ROOT);
-    assertTrue(
-        !ex.getMessage().toLowerCase(Locale.ROOT).contains(prefix),
-        "Exception message must not leak secret material");
+    return factory.createDescriptor(request);
   }
 
   private static String nameFor(String prefix, String suite) {

@@ -42,6 +42,8 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - 2025-09-28 – Phase 4/T016 delivered: Roadmap and action items refreshed (Workstream 1 now In progress, OCRA documentation noted); self-review captured in this plan.
 - Phase 5/T017–T018 planned: Catalogue the RFC 6287 reference vectors (Appendix C Standard, Challenge/Response, Mutual Challenge/Response, Plain Signature suites) and introduce placeholder tests that currently assert `UnsupportedOperationException` until the OCRA response calculator ships in a later increment; vectors remain test-only fixtures sourced under the RFC’s Simplified BSD terms. citeturn3view0
 - 2025-09-28 – Phase 5/T017–T018 progress: Added `OcraRfc6287VectorFixtures`, stubbed `OcraResponseCalculator` (throws `UnsupportedOperationException` until implemented), and introduced `OcraRfc6287PlaceholderTest` covering Standard, Counter/PIN, Mutual, and Signature suites with TODO markers to flip assertions when the helper lands; `./gradlew spotlessApply check` passed (≈59s, configuration cache reused).
+- Phase 5/T019 planned: Implement `OcraResponseCalculator` to generate RFC 6287-compliant responses, replace placeholder assertions with real OTP comparisons, and extend telemetry checks to ensure runtime inputs remain redacted. citeturn1search0turn1search1turn1search5
+- 2025-09-28 – Phase 5/T019–T020 delivered: Implemented `OcraResponseCalculator` using the RFC 6287 reference algorithm, corrected the 64-byte SEED constant, replaced the placeholder suite with `OcraRfc6287ComplianceTest`, and verified `./gradlew spotlessApply check` (≈58s, configuration cache reused). citeturn1search0turn1search1turn1search5
 
 ## Phase 4 – Next Increment (T016 Roadmap & Self-Review)
 
@@ -55,6 +57,8 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 1. Extend the specification/tasks to cover integration of the official RFC 6287 (OCRA) reference vectors, documenting the source and expected OTP outcomes.
 2. Add placeholder tests that load the vectors and currently assert `UnsupportedOperationException` (or similar) until the OCRA response calculator is implemented; document the TODO so the assertions can be flipped when the helper lands.
 3. Capture the new coverage notes, Gradle command results (once tests go green with the future helper), and any follow-up actions within this plan.
+4. Implement `OcraResponseCalculator` to assemble the OCRA message (suite, counter, challenge(s), PIN, session, timestamp) and compute the HMAC/HOTP response prescribed by RFC 6287.
+5. Update the RFC vector tests to assert actual OTP values, add negative coverage for missing inputs, and validate telemetry remains redacted during execution.
 
 ## Dependencies
 

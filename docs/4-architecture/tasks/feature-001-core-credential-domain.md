@@ -111,6 +111,8 @@ _Last updated: 2025-09-28_
 |----|------|----------------------|-----------|
 | T017 | Catalogue the official RFC 6287 reference vectors and document their provenance within the spec/plan before adding fixtures. | FR-002, NFR-004 | No |
 | T018 | Add placeholder OCRA response tests using the RFC vectors (counter/time/challenge suites) that assert `UnsupportedOperationException` until the execution helper lands. | FR-002, FR-006, NFR-004 | No |
+| T019 | Implement the OCRA response calculator helper so RFC 6287 vectors return their published OTP outputs. | FR-002, FR-006, NFR-004 | No |
+| T020 | Flip RFC 6287 placeholder tests to real OTP assertions, add negative/telemetry coverage, and capture Gradle results. | FR-002, NFR-004, NFR-005 | No |
 
 ### T017 – Vector Catalogue & Documentation Checklist
 - [x] Identify the authoritative RFC 6287 appendix containing sample credentials, suite definitions, challenge inputs, and expected OTP outputs. citeturn3view0
@@ -124,6 +126,20 @@ _Last updated: 2025-09-28_
 - [x] Guard telemetry/log output so secrets remain redacted, adding assertions where necessary (exception message check ensures no secret substrings).
 - [x] Run `./gradlew spotlessApply check` once the placeholder harness lands (tests should remain disabled or expect the exception) and record timing/outcomes in the feature plan (2025-09-28 – PASS, ~59s, configuration cache reused).
 
+### T019 – OCRA Response Calculator Implementation Checklist
+### T019 – OCRA Response Calculator Implementation Checklist
+- [x] Validate descriptor/runtime inputs ahead of execution (counter, challenge, session info, timestamp) and surface descriptive errors when required values are missing.
+- [x] Assemble the OCRA message using the RFC 6287 reference algorithm (suite + delimiter + `C | Q | P | S | T`) so runtime behaviour matches the published sample. citeturn1search0turn1search1
+- [x] Support SHA-1/SHA-256/SHA-512 HMAC selection and HOTP dynamic truncation based on suite digits. citeturn1search0turn1search5
+- [x] Add focused unit tests for helper edge cases (missing counter) before wiring into the vector harness.
+- [x] Record helper behaviour/decisions in spec + feature plan and ensure no telemetry leaks shared secrets.
+
+### T020 – RFC Vector Assertion Flip Checklist
+- [x] Update RFC vector tests to assert actual OTP values from Appendix C, including mutual and timed suites (`OcraRfc6287ComplianceTest`). citeturn1search5
+- [x] Add negative test coverage verifying errors when required runtime inputs are absent (counter, timestamp, etc.).
+- [x] Ensure telemetry assertions continue passing (no secret leakage) after helper integration.
+- [x] Run `./gradlew spotlessApply check`, capture timing, and update feature plan/tasks with results (2025-09-28 – PASS, ~58s, configuration cache reused).
+
 ## Phase 6 – Future Protocol Packages (Pending Separate Plans)
 | Protocol | Notes |
 |----------|-------|
@@ -134,4 +150,3 @@ _Last updated: 2025-09-28_
 ## Open Follow-ups
 - Populate task outcomes and timestamps upon completion.
 - Attach Gradle command outputs and analysis gate results to the feature plan when tasks close.
-- Flip RFC 6287 placeholder assertions to real OTP comparisons once the OCRA execution helper is implemented (tracked via T018).
