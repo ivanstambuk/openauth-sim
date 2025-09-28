@@ -47,12 +47,13 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - **Quality gates.** Track upcoming additions for contract tests, mutation analysis, and security/“red-team prompt” suites in the plans until automated jobs exist.
 
 ## After Completing Work
+- Treat “completing work” as finishing any self-contained increment (≤10 minutes) within an active feature. The checklist below fires after every increment that ends with a passing build.
 - Verify `./gradlew spotlessApply check` passes.
 - Update/close entries in `docs/4-architecture/open-questions.md`.
 - Remove or mark feature plans as complete when the work ships.
 - Summarise any lasting decisions in the appropriate ADR (if applicable).
 - Publish prompt and tool usage notes alongside the feature plan update so future agents understand how the iteration unfolded.
-- Push the commit to the tracked remote immediately after committing (e.g., `git push origin main`) so local and GitHub history stay in sync.
+- Push the just-created commit to the tracked remote immediately after each increment (e.g., `git push origin main`) so local and GitHub history stay in sync before starting the next task.
 
 ## Security & Secrets
 - Keep credential data synthetic; hard-coded secrets are acceptable for tests only. Do not leak user data or modify files outside the repository.
