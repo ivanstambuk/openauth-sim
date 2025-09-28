@@ -14,7 +14,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 
 | # | Workstream | Goal | Status | Notes |
 |---|------------|------|--------|-------|
-| 1 | Core OCRA domain | Model OCRA credential descriptors with validation, issuance, and presentation helpers reused by downstream facades | In progress | Spec: [Feature 001](specs/feature-001-core-credential-domain.md), Plan: [Feature Plan 001](feature-plan-001-core-domain.md), Tasks: [Feature 001 Tasks](tasks/feature-001-core-credential-domain.md); Recent increments: T011–T015 (persistence envelopes, telemetry, documentation, knowledge map) |
+| 1 | Core OCRA domain | Model OCRA credential descriptors with validation, issuance, and presentation helpers reused by downstream facades | Complete | Spec: [Feature 001](specs/feature-001-core-credential-domain.md), Plan: [Feature Plan 001](feature-plan-001-core-domain.md), Tasks: [Feature 001 Tasks](tasks/feature-001-core-credential-domain.md); Final verification 2025-09-28 (`./gradlew spotlessApply check` with ArchUnit guardrails active) |
 | 2 | OCRA persistence & caching | Tune MapDB + Caffeine (encryption options, compaction, metrics) for OCRA credential storage | Complete | Spec: [Feature 002](specs/feature-002-persistence-hardening.md), Plan: [Feature Plan 002](feature-plan-002-persistence-hardening.md), Tasks: [Feature 002 Tasks](tasks/feature-002-persistence-hardening.md); Final benchmarks (2025-09-28) record writes ≈2.57k ops/s, reads ≈330k ops/s, P99 ≈0.02283 ms |
 | 3 | OCRA CLI tooling (Picocli) | Provide command-line flows to import, list, delete, and evaluate OCRA credentials | Complete | Feature 005 delivered OCRA import/list/delete/evaluate CLI (R017–R020 completed 2025-09-28). Non-OCRA protocols will launch separate workstreams. |
 | 4 | OCRA REST API (Spring Boot) | Expose OCRA evaluation over REST with OpenAPI documentation | Complete | Feature 003 delivered OCRA evaluation, Feature 004 added credential lookup + dual-mode requests; future non-OCRA endpoints tracked separately |
@@ -26,10 +26,9 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 
 ## Upcoming Milestones
 
-1. Finalise credential domain design (Workstream 1) and land supporting unit tests.
-2. Spin up dedicated workstreams for non-OCRA credential protocols (CLI/REST/persistence) once scope is prioritised.
-3. Design replay/verification workflows (Workstream 8) once persistence hardening lands.
-4. Prototype educational simulator UI flows (Workstream 9) to complement human operators.
+1. Spin up dedicated workstreams for non-OCRA credential protocols (CLI/REST/persistence) once scope is prioritised.
+2. Design replay/verification workflows (Workstream 8) once persistence hardening lands.
+3. Prototype educational simulator UI flows (Workstream 9) to complement human operators.
 
 ## Action Items & Follow-ups
 
