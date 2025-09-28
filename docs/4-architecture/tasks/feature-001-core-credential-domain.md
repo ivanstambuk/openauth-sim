@@ -171,6 +171,7 @@ _Last updated: 2025-09-28_
 All REST-focused work migrated to Feature 003 (see `docs/4-architecture/specs/feature-003-rest-ocra-evaluation-endpoint.md`). Future updates should occur there.
 
 ## Open Follow-ups
-- Populate task outcomes and timestamps upon completion.
-- Attach Gradle command outputs and analysis gate results to the feature plan when tasks close.
-- Track REST/API integration for session-aware helpers under Feature 003 now that CLI wiring is live.
+- 2025-09-28 – Completed: Task outcomes and timestamps captured in Feature Plan 001 (see Phase notes).
+- 2025-09-28 – Completed: Gradle command outputs recorded alongside each increment in the feature plan.
+- 2025-09-28 – Completed: REST/API session helper scope formally handed off to Feature 003.
+- No additional follow-ups pending.

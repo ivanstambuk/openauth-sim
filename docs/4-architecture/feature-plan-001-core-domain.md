@@ -52,6 +52,7 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - 2025-09-28 – Phase 6/T023 delivered: Added parameterised CLI regression tests covering S064/S128/S256/S512 session payloads; initial assertions captured the missing command behaviour prior to T024 (`./gradlew :cli:test` – PASS, exercises failure path).
 - 2025-09-28 – Phase 6/T024 delivered: Wired the CLI `ocra` command to `OcraResponseCalculator`, returning deterministic OTP output, redacting shared secrets, and flipping the new regression tests to green (`./gradlew :cli:test` – PASS, configuration cache reused; `./gradlew spotlessApply check` – PASS, ~12s).
 - 2025-09-28 – REST integration decision: Adopt Option A (synchronous endpoint) for the next session helper rollout; work migrated to Feature Plan 003 for dedicated REST tracking.
+- 2025-09-28 – Verification checkpoint: `./gradlew spotlessApply check` (PASS, 26s, configuration cache reused) after re-enabling ArchUnit and updating documentation.
 
 ## Phase 4 – Next Increment (T016 Roadmap & Self-Review)
 
