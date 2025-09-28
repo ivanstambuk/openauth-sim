@@ -49,21 +49,24 @@ Expected response:
 ```
 
 ## Error Handling
-If payload validation fails (for example, omitting the `sessionHex` field), the service returns HTTP 400 with a redacted error body:
+If payload validation fails (for example, omitting the `sessionHex` field or supplying non-hex characters), the service returns HTTP 400 with a redacted error body:
 
 ```json
 {
   "error": "invalid_input",
-  "message": "sessionInformation is required for suite QA08-S064",
+  "message": "sessionHex is required for the requested suite",
   "details": {
     "telemetryId": "rest-ocra-<uuid>",
     "status": "invalid",
-    "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064"
+    "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+    "field": "sessionHex",
+    "reasonCode": "session_required",
+    "sanitized": "true"
   }
 }
 ```
 
-All telemetry identifiers are synthetic; secrets never appear in responses or logs. Use the telemetry ID to trace execution in downstream monitoring systems.
+The `reasonCode` pinpoints why validation failed (`session_required`, `not_hexadecimal`, `invalid_hex_length`, `counter_required`, etc.), while `sanitized=true` confirms the payload was scrubbed before logging. All telemetry identifiers are synthetic; secrets never appear in responses or logs. Use the telemetry ID to trace execution in downstream monitoring systems and correlate with the structured log lines described in `docs/3-reference/rest-ocra-telemetry-snapshot.md`.
 
 ## Next Steps
 - For additional suites (S128/S256/S512) adjust `sessionHex` to the appropriate fixture.
