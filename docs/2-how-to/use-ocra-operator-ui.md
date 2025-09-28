@@ -9,7 +9,8 @@ contract so operators can swap between the UI, CLI, and direct API calls with co
 telemetry.
 
 ## Prerequisites
-- The `rest-api` Spring Boot application is running (default: `./gradlew :rest-api:bootRun`).
+- The `rest-api` Spring Boot application is running (launch the `RestApiApplication` class from your IDE or use `./gradlew :rest-api:run` if you have added the `application` plugin locally).
+- Point both the REST app and CLI at the same credential database (default `build/operator-ui/credentials.db`). You can override this path via the `openauth.sim.persistence.database-path` property.
 - Your browser can reach the service host (default `http://localhost:8080`).
 - OCRA credentials are already persisted if you plan to use the stored credential flow.
 
@@ -17,12 +18,14 @@ telemetry.
 1. Navigate to `http://localhost:8080/ui/ocra`.
 2. Review the landing page and follow the **Evaluate OCRA responses** link to load the console.
 3. A CSRF-protected form renders; tokens are bound to your HTTP session.
+4. If you seeded credentials via the CLI, ensure you reused the same database path as the REST app (for example `--database=build/operator-ui/credentials.db`).
 
 ## Choosing an Evaluation Mode
 - **Inline parameters** – Provide the OCRA suite and shared secret as hex. Use this for ad-hoc
   checks when you do not want to rely on persisted credentials.
 - **Stored credential** – Supply a credential identifier that already exists in the simulator.
-  The UI forwards only the identifier; secrets stay in persistence.
+  The UI forwards only the identifier; secrets stay in persistence. The REST app loads
+  credentials from the MapDB file referenced by `openauth.sim.persistence.database-path`.
 
 The mode toggle is keyboard-accessible and announces which section is visible. JavaScript enhances
 it, but the page remains usable without scripts (both sections remain readable).

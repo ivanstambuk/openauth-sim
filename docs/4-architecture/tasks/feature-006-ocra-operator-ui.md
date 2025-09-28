@@ -17,5 +17,6 @@ _Last updated: 2025-09-28_
 | R023 | Introduce templating dependency, MVC controller, REST client wiring, and Thymeleaf templates to satisfy tests (ensure CSRF + accessibility basics) | UI-OCRA-001–UI-OCRA-006, UI-NFR-001–UI-NFR-004 | ✅ |
 | R024 | Polish UX (aria landmarks, mode toggle hints, telemetry summary), update operator docs/how-to + logging notes, run `./gradlew spotlessApply check` | UI-OCRA-001–UI-OCRA-006, UI-NFR-001–UI-NFR-004 | ✅ |
 | R025 | Ensure inline-only fields are not required when stored credential mode is active; update tests/docs as needed | UI-OCRA-002, UI-OCRA-004, UI-NFR-001 | ✅ |
+| R026 | Provide MapDB-backed CredentialStore bean for REST app with configurable path; update how-to docs | UI-OCRA-002, UI-OCRA-004, UI-NFR-003 | ✅ |
 
 Update this checklist as work progresses.
