@@ -46,3 +46,10 @@ Update this checklist as tasks progress and link back to the feature plan with o
 2025-09-28 – R007 executed test-first: `./gradlew :rest-api:test` (RED – added cases) captured expected failures, then green after R008/R009.
 2025-09-28 – R008 implemented input validation and telemetry reason codes; `./gradlew :rest-api:test` (PASS, ~13s).
 2025-09-28 – R009 enriched telemetry/logging and reran `./gradlew spotlessApply check` (PASS, ~37s).
+
+## Phase 5 – Timestamp & PIN Validation Hardening
+| ID | Task | Related Requirements | Parallel? |
+|----|------|----------------------|-----------|
+| R010 | [ ] Extend integration/unit tests to cover timestamp drift violations and PIN hash mismatch scenarios, asserting reason codes `timestamp_drift_exceeded` and `pin_hash_mismatch` plus sanitized telemetry. | FR-REST-003, FR-REST-005, NFR-REST-004 | No |
+| R011 | [ ] Reuse `OcraCredentialFactory.validateTimestamp` within REST pre-validation and compare runtime PIN hashes against descriptor expectations; surface field-specific validation errors with the new reason codes. | FR-REST-002, FR-REST-005 | No |
+| R012 | [ ] Refresh OpenAPI examples, operator docs, and telemetry snapshot if response bodies or log formats change after the new validations. | FR-REST-004, NFR-REST-004 | No |

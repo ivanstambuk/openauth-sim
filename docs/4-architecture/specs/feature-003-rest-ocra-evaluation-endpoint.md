@@ -17,6 +17,8 @@ Expose the existing `OcraResponseCalculator` via the Spring Boot REST facade so 
 - 2025-09-28 – All hex-encoded fields (`sharedSecretHex`, `sessionHex`, `pinHashHex`, `timestampHex`) will be pre-validated for hexadecimal content and even length; failures return field-specific 400 responses with structured reason codes.
 - 2025-09-28 – Suites requiring counters must receive non-negative `counter` values; missing or invalid counters trigger explicit 400 responses rather than defaulting to zero.
 - 2025-09-28 – Telemetry hardening: structured log events gain `reasonCode` and `sanitized=true|false` attributes and continue to rely on WARN/ERROR levels for downstream alerting.
+- 2025-09-28 – Timestamp validation will reuse the descriptor-configured drift window from `OcraCredentialFactory.validateTimestamp` and surface `timestamp_drift_exceeded` when outside tolerance.
+- 2025-09-28 – Runtime PIN hash mismatches emit a dedicated `pin_hash_mismatch` reason code; REST pre-validation compares the supplied hash against descriptor expectations before invoking the calculator.
 
 ## Objectives & Success Criteria
 - Provide a deterministic REST endpoint that accepts all runtime inputs required by session-enabled OCRA suites (challenge, client/server data, session payloads, timestamp, counter, PIN hash).
@@ -28,7 +30,7 @@ Expose the existing `OcraResponseCalculator` via the Spring Boot REST facade so 
 |----|-------------|-------------------|
 | FR-REST-001 | Expose `POST /api/v1/ocra/evaluate` accepting suite, shared secret, and optional runtime parameters. | Valid requests using S064/S128/S256/S512 fixtures return HTTP 200 with the expected OTP values. |
 | FR-REST-002 | Validate inputs using the existing `OcraCredentialFactory` and reuse `OcraResponseCalculator`. | Invalid suites or malformed secrets produce HTTP 400 with descriptive, redacted error messages. |
-| FR-REST-005 | Reject malformed hex inputs and invalid counters before invoking the core calculator. | Requests with non-hex characters, odd-length hex, or missing/negative counters return HTTP 400 with field-specific `reasonCode` values. |
+| FR-REST-005 | Reject malformed hex inputs, invalid counters, timestamp drift violations, and PIN hash mismatches before invoking the core calculator. | Requests with non-hex characters, odd-length hex, missing/negative counters, out-of-window timestamps, or PIN hash mismatches return HTTP 400 with field-specific `reasonCode` values (`timestamp_drift_exceeded`, `pin_hash_mismatch`, etc.). |
 | FR-REST-003 | Emit structured telemetry events (`rest.ocra.evaluate`) capturing status, suite, input flags, and duration without logging secrets. | Telemetry hook verified by unit/integration tests asserting redaction. |
 | FR-REST-004 | Document the endpoint in OpenAPI generation and `docs/2-how-to` so operators can exercise it. | `rest-api` module exposes updated OpenAPI spec and docs reference the new route. |
 
@@ -79,6 +81,7 @@ Expose the existing `OcraResponseCalculator` via the Spring Boot REST facade so 
 - Emit a structured event with keys: `event=rest.ocra.evaluate`, `suite`, `hasSessionPayload`, `hasClientChallenge`, `hasServerChallenge`, `hasPin`, `hasTimestamp`, `status`, `durationMillis`.
 - Include additional attributes `reasonCode` (when applicable) and `sanitized` (boolean) so alerting rules can track redaction state.
 - Secrets (`sharedSecretHex`, full session payload, challenges) must never appear in logs/telemetry; tests enforce this via log capture.
+- Expected validation reason codes now include `session_required`, `session_not_permitted`, `challenge_length`, `challenge_format`, `counter_required`, `counter_negative`, `not_hexadecimal`, `invalid_hex_length`, `timestamp_drift_exceeded`, and `pin_hash_mismatch` (extend tests as new cases emerge).
 
 ## Test Strategy
 - **Unit tests**: Validate request DTO parsing, rejection of malformed inputs, and telemetry emission using mocked logger/appender.
