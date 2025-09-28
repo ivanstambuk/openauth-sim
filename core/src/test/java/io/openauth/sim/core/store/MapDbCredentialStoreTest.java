@@ -255,6 +255,82 @@ class MapDbCredentialStoreTest {
     payloadBySource.values().forEach(payload -> assertEquals("FILE", payload.get("storeProfile")));
   }
 
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "LG_LOST_LOGGER_DUE_TO_WEAK_REFERENCE",
+      justification = "Test attaches a temporary handler to verify maintenance telemetry")
+  @Test
+  void maintenanceHelperEmitsResultsAndTelemetry() {
+    Logger telemetryLogger = Logger.getLogger("io.openauth.sim.core.store.persistence");
+    TestLogHandler handler = new TestLogHandler();
+    telemetryLogger.addHandler(handler);
+    telemetryLogger.setLevel(Level.FINE);
+
+    Path dbPath = tempDir.resolve("maintenance.db");
+
+    MapDbCredentialStore.MaintenanceBundle opened =
+        MapDbCredentialStore.file(dbPath).openWithMaintenance();
+
+    try (var store = opened.store()) {
+      store.save(
+          Credential.create(
+              "maint", CredentialType.GENERIC, SecretMaterial.fromHex("feedface"), Map.of()));
+
+      MapDbCredentialStore.MaintenanceHelper maintenance = opened.maintenance();
+
+      MapDbCredentialStore.MaintenanceResult compactionResult = maintenance.compact();
+      assertEquals(
+          MapDbCredentialStore.MaintenanceOperation.COMPACTION, compactionResult.operation());
+      assertTrue(compactionResult.duration().toNanos() >= 0L);
+      assertEquals(1L, compactionResult.entriesScanned());
+      assertEquals(0L, compactionResult.entriesRepaired());
+      assertEquals(MapDbCredentialStore.MaintenanceStatus.SUCCESS, compactionResult.status());
+      assertTrue(compactionResult.issues().isEmpty());
+
+      MapDbCredentialStore.MaintenanceResult integrityResult = maintenance.verifyIntegrity();
+      assertEquals(
+          MapDbCredentialStore.MaintenanceOperation.INTEGRITY_CHECK, integrityResult.operation());
+      assertTrue(integrityResult.duration().toNanos() >= 0L);
+      assertEquals(1L, integrityResult.entriesScanned());
+      assertEquals(0L, integrityResult.entriesRepaired());
+      assertEquals(MapDbCredentialStore.MaintenanceStatus.SUCCESS, integrityResult.status());
+      assertTrue(integrityResult.issues().isEmpty());
+    } finally {
+      telemetryLogger.removeHandler(handler);
+    }
+
+    List<LogRecord> maintenanceEvents =
+        handler.records().stream()
+            .filter(record -> "persistence.credential.maintenance".equals(record.getMessage()))
+            .toList();
+
+    assertEquals(2, maintenanceEvents.size(), "Expected maintenance telemetry for each operation");
+
+    maintenanceEvents.forEach(record -> assertEquals(Level.FINE, record.getLevel()));
+
+    Map<String, Map<String, String>> payloadsByOperation = new HashMap<>();
+    for (LogRecord record : maintenanceEvents) {
+      Map<String, String> payload = extractPayload(record);
+      payloadsByOperation.put(payload.get("operation"), payload);
+      assertEquals("true", payload.get("redacted"));
+      assertEquals("FILE", payload.get("storeProfile"));
+      assertTrue(Long.parseLong(payload.get("durationMicros")) >= 0L);
+    }
+
+    Map<String, String> compactionPayload = payloadsByOperation.get("COMPACTION");
+    assertNotNull(compactionPayload);
+    assertEquals("SUCCESS", compactionPayload.get("status"));
+    assertEquals("1", compactionPayload.get("entriesScanned"));
+    assertEquals("0", compactionPayload.get("entriesRepaired"));
+    assertEquals("0", compactionPayload.get("issues"));
+
+    Map<String, String> integrityPayload = payloadsByOperation.get("INTEGRITY_CHECK");
+    assertNotNull(integrityPayload);
+    assertEquals("SUCCESS", integrityPayload.get("status"));
+    assertEquals("1", integrityPayload.get("entriesScanned"));
+    assertEquals("0", integrityPayload.get("entriesRepaired"));
+    assertEquals("0", integrityPayload.get("issues"));
+  }
+
   @Test
   void inMemoryCacheDefaultsUseExpireAfterAccess() throws Exception {
     try (var store = MapDbCredentialStore.inMemory().open()) {

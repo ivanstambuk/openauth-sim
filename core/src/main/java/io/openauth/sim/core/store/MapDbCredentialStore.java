@@ -2,11 +2,13 @@ package io.openauth.sim.core.store;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -158,6 +160,25 @@ public final class MapDbCredentialStore implements CredentialStore {
     }
 
     public MapDbCredentialStore open() {
+      Components components = prepareComponents();
+      return new MapDbCredentialStore(
+          components.db, components.backing, components.cache, migrations, components.storeProfile);
+    }
+
+    public MaintenanceBundle openWithMaintenance() {
+      Components components = prepareComponents();
+      MapDbCredentialStore store =
+          new MapDbCredentialStore(
+              components.db,
+              components.backing,
+              components.cache,
+              migrations,
+              components.storeProfile);
+      MaintenanceHelper maintenance = store.new MaintenanceHelper();
+      return new MaintenanceBundle(store, maintenance);
+    }
+
+    private Components prepareComponents() {
       DBMaker.Maker maker =
           inMemory
               ? DBMaker.memoryDB()
@@ -173,7 +194,7 @@ public final class MapDbCredentialStore implements CredentialStore {
               db.hashMap(MAP_NAME, Serializer.STRING, Serializer.JAVA).createOrOpen();
       Cache<String, Credential> cache = buildCache();
       String profile = inMemory ? "IN_MEMORY" : "FILE";
-      return new MapDbCredentialStore(db, map, cache, migrations, profile);
+      return new Components(db, map, cache, profile);
     }
 
     private Cache<String, Credential> buildCache() {
@@ -185,6 +206,24 @@ public final class MapDbCredentialStore implements CredentialStore {
         builder = builder.expireAfterWrite(cacheSettings.ttl());
       }
       return builder.build();
+    }
+
+    private static final class Components {
+      private final DB db;
+      private final ConcurrentMap<String, VersionedCredentialRecord> backing;
+      private final Cache<String, Credential> cache;
+      private final String storeProfile;
+
+      private Components(
+          DB db,
+          ConcurrentMap<String, VersionedCredentialRecord> backing,
+          Cache<String, Credential> cache,
+          String storeProfile) {
+        this.db = db;
+        this.backing = backing;
+        this.cache = cache;
+        this.storeProfile = storeProfile;
+      }
     }
   }
 
@@ -254,6 +293,24 @@ public final class MapDbCredentialStore implements CredentialStore {
     TELEMETRY_LOGGER.log(Level.FINE, "persistence.credential.mutation", new Object[] {payload});
   }
 
+  private void logMaintenanceEvent(MaintenanceResult result) {
+    if (!TELEMETRY_LOGGER.isLoggable(Level.FINE)) {
+      return;
+    }
+    Map<String, String> payload = new LinkedHashMap<>();
+    payload.put("storeProfile", storeProfile);
+    payload.put("operation", result.operation().name());
+    payload.put("status", result.status().name());
+    payload.put(
+        "durationMicros",
+        Long.toString(TimeUnit.NANOSECONDS.toMicros(Math.max(result.duration().toNanos(), 0L))));
+    payload.put("entriesScanned", Long.toString(result.entriesScanned()));
+    payload.put("entriesRepaired", Long.toString(result.entriesRepaired()));
+    payload.put("issues", Integer.toString(result.issues().size()));
+    payload.put("redacted", Boolean.TRUE.toString());
+    TELEMETRY_LOGGER.log(Level.FINE, "persistence.credential.maintenance", new Object[] {payload});
+  }
+
   private enum LookupSource {
     CACHE,
     MAPDB,
@@ -263,6 +320,143 @@ public final class MapDbCredentialStore implements CredentialStore {
   private enum MutationOperation {
     SAVE,
     DELETE
+  }
+
+  public final class MaintenanceHelper {
+
+    private MaintenanceHelper() {
+      // default constructor to scope helper to its parent store instance
+    }
+
+    public MaintenanceResult compact() {
+      ensureOpen();
+      long start = System.nanoTime();
+      List<String> issues = new ArrayList<>();
+      long entriesScanned = backing.size();
+      MaintenanceStatus status = MaintenanceStatus.SUCCESS;
+      try {
+        db.commit();
+        db.getStore().compact();
+        db.commit();
+      } catch (RuntimeException ex) {
+        status = MaintenanceStatus.FAIL;
+        issues.add(formatIssue("compact", ex));
+      }
+      Duration duration = Duration.ofNanos(System.nanoTime() - start);
+      MaintenanceResult result =
+          new MaintenanceResult(
+              MaintenanceOperation.COMPACTION,
+              duration,
+              entriesScanned,
+              0L,
+              List.copyOf(issues),
+              status);
+      logMaintenanceEvent(result);
+      return result;
+    }
+
+    public MaintenanceResult verifyIntegrity() {
+      ensureOpen();
+      long start = System.nanoTime();
+      List<String> issues = new ArrayList<>();
+      long entriesScanned = 0L;
+      long entriesRepaired = 0L;
+      for (Map.Entry<String, VersionedCredentialRecord> entry : backing.entrySet()) {
+        entriesScanned++;
+        String credentialName = entry.getKey();
+        VersionedCredentialRecord current = entry.getValue();
+        try {
+          VersionedCredentialRecord upgraded = ensureLatest(credentialName, current);
+          if (upgraded != current) {
+            entriesRepaired++;
+          }
+          VersionedCredentialRecordMapper.toCredential(upgraded);
+        } catch (RuntimeException ex) {
+          issues.add(formatIssue(credentialName, ex));
+        }
+      }
+      if (entriesRepaired > 0) {
+        db.commit();
+      }
+      Duration duration = Duration.ofNanos(System.nanoTime() - start);
+      MaintenanceStatus status =
+          issues.isEmpty() ? MaintenanceStatus.SUCCESS : MaintenanceStatus.WARN;
+      MaintenanceResult result =
+          new MaintenanceResult(
+              MaintenanceOperation.INTEGRITY_CHECK,
+              duration,
+              entriesScanned,
+              entriesRepaired,
+              List.copyOf(issues),
+              status);
+      logMaintenanceEvent(result);
+      return result;
+    }
+
+    private void ensureOpen() {
+      if (db.isClosed()) {
+        throw new IllegalStateException("Maintenance operations require an open MapDB store");
+      }
+    }
+
+    private String formatIssue(String identifier, Throwable throwable) {
+      String message = throwable.getMessage();
+      if (message == null || message.isBlank()) {
+        message = throwable.getClass().getSimpleName();
+      }
+      return identifier + ":" + message;
+    }
+  }
+
+  public static final record MaintenanceResult(
+      MaintenanceOperation operation,
+      Duration duration,
+      long entriesScanned,
+      long entriesRepaired,
+      List<String> issues,
+      MaintenanceStatus status) {
+
+    public MaintenanceResult {
+      Objects.requireNonNull(operation, "operation");
+      Objects.requireNonNull(duration, "duration");
+      if (entriesScanned < 0L) {
+        throw new IllegalArgumentException("entriesScanned must be non-negative");
+      }
+      if (entriesRepaired < 0L) {
+        throw new IllegalArgumentException("entriesRepaired must be non-negative");
+      }
+      issues = List.copyOf(Objects.requireNonNull(issues, "issues"));
+      Objects.requireNonNull(status, "status");
+    }
+  }
+
+  public enum MaintenanceOperation {
+    COMPACTION,
+    INTEGRITY_CHECK
+  }
+
+  public enum MaintenanceStatus {
+    SUCCESS,
+    WARN,
+    FAIL
+  }
+
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification =
+          "Maintenance bundle intentionally exposes store/helper for opted-in operations")
+  public static final record MaintenanceBundle(
+      MapDbCredentialStore store, MaintenanceHelper maintenance) implements AutoCloseable {
+
+    public MaintenanceBundle {
+      Objects.requireNonNull(store, "store");
+      Objects.requireNonNull(maintenance, "maintenance");
+    }
+
+    @Override
+    public void close() {
+      store.close();
+    }
   }
 
   public static final record CacheSettings(
