@@ -19,14 +19,13 @@ This living map captures the explicit relationships between modules, data flows,
 - OCRA validation telemetry emits structured debug events that future observability modules can ingest without exposing secret material.
 - `docs/1-concepts/README.md` documents the OCRA capability matrix and telemetry contract operators should consult when integrating facades.
 - FIDO2, EUDI, and EMV packages remain pending; future knowledge-map updates will add their relationships once plans land.
-- MapDB-backed persistence layer (planned) will expose repositories consumed by CLI, REST API, UI, and JMeter plugin.
+- MapDB-backed persistence layer (planned) will expose repositories consumed by CLI, REST API, and UI facades.
 - MapDB-backed persistence now emits Level.FINE telemetry events (`persistence.credential.lookup` / `persistence.credential.mutation`) capturing cache hit/miss and latency metrics without leaking secret material.
 - MapDB maintenance helper (T205) provides synchronous compaction and integrity checks with structured `MaintenanceResult` outputs and telemetry so admin facades can surface maintenance outcomes.
 - MapDB persistence supports optional AES-GCM secret encryption via in-memory key callbacks, keeping secrets encrypted at rest while preserving the existing `CredentialStore` contract.
 - CLI module now exposes `maintenance <compact|verify>` commands that orchestrate the helper for operators working on local MapDB stores.
 - CLI module now orchestrates OCRA credential import/list/delete/evaluate commands, delegating to MapDB persistence and core OCRA adapters while emitting sanitized telemetry.
 - Caffeine cache layer exposes per-profile defaults (in-memory, file-backed, container) with expire-after-access/write strategies to sustain ≥10k RPS targets while keeping overrides available via builder hooks; operators can reference `docs/2-how-to/configure-persistence-profiles.md` for configuration steps.
-- JMeter plugin drives high-volume scenarios by invoking the core credential domain directly (no REST dependency).
 - Quality automation (ArchUnit, mutation testing, security prompts) enforces boundary rules across modules.
 - REST API spec for session-aware OCRA evaluation was drafted 2025-09-28; broader facade endpoints remain pending.
 - REST API now serves `/api/v1/ocra/evaluate`, delegating to `OcraResponseCalculator` and emitting redaction-friendly telemetry aligned with the CLI helper.
@@ -54,7 +53,6 @@ package "Facades" {
   component CLI
   component "REST API" as RestAPI
   component UI
-  component "JMeter Plugin" as JMeter
 }
 
 component "Persistence" as Persistence
@@ -64,7 +62,6 @@ CredentialDomain --> CryptoHelpers
 CLI --> CredentialDomain
 RestAPI --> CredentialDomain
 UI --> RestAPI
-JMeter --> CredentialDomain
 Persistence --> CredentialDomain
 CredentialDomain --> Persistence
 Quality --> Core

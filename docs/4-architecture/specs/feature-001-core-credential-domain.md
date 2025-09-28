@@ -4,7 +4,7 @@ _Status: Draft_
 _Last updated: 2025-09-28_
 
 ## Overview
-Design a protocol-aware credential domain inside the `core` module that models credentials for FIDO2/WebAuthn, OATH/OCRA, the EU Digital Identity Wallet (ISO/IEC 18013-5 mDL, ISO/IEC 23220-2 mdoc profiles, SD-JWT and W3C Verifiable Credentials, and lifecycle protocols OpenID4VCI, OpenID4VP, ISO/IEC 18013-7), EMV/CAP, and generic use cases. Each protocol will live in its own Java package (`io.openauth.sim.core.credentials.ocra`, `...fido2`, `...eudiw`, `...emvcap`) so teams can roll out implementations independently. The domain must provide deterministic validation and transformation logic so downstream facades (CLI, REST, UI, JMeter plugin) can consume credential data without duplicating cryptographic rules.
+Design a protocol-aware credential domain inside the `core` module that models credentials for FIDO2/WebAuthn, OATH/OCRA, the EU Digital Identity Wallet (ISO/IEC 18013-5 mDL, ISO/IEC 23220-2 mdoc profiles, SD-JWT and W3C Verifiable Credentials, and lifecycle protocols OpenID4VCI, OpenID4VP, ISO/IEC 18013-7), EMV/CAP, and generic use cases. Each protocol will live in its own Java package (`io.openauth.sim.core.credentials.ocra`, `...fido2`, `...eudiw`, `...emvcap`) so teams can roll out implementations independently. The domain must provide deterministic validation and transformation logic so downstream facades (CLI, REST, UI) can consume credential data without duplicating cryptographic rules.
 
 ## Objectives & Success Criteria
 - Provide typed credential descriptors per protocol with clearly defined required and optional fields.
@@ -39,7 +39,7 @@ Design a protocol-aware credential domain inside the `core` module that models c
 ## User Stories
 - **Operator imports credential**: As an operator, I can import a credential definition via CLI passing names, metadata, and secret material so the core registry stores it for later simulations.
 - **REST automation**: As an integration test harness, I can call the REST API to look up credential capabilities and ensure the emulator supports required protocols.
-- **Performance testing**: As a load tester, I can use the JMeter plugin to warm caches by loading credential descriptors without relying on REST.
+- **Performance testing**: As a load tester, I can script REST-based credential evaluations to warm caches without relying on UI flows.
 
 ## Edge Cases & Failure Modes
 - Reject credential payloads missing required attributes or containing unsupported encodings.

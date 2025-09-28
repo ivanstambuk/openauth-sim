@@ -69,6 +69,6 @@ See the living [Implementation Roadmap](docs/4-architecture/roadmap.md) for up-t
 
 - Finalise the protocol-aware credential domain (`core`).
 - Stand up operator tooling (CLI, REST, UI) atop the shared credential model.
-- Prepare load and compliance tooling, including the planned JMeter facade and specification references.
+- Prepare load and compliance tooling, prioritising documentation and automated benchmarks.
 
 Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before raising PRs.
