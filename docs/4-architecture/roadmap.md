@@ -22,12 +22,16 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 6 | JMeter plugin facade | Offer a load-testing UI facade to drive the emulator for performance scenarios | Not started | Depends on core credential APIs and persistence |
 | 7 | ArchUnit & quality automation | Enforce architecture boundaries, expand test/coverage checks, integrate CI badges | Not started | Should accompany each new module |
 | 8 | Specification alignment | Document references and compliance notes for FIDO2/WebAuthn, OCRA, EUDI, EMV | Not started | Capture findings in `docs/3-reference` |
+| 9 | Replay & verification mode | Enable credential replay flows (OTP/assertion regeneration with supplied challenges/counters) for non-repudiation analysis | Not started | Depends on persistence hooks and facade support |
+| 10 | Simulator learning UI | Build a step-by-step, richly annotated UI that visualises algorithm execution (e.g., OCRA rounds) for education | Not started | Requires REST/UI workstreams and detailed algorithm instrumentation |
 
 ## Upcoming Milestones
 
 1. Finalise credential domain design (Workstream 1) and land supporting unit tests.
 2. Establish CLI surface for credential lifecycle management (Workstream 3).
 3. Implement REST API skeleton with security considerations and generate OpenAPI docs (Workstream 4).
+4. Design replay/verification workflows (Workstream 9) once persistence hardening lands.
+5. Prototype educational simulator UI flows (Workstream 10) to complement human operators.
 
 ## Action Items & Follow-ups
 

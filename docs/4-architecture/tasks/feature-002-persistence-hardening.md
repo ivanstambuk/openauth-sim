@@ -66,7 +66,7 @@ _Last updated: 2025-09-28_
 ## Phase 3 – Optional Protections
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|
-| T207 | Define encryption provider interface and default no-op implementation. | FR-204, NFR-204 | No |
+| T207 | Define encryption provider interface and default AES-GCM implementation with callback-supplied keys. | FR-204, NFR-204 | No |
 | T208 | Add documentation/tests covering encryption hook behaviour and key rotation guidance. | FR-204 | No |
 
 ## Phase 4 – Wrap-up

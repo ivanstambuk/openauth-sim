@@ -32,6 +32,7 @@ Reference specification: `docs/4-architecture/specs/feature-002-persistence-hard
 - 2025-09-28 – T206 scope clarified: Expose maintenance operations via CLI command(s) that wrap the new `MaintenanceHelper`; REST/UI layers will follow in future increments.
 - 2025-09-28 – T206 CLI implementation: Added `maintenance <compact|verify>` command with tests (`./gradlew :cli:test --tests io.openauth.sim.cli.MaintenanceCliTest`) and verified full build via `./gradlew spotlessApply check`.
 - 2025-09-28 – T206 documentation: Updated `docs/2-how-to/configure-persistence-profiles.md` with CLI maintenance instructions so operators can trigger compaction/integrity routines via Gradle run tasks.
+- 2025-09-28 – T207 encryption scope: Select AES-GCM with in-memory key supplier callback as the initial optional at-rest protection strategy; update spec/tasks accordingly before test-first implementation.
 
 ## Upcoming Increments
 1. **T201 – Baseline Metrics & Benchmark Harness**: introduce synthetic load tests and logging scaffolding to capture current performance.
