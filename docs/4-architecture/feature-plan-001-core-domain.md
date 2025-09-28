@@ -35,14 +35,14 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - 2025-09-28 – Phase 3/T012 delivered: Migrated `MapDbCredentialStore` to versioned envelopes with OCRA-focused upgrade pipeline, added legacy schema-0 migration coverage, and logged `./gradlew spotlessApply check` success (2025-09-28T16:12:00Z, 33s, configuration cache reused).
 - 2025-09-28 – Phase 3/T013 initiated: Add structured validation telemetry for OCRA flows, emitting redacted diagnostics suitable for future observability pipelines while keeping constitution logging rules intact.
 - 2025-09-28 – Phase 3/T013 delivered: Structured debug telemetry added to OCRA validations with log capture tests; `./gradlew spotlessApply check` succeeded (2025-09-28T16:58:00Z, 18s, configuration cache reused).
+- 2025-09-28 – Phase 4/T014 delivered: `docs/1-concepts/README.md` now includes the OCRA capability matrix, glossary, and telemetry reference; `./gradlew spotlessApply check` succeeded (2025-09-28T17:05:00Z, reuse configuration cache).
 
-## Phase 3 – Next Increment (T013 OCRA Validation Telemetry)
+## Phase 4 – Next Increment (T014 OCRA Documentation Sync)
 
-1. Define structured logging contract (log level, event name, redacted fields) in tests capturing expected telemetry for validation failures.
-2. Implement telemetry hooks within `OcraCredentialFactory` (and related validators) to emit the structured events without exposing secret material.
-3. Ensure logging integrates with existing MapDB persistence by correlating credential names and schema metadata in messages.
-4. Update specification, tasks, and knowledge map to reflect telemetry coverage and document follow-up work for non-OCRA protocols.
-5. Run `./gradlew spotlessApply check`, capture timing in this plan, and self-review before committing/pushing.
+1. Extend `docs/1-concepts/README.md` with an OCRA capability matrix (required/optional attributes, telemetry identifiers) and glossary entries summarising validations.
+2. Cross-link the documentation to the feature specification and highlight structured telemetry usage for operators.
+3. Ensure knowledge map references stay aligned and note any pending documentation gaps for future protocols.
+4. Run `./gradlew spotlessApply check`, capture timing in this plan, and self-review before committing/pushing.
 
 ## Dependencies
 

@@ -90,6 +90,12 @@ _Last updated: 2025-09-27_
 | T015 | Refresh `docs/4-architecture/knowledge-map.md` to reflect OCRA package relationships; note pending protocols. | FR-007 | No |
 | T016 | Update roadmap and feature plan status; capture lessons learned/self-review notes. | All | No |
 
+### T014 – Documentation Sync Checklist
+- [ ] Add an OCRA capability matrix and glossary entries to `docs/1-concepts/README.md`, referencing FR-002/FR-008.
+- [ ] Document the structured telemetry contract (event name, fields, redaction rules) and link to implementation modules.
+- [ ] Ensure cross-references back to the feature specification and update any TODOs for upcoming protocols.
+- [ ] Confirm `./gradlew spotlessApply check` passes after documentation updates.
+
 ## Phase 5 – Future Protocol Packages (Pending Separate Plans)
 | Protocol | Notes |
 |----------|-------|
