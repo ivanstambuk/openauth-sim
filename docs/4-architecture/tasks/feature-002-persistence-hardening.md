@@ -18,7 +18,7 @@ _Last updated: 2025-09-28_
 ### T201 – Benchmark Harness Checklist
 - [x] Introduced `MapDbCredentialStoreBaselineBenchmark` with opt-in execution flag/environment variable.
 - [x] Captured baseline in-memory metrics (writes ≈1.7k ops/s; reads ≈567k ops/s; P99 ≈0.0043 ms) on 2025-09-28.
-- [ ] Document rerun instructions and persist sample output for future comparisons.
+- [x] Document rerun instructions and persist sample output for future comparisons (feature plan references benchmark log with Gradle command).
 
 ## Phase 1 – Cache Strategy
 | ID | Task | Related Requirements | Parallel? |
