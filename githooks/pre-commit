@@ -1,92 +1,123 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# -----------------------------------------------------------------------------
+# Pre-commit quality gate for OpenAuth Simulator
+#   1. Collect staged files and verify prerequisites
+#   2. Guard against oversized/binary artefacts
+#   3. Run Gradle formatting + targeted tests + check (sans full test suite)
+#   4. Execute secret scanning (gitleaks) and commit message linting (gitlint)
+# -----------------------------------------------------------------------------
+
 ROOT_DIR=$(git rev-parse --show-toplevel)
 MAX_FILE_SIZE_BYTES=$((1024 * 1024)) # 1 MB
 
-mapfile -t STAGED_FILES < <(git diff --cached --name-only --diff-filter=AM)
-if (( ${#STAGED_FILES[@]} == 0 )); then
-  echo "[pre-commit] No staged changes detected; skipping hook." >&2
-  exit 0
-fi
+log() { echo "[pre-commit] $*" >&2; }
+die() { log "$*"; exit 1; }
+require_command() {
+  local binary=$1
+  local guidance=$2
+  command -v "$binary" >/dev/null 2>&1 || die "$guidance"
+}
+human_readable_size() {
+  local bytes=$1
+  if command -v numfmt >/dev/null 2>&1; then
+    numfmt --to=iec --suffix=B "$bytes"
+  else
+    printf '%sB' "$bytes"
+  fi
+}
 
-if [[ -z "${JAVA_HOME:-}" ]]; then
-  echo "[pre-commit] JAVA_HOME must point to a Java 17 JDK before committing." >&2
-  exit 1
-fi
+collect_staged_files() {
+  mapfile -t STAGED_FILES < <(git diff --cached --name-only --diff-filter=AM)
+  if (( ${#STAGED_FILES[@]} == 0 )); then
+    log "No staged changes detected; skipping hook."
+    exit 0
+  fi
+}
 
-large_files=()
-binary_files=()
-for file in "${STAGED_FILES[@]}"; do
-  [[ -f "$file" ]] || continue
-  size_bytes=$(wc -c <"$file")
-  if (( size_bytes > MAX_FILE_SIZE_BYTES )); then
-    human_size=$(numfmt --to=iec --suffix=B "$size_bytes" 2>/dev/null || echo "${size_bytes}B")
-    large_files+=("$file ($human_size)")
+validate_environment() {
+  [[ -n ${JAVA_HOME:-} ]] || die "JAVA_HOME must point to a Java 17 JDK before committing."
+  require_command file "Install 'file' command (usually part of util-linux) before committing."
+}
+
+enforce_staged_file_guards() {
+  local -a large_files=()
+  local -a binary_files=()
+  local file size_bytes mime_type
+
+  for file in "${STAGED_FILES[@]}"; do
+    [[ -f "$file" ]] || continue
+
+    size_bytes=$(wc -c <"$file")
+    if (( size_bytes > MAX_FILE_SIZE_BYTES )); then
+      large_files+=("$file ($(human_readable_size "$size_bytes"))")
+    fi
+
+    mime_type=$(file -b --mime "$file" 2>/dev/null || echo "application/octet-stream")
+    if [[ $mime_type == image/* ]]; then
+      continue
+    fi
+    if [[ $mime_type == *"charset=binary"* || $mime_type == application/* ]]; then
+      binary_files+=("$file ($mime_type)")
+    fi
+  done
+
+  if (( ${#large_files[@]} > 0 )); then
+    log "The following staged files exceed the 1 MB limit:"
+    printf '  - %s\n' "${large_files[@]}" >&2
+    die "Remove or split large files before committing."
   fi
 
-  mime_type=$(file -b --mime "$file" 2>/dev/null || echo "application/octet-stream")
-  if [[ $mime_type == image/* ]]; then
-    continue
+  if (( ${#binary_files[@]} > 0 )); then
+    log "Binary files detected in the staged changes:"
+    printf '  - %s\n' "${binary_files[@]}" >&2
+    die "Remove generated artifacts (e.g., .class, .jar) before committing."
   fi
-  if [[ $mime_type == *"charset=binary"* ]] || [[ $mime_type == application/* ]]; then
-    binary_files+=("$file ($mime_type)")
+}
+
+run_gradle_pipeline() {
+  log "Running Gradle spotlessApply"
+  "$ROOT_DIR"/gradlew --no-daemon spotlessApply
+
+  declare -gA TEST_TASKS=()
+  for file in "${STAGED_FILES[@]}"; do
+    case "$file" in
+      core/src/*) TEST_TASKS[":core:test"]=1 ;;
+      cli/src/*) TEST_TASKS[":cli:test"]=1 ;;
+      rest-api/src/*) TEST_TASKS[":rest-api:test"]=1 ;;
+      ui/src/*) TEST_TASKS[":ui:test"]=1 ;;
+    esac
+  done
+
+  if (( ${#TEST_TASKS[@]} > 0 )); then
+    log "Running targeted test suites: ${!TEST_TASKS[@]}"
+    "$ROOT_DIR"/gradlew --no-daemon "${!TEST_TASKS[@]}"
+  else
+    log "No staged production code changes detected; skipping targeted tests."
   fi
-done
 
-if (( ${#large_files[@]} > 0 )); then
-  {
-    echo "[pre-commit] The following staged files exceed the 1 MB limit:";
-    printf '  - %s\n' "${large_files[@]}";
-    echo "[pre-commit] Remove or split large files before committing.";
-  } >&2
-  exit 1
-fi
+  log "Running Gradle check (excluding test task)"
+  "$ROOT_DIR"/gradlew --no-daemon check -x test
+}
 
-if (( ${#binary_files[@]} > 0 )); then
-  {
-    echo "[pre-commit] Binary files detected in the staged changes:";
-    printf '  - %s\n' "${binary_files[@]}";
-    echo "[pre-commit] Remove generated artifacts (e.g., .class, .jar) before committing.";
-  } >&2
-  exit 1
-fi
+run_external_scanners() {
+  require_command gitleaks "Install gitleaks: https://github.com/gitleaks/gitleaks#installation"
+  log "Running gitleaks secret scan"
+  gitleaks detect --no-banner --redact --staged --source "$ROOT_DIR"
 
-"$ROOT_DIR"/gradlew --no-daemon spotlessApply
+  require_command gitlint "Install gitlint: https://github.com/jorisroovers/gitlint#installation"
+  log "Running gitlint on staged commit message"
+  gitlint --staged
+}
 
-declare -A tasks_to_run
-for file in "${STAGED_FILES[@]}"; do
-  case "$file" in
-    core/src/*) tasks_to_run[":core:test"]=1 ;;
-    cli/src/*) tasks_to_run[":cli:test"]=1 ;;
-    rest-api/src/*) tasks_to_run[":rest-api:test"]=1 ;;
-    ui/src/*) tasks_to_run[":ui:test"]=1 ;;
-  esac
-done
+main() {
+  collect_staged_files
+  validate_environment
+  enforce_staged_file_guards
+  run_gradle_pipeline
+  run_external_scanners
+  log "All pre-commit checks passed."
+}
 
-if (( ${#tasks_to_run[@]} > 0 )); then
-  echo "[pre-commit] Running targeted test suites: ${!tasks_to_run[@]}"
-  "$ROOT_DIR"/gradlew --no-daemon "${!tasks_to_run[@]}"
-fi
-
-"$ROOT_DIR"/gradlew --no-daemon check -x test
-
-if ! command -v gitleaks >/dev/null 2>&1; then
-  cat >&2 <<'EOF'
-[pre-commit] gitleaks CLI is required but was not found on PATH.
-[pre-commit] Install it (https://github.com/gitleaks/gitleaks#installation) and rerun the commit.
-EOF
-  exit 1
-fi
-
-gitleaks detect --no-banner --redact --staged --source "$ROOT_DIR"
-
-if ! command -v gitlint >/dev/null 2>&1; then
-  cat >&2 <<'EOF'
-[pre-commit] gitlint CLI is required but was not found on PATH.
-[pre-commit] Install it (https://github.com/jorisroovers/gitlint#installation) and rerun the commit.
-EOF
-  exit 1
-fi
-
-gitlint --staged
+main "$@"
