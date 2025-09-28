@@ -1,7 +1,7 @@
 # Architecture Knowledge Map
 
 _Status: Draft_
-_Last updated: 2025-09-27_
+_Last updated: 2025-09-28_
 
 This living map captures the explicit relationships between modules, data flows, and external interfaces so future agents can reason about change impact quickly. Update it after every iteration that introduces or modifies a component, dependency, or contract.
 
@@ -15,6 +15,7 @@ This living map captures the explicit relationships between modules, data flows,
 - Core module owns protocol-specific credential models consumed by facade modules, grouped into per-protocol packages (ocra, fido2, eudiw, emvcap) for staged rollout.
 - Core module will surface issuance and presentation simulators for EU Digital Identity Wallet flows that facades consume for registration/authentication journeys.
 - Core OCRA package normalises RFC 6287 suites into descriptor records consumed by the credential registry and future factory helpers.
+- Core persistence serialization contracts convert protocol descriptors into versioned credential records consumed by the planned MapDB adapters.
 - MapDB-backed persistence layer (planned) will expose repositories consumed by CLI, REST API, UI, and JMeter plugin.
 - JMeter plugin drives high-volume scenarios by invoking the core credential domain directly (no REST dependency).
 - Quality automation (ArchUnit, mutation testing, security prompts) enforces boundary rules across modules.

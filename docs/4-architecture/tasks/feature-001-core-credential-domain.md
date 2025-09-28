@@ -65,6 +65,12 @@ _Last updated: 2025-09-27_
 | T012 | Implement schema-versioned persistence envelope helpers and migration pipeline tests for OCRA records. | FR-006–FR-008, NFR-004 | No |
 | T013 | Emit structured validation failure events/log markers for OCRA flows without secret leakage. | FR-008, NFR-005 | No |
 
+### T011 – Persistence Serialization Bridge Checklist
+- [x] Define versioned credential record and adapter interfaces covering schema version, credential type, and payload contract without binding to MapDB.
+- [x] Add failing tests for OCRA descriptor → record serialization and record → descriptor hydration, including counter, PIN hash, timestamp drift, and metadata propagation.
+- [x] Implement the OCRA adapter leveraging existing `SecretMaterial` utilities while preserving immutable metadata handling.
+- [x] Capture adapter behaviour and follow-ups back in the feature plan/tasks after the build passes.
+
 ## Phase 4 – Documentation & Cleanup
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|

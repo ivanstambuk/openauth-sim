@@ -27,22 +27,18 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - 2025-09-27 – Phase 1/T006 landed: disabled ArchUnit guardrails prevent cross-package leakage; revisit in Phase 2 to re-enable once descriptors exist.
 - 2025-09-27 – Clarification resolved: OCRA descriptors parse the suite during construction and store secrets using `SecretMaterial`, guiding the T007 implementation approach.
 - 2025-09-27 – Phase 2/T007: descriptor parser + factory landed with OCRA suite coverage; `./gradlew spotlessApply check` succeeded (27s, configuration cache reused).
+- 2025-09-27 – Phase 2/T008 delivered: Added `OcraCredentialFactory`, tightened descriptor validation error messaging, re-enabled the T004 unit suite, and confirmed `./gradlew spotlessApply check` success at 23:16Z while keeping T005/T006 disabled per plan.
+- 2025-09-27 – Phase 2/T009 delivered: Introduced shared secret normalisation helpers covering RAW/HEX/Base64 inputs, updated descriptor/factory flows to consume canonical `SecretMaterial`, re-enabled the property-based suite from T005, and recorded `./gradlew spotlessApply check` success at 23:34Z.
+- 2025-09-27 – Phase 2/T010 delivered: Added `CredentialCapability` and `CredentialRegistry` seeded with OCRA metadata and factory wiring, validated via registry tests, and recorded `./gradlew spotlessApply check` pending post-doc update.
+- 2025-09-28 – Phase 3/T011 delivered: Introduced versioned credential record + persistence adapter interfaces, added OCRA descriptor round-trip tests, implemented the adapter, and captured `./gradlew spotlessApply check` success (2025-09-28T15:17:00Z, 33s, configuration cache reused).
 
-## Phase 2 – Upcoming Increment (T007 OCRA Descriptor Foundation)
+## Phase 3 – Next Increment (T011 OCRA Persistence Bridge)
 
-1. Draft descriptor-focused tests under `core/src/test/java/io/openauth/sim/core/credentials/ocra` covering suite parsing results, secret material expectations, and metadata exposure. Leave existing disabled suites untouched; the new tests will fail until descriptors exist.
-2. Introduce descriptor/model types in `io.openauth.sim.core.credentials.ocra` that encapsulate the parsed RFC 6287 suite components alongside `SecretMaterial` and custom attributes.
-3. Provide factories/builders that accept raw inputs, normalise them (delegating to shared helpers where available), and surface validation messages for missing/invalid data while keeping persistence-ready output immutable.
-4. Update documentation touchpoints (spec Clarifications, this plan, tasks checklist) and prep follow-up tasks to begin re-enabling Phase 1 tests in T008/T009.
+1. Capture persistence adapter requirements in tests under `core/src/test/java/io/openauth/sim/core/credentials/ocra`, asserting descriptor ⇄ record round-trips and mandatory attribute enforcement.
+2. Introduce core serialization contracts for versioned credential records without binding to a concrete store implementation.
+3. Implement the OCRA adapter that maps descriptors to the persistence record, ensuring shared secret handling reuses existing `SecretMaterial` utilities and metadata remains immutable.
+4. Document the adapter footprint in feature tasks/plan and prepare follow-up hooks for future persistence wiring (T012/T013).
 5. Run `./gradlew spotlessApply check`, capture results in this plan, and perform self-review before committing the increment.
-
-Re-enable scope for Phase 1 suites during T008: only restore the unit tests introduced in T004 once validation/factory utilities pass them; defer the property-based (T005) and ArchUnit (T006) suites until T009/T010 unlock the required functionality.
-
-2025-09-27 – Phase 2/T008 delivered: Added `OcraCredentialFactory`, tightened descriptor validation error messaging, re-enabled the T004 unit suite, and confirmed `./gradlew spotlessApply check` success at 23:16Z while keeping T005/T006 disabled per plan.
-
-2025-09-27 – Phase 2/T009 delivered: Introduced shared secret normalisation helpers covering RAW/HEX/Base64 inputs, updated descriptor/factory flows to consume canonical `SecretMaterial`, re-enabled the property-based suite from T005, and recorded `./gradlew spotlessApply check` success at 23:34Z.
-
-2025-09-27 – Phase 2/T010 delivered: Added `CredentialCapability` and `CredentialRegistry` seeded with OCRA metadata and factory wiring, validated via registry tests, and recorded `./gradlew spotlessApply check` pending post-doc update.
 
 ## Dependencies
 

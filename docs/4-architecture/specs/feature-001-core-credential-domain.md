@@ -76,6 +76,7 @@ Design a protocol-aware credential domain inside the `core` module that models c
 - 2025-09-27 – OCRA secret normalisation (T009): Shared secret inputs accept RAW, HEX, or Base64 encodings via helper utilities that canonicalise to `SecretMaterial` while surfacing descriptive validation errors for malformed input; property-based tests (T005) now execute against these helpers.
 - 2025-09-27 – Credential registry (T010): Introduced a core `CredentialRegistry` exposing `CredentialCapability` metadata and wiring the OCRA factory so facades can enumerate required attributes, optional fields, and supported hash functions for the protocol.
 - 2025-09-27 – OCRA Phase 1 test strategy for T008: Re-enable only the previously disabled unit tests from T004 once validation/factory utilities are ready; keep the property-based suite (T005) and ArchUnit guards (T006) disabled until the corresponding functionality lands in T009/T010.
+- 2025-09-28 – Persistence serialization bridge (T011): Define `VersionedCredentialRecord` schema version 1 and per-protocol adapters starting with OCRA, storing suite data under `ocra.*` keys and custom metadata under the `ocra.metadata.*` namespace ahead of MapDB integration.
 
 ## References
 - `docs/4-architecture/feature-plan-001-core-domain.md`
