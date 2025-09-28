@@ -117,8 +117,12 @@ public final class OcraEvaluationForm {
     this.counter = counter;
   }
 
-  boolean isInlineMode() {
+  public boolean isInlineMode() {
     return MODE_INLINE.equals(mode);
+  }
+
+  public boolean isCredentialMode() {
+    return MODE_CREDENTIAL.equals(mode);
   }
 
   OcraEvaluationRequest toOcraRequest() {

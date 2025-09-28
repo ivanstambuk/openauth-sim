@@ -84,6 +84,9 @@ final class OcraOperatorUiControllerTest {
     assertThat(matcher.find()).isTrue();
     assertThat(html).contains("<form");
     assertThat(html).contains("data-testid=\"ocra-evaluate-form\"");
+    assertThat(html).contains("data-testid=\"mode-toggle\"");
+    assertThat(html).contains("value=\"inline\"");
+    assertThat(html).contains("value=\"credential\"");
   }
 
   @Test
@@ -130,10 +133,15 @@ final class OcraOperatorUiControllerTest {
     assertThat(forwardedRequest.sharedSecretHex()).isEqualTo(SHARED_SECRET_HEX);
     assertThat(forwardedRequest.sessionHex()).isEqualTo(SESSION_HEX_64);
 
-    assertThat(html).contains("data-testid=\"ocra-otp\">17477202");
+    assertThat(html).contains("data-testid=\"ocra-otp\"");
+    assertThat(html).contains("<strong>17477202</strong>");
     assertThat(html).contains("data-testid=\"ocra-telemetry-id\">telemetry-123");
     assertThat(html).contains("data-testid=\"ocra-reason-code\">success");
     assertThat(html).contains("data-testid=\"ocra-sanitized-flag\">true");
+    assertThat(html).contains("data-testid=\"ocra-telemetry-summary\"");
+    assertThat(html).contains("<dt>Status</dt>");
+    assertThat(html).contains("<dt>Telemetry ID</dt>");
+    assertThat(html).contains("<dt>Suite</dt>");
     assertThat(html).doesNotContain(SHARED_SECRET_HEX);
   }
 
@@ -183,6 +191,7 @@ final class OcraOperatorUiControllerTest {
     assertThat(html).contains("data-testid=\"ocra-error-banner\"");
     assertThat(html).contains("data-testid=\"ocra-error-reason\">invalid_suite");
     assertThat(html).contains("data-testid=\"ocra-error-sanitized\">true");
+    assertThat(html).contains("suite is missing");
     assertThat(html).doesNotContain(SHARED_SECRET_HEX);
   }
 

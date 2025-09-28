@@ -5,83 +5,266 @@
     <title>OCRA Evaluation</title>
   </head>
   <body>
-    <main>
-      <h1>OCRA Evaluation Console</h1>
+    <main aria-labelledby="console-heading">
+      <h1 id="console-heading">OCRA Evaluation Console</h1>
+      <p id="console-summary">
+        Submit a stored credential or inline secret to evaluate an OCRA response via the REST API.
+        Required fields are marked and secrets are never echoed back.
+      </p>
+
       <section aria-labelledby="evaluate-heading">
         <h2 id="evaluate-heading">Evaluate an OCRA response</h2>
         <form
           th:action="@{/ui/ocra/evaluate}"
           method="post"
+          aria-describedby="console-summary"
           data-testid="ocra-evaluate-form"
         >
           <input type="hidden" name="_csrf" th:value="${csrfToken}" />
-          <input type="hidden" name="mode" value="inline" />
 
-          <div>
-            <label for="suite">Suite</label>
-            <input
-              id="suite"
-              name="suite"
-              type="text"
-              autocomplete="off"
-              th:value="${form.suite}"
-              required
-            />
-          </div>
+          <fieldset data-testid="mode-toggle" aria-describedby="mode-help">
+            <legend>Choose evaluation mode</legend>
+            <div>
+              <input
+                type="radio"
+                id="mode-inline"
+                name="mode"
+                value="inline"
+                th:checked="${form.mode == 'inline'}"
+              />
+              <label for="mode-inline">Inline parameters</label>
+              <p id="inline-mode-hint" class="hint">
+                Provide the OCRA suite and shared secret manually. Use this for quick diagnostics.
+              </p>
+            </div>
+            <div>
+              <input
+                type="radio"
+                id="mode-credential"
+                name="mode"
+                value="credential"
+                th:checked="${form.mode == 'credential'}"
+              />
+              <label for="mode-credential">Stored credential</label>
+              <p id="credential-mode-hint" class="hint">
+                Reference a credential already persisted by the simulator. Secrets remain hidden.
+              </p>
+            </div>
+            <p id="mode-help" class="hint">Only one mode can be active for each submission.</p>
+          </fieldset>
 
-          <div>
-            <label for="sharedSecretHex">Shared Secret (hex)</label>
-            <input
-              id="sharedSecretHex"
-              name="sharedSecretHex"
-              type="password"
-              autocomplete="off"
-              value=""
-              placeholder="Hex encoded secret"
-              required
-            />
-          </div>
+          <section
+            id="inline-parameters"
+            data-mode-section="inline"
+            th:attr="hidden=${form.mode == 'credential'} ? 'hidden' : null, aria-hidden=${form.mode == 'credential'}"
+            aria-labelledby="inline-heading"
+          >
+            <h3 id="inline-heading">Inline parameters</h3>
+            <p class="hint" id="inline-describe">
+              Enter the suite and shared secret exactly as hex strings. Secrets are scrubbed after
+              submission.
+            </p>
+            <div>
+              <label for="suite">Suite</label>
+              <input
+                id="suite"
+                name="suite"
+                type="text"
+                autocomplete="off"
+                th:value="${form.suite}"
+                aria-describedby="inline-describe"
+                required
+              />
+            </div>
+            <div>
+              <label for="sharedSecretHex">Shared Secret (hex)</label>
+              <input
+                id="sharedSecretHex"
+                name="sharedSecretHex"
+                type="password"
+                autocomplete="off"
+                value=""
+                aria-describedby="inline-describe"
+                placeholder="Hex encoded secret"
+                required
+              />
+            </div>
+            <div>
+              <label for="pinHashHex">PIN hash (hex, optional)</label>
+              <input
+                id="pinHashHex"
+                name="pinHashHex"
+                type="text"
+                autocomplete="off"
+                th:value="${form.pinHashHex}"
+                placeholder="Optional SHA hash of PIN"
+              />
+            </div>
+          </section>
 
-          <div>
-            <label for="challenge">Challenge</label>
-            <input
-              id="challenge"
-              name="challenge"
-              type="text"
-              th:value="${form.challenge}"
-              autocomplete="off"
-            />
-          </div>
+          <section
+            id="credential-parameters"
+            data-mode-section="credential"
+            th:attr="hidden=${form.mode != 'credential'} ? 'hidden' : null, aria-hidden=${form.mode != 'credential'}"
+            aria-labelledby="credential-heading"
+          >
+            <h3 id="credential-heading">Stored credential</h3>
+            <p class="hint" id="credential-describe">
+              Provide the credential identifier to reuse the stored suite and secret managed by the
+              simulator.
+            </p>
+            <div>
+              <label for="credentialId">Credential identifier</label>
+              <input
+                id="credentialId"
+                name="credentialId"
+                type="text"
+                autocomplete="off"
+                th:value="${form.credentialId}"
+                aria-describedby="credential-describe"
+              />
+            </div>
+          </section>
 
-          <div>
-            <label for="sessionHex">Session (hex)</label>
-            <textarea
-              id="sessionHex"
-              name="sessionHex"
-              rows="3"
-              th:text="${form.sessionHex}"
-            ></textarea>
-          </div>
+          <section aria-labelledby="parameters-heading" class="request-parameters">
+            <h3 id="parameters-heading">Request parameters</h3>
+            <p class="hint" id="parameters-hint">
+              Optional fields match the REST API contract. Leave blank to accept backend defaults.
+            </p>
+            <div>
+              <label for="challenge">Challenge</label>
+              <input
+                id="challenge"
+                name="challenge"
+                type="text"
+                th:value="${form.challenge}"
+                autocomplete="off"
+                aria-describedby="parameters-hint"
+              />
+            </div>
+            <div>
+              <label for="clientChallenge">Client challenge</label>
+              <input
+                id="clientChallenge"
+                name="clientChallenge"
+                type="text"
+                th:value="${form.clientChallenge}"
+                autocomplete="off"
+              />
+            </div>
+            <div>
+              <label for="serverChallenge">Server challenge</label>
+              <input
+                id="serverChallenge"
+                name="serverChallenge"
+                type="text"
+                th:value="${form.serverChallenge}"
+                autocomplete="off"
+              />
+            </div>
+            <div>
+              <label for="sessionHex">Session (hex)</label>
+              <textarea
+                id="sessionHex"
+                name="sessionHex"
+                rows="3"
+                th:text="${form.sessionHex}"
+                aria-describedby="parameters-hint"
+              ></textarea>
+            </div>
+            <div>
+              <label for="timestampHex">Timestamp (hex)</label>
+              <input
+                id="timestampHex"
+                name="timestampHex"
+                type="text"
+                th:value="${form.timestampHex}"
+                autocomplete="off"
+              />
+            </div>
+            <div>
+              <label for="counter">Counter</label>
+              <input
+                id="counter"
+                name="counter"
+                type="number"
+                min="0"
+                th:value="${form.counter}"
+                autocomplete="off"
+              />
+            </div>
+          </section>
 
           <button type="submit">Evaluate</button>
         </form>
       </section>
 
-      <section th:if="${viewState.hasResult()}" aria-live="polite">
-        <h2>Evaluation Result</h2>
-        <p data-testid="ocra-otp" th:text="${viewState.payload['otp']}"></p>
-        <p data-testid="ocra-telemetry-id" th:text="${viewState.payload['telemetryId']}"></p>
-        <p data-testid="ocra-reason-code" th:text="${viewState.payload['reasonCode']}"></p>
-        <p data-testid="ocra-sanitized-flag" th:text="${viewState.payload['sanitized']}"></p>
+      <section th:if="${viewState.hasResult()}" aria-live="polite" aria-labelledby="result-heading">
+        <h2 id="result-heading">Evaluation result</h2>
+        <p data-testid="ocra-otp">
+          OTP:
+          <strong th:text="${viewState.payload['otp']}"></strong>
+        </p>
+        <p id="telemetry-instructions" class="hint">
+          Copy the telemetry summary when escalating issues; it contains only sanitized values.
+        </p>
+        <dl data-testid="ocra-telemetry-summary" aria-describedby="telemetry-instructions">
+          <dt>Status</dt>
+          <dd th:text="${viewState.payload['status']}"></dd>
+          <dt>Telemetry ID</dt>
+          <dd data-testid="ocra-telemetry-id" th:text="${viewState.payload['telemetryId']}"></dd>
+          <dt>Reason code</dt>
+          <dd data-testid="ocra-reason-code" th:text="${viewState.payload['reasonCode']}"></dd>
+          <dt>Sanitized</dt>
+          <dd data-testid="ocra-sanitized-flag" th:text="${viewState.payload['sanitized']}"></dd>
+          <dt>Suite</dt>
+          <dd th:text="${viewState.payload['suite']}"></dd>
+        </dl>
       </section>
 
-      <section th:if="${viewState.hasError()}" aria-live="assertive" role="alert">
+      <section
+        th:if="${viewState.hasError()}"
+        aria-live="assertive"
+        role="alert"
+        aria-labelledby="error-heading"
+      >
         <div data-testid="ocra-error-banner">
-          <p>Evaluation failed.</p>
+          <h2 id="error-heading">Evaluation failed</h2>
           <p data-testid="ocra-error-reason" th:text="${viewState.payload['reasonCode']}"></p>
           <p data-testid="ocra-error-sanitized" th:text="${viewState.payload['sanitized']}"></p>
+          <p th:text="${viewState.payload['message']}"></p>
         </div>
       </section>
     </main>
+
+    <script>
+      (function () {
+        const modeInputs = document.querySelectorAll('input[name="mode"]');
+        const sections = document.querySelectorAll('[data-mode-section]');
+
+        function updateSections() {
+          const selected = document.querySelector('input[name="mode"]:checked');
+          if (!selected) {
+            return;
+          }
+          sections.forEach((section) => {
+            const active = section.getAttribute('data-mode-section') === selected.value;
+            if (active) {
+              section.removeAttribute('hidden');
+              section.setAttribute('aria-hidden', 'false');
+            } else {
+              section.setAttribute('hidden', 'hidden');
+              section.setAttribute('aria-hidden', 'true');
+            }
+          });
+        }
+
+        modeInputs.forEach((input) => {
+          input.addEventListener('change', updateSections);
+        });
+
+        updateSections();
+      })();
+    </script>
   </body>
 </html>

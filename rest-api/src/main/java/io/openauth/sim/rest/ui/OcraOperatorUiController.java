@@ -161,6 +161,8 @@ final class OcraOperatorUiController {
           Map.of(
               "status",
               "success",
+              "message",
+              "Evaluation succeeded",
               "otp",
               safeOtp,
               "telemetryId",
