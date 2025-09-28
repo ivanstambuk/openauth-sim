@@ -26,6 +26,9 @@ final class OcraRfc6287VectorFixtures {
               + "112233445566778899AABBCCDDEEFF00"
               + "89ABCDEF0123456789ABCDEF01234567")
           .toUpperCase(Locale.ROOT);
+  static final String SESSION_HEX_128 = SESSION_HEX_64 + SESSION_HEX_64;
+  static final String SESSION_HEX_256 = SESSION_HEX_128 + SESSION_HEX_128;
+  static final String SESSION_HEX_512 = SESSION_HEX_256 + SESSION_HEX_256;
   static final String PIN_SHA1_HASH = "7110eda4d09e062aa5e4a390b0a572ac0d2c0220";
 
   private OcraRfc6287VectorFixtures() {
@@ -504,7 +507,40 @@ final class OcraRfc6287VectorFixtures {
             null,
             SESSION_HEX_64,
             null,
-            "17477202"));
+            "17477202"),
+        new OneWayVector(
+            "Session information S128 with alphanumeric challenge",
+            "OCRA-1:HOTP-SHA256-8:QA08-S128",
+            STANDARD_KEY_32,
+            SecretEncoding.HEX,
+            "SESSION01",
+            null,
+            null,
+            SESSION_HEX_128,
+            null,
+            "18468077"),
+        new OneWayVector(
+            "Session information S256 with alphanumeric challenge",
+            "OCRA-1:HOTP-SHA256-8:QA08-S256",
+            STANDARD_KEY_32,
+            SecretEncoding.HEX,
+            "SESSION01",
+            null,
+            null,
+            SESSION_HEX_256,
+            null,
+            "77715695"),
+        new OneWayVector(
+            "Session information S512 with alphanumeric challenge",
+            "OCRA-1:HOTP-SHA256-8:QA08-S512",
+            STANDARD_KEY_32,
+            SecretEncoding.HEX,
+            "SESSION01",
+            null,
+            null,
+            SESSION_HEX_512,
+            null,
+            "05806151"));
   }
 
   static List<MutualVector> mutualSha256ServerVectors() {

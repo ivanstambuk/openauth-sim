@@ -83,6 +83,9 @@ Design a protocol-aware credential domain inside the `core` module that models c
 - 2025-09-28 – OCRA execution helper stub: `OcraResponseCalculator` exists as the eventual entry point for RFC 6287 evaluation and currently throws `UnsupportedOperationException`; placeholder tests enforce the TODO to swap in real OTP checks once the helper is implemented.
 - 2025-09-28 – OCRA response evaluation contract (T019): The execution helper MUST implement RFC 6287 Section 5 and Appendix A semantics by hashing the ASCII suite name, `0x00` delimiter, and enabled data inputs in the canonical order `C | question | password | session | timestamp`, encoding counters and timestamps as 8-byte big-endian values, challenge strings as UTF-8 rendered to uppercase hex, session inputs as uppercase hex padded to the declared `Snnn` byte length (default 64 when omitted), and PIN hashes with their declared digest; apply HOTP dynamic truncation using the suite’s declared digit length. citeturn1search0turn1search1turn1search5
 
+- 2025-09-28 – OCRA session coverage: Follow the IETF OCRA Internet-Draft test-vector guidance, which lists typical session lengths S064, S128, S256, and S512 and ships a reference generator; use it to derive additional fixtures (e.g., S128/S256) beyond RFC 6287 defaults for compliance tests. citeturn0search0turn0search5
+- 2025-09-28 – OCRA extended session vectors (T021): Ran the draft generator logic with the standard 32-byte demo key (`3132333435363738393031323334353637383930313233343536373839303132`) and alphanumeric challenge `SESSION01`, deriving session payloads by repeating the published S064 pattern to 64/128/256/512-byte lengths; the resulting OTPs (`17477202`, `18468077`, `77715695`, `05806151`) are captured as test fixtures for S064/S128/S256/S512 suites. citeturn0search0turn0search5
+
 ## References
 - `docs/4-architecture/feature-plan-001-core-domain.md`
 - `docs/4-architecture/tasks/feature-001-core-credential-domain.md`

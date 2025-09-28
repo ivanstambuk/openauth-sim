@@ -113,6 +113,8 @@ _Last updated: 2025-09-28_
 | T018 | Add placeholder OCRA response tests using the RFC vectors (counter/time/challenge suites) that assert `UnsupportedOperationException` until the execution helper lands. | FR-002, FR-006, NFR-004 | No |
 | T019 | Implement the OCRA response calculator helper so RFC 6287 vectors return their published OTP outputs. | FR-002, FR-006, NFR-004 | No |
 | T020 | Flip RFC 6287 placeholder tests to real OTP assertions, add negative/telemetry coverage, and capture Gradle results. | FR-002, NFR-004, NFR-005 | No |
+| T021 | Generate extended OCRA session vectors (S128/S256/S512) using the IETF pre-RFC test generator and capture provenance. | FR-002, FR-006, NFR-004 | No |
+| T022 | Extend compliance tests to cover the new session vectors and document the results in the spec/plan. | FR-002, NFR-004, NFR-005 | No |
 
 ### T017 – Vector Catalogue & Documentation Checklist
 - [x] Identify the authoritative RFC 6287 appendix containing sample credentials, suite definitions, challenge inputs, and expected OTP outputs. citeturn3view0
@@ -134,11 +136,18 @@ _Last updated: 2025-09-28_
 - [x] Add focused unit tests for helper edge cases (missing counter) before wiring into the vector harness.
 - [x] Record helper behaviour/decisions in spec + feature plan and ensure no telemetry leaks shared secrets.
 
-### T020 – RFC Vector Assertion Flip Checklist
-- [x] Update RFC vector tests to assert actual OTP values from Appendix C, including mutual, session, and timed suites (`OcraRfc6287ComplianceTest`). citeturn1search5
-- [x] Add negative test coverage verifying errors when required runtime inputs are absent (counter, session information, timestamp).
-- [x] Ensure telemetry assertions continue passing (no secret leakage) after helper integration.
-- [x] Run `./gradlew spotlessApply check`, capture timing, and update feature plan/tasks with results (2025-09-28 – PASS, ~72s, configuration cache reused).
+### T021 – Extended Session Vector Generation Checklist
+- [x] Review the IETF OCRA Internet-Draft test-vector appendix to confirm S064/S128/S256/S512 coverage. citeturn0search0turn0search5
+- [x] Execute the provided generator logic to produce deterministic fixtures for S128, S256, and S512 sessions using the standard 32-byte demo key and challenge `SESSION01`.
+- [x] Store generated vectors in the existing test fixture module, redacting shared secrets outside test scope.
+- [x] Record provenance and generation parameters (key, challenge, session payload construction, OTPs) in the spec clarifications and feature plan.
+  - OTPs verified: `17477202` (S064), `18468077` (S128), `77715695` (S256), `05806151` (S512).
+
+### T022 – Extended Session Compliance Checklist
+- [ ] Add parameterised tests that exercise the new S128/S256/S512 vectors alongside existing cases.
+- [ ] Ensure telemetry redaction assertions cover the extended session inputs.
+- [ ] Update documentation (spec/plan) with the new OTP expectations and note generator usage.
+- [ ] Run `./gradlew spotlessApply check`, capture timing, and update plan/tasks with results once tests pass.
 
 ## Phase 6 – Future Protocol Packages (Pending Separate Plans)
 | Protocol | Notes |
@@ -150,4 +159,4 @@ _Last updated: 2025-09-28_
 ## Open Follow-ups
 - Populate task outcomes and timestamps upon completion.
 - Attach Gradle command outputs and analysis gate results to the feature plan when tasks close.
-- Expand session-information coverage when suites introduce non-default `Snnn` lengths beyond 64 bytes.
+- Complete T022 to add S128/S256/S512 session coverage assertions and documentation updates once tests pass.
