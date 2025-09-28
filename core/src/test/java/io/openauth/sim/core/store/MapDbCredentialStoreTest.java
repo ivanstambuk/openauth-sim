@@ -6,16 +6,20 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
+import java.lang.reflect.Field;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -251,6 +255,82 @@ class MapDbCredentialStoreTest {
     payloadBySource.values().forEach(payload -> assertEquals("FILE", payload.get("storeProfile")));
   }
 
+  @Test
+  void inMemoryCacheDefaultsUseExpireAfterAccess() throws Exception {
+    try (var store = MapDbCredentialStore.inMemory().open()) {
+      Cache<String, Credential> cache = extractCache(store);
+      Duration expectedTtl = MapDbCredentialStore.CacheSettings.inMemoryDefaults().ttl();
+      long actualTtlNanos =
+          cache.policy().expireAfterAccess().orElseThrow().getExpiresAfter(TimeUnit.NANOSECONDS);
+      assertEquals(expectedTtl, Duration.ofNanos(actualTtlNanos));
+      assertTrue(cache.policy().expireAfterWrite().isEmpty());
+      long maximum = cache.policy().eviction().orElseThrow().getMaximum();
+      assertEquals(MapDbCredentialStore.CacheSettings.inMemoryDefaults().maximumSize(), maximum);
+    }
+  }
+
+  @Test
+  void fileBackedCacheDefaultsUseExpireAfterWrite() throws Exception {
+    Path dbPath = tempDir.resolve("file-defaults.db");
+    try (var store = MapDbCredentialStore.file(dbPath).open()) {
+      Cache<String, Credential> cache = extractCache(store);
+      Duration expectedTtl = MapDbCredentialStore.CacheSettings.fileBackedDefaults().ttl();
+      long actualTtlNanos =
+          cache.policy().expireAfterWrite().orElseThrow().getExpiresAfter(TimeUnit.NANOSECONDS);
+      assertEquals(expectedTtl, Duration.ofNanos(actualTtlNanos));
+      assertTrue(cache.policy().expireAfterAccess().isEmpty());
+      long maximum = cache.policy().eviction().orElseThrow().getMaximum();
+      assertEquals(MapDbCredentialStore.CacheSettings.fileBackedDefaults().maximumSize(), maximum);
+    }
+  }
+
+  @Test
+  void customCacheSettingsOverrideDefaults() throws Exception {
+    MapDbCredentialStore.CacheSettings customSettings =
+        new MapDbCredentialStore.CacheSettings(
+            Duration.ofSeconds(45),
+            32_000,
+            MapDbCredentialStore.CacheSettings.ExpirationStrategy.AFTER_WRITE);
+
+    try (var store = MapDbCredentialStore.inMemory().cacheSettings(customSettings).open()) {
+      Cache<String, Credential> cache = extractCache(store);
+      long ttlNanos =
+          cache.policy().expireAfterWrite().orElseThrow().getExpiresAfter(TimeUnit.NANOSECONDS);
+      assertEquals(customSettings.ttl(), Duration.ofNanos(ttlNanos));
+      long maximum = cache.policy().eviction().orElseThrow().getMaximum();
+      assertEquals(customSettings.maximumSize(), maximum);
+    }
+  }
+
+  @Test
+  void legacyBuilderMutatorsAdjustCacheSettings() throws Exception {
+    try (var store =
+        MapDbCredentialStore.inMemory()
+            .cacheMaximumSize(12_345)
+            .cacheTtl(Duration.ofSeconds(30))
+            .cacheExpirationStrategy(
+                MapDbCredentialStore.CacheSettings.ExpirationStrategy.AFTER_WRITE)
+            .open()) {
+      Cache<String, Credential> cache = extractCache(store);
+      long ttlNanos =
+          cache.policy().expireAfterWrite().orElseThrow().getExpiresAfter(TimeUnit.NANOSECONDS);
+      assertEquals(Duration.ofSeconds(30), Duration.ofNanos(ttlNanos));
+      long maximum = cache.policy().eviction().orElseThrow().getMaximum();
+      assertEquals(12_345, maximum);
+    }
+  }
+
+  @Test
+  void containerProfileDefaultsAvailable() {
+    MapDbCredentialStore.CacheSettings container =
+        MapDbCredentialStore.CacheSettings.containerDefaults();
+    assertEquals(Duration.ofMinutes(15), container.ttl());
+    assertEquals(500_000, container.maximumSize());
+    assertEquals(
+        MapDbCredentialStore.CacheSettings.ExpirationStrategy.AFTER_ACCESS,
+        container.expirationStrategy());
+  }
+
   private static Map<String, String> extractPayload(LogRecord record) {
     Object[] parameters = record.getParameters();
     assertNotNull(parameters, "Expected structured payload parameters");
@@ -297,5 +377,13 @@ class MapDbCredentialStoreTest {
               db.hashMap("credentials", Serializer.STRING, Serializer.JAVA).createOrOpen();
       return map.get(name);
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Cache<String, Credential> extractCache(MapDbCredentialStore store)
+      throws Exception {
+    Field field = MapDbCredentialStore.class.getDeclaredField("cache");
+    field.setAccessible(true);
+    return (Cache<String, Credential>) field.get(store);
   }
 }

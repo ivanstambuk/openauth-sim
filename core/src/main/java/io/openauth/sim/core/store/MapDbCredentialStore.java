@@ -125,8 +125,7 @@ public final class MapDbCredentialStore implements CredentialStore {
   public static final class Builder {
     private final Path databasePath;
     private final boolean inMemory;
-    private Duration cacheTtl = Duration.ofMinutes(5);
-    private long cacheMaximumSize = 100_000;
+    private CacheSettings cacheSettings;
 
     private List<VersionedCredentialRecordMigration> migrations =
         List.of(new OcraRecordSchemaV0ToV1Migration());
@@ -134,18 +133,27 @@ public final class MapDbCredentialStore implements CredentialStore {
     private Builder(Path databasePath, boolean inMemory) {
       this.databasePath = databasePath;
       this.inMemory = inMemory;
+      this.cacheSettings =
+          inMemory ? CacheSettings.inMemoryDefaults() : CacheSettings.fileBackedDefaults();
     }
 
     public Builder cacheTtl(Duration ttl) {
-      this.cacheTtl = Objects.requireNonNull(ttl, "ttl");
+      this.cacheSettings = cacheSettings.withTtl(Objects.requireNonNull(ttl, "ttl"));
       return this;
     }
 
     public Builder cacheMaximumSize(long maximumSize) {
-      if (maximumSize <= 0) {
-        throw new IllegalArgumentException("maximumSize must be positive");
-      }
-      this.cacheMaximumSize = maximumSize;
+      this.cacheSettings = cacheSettings.withMaximumSize(maximumSize);
+      return this;
+    }
+
+    public Builder cacheExpirationStrategy(CacheSettings.ExpirationStrategy strategy) {
+      this.cacheSettings = cacheSettings.withStrategy(Objects.requireNonNull(strategy, "strategy"));
+      return this;
+    }
+
+    public Builder cacheSettings(CacheSettings cacheSettings) {
+      this.cacheSettings = Objects.requireNonNull(cacheSettings, "cacheSettings");
       return this;
     }
 
@@ -163,10 +171,20 @@ public final class MapDbCredentialStore implements CredentialStore {
       ConcurrentMap<String, VersionedCredentialRecord> map =
           (ConcurrentMap<String, VersionedCredentialRecord>)
               db.hashMap(MAP_NAME, Serializer.STRING, Serializer.JAVA).createOrOpen();
-      Cache<String, Credential> cache =
-          Caffeine.newBuilder().maximumSize(cacheMaximumSize).expireAfterWrite(cacheTtl).build();
+      Cache<String, Credential> cache = buildCache();
       String profile = inMemory ? "IN_MEMORY" : "FILE";
       return new MapDbCredentialStore(db, map, cache, migrations, profile);
+    }
+
+    private Cache<String, Credential> buildCache() {
+      Caffeine<Object, Object> builder =
+          Caffeine.newBuilder().maximumSize(cacheSettings.maximumSize());
+      if (cacheSettings.expirationStrategy() == CacheSettings.ExpirationStrategy.AFTER_ACCESS) {
+        builder = builder.expireAfterAccess(cacheSettings.ttl());
+      } else {
+        builder = builder.expireAfterWrite(cacheSettings.ttl());
+      }
+      return builder.build();
     }
   }
 
@@ -245,5 +263,49 @@ public final class MapDbCredentialStore implements CredentialStore {
   private enum MutationOperation {
     SAVE,
     DELETE
+  }
+
+  public static final record CacheSettings(
+      Duration ttl, long maximumSize, ExpirationStrategy expirationStrategy) {
+
+    public CacheSettings {
+      Objects.requireNonNull(ttl, "ttl");
+      Objects.requireNonNull(expirationStrategy, "expirationStrategy");
+      if (ttl.isZero() || ttl.isNegative()) {
+        throw new IllegalArgumentException("ttl must be positive");
+      }
+      if (maximumSize <= 0) {
+        throw new IllegalArgumentException("maximumSize must be positive");
+      }
+    }
+
+    public CacheSettings withTtl(Duration ttl) {
+      return new CacheSettings(ttl, maximumSize, expirationStrategy);
+    }
+
+    public CacheSettings withMaximumSize(long maximumSize) {
+      return new CacheSettings(ttl, maximumSize, expirationStrategy);
+    }
+
+    public CacheSettings withStrategy(ExpirationStrategy strategy) {
+      return new CacheSettings(ttl, maximumSize, strategy);
+    }
+
+    public static CacheSettings inMemoryDefaults() {
+      return new CacheSettings(Duration.ofMinutes(2), 250_000, ExpirationStrategy.AFTER_ACCESS);
+    }
+
+    public static CacheSettings fileBackedDefaults() {
+      return new CacheSettings(Duration.ofMinutes(10), 150_000, ExpirationStrategy.AFTER_WRITE);
+    }
+
+    public static CacheSettings containerDefaults() {
+      return new CacheSettings(Duration.ofMinutes(15), 500_000, ExpirationStrategy.AFTER_ACCESS);
+    }
+
+    public enum ExpirationStrategy {
+      AFTER_ACCESS,
+      AFTER_WRITE
+    }
   }
 }

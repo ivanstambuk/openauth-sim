@@ -32,6 +32,12 @@ _Last updated: 2025-09-28_
 | T203 | Tune Caffeine configuration (maximum size, TTL, eviction strategy) guided by benchmarks. | FR-201, NFR-201 | No |
 | T204 | Document deployment profiles (embedded, local disk, container) with default settings. | FR-201 | Yes |
 
+### T203 – Cache Strategy Tuning Checklist
+- [x] Define per-profile cache defaults and builder override strategy in spec/plan (2025-09-28).
+- [x] Implement Caffeine profile defaults (in-memory/file/container) in `MapDbCredentialStore.Builder`.
+- [x] Add regression tests verifying expiration strategy, TTL, and maximum size per profile and override paths.
+- [x] Record benchmark follow-up needs and Gradle command outcomes once passing (2025-09-28).
+
 ## Phase 2 – Storage Maintenance
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|
