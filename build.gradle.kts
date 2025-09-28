@@ -5,6 +5,8 @@ import org.gradle.api.artifacts.VersionCatalog
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.plugins.quality.CheckstyleExtension
+import org.gradle.api.plugins.quality.PmdExtension
+import org.gradle.api.plugins.quality.Pmd
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
 import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
@@ -62,6 +64,7 @@ subprojects {
     apply(plugin = "checkstyle")
     pluginManager.apply("com.github.spotbugs")
     pluginManager.apply("net.ltgt.errorprone")
+    apply(plugin = "pmd")
 
     repositories {
         mavenCentral()
@@ -87,6 +90,20 @@ subprojects {
         toolVersion = libsCatalog.version("checkstyle")
         configDirectory.set(rootProject.layout.projectDirectory.dir("config/checkstyle"))
         configProperties = mapOf("basedir" to rootProject.projectDir.path)
+    }
+
+    extensions.configure<PmdExtension> {
+        toolVersion = libsCatalog.version("pmd")
+        isConsoleOutput = true
+        ruleSets = emptyList()
+        ruleSetFiles = files(rootProject.file("config/pmd/ruleset.xml"))
+    }
+
+    tasks.withType<Pmd>().configureEach {
+        reports {
+            xml.required.set(true)
+            html.required.set(false)
+        }
     }
 
     configurations.configureEach {
