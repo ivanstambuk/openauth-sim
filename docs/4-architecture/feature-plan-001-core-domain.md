@@ -1,7 +1,7 @@
 # Feature Plan 001 – Core Credential Domain Expansion
 
 _Status: In progress_
-_Last updated: 2025-09-27_
+_Last updated: 2025-09-28_
 
 ## Objective
 
@@ -33,14 +33,16 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - 2025-09-28 – Phase 3/T011 delivered: Introduced versioned credential record + persistence adapter interfaces, added OCRA descriptor round-trip tests, implemented the adapter, and captured `./gradlew spotlessApply check` success (2025-09-28T15:17:00Z, 33s, configuration cache reused).
 - 2025-09-28 – Phase 3/T012 initiated: Wire `VersionedCredentialRecord` envelopes into `MapDbCredentialStore`, add upgrade hooks for future schema versions, and prove OCRA record migrations via targeted persistence tests.
 - 2025-09-28 – Phase 3/T012 delivered: Migrated `MapDbCredentialStore` to versioned envelopes with OCRA-focused upgrade pipeline, added legacy schema-0 migration coverage, and logged `./gradlew spotlessApply check` success (2025-09-28T16:12:00Z, 33s, configuration cache reused).
+- 2025-09-28 – Phase 3/T013 initiated: Add structured validation telemetry for OCRA flows, emitting redacted diagnostics suitable for future observability pipelines while keeping constitution logging rules intact.
+- 2025-09-28 – Phase 3/T013 delivered: Structured debug telemetry added to OCRA validations with log capture tests; `./gradlew spotlessApply check` succeeded (2025-09-28T16:58:00Z, 18s, configuration cache reused).
 
-## Phase 3 – Next Increment (T012 MapDB Envelope Integration)
+## Phase 3 – Next Increment (T013 OCRA Validation Telemetry)
 
-1. Extend persistence layer tests to cover storing and reloading `VersionedCredentialRecord` instances through `MapDbCredentialStore`, including backwards-compatibility scenarios.
-2. Implement migration helpers that upgrade legacy schema versions to the current descriptor form, surfacing descriptive diagnostics when migration paths are missing.
-3. Integrate the OCRA persistence adapter with MapDB so save/load flows round-trip via schema envelopes while keeping in-memory caches in sync.
-4. Update roadmap artifacts (tasks/spec/plan) with migration outcomes and document follow-up work for additional protocol adapters.
-5. Run `./gradlew spotlessApply check`, capture timing in this plan, and self-review before committing/pushing. ✅ (2025-09-28T16:12:00Z, PASS)
+1. Define structured logging contract (log level, event name, redacted fields) in tests capturing expected telemetry for validation failures.
+2. Implement telemetry hooks within `OcraCredentialFactory` (and related validators) to emit the structured events without exposing secret material.
+3. Ensure logging integrates with existing MapDB persistence by correlating credential names and schema metadata in messages.
+4. Update specification, tasks, and knowledge map to reflect telemetry coverage and document follow-up work for non-OCRA protocols.
+5. Run `./gradlew spotlessApply check`, capture timing in this plan, and self-review before committing/pushing.
 
 ## Dependencies
 

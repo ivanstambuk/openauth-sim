@@ -78,6 +78,7 @@ Design a protocol-aware credential domain inside the `core` module that models c
 - 2025-09-27 – OCRA Phase 1 test strategy for T008: Re-enable only the previously disabled unit tests from T004 once validation/factory utilities are ready; keep the property-based suite (T005) and ArchUnit guards (T006) disabled until the corresponding functionality lands in T009/T010.
 - 2025-09-28 – Persistence serialization bridge (T011): Define `VersionedCredentialRecord` schema version 1 and per-protocol adapters starting with OCRA, storing suite data under `ocra.*` keys and custom metadata under the `ocra.metadata.*` namespace ahead of MapDB integration.
 - 2025-09-28 – MapDB integration (T012): `MapDbCredentialStore` now persists `VersionedCredentialRecord` envelopes (schema v1), upgrades legacy schema-0 OCRA entries by namespacing attributes, and surface migration errors when no upgrade path exists; utility mapper converts between persisted envelopes and in-memory `Credential` aggregates.
+- 2025-09-28 – Validation telemetry (T013): Emit structured debug-level events named `ocra.validation.failure` with fields (`credentialName`, `suite`, `failureCode`, `messageId`) where `failureCode` denotes the failing stage (`CREATE_DESCRIPTOR`, `VALIDATE_CHALLENGE`, etc.) and payloads redact secrets; reuse this contract across facades for consistent observability.
 
 ## References
 - `docs/4-architecture/feature-plan-001-core-domain.md`

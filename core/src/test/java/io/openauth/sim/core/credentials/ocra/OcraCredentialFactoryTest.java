@@ -3,14 +3,22 @@ package io.openauth.sim.core.credentials.ocra;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
 import io.openauth.sim.core.model.SecretEncoding;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -159,6 +167,78 @@ final class OcraCredentialFactoryTest {
         throw new AssertionError(
             "Expected message to contain '%s' but was '%s'".formatted(expected, message));
       }
+    }
+  }
+
+  @DisplayName("structured telemetry is emitted when descriptor validation fails")
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "LG_LOST_LOGGER_DUE_TO_WEAK_REFERENCE",
+      justification = "Test attaches a temporary handler to verify telemetry and restores state")
+  @org.junit.jupiter.api.Test
+  void structuredTelemetryEmittedForDescriptorFailures() {
+    Logger telemetryLogger = Logger.getLogger("io.openauth.sim.core.credentials.ocra.validation");
+    TestLogHandler handler = new TestLogHandler();
+    telemetryLogger.addHandler(handler);
+
+    OcraCredentialFactory localFactory = new OcraCredentialFactory();
+    OcraCredentialRequest request =
+        new OcraCredentialRequest(
+            "counter-missing",
+            "OCRA-1:HOTP-SHA1-6:C-QN08",
+            "3132333435363738",
+            SecretEncoding.HEX,
+            null,
+            null,
+            null,
+            Map.of());
+
+    try {
+      assertThrows(IllegalArgumentException.class, () -> localFactory.createDescriptor(request));
+      List<LogRecord> records = handler.records();
+      assertFalse(records.isEmpty(), "Expected validation telemetry to be emitted");
+      LogRecord record = records.get(0);
+      assertEquals(Level.FINE, record.getLevel());
+      assertEquals("ocra.validation.failure", record.getMessage());
+      assertNotNull(record.getParameters(), "Log parameters should be present");
+      Object payload = record.getParameters()[0];
+      assertTrue(payload instanceof Map, "Telemetry payload should be a map");
+      @SuppressWarnings("unchecked")
+      Map<String, String> data = (Map<String, String>) payload;
+      assertEquals("counter-missing", data.get("credentialName"));
+      assertEquals("OCRA-1:HOTP-SHA1-6:C-QN08", data.get("suite"));
+      assertEquals("CREATE_DESCRIPTOR", data.get("failureCode"));
+      assertEquals("OCRA-VAL-001", data.get("messageId"));
+      assertFalse(data.containsKey("sharedSecret"), "Telemetry must not expose secrets");
+    } finally {
+      telemetryLogger.removeHandler(handler);
+    }
+  }
+
+  private static final class TestLogHandler extends Handler {
+
+    private final List<LogRecord> records = new ArrayList<>();
+
+    private TestLogHandler() {
+      setLevel(Level.ALL);
+    }
+
+    @Override
+    public void publish(LogRecord record) {
+      records.add(record);
+    }
+
+    @Override
+    public void flush() {
+      // no-op
+    }
+
+    @Override
+    public void close() {
+      records.clear();
+    }
+
+    List<LogRecord> records() {
+      return records;
     }
   }
 

@@ -4,14 +4,29 @@ import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.model.SecretMaterial;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * High-level factory providing validation helpers around {@link OcraCredentialDescriptor} creation.
  */
 public final class OcraCredentialFactory {
+
+  private static final Logger TELEMETRY_LOGGER =
+      Logger.getLogger("io.openauth.sim.core.credentials.ocra.validation");
+  private static final String EVENT_NAME = "ocra.validation.failure";
+  private static final String MESSAGE_ID_DESCRIPTOR = "OCRA-VAL-001";
+  private static final String MESSAGE_ID_CHALLENGE = "OCRA-VAL-002";
+  private static final String MESSAGE_ID_SESSION = "OCRA-VAL-003";
+  private static final String MESSAGE_ID_TIMESTAMP = "OCRA-VAL-004";
+
+  static {
+    TELEMETRY_LOGGER.setLevel(Level.FINE);
+  }
 
   private final OcraCredentialDescriptorFactory descriptorFactory;
 
@@ -29,14 +44,24 @@ public final class OcraCredentialFactory {
         OcraSecretMaterialSupport.normaliseSharedSecret(
             request.sharedSecret(), request.sharedSecretEncoding());
 
-    return descriptorFactory.create(
-        request.name(),
-        request.ocraSuite(),
-        sharedSecret,
-        request.counterValue(),
-        request.pinHashHex(),
-        request.allowedTimestampDrift(),
-        request.metadata());
+    try {
+      return descriptorFactory.create(
+          request.name(),
+          request.ocraSuite(),
+          sharedSecret,
+          request.counterValue(),
+          request.pinHashHex(),
+          request.allowedTimestampDrift(),
+          request.metadata());
+    } catch (IllegalArgumentException ex) {
+      logValidationFailure(
+          request.ocraSuite(),
+          request.name(),
+          "CREATE_DESCRIPTOR",
+          MESSAGE_ID_DESCRIPTOR,
+          ex.getMessage());
+      throw ex;
+    }
   }
 
   public void validateChallenge(OcraCredentialDescriptor descriptor, String challenge) {
@@ -46,6 +71,12 @@ public final class OcraCredentialFactory {
 
     if (challengeSpec.isEmpty()) {
       if (challenge != null && !challenge.isBlank()) {
+        logValidationFailure(
+            descriptor.suite().value(),
+            descriptor.name(),
+            "VALIDATE_CHALLENGE",
+            MESSAGE_ID_CHALLENGE,
+            "challenge not permitted for suite");
         throw new IllegalArgumentException(
             "challengeQuestion not permitted for suite: " + descriptor.suite().value());
       }
@@ -53,6 +84,12 @@ public final class OcraCredentialFactory {
     }
 
     if (challenge == null || challenge.isBlank()) {
+      logValidationFailure(
+          descriptor.suite().value(),
+          descriptor.name(),
+          "VALIDATE_CHALLENGE",
+          MESSAGE_ID_CHALLENGE,
+          "challenge required for suite");
       throw new IllegalArgumentException(
           "challengeQuestion required for suite: " + descriptor.suite().value());
     }
@@ -60,6 +97,12 @@ public final class OcraCredentialFactory {
     String trimmed = challenge.trim();
     OcraChallengeQuestion spec = challengeSpec.orElseThrow();
     if (trimmed.length() != spec.length()) {
+      logValidationFailure(
+          descriptor.suite().value(),
+          descriptor.name(),
+          "VALIDATE_CHALLENGE",
+          MESSAGE_ID_CHALLENGE,
+          "challenge length out of range");
       throw new IllegalArgumentException(
           "challengeQuestion must contain "
               + spec.length()
@@ -68,6 +111,12 @@ public final class OcraCredentialFactory {
     }
 
     if (!challengeMatchesFormat(trimmed, spec.format())) {
+      logValidationFailure(
+          descriptor.suite().value(),
+          descriptor.name(),
+          "VALIDATE_CHALLENGE",
+          MESSAGE_ID_CHALLENGE,
+          "challenge format mismatch");
       throw new IllegalArgumentException(
           "challengeQuestion must match format "
               + spec.format()
@@ -84,6 +133,12 @@ public final class OcraCredentialFactory {
 
     if (sessionSpec.isEmpty()) {
       if (sessionInformation != null && !sessionInformation.isBlank()) {
+        logValidationFailure(
+            descriptor.suite().value(),
+            descriptor.name(),
+            "VALIDATE_SESSION",
+            MESSAGE_ID_SESSION,
+            "session information not permitted for suite");
         throw new IllegalArgumentException(
             "sessionInformation not permitted for suite: " + descriptor.suite().value());
       }
@@ -91,6 +146,12 @@ public final class OcraCredentialFactory {
     }
 
     if (sessionInformation == null || sessionInformation.isBlank()) {
+      logValidationFailure(
+          descriptor.suite().value(),
+          descriptor.name(),
+          "VALIDATE_SESSION",
+          MESSAGE_ID_SESSION,
+          "session information required for suite");
       throw new IllegalArgumentException(
           "sessionInformation required for suite: " + descriptor.suite().value());
     }
@@ -103,6 +164,12 @@ public final class OcraCredentialFactory {
 
     if (timestampSpec.isEmpty()) {
       if (timestamp != null) {
+        logValidationFailure(
+            descriptor.suite().value(),
+            descriptor.name(),
+            "VALIDATE_TIMESTAMP",
+            MESSAGE_ID_TIMESTAMP,
+            "timestamp not permitted for suite");
         throw new IllegalArgumentException(
             "timestamp not permitted for suite: " + descriptor.suite().value());
       }
@@ -117,9 +184,31 @@ public final class OcraCredentialFactory {
 
     Duration delta = Duration.between(referenceInstant, timestamp).abs();
     if (delta.compareTo(allowed) > 0) {
+      logValidationFailure(
+          descriptor.suite().value(),
+          descriptor.name(),
+          "VALIDATE_TIMESTAMP",
+          MESSAGE_ID_TIMESTAMP,
+          "timestamp outside permitted drift");
       throw new IllegalArgumentException(
           "timestamp outside permitted drift (allowed=" + allowed + ", actual=" + delta + ")");
     }
+  }
+
+  private static void logValidationFailure(
+      String suite, String credentialName, String failureCode, String messageId, String detail) {
+    if (!TELEMETRY_LOGGER.isLoggable(Level.FINE)) {
+      return;
+    }
+    Map<String, String> payload = new LinkedHashMap<>();
+    payload.put("credentialName", credentialName);
+    payload.put("suite", suite);
+    payload.put("failureCode", failureCode);
+    payload.put("messageId", messageId);
+    if (detail != null && !detail.isBlank()) {
+      payload.put("detail", detail);
+    }
+    TELEMETRY_LOGGER.log(Level.FINE, EVENT_NAME, payload);
   }
 
   private static boolean challengeMatchesFormat(String challenge, OcraChallengeFormat format) {

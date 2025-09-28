@@ -77,6 +77,12 @@ _Last updated: 2025-09-27_
 - [x] Update `MapDbCredentialStore` (and related persistence utilities) to read/write `VersionedCredentialRecord` instances via registered adapters.
 - [x] Document migration behaviour and any remaining protocol gaps across spec, plan, and knowledge map.
 
+### T013 – Validation Telemetry Checklist
+- [x] Capture expected structured log events in tests (e.g., via LogCaptor) ensuring messages redact secret material while surfacing credential name, suite, and validation failure reason.
+- [x] Emit telemetry from `OcraCredentialFactory` and descriptor validation paths using a dedicated logger/marker for observability pipelines.
+- [x] Ensure logging obeys rate and level guidance (debug/info) and document the contract in spec/plan with follow-ups for other protocols.
+- [x] Verify `./gradlew spotlessApply check` passes and record command output in the feature plan after committing.
+
 ## Phase 4 – Documentation & Cleanup
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|
