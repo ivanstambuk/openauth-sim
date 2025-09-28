@@ -4,7 +4,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 
 ## Before You Code
 - **Clarify ambiguity first.** Do not plan or implement until every requirement is understood. Ask the user, record unresolved items in `docs/4-architecture/open-questions.md`, and wait for answers. Capture accepted answers in the relevant specification under `## Clarifications`.
-  - When presenting clarification options, list them numerically from most to least recommended and state the preferred approach explicitly.
+  - Whenever you present alternative approaches—whether for open questions or general solution proposals—enumerate options alphabetically (A, B, C …), include pros and cons for each, and state the recommended option (with rationale) before requesting a decision.
 - **Work in small steps.** Deliver self-contained changes that finish in ≤10 minutes, run `./gradlew spotlessApply check`, and commit with a conventional message.
 - **Confirm prerequisites.** Ensure `JAVA_HOME` points to a Java 17 JDK before invoking Gradle or Git hooks.
 - **Prime the knowledge map.** Skim `docs/4-architecture/knowledge-map.md` before planning so new work reinforces the architectural relationships already captured there.

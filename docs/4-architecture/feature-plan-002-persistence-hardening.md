@@ -27,6 +27,7 @@ Reference specification: `docs/4-architecture/specs/feature-002-persistence-hard
 - 2025-09-28 – T204 scope: Publish deployment profile reference covering in-memory, file-backed, and container defaults (cache sizing, TTL, storage hints, override examples) and wire docs into spec/tasks.
 - 2025-09-28 – T204 documentation: Authored `docs/2-how-to/configure-persistence-profiles.md`, updated spec/tasks/knowledge map, and recorded `./gradlew spotlessApply check` (pass; SpotBugs warning about missing `org.opentest4j.MultipleFailuresError`). Follow-up remains to rerun MapDB benchmark with tuned caches.
 - 2025-09-28 – Benchmark rerun (post T203 tuning): `./gradlew :core:test --tests io.openauth.sim.core.store.MapDbCredentialStoreBaselineBenchmark --rerun-tasks -Dio.openauth.sim.benchmark=true` emitted profile `IN_MEMORY` metrics – writes ≈2.86k ops/s (20k dataset, 6.98 s), reads ≈351k ops/s (50k ops, 142 ms) with P50≈0.00093 ms, P90≈0.00249 ms, P99≈0.0208 ms. Record used `--info` to capture telemetry; results documented here.
+- 2025-09-28 – T205 maintenance scope: Adopt builder-produced maintenance helper with synchronous compaction/integrity methods so `CredentialStore` stays unchanged; maintenance emits a `MaintenanceResult` record (operation, duration, entriesScanned, entriesRepaired, issues, status) mirrored in Level.FINE telemetry before implementation.
 
 ## Upcoming Increments
 1. **T201 – Baseline Metrics & Benchmark Harness**: introduce synthetic load tests and logging scaffolding to capture current performance.
@@ -42,7 +43,7 @@ Reference specification: `docs/4-architecture/specs/feature-002-persistence-hard
 
 ## Analysis Gate
 - [x] Specification reviewed and aligned with clarifications.
-- [x] Open questions resolved (clarifications recorded on 2025-09-28; none outstanding).
+- [x] Open questions resolved (execution model and diagnostics locked on 2025-09-28).
 - [x] Tasks ordered with benchmarks/metrics preceding behavioural changes.
 
 Update this plan as tasks progress: check off completed items, add new tasks, and note blockers.
