@@ -132,6 +132,27 @@ final class OcraRfc6287ComplianceTest {
             IllegalArgumentException.class,
             () -> OcraResponseCalculator.generate(descriptor, context));
     assertTrue(ex.getMessage().toLowerCase(Locale.ROOT).contains("session"));
+    assertTrue(
+        !ex.getMessage()
+            .toLowerCase(Locale.ROOT)
+            .contains(vector.sessionInformation().substring(0, 6).toLowerCase(Locale.ROOT)));
+  }
+
+  @DisplayName("Session-enabled suites expose expected byte lengths")
+  @ParameterizedTest(name = "{index} ⇒ {0}")
+  @MethodSource("sessionInformationVectors")
+  void sessionInformationSuitesExposeExpectedLengths(
+      OcraRfc6287VectorFixtures.OneWayVector vector) {
+    OcraCredentialDescriptor descriptor = descriptorFor(vector.description(), vector);
+    int expectedLengthBytes = vector.sessionInformation().length() / 2;
+    int actualLengthBytes =
+        descriptor
+            .suite()
+            .dataInput()
+            .sessionInformation()
+            .orElseThrow(() -> new AssertionError("suite missing session specification"))
+            .lengthBytes();
+    assertEquals(expectedLengthBytes, actualLengthBytes);
   }
 
   private void assertMatchesPublishedOtp(OcraRfc6287VectorFixtures.OneWayVector vector) {

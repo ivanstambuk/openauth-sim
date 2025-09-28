@@ -144,10 +144,10 @@ _Last updated: 2025-09-28_
   - OTPs verified: `17477202` (S064), `18468077` (S128), `77715695` (S256), `05806151` (S512).
 
 ### T022 – Extended Session Compliance Checklist
-- [ ] Add parameterised tests that exercise the new S128/S256/S512 vectors alongside existing cases.
-- [ ] Ensure telemetry redaction assertions cover the extended session inputs.
-- [ ] Update documentation (spec/plan) with the new OTP expectations and note generator usage.
-- [ ] Run `./gradlew spotlessApply check`, capture timing, and update plan/tasks with results once tests pass.
+- [x] Add parameterised tests that exercise the new S128/S256/S512 vectors alongside existing cases.
+- [x] Ensure telemetry redaction assertions cover the extended session inputs.
+- [x] Update documentation (spec/plan) with the new OTP expectations and note generator usage.
+- [x] Run `./gradlew spotlessApply check`, capture timing, and update plan/tasks with results once tests pass (2025-09-28 – PASS, ~27s, configuration cache reused).
 
 ## Phase 6 – Future Protocol Packages (Pending Separate Plans)
 | Protocol | Notes |
