@@ -30,6 +30,8 @@ Reference specification: `docs/4-architecture/specs/feature-003-rest-ocra-evalua
 - 2025-09-28 – `./gradlew spotlessApply check` (PASS, config cache reused) after documentation updates.
 - 2025-09-28 – R004 delivered: wired `POST /api/v1/ocra/evaluate` controller/service to `OcraResponseCalculator`, flipped MockMvc tests to assert 200/400 with telemetry captures, and added error DTOs; `./gradlew :rest-api:test` (PASS, ≈14s) and `./gradlew spotlessApply check` (PASS, ≈26s) recorded.
 - 2025-09-28 – R006 wrap-up: reran `./gradlew spotlessApply check` (PASS), captured telemetry output via `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest --info`, archived sample logs in `docs/3-reference/rest-ocra-telemetry-snapshot.md`, and verified roadmap/knowledge map consistency.
+- 2025-09-28 – Authentication hardening follow-up: user confirmed the endpoint stays internal-only with no additional auth layer; future security measures handled outside the application.
+- 2025-09-28 – Input hardening direction set: validate all hex fields, enforce non-negative counters, and enrich telemetry with `reasonCode`/`sanitized` attributes to support alerting while preserving redaction guarantees.
 
 ## Dependencies
 - Relies on the existing OCRA core package; ensure no modifications are required in `core/` for this feature.
