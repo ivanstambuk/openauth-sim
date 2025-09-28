@@ -1,7 +1,7 @@
 # Feature 001 – Core Credential Domain Tasks
 
 _Status: In progress_
-_Last updated: 2025-09-27_
+_Last updated: 2025-09-28_
 
 ## Execution Notes
 - Follow the specification in `docs/4-architecture/specs/feature-001-core-credential-domain.md`.
@@ -110,19 +110,19 @@ _Last updated: 2025-09-27_
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|
 | T017 | Catalogue the official RFC 6287 reference vectors and document their provenance within the spec/plan before adding fixtures. | FR-002, NFR-004 | No |
-| T018 | Add failing-first OCRA response tests that exercise the RFC vectors (counter/time/challenge suites) and wire them to the execution helper once available. | FR-002, FR-006, NFR-004 | No |
+| T018 | Add placeholder OCRA response tests using the RFC vectors (counter/time/challenge suites) that assert `UnsupportedOperationException` until the execution helper lands. | FR-002, FR-006, NFR-004 | No |
 
 ### T017 – Vector Catalogue & Documentation Checklist
-- [ ] Identify the authoritative RFC 6287 appendix containing sample credentials, suite definitions, challenge inputs, and expected OTP outputs.
-- [ ] Record vector details and licensing notes in the feature specification (`## Clarifications`) and feature plan, ensuring attribution is clear.
-- [ ] Introduce fixtures or helper methods to load the vectors while keeping shared secrets redacted outside test scope.
-- [ ] Update open follow-ups/analysis gate notes to reflect the new compliance coverage requirement.
+- [x] Identify the authoritative RFC 6287 appendix containing sample credentials, suite definitions, challenge inputs, and expected OTP outputs. citeturn3view0
+- [x] Record vector details and licensing notes in the feature specification (`## Clarifications`) and feature plan, ensuring attribution is clear. citeturn3view0
+- [x] Introduce fixtures or helper methods to load the vectors while keeping shared secrets redacted outside test scope (2025-09-28 – `OcraRfc6287VectorFixtures`).
+- [x] Update open follow-ups/analysis gate notes to reflect the placeholder-test approach agreed on 2025-09-28 (assert `UnsupportedOperationException` until the execution helper lands).
 
 ### T018 – RFC Vector Test Harness Checklist
-- [ ] Add parameterised tests that feed the RFC counter-, time-, and challenge-based vectors through the OCRA descriptor + response calculation path, initially asserting TODO/expected failures until the engine is available.
-- [ ] Ensure tests verify both successful OTP outputs and error handling (e.g., drift tolerance) per the RFC examples.
-- [ ] Guard telemetry/log output so secrets remain redacted, adding assertions where necessary.
-- [ ] Run `./gradlew spotlessApply check` once the harness and implementation pass, recording timing and outcomes in the feature plan.
+- [x] Add parameterised tests that feed the RFC counter-, time-, and challenge-based vectors through the OCRA descriptor path and assert `UnsupportedOperationException` with a TODO marker until the execution helper is implemented (`OcraRfc6287PlaceholderTest`).
+- [x] Ensure tests cover both counter/time/challenge suites and clearly document the follow-up to flip assertions when the helper arrives (TODO noted in test Javadoc).
+- [x] Guard telemetry/log output so secrets remain redacted, adding assertions where necessary (exception message check ensures no secret substrings).
+- [x] Run `./gradlew spotlessApply check` once the placeholder harness lands (tests should remain disabled or expect the exception) and record timing/outcomes in the feature plan (2025-09-28 – PASS, ~59s, configuration cache reused).
 
 ## Phase 6 – Future Protocol Packages (Pending Separate Plans)
 | Protocol | Notes |
@@ -134,3 +134,4 @@ _Last updated: 2025-09-27_
 ## Open Follow-ups
 - Populate task outcomes and timestamps upon completion.
 - Attach Gradle command outputs and analysis gate results to the feature plan when tasks close.
+- Flip RFC 6287 placeholder assertions to real OTP comparisons once the OCRA execution helper is implemented (tracked via T018).

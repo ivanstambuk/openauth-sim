@@ -1,7 +1,7 @@
 # Feature 001 – Core Credential Domain Specification
 
 _Status: Draft_
-_Last updated: 2025-09-27_
+_Last updated: 2025-09-28_
 
 ## Overview
 Design a protocol-aware credential domain inside the `core` module that models credentials for FIDO2/WebAuthn, OATH/OCRA, the EU Digital Identity Wallet (ISO/IEC 18013-5 mDL, ISO/IEC 23220-2 mdoc profiles, SD-JWT and W3C Verifiable Credentials, and lifecycle protocols OpenID4VCI, OpenID4VP, ISO/IEC 18013-7), EMV/CAP, and generic use cases. Each protocol will live in its own Java package (`io.openauth.sim.core.credentials.ocra`, `...fido2`, `...eudiw`, `...emvcap`) so teams can roll out implementations independently. The domain must provide deterministic validation and transformation logic so downstream facades (CLI, REST, UI, JMeter plugin) can consume credential data without duplicating cryptographic rules.
@@ -79,6 +79,8 @@ Design a protocol-aware credential domain inside the `core` module that models c
 - 2025-09-28 – Persistence serialization bridge (T011): Define `VersionedCredentialRecord` schema version 1 and per-protocol adapters starting with OCRA, storing suite data under `ocra.*` keys and custom metadata under the `ocra.metadata.*` namespace ahead of MapDB integration.
 - 2025-09-28 – MapDB integration (T012): `MapDbCredentialStore` now persists `VersionedCredentialRecord` envelopes (schema v1), upgrades legacy schema-0 OCRA entries by namespacing attributes, and surface migration errors when no upgrade path exists; utility mapper converts between persisted envelopes and in-memory `Credential` aggregates.
 - 2025-09-28 – Validation telemetry (T013): Emit structured debug-level events named `ocra.validation.failure` with fields (`credentialName`, `suite`, `failureCode`, `messageId`) where `failureCode` denotes the failing stage (`CREATE_DESCRIPTOR`, `VALIDATE_CHALLENGE`, etc.) and payloads redact secrets; reuse this contract across facades for consistent observability.
+- 2025-09-28 – RFC 6287 vectors (T017–T018): Appendix C of RFC 6287 (Simplified BSD license) publishes the Standard, Challenge/Response, Mutual Challenge/Response, and Plain Signature OCRA suites with sample secrets (`31323334…` / `3132333435363738393031323334353637383930…`), counter/time/session inputs, and expected OTP outputs; we will materialise these as test-only fixtures and keep the placeholder tests asserting `UnsupportedOperationException` until the execution helper is available. citeturn3view0
+- 2025-09-28 – OCRA execution helper stub: `OcraResponseCalculator` exists as the eventual entry point for RFC 6287 evaluation and currently throws `UnsupportedOperationException`; placeholder tests enforce the TODO to swap in real OTP checks once the helper is implemented.
 
 ## References
 - `docs/4-architecture/feature-plan-001-core-domain.md`
