@@ -19,7 +19,7 @@ Reference specification: `docs/4-architecture/specs/feature-002-persistence-hard
 - Detailed execution steps reside in `docs/4-architecture/tasks/feature-002-persistence-hardening.md`.
 - Map benchmark and profiling results back to NFR-201/NFR-202 as tasks close.
 - Record outcomes of `./gradlew spotlessApply check` and benchmarks in this plan to maintain traceability.
-- 2025-09-28 – T201 baseline benchmark (`MapDbCredentialStoreBaselineBenchmark`) captured in-memory metrics: writes ≈1.7k ops/s (20k dataset, 11.6 s), reads ≈567k ops/s with P50≈0.0006 ms, P90≈0.0012 ms, P99≈0.0043 ms.
+- 2025-09-28 – T201 baseline benchmark (`MapDbCredentialStoreBaselineBenchmark`) captured in-memory metrics: writes ≈1.7k ops/s (20k dataset, 11.6 s), reads ≈567k ops/s with P50≈0.0006 ms, P90≈0.0012 ms, P99≈0.0043 ms. Rerun via `./gradlew :core:test --tests io.openauth.sim.core.store.MapDbCredentialStoreBaselineBenchmark -Dio.openauth.sim.benchmark=true` or set `IO_OPENAUTH_SIM_BENCHMARK=true` in the environment.
 
 ## Upcoming Increments
 1. **T201 – Baseline Metrics & Benchmark Harness**: introduce synthetic load tests and logging scaffolding to capture current performance.

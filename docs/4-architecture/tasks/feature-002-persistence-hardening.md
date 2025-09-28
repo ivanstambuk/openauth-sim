@@ -18,7 +18,7 @@ _Last updated: 2025-09-28_
 ### T201 – Benchmark Harness Checklist
 - [x] Introduced `MapDbCredentialStoreBaselineBenchmark` with opt-in execution flag/environment variable.
 - [x] Captured baseline in-memory metrics (writes ≈1.7k ops/s; reads ≈567k ops/s; P99 ≈0.0043 ms) on 2025-09-28.
-- [x] Document rerun instructions and persist sample output for future comparisons (feature plan references benchmark log with Gradle command).
+- [x] Documented rerun instructions (`./gradlew :core:test --tests io.openauth.sim.core.store.MapDbCredentialStoreBaselineBenchmark -Dio.openauth.sim.benchmark=true` or `IO_OPENAUTH_SIM_BENCHMARK=true ./gradlew :core:test --tests ...`) and recorded sample output in the feature plan.
 
 ## Phase 1 – Cache Strategy
 | ID | Task | Related Requirements | Parallel? |
