@@ -9,3 +9,13 @@ if [[ -z "${JAVA_HOME:-}" ]]; then
 fi
 
 "$ROOT_DIR"/gradlew --no-daemon spotlessApply check
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  cat >&2 <<'EOF'
+[pre-commit] gitleaks CLI is required but was not found on PATH.
+[pre-commit] Install it (https://github.com/gitleaks/gitleaks#installation) and rerun the commit.
+EOF
+  exit 1
+fi
+
+gitleaks detect --no-banner --redact --staged --source "$ROOT_DIR"

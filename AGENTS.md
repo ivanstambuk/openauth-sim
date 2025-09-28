@@ -7,6 +7,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
   - When presenting clarification options, list them numerically from most to least recommended and state the preferred approach explicitly.
 - **Work in small steps.** Deliver self-contained changes that finish in ≤10 minutes, run `./gradlew spotlessApply check`, and commit with a conventional message.
 - **Confirm prerequisites.** Ensure `JAVA_HOME` points to a Java 17 JDK before invoking Gradle or Git hooks.
+- **Secret scanning dependency.** Install the `gitleaks` CLI locally; the pre-commit hook runs `gitleaks detect --staged` and will fail if the binary is missing.
 - **Prime the knowledge map.** Skim `docs/4-architecture/knowledge-map.md` before planning so new work reinforces the architectural relationships already captured there.
 
 ## Specification Pipeline
