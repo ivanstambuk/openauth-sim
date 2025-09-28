@@ -22,6 +22,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R024 – Polish UX (aria landmarks, field hints, telemetry panel copy helpers), document operator workflow + sanitized telemetry expectations, and rerun `./gradlew spotlessApply check` prior to commit. ✅ 2025-09-28
 - R025 – Remove `required` validation from hidden inline fields so stored credential mode submits cleanly; add regression coverage if possible. ✅ 2025-09-28
 - R026 – Wire the REST module to the MapDB credential store (configurable path) so stored credential mode works end-to-end; refresh documentation. ✅ 2025-09-28
+- R027 – Add end-to-end UI test covering stored credential submission via MapDB-backed persistence. ✅ 2025-09-28
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -41,6 +42,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-28 – R025: Relaxed `required` attributes and disabled inactive inputs so stored credential submissions pass native validation; retained accessibility hints and kept MockMvc suite green.
 - 2025-09-28 – R026 planning: identified that the REST app lacked a `CredentialStore` bean, causing stored credential lookups to fail; need configurable MapDB wiring + docs alignment with CLI database path.
 - 2025-09-28 – R026 delivery: Added conditional MapDB-backed `CredentialStore` bean with configurable path, disabled during tests, and updated operator how-to/knowledge map to document the shared database configuration.
+- 2025-09-28 – R027 planning: need `TestRestTemplate`-driven UI flow to assert stored credential path works against MapDB store using CSRF/session handling.
+- 2025-09-28 – R027 delivery: Added `OcraOperatorUiEndToEndTest` exercising CSRF form submission with stored credential via shared MapDB store to prevent future regressions.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes
