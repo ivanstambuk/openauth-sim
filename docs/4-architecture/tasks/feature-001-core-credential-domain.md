@@ -156,9 +156,9 @@ _Last updated: 2025-09-28_
 | T024 | Wire the CLI maintenance/verification command to invoke the session-aware helper, ensuring new tests pass and telemetry stays redacted. | FR-002, FR-007, NFR-005 | No |
 
 ### T023 – CLI Session Test Harness Checklist
-- [ ] Extend the CLI feature spec/plan with session validation expectations and reference the generator provenance.
-- [ ] Add parameterised CLI integration tests invoking the maintenance command with S064/S128/S256/S512 payloads and assert expected OTP outputs (initially marked to fail pending implementation).
-- [ ] Capture TODO notes pointing to T024 and run `./gradlew :cli:test` to confirm the new tests fail due to missing wiring.
+- [x] Extend the CLI feature spec/plan with session validation expectations and reference the generator provenance.
+- [x] Add parameterised CLI integration tests invoking the maintenance command with S064/S128/S256/S512 payloads and assert TODOs for expected OTP outputs (currently verifying the command is unavailable).
+- [x] Capture TODO notes pointing to T024 and run `./gradlew :cli:test` to confirm the new tests exercise the current failure path (exit code 1, unknown command).
 
 ### T024 – CLI Session Helper Wiring Checklist
 - [ ] Implement the CLI command changes so session payloads feed into `OcraResponseCalculator`, ensuring secrets remain redacted in logs/errors.

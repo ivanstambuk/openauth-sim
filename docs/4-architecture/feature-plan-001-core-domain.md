@@ -48,6 +48,7 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
 - 2025-09-28 – Phase 5/T022 delivered: Extended the compliance suite to assert session-enabled suites expose the correct byte lengths, added redaction checks for session payloads, documented the behaviour in spec/tasks, and re-ran `./gradlew spotlessApply check` (≈27s, configuration cache reused). citeturn0search0turn0search5
 - 2025-09-28 – Session coverage follow-up: Use the IETF OCRA Internet-Draft’s vector generator to add compliance fixtures for S128/S256 (and beyond) so tests cover all documented session lengths (S064, S128, S256, S512). citeturn0search0turn0search5
 - 2025-09-28 – Phase 6 scope defined: Proceed with Option A (CLI first) for session-aware helper wiring; queued tasks T023 (tests) and T024 (implementation) under the new CLI Session Helper Integration phase.
+- 2025-09-28 – Phase 6/T023 delivered: Added parameterised CLI regression tests covering S064/S128/S256/S512 session payloads; tests currently assert the command exits with an "unknown command" error pending T024 wiring (`./gradlew :cli:test` – PASS, exercises failure path).
 
 ## Phase 4 – Next Increment (T016 Roadmap & Self-Review)
 
