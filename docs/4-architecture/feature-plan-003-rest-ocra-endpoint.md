@@ -24,6 +24,7 @@ Reference specification: `docs/4-architecture/specs/feature-003-rest-ocra-evalua
 - 2025-09-28 – Current focus on Task R001 (documentation uplift) before implementing the endpoint (R002–R004).
 - 2025-09-28 – R001 complete: spec/plan/tasks created; queued next steps R002/R003 (tests first).
 - 2025-09-28 – R002 complete: Spring Boot dependencies added, integration test asserts current 404 response (TODO to flip on R004); dependency locks updated after aligning transitive versions; `./gradlew spotlessApply check` (PASS, 2025-09-28, ~99s).
+- 2025-09-28 – R003 clarification: controller validation tests will keep 404 expectations with TODOs to flip when R004 lands.
 - 2025-09-28 – `./gradlew spotlessApply check` (PASS, config cache reused) after documentation updates.
 
 ## Dependencies

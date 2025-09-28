@@ -11,6 +11,7 @@ Expose the existing `OcraResponseCalculator` via the Spring Boot REST facade so 
 - 2025-09-28 – Endpoint will be implemented as a synchronous `POST` under `/api/v1/ocra/evaluate`, returning the computed OTP in the response payload. No long-polling or async job orchestration is required for this feature.
 - 2025-09-28 – The endpoint accepts hex-encoded secret material supplied per-request; persistence-backed credential lookup remains out of scope until a future task.
 - 2025-09-28 – Spring Boot 3.3.4 (`spring-boot-starter-web` and `spring-boot-starter-test`) introduced to the `rest-api` module with dependency locks refreshed to align shared tooling (Mockito, ByteBuddy, Caffeine, json-smart, jspecify).
+- 2025-09-28 – Controller validation tests (R003) will mirror current 404 behavior with TODOs referencing R004, keeping the build green while signalling future expectations.
 
 ## Objectives & Success Criteria
 - Provide a deterministic REST endpoint that accepts all runtime inputs required by session-enabled OCRA suites (challenge, client/server data, session payloads, timestamp, counter, PIN hash).

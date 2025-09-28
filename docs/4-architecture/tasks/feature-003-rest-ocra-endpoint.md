@@ -18,7 +18,7 @@ _Last updated: 2025-09-28_
 | ID | Task | Related Requirements | Parallel? |
 |----|------|----------------------|-----------|
 | R002 | [x] Add REST integration test stubs covering S064/S128/S256/S512 vectors; mark TODO expecting HTTP 404/501 until endpoint exists. | FR-REST-001, NFR-REST-004 | No |
-| R003 | Add unit tests for request validation/telemetry redaction using controller/service-level slices. | FR-REST-002, FR-REST-003 | No |
+| R003 | [x] Add unit tests for request validation/telemetry redaction using controller/service-level slices. | FR-REST-002, FR-REST-003 | No |
 
 ## Phase 2 – Implementation
 | ID | Task | Related Requirements | Parallel? |

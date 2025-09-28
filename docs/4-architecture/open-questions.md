@@ -12,3 +12,4 @@ When communicating options to the user—whether resolving an open question or p
 
 | Date | Context | Question | Status | Resolution |
 |------|---------|----------|--------|------------|
+| 2025-09-28 | Feature 003 – R003 | Should the new controller validation tests assert the future 400/200 responses now (failing until R004) or mirror current 501/404 placeholders with TODOs? | Resolved | Feature 003 spec/plan (Option B – mirror current behavior, document TODO) |
