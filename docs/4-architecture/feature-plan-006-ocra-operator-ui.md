@@ -46,6 +46,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R053 – Expose REST credential directory endpoint with tests. ✅ 2025-09-29
 - R054 – Populate stored credential dropdown from REST and update UI tests. ✅ 2025-09-29
 - R055 – Align CLI/REST default credential store to repo-root `data/` path and document the change. ✅ 2025-09-29
+- R056 – Remove inline mode quick diagnostics hint to match operator feedback. ✅ 2025-09-29
 - R050 – Lock builder version to read-only OCRA-1 after verifying future variants do not exist. ✅ 2025-09-29
 - R051 – Ensure stored credential inputs hide when inline mode is active. ✅ 2025-09-29
 

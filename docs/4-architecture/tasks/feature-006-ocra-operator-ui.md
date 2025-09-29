@@ -48,5 +48,6 @@ _Last updated: 2025-09-29_
 | R053 | Add REST endpoint returning stored credential summaries + tests | UI-OCRA-009 | ✅ |
 | R054 | Populate stored credential dropdown via fetch + adjust UI/Selenium coverage | UI-OCRA-009 | ✅ |
 | R055 | Unify default MapDB path under repo-root `data/` and update docs/tests | UI-OCRA-002, UI-OCRA-009 | ✅ |
+| R056 | Remove inline mode "quick diagnostics" hint per operator feedback | UI-OCRA-002, UI-OCRA-005 | ✅ |
 
 Update this checklist as work progresses.
