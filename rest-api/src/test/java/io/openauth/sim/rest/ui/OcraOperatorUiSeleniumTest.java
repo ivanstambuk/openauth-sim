@@ -432,6 +432,24 @@ final class OcraOperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Session checkbox uses compact styling container")
+  void sessionCheckboxUsesCompactStyling() {
+    driver.get(baseUrl("/ui/ocra/evaluate"));
+    waitForPresetScripts();
+
+    WebElement sessionLabel = driver.findElement(By.cssSelector("label[for='builderSession']"));
+    assertThat(sessionLabel.getAttribute("class")).contains("choice-control");
+
+    JavascriptExecutor executor = (JavascriptExecutor) driver;
+    Number height =
+        (Number)
+            executor.executeScript(
+                "return arguments[0].getBoundingClientRect().height;", sessionLabel);
+    assertThat(height.doubleValue()).isLessThanOrEqualTo(48.0d);
+    assertThat(height.doubleValue()).isGreaterThanOrEqualTo(32.0d);
+  }
+
+  @Test
   @DisplayName("Inline data inputs adopt grid layout and accent styling")
   void inlineCheckboxesAdoptGridLayoutAndAccentStyling() {
     driver.get(baseUrl("/ui/ocra/evaluate"));

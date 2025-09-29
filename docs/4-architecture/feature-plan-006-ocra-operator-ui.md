@@ -63,6 +63,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R068 – Implement compact builder select styling, refresh docs/tests, rerun `./gradlew spotlessApply check`. ✅ 2025-09-29
 - R069 – Add failing Selenium assertion to ensure redundant OCRA-1 version hint copy is absent. ✅ 2025-09-29
 - R070 – Remove redundant OCRA-1 helper text from builder and rerun checks. ✅ 2025-09-29
+- R071 – Add failing Selenium assertion capturing compact builder session checkbox styling. ✅ 2025-09-29
+- R072 – Implement compact styling for session checkbox block, rerun `./gradlew spotlessApply check`. ✅ 2025-09-29
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
