@@ -362,6 +362,10 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(versionField.getAttribute("readonly")).isNotNull();
     assertThat(versionField.getAttribute("aria-readonly")).isEqualTo("true");
 
+    WebElement builderContainer = driver.findElement(By.cssSelector(".policy-builder"));
+    assertThat(builderContainer.getText())
+        .doesNotContain("OCRA-1 is the only version defined in the OATH specification.");
+
     WebElement builderPreview =
         new WebDriverWait(driver, Duration.ofSeconds(5))
             .until(

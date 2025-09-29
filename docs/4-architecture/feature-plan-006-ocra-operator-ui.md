@@ -61,6 +61,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R066 – Implement enlarged two-column checkbox styling using design tokens and update docs/tests before rerunning checks. ✅ 2025-09-29
 - R067 – Add failing Selenium assertions capturing compact builder select height/class styling. ✅ 2025-09-29
 - R068 – Implement compact builder select styling, refresh docs/tests, rerun `./gradlew spotlessApply check`. ✅ 2025-09-29
+- R069 – Add failing Selenium assertion to ensure redundant OCRA-1 version hint copy is absent. ✅ 2025-09-29
+- R070 – Remove redundant OCRA-1 helper text from builder and rerun checks. ✅ 2025-09-29
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
