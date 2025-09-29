@@ -39,6 +39,10 @@ body {
   line-height: var(--ocra-line-height);
 }
 
+[hidden] {
+  display: none !important;
+}
+
 main {
   max-width: 80rem;
   margin: 0 auto;

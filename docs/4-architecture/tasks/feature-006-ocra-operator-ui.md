@@ -43,5 +43,6 @@ _Last updated: 2025-09-29_
 | R048 | Restore advanced parameters collapse behaviour via CSS + Selenium regression | UI-OCRA-004, UI-NFR-001 | ✅ |
 | R049 | Reorder advanced panel to appear directly under disclosure toggle and extend Selenium coverage | UI-OCRA-004, UI-NFR-001 | ✅ |
 | R050 | Lock inline builder version control to OCRA-1 and remove references to non-existent variants | UI-OCRA-008 | ✅ |
+| R051 | Hide stored credential inputs whenever inline mode is active; adjust CSS/tests accordingly | UI-OCRA-002, UI-OCRA-004 | ✅ |
 
 Update this checklist as work progresses.

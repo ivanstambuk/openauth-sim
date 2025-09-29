@@ -94,6 +94,9 @@ final class OcraOperatorUiSeleniumTest {
     driver.get(baseUrl("/ui/ocra/evaluate"));
     waitForPresetScripts();
 
+    WebElement credentialSection = driver.findElement(By.id("credential-parameters"));
+    assertThat(credentialSection.getAttribute("hidden")).isNotNull();
+
     Select presetSelect = new Select(driver.findElement(By.id("policyPreset")));
     presetSelect.selectByValue(scenario.presetKey());
     ((JavascriptExecutor) driver)
@@ -126,6 +129,7 @@ final class OcraOperatorUiSeleniumTest {
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
     assertValueWithWait(By.id("sharedSecretHex"), scenario.expectedSharedSecretHex());
+    assertThat(credentialSection.getAttribute("hidden")).isNotNull();
   }
 
   @Test
@@ -134,9 +138,13 @@ final class OcraOperatorUiSeleniumTest {
     driver.get(baseUrl("/ui/ocra/evaluate"));
     waitForPresetScripts();
 
+    WebElement credentialSection = driver.findElement(By.id("credential-parameters"));
+    assertThat(credentialSection.getAttribute("hidden")).isNotNull();
+
     driver.findElement(By.id("mode-credential")).click();
     waitForBackgroundJavaScript();
     waitForElementEnabled(By.id("credentialId"));
+    assertThat(credentialSection.getAttribute("hidden")).isNull();
 
     driver.findElement(By.id("credentialId")).sendKeys(CREDENTIAL_ID);
     driver.findElement(By.id("challenge")).sendKeys(QA_EXPECTED_CHALLENGE);
