@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -118,6 +121,37 @@ final class OcraOperatorUiControllerTest {
     assertThat(html).contains("data-testid=\"stored-credential-select\"");
     assertThat(html).contains("data-testid=\"stored-credential-status\"");
     assertThat(html).contains("data-testid=\"stored-credential-autofill\"");
+  }
+
+  @Test
+  @DisplayName("Inline data inputs expose grid styling hooks")
+  void inlineCheckboxesExposeGridStylingHooks() throws Exception {
+    String html =
+        mockMvc
+            .perform(get(UI_EVALUATION_PATH))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    assertThat(html).contains("data-testid=\"ocra-builder-data-inputs\"");
+    assertThat(html).contains("class=\"choice-row choice-grid\"");
+    assertThat(html).contains("data-testid=\"ocra-builder-counter-label\"");
+  }
+
+  @Test
+  @DisplayName("Console stylesheet defines enhanced inline checkbox styling")
+  void consoleStylesheetDefinesEnhancedCheckboxStyling() throws Exception {
+    ClassPathResource resource = new ClassPathResource("static/ui/ocra/console.css");
+    String css;
+    try (InputStream inputStream = resource.getInputStream()) {
+      css = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    assertThat(css).contains(".choice-grid");
+    assertThat(css).contains("grid-template-columns");
+    assertThat(css).contains("accent-color: var(--ocra-color-primary-accent)");
+    assertThat(css).contains("min-height: 1.75rem");
   }
 
   @Test

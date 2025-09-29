@@ -400,6 +400,52 @@ final class OcraOperatorUiSeleniumTest {
     assertValueWithWait(By.id("sharedSecretHex"), generatedSecret);
   }
 
+  @Test
+  @DisplayName("Inline data inputs adopt grid layout and accent styling")
+  void inlineCheckboxesAdoptGridLayoutAndAccentStyling() {
+    driver.get(baseUrl("/ui/ocra/evaluate"));
+    waitForPresetScripts();
+
+    WebElement choiceContainer =
+        driver.findElement(By.cssSelector("[data-testid='ocra-builder-data-inputs']"));
+    assertThat(choiceContainer.getAttribute("class")).contains("choice-grid");
+
+    JavascriptExecutor executor = (JavascriptExecutor) driver;
+    String display =
+        (String)
+            executor.executeScript(
+                "return window.getComputedStyle(arguments[0]).getPropertyValue('display');",
+                choiceContainer);
+    assertThat(display).isEqualTo("grid");
+
+    String templateColumns =
+        (String)
+            executor.executeScript(
+                "return window.getComputedStyle(arguments[0]).getPropertyValue('grid-template-columns');",
+                choiceContainer);
+    assertThat(templateColumns).contains("minmax");
+
+    WebElement counterCheckbox = driver.findElement(By.id("builderCounter"));
+    String accentColor =
+        (String)
+            executor.executeScript(
+                "return window.getComputedStyle(arguments[0]).getPropertyValue('accent-color');",
+                counterCheckbox);
+    assertThat(accentColor).isNotBlank();
+    assertThat(accentColor).containsAnyOf("26, 166, 160", "var(--ocra-color-primary-accent)");
+
+    Number checkboxWidth =
+        (Number)
+            executor.executeScript(
+                "return arguments[0].getBoundingClientRect().width;", counterCheckbox);
+    Number checkboxHeight =
+        (Number)
+            executor.executeScript(
+                "return arguments[0].getBoundingClientRect().height;", counterCheckbox);
+    assertThat(checkboxWidth.doubleValue()).isGreaterThanOrEqualTo(18.0d);
+    assertThat(checkboxHeight.doubleValue()).isGreaterThanOrEqualTo(18.0d);
+  }
+
   private static Stream<InlinePresetScenario> inlinePresetScenarios() {
     return Stream.of(
         new InlinePresetScenario(

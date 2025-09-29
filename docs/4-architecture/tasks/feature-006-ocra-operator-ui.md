@@ -57,5 +57,7 @@ _Last updated: 2025-09-29_
 | R062 | Implement client-side suite parsing + auto-pop generation (challenge/session/counter/timestamp/PIN) with disallowed field clearing | UI-OCRA-009, UI-OCRA-005 | ✅ |
 | R063 | Update documentation, knowledge map, and rerun `./gradlew spotlessApply check` | UI-OCRA-009, Documentation | ✅ |
 | R064 | Tweak stored credential auto-fill button label/hint spacing | UI-OCRA-009, UI-NFR-001 | ✅ |
+| R065 | Add failing Selenium/MockMvc coverage verifying enhanced inline checkbox layout, sizing, and accent styling | UI-OCRA-002, UI-NFR-001 | ✅ |
+| R066 | Implement enlarged two-column checkbox styling with design tokens, refresh docs/tests, rerun `./gradlew spotlessApply check` | UI-OCRA-002, UI-NFR-001 | ✅ |
 
 Update this checklist as work progresses.

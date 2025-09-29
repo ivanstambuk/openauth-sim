@@ -21,6 +21,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-29 – Styling will rely on custom CSS tokens/variables instead of third-party frameworks to avoid new dependencies while enabling cohesive theming (user chose option B).
 - 2025-09-29 – Layout must remain responsive for desktop and tablet operators, ensuring key panels stack gracefully on medium breakpoints (user chose option B).
 - 2025-09-29 – Branding will be limited to lightweight in-code typography/wordmark treatments until official assets arrive, avoiding external files while adding subtle identity (user chose option B).
+- 2025-09-29 – Inline data input checkboxes will remain native elements styled with enlarged hit areas, a two-column grid, and navy/teal accent colors derived from console tokens to preserve accessibility while polishing their appearance (user chose option A).
 - 2025-09-29 – Inline policy builder will use a guided form that assembles suite components and previews the resulting descriptor live, reducing reliance on memorised strings while staying inline (user chose option B).
 - 2025-09-29 – Inline policy builder will use a guided form that assembles suite components and previews the resulting descriptor live, reducing reliance on memorised strings while staying inline (user chose option B).
 - 2025-09-29 – Verified the OATH specification only defines OCRA-1 today; the builder will present the version as a read-only OCRA-1 label to avoid implying future variants exist.

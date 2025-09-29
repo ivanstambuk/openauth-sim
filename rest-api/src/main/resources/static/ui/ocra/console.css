@@ -245,20 +245,42 @@ button {
 }
 
 .builder-grid .choice-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: var(--ocra-spacing-sm);
 }
 
-.builder-grid .choice-row label {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-weight: 500;
+.builder-grid .choice-grid {
+  display: grid;
 }
 
-.builder-grid .choice-row input[type='checkbox'] {
-  accent-color: var(--ocra-color-primary);
+.choice-control {
+  display: flex;
+  align-items: center;
+  gap: var(--ocra-spacing-sm);
+  padding: calc(var(--ocra-spacing-sm) - 0.1rem) var(--ocra-spacing-md);
+  min-height: 1.75rem;
+  border-radius: var(--ocra-radius-sm);
+  border: 1px solid rgba(18, 59, 93, 0.12);
+  background: #ffffff;
+  font-weight: 500;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.choice-control:hover {
+  background: rgba(26, 166, 160, 0.08);
+}
+
+.choice-control:focus-within {
+  border-color: var(--ocra-color-primary);
+  box-shadow: 0 0 0 2px var(--ocra-color-primary-soft);
+}
+
+.choice-control input[type='checkbox'] {
+  width: 1.2rem;
+  height: 1.2rem;
+  min-width: 1.2rem;
+  accent-color: var(--ocra-color-primary-accent);
 }
 
 .builder-preview {

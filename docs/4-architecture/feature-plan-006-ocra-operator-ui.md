@@ -54,10 +54,11 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R059 – Inline Appendix A/B OCRA generator code within the how-to guide to remove repeated external fetch steps. ✅ 2025-09-29
 - R060 – Capture stored credential auto-population scope (clarifications, plan, tasks) and confirm client-side generation strategy. ✅ 2025-09-29
 - R061 – Add failing MockMvc + Selenium coverage for stored credential auto-populate button (required field injection, disallowed field clearing, timestamp derivation). ☐
-- R062 – Implement client-side suite parsing and random generation for stored credential auto-population, snapping timestamp to current UTC step. ☐
-- R063 – Refresh documentation, tasks, and knowledge map entries; rerun `./gradlew spotlessApply check`. ☐
+- R062 – Implement client-side suite parsing and random generation for stored credential auto-population, snapping timestamp to current UTC step. ✅ 2025-09-29
 - R063 – Refresh documentation, tasks, and knowledge map entries; rerun `./gradlew spotlessApply check`. ✅ 2025-09-29
 - R064 – Polish stored credential auto-fill styling/text (spacing, button label tweak, remove redundant hints). ✅ 2025-09-29
+- R065 – Add failing Selenium/MockMvc assertions covering enhanced inline checkbox styling (layout, sizing, accent colors). ✅ 2025-09-29
+- R066 – Implement enlarged two-column checkbox styling using design tokens and update docs/tests before rerunning checks. ✅ 2025-09-29
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).

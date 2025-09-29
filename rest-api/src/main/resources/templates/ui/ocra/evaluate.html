@@ -132,24 +132,45 @@
                 </div>
                 <div class="field-group">
                   <span class="hint">Include data inputs</span>
-                  <div class="choice-row">
-                    <label for="builderCounter">
-                      <input type="checkbox" id="builderCounter" data-testid="ocra-builder-counter" checked />
+                  <div
+                    class="choice-row choice-grid"
+                    data-testid="ocra-builder-data-inputs"
+                  >
+                    <label
+                      for="builderCounter"
+                      class="choice-control"
+                      data-testid="ocra-builder-counter-label"
+                    >
+                      <input
+                        type="checkbox"
+                        id="builderCounter"
+                        data-testid="ocra-builder-counter"
+                        checked
+                      />
                       Counter (C)
                     </label>
-                    <label for="builderPin">
+                    <label for="builderPin" class="choice-control">
                       <input type="checkbox" id="builderPin" data-testid="ocra-builder-pin" />
                       PIN hash (P)
                     </label>
-                    <label for="builderTimestamp">
-                      <input type="checkbox" id="builderTimestamp" data-testid="ocra-builder-timestamp" />
+                    <label for="builderTimestamp" class="choice-control">
+                      <input
+                        type="checkbox"
+                        id="builderTimestamp"
+                        data-testid="ocra-builder-timestamp"
+                      />
                       Timestamp (T)
                     </label>
                   </div>
                 </div>
                 <div class="field-group">
-                  <label class="choice-label" for="builderSession">
-                    <input type="checkbox" id="builderSession" data-testid="ocra-builder-session" checked />
+                  <label class="choice-label choice-control" for="builderSession">
+                    <input
+                      type="checkbox"
+                      id="builderSession"
+                      data-testid="ocra-builder-session"
+                      checked
+                    />
                     Session data (S)
                   </label>
                   <label for="builderSessionLength" class="hint">
