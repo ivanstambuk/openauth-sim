@@ -307,6 +307,16 @@ button {
   min-width: 6rem;
 }
 
+.builder-status {
+  margin: 0 0 var(--ocra-spacing-sm);
+  color: var(--ocra-color-text-muted);
+  font-size: 0.95rem;
+}
+
+.builder-status--warning {
+  color: var(--ocra-color-danger);
+}
+
 .mode-toggle {
   display: grid;
   gap: var(--ocra-spacing-md);

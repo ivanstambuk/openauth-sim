@@ -175,9 +175,22 @@ final class OcraOperatorUiSeleniumTest {
     String previewText = builderPreview.getText();
     assertThat(previewText).isNotBlank();
 
-    driver.findElement(By.cssSelector("button[data-testid='ocra-builder-apply']")).click();
+    WebElement applyButton =
+        driver.findElement(By.cssSelector("button[data-testid='ocra-builder-apply']"));
+    applyButton.click();
     waitForBackgroundJavaScript();
     assertValueWithWait(By.id("suite"), previewText);
+
+    WebElement sessionLengthField = driver.findElement(By.id("builderSessionLength"));
+    sessionLengthField.clear();
+    sessionLengthField.sendKeys("7");
+    waitForBackgroundJavaScript();
+    assertThat(applyButton.isEnabled()).isFalse();
+
+    sessionLengthField.clear();
+    sessionLengthField.sendKeys("64");
+    waitForBackgroundJavaScript();
+    assertThat(applyButton.isEnabled()).isTrue();
 
     driver.findElement(By.cssSelector("button[data-testid='ocra-builder-generate']")).click();
     waitForBackgroundJavaScript();
@@ -186,7 +199,7 @@ final class OcraOperatorUiSeleniumTest {
     String generatedSecret = secretPreview.getText();
     assertThat(generatedSecret).isNotBlank().isNotEqualTo("—");
 
-    driver.findElement(By.cssSelector("button[data-testid='ocra-builder-apply']")).click();
+    applyButton.click();
     waitForBackgroundJavaScript();
     assertValueWithWait(By.id("sharedSecretHex"), generatedSecret);
   }

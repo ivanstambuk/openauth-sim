@@ -188,6 +188,12 @@
                 <strong data-testid="ocra-builder-preview"></strong>
               </div>
 
+              <p
+                class="builder-status"
+                data-testid="ocra-builder-status"
+                aria-live="polite"
+              ></p>
+
               <div class="builder-actions">
                 <button type="button" class="button-primary" data-testid="ocra-builder-apply">
                   Apply configuration
@@ -498,6 +504,7 @@
         const builderGenerateButton = document.querySelector('[data-testid="ocra-builder-generate"]');
         const builderApplyButton = document.querySelector('[data-testid="ocra-builder-apply"]');
         const builderResetButton = document.querySelector('[data-testid="ocra-builder-reset"]');
+        const builderStatus = document.querySelector('[data-testid="ocra-builder-status"]');
         let builderGeneratedSecret = '';
         const fetchDelegate =
           typeof window.fetch === 'function'
@@ -691,65 +698,100 @@
           }
         }
 
-        function padLength(value) {
-          var numeric = Number(value);
-          if (!Number.isFinite(numeric) || numeric <= 0) {
-            return '000';
+        function formatSessionLengthBits() {
+          if (!(builderSession && builderSession.checked)) {
+            return { token: '', warning: null };
           }
-          return String(Math.max(8, Math.round(numeric / 8) * 8)).padStart(3, '0');
+          var raw = Number(builderSessionLength ? builderSessionLength.value : 0);
+          if (!Number.isFinite(raw) || raw < 8) {
+            return { token: '', warning: 'Session length must be at least 8 bits.' };
+          }
+          if (raw % 8 !== 0) {
+            return { token: '', warning: 'Session length must be a multiple of 8 bits.' };
+          }
+          var formatted = String(raw).padStart(3, '0');
+          return { token: 'S' + formatted, warning: null };
         }
 
-        function sanitizeDigits(value) {
+        function normalizeDigits(value) {
           var digits = Number(value);
-          return Number.isFinite(digits) && digits >= 1 ? String(Math.floor(digits)) : '6';
+          if (!Number.isFinite(digits)) {
+            return { value: '6', warning: 'OTP digits must be numeric.' };
+          }
+          var allowed = [4, 6, 8, 10];
+          if (allowed.indexOf(digits) === -1) {
+            return {
+              value: String(allowed[1]),
+              warning: 'Digits must be one of 4, 6, 8, or 10.',
+            };
+          }
+          return { value: String(digits), warning: null };
         }
 
-        function buildDataInputs() {
-          var tokens = [];
-          if (builderCounter && builderCounter.checked) {
-            tokens.push('C');
-          }
-          if (builderChallenge && builderChallenge.value) {
-            tokens.push(builderChallenge.value);
-          }
-          if (builderPin && builderPin.checked) {
-            tokens.push('P');
-          }
-          if (builderSession && builderSession.checked) {
-            var sessionToken = 'S' + padLength(builderSessionLength ? builderSessionLength.value : 0);
-            tokens.push(sessionToken);
-          }
-          if (builderTimestamp && builderTimestamp.checked) {
-            tokens.push('T');
-          }
-          return tokens.filter(function (token) {
-            return Boolean(token);
-          });
-        }
-
-        function computeSuitePreview() {
+        function evaluateBuilderState() {
+          var warnings = [];
           var version = builderVersion ? builderVersion.value : 'OCRA-1';
           var algorithm = builderAlgorithm ? builderAlgorithm.value : 'HOTP-SHA1';
-          var digits = sanitizeDigits(builderDigits ? builderDigits.value : '6');
-          var inputs = buildDataInputs();
-          if (!inputs.length) {
-            return '';
+          var digitsResult = normalizeDigits(builderDigits ? builderDigits.value : '6');
+          if (digitsResult.warning) {
+            warnings.push(digitsResult.warning);
           }
-          return version + ':' + algorithm + '-' + digits + ':' + inputs.join('-');
+          var digits = digitsResult.value;
+          var inputs = [];
+          if (builderCounter && builderCounter.checked) {
+            inputs.push('C');
+          }
+          if (builderChallenge && builderChallenge.value) {
+            inputs.push(builderChallenge.value);
+          } else {
+            warnings.push('Select a challenge format.');
+          }
+          if (builderPin && builderPin.checked) {
+            inputs.push('P');
+          }
+          var sessionResult = formatSessionLengthBits();
+          if (sessionResult.warning) {
+            warnings.push(sessionResult.warning);
+          }
+          if (sessionResult.token) {
+            inputs.push(sessionResult.token);
+          }
+          if (builderTimestamp && builderTimestamp.checked) {
+            inputs.push('T');
+          }
+          if (!inputs.length) {
+            warnings.push('Select at least one data input.');
+          }
+          var suiteText = inputs.length
+            ? version + ':' + algorithm + '-' + digits + ':' + inputs.join('-')
+            : '';
+          return {
+            suite: suiteText,
+            warnings: warnings,
+          };
         }
 
         function updateBuilderPreview() {
-          if (!builderPreview) {
-            return;
-          }
-          var suiteText = computeSuitePreview();
-          builderPreview.textContent = suiteText || 'Select options to build a suite';
-          if (builderApplyButton) {
-            builderApplyButton.disabled = !suiteText;
-          }
           if (builderSessionLength) {
             builderSessionLength.disabled = !(builderSession && builderSession.checked);
           }
+          var state = evaluateBuilderState();
+          if (builderPreview) {
+            builderPreview.textContent = state.suite || 'Select options to build a suite';
+          }
+          if (builderApplyButton) {
+            builderApplyButton.disabled = !state.suite || state.warnings.length > 0;
+          }
+          if (builderStatus) {
+            if (state.warnings.length > 0) {
+              builderStatus.textContent = state.warnings[0];
+              builderStatus.classList.add('builder-status--warning');
+            } else {
+              builderStatus.textContent = 'Preview updates automatically as you change options.';
+              builderStatus.classList.remove('builder-status--warning');
+            }
+          }
+          return state;
         }
 
         function updateSecretPreview() {
@@ -783,8 +825,8 @@
         }
 
         function applyBuilderSuite() {
-          var suiteText = computeSuitePreview();
-          if (!suiteText) {
+          var state = evaluateBuilderState();
+          if (!state.suite || state.warnings.length > 0) {
             return;
           }
           if (inlineModeRadio) {
@@ -792,7 +834,7 @@
           }
           updateSections();
           if (suiteInput) {
-            suiteInput.value = suiteText;
+            suiteInput.value = state.suite;
           }
           if (builderGeneratedSecret && sharedSecretInput) {
             sharedSecretInput.value = builderGeneratedSecret;
