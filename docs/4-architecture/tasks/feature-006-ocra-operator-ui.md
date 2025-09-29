@@ -51,5 +51,6 @@ _Last updated: 2025-09-29_
 | R056 | Remove inline mode "quick diagnostics" hint per operator feedback | UI-OCRA-002, UI-OCRA-005 | ✅ |
 | R057 | Drop redundant mode selection help text beneath radio buttons | UI-OCRA-002, UI-OCRA-005 | ✅ |
 | R058 | Trim section headings/descriptions for inline vs stored mode per operator request | UI-OCRA-002, UI-OCRA-005 | ✅ |
+| R059 | Embed Appendix A/B OCRA generator code directly in the how-to to eliminate repeated fetch/setup steps | UI-OCRA-007, Documentation | ✅ |
 
 Update this checklist as work progresses.

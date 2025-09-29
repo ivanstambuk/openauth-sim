@@ -28,6 +28,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-29 – Stored credential mode will surface a dropdown that lists available credential IDs fetched from the REST API; operators no longer type identifiers manually and selections hydrate the evaluation request.
 - 2025-09-29 – Default credential database lives at `data/ocra-credentials.db` in the repo root so CLI and REST/Operator UI share the same persistence by default; environment/property overrides remain supported.
 - 2025-09-29 – Builder must surface inline validation and disable Apply when configuration is incomplete (e.g., invalid session length or missing challenge) while keeping assistive messaging accessible (agreed during UX polish).
+- 2025-09-29 – Appendix A/B OCRA reference code from the draft is embedded directly in the generator how-to so agents work offline while preserving the canonical URL reference.
 
 ## Objectives & Success Criteria
 - Provide browser-accessible pages that let operators evaluate OCRA responses using stored credentials or inline parameters, mirroring REST validation semantics.

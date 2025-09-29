@@ -51,6 +51,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R058 – Remove inline/stored mode headings + descriptive hints when sections toggle. ✅ 2025-09-29
 - R050 – Lock builder version to read-only OCRA-1 after verifying future variants do not exist. ✅ 2025-09-29
 - R051 – Ensure stored credential inputs hide when inline mode is active. ✅ 2025-09-29
+- R059 – Inline Appendix A/B OCRA generator code within the how-to guide to remove repeated external fetch steps. ✅ 2025-09-29
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -104,6 +105,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-29 – R053: Added `/api/v1/ocra/credentials` endpoint returning sanitized summaries with snapshot/test coverage.
 - 2025-09-29 – R054: Wired stored credential mode to fetch summaries, render dropdown/status messages, and updated Selenium coverage + controller assertions.
 - 2025-09-29 – R055: Unified CLI/REST defaults on repo-root `data/ocra-credentials.db`, added shared path utility, refreshed docs/tests, and re-ran checks.
+- 2025-09-29 – R059: Embedded Appendix A/B reference code directly in the generator how-to, refreshed spec/tasks, and re-ran `./gradlew spotlessApply check` to confirm the documentation-only change passes gates.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes
