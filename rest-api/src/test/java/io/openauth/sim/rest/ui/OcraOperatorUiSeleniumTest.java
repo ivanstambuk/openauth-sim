@@ -401,6 +401,33 @@ final class OcraOperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Builder selects use compact styling class and height")
+  void builderSelectsUseCompactStyling() {
+    driver.get(baseUrl("/ui/ocra/evaluate"));
+    waitForPresetScripts();
+
+    List<WebElement> selects =
+        List.of(
+            driver.findElement(By.id("builderAlgorithm")),
+            driver.findElement(By.id("builderDigits")),
+            driver.findElement(By.id("builderChallenge")));
+
+    selects.forEach(
+        element -> assertThat(element.getAttribute("class")).contains("select-compact"));
+
+    JavascriptExecutor executor = (JavascriptExecutor) driver;
+    selects.forEach(
+        element -> {
+          Number height =
+              (Number)
+                  executor.executeScript(
+                      "return arguments[0].getBoundingClientRect().height;", element);
+          assertThat(height.doubleValue()).isLessThanOrEqualTo(48.0d);
+          assertThat(height.doubleValue()).isGreaterThanOrEqualTo(32.0d);
+        });
+  }
+
+  @Test
   @DisplayName("Inline data inputs adopt grid layout and accent styling")
   void inlineCheckboxesAdoptGridLayoutAndAccentStyling() {
     driver.get(baseUrl("/ui/ocra/evaluate"));

@@ -59,5 +59,7 @@ _Last updated: 2025-09-29_
 | R064 | Tweak stored credential auto-fill button label/hint spacing | UI-OCRA-009, UI-NFR-001 | ✅ |
 | R065 | Add failing Selenium/MockMvc coverage verifying enhanced inline checkbox layout, sizing, and accent styling | UI-OCRA-002, UI-NFR-001 | ✅ |
 | R066 | Implement enlarged two-column checkbox styling with design tokens, refresh docs/tests, rerun `./gradlew spotlessApply check` | UI-OCRA-002, UI-NFR-001 | ✅ |
+| R067 | Add failing Selenium assertions that enforce compact builder select height/class styling | UI-OCRA-002, UI-NFR-001 | ✅ |
+| R068 | Implement compact select styling, sync docs/tests, rerun `./gradlew spotlessApply check` | UI-OCRA-002, UI-NFR-001 | ✅ |
 
 Update this checklist as work progresses.

@@ -105,7 +105,11 @@
               </div>
                 <div class="field-group">
                   <label for="builderAlgorithm">OTP algorithm</label>
-                  <select id="builderAlgorithm" data-testid="ocra-builder-algorithm">
+                  <select
+                    id="builderAlgorithm"
+                    class="select-compact"
+                    data-testid="ocra-builder-algorithm"
+                  >
                     <option value="HOTP-SHA1">HOTP-SHA1</option>
                     <option value="HOTP-SHA256" selected>HOTP-SHA256</option>
                     <option value="HOTP-SHA512">HOTP-SHA512</option>
@@ -113,7 +117,11 @@
                 </div>
                 <div class="field-group">
                   <label for="builderDigits">OTP digits</label>
-                  <select id="builderDigits" data-testid="ocra-builder-digits">
+                  <select
+                    id="builderDigits"
+                    class="select-compact"
+                    data-testid="ocra-builder-digits"
+                  >
                     <option value="4">4 digits</option>
                     <option value="6" selected>6 digits</option>
                     <option value="8">8 digits</option>
@@ -122,7 +130,11 @@
                 </div>
                 <div class="field-group">
                   <label for="builderChallenge">Challenge format</label>
-                  <select id="builderChallenge" data-testid="ocra-builder-challenge">
+                  <select
+                    id="builderChallenge"
+                    class="select-compact"
+                    data-testid="ocra-builder-challenge"
+                  >
                     <option value="QA08" selected>QA08 – alphanumeric (8)</option>
                     <option value="QA10">QA10 – alphanumeric (10)</option>
                     <option value="QA12">QA12 – alphanumeric (12)</option>
@@ -191,7 +203,11 @@
                 <span>Generated secret:</span>
                 <code data-testid="ocra-builder-secret-preview">—</code>
                 <label for="builderSecretLength" class="visually-hidden">Secret length (bytes)</label>
-                <select id="builderSecretLength" data-testid="ocra-builder-secret-length">
+                <select
+                  id="builderSecretLength"
+                  class="select-compact"
+                  data-testid="ocra-builder-secret-length"
+                >
                   <option value="20">20 bytes</option>
                   <option value="32" selected>32 bytes</option>
                   <option value="64">64 bytes</option>

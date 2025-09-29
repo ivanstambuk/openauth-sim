@@ -416,6 +416,13 @@ fieldset {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.field-grid .select-compact {
+  padding: calc(var(--ocra-spacing-xs) + 0.05rem) var(--ocra-spacing-md);
+  min-height: 2.25rem;
+  height: 2.6rem;
+  line-height: 1.2;
+}
+
 .field-grid input:focus,
 .field-grid select:focus,
 .field-grid textarea:focus {
