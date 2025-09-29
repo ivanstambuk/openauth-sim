@@ -292,31 +292,6 @@
               </button>
             </div>
 
-            <div class="field-grid request-primary-grid">
-              <div>
-                <label for="challenge">Challenge</label>
-                <input
-                  id="challenge"
-                  name="challenge"
-                  type="text"
-                  th:value="${form.challenge}"
-                  autocomplete="off"
-                  aria-describedby="parameters-hint"
-                />
-              </div>
-              <div>
-                <label for="counter">Counter</label>
-                <input
-                  id="counter"
-                  name="counter"
-                  type="number"
-                  min="0"
-                  th:value="${form.counter}"
-                  autocomplete="off"
-                />
-              </div>
-            </div>
-
             <div
               id="advanced-parameters"
               class="advanced-panel field-grid"
@@ -360,6 +335,31 @@
                   name="timestampHex"
                   type="text"
                   th:value="${form.timestampHex}"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+
+            <div class="field-grid request-primary-grid">
+              <div>
+                <label for="challenge">Challenge</label>
+                <input
+                  id="challenge"
+                  name="challenge"
+                  type="text"
+                  th:value="${form.challenge}"
+                  autocomplete="off"
+                  aria-describedby="parameters-hint"
+                />
+              </div>
+              <div>
+                <label for="counter">Counter</label>
+                <input
+                  id="counter"
+                  name="counter"
+                  type="number"
+                  min="0"
+                  th:value="${form.counter}"
                   autocomplete="off"
                 />
               </div>

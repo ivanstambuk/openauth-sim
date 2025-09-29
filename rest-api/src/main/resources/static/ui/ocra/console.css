@@ -194,8 +194,12 @@ button {
   display: none;
 }
 
+.advanced-panel[data-open="false"] {
+  display: none;
+}
+
 .advanced-panel[data-open="true"] {
-  display: block;
+  display: grid;
 }
 
 .policy-builder {

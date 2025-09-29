@@ -40,5 +40,7 @@ _Last updated: 2025-09-29_
 | R045 | Flesh out guided inline builder specification (controls, preview, apply/reset) in spec/plan/tasks | UI-OCRA-002, UI-OCRA-008 | ✅ |
 | R046 | Add builder UI components + preview logic with tests updating MockMvc & Selenium flows | UI-OCRA-002, UI-OCRA-008 | ✅ |
 | R047 | Finalize builder UX (validation, accessibility copy), update docs/tests, run `./gradlew spotlessApply check` | UI-OCRA-001–UI-OCRA-008 | ✅ |
+| R048 | Restore advanced parameters collapse behaviour via CSS + Selenium regression | UI-OCRA-004, UI-NFR-001 | ✅ |
+| R049 | Reorder advanced panel to appear directly under disclosure toggle and extend Selenium coverage | UI-OCRA-004, UI-NFR-001 | ✅ |
 
 Update this checklist as work progresses.

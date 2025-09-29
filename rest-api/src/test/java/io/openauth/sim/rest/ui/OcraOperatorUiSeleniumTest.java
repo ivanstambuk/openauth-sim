@@ -140,6 +140,8 @@ final class OcraOperatorUiSeleniumTest {
 
     driver.findElement(By.id("credentialId")).sendKeys(CREDENTIAL_ID);
     driver.findElement(By.id("challenge")).sendKeys(QA_EXPECTED_CHALLENGE);
+    driver.findElement(By.cssSelector("button[data-testid='ocra-advanced-toggle']")).click();
+    waitForBackgroundJavaScript();
     driver.findElement(By.id("sessionHex")).sendKeys(QA_EXPECTED_SESSION);
 
     driver.findElement(By.cssSelector("button[data-testid='ocra-evaluate-button']")).click();
@@ -158,6 +160,37 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(metadata.getText()).contains("Success").contains("true");
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
+  }
+
+  @Test
+  @DisplayName("Advanced parameters disclosure toggles visibility")
+  void advancedParametersDisclosureTogglesVisibility() {
+    driver.get(baseUrl("/ui/ocra/evaluate"));
+    waitForPresetScripts();
+
+    WebElement parametersStack =
+        driver.findElement(By.cssSelector(".request-parameters .stack-sm"));
+    WebElement advancedPanel =
+        driver.findElement(By.cssSelector("[data-testid='ocra-advanced-panel']"));
+    WebElement advancedToggle =
+        driver.findElement(By.cssSelector("button[data-testid='ocra-advanced-toggle']"));
+
+    Object immediateSiblingId =
+        ((JavascriptExecutor) driver)
+            .executeScript(
+                "return arguments[0].nextElementSibling && arguments[0].nextElementSibling.id;",
+                parametersStack);
+    assertThat(immediateSiblingId).isEqualTo("advanced-parameters");
+
+    assertThat(advancedPanel.isDisplayed()).isFalse();
+
+    advancedToggle.click();
+    waitForBackgroundJavaScript();
+    assertThat(advancedPanel.isDisplayed()).isTrue();
+
+    advancedToggle.click();
+    waitForBackgroundJavaScript();
+    assertThat(advancedPanel.isDisplayed()).isFalse();
   }
 
   @Test
