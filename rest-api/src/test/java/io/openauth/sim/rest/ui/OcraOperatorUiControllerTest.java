@@ -117,6 +117,7 @@ final class OcraOperatorUiControllerTest {
     assertThat(html).contains("data-testid=\"ocra-builder-generate\"");
     assertThat(html).contains("data-testid=\"stored-credential-select\"");
     assertThat(html).contains("data-testid=\"stored-credential-status\"");
+    assertThat(html).contains("data-testid=\"stored-credential-autofill\"");
   }
 
   @Test

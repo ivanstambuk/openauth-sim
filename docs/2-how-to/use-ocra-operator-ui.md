@@ -29,6 +29,9 @@ telemetry.
 - **Stored credential** – Supply a credential identifier that already exists in the simulator.
   The UI forwards only the identifier; secrets stay in persistence. The REST app loads
   credentials from the MapDB file referenced by `openauth.sim.persistence.database-path`.
+  After selecting a credential, use **Auto-fill parameters** to generate suite-compatible
+  challenges, counters, sessions, and timestamps directly in the browser so the subsequent
+  evaluation succeeds without manual data entry.
 
 The mode toggle is keyboard-accessible and announces which section is visible. JavaScript is required
 for evaluations because submissions now run through asynchronous JSON fetch calls. The Evaluate button
@@ -40,7 +43,8 @@ no longer performs a traditional form POST; without JavaScript the console stays
 - Request parameters (challenge, client/server challenge, session, timestamp, counter) map one-to-one
   with `POST /api/v1/ocra/evaluate`. Leave fields blank to accept backend defaults. The counter field
   is automatically populated when you select the C-QH64 preset so results match the documented test
-  vectors.
+  vectors. Stored credential mode can now auto-populate required fields; the UI also clears values
+  that the selected suite forbids so you avoid validation conflicts.
 - Shared secrets remain visible after each evaluation so you can iterate on the same test data
   during verification. Clear the field manually if you need to hide the value. The fetch handler
   still clears the optional PIN hash field once the REST call completes.

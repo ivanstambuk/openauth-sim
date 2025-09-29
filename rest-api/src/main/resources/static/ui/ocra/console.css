@@ -171,6 +171,13 @@ button {
   gap: var(--ocra-spacing-sm);
 }
 
+.credential-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ocra-spacing-sm);
+  margin-top: var(--ocra-spacing-md);
+}
+
 .advanced-toggle {
   display: inline-flex;
   align-items: center;

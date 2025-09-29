@@ -28,6 +28,8 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-29 – Stored credential mode will surface a dropdown that lists available credential IDs fetched from the REST API; operators no longer type identifiers manually and selections hydrate the evaluation request.
 - 2025-09-29 – Default credential database lives at `data/ocra-credentials.db` in the repo root so CLI and REST/Operator UI share the same persistence by default; environment/property overrides remain supported.
 - 2025-09-29 – Builder must surface inline validation and disable Apply when configuration is incomplete (e.g., invalid session length or missing challenge) while keeping assistive messaging accessible (agreed during UX polish).
+- 2025-09-29 – Stored credential auto-populate button will fill every suite-required field (challenge, counter, session, timestamp, PIN) and clear disallowed inputs to prevent validation conflicts; logic executes entirely in the client.
+- 2025-09-29 – Timestamp values generated during stored credential auto-population will derive from the current UTC clock snapped to the suite’s declared timestep so evaluations succeed without drift.
 - 2025-09-29 – Appendix A/B OCRA reference code from the draft is embedded directly in the generator how-to so agents work offline while preserving the canonical URL reference.
 
 ## Objectives & Success Criteria

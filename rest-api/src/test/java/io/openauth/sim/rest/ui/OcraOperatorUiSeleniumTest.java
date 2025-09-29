@@ -12,6 +12,8 @@ import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -52,6 +55,46 @@ final class OcraOperatorUiSeleniumTest {
   private static final String QH64_EXPECTED_OTP = "429968";
   private static final String INLINE_SHARED_SECRET =
       "3132333435363738393031323334353637383930313233343536373839303132";
+  private static final String DEFAULT_STORED_SECRET =
+      "3132333435363738393031323334353637383930313233343536373839303132";
+  private static final StoredCredentialScenario QA_STORED_SCENARIO =
+      new StoredCredentialScenario(
+          "QA08 session credential",
+          "operator-demo",
+          "OCRA-1:HOTP-SHA256-8:QA08-S064",
+          DEFAULT_STORED_SECRET,
+          new ChallengeExpectation(ChallengeType.ALPHANUMERIC, 8),
+          64,
+          false,
+          false,
+          0,
+          null);
+  private static final StoredCredentialScenario COUNTER_STORED_SCENARIO =
+      new StoredCredentialScenario(
+          "Counter + hex challenge credential",
+          "operator-counter",
+          "OCRA-1:HOTP-SHA256-6:C-QH64",
+          DEFAULT_STORED_SECRET,
+          new ChallengeExpectation(ChallengeType.HEX, 64),
+          0,
+          true,
+          false,
+          0,
+          0L);
+  private static final StoredCredentialScenario TIMESTAMP_STORED_SCENARIO =
+      new StoredCredentialScenario(
+          "Timestamp + numeric challenge credential",
+          "operator-timestamp",
+          "OCRA-1:HOTPT30SHA256-7:QN08",
+          DEFAULT_STORED_SECRET,
+          new ChallengeExpectation(ChallengeType.NUMERIC, 8),
+          0,
+          false,
+          true,
+          30,
+          null);
+  private static final List<StoredCredentialScenario> STORED_CREDENTIAL_SCENARIOS =
+      List.of(QA_STORED_SCENARIO, COUNTER_STORED_SCENARIO, TIMESTAMP_STORED_SCENARIO);
   private static final String CREDENTIAL_ID = "operator-demo";
 
   @TempDir static Path tempDir;
@@ -130,6 +173,111 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
     assertValueWithWait(By.id("sharedSecretHex"), scenario.expectedSharedSecretHex());
     assertThat(credentialSection.getAttribute("hidden")).isNotNull();
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("storedCredentialAutoPopulateScenarios")
+  @DisplayName("Stored credential auto-populate fills required inputs and yields success")
+  void storedCredentialAutoPopulateFillsRequiredInputs(
+      String description, StoredCredentialScenario scenario) {
+    driver.get(baseUrl("/ui/ocra/evaluate"));
+    waitForPresetScripts();
+
+    // Seed inline inputs so we can verify they are overridden or cleared.
+    driver.findElement(By.id("challenge")).sendKeys("PLACEHOLDER");
+
+    WebElement advancedToggle =
+        driver.findElement(By.cssSelector("button[data-testid='ocra-advanced-toggle']"));
+    if ("false".equals(advancedToggle.getAttribute("aria-expanded"))) {
+      advancedToggle.click();
+      waitForBackgroundJavaScript();
+    }
+    driver.findElement(By.id("sessionHex")).sendKeys("DEADBEEF");
+    driver.findElement(By.id("timestampHex")).sendKeys("FEEDFACE");
+    driver.findElement(By.id("pinHashHex")).sendKeys("CAFEBABE");
+    driver.findElement(By.id("clientChallenge")).sendKeys("CLIENT");
+    driver.findElement(By.id("serverChallenge")).sendKeys("SERVER");
+    driver.findElement(By.id("counter")).sendKeys("999");
+
+    driver.findElement(By.id("mode-credential")).click();
+    waitForBackgroundJavaScript();
+    waitForElementEnabled(By.id("credentialId"));
+    waitForCredentialOptions();
+
+    Select credentialDropdown = new Select(driver.findElement(By.id("credentialId")));
+    credentialDropdown.selectByValue(scenario.credentialId());
+
+    WebElement autoFillButton =
+        driver.findElement(By.cssSelector("button[data-testid='stored-credential-autofill']"));
+    autoFillButton.click();
+    waitForBackgroundJavaScript();
+
+    String challengeValue = fieldValue("challenge");
+    scenario.challengeExpectation().assertMatches(challengeValue);
+
+    String sessionValue = fieldValue("sessionHex");
+    if (scenario.sessionLengthBytes() > 0) {
+      assertThat(sessionValue)
+          .hasSize(scenario.sessionHexLength())
+          .as("session hex must be uppercase hexadecimal")
+          .matches("[0-9A-F]+");
+    } else {
+      assertThat(sessionValue).isBlank();
+    }
+
+    String counterValue = fieldValue("counter");
+    if (scenario.counterRequired()) {
+      assertThat(counterValue).isNotBlank();
+      assertThat(Long.parseLong(counterValue)).isGreaterThanOrEqualTo(0L);
+    } else {
+      assertThat(counterValue).isBlank();
+    }
+
+    String timestampValue = fieldValue("timestampHex");
+    if (scenario.timestampRequired()) {
+      assertThat(timestampValue)
+          .isNotBlank()
+          .as("timestamp must be hexadecimal")
+          .matches("[0-9A-F]+");
+      long parsedStep = Long.parseUnsignedLong(timestampValue, 16);
+      long expectedStep = currentTimeStep(scenario.timestampStepSeconds());
+      assertThat(Math.abs(parsedStep - expectedStep)).isLessThanOrEqualTo(1L);
+    } else {
+      assertThat(timestampValue).isBlank();
+    }
+
+    assertThat(fieldValue("clientChallenge")).isBlank();
+    assertThat(fieldValue("serverChallenge")).isBlank();
+    assertThat(fieldValue("pinHashHex")).isBlank();
+
+    WebElement advancedPanel =
+        driver.findElement(By.cssSelector("[data-testid='ocra-advanced-panel']"));
+    if (scenario.requiresAdvanced()) {
+      assertThat(advancedPanel.getAttribute("data-open")).isEqualTo("true");
+    } else {
+      assertThat(advancedPanel.getAttribute("data-open")).isEqualTo("false");
+    }
+
+    driver.findElement(By.cssSelector("button[data-testid='ocra-evaluate-button']")).click();
+    waitForBackgroundJavaScript();
+
+    WebElement resultPanel =
+        driver.findElement(By.cssSelector("[data-testid='ocra-result-panel']"));
+    WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
+    boolean resultVisible = resultPanel.getAttribute("hidden") == null;
+    boolean errorVisible = errorPanel.getAttribute("hidden") == null;
+
+    assertThat(errorVisible)
+        .as(
+            "expected stored credential evaluation to succeed but received error panel: %s",
+            errorPanel.getText())
+        .isFalse();
+    assertThat(resultVisible).isTrue();
+
+    String otpText =
+        resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp-value']")).getText();
+    assertThat(otpText).isNotBlank().matches("\\d{4,10}");
+    assertThat(errorPanel.getAttribute("hidden")).isNotNull();
   }
 
   @Test
@@ -274,6 +422,11 @@ final class OcraOperatorUiSeleniumTest {
             INLINE_SHARED_SECRET));
   }
 
+  private static Stream<Arguments> storedCredentialAutoPopulateScenarios() {
+    return STORED_CREDENTIAL_SCENARIOS.stream()
+        .map(scenario -> Arguments.of(scenario.description(), scenario));
+  }
+
   private record InlinePresetScenario(
       String description,
       String presetKey,
@@ -294,25 +447,76 @@ final class OcraOperatorUiSeleniumTest {
     }
   }
 
+  private record StoredCredentialScenario(
+      String description,
+      String credentialId,
+      String suite,
+      String secretHex,
+      ChallengeExpectation challengeExpectation,
+      int sessionLengthBytes,
+      boolean counterRequired,
+      boolean timestampRequired,
+      long timestampStepSeconds,
+      Long counterValue) {
+
+    @Override
+    public String toString() {
+      return description;
+    }
+
+    int sessionHexLength() {
+      return sessionLengthBytes * 2;
+    }
+
+    boolean requiresAdvanced() {
+      return sessionLengthBytes > 0 || timestampRequired;
+    }
+  }
+
+  private record ChallengeExpectation(ChallengeType type, int length) {
+
+    void assertMatches(String value) {
+      assertThat(value).isNotNull();
+      assertThat(value.length()).isEqualTo(length);
+      switch (type) {
+        case NUMERIC -> assertThat(value).as("challenge must be numeric").matches("\\d+");
+        case HEX -> assertThat(value).as("challenge must be hexadecimal").matches("[0-9A-F]+");
+        case ALPHANUMERIC ->
+            assertThat(value)
+                .as("challenge must be uppercase alphanumeric characters")
+                .matches("[A-Z0-9]+");
+      }
+    }
+  }
+
+  private enum ChallengeType {
+    NUMERIC,
+    HEX,
+    ALPHANUMERIC
+  }
+
   private void seedCredential() {
-    credentialStore.delete(CREDENTIAL_ID);
-    OcraCredentialFactory factory = new OcraCredentialFactory();
-    OcraCredentialRequest request =
-        new OcraCredentialRequest(
-            CREDENTIAL_ID,
-            QA_EXPECTED_SUITE,
-            "3132333435363738393031323334353637383930313233343536373839303132",
-            SecretEncoding.HEX,
-            null,
-            null,
-            null,
-            Map.of("source", "selenium-test"));
-    OcraCredentialDescriptor descriptor = factory.createDescriptor(request);
-    Credential credential =
-        VersionedCredentialRecordMapper.toCredential(
-            new OcraCredentialPersistenceAdapter().serialize(descriptor));
-    credentialStore.save(credential);
-    assertThat(credentialStore.exists(CREDENTIAL_ID)).isTrue();
+    STORED_CREDENTIAL_SCENARIOS.forEach(
+        scenario -> {
+          credentialStore.delete(scenario.credentialId());
+          OcraCredentialFactory factory = new OcraCredentialFactory();
+          OcraCredentialRequest request =
+              new OcraCredentialRequest(
+                  scenario.credentialId(),
+                  scenario.suite(),
+                  scenario.secretHex(),
+                  SecretEncoding.HEX,
+                  scenario.counterValue(),
+                  null,
+                  null,
+                  Map.of("source", "selenium-test"));
+          OcraCredentialDescriptor descriptor = factory.createDescriptor(request);
+          Credential credential =
+              VersionedCredentialRecordMapper.toCredential(
+                  new OcraCredentialPersistenceAdapter().serialize(descriptor));
+          credentialStore.save(credential);
+          assertThat(credentialStore.exists(scenario.credentialId())).isTrue();
+        });
   }
 
   private String baseUrl(String path) {
@@ -341,6 +545,24 @@ final class OcraOperatorUiSeleniumTest {
               return expectedValue.equals(value);
             });
     assertThat(driver.findElement(locator).getAttribute("value")).isEqualTo(expectedValue);
+  }
+
+  private String fieldValue(String elementId) {
+    Object value =
+        ((JavascriptExecutor) driver)
+            .executeScript(
+                "var el = document.getElementById(arguments[0]);"
+                    + " return el ? (el.value || '') : '';",
+                elementId);
+    return value == null ? "" : value.toString();
+  }
+
+  private long currentTimeStep(long stepSeconds) {
+    if (stepSeconds <= 0) {
+      return 0L;
+    }
+    long epochSeconds = Instant.now().getEpochSecond();
+    return epochSeconds / stepSeconds;
   }
 
   private void waitForPresetScripts() {

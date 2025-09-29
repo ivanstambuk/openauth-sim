@@ -258,6 +258,15 @@
                     Select a credential
                   </option>
                 </select>
+                <div class="credential-actions">
+                  <button
+                    type="button"
+                    class="button-secondary"
+                    data-testid="stored-credential-autofill"
+                  >
+                    Auto-fill required parameters
+                  </button>
+                </div>
                 <p
                   class="hint credential-status"
                   data-testid="stored-credential-status"
@@ -434,8 +443,10 @@
         const credentialsEndpoint = form
           ? form.getAttribute('data-credentials-endpoint')
           : null;
+        const autoFillButton = document.querySelector('[data-testid="stored-credential-autofill"]');
         let credentialCache = null;
         let credentialFetchPromise = null;
+        let credentialMetadata = Object.create(null);
         const inlinePresets =
           inlinePresetElement && inlinePresetElement.textContent
             ? JSON.parse(inlinePresetElement.textContent)
@@ -648,6 +659,7 @@
                 .sort(function (a, b) {
                   return a.id.localeCompare(b.id, undefined, { sensitivity: 'base' });
                 });
+              updateCredentialMetadata(credentialCache);
               renderCredentialOptions(credentialCache);
               if (credentialCache.length === 0) {
                 setCredentialStatus('No stored credentials found. Import credentials via the CLI.', false);
@@ -669,10 +681,23 @@
           return credentialFetchPromise;
         }
 
+        function updateCredentialMetadata(options) {
+          credentialMetadata = Object.create(null);
+          if (!Array.isArray(options)) {
+            return;
+          }
+          options.forEach(function (option) {
+            if (option && typeof option.id === 'string') {
+              credentialMetadata[option.id] = option;
+            }
+          });
+        }
+
         function renderCredentialOptions(options) {
           if (!credentialSelect) {
             return;
           }
+          updateCredentialMetadata(options);
           var currentValue = credentialSelect.value;
           var modeNode = document.querySelector('input[name="mode"]:checked');
           var isInline = modeNode ? modeNode.value === 'inline' : true;
@@ -708,6 +733,344 @@
           if (options.length === 0) {
             credentialSelect.setAttribute('disabled', 'disabled');
           }
+        }
+
+        function parseOcraSuite(suite) {
+          if (!suite || typeof suite !== 'string') {
+            return null;
+          }
+          var trimmed = suite.trim();
+          if (!trimmed) {
+            return null;
+          }
+          var parts = trimmed.split(':');
+          if (parts.length !== 3) {
+            return null;
+          }
+          var cryptoPart = parts[1];
+          var dataPart = parts[2];
+          var result = {
+            suite: trimmed,
+            counterRequired: false,
+            pinRequired: false,
+            challenge: null,
+            sessionLengthBytes: 0,
+            timestampStepSeconds: null,
+            timestampRequired: false,
+            requiresAdvanced: false,
+          };
+
+          var cryptoStep = extractTimeStepSeconds(cryptoPart);
+          if (cryptoStep) {
+            result.timestampStepSeconds = cryptoStep;
+          }
+
+          var tokens = dataPart.split('-');
+          tokens.forEach(function (token) {
+            var trimmedToken = token.trim();
+            if (!trimmedToken) {
+              return;
+            }
+            var upper = trimmedToken.toUpperCase();
+            if (upper === 'C') {
+              result.counterRequired = true;
+              return;
+            }
+            if (upper.startsWith('Q') && upper.length >= 3) {
+              var formatChar = upper.charAt(1);
+              var lengthPart = trimmedToken.substring(2).trim();
+              var lengthValue = parseInt(lengthPart, 10);
+              if (Number.isFinite(lengthValue) && lengthValue > 0) {
+                result.challenge = { format: formatChar, length: lengthValue };
+              }
+              return;
+            }
+            if (upper.startsWith('P')) {
+              result.pinRequired = true;
+              return;
+            }
+            if (upper.startsWith('S')) {
+              var sessionToken = trimmedToken.substring(1).trim();
+              var sessionLength = parseSessionLength(sessionToken);
+              if (Number.isFinite(sessionLength) && sessionLength > 0) {
+                result.sessionLengthBytes = sessionLength;
+              }
+              return;
+            }
+            if (upper.startsWith('T')) {
+              var stepSeconds = parseTimeStepToken(trimmedToken);
+              if (Number.isFinite(stepSeconds) && stepSeconds > 0) {
+                result.timestampStepSeconds = stepSeconds;
+              }
+            }
+          });
+
+          if (Number.isFinite(result.timestampStepSeconds) && result.timestampStepSeconds > 0) {
+            result.timestampRequired = true;
+          }
+          if (!Number.isFinite(result.sessionLengthBytes) || result.sessionLengthBytes < 0) {
+            result.sessionLengthBytes = 0;
+          }
+          result.requiresAdvanced =
+            result.sessionLengthBytes > 0 || result.timestampRequired === true;
+          return result;
+        }
+
+        function extractTimeStepSeconds(cryptoPart) {
+          if (!cryptoPart || typeof cryptoPart !== 'string') {
+            return null;
+          }
+          var cursor = cryptoPart.trim().toUpperCase();
+          if (cursor.startsWith('HOTP')) {
+            cursor = cursor.substring(4);
+            if (cursor.startsWith('-')) {
+              cursor = cursor.substring(1);
+            }
+          }
+          if (!cursor.startsWith('T')) {
+            return null;
+          }
+          var idx = 1;
+          while (idx < cursor.length && /[0-9]/.test(cursor.charAt(idx))) {
+            idx += 1;
+          }
+          if (idx === 1) {
+            return null;
+          }
+          var numericPart = cursor.substring(1, idx);
+          var seconds = parseInt(numericPart, 10);
+          if (!Number.isFinite(seconds) || seconds <= 0) {
+            return null;
+          }
+          var unitChar = cursor.charAt(idx);
+          if (unitChar === 'M') {
+            seconds *= 60;
+          } else if (unitChar === 'H') {
+            seconds *= 3600;
+          }
+          return seconds;
+        }
+
+        function parseSessionLength(token) {
+          if (!token) {
+            return 64;
+          }
+          var trimmed = token.trim();
+          if (!trimmed) {
+            return 64;
+          }
+          if (/^[0-9]+$/.test(trimmed)) {
+            return parseInt(trimmed, 10);
+          }
+          var upper = trimmed.toUpperCase();
+          if (upper === 'SHA1') {
+            return 20;
+          }
+          if (upper === 'SHA256') {
+            return 32;
+          }
+          if (upper === 'SHA512') {
+            return 64;
+          }
+          return 64;
+        }
+
+        function parseTimeStepToken(token) {
+          if (!token || typeof token !== 'string') {
+            return null;
+          }
+          var upper = token.trim().toUpperCase();
+          if (!upper.startsWith('T')) {
+            return null;
+          }
+          var idx = 1;
+          while (idx < upper.length && /[0-9]/.test(upper.charAt(idx))) {
+            idx += 1;
+          }
+          if (idx === 1) {
+            return null;
+          }
+          var numericPart = upper.substring(1, idx);
+          var seconds = parseInt(numericPart, 10);
+          if (!Number.isFinite(seconds) || seconds <= 0) {
+            return null;
+          }
+          var unitChar = upper.charAt(idx);
+          if (unitChar === 'M') {
+            seconds *= 60;
+          } else if (unitChar === 'H') {
+            seconds *= 3600;
+          }
+          return seconds;
+        }
+
+        function randomInt(maxExclusive) {
+          if (!Number.isFinite(maxExclusive) || maxExclusive <= 0) {
+            return 0;
+          }
+          if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+            var buffer = new Uint32Array(1);
+            window.crypto.getRandomValues(buffer);
+            return buffer[0] % maxExclusive;
+          }
+          return Math.floor(Math.random() * maxExclusive);
+        }
+
+        function randomFromAlphabet(length, alphabet) {
+          if (!alphabet || alphabet.length === 0) {
+            return '';
+          }
+          var builder = [];
+          for (var i = 0; i < length; i += 1) {
+            var index = randomInt(alphabet.length);
+            builder.push(alphabet.charAt(index));
+          }
+          return builder.join('');
+        }
+
+        function randomDigits(length) {
+          return randomFromAlphabet(length, '0123456789');
+        }
+
+        function randomAlphanumeric(length) {
+          return randomFromAlphabet(length, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789');
+        }
+
+        function randomAlpha(length) {
+          return randomFromAlphabet(length, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+        }
+
+        function randomHexCharacters(length) {
+          if (!Number.isFinite(length) || length <= 0) {
+            return '';
+          }
+          var bytesNeeded = Math.ceil(length / 2);
+          var hex = generateHex(bytesNeeded);
+          if (hex.length > length) {
+            hex = hex.substring(0, length);
+          }
+          return hex;
+        }
+
+        function generateChallengeValue(challengeSpec) {
+          if (!challengeSpec || !challengeSpec.length) {
+            return '';
+          }
+          var length = challengeSpec.length;
+          var format = (challengeSpec.format || '').toUpperCase();
+          if (format === 'N') {
+            return randomDigits(length);
+          }
+          if (format === 'H') {
+            return randomHexCharacters(length);
+          }
+          if (format === 'A') {
+            return randomAlphanumeric(length);
+          }
+          return randomAlpha(length);
+        }
+
+        function generateCounterValue() {
+          var value = randomInt(1000000);
+          if (!Number.isFinite(value) || value < 0) {
+            value = 0;
+          }
+          return String(value);
+        }
+
+        function computeTimestampHex(stepSeconds) {
+          if (!Number.isFinite(stepSeconds) || stepSeconds <= 0) {
+            return '';
+          }
+          var now = Date.now();
+          var step = Math.floor(now / (stepSeconds * 1000));
+          if (!Number.isFinite(step) || step < 0) {
+            step = 0;
+          }
+          var hex = step.toString(16).toUpperCase();
+          if (hex.length % 2 === 1) {
+            hex = '0' + hex;
+          }
+          return hex;
+        }
+
+        function autoPopulateForSelectedCredential() {
+          if (!credentialSelect) {
+            return;
+          }
+          var credentialId = credentialSelect.value;
+          if (!credentialId) {
+            setCredentialStatus('Select a stored credential before auto-filling.', true);
+            return;
+          }
+          var metadata = credentialMetadata[credentialId];
+          if (!metadata || typeof metadata.suite !== 'string' || !metadata.suite.trim()) {
+            setCredentialStatus('Stored credential is missing suite metadata.', true);
+            return;
+          }
+          var parsed = parseOcraSuite(metadata.suite);
+          if (!parsed) {
+            setCredentialStatus('Unable to derive required parameters for the selected suite.', true);
+            return;
+          }
+
+          clearPanels();
+
+          if (suiteInput) {
+            suiteInput.value = metadata.suite;
+          }
+
+          if (parsed.challenge) {
+            challengeInput.value = generateChallengeValue(parsed.challenge);
+          } else if (challengeInput) {
+            challengeInput.value = '';
+          }
+
+          if (parsed.counterRequired) {
+            counterInput.value = generateCounterValue();
+          } else if (counterInput) {
+            counterInput.value = '';
+          }
+
+          if (parsed.sessionLengthBytes > 0) {
+            sessionInput.value = generateHex(parsed.sessionLengthBytes);
+          } else if (sessionInput) {
+            sessionInput.value = '';
+          }
+
+          if (parsed.timestampRequired) {
+            timestampInput.value = computeTimestampHex(parsed.timestampStepSeconds);
+          } else if (timestampInput) {
+            timestampInput.value = '';
+          }
+
+          if (pinHashInput) {
+            pinHashInput.value = '';
+          }
+          if (clientChallengeInput) {
+            clientChallengeInput.value = '';
+          }
+          if (serverChallengeInput) {
+            serverChallengeInput.value = '';
+          }
+
+          var credentialModeRadio = document.getElementById('mode-credential');
+          if (credentialModeRadio) {
+            credentialModeRadio.checked = true;
+          }
+          if (inlineModeRadio) {
+            inlineModeRadio.checked = false;
+          }
+          updateSections();
+
+          if (parsed.requiresAdvanced) {
+            setAdvancedState(true);
+          } else {
+            setAdvancedState(false);
+          }
+          ensureAdvancedOpenIfNeeded();
+
+          setCredentialStatus('', false);
         }
 
         function setCredentialStatus(message, isError) {
@@ -1305,6 +1668,18 @@
 
         if (submitButton) {
           submitButton.addEventListener('click', handleFetch);
+        }
+
+        if (autoFillButton) {
+          autoFillButton.addEventListener('click', function () {
+            ensureCredentialsLoaded()
+              .then(function () {
+                autoPopulateForSelectedCredential();
+              })
+              .catch(function () {
+                setCredentialStatus('Unable to auto-populate parameters.', true);
+              });
+          });
         }
 
         window.__ocraApplyPreset = applyPreset;
