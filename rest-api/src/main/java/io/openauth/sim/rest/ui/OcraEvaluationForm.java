@@ -163,7 +163,8 @@ public final class OcraEvaluationForm {
   }
 
   void scrubSecrets() {
-    this.sharedSecretHex = null;
+    // Shared secret remains available for operator verification loops; only clear optional PIN
+    // material to avoid accidental reuse.
     this.pinHashHex = null;
   }
 

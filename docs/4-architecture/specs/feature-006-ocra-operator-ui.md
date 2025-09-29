@@ -15,6 +15,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-28 – The server-rendered form POST flow will be removed; the UI is allowed to depend entirely on JavaScript for submissions (user confirmed option B).
 - 2025-09-29 – Test vector generation must follow the Appendix B Java workflow documented in `docs/2-how-to/generate-ocra-test-vectors.md` so new suites share a single source of truth (user chose option B).
 - 2025-09-29 – The inline preset catalogue will include the `OCRA-1:HOTP-SHA256-6:C-QH64` policy derived from the same generator, keeping UI fixtures aligned with domain regressions (user chose option A).
+- 2025-09-29 – When operators unmask the "Shared Secret (hex)" field, the UI will leave the value in place after evaluations (no automatic clearing) because operators rely on static test data and future verification flows rather than sensitive production secrets (user chose option C).
 
 ## Objectives & Success Criteria
 - Provide browser-accessible pages that let operators evaluate OCRA responses using stored credentials or inline parameters, mirroring REST validation semantics.

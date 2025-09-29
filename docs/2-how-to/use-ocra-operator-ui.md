@@ -40,8 +40,9 @@ for evaluations because submissions now run through asynchronous JSON fetch call
   with `POST /api/v1/ocra/evaluate`. Leave fields blank to accept backend defaults. The counter field
   is automatically populated when you select the C-QH64 preset so results match the documented test
   vectors.
-- Secrets are scrubbed from the form after each submission and never rendered back to the page. The
-  fetch handler clears the secret and PIN hash fields once the REST call completes.
+- Shared secrets remain visible after each evaluation so you can iterate on the same test data
+  during verification. Clear the field manually if you need to hide the value. The fetch handler
+  still clears the optional PIN hash field once the REST call completes.
 
 ## Reading Results and Telemetry
 - Successful evaluations show the OTP prominently and render a telemetry summary as a definition list
@@ -57,8 +58,8 @@ for evaluations because submissions now run through asynchronous JSON fetch call
 - UI submissions emit the same sanitized telemetry events as REST calls. Operator logs include the
   telemetry ID and reason code only.
 - CSRF protection relies on HTTP sessions; clear cookies or restart the server to invalidate tokens.
-- The controller clears shared secret and PIN hash fields after delegating to the REST endpoint to
-  prevent accidental redisplay, and the JavaScript fetch client mirrors that behaviour in the browser.
+- The controller keeps shared secrets in memory for the active session so operators can reuse
+  inline data. Only the optional PIN hash field is cleared automatically after each request.
 
 ## Next Steps
 - Extend the UI with credential discovery or search once Feature 006 scope expands.

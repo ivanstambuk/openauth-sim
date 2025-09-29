@@ -62,8 +62,9 @@
           >
             <h3 id="inline-heading">Inline parameters</h3>
             <p class="hint" id="inline-describe">
-              Enter the suite and shared secret exactly as hex strings. Secrets are scrubbed after
-              submission.
+              Enter the suite and shared secret exactly as hex strings. Secrets remain visible after
+              evaluation so operators can reuse verification data; clear the field manually if
+              needed.
             </p>
             <div>
               <label for="policyPreset">Load a sample vector</label>
@@ -99,9 +100,9 @@
               <input
                 id="sharedSecretHex"
                 name="sharedSecretHex"
-                type="password"
+                type="text"
                 autocomplete="off"
-                value=""
+                th:value="${form.sharedSecretHex}"
                 placeholder="Hex encoded secret"
                 th:attr="aria-describedby=${'inline-describe'},required=${form.inlineMode} ? 'required' : null"
                 data-inline-required="true"
@@ -457,9 +458,7 @@
         }
 
         function scrubSecrets() {
-          if (sharedSecretInput) {
-            sharedSecretInput.value = '';
-          }
+          // Shared secret remains visible so operators can reuse verification data.
           if (pinHashInput) {
             pinHashInput.value = '';
           }

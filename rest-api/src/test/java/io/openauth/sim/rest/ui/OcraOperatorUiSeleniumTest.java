@@ -50,6 +50,8 @@ final class OcraOperatorUiSeleniumTest {
       "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF";
   private static final long QH64_EXPECTED_COUNTER = 1L;
   private static final String QH64_EXPECTED_OTP = "429968";
+  private static final String INLINE_SHARED_SECRET =
+      "3132333435363738393031323334353637383930313233343536373839303132";
   private static final String CREDENTIAL_ID = "operator-demo";
 
   @TempDir static Path tempDir;
@@ -102,6 +104,7 @@ final class OcraOperatorUiSeleniumTest {
     assertValueWithWait(By.id("challenge"), scenario.expectedChallenge());
     assertValueWithWait(By.id("sessionHex"), scenario.expectedSessionHex());
     assertValueWithWait(By.id("counter"), scenario.expectedCounterAsString());
+    assertValueWithWait(By.id("sharedSecretHex"), scenario.expectedSharedSecretHex());
 
     driver.findElement(By.cssSelector("form[data-testid='ocra-evaluate-form']")).submit();
 
@@ -119,6 +122,7 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(reasonCode.getText()).isEqualTo("success");
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
+    assertValueWithWait(By.id("sharedSecretHex"), scenario.expectedSharedSecretHex());
   }
 
   @Test
@@ -162,7 +166,8 @@ final class OcraOperatorUiSeleniumTest {
             QA_EXPECTED_CHALLENGE,
             QA_EXPECTED_SESSION,
             null,
-            QA_EXPECTED_OTP),
+            QA_EXPECTED_OTP,
+            INLINE_SHARED_SECRET),
         new InlinePresetScenario(
             "C-QH64 preset",
             QH64_PRESET_KEY,
@@ -170,7 +175,8 @@ final class OcraOperatorUiSeleniumTest {
             QH64_EXPECTED_CHALLENGE,
             null,
             QH64_EXPECTED_COUNTER,
-            QH64_EXPECTED_OTP));
+            QH64_EXPECTED_OTP,
+            INLINE_SHARED_SECRET));
   }
 
   private record InlinePresetScenario(
@@ -180,7 +186,8 @@ final class OcraOperatorUiSeleniumTest {
       String expectedChallenge,
       String expectedSessionHex,
       Long expectedCounter,
-      String expectedOtp) {
+      String expectedOtp,
+      String expectedSharedSecretHex) {
 
     @Override
     public String toString() {
