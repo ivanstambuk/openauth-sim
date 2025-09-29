@@ -42,6 +42,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R047 – Polish builder UX (validation hints, apply/reset handling), sync docs, rerun `./gradlew spotlessApply check`, and push. ✅ 2025-09-29
 - R048 – Restore advanced parameters collapse behaviour and add regression coverage. ✅ 2025-09-29
 - R049 – Reposition advanced disclosure immediately below its toggle and update regression coverage. ✅ 2025-09-29
+- R050 – Lock builder version to read-only OCRA-1 after verifying future variants do not exist. ✅ 2025-09-29
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -88,6 +89,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-29 – R046: Added guided builder controls (version/algorithm/digits/data inputs), live preview + secret generator, wired apply/reset actions, and updated MockMvc/Selenium coverage.
 - 2025-09-29 – R048: Repaired advanced parameters disclosure by tightening CSS attribute selectors and added Selenium coverage to ensure the panel hides/shows correctly.
 - 2025-09-29 – R049: Moved advanced panel markup to sit directly after the disclosure stack, updated Selenium coverage to assert sibling order, and reran checks.
+- 2025-09-29 – R050: Confirmed via RFC 6287 that OCRA-1 is the sole published variant, updated spec/tasks, locked the builder version field to a read-only `OCRA-1`, refreshed UI copy, and extended Selenium coverage before rerunning checks.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

@@ -99,13 +99,18 @@
                 available for quick reference.
               </p>
               <div class="builder-grid">
-                <div class="field-group">
-                  <label for="builderVersion">Version</label>
-                  <select id="builderVersion" data-testid="ocra-builder-version">
-                    <option value="OCRA-1">OCRA-1</option>
-                    <option value="OCRA-2" disabled>OCRA-2 (future)</option>
-                  </select>
-                </div>
+              <div class="field-group">
+                <label for="builderVersion">Version</label>
+                <input
+                  id="builderVersion"
+                  data-testid="ocra-builder-version"
+                  type="text"
+                  value="OCRA-1"
+                  readonly="readonly"
+                  aria-readonly="true"
+                />
+                <p class="hint">OCRA-1 is the only version defined in the OATH specification.</p>
+              </div>
                 <div class="field-group">
                   <label for="builderAlgorithm">OTP algorithm</label>
                   <select id="builderAlgorithm" data-testid="ocra-builder-algorithm">

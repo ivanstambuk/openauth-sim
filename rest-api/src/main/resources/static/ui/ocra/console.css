@@ -387,6 +387,12 @@ fieldset {
   box-shadow: 0 0 0 1px var(--ocra-color-outline);
 }
 
+.field-grid input[readonly] {
+  color: var(--ocra-color-text-muted);
+  background: rgba(18, 59, 93, 0.08);
+  cursor: not-allowed;
+}
+
 .hint {
   margin-top: var(--ocra-spacing-xs);
   color: var(--ocra-color-text-muted);

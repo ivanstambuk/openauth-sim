@@ -199,6 +199,11 @@ final class OcraOperatorUiSeleniumTest {
     driver.get(baseUrl("/ui/ocra/evaluate"));
     waitForPresetScripts();
 
+    WebElement versionField = driver.findElement(By.id("builderVersion"));
+    assertThat(versionField.getAttribute("value")).isEqualTo("OCRA-1");
+    assertThat(versionField.getAttribute("readonly")).isNotNull();
+    assertThat(versionField.getAttribute("aria-readonly")).isEqualTo("true");
+
     WebElement builderPreview =
         new WebDriverWait(driver, Duration.ofSeconds(5))
             .until(
