@@ -268,9 +268,11 @@ button {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.choice-control--block {
-  width: fit-content;
-  padding: calc(var(--ocra-spacing-xs) + 0.1rem) var(--ocra-spacing-md);
+.choice-control--session {
+  padding: calc(var(--ocra-spacing-xs) + 0.05rem) var(--ocra-spacing-md);
+  min-height: 2.25rem;
+  height: 2.6rem;
+  line-height: 1.2;
 }
 
 .choice-control:hover,
