@@ -84,7 +84,20 @@ final class OcraOperatorUiController {
                   null,
                   null,
                   null,
-                  null)));
+                  null)),
+          new PolicyPreset(
+              "c-qh64",
+              "C-QH64 (HOTP-SHA256-6)",
+              new InlineSample(
+                  "OCRA-1:HOTP-SHA256-6:C-QH64",
+                  "3132333435363738393031323334353637383930313233343536373839303132",
+                  "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF",
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  1L)));
 
   private final ObjectMapper objectMapper;
 

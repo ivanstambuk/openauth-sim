@@ -1,7 +1,7 @@
 # Feature 006 – OCRA Operator UI Tasks
 
 _Status: Draft_
-_Last updated: 2025-09-28_
+_Last updated: 2025-09-29_
 
 ## Execution Notes
 - Specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui.md`.
@@ -26,5 +26,8 @@ _Last updated: 2025-09-28_
 | R031 | Add failing tests asserting fetch-based submission behaviour (MockMvc + UI script) | UI-OCRA-002, UI-OCRA-004, UI-OCRA-005 | ✅ |
 | R032 | Implement fetch-based submission, remove form POST, expose JSON-driven result rendering | UI-OCRA-002, UI-OCRA-004, UI-OCRA-005 | ✅ |
 | R033 | Refresh Selenium + docs to reflect JavaScript-only flow and telemetry/accessibility guarantees | UI-OCRA-002, UI-OCRA-005, UI-NFR-001 | ✅ |
+| R034 | Publish Appendix B generator how-to, cross-link spec/plan/tasks, and update doc index | UI-OCRA-007, Documentation | ✅ |
+| R035 | Add `OCRA-1:HOTP-SHA256-6:C-QH64` vectors to domain tests using Appendix B generator outputs | UI-OCRA-007, Test Strategy | ✅ |
+| R036 | Extend UI presets/tests (MockMvc + Selenium) with the new policy and OTP expectations | UI-OCRA-002, UI-OCRA-007 | ✅ |
 
 Update this checklist as work progresses.

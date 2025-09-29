@@ -66,6 +66,13 @@ final class OcraRfc6287ComplianceTest {
     assertMatchesPublishedOtp(vector);
   }
 
+  @DisplayName("Draft HOTP SHA256-6/QH64 vectors align with Appendix B generator")
+  @ParameterizedTest(name = "{index} ⇒ {0}")
+  @MethodSource("draftHotpVariants")
+  void draftHotpVariants(OcraRfc6287VectorFixtures.OneWayVector vector) {
+    assertMatchesPublishedOtp(vector);
+  }
+
   @DisplayName("Mutual challenge-response server vectors match RFC 6287 Appendix C outputs")
   @ParameterizedTest(name = "{index} ⇒ {0}")
   @MethodSource("mutualServerVectors")
@@ -275,6 +282,10 @@ final class OcraRfc6287ComplianceTest {
 
   private Stream<OcraRfc6287VectorFixtures.OneWayVector> sessionInformationVectors() {
     return OcraRfc6287VectorFixtures.sessionInformationVectors().stream();
+  }
+
+  private Stream<OcraRfc6287VectorFixtures.OneWayVector> draftHotpVariants() {
+    return OcraDraftHotpVariantsVectorFixtures.counterHexVectors().stream();
   }
 
   private Stream<OcraRfc6287VectorFixtures.MutualVector> mutualServerVectors() {

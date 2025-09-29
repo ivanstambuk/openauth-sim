@@ -1,7 +1,7 @@
 # Feature Plan 006 – OCRA Operator UI
 
 _Status: Draft_
-_Last updated: 2025-09-28_
+_Last updated: 2025-09-29_
 
 ## Objective
 Ship a server-rendered operator UI (hosted inside the Spring Boot `rest-api` module) that lets humans execute OCRA evaluations by calling the existing REST endpoints. The UI must respect sanitized telemetry practices, mirror REST validation semantics, and provide an accessible form-driven experience focused on evaluation scenarios.
@@ -26,9 +26,12 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R028 – Provide inline OCRA policy presets that auto-populate illustrative test vectors. ✅ 2025-09-28
 - R029 – Add Selenium-based system test to validate UI presets and stored credential flow end-to-end. ✅ 2025-09-28
 - R030 – Plan asynchronous JSON submission workflow, update spec/tasks with clarified scope. ✅ 2025-09-28
-- R031 – Author failing tests covering fetch-based submissions (MockMvc JSON expectations, UI script behaviour). ☐
-- R032 – Implement fetch-driven submission, remove form POST round-trip, and surface JSON errors in-page. ☐
-- R033 – Update Selenium and documentation to reflect the JavaScript-only flow, verify telemetry and accessibility. ☐
+- R031 – Author failing tests covering fetch-based submissions (MockMvc JSON expectations, UI script behaviour). ✅ 2025-09-29
+- R032 – Implement fetch-driven submission, remove form POST round-trip, and surface JSON errors in-page. ✅ 2025-09-29
+- R033 – Update Selenium and documentation to reflect the JavaScript-only flow, verify telemetry and accessibility. ✅ 2025-09-29
+- R034 – Publish Appendix B generator how-to and cross-link specs/plans/tasks to enforce the workflow. ✅ 2025-09-29
+- R035 – Extend domain compliance tests with `OCRA-1:HOTP-SHA256-6:C-QH64` vectors generated via the documented process. ✅ 2025-09-29
+- R036 – Surface the new policy in UI presets, refresh inline samples/tests, and document OTP expectations. ✅ 2025-09-29
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -57,6 +60,9 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-28 – R030 planning: Captured decision to submit evaluations via JSON fetch calls (no form POST fallback) targeting `/api/v1/ocra/evaluate`; tasks and upcoming increments updated accordingly.
 - 2025-09-29 – R031: MockMvc tests now green with fetch metadata, XHR fallback, and 405 POST guard; JS fetch polyfill + result panels implemented, rotating HTMLUnit + Selenium suites to pass.
 - 2025-09-29 – R033: Updated Selenium assertions to verify result/error panels, refreshed operator UI how-to + spec wording for JSON-only submissions, and reran full `spotlessApply check`.
+- 2025-09-29 – R034: Authored Appendix B generator how-to, updated spec/tasks/knowledge map, and linked the workflow across docs.
+- 2025-09-29 – R035: Captured `OCRA-1:HOTP-SHA256-6:C-QH64` vectors from the draft generator into new core fixtures and compliance tests.
+- 2025-09-29 – R036: Added the C-QH64 preset to the operator UI, refreshed MockMvc/Selenium coverage, and documented preset behaviour for operators.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

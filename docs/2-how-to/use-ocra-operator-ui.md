@@ -23,7 +23,9 @@ telemetry.
 ## Choosing an Evaluation Mode
 - **Inline parameters** – Provide the OCRA suite and shared secret as hex. Use this for ad-hoc
   checks when you do not want to rely on persisted credentials. A preset dropdown loads sample
-  vectors (derived from the automated tests) to speed up manual verification.
+  vectors (derived from the automated tests) to speed up manual verification. Presets include both
+  the RFC 6287 session samples and the `OCRA-1:HOTP-SHA256-6:C-QH64` counter/hex scenario generated
+  via the Appendix B workflow described in `generate-ocra-test-vectors.md`.
 - **Stored credential** – Supply a credential identifier that already exists in the simulator.
   The UI forwards only the identifier; secrets stay in persistence. The REST app loads
   credentials from the MapDB file referenced by `openauth.sim.persistence.database-path`.
@@ -35,7 +37,9 @@ for evaluations because submissions now run through asynchronous JSON fetch call
 - Inline mode requires the suite and shared secret. An optional PIN hash field supports suite
   variants that expect it.
 - Request parameters (challenge, client/server challenge, session, timestamp, counter) map one-to-one
-  with `POST /api/v1/ocra/evaluate`. Leave fields blank to accept backend defaults.
+  with `POST /api/v1/ocra/evaluate`. Leave fields blank to accept backend defaults. The counter field
+  is automatically populated when you select the C-QH64 preset so results match the documented test
+  vectors.
 - Secrets are scrubbed from the form after each submission and never rendered back to the page. The
   fetch handler clears the secret and PIN hash fields once the REST call completes.
 

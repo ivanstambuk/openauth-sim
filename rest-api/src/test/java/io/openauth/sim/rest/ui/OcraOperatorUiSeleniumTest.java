@@ -13,11 +13,14 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
@@ -34,13 +37,19 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 final class OcraOperatorUiSeleniumTest {
 
-  private static final String INLINE_PRESET_KEY = "qa08-s064";
-  private static final String EXPECTED_SUITE = "OCRA-1:HOTP-SHA256-8:QA08-S064";
-  private static final String EXPECTED_INLINE_CHALLENGE = "SESSION01";
-  private static final String EXPECTED_SESSION =
+  private static final String QA_PRESET_KEY = "qa08-s064";
+  private static final String QA_EXPECTED_SUITE = "OCRA-1:HOTP-SHA256-8:QA08-S064";
+  private static final String QA_EXPECTED_CHALLENGE = "SESSION01";
+  private static final String QA_EXPECTED_SESSION =
       "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF"
           + "112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567";
-  private static final String EXPECTED_OTP = "17477202";
+  private static final String QA_EXPECTED_OTP = "17477202";
+  private static final String QH64_PRESET_KEY = "c-qh64";
+  private static final String QH64_EXPECTED_SUITE = "OCRA-1:HOTP-SHA256-6:C-QH64";
+  private static final String QH64_EXPECTED_CHALLENGE =
+      "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF";
+  private static final long QH64_EXPECTED_COUNTER = 1L;
+  private static final String QH64_EXPECTED_OTP = "429968";
   private static final String CREDENTIAL_ID = "operator-demo";
 
   @TempDir static Path tempDir;
@@ -76,21 +85,23 @@ final class OcraOperatorUiSeleniumTest {
     }
   }
 
-  @Test
-  @DisplayName("Inline policy preset populates fields and evaluates successfully")
-  void inlinePolicyPresetEvaluatesSuccessfully() {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("inlinePresetScenarios")
+  @DisplayName("Inline policy presets populate fields and evaluate successfully")
+  void inlinePolicyPresetEvaluatesSuccessfully(InlinePresetScenario scenario) {
     driver.get(baseUrl("/ui/ocra/evaluate"));
     waitForPresetScripts();
 
     Select presetSelect = new Select(driver.findElement(By.id("policyPreset")));
-    presetSelect.selectByValue(INLINE_PRESET_KEY);
+    presetSelect.selectByValue(scenario.presetKey());
     ((JavascriptExecutor) driver)
-        .executeScript("window.__ocraApplyPreset(arguments[0]);", INLINE_PRESET_KEY);
+        .executeScript("window.__ocraApplyPreset(arguments[0]);", scenario.presetKey());
     waitForBackgroundJavaScript();
 
-    assertValueWithWait(By.id("suite"), EXPECTED_SUITE);
-    assertValueWithWait(By.id("challenge"), EXPECTED_INLINE_CHALLENGE);
-    assertValueWithWait(By.id("sessionHex"), EXPECTED_SESSION);
+    assertValueWithWait(By.id("suite"), scenario.expectedSuite());
+    assertValueWithWait(By.id("challenge"), scenario.expectedChallenge());
+    assertValueWithWait(By.id("sessionHex"), scenario.expectedSessionHex());
+    assertValueWithWait(By.id("counter"), scenario.expectedCounterAsString());
 
     driver.findElement(By.cssSelector("form[data-testid='ocra-evaluate-form']")).submit();
 
@@ -102,7 +113,7 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(resultPanel.getAttribute("hidden")).isNull();
 
     WebElement otpElement = resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp']"));
-    assertThat(otpElement.getText()).contains(EXPECTED_OTP);
+    assertThat(otpElement.getText()).contains(scenario.expectedOtp());
     WebElement reasonCode =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-reason-code']"));
     assertThat(reasonCode.getText()).isEqualTo("success");
@@ -121,8 +132,8 @@ final class OcraOperatorUiSeleniumTest {
     waitForElementEnabled(By.id("credentialId"));
 
     driver.findElement(By.id("credentialId")).sendKeys(CREDENTIAL_ID);
-    driver.findElement(By.id("challenge")).sendKeys(EXPECTED_INLINE_CHALLENGE);
-    driver.findElement(By.id("sessionHex")).sendKeys(EXPECTED_SESSION);
+    driver.findElement(By.id("challenge")).sendKeys(QA_EXPECTED_CHALLENGE);
+    driver.findElement(By.id("sessionHex")).sendKeys(QA_EXPECTED_SESSION);
 
     driver.findElement(By.cssSelector("form[data-testid='ocra-evaluate-form']")).submit();
 
@@ -134,12 +145,51 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(resultPanel.getAttribute("hidden")).isNull();
 
     WebElement otpElement = resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp']"));
-    assertThat(otpElement.getText()).contains(EXPECTED_OTP);
+    assertThat(otpElement.getText()).contains(QA_EXPECTED_OTP);
     WebElement telemetryBlock =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-telemetry-summary']"));
     assertThat(telemetryBlock.getText()).contains("success").contains("true");
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
+  }
+
+  private static Stream<InlinePresetScenario> inlinePresetScenarios() {
+    return Stream.of(
+        new InlinePresetScenario(
+            "QA08 S064 preset",
+            QA_PRESET_KEY,
+            QA_EXPECTED_SUITE,
+            QA_EXPECTED_CHALLENGE,
+            QA_EXPECTED_SESSION,
+            null,
+            QA_EXPECTED_OTP),
+        new InlinePresetScenario(
+            "C-QH64 preset",
+            QH64_PRESET_KEY,
+            QH64_EXPECTED_SUITE,
+            QH64_EXPECTED_CHALLENGE,
+            null,
+            QH64_EXPECTED_COUNTER,
+            QH64_EXPECTED_OTP));
+  }
+
+  private record InlinePresetScenario(
+      String description,
+      String presetKey,
+      String expectedSuite,
+      String expectedChallenge,
+      String expectedSessionHex,
+      Long expectedCounter,
+      String expectedOtp) {
+
+    @Override
+    public String toString() {
+      return description;
+    }
+
+    String expectedCounterAsString() {
+      return expectedCounter == null ? "" : Long.toString(expectedCounter);
+    }
   }
 
   private void seedCredential() {
@@ -148,7 +198,7 @@ final class OcraOperatorUiSeleniumTest {
     OcraCredentialRequest request =
         new OcraCredentialRequest(
             CREDENTIAL_ID,
-            EXPECTED_SUITE,
+            QA_EXPECTED_SUITE,
             "3132333435363738393031323334353637383930313233343536373839303132",
             SecretEncoding.HEX,
             null,
@@ -177,6 +227,7 @@ final class OcraOperatorUiSeleniumTest {
   }
 
   private void assertValueWithWait(By locator, String expected) {
+    String expectedValue = expected == null ? "" : expected;
     String elementId = driver.findElement(locator).getAttribute("id");
     new WebDriverWait(driver, Duration.ofSeconds(5))
         .until(
@@ -185,9 +236,9 @@ final class OcraOperatorUiSeleniumTest {
                   ((JavascriptExecutor) d)
                       .executeScript(
                           "return document.getElementById(arguments[0]).value;", elementId);
-              return expected.equals(value);
+              return expectedValue.equals(value);
             });
-    assertThat(driver.findElement(locator).getAttribute("value")).isEqualTo(expected);
+    assertThat(driver.findElement(locator).getAttribute("value")).isEqualTo(expectedValue);
   }
 
   private void waitForPresetScripts() {

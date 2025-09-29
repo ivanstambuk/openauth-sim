@@ -13,6 +13,8 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-28 – Selenium-based system tests may depend on `org.seleniumhq.selenium:htmlunit-driver` in test scope to keep browser automation headless and deterministic (user chose option A).
 - 2025-09-28 – Evaluation submissions will transition to an asynchronous JSON `fetch` call targeting `/api/v1/ocra/evaluate`, reusing the existing request/response schema (user confirmed option A).
 - 2025-09-28 – The server-rendered form POST flow will be removed; the UI is allowed to depend entirely on JavaScript for submissions (user confirmed option B).
+- 2025-09-29 – Test vector generation must follow the Appendix B Java workflow documented in `docs/2-how-to/generate-ocra-test-vectors.md` so new suites share a single source of truth (user chose option B).
+- 2025-09-29 – The inline preset catalogue will include the `OCRA-1:HOTP-SHA256-6:C-QH64` policy derived from the same generator, keeping UI fixtures aligned with domain regressions (user chose option A).
 
 ## Objectives & Success Criteria
 - Provide browser-accessible pages that let operators evaluate OCRA responses using stored credentials or inline parameters, mirroring REST validation semantics.
@@ -29,6 +31,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 | UI-OCRA-004 | Display the computed OTP, status, telemetry ID, sanitized details, and request echo after evaluation; surface REST errors (400/500) with user-friendly messaging. | Successful evaluations show OTP and metadata; REST errors show sanitized failure summary without leaking secrets. |
 | UI-OCRA-005 | Include an activity log or summary pane that mirrors key telemetry fields (`telemetryId`, `status`, `reasonCode`, `sanitized`). | After submissions, the UI presents these fields in a structured block that operators can copy. |
 | UI-OCRA-006 | Ensure CSRF protection and input sanitization for rendered templates per Spring MVC best practices. | Integration tests verify CSRF token presence on forms; linting or tests confirm no unsanitized user input is echoed in HTML. |
+| UI-OCRA-007 | Keep inline policy presets aligned with the curated OCRA vector catalog (including `OCRA-1:HOTP-SHA256-6:C-QH64`). | UI tests iterate over each preset and match OTPs against domain compliance fixtures. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |
@@ -41,13 +44,14 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 ## UX Outline
 - **Landing page:** Brief overview, links to evaluation form, reminder that credential management stays in CLI for now, and guidance on running the REST service.
 - **Evaluation form:** Credential selector (dropdown populated via REST lookup) alongside an option to toggle into inline mode; fields for challenge, counter, session, pin; telemetry consent note. Submissions are issued via asynchronous JSON `fetch` calls (with an XMLHttpRequest fallback for HtmlUnit-based automation).
-- **Results panel:** OTP output, metadata table (status, telemetryId, reasonCode, sanitized flag, suite), copy-to-clipboard helper, and contextual tips for common failure modes.
+- **Results panel:** OTP output, metadata table (status, telemetryId, reasonCode, sanitized flag, suite), copy-to-clipboard helper, and contextual tips for common failure modes. Preset dropdown highlights both RFC 6287 vectors and the new `OCRA-1:HOTP-SHA256-6:C-QH64` sample sourced from the documented generator.
 - **Error handling:** Inline form validation for missing fields, dedicated error view for unexpected faults with instructions to consult logs.
 
 ## Test Strategy
 - **Spring MVC slice tests** asserting controller + template rendering, CSRF enforcement, and validation error messages.
 - **Integration tests** using `MockMvc` to drive the fetch-based JSON submission (stored credential and inline modes) verifying OTP parity with REST responses and sanitised error handling.
 - **UI contract tests** ensuring REST error payloads render sanitized messages and do not leak secrets.
+- **Draft vector compliance tests** asserting `OCRA-1:HOTP-SHA256-6:C-QH64` outputs generated via the Appendix B workflow remain stable across domain and UI layers.
 - **Accessibility smoke checks** (e.g., HTMLUnit or jsoup-based assertions) to confirm label associations and landmark usage.
 
 ## Dependencies & Out of Scope
