@@ -50,5 +50,6 @@ _Last updated: 2025-09-29_
 | R055 | Unify default MapDB path under repo-root `data/` and update docs/tests | UI-OCRA-002, UI-OCRA-009 | ✅ |
 | R056 | Remove inline mode "quick diagnostics" hint per operator feedback | UI-OCRA-002, UI-OCRA-005 | ✅ |
 | R057 | Drop redundant mode selection help text beneath radio buttons | UI-OCRA-002, UI-OCRA-005 | ✅ |
+| R058 | Trim section headings/descriptions for inline vs stored mode per operator request | UI-OCRA-002, UI-OCRA-005 | ✅ |
 
 Update this checklist as work progresses.

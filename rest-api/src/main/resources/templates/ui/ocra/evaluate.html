@@ -64,15 +64,8 @@
               id="inline-parameters"
               data-mode-section="inline"
               th:attr="hidden=${form.mode == 'credential'} ? 'hidden' : null, aria-hidden=${form.mode == 'credential'}"
-              aria-labelledby="inline-heading"
               class="field-grid"
             >
-              <h3 id="inline-heading">Inline parameters</h3>
-              <p class="hint" id="inline-describe">
-                Enter the suite and shared secret exactly as hex strings. Secrets remain visible after
-                evaluation so operators can reuse verification data; clear the field manually if
-                needed.
-              </p>
             <div>
               <label for="policyPreset">Load a sample vector</label>
               <select
@@ -215,7 +208,7 @@
                   type="text"
                   autocomplete="off"
                   th:value="${form.suite}"
-                  th:attr="aria-describedby=${'inline-describe'},required=${form.inlineMode} ? 'required' : null"
+                  th:attr="required=${form.inlineMode} ? 'required' : null"
                   data-inline-required="true"
                 />
               </div>
@@ -228,7 +221,7 @@
                   autocomplete="off"
                   th:value="${form.sharedSecretHex}"
                   placeholder="Hex encoded secret"
-                  th:attr="aria-describedby=${'inline-describe'},required=${form.inlineMode} ? 'required' : null"
+                  th:attr="required=${form.inlineMode} ? 'required' : null"
                   data-inline-required="true"
                 />
               </div>
@@ -249,21 +242,14 @@
               id="credential-parameters"
               data-mode-section="credential"
               th:attr="hidden=${form.mode != 'credential'} ? 'hidden' : null, aria-hidden=${form.mode != 'credential'}"
-              aria-labelledby="credential-heading"
               class="field-grid"
             >
-              <h3 id="credential-heading">Stored credential</h3>
-              <p class="hint" id="credential-describe">
-                Provide the credential identifier to reuse the stored suite and secret managed by the
-                simulator.
-              </p>
               <div>
                 <label for="credentialId">Stored credential</label>
                 <select
                   id="credentialId"
                   name="credentialId"
                   th:value="${form.credentialId}"
-                  aria-describedby="credential-describe"
                   th:attr="required=${form.credentialMode} ? 'required' : null"
                   data-credential-required="true"
                   data-testid="stored-credential-select"

@@ -88,8 +88,6 @@ final class OcraOperatorUiControllerTest {
     assertThat(html).contains("new XMLHttpRequest()");
     assertThat(html).contains("form.addEventListener('submit'");
     assertThat(html).contains("JSON.stringify(payload)");
-    assertThat(html).contains("Secrets remain visible after");
-    assertThat(html).contains("clear the field manually");
     assertThat(html).doesNotContain("type=\"password\"");
   }
 
