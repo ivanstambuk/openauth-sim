@@ -79,6 +79,7 @@ final class OcraOperatorUiControllerTest {
     assertThat(html).contains("action=\"#\"");
     assertThat(html).doesNotContain("method=\"post\"");
     assertThat(html).contains("data-evaluate-endpoint=\"/api/v1/ocra/evaluate\"");
+    assertThat(html).contains("data-credentials-endpoint=\"/api/v1/ocra/credentials\"");
     assertThat(html).contains("data-testid=\"ocra-evaluate-button\"");
     assertThat(html).contains("type=\"button\"");
     assertThat(html).contains("data-testid=\"ocra-fetch-script\"");
@@ -116,6 +117,8 @@ final class OcraOperatorUiControllerTest {
     assertThat(html).contains("data-testid=\"ocra-builder-preview\"");
     assertThat(html).contains("data-testid=\"ocra-builder-apply\"");
     assertThat(html).contains("data-testid=\"ocra-builder-generate\"");
+    assertThat(html).contains("data-testid=\"stored-credential-select\"");
+    assertThat(html).contains("data-testid=\"stored-credential-status\"");
   }
 
   @Test

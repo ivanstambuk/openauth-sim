@@ -98,6 +98,10 @@ button {
   width: 1px;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .card-shell {
   background: var(--ocra-color-surface);
   border-radius: var(--ocra-radius-lg);
@@ -395,6 +399,16 @@ fieldset {
   color: var(--ocra-color-text-muted);
   background: rgba(18, 59, 93, 0.08);
   cursor: not-allowed;
+}
+
+.credential-status {
+  margin-top: var(--ocra-spacing-xs);
+  font-size: 0.95rem;
+  color: var(--ocra-color-text-muted);
+}
+
+.credential-status.credential-status--error {
+  color: var(--ocra-color-danger);
 }
 
 .hint {

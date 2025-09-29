@@ -2,6 +2,7 @@ package io.openauth.sim.rest;
 
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.MapDbCredentialStore;
+import io.openauth.sim.core.support.ProjectPaths;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,7 +17,7 @@ import org.springframework.util.StringUtils;
 @Configuration
 class RestPersistenceConfiguration {
 
-  private static final String DEFAULT_DATABASE_PATH = "build/operator-ui/credentials.db";
+  private static final String DEFAULT_DATABASE_FILE = "ocra-credentials.db";
 
   @Bean(destroyMethod = "close")
   @ConditionalOnMissingBean(CredentialStore.class)
@@ -35,7 +36,7 @@ class RestPersistenceConfiguration {
     if (StringUtils.hasText(configuredPath)) {
       return Paths.get(configuredPath).toAbsolutePath();
     }
-    return Paths.get(DEFAULT_DATABASE_PATH).toAbsolutePath();
+    return ProjectPaths.resolveDataFile(DEFAULT_DATABASE_FILE);
   }
 
   private static void ensureParentDirectory(Path path) throws IOException {

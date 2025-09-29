@@ -44,5 +44,9 @@ _Last updated: 2025-09-29_
 | R049 | Reorder advanced panel to appear directly under disclosure toggle and extend Selenium coverage | UI-OCRA-004, UI-NFR-001 | ✅ |
 | R050 | Lock inline builder version control to OCRA-1 and remove references to non-existent variants | UI-OCRA-008 | ✅ |
 | R051 | Hide stored credential inputs whenever inline mode is active; adjust CSS/tests accordingly | UI-OCRA-002, UI-OCRA-004 | ✅ |
+| R052 | Update spec/plan/tasks for REST-backed credential picker | UI-OCRA-002, UI-OCRA-009 | ✅ |
+| R053 | Add REST endpoint returning stored credential summaries + tests | UI-OCRA-009 | ✅ |
+| R054 | Populate stored credential dropdown via fetch + adjust UI/Selenium coverage | UI-OCRA-009 | ✅ |
+| R055 | Unify default MapDB path under repo-root `data/` and update docs/tests | UI-OCRA-002, UI-OCRA-009 | ✅ |
 
 Update this checklist as work progresses.

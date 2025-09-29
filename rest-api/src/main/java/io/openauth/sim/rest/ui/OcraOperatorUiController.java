@@ -121,6 +121,7 @@ final class OcraOperatorUiController {
     HttpSession session = request.getSession(true);
     model.addAttribute("csrfToken", ensureCsrfToken(session));
     model.addAttribute("evaluationEndpoint", REST_EVALUATION_PATH);
+    model.addAttribute("credentialsEndpoint", "/api/v1/ocra/credentials");
     populatePolicyPresets(model);
     return "ui/ocra/evaluate";
   }

@@ -22,7 +22,7 @@
                 aria-describedby="console-summary"
                 data-testid="ocra-evaluate-form"
                 class="evaluation-form"
-                th:attr="data-evaluate-endpoint=${evaluationEndpoint}"
+                th:attr="data-evaluate-endpoint=${evaluationEndpoint},data-credentials-endpoint=${credentialsEndpoint}"
               >
             <input type="hidden" name="_csrf" th:value="${csrfToken}" />
 
@@ -259,17 +259,25 @@
                 simulator.
               </p>
               <div>
-                <label for="credentialId">Credential identifier</label>
-                <input
+                <label for="credentialId">Stored credential</label>
+                <select
                   id="credentialId"
                   name="credentialId"
-                  type="text"
-                  autocomplete="off"
                   th:value="${form.credentialId}"
                   aria-describedby="credential-describe"
                   th:attr="required=${form.credentialMode} ? 'required' : null"
                   data-credential-required="true"
-                />
+                  data-testid="stored-credential-select"
+                >
+                  <option value="" selected="selected" disabled="disabled" hidden="hidden">
+                    Select a credential
+                  </option>
+                </select>
+                <p
+                  class="hint credential-status"
+                  data-testid="stored-credential-status"
+                  aria-live="polite"
+                ></p>
               </div>
             </section>
 
@@ -436,6 +444,13 @@
         const submitButton = form
           ? form.querySelector('[data-testid="ocra-evaluate-button"]')
           : null;
+        const credentialSelect = document.getElementById('credentialId');
+        const credentialStatus = document.querySelector('[data-testid="stored-credential-status"]');
+        const credentialsEndpoint = form
+          ? form.getAttribute('data-credentials-endpoint')
+          : null;
+        let credentialCache = null;
+        let credentialFetchPromise = null;
         const inlinePresets =
           inlinePresetElement && inlinePresetElement.textContent
             ? JSON.parse(inlinePresetElement.textContent)
@@ -587,6 +602,139 @@
               input.removeAttribute('disabled');
             }
           });
+          if (!inlineActive) {
+            ensureCredentialsLoaded();
+          } else {
+            setCredentialStatus('', false);
+          }
+        }
+
+        function ensureCredentialsLoaded() {
+          if (!credentialSelect || !credentialsEndpoint) {
+            return Promise.resolve([]);
+          }
+          if (credentialCache && credentialCache.length) {
+            renderCredentialOptions(credentialCache);
+            return Promise.resolve(credentialCache);
+          }
+          if (credentialFetchPromise) {
+            return credentialFetchPromise;
+          }
+          setCredentialStatus('Loading stored credentials…', false);
+          credentialSelect.setAttribute('disabled', 'disabled');
+          credentialFetchPromise = fetchDelegate(credentialsEndpoint, {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+          })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error('Failed to load stored credentials');
+              }
+              return response.text();
+            })
+            .then(function (bodyText) {
+              var payload = [];
+              if (bodyText) {
+                try {
+                  payload = JSON.parse(bodyText);
+                } catch (error) {
+                  throw new Error('Invalid credential directory response');
+                }
+              }
+              if (!Array.isArray(payload) && payload && Array.isArray(payload.credentials)) {
+                payload = payload.credentials;
+              }
+              if (!Array.isArray(payload)) {
+                payload = [];
+              }
+              credentialCache = payload
+                .map(function (item) {
+                  if (!item || typeof item.id !== 'string') {
+                    return null;
+                  }
+                  return {
+                    id: item.id,
+                    label: typeof item.label === 'string' ? item.label : item.id,
+                    suite: typeof item.suite === 'string' ? item.suite : '',
+                  };
+                })
+                .filter(Boolean)
+                .sort(function (a, b) {
+                  return a.id.localeCompare(b.id, undefined, { sensitivity: 'base' });
+                });
+              renderCredentialOptions(credentialCache);
+              if (credentialCache.length === 0) {
+                setCredentialStatus('No stored credentials found. Import credentials via the CLI.', false);
+              } else {
+                setCredentialStatus('', false);
+              }
+              return credentialCache;
+            })
+            .catch(function (error) {
+              console.error(error);
+              credentialCache = [];
+              renderCredentialOptions(credentialCache);
+              setCredentialStatus('Unable to load stored credentials.', true);
+              return [];
+            })
+            .finally(function () {
+              credentialFetchPromise = null;
+            });
+          return credentialFetchPromise;
+        }
+
+        function renderCredentialOptions(options) {
+          if (!credentialSelect) {
+            return;
+          }
+          var currentValue = credentialSelect.value;
+          var modeNode = document.querySelector('input[name="mode"]:checked');
+          var isInline = modeNode ? modeNode.value === 'inline' : true;
+          while (credentialSelect.firstChild) {
+            credentialSelect.removeChild(credentialSelect.firstChild);
+          }
+          var placeholder = document.createElement('option');
+          placeholder.value = '';
+          placeholder.textContent = options.length
+            ? 'Select a credential'
+            : 'No stored credentials available';
+          placeholder.disabled = options.length > 0;
+          placeholder.hidden = options.length > 0;
+          placeholder.selected = true;
+          credentialSelect.appendChild(placeholder);
+          var matched = false;
+          options.forEach(function (option) {
+            var element = document.createElement('option');
+            element.value = option.id;
+            element.textContent = option.label;
+            if (!matched && option.id === currentValue) {
+              element.selected = true;
+              matched = true;
+            }
+            credentialSelect.appendChild(element);
+          });
+          if (!isInline && options.length > 0) {
+            credentialSelect.removeAttribute('disabled');
+            if (!matched) {
+              credentialSelect.value = '';
+            }
+          }
+          if (options.length === 0) {
+            credentialSelect.setAttribute('disabled', 'disabled');
+          }
+        }
+
+        function setCredentialStatus(message, isError) {
+          if (!credentialStatus) {
+            return;
+          }
+          credentialStatus.textContent = message || '';
+          if (isError) {
+            credentialStatus.classList.add('credential-status--error');
+          } else {
+            credentialStatus.classList.remove('credential-status--error');
+          }
         }
 
         function applyPreset(presetKey) {
@@ -884,7 +1032,7 @@
           var selectedMode = document.querySelector('input[name="mode"]:checked');
           var modeValue = selectedMode ? selectedMode.value : 'inline';
           if (modeValue === 'credential') {
-            var credentialValue = toTrimmedValue(document.getElementById('credentialId'));
+            var credentialValue = toTrimmedValue(credentialSelect);
             if (credentialValue) {
               payload.credentialId = credentialValue;
             }

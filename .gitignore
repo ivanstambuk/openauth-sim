@@ -2,6 +2,7 @@
 .gradle/
 build/
 **/build/
+data/
 !gradle/wrapper/gradle-wrapper.jar
 
 # IDE metadata

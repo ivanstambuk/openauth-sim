@@ -26,12 +26,12 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected server error",
+          "200" : {
+            "description" : "Evaluation successful",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
                 }
               }
             }
@@ -64,12 +64,33 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation successful",
+          "500" : {
+            "description" : "Unexpected server error",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ocra/credentials" : {
+      "get" : {
+        "tags" : [ "ocra-credential-directory-controller" ],
+        "operationId" : "listCredentials",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/OcraCredentialSummary"
+                  }
                 }
               }
             }
@@ -116,6 +137,20 @@
           }
         }
       },
+      "OcraEvaluationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "suite" : {
+            "type" : "string"
+          },
+          "otp" : {
+            "type" : "string"
+          },
+          "telemetryId" : {
+            "type" : "string"
+          }
+        }
+      },
       "OcraEvaluationErrorResponse" : {
         "type" : "object",
         "properties" : {
@@ -133,16 +168,16 @@
           }
         }
       },
-      "OcraEvaluationResponse" : {
+      "OcraCredentialSummary" : {
         "type" : "object",
         "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
           "suite" : {
-            "type" : "string"
-          },
-          "otp" : {
-            "type" : "string"
-          },
-          "telemetryId" : {
             "type" : "string"
           }
         }

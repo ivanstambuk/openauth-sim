@@ -10,7 +10,7 @@ telemetry.
 
 ## Prerequisites
 - The `rest-api` Spring Boot application is running (launch the `RestApiApplication` class from your IDE or use `./gradlew :rest-api:run` if you have added the `application` plugin locally).
-- Point both the REST app and CLI at the same credential database (default `build/operator-ui/credentials.db`). You can override this path via the `openauth.sim.persistence.database-path` property.
+- Point both the REST app and CLI at the same credential database (default `data/ocra-credentials.db`). You can override this path via the `openauth.sim.persistence.database-path` property.
 - Your browser can reach the service host (default `http://localhost:8080`).
 - OCRA credentials are already persisted if you plan to use the stored credential flow.
 
@@ -18,7 +18,7 @@ telemetry.
 1. Navigate to `http://localhost:8080/ui/ocra`.
 2. Review the landing page and follow the **Evaluate OCRA responses** link to load the console.
 3. A CSRF-protected form renders; tokens are bound to your HTTP session and reused by the JavaScript fetch client.
-4. If you seeded credentials via the CLI, ensure you reused the same database path as the REST app (for example `--database=build/operator-ui/credentials.db`).
+4. If you seeded credentials via the CLI, ensure you reused the same database path as the REST app (for example `--database=data/ocra-credentials.db`).
 
 ## Choosing an Evaluation Mode
 - **Inline parameters** – Provide the OCRA suite and shared secret as hex. Use this for ad-hoc

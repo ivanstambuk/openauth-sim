@@ -11,6 +11,7 @@ import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.MapDbCredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.core.support.ProjectPaths;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -44,12 +45,13 @@ public final class OcraCli implements Callable<Integer> {
 
   @CommandLine.Spec private CommandLine.Model.CommandSpec spec;
 
+  private static final String DEFAULT_DATABASE_FILE = "ocra-credentials.db";
+
   @CommandLine.Option(
       names = {"-d", "--database"},
       paramLabel = "<path>",
       scope = CommandLine.ScopeType.INHERIT,
-      required = true,
-      description = "Path to the credential store database")
+      description = "Path to the credential store database (default: data/ocra-credentials.db)")
   private Path database;
 
   @Override
@@ -67,7 +69,10 @@ public final class OcraCli implements Callable<Integer> {
   }
 
   private Path databasePath() {
-    return database;
+    if (database != null) {
+      return database.toAbsolutePath();
+    }
+    return ProjectPaths.resolveDataFile(DEFAULT_DATABASE_FILE);
   }
 
   private static String event(String suffix) {

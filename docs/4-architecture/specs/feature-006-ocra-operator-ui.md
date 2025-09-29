@@ -24,6 +24,9 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-29 – Inline policy builder will use a guided form that assembles suite components and previews the resulting descriptor live, reducing reliance on memorised strings while staying inline (user chose option B).
 - 2025-09-29 – Inline policy builder will use a guided form that assembles suite components and previews the resulting descriptor live, reducing reliance on memorised strings while staying inline (user chose option B).
 - 2025-09-29 – Verified the OATH specification only defines OCRA-1 today; the builder will present the version as a read-only OCRA-1 label to avoid implying future variants exist.
+- 2025-09-29 – Stored credential mode will surface a dropdown that lists available credential IDs fetched from the REST API; operators no longer type identifiers manually and selections hydrate the evaluation request.
+- 2025-09-29 – Stored credential mode will surface a dropdown that lists available credential IDs fetched from the REST API; operators no longer type identifiers manually and selections hydrate the evaluation request.
+- 2025-09-29 – Default credential database lives at `data/ocra-credentials.db` in the repo root so CLI and REST/Operator UI share the same persistence by default; environment/property overrides remain supported.
 - 2025-09-29 – Builder must surface inline validation and disable Apply when configuration is incomplete (e.g., invalid session length or missing challenge) while keeping assistive messaging accessible (agreed during UX polish).
 
 ## Objectives & Success Criteria
@@ -43,6 +46,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 | UI-OCRA-006 | Ensure CSRF protection and input sanitization for rendered templates per Spring MVC best practices. | Integration tests verify CSRF token presence on forms; linting or tests confirm no unsanitized user input is echoed in HTML. |
 | UI-OCRA-007 | Keep inline policy presets aligned with the curated OCRA vector catalog (including `OCRA-1:HOTP-SHA256-6:C-QH64`). | UI tests iterate over each preset and match OTPs against domain compliance fixtures. |
 | UI-OCRA-008 | Provide a guided inline policy builder that assembles suite components (crypto function, response length, data inputs) with a live preview and the ability to apply the generated suite/secret to the form. | Selecting builder options updates the preview text and, when applied, populates suite/secret fields identically to manual entry/presets. |
+| UI-OCRA-009 | Present stored credentials via a REST-backed dropdown so operators pick an identifier instead of typing it manually. | Switching to stored credential mode triggers a fetch to `/api/v1/ocra/credentials`, populates the combo box, and evaluation requests include the chosen ID without additional input. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |
@@ -57,6 +61,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - **Evaluation form:** Credential selector (dropdown populated via REST lookup) alongside an option to toggle into inline mode; fields for challenge, counter, session, pin; telemetry consent note. Submissions are issued via asynchronous JSON `fetch` calls (with an XMLHttpRequest fallback for HtmlUnit-based automation).
 - **Compact layout:** Only the active mode’s inputs are visible; the inactive section collapses to a brief summary. Optional request parameters reside inside an “Advanced parameters” disclosure to keep the primary flow above the fold on desktop and tablet breakpoints.
 - **Inline policy builder:** Guided controls let operators configure hashing algorithm, response length, and data inputs while locking the suite prefix to the officially specified `OCRA-1`. A read-only preview updates live, auto-populating the suite/secret fields while preserving the existing preset dropdown. Inline validation warns about unsupported digit counts or session lengths and disables the apply button until the configuration is valid.
+- **Stored credential picker:** When operators switch to stored credential mode, the UI fetches available OCRA credential IDs from the REST API and renders them in a searchable dropdown, removing manual identifier entry while keeping copy-friendly labels.
 - **Results panel:** OTP output, concise status summary, sanitized flag, and suite preview. Telemetry identifiers remain available via browser dev tools/logs but are no longer surfaced in the card. Provide contextual copy actions for OTP/suite only.
 - **Error handling:** Inline form validation for missing fields plus user-friendly error statements derived from REST `reasonCode` values (e.g., “Suite prefix 342424 is not supported”). A sanitized technical detail remains accessible for operators needing escalation notes.
 

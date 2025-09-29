@@ -146,7 +146,9 @@ final class OcraOperatorUiSeleniumTest {
     waitForElementEnabled(By.id("credentialId"));
     assertThat(credentialSection.getAttribute("hidden")).isNull();
 
-    driver.findElement(By.id("credentialId")).sendKeys(CREDENTIAL_ID);
+    waitForCredentialOptions();
+    Select credentialDropdown = new Select(driver.findElement(By.id("credentialId")));
+    credentialDropdown.selectByValue(CREDENTIAL_ID);
     driver.findElement(By.id("challenge")).sendKeys(QA_EXPECTED_CHALLENGE);
     driver.findElement(By.cssSelector("button[data-testid='ocra-advanced-toggle']")).click();
     waitForBackgroundJavaScript();
@@ -350,5 +352,18 @@ final class OcraOperatorUiSeleniumTest {
                         .executeScript(
                             "return typeof window.__ocraApplyPreset === 'function'"
                                 + " && typeof window.__ocraUpdateSections === 'function';")));
+  }
+
+  private void waitForCredentialOptions() {
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            d -> {
+              Object count =
+                  ((JavascriptExecutor) d)
+                      .executeScript(
+                          "var select = document.getElementById('credentialId');"
+                              + "return select ? select.options.length : 0;");
+              return count instanceof Number && ((Number) count).intValue() > 1;
+            });
   }
 }
