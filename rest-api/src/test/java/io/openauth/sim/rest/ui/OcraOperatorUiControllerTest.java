@@ -124,6 +124,22 @@ final class OcraOperatorUiControllerTest {
   }
 
   @Test
+  @DisplayName("Evaluation script registers stored credential selection handler")
+  void evaluationScriptRegistersSelectionHandler() throws Exception {
+    String html =
+        mockMvc
+            .perform(get(UI_EVALUATION_PATH))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    assertThat(html).contains("function handleStoredCredentialSelection()");
+    assertThat(html)
+        .contains("credentialSelect.addEventListener('change', handleStoredCredentialSelection);");
+  }
+
+  @Test
   @DisplayName("Inline data inputs expose grid styling hooks")
   void inlineCheckboxesExposeGridStylingHooks() throws Exception {
     String html =

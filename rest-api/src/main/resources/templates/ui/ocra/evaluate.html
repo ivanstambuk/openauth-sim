@@ -638,9 +638,12 @@
             }
           });
           if (!inlineActive) {
-            ensureCredentialsLoaded();
+            ensureCredentialsLoaded().then(function () {
+              handleStoredCredentialSelection();
+            });
           } else {
             setCredentialStatus('', false);
+            enableAllRequestParameters();
           }
         }
 
@@ -772,6 +775,78 @@
           if (options.length === 0) {
             credentialSelect.setAttribute('disabled', 'disabled');
           }
+          handleStoredCredentialSelection();
+        }
+
+        function setRequestParameterState(input, allowed) {
+          if (!input) {
+            return;
+          }
+          if (allowed) {
+            input.removeAttribute('disabled');
+            return;
+          }
+          input.setAttribute('disabled', 'disabled');
+          if (typeof input.value === 'string') {
+            input.value = '';
+          }
+        }
+
+        function enableAllRequestParameters() {
+          [
+            challengeInput,
+            clientChallengeInput,
+            serverChallengeInput,
+            counterInput,
+            sessionInput,
+            timestampInput,
+          ].forEach(function (input) {
+            if (input) {
+              input.removeAttribute('disabled');
+            }
+          });
+          if (!hasAdvancedValues()) {
+            setAdvancedState(false);
+          }
+        }
+
+        function applyRequestParameterConstraints(parsed) {
+          if (!parsed) {
+            enableAllRequestParameters();
+            return;
+          }
+          var hasChallenge = Boolean(parsed.challenge);
+          setRequestParameterState(challengeInput, hasChallenge);
+          setRequestParameterState(clientChallengeInput, hasChallenge);
+          setRequestParameterState(serverChallengeInput, hasChallenge);
+          setRequestParameterState(counterInput, Boolean(parsed.counterRequired));
+          setRequestParameterState(sessionInput, parsed.sessionLengthBytes > 0);
+          setRequestParameterState(timestampInput, Boolean(parsed.timestampRequired));
+          if (!parsed.requiresAdvanced && !hasAdvancedValues()) {
+            setAdvancedState(false);
+          }
+        }
+
+        function handleStoredCredentialSelection() {
+          if (!credentialSelect) {
+            return;
+          }
+          var selectedId = credentialSelect.value;
+          if (!selectedId) {
+            enableAllRequestParameters();
+            return;
+          }
+          var metadata = credentialMetadata[selectedId];
+          if (!metadata || typeof metadata.suite !== 'string') {
+            enableAllRequestParameters();
+            return;
+          }
+          var parsed = parseOcraSuite(metadata.suite);
+          if (!parsed) {
+            enableAllRequestParameters();
+            return;
+          }
+          applyRequestParameterConstraints(parsed);
         }
 
         function parseOcraSuite(suite) {
@@ -1053,6 +1128,7 @@
             return;
           }
 
+          applyRequestParameterConstraints(parsed);
           clearPanels();
 
           if (suiteInput) {
@@ -1610,6 +1686,10 @@
           policySelect.addEventListener('change', function () {
             applyPreset(policySelect.value);
           });
+        }
+
+        if (credentialSelect) {
+          credentialSelect.addEventListener('change', handleStoredCredentialSelection);
         }
 
         if (advancedToggle) {

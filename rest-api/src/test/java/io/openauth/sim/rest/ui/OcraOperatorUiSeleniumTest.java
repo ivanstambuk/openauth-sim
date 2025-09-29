@@ -280,6 +280,57 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
   }
 
+  @ParameterizedTest(name = "{0} disables unsupported parameters on selection")
+  @MethodSource("storedCredentialAutoPopulateScenarios")
+  @DisplayName("Stored credential selection disables unsupported request parameters")
+  void storedCredentialSelectionDisablesUnsupportedParameters(
+      String description, StoredCredentialScenario scenario) {
+    driver.get(baseUrl("/ui/ocra/evaluate"));
+    waitForPresetScripts();
+
+    driver.findElement(By.id("mode-credential")).click();
+    waitForBackgroundJavaScript();
+    waitForElementEnabled(By.id("credentialId"));
+    waitForCredentialOptions();
+
+    setFieldValue("challenge", "PLACEHOLDER");
+    setFieldValue("sessionHex", "DEADBEEF");
+    setFieldValue("timestampHex", "FEEDFACE");
+    setFieldValue("counter", "123");
+
+    Select credentialDropdown = new Select(driver.findElement(By.id("credentialId")));
+    credentialDropdown.selectByValue(scenario.credentialId());
+    waitForBackgroundJavaScript();
+
+    boolean challengeDisabledExpected = scenario.challengeExpectation() == null;
+    waitForDisabledState("challenge", challengeDisabledExpected);
+    assertThat(isDisabled("challenge")).isEqualTo(challengeDisabledExpected);
+    if (challengeDisabledExpected) {
+      assertThat(fieldValue("challenge")).isBlank();
+    }
+
+    boolean counterDisabledExpected = !scenario.counterRequired();
+    waitForDisabledState("counter", counterDisabledExpected);
+    assertThat(isDisabled("counter")).isEqualTo(counterDisabledExpected);
+    if (counterDisabledExpected) {
+      assertThat(fieldValue("counter")).isBlank();
+    }
+
+    boolean sessionDisabledExpected = scenario.sessionLengthBytes() <= 0;
+    waitForDisabledState("sessionHex", sessionDisabledExpected);
+    assertThat(isDisabled("sessionHex")).isEqualTo(sessionDisabledExpected);
+    if (sessionDisabledExpected) {
+      assertThat(fieldValue("sessionHex")).isBlank();
+    }
+
+    boolean timestampDisabledExpected = !scenario.timestampRequired();
+    waitForDisabledState("timestampHex", timestampDisabledExpected);
+    assertThat(isDisabled("timestampHex")).isEqualTo(timestampDisabledExpected);
+    if (timestampDisabledExpected) {
+      assertThat(fieldValue("timestampHex")).isBlank();
+    }
+  }
+
   @Test
   @DisplayName("Stored credential flow succeeds via Selenium driver")
   void storedCredentialEvaluationSucceeds() {
@@ -650,6 +701,30 @@ final class OcraOperatorUiSeleniumTest {
                     + " return el ? (el.value || '') : '';",
                 elementId);
     return value == null ? "" : value.toString();
+  }
+
+  private void setFieldValue(String elementId, String value) {
+    ((JavascriptExecutor) driver)
+        .executeScript(
+            "var el = document.getElementById(arguments[0]);"
+                + " if (el) { el.value = arguments[1] || ''; }",
+            elementId,
+            value);
+  }
+
+  private boolean isDisabled(String elementId) {
+    Object disabled =
+        ((JavascriptExecutor) driver)
+            .executeScript(
+                "var el = document.getElementById(arguments[0]);"
+                    + " return el ? !!el.disabled : false;",
+                elementId);
+    return Boolean.TRUE.equals(disabled);
+  }
+
+  private void waitForDisabledState(String elementId, boolean expectedDisabled) {
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(d -> isDisabled(elementId) == expectedDisabled);
   }
 
   private long currentTimeStep(long stepSeconds) {

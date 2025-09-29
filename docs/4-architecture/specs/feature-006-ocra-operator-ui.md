@@ -33,6 +33,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-29 – Stored credential auto-populate button will fill every suite-required field (challenge, counter, session, timestamp, PIN) and clear disallowed inputs to prevent validation conflicts; logic executes entirely in the client.
 - 2025-09-29 – Timestamp values generated during stored credential auto-population will derive from the current UTC clock snapped to the suite’s declared timestep so evaluations succeed without drift.
 - 2025-09-29 – Appendix A/B OCRA reference code from the draft is embedded directly in the generator how-to so agents work offline while preserving the canonical URL reference.
+- 2025-09-29 – When an operator selects a stored credential, the UI immediately disables and clears request parameter inputs not supported by that credential’s OCRA suite (user chose option A).
 
 ## Objectives & Success Criteria
 - Provide browser-accessible pages that let operators evaluate OCRA responses using stored credentials or inline parameters, mirroring REST validation semantics.

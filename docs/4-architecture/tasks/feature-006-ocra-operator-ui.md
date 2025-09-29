@@ -53,7 +53,7 @@ _Last updated: 2025-09-29_
 | R058 | Trim section headings/descriptions for inline vs stored mode per operator request | UI-OCRA-002, UI-OCRA-005 | ✅ |
 | R059 | Embed Appendix A/B OCRA generator code directly in the how-to to eliminate repeated fetch/setup steps | UI-OCRA-007, Documentation | ✅ |
 | R060 | Record stored credential auto-pop scope + clarifications across spec/plan/tasks | UI-OCRA-009 | ✅ |
-| R061 | Add failing MockMvc + Selenium tests validating stored credential auto-population behaviour | UI-OCRA-009, UI-OCRA-005 | ☐ |
+| R061 | Add failing MockMvc + Selenium tests ensuring stored credential selection immediately disables unsupported request parameters | UI-OCRA-009, UI-OCRA-005 | ✅ |
 | R062 | Implement client-side suite parsing + auto-pop generation (challenge/session/counter/timestamp/PIN) with disallowed field clearing | UI-OCRA-009, UI-OCRA-005 | ✅ |
 | R063 | Update documentation, knowledge map, and rerun `./gradlew spotlessApply check` | UI-OCRA-009, Documentation | ✅ |
 | R064 | Tweak stored credential auto-fill button label/hint spacing | UI-OCRA-009, UI-NFR-001 | ✅ |
