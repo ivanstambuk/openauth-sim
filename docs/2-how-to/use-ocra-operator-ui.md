@@ -31,7 +31,8 @@ telemetry.
   credentials from the MapDB file referenced by `openauth.sim.persistence.database-path`.
 
 The mode toggle is keyboard-accessible and announces which section is visible. JavaScript is required
-for evaluations because submissions now run through asynchronous JSON fetch calls.
+for evaluations because submissions now run through asynchronous JSON fetch calls. The Evaluate button
+no longer performs a traditional form POST; without JavaScript the console stays inert.
 
 ## Supplying Request Parameters
 - Inline mode requires the suite and shared secret. An optional PIN hash field supports suite

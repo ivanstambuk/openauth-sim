@@ -76,6 +76,8 @@ final class OcraOperatorUiControllerTest {
     assertThat(html).contains("data-testid=\"inline-policy-select\"");
     assertThat(html).contains("QA08 S064");
     assertThat(html).contains("C-QH64 (HOTP-SHA256-6)");
+    assertThat(html).contains("action=\"#\"");
+    assertThat(html).doesNotContain("method=\"post\"");
     assertThat(html).contains("data-evaluate-endpoint=\"/api/v1/ocra/evaluate\"");
     assertThat(html).contains("data-testid=\"ocra-fetch-script\"");
     assertThat(html).contains("data-testid=\"ocra-fetch-script\"");
