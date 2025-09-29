@@ -35,8 +35,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R040 – Capture styling implementation plan (tokens, professional dashboard layout, responsive breakpoints) inside spec/plan/tasks. ✅ 2025-09-29
 - R041 – Add design tokens and base stylesheet delivering the accessible navy/teal palette and typography updates. ✅ 2025-09-29
 - R042 – Apply redesigned styles to templates, adjust layouts for desktop/tablet, update docs/tests, and run `./gradlew spotlessApply check`. ✅ 2025-09-29
-- R043 – Design compact layout (collapsible sections + guided inline builder plan) and capture spec/task updates. ☐
-- R044 – Simplify telemetry panel and improve error messaging for REST responses. ☐
+- R043 – Design compact layout (collapsible sections + guided inline builder plan) and capture spec/task updates. ✅ 2025-09-29
+- R044 – Simplify telemetry panel and improve error messaging for REST responses. ✅ 2025-09-29
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -77,6 +77,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-29 – R041: Added `console.css` design tokens, gradients, typography, and responsive shell; linked the stylesheet into the evaluation template.
 - 2025-09-29 – R042: Refined the evaluation template with professional dashboard layout, responsive column stack, styled controls, and verified via `./gradlew spotlessApply check`.
 - 2025-09-29 – Decision: Inline policy builder will be a guided form that assembles suite components with a live preview rather than free-form text entry.
+- 2025-09-29 – R043: Documented compact layout approach (collapsing inactive sections, advanced-parameters disclosure) and outlined guided policy builder UX in the spec.
+- 2025-09-29 – R044: Collapsed optional request parameters behind an advanced disclosure, trimmed telemetry fields, added friendly error messaging, and updated tests/documentation.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

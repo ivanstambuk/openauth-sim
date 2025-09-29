@@ -35,7 +35,7 @@ _Last updated: 2025-09-29_
 | R040 | Document styling plan (tokens, layout strategy, responsive breakpoints) across spec/plan/tasks | UI-OCRA-001–UI-OCRA-006 | ✅ |
 | R041 | Implement CSS design tokens + base stylesheet delivering the approved palette/typography | UI-OCRA-001–UI-OCRA-006, UI-NFR-001–UI-NFR-004 | ✅ |
 | R042 | Apply redesigned styles to templates, adjust scripts/ARIA as needed, update docs/tests, run `./gradlew spotlessApply check` | UI-OCRA-001–UI-OCRA-006, UI-NFR-001–UI-NFR-004 | ✅ |
-| R043 | Design compact layout (collapsible sections, guided inline builder concept), capture plan/spec updates | UI-OCRA-001–UI-OCRA-006 | ☐ |
-| R044 | Implement telemetry panel simplification and descriptive error messaging | UI-OCRA-004, UI-OCRA-005 | ☐ |
+| R043 | Design compact layout (collapsible sections, guided inline builder concept), capture plan/spec updates | UI-OCRA-001–UI-OCRA-006 | ✅ |
+| R044 | Implement telemetry panel simplification and descriptive error messaging | UI-OCRA-004, UI-OCRA-005 | ✅ |
 
 Update this checklist as work progresses.

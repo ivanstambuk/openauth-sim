@@ -156,11 +156,31 @@
               </div>
             </section>
 
-            <section aria-labelledby="parameters-heading" class="request-parameters field-grid">
+          <section aria-labelledby="parameters-heading" class="request-parameters">
+            <div class="stack-sm">
               <h3 id="parameters-heading">Request parameters</h3>
               <p class="hint" id="parameters-hint">
                 Optional fields match the REST API contract. Leave blank to accept backend defaults.
               </p>
+              <button
+                type="button"
+                class="advanced-toggle"
+                data-testid="ocra-advanced-toggle"
+                aria-controls="advanced-parameters"
+                aria-expanded="false"
+                data-expanded="false"
+              >
+                <svg viewBox="0 0 16 16" role="presentation" focusable="false">
+                  <path
+                    fill="currentColor"
+                    d="M8 11a.75.75 0 0 1-.53-.22l-4-4a.75.75 0 1 1 1.06-1.06L8 9.19l3.47-3.47a.75.75 0 0 1 1.06 1.06l-4 4A.75.75 0 0 1 8 11Z"
+                  />
+                </svg>
+                Advanced parameters
+              </button>
+            </div>
+
+            <div class="field-grid request-primary-grid">
               <div>
                 <label for="challenge">Challenge</label>
                 <input
@@ -172,6 +192,25 @@
                   aria-describedby="parameters-hint"
                 />
               </div>
+              <div>
+                <label for="counter">Counter</label>
+                <input
+                  id="counter"
+                  name="counter"
+                  type="number"
+                  min="0"
+                  th:value="${form.counter}"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+
+            <div
+              id="advanced-parameters"
+              class="advanced-panel field-grid"
+              data-testid="ocra-advanced-panel"
+              data-open="false"
+            >
               <div>
                 <label for="clientChallenge">Client challenge</label>
                 <input
@@ -212,18 +251,8 @@
                   autocomplete="off"
                 />
               </div>
-              <div>
-                <label for="counter">Counter</label>
-                <input
-                  id="counter"
-                  name="counter"
-                  type="number"
-                  min="0"
-                  th:value="${form.counter}"
-                  autocomplete="off"
-                />
-              </div>
-            </section>
+            </div>
+          </section>
 
             <button type="button" class="button-primary" data-testid="ocra-evaluate-button">
               Evaluate response
@@ -243,20 +272,9 @@
                 OTP:
                 <strong data-testid="ocra-otp-value"></strong>
               </p>
-              <p id="telemetry-instructions" class="hint">
-                Copy the telemetry summary when escalating issues; it contains only sanitized values.
-              </p>
-              <dl
-                data-testid="ocra-telemetry-summary"
-                aria-describedby="telemetry-instructions"
-                class="telemetry-summary"
-              >
+              <dl data-testid="ocra-telemetry-summary" class="result-metadata">
                 <dt>Status</dt>
                 <dd data-testid="ocra-status-value"></dd>
-                <dt>Telemetry ID</dt>
-                <dd data-testid="ocra-telemetry-id"></dd>
-                <dt>Reason code</dt>
-                <dd data-testid="ocra-reason-code"></dd>
                 <dt>Sanitized</dt>
                 <dd data-testid="ocra-sanitized-flag"></dd>
                 <dt>Suite</dt>
@@ -274,9 +292,8 @@
             >
               <div>
                 <h2 id="error-heading">Evaluation failed</h2>
-                <p data-testid="ocra-error-reason"></p>
-                <p data-testid="ocra-error-sanitized"></p>
-                <p data-testid="ocra-error-message"></p>
+                <p data-testid="ocra-error-primary"></p>
+                <p class="hint" data-testid="ocra-error-secondary"></p>
               </div>
             </section>
           </div>
@@ -318,6 +335,28 @@
           return acc;
         }, Object.create(null));
         window.__ocraPresetMap = presetMap;
+        const FRIENDLY_ERRORS = Object.freeze({
+          credential_not_found: 'Stored credential could not be found. Check the identifier.',
+          credential_conflict:
+            'Multiple credentials matched this identifier. Use a more specific ID or clean up duplicates.',
+          invalid_shared_secret: 'Shared secret is invalid. Ensure it is a hex-encoded value.',
+          invalid_parameters: 'Some request parameters are invalid. Review the highlighted fields.',
+          challenge_required: 'Challenge is required for the selected suite.',
+          challenge_length: 'Challenge length is invalid for the selected suite.',
+          challenge_format: 'Challenge format is invalid for the selected suite.',
+          counter_required: 'Counter value is required for the selected suite.',
+          counter_negative: 'Counter value cannot be negative.',
+          counter_not_permitted: 'Counter is not permitted for the selected suite.',
+          session_required: 'Session data is required for the selected suite.',
+          session_not_permitted: 'Session data is not permitted for the selected suite.',
+          timestamp_drift_exceeded: 'Timestamp exceeded the allowed drift for this suite.',
+          timestamp_not_permitted: 'Timestamp is not permitted for the selected suite.',
+          timestamp_invalid: 'Timestamp value is invalid. Use a hex-encoded epoch.',
+          pin_hash_mismatch: 'PIN hash did not match the stored value.',
+          pin_hash_required: 'PIN hash is required for the selected suite.',
+          pin_hash_not_permitted: 'PIN hash is not permitted for the selected suite.',
+          missing_required: 'A required field is missing for the selected suite.',
+        });
         const inlineModeRadio = document.getElementById('mode-inline');
         const suiteInput = document.getElementById('suite');
         const sharedSecretInput = document.getElementById('sharedSecretHex');
@@ -328,17 +367,16 @@
         const pinHashInput = document.getElementById('pinHashHex');
         const timestampInput = document.getElementById('timestampHex');
         const counterInput = document.getElementById('counter');
+        const advancedToggle = document.querySelector('[data-testid="ocra-advanced-toggle"]');
+        const advancedPanel = document.querySelector('[data-testid="ocra-advanced-panel"]');
         const resultPanel = document.querySelector('[data-testid="ocra-result-panel"]');
         const statusValue = document.querySelector('[data-testid="ocra-status-value"]');
         const otpValue = document.querySelector('[data-testid="ocra-otp-value"]');
-        const telemetryValue = document.querySelector('[data-testid="ocra-telemetry-id"]');
-        const reasonValue = document.querySelector('[data-testid="ocra-reason-code"]');
         const sanitizedValue = document.querySelector('[data-testid="ocra-sanitized-flag"]');
         const suiteValue = document.querySelector('[data-testid="ocra-suite-value"]');
         const errorPanel = document.querySelector('[data-testid="ocra-error-panel"]');
-        const errorReason = document.querySelector('[data-testid="ocra-error-reason"]');
-        const errorSanitized = document.querySelector('[data-testid="ocra-error-sanitized"]');
-        const errorMessage = document.querySelector('[data-testid="ocra-error-message"]');
+        const errorPrimary = document.querySelector('[data-testid="ocra-error-primary"]');
+        const errorSecondary = document.querySelector('[data-testid="ocra-error-secondary"]');
         const fetchDelegate =
           typeof window.fetch === 'function'
             ? function (endpoint, options) {
@@ -456,6 +494,7 @@
           if (counterInput) {
             counterInput.value = sample && sample.counter != null ? sample.counter : '';
           }
+          ensureAdvancedOpenIfNeeded();
         }
 
         function setTextContent(node, value) {
@@ -491,13 +530,10 @@
           hidePanel(errorPanel);
           setTextContent(statusValue, '');
           setTextContent(otpValue, '');
-          setTextContent(telemetryValue, '');
-          setTextContent(reasonValue, '');
           setTextContent(sanitizedValue, '');
           setTextContent(suiteValue, '');
-          setTextContent(errorReason, '');
-          setTextContent(errorSanitized, '');
-          setTextContent(errorMessage, '');
+          setTextContent(errorPrimary, '');
+          setTextContent(errorSecondary, '');
         }
 
         function toTrimmedValue(input) {
@@ -513,6 +549,24 @@
           }
           var parsed = Number(value);
           return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        function hasAdvancedValues() {
+          return (
+            toTrimmedValue(clientChallengeInput)
+              || toTrimmedValue(serverChallengeInput)
+              || toTrimmedValue(sessionInput)
+              || toTrimmedValue(timestampInput)
+          );
+        }
+
+        function ensureAdvancedOpenIfNeeded() {
+          if (!advancedPanel || !advancedToggle) {
+            return;
+          }
+          if (hasAdvancedValues()) {
+            setAdvancedState(true);
+          }
         }
 
         function buildPayload() {
@@ -583,26 +637,70 @@
           }
         }
 
+        function setAdvancedState(nextState) {
+          if (!advancedPanel || !advancedToggle) {
+            return;
+          }
+          advancedPanel.setAttribute('data-open', String(nextState));
+          advancedToggle.setAttribute('aria-expanded', String(nextState));
+          advancedToggle.setAttribute('data-expanded', String(nextState));
+        }
+
+        function toggleAdvanced() {
+          if (!advancedPanel || !advancedToggle) {
+            return;
+          }
+          const open = advancedPanel.getAttribute('data-open') === 'true';
+          setAdvancedState(!open);
+        }
+
         function renderSuccess(body, payload) {
           const suiteText = body && body.suite ? body.suite : payload.suite || '';
-          setTextContent(statusValue, 'success');
+          setTextContent(statusValue, 'Success');
           setTextContent(otpValue, body && body.otp ? body.otp : '');
-          setTextContent(telemetryValue, body && body.telemetryId ? body.telemetryId : '');
-          setTextContent(reasonValue, 'success');
-          setTextContent(sanitizedValue, 'true');
+          const sanitizedFlag =
+            body && Object.prototype.hasOwnProperty.call(body, 'sanitized')
+              ? String(body.sanitized)
+              : 'true';
+          setTextContent(sanitizedValue, sanitizedFlag);
           setTextContent(suiteValue, suiteText);
           showPanel(resultPanel);
           hidePanel(errorPanel);
         }
 
-        function renderError(body) {
+        function deriveErrorMessage(body) {
           const details = body && body.details ? body.details : {};
-          const reason = details.reasonCode || (body && body.error) || 'invalid_input';
-          const sanitized = details.sanitized || 'true';
-          const message = (body && body.message) || 'Your request could not be processed';
-          setTextContent(errorReason, reason);
-          setTextContent(errorSanitized, sanitized);
-          setTextContent(errorMessage, message);
+          const reason = details.reasonCode || ((body && body.error) || 'invalid_input');
+          const sanitizedFlag =
+            details.sanitized === false || details.sanitized === 'false'
+              ? 'false'
+              : body && body.sanitized === false
+              ? 'false'
+              : 'true';
+          let primary = (body && body.message) || 'Unable to process your request.';
+          if (reason === 'invalid_suite_prefix' && details.prefix) {
+            primary = 'Suite prefix ' + details.prefix + ' is not supported.';
+          } else if (reason === 'missing_required' && details.field) {
+            primary = 'Field "' + details.field + '" is required for the selected suite.';
+          } else if (reason === 'invalid_parameters' && details.field) {
+            primary = 'Field "' + details.field + '" contains invalid data.';
+          } else if (FRIENDLY_ERRORS[reason]) {
+            primary = FRIENDLY_ERRORS[reason];
+          }
+          const secondary =
+            sanitizedFlag === 'true'
+              ? 'Only sanitized details are shown. Check server logs for additional context.'
+              : 'Detailed information is displayed for troubleshooting.';
+          return {
+            primary: primary,
+            secondary: secondary,
+          };
+        }
+
+        function renderError(body) {
+          const derived = deriveErrorMessage(body);
+          setTextContent(errorPrimary, derived.primary);
+          setTextContent(errorSecondary, derived.secondary);
           hidePanel(resultPanel);
           showPanel(errorPanel);
         }
@@ -669,6 +767,26 @@
           });
         }
 
+        if (advancedToggle) {
+          advancedToggle.addEventListener('click', function () {
+            toggleAdvanced();
+          });
+        }
+
+        [clientChallengeInput, serverChallengeInput, sessionInput, timestampInput].forEach(
+          function (input) {
+            if (!input) {
+              return;
+            }
+            input.addEventListener('focus', function () {
+              setAdvancedState(true);
+            });
+            input.addEventListener('input', function () {
+              ensureAdvancedOpenIfNeeded();
+            });
+          }
+        );
+
         if (form) {
           form.addEventListener('submit', handleFetch);
           form.addEventListener('keydown', function (event) {
@@ -696,6 +814,7 @@
         window.__ocraUpdateSections = updateSections;
 
         updateSections();
+        ensureAdvancedOpenIfNeeded();
         if (policySelect && policySelect.value) {
           applyPreset(policySelect.value);
         }

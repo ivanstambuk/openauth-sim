@@ -51,8 +51,10 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 ## UX Outline
 - **Landing page:** Brief overview, links to evaluation form, reminder that credential management stays in CLI for now, and guidance on running the REST service.
 - **Evaluation form:** Credential selector (dropdown populated via REST lookup) alongside an option to toggle into inline mode; fields for challenge, counter, session, pin; telemetry consent note. Submissions are issued via asynchronous JSON `fetch` calls (with an XMLHttpRequest fallback for HtmlUnit-based automation).
-- **Results panel:** OTP output, metadata table (status, telemetryId, reasonCode, sanitized flag, suite), copy-to-clipboard helper, and contextual tips for common failure modes. Preset dropdown highlights both RFC 6287 vectors and the new `OCRA-1:HOTP-SHA256-6:C-QH64` sample sourced from the documented generator.
-- **Error handling:** Inline form validation for missing fields, dedicated error view for unexpected faults with instructions to consult logs.
+- **Compact layout:** Only the active mode’s inputs are visible; the inactive section collapses to a brief summary. Optional request parameters reside inside an “Advanced parameters” disclosure to keep the primary flow above the fold on desktop and tablet breakpoints.
+- **Inline policy builder:** Guided controls let operators pick suite prefixes, hash algorithms, response lengths, and data inputs. A read-only preview updates live, auto-populating the suite/secret fields while preserving the existing preset dropdown.
+- **Results panel:** OTP output, concise status summary, sanitized flag, and suite preview. Telemetry identifiers remain available via browser dev tools/logs but are no longer surfaced in the card. Provide contextual copy actions for OTP/suite only.
+- **Error handling:** Inline form validation for missing fields plus user-friendly error statements derived from REST `reasonCode` values (e.g., “Suite prefix 342424 is not supported”). A sanitized technical detail remains accessible for operators needing escalation notes.
 
 ## Test Strategy
 - **Spring MVC slice tests** asserting controller + template rendering, CSRF enforcement, and validation error messages.

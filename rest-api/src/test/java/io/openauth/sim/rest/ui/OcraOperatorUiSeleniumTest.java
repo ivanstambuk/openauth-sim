@@ -117,9 +117,12 @@ final class OcraOperatorUiSeleniumTest {
 
     WebElement otpElement = resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp']"));
     assertThat(otpElement.getText()).contains(scenario.expectedOtp());
-    WebElement reasonCode =
-        resultPanel.findElement(By.cssSelector("[data-testid='ocra-reason-code']"));
-    assertThat(reasonCode.getText()).isEqualTo("success");
+    WebElement statusValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='ocra-status-value']"));
+    assertThat(statusValue.getText()).isEqualTo("Success");
+    WebElement sanitizedValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='ocra-sanitized-flag']"));
+    assertThat(sanitizedValue.getText()).isEqualTo("true");
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
     assertValueWithWait(By.id("sharedSecretHex"), scenario.expectedSharedSecretHex());
@@ -150,9 +153,9 @@ final class OcraOperatorUiSeleniumTest {
 
     WebElement otpElement = resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp']"));
     assertThat(otpElement.getText()).contains(QA_EXPECTED_OTP);
-    WebElement telemetryBlock =
+    WebElement metadata =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-telemetry-summary']"));
-    assertThat(telemetryBlock.getText()).contains("success").contains("true");
+    assertThat(metadata.getText()).contains("Success").contains("true");
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
   }

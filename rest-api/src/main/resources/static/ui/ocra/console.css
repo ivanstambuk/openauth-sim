@@ -126,6 +126,15 @@ button {
   opacity: 0.7;
 }
 
+.request-parameters {
+  display: grid;
+  gap: var(--ocra-spacing-md);
+}
+
+.request-primary-grid {
+  max-width: 28rem;
+}
+
 .section-title {
   display: flex;
   align-items: center;
@@ -146,6 +155,47 @@ button {
   color: var(--ocra-color-text-muted);
   max-width: 48rem;
   margin-bottom: var(--ocra-spacing-lg);
+}
+
+.stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ocra-spacing-sm);
+}
+
+.advanced-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: var(--ocra-spacing-xs) var(--ocra-spacing-md);
+  border-radius: 999px;
+  border: 1px solid rgba(18, 59, 93, 0.2);
+  background: rgba(18, 59, 93, 0.05);
+  color: var(--ocra-color-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.advanced-toggle svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  transition: transform 0.2s ease;
+}
+
+.advanced-toggle[data-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.advanced-panel {
+  border-radius: var(--ocra-radius-md);
+  background: rgba(18, 59, 93, 0.04);
+  padding: var(--ocra-spacing-md);
+  margin-top: var(--ocra-spacing-md);
+  display: none;
+}
+
+.advanced-panel[data-open="true"] {
+  display: block;
 }
 
 .mode-toggle {
@@ -266,19 +316,19 @@ fieldset {
   font-size: 1.3rem;
 }
 
-.telemetry-summary {
+.result-metadata {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
   gap: var(--ocra-spacing-md);
   margin-top: var(--ocra-spacing-md);
 }
 
-.telemetry-summary dt {
+.result-metadata dt {
   font-weight: 600;
   color: var(--ocra-color-text-muted);
 }
 
-.telemetry-summary dd {
+.result-metadata dd {
   margin: 0;
   font-family: var(--ocra-font-family-mono);
   font-size: 0.95rem;
@@ -294,10 +344,18 @@ fieldset {
   color: var(--ocra-color-danger);
 }
 
+.error-panel p {
+  margin: var(--ocra-spacing-xs) 0;
+}
+
 @media (min-width: 56rem) {
   .section-columns {
     grid-template-columns: 1.5fr 1fr;
     align-items: start;
+  }
+
+  .request-primary-grid {
+    grid-template-columns: repeat(2, minmax(10rem, 1fr));
   }
 }
 

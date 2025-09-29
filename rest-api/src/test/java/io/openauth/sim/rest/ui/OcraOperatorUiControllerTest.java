@@ -105,12 +105,13 @@ final class OcraOperatorUiControllerTest {
 
     assertThat(html).contains("data-testid=\"ocra-result-panel\"");
     assertThat(html).contains("data-testid=\"ocra-otp-value\"");
-    assertThat(html).contains("data-testid=\"ocra-telemetry-id\"");
-    assertThat(html).contains("data-testid=\"ocra-reason-code\"");
+    assertThat(html).contains("data-testid=\"ocra-status-value\"");
     assertThat(html).contains("data-testid=\"ocra-sanitized-flag\"");
+    assertThat(html).contains("data-testid=\"ocra-suite-value\"");
     assertThat(html).contains("data-testid=\"ocra-error-panel\"");
-    assertThat(html).contains("data-testid=\"ocra-error-reason\"");
-    assertThat(html).contains("data-testid=\"ocra-error-sanitized\"");
+    assertThat(html).contains("data-testid=\"ocra-error-primary\"");
+    assertThat(html).contains("data-testid=\"ocra-error-secondary\"");
+    assertThat(html).contains("data-testid=\"ocra-advanced-toggle\"");
   }
 
   @Test
