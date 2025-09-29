@@ -65,6 +65,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-29 – R036: Added the C-QH64 preset to the operator UI, refreshed MockMvc/Selenium coverage, and documented preset behaviour for operators.
 - 2025-09-29 – R037: Unmasked the shared secret inline field, kept its value after evaluations, and refreshed copy/tests to reflect the hygiene stance. ✅
 - 2025-09-29 – R038: Removed the legacy form POST fallback so Evaluate relies entirely on the fetch workflow. ✅
+- 2025-09-29 – R039: Converted the Evaluate button to a JS-only trigger, added keyboard handling, and refreshed tests to cover the new markup. ✅
 - 2025-09-29 – Decision: Shared secret field remains populated after evaluations (no auto-clear) since the UI handles test data and future verification flows rather than live secrets.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 

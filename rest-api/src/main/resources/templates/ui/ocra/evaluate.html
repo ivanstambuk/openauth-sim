@@ -215,7 +215,7 @@
             </div>
           </section>
 
-          <button type="submit">Evaluate</button>
+          <button type="button" data-testid="ocra-evaluate-button">Evaluate</button>
         </form>
       </section>
 
@@ -278,7 +278,9 @@
         const policySelect = document.getElementById('policyPreset');
         const inlinePresetElement = document.getElementById('ocra-policy-presets');
         const form = document.querySelector('[data-testid="ocra-evaluate-form"]');
-        const submitButton = form ? form.querySelector('button[type="submit"]') : null;
+        const submitButton = form
+          ? form.querySelector('[data-testid="ocra-evaluate-button"]')
+          : null;
         const inlinePresets =
           inlinePresetElement && inlinePresetElement.textContent
             ? JSON.parse(inlinePresetElement.textContent)
@@ -648,6 +650,25 @@
 
         if (form) {
           form.addEventListener('submit', handleFetch);
+          form.addEventListener('keydown', function (event) {
+            if (
+              event &&
+              event.key === 'Enter' &&
+              !event.shiftKey &&
+              !event.ctrlKey &&
+              !event.metaKey &&
+              !event.altKey &&
+              event.target &&
+              event.target.tagName !== 'TEXTAREA' &&
+              event.target.tagName !== 'BUTTON'
+            ) {
+              handleFetch(event);
+            }
+          });
+        }
+
+        if (submitButton) {
+          submitButton.addEventListener('click', handleFetch);
         }
 
         window.__ocraApplyPreset = applyPreset;

@@ -106,7 +106,7 @@ final class OcraOperatorUiSeleniumTest {
     assertValueWithWait(By.id("counter"), scenario.expectedCounterAsString());
     assertValueWithWait(By.id("sharedSecretHex"), scenario.expectedSharedSecretHex());
 
-    driver.findElement(By.cssSelector("form[data-testid='ocra-evaluate-form']")).submit();
+    driver.findElement(By.cssSelector("button[data-testid='ocra-evaluate-button']")).click();
 
     WebElement resultPanel =
         new WebDriverWait(driver, Duration.ofSeconds(5))
@@ -139,7 +139,7 @@ final class OcraOperatorUiSeleniumTest {
     driver.findElement(By.id("challenge")).sendKeys(QA_EXPECTED_CHALLENGE);
     driver.findElement(By.id("sessionHex")).sendKeys(QA_EXPECTED_SESSION);
 
-    driver.findElement(By.cssSelector("form[data-testid='ocra-evaluate-form']")).submit();
+    driver.findElement(By.cssSelector("button[data-testid='ocra-evaluate-button']")).click();
 
     WebElement resultPanel =
         new WebDriverWait(driver, Duration.ofSeconds(5))

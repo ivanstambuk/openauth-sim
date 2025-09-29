@@ -31,5 +31,6 @@ _Last updated: 2025-09-29_
 | R036 | Extend UI presets/tests (MockMvc + Selenium) with the new policy and OTP expectations | UI-OCRA-002, UI-OCRA-007 | ✅ |
 | R037 | Unmask shared secret field, stop clearing it post-evaluation, update copy/tests | UI-OCRA-002, UI-OCRA-005 | ✅ |
 | R038 | Remove form POST fallback; rely exclusively on fetch workflow | UI-OCRA-002, UI-OCRA-004 | ✅ |
+| R039 | Switch Evaluate button to JS trigger, add keyboard fallback, refresh tests | UI-OCRA-002, UI-OCRA-004 | ✅ |
 
 Update this checklist as work progresses.

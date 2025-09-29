@@ -79,6 +79,8 @@ final class OcraOperatorUiControllerTest {
     assertThat(html).contains("action=\"#\"");
     assertThat(html).doesNotContain("method=\"post\"");
     assertThat(html).contains("data-evaluate-endpoint=\"/api/v1/ocra/evaluate\"");
+    assertThat(html).contains("data-testid=\"ocra-evaluate-button\"");
+    assertThat(html).contains("type=\"button\"");
     assertThat(html).contains("data-testid=\"ocra-fetch-script\"");
     assertThat(html).contains("data-testid=\"ocra-fetch-script\"");
     assertThat(html).contains("typeof window.fetch === 'function'");
