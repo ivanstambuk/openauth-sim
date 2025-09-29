@@ -32,6 +32,11 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R034 – Publish Appendix B generator how-to and cross-link specs/plans/tasks to enforce the workflow. ✅ 2025-09-29
 - R035 – Extend domain compliance tests with `OCRA-1:HOTP-SHA256-6:C-QH64` vectors generated via the documented process. ✅ 2025-09-29
 - R036 – Surface the new policy in UI presets, refresh inline samples/tests, and document OTP expectations. ✅ 2025-09-29
+- R040 – Capture styling implementation plan (tokens, professional dashboard layout, responsive breakpoints) inside spec/plan/tasks. ✅ 2025-09-29
+- R041 – Add design tokens and base stylesheet delivering the accessible navy/teal palette and typography updates. ✅ 2025-09-29
+- R042 – Apply redesigned styles to templates, adjust layouts for desktop/tablet, update docs/tests, and run `./gradlew spotlessApply check`. ✅ 2025-09-29
+- R043 – Design compact layout (collapsible sections + guided inline builder plan) and capture spec/task updates. ☐
+- R044 – Simplify telemetry panel and improve error messaging for REST responses. ☐
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -67,6 +72,11 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-29 – R038: Removed the legacy form POST fallback so Evaluate relies entirely on the fetch workflow. ✅
 - 2025-09-29 – R039: Converted the Evaluate button to a JS-only trigger, added keyboard handling, and refreshed tests to cover the new markup. ✅
 - 2025-09-29 – Decision: Shared secret field remains populated after evaluations (no auto-clear) since the UI handles test data and future verification flows rather than live secrets.
+- 2025-09-29 – Decision: Locked in professional dashboard styling, custom accessible palette, CSS token approach, desktop/tablet responsiveness, and lightweight in-code branding following user selections (Options B across styling questions).
+- 2025-09-29 – R040: Updated plan/tasks/spec with styling increments and documented the design direction ahead of implementation.
+- 2025-09-29 – R041: Added `console.css` design tokens, gradients, typography, and responsive shell; linked the stylesheet into the evaluation template.
+- 2025-09-29 – R042: Refined the evaluation template with professional dashboard layout, responsive column stack, styled controls, and verified via `./gradlew spotlessApply check`.
+- 2025-09-29 – Decision: Inline policy builder will be a guided form that assembles suite components with a live preview rather than free-form text entry.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

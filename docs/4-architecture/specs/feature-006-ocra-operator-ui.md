@@ -16,6 +16,12 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-29 – Test vector generation must follow the Appendix B Java workflow documented in `docs/2-how-to/generate-ocra-test-vectors.md` so new suites share a single source of truth (user chose option B).
 - 2025-09-29 – The inline preset catalogue will include the `OCRA-1:HOTP-SHA256-6:C-QH64` policy derived from the same generator, keeping UI fixtures aligned with domain regressions (user chose option A).
 - 2025-09-29 – When operators unmask the "Shared Secret (hex)" field, the UI will leave the value in place after evaluations (no automatic clearing) because operators rely on static test data and future verification flows rather than sensitive production secrets (user chose option C).
+- 2025-09-29 – Operator console will adopt a professional dashboard aesthetic with neutral cards and accent colors to keep the experience polished yet focused (user chose option B).
+- 2025-09-29 – UI palette will follow a newly proposed accessible scheme (navy/teal accents with neutral backgrounds) derived in-code to maintain WCAG contrast without relying on external branding assets (user chose option B).
+- 2025-09-29 – Styling will rely on custom CSS tokens/variables instead of third-party frameworks to avoid new dependencies while enabling cohesive theming (user chose option B).
+- 2025-09-29 – Layout must remain responsive for desktop and tablet operators, ensuring key panels stack gracefully on medium breakpoints (user chose option B).
+- 2025-09-29 – Branding will be limited to lightweight in-code typography/wordmark treatments until official assets arrive, avoiding external files while adding subtle identity (user chose option B).
+- 2025-09-29 – Inline policy builder will use a guided form that assembles suite components and previews the resulting descriptor live, reducing reliance on memorised strings while staying inline (user chose option B).
 
 ## Objectives & Success Criteria
 - Provide browser-accessible pages that let operators evaluate OCRA responses using stored credentials or inline parameters, mirroring REST validation semantics.

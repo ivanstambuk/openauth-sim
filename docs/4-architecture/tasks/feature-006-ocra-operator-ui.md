@@ -32,5 +32,10 @@ _Last updated: 2025-09-29_
 | R037 | Unmask shared secret field, stop clearing it post-evaluation, update copy/tests | UI-OCRA-002, UI-OCRA-005 | ✅ |
 | R038 | Remove form POST fallback; rely exclusively on fetch workflow | UI-OCRA-002, UI-OCRA-004 | ✅ |
 | R039 | Switch Evaluate button to JS trigger, add keyboard fallback, refresh tests | UI-OCRA-002, UI-OCRA-004 | ✅ |
+| R040 | Document styling plan (tokens, layout strategy, responsive breakpoints) across spec/plan/tasks | UI-OCRA-001–UI-OCRA-006 | ✅ |
+| R041 | Implement CSS design tokens + base stylesheet delivering the approved palette/typography | UI-OCRA-001–UI-OCRA-006, UI-NFR-001–UI-NFR-004 | ✅ |
+| R042 | Apply redesigned styles to templates, adjust scripts/ARIA as needed, update docs/tests, run `./gradlew spotlessApply check` | UI-OCRA-001–UI-OCRA-006, UI-NFR-001–UI-NFR-004 | ✅ |
+| R043 | Design compact layout (collapsible sections, guided inline builder concept), capture plan/spec updates | UI-OCRA-001–UI-OCRA-006 | ☐ |
+| R044 | Implement telemetry panel simplification and descriptive error messaging | UI-OCRA-004, UI-OCRA-005 | ☐ |
 
 Update this checklist as work progresses.
