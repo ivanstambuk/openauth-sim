@@ -112,6 +112,10 @@ final class OcraOperatorUiControllerTest {
     assertThat(html).contains("data-testid=\"ocra-error-primary\"");
     assertThat(html).contains("data-testid=\"ocra-error-secondary\"");
     assertThat(html).contains("data-testid=\"ocra-advanced-toggle\"");
+    assertThat(html).contains("data-testid=\"ocra-policy-builder\"");
+    assertThat(html).contains("data-testid=\"ocra-builder-preview\"");
+    assertThat(html).contains("data-testid=\"ocra-builder-apply\"");
+    assertThat(html).contains("data-testid=\"ocra-builder-generate\"");
   }
 
   @Test

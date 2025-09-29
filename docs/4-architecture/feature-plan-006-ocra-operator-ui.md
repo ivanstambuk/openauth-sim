@@ -37,6 +37,9 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R042 – Apply redesigned styles to templates, adjust layouts for desktop/tablet, update docs/tests, and run `./gradlew spotlessApply check`. ✅ 2025-09-29
 - R043 – Design compact layout (collapsible sections + guided inline builder plan) and capture spec/task updates. ✅ 2025-09-29
 - R044 – Simplify telemetry panel and improve error messaging for REST responses. ✅ 2025-09-29
+- R045 – Document guided inline policy builder flow (component selection, preview behaviour, accessibility) across spec/plan/tasks. ✅ 2025-09-29
+- R046 – Implement builder UI controls + preview logic with tests (MockMvc + Selenium) and integrate with existing form population. ✅ 2025-09-29
+- R047 – Polish builder UX (validation hints, apply/reset handling), sync docs, rerun `./gradlew spotlessApply check`, and push. ☐
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -79,6 +82,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-29 – Decision: Inline policy builder will be a guided form that assembles suite components with a live preview rather than free-form text entry.
 - 2025-09-29 – R043: Documented compact layout approach (collapsing inactive sections, advanced-parameters disclosure) and outlined guided policy builder UX in the spec.
 - 2025-09-29 – R044: Collapsed optional request parameters behind an advanced disclosure, trimmed telemetry fields, added friendly error messaging, and updated tests/documentation.
+- 2025-09-29 – Planned: Guided inline policy builder will introduce selectable suite components, live preview, and apply/reset actions tracked under R045–R047.
+- 2025-09-29 – R046: Added guided builder controls (version/algorithm/digits/data inputs), live preview + secret generator, wired apply/reset actions, and updated MockMvc/Selenium coverage.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

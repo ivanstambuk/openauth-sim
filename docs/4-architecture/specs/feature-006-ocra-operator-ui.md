@@ -39,6 +39,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 | UI-OCRA-005 | Include an activity log or summary pane that mirrors key telemetry fields (`telemetryId`, `status`, `reasonCode`, `sanitized`). | After submissions, the UI presents these fields in a structured block that operators can copy. |
 | UI-OCRA-006 | Ensure CSRF protection and input sanitization for rendered templates per Spring MVC best practices. | Integration tests verify CSRF token presence on forms; linting or tests confirm no unsanitized user input is echoed in HTML. |
 | UI-OCRA-007 | Keep inline policy presets aligned with the curated OCRA vector catalog (including `OCRA-1:HOTP-SHA256-6:C-QH64`). | UI tests iterate over each preset and match OTPs against domain compliance fixtures. |
+| UI-OCRA-008 | Provide a guided inline policy builder that assembles suite components (crypto function, response length, data inputs) with a live preview and the ability to apply the generated suite/secret to the form. | Selecting builder options updates the preview text and, when applied, populates suite/secret fields identically to manual entry/presets. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |
@@ -53,6 +54,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - **Evaluation form:** Credential selector (dropdown populated via REST lookup) alongside an option to toggle into inline mode; fields for challenge, counter, session, pin; telemetry consent note. Submissions are issued via asynchronous JSON `fetch` calls (with an XMLHttpRequest fallback for HtmlUnit-based automation).
 - **Compact layout:** Only the active mode’s inputs are visible; the inactive section collapses to a brief summary. Optional request parameters reside inside an “Advanced parameters” disclosure to keep the primary flow above the fold on desktop and tablet breakpoints.
 - **Inline policy builder:** Guided controls let operators pick suite prefixes, hash algorithms, response lengths, and data inputs. A read-only preview updates live, auto-populating the suite/secret fields while preserving the existing preset dropdown.
+- **Inline policy builder:** Guided controls let operators pick suite prefixes (OCRA-1, OCRA-2), OTP hash algorithms, response length, and data input flags (C, Q, P, S, T). Operators can expand optional secret helpers (seed length, random hex generator). A read-only preview updates live and an “Apply configuration” action hydrates the suite/secret inputs while keeping presets available.
 - **Results panel:** OTP output, concise status summary, sanitized flag, and suite preview. Telemetry identifiers remain available via browser dev tools/logs but are no longer surfaced in the card. Provide contextual copy actions for OTP/suite only.
 - **Error handling:** Inline form validation for missing fields plus user-friendly error statements derived from REST `reasonCode` values (e.g., “Suite prefix 342424 is not supported”). A sanitized technical detail remains accessible for operators needing escalation notes.
 

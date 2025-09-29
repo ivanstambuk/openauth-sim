@@ -74,23 +74,129 @@
                 evaluation so operators can reuse verification data; clear the field manually if
                 needed.
               </p>
-              <div>
-                <label for="policyPreset">Load a sample vector</label>
-                <select
-                  id="policyPreset"
-                  name="policyPreset"
-                  th:value="${form.policyPreset}"
-                  data-testid="inline-policy-select"
-                >
-                  <option value="">Select a sample</option>
-                  <option
-                    th:each="preset : ${policyPresets}"
-                    th:value="${preset.key}"
-                    th:text="${preset.label}"
-                  ></option>
-                </select>
-                <p class="hint">Selecting a preset fills the inline fields with illustrative data.</p>
+            <div>
+              <label for="policyPreset">Load a sample vector</label>
+              <select
+                id="policyPreset"
+                name="policyPreset"
+                th:value="${form.policyPreset}"
+                data-testid="inline-policy-select"
+              >
+                <option value="">Select a sample</option>
+                <option
+                  th:each="preset : ${policyPresets}"
+                  th:value="${preset.key}"
+                  th:text="${preset.label}"
+                ></option>
+              </select>
+              <p class="hint">Selecting a preset fills the inline fields with illustrative data.</p>
+            </div>
+
+            <div class="policy-builder" data-testid="ocra-policy-builder">
+              <h4>Guided policy builder</h4>
+              <p class="hint">
+                Assemble suite components and apply them to the inline fields. Existing presets remain
+                available for quick reference.
+              </p>
+              <div class="builder-grid">
+                <div class="field-group">
+                  <label for="builderVersion">Version</label>
+                  <select id="builderVersion" data-testid="ocra-builder-version">
+                    <option value="OCRA-1">OCRA-1</option>
+                    <option value="OCRA-2" disabled>OCRA-2 (future)</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label for="builderAlgorithm">OTP algorithm</label>
+                  <select id="builderAlgorithm" data-testid="ocra-builder-algorithm">
+                    <option value="HOTP-SHA1">HOTP-SHA1</option>
+                    <option value="HOTP-SHA256" selected>HOTP-SHA256</option>
+                    <option value="HOTP-SHA512">HOTP-SHA512</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label for="builderDigits">OTP digits</label>
+                  <select id="builderDigits" data-testid="ocra-builder-digits">
+                    <option value="4">4 digits</option>
+                    <option value="6" selected>6 digits</option>
+                    <option value="8">8 digits</option>
+                    <option value="10">10 digits</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label for="builderChallenge">Challenge format</label>
+                  <select id="builderChallenge" data-testid="ocra-builder-challenge">
+                    <option value="QA08" selected>QA08 – alphanumeric (8)</option>
+                    <option value="QA10">QA10 – alphanumeric (10)</option>
+                    <option value="QA12">QA12 – alphanumeric (12)</option>
+                    <option value="QH64">QH64 – hex (64)</option>
+                    <option value="QN08">QN08 – numeric (8)</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <span class="hint">Include data inputs</span>
+                  <div class="choice-row">
+                    <label for="builderCounter">
+                      <input type="checkbox" id="builderCounter" data-testid="ocra-builder-counter" checked />
+                      Counter (C)
+                    </label>
+                    <label for="builderPin">
+                      <input type="checkbox" id="builderPin" data-testid="ocra-builder-pin" />
+                      PIN hash (P)
+                    </label>
+                    <label for="builderTimestamp">
+                      <input type="checkbox" id="builderTimestamp" data-testid="ocra-builder-timestamp" />
+                      Timestamp (T)
+                    </label>
+                  </div>
+                </div>
+                <div class="field-group">
+                  <label class="choice-label" for="builderSession">
+                    <input type="checkbox" id="builderSession" data-testid="ocra-builder-session" checked />
+                    Session data (S)
+                  </label>
+                  <label for="builderSessionLength" class="hint">
+                    Session length (bits)
+                    <input
+                      id="builderSessionLength"
+                      type="number"
+                      min="8"
+                      step="8"
+                      value="64"
+                      data-testid="ocra-builder-session-length"
+                    />
+                  </label>
+                </div>
               </div>
+
+              <div class="builder-secret-hint">
+                <span>Generated secret:</span>
+                <code data-testid="ocra-builder-secret-preview">—</code>
+                <label for="builderSecretLength" class="visually-hidden">Secret length (bytes)</label>
+                <select id="builderSecretLength" data-testid="ocra-builder-secret-length">
+                  <option value="20">20 bytes</option>
+                  <option value="32" selected>32 bytes</option>
+                  <option value="64">64 bytes</option>
+                </select>
+                <button type="button" class="button-secondary" data-testid="ocra-builder-generate">
+                  Generate hex secret
+                </button>
+              </div>
+
+              <div class="builder-preview">
+                <span>Preview:</span>
+                <strong data-testid="ocra-builder-preview"></strong>
+              </div>
+
+              <div class="builder-actions">
+                <button type="button" class="button-primary" data-testid="ocra-builder-apply">
+                  Apply configuration
+                </button>
+                <button type="button" class="button-secondary" data-testid="ocra-builder-reset">
+                  Reset builder
+                </button>
+              </div>
+            </div>
               <div>
                 <label for="suite">Suite</label>
                 <input
@@ -377,6 +483,22 @@
         const errorPanel = document.querySelector('[data-testid="ocra-error-panel"]');
         const errorPrimary = document.querySelector('[data-testid="ocra-error-primary"]');
         const errorSecondary = document.querySelector('[data-testid="ocra-error-secondary"]');
+        const builderVersion = document.getElementById('builderVersion');
+        const builderAlgorithm = document.getElementById('builderAlgorithm');
+        const builderDigits = document.getElementById('builderDigits');
+        const builderChallenge = document.getElementById('builderChallenge');
+        const builderCounter = document.getElementById('builderCounter');
+        const builderPin = document.getElementById('builderPin');
+        const builderTimestamp = document.getElementById('builderTimestamp');
+        const builderSession = document.getElementById('builderSession');
+        const builderSessionLength = document.getElementById('builderSessionLength');
+        const builderPreview = document.querySelector('[data-testid="ocra-builder-preview"]');
+        const builderSecretPreview = document.querySelector('[data-testid="ocra-builder-secret-preview"]');
+        const builderSecretLength = document.getElementById('builderSecretLength');
+        const builderGenerateButton = document.querySelector('[data-testid="ocra-builder-generate"]');
+        const builderApplyButton = document.querySelector('[data-testid="ocra-builder-apply"]');
+        const builderResetButton = document.querySelector('[data-testid="ocra-builder-reset"]');
+        let builderGeneratedSecret = '';
         const fetchDelegate =
           typeof window.fetch === 'function'
             ? function (endpoint, options) {
@@ -567,6 +689,147 @@
           if (hasAdvancedValues()) {
             setAdvancedState(true);
           }
+        }
+
+        function padLength(value) {
+          var numeric = Number(value);
+          if (!Number.isFinite(numeric) || numeric <= 0) {
+            return '000';
+          }
+          return String(Math.max(8, Math.round(numeric / 8) * 8)).padStart(3, '0');
+        }
+
+        function sanitizeDigits(value) {
+          var digits = Number(value);
+          return Number.isFinite(digits) && digits >= 1 ? String(Math.floor(digits)) : '6';
+        }
+
+        function buildDataInputs() {
+          var tokens = [];
+          if (builderCounter && builderCounter.checked) {
+            tokens.push('C');
+          }
+          if (builderChallenge && builderChallenge.value) {
+            tokens.push(builderChallenge.value);
+          }
+          if (builderPin && builderPin.checked) {
+            tokens.push('P');
+          }
+          if (builderSession && builderSession.checked) {
+            var sessionToken = 'S' + padLength(builderSessionLength ? builderSessionLength.value : 0);
+            tokens.push(sessionToken);
+          }
+          if (builderTimestamp && builderTimestamp.checked) {
+            tokens.push('T');
+          }
+          return tokens.filter(function (token) {
+            return Boolean(token);
+          });
+        }
+
+        function computeSuitePreview() {
+          var version = builderVersion ? builderVersion.value : 'OCRA-1';
+          var algorithm = builderAlgorithm ? builderAlgorithm.value : 'HOTP-SHA1';
+          var digits = sanitizeDigits(builderDigits ? builderDigits.value : '6');
+          var inputs = buildDataInputs();
+          if (!inputs.length) {
+            return '';
+          }
+          return version + ':' + algorithm + '-' + digits + ':' + inputs.join('-');
+        }
+
+        function updateBuilderPreview() {
+          if (!builderPreview) {
+            return;
+          }
+          var suiteText = computeSuitePreview();
+          builderPreview.textContent = suiteText || 'Select options to build a suite';
+          if (builderApplyButton) {
+            builderApplyButton.disabled = !suiteText;
+          }
+          if (builderSessionLength) {
+            builderSessionLength.disabled = !(builderSession && builderSession.checked);
+          }
+        }
+
+        function updateSecretPreview() {
+          if (!builderSecretPreview) {
+            return;
+          }
+          builderSecretPreview.textContent = builderGeneratedSecret
+            ? builderGeneratedSecret
+            : '—';
+        }
+
+        function generateHex(lengthBytes) {
+          var size = Number(lengthBytes);
+          if (!Number.isFinite(size) || size <= 0) {
+            size = 32;
+          }
+          var buffer = new Uint8Array(size);
+          if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+            window.crypto.getRandomValues(buffer);
+          } else {
+            for (var i = 0; i < size; i += 1) {
+              buffer[i] = Math.floor(Math.random() * 256);
+            }
+          }
+          var hex = Array.prototype.map
+            .call(buffer, function (byte) {
+              return byte.toString(16).padStart(2, '0');
+            })
+            .join('');
+          return hex.toUpperCase();
+        }
+
+        function applyBuilderSuite() {
+          var suiteText = computeSuitePreview();
+          if (!suiteText) {
+            return;
+          }
+          if (inlineModeRadio) {
+            inlineModeRadio.checked = true;
+          }
+          updateSections();
+          if (suiteInput) {
+            suiteInput.value = suiteText;
+          }
+          if (builderGeneratedSecret && sharedSecretInput) {
+            sharedSecretInput.value = builderGeneratedSecret;
+          }
+        }
+
+        function resetBuilder() {
+          if (builderVersion) {
+            builderVersion.value = 'OCRA-1';
+          }
+          if (builderAlgorithm) {
+            builderAlgorithm.value = 'HOTP-SHA256';
+          }
+          if (builderDigits) {
+            builderDigits.value = '6';
+          }
+          if (builderChallenge) {
+            builderChallenge.value = 'QA08';
+          }
+          if (builderCounter) {
+            builderCounter.checked = true;
+          }
+          if (builderPin) {
+            builderPin.checked = false;
+          }
+          if (builderTimestamp) {
+            builderTimestamp.checked = false;
+          }
+          if (builderSession) {
+            builderSession.checked = true;
+          }
+          if (builderSessionLength) {
+            builderSessionLength.value = '64';
+          }
+          builderGeneratedSecret = '';
+          updateSecretPreview();
+          updateBuilderPreview();
         }
 
         function buildPayload() {
@@ -787,6 +1050,60 @@
           }
         );
 
+        [
+          builderVersion,
+          builderAlgorithm,
+          builderDigits,
+          builderChallenge,
+          builderCounter,
+          builderPin,
+          builderTimestamp,
+          builderSession,
+        ].forEach(function (control) {
+          if (!control) {
+            return;
+          }
+          control.addEventListener('change', function () {
+            updateBuilderPreview();
+          });
+        });
+
+        if (builderSessionLength) {
+          builderSessionLength.addEventListener('input', function () {
+            updateBuilderPreview();
+          });
+        }
+
+        if (builderGenerateButton) {
+          builderGenerateButton.addEventListener('click', function () {
+            builderGeneratedSecret = generateHex(
+              builderSecretLength ? builderSecretLength.value : 32
+            );
+            updateSecretPreview();
+          });
+        }
+
+        if (builderSecretLength) {
+          builderSecretLength.addEventListener('change', function () {
+            // Do not auto-generate; just update preview hint.
+            updateSecretPreview();
+          });
+        }
+
+        if (builderApplyButton) {
+          builderApplyButton.addEventListener('click', function () {
+            applyBuilderSuite();
+            ensureAdvancedOpenIfNeeded();
+          });
+        }
+
+        if (builderResetButton) {
+          builderResetButton.addEventListener('click', function () {
+            resetBuilder();
+            ensureAdvancedOpenIfNeeded();
+          });
+        }
+
         if (form) {
           form.addEventListener('submit', handleFetch);
           form.addEventListener('keydown', function (event) {
@@ -815,6 +1132,9 @@
 
         updateSections();
         ensureAdvancedOpenIfNeeded();
+        resetBuilder();
+        updateSecretPreview();
+        updateBuilderPreview();
         if (policySelect && policySelect.value) {
           applyPreset(policySelect.value);
         }

@@ -160,6 +160,37 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
   }
 
+  @Test
+  @DisplayName("Inline policy builder applies suite and generated secret")
+  void inlinePolicyBuilderPopulatesSuiteAndSecret() {
+    driver.get(baseUrl("/ui/ocra/evaluate"));
+    waitForPresetScripts();
+
+    WebElement builderPreview =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='ocra-builder-preview']")));
+    waitForBackgroundJavaScript();
+    String previewText = builderPreview.getText();
+    assertThat(previewText).isNotBlank();
+
+    driver.findElement(By.cssSelector("button[data-testid='ocra-builder-apply']")).click();
+    waitForBackgroundJavaScript();
+    assertValueWithWait(By.id("suite"), previewText);
+
+    driver.findElement(By.cssSelector("button[data-testid='ocra-builder-generate']")).click();
+    waitForBackgroundJavaScript();
+    WebElement secretPreview =
+        driver.findElement(By.cssSelector("[data-testid='ocra-builder-secret-preview']"));
+    String generatedSecret = secretPreview.getText();
+    assertThat(generatedSecret).isNotBlank().isNotEqualTo("—");
+
+    driver.findElement(By.cssSelector("button[data-testid='ocra-builder-apply']")).click();
+    waitForBackgroundJavaScript();
+    assertValueWithWait(By.id("sharedSecretHex"), generatedSecret);
+  }
+
   private static Stream<InlinePresetScenario> inlinePresetScenarios() {
     return Stream.of(
         new InlinePresetScenario(

@@ -37,5 +37,8 @@ _Last updated: 2025-09-29_
 | R042 | Apply redesigned styles to templates, adjust scripts/ARIA as needed, update docs/tests, run `./gradlew spotlessApply check` | UI-OCRA-001–UI-OCRA-006, UI-NFR-001–UI-NFR-004 | ✅ |
 | R043 | Design compact layout (collapsible sections, guided inline builder concept), capture plan/spec updates | UI-OCRA-001–UI-OCRA-006 | ✅ |
 | R044 | Implement telemetry panel simplification and descriptive error messaging | UI-OCRA-004, UI-OCRA-005 | ✅ |
+| R045 | Flesh out guided inline builder specification (controls, preview, apply/reset) in spec/plan/tasks | UI-OCRA-002, UI-OCRA-008 | ✅ |
+| R046 | Add builder UI components + preview logic with tests updating MockMvc & Selenium flows | UI-OCRA-002, UI-OCRA-008 | ✅ |
+| R047 | Finalize builder UX (validation, accessibility copy), update docs/tests, run `./gradlew spotlessApply check` | UI-OCRA-001–UI-OCRA-008 | ☐ |
 
 Update this checklist as work progresses.
