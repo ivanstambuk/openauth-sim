@@ -1,7 +1,7 @@
 # How-To: Use the OCRA Operator UI
 
 _Status: Draft_
-_Last updated: 2025-09-28_
+_Last updated: 2025-09-29_
 
 The operator UI provides a browser-based workflow for running OCRA evaluations against the
 existing REST endpoint without exposing shared secrets in logs or templates. It mirrors the REST
@@ -17,7 +17,7 @@ telemetry.
 ## Launching the Console
 1. Navigate to `http://localhost:8080/ui/ocra`.
 2. Review the landing page and follow the **Evaluate OCRA responses** link to load the console.
-3. A CSRF-protected form renders; tokens are bound to your HTTP session.
+3. A CSRF-protected form renders; tokens are bound to your HTTP session and reused by the JavaScript fetch client.
 4. If you seeded credentials via the CLI, ensure you reused the same database path as the REST app (for example `--database=build/operator-ui/credentials.db`).
 
 ## Choosing an Evaluation Mode
@@ -28,30 +28,33 @@ telemetry.
   The UI forwards only the identifier; secrets stay in persistence. The REST app loads
   credentials from the MapDB file referenced by `openauth.sim.persistence.database-path`.
 
-The mode toggle is keyboard-accessible and announces which section is visible. JavaScript enhances
-it, but the page remains usable without scripts (both sections remain readable).
+The mode toggle is keyboard-accessible and announces which section is visible. JavaScript is required
+for evaluations because submissions now run through asynchronous JSON fetch calls.
 
 ## Supplying Request Parameters
 - Inline mode requires the suite and shared secret. An optional PIN hash field supports suite
   variants that expect it.
 - Request parameters (challenge, client/server challenge, session, timestamp, counter) map one-to-one
   with `POST /api/v1/ocra/evaluate`. Leave fields blank to accept backend defaults.
-- Secrets are scrubbed from the form after each submission and never rendered back to the page.
+- Secrets are scrubbed from the form after each submission and never rendered back to the page. The
+  fetch handler clears the secret and PIN hash fields once the REST call completes.
 
 ## Reading Results and Telemetry
 - Successful evaluations show the OTP prominently and render a telemetry summary as a definition list
-  (status, telemetry ID, reason code, sanitized flag, suite).
+  (status, telemetry ID, reason code, sanitized flag, suite). The result panel is injected dynamically
+  once the fetch request resolves.
 - Copy the telemetry block when escalating issues; it matches the REST payload and is already
   redacted for safety.
 - Validation errors reuse sanitized reason codes/messages from the REST API. Unexpected server errors
-  surface a generic banner without secret material.
+  surface a generic banner without secret material. The error panel is only revealed when the REST
+  call returns a non-2xx status.
 
 ## Logging & Observability Notes
 - UI submissions emit the same sanitized telemetry events as REST calls. Operator logs include the
   telemetry ID and reason code only.
 - CSRF protection relies on HTTP sessions; clear cookies or restart the server to invalidate tokens.
 - The controller clears shared secret and PIN hash fields after delegating to the REST endpoint to
-  prevent accidental redisplay.
+  prevent accidental redisplay, and the JavaScript fetch client mirrors that behaviour in the browser.
 
 ## Next Steps
 - Extend the UI with credential discovery or search once Feature 006 scope expands.

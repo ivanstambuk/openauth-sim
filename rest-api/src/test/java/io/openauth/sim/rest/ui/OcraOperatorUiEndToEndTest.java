@@ -10,6 +10,8 @@ import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.rest.ocra.OcraEvaluationRequest;
+import io.openauth.sim.rest.ocra.OcraEvaluationResponse;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -28,8 +30,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 final class OcraOperatorUiEndToEndTest {
@@ -89,29 +89,30 @@ final class OcraOperatorUiEndToEndTest {
     String csrfToken = extractCsrf(formResponse.getBody());
     String sessionCookie = firstCookie(formResponse.getHeaders());
 
-    MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-    form.add("_csrf", csrfToken);
-    form.add("mode", "credential");
-    form.add("credentialId", CREDENTIAL_ID);
-    form.add("challenge", "SESSION01");
-    form.add("sessionHex", SESSION_HEX_64);
-
     HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
     if (sessionCookie != null) {
       headers.put(HttpHeaders.COOKIE, List.of(sessionCookie));
     }
+    if (csrfToken != null && !csrfToken.isBlank()) {
+      headers.set("X-CSRF-TOKEN", csrfToken);
+    }
 
-    HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(form, headers);
-    ResponseEntity<String> response =
-        restTemplate.postForEntity("/ui/ocra/evaluate", requestEntity, String.class);
+    OcraEvaluationRequest requestPayload =
+        new OcraEvaluationRequest(
+            CREDENTIAL_ID, null, null, "SESSION01", SESSION_HEX_64, null, null, null, null, null);
+
+    HttpEntity<OcraEvaluationRequest> requestEntity = new HttpEntity<>(requestPayload, headers);
+    ResponseEntity<OcraEvaluationResponse> response =
+        restTemplate.postForEntity(
+            "/api/v1/ocra/evaluate", requestEntity, OcraEvaluationResponse.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    String body = response.getBody();
-    assertThat(body).contains("data-testid=\"ocra-otp\"");
-    assertThat(body).contains("17477202");
-    assertThat(body).contains("data-testid=\"ocra-telemetry-summary\"");
-    assertThat(body).contains("data-testid=\"ocra-reason-code\">success");
+    OcraEvaluationResponse body = response.getBody();
+    assertThat(body).isNotNull();
+    assertThat(body.otp()).isEqualTo("17477202");
+    assertThat(body.telemetryId()).isNotBlank();
   }
 
   private static String extractCsrf(String html) {

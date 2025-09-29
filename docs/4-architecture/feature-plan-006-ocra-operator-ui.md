@@ -50,11 +50,13 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-28 – R026 planning: identified that the REST app lacked a `CredentialStore` bean, causing stored credential lookups to fail; need configurable MapDB wiring + docs alignment with CLI database path.
 - 2025-09-28 – R026 delivery: Added conditional MapDB-backed `CredentialStore` bean with configurable path, disabled during tests, and updated operator how-to/knowledge map to document the shared database configuration.
 - 2025-09-28 – R027 planning: need `TestRestTemplate`-driven UI flow to assert stored credential path works against MapDB store using CSRF/session handling.
-- 2025-09-28 – R027 delivery: Added `OcraOperatorUiEndToEndTest` exercising CSRF form submission with stored credential via shared MapDB store to prevent future regressions.
+- 2025-09-28 – R027 delivery: Added `OcraOperatorUiEndToEndTest` (now updated for JSON fetch submissions) covering stored credential workflows against the shared MapDB store to prevent regressions.
 - 2025-09-28 – R028 planning: expose preset dropdown sourced from existing test vectors (e.g., S064, S128, PIN, timestamp) and auto-fill inline fields while keeping secrets sanitized.
 - 2025-09-28 – R028 delivery: Added preset dropdown sourced from REST tests, front-end auto-fill script, and regression coverage (MockMvc + end-to-end) ensuring inline mode vectors stay in sync.
 - 2025-09-28 – R029 delivery: Introduced HtmlUnit-driven Selenium system test covering inline preset auto-fill and stored credential submissions, wired new test dependency, and adjusted UI script for broader JS engine compatibility.
 - 2025-09-28 – R030 planning: Captured decision to submit evaluations via JSON fetch calls (no form POST fallback) targeting `/api/v1/ocra/evaluate`; tasks and upcoming increments updated accordingly.
+- 2025-09-29 – R031: MockMvc tests now green with fetch metadata, XHR fallback, and 405 POST guard; JS fetch polyfill + result panels implemented, rotating HTMLUnit + Selenium suites to pass.
+- 2025-09-29 – R033: Updated Selenium assertions to verify result/error panels, refreshed operator UI how-to + spec wording for JSON-only submissions, and reran full `spotlessApply check`.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

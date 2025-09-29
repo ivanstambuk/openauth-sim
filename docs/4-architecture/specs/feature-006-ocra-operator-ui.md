@@ -1,7 +1,7 @@
 # Feature 006 – OCRA Operator UI Specification
 
 _Status: Draft_
-_Last updated: 2025-09-28_
+_Last updated: 2025-09-29_
 
 ## Overview
 Deliver an operator-facing UI that allows manual OCRA evaluation without relying on the CLI. The experience will be hosted within the existing Spring Boot `rest-api` module as server-rendered pages, consume the published REST endpoints, and surface sanitized telemetry so operators can troubleshoot requests quickly. This first increment focuses on evaluation flows; credential lifecycle management remains CLI-only until future workstreams extend the REST surface.
@@ -40,13 +40,13 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 
 ## UX Outline
 - **Landing page:** Brief overview, links to evaluation form, reminder that credential management stays in CLI for now, and guidance on running the REST service.
-- **Evaluation form:** Credential selector (dropdown populated via REST lookup) alongside an option to toggle into inline mode; fields for challenge, counter, session, pin; telemetry consent note.
+- **Evaluation form:** Credential selector (dropdown populated via REST lookup) alongside an option to toggle into inline mode; fields for challenge, counter, session, pin; telemetry consent note. Submissions are issued via asynchronous JSON `fetch` calls (with an XMLHttpRequest fallback for HtmlUnit-based automation).
 - **Results panel:** OTP output, metadata table (status, telemetryId, reasonCode, sanitized flag, suite), copy-to-clipboard helper, and contextual tips for common failure modes.
 - **Error handling:** Inline form validation for missing fields, dedicated error view for unexpected faults with instructions to consult logs.
 
 ## Test Strategy
 - **Spring MVC slice tests** asserting controller + template rendering, CSRF enforcement, and validation error messages.
-- **Integration tests** using `MockMvc` to simulate end-to-end evaluation form submissions (stored credential and inline modes) verifying OTP parity with REST responses.
+- **Integration tests** using `MockMvc` to drive the fetch-based JSON submission (stored credential and inline modes) verifying OTP parity with REST responses and sanitised error handling.
 - **UI contract tests** ensuring REST error payloads render sanitized messages and do not leak secrets.
 - **Accessibility smoke checks** (e.g., HTMLUnit or jsoup-based assertions) to confirm label associations and landmark usage.
 

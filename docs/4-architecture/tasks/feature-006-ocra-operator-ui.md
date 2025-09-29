@@ -8,6 +8,7 @@ _Last updated: 2025-09-28_
 - Keep each task ≤10 minutes; commit after every passing build.
 - Follow test-first cadence: add/extend MVC tests before implementing controllers/templates.
 - Capture telemetry/logging decisions in plan/spec if adjustments arise.
+- 2025-09-29: Fetch submission flow implemented with tests + polyfill; Selenium coverage updated; docs refreshed to describe JS-only workflow.
 
 ## Tasks
 | ID | Task | Related Requirements | Status |
@@ -22,8 +23,8 @@ _Last updated: 2025-09-28_
 | R028 | Offer inline OCRA policy presets that auto-fill illustrative vectors; add coverage | UI-OCRA-002, UI-OCRA-003, UI-OCRA-005 | ✅ |
 | R029 | Add Selenium-based system test for UI preset + stored credential flows | UI-OCRA-002, UI-OCRA-005 | ✅ |
 | R030 | Plan async JSON submission workflow; update spec/plan/tasks with clarified scope | UI-OCRA-002, UI-OCRA-004 | ✅ |
-| R031 | Add failing tests asserting fetch-based submission behaviour (MockMvc + UI script) | UI-OCRA-002, UI-OCRA-004, UI-OCRA-005 | ☐ |
-| R032 | Implement fetch-based submission, remove form POST, expose JSON-driven result rendering | UI-OCRA-002, UI-OCRA-004, UI-OCRA-005 | ☐ |
-| R033 | Refresh Selenium + docs to reflect JavaScript-only flow and telemetry/accessibility guarantees | UI-OCRA-002, UI-OCRA-005, UI-NFR-001 | ☐ |
+| R031 | Add failing tests asserting fetch-based submission behaviour (MockMvc + UI script) | UI-OCRA-002, UI-OCRA-004, UI-OCRA-005 | ✅ |
+| R032 | Implement fetch-based submission, remove form POST, expose JSON-driven result rendering | UI-OCRA-002, UI-OCRA-004, UI-OCRA-005 | ✅ |
+| R033 | Refresh Selenium + docs to reflect JavaScript-only flow and telemetry/accessibility guarantees | UI-OCRA-002, UI-OCRA-005, UI-NFR-001 | ✅ |
 
 Update this checklist as work progresses.

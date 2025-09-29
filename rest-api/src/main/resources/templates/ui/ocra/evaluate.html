@@ -19,6 +19,7 @@
           method="post"
           aria-describedby="console-summary"
           data-testid="ocra-evaluate-form"
+          th:attr="data-evaluate-endpoint=${evaluationEndpoint}"
         >
           <input type="hidden" name="_csrf" th:value="${csrfToken}" />
 
@@ -218,40 +219,46 @@
         </form>
       </section>
 
-      <section th:if="${viewState.hasResult()}" aria-live="polite" aria-labelledby="result-heading">
+      <section
+        data-testid="ocra-result-panel"
+        aria-live="polite"
+        aria-labelledby="result-heading"
+        hidden="hidden"
+      >
         <h2 id="result-heading">Evaluation result</h2>
         <p data-testid="ocra-otp">
           OTP:
-          <strong th:text="${viewState.payload['otp']}"></strong>
+          <strong data-testid="ocra-otp-value"></strong>
         </p>
         <p id="telemetry-instructions" class="hint">
           Copy the telemetry summary when escalating issues; it contains only sanitized values.
         </p>
         <dl data-testid="ocra-telemetry-summary" aria-describedby="telemetry-instructions">
           <dt>Status</dt>
-          <dd th:text="${viewState.payload['status']}"></dd>
+          <dd data-testid="ocra-status-value"></dd>
           <dt>Telemetry ID</dt>
-          <dd data-testid="ocra-telemetry-id" th:text="${viewState.payload['telemetryId']}"></dd>
+          <dd data-testid="ocra-telemetry-id"></dd>
           <dt>Reason code</dt>
-          <dd data-testid="ocra-reason-code" th:text="${viewState.payload['reasonCode']}"></dd>
+          <dd data-testid="ocra-reason-code"></dd>
           <dt>Sanitized</dt>
-          <dd data-testid="ocra-sanitized-flag" th:text="${viewState.payload['sanitized']}"></dd>
+          <dd data-testid="ocra-sanitized-flag"></dd>
           <dt>Suite</dt>
-          <dd th:text="${viewState.payload['suite']}"></dd>
+          <dd data-testid="ocra-suite-value"></dd>
         </dl>
       </section>
 
       <section
-        th:if="${viewState.hasError()}"
+        data-testid="ocra-error-panel"
         aria-live="assertive"
         role="alert"
         aria-labelledby="error-heading"
+        hidden="hidden"
       >
-        <div data-testid="ocra-error-banner">
+        <div>
           <h2 id="error-heading">Evaluation failed</h2>
-          <p data-testid="ocra-error-reason" th:text="${viewState.payload['reasonCode']}"></p>
-          <p data-testid="ocra-error-sanitized" th:text="${viewState.payload['sanitized']}"></p>
-          <p th:text="${viewState.payload['message']}"></p>
+          <p data-testid="ocra-error-reason"></p>
+          <p data-testid="ocra-error-sanitized"></p>
+          <p data-testid="ocra-error-message"></p>
         </div>
       </section>
     </main>
@@ -262,7 +269,7 @@
       th:utext="${policyPresetJson}"
     ></script>
 
-    <script th:inline="javascript">
+    <script th:inline="javascript" data-testid="ocra-fetch-script">
       (function () {
         const modeInputs = document.querySelectorAll('input[name="mode"]');
         const sections = document.querySelectorAll('[data-mode-section]');
@@ -270,6 +277,8 @@
         const credentialRequired = document.querySelectorAll('[data-credential-required]');
         const policySelect = document.getElementById('policyPreset');
         const inlinePresetElement = document.getElementById('ocra-policy-presets');
+        const form = document.querySelector('[data-testid="ocra-evaluate-form"]');
+        const submitButton = form ? form.querySelector('button[type="submit"]') : null;
         const inlinePresets =
           inlinePresetElement && inlinePresetElement.textContent
             ? JSON.parse(inlinePresetElement.textContent)
@@ -296,6 +305,58 @@
         const pinHashInput = document.getElementById('pinHashHex');
         const timestampInput = document.getElementById('timestampHex');
         const counterInput = document.getElementById('counter');
+        const resultPanel = document.querySelector('[data-testid="ocra-result-panel"]');
+        const statusValue = document.querySelector('[data-testid="ocra-status-value"]');
+        const otpValue = document.querySelector('[data-testid="ocra-otp-value"]');
+        const telemetryValue = document.querySelector('[data-testid="ocra-telemetry-id"]');
+        const reasonValue = document.querySelector('[data-testid="ocra-reason-code"]');
+        const sanitizedValue = document.querySelector('[data-testid="ocra-sanitized-flag"]');
+        const suiteValue = document.querySelector('[data-testid="ocra-suite-value"]');
+        const errorPanel = document.querySelector('[data-testid="ocra-error-panel"]');
+        const errorReason = document.querySelector('[data-testid="ocra-error-reason"]');
+        const errorSanitized = document.querySelector('[data-testid="ocra-error-sanitized"]');
+        const errorMessage = document.querySelector('[data-testid="ocra-error-message"]');
+        const fetchDelegate =
+          typeof window.fetch === 'function'
+            ? function (endpoint, options) {
+                return window.fetch(endpoint, options);
+              }
+            : function (endpoint, options) {
+                return new Promise(function (resolve, reject) {
+                  try {
+                    var requestOptions = options || {};
+                    var xhr = new XMLHttpRequest();
+                    var method = requestOptions.method || 'GET';
+                    xhr.open(method, endpoint, true);
+                    var headers = requestOptions.headers || {};
+                    Object.keys(headers).forEach(function (key) {
+                      xhr.setRequestHeader(key, headers[key]);
+                    });
+                    if (
+                      requestOptions.credentials &&
+                      requestOptions.credentials !== 'omit'
+                    ) {
+                      xhr.withCredentials = true;
+                    }
+                    xhr.onload = function () {
+                      var responseText = xhr.responseText || '';
+                      resolve({
+                        ok: xhr.status >= 200 && xhr.status < 300,
+                        status: xhr.status,
+                        text: function () {
+                          return Promise.resolve(responseText);
+                        },
+                      });
+                    };
+                    xhr.onerror = function () {
+                      reject(new Error('Request failed'));
+                    };
+                    xhr.send(requestOptions.body || null);
+                  } catch (error) {
+                    reject(error);
+                  }
+                });
+              };
 
         function updateSections() {
           const selected = document.querySelector('input[name="mode"]:checked');
@@ -374,6 +435,209 @@
           }
         }
 
+        function setTextContent(node, value) {
+          if (!node) {
+            return;
+          }
+          node.textContent = value || '';
+        }
+
+        function hidePanel(panel) {
+          if (!panel) {
+            return;
+          }
+          panel.setAttribute('hidden', 'hidden');
+        }
+
+        function showPanel(panel) {
+          if (!panel) {
+            return;
+          }
+          panel.removeAttribute('hidden');
+        }
+
+        function scrubSecrets() {
+          if (sharedSecretInput) {
+            sharedSecretInput.value = '';
+          }
+          if (pinHashInput) {
+            pinHashInput.value = '';
+          }
+        }
+
+        function clearPanels() {
+          hidePanel(resultPanel);
+          hidePanel(errorPanel);
+          setTextContent(statusValue, '');
+          setTextContent(otpValue, '');
+          setTextContent(telemetryValue, '');
+          setTextContent(reasonValue, '');
+          setTextContent(sanitizedValue, '');
+          setTextContent(suiteValue, '');
+          setTextContent(errorReason, '');
+          setTextContent(errorSanitized, '');
+          setTextContent(errorMessage, '');
+        }
+
+        function toTrimmedValue(input) {
+          if (!input || typeof input.value !== 'string') {
+            return '';
+          }
+          return input.value.trim();
+        }
+
+        function parseCounter(value) {
+          if (!value) {
+            return null;
+          }
+          var parsed = Number(value);
+          return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        function buildPayload() {
+          var payload = {};
+          var selectedMode = document.querySelector('input[name="mode"]:checked');
+          var modeValue = selectedMode ? selectedMode.value : 'inline';
+          if (modeValue === 'credential') {
+            var credentialValue = toTrimmedValue(document.getElementById('credentialId'));
+            if (credentialValue) {
+              payload.credentialId = credentialValue;
+            }
+            var suiteForCredential = toTrimmedValue(suiteInput);
+            if (suiteForCredential) {
+              payload.suite = suiteForCredential;
+            }
+          } else {
+            var inlineSuite = toTrimmedValue(suiteInput);
+            var secretValue = toTrimmedValue(sharedSecretInput);
+            if (inlineSuite) {
+              payload.suite = inlineSuite;
+            }
+            if (secretValue) {
+              payload.sharedSecretHex = secretValue;
+            }
+          }
+
+          var challengeValue = toTrimmedValue(challengeInput);
+          if (challengeValue) {
+            payload.challenge = challengeValue;
+          }
+          var sessionValue = toTrimmedValue(sessionInput);
+          if (sessionValue) {
+            payload.sessionHex = sessionValue;
+          }
+          var clientChallengeValue = toTrimmedValue(clientChallengeInput);
+          if (clientChallengeValue) {
+            payload.clientChallenge = clientChallengeValue;
+          }
+          var serverChallengeValue = toTrimmedValue(serverChallengeInput);
+          if (serverChallengeValue) {
+            payload.serverChallenge = serverChallengeValue;
+          }
+          var pinHashValue = toTrimmedValue(pinHashInput);
+          if (pinHashValue) {
+            payload.pinHashHex = pinHashValue;
+          }
+          var timestampValue = toTrimmedValue(timestampInput);
+          if (timestampValue) {
+            payload.timestampHex = timestampValue;
+          }
+          var counterValue = parseCounter(toTrimmedValue(counterInput));
+          if (counterValue !== null) {
+            payload.counter = counterValue;
+          }
+          return payload;
+        }
+
+        function setBusy(state) {
+          if (submitButton) {
+            submitButton.disabled = Boolean(state);
+          }
+          if (form) {
+            if (state) {
+              form.setAttribute('data-loading', 'true');
+            } else {
+              form.removeAttribute('data-loading');
+            }
+          }
+        }
+
+        function renderSuccess(body, payload) {
+          const suiteText = body && body.suite ? body.suite : payload.suite || '';
+          setTextContent(statusValue, 'success');
+          setTextContent(otpValue, body && body.otp ? body.otp : '');
+          setTextContent(telemetryValue, body && body.telemetryId ? body.telemetryId : '');
+          setTextContent(reasonValue, 'success');
+          setTextContent(sanitizedValue, 'true');
+          setTextContent(suiteValue, suiteText);
+          showPanel(resultPanel);
+          hidePanel(errorPanel);
+        }
+
+        function renderError(body) {
+          const details = body && body.details ? body.details : {};
+          const reason = details.reasonCode || (body && body.error) || 'invalid_input';
+          const sanitized = details.sanitized || 'true';
+          const message = (body && body.message) || 'Your request could not be processed';
+          setTextContent(errorReason, reason);
+          setTextContent(errorSanitized, sanitized);
+          setTextContent(errorMessage, message);
+          hidePanel(resultPanel);
+          showPanel(errorPanel);
+        }
+
+        function parseJsonSafely(text) {
+          if (!text) {
+            return null;
+          }
+          try {
+            return JSON.parse(text);
+          } catch (err) {
+            return null;
+          }
+        }
+
+        function handleFetch(event) {
+          event.preventDefault();
+          clearPanels();
+          setBusy(true);
+          const payload = buildPayload();
+          const csrfInput = form ? form.querySelector('input[name="_csrf"]') : null;
+          const csrfToken = csrfInput && typeof csrfInput.value === 'string' ? csrfInput.value : '';
+          const headers = {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          };
+          if (csrfToken) {
+            headers['X-CSRF-TOKEN'] = csrfToken;
+          }
+          fetchDelegate(form.dataset.evaluateEndpoint || '/api/v1/ocra/evaluate', {
+              method: 'POST',
+              headers: headers,
+              body: JSON.stringify(payload),
+              credentials: 'same-origin',
+            })
+            .then(function (response) {
+              return response.text().then(function (text) {
+                return { ok: response.ok, body: parseJsonSafely(text) };
+              });
+            })
+            .then(function (result) {
+              setBusy(false);
+              scrubSecrets();
+              if (result.ok) {
+                renderSuccess(result.body || {}, payload);
+                return;
+              }
+              renderError(result.body);
+            })
+            .catch(function () {
+              setBusy(false);
+              scrubSecrets();
+              renderError(null);
+            });
+        }
+
         modeInputs.forEach(function (input) {
           input.addEventListener('change', updateSections);
         });
@@ -382,6 +646,10 @@
           policySelect.addEventListener('change', function () {
             applyPreset(policySelect.value);
           });
+        }
+
+        if (form) {
+          form.addEventListener('submit', handleFetch);
         }
 
         window.__ocraApplyPreset = applyPreset;

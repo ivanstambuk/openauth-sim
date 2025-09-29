@@ -94,15 +94,20 @@ final class OcraOperatorUiSeleniumTest {
 
     driver.findElement(By.cssSelector("form[data-testid='ocra-evaluate-form']")).submit();
 
-    WebElement otpElement =
+    WebElement resultPanel =
         new WebDriverWait(driver, Duration.ofSeconds(5))
             .until(
                 ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector("[data-testid='ocra-otp']")));
+                    By.cssSelector("[data-testid='ocra-result-panel']")));
+    assertThat(resultPanel.getAttribute("hidden")).isNull();
 
+    WebElement otpElement = resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp']"));
     assertThat(otpElement.getText()).contains(EXPECTED_OTP);
-    WebElement reasonCode = driver.findElement(By.cssSelector("[data-testid='ocra-reason-code']"));
+    WebElement reasonCode =
+        resultPanel.findElement(By.cssSelector("[data-testid='ocra-reason-code']"));
     assertThat(reasonCode.getText()).isEqualTo("success");
+    WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
+    assertThat(errorPanel.getAttribute("hidden")).isNotNull();
   }
 
   @Test
@@ -121,16 +126,20 @@ final class OcraOperatorUiSeleniumTest {
 
     driver.findElement(By.cssSelector("form[data-testid='ocra-evaluate-form']")).submit();
 
-    WebElement otpElement =
+    WebElement resultPanel =
         new WebDriverWait(driver, Duration.ofSeconds(5))
             .until(
                 ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector("[data-testid='ocra-otp']")));
+                    By.cssSelector("[data-testid='ocra-result-panel']")));
+    assertThat(resultPanel.getAttribute("hidden")).isNull();
 
+    WebElement otpElement = resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp']"));
     assertThat(otpElement.getText()).contains(EXPECTED_OTP);
     WebElement telemetryBlock =
-        driver.findElement(By.cssSelector("[data-testid='ocra-telemetry-summary']"));
+        resultPanel.findElement(By.cssSelector("[data-testid='ocra-telemetry-summary']"));
     assertThat(telemetryBlock.getText()).contains("success").contains("true");
+    WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
+    assertThat(errorPanel.getAttribute("hidden")).isNotNull();
   }
 
   private void seedCredential() {
