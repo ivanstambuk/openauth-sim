@@ -44,4 +44,26 @@ final class OpenApiDocumentationTest {
         postNode.get("responses").has("200"),
         "OpenAPI document missing HTTP 200 response for evaluation endpoint");
   }
+
+  @Test
+  @DisplayName("OpenAPI YAML document includes the OCRA evaluation endpoint")
+  void ocraEvaluationEndpointDocumentedYaml() throws Exception {
+    String responseBody =
+        mockMvc
+            .perform(get("/v3/api-docs.yaml"))
+            .andExpect(status().isOk())
+            .andExpect(
+                content()
+                    .contentTypeCompatibleWith(MediaType.valueOf("application/vnd.oai.openapi")))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    assertTrue(
+        responseBody.contains("/api/v1/ocra/evaluate"),
+        "OCRA evaluation endpoint missing from OpenAPI YAML");
+    assertTrue(
+        responseBody.contains("post:"),
+        "OpenAPI YAML missing POST operation for evaluation endpoint");
+  }
 }

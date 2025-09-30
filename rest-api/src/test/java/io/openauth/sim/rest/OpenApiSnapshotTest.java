@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -22,46 +23,79 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 final class OpenApiSnapshotTest {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final Path SNAPSHOT_PATH =
+  private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+  private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+  private static final Path JSON_SNAPSHOT_PATH =
       Path.of("..", "docs", "3-reference", "rest-openapi.json").normalize();
+  private static final Path YAML_SNAPSHOT_PATH =
+      Path.of("..", "docs", "3-reference", "rest-openapi.yaml").normalize();
 
   @Autowired private MockMvc mockMvc;
 
   @BeforeAll
   static void ensureSnapshotDirectoryExists() throws IOException {
-    Path parent = SNAPSHOT_PATH.getParent();
-    if (parent != null) {
-      Files.createDirectories(parent);
-    }
+    createParentDirectory(JSON_SNAPSHOT_PATH);
+    createParentDirectory(YAML_SNAPSHOT_PATH);
   }
 
   @Test
   @DisplayName("OpenAPI snapshot stays in sync with generated contract")
   void openApiMatchesSnapshot() throws Exception {
-    String responseBody =
+    String jsonResponse =
         mockMvc.perform(get("/v3/api-docs")).andReturn().getResponse().getContentAsString();
 
-    JsonNode current = normalise(responseBody);
+    JsonNode currentJson = normaliseJson(jsonResponse);
 
-    if (shouldWriteSnapshot() || Files.notExists(SNAPSHOT_PATH)) {
-      writeSnapshot(current);
+    if (shouldWriteSnapshot() || Files.notExists(JSON_SNAPSHOT_PATH)) {
+      writeJsonSnapshot(currentJson);
     }
 
-    assertTrue(Files.exists(SNAPSHOT_PATH), "Expected OpenAPI snapshot at " + SNAPSHOT_PATH);
+    assertTrue(
+        Files.exists(JSON_SNAPSHOT_PATH),
+        "Expected OpenAPI JSON snapshot at " + JSON_SNAPSHOT_PATH);
 
-    JsonNode expected = normalise(Files.readString(SNAPSHOT_PATH));
-    assertEquals(expected, current, "OpenAPI snapshot drift detected");
+    JsonNode expectedJson = normaliseJson(Files.readString(JSON_SNAPSHOT_PATH));
+    assertEquals(expectedJson, currentJson, "OpenAPI JSON snapshot drift detected");
+
+    String yamlResponse =
+        mockMvc.perform(get("/v3/api-docs.yaml")).andReturn().getResponse().getContentAsString();
+
+    JsonNode currentYaml = normaliseYaml(yamlResponse);
+
+    if (shouldWriteSnapshot() || Files.notExists(YAML_SNAPSHOT_PATH)) {
+      writeYamlSnapshot(currentYaml);
+    }
+
+    assertTrue(
+        Files.exists(YAML_SNAPSHOT_PATH),
+        "Expected OpenAPI YAML snapshot at " + YAML_SNAPSHOT_PATH);
+
+    JsonNode expectedYaml = normaliseYaml(Files.readString(YAML_SNAPSHOT_PATH));
+    assertEquals(expectedYaml, currentYaml, "OpenAPI YAML snapshot drift detected");
   }
 
-  private static JsonNode normalise(String json) throws IOException {
-    return MAPPER.readTree(json);
+  private static JsonNode normaliseJson(String json) throws IOException {
+    return JSON_MAPPER.readTree(json);
   }
 
-  private static void writeSnapshot(JsonNode node) throws IOException {
+  private static void writeJsonSnapshot(JsonNode node) throws IOException {
     String formatted =
-        MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(node) + System.lineSeparator();
-    Path absolute = SNAPSHOT_PATH.toAbsolutePath().normalize();
+        JSON_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(node)
+            + System.lineSeparator();
+    Path absolute = JSON_SNAPSHOT_PATH.toAbsolutePath().normalize();
+    Files.writeString(absolute, formatted, StandardCharsets.UTF_8);
+  }
+
+  private static JsonNode normaliseYaml(String yaml) throws IOException {
+    return YAML_MAPPER.readTree(yaml);
+  }
+
+  private static void writeYamlSnapshot(JsonNode yamlNode) throws IOException {
+    String formatted = YAML_MAPPER.writeValueAsString(yamlNode).replace("\r\n", "\n");
+    if (!formatted.endsWith("\n")) {
+      formatted = formatted + System.lineSeparator();
+    }
+    Path absolute = YAML_SNAPSHOT_PATH.toAbsolutePath().normalize();
     Files.writeString(absolute, formatted, StandardCharsets.UTF_8);
   }
 
@@ -71,5 +105,12 @@ final class OpenApiSnapshotTest {
     }
     String env = System.getenv("OPENAPI_SNAPSHOT_WRITE");
     return env != null && Boolean.parseBoolean(env);
+  }
+
+  private static void createParentDirectory(Path snapshotPath) throws IOException {
+    Path parent = snapshotPath.getParent();
+    if (parent != null) {
+      Files.createDirectories(parent);
+    }
   }
 }

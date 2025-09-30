@@ -1,7 +1,7 @@
 # Feature Plan 003 – REST OCRA Evaluation Endpoint
 
 _Status: In progress_
-_Last updated: 2025-09-28_
+_Last updated: 2025-09-30_
 
 ## Objective
 Expose a synchronous REST endpoint under `/api/v1/ocra/evaluate` that reuses the core `OcraResponseCalculator` to compute session-aware OTPs for RFC 6287 suites. The feature delivers automated coverage for the S064/S128/S256/S512 fixtures already validated through the CLI, ensuring REST clients receive identical responses with secrets redacted.
@@ -12,7 +12,7 @@ Reference specification: `docs/4-architecture/specs/feature-003-rest-ocra-evalua
 - Endpoint accepts all supported runtime inputs (suite, shared secret hex, optional counter/challenges/session/pin/timestamp) and produces deterministic OTPs.
 - Integration tests exercise the endpoint against the known RFC vector fixtures, keeping responses in sync with the core module.
 - Telemetry verifies redaction rules and captures execution metadata (`rest.ocra.evaluate`).
-- OpenAPI documentation (via SpringDoc `/v3/api-docs`) and operator how-to references describe the endpoint contract and sample payloads.
+- OpenAPI documentation (via SpringDoc `/v3/api-docs`) and operator how-to references describe the endpoint contract and sample payloads, with both JSON and YAML snapshots checked into `docs/3-reference/`.
 
 ## Task Tracker
 - Detailed increments live in `docs/4-architecture/tasks/feature-003-rest-ocra-endpoint.md`. Keep each task ≤10 minutes and commit after every green build.
@@ -37,6 +37,7 @@ Reference specification: `docs/4-architecture/specs/feature-003-rest-ocra-evalua
 - 2025-09-28 – Timestamp validation will reuse `OcraCredentialFactory.validateTimestamp` drift rules (reason code `timestamp_drift_exceeded`); runtime PIN mismatches will emit `pin_hash_mismatch` and be pre-validated before calculator execution.
 - 2025-09-28 – R010/R011 delivered: timestamp drift + PIN mismatch MockMvc coverage now green; REST service resolves timestampHex with suite metadata, injects `Clock` for deterministic tests, and maps reason codes (`timestamp_drift_exceeded`, `pin_hash_mismatch`, etc.).
 - 2025-09-28 – R012 complete: operator how-to and telemetry snapshot updated with new reason codes; captured fresh logs via `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest --info --rerun-tasks`.
+- 2025-09-30 – R013–R015 delivered: added YAML coverage/tests, extended snapshot writer to canonicalise JSON/YAML output, regenerated artifacts via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.rest.OpenApiSnapshotTest`, updated docs/knowledge map, and confirmed `./gradlew spotlessApply check` (PASS).
 
 ## Dependencies
 - Relies on the existing OCRA core package; ensure no modifications are required in `core/` for this feature.

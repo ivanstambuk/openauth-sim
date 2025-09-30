@@ -1,7 +1,7 @@
 # Feature 003 – REST OCRA Evaluation Endpoint Tasks
 
 _Status: In progress_
-_Last updated: 2025-09-28_
+_Last updated: 2025-09-30_
 
 ## Execution Notes
 - Follow the specification in `docs/4-architecture/specs/feature-003-rest-ocra-evaluation-endpoint.md`.
@@ -57,3 +57,14 @@ Update this checklist as tasks progress and link back to the feature plan with o
 2025-09-28 – R010 executed test-first: added timestamp drift and PIN mismatch MockMvc cases; initial `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest` (RED – expected pending R011). Follow-up run after R011 passed (green).
 2025-09-28 – R011 wired `Clock` injection + timestamp gating, mapped new reason codes; `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest` (PASS, ~14s).
 2025-09-28 – R012 refreshed operator docs and telemetry snapshot; captured new log lines via `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest --info --rerun-tasks`.
+
+## Phase 6 – Dual-Format OpenAPI Snapshots
+| ID | Task | Related Requirements | Parallel? |
+|----|------|----------------------|-----------|
+| R013 | [x] Add failing contract test coverage ensuring `/v3/api-docs.yaml` is generated and compare it against a checked-in YAML snapshot. | FR-REST-004 | No |
+| R014 | [x] Extend snapshot writer to produce both JSON and YAML artifacts, regenerate snapshots, and rerun `./gradlew spotlessApply check`. | FR-REST-004, NFR-REST-004 | No |
+| R015 | [x] Update operator documentation and knowledge map to reference the YAML snapshot alongside JSON. | FR-REST-004 | No |
+
+2025-09-30 – R013 executed test-first: extended `OpenApiDocumentationTest` and `OpenApiSnapshotTest`, observed expected failures, then reran with `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.rest.OpenApiSnapshotTest` to capture dual snapshots.
+2025-09-30 – R014 updated snapshot writer to canonicalise JSON/YAML, regenerated artifacts, and verified `./gradlew spotlessApply check` (PASS).
+2025-09-30 – R015 refreshed docs/knowledge map to note JSON and YAML availability.

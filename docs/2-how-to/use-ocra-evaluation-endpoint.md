@@ -15,13 +15,14 @@ This guide walks operators through invoking the `/api/v1/ocra/evaluate` endpoint
 SpringDoc exposes two helpful endpoints once the service is running:
 
 - Raw JSON specification: `http://localhost:8080/v3/api-docs`
+- Raw YAML specification: `http://localhost:8080/v3/api-docs.yaml`
 - Interactive Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 
-A checked-in snapshot lives at `docs/3-reference/rest-openapi.json`. Keep this file in sync by running
+Checked-in snapshots live at `docs/3-reference/rest-openapi.json` and `docs/3-reference/rest-openapi.yaml`. Keep these files in sync by running
 ```
 OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.rest.OpenApiSnapshotTest
 ```
-whenever controller contracts change.
+whenever controller contracts change. The snapshot test writes both artifacts when the environment flag is present (or when the system property `openapi.snapshot.write=true` is set).
 
 ## Execute a Sample Evaluation
 Send a minimal POST request that supplies the RFC S064 session payload:
