@@ -48,6 +48,10 @@ Reference specification: `docs/4-architecture/specs/feature-008-ocra-quality-aut
 - Q129 – Add REST DTO tests validating trim/null handling and defensive copies (`OcraEvaluationRequest`, `OcraEvaluationResponse`, `OcraEvaluationErrorResponse`). ☑
 - Q130 – Expand `OcraEvaluationServiceTest` to cover timestamp, challenge, and telemetry helper branches plus remaining `FailureDetails` mappings. ☑
 - Q131 – Re-run `./gradlew jacocoAggregatedReport` and record metrics once CLI/REST tests land. ☑
+- Q132a – Add failing core tests for `OcraCredentialDescriptor`/`OcraCredentialFactory` request branches, drive coverage ≥90% branch before implementation. ☑
+- Q132b – Extend CLI delete/list command tests (including telemetry and verbose flows) to push branches ≥90%. ☐
+- Q132c – Add REST controller/service integration tests for success/error permutations lifting branches ≥90%. ☐
+- Q132d – Cover remaining telemetry/persistence adapters (failure details mapping, maintenance helpers) to close sub-90% branches. ☐
 - Q132 – Raise Jacoco minimums to 0.90/0.90, execute `./gradlew qualityGate` (with PIT), and close documentation updates for Q115. ☐
 
 ## Checklist Before Implementation
@@ -100,6 +104,7 @@ Document the outcome and proceed only once all boxes are checked.
 - 2025-09-30 – Q126 plan: CLI coverage gaps remain in `OcraCliLauncher` (75% line / 50% branch) and `OcraCli` helper paths (`AbstractOcraCommand` error handling, import failure telemetry). Introduce tests that (A) capture `System.exit` for non-zero launcher outcomes via a temporary security manager, (B) exercise `failValidation`/`failUnexpected` sanitisation using a stub command with injected writer streams, and (C) trigger import command IO/validation failures (e.g., malformed secret, unwritable database path) to cover both validation and unexpected-error branches while asserting emitted telemetry fields. Target ≥90% branch coverage across the CLI facade.
 - 2025-09-30 – Q125 execution: Added `OcraResponseCalculatorEdgeCaseTest` and expanded `OcraSuiteParserTest` with blank/invalid crypto segments, single-sided challenges, session/timestamp validations, and runtime PIN padding. Aggregated coverage now reports `OcraResponseCalculator` 95.5% line / 90.4% branch, `OcraSuiteParser` 100% line / 91.9% branch (Jacoco 2025-09-30 19:58 UTC), and overall totals 91.82% line / 80.03% branch ahead of CLI work. Residual core hotspots: descriptor/persistence helpers (branch 0.50–0.75) slated for follow-up once CLI thresholds land.
 - 2025-09-30 – Q126 execution: Added `OcraCliErrorHandlingTest` (validation vs unexpected flows, PIN + drift imports, resolveDescriptor filter) and extended `OcraCliLauncherTest` with a non-zero exit interception. CLI coverage now shows `OcraCliLauncher` 75.0% line / 100% branch, `AbstractOcraCommand` 96.3% line / 100% branch, and `ImportCommand` 100% line / 100% branch. Project aggregate increased to 92.60% line / 81.08% branch (Jacoco 2025-09-30 20:11 UTC), with remaining CLI deficits concentrated in top-level `OcraCli` control flow (~72% branch) and maintenance/delete/list commands (75–80% branch) earmarked for future increments.
+- 2025-09-30 – Q132a execution: Added `OcraCredentialDescriptorTest` to cover blank-name rejection, metadata copying, and request metadata defaults. Jacoco now reports 100% line/branch coverage for the descriptor record and request inner class (aggregated report 2025-09-30 22:46 UTC).
 - Consider PIT incremental modes and target filters to keep runtime under 10 minutes.
 - Evaluate existing GitHub Actions caching (Gradle + PIT) to mitigate CI duration.
 - When documenting thresholds, include rationale so future adjustments remain auditable.
