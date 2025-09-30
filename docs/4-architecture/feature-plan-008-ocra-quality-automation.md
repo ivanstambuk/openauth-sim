@@ -58,6 +58,7 @@ Document the outcome and proceed only once all boxes are checked.
 - 2025-09-30 – Q105: Added PIT plugin targeting core OCRA classes with `mutationTest` wiring into `check`; threshold set to ≥85% (current score ≈87.55%, runtime ≈1m26 via `./gradlew mutationTest`). `OcraChallengeFormat` and `OcraCredentialFactory` excluded temporarily pending new tests; follow-up item recorded to expand coverage and re-enable CLI/REST facades.
 - 2025-09-30 – Q106: Introduced `qualityGate` aggregate depending on `spotlessCheck` and `check` (which triggers architecture, coverage, mutation suites); baseline runtime ≈1m56 with warm cache, `./gradlew qualityGate -Ppit.skip=true` trims to ≈27s when mutation analysis is explicitly skipped.
 - 2025-09-30 – Q107: Updated CI workflow (`.github/workflows/ci.yml`) to run `./gradlew --no-daemon qualityGate` on push/PR so GitHub Actions enforces the full boundary/coverage/mutation gate with existing Gradle cache support.
+- 2025-09-30 – Q108: Authored `docs/5-operations/quality-gate.md` covering usage, thresholds, report locations, and troubleshooting (includes `-Ppit.skip=true` guidance for local runs).
 - Consider PIT incremental modes and target filters to keep runtime under 10 minutes.
 - Evaluate existing GitHub Actions caching (Gradle + PIT) to mitigate CI duration.
 - When documenting thresholds, include rationale so future adjustments remain auditable.
