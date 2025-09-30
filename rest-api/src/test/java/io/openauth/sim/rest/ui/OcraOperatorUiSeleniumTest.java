@@ -251,6 +251,8 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(fieldValue("pinHashHex")).isBlank();
     assertThat(isDisabled("clientChallenge")).isTrue();
     assertThat(isDisabled("serverChallenge")).isTrue();
+    assertDisabledStyling("clientChallenge");
+    assertDisabledStyling("serverChallenge");
 
     WebElement advancedPanel =
         driver.findElement(By.cssSelector("[data-testid='ocra-advanced-panel']"));
@@ -334,6 +336,8 @@ final class OcraOperatorUiSeleniumTest {
 
     assertThat(isDisabled("clientChallenge")).isTrue();
     assertThat(isDisabled("serverChallenge")).isTrue();
+    assertDisabledStyling("clientChallenge");
+    assertDisabledStyling("serverChallenge");
   }
 
   @Test
@@ -730,6 +734,24 @@ final class OcraOperatorUiSeleniumTest {
   private void waitForDisabledState(String elementId, boolean expectedDisabled) {
     new WebDriverWait(driver, Duration.ofSeconds(5))
         .until(d -> isDisabled(elementId) == expectedDisabled);
+  }
+
+  private void assertDisabledStyling(String elementId) {
+    JavascriptExecutor executor = (JavascriptExecutor) driver;
+    String background =
+        (String)
+            executor.executeScript(
+                "var el = document.getElementById(arguments[0]);"
+                    + " return el ? window.getComputedStyle(el).getPropertyValue('background-color') : '';",
+                elementId);
+    assertThat(background).contains("231").contains("236").contains("244");
+    String cursor =
+        (String)
+            executor.executeScript(
+                "var el = document.getElementById(arguments[0]);"
+                    + " return el ? window.getComputedStyle(el).getPropertyValue('cursor') : '';",
+                elementId);
+    assertThat(cursor).isEqualTo("not-allowed");
   }
 
   private long currentTimeStep(long stepSeconds) {

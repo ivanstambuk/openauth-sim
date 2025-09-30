@@ -4,7 +4,9 @@
   --ocra-color-background: #f4f6fb;
   --ocra-color-surface: #ffffff;
   --ocra-color-surface-muted: #f0f3f9;
+  --ocra-color-surface-disabled: #e7ecf4;
   --ocra-color-border: #d6deeb;
+  --ocra-color-border-disabled: #c9d4e3;
   --ocra-color-outline: #9fb3cf;
   --ocra-color-text: #1d2733;
   --ocra-color-text-muted: #4b5563;
@@ -425,6 +427,24 @@ fieldset {
   background: #fff;
   color: var(--ocra-color-text);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field-grid input:disabled,
+.field-grid select:disabled,
+.field-grid textarea:disabled {
+  background: #e7ecf4;
+  background: var(--ocra-color-surface-disabled, #e7ecf4);
+  border-color: #c9d4e3;
+  border-color: var(--ocra-color-border-disabled, #c9d4e3);
+  color: var(--ocra-color-text-muted);
+  cursor: not-allowed;
+  opacity: 1;
+  box-shadow: none;
+}
+
+.field-grid input:disabled::placeholder,
+.field-grid textarea:disabled::placeholder {
+  color: rgba(75, 85, 99, 0.65);
 }
 
 .field-grid .select-compact {

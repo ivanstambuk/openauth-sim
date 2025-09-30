@@ -66,5 +66,6 @@ _Last updated: 2025-09-29_
 | R071 | Add failing Selenium assertion covering compact session checkbox styling | UI-OCRA-002, UI-NFR-001 | ✅ |
 | R072 | Implement compact session checkbox styling, rerun `./gradlew spotlessApply check` | UI-OCRA-002, UI-NFR-001 | ✅ |
 | R073 | Ensure stored credential selection disables split challenge inputs when suites only support combined challenges | UI-OCRA-009, UI-OCRA-005 | ✅ |
+| R074 | Style disabled request parameter fields with muted appearance and add regression coverage | UI-OCRA-009, UI-NFR-001 | ✅ |
 
 Update this checklist as work progresses.
