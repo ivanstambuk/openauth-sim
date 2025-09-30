@@ -2,6 +2,7 @@ package io.openauth.sim.rest.ocra;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -9,12 +10,20 @@ import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
+import io.openauth.sim.core.credentials.ocra.OcraCryptoFunction;
+import io.openauth.sim.core.credentials.ocra.OcraDataInput;
+import io.openauth.sim.core.credentials.ocra.OcraHashAlgorithm;
+import io.openauth.sim.core.credentials.ocra.OcraSuite;
+import io.openauth.sim.core.credentials.ocra.OcraTimestampSpecification;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretEncoding;
+import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import java.lang.reflect.InvocationTargetException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -513,6 +522,140 @@ class OcraEvaluationServiceTest {
   }
 
   @Test
+  @DisplayName("resolveTimestamp returns null when step duration is below one second")
+  void resolveTimestampSkipsSubSecondStep() throws Exception {
+    OcraCredentialDescriptor descriptor = descriptorWithTimestamp(Duration.ofMillis(500));
+
+    Instant resolved = invokeResolveTimestamp(descriptor, "0F");
+
+    assertNull(resolved);
+  }
+
+  @Test
+  @DisplayName("resolveTimestamp rejects values that overflow epoch seconds")
+  void resolveTimestampRejectsOverflow() throws Exception {
+    OcraCredentialDescriptor descriptor = descriptorWithTimestamp(Duration.ofSeconds(30));
+    String overflowing = Long.toUnsignedString(Long.divideUnsigned(-1L, 30) + 1, 16).toUpperCase();
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class, () -> invokeResolveTimestamp(descriptor, overflowing));
+
+    assertTrue(exception.getMessage().contains("exceeds supported range"));
+  }
+
+  @Test
+  @DisplayName("validateChallenge ignores empty challenges when suite omits question")
+  void validateChallengeAllowsMissingWhenNotDeclared() throws Exception {
+    OcraCredentialDescriptor descriptor = descriptorWithoutChallenge();
+
+    invokeValidateChallenge(descriptor, null);
+    invokeValidateChallenge(descriptor, "   ");
+  }
+
+  @Test
+  @DisplayName("validateChallenge rejects unexpected input when suite omits question")
+  void validateChallengeRejectsUnexpectedWhenNotDeclared() throws Exception {
+    OcraCredentialDescriptor descriptor = descriptorWithoutChallenge();
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class, () -> invokeValidateChallenge(descriptor, "ABC"));
+
+    assertTrue(exception.getMessage().contains("not permitted"));
+  }
+
+  @Test
+  @DisplayName("failure details default to request/invalid_input when message unmapped")
+  void failureDetailsDefaultForUnknownMessage() throws Exception {
+    Object failureDetails = invokeFailureDetails(new IllegalArgumentException("unexpected"));
+
+    assertEquals("request", invokeFailureAccessor(failureDetails, "field"));
+    assertEquals("invalid_input", invokeFailureAccessor(failureDetails, "reasonCode"));
+    assertEquals("unexpected", invokeFailureAccessor(failureDetails, "message"));
+  }
+
+  @Test
+  @DisplayName("failure details substitute default message when null")
+  void failureDetailsDefaultMessageWhenNull() throws Exception {
+    Object failureDetails = invokeFailureDetails(new IllegalArgumentException((String) null));
+
+    assertEquals("Invalid input", invokeFailureAccessor(failureDetails, "message"));
+  }
+
+  @Test
+  @DisplayName("requireHex enforces presence when marked required")
+  void requireHexEnforcesRequiredValues() throws Exception {
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class, () -> invokeRequireHex(null, "sharedSecretHex", true));
+
+    assertTrue(exception.getMessage().contains("required"));
+  }
+
+  @Test
+  @DisplayName("requireHex accepts valid hexadecimal input")
+  void requireHexAcceptsValidHex() throws Exception {
+    invokeRequireHex("DEADBEEF", "sharedSecretHex", false);
+  }
+
+  @Test
+  @DisplayName("requireHex rejects odd-length hexadecimal input")
+  void requireHexRejectsOddLength() throws Exception {
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> invokeRequireHex("ABC", "sharedSecretHex", false));
+
+    assertTrue(exception.getMessage().contains("even number"));
+  }
+
+  @Test
+  @DisplayName("suiteOrUnknown falls back to raw suite or defaults to unknown")
+  void suiteOrUnknownFallbacks() throws Exception {
+    OcraEvaluationRequest rawWithSuite =
+        new OcraEvaluationRequest(
+            null, "  OCRA-TEST  ", null, null, null, null, null, null, null, null);
+    assertEquals("OCRA-TEST", invokeSuiteOrUnknown(null, rawWithSuite));
+
+    OcraEvaluationRequest rawUnknown =
+        new OcraEvaluationRequest(null, null, null, null, null, null, null, null, null, null);
+    assertEquals("unknown", invokeSuiteOrUnknown(null, rawUnknown));
+  }
+
+  @Test
+  @DisplayName("normalized flags fall back to raw request when absent")
+  void helperFlagFallbacksUseRawRequest() throws Exception {
+    OcraEvaluationRequest raw =
+        new OcraEvaluationRequest(
+            "credential", null, null, "challenge", "SESSION", "CLIENT", "SERVER", "PIN", "FF", 1L);
+
+    assertTrue(invokeHasSession(null, raw));
+    assertTrue(invokeHasClientChallenge(null, raw));
+    assertTrue(invokeHasServerChallenge(null, raw));
+    assertTrue(invokeHasPin(null, raw));
+    assertTrue(invokeHasTimestamp(null, raw));
+    assertTrue(invokeHasCredentialReference(null, raw));
+  }
+
+  @Test
+  @DisplayName("failure details map timestamp drift and invalid inputs")
+  void failureDetailsTimestampMappings() throws Exception {
+    Object driftExceeded =
+        invokeFailureDetails(new IllegalArgumentException("timestamp outside permitted drift"));
+    assertEquals("timestamp_drift_exceeded", invokeFailureAccessor(driftExceeded, "reasonCode"));
+
+    Object notPermitted =
+        invokeFailureDetails(new IllegalArgumentException("timestamp not permitted for suite"));
+    assertEquals("timestamp_not_permitted", invokeFailureAccessor(notPermitted, "reasonCode"));
+
+    Object invalid =
+        invokeFailureDetails(
+            new IllegalArgumentException("timestamp must represent a valid time window"));
+    assertEquals("timestamp_invalid", invokeFailureAccessor(invalid, "reasonCode"));
+  }
+
+  @Test
   @DisplayName("inline suite omission surfaces missing_required for suite")
   void inlineSuiteMissingFailure() {
     RecordingTelemetry telemetry = new RecordingTelemetry();
@@ -778,5 +921,162 @@ class OcraEvaluationServiceTest {
     public void close() {
       // no-op
     }
+  }
+
+  private static OcraCredentialDescriptor descriptorWithTimestamp(Duration step) {
+    OcraCryptoFunction cryptoFunction =
+        new OcraCryptoFunction(OcraHashAlgorithm.SHA1, 6, Optional.of(Duration.ofSeconds(1)));
+    OcraDataInput dataInput =
+        new OcraDataInput(
+            false,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.of(new OcraTimestampSpecification(step)));
+    OcraSuite suite = new OcraSuite("TEST", cryptoFunction, dataInput);
+    return new OcraCredentialDescriptor(
+        "descriptor",
+        suite,
+        SecretMaterial.fromHex("3132333435363738"),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Map.of());
+  }
+
+  private static OcraCredentialDescriptor descriptorWithoutChallenge() {
+    OcraCryptoFunction cryptoFunction =
+        new OcraCryptoFunction(OcraHashAlgorithm.SHA1, 6, Optional.empty());
+    OcraDataInput dataInput =
+        new OcraDataInput(
+            false, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+    OcraSuite suite = new OcraSuite("NO-CHALLENGE", cryptoFunction, dataInput);
+    return new OcraCredentialDescriptor(
+        "descriptor",
+        suite,
+        SecretMaterial.fromHex("31323334"),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Map.of());
+  }
+
+  private static Instant invokeResolveTimestamp(OcraCredentialDescriptor descriptor, String input)
+      throws Exception {
+    var method =
+        OcraEvaluationService.class.getDeclaredMethod(
+            "resolveTimestamp", OcraCredentialDescriptor.class, String.class);
+    method.setAccessible(true);
+    try {
+      return (Instant) method.invoke(null, descriptor, input);
+    } catch (InvocationTargetException ex) {
+      Throwable cause = ex.getCause();
+      if (cause instanceof RuntimeException runtime) {
+        throw runtime;
+      }
+      throw ex;
+    }
+  }
+
+  private static void invokeValidateChallenge(OcraCredentialDescriptor descriptor, String challenge)
+      throws Exception {
+    var method =
+        OcraEvaluationService.class.getDeclaredMethod(
+            "validateChallenge", OcraCredentialDescriptor.class, String.class);
+    method.setAccessible(true);
+    try {
+      method.invoke(null, descriptor, challenge);
+    } catch (InvocationTargetException ex) {
+      Throwable cause = ex.getCause();
+      if (cause instanceof RuntimeException runtime) {
+        throw runtime;
+      }
+      throw ex;
+    }
+  }
+
+  private static Object invokeFailureDetails(IllegalArgumentException exception) throws Exception {
+    Class<?> failureDetailsClass =
+        Class.forName("io.openauth.sim.rest.ocra.OcraEvaluationService$FailureDetails");
+    var method =
+        failureDetailsClass.getDeclaredMethod("fromException", IllegalArgumentException.class);
+    method.setAccessible(true);
+    return method.invoke(null, exception);
+  }
+
+  private static Object invokeFailureAccessor(Object failureDetails, String methodName)
+      throws Exception {
+    var method = failureDetails.getClass().getDeclaredMethod(methodName);
+    method.setAccessible(true);
+    return method.invoke(failureDetails);
+  }
+
+  private static void invokeRequireHex(String value, String field, boolean required)
+      throws Exception {
+    var method =
+        OcraEvaluationService.class.getDeclaredMethod(
+            "requireHex", String.class, String.class, boolean.class);
+    method.setAccessible(true);
+    try {
+      method.invoke(null, value, field, required);
+    } catch (InvocationTargetException ex) {
+      Throwable cause = ex.getCause();
+      if (cause instanceof RuntimeException runtime) {
+        throw runtime;
+      }
+      throw ex;
+    }
+  }
+
+  private static String invokeSuiteOrUnknown(
+      Object normalizedRequest, OcraEvaluationRequest rawRequest) throws Exception {
+    var method =
+        OcraEvaluationService.class.getDeclaredMethod(
+            "suiteOrUnknown",
+            Class.forName("io.openauth.sim.rest.ocra.OcraEvaluationService$NormalizedRequest"),
+            OcraEvaluationRequest.class);
+    method.setAccessible(true);
+    return (String) method.invoke(null, normalizedRequest, rawRequest);
+  }
+
+  private static boolean invokeHasSession(Object normalized, OcraEvaluationRequest raw)
+      throws Exception {
+    return invokeFlagHelper("hasSession", normalized, raw);
+  }
+
+  private static boolean invokeHasClientChallenge(Object normalized, OcraEvaluationRequest raw)
+      throws Exception {
+    return invokeFlagHelper("hasClientChallenge", normalized, raw);
+  }
+
+  private static boolean invokeHasServerChallenge(Object normalized, OcraEvaluationRequest raw)
+      throws Exception {
+    return invokeFlagHelper("hasServerChallenge", normalized, raw);
+  }
+
+  private static boolean invokeHasPin(Object normalized, OcraEvaluationRequest raw)
+      throws Exception {
+    return invokeFlagHelper("hasPin", normalized, raw);
+  }
+
+  private static boolean invokeHasTimestamp(Object normalized, OcraEvaluationRequest raw)
+      throws Exception {
+    return invokeFlagHelper("hasTimestamp", normalized, raw);
+  }
+
+  private static boolean invokeHasCredentialReference(Object normalized, OcraEvaluationRequest raw)
+      throws Exception {
+    return invokeFlagHelper("hasCredentialReference", normalized, raw);
+  }
+
+  private static boolean invokeFlagHelper(
+      String methodName, Object normalized, OcraEvaluationRequest raw) throws Exception {
+    var method =
+        OcraEvaluationService.class.getDeclaredMethod(
+            methodName,
+            Class.forName("io.openauth.sim.rest.ocra.OcraEvaluationService$NormalizedRequest"),
+            OcraEvaluationRequest.class);
+    method.setAccessible(true);
+    return (boolean) method.invoke(null, normalized, raw);
   }
 }
