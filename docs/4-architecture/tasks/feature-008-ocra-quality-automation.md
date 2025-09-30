@@ -23,5 +23,15 @@ _Last updated: 2025-09-30_
 | Q107 | Update/author GitHub Actions workflow invoking `./gradlew qualityGate` on push/PR | QA-OCRA-005 | ✅ |
 | Q108 | Document gate usage, thresholds, and troubleshooting across docs | QA-OCRA-006 | ✅ |
 | Q109 | Execute full gate, capture reports, and record closure notes | QA-OCRA-001–QA-OCRA-006 | ✅ |
+| Q110 | Review aggregated Jacoco report and catalogue coverage gaps blocking ≥90% thresholds | QA-OCRA-003 | ✅ |
+| Q111 | Add failing tests for uncovered OCRA scenarios (starting with `OcraChallengeFormat`) | QA-OCRA-003 | ✅ |
+| Q112 | Implement test fixtures/assertions to satisfy coverage gaps and rerun targeted modules | QA-OCRA-003 | ✅ |
+| Q113 | Add REST facade tests for `OcraEvaluationService` error handling and satisfy assertions | QA-OCRA-003 | ✅ |
+| Q114 | Increase CLI coverage (launcher + command errors) and verify expectations | QA-OCRA-003 | ✅ |
+| Q115 | Re-run `./gradlew qualityGate` to verify thresholds met and update documentation | QA-OCRA-001–QA-OCRA-006 | ☐ |
+| Q116 | Add REST UI form tests covering mode toggles and scrubbing | QA-OCRA-003 | ✅ |
+| Q117 | Extend REST validation failure coverage (timestamp/challenge) | QA-OCRA-003 | ✅ |
+| Q118 | Cover Maintenance CLI usage/compact flows | QA-OCRA-003 | ✅ |
+| Q119 | Add REST controller coverage (UI summaries + application boot) | QA-OCRA-003 | ✅ |
 
 Update this checklist as work progresses.

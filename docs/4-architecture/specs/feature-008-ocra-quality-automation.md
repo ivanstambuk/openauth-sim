@@ -10,6 +10,7 @@ Establish automated quality gates for the OpenAuth Simulator’s OCRA stack so a
 - 2025-09-30 – Scope will cover architecture boundary enforcement plus mutation and coverage thresholds; CI badge wiring and additional QA tooling remain out of scope for now.
 - 2025-09-30 – Quality automation must run consistently in both local Gradle workflows and the GitHub Actions pipeline to keep developer and CI feedback aligned.
 - 2025-09-30 – Prefer the existing tooling stack: ArchUnit-style rules, PIT mutation testing, Jacoco coverage thresholds, and gitleaks for secret scanning expansion when needed.
+- 2025-09-30 – Coverage thresholds remain set at ≥90% line/branch; we will add new tests to raise coverage to the target rather than relaxing thresholds.
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

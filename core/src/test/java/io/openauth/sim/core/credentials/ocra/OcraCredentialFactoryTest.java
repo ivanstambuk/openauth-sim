@@ -22,6 +22,7 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -29,6 +30,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 final class OcraCredentialFactoryTest {
 
   private static final Map<String, String> DEFAULT_METADATA = Map.of("issuer", "Example Bank");
+  private static final String DEFAULT_SECRET_HEX = "3132333435363738393031323334353637383930";
 
   private final OcraCredentialFactory factory = new OcraCredentialFactory();
 
@@ -168,6 +170,161 @@ final class OcraCredentialFactoryTest {
             "Expected message to contain '%s' but was '%s'".formatted(expected, message));
       }
     }
+  }
+
+  @DisplayName("validateChallenge rejects unexpected input when suite forbids it")
+  @Test
+  void validateChallengeRejectsUnexpectedInput() {
+    OcraCredentialDescriptor descriptor =
+        factory.createDescriptor(
+            new OcraCredentialRequest(
+                "no-challenge",
+                "OCRA-1:HOTP-SHA1-6:C",
+                DEFAULT_SECRET_HEX,
+                SecretEncoding.HEX,
+                1L,
+                null,
+                null,
+                Map.of()));
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> factory.validateChallenge(descriptor, "12345678"));
+
+    assertTrue(exception.getMessage().contains("not permitted"));
+  }
+
+  @DisplayName("validateChallenge requires non-blank payload when suite specifies a question")
+  @Test
+  void validateChallengeRequiresNonBlankPayload() {
+    OcraCredentialDescriptor descriptor =
+        factory.createDescriptor(
+            new OcraCredentialRequest(
+                "challenge-required",
+                "OCRA-1:HOTP-SHA1-6:QN08",
+                DEFAULT_SECRET_HEX,
+                SecretEncoding.HEX,
+                null,
+                null,
+                null,
+                Map.of()));
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class, () -> factory.validateChallenge(descriptor, "   "));
+
+    assertTrue(exception.getMessage().contains("required"));
+  }
+
+  @DisplayName("validateChallenge enforces declared length and format tokens")
+  @Test
+  void validateChallengeEnforcesLengthAndFormat() {
+    OcraCredentialDescriptor numericDescriptor =
+        factory.createDescriptor(
+            new OcraCredentialRequest(
+                "numeric-suite",
+                "OCRA-1:HOTP-SHA1-6:QN08",
+                DEFAULT_SECRET_HEX,
+                SecretEncoding.HEX,
+                null,
+                null,
+                null,
+                Map.of()));
+
+    IllegalArgumentException lengthMismatch =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> factory.validateChallenge(numericDescriptor, "1234567"));
+    assertTrue(lengthMismatch.getMessage().contains("must contain"));
+
+    IllegalArgumentException formatMismatch =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> factory.validateChallenge(numericDescriptor, "12ABCD34"));
+    assertTrue(formatMismatch.getMessage().contains("must match format"));
+
+    OcraCredentialDescriptor hexDescriptor =
+        factory.createDescriptor(
+            new OcraCredentialRequest(
+                "hex-suite",
+                "OCRA-1:HOTP-SHA1-6:QH04",
+                DEFAULT_SECRET_HEX,
+                SecretEncoding.HEX,
+                null,
+                null,
+                null,
+                Map.of()));
+
+    IllegalArgumentException hexMismatch =
+        assertThrows(
+            IllegalArgumentException.class, () -> factory.validateChallenge(hexDescriptor, "ZZZZ"));
+    assertTrue(hexMismatch.getMessage().contains("must match format"));
+  }
+
+  @DisplayName("validateSessionInformation respects suite allowance")
+  @Test
+  void validateSessionInformationRespectsSuiteAllowance() {
+    OcraCredentialDescriptor noSessionDescriptor =
+        factory.createDescriptor(
+            new OcraCredentialRequest(
+                "session-not-allowed",
+                "OCRA-1:HOTP-SHA1-6:C",
+                DEFAULT_SECRET_HEX,
+                SecretEncoding.HEX,
+                1L,
+                null,
+                null,
+                Map.of()));
+
+    IllegalArgumentException notPermitted =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> factory.validateSessionInformation(noSessionDescriptor, "session:demo"));
+    assertTrue(notPermitted.getMessage().contains("not permitted"));
+
+    OcraCredentialDescriptor requiredSessionDescriptor =
+        factory.createDescriptor(
+            new OcraCredentialRequest(
+                "session-required",
+                "OCRA-1:HOTP-SHA1-6:QN08-SH512",
+                DEFAULT_SECRET_HEX,
+                SecretEncoding.HEX,
+                null,
+                null,
+                null,
+                Map.of()));
+
+    IllegalArgumentException required =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> factory.validateSessionInformation(requiredSessionDescriptor, null));
+    assertTrue(required.getMessage().contains("required"));
+  }
+
+  @DisplayName("validateTimestamp rejects unexpected timestamps when suite forbids them")
+  @Test
+  void validateTimestampRejectsWhenNotPermitted() {
+    OcraCredentialDescriptor descriptor =
+        factory.createDescriptor(
+            new OcraCredentialRequest(
+                "timestamp-not-allowed",
+                "OCRA-1:HOTP-SHA1-6:QN08",
+                DEFAULT_SECRET_HEX,
+                SecretEncoding.HEX,
+                null,
+                null,
+                null,
+                Map.of()));
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                factory.validateTimestamp(
+                    descriptor, Instant.parse("2025-09-30T12:00:00Z"), Instant.now()));
+
+    assertTrue(exception.getMessage().contains("not permitted"));
   }
 
   @DisplayName("structured telemetry is emitted when descriptor validation fails")

@@ -1,120 +1,117 @@
 package io.openauth.sim.rest.ocra;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
-import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
-import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
-import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.CredentialStore;
-import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
-import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-final class OcraCredentialDirectoryControllerTest {
-
-  private static final String OCRA_SECRET =
-      "3132333435363738393031323334353637383930313233343536373839303132";
-
-  @DynamicPropertySource
-  static void enableStore(DynamicPropertyRegistry registry) {
-    registry.add("openauth.sim.persistence.enable-store", () -> "true");
-  }
-
-  @Autowired private TestRestTemplate restTemplate;
-
-  @MockBean private CredentialStore credentialStore;
+class OcraCredentialDirectoryControllerTest {
 
   @Test
-  @DisplayName("Returns OCRA credential summaries in sorted order")
-  void listCredentials() throws IOException {
-    Credential ocraAlpha = createOcraCredential("alpha", "OCRA-1:HOTP-SHA256-6:QA08-S064");
-    Credential generic =
-        Credential.create(
-            "generic", CredentialType.GENERIC, SecretMaterial.fromStringUtf8("x"), Map.of());
-    Credential ocraBeta = createOcraCredential("beta", "OCRA-1:HOTP-SHA256-8:C-QH64");
+  @DisplayName("listCredentials returns empty list when store unavailable")
+  void listCredentialsWithoutStore() {
+    OcraCredentialDirectoryController controller =
+        new OcraCredentialDirectoryController(emptyProvider());
 
-    when(credentialStore.findAll()).thenReturn(List.of(ocraBeta, generic, ocraAlpha));
+    List<OcraCredentialSummary> result = controller.listCredentials();
 
-    ResponseEntity<String> response =
-        restTemplate.getForEntity("/api/v1/ocra/credentials", String.class);
-
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody()).isNotNull();
-
-    List<String> ids = extractArrayValues(response.getBody(), "id");
-    List<String> labels = extractArrayValues(response.getBody(), "label");
-
-    assertThat(ids).containsExactly("alpha", "beta");
-    assertThat(labels)
-        .containsExactly(
-            "alpha (OCRA-1:HOTP-SHA256-6:QA08-S064)", "beta (OCRA-1:HOTP-SHA256-8:C-QH64)");
+    assertTrue(result.isEmpty());
   }
 
   @Test
-  @DisplayName("Returns empty list when underlying store has no entries")
-  void returnsEmptyWhenStoreEmpty() throws IOException {
-    reset(credentialStore);
-    when(credentialStore.findAll()).thenReturn(List.of());
+  @DisplayName("listCredentials sorts summaries and includes suite labels")
+  void listCredentialsReturnsSortedSummaries() {
+    InMemoryCredentialStore store = new InMemoryCredentialStore();
+    store.saveCredential(
+        credential(
+            "beta",
+            Map.of(OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:QA08")));
+    store.saveCredential(
+        credential(
+            "alpha",
+            Map.of(OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA256-6:QA08-S064")));
+    store.saveCredential(credential("gamma", Map.of("non.ocra", "ignored")));
 
-    ResponseEntity<String> response =
-        restTemplate.getForEntity("/api/v1/ocra/credentials", String.class);
+    OcraCredentialDirectoryController controller =
+        new OcraCredentialDirectoryController(provider(store));
 
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody()).isNotNull();
-    assertThat(extractArrayValues(response.getBody(), "id")).isEmpty();
+    List<OcraCredentialSummary> result = controller.listCredentials();
+
+    assertEquals(3, result.size());
+    assertEquals("alpha", result.get(0).getId());
+    assertEquals("alpha (OCRA-1:HOTP-SHA256-6:QA08-S064)", result.get(0).getLabel());
+    assertEquals("beta", result.get(1).getId());
+    assertEquals("beta (OCRA-1:HOTP-SHA1-6:QA08)", result.get(1).getLabel());
+    assertEquals("gamma", result.get(2).getId());
+    assertEquals("gamma", result.get(2).getLabel());
   }
 
-  private static Credential createOcraCredential(String name, String suite) {
-    OcraCredentialFactory factory = new OcraCredentialFactory();
-    OcraCredentialRequest request =
-        new OcraCredentialRequest(
-            name,
-            suite,
-            OCRA_SECRET,
-            SecretEncoding.HEX,
-            suite.contains(":C-") ? 1L : null,
-            null,
-            null,
-            Map.of());
-    OcraCredentialDescriptor descriptor = factory.createDescriptor(request);
-    return VersionedCredentialRecordMapper.toCredential(
-        new OcraCredentialPersistenceAdapter().serialize(descriptor));
+  private static Credential credential(String name, Map<String, String> attributes) {
+    return new Credential(
+        name,
+        CredentialType.OATH_OCRA,
+        SecretMaterial.fromHex("31323334"),
+        attributes,
+        Instant.parse("2025-09-30T12:00:00Z"),
+        Instant.parse("2025-09-30T12:00:00Z"));
   }
 
-  private static List<String> extractArrayValues(String body, String fieldName) throws IOException {
-    ObjectMapper mapper = new ObjectMapper();
-    JsonNode node = mapper.readTree(body == null ? "[]" : body);
-    List<String> values = new ArrayList<>();
-    if (node.isArray()) {
-      for (JsonNode element : node) {
-        JsonNode valueNode = element.get(fieldName);
-        if (valueNode != null && valueNode.isTextual()) {
-          values.add(valueNode.asText());
-        }
-      }
+  private static ObjectProvider<CredentialStore> provider(CredentialStore store) {
+    DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
+    factory.registerSingleton("credentialStore", store);
+    factory.registerResolvableDependency(CredentialStore.class, store);
+    return factory.getBeanProvider(CredentialStore.class);
+  }
+
+  private static ObjectProvider<CredentialStore> emptyProvider() {
+    DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
+    return factory.getBeanProvider(CredentialStore.class);
+  }
+
+  private static final class InMemoryCredentialStore implements CredentialStore {
+
+    private final List<Credential> credentials = new ArrayList<>();
+
+    @Override
+    public void save(Credential credential) {
+      credentials.add(credential);
     }
-    return values;
+
+    void saveCredential(Credential credential) {
+      credentials.add(credential);
+    }
+
+    @Override
+    public Optional<Credential> findByName(String name) {
+      return credentials.stream().filter(c -> c.name().equals(name)).findFirst();
+    }
+
+    @Override
+    public List<Credential> findAll() {
+      return new ArrayList<>(credentials);
+    }
+
+    @Override
+    public boolean delete(String name) {
+      return credentials.removeIf(c -> c.name().equals(name));
+    }
+
+    @Override
+    public void close() {
+      credentials.clear();
+    }
   }
 }

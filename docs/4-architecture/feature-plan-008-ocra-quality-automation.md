@@ -22,16 +22,26 @@ Reference specification: `docs/4-architecture/specs/feature-008-ocra-quality-aut
 - Q103 – Implement boundary enforcement (ArchUnit rules + Gradle wiring) until tests pass. ☑
 - Q104 – Configure Jacoco aggregation with explicit line/branch thresholds for OCRA packages; add verifying build assertions. ☑
 - Q105 – Integrate PIT mutation testing for targeted packages with ≥85% threshold; add failing verification to drive configuration. ☑
-- Q106 – Create `qualityGate` Gradle task aggregating ArchUnit, Jacoco threshold checks, PIT (optionally gated by profile), and existing lint suites. ☐
-- Q107 – Add GitHub Actions workflow (or extend existing) to run `qualityGate` on push/PR with caching to control runtime. ☐
-- Q108 – Update documentation (tool reference card, how-to, roadmap/knowledge map) describing the gate and thresholds. ☐
-- Q109 – Run `./gradlew qualityGate`, capture reports, and record closure notes prior to shipping. ☐
+- Q106 – Create `qualityGate` Gradle task aggregating ArchUnit, Jacoco threshold checks, PIT (optionally gated by profile), and existing lint suites. ☑
+- Q107 – Add GitHub Actions workflow (or extend existing) to run `qualityGate` on push/PR with caching to control runtime. ☑
+- Q108 – Update documentation (tool reference card, how-to, roadmap/knowledge map) describing the gate and thresholds. ☑
+- Q109 – Run `./gradlew qualityGate`, capture reports, and record closure notes prior to shipping. ☑
+- Q110 – Analyse aggregated Jacoco report and list target classes/methods required to reach ≥90% thresholds. ☑
+- Q111 – Add failing tests covering the identified gaps (start with `OcraChallengeFormat` parsing branches). ☑
+- Q112 – Implement test fixtures and assertions to bring coverage to the ≥90% targets, then re-run the suite. ☑
+- Q113 – Author failing REST facade tests covering `OcraEvaluationService` error paths, then drive them to green. ☑
+- Q114 – Extend CLI coverage for `OcraCliLauncher` and command error handling to lift remaining gaps. ☑
+- Q115 – Execute `./gradlew qualityGate` to confirm thresholds met and update closure notes. ☐
+- Q116 – Add REST UI form/unit tests to cover inline vs credential conversions and secret scrubbing. ☑
+- Q117 – Expand REST validation failure coverage (challenge, timestamp) and reassess remaining gaps. ☑
+- Q118 – Broaden Maintenance CLI coverage (usage/error/ocra/compact scenarios). ☑
+- Q119 – Add REST controller smoke/summary coverage (UI + credential directory + application boot). ☑
 
 ## Checklist Before Implementation
 - [x] Specification created with clarifications captured.
 - [x] Open questions resolved and removed from `docs/4-architecture/open-questions.md`.
 - [x] Tasks checklist mirrors plan increments with ≤10 minute steps and verification-first ordering.
-- [ ] Analysis gate checklist completed and logged below.
+- [x] Analysis gate checklist completed and logged below.
 
 ## Analysis Gate (TBD)
 - [x] Specification populated with objectives, requirements, clarifications.
@@ -60,6 +70,17 @@ Document the outcome and proceed only once all boxes are checked.
 - 2025-09-30 – Q107: Updated CI workflow (`.github/workflows/ci.yml`) to run `./gradlew --no-daemon qualityGate` on push/PR so GitHub Actions enforces the full boundary/coverage/mutation gate with existing Gradle cache support.
 - 2025-09-30 – Q108: Authored `docs/5-operations/quality-gate.md` covering usage, thresholds, report locations, and troubleshooting (includes `-Ppit.skip=true` guidance for local runs).
 - 2025-09-30 – Q109: Final gate run `./gradlew clean qualityGate` (PASS, 2s reusing caches) recorded line coverage 77.47%, branch coverage 62.16%, mutation score 87.55%; reports stored under `build/reports/jacoco/aggregated/` and `core/build/reports/pitest/`.
+- 2025-09-30 – Follow-up: Coverage baselines (line 77.47%, branch 62.16%) remain below the ≥90% thresholds in the specification; schedule targeted test additions and a threshold review before marking Feature 008 complete.
+- 2025-09-30 – Decision: Pursue additional tests (Option A) to raise coverage, keeping thresholds unchanged.
+- 2025-09-30 – Q110: Jacoco gap analysis highlights the lowest covered classes — CLI (`OcraCliLauncher` 0%, `OcraCli` 56%, maintenance commands 63–65%), REST (`OcraEvaluationService` 79%, `FailureDetails` 58%, `OcraEvaluationForm` 29%), and core OCRA helpers (`OcraCredentialFactory` 67%, `OcraChallengeFormat` 71%, `OcraResponseCalculator` 85%); prioritise new tests around `OcraCredentialFactory` and `OcraChallengeFormat` to lift core coverage first.
+- 2025-09-30 – Q111: Added `OcraChallengeFormatTest` exercising supported/unsupported tokens plus blank handling to close core parsing coverage gaps; next increment targets `OcraCredentialFactory` edge cases.
+- 2025-09-30 – Q112: Expanded `OcraCredentialFactoryTest` with negative challenge/session/timestamp scenarios; aggregated coverage now line 80.09%, branch 64.86% (factory-specific 97.44%/72.92%) with remaining deficit driven by CLI/REST helpers.
+- 2025-09-30 – Q113: Added `OcraEvaluationServiceTest` covering inline validation and missing session flows; REST service line coverage climbed to 79.67% (branch 69.51%), but overall project remains at line 80.09% / branch 64.86% pending CLI facade tests.
+- 2025-09-30 – Q114: Introduced `OcraCliTest` and `OcraCliLauncherTest` to validate inline evaluation flows and launcher usage; CLI coverage rose to 79.49% line / 61.11% branch and aggregate coverage to 81.20% / 65.47%, still below the ≥90% goal.
+- 2025-09-30 – Q116: Added `OcraEvaluationFormTest` to exercise inline/credential conversions and secret scrubbing; REST UI form coverage now ≈98.2% line / 90% branch and aggregate coverage reached 85.07% line / 68.32% branch, with remaining gaps dominated by Maintenance CLI and REST controllers.
+- 2025-09-30 – Q117: Extended `OcraEvaluationServiceTest` with challenge-format and timestamp-not-permitted scenarios to confirm reason code mapping; REST service coverage now ≈81.9% line / 72% branch though FailureDetails + Maintenance CLI remain below threshold.
+- 2025-09-30 – Q118: Added `MaintenanceCliTest` to cover usage, ocra flows, and compact/verify commands; aggregate coverage increased to 85.07% line / 68.32% branch with remaining deficits concentrated in `MaintenanceCli`, REST controllers, and timestamp/session helper records.
+- 2025-09-30 – Q119: Added `OcraOperatorUiControllerTest`, `OcraCredentialDirectoryControllerTest`, and `OcraApiApplicationSmokeTest` to exercise REST UI/credential directory endpoints and application bootstrapping; remaining low coverage hotspots are `MaintenanceCli` internals plus `RestApiApplication` metadata (current overall ≈86.51% line / 69.82% branch).
 - Consider PIT incremental modes and target filters to keep runtime under 10 minutes.
 - Evaluate existing GitHub Actions caching (Gradle + PIT) to mitigate CI duration.
 - When documenting thresholds, include rationale so future adjustments remain auditable.

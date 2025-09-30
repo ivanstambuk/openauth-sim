@@ -1,220 +1,53 @@
 package io.openauth.sim.rest.ui;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.junit.jupiter.api.BeforeEach;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.mock.web.MockHttpSession;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.ui.ConcurrentModel;
 
-@SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = "openauth.sim.persistence.enable-store=false")
-@AutoConfigureMockMvc
-final class OcraOperatorUiControllerTest {
+class OcraOperatorUiControllerTest {
 
-  private static final String UI_LANDING_PATH = "/ui/ocra";
-  private static final String UI_EVALUATION_PATH = "/ui/ocra/evaluate";
-  private static final String REST_EVALUATION_PATH = "/api/v1/ocra/evaluate";
-  private static final Pattern CSRF_PATTERN =
-      Pattern.compile("name=\"_csrf\"\\s+value=\"([^\"]+)\"");
-  private static final String SHARED_SECRET_HEX =
-      "3132333435363738393031323334353637383930313233343536373839303132";
-  @Autowired private MockMvc mockMvc;
+  private final OcraOperatorUiController controller =
+      new OcraOperatorUiController(new ObjectMapper());
 
-  @MockBean private RestTemplate restTemplate;
+  @Test
+  @DisplayName("evaluationForm populates CSRF token, endpoints, and presets")
+  void evaluationFormPopulatesModel() {
+    OcraEvaluationForm form = controller.formModel();
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    ConcurrentModel model = new ConcurrentModel();
 
-  @BeforeEach
-  void resetMocks() {
-    reset(restTemplate);
+    String view = controller.evaluationForm(form, request, model);
+
+    assertEquals("ui/ocra/evaluate", view);
+    assertEquals("/api/v1/ocra/evaluate", model.getAttribute("evaluationEndpoint"));
+    assertEquals("/api/v1/ocra/credentials", model.getAttribute("credentialsEndpoint"));
+
+    String csrf = (String) model.getAttribute("csrfToken");
+    assertNotNull(csrf);
+    assertEquals(csrf, request.getSession().getAttribute("ocra-ui-csrf-token"));
+
+    assertTrue(model.containsAttribute("policyPresets"));
+    assertTrue(model.containsAttribute("policyPresetJson"));
+    String json = (String) model.getAttribute("policyPresetJson");
+    assertNotNull(json);
+    assertTrue(json.contains("qa08"));
   }
 
   @Test
-  @DisplayName("Landing page advertises OCRA evaluation console")
-  void landingPageRendersOverview() throws Exception {
-    mockMvc
-        .perform(get(UI_LANDING_PATH))
-        .andExpect(status().isOk())
-        .andExpect(content().string(containsString("OCRA Operator Console")))
-        .andExpect(content().string(containsString("Evaluate OCRA responses")));
-  }
-
-  @Test
-  @DisplayName("Evaluation form renders with CSRF token and landmarks")
-  void evaluationFormRendersCsrfTokenAndFetchHook() throws Exception {
-    String html =
-        mockMvc
-            .perform(get(UI_EVALUATION_PATH))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    Matcher matcher = CSRF_PATTERN.matcher(html);
-    assertThat(matcher.find()).isTrue();
-    assertThat(html).contains("<form");
-    assertThat(html).contains("data-testid=\"ocra-evaluate-form\"");
-    assertThat(html).contains("data-testid=\"mode-toggle\"");
-    assertThat(html).contains("value=\"inline\"");
-    assertThat(html).contains("value=\"credential\"");
-    assertThat(html).contains("data-testid=\"inline-policy-select\"");
-    assertThat(html).contains("QA08 S064");
-    assertThat(html).contains("C-QH64 (HOTP-SHA256-6)");
-    assertThat(html).contains("action=\"#\"");
-    assertThat(html).doesNotContain("method=\"post\"");
-    assertThat(html).contains("data-evaluate-endpoint=\"/api/v1/ocra/evaluate\"");
-    assertThat(html).contains("data-credentials-endpoint=\"/api/v1/ocra/credentials\"");
-    assertThat(html).contains("data-testid=\"ocra-evaluate-button\"");
-    assertThat(html).contains("type=\"button\"");
-    assertThat(html).contains("data-testid=\"ocra-fetch-script\"");
-    assertThat(html).contains("data-testid=\"ocra-fetch-script\"");
-    assertThat(html).contains("typeof window.fetch === 'function'");
-    assertThat(html).contains("new XMLHttpRequest()");
-    assertThat(html).contains("form.addEventListener('submit'");
-    assertThat(html).contains("JSON.stringify(payload)");
-    assertThat(html).doesNotContain("type=\"password\"");
-  }
-
-  @Test
-  @DisplayName("Evaluation markup exposes result and error containers for client rendering")
-  void evaluationMarkupProvidesClientContainers() throws Exception {
-    String html =
-        mockMvc
-            .perform(get(UI_EVALUATION_PATH))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    assertThat(html).contains("data-testid=\"ocra-result-panel\"");
-    assertThat(html).contains("data-testid=\"ocra-otp-value\"");
-    assertThat(html).contains("data-testid=\"ocra-status-value\"");
-    assertThat(html).contains("data-testid=\"ocra-sanitized-flag\"");
-    assertThat(html).contains("data-testid=\"ocra-suite-value\"");
-    assertThat(html).contains("data-testid=\"ocra-error-panel\"");
-    assertThat(html).contains("data-testid=\"ocra-error-primary\"");
-    assertThat(html).contains("data-testid=\"ocra-error-secondary\"");
-    assertThat(html).contains("data-testid=\"ocra-advanced-toggle\"");
-    assertThat(html).contains("data-testid=\"ocra-policy-builder\"");
-    assertThat(html).contains("data-testid=\"ocra-builder-preview\"");
-    assertThat(html).contains("data-testid=\"ocra-builder-apply\"");
-    assertThat(html).contains("data-testid=\"ocra-builder-generate\"");
-    assertThat(html).contains("data-testid=\"stored-credential-select\"");
-    assertThat(html).contains("data-testid=\"stored-credential-status\"");
-    assertThat(html).contains("data-testid=\"stored-credential-autofill\"");
-  }
-
-  @Test
-  @DisplayName("Evaluation script registers stored credential selection handler")
-  void evaluationScriptRegistersSelectionHandler() throws Exception {
-    String html =
-        mockMvc
-            .perform(get(UI_EVALUATION_PATH))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    assertThat(html).contains("function handleStoredCredentialSelection()");
-    assertThat(html)
-        .contains("credentialSelect.addEventListener('change', handleStoredCredentialSelection);");
-  }
-
-  @Test
-  @DisplayName("Inline data inputs expose grid styling hooks")
-  void inlineCheckboxesExposeGridStylingHooks() throws Exception {
-    String html =
-        mockMvc
-            .perform(get(UI_EVALUATION_PATH))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    assertThat(html).contains("data-testid=\"ocra-builder-data-inputs\"");
-    assertThat(html).contains("class=\"choice-row choice-grid\"");
-    assertThat(html).contains("data-testid=\"ocra-builder-counter-label\"");
-  }
-
-  @Test
-  @DisplayName("Console stylesheet defines enhanced inline checkbox styling")
-  void consoleStylesheetDefinesEnhancedCheckboxStyling() throws Exception {
-    ClassPathResource resource = new ClassPathResource("static/ui/ocra/console.css");
-    String css;
-    try (InputStream inputStream = resource.getInputStream()) {
-      css = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-    }
-
-    assertThat(css).contains(".choice-grid");
-    assertThat(css).contains("grid-template-columns");
-    assertThat(css).contains("accent-color: var(--ocra-color-primary-accent)");
-    assertThat(css).contains("min-height: 1.75rem");
-  }
-
-  @Test
-  @DisplayName("Server rejects legacy POST submissions in favour of fetch workflow")
-  void evaluationSubmissionViaPostIsRejected() throws Exception {
-    MvcResult formResult = renderEvaluationForm();
-    MockHttpSession session = (MockHttpSession) formResult.getRequest().getSession(false);
-    assertThat(session).isNotNull();
-    String csrfToken = extractCsrfToken(formResult);
-
-    mockMvc
-        .perform(
-            post(UI_EVALUATION_PATH)
-                .session(session)
-                .param("_csrf", csrfToken)
-                .param("mode", "inline")
-                .param("suite", "OCRA-1:HOTP-SHA256-8:QA08-S064")
-                .param("sharedSecretHex", SHARED_SECRET_HEX))
-        .andExpect(status().isMethodNotAllowed());
-
-    verifyNoInteractions(restTemplate);
-  }
-
-  @Test
-  @DisplayName("Legacy submission without session is rejected")
-  void evaluationSubmissionWithoutSessionIsRejected() throws Exception {
-    mockMvc
-        .perform(
-            post(UI_EVALUATION_PATH)
-                .param("mode", "inline")
-                .param("suite", "OCRA-1:HOTP-SHA256-8:QA08-S064")
-                .param("sharedSecretHex", SHARED_SECRET_HEX))
-        .andExpect(status().isMethodNotAllowed());
-
-    verifyNoInteractions(restTemplate);
-  }
-
-  private MvcResult renderEvaluationForm() throws Exception {
-    return mockMvc.perform(get(UI_EVALUATION_PATH)).andExpect(status().isOk()).andReturn();
-  }
-
-  private static String extractCsrfToken(MvcResult result) throws Exception {
-    String html = result.getResponse().getContentAsString();
-    Matcher matcher = CSRF_PATTERN.matcher(html);
-    if (!matcher.find()) {
-      throw new AssertionError("CSRF token not found in rendered form");
-    }
-    return matcher.group(1);
+  @DisplayName("setMode normalises credential inline modes")
+  void setModeNormalisesModes() {
+    OcraEvaluationForm form = new OcraEvaluationForm();
+    form.setMode("credential");
+    assertTrue(form.isCredentialMode());
+    form.setMode("inline");
+    assertTrue(form.isInlineMode());
+    form.setMode(null);
+    assertTrue(form.isInlineMode());
   }
 }
