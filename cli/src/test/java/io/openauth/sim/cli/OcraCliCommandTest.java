@@ -100,6 +100,18 @@ final class OcraCliCommandTest {
   }
 
   @Test
+  void deleteCommandSurfacesNotFoundWhenCredentialMissing() {
+    Path databasePath = databasePath("delete-missing");
+
+    CliResult result = execute(databasePath, "delete", "--credential-id", "unknown-token");
+
+    assertEquals(CommandLine.ExitCode.USAGE, result.exitCode());
+    assertTrue(result.stderr().contains("event=cli.ocra.delete"));
+    assertTrue(result.stderr().contains("reasonCode=credential_not_found"));
+    assertTrue(result.stderr().contains("sanitized=true"));
+  }
+
+  @Test
   void evaluateWithCredentialReferenceGeneratesExpectedOtp() throws Exception {
     Path databasePath = databasePath("evaluate-store");
     OcraCredentialDescriptor descriptor =
@@ -171,6 +183,20 @@ final class OcraCliCommandTest {
     assertTrue(result.stdout().contains("sanitized=true"));
     assertFalse(
         result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
+  }
+
+  @Test
+  void listCommandVerboseEmitsMetadataEntries() throws Exception {
+    Path databasePath = databasePath("list-verbose");
+    persistOcraCredential(
+        databasePath, "list-verbose-token", STANDARD_KEY_20, OCRA_SUITE_QN08, null);
+
+    CliResult result = execute(databasePath, "list", "--verbose");
+
+    assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
+    assertTrue(result.stdout().contains("event=cli.ocra.list"));
+    assertTrue(result.stdout().contains("count=1"));
+    assertTrue(result.stdout().contains("metadata.source=cli-test"));
   }
 
   private CliResult execute(Path databasePath, String... args) {

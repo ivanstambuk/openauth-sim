@@ -36,6 +36,13 @@ Reference specification: `docs/4-architecture/specs/feature-008-ocra-quality-aut
 - Q117 – Expand REST validation failure coverage (challenge, timestamp) and reassess remaining gaps. ☑
 - Q118 – Broaden Maintenance CLI coverage (usage/error/ocra/compact scenarios). ☑
 - Q119 – Add REST controller smoke/summary coverage (UI + credential directory + application boot). ☑
+- Q120 – Add targeted `RestApiApplication` coverage (mocked `SpringApplication` invocation and boot flags). ☑
+- Q121 – Exercise `OcraCli` list/delete edge paths (missing credential, verbose metadata) to raise command coverage. ☑
+- Q122 – Expand Maintenance CLI coverage with failure telemetry/verbose flows to cover helper branches. ☑
+- Q123 – Extend `OcraEvaluationServiceTest` to trigger remaining `FailureDetails` mappings (session_not_permitted, timestamp_drift_exceeded, default sanitization). ☑
+- Q124 – Cover credential-reference flows in `OcraEvaluationServiceTest` (success + credential_not_found) to lift service branches. ☑
+- Q125 – Expand core OCRA parser/calculator tests to close remaining branch gaps (`OcraSuiteParser`, `OcraResponseCalculator`). ☐
+- Q126 – Raise CLI facade branches (`OcraCli`, `AbstractOcraCommand`, launcher) with direct helper tests and failure injection. ☐
 
 ## Checklist Before Implementation
 - [x] Specification created with clarifications captured.
@@ -81,6 +88,8 @@ Document the outcome and proceed only once all boxes are checked.
 - 2025-09-30 – Q117: Extended `OcraEvaluationServiceTest` with challenge-format and timestamp-not-permitted scenarios to confirm reason code mapping; REST service coverage now ≈81.9% line / 72% branch though FailureDetails + Maintenance CLI remain below threshold.
 - 2025-09-30 – Q118: Added `MaintenanceCliTest` to cover usage, ocra flows, and compact/verify commands; aggregate coverage increased to 85.07% line / 68.32% branch with remaining deficits concentrated in `MaintenanceCli`, REST controllers, and timestamp/session helper records.
 - 2025-09-30 – Q119: Added `OcraOperatorUiControllerTest`, `OcraCredentialDirectoryControllerTest`, and `OcraApiApplicationSmokeTest` to exercise REST UI/credential directory endpoints and application bootstrapping; remaining low coverage hotspots are `MaintenanceCli` internals plus `RestApiApplication` metadata (current overall ≈86.51% line / 69.82% branch).
+- 2025-09-30 – Coverage audit: `RestApiApplication` ≈33% line (main invocation only), `OcraCli` delete/list commands ≈78–86% with missing not-found + verbose branches, `MaintenanceCli` ≈67% line with failure telemetry paths untested, and `OcraEvaluationService$FailureDetails` ≈82% line with session_not_permitted/timestamp_drift_exceeded mapping still uncovered; increments Q120–Q123 target these gaps ahead of the final gate run.
+- 2025-09-30 – Coverage spot-check (post Q123): aggregated ≈86.6% line / 69.8% branch before new work; after Q124 + parser primitives tests, totals sit at ≈89.99% line / 74.77% branch. Remaining deficits: `OcraCli` helpers (branches ~50–80%), `OcraEvaluationService` success metrics, core parser/calculator (`OcraResponseCalculator` 85% line / 69% branch, `OcraSuiteParser` 85% line / 67% branch), and DTO records (`OcraResponse`/`ErrorResponse` branch 50%). Further increments (Q125–Q126) will focus here.
 - Consider PIT incremental modes and target filters to keep runtime under 10 minutes.
 - Evaluate existing GitHub Actions caching (Gradle + PIT) to mitigate CI duration.
 - When documenting thresholds, include rationale so future adjustments remain auditable.

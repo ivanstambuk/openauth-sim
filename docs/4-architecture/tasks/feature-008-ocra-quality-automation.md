@@ -33,5 +33,12 @@ _Last updated: 2025-09-30_
 | Q117 | Extend REST validation failure coverage (timestamp/challenge) | QA-OCRA-003 | ✅ |
 | Q118 | Cover Maintenance CLI usage/compact flows | QA-OCRA-003 | ✅ |
 | Q119 | Add REST controller coverage (UI summaries + application boot) | QA-OCRA-003 | ✅ |
+| Q120 | Raise `RestApiApplication` coverage with targeted main-context test | QA-OCRA-003 | ✅ |
+| Q121 | Extend `OcraCli` coverage for delete/list error + verbose branches | QA-OCRA-003 | ✅ |
+| Q122 | Exercise `MaintenanceCli` failure/verbose flows to close helper gaps | QA-OCRA-003 | ✅ |
+| Q123 | Expand `OcraEvaluationServiceTest` for remaining `FailureDetails` mappings | QA-OCRA-003 | ✅ |
+| Q124 | Add credential-reference coverage for `OcraEvaluationService` success/failure flows | QA-OCRA-003 | ✅ |
+| Q125 | Broaden parser/calculator tests covering outstanding OCRA branches | QA-OCRA-003 | ☐ |
+| Q126 | Add CLI helper tests (`AbstractOcraCommand`, launcher) to close branch gaps | QA-OCRA-003 | ☐ |
 
 Update this checklist as work progresses.

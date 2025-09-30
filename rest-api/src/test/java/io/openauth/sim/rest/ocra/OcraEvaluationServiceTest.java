@@ -5,12 +5,24 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
+import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
+import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
+import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
+import io.openauth.sim.core.model.Credential;
+import io.openauth.sim.core.model.SecretEncoding;
+import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
+import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -24,6 +36,7 @@ class OcraEvaluationServiceTest {
       Clock.fixed(Instant.parse("2025-09-30T12:00:00Z"), ZoneOffset.UTC);
   private static final String DEFAULT_SECRET_HEX = "31323334353637383930313233343536";
   private static final String DEFAULT_SUITE = "OCRA-1:HOTP-SHA1-6:QN08";
+  private static final String DEFAULT_CHALLENGE = "12345678";
 
   @Test
   @DisplayName("inline requests with invalid shared secret hex are rejected with sanitized details")
@@ -131,6 +144,137 @@ class OcraEvaluationServiceTest {
     assertEquals("timestampHex", exception.field());
     assertEquals("timestamp_not_permitted", exception.reasonCode());
     telemetry.assertValidationFailure("timestamp_not_permitted");
+  }
+
+  @Test
+  @DisplayName("session not permitted surfaces session_not_permitted reason")
+  void sessionNotPermittedFailure() {
+    RecordingTelemetry telemetry = new RecordingTelemetry();
+    OcraEvaluationService service =
+        new OcraEvaluationService(telemetry, provider(FIXED_CLOCK), provider(null));
+
+    OcraEvaluationRequest request =
+        new OcraEvaluationRequest(
+            null,
+            DEFAULT_SUITE,
+            DEFAULT_SECRET_HEX,
+            DEFAULT_CHALLENGE,
+            "ABCDEF12",
+            null,
+            null,
+            null,
+            null,
+            null);
+
+    OcraEvaluationValidationException exception =
+        assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
+
+    assertEquals("sessionHex", exception.field());
+    assertEquals("session_not_permitted", exception.reasonCode());
+    telemetry.assertValidationFailure("session_not_permitted");
+  }
+
+  @Test
+  @DisplayName("timestamp drift exceeded surfaces timestamp_drift_exceeded reason")
+  void timestampDriftExceededFailure() {
+    RecordingTelemetry telemetry = new RecordingTelemetry();
+    OcraEvaluationService service =
+        new OcraEvaluationService(telemetry, provider(FIXED_CLOCK), provider(null));
+
+    OcraEvaluationRequest request =
+        new OcraEvaluationRequest(
+            null,
+            "OCRA-1:HOTPT30SHA256-7:QN08",
+            DEFAULT_SECRET_HEX,
+            DEFAULT_CHALLENGE,
+            null,
+            null,
+            null,
+            null,
+            "00000000",
+            null);
+
+    OcraEvaluationValidationException exception =
+        assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
+
+    assertEquals("timestampHex", exception.field());
+    assertEquals("timestamp_drift_exceeded", exception.reasonCode());
+    telemetry.assertValidationFailure("timestamp_drift_exceeded");
+  }
+
+  @Test
+  @DisplayName("challenge shorter than required surfaces challenge_length reason")
+  void challengeLengthFailure() {
+    RecordingTelemetry telemetry = new RecordingTelemetry();
+    OcraEvaluationService service =
+        new OcraEvaluationService(telemetry, provider(FIXED_CLOCK), provider(null));
+
+    OcraEvaluationRequest request =
+        new OcraEvaluationRequest(
+            null, DEFAULT_SUITE, DEFAULT_SECRET_HEX, "1234", null, null, null, null, null, null);
+
+    OcraEvaluationValidationException exception =
+        assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
+
+    assertEquals("challenge", exception.field());
+    assertEquals("challenge_length", exception.reasonCode());
+    telemetry.assertValidationFailure("challenge_length");
+  }
+
+  @Test
+  @DisplayName("credential reference evaluation succeeds and records telemetry")
+  void credentialReferenceEvaluationSucceeds() {
+    RecordingTelemetry telemetry = new RecordingTelemetry();
+    InMemoryCredentialStore store = new InMemoryCredentialStore();
+
+    OcraCredentialFactory factory = new OcraCredentialFactory();
+    OcraCredentialDescriptor descriptor =
+        factory.createDescriptor(
+            new OcraCredentialRequest(
+                "stored-token",
+                DEFAULT_SUITE,
+                DEFAULT_SECRET_HEX,
+                SecretEncoding.HEX,
+                null,
+                null,
+                null,
+                Map.of("source", "service-test")));
+    VersionedCredentialRecord record = new OcraCredentialPersistenceAdapter().serialize(descriptor);
+    store.save(VersionedCredentialRecordMapper.toCredential(record));
+
+    OcraEvaluationService service =
+        new OcraEvaluationService(telemetry, provider(FIXED_CLOCK), provider(store));
+
+    OcraEvaluationRequest request =
+        new OcraEvaluationRequest(
+            "stored-token", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null);
+
+    OcraEvaluationResponse response = service.evaluate(request);
+
+    assertEquals(DEFAULT_SUITE, response.suite());
+    assertTrue(response.otp().length() > 0);
+    telemetry.assertSuccessRecorded();
+  }
+
+  @Test
+  @DisplayName("credential reference missing credential surfaces credential_not_found")
+  void credentialReferenceMissingCredential() {
+    RecordingTelemetry telemetry = new RecordingTelemetry();
+    InMemoryCredentialStore store = new InMemoryCredentialStore();
+
+    OcraEvaluationService service =
+        new OcraEvaluationService(telemetry, provider(FIXED_CLOCK), provider(store));
+
+    OcraEvaluationRequest request =
+        new OcraEvaluationRequest(
+            "missing-token", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null);
+
+    OcraEvaluationValidationException exception =
+        assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
+
+    assertEquals("credentialId", exception.field());
+    assertEquals("credential_not_found", exception.reasonCode());
+    telemetry.assertValidationFailure("credential_not_found");
   }
 
   @Test
@@ -344,9 +488,41 @@ class OcraEvaluationServiceTest {
     }
   }
 
+  private static final class InMemoryCredentialStore implements CredentialStore {
+
+    private final Map<String, Credential> storage = new HashMap<>();
+
+    @Override
+    public void save(Credential credential) {
+      storage.put(credential.name(), credential);
+    }
+
+    @Override
+    public Optional<Credential> findByName(String name) {
+      return Optional.ofNullable(storage.get(name));
+    }
+
+    @Override
+    public List<Credential> findAll() {
+      return List.copyOf(storage.values());
+    }
+
+    @Override
+    public boolean delete(String name) {
+      return storage.remove(name) != null;
+    }
+
+    @Override
+    public void close() {
+      storage.clear();
+    }
+  }
+
   private static final class RecordingTelemetry extends OcraEvaluationTelemetry {
 
     private final List<String> reasonCodes = new ArrayList<>();
+    private boolean successRecorded;
+    private boolean errorRecorded;
 
     @Override
     void recordValidationFailure(
@@ -376,7 +552,7 @@ class OcraEvaluationServiceTest {
         boolean hasPin,
         boolean hasTimestamp,
         long durationMillis) {
-      // ignore in tests
+      successRecorded = true;
     }
 
     @Override
@@ -393,12 +569,17 @@ class OcraEvaluationServiceTest {
         String reason,
         boolean sanitized,
         long durationMillis) {
-      // ignore in tests
+      errorRecorded = true;
     }
 
     void assertValidationFailure(String expectedReasonCode) {
       assertFalse(reasonCodes.isEmpty(), "Expected validation failure to be recorded");
       assertEquals(expectedReasonCode, reasonCodes.get(reasonCodes.size() - 1));
+    }
+
+    void assertSuccessRecorded() {
+      assertTrue(successRecorded, "Expected success telemetry to be recorded");
+      assertFalse(errorRecorded, "Success telemetry should not co-occur with error telemetry");
     }
   }
 }
