@@ -59,6 +59,7 @@ Document the outcome and proceed only once all boxes are checked.
 - 2025-09-30 – Q106: Introduced `qualityGate` aggregate depending on `spotlessCheck` and `check` (which triggers architecture, coverage, mutation suites); baseline runtime ≈1m56 with warm cache, `./gradlew qualityGate -Ppit.skip=true` trims to ≈27s when mutation analysis is explicitly skipped.
 - 2025-09-30 – Q107: Updated CI workflow (`.github/workflows/ci.yml`) to run `./gradlew --no-daemon qualityGate` on push/PR so GitHub Actions enforces the full boundary/coverage/mutation gate with existing Gradle cache support.
 - 2025-09-30 – Q108: Authored `docs/5-operations/quality-gate.md` covering usage, thresholds, report locations, and troubleshooting (includes `-Ppit.skip=true` guidance for local runs).
+- 2025-09-30 – Q109: Final gate run `./gradlew clean qualityGate` (PASS, 2s reusing caches) recorded line coverage 77.47%, branch coverage 62.16%, mutation score 87.55%; reports stored under `build/reports/jacoco/aggregated/` and `core/build/reports/pitest/`.
 - Consider PIT incremental modes and target filters to keep runtime under 10 minutes.
 - Evaluate existing GitHub Actions caching (Gradle + PIT) to mitigate CI duration.
 - When documenting thresholds, include rationale so future adjustments remain auditable.

@@ -22,6 +22,6 @@ _Last updated: 2025-09-30_
 | Q106 | Create `qualityGate` Gradle task bundling boundary, coverage, mutation, and lint checks | QA-OCRA-004 | ✅ |
 | Q107 | Update/author GitHub Actions workflow invoking `./gradlew qualityGate` on push/PR | QA-OCRA-005 | ✅ |
 | Q108 | Document gate usage, thresholds, and troubleshooting across docs | QA-OCRA-006 | ✅ |
-| Q109 | Execute full gate, capture reports, and record closure notes | QA-OCRA-001–QA-OCRA-006 | ☐ |
+| Q109 | Execute full gate, capture reports, and record closure notes | QA-OCRA-001–QA-OCRA-006 | ✅ |
 
 Update this checklist as work progresses.
