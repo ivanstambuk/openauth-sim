@@ -24,8 +24,8 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x gradlew
 
-      - name: Verify code style and tests
-        run: ./gradlew --no-daemon spotlessCheck check
+      - name: Run quality gate
+        run: ./gradlew --no-daemon qualityGate
 
   secret-scanning:
     runs-on: ubuntu-latest

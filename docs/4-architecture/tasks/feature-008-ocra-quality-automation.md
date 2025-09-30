@@ -19,7 +19,7 @@ _Last updated: 2025-09-30_
 | Q104 | Configure Jacoco aggregation with ≥90% thresholds and add failing verification task | QA-OCRA-003, QA-OCRA-004 | ✅ |
 | Q105 | Wire PIT mutation testing with ≥85% threshold and failing guard | QA-OCRA-002, QA-OCRA-004 | ✅ |
 | Q106 | Create `qualityGate` Gradle task bundling boundary, coverage, mutation, and lint checks | QA-OCRA-004 | ✅ |
-| Q107 | Update/author GitHub Actions workflow invoking `./gradlew qualityGate` on push/PR | QA-OCRA-005 | ☐ |
+| Q107 | Update/author GitHub Actions workflow invoking `./gradlew qualityGate` on push/PR | QA-OCRA-005 | ✅ |
 | Q108 | Document gate usage, thresholds, and troubleshooting across docs | QA-OCRA-006 | ☐ |
 | Q109 | Execute full gate, capture reports, and record closure notes | QA-OCRA-001–QA-OCRA-006 | ☐ |
 
