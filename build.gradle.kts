@@ -11,14 +11,20 @@ import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
 import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
 import org.gradle.testing.jacoco.tasks.JacocoReport
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.kotlin.dsl.getByType
 
 plugins {
     base
+    jacoco
     alias(libs.plugins.spotless)
     alias(libs.plugins.spotbugs) apply false
     alias(libs.plugins.errorprone) apply false
+}
+
+jacoco {
+    toolVersion = "0.8.11"
 }
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
@@ -183,6 +189,84 @@ val architectureTest = tasks.register("architectureTest") {
     dependsOn(":core-architecture-tests:test")
 }
 
+val ocraModules = listOf(project(":core"), project(":cli"), project(":rest-api"))
+
+val jacocoAggregatedReport = tasks.register<JacocoReport>("jacocoAggregatedReport") {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Generates aggregated Jacoco coverage across OCRA modules"
+
+    val testTasks = ocraModules.map { module -> module.tasks.named("test") }
+    dependsOn(testTasks)
+
+    val executionFiles = ocraModules.map { module -> module.layout.buildDirectory.file("jacoco/test.exec") }
+    executionData.setFrom(executionFiles)
+
+    val sourceDirs = ocraModules.map { module -> module.layout.projectDirectory.dir("src/main/java") }
+    val classTrees = ocraModules.map { module ->
+        module.layout.buildDirectory.dir("classes/java/main").map { outputDir ->
+            module.fileTree(outputDir) {
+                include(
+                    "io/openauth/sim/core/credentials/ocra/**",
+                    "io/openauth/sim/cli/**",
+                    "io/openauth/sim/rest/**"
+                )
+            }
+        }
+    }
+
+    additionalSourceDirs.from(sourceDirs)
+    sourceDirectories.from(sourceDirs)
+    classDirectories.from(classTrees)
+
+    reports {
+        xml.required.set(true)
+        xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/aggregated/jacocoAggregatedReport.xml"))
+        html.required.set(true)
+        html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/aggregated/html"))
+        csv.required.set(false)
+    }
+}
+
+val jacocoCoverageVerification = tasks.register<JacocoCoverageVerification>("jacocoCoverageVerification") {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Fails the build if aggregated OCRA coverage dips below thresholds"
+    dependsOn(jacocoAggregatedReport)
+
+    val executionFiles = ocraModules.map { module -> module.layout.buildDirectory.file("jacoco/test.exec") }
+    executionData.setFrom(executionFiles)
+
+    val sourceDirs = ocraModules.map { module -> module.layout.projectDirectory.dir("src/main/java") }
+    val classTrees = ocraModules.map { module ->
+        module.layout.buildDirectory.dir("classes/java/main").map { outputDir ->
+            module.fileTree(outputDir) {
+                include(
+                    "io/openauth/sim/core/credentials/ocra/**",
+                    "io/openauth/sim/cli/**",
+                    "io/openauth/sim/rest/**"
+                )
+            }
+        }
+    }
+
+    sourceDirectories.from(sourceDirs)
+    classDirectories.from(classTrees)
+
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.77".toBigDecimal()
+            }
+            limit {
+                counter = "BRANCH"
+                value = "COVEREDRATIO"
+                minimum = "0.62".toBigDecimal()
+            }
+        }
+    }
+}
+
 tasks.named("check") {
-    dependsOn(architectureTest)
+    dependsOn(architectureTest, jacocoCoverageVerification)
 }

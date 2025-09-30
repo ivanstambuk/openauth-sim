@@ -20,7 +20,7 @@ Reference specification: `docs/4-architecture/specs/feature-008-ocra-quality-aut
 - Q101 – Draft analysis gate notes, update knowledge map references, and ensure open questions cleared for Feature 008. ☑
 - Q102 – Author failing ArchUnit tests capturing desired module boundary rules. ☑
 - Q103 – Implement boundary enforcement (ArchUnit rules + Gradle wiring) until tests pass. ☑
-- Q104 – Configure Jacoco aggregation with explicit line/branch thresholds for OCRA packages; add verifying build assertions. ☐
+- Q104 – Configure Jacoco aggregation with explicit line/branch thresholds for OCRA packages; add verifying build assertions. ☑
 - Q105 – Integrate PIT mutation testing for targeted packages with ≥85% threshold; add failing verification to drive configuration. ☐
 - Q106 – Create `qualityGate` Gradle task aggregating ArchUnit, Jacoco threshold checks, PIT (optionally gated by profile), and existing lint suites. ☐
 - Q107 – Add GitHub Actions workflow (or extend existing) to run `qualityGate` on push/PR with caching to control runtime. ☐
@@ -54,6 +54,7 @@ Document the outcome and proceed only once all boxes are checked.
 ## Notes
 - 2025-09-30 – Q102: Added `core-architecture-tests` Gradle module hosting cross-module ArchUnit checks; `./gradlew :core-architecture-tests:test` (PASS, 8s, configuration cache reused) now guards facade/persistence boundaries.
 - 2025-09-30 – Q103: Registered root `architectureTest` lifecycle to run the suite and wired it into `check`; `./gradlew architectureTest` (PASS, 26s) and `./gradlew check` (PASS, 22s) confirm the rules run with dependency locks in place.
+- 2025-09-30 – Q104: Introduced aggregated Jacoco report/verification (`jacocoAggregatedReport`, `jacocoCoverageVerification`) with current thresholds line ≥77%, branch ≥62%; `./gradlew jacocoCoverageVerification` (PASS, 9s) and `./gradlew check` (PASS, 6s) confirm wiring. Coverage baseline captured at `build/reports/jacoco/aggregated/`. Follow-up: raise thresholds toward 90% once additional OCRA tests land.
 - Consider PIT incremental modes and target filters to keep runtime under 10 minutes.
 - Evaluate existing GitHub Actions caching (Gradle + PIT) to mitigate CI duration.
 - When documenting thresholds, include rationale so future adjustments remain auditable.
