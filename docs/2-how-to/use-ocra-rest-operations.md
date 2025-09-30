@@ -1,0 +1,114 @@
+# How to Operate the OCRA REST API
+
+This guide teaches operators how to interact with every OCRA REST endpoint exposed by the OpenAuth Simulator. You will learn how to explore the OpenAPI contract, list stored credentials, perform OTP evaluations (inline and stored-credential modes), and navigate the Swagger UI.
+
+## Prerequisites
+- Java 17 JDK configured (`JAVA_HOME` must point to it).
+- Repository dependencies installed via Gradle.
+- Default MapDB database (`data/ocra-credentials.db`) populated with any credentials you plan to reference. Use the CLI guide if you need to import fixtures.
+
+## 1. Start the REST Service
+From the repository root:
+```bash
+./gradlew :rest-api:bootRun
+```
+The service exposes endpoints on `http://localhost:8080`.
+
+### Inspect the OpenAPI Contract
+Once the service is running:
+- JSON: `http://localhost:8080/v3/api-docs`
+- YAML: `http://localhost:8080/v3/api-docs.yaml`
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+
+Checked-in snapshots live at `docs/3-reference/rest-openapi.json` and `docs/3-reference/rest-openapi.yaml`. Regenerate them after contract changes:
+```bash
+OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.rest.OpenApiSnapshotTest
+```
+
+## 2. Discover Stored Credentials (`GET /api/v1/ocra/credentials`)
+Use this read-only endpoint to fetch sanitized credential summaries for dropdowns or UI clients.
+```bash
+curl -s http://localhost:8080/api/v1/ocra/credentials | jq
+```
+Example response:
+```json
+[
+  {
+    "id": "operator-demo",
+    "label": "operator-demo (OCRA-1:HOTP-SHA256-8:QA08-S064)",
+    "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064"
+  }
+]
+```
+If the persistence layer is disabled, the endpoint returns an empty array.
+
+## 3. Evaluate OTPs (`POST /api/v1/ocra/evaluate`)
+Send JSON payloads to compute OCRA responses. Two modes are available.
+
+### 3.1 Inline Mode
+Provide the suite + secret directly:
+```bash
+curl -s \
+  -H "Content-Type: application/json" \
+  -d '{
+        "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+        "sharedSecretHex": "3132333435363738393031323334353637383930313233343536373839303132",
+        "challenge": "SESSION01",
+        "sessionHex": "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
+      }' \
+  http://localhost:8080/api/v1/ocra/evaluate | jq
+```
+Expected response:
+```json
+{
+  "otp": "17477202",
+  "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+  "telemetryId": "rest-ocra-<uuid>"
+}
+```
+
+### 3.2 Stored Credential Mode
+Reference a credential imported via the CLI (see Section 2).
+```bash
+curl -s \
+  -H "Content-Type: application/json" \
+  -d '{
+        "credentialId": "operator-demo",
+        "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+        "challenge": "SESSION01",
+        "sessionHex": "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
+      }' \
+  http://localhost:8080/api/v1/ocra/evaluate | jq
+```
+Responses mirror inline mode but add telemetry context (`hasCredentialReference=true` in logs).
+
+### 3.3 Error Handling
+When validation fails (missing parameters, ambiguous input), the API returns HTTP 400 with sanitized details:
+```json
+{
+  "error": "invalid_input",
+  "message": "sessionHex is required for the requested suite",
+  "details": {
+    "telemetryId": "rest-ocra-<uuid>",
+    "status": "invalid",
+    "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+    "field": "sessionHex",
+    "reasonCode": "session_required",
+    "sanitized": "true"
+  }
+}
+```
+Use the telemetry ID to correlate with structured logs. Server errors (HTTP 500) return `error=internal_error` without leaking secrets.
+
+## 4. Navigate the Operator UI (`GET /ui/ocra`)
+The REST service also hosts an operator UI that consumes the same endpoints via asynchronous fetch calls. Access it at `http://localhost:8080/ui/ocra` to validate JSON requests interactively before automating them in your tooling.
+
+## 5. Replay and Audit Workflows
+- Reuse the same payload with updated challenges to rehearse replay handling. Counter/timestamp suites enforce their own drift rules and surface `reasonCode` hints when inputs are invalid.
+- Collect telemetry IDs from responses or application logs to attach to support tickets and monitoring dashboards.
+- Pair REST evaluations with database maintenance by running CLI commands (`maintenance compact`, `maintenance verify`) between test cycles.
+
+## Related Resources
+- [How to Operate the OCRA CLI](use-ocra-cli-operations.md) for seeding and maintaining credential stores.
+- [How to Drive OCRA Evaluations from Java Applications](use-ocra-from-java.md) for embedding these REST calls inside your own code.
+- REST OpenAPI snapshots at `docs/3-reference/rest-openapi.json` / `.yaml` for offline inspection.

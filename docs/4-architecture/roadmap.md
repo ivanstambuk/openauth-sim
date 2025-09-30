@@ -20,7 +20,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 4 | OCRA REST API (Spring Boot) | Expose OCRA evaluation over REST with OpenAPI documentation | Complete | Feature 003 delivered OCRA evaluation, Feature 004 added credential lookup + dual-mode requests; future non-OCRA endpoints tracked separately |
 | 5 | OCRA operator UI | Build an operator UI consuming the OCRA REST endpoint for manual operations | In progress | Spec: [Feature 006](specs/feature-006-ocra-operator-ui.md); R021–R033 delivered accessible evaluation console, async JSON fetch submissions with XHR fallback, updated docs/tests—final operator validation pending |
 | 6 | OCRA quality automation | Enforce OCRA-specific architecture boundaries, expand test/coverage checks, integrate CI badges | Not started | Should accompany each new module |
-| 7 | OCRA specification alignment | Document OCRA references and compliance notes | Not started | Capture findings in `docs/3-reference` |
+| 7 | OCRA specification alignment | Document OCRA references and compliance notes | In progress | Feature 007 (specs/feature-007-operator-docs.md) delivering operator-focused Java/CLI/REST guides |
 | 8 | OCRA replay & verification | Enable OCRA credential replay flows (OTP regeneration with supplied challenges/counters) | Not started | Depends on persistence hooks and facade support |
 | 9 | OCRA learning UI | Build a step-by-step UI that visualises OCRA algorithm execution for education | Not started | Requires REST/UI workstreams and instrumentation |
 

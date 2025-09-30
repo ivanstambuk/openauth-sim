@@ -2,17 +2,11 @@
 
 Document deterministic runbooks for common tasks. Published topics:
 
-1. [Evaluate OCRA challenges via REST](use-ocra-evaluation-endpoint.md)
+1. [Operate the OCRA REST API](use-ocra-rest-operations.md)
 2. [Use the OCRA operator UI](use-ocra-operator-ui.md)
-3. [Manage OCRA credentials via CLI](use-ocra-cli-operations.md)
-4. [Generate OCRA test vectors](generate-ocra-test-vectors.md)
-5. Configuring MapDB persistence profiles (`configure-persistence-profiles.md`).
-
-Planned additions:
-
-- Importing credential material via CLI / REST (pending modules).
-- Seeding MapDB stores for integration tests.
-- Running the emulator as a local background service.
-- Upgrading quality tooling and dependency locks.
+3. [Operate the OCRA CLI](use-ocra-cli-operations.md)
+4. [Drive OCRA evaluations from Java applications](use-ocra-from-java.md)
+5. [Generate OCRA test vectors](generate-ocra-test-vectors.md)
+6. [Configure MapDB persistence profiles](configure-persistence-profiles.md)
 
 Each guide should follow the template in `docs/templates/how-to-template.md` (TBD).

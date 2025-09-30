@@ -2,24 +2,22 @@
 
 OpenAuth Simulator is a Java&nbsp;17, Gradle-based lab environment for emulating contemporary authentication credentials and protocols (FIDO2/WebAuthn, OATH/OCRA, EUDI wallet artefacts, EMV/CAP, and future additions). The project is intentionally greenfield and non-production; we optimise for fast iteration by AI agents, incremental steps under ten minutes, and the ability to crush and rebuild APIs as requirements evolve.
 
-## Current status (2025-09-27)
+## Current status (2025-09-30)
 
-- ✅ Gradle multi-module skeleton (`core`, `cli`, `rest-api`, `ui`) backed by dependency locking and quality gates (Spotless, Checkstyle, SpotBugs, JaCoCo, OWASP Dependency Check).
-- ✅ `core` module exposes the first programmatic APIs:
-  - `Credential`, `SecretMaterial`, `CredentialType`, and supporting enums for secret encodings.
-  - `CredentialStore` abstraction with a `MapDbCredentialStore` implementation that layers MapDB persistence with a Caffeine in-memory cache for hot reads.
-  - JUnit 5 tests covering persistence, cache override behaviour, and in-memory variants.
-- 🚧 Higher-level interfaces (`cli`, `rest-api`, `ui`) are placeholders; no user-facing flows yet.
-- 🚧 Documentation scaffolding is in place under `docs/` and will capture architecture, ADRs, and operational playbooks as the emulator grows.
+- ✅ `core` provides the OCRA credential domain, persistence adapters, and ArchUnit guards used by all facades.
+- ✅ `cli` ships Picocli commands for importing, listing, deleting, evaluating credentials, and running MapDB maintenance tasks.
+- ✅ `rest-api` exposes `/api/v1/ocra/evaluate` and `/api/v1/ocra/credentials`, publishes OpenAPI snapshots, and serves Swagger UI at `http://localhost:8080/swagger-ui/index.html` when booted locally.
+- ✅ `ui` hosts the operator console at `/ui/ocra`, reusing the REST endpoints for inline and stored-credential evaluations.
+- ✅ Documentation under `docs/` now covers operator workflows across Java integrations, CLI usage, REST operations, test vector generation, and persistence tuning.
 
 ## Module map
 
 | Module    | Purpose                                                          |
 |-----------|------------------------------------------------------------------|
-| `core`    | Pure Java API surface and credential persistence implementations |
-| `cli`     | Placeholder for future Picocli-based tooling                     |
-| `rest-api`| Placeholder for REST interface (planned Spring Boot service)     |
-| `ui`      | Placeholder for server-rendered UI consuming the REST API        |
+| `core`    | OCRA credential domain, crypto helpers, persistence abstractions |
+| `cli`     | Picocli tooling for credential lifecycle, evaluation, maintenance |
+| `rest-api`| Spring Boot facade exposing OCRA evaluation and credential directory |
+| `ui`      | Server-rendered operator console built atop the REST API         |
 
 ## Development quick start
 
@@ -48,27 +46,17 @@ The default build disables Error Prone for now because plugin 3.1.0 and recent E
 
 Long-form documentation lives in `/docs`:
 
-| Path                     | Contents (initial)                           |
-|--------------------------|----------------------------------------------|
-| `docs/0-overview`        | Product overview, glossary, scope            |
-| `docs/1-concepts`        | Domain concepts, threat model (stub)         |
-| `docs/2-how-to`          | Task guides (stub)                           |
-| `docs/3-reference`       | Generated API references (stub)              |
-| `docs/4-architecture`    | C4 diagrams, data flows (placeholder)        |
-| `docs/5-operations`      | Runbooks and on-call docs (placeholder)      |
-| `docs/6-decisions`       | ADRs; see ADR-0001 for persistence choice    |
-| `docs/7-changelogs`      | Release notes / change log seeds             |
-| `docs/8-compliance`      | Security & compliance posture (stub)         |
-| `docs/_assets`           | Diagram sources and shared images            |
+| Path                     | Highlights                                                   |
+|--------------------------|--------------------------------------------------------------|
+| `docs/0-overview`        | Product overview, glossary, scope                            |
+| `docs/1-concepts`        | Domain concepts, capability matrix, telemetry references     |
+| `docs/2-how-to`          | Operator guides for REST, CLI, Java integrations, UI usage   |
+| `docs/3-reference`       | Generated artifacts including OpenAPI snapshots              |
+| `docs/4-architecture`    | Specifications, feature plans, tasks, roadmap, knowledge map |
+| `docs/5-operations`      | Runbooks and analysis gate checklist                         |
+| `docs/6-decisions`       | ADRs, including the project constitution                     |
+| `docs/7-changelogs`      | Release notes / change log seeds                             |
+| `docs/8-compliance`      | Security & compliance posture (stub)                         |
+| `docs/_assets`           | Diagram sources and shared images                            |
 
-`AGENTS.md` outlines expectations for AI agents managing the repository.
-
-## Next steps
-
-See the living [Implementation Roadmap](docs/4-architecture/roadmap.md) for up-to-date priorities. The current focus areas are:
-
-- Finalise the protocol-aware credential domain (`core`).
-- Stand up operator tooling (CLI, REST, UI) atop the shared credential model.
-- Prepare load and compliance tooling, prioritising documentation and automated benchmarks.
-
-Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before raising PRs.
+Consult the living [Implementation Roadmap](docs/4-architecture/roadmap.md) for future priorities, and see `AGENTS.md` for AI agent expectations. Contributions welcome—read [CONTRIBUTING.md](CONTRIBUTING.md) before raising PRs.

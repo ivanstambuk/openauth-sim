@@ -1,67 +1,98 @@
-# How to Manage OCRA Credentials via CLI
+# How to Operate the OCRA CLI
 
-This guide walks operators through the new Picocli-based `ocra` commands for importing, listing, deleting, and evaluating OCRA credentials against the local MapDB store. The flows mirror the REST facade behaviour while keeping outputs sanitized for terminal use.
+This guide is for operators who manage the simulator from the command line. It covers every Picocli subcommand shipped with the `ocra` tool, including credential lifecycle, evaluation flows, and database maintenance. Outputs are sanitized so secrets never appear in logs.
 
 ## Prerequisites
-- Java 17 JDK available (`JAVA_HOME` must point to it per the project constitution).
-- Build the CLI module at least once so runtime classes are on disk:
-  ```bash
-  ./gradlew :cli:classes
-  ```
-- Choose a writable database path. Examples below use `build/tmp/cli-ocra/docs.db`.
+- Java 17 JDK configured (`JAVA_HOME` must point to it per the project constitution).
+- Repository cloned locally with Gradle available.
+- Default MapDB database path (`data/ocra-credentials.db`) is writable. Override with `--database` when needed.
 
-## Run the CLI
-Use the helper task defined in `cli/build.gradle.kts` to invoke the Picocli entrypoint:
+Warm up the CLI module once so dependencies compile:
 ```bash
-./gradlew :cli:runOcraCli --args="--database <dbPath> <subcommand> [options]"
+./gradlew :cli:classes
 ```
-All commands emit structured telemetry lines (see `docs/3-reference/cli-ocra-telemetry-snapshot.md`) with `sanitized=true` to guarantee secrets never leak.
+
+## Command Summary
+| Command | Purpose |
+|---------|---------|
+| `import` | Persist a credential descriptor (suite + secret or derived metadata) |
+| `list` | Display sanitized credential summaries |
+| `delete` | Remove a credential descriptor |
+| `evaluate` | Generate an OTP using stored or inline credential data |
+| `maintenance compact` | Run MapDB compaction to reclaim disk space |
+| `maintenance verify` | Run integrity checks against the MapDB store |
+
+Invoke commands via the Gradle helper:
+```bash
+./gradlew :cli:runOcraCli --args="[--database <path>] <command> [options]"
+```
+If `--database` is omitted, the CLI uses `data/ocra-credentials.db` (shared with REST/UI facades).
+
+All commands emit structured telemetry lines (see `docs/3-reference/cli-ocra-telemetry-snapshot.md`) with `sanitized=true`.
 
 ## 1. Import a Credential Descriptor
-Persist a descriptor into MapDB:
+Seed the database with a reusable credential:
 ```bash
-./gradlew :cli:runOcraCli --args="--database build/tmp/cli-ocra/docs.db \
-  import --credential-id docs-token \
-         --suite OCRA-1:HOTP-SHA1-6:QN08 \
-         --secret 3132333435363738393031323334353637383930"
+./gradlew :cli:runOcraCli --args="import \
+  --credential-id operator-demo \
+  --suite OCRA-1:HOTP-SHA256-8:QA08-S064 \
+  --secret 3132333435363738393031323334353637383930313233343536373839303132"
 ```
-Expected telemetry:
-```
-event=cli.ocra.import status=success reasonCode=created sanitized=true credentialId=docs-token suite=OCRA-1:HOTP-SHA1-6:QN08
-```
+Success emits `reasonCode=created`. Use `--database` to target a different file.
 
 ## 2. List Stored Credentials
 ```bash
-./gradlew :cli:runOcraCli --args="--database build/tmp/cli-ocra/docs.db list"
+./gradlew :cli:runOcraCli --args="list"
 ```
-Lists redacted metadata plus per-item lines. Use `--verbose` to include metadata keys.
+The output shows sanitized metadata (suite, creation time, optional counter snapshots). Add `--verbose` for extended attributes.
 
-## 3. Evaluate Using a Stored Credential
+## 3. Evaluate an OTP
+**Stored credential mode** uses the descriptor from MapDB:
 ```bash
-./gradlew :cli:runOcraCli --args="--database build/tmp/cli-ocra/docs.db \
-  evaluate --credential-id docs-token --challenge 00000000"
+./gradlew :cli:runOcraCli --args="evaluate \
+  --credential-id operator-demo \
+  --challenge SESSION01 \
+  --session-hex 00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
 ```
-The CLI pulls the descriptor, validates required inputs, and prints the OTP alongside `reasonCode=success`.
 
-## 4. Evaluate Inline Secrets Instead
-Provide suite + secret directly when no stored credential is available:
+**Inline mode** sends suite + secret directly:
 ```bash
-./gradlew :cli:runOcraCli --args="--database build/tmp/cli-ocra/docs.db \
-  evaluate --suite OCRA-1:HOTP-SHA1-6:QN08 \
-           --secret 3132333435363738393031323334353637383930 \
-           --challenge 11111111"
+./gradlew :cli:runOcraCli --args="evaluate \
+  --suite OCRA-1:HOTP-SHA256-8:QA08-S064 \
+  --secret 3132333435363738393031323334353637383930313233343536373839303132 \
+  --challenge SESSION01 \
+  --session-hex 00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
 ```
-Inline runs add `mode=inline` to the telemetry so monitoring can distinguish them from stored credentials.
+Successful evaluations print the OTP and telemetry ID. If required parameters are missing, the CLI returns `reasonCode` values such as `session_required`, `counter_required`, or `credential_conflict`.
 
-## 5. Delete a Credential
+## 4. Delete a Credential
 ```bash
-./gradlew :cli:runOcraCli --args="--database build/tmp/cli-ocra/docs.db delete --credential-id docs-token"
+./gradlew :cli:runOcraCli --args="delete --credential-id operator-demo"
 ```
-Successful deletions report `reasonCode=deleted`. Subsequent lookups will raise `credential_not_found`.
+Successful deletions emit `reasonCode=deleted`. Running the command again yields `credential_not_found`.
+
+## 5. Maintain the Database
+Periodic maintenance keeps MapDB compact and healthy. Run these commands when rotating credentials or after large import batches.
+
+### 5.1 Compaction
+```bash
+./gradlew :cli:runOcraCli --args="maintenance compact"
+```
+Outputs include `status=success` and compaction statistics (bytes reclaimed, elapsed time).
+
+### 5.2 Verification
+```bash
+./gradlew :cli:runOcraCli --args="maintenance verify"
+```
+Produces an integrity report summarizing page scans and corruption checks. Failures surface `reasonCode=verification_failed`.
 
 ## Troubleshooting
-- **`credential_conflict`** – Remove either `--credential-id` or `--secret`/`--suite` so only one mode is selected.
-- **`validation_error`** – Input failed suite-specific rules (e.g., missing challenge/session). The message remains sanitized; re-run with corrected values.
-- **`credential_not_found`** – The requested ID is absent in the database. Run `list` to inspect current entries.
+- **`credential_conflict`** – Remove either stored or inline parameters so only one evaluation mode is active.
+- **`credential_not_found`** – The ID is missing; run `list` with `--database` pointing at the expected file.
+- **`validation_error`** – Check the returned `reasonCode` for the missing field, then retry.
+- **`maintenance_failed`** – Review the structured output; compaction/verification errors include remediation hints in `details`.
 
-Keep the telemetry snapshot up to date after behavioural changes by re-running the commands above and updating `docs/3-reference/cli-ocra-telemetry-snapshot.md`.
+## Related Guides
+- [How to Drive OCRA Evaluations from Java Applications](use-ocra-from-java.md)
+- REST operations guide (published separately) for HTTP-based workflows.
+- [Configure persistence profiles](configure-persistence-profiles.md) when tuning MapDB for non-default environments.
