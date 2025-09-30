@@ -50,6 +50,6 @@ _Last updated: 2025-09-30_
 | Q132b | Extend CLI delete/list command coverage (verbose + telemetry branches) to reach ≥90% branch | QA-OCRA-003 | ✅ |
 | Q132c | Add REST controller/service tests covering success/error permutations for ≥90% branch | QA-OCRA-003 | ✅ |
 | Q132d | Cover telemetry/persistence adapters (failure detail mapping, maintenance helpers) for ≥90% branch | QA-OCRA-003 | ✅ |
-| Q132 | Raise Jacoco thresholds to 0.90/0.90, run full `./gradlew qualityGate`, update docs | QA-OCRA-001–QA-OCRA-006 | ☐ |
+| Q132 | Raise Jacoco thresholds to 0.90/0.90, run full `./gradlew qualityGate`, update docs | QA-OCRA-001–QA-OCRA-006 | ✅ |
 
 Update this checklist as work progresses.

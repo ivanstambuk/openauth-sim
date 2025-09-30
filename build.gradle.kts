@@ -289,12 +289,12 @@ val jacocoCoverageVerification = tasks.register<JacocoCoverageVerification>("jac
             limit {
                 counter = "LINE"
                 value = "COVEREDRATIO"
-                minimum = "0.77".toBigDecimal()
+                minimum = "0.90".toBigDecimal()
             }
             limit {
                 counter = "BRANCH"
                 value = "COVEREDRATIO"
-                minimum = "0.62".toBigDecimal()
+                minimum = "0.90".toBigDecimal()
             }
         }
     }

@@ -40,6 +40,39 @@ class OcraOperatorUiControllerTest {
   }
 
   @Test
+  @DisplayName("evaluationForm reuses existing CSRF token")
+  void evaluationFormReusesExistingToken() {
+    OcraEvaluationForm form = controller.formModel();
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    jakarta.servlet.http.HttpSession originalSession = request.getSession(true);
+    assertNotNull(originalSession);
+    originalSession.setAttribute("ocra-ui-csrf-token", "existing-token");
+    ConcurrentModel model = new ConcurrentModel();
+
+    controller.evaluationForm(form, request, model);
+
+    assertEquals("existing-token", model.getAttribute("csrfToken"));
+    assertEquals("existing-token", originalSession.getAttribute("ocra-ui-csrf-token"));
+  }
+
+  @Test
+  @DisplayName("evaluationForm wraps JSON errors in IllegalStateException")
+  void evaluationFormWrapsJsonErrors() {
+    OcraOperatorUiController failingController =
+        new OcraOperatorUiController(new FailingObjectMapper());
+
+    OcraEvaluationForm form = failingController.formModel();
+    MockHttpServletRequest request = new MockHttpServletRequest();
+
+    IllegalStateException exception =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            IllegalStateException.class,
+            () -> failingController.evaluationForm(form, request, new ConcurrentModel()));
+
+    assertTrue(exception.getMessage().contains("Unable to render policy presets"));
+  }
+
+  @Test
   @DisplayName("setMode normalises credential inline modes")
   void setModeNormalisesModes() {
     OcraEvaluationForm form = new OcraEvaluationForm();
@@ -49,5 +82,17 @@ class OcraOperatorUiControllerTest {
     assertTrue(form.isInlineMode());
     form.setMode(null);
     assertTrue(form.isInlineMode());
+  }
+
+  private static final class FailingObjectMapper extends ObjectMapper {
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    public String writeValueAsString(Object value)
+        throws com.fasterxml.jackson.core.JsonProcessingException {
+      throw new com.fasterxml.jackson.core.JsonProcessingException("boom") {
+        private static final long serialVersionUID = 1L;
+      };
+    }
   }
 }

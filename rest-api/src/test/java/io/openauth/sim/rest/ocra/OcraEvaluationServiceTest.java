@@ -639,6 +639,47 @@ class OcraEvaluationServiceTest {
   }
 
   @Test
+  @DisplayName("normalized request trims fields and discards blanks")
+  void normalizedRequestTrimsAndDiscardsBlanks() throws Exception {
+    OcraEvaluationRequest raw =
+        new OcraEvaluationRequest(
+            "  credential  ",
+            "  suite  ",
+            "  deadbeef  ",
+            "  challenge  ",
+            "  session  ",
+            "  client  ",
+            "  server  ",
+            "  pin  ",
+            "  ff  ",
+            5L);
+
+    Object normalized = invokeNormalizedRequestFrom(raw);
+    assertEquals("credential", invokeNormalizedAccessor(normalized, "credentialId"));
+    assertEquals("suite", invokeNormalizedAccessor(normalized, "suite"));
+    assertEquals("deadbeef", invokeNormalizedAccessor(normalized, "sharedSecretHex"));
+    assertEquals("challenge", invokeNormalizedAccessor(normalized, "challenge"));
+    assertEquals("session", invokeNormalizedAccessor(normalized, "sessionHex"));
+    assertEquals("client", invokeNormalizedAccessor(normalized, "clientChallenge"));
+    assertEquals("server", invokeNormalizedAccessor(normalized, "serverChallenge"));
+    assertEquals("pin", invokeNormalizedAccessor(normalized, "pinHashHex"));
+    assertEquals("ff", invokeNormalizedAccessor(normalized, "timestampHex"));
+
+    OcraEvaluationRequest blank =
+        new OcraEvaluationRequest(
+            " ", " suite ", "value", "challenge", " ", " ", " ", " ", " ", null);
+
+    Object blankNormalized = invokeNormalizedRequestFrom(blank);
+    assertEquals(null, invokeNormalizedAccessor(blankNormalized, "credentialId"));
+    assertEquals("suite", invokeNormalizedAccessor(blankNormalized, "suite"));
+    assertEquals(null, invokeNormalizedAccessor(blankNormalized, "sessionHex"));
+    assertEquals(null, invokeNormalizedAccessor(blankNormalized, "clientChallenge"));
+    assertEquals(null, invokeNormalizedAccessor(blankNormalized, "serverChallenge"));
+    assertEquals(null, invokeNormalizedAccessor(blankNormalized, "pinHashHex"));
+    assertEquals(null, invokeNormalizedAccessor(blankNormalized, "timestampHex"));
+  }
+
+  @Test
   @DisplayName("failure details map timestamp drift and invalid inputs")
   void failureDetailsTimestampMappings() throws Exception {
     Object driftExceeded =
@@ -1009,6 +1050,23 @@ class OcraEvaluationServiceTest {
     var method = failureDetails.getClass().getDeclaredMethod(methodName);
     method.setAccessible(true);
     return method.invoke(failureDetails);
+  }
+
+  private static Object invokeNormalizedRequestFrom(OcraEvaluationRequest raw) throws Exception {
+    Class<?> normalizedClass =
+        Class.forName("io.openauth.sim.rest.ocra.OcraEvaluationService$NormalizedRequest");
+    var method =
+        normalizedClass.getDeclaredMethod(
+            "from", Class.forName("io.openauth.sim.rest.ocra.OcraEvaluationRequest"));
+    method.setAccessible(true);
+    return method.invoke(null, raw);
+  }
+
+  private static Object invokeNormalizedAccessor(Object normalized, String methodName)
+      throws Exception {
+    var method = normalized.getClass().getDeclaredMethod(methodName);
+    method.setAccessible(true);
+    return method.invoke(normalized);
   }
 
   private static void invokeRequireHex(String value, String field, boolean required)

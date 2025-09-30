@@ -50,9 +50,9 @@ Reference specification: `docs/4-architecture/specs/feature-008-ocra-quality-aut
 - Q131 – Re-run `./gradlew jacocoAggregatedReport` and record metrics once CLI/REST tests land. ☑
 - Q132a – Add failing core tests for `OcraCredentialDescriptor`/`OcraCredentialFactory` request branches, drive coverage ≥90% branch before implementation. ☑
 - Q132b – Extend CLI delete/list command tests (including telemetry and verbose flows) to push branches ≥90%. ☑
-- Q132c – Add REST controller/service integration tests for success/error permutations lifting branches ≥90%. ☐
-- Q132d – Cover remaining telemetry/persistence adapters (failure details mapping, maintenance helpers) to close sub-90% branches. ☐
-- Q132 – Raise Jacoco minimums to 0.90/0.90, execute `./gradlew qualityGate` (with PIT), and close documentation updates for Q115. ☐
+- Q132c – Add REST controller/service integration tests for success/error permutations lifting branches ≥90%. ☑
+- Q132d – Cover remaining telemetry/persistence adapters (failure details mapping, maintenance helpers) to close sub-90% branches. ☑
+- Q132 – Raise Jacoco minimums to 0.90/0.90, execute `./gradlew qualityGate` (with PIT), and close documentation updates for Q115. ☑
 
 ## Checklist Before Implementation
 - [x] Specification created with clarifications captured.
@@ -109,6 +109,7 @@ Document the outcome and proceed only once all boxes are checked.
 - 2025-09-30 – Q132c plan: Add slice tests for REST evaluation controllers covering (A) successful evaluations, (B) validation exceptions surfaced via `OcraEvaluationValidationException`, and (C) unexpected runtime failures emitting sanitized error responses. Supplement `OcraEvaluationServiceTest` with a credential-store runtime failure scenario to exercise the error telemetry branch. Target ≥90% branch coverage across `OcraEvaluationController`, `OcraCredentialDirectoryController`, and remaining `OcraEvaluationService` error paths before raising Jacoco minimums.
 - 2025-09-30 – Q132c execution: Added `OcraEvaluationControllerTest` (success + validation + unexpected flows) and extended `OcraEvaluationServiceTest` with a failing credential-store scenario. Controller branch coverage now reads 100% (Jacoco aggregated report 2025-09-30 23:21 UTC) and service branch coverage improved to ≈80.5% with error telemetry exercised; remaining missed branches correspond to timestamp step edge cases and legacy `FailureDetails` fallbacks. Project totals: 94.76% line / 84.08% branch. Q132d will target the residual defensive branches (resolveTimestamp zero-step, challenge optional suites, hasText fallbacks) before thresholds rise.
 - 2025-09-30 – Q132d execution: Exercised `OcraEvaluationService` defensive helpers (timestamp <1s, overflow guard, challenge-optional suites, `requireHex` fallbacks, flag helpers, and `FailureDetails` defaults) via targeted unit tests. Service branch coverage now sits at ≈97.6% and project totals moved to 94.76% line / 84.08% branch (Jacoco aggregated report 2025-09-30 23:29 UTC).
+- 2025-09-30 – Q132 execution: Added coverage fixtures for descriptor/persistence/telemetry helpers and REST controllers, lifting aggregated coverage to 96.99% line / 90.24% branch (Jacoco aggregated report 2025-09-30 23:36 UTC). Raised Jacoco thresholds to 0.90/0.90 and reran `./gradlew qualityGate` (PASS, mutation score ≈95%).
 - Consider PIT incremental modes and target filters to keep runtime under 10 minutes.
 - Evaluate existing GitHub Actions caching (Gradle + PIT) to mitigate CI duration.
 - When documenting thresholds, include rationale so future adjustments remain auditable.

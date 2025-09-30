@@ -195,6 +195,25 @@ final class OcraCredentialFactoryTest {
     assertTrue(exception.getMessage().contains("not permitted"));
   }
 
+  @DisplayName("validateChallenge returns when suite omits question and payload missing")
+  @Test
+  void validateChallengeAllowsMissingWhenNotDeclared() {
+    OcraCredentialDescriptor descriptor =
+        factory.createDescriptor(
+            new OcraCredentialRequest(
+                "session-free",
+                "OCRA-1:HOTP-SHA1-6:C",
+                DEFAULT_SECRET_HEX,
+                SecretEncoding.HEX,
+                1L,
+                null,
+                null,
+                Map.of()));
+
+    assertDoesNotThrow(() -> factory.validateChallenge(descriptor, null));
+    assertDoesNotThrow(() -> factory.validateChallenge(descriptor, "   "));
+  }
+
   @DisplayName("validateChallenge requires non-blank payload when suite specifies a question")
   @Test
   void validateChallengeRequiresNonBlankPayload() {
@@ -260,6 +279,40 @@ final class OcraCredentialFactoryTest {
         assertThrows(
             IllegalArgumentException.class, () -> factory.validateChallenge(hexDescriptor, "ZZZZ"));
     assertTrue(hexMismatch.getMessage().contains("must match format"));
+
+    assertDoesNotThrow(() -> factory.validateChallenge(hexDescriptor, "00FF"));
+  }
+
+  @DisplayName("validateChallenge accepts alphanumeric and character formats")
+  @Test
+  void validateChallengeAcceptsAdditionalFormats() {
+    OcraCredentialDescriptor alphanumericDescriptor =
+        factory.createDescriptor(
+            new OcraCredentialRequest(
+                "alphanumeric-suite",
+                "OCRA-1:HOTP-SHA1-6:QA08",
+                DEFAULT_SECRET_HEX,
+                SecretEncoding.HEX,
+                null,
+                null,
+                null,
+                Map.of()));
+
+    assertDoesNotThrow(() -> factory.validateChallenge(alphanumericDescriptor, "AB12CD34"));
+
+    OcraCredentialDescriptor characterDescriptor =
+        factory.createDescriptor(
+            new OcraCredentialRequest(
+                "character-suite",
+                "OCRA-1:HOTP-SHA1-6:QC08",
+                DEFAULT_SECRET_HEX,
+                SecretEncoding.HEX,
+                null,
+                null,
+                null,
+                Map.of()));
+
+    assertDoesNotThrow(() -> factory.validateChallenge(characterDescriptor, "!@#$%^&*"));
   }
 
   @DisplayName("validateSessionInformation respects suite allowance")
@@ -300,6 +353,9 @@ final class OcraCredentialFactoryTest {
             IllegalArgumentException.class,
             () -> factory.validateSessionInformation(requiredSessionDescriptor, null));
     assertTrue(required.getMessage().contains("required"));
+
+    // When session information is optional and omitted, validation should pass.
+    assertDoesNotThrow(() -> factory.validateSessionInformation(noSessionDescriptor, "   "));
   }
 
   @DisplayName("validateTimestamp rejects unexpected timestamps when suite forbids them")
