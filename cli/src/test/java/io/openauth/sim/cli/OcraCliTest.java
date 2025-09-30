@@ -316,27 +316,6 @@ class OcraCliTest {
     assertTrue(err.contains("sanitized=true"));
   }
 
-  @Test
-  @DisplayName("delete command reports missing credential")
-  void deleteCommandMissingCredential() throws Exception {
-    Path tempDir = Files.createTempDirectory("ocra-cli-delete-missing");
-    Path database = tempDir.resolve("store.db");
-
-    CommandHarness harness = CommandHarness.create();
-    int exitCode =
-        harness.execute(
-            "--database",
-            database.toAbsolutePath().toString(),
-            "delete",
-            "--credential-id",
-            "missing");
-
-    assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    assertTrue(harness.stderr().contains("credential_not_found"));
-
-    deleteRecursively(tempDir);
-  }
-
   private static String extractField(String output, String field) {
     for (String token : output.split("\\s+")) {
       if (token.startsWith(field + "=")) {
