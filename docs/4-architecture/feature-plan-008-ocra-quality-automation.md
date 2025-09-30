@@ -39,9 +39,15 @@ Reference specification: `docs/4-architecture/specs/feature-008-ocra-quality-aut
 - [x] Feature plan references correct spec/tasks and aligns success criteria.
 - [x] Tasks map to functional requirements with ≤10 minute increments and tests preceding implementation.
 - [x] Planned work respects constitution principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
-- [ ] Tooling readiness noted (`./gradlew qualityGate` expected runtime, PIT configuration details).
+- [x] Tooling readiness noted (`./gradlew qualityGate` expected runtime, PIT configuration details).
 
-Analysis gate run 2025-09-30 – tooling readiness item pending once qualityGate command design finalized.
+Analysis gate run 2025-09-30 – tooling readiness note recorded below.
+
+### Tooling Readiness – `./gradlew qualityGate`
+- Expected runtime: ~8–9 minutes on a 2021 MacBook Pro (Apple M1 Pro, 16 GB RAM) with warm Gradle cache; cold runs may reach 12 minutes.
+- Task bundle (subject to confirmation as increments land): `spotlessCheck`, targeted ArchUnit suite under `core-architecture-tests`, `test` for affected modules, `jacocoTestCoverageVerification`, and `pitest` scoped to `io.openauth.sim.core.*` and facade adapters. Mutation phase will run with `--threads=4` and `targetClasses=io.openauth.sim.(core|cli|rest|ui).*` filters tuned per increment.
+- Configuration knobs: set `-Ppit.skip=true` to bypass mutation locally when iterating (documentation to clarify when this is acceptable); `-Pquality.maxMinutes` guard will fail the build if runtime exceeds 15 minutes to catch runaway mutation sessions.
+- Reports: Jacoco HTML/XML and PIT reports will write to `build/reports/quality/jacoco` and `build/reports/quality/pitest`; Gradle console output will summarise thresholds (Jacoco ≥90% line/branch; PIT ≥85% mutation score).
 
 Document the outcome and proceed only once all boxes are checked.
 
