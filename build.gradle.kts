@@ -11,6 +11,7 @@ import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
 import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
 import org.gradle.testing.jacoco.tasks.JacocoReport
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.kotlin.dsl.getByType
 
 plugins {
@@ -174,4 +175,14 @@ subprojects {
             html.required.set(true)
         }
     }
+}
+
+val architectureTest = tasks.register("architectureTest") {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Runs cross-module architecture checks"
+    dependsOn(":core-architecture-tests:test")
+}
+
+tasks.named("check") {
+    dependsOn(architectureTest)
 }

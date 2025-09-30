@@ -53,6 +53,7 @@ Document the outcome and proceed only once all boxes are checked.
 
 ## Notes
 - 2025-09-30 – Q102: Added `core-architecture-tests` Gradle module hosting cross-module ArchUnit checks; `./gradlew :core-architecture-tests:test` (PASS, 8s, configuration cache reused) now guards facade/persistence boundaries.
+- 2025-09-30 – Q103: Registered root `architectureTest` lifecycle to run the suite and wired it into `check`; `./gradlew architectureTest` (PASS, 26s) and `./gradlew check` (PASS, 22s) confirm the rules run with dependency locks in place.
 - Consider PIT incremental modes and target filters to keep runtime under 10 minutes.
 - Evaluate existing GitHub Actions caching (Gradle + PIT) to mitigate CI duration.
 - When documenting thresholds, include rationale so future adjustments remain auditable.
