@@ -1,7 +1,7 @@
 # Feature Plan 006 – OCRA Operator UI
 
-_Status: Draft_
-_Last updated: 2025-09-29_
+_Status: Complete_
+_Last updated: 2025-09-30_
 
 ## Objective
 Ship a server-rendered operator UI (hosted inside the Spring Boot `rest-api` module) that lets humans execute OCRA evaluations by calling the existing REST endpoints. The UI must respect sanitized telemetry practices, mirror REST validation semantics, and provide an accessible form-driven experience focused on evaluation scenarios.
@@ -53,7 +53,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R051 – Ensure stored credential inputs hide when inline mode is active. ✅ 2025-09-29
 - R059 – Inline Appendix A/B OCRA generator code within the how-to guide to remove repeated external fetch steps. ✅ 2025-09-29
 - R060 – Capture stored credential auto-population scope (clarifications, plan, tasks) and confirm client-side generation strategy. ✅ 2025-09-29
-- R061 – Add failing MockMvc + Selenium coverage for stored credential auto-populate button (required field injection, disallowed field clearing, timestamp derivation). ☐
+- R061 – Add failing MockMvc + Selenium coverage for stored credential auto-populate button (required field injection, disallowed field clearing, timestamp derivation). ✅ 2025-09-29
 - R062 – Implement client-side suite parsing and random generation for stored credential auto-population, snapping timestamp to current UTC step. ✅ 2025-09-29
 - R063 – Refresh documentation, tasks, and knowledge map entries; rerun `./gradlew spotlessApply check`. ✅ 2025-09-29
 - R064 – Polish stored credential auto-fill styling/text (spacing, button label tweak, remove redundant hints). ✅ 2025-09-29
@@ -65,6 +65,9 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R070 – Remove redundant OCRA-1 helper text from builder and rerun checks. ✅ 2025-09-29
 - R071 – Add failing Selenium assertion capturing compact builder session checkbox styling. ✅ 2025-09-29
 - R072 – Implement compact styling for session checkbox block, rerun `./gradlew spotlessApply check`. ✅ 2025-09-29
+- R073 – Ensure stored credential selection disables split challenge inputs when suites only support combined challenges. ✅ 2025-09-29
+- R074 – Style disabled request parameter fields with muted appearance and add regression coverage. ✅ 2025-09-29
+- R075 – Run final validation (`./gradlew rest-api:test` + `spotlessApply check`), capture closure notes, and prep roadmap update. ✅ 2025-09-30
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -123,6 +126,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-29 – R061 delivery: Added MockMvc + Selenium coverage and client-side handler to disable/clear unsupported request parameters upon stored credential selection; build validated via `./gradlew spotlessApply check`.
 - 2025-09-29 – R073 delivery: Hardened stored credential parameter gating so split challenges stay disabled when suites only accept combined questions; updated Selenium coverage and reran `./gradlew spotlessApply check`.
 - 2025-09-29 – R074 delivery: Styled disabled request parameter inputs with muted backgrounds/borders, added Selenium assertions for cursor/background checks, and reran `./gradlew spotlessApply check`.
+- 2025-09-30 – R075 validation: Ran `./gradlew rest-api:test` and `./gradlew spotlessApply check` to confirm end-to-end coverage before closing Feature 006 and updating the roadmap.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes
