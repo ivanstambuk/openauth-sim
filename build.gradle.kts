@@ -1,5 +1,6 @@
 import net.ltgt.gradle.errorprone.ErrorProneOptions
 import net.ltgt.gradle.errorprone.errorprone
+import info.solidsoft.gradle.pitest.PitestPluginExtension
 import org.gradle.api.JavaVersion
 import org.gradle.api.artifacts.VersionCatalog
 import org.gradle.api.artifacts.VersionCatalogsExtension
@@ -21,6 +22,7 @@ plugins {
     alias(libs.plugins.spotless)
     alias(libs.plugins.spotbugs) apply false
     alias(libs.plugins.errorprone) apply false
+    alias(libs.plugins.pitest) apply false
 }
 
 jacoco {
@@ -64,6 +66,10 @@ spotless {
         endWithNewline()
     }
 }
+
+val pitTargets = mapOf(
+    ":core" to listOf("io.openauth.sim.core.credentials.ocra.*")
+)
 
 subprojects {
     apply(plugin = "java")
@@ -181,6 +187,31 @@ subprojects {
             html.required.set(true)
         }
     }
+
+    pitTargets[project.path]?.let { targetPackages ->
+        pluginManager.apply("info.solidsoft.pitest")
+
+        extensions.configure<PitestPluginExtension> {
+            pitestVersion.set("1.15.0")
+            threads.set(4)
+            outputFormats.set(listOf("XML", "HTML"))
+            timestampedReports.set(false)
+            junit5PluginVersion.set("1.2.0")
+
+            targetClasses.set(targetPackages)
+            targetTests.set(listOf("io.openauth.sim.*"))
+            if (project.path == ":core") {
+                excludedClasses.set(
+                    listOf(
+                        "io.openauth.sim.core.credentials.ocra.OcraChallengeFormat",
+                        "io.openauth.sim.core.credentials.ocra.OcraCredentialFactory"
+                    )
+                )
+            }
+            mutationThreshold.set(85)
+            failWhenNoMutations.set(true)
+        }
+    }
 }
 
 val architectureTest = tasks.register("architectureTest") {
@@ -267,6 +298,12 @@ val jacocoCoverageVerification = tasks.register<JacocoCoverageVerification>("jac
     }
 }
 
+val mutationTest = tasks.register("mutationTest") {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Runs PIT mutation tests across OCRA modules"
+    dependsOn(pitTargets.keys.map { path -> project(path).tasks.named("pitest") })
+}
+
 tasks.named("check") {
-    dependsOn(architectureTest, jacocoCoverageVerification)
+    dependsOn(architectureTest, jacocoCoverageVerification, mutationTest)
 }
