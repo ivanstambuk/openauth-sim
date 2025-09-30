@@ -10,6 +10,7 @@ _Last updated: 2025-09-30_
 - Follow-up: add targeted tests so PIT can cover `OcraChallengeFormat`/`OcraCredentialFactory` and extend mutation guard to CLI/REST facades without exclusions.
 - Use `-Ppit.skip=true` with `./gradlew qualityGate` when mutation analysis needs to be skipped locally (documented runtime ≈27s with skip vs ≈1m56 full gate).
 - Reference `docs/5-operations/quality-gate.md` for command summary, thresholds, and troubleshooting tips.
+- Current baseline (2025-09-30): Jacoco aggregated 93.65 % line / 83.18 % branch; PIT mutation score ~94 % with surviving conditionals noted in the latest report (no new PIT run this increment).
 
 ## Tasks
 | ID | Task | Related Requirements | Status |
@@ -40,5 +41,11 @@ _Last updated: 2025-09-30_
 | Q124 | Add credential-reference coverage for `OcraEvaluationService` success/failure flows | QA-OCRA-003 | ✅ |
 | Q125 | Add failing core tests for parser/calculator edge cases (challenge validation, session/session padding, timestamp fallback) | QA-OCRA-003 | ✅ |
 | Q126 | Add CLI helper tests covering launcher exit + error telemetry (`AbstractOcraCommand`, import failure) | QA-OCRA-003 | ✅ |
+| Q127 | Draft failing CLI tests for `OcraCli` help/emit/hasText/ensureParentDirectory branches | QA-OCRA-003 | ✅ |
+| Q128 | Implement CLI fixtures to cover list/delete verbose and exception flows, drive tests green | QA-OCRA-003 | ✅ |
+| Q129 | Write REST DTO tests capturing trim/null semantics and defensive copy behaviour | QA-OCRA-003 | ✅ |
+| Q130 | Extend `OcraEvaluationServiceTest` for timestamp/challenge/telemetry/failure branches | QA-OCRA-003 | ✅ |
+| Q131 | Run `./gradlew jacocoAggregatedReport` and log updated coverage metrics | QA-OCRA-003 | ✅ |
+| Q132 | Raise Jacoco thresholds to 0.90/0.90, run full `./gradlew qualityGate`, update docs | QA-OCRA-001–QA-OCRA-006 | ☐ |
 
 Update this checklist as work progresses.

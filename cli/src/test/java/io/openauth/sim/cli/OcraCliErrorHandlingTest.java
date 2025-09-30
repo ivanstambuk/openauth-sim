@@ -4,15 +4,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.MapDbCredentialStore;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -222,6 +228,116 @@ final class OcraCliErrorHandlingTest {
     }
   }
 
+  @Test
+  @DisplayName("list command treats OCRA deserialisation issues as validation errors")
+  void listCommandHandlesInvalidRecord() throws Exception {
+    Path directory = Files.createTempDirectory("ocra-cli-list-invalid");
+    Path database = directory.resolve("store.db");
+
+    try {
+      seedInvalidOcraRecord(database);
+
+      harness.reset();
+      int exit = harness.execute("--database", database.toAbsolutePath().toString(), "list");
+
+      assertEquals(CommandLine.ExitCode.USAGE, exit);
+      String stderr = harness.stderr();
+      assertTrue(stderr.contains("event=cli.ocra.list"));
+      assertTrue(stderr.contains("reasonCode=validation_error"));
+      assertTrue(stderr.contains("sanitized=true"));
+    } finally {
+      deleteRecursively(directory);
+    }
+  }
+
+  @Test
+  @DisplayName("list command surfaces unexpected exceptions")
+  void listCommandHandlesUnexpectedError() throws Exception {
+    Path directory = Files.createTempDirectory("ocra-cli-list-unexpected");
+    Path database = directory.resolve("store.db");
+
+    try {
+      harness.reset();
+      int importExit =
+          harness.execute(
+              "--database",
+              database.toAbsolutePath().toString(),
+              "import",
+              "--credential-id",
+              "omega",
+              "--suite",
+              DEFAULT_SUITE,
+              "--secret",
+              DEFAULT_SECRET_HEX);
+
+      assertEquals(CommandLine.ExitCode.OK, importExit, harness.stderr());
+
+      OcraCli.ListCommand listCommand = listCommand();
+      Object previous = replacePersistenceAdapter(listCommand, null);
+
+      try {
+        harness.reset();
+        int exit = harness.execute("--database", database.toAbsolutePath().toString(), "list");
+
+        assertEquals(CommandLine.ExitCode.SOFTWARE, exit);
+        String stderr = harness.stderr();
+        assertTrue(stderr.contains("event=cli.ocra.list"));
+        assertTrue(stderr.contains("reasonCode=unexpected_error"));
+        assertTrue(stderr.contains("sanitized=false"));
+      } finally {
+        replacePersistenceAdapter(listCommand, previous);
+      }
+    } finally {
+      deleteRecursively(directory);
+    }
+  }
+
+  @Test
+  @DisplayName("delete command treats illegal database path as validation error")
+  void deleteCommandHandlesIllegalDatabasePath() throws Exception {
+    harness.reset();
+    OcraCli parent = harness.parent();
+    Path original = replaceDatabase(parent, null);
+    Path illegalPath = illegalDatabasePath();
+
+    try {
+      replaceDatabase(parent, illegalPath);
+      int exit = harness.execute("delete", "--credential-id", "alpha");
+
+      assertEquals(CommandLine.ExitCode.USAGE, exit);
+      String stderr = harness.stderr();
+      assertTrue(stderr.contains("event=cli.ocra.delete"));
+      assertTrue(stderr.contains("reasonCode=validation_error"));
+      assertTrue(stderr.contains("sanitized=true"));
+    } finally {
+      replaceDatabase(parent, original);
+    }
+  }
+
+  @Test
+  @DisplayName("delete command surfaces unexpected errors when store creation fails")
+  void deleteCommandHandlesUnexpectedStoreError() throws Exception {
+    harness.reset();
+    OcraCli parent = harness.parent();
+    Path parentFile = Files.createTempFile("ocra-cli-delete", ".tmp");
+    Path database = parentFile.resolve("store.db");
+    Path original = replaceDatabase(parent, null);
+
+    try {
+      replaceDatabase(parent, database);
+      int exit = harness.execute("delete", "--credential-id", "zeta");
+
+      assertEquals(CommandLine.ExitCode.SOFTWARE, exit);
+      String stderr = harness.stderr();
+      assertTrue(stderr.contains("event=cli.ocra.delete"));
+      assertTrue(stderr.contains("reasonCode=unexpected_error"));
+      assertTrue(stderr.contains("sanitized=false"));
+    } finally {
+      replaceDatabase(parent, original);
+      Files.deleteIfExists(parentFile);
+    }
+  }
+
   private static final class TestCommand extends OcraCli.AbstractOcraCommand {
     @Override
     public Integer call() {
@@ -291,5 +407,90 @@ final class OcraCliErrorHandlingTest {
       stdout.reset();
       stderr.reset();
     }
+
+    CommandLine commandLine() {
+      return commandLine;
+    }
+  }
+
+  private OcraCli.ListCommand listCommand() {
+    return (OcraCli.ListCommand) harness.commandLine().getSubcommands().get("list").getCommand();
+  }
+
+  private static Object replacePersistenceAdapter(OcraCli.AbstractOcraCommand command, Object value)
+      throws Exception {
+    var field = OcraCli.AbstractOcraCommand.class.getDeclaredField("persistenceAdapter");
+    field.setAccessible(true);
+    Object previous = field.get(command);
+    field.set(command, value);
+    return previous;
+  }
+
+  private static Path replaceDatabase(OcraCli cli, Path path) throws Exception {
+    var field = OcraCli.class.getDeclaredField("database");
+    field.setAccessible(true);
+    Path previous = (Path) field.get(cli);
+    field.set(cli, path);
+    return previous;
+  }
+
+  private static void seedInvalidOcraRecord(Path database) throws Exception {
+    try (MapDbCredentialStore store = MapDbCredentialStore.file(database).open()) {
+      Map<String, String> attributes = new HashMap<>();
+      attributes.put(OcraCredentialPersistenceAdapter.ATTR_SUITE, DEFAULT_SUITE);
+      attributes.put(OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX, "value");
+      store.save(
+          Credential.create(
+              "invalid",
+              CredentialType.OATH_OCRA,
+              SecretMaterial.fromHex(DEFAULT_SECRET_HEX),
+              attributes));
+    }
+  }
+
+  private static void deleteRecursively(Path directory) throws Exception {
+    if (!Files.exists(directory)) {
+      return;
+    }
+    Files.walk(directory)
+        .sorted((a, b) -> b.compareTo(a))
+        .forEach(
+            path -> {
+              try {
+                Files.deleteIfExists(path);
+              } catch (Exception ignored) {
+                // best-effort cleanup
+              }
+            });
+  }
+
+  private static Path illegalDatabasePath() {
+    InvocationHandler handler =
+        (proxy, method, args) -> {
+          String name = method.getName();
+          return switch (name) {
+            case "toAbsolutePath" -> throw new IllegalArgumentException("database path invalid");
+            case "toString" -> "invalid-path";
+            case "getFileSystem" -> FileSystems.getDefault();
+            case "compareTo" -> 0;
+            case "iterator" -> List.<Path>of().iterator();
+            case "normalize",
+                "toRealPath",
+                "getParent",
+                "getRoot",
+                "subpath",
+                "relativize",
+                "resolve",
+                "resolveSibling" ->
+                proxy;
+            case "equals" -> proxy == args[0];
+            case "hashCode" -> System.identityHashCode(proxy);
+            default ->
+                throw new UnsupportedOperationException(
+                    "Unsupported Path method: " + method.getName());
+          };
+        };
+    return (Path)
+        Proxy.newProxyInstance(Path.class.getClassLoader(), new Class<?>[] {Path.class}, handler);
   }
 }

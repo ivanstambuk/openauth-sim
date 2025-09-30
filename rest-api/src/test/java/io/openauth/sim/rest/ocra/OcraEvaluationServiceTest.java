@@ -427,6 +427,146 @@ class OcraEvaluationServiceTest {
     telemetry.assertValidationFailure("pin_hash_required");
   }
 
+  @Test
+  @DisplayName("credential conflict surfaces credential_conflict reason")
+  void credentialConflictFailure() {
+    RecordingTelemetry telemetry = new RecordingTelemetry();
+    OcraEvaluationService service =
+        new OcraEvaluationService(telemetry, provider(FIXED_CLOCK), provider(null));
+
+    OcraEvaluationRequest request =
+        new OcraEvaluationRequest(
+            "stored-token",
+            DEFAULT_SUITE,
+            DEFAULT_SECRET_HEX,
+            DEFAULT_CHALLENGE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+    OcraEvaluationValidationException exception =
+        assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
+
+    assertEquals("request", exception.field());
+    assertEquals("credential_conflict", exception.reasonCode());
+    telemetry.assertValidationFailure("credential_conflict");
+  }
+
+  @Test
+  @DisplayName("missing credential inputs surface credential_missing reason")
+  void credentialMissingFailure() {
+    RecordingTelemetry telemetry = new RecordingTelemetry();
+    OcraEvaluationService service =
+        new OcraEvaluationService(telemetry, provider(FIXED_CLOCK), provider(null));
+
+    OcraEvaluationRequest request =
+        new OcraEvaluationRequest(
+            "  ", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null);
+
+    OcraEvaluationValidationException exception =
+        assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
+
+    assertEquals("request", exception.field());
+    assertEquals("credential_missing", exception.reasonCode());
+    telemetry.assertValidationFailure("credential_missing");
+  }
+
+  @Test
+  @DisplayName("credential store absence surfaces credential_not_found")
+  void credentialStoreMissingFailure() {
+    RecordingTelemetry telemetry = new RecordingTelemetry();
+    OcraEvaluationService service =
+        new OcraEvaluationService(telemetry, provider(FIXED_CLOCK), provider(null));
+
+    OcraEvaluationRequest request =
+        new OcraEvaluationRequest(
+            "stored-token", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null);
+
+    OcraEvaluationValidationException exception =
+        assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
+
+    assertEquals("credentialId", exception.field());
+    assertEquals("credential_not_found", exception.reasonCode());
+    telemetry.assertValidationFailure("credential_not_found");
+  }
+
+  @Test
+  @DisplayName("inline suite omission surfaces missing_required for suite")
+  void inlineSuiteMissingFailure() {
+    RecordingTelemetry telemetry = new RecordingTelemetry();
+    OcraEvaluationService service =
+        new OcraEvaluationService(telemetry, provider(FIXED_CLOCK), provider(null));
+
+    OcraEvaluationRequest request =
+        new OcraEvaluationRequest(
+            null, "  ", DEFAULT_SECRET_HEX, DEFAULT_CHALLENGE, null, null, null, null, null, null);
+
+    OcraEvaluationValidationException exception =
+        assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
+
+    assertEquals("suite", exception.field());
+    assertEquals("missing_required", exception.reasonCode());
+    telemetry.assertValidationFailure("missing_required");
+  }
+
+  @Test
+  @DisplayName("timestamp with odd length surfaces invalid_hex_length")
+  void timestampInvalidLengthFailure() {
+    RecordingTelemetry telemetry = new RecordingTelemetry();
+    OcraEvaluationService service =
+        new OcraEvaluationService(telemetry, provider(FIXED_CLOCK), provider(null));
+
+    OcraEvaluationRequest request =
+        new OcraEvaluationRequest(
+            null,
+            "OCRA-1:HOTPT30SHA256-7:QN08",
+            DEFAULT_SECRET_HEX,
+            DEFAULT_CHALLENGE,
+            null,
+            null,
+            null,
+            null,
+            "ABC",
+            null);
+
+    OcraEvaluationValidationException exception =
+        assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
+
+    assertEquals("timestampHex", exception.field());
+    assertEquals("invalid_hex_length", exception.reasonCode());
+    telemetry.assertValidationFailure("invalid_hex_length");
+  }
+
+  @Test
+  @DisplayName("character format challenge is accepted for QC suites")
+  void characterFormatChallengeSucceeds() {
+    RecordingTelemetry telemetry = new RecordingTelemetry();
+    OcraEvaluationService service =
+        new OcraEvaluationService(telemetry, provider(FIXED_CLOCK), provider(null));
+
+    OcraEvaluationRequest request =
+        new OcraEvaluationRequest(
+            null,
+            "OCRA-1:HOTP-SHA1-6:QC08",
+            DEFAULT_SECRET_HEX,
+            "!@#$%^&*",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+    OcraEvaluationResponse response = service.evaluate(request);
+
+    assertEquals("OCRA-1:HOTP-SHA1-6:QC08", response.suite());
+    assertTrue(response.otp().length() > 0);
+    telemetry.assertSuccessRecorded();
+  }
+
   private static <T> ObjectProvider<T> provider(T instance) {
     return new SimpleObjectProvider<>(instance);
   }

@@ -41,8 +41,14 @@ Reference specification: `docs/4-architecture/specs/feature-008-ocra-quality-aut
 - Q122 – Expand Maintenance CLI coverage with failure telemetry/verbose flows to cover helper branches. ☑
 - Q123 – Extend `OcraEvaluationServiceTest` to trigger remaining `FailureDetails` mappings (session_not_permitted, timestamp_drift_exceeded, default sanitization). ☑
 - Q124 – Cover credential-reference flows in `OcraEvaluationServiceTest` (success + credential_not_found) to lift service branches. ☑
-- Q125 – Expand core OCRA parser/calculator tests to close remaining branch gaps (`OcraSuiteParser`, `OcraResponseCalculator`). ☐
-- Q126 – Raise CLI facade branches (`OcraCli`, `AbstractOcraCommand`, launcher) with direct helper tests and failure injection. ☐
+- Q125 – Expand core OCRA parser/calculator tests to close remaining branch gaps (`OcraSuiteParser`, `OcraResponseCalculator`). ☑
+- Q126 – Raise CLI facade branches (`OcraCli`, `AbstractOcraCommand`, launcher) with direct helper tests and failure injection. ☑
+- Q127 – Extend CLI tests to exercise the `ocra` root command help branch, `emit` formatting edge cases, and `hasText`/`ensureParentDirectory` helpers. ☑
+- Q128 – Cover `OcraCli` list/delete failure branches (non-OCRA credential filtering, verbose metadata, exception paths). ☑
+- Q129 – Add REST DTO tests validating trim/null handling and defensive copies (`OcraEvaluationRequest`, `OcraEvaluationResponse`, `OcraEvaluationErrorResponse`). ☑
+- Q130 – Expand `OcraEvaluationServiceTest` to cover timestamp, challenge, and telemetry helper branches plus remaining `FailureDetails` mappings. ☑
+- Q131 – Re-run `./gradlew jacocoAggregatedReport` and record metrics once CLI/REST tests land. ☑
+- Q132 – Raise Jacoco minimums to 0.90/0.90, execute `./gradlew qualityGate` (with PIT), and close documentation updates for Q115. ☐
 
 ## Checklist Before Implementation
 - [x] Specification created with clarifications captured.
