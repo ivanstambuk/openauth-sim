@@ -817,8 +817,8 @@
           }
           var hasChallenge = Boolean(parsed.challenge);
           setRequestParameterState(challengeInput, hasChallenge);
-          setRequestParameterState(clientChallengeInput, hasChallenge);
-          setRequestParameterState(serverChallengeInput, hasChallenge);
+          setRequestParameterState(clientChallengeInput, Boolean(parsed.supportsSplitChallenge));
+          setRequestParameterState(serverChallengeInput, Boolean(parsed.supportsSplitChallenge));
           setRequestParameterState(counterInput, Boolean(parsed.counterRequired));
           setRequestParameterState(sessionInput, parsed.sessionLengthBytes > 0);
           setRequestParameterState(timestampInput, Boolean(parsed.timestampRequired));
@@ -872,6 +872,7 @@
             timestampStepSeconds: null,
             timestampRequired: false,
             requiresAdvanced: false,
+            supportsSplitChallenge: false,
           };
 
           var cryptoStep = extractTimeStepSeconds(cryptoPart);

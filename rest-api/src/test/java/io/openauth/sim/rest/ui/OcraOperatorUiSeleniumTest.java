@@ -249,6 +249,8 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(fieldValue("clientChallenge")).isBlank();
     assertThat(fieldValue("serverChallenge")).isBlank();
     assertThat(fieldValue("pinHashHex")).isBlank();
+    assertThat(isDisabled("clientChallenge")).isTrue();
+    assertThat(isDisabled("serverChallenge")).isTrue();
 
     WebElement advancedPanel =
         driver.findElement(By.cssSelector("[data-testid='ocra-advanced-panel']"));
@@ -329,6 +331,9 @@ final class OcraOperatorUiSeleniumTest {
     if (timestampDisabledExpected) {
       assertThat(fieldValue("timestampHex")).isBlank();
     }
+
+    assertThat(isDisabled("clientChallenge")).isTrue();
+    assertThat(isDisabled("serverChallenge")).isTrue();
   }
 
   @Test

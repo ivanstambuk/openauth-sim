@@ -121,6 +121,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-29 – R059: Embedded Appendix A/B reference code directly in the generator how-to, refreshed spec/tasks, and re-ran `./gradlew spotlessApply check` to confirm the documentation-only change passes gates.
 - 2025-09-29 – Clarification: Stored credential selection immediately disables and clears suite-inapplicable request parameters (Option A confirmed by user); spec/tasks updated accordingly.
 - 2025-09-29 – R061 delivery: Added MockMvc + Selenium coverage and client-side handler to disable/clear unsupported request parameters upon stored credential selection; build validated via `./gradlew spotlessApply check`.
+- 2025-09-29 – R073 delivery: Hardened stored credential parameter gating so split challenges stay disabled when suites only accept combined questions; updated Selenium coverage and reran `./gradlew spotlessApply check`.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

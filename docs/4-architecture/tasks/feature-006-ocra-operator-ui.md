@@ -65,5 +65,6 @@ _Last updated: 2025-09-29_
 | R070 | Remove redundant OCRA-1 helper text from templates, rerun checks | UI-OCRA-002, UI-NFR-001 | ✅ |
 | R071 | Add failing Selenium assertion covering compact session checkbox styling | UI-OCRA-002, UI-NFR-001 | ✅ |
 | R072 | Implement compact session checkbox styling, rerun `./gradlew spotlessApply check` | UI-OCRA-002, UI-NFR-001 | ✅ |
+| R073 | Ensure stored credential selection disables split challenge inputs when suites only support combined challenges | UI-OCRA-009, UI-OCRA-005 | ✅ |
 
 Update this checklist as work progresses.
