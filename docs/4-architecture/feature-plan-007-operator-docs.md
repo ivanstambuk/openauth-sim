@@ -1,6 +1,6 @@
 # Feature Plan 007 – Operator-Facing Documentation Suite
 
-_Status: Draft_
+_Status: Complete_
 _Last updated: 2025-09-30_
 
 ## Objective
@@ -17,11 +17,11 @@ Reference specification: `docs/4-architecture/specs/feature-007-operator-docs.md
 
 ## Proposed Increments
 - D071 – Align specification & clarifications, capture open questions, and prepare doc outline notes. ✅ 2025-09-30
-- D072 – Draft Java operator integration guide (structure, prerequisites, runnable examples); add failing TODO placeholders if coverage gaps remain. ☐
-- D073 – Author CLI operations guide documenting all commands; include sample outputs and troubleshooting notes. ☐
-- D074 – Replace the REST evaluation how-to with a comprehensive REST operations guide covering all endpoints and Swagger UI usage. ☐
-- D075 – Update `README.md` to reflect current capabilities, add the Swagger UI link, and remove future-work placeholders. ☐
-- D076 – Sync roadmap/knowledge map references and ensure cross-document links are updated. ☐
+- D072 – Draft Java operator integration guide (structure, prerequisites, runnable examples); add failing TODO placeholders if coverage gaps remain. ✅ 2025-09-30
+- D073 – Author CLI operations guide documenting all commands; include sample outputs and troubleshooting notes. ✅ 2025-09-30
+- D074 – Replace the REST evaluation how-to with a comprehensive REST operations guide covering all endpoints and Swagger UI usage. ✅ 2025-09-30
+- D075 – Update `README.md` to reflect current capabilities, add the Swagger UI link, and remove future-work placeholders. ✅ 2025-09-30
+- D076 – Sync roadmap/knowledge map references and ensure cross-document links are updated. ✅ 2025-09-30
 
 ## Checklist Before Implementation
 - [x] Specification created with clarified scope and requirements.
