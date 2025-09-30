@@ -494,6 +494,25 @@ class OcraEvaluationServiceTest {
   }
 
   @Test
+  @DisplayName("unexpected runtime errors record telemetry and propagate")
+  void unexpectedErrorRecordsTelemetry() {
+    RecordingTelemetry telemetry = new RecordingTelemetry();
+    CredentialStore failingStore = new FailingCredentialStore();
+    OcraEvaluationService service =
+        new OcraEvaluationService(telemetry, provider(FIXED_CLOCK), provider(failingStore));
+
+    OcraEvaluationRequest request =
+        new OcraEvaluationRequest(
+            "stored-token", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null);
+
+    IllegalStateException exception =
+        assertThrows(IllegalStateException.class, () -> service.evaluate(request));
+
+    assertEquals("store offline", exception.getMessage());
+    telemetry.assertErrorRecorded("unexpected_error", false);
+  }
+
+  @Test
   @DisplayName("inline suite omission surfaces missing_required for suite")
   void inlineSuiteMissingFailure() {
     RecordingTelemetry telemetry = new RecordingTelemetry();
@@ -663,6 +682,8 @@ class OcraEvaluationServiceTest {
     private final List<String> reasonCodes = new ArrayList<>();
     private boolean successRecorded;
     private boolean errorRecorded;
+    private String lastErrorReasonCode;
+    private boolean lastErrorSanitized;
 
     @Override
     void recordValidationFailure(
@@ -710,6 +731,8 @@ class OcraEvaluationServiceTest {
         boolean sanitized,
         long durationMillis) {
       errorRecorded = true;
+      lastErrorReasonCode = reasonCode;
+      lastErrorSanitized = sanitized;
     }
 
     void assertValidationFailure(String expectedReasonCode) {
@@ -720,6 +743,40 @@ class OcraEvaluationServiceTest {
     void assertSuccessRecorded() {
       assertTrue(successRecorded, "Expected success telemetry to be recorded");
       assertFalse(errorRecorded, "Success telemetry should not co-occur with error telemetry");
+    }
+
+    void assertErrorRecorded(String expectedReasonCode, boolean expectedSanitized) {
+      assertTrue(errorRecorded, "Expected error telemetry to be recorded");
+      assertEquals(expectedReasonCode, lastErrorReasonCode);
+      assertEquals(expectedSanitized, lastErrorSanitized);
+    }
+  }
+
+  private static final class FailingCredentialStore implements CredentialStore {
+
+    @Override
+    public void save(Credential credential) {
+      throw new UnsupportedOperationException("save not supported");
+    }
+
+    @Override
+    public Optional<Credential> findByName(String name) {
+      throw new IllegalStateException("store offline");
+    }
+
+    @Override
+    public List<Credential> findAll() {
+      return List.of();
+    }
+
+    @Override
+    public boolean delete(String name) {
+      return false;
+    }
+
+    @Override
+    public void close() {
+      // no-op
     }
   }
 }
