@@ -38,7 +38,7 @@ _Last updated: 2025-09-30_
 | Q122 | Exercise `MaintenanceCli` failure/verbose flows to close helper gaps | QA-OCRA-003 | ✅ |
 | Q123 | Expand `OcraEvaluationServiceTest` for remaining `FailureDetails` mappings | QA-OCRA-003 | ✅ |
 | Q124 | Add credential-reference coverage for `OcraEvaluationService` success/failure flows | QA-OCRA-003 | ✅ |
-| Q125 | Broaden parser/calculator tests covering outstanding OCRA branches | QA-OCRA-003 | ☐ |
-| Q126 | Add CLI helper tests (`AbstractOcraCommand`, launcher) to close branch gaps | QA-OCRA-003 | ☐ |
+| Q125 | Add failing core tests for parser/calculator edge cases (challenge validation, session/session padding, timestamp fallback) | QA-OCRA-003 | ✅ |
+| Q126 | Add CLI helper tests covering launcher exit + error telemetry (`AbstractOcraCommand`, import failure) | QA-OCRA-003 | ✅ |
 
 Update this checklist as work progresses.
