@@ -12,7 +12,7 @@ _Last updated: 2025-09-30_
 | ID | Task | Related Requirements | Status |
 |----|------|----------------------|--------|
 | Q101 | Complete analysis gate prep (checklist, knowledge map alignment, roadmap note) | QA-OCRA-001–QA-OCRA-006 | ✅ |
-| Q102 | Add failing ArchUnit tests expressing module boundary expectations | QA-OCRA-001 | ☐ |
+| Q102 | Add failing ArchUnit tests expressing module boundary expectations | QA-OCRA-001 | ✅ |
 | Q103 | Implement/enforce ArchUnit rules and integrate with Gradle build | QA-OCRA-001, QA-OCRA-004 | ☐ |
 | Q104 | Configure Jacoco aggregation with ≥90% thresholds and add failing verification task | QA-OCRA-003, QA-OCRA-004 | ☐ |
 | Q105 | Wire PIT mutation testing with ≥85% threshold and failing guard | QA-OCRA-002, QA-OCRA-004 | ☐ |

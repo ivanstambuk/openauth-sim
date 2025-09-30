@@ -52,6 +52,7 @@ Analysis gate run 2025-09-30 – tooling readiness note recorded below.
 Document the outcome and proceed only once all boxes are checked.
 
 ## Notes
+- 2025-09-30 – Q102: Added `core-architecture-tests` Gradle module hosting cross-module ArchUnit checks; `./gradlew :core-architecture-tests:test` (PASS, 8s, configuration cache reused) now guards facade/persistence boundaries.
 - Consider PIT incremental modes and target filters to keep runtime under 10 minutes.
 - Evaluate existing GitHub Actions caching (Gradle + PIT) to mitigate CI duration.
 - When documenting thresholds, include rationale so future adjustments remain auditable.
