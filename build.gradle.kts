@@ -71,6 +71,8 @@ val pitTargets = mapOf(
     ":core" to listOf("io.openauth.sim.core.credentials.ocra.*")
 )
 
+val pitSkip = providers.gradleProperty("pit.skip").map(String::toBoolean).getOrElse(false)
+
 subprojects {
     apply(plugin = "java")
     apply(plugin = "jacoco")
@@ -301,7 +303,17 @@ val jacocoCoverageVerification = tasks.register<JacocoCoverageVerification>("jac
 val mutationTest = tasks.register("mutationTest") {
     group = LifecycleBasePlugin.VERIFICATION_GROUP
     description = "Runs PIT mutation tests across OCRA modules"
-    dependsOn(pitTargets.keys.map { path -> project(path).tasks.named("pitest") })
+    if (pitSkip) {
+        doFirst { logger.lifecycle("Skipping mutation tests (pit.skip=true)") }
+    } else {
+        dependsOn(pitTargets.keys.map { path -> project(path).tasks.named("pitest") })
+    }
+}
+
+val qualityGate = tasks.register("qualityGate") {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Runs the full quality automation gate"
+    dependsOn("spotlessCheck", "check")
 }
 
 tasks.named("check") {
