@@ -1,11 +1,15 @@
 package io.openauth.sim.cli;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.security.Permission;
+import java.io.InputStream;
+import java.lang.management.ManagementFactory;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
 
@@ -27,99 +31,46 @@ class OcraCliLauncherTest {
 
   @Test
   void mainDoesNotExitProcessWhenExitCodeZero() {
-    SecurityManager original = System.getSecurityManager();
-    FailOnExitSecurityManager manager = new FailOnExitSecurityManager(original);
-    System.setSecurityManager(manager);
-    try {
-      OcraCliLauncher.main(new String[] {"--help"});
-      assertFalse(manager.exitCalled);
-    } finally {
-      System.setSecurityManager(original);
-    }
+    assertDoesNotThrow(() -> OcraCliLauncher.main(new String[] {"--help"}));
   }
 
   @Test
-  void mainExitsProcessWhenExitCodeNonZero() {
-    SecurityManager original = System.getSecurityManager();
-    CapturingSecurityManager manager = new CapturingSecurityManager(original);
-    System.setSecurityManager(manager);
-    try {
-      CapturingSecurityManager.ExitCalled thrown =
-          assertThrows(
-              CapturingSecurityManager.ExitCalled.class,
-              () -> OcraCliLauncher.main(new String[] {"import"}));
-      assertEquals(CommandLine.ExitCode.USAGE, thrown.status());
+  void mainExitsProcessWhenExitCodeNonZero() throws Exception {
+    List<String> command = new ArrayList<>();
+    command.add(javaCommand());
+    String agent = jacocoAgentArgument();
+    if (agent != null) {
+      command.add(agent);
+    }
+    command.add("-cp");
+    command.add(System.getProperty("java.class.path"));
+    command.add(OcraCliLauncher.class.getName());
+    command.add("import");
+
+    Process process = new ProcessBuilder().command(command).redirectErrorStream(true).start();
+
+    try (InputStream stdout = process.getInputStream()) {
+      int status = process.waitFor();
+      byte[] bodyBytes = stdout.readAllBytes();
+      String body = new String(bodyBytes, StandardCharsets.UTF_8);
+      assertEquals(CommandLine.ExitCode.USAGE, status, () -> body);
     } finally {
-      System.setSecurityManager(original);
+      if (process.isAlive()) {
+        process.destroyForcibly();
+      }
     }
   }
 
-  private static final class FailOnExitSecurityManager extends SecurityManager {
-    private final SecurityManager delegate;
-    private boolean exitCalled;
-
-    private FailOnExitSecurityManager(SecurityManager delegate) {
-      this.delegate = delegate;
-    }
-
-    @Override
-    public void checkPermission(Permission perm) {
-      if (delegate != null) {
-        delegate.checkPermission(perm);
-      }
-    }
-
-    @Override
-    public void checkPermission(Permission perm, Object context) {
-      if (delegate != null) {
-        delegate.checkPermission(perm, context);
-      }
-    }
-
-    @Override
-    public void checkExit(int status) {
-      exitCalled = true;
-      throw new SecurityException("System.exit called unexpectedly");
-    }
+  private static String javaCommand() {
+    Path javaBin = Path.of(System.getProperty("java.home"), "bin", "java");
+    return javaBin.toString();
   }
 
-  private static final class CapturingSecurityManager extends SecurityManager {
-    private final SecurityManager delegate;
-
-    private CapturingSecurityManager(SecurityManager delegate) {
-      this.delegate = delegate;
-    }
-
-    @Override
-    public void checkPermission(Permission perm) {
-      if (delegate != null) {
-        delegate.checkPermission(perm);
-      }
-    }
-
-    @Override
-    public void checkPermission(Permission perm, Object context) {
-      if (delegate != null) {
-        delegate.checkPermission(perm, context);
-      }
-    }
-
-    @Override
-    public void checkExit(int status) {
-      throw new ExitCalled(status);
-    }
-
-    private static final class ExitCalled extends SecurityException {
-      private final int status;
-
-      private ExitCalled(int status) {
-        super("System.exit(" + status + ") called");
-        this.status = status;
-      }
-
-      int status() {
-        return status;
-      }
-    }
+  private static String jacocoAgentArgument() {
+    return ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
+        .filter(arg -> arg.startsWith("-javaagent:"))
+        .filter(arg -> arg.contains("jacocoagent"))
+        .findFirst()
+        .orElse(null);
   }
 }
