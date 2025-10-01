@@ -23,6 +23,7 @@ Gradle will fail fast if any underlying task fails; check the task section of th
 - **Mutation score below 85%:** open `core/build/reports/pitest/index.html` and review surviving mutants. Strengthen tests or refine helper utilities. Avoid relying on `-Ppit.skip=true` to bypass legitimate failures.
 - **Runtime considerations:** use Gradle’s configuration cache (already enabled) and keep daemons warm. For CI, caching is handled by `actions/setup-java` with Gradle caching enabled.
 - **Flaky PIT timeouts:** rerun with `./gradlew --info mutationTest` to capture detailed minion logs. Consider raising timeouts via `PIT_TIMEOUT_FACTOR` (settable with `-Dpit.timeoutFactor=…`) if you encounter legitimate long-running scenarios.
+- **Seeding legacy maintenance fixtures:** CLI tests use the system property `openauth.sim.persistence.skip-upgrade=true` to suppress automatic MapDB migrations when exercising historical records. Leave this unset (the default) for normal runs so production code continues upgrading persisted data on start.
 
 ## CI Integration
 GitHub Actions runs `./gradlew --no-daemon qualityGate` on every push and pull request (`ci.yml`). Mutations must **not** be skipped in CI; ensure the repository builds cleanly without `-Ppit.skip=true` before pushing.

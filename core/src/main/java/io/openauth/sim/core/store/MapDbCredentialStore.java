@@ -34,6 +34,7 @@ public final class MapDbCredentialStore implements CredentialStore {
   private static final String ENCRYPTION_METADATA_PREFIX = "encryption.";
   private static final String ENCRYPTION_FLAG_KEY = ENCRYPTION_METADATA_PREFIX + "status";
   private static final String ENCRYPTION_FLAG_VALUE = "ENABLED";
+  private static final String SKIP_UPGRADE_PROPERTY = "openauth.sim.persistence.skip-upgrade";
 
   static {
     TELEMETRY_LOGGER.setLevel(Level.FINE);
@@ -59,7 +60,9 @@ public final class MapDbCredentialStore implements CredentialStore {
     this.migrations = migrations;
     this.storeProfile = storeProfile;
     this.encryption = encryption;
-    upgradePersistedRecords();
+    if (!Boolean.getBoolean(SKIP_UPGRADE_PROPERTY)) {
+      upgradePersistedRecords();
+    }
   }
 
   public static Builder file(Path databasePath) {

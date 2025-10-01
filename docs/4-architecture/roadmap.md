@@ -39,6 +39,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 - [ ] Draft specification and feature plan for the selected post-Feature 009 workstream before implementation begins.
 - [ ] Capture ADRs for crypto design decisions (key formats, hashing algorithms, etc.).
 - [ ] Identify specification links for inclusion in docs once network lookups are permitted.
+- [x] Produce Maintenance CLI coverage hotspot analysis (Feature 012) to safeguard the ≥0.90 Jacoco buffer for Maintenance CLI. Completed 2025-10-01.
 - [x] Bootstrap architecture knowledge map in `docs/4-architecture/knowledge-map.md`.
 - [x] Publish OCRA capability matrix and telemetry contract in `docs/1-concepts` (T014).
 

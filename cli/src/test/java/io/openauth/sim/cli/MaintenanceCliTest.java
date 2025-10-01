@@ -11,15 +11,21 @@ import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator.OcraExecutionContext;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretEncoding;
+import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.MapDbCredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.core.store.testing.MapDbMaintenanceFixtures;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.PrintStream;
+import java.lang.management.ManagementFactory;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,6 +58,34 @@ class MaintenanceCliTest {
 
     assertEquals(1, exitCode);
     assertTrue(harness.err().contains("usage:"), harness.err());
+  }
+
+  @Test
+  @DisplayName("main exits process when run returns non-zero")
+  void mainExitsProcessWhenRunFails() throws Exception {
+    List<String> command = new ArrayList<>();
+    command.add(javaCommand());
+    String agent = jacocoAgentArgument();
+    if (agent != null) {
+      command.add(agent);
+    }
+    command.add("-cp");
+    command.add(System.getProperty("java.class.path"));
+    command.add(MaintenanceCli.class.getName());
+    command.add("compact");
+
+    Process process = new ProcessBuilder().command(command).redirectErrorStream(true).start();
+
+    try (InputStream stdout = process.getInputStream()) {
+      int status = process.waitFor();
+      String body = new String(stdout.readAllBytes(), StandardCharsets.UTF_8);
+      assertEquals(1, status, () -> body);
+      assertTrue(body.contains("--database=<path> is required"), body);
+    } finally {
+      if (process.isAlive()) {
+        process.destroyForcibly();
+      }
+    }
   }
 
   @Test
@@ -232,6 +266,46 @@ class MaintenanceCliTest {
   }
 
   @Test
+  @DisplayName("compact command handles relative database path without parent directory")
+  void compactCommandHandlesRelativeDatabasePath() throws Exception {
+    Path workingDir = Files.createTempDirectory("maintenance-cli-relative");
+    Path database = workingDir.resolve("store.db");
+
+    importCredential(database, "relative-compact");
+
+    List<String> command = new ArrayList<>();
+    command.add(javaCommand());
+    String agent = jacocoAgentArgument();
+    if (agent != null) {
+      command.add(agent);
+    }
+    command.add("-cp");
+    command.add(System.getProperty("java.class.path"));
+    command.add(MaintenanceCli.class.getName());
+    command.add("compact");
+    command.add("--database=store.db");
+
+    Process process =
+        new ProcessBuilder()
+            .command(command)
+            .directory(workingDir.toFile())
+            .redirectErrorStream(true)
+            .start();
+
+    try (InputStream stdout = process.getInputStream()) {
+      int status = process.waitFor();
+      String body = new String(stdout.readAllBytes(), StandardCharsets.UTF_8);
+      assertEquals(0, status, () -> body);
+      assertTrue(body.contains("operation=COMPACTION"), body);
+    } finally {
+      if (process.isAlive()) {
+        process.destroyForcibly();
+      }
+      deleteRecursively(workingDir);
+    }
+  }
+
+  @Test
   @DisplayName("ocra command surfaces validation failures")
   void ocraCommandReportsValidationFailures() {
     MaintenanceCli cli = new MaintenanceCli();
@@ -279,6 +353,18 @@ class MaintenanceCliTest {
   }
 
   @Test
+  @DisplayName("ocra command handles short help flag")
+  void ocraCommandHandlesShortHelp() {
+    MaintenanceCli cli = new MaintenanceCli();
+    OutputHarness harness = OutputHarness.create();
+
+    int exitCode = cli.run(new String[] {"ocra", "-h"}, harness.out, harness.err);
+
+    assertEquals(1, exitCode);
+    assertTrue(harness.err().contains("usage:"), harness.err());
+  }
+
+  @Test
   @DisplayName("ocra command rejects unknown options")
   void ocraCommandRejectsUnknownOption() {
     MaintenanceCli cli = new MaintenanceCli();
@@ -316,6 +402,38 @@ class MaintenanceCliTest {
 
     assertEquals(1, exitCode);
     assertTrue(harness.err().contains("counter must be a long value"), harness.err());
+  }
+
+  @Test
+  @DisplayName("ocra command rejects blank suite parameter")
+  void ocraCommandRejectsBlankSuite() {
+    MaintenanceCli cli = new MaintenanceCli();
+    OutputHarness harness = OutputHarness.create();
+
+    int exitCode =
+        cli.run(
+            new String[] {"ocra", "--suite=   ", "--key=" + DEFAULT_SECRET_HEX},
+            harness.out,
+            harness.err);
+
+    assertEquals(1, exitCode);
+    assertTrue(harness.err().contains("--suite=<ocra-suite> is required"), harness.err());
+  }
+
+  @Test
+  @DisplayName("ocra command rejects blank key parameter")
+  void ocraCommandRejectsBlankKey() {
+    MaintenanceCli cli = new MaintenanceCli();
+    OutputHarness harness = OutputHarness.create();
+
+    int exitCode =
+        cli.run(
+            new String[] {"ocra", "--suite=" + DEFAULT_SUITE, "--key=   "},
+            harness.out,
+            harness.err);
+
+    assertEquals(1, exitCode);
+    assertTrue(harness.err().contains("--key=<hex-shared-secret> is required"), harness.err());
   }
 
   @Test
@@ -427,6 +545,47 @@ class MaintenanceCliTest {
   }
 
   @Test
+  @DisplayName("verify command prints issues for legacy record migration failures")
+  void verifyCommandPrintsIssuesForLegacyMigrationFailure() throws Exception {
+    MaintenanceCli cli = new MaintenanceCli();
+    OutputHarness harness = OutputHarness.create();
+    Path tempDir = Files.createTempDirectory("maintenance-cli-legacy");
+    Path database = tempDir.resolve("store.db");
+
+    MapDbMaintenanceFixtures.writeLegacyOcraRecordMissingSuite(
+        database, "issue-fixture", SecretMaterial.fromHex(DEFAULT_SECRET_HEX));
+
+    String propertyKey = "openauth.sim.persistence.skip-upgrade";
+    String originalProperty = System.getProperty(propertyKey);
+    System.setProperty(propertyKey, "true");
+
+    try {
+      int exitCode =
+          cli.run(
+              new String[] {"verify", "--database=" + database.toAbsolutePath()},
+              harness.out,
+              harness.err);
+
+      String stdout = harness.out();
+      assertEquals(0, exitCode, harness.err());
+      assertTrue(stdout.contains("status=WARN"), stdout);
+      assertTrue(stdout.contains("issues=1"), stdout);
+      assertTrue(
+          stdout.contains(
+              "issue=issue-fixture:Legacy OCRA record missing required attribute 'suite'"),
+          stdout);
+      assertTrue(harness.err().isBlank(), harness.err());
+    } finally {
+      deleteRecursively(tempDir);
+      if (originalProperty == null) {
+        System.clearProperty(propertyKey);
+      } else {
+        System.setProperty(propertyKey, originalProperty);
+      }
+    }
+  }
+
+  @Test
   @DisplayName("main executes maintenance command without exiting on success")
   void mainExecutesMaintenanceCommand() throws Exception {
     Path tempDir = Files.createTempDirectory("maintenance-cli-main");
@@ -511,5 +670,41 @@ class MaintenanceCliTest {
                 }
               });
     }
+  }
+
+  @Test
+  @DisplayName("verify command reports failures for corrupted database")
+  void verifyCommandReportsFailuresForCorruptStore() throws Exception {
+    MaintenanceCli cli = new MaintenanceCli();
+    OutputHarness harness = OutputHarness.create();
+    Path tempDir = Files.createTempDirectory("maintenance-cli-corrupt");
+    Path database = tempDir.resolve("store.db");
+
+    Files.write(database, new byte[] {0x01, 0x23, 0x45});
+
+    int exitCode =
+        cli.run(
+            new String[] {"verify", "--database=" + database.toAbsolutePath()},
+            harness.out,
+            harness.err);
+
+    assertEquals(1, exitCode);
+    assertTrue(harness.err().contains("error: maintenance command failed"), harness.err());
+    assertTrue(harness.out().isBlank(), harness.out());
+
+    deleteRecursively(tempDir);
+  }
+
+  private static String javaCommand() {
+    Path javaBin = Path.of(System.getProperty("java.home"), "bin", "java");
+    return javaBin.toString();
+  }
+
+  private static String jacocoAgentArgument() {
+    return ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
+        .filter(arg -> arg.startsWith("-javaagent:"))
+        .filter(arg -> arg.contains("jacocoagent"))
+        .findFirst()
+        .orElse(null);
   }
 }
