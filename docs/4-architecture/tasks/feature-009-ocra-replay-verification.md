@@ -17,11 +17,11 @@ _Last updated: 2025-10-01_
 | R903 | Design CLI verification command (syntax, options, telemetry) | ORV-001, ORV-004, ORV-NFR-001 | ✅ (2025-10-01) |
 | R904 | Design REST verification endpoint (OpenAPI draft, error handling) | ORV-002, ORV-003, ORV-005 | ✅ (2025-10-01) |
 | R905 | Document telemetry schema updates for verification events | ORV-004, ORV-NFR-001 | ✅ (2025-10-01) |
-| R906 | Add failing core verification tests (success/failure, inline vs stored) | ORV-003–ORV-005 | ☐ |
-| R907 | Add failing CLI replay tests (success, strict mismatch, missing context) | ORV-001, ORV-003, ORV-005 | ☐ |
+| R906 | Add failing core verification tests (success/failure, inline vs stored) | ORV-003–ORV-005 | ✅ (2025-10-01) |
+| R907 | Add failing CLI replay tests (success, strict mismatch, missing context) | ORV-001, ORV-003, ORV-005 | ✅ (2025-10-01) |
 | R908 | Add failing REST replay tests (success, strict mismatch, validation errors) | ORV-002, ORV-003, ORV-005 | ☐ |
-| R909 | Implement core replay verification logic with strict matching | ORV-003–ORV-005, ORV-NFR-003 | ☐ |
-| R910 | Implement CLI verification command + telemetry | ORV-001, ORV-004, ORV-NFR-001 | ☐ |
+| R909 | Implement core replay verification logic with strict matching | ORV-003–ORV-005, ORV-NFR-003 | ✅ (2025-10-01) |
+| R910 | Implement CLI verification command + telemetry | ORV-001, ORV-004, ORV-NFR-001 | ✅ (2025-10-01) |
 | R911 | Implement REST verification endpoint + DTO validation | ORV-002, ORV-003, ORV-005 | ☐ |
 | R912 | Ensure telemetry/logging contains required audit fields | ORV-004, ORV-NFR-001 | ☐ |
 | R913 | Capture performance measurements and document results | ORV-NFR-002 | ☐ |

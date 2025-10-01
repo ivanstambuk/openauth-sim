@@ -4,6 +4,12 @@ import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
+import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier;
+import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraInlineVerificationRequest;
+import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraStoredVerificationRequest;
+import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationContext;
+import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationReason;
+import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationResult;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator.OcraExecutionContext;
 import io.openauth.sim.core.model.Credential;
@@ -37,7 +43,8 @@ import picocli.CommandLine;
       OcraCli.ImportCommand.class,
       OcraCli.ListCommand.class,
       OcraCli.DeleteCommand.class,
-      OcraCli.EvaluateCommand.class
+      OcraCli.EvaluateCommand.class,
+      OcraCli.VerifyCommand.class
     })
 public final class OcraCli implements Callable<Integer> {
 
@@ -532,6 +539,254 @@ public final class OcraCli implements Callable<Integer> {
       } catch (Exception ex) {
         return failUnexpected(event, ex.getMessage());
       }
+    }
+  }
+
+  @CommandLine.Command(name = "verify", description = "Verify a supplied OTP using OCRA.")
+  static final class VerifyCommand extends AbstractOcraCommand {
+
+    private static final int EXIT_STRICT_MISMATCH = 2;
+
+    @CommandLine.Option(
+        names = {"--credential-id"},
+        paramLabel = "<id>",
+        description = "Verify using a stored credential")
+    String credentialId;
+
+    @CommandLine.Option(
+        names = {"--suite"},
+        paramLabel = "<ocra-suite>",
+        description = "Suite to verify when not referencing a stored credential")
+    String suite;
+
+    @CommandLine.Option(
+        names = {"--secret"},
+        paramLabel = "<hex>",
+        description = "Shared secret material in hexadecimal for inline verification")
+    String sharedSecretHex;
+
+    @CommandLine.Option(
+        names = {"--otp"},
+        paramLabel = "<value>",
+        description = "OTP value supplied by the operator")
+    String otp;
+
+    @CommandLine.Option(
+        names = {"--challenge"},
+        paramLabel = "<value>",
+        description = "Challenge question input")
+    String challenge;
+
+    @CommandLine.Option(
+        names = {"--client-challenge"},
+        paramLabel = "<value>",
+        description = "Client-side component of a split challenge")
+    String clientChallenge;
+
+    @CommandLine.Option(
+        names = {"--server-challenge"},
+        paramLabel = "<value>",
+        description = "Server-side component of a split challenge")
+    String serverChallenge;
+
+    @CommandLine.Option(
+        names = {"--session"},
+        paramLabel = "<hex>",
+        description = "Session information payload for suite data inputs")
+    String session;
+
+    @CommandLine.Option(
+        names = {"--timestamp"},
+        paramLabel = "<hex>",
+        description = "Timestamp payload when required by the suite")
+    String timestamp;
+
+    @CommandLine.Option(
+        names = {"--counter"},
+        paramLabel = "<value>",
+        description = "Counter value to use when the suite has a counter input")
+    Long counter;
+
+    @CommandLine.Option(
+        names = {"--pin-hash"},
+        paramLabel = "<hex>",
+        description = "PIN hash material if required")
+    String pinHashHex;
+
+    @Override
+    public Integer call() {
+      String event = event("verify");
+
+      if (!hasText(otp)) {
+        return failValidation(event, "otp_missing", "otp is required for verification");
+      }
+
+      boolean hasCredential = hasText(credentialId);
+      boolean hasSecret = hasText(sharedSecretHex);
+
+      if (hasCredential && hasSecret) {
+        return failValidation(
+            event,
+            "credential_conflict",
+            "Provide either credentialId or sharedSecretHex, not both");
+      }
+      if (!hasCredential && !hasSecret) {
+        return failValidation(
+            event, "credential_missing", "credentialId or sharedSecretHex must be provided");
+      }
+
+      String normalizedOtp = otp.trim();
+      OcraVerificationContext context =
+          new OcraVerificationContext(
+              counter,
+              normalize(challenge),
+              normalize(session),
+              normalize(clientChallenge),
+              normalize(serverChallenge),
+              normalize(pinHashHex),
+              normalize(timestamp));
+
+      try {
+        if (hasCredential) {
+          String descriptorId = credentialId.trim();
+          try (MapDbCredentialStore store = openStore()) {
+            Optional<OcraCredentialDescriptor> descriptorOptional =
+                resolveDescriptor(store, descriptorId);
+            if (descriptorOptional.isEmpty()) {
+              return failValidation(
+                  event, "credential_not_found", "credentialId " + descriptorId + " not found");
+            }
+
+            OcraCredentialDescriptor descriptor = descriptorOptional.get();
+            Map<String, String> fields = new LinkedHashMap<>();
+            fields.put("credentialSource", "stored");
+            fields.put("credentialId", descriptor.name());
+            fields.put("suite", descriptor.suite().value());
+
+            Integer shortCircuit = ensureChallengeProvided(event, descriptor, context);
+            if (shortCircuit != null) {
+              return shortCircuit;
+            }
+
+            OcraReplayVerifier verifier = new OcraReplayVerifier(store);
+            OcraVerificationResult result =
+                verifier.verifyStored(
+                    new OcraStoredVerificationRequest(descriptor.name(), normalizedOtp, context));
+            return handleResult(event, result, fields);
+          }
+        }
+
+        // Inline verification path
+        if (!hasText(suite)) {
+          return failValidation(event, "suite_missing", "suite is required for inline mode");
+        }
+
+        String sanitizedSecret = sharedSecretHex.replace(" ", "").trim();
+        Map<String, String> metadata = Map.of("source", "cli-inline");
+        OcraCredentialDescriptor descriptor =
+            createDescriptor(
+                "cli-inline-" + Integer.toHexString(Objects.hash(suite.trim(), sanitizedSecret)),
+                suite.trim(),
+                sanitizedSecret,
+                counter,
+                normalize(pinHashHex),
+                null,
+                metadata);
+
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("credentialSource", "inline");
+        fields.put("suite", descriptor.suite().value());
+        fields.put("descriptor", descriptor.name());
+
+        Integer shortCircuit = ensureChallengeProvided(event, descriptor, context);
+        if (shortCircuit != null) {
+          return shortCircuit;
+        }
+
+        OcraReplayVerifier verifier = new OcraReplayVerifier(null);
+        OcraInlineVerificationRequest request =
+            new OcraInlineVerificationRequest(
+                descriptor.name(),
+                descriptor.suite().value(),
+                sanitizedSecret,
+                SecretEncoding.HEX,
+                normalizedOtp,
+                context,
+                descriptor.metadata());
+
+        OcraVerificationResult result = verifier.verifyInline(request);
+        return handleResult(event, result, fields);
+
+      } catch (IllegalArgumentException ex) {
+        return failValidation(event, "validation_error", ex.getMessage());
+      } catch (Exception ex) {
+        return failUnexpected(event, ex.getMessage());
+      }
+    }
+
+    private Integer ensureChallengeProvided(
+        String event, OcraCredentialDescriptor descriptor, OcraVerificationContext context) {
+      boolean requiresChallenge = descriptor.suite().dataInput().challengeQuestion().isPresent();
+      if (!requiresChallenge) {
+        return null;
+      }
+
+      if (hasText(context.challenge())
+          || hasText(context.clientChallenge())
+          || hasText(context.serverChallenge())) {
+        return null;
+      }
+
+      return failValidation(
+          event,
+          "validation_error",
+          "challengeQuestion required for suite: " + descriptor.suite().value());
+    }
+
+    private int handleResult(
+        String event, OcraVerificationResult result, Map<String, String> fields) {
+      String reasonCode = reasonCodeFor(result.reason());
+      return switch (result.status()) {
+        case MATCH -> {
+          emitSummary(event, "match", reasonCode, fields);
+          yield CommandLine.ExitCode.OK;
+        }
+        case MISMATCH -> {
+          emitSummary(event, "mismatch", reasonCode, fields);
+          yield EXIT_STRICT_MISMATCH;
+        }
+        case INVALID -> handleInvalid(event, result.reason(), fields);
+      };
+    }
+
+    private int handleInvalid(
+        String event, OcraVerificationReason reason, Map<String, String> fields) {
+      return switch (reason) {
+        case VALIDATION_FAILURE ->
+            failValidation(event, "validation_error", "Verification inputs failed validation");
+        case CREDENTIAL_NOT_FOUND ->
+            failValidation(event, "credential_not_found", "credentialId not found");
+        case UNEXPECTED_ERROR -> failUnexpected(event, "Unexpected error during verification");
+        case MATCH, STRICT_MISMATCH -> failUnexpected(event, "Unexpected verification state");
+      };
+    }
+
+    private static String reasonCodeFor(OcraVerificationReason reason) {
+      return switch (reason) {
+        case MATCH -> "match";
+        case STRICT_MISMATCH -> "strict_mismatch";
+        case VALIDATION_FAILURE -> "validation_error";
+        case CREDENTIAL_NOT_FOUND -> "credential_not_found";
+        case UNEXPECTED_ERROR -> "unexpected_error";
+      };
+    }
+
+    private static String normalize(String value) {
+      if (value == null) {
+        return null;
+      }
+      String trimmed = value.trim();
+      return trimmed.isEmpty() ? null : trimmed;
     }
   }
 }

@@ -276,6 +276,19 @@ class MaintenanceCliTest {
   }
 
   @Test
+  @DisplayName("ocra command requires shared secret parameter")
+  void ocraCommandRequiresKey() {
+    MaintenanceCli cli = new MaintenanceCli();
+    OutputHarness harness = OutputHarness.create();
+
+    int exitCode =
+        cli.run(new String[] {"ocra", "--suite=" + DEFAULT_SUITE}, harness.out, harness.err);
+
+    assertEquals(1, exitCode);
+    assertTrue(harness.err().contains("--key=<hex-shared-secret> is required"), harness.err());
+  }
+
+  @Test
   @DisplayName("ocra command handles help requests")
   void ocraCommandHandlesHelp() {
     MaintenanceCli cli = new MaintenanceCli();
@@ -285,6 +298,24 @@ class MaintenanceCliTest {
 
     assertEquals(1, exitCode);
     assertTrue(harness.err().contains("usage:"), harness.err());
+  }
+
+  @Test
+  @DisplayName("ocra command rejects unknown options")
+  void ocraCommandRejectsUnknownOption() {
+    MaintenanceCli cli = new MaintenanceCli();
+    OutputHarness harness = OutputHarness.create();
+
+    int exitCode =
+        cli.run(
+            new String[] {
+              "ocra", "--suite=" + DEFAULT_SUITE, "--key=" + DEFAULT_SECRET_HEX, "--flag"
+            },
+            harness.out,
+            harness.err);
+
+    assertEquals(1, exitCode);
+    assertTrue(harness.err().contains("unrecognised option"), harness.err());
   }
 
   @Test
@@ -310,6 +341,47 @@ class MaintenanceCliTest {
   }
 
   @Test
+  @DisplayName("ocra command trims optional inputs when blank")
+  @SuppressWarnings("unchecked")
+  void ocraCommandTrimsOptionalInputs() throws Exception {
+    MaintenanceCli cli = new MaintenanceCli();
+    OutputHarness harness = OutputHarness.create();
+
+    String[] args = {
+      "ocra",
+      "--suite=" + DEFAULT_SUITE,
+      "--key=" + DEFAULT_SECRET_HEX,
+      "--challenge=   ",
+      "--session=   ",
+      "--client=   ",
+      "--server=   ",
+      "--pin=   ",
+      "--timestamp=   "
+    };
+
+    var method =
+        MaintenanceCli.class.getDeclaredMethod(
+            "parseOcraArguments", String[].class, PrintStream.class);
+    method.setAccessible(true);
+
+    Object parsed = method.invoke(cli, new Object[] {args, harness.err});
+
+    Method challengeMethod = parsed.getClass().getDeclaredMethod("challenge");
+    Method sessionMethod = parsed.getClass().getDeclaredMethod("sessionInformation");
+    Method clientMethod = parsed.getClass().getDeclaredMethod("clientChallenge");
+    Method serverMethod = parsed.getClass().getDeclaredMethod("serverChallenge");
+    Method pinMethod = parsed.getClass().getDeclaredMethod("pinHashHex");
+    Method timestampMethod = parsed.getClass().getDeclaredMethod("timestampHex");
+
+    assertTrue(((Optional<String>) challengeMethod.invoke(parsed)).isEmpty());
+    assertTrue(((Optional<String>) sessionMethod.invoke(parsed)).isEmpty());
+    assertTrue(((Optional<String>) clientMethod.invoke(parsed)).isEmpty());
+    assertTrue(((Optional<String>) serverMethod.invoke(parsed)).isEmpty());
+    assertTrue(((Optional<String>) pinMethod.invoke(parsed)).isEmpty());
+    assertTrue(((Optional<String>) timestampMethod.invoke(parsed)).isEmpty());
+  }
+
+  @Test
   @DisplayName("verify command reports status for populated database")
   void verifyCommandReportsStatus() throws Exception {
     MaintenanceCli cli = new MaintenanceCli();
@@ -330,6 +402,62 @@ class MaintenanceCliTest {
     assertTrue(stdout.contains("operation=INTEGRITY_CHECK"), stdout);
     assertTrue(stdout.contains("status="), stdout);
 
+    deleteRecursively(tempDir);
+  }
+
+  @Test
+  @DisplayName("verify command requires database path")
+  void verifyCommandRequiresDatabase() {
+    MaintenanceCli cli = new MaintenanceCli();
+    OutputHarness harness = OutputHarness.create();
+
+    int exitCode = cli.run(new String[] {"verify"}, harness.out, harness.err);
+
+    assertEquals(1, exitCode);
+    assertTrue(harness.err().contains("--database=<path> is required"), harness.err());
+  }
+
+  @Test
+  @DisplayName("verify command rejects unknown options")
+  void verifyCommandRejectsUnknownOptions() {
+    MaintenanceCli cli = new MaintenanceCli();
+    OutputHarness harness = OutputHarness.create();
+
+    int exitCode =
+        cli.run(
+            new String[] {"verify", "--database=/tmp/cli.db", "--flag"}, harness.out, harness.err);
+
+    assertEquals(1, exitCode);
+    assertTrue(harness.err().contains("unrecognised option"), harness.err());
+  }
+
+  @Test
+  @DisplayName("compact command handles help requests")
+  void compactCommandHandlesHelp() {
+    MaintenanceCli cli = new MaintenanceCli();
+    OutputHarness harness = OutputHarness.create();
+
+    int exitCode = cli.run(new String[] {"compact", "--help"}, harness.out, harness.err);
+
+    assertEquals(1, exitCode);
+    assertTrue(harness.err().contains("usage:"), harness.err());
+  }
+
+  @Test
+  @DisplayName("verify command supports short database flag")
+  void verifyCommandSupportsShortDatabaseFlag() throws Exception {
+    MaintenanceCli cli = new MaintenanceCli();
+    OutputHarness harness = OutputHarness.create();
+    Path tempDir = Files.createTempDirectory("maintenance-cli-verify-short");
+    Path database = tempDir.resolve("store.db");
+
+    importCredential(database, "short-verify");
+
+    int exitCode =
+        cli.run(
+            new String[] {"verify", "-d=" + database.toAbsolutePath()}, harness.out, harness.err);
+
+    assertEquals(0, exitCode, harness.err());
     deleteRecursively(tempDir);
   }
 
