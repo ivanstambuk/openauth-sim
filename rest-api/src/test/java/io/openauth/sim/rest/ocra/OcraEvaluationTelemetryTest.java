@@ -36,6 +36,20 @@ class OcraEvaluationTelemetryTest {
     telemetry.recordValidationFailure(
         "telemetry", "suite", true, true, false, false, false, false, "reason", null, true, 5L);
 
+    telemetry.recordValidationFailure(
+        "telemetry-blank",
+        "suite",
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        "reason",
+        "   ",
+        true,
+        4L);
+
     telemetry.recordError(
         "telemetry",
         "suite",

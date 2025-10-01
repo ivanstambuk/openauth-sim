@@ -680,6 +680,37 @@ class OcraEvaluationServiceTest {
   }
 
   @Test
+  @DisplayName("normalized request handles null values")
+  void normalizedRequestHandlesNullValues() throws Exception {
+    OcraEvaluationRequest raw =
+        new OcraEvaluationRequest(null, null, null, null, null, null, null, null, null, null);
+
+    Object normalized = invokeNormalizedRequestFrom(raw);
+    assertEquals(null, invokeNormalizedAccessor(normalized, "credentialId"));
+    assertEquals(null, invokeNormalizedAccessor(normalized, "suite"));
+    assertEquals(null, invokeNormalizedAccessor(normalized, "sharedSecretHex"));
+    assertEquals(null, invokeNormalizedAccessor(normalized, "challenge"));
+    assertEquals(null, invokeNormalizedAccessor(normalized, "sessionHex"));
+    assertEquals(null, invokeNormalizedAccessor(normalized, "clientChallenge"));
+    assertEquals(null, invokeNormalizedAccessor(normalized, "serverChallenge"));
+    assertEquals(null, invokeNormalizedAccessor(normalized, "pinHashHex"));
+    assertEquals(null, invokeNormalizedAccessor(normalized, "timestampHex"));
+  }
+
+  @Test
+  @DisplayName("hex character predicate recognises valid ranges")
+  void isHexCharacterCoverage() throws Exception {
+    java.lang.reflect.Method method =
+        OcraEvaluationService.class.getDeclaredMethod("isHexCharacter", int.class);
+    method.setAccessible(true);
+
+    assertTrue((boolean) method.invoke(null, (int) '0'));
+    assertTrue((boolean) method.invoke(null, (int) 'A'));
+    assertTrue((boolean) method.invoke(null, (int) 'f'));
+    assertFalse((boolean) method.invoke(null, (int) 'g'));
+  }
+
+  @Test
   @DisplayName("failure details map timestamp drift and invalid inputs")
   void failureDetailsTimestampMappings() throws Exception {
     Object driftExceeded =

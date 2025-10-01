@@ -117,6 +117,40 @@ final class OcraReplayVerifierTest {
   }
 
   @Test
+  @DisplayName("inline verification accepts null metadata and still matches")
+  void inlineVerificationAllowsNullMetadata() {
+    OcraRfc6287VectorFixtures.OneWayVector vector =
+        OcraRfc6287VectorFixtures.standardChallengeQuestionVectors().get(1);
+
+    OcraReplayVerifier verifier = new OcraReplayVerifier(null);
+
+    OcraVerificationContext context =
+        new OcraVerificationContext(
+            vector.counter(),
+            vector.question(),
+            vector.sessionInformation(),
+            null,
+            null,
+            vector.pinHashHex(),
+            vector.timestampHex());
+
+    OcraInlineVerificationRequest request =
+        new OcraInlineVerificationRequest(
+            "inline-null-metadata",
+            vector.ocraSuite(),
+            vector.sharedSecretHex(),
+            SecretEncoding.HEX,
+            vector.expectedOtp(),
+            context,
+            null);
+
+    OcraVerificationResult result = verifier.verifyInline(request);
+
+    assertEquals(OcraVerificationStatus.MATCH, result.status());
+    assertEquals(OcraVerificationReason.MATCH, result.reason());
+  }
+
+  @Test
   @DisplayName("strict mismatch returned when supplied counter differs from stored descriptor")
   void storedCredentialStrictMismatchWhenCounterDiffers() {
     OcraRfc6287VectorFixtures.OneWayVector vector =
@@ -237,6 +271,57 @@ final class OcraReplayVerifierTest {
 
     assertEquals(OcraVerificationStatus.INVALID, result.status());
     assertEquals(OcraVerificationReason.VALIDATION_FAILURE, result.reason());
+  }
+
+  @Test
+  @DisplayName("stored verification surfaces unexpected errors from persistence layer")
+  void storedVerificationUnexpectedError() {
+    OcraRfc6287VectorFixtures.OneWayVector vector =
+        OcraRfc6287VectorFixtures.counterAndPinVectors().get(0);
+
+    OcraCredentialDescriptor descriptor =
+        FACTORY.createDescriptor(
+            new OcraCredentialRequest(
+                "unexpected-store",
+                vector.ocraSuite(),
+                vector.sharedSecretHex(),
+                SecretEncoding.HEX,
+                vector.counter(),
+                vector.pinHashHex(),
+                null,
+                Map.of("source", "test")));
+
+    Credential valid = toCredential(descriptor);
+
+    Map<String, String> corruptedAttributes = new HashMap<>(valid.attributes());
+    corruptedAttributes.put(OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX + "source", null);
+    Credential corrupted =
+        new Credential(
+            valid.name(),
+            valid.type(),
+            valid.secret(),
+            corruptedAttributes,
+            valid.createdAt(),
+            valid.updatedAt());
+
+    OcraReplayVerifier verifier = new OcraReplayVerifier(new SingleCredentialStore(corrupted));
+
+    OcraVerificationContext context =
+        new OcraVerificationContext(
+            vector.counter(),
+            vector.question(),
+            vector.sessionInformation(),
+            null,
+            null,
+            vector.pinHashHex(),
+            vector.timestampHex());
+
+    OcraVerificationResult result =
+        verifier.verifyStored(
+            new OcraStoredVerificationRequest("unexpected-store", vector.expectedOtp(), context));
+
+    assertEquals(OcraVerificationStatus.INVALID, result.status());
+    assertEquals(OcraVerificationReason.UNEXPECTED_ERROR, result.reason());
   }
 
   @Test
@@ -401,6 +486,39 @@ final class OcraReplayVerifierTest {
     @Override
     public boolean delete(String name) {
       return false;
+    }
+
+    @Override
+    public void close() {
+      // no-op
+    }
+  }
+
+  private static final class SingleCredentialStore implements CredentialStore {
+    private final Credential credential;
+
+    private SingleCredentialStore(Credential credential) {
+      this.credential = credential;
+    }
+
+    @Override
+    public void save(Credential credential) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Optional<Credential> findByName(String name) {
+      return Optional.of(credential);
+    }
+
+    @Override
+    public List<Credential> findAll() {
+      return List.of(credential);
+    }
+
+    @Override
+    public boolean delete(String name) {
+      throw new UnsupportedOperationException();
     }
 
     @Override

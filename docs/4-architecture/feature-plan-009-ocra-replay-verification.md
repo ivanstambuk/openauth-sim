@@ -24,15 +24,16 @@ Reference specification: `docs/4-architecture/specs/feature-009-ocra-replay-veri
 - R905 – Identify telemetry fields and logging strategy for verification; add to docs. ☑ (2025-10-01 – telemetry schema captured in spec)
 - R906 – Add failing core verification tests (stored vs inline, strict mismatch, immutability). ☑ (2025-10-01)
 - R907 – Add failing CLI verification tests (stored success, inline success, strict mismatch, missing context). ☑ (2025-10-01)
-- R908 – Add failing CLI integration tests covering success/failure scenarios. ☐
-- R909 – Add failing REST integration tests (controller + service) covering success/failure. ☐
-- R910 – Implement core verification logic ensuring immutability and strict matching. ☑ (2025-10-01)
-- R911 – Implement CLI command wiring and telemetry. ☑ (2025-10-01)
-- R912 – Implement REST endpoint, DTOs, and validation. ☐
-- R913 – Ensure telemetry/logging includes required audit fields; update docs. ☐
-- R914 – Add performance benchmark or documented measurements for P95 targets. ☐
-- R915 – Update docs/how-to guides describing replay usage and audit interpretation. ☐
-- R916 – Run `./gradlew qualityGate`, capture metrics, and record closure notes. ☐
+- R908 – Add failing REST integration tests (controller and service) covering success, strict mismatch, and validation errors. ☑ (2025-10-01 – tests failing pending endpoint implementation)
+- R909 – Implement core verification logic ensuring immutability and strict matching. ☑ (2025-10-01)
+- R910 – Implement CLI command wiring and telemetry. ☑ (2025-10-01)
+- R911 – Implement REST verification endpoint, DTOs, and validation. ☑ (2025-10-01)
+- R912 – Ensure telemetry/logging includes required audit fields and aligned documentation. ☑ (2025-10-01)
+- R913 – Capture performance benchmark or documented measurements for P95 targets. ☐
+- R914 – Update docs/how-to guides describing replay usage and audit interpretation. ☐
+- R915 – Run `./gradlew qualityGate`, capture metrics, and record closure notes. ☐
+- R916 – Extend REST verification tests to cover inline timestamp validation and stored credential race handling. ✅
+- R917 – Increase CLI verification launcher and telemetry coverage to raise aggregated Jacoco branches. ✅
 
 ## Checklist Before Implementation
 - [x] Specification clarifications resolved (see Clarifications section).
@@ -47,7 +48,7 @@ Checklist executed per `docs/5-operations/analysis-gate-checklist.md`.
 
 - Specification complete with objectives, requirements, clarifications (ORV-001–ORV-005, ORV-NFR-001–NFR-003).
 - Open questions log contains no Feature 009 entries.
-- Plan/Tasks cross-reference specification and maintain ≤10 minute, test-first increments (R901–R916).
+- Plan/Tasks cross-reference specification and maintain ≤10 minute, test-first increments (R901–R915).
 - Work respects constitution guardrails (spec-first, clarification gate, test-first, documentation sync, dependency control).
 - Tooling readiness documented (`./gradlew qualityGate`, module tasks, PIT skip guidance).
 No blockers identified; proceed to design increments R903–R905.
@@ -64,7 +65,13 @@ No blockers identified; proceed to design increments R903–R905.
 - 2025-10-01 – R905 complete: telemetry events (`cli.ocra.verify`, `rest.ocra.verify`, `core.ocra.verify`) documented with hashing strategy for OTP/context payloads.
 - 2025-10-01 – R906 added failing core tests covering stored vs inline verification success, strict mismatch detection, and persistence immutability; build currently red awaiting implementation.
 - 2025-10-01 – R907 added CLI integration tests for `ocra verify` covering stored/inline matches, strict mismatch exit code, and missing context validation; command not yet implemented so tests fail (exit 64/usage currently).
-- 2025-10-01 – R910 implemented `OcraReplayVerifier` descriptor resolution, inline construction, and OTP comparison (strict mismatch, validation mapping). `./gradlew :core:test -Ppit.skip=true` green.
-- 2025-10-01 – R911 wired Picocli `ocra verify` through `OcraReplayVerifier`, emitting match/mismatch telemetry and expected exit codes; `./gradlew :cli:test -Ppit.skip=true` passes and overall `./gradlew check -Ppit.skip=true` now clears the branch coverage gate (≈0.902).
+- 2025-10-01 – R909 implemented `OcraReplayVerifier` descriptor resolution, inline construction, and OTP comparison (strict mismatch, validation mapping). `./gradlew :core:test -Ppit.skip=true` green.
+- 2025-10-01 – R910 wired Picocli `ocra verify` through `OcraReplayVerifier`, emitting match/mismatch telemetry and expected exit codes; `./gradlew :cli:test -Ppit.skip=true` passes and overall `./gradlew check -Ppit.skip=true` now clears the branch coverage gate (≈0.902).
+- 2025-10-01 – Clarified R912 scope remains telemetry/logging documentation (Option A); REST implementation continues under R911, keeping plan/tasks numbering aligned.
+- 2025-10-01 – R908 added REST controller integration tests + placeholder controller/service contracts; `./gradlew :rest-api:test -Ppit.skip=true` currently red (UnsupportedOperationException + OpenAPI snapshot) pending endpoint implementation.
+- 2025-10-01 – R911 implemented REST verification controller/service, regenerated OpenAPI snapshots via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.rest.OpenApiSnapshotTest -Ppit.skip=true`, and confirmed `./gradlew :rest-api:test -Ppit.skip=true` green; telemetry hashing/fingerprints queued for R912.
+- 2025-10-01 – R912 implemented verification telemetry hashing & audit context (`rest.ocra.verify` logger), added request context hashing, updated docs snapshot, and expanded test suite (`OcraVerificationServiceTest`/`OcraVerificationControllerTest`) to assert hashed OTP + context fingerprint coverage.
+- 2025-10-01 – R916 added to cover REST verification service edge cases (inline timestamp validation, stored credential race) for Jacoco branch coverage uplift.
+- 2025-10-01 – R917 covered CLI launcher main branch, CLI emit helper, telemetry blank-reason paths, and controller CSRF reuse, lifting aggregated branch coverage above the 0.90 threshold.
 
 Update this plan after each increment.

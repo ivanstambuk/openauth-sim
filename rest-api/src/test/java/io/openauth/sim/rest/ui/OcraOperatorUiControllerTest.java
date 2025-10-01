@@ -56,6 +56,24 @@ class OcraOperatorUiControllerTest {
   }
 
   @Test
+  @DisplayName("evaluationForm regenerates CSRF token when stored value blank")
+  void evaluationFormRegeneratesBlankToken() {
+    OcraEvaluationForm form = controller.formModel();
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    jakarta.servlet.http.HttpSession session = request.getSession(true);
+    assertNotNull(session);
+    session.setAttribute("ocra-ui-csrf-token", "   ");
+    ConcurrentModel model = new ConcurrentModel();
+
+    controller.evaluationForm(form, request, model);
+
+    String token = (String) model.getAttribute("csrfToken");
+    assertNotNull(token);
+    assertEquals(token, session.getAttribute("ocra-ui-csrf-token"));
+    assertTrue(token.trim().length() > 0);
+  }
+
+  @Test
   @DisplayName("evaluationForm wraps JSON errors in IllegalStateException")
   void evaluationFormWrapsJsonErrors() {
     OcraOperatorUiController failingController =

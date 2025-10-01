@@ -1,6 +1,7 @@
 package io.openauth.sim.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
@@ -831,6 +832,69 @@ class OcraCliTest {
     assertTrue(err.contains("event=cli.ocra.delete"));
     assertTrue(err.contains("reasonCode=validation_error"));
     assertTrue(err.contains("sanitized=true"));
+  }
+
+  @Test
+  @DisplayName("delete command surfaces unexpected error when store initialization fails")
+  void deleteCommandHandlesUnexpectedError() throws Exception {
+    Path tempFile = Files.createTempFile("ocra-cli-delete", ".tmp");
+    Path database = tempFile.resolve("store.db");
+
+    OcraCli cli = new OcraCli();
+    CommandLine commandLine = new CommandLine(cli);
+
+    ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+    ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+    commandLine.setOut(new PrintWriter(stdout, true, StandardCharsets.UTF_8));
+    commandLine.setErr(new PrintWriter(stderr, true, StandardCharsets.UTF_8));
+
+    setDatabase(cli, database);
+
+    int exitCode = commandLine.execute("delete", "--credential-id", "gamma");
+
+    assertEquals(CommandLine.ExitCode.SOFTWARE, exitCode);
+    String err = stderr.toString(StandardCharsets.UTF_8);
+    assertTrue(err.contains("event=cli.ocra.delete"));
+    assertTrue(err.contains("status=error"));
+    assertTrue(err.contains("reasonCode=unexpected_error"));
+
+    Files.deleteIfExists(tempFile);
+  }
+
+  @Test
+  @DisplayName("emit helper omits blank fields and reason code when absent")
+  void emitHelperOmitsBlankFields() throws Exception {
+    OcraCli cli = new OcraCli();
+    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    PrintWriter writer = new PrintWriter(buffer, true, StandardCharsets.UTF_8);
+
+    java.lang.reflect.Method emit =
+        OcraCli.class.getDeclaredMethod(
+            "emit",
+            PrintWriter.class,
+            String.class,
+            String.class,
+            String.class,
+            boolean.class,
+            Map.class);
+    emit.setAccessible(true);
+
+    emit.invoke(
+        cli,
+        writer,
+        "cli.ocra.test",
+        "success",
+        null,
+        true,
+        Map.of("field", "value", "blank", "   "));
+
+    String output = buffer.toString(StandardCharsets.UTF_8);
+    assertTrue(output.contains("event=cli.ocra.test"));
+    assertTrue(output.contains("status=success"));
+    assertTrue(output.contains("sanitized=true"));
+    assertTrue(output.contains("field=value"));
+    assertFalse(output.contains("blank="));
+    assertFalse(output.contains("reasonCode="));
   }
 
   private static String extractField(String output, String field) {

@@ -9,109 +9,128 @@ import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.CredentialStore;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 
 class OcraCredentialDirectoryControllerTest {
 
   @Test
-  @DisplayName("listCredentials returns empty list when store unavailable")
+  @DisplayName("returns empty list when credential store unavailable")
   void listCredentialsWithoutStore() {
     OcraCredentialDirectoryController controller =
-        new OcraCredentialDirectoryController(emptyProvider());
+        new OcraCredentialDirectoryController(provider(null));
 
-    List<OcraCredentialSummary> result = controller.listCredentials();
+    List<OcraCredentialSummary> summaries = controller.listCredentials();
 
-    assertTrue(result.isEmpty());
+    assertTrue(summaries.isEmpty());
   }
 
   @Test
-  @DisplayName("listCredentials sorts summaries and includes suite labels")
-  void listCredentialsReturnsSortedSummaries() {
-    InMemoryCredentialStore store = new InMemoryCredentialStore();
-    store.saveCredential(
-        credential(
-            "beta",
-            Map.of(OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:QA08")));
-    store.saveCredential(
-        credential(
-            "alpha",
-            Map.of(OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA256-6:QA08-S064")));
-    store.saveCredential(credential("gamma", Map.of("non.ocra", "ignored")));
+  @DisplayName("filters to OCRA credentials and sorts summaries")
+  void listCredentialsFiltersAndSorts() {
+    Credential ocraA = credential("Beta", "OCRA-1:HOTP-SHA1-6:QA08");
+    Credential generic =
+        new Credential(
+            "Ignored",
+            CredentialType.GENERIC,
+            SecretMaterial.fromHex("313233343536"),
+            Map.of(),
+            Instant.now(),
+            Instant.now());
+    Credential ocraB = credential("alpha", null);
 
+    FixedCredentialStore store = new FixedCredentialStore(List.of(ocraA, generic, ocraB));
     OcraCredentialDirectoryController controller =
         new OcraCredentialDirectoryController(provider(store));
 
-    List<OcraCredentialSummary> result = controller.listCredentials();
+    List<OcraCredentialSummary> summaries = controller.listCredentials();
 
-    assertEquals(3, result.size());
-    assertEquals("alpha", result.get(0).getId());
-    assertEquals("alpha (OCRA-1:HOTP-SHA256-6:QA08-S064)", result.get(0).getLabel());
-    assertEquals("beta", result.get(1).getId());
-    assertEquals("beta (OCRA-1:HOTP-SHA1-6:QA08)", result.get(1).getLabel());
-    assertEquals("gamma", result.get(2).getId());
-    assertEquals("gamma", result.get(2).getLabel());
+    assertEquals(2, summaries.size());
+    assertEquals("alpha", summaries.get(0).getId());
+    assertEquals("alpha", summaries.get(0).getLabel());
+    assertEquals("Beta", summaries.get(1).getId());
+    assertEquals("Beta (OCRA-1:HOTP-SHA1-6:QA08)", summaries.get(1).getLabel());
   }
 
-  private static Credential credential(String name, Map<String, String> attributes) {
+  private Credential credential(String name, String suite) {
+    Map<String, String> attributes =
+        suite == null ? Map.of() : Map.of(OcraCredentialPersistenceAdapter.ATTR_SUITE, suite);
     return new Credential(
         name,
         CredentialType.OATH_OCRA,
-        SecretMaterial.fromHex("31323334"),
+        SecretMaterial.fromHex("3132333435363738"),
         attributes,
-        Instant.parse("2025-09-30T12:00:00Z"),
-        Instant.parse("2025-09-30T12:00:00Z"));
+        Instant.now(),
+        Instant.now());
   }
 
   private static ObjectProvider<CredentialStore> provider(CredentialStore store) {
-    DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
-    factory.registerSingleton("credentialStore", store);
-    factory.registerResolvableDependency(CredentialStore.class, store);
-    return factory.getBeanProvider(CredentialStore.class);
+    return new ObjectProvider<>() {
+      @Override
+      public CredentialStore getObject(Object... args) {
+        return store;
+      }
+
+      @Override
+      public CredentialStore getObject() {
+        return store;
+      }
+
+      @Override
+      public CredentialStore getIfAvailable() {
+        return store;
+      }
+
+      @Override
+      public CredentialStore getIfUnique() {
+        return store;
+      }
+
+      @Override
+      public java.util.stream.Stream<CredentialStore> stream() {
+        return store == null ? java.util.stream.Stream.empty() : java.util.stream.Stream.of(store);
+      }
+
+      @Override
+      public java.util.stream.Stream<CredentialStore> orderedStream() {
+        return stream();
+      }
+    };
   }
 
-  private static ObjectProvider<CredentialStore> emptyProvider() {
-    DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
-    return factory.getBeanProvider(CredentialStore.class);
-  }
+  private static final class FixedCredentialStore implements CredentialStore {
+    private final List<Credential> credentials;
 
-  private static final class InMemoryCredentialStore implements CredentialStore {
-
-    private final List<Credential> credentials = new ArrayList<>();
+    private FixedCredentialStore(List<Credential> credentials) {
+      this.credentials = List.copyOf(credentials);
+    }
 
     @Override
     public void save(Credential credential) {
-      credentials.add(credential);
-    }
-
-    void saveCredential(Credential credential) {
-      credentials.add(credential);
-    }
-
-    @Override
-    public Optional<Credential> findByName(String name) {
-      return credentials.stream().filter(c -> c.name().equals(name)).findFirst();
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public List<Credential> findAll() {
-      return new ArrayList<>(credentials);
+      return credentials;
+    }
+
+    @Override
+    public java.util.Optional<Credential> findByName(String name) {
+      return credentials.stream().filter(c -> c.name().equals(name)).findFirst();
     }
 
     @Override
     public boolean delete(String name) {
-      return credentials.removeIf(c -> c.name().equals(name));
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public void close() {
-      credentials.clear();
+      // no-op
     }
   }
 }
