@@ -1,10 +1,10 @@
 # Feature 009 – OCRA Replay & Verification
 
-_Status: Draft_
-_Last updated: 2025-10-01_
+ _Status: Complete_
+ _Last updated: 2025-10-01_
 
 ## Overview
-Establish replay and verification workflows that accept operator-supplied one-time passwords (OTPs) and validate them against stored or inline OCRA credentials to support non-repudiation scenarios. This feature focuses on verifying historical OTP submissions rather than regenerating new values, ensuring auditors can confirm whether a claimed OTP was valid under the original credential configuration.
+Establish replay and verification workflows that accept operator-supplied one-time passwords (OTPs) and validate them against stored or inline OCRA credentials to support non-repudiation scenarios. This feature focuses on verifying historical OTP submissions rather than regenerating new values, ensuring auditors can confirm whether a claimed OTP was valid under the original credential configuration. Implementation landed on 2025-10-01 alongside passing `./gradlew qualityGate` checks.
 
 ## Clarifications
 1. 2025-10-01 – Facade scope will cover the CLI and REST API only; operator UI will defer until a separate UX scope is prioritised (Option A).

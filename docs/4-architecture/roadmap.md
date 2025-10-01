@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-_Last updated: 2025-09-30_
+_Last updated: 2025-10-01_
 
 This roadmap tracks the major workstreams required to reach a feature-complete OpenAuth Simulator. Update this file whenever scope or status changes so future sessions can pick up without replaying prior conversations.
 
@@ -21,18 +21,20 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 5 | OCRA operator UI | Build an operator UI consuming the OCRA REST endpoint for manual operations | Complete | Spec: [Feature 006](specs/feature-006-ocra-operator-ui.md) closed after R075 validation on 2025-09-30; UI + REST/Selenium suites green via `rest-api:test` |
 | 6 | OCRA quality automation | Enforce OCRA-specific architecture boundaries, expand test/coverage checks, integrate CI badges | Complete | Spec: [Feature 008](specs/feature-008-ocra-quality-automation.md), Plan: [Feature Plan 008](feature-plan-008-ocra-quality-automation.md), Tasks: [Feature 008 Tasks](tasks/feature-008-ocra-quality-automation.md); Quality gate revalidated 2025-10-01 (Jacoco 97.05 % line / 90.24 % branch, PIT 91.83 %) |
 | 7 | OCRA specification alignment | Document OCRA references and compliance notes | Complete | Feature 007 (specs/feature-007-operator-docs.md) shipped Java/CLI/REST operator guides and synced README on 2025-09-30 |
-| 8 | OCRA replay & verification | Enable OCRA credential replay flows (OTP verification with supplied OTP + context) | Planning | Spec: [Feature 009](specs/feature-009-ocra-replay-verification.md), Plan: [Feature Plan 009](feature-plan-009-ocra-replay-verification.md), Tasks: [Feature 009 Tasks](tasks/feature-009-ocra-replay-verification.md); Clarification gate closed 2025-10-01, analysis gate pending |
+| 8 | OCRA replay & verification | Enable OCRA credential replay flows (OTP verification with supplied OTP + context) | Complete | Spec: [Feature 009](specs/feature-009-ocra-replay-verification.md), Plan: [Feature Plan 009](feature-plan-009-ocra-replay-verification.md), Tasks: [Feature 009 Tasks](tasks/feature-009-ocra-replay-verification.md); Delivered 2025-10-01 with `./gradlew qualityGate` closure (Jacoco 97.31 % line / 90.08 % branch, PIT 91 %) |
 | 9 | OCRA learning UI | Build a step-by-step UI that visualises OCRA algorithm execution for education | Not started | Requires REST/UI workstreams and instrumentation |
 
 ## Upcoming Milestones
 
 1. Spin up dedicated workstreams for non-OCRA credential protocols (CLI/REST/persistence) once scope is prioritised.
-2. Design replay/verification workflows (Workstream 8) once persistence hardening lands.
+2. Confirm the next high-priority facade effort (non-OCRA protocols vs Workstream 9 learning UI) through the clarification gate and update roadmap/scope documents.
 3. Prototype educational simulator UI flows (Workstream 9) to complement human operators.
 
 ## Action Items & Follow-ups
 
-- [ ] Create detailed feature plans for Workstreams 2–5 (Feature Plan 001 covers Workstream 1).
+- [x] Create detailed feature plans for Workstreams 2–5 (Feature Plan 001 covers Workstream 1). Completed 2025-09-30.
+- [ ] Confirm next priority (non-OCRA protocol expansion vs learning UI) via clarification gate and log outcomes in `docs/4-architecture/open-questions.md`.
+- [ ] Draft specification and feature plan for the selected post-Feature 009 workstream before implementation begins.
 - [ ] Capture ADRs for crypto design decisions (key formats, hashing algorithms, etc.).
 - [ ] Identify specification links for inclusion in docs once network lookups are permitted.
 - [x] Bootstrap architecture knowledge map in `docs/4-architecture/knowledge-map.md`.
