@@ -47,6 +47,7 @@ This living map captures the explicit relationships between modules, data flows,
 - REST facade now boots a MapDB-backed `CredentialStore` bean (path configurable via `openauth.sim.persistence.database-path`), enabling stored credential evaluations in both REST and UI flows.
 - How-to catalogue documents the Appendix B Java workflow for generating new OCRA test vectors, keeping domain/UI fixtures aligned with the draft reference implementation.
 - Operator documentation suite under `docs/2-how-to` now includes REST, CLI, and Java integration guides that point operators to shared MapDB defaults and Swagger UI entry points.
+- Planned OCRA replay & verification flows (Feature 009) will extend CLI and REST facades with strict OTP verification using stored or inline credentials while emitting hashed OTP telemetry for audit purposes; implementation pending analysis gate completion.
 
 ## Open Items
 | Date | Topic | Question | Status | Follow-up |
