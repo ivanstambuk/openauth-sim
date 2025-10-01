@@ -18,7 +18,7 @@ Reference specification: `docs/4-architecture/specs/feature-009-ocra-replay-veri
 
 ## Proposed Increments
 - R901 – Prime knowledge map and roadmap notes; ensure open questions cleared. ☑ (2025-10-01 – roadmap entry updated, knowledge map note added)
-- R902 – Run analysis gate checklist for Feature 009; record outcome here. ☐
+- R902 – Run analysis gate checklist for Feature 009; record outcome here. ☑ (2025-10-01 – analysis gate completed)
 - R903 – Draft CLI interface design (command syntax, options, telemetry mapping); capture in spec/plan addendum. ☐
 - R904 – Draft REST contract (request/response JSON, validation errors) and update OpenAPI doc. ☐
 - R905 – Identify telemetry fields and logging strategy for verification; add to docs. ☐
@@ -35,15 +35,22 @@ Reference specification: `docs/4-architecture/specs/feature-009-ocra-replay-veri
 - R916 – Run `./gradlew qualityGate`, capture metrics, and record closure notes. ☐
 
 ## Checklist Before Implementation
-- [ ] Specification clarifications resolved (see Clarifications section).
-- [ ] Open questions log clear for Feature 009.
-- [ ] Feature plan references correct specification and aligns success criteria.
-- [ ] Tasks map to functional requirements with ≤10 minute increments prioritising tests first.
-- [ ] Planned work respects constitution principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
-- [ ] Tooling readiness noted with expected commands (`./gradlew qualityGate`, module-specific tasks).
+- [x] Specification clarifications resolved (see Clarifications section).
+- [x] Open questions log clear for Feature 009.
+- [x] Feature plan references correct specification and aligns success criteria.
+- [x] Tasks map to functional requirements with ≤10 minute increments prioritising tests first.
+- [x] Planned work respects constitution principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
+- [x] Tooling readiness noted with expected commands (`./gradlew qualityGate`, module-specific tasks).
 
-## Analysis Gate (TBD)
-Pending completion of R901–R905. Record checklist results once complete.
+## Analysis Gate (2025-10-01)
+Checklist executed per `docs/5-operations/analysis-gate-checklist.md`.
+
+- Specification complete with objectives, requirements, clarifications (ORV-001–ORV-005, ORV-NFR-001–NFR-003).
+- Open questions log contains no Feature 009 entries.
+- Plan/Tasks cross-reference specification and maintain ≤10 minute, test-first increments (R901–R916).
+- Work respects constitution guardrails (spec-first, clarification gate, test-first, documentation sync, dependency control).
+- Tooling readiness documented (`./gradlew qualityGate`, module tasks, PIT skip guidance).
+No blockers identified; proceed to design increments R903–R905.
 
 ### Tooling Readiness – `./gradlew qualityGate`
 - Expected runtime: ~2 minutes with warm caches when PIT runs; `-Ppit.skip=true` available for local iteration.
