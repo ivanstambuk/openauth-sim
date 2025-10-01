@@ -7,6 +7,74 @@ servers:
 - url: "http://localhost"
   description: "Generated server url"
 paths:
+  /api/v1/ocra/verify:
+    post:
+      tags:
+      - "ocra-verification-controller"
+      summary: "Verify an OCRA OTP submission"
+      description: "Replays an OCRA execution with the supplied OTP and context to\
+        \ determine whether the OTP was valid for the referenced credential configuration."
+      operationId: "verify"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OcraVerificationRequest"
+        required: true
+      responses:
+        "422":
+          description: "Verification payload failed validation"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
+              examples:
+                Missing context:
+                  summary: "Validation failure"
+                  description: "Missing context"
+                  value:
+                    error: "invalid_input"
+                    message: "sessionHex is required"
+                    details:
+                      telemetryId: "rest-ocra-verify-<uuid>"
+                      status: "invalid"
+                      suite: "OCRA-1:HOTP-SHA256-8:QA08-S064"
+                      field: "sessionHex"
+                      reasonCode: "session_required"
+                      sanitized: "true"
+        "404":
+          description: "Credential not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
+        "200":
+          description: "Verification completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationResponse"
+              examples:
+                Match:
+                  summary: "Successful verification"
+                  description: "Match"
+                  value:
+                    status: "match"
+                    reasonCode: "match"
+                    metadata:
+                      credentialSource: "stored"
+                      suite: "OCRA-1:HOTP-SHA256-8:QA08-S064"
+                      otpLength: 8
+                      durationMillis: 11
+                      contextFingerprint: "Base64URL-Hash"
+                      telemetryId: "rest-ocra-verify-<uuid>"
+                      outcome: "match"
   /api/v1/ocra/evaluate:
     post:
       tags:
@@ -27,6 +95,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OcraEvaluationResponse"
+        "500":
+          description: "Unexpected server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
         "400":
           description: "Invalid request payload"
           content:
@@ -47,12 +121,6 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "500":
-          description: "Unexpected server error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
   /api/v1/ocra/credentials:
     get:
       tags:
@@ -69,6 +137,81 @@ paths:
                   $ref: "#/components/schemas/OcraCredentialSummary"
 components:
   schemas:
+    OcraVerificationContext:
+      type: "object"
+      properties:
+        challenge:
+          type: "string"
+        clientChallenge:
+          type: "string"
+        serverChallenge:
+          type: "string"
+        sessionHex:
+          type: "string"
+        timestampHex:
+          type: "string"
+        counter:
+          type: "integer"
+          format: "int64"
+        pinHashHex:
+          type: "string"
+    OcraVerificationInlineCredential:
+      type: "object"
+      properties:
+        suite:
+          type: "string"
+        sharedSecretHex:
+          type: "string"
+    OcraVerificationRequest:
+      type: "object"
+      properties:
+        otp:
+          type: "string"
+        credentialId:
+          type: "string"
+        inlineCredential:
+          $ref: "#/components/schemas/OcraVerificationInlineCredential"
+        context:
+          $ref: "#/components/schemas/OcraVerificationContext"
+    OcraVerificationErrorResponse:
+      type: "object"
+      properties:
+        error:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+    OcraVerificationMetadata:
+      type: "object"
+      properties:
+        credentialSource:
+          type: "string"
+        suite:
+          type: "string"
+        otpLength:
+          type: "integer"
+          format: "int32"
+        durationMillis:
+          type: "integer"
+          format: "int64"
+        contextFingerprint:
+          type: "string"
+        telemetryId:
+          type: "string"
+        outcome:
+          type: "string"
+    OcraVerificationResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        metadata:
+          $ref: "#/components/schemas/OcraVerificationMetadata"
     OcraEvaluationRequest:
       type: "object"
       properties:
