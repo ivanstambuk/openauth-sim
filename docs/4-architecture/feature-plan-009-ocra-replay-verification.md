@@ -30,7 +30,7 @@ Reference specification: `docs/4-architecture/specs/feature-009-ocra-replay-veri
 - R911 – Implement REST verification endpoint, DTOs, and validation. ☑ (2025-10-01)
 - R912 – Ensure telemetry/logging includes required audit fields and aligned documentation. ☑ (2025-10-01)
 - R913 – Capture performance benchmark or documented measurements for P95 targets. ☑ (2025-10-01 – stored P95 0.060 ms, inline P95 0.024 ms on WSL2 Linux host with OpenJDK 17.0.16; command: IO_OPENAUTH_SIM_BENCHMARK=true ./gradlew :core:test --tests io.openauth.sim.core.credentials.ocra.OcraReplayVerifierBenchmark --rerun-tasks --info)
-- R914 – Update docs/how-to guides describing replay usage and audit interpretation. ☐
+- R914 – Update docs/how-to guides describing replay usage and audit interpretation. ☑ (2025-10-01 – CLI/REST how-tos cover verification flows; benchmark how-to published for ORV-NFR-002 traceability)
 - R915 – Run `./gradlew qualityGate`, capture metrics, and record closure notes. ☐
 - R916 – Extend REST verification tests to cover inline timestamp validation and stored credential race handling. ✅
 - R917 – Increase CLI verification launcher and telemetry coverage to raise aggregated Jacoco branches. ✅
@@ -58,6 +58,7 @@ No blockers identified; proceed to design increments R903–R905.
 - Key tasks: `:core:test`, `:cli:test`, `:rest-api:test`, `mutationTest`, `jacocoAggregatedReport`, new replay tests, telemetry assertions.
 
 ## Notes
+- 2025-10-01 – Operator documentation refreshed: CLI/REST guides now include verification usage and audit guidance; added `docs/2-how-to/benchmark-ocra-verification.md` for running the latency harness.
 - 2025-10-01 – R913 benchmark environment confirmed (Option B): WSL2 Linux x86_64 on WSL2 host with OpenJDK 17.0.16; capture stored vs inline P95 latencies and log results here.
 - 2025-10-01 – R913 benchmark executed via IO_OPENAUTH_SIM_BENCHMARK=true ./gradlew :core:test --tests io.openauth.sim.core.credentials.ocra.OcraReplayVerifierBenchmark --rerun-tasks --info; stored credential P95 0.060 ms (max 2.698 ms), inline credential P95 0.024 ms (max 2.389 ms), comfortably below 150 ms/200 ms targets.
 - 2025-10-01 – Draft plan created; awaiting analysis gate completion before implementation begins.

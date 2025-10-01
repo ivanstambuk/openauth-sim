@@ -100,10 +100,65 @@ When validation fails (missing parameters, ambiguous input), the API returns HTT
 ```
 Use the telemetry ID to correlate with structured logs. Server errors (HTTP 500) return `error=internal_error` without leaking secrets.
 
-## 4. Navigate the Operator UI (`GET /ui/ocra`)
+## 4. Verify Historical OTPs (POST /api/v1/ocra/verify)
+Use this endpoint to replay operator-supplied OTPs against either stored or inline credentials. The service never mutates counters, so repeated calls are safe when investigating incidents.
+
+### 4.1 Stored credential mode
+Provide the previously issued OTP plus the full OCRA context used when it was generated.
+```bash
+curl -s \
+  -H "Content-Type: application/json" \
+  -d '{
+        "otp": "17477202",
+        "credentialId": "operator-demo",
+        "context": {
+          "challenge": "SESSION01",
+          "sessionHex": "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
+        }
+      }' \
+  http://localhost:8080/api/v1/ocra/verify | jq
+```
+`status="match"` confirms the OTP is legitimate.
+
+### 4.2 Inline secret mode
+Use this when the credential is not stored in MapDB.
+```bash
+curl -s \
+  -H "Content-Type: application/json" \
+  -d '{
+        "otp": "17477202",
+        "inlineCredential": {
+          "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+          "sharedSecretHex": "3132333435363738393031323334353637383930313233343536373839303132"
+        },
+        "context": {
+          "challenge": "SESSION01",
+          "sessionHex": "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
+        }
+      }' \
+  http://localhost:8080/api/v1/ocra/verify | jq
+```
+The response mirrors the stored path but reports `credentialSource="inline"` in telemetry.
+
+### 4.3 Interpreting responses
+- `status=match` / `reasonCode=match` – OTP replay succeeded (`200 OK`).
+- `status=mismatch` / `reasonCode=strict_mismatch` – the OTP or context differs from the recorded values (`200 OK`).
+- `status=invalid` / `reasonCode=validation_failure` – request failed validation (`422 Unprocessable Entity`).
+- `reasonCode=credential_not_found` – MapDB does not contain the requested ID (`404 Not Found`).
+
+Each response contains `metadata.durationMillis` so you can confirm latency stays under 150 ms (stored) or 200 ms (inline).
+
+### 4.4 Audit telemetry
+Verification emits `event=rest.ocra.verify` with hashed payloads (`otpHash`, `contextFingerprint`) and an explicit `credentialSource`. Capture the `telemetryId`, `reasonCode`, and `outcome` fields when filing audit reports. Sample log lines live in `docs/3-reference/rest-ocra-telemetry-snapshot.md`.
+
+### 4.5 Failure drills
+Issue a request with an intentionally altered counter, timestamp, or OTP to rehearse `strict_mismatch` handling. Terminate requests at the operator UI or CLI once the telemetry confirms the mismatch path is logged.
+
+
+## 5. Navigate the Operator UI (`GET /ui/ocra`)
 The REST service also hosts an operator UI that consumes the same endpoints via asynchronous fetch calls. Access it at `http://localhost:8080/ui/ocra` to validate JSON requests interactively before automating them in your tooling.
 
-## 5. Replay and Audit Workflows
+## 6. Replay and Audit Workflows
 - Reuse the same payload with updated challenges to rehearse replay handling. Counter/timestamp suites enforce their own drift rules and surface `reasonCode` hints when inputs are invalid.
 - Collect telemetry IDs from responses or application logs to attach to support tickets and monitoring dashboards.
 - Pair REST evaluations with database maintenance by running CLI commands (`maintenance compact`, `maintenance verify`) between test cycles.

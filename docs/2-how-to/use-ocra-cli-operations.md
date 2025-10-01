@@ -19,6 +19,7 @@ Warm up the CLI module once so dependencies compile:
 | `list` | Display sanitized credential summaries |
 | `delete` | Remove a credential descriptor |
 | `evaluate` | Generate an OTP using stored or inline credential data |
+| `verify` | Replay and validate an operator-supplied OTP without mutating counters |
 | `maintenance compact` | Run MapDB compaction to reclaim disk space |
 | `maintenance verify` | Run integrity checks against the MapDB store |
 
@@ -65,22 +66,57 @@ The output shows sanitized metadata (suite, creation time, optional counter snap
 ```
 Successful evaluations print the OTP and telemetry ID. If required parameters are missing, the CLI returns `reasonCode` values such as `session_required`, `counter_required`, or `credential_conflict`.
 
-## 4. Delete a Credential
+## 4. Verify Historical OTPs
+Replays confirm whether a supplied OTP matches what the simulator would have produced previously. The verifier never mutates counters or session state, so you can run it repeatedly for audits.
+
+### 4.1 Stored credential mode
+Use descriptors already persisted in MapDB. Provide the OTP plus the context originally used to generate it.
+```bash
+./gradlew :cli:runOcraCli --args="verify \
+  --credential-id operator-demo \
+  --otp 17477202 \
+  --challenge SESSION01 \
+  --session-hex 00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
+```
+Exit code `0` signals a match, while `2` indicates `reasonCode=strict_mismatch`. Missing or malformed context returns exit code `64` with `reasonCode=validation_failure`.
+
+### 4.2 Inline secret mode
+Supply the suite and secret directly when no stored credential exists.
+```bash
+./gradlew :cli:runOcraCli --args="verify \
+  --suite OCRA-1:HOTP-SHA256-8:QA08-S064 \
+  --secret 3132333435363738393031323334353637383930313233343536373839303132 \
+  --otp 17477202 \
+  --challenge SESSION01 \
+  --session-hex 00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
+```
+Inline verification shares exit codes with the stored path.
+
+### 4.3 Audit interpretation
+Every run emits `event=cli.ocra.verify` with hashed payloads (`otpHash`, `contextFingerprint`) so you can correlate findings without exposing secrets. Example lines live in `docs/3-reference/cli-ocra-telemetry-snapshot.md`. Capture the `telemetryId`, `credentialSource`, and `reasonCode` fields when recording audits—`match` confirms the OTP is legitimate, `strict_mismatch` proves an exact replay failed, and `validation_failure` means the operator-provided context was incomplete.
+
+### 4.4 Failure scenarios
+- Supply the wrong OTP to rehearse incident handling. The command exits with status `2` and prints `reasonCode=strict_mismatch`.
+- If both `--credential-id` and `--secret` are set, you receive `reasonCode=credential_conflict`.
+- Timestamp or counter drift is never corrected—re-submit with the precise historical values from your logs.
+
+
+## 5. Delete a Credential
 ```bash
 ./gradlew :cli:runOcraCli --args="delete --credential-id operator-demo"
 ```
 Successful deletions emit `reasonCode=deleted`. Running the command again yields `credential_not_found`.
 
-## 5. Maintain the Database
+## 6. Maintain the Database
 Periodic maintenance keeps MapDB compact and healthy. Run these commands when rotating credentials or after large import batches.
 
-### 5.1 Compaction
+### 6.1 Compaction
 ```bash
 ./gradlew :cli:runOcraCli --args="maintenance compact"
 ```
 Outputs include `status=success` and compaction statistics (bytes reclaimed, elapsed time).
 
-### 5.2 Verification
+### 6.2 Verification
 ```bash
 ./gradlew :cli:runOcraCli --args="maintenance verify"
 ```
