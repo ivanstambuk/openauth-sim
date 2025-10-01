@@ -1,7 +1,7 @@
 # Feature Plan 008 – OCRA Quality Automation
 
 _Status: Draft_
-_Last updated: 2025-09-30_
+_Last updated: 2025-10-01_
 
 ## Objective
 Introduce a unified quality gate that enforces module boundaries and mutation/coverage thresholds for the OCRA stack. The gate must run locally and in GitHub Actions, providing clear guidance when regressions arise while keeping build times manageable.
@@ -31,7 +31,7 @@ Reference specification: `docs/4-architecture/specs/feature-008-ocra-quality-aut
 - Q112 – Implement test fixtures and assertions to bring coverage to the ≥90% targets, then re-run the suite. ☑
 - Q113 – Author failing REST facade tests covering `OcraEvaluationService` error paths, then drive them to green. ☑
 - Q114 – Extend CLI coverage for `OcraCliLauncher` and command error handling to lift remaining gaps. ☑
-- Q115 – Execute `./gradlew qualityGate` to confirm thresholds met and update closure notes. ☐
+- Q115 – Execute `./gradlew qualityGate` to confirm thresholds met and update closure notes. ☑ (2025-10-01 – cache-warm validation, thresholds confirmed)
 - Q116 – Add REST UI form/unit tests to cover inline vs credential conversions and secret scrubbing. ☑
 - Q117 – Expand REST validation failure coverage (challenge, timestamp) and reassess remaining gaps. ☑
 - Q118 – Broaden Maintenance CLI coverage (usage/error/ocra/compact scenarios). ☑
@@ -87,7 +87,7 @@ Document the outcome and proceed only once all boxes are checked.
 - 2025-09-30 – Q107: Updated CI workflow (`.github/workflows/ci.yml`) to run `./gradlew --no-daemon qualityGate` on push/PR so GitHub Actions enforces the full boundary/coverage/mutation gate with existing Gradle cache support.
 - 2025-09-30 – Q108: Authored `docs/5-operations/quality-gate.md` covering usage, thresholds, report locations, and troubleshooting (includes `-Ppit.skip=true` guidance for local runs).
 - 2025-09-30 – Q109: Final gate run `./gradlew clean qualityGate` (PASS, 2s reusing caches) recorded line coverage 77.47%, branch coverage 62.16%, mutation score 87.55%; reports stored under `build/reports/jacoco/aggregated/` and `core/build/reports/pitest/`.
-- 2025-09-30 – Follow-up: Coverage baselines (line 77.47%, branch 62.16%) remain below the ≥90% thresholds in the specification; schedule targeted test additions and a threshold review before marking Feature 008 complete.
+- 2025-09-30 – Follow-up: Coverage baselines (line 77.47%, branch 62.16%) remained below the ≥90% thresholds in the specification; schedule targeted test additions and a threshold review before marking Feature 008 complete. (Resolved 2025-10-01, see below.)
 - 2025-09-30 – Decision: Pursue additional tests (Option A) to raise coverage, keeping thresholds unchanged.
 - 2025-09-30 – Q110: Jacoco gap analysis highlights the lowest covered classes — CLI (`OcraCliLauncher` 0%, `OcraCli` 56%, maintenance commands 63–65%), REST (`OcraEvaluationService` 79%, `FailureDetails` 58%, `OcraEvaluationForm` 29%), and core OCRA helpers (`OcraCredentialFactory` 67%, `OcraChallengeFormat` 71%, `OcraResponseCalculator` 85%); prioritise new tests around `OcraCredentialFactory` and `OcraChallengeFormat` to lift core coverage first.
 - 2025-09-30 – Q111: Added `OcraChallengeFormatTest` exercising supported/unsupported tokens plus blank handling to close core parsing coverage gaps; next increment targets `OcraCredentialFactory` edge cases.
@@ -110,6 +110,7 @@ Document the outcome and proceed only once all boxes are checked.
 - 2025-09-30 – Q132c execution: Added `OcraEvaluationControllerTest` (success + validation + unexpected flows) and extended `OcraEvaluationServiceTest` with a failing credential-store scenario. Controller branch coverage now reads 100% (Jacoco aggregated report 2025-09-30 23:21 UTC) and service branch coverage improved to ≈80.5% with error telemetry exercised; remaining missed branches correspond to timestamp step edge cases and legacy `FailureDetails` fallbacks. Project totals: 94.76% line / 84.08% branch. Q132d will target the residual defensive branches (resolveTimestamp zero-step, challenge optional suites, hasText fallbacks) before thresholds rise.
 - 2025-09-30 – Q132d execution: Exercised `OcraEvaluationService` defensive helpers (timestamp <1s, overflow guard, challenge-optional suites, `requireHex` fallbacks, flag helpers, and `FailureDetails` defaults) via targeted unit tests. Service branch coverage now sits at ≈97.6% and project totals moved to 94.76% line / 84.08% branch (Jacoco aggregated report 2025-09-30 23:29 UTC).
 - 2025-09-30 – Q132 execution: Added coverage fixtures for descriptor/persistence/telemetry helpers and REST controllers, lifting aggregated coverage to 96.99% line / 90.24% branch (Jacoco aggregated report 2025-09-30 23:36 UTC). Raised Jacoco thresholds to 0.90/0.90 and reran `./gradlew qualityGate` (PASS, mutation score ≈95%).
+- 2025-10-01 – Q115: Ran `./gradlew qualityGate` (PASS, 1s, configuration cache reused) to reconfirm thresholds post-test expansion; aggregated coverage now 97.05% line / 90.24% branch and mutation score 91.83% (236 killed / 21 survived+no_coverage). Reports remain under `build/reports/jacoco/aggregated/` and `core/build/reports/pitest/`; prior follow-up cleared in plan/tasks.
 - Consider PIT incremental modes and target filters to keep runtime under 10 minutes.
 - Evaluate existing GitHub Actions caching (Gradle + PIT) to mitigate CI duration.
 - When documenting thresholds, include rationale so future adjustments remain auditable.

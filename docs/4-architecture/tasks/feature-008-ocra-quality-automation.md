@@ -1,7 +1,7 @@
 # Feature 008 – OCRA Quality Automation Tasks
 
 _Status: Draft_
-_Last updated: 2025-09-30_
+_Last updated: 2025-10-01_
 
 ## Execution Notes
 - Specification: `docs/4-architecture/specs/feature-008-ocra-quality-automation.md`.
@@ -10,7 +10,7 @@ _Last updated: 2025-09-30_
 - Follow-up: add targeted tests so PIT can cover `OcraChallengeFormat`/`OcraCredentialFactory` and extend mutation guard to CLI/REST facades without exclusions.
 - Use `-Ppit.skip=true` with `./gradlew qualityGate` when mutation analysis needs to be skipped locally (documented runtime ≈27s with skip vs ≈1m56 full gate).
 - Reference `docs/5-operations/quality-gate.md` for command summary, thresholds, and troubleshooting tips.
-- Current baseline (2025-09-30): Jacoco aggregated 93.65 % line / 83.18 % branch; PIT mutation score ~94 % with surviving conditionals noted in the latest report (no new PIT run this increment).
+- Current baseline (2025-10-01): Jacoco aggregated 97.05 % line / 90.24 % branch; PIT mutation score ≈91.83 % (236 killed / 21 survived+no_coverage) with remaining survivors documented in `core/build/reports/pitest/`.
 
 ## Tasks
 | ID | Task | Related Requirements | Status |
@@ -29,7 +29,7 @@ _Last updated: 2025-09-30_
 | Q112 | Implement test fixtures/assertions to satisfy coverage gaps and rerun targeted modules | QA-OCRA-003 | ✅ |
 | Q113 | Add REST facade tests for `OcraEvaluationService` error handling and satisfy assertions | QA-OCRA-003 | ✅ |
 | Q114 | Increase CLI coverage (launcher + command errors) and verify expectations | QA-OCRA-003 | ✅ |
-| Q115 | Re-run `./gradlew qualityGate` to verify thresholds met and update documentation | QA-OCRA-001–QA-OCRA-006 | ☐ |
+| Q115 | Re-run `./gradlew qualityGate` to verify thresholds met and update documentation | QA-OCRA-001–QA-OCRA-006 | ✅ (2025-10-01 – PASS, metrics recorded in plan/tasks) |
 | Q116 | Add REST UI form tests covering mode toggles and scrubbing | QA-OCRA-003 | ✅ |
 | Q117 | Extend REST validation failure coverage (timestamp/challenge) | QA-OCRA-003 | ✅ |
 | Q118 | Cover Maintenance CLI usage/compact flows | QA-OCRA-003 | ✅ |
