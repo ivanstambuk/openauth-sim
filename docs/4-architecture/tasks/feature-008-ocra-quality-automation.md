@@ -1,6 +1,6 @@
 # Feature 008 – OCRA Quality Automation Tasks
 
-_Status: Draft_
+_Status: Complete_
 _Last updated: 2025-10-01_
 
 ## Execution Notes
@@ -52,4 +52,4 @@ _Last updated: 2025-10-01_
 | Q132d | Cover telemetry/persistence adapters (failure detail mapping, maintenance helpers) for ≥90% branch | QA-OCRA-003 | ✅ |
 | Q132 | Raise Jacoco thresholds to 0.90/0.90, run full `./gradlew qualityGate`, update docs | QA-OCRA-001–QA-OCRA-006 | ✅ |
 
-Update this checklist as work progresses.
+Checklist complete – 2025-10-01 quality gate verification closed the feature. Leave in place for traceability.
