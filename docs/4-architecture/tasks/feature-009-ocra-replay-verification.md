@@ -29,5 +29,6 @@ _Last updated: 2025-10-01_
 | R915 | Run `./gradlew qualityGate`, capture metrics, update plan with closure notes | ORV-001–ORV-005, ORV-NFR-001–NFR-003 | ✅ (2025-10-01 – qualityGate w/ PIT: line 97.31%, branch 90.08%, mutation 91%) |
 | R916 | Increase REST verification service coverage (timestamp validation, stored race) | ORV-002, ORV-003, ORV-004 | ✅ (2025-10-01) |
 | R917 | Cover CLI launcher/telemetry branches for Jacoco uplift | ORV-001, ORV-004, ORV-NFR-001 | ✅ (2025-10-01) |
+| R918 | Add timestamp success-path tests for stored and inline replay using RFC 6287 timed signature vectors | ORV-003, ORV-004 | ✅ (2025-10-01) |
 
 Update this checklist as work progresses.

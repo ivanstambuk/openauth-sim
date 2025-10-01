@@ -34,6 +34,7 @@ Reference specification: `docs/4-architecture/specs/feature-009-ocra-replay-veri
 - R915 – Run `./gradlew qualityGate`, capture metrics, and record closure notes. ☑ (2025-10-01 – qualityGate w/ PIT: aggregated line 97.31%, branch 90.08%; PIT 91% (275/302) with test strength 94%; run time ~1m27s)
 - R916 – Extend REST verification tests to cover inline timestamp validation and stored credential race handling. ✅
 - R917 – Increase CLI verification launcher and telemetry coverage to raise aggregated Jacoco branches. ✅
+- R918 – Add timestamp success-path tests for stored and inline replay using RFC 6287 timed signature vectors. ✅
 
 ## Checklist Before Implementation
 - [x] Specification clarifications resolved (see Clarifications section).
@@ -77,5 +78,6 @@ No blockers identified; proceed to design increments R903–R905.
 - 2025-10-01 – R912 implemented verification telemetry hashing & audit context (`rest.ocra.verify` logger), added request context hashing, updated docs snapshot, and expanded test suite (`OcraVerificationServiceTest`/`OcraVerificationControllerTest`) to assert hashed OTP + context fingerprint coverage.
 - 2025-10-01 – R916 added to cover REST verification service edge cases (inline timestamp validation, stored credential race) for Jacoco branch coverage uplift.
 - 2025-10-01 – R917 covered CLI launcher main branch, CLI emit helper, telemetry blank-reason paths, and controller CSRF reuse, lifting aggregated branch coverage above the 0.90 threshold.
+- 2025-10-01 – R918 added stored and inline timestamp success-path tests sourced from RFC 6287 timed signature vectors to harden `validateTimestamp` coverage.
 
 Update this plan after each increment.

@@ -13,6 +13,8 @@ Establish replay and verification workflows that accept operator-supplied one-ti
 4. 2025-10-01 – Verification evidence will rely on existing structured telemetry/logging; no additional persisted receipts are required for this feature (Option A).
 5. 2025-10-01 – Replay checks enforce strict validation with no tolerance windows or resynchronisation; any mismatch is a definitive failure (Option A).
 6. 2025-10-01 – Performance benchmarks for R913 will run on the current WSL2 Linux host (x86_64) with OpenJDK 17.0.16; results will be recorded with hardware/JDK details for traceability (Option B).
+7. 2025-10-01 – Timestamp verification coverage will exercise both stored and inline replay flows to ensure consistent validation across entry points (Option A).
+8. 2025-10-01 – Timestamp success-path tests will reuse RFC 6287 timed signature vectors rather than introducing new synthetic fixtures (Option A).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

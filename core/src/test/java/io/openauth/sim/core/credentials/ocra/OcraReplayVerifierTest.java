@@ -83,6 +83,42 @@ final class OcraReplayVerifierTest {
   }
 
   @Test
+  @DisplayName("stored verification succeeds for timestamped RFC 6287 vectors")
+  void storedVerificationMatchesTimedSignatureVector() {
+    OcraRfc6287VectorFixtures.PlainSignatureVector vector =
+        OcraRfc6287VectorFixtures.timedSignatureVectors().get(0);
+
+    String credentialId = "stored-timestamp";
+    InMemoryCredentialStore store = new InMemoryCredentialStore();
+    OcraCredentialDescriptor descriptor =
+        FACTORY.createDescriptor(
+            new OcraCredentialRequest(
+                credentialId,
+                vector.ocraSuite(),
+                vector.sharedSecretHex(),
+                SecretEncoding.HEX,
+                null,
+                null,
+                null,
+                Map.of("source", "timed")));
+
+    store.save(toCredential(descriptor));
+
+    OcraReplayVerifier verifier = new OcraReplayVerifier(store);
+
+    OcraVerificationContext context =
+        new OcraVerificationContext(
+            null, vector.question(), null, null, null, null, vector.timestampHex());
+
+    OcraVerificationResult result =
+        verifier.verifyStored(
+            new OcraStoredVerificationRequest(credentialId, vector.expectedOtp(), context));
+
+    assertEquals(OcraVerificationStatus.MATCH, result.status());
+    assertEquals(OcraVerificationReason.MATCH, result.reason());
+  }
+
+  @Test
   @DisplayName("inline credential verification succeeds with identical outcome as stored path")
   void inlineCredentialMatchSucceeds() {
     OcraRfc6287VectorFixtures.OneWayVector vector =
@@ -109,6 +145,34 @@ final class OcraReplayVerifierTest {
             vector.expectedOtp(),
             context,
             Map.of("source", "test-inline"));
+
+    OcraVerificationResult result = verifier.verifyInline(request);
+
+    assertEquals(OcraVerificationStatus.MATCH, result.status());
+    assertEquals(OcraVerificationReason.MATCH, result.reason());
+  }
+
+  @Test
+  @DisplayName("inline verification succeeds for timestamped RFC 6287 vectors")
+  void inlineVerificationMatchesTimedSignatureVector() {
+    OcraRfc6287VectorFixtures.PlainSignatureVector vector =
+        OcraRfc6287VectorFixtures.timedSignatureVectors().get(1);
+
+    OcraReplayVerifier verifier = new OcraReplayVerifier(null);
+
+    OcraVerificationContext context =
+        new OcraVerificationContext(
+            null, vector.question(), null, null, null, null, vector.timestampHex());
+
+    OcraInlineVerificationRequest request =
+        new OcraInlineVerificationRequest(
+            "inline-timestamp",
+            vector.ocraSuite(),
+            vector.sharedSecretHex(),
+            SecretEncoding.HEX,
+            vector.expectedOtp(),
+            context,
+            Map.of("source", "timed-inline"));
 
     OcraVerificationResult result = verifier.verifyInline(request);
 
