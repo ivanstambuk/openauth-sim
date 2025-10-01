@@ -19,9 +19,9 @@ Reference specification: `docs/4-architecture/specs/feature-009-ocra-replay-veri
 ## Proposed Increments
 - R901 – Prime knowledge map and roadmap notes; ensure open questions cleared. ☑ (2025-10-01 – roadmap entry updated, knowledge map note added)
 - R902 – Run analysis gate checklist for Feature 009; record outcome here. ☑ (2025-10-01 – analysis gate completed)
-- R903 – Draft CLI interface design (command syntax, options, telemetry mapping); capture in spec/plan addendum. ☐
-- R904 – Draft REST contract (request/response JSON, validation errors) and update OpenAPI doc. ☐
-- R905 – Identify telemetry fields and logging strategy for verification; add to docs. ☐
+- R903 – Draft CLI interface design (command syntax, options, telemetry mapping); capture in spec/plan addendum. ☑ (2025-10-01 – CLI design recorded in spec Interface Design section)
+- R904 – Draft REST contract (request/response JSON, validation errors) and update OpenAPI doc. ☑ (2025-10-01 – REST contract documented in spec Interface Design)
+- R905 – Identify telemetry fields and logging strategy for verification; add to docs. ☑ (2025-10-01 – telemetry schema captured in spec)
 - R906 – Update knowledge map with new verification relationships once design solidifies. ☐
 - R907 – Add failing core tests for replay engine (strict validation, inline vs stored) to drive implementation. ☐
 - R908 – Add failing CLI integration tests covering success/failure scenarios. ☐
@@ -59,5 +59,8 @@ No blockers identified; proceed to design increments R903–R905.
 ## Notes
 - 2025-10-01 – Draft plan created; awaiting analysis gate completion before implementation begins.
 - 2025-10-01 – R901 complete: roadmap now lists Feature 009 in planning with spec/plan links; knowledge map references upcoming replay verification scope.
+- 2025-10-01 – R903 complete: CLI verification command design, option table, and exit-code semantics captured in spec.
+- 2025-10-01 – R904 complete: REST `/api/v1/ocra/verify` contract defined with payload/response semantics and OpenAPI follow-up noted.
+- 2025-10-01 – R905 complete: telemetry events (`cli.ocra.verify`, `rest.ocra.verify`, `core.ocra.verify`) documented with hashing strategy for OTP/context payloads.
 
 Update this plan after each increment.
