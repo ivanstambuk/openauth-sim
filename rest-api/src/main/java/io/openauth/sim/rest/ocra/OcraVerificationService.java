@@ -71,12 +71,13 @@ class OcraVerificationService {
       io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationContext
           verificationContext = request.context().toCoreContext();
 
-      return switch (request.inputMode()) {
-        case CREDENTIAL_REFERENCE ->
-            verifyStored(request, auditContext, telemetryId, started, verificationContext);
-        case INLINE_SECRET ->
-            verifyInline(request, auditContext, telemetryId, started, verificationContext);
-      };
+      if (request instanceof NormalizedRequest.StoredCredential stored) {
+        return verifyStored(stored, auditContext, telemetryId, started, verificationContext);
+      }
+      if (request instanceof NormalizedRequest.InlineSecret inline) {
+        return verifyInline(inline, auditContext, telemetryId, started, verificationContext);
+      }
+      throw new IllegalStateException("Unsupported request variant: " + request);
     } catch (ValidationProblem problem) {
       OcraVerificationTelemetry.TelemetryFrame frame =
           telemetryFrameForFailure(
@@ -129,7 +130,7 @@ class OcraVerificationService {
   }
 
   private OcraVerificationResponse verifyStored(
-      NormalizedRequest request,
+      NormalizedRequest.StoredCredential request,
       OcraVerificationAuditContext auditContext,
       String telemetryId,
       long started,
@@ -191,14 +192,14 @@ class OcraVerificationService {
   }
 
   private OcraVerificationResponse verifyInline(
-      NormalizedRequest request,
+      NormalizedRequest.InlineSecret request,
       OcraVerificationAuditContext auditContext,
       String telemetryId,
       long started,
       io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationContext
           verificationContext) {
 
-    InlineSecret inlineSecret =
+    InlineSecretPayload inlineSecret =
         request
             .inlineSecret()
             .orElseThrow(
@@ -392,7 +393,7 @@ class OcraVerificationService {
         auditContext, frame.withReasonCode("credential_not_found").withOutcome("invalid"), reason);
   }
 
-  private OcraCredentialDescriptor createDescriptor(InlineSecret inlineSecret) {
+  private OcraCredentialDescriptor createDescriptor(InlineSecretPayload inlineSecret) {
     OcraCredentialRequest credentialRequest =
         new OcraCredentialRequest(
             inlineSecret.descriptorName(),
@@ -520,14 +521,26 @@ class OcraVerificationService {
     return trimmed.isEmpty() ? Optional.empty() : Optional.of(trimmed);
   }
 
-  static record NormalizedRequest(
-      InputMode inputMode,
-      String credentialId,
-      Optional<InlineSecret> inlineSecret,
-      Optional<String> suite,
-      VerificationContext context,
-      String otp,
-      String credentialSource) {
+  sealed interface NormalizedRequest
+      permits NormalizedRequest.StoredCredential, NormalizedRequest.InlineSecret {
+
+    VerificationContext context();
+
+    String otp();
+
+    String credentialSource();
+
+    default String credentialId() {
+      return null;
+    }
+
+    default Optional<String> suite() {
+      return Optional.empty();
+    }
+
+    default Optional<InlineSecretPayload> inlineSecret() {
+      return Optional.empty();
+    }
 
     static NormalizedRequest from(OcraVerificationRequest request) {
       VerificationContext context = VerificationContext.from(request.context());
@@ -559,29 +572,52 @@ class OcraVerificationService {
       }
 
       if (hasCredential) {
-        return new NormalizedRequest(
-            InputMode.CREDENTIAL_REFERENCE,
-            request.credentialId().trim(),
-            Optional.empty(),
-            Optional.empty(),
-            context,
-            otp,
-            "stored");
+        return new StoredCredential(request.credentialId().trim(), context, otp);
       }
 
-      InlineSecret inline = InlineSecret.from(request.inlineCredential(), context);
-      return new NormalizedRequest(
-          InputMode.INLINE_SECRET,
-          null,
-          Optional.of(inline),
-          Optional.of(inline.suite()),
-          context,
-          otp,
-          "inline");
+      InlineSecretPayload inline = InlineSecretPayload.from(request.inlineCredential(), context);
+      return new InlineSecret(inline, context, otp);
     }
 
-    boolean hasCredentialId() {
-      return credentialId != null;
+    private static String normalize(String value) {
+      if (value == null) {
+        return null;
+      }
+      String trimmed = value.trim();
+      return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    record StoredCredential(String credentialId, VerificationContext context, String otp)
+        implements NormalizedRequest {
+
+      @Override
+      public String credentialSource() {
+        return "stored";
+      }
+
+      @Override
+      public String credentialId() {
+        return credentialId;
+      }
+    }
+
+    record InlineSecret(InlineSecretPayload payload, VerificationContext context, String otp)
+        implements NormalizedRequest {
+
+      @Override
+      public String credentialSource() {
+        return "inline";
+      }
+
+      @Override
+      public Optional<String> suite() {
+        return Optional.of(payload.suite());
+      }
+
+      @Override
+      public Optional<InlineSecretPayload> inlineSecret() {
+        return Optional.of(payload);
+      }
     }
   }
 
@@ -626,14 +662,14 @@ class OcraVerificationService {
     }
   }
 
-  static record InlineSecret(
+  static record InlineSecretPayload(
       String suite,
       String sharedSecretHex,
       Optional<Long> counter,
       String pinHashHex,
       String descriptorName) {
 
-    static InlineSecret from(
+    static InlineSecretPayload from(
         OcraVerificationInlineCredential inlineCredential, VerificationContext context) {
       if (inlineCredential == null) {
         throw new ValidationProblem(
@@ -668,18 +704,13 @@ class OcraVerificationService {
           "rest-inline-"
               + Integer.toHexString(Objects.hash(suite.toUpperCase(Locale.ROOT), secret));
 
-      return new InlineSecret(
+      return new InlineSecretPayload(
           suite,
           secret,
           Optional.ofNullable(context.counter()),
           context.pinHashHex(),
           descriptorName);
     }
-  }
-
-  private enum InputMode {
-    CREDENTIAL_REFERENCE,
-    INLINE_SECRET
   }
 
   private static final class ValidationProblem extends RuntimeException {

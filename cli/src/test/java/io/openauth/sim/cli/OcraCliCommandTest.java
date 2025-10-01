@@ -19,7 +19,10 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -258,5 +261,27 @@ final class OcraCliCommandTest {
 
   private record CliResult(int exitCode, String stdout, String stderr) {
     // Marker record; no additional members required for assertions.
+  }
+
+  @Test
+  void abstractCommandIsSealedAndPermitsKnownSubcommands() {
+    Class<OcraCli.AbstractOcraCommand> type = OcraCli.AbstractOcraCommand.class;
+
+    assertTrue(type.isSealed(), "Abstract command should be sealed");
+
+    Set<String> permitted =
+        Arrays.stream(type.getPermittedSubclasses())
+            .map(Class::getName)
+            .collect(Collectors.toSet());
+
+    assertEquals(
+        Set.of(
+            "io.openauth.sim.cli.OcraCli$ImportCommand",
+            "io.openauth.sim.cli.OcraCli$ListCommand",
+            "io.openauth.sim.cli.OcraCli$DeleteCommand",
+            "io.openauth.sim.cli.OcraCli$EvaluateCommand",
+            "io.openauth.sim.cli.OcraCli$VerifyCommand"),
+        permitted,
+        () -> "permitted list did not match: " + permitted);
   }
 }

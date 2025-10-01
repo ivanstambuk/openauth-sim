@@ -506,7 +506,8 @@ class OcraVerificationServiceTest {
 
     RuntimeException exception =
         assertThrows(
-            RuntimeException.class, () -> OcraVerificationService.InlineSecret.from(null, context));
+            RuntimeException.class,
+            () -> OcraVerificationService.InlineSecretPayload.from(null, context));
 
     assertEquals("inlineCredential.sharedSecretHex is required", exception.getMessage());
   }
@@ -587,6 +588,31 @@ class OcraVerificationServiceTest {
     assertTrue(thrown.getMessage().contains("Unexpected verification state"));
     assertTrueMessageLogged("reasonCode=unexpected_state");
     assertTrueMessageLogged("status=error");
+  }
+
+  @Test
+  @DisplayName("verification normalized request selects stored variant for credential references")
+  void verificationNormalizedStoredVariant() {
+    OcraVerificationRequest request = storedRequest("stored-credential");
+
+    OcraVerificationService.NormalizedRequest normalized = normalizedRequestFor(request);
+
+    assertTrue(
+        normalized instanceof OcraVerificationService.NormalizedRequest.StoredCredential,
+        () ->
+            "Expected stored credential variant but was " + normalized.getClass().getSimpleName());
+  }
+
+  @Test
+  @DisplayName("verification normalized request selects inline variant for inline payloads")
+  void verificationNormalizedInlineVariant() {
+    OcraVerificationRequest request = inlineRequest(buildMatchingOtp());
+
+    OcraVerificationService.NormalizedRequest normalized = normalizedRequestFor(request);
+
+    assertTrue(
+        normalized instanceof OcraVerificationService.NormalizedRequest.InlineSecret,
+        () -> "Expected inline variant but was " + normalized.getClass().getSimpleName());
   }
 
   private OcraVerificationRequest inlineRequest(String otp) {

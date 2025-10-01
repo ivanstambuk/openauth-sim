@@ -24,6 +24,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 8 | OCRA replay & verification | Enable OCRA credential replay flows (OTP verification with supplied OTP + context) | Complete | Spec: [Feature 009](specs/feature-009-ocra-replay-verification.md), Plan: [Feature Plan 009](feature-plan-009-ocra-replay-verification.md), Tasks: [Feature 009 Tasks](tasks/feature-009-ocra-replay-verification.md); Delivered 2025-10-01 with `./gradlew qualityGate` closure (Jacoco 97.31 % line / 90.08 % branch, PIT 91 %) |
 | 9 | OCRA learning UI | Build a step-by-step UI that visualises OCRA algorithm execution for education | Not started | Requires REST/UI workstreams and instrumentation |
 | 10 | Reflection policy hardening | Eradicate reflection usage, add quality guardrails, update contributor guidance | In progress | Spec: [Feature 011](specs/feature-011-reflection-policy-hardening.md), Plan: [Feature Plan 011](feature-plan-011-reflection-policy-hardening.md), Tasks: [Feature 011 Tasks](tasks/feature-011-reflection-policy-hardening.md) |
+| 11 | Java 17 language enhancements | Adopt sealed hierarchies and text blocks across OCRA CLI/REST internals | Complete | Spec: [Feature 013](specs/feature-013-java17-enhancements.md), Plan: [Feature Plan 013](feature-plan-013-java17-enhancements.md), Tasks: [Feature 013 Tasks](tasks/feature-013-java17-enhancements.md); Closed 2025-10-01 with `qualityGate` validation |
 
 ## Upcoming Milestones
 

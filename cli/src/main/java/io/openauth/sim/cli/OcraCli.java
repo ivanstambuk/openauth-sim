@@ -153,7 +153,8 @@ public final class OcraCli implements Callable<Integer> {
     return CommandLine.ExitCode.SOFTWARE;
   }
 
-  abstract static class AbstractOcraCommand implements Callable<Integer> {
+  abstract static sealed class AbstractOcraCommand implements Callable<Integer>
+      permits ImportCommand, ListCommand, DeleteCommand, EvaluateCommand, VerifyCommand {
 
     @CommandLine.ParentCommand OcraCli parent;
 

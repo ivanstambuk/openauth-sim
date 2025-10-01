@@ -1,9 +1,9 @@
 package io.openauth.sim.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,7 +39,7 @@ final class OcraCliErrorHandlingTest {
   @DisplayName("failValidation emits sanitized telemetry")
   void failValidationSanitizesOutput() {
     harness.reset();
-    TestCommand command = new TestCommand();
+    OcraCli.DeleteCommand command = new OcraCli.DeleteCommand();
     command.parent = harness.parent();
 
     int exit = command.failValidation("cli.ocra.test", "invalid_request", "bad\ninput");
@@ -56,7 +57,7 @@ final class OcraCliErrorHandlingTest {
   @DisplayName("failUnexpected emits unsanitized telemetry with software exit code")
   void failUnexpectedEmitsUnsanitizedOutput() {
     harness.reset();
-    TestCommand command = new TestCommand();
+    OcraCli.DeleteCommand command = new OcraCli.DeleteCommand();
     command.parent = harness.parent();
 
     int exit = command.failUnexpected("cli.ocra.test", "boom");
@@ -71,15 +72,25 @@ final class OcraCliErrorHandlingTest {
   }
 
   @Test
-  @DisplayName("openStore requires a database path")
-  void openStoreRequiresDatabase() {
+  @DisplayName("openStore creates parent directories when needed")
+  void openStoreCreatesParentDirectories() throws Exception {
     harness.reset();
-    NullDatabaseCommand command = new NullDatabaseCommand();
-    command.parent = harness.parent();
+    OcraCli parent = harness.parent();
 
-    CommandLine.ExecutionException ex =
-        assertThrows(CommandLine.ExecutionException.class, command::invokeOpenStore);
-    assertTrue(ex.getMessage().contains("--database=<path> is required"));
+    Path tempDir = Files.createTempDirectory("ocra-cli-open-store");
+    Path database = tempDir.resolve("nested").resolve("store.db");
+    Path parentDirectory = Objects.requireNonNull(database.getParent(), "parentDirectory");
+
+    Files.deleteIfExists(parentDirectory);
+    parent.overrideDatabase(database);
+
+    try {
+      int exit = harness.execute("list");
+      assertEquals(CommandLine.ExitCode.OK, exit, harness.stderr());
+      assertTrue(Files.exists(parentDirectory));
+    } finally {
+      deleteRecursively(tempDir);
+    }
   }
 
   @Test
@@ -211,7 +222,7 @@ final class OcraCliErrorHandlingTest {
   @DisplayName("resolveDescriptor skips non-OCRA credentials")
   void resolveDescriptorFiltersNonOcraCredentials() throws Exception {
     harness.reset();
-    TestCommand command = new TestCommand();
+    OcraCli.ListCommand command = new OcraCli.ListCommand();
     command.parent = harness.parent();
 
     try (MapDbCredentialStore store = MapDbCredentialStore.inMemory().open()) {
@@ -219,7 +230,7 @@ final class OcraCliErrorHandlingTest {
           Credential.create(
               "basic", CredentialType.GENERIC, SecretMaterial.fromHex("00"), Map.of()));
 
-      Optional<?> descriptor = command.invokeResolveDescriptor(store, "basic");
+      Optional<OcraCredentialDescriptor> descriptor = command.resolveDescriptor(store, "basic");
       assertTrue(descriptor.isEmpty());
     }
   }
@@ -331,33 +342,6 @@ final class OcraCliErrorHandlingTest {
     } finally {
       parent.overrideDatabase(original);
       Files.deleteIfExists(parentFile);
-    }
-  }
-
-  private static final class TestCommand extends OcraCli.AbstractOcraCommand {
-    @Override
-    public Integer call() {
-      return CommandLine.ExitCode.OK;
-    }
-
-    Optional<?> invokeResolveDescriptor(MapDbCredentialStore store, String id) {
-      return resolveDescriptor(store, id);
-    }
-  }
-
-  private static final class NullDatabaseCommand extends OcraCli.AbstractOcraCommand {
-    @Override
-    protected Path databasePath() {
-      return null;
-    }
-
-    @Override
-    public Integer call() {
-      return CommandLine.ExitCode.OK;
-    }
-
-    void invokeOpenStore() throws Exception {
-      openStore();
     }
   }
 

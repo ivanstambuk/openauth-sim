@@ -49,19 +49,21 @@ class OcraVerificationController {
                             name = "Match",
                             summary = "Successful verification",
                             value =
-                                "{\n"
-                                    + "  \"status\": \"match\",\n"
-                                    + "  \"reasonCode\": \"match\",\n"
-                                    + "  \"metadata\": {\n"
-                                    + "    \"credentialSource\": \"stored\",\n"
-                                    + "    \"suite\": \"OCRA-1:HOTP-SHA256-8:QA08-S064\",\n"
-                                    + "    \"otpLength\": 8,\n"
-                                    + "    \"durationMillis\": 11,\n"
-                                    + "    \"contextFingerprint\": \"Base64URL-Hash\",\n"
-                                    + "    \"telemetryId\": \"rest-ocra-verify-<uuid>\",\n"
-                                    + "    \"outcome\": \"match\"\n"
-                                    + "  }\n"
-                                    + "}"))),
+                                """
+                                {
+                                  "status": "match",
+                                  "reasonCode": "match",
+                                  "metadata": {
+                                    "credentialSource": "stored",
+                                    "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+                                    "otpLength": 8,
+                                    "durationMillis": 11,
+                                    "contextFingerprint": "Base64URL-Hash",
+                                    "telemetryId": "rest-ocra-verify-<uuid>",
+                                    "outcome": "match"
+                                  }
+                                }
+                                """))),
         @ApiResponse(
             responseCode = "422",
             description = "Verification payload failed validation",
@@ -74,18 +76,20 @@ class OcraVerificationController {
                             name = "Missing context",
                             summary = "Validation failure",
                             value =
-                                "{\n"
-                                    + "  \"error\": \"invalid_input\",\n"
-                                    + "  \"message\": \"sessionHex is required\",\n"
-                                    + "  \"details\": {\n"
-                                    + "    \"telemetryId\": \"rest-ocra-verify-<uuid>\",\n"
-                                    + "    \"status\": \"invalid\",\n"
-                                    + "    \"suite\": \"OCRA-1:HOTP-SHA256-8:QA08-S064\",\n"
-                                    + "    \"field\": \"sessionHex\",\n"
-                                    + "    \"reasonCode\": \"session_required\",\n"
-                                    + "    \"sanitized\": \"true\"\n"
-                                    + "  }\n"
-                                    + "}"))),
+                                """
+                                {
+                                  "error": "invalid_input",
+                                  "message": "sessionHex is required",
+                                  "details": {
+                                    "telemetryId": "rest-ocra-verify-<uuid>",
+                                    "status": "invalid",
+                                    "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+                                    "field": "sessionHex",
+                                    "reasonCode": "session_required",
+                                    "sanitized": "true"
+                                  }
+                                }
+                                """))),
         @ApiResponse(
             responseCode = "404",
             description = "Credential not found",

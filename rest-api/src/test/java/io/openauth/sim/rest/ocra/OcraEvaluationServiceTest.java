@@ -644,7 +644,7 @@ class OcraEvaluationServiceTest {
   void normalizedRequestTrimsAndDiscardsBlanks() throws Exception {
     OcraEvaluationRequest raw =
         new OcraEvaluationRequest(
-            "  credential  ",
+            null,
             "  suite  ",
             "  deadbeef  ",
             "  challenge  ",
@@ -656,7 +656,7 @@ class OcraEvaluationServiceTest {
             5L);
 
     OcraEvaluationService.NormalizedRequest normalized = invokeNormalizedRequestFrom(raw);
-    assertEquals("credential", invokeNormalizedAccessor(normalized, "credentialId"));
+    assertEquals(null, invokeNormalizedAccessor(normalized, "credentialId"));
     assertEquals("suite", invokeNormalizedAccessor(normalized, "suite"));
     assertEquals("deadbeef", invokeNormalizedAccessor(normalized, "sharedSecretHex"));
     assertEquals("challenge", invokeNormalizedAccessor(normalized, "challenge"));
@@ -668,7 +668,7 @@ class OcraEvaluationServiceTest {
 
     OcraEvaluationRequest blank =
         new OcraEvaluationRequest(
-            " ", " suite ", "value", "challenge", " ", " ", " ", " ", " ", null);
+            null, " suite ", "value", "challenge", " ", " ", " ", " ", " ", null);
 
     OcraEvaluationService.NormalizedRequest blankNormalized = invokeNormalizedRequestFrom(blank);
     assertEquals(null, invokeNormalizedAccessor(blankNormalized, "credentialId"));
@@ -681,21 +681,70 @@ class OcraEvaluationServiceTest {
   }
 
   @Test
+  @DisplayName("normalized request trims stored credential identifiers")
+  void normalizedRequestStoredCredentialTrimsId() throws Exception {
+    OcraEvaluationRequest raw =
+        new OcraEvaluationRequest(
+            "  credential  ", null, null, "challenge", null, null, null, null, null, null);
+
+    OcraEvaluationService.NormalizedRequest normalized = invokeNormalizedRequestFrom(raw);
+    assertEquals("credential", invokeNormalizedAccessor(normalized, "credentialId"));
+    assertEquals(null, invokeNormalizedAccessor(normalized, "suite"));
+  }
+
+  @Test
   @DisplayName("normalized request handles null values")
   void normalizedRequestHandlesNullValues() throws Exception {
     OcraEvaluationRequest raw =
-        new OcraEvaluationRequest(null, null, null, null, null, null, null, null, null, null);
+        new OcraEvaluationRequest(
+            null, DEFAULT_SUITE, DEFAULT_SECRET_HEX, null, null, null, null, null, null, null);
 
     OcraEvaluationService.NormalizedRequest normalized = invokeNormalizedRequestFrom(raw);
     assertEquals(null, invokeNormalizedAccessor(normalized, "credentialId"));
-    assertEquals(null, invokeNormalizedAccessor(normalized, "suite"));
-    assertEquals(null, invokeNormalizedAccessor(normalized, "sharedSecretHex"));
+    assertEquals(DEFAULT_SUITE, invokeNormalizedAccessor(normalized, "suite"));
+    assertEquals(DEFAULT_SECRET_HEX, invokeNormalizedAccessor(normalized, "sharedSecretHex"));
     assertEquals(null, invokeNormalizedAccessor(normalized, "challenge"));
     assertEquals(null, invokeNormalizedAccessor(normalized, "sessionHex"));
     assertEquals(null, invokeNormalizedAccessor(normalized, "clientChallenge"));
     assertEquals(null, invokeNormalizedAccessor(normalized, "serverChallenge"));
     assertEquals(null, invokeNormalizedAccessor(normalized, "pinHashHex"));
     assertEquals(null, invokeNormalizedAccessor(normalized, "timestampHex"));
+  }
+
+  @Test
+  @DisplayName("normalized request selects stored credential variant when credentialId present")
+  void normalizedRequestStoredVariant() {
+    OcraEvaluationRequest raw =
+        new OcraEvaluationRequest(
+            "stored-id", null, null, "12345678", null, null, null, null, null, null);
+
+    OcraEvaluationService.NormalizedRequest normalized = invokeNormalizedRequestFrom(raw);
+    assertTrue(
+        normalized instanceof OcraEvaluationService.NormalizedRequest.StoredCredential,
+        () ->
+            "Expected stored credential variant but was " + normalized.getClass().getSimpleName());
+  }
+
+  @Test
+  @DisplayName("normalized request selects inline secret variant when sharedSecretHex present")
+  void normalizedRequestInlineVariant() {
+    OcraEvaluationRequest raw =
+        new OcraEvaluationRequest(
+            null,
+            DEFAULT_SUITE,
+            DEFAULT_SECRET_HEX,
+            "12345678",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+    OcraEvaluationService.NormalizedRequest normalized = invokeNormalizedRequestFrom(raw);
+    assertTrue(
+        normalized instanceof OcraEvaluationService.NormalizedRequest.InlineSecret,
+        () -> "Expected inline secret variant but was " + normalized.getClass().getSimpleName());
   }
 
   @Test

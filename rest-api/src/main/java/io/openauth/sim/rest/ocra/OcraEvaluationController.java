@@ -51,18 +51,20 @@ class OcraEvaluationController {
                             name = "Missing session payload",
                             summary = "Validation failure with reason code",
                             value =
-                                "{\n"
-                                    + "  \"error\": \"invalid_input\",\n"
-                                    + "  \"message\": \"sessionHex is required for the requested suite\",\n"
-                                    + "  \"details\": {\n"
-                                    + "    \"telemetryId\": \"rest-ocra-<uuid>\",\n"
-                                    + "    \"status\": \"invalid\",\n"
-                                    + "    \"suite\": \"OCRA-1:HOTP-SHA256-8:QA08-S064\",\n"
-                                    + "    \"field\": \"sessionHex\",\n"
-                                    + "    \"reasonCode\": \"session_required\",\n"
-                                    + "    \"sanitized\": \"true\"\n"
-                                    + "  }\n"
-                                    + "}"))),
+                                """
+                                {
+                                  "error": "invalid_input",
+                                  "message": "sessionHex is required for the requested suite",
+                                  "details": {
+                                    "telemetryId": "rest-ocra-<uuid>",
+                                    "status": "invalid",
+                                    "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+                                    "field": "sessionHex",
+                                    "reasonCode": "session_required",
+                                    "sanitized": "true"
+                                  }
+                                }
+                                """))),
         @ApiResponse(
             responseCode = "500",
             description = "Unexpected server error",

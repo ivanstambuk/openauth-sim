@@ -59,15 +59,19 @@ class OcraEvaluationService {
     NormalizedRequest request = null;
     try {
       request = NormalizedRequest.from(rawRequest);
-      InputMode mode = determineInputMode(request);
-      if (mode == InputMode.INLINE_SECRET && !hasText(request.suite())) {
-        throw new ValidationError("suite", "missing_required", "suite is required");
+      validateHexInputs(request);
+
+      OcraCredentialDescriptor descriptor;
+      boolean credentialReference;
+      if (request instanceof NormalizedRequest.StoredCredential stored) {
+        descriptor = resolveDescriptorFromStore(stored);
+        credentialReference = true;
+      } else if (request instanceof NormalizedRequest.InlineSecret inline) {
+        descriptor = createDescriptorFromInline(inline);
+        credentialReference = false;
+      } else {
+        throw new IllegalStateException("Unsupported request variant: " + request);
       }
-      validateHexInputs(request, mode);
-      OcraCredentialDescriptor descriptor =
-          mode == InputMode.CREDENTIAL_REFERENCE
-              ? resolveDescriptorFromStore(request)
-              : createDescriptorFromInline(request);
       String challenge = request.challenge();
       validateChallenge(descriptor, challenge);
       credentialFactory.validateSessionInformation(descriptor, request.sessionHex());
@@ -90,7 +94,7 @@ class OcraEvaluationService {
       telemetry.recordSuccess(
           telemetryId,
           descriptor.suite().value(),
-          mode == InputMode.CREDENTIAL_REFERENCE,
+          credentialReference,
           hasText(request.sessionHex()),
           hasText(request.clientChallenge()),
           hasText(request.serverChallenge()),
@@ -143,7 +147,8 @@ class OcraEvaluationService {
     }
   }
 
-  private OcraCredentialDescriptor createDescriptorFromInline(NormalizedRequest request) {
+  private OcraCredentialDescriptor createDescriptorFromInline(
+      NormalizedRequest.InlineSecret request) {
     OcraCredentialRequest credentialRequest =
         new OcraCredentialRequest(
             "rest-ocra-" + Integer.toHexString(request.suite().hashCode()),
@@ -158,7 +163,8 @@ class OcraEvaluationService {
     return credentialFactory.createDescriptor(credentialRequest);
   }
 
-  private OcraCredentialDescriptor resolveDescriptorFromStore(NormalizedRequest request) {
+  private OcraCredentialDescriptor resolveDescriptorFromStore(
+      NormalizedRequest.StoredCredential request) {
     if (credentialStore == null) {
       throw new ValidationError(
           "credentialId",
@@ -175,23 +181,6 @@ class OcraEvaluationService {
                     "credentialId",
                     "credential_not_found",
                     "credentialId " + request.credentialId() + " not found"));
-  }
-
-  private static InputMode determineInputMode(NormalizedRequest request) {
-    boolean hasCredential = hasText(request.credentialId());
-    boolean hasSecret = hasText(request.sharedSecretHex());
-
-    if (hasCredential && hasSecret) {
-      throw new ValidationError(
-          "request",
-          "credential_conflict",
-          "Provide either credentialId or sharedSecretHex, not both");
-    }
-    if (!hasCredential && !hasSecret) {
-      throw new ValidationError(
-          "request", "credential_missing", "credentialId or sharedSecretHex must be provided");
-    }
-    return hasCredential ? InputMode.CREDENTIAL_REFERENCE : InputMode.INLINE_SECRET;
   }
 
   private String nextTelemetryId() {
@@ -294,8 +283,10 @@ class OcraEvaluationService {
     return (value >= '0' && value <= '9') || (value >= 'A' && value <= 'F');
   }
 
-  private static void validateHexInputs(NormalizedRequest request, InputMode mode) {
-    requireHex(request.sharedSecretHex(), "sharedSecretHex", mode == InputMode.INLINE_SECRET);
+  private static void validateHexInputs(NormalizedRequest request) {
+    if (request instanceof NormalizedRequest.InlineSecret inline) {
+      requireHex(inline.sharedSecretHex(), "sharedSecretHex", true);
+    }
     requireHex(request.sessionHex(), "sessionHex", false);
     requireHex(request.pinHashHex(), "pinHashHex", false);
     requireHex(request.timestampHex(), "timestampHex", false);
@@ -357,35 +348,88 @@ class OcraEvaluationService {
     return normalized != null ? hasText(normalized.credentialId()) : hasText(raw.credentialId());
   }
 
-  private enum InputMode {
-    CREDENTIAL_REFERENCE,
-    INLINE_SECRET
-  }
+  sealed interface NormalizedRequest
+      permits NormalizedRequest.StoredCredential, NormalizedRequest.InlineSecret {
 
-  static record NormalizedRequest(
-      String credentialId,
-      String suite,
-      String sharedSecretHex,
-      String challenge,
-      String sessionHex,
-      String clientChallenge,
-      String serverChallenge,
-      String pinHashHex,
-      String timestampHex,
-      Long counter) {
+    String challenge();
+
+    String sessionHex();
+
+    String clientChallenge();
+
+    String serverChallenge();
+
+    String pinHashHex();
+
+    String timestampHex();
+
+    Long counter();
+
+    default String credentialId() {
+      return null;
+    }
+
+    default String suite() {
+      return null;
+    }
+
+    default String sharedSecretHex() {
+      return null;
+    }
 
     static NormalizedRequest from(OcraEvaluationRequest request) {
-      return new NormalizedRequest(
-          normalize(request.credentialId()),
-          normalize(request.suite()),
-          normalize(request.sharedSecretHex()),
-          normalize(request.challenge()),
-          normalize(request.sessionHex()),
-          normalize(request.clientChallenge()),
-          normalize(request.serverChallenge()),
-          normalize(request.pinHashHex()),
-          normalize(request.timestampHex()),
-          request.counter());
+      String credentialId = normalize(request.credentialId());
+      String suite = normalize(request.suite());
+      String sharedSecretHex = normalize(request.sharedSecretHex());
+      String challenge = normalize(request.challenge());
+      String sessionHex = normalize(request.sessionHex());
+      String clientChallenge = normalize(request.clientChallenge());
+      String serverChallenge = normalize(request.serverChallenge());
+      String pinHashHex = normalize(request.pinHashHex());
+      String timestampHex = normalize(request.timestampHex());
+      Long counter = request.counter();
+
+      boolean hasCredential = hasText(credentialId);
+      boolean hasSecret = hasText(sharedSecretHex);
+
+      if (hasCredential && hasSecret) {
+        throw new ValidationError(
+            "request",
+            "credential_conflict",
+            "Provide either credentialId or sharedSecretHex, not both");
+      }
+
+      if (!hasCredential && !hasSecret) {
+        throw new ValidationError(
+            "request", "credential_missing", "credentialId or sharedSecretHex must be provided");
+      }
+
+      if (hasCredential) {
+        return new StoredCredential(
+            credentialId,
+            challenge,
+            sessionHex,
+            clientChallenge,
+            serverChallenge,
+            pinHashHex,
+            timestampHex,
+            counter);
+      }
+
+      if (!hasText(suite)) {
+        throw new ValidationError("suite", "missing_required", "suite is required");
+      }
+
+      return new InlineSecret(
+          suite,
+          sharedSecretHex,
+          challenge,
+          sessionHex,
+          clientChallenge,
+          serverChallenge,
+          pinHashHex,
+          timestampHex,
+          counter);
     }
 
     private static String normalize(String value) {
@@ -394,6 +438,46 @@ class OcraEvaluationService {
       }
       String trimmed = value.trim();
       return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    record StoredCredential(
+        String credentialId,
+        String challenge,
+        String sessionHex,
+        String clientChallenge,
+        String serverChallenge,
+        String pinHashHex,
+        String timestampHex,
+        Long counter)
+        implements NormalizedRequest {
+
+      @Override
+      public String credentialId() {
+        return credentialId;
+      }
+    }
+
+    record InlineSecret(
+        String suite,
+        String sharedSecretHex,
+        String challenge,
+        String sessionHex,
+        String clientChallenge,
+        String serverChallenge,
+        String pinHashHex,
+        String timestampHex,
+        Long counter)
+        implements NormalizedRequest {
+
+      @Override
+      public String suite() {
+        return suite;
+      }
+
+      @Override
+      public String sharedSecretHex() {
+        return sharedSecretHex;
+      }
     }
   }
 
