@@ -195,7 +195,11 @@ public final class OcraCredentialFactory {
     }
   }
 
-  private static void logValidationFailure(
+  static Logger telemetryLogger() {
+    return TELEMETRY_LOGGER;
+  }
+
+  static void logValidationFailure(
       String suite, String credentialName, String failureCode, String messageId, String detail) {
     if (!TELEMETRY_LOGGER.isLoggable(Level.FINE)) {
       return;

@@ -14,7 +14,6 @@ import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.encryption.AesGcmPersistenceEncryption;
 import io.openauth.sim.core.store.encryption.PersistenceEncryption;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
-import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
@@ -521,11 +520,7 @@ class MapDbCredentialStoreTest {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private static Cache<String, Credential> extractCache(MapDbCredentialStore store)
-      throws Exception {
-    Field field = MapDbCredentialStore.class.getDeclaredField("cache");
-    field.setAccessible(true);
-    return (Cache<String, Credential>) field.get(store);
+  private static Cache<String, Credential> extractCache(MapDbCredentialStore store) {
+    return store.cacheView();
   }
 }

@@ -32,14 +32,14 @@ class RestPersistenceConfiguration {
     return MapDbCredentialStore.file(resolvedPath).open();
   }
 
-  private static Path resolveDatabasePath(String configuredPath) {
+  static Path resolveDatabasePath(String configuredPath) {
     if (StringUtils.hasText(configuredPath)) {
       return Paths.get(configuredPath).toAbsolutePath();
     }
     return ProjectPaths.resolveDataFile(DEFAULT_DATABASE_FILE);
   }
 
-  private static void ensureParentDirectory(Path path) throws IOException {
+  static void ensureParentDirectory(Path path) throws IOException {
     Path parent = path.getParent();
     if (parent != null) {
       Files.createDirectories(parent);

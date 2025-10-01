@@ -13,7 +13,6 @@ import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
-import java.lang.reflect.InvocationTargetException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -222,18 +221,7 @@ class OcraVerificationServiceTest {
     OcraVerificationService service =
         new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
 
-    java.lang.reflect.Method emitter =
-        OcraVerificationService.class.getDeclaredMethod(
-            "emitCredentialNotFoundTelemetry",
-            OcraVerificationAuditContext.class,
-            String.class,
-            Class.forName("io.openauth.sim.rest.ocra.OcraVerificationService$NormalizedRequest"),
-            String.class,
-            long.class);
-    emitter.setAccessible(true);
-
-    emitter.invoke(
-        service,
+    service.emitCredentialNotFoundTelemetry(
         new OcraVerificationAuditContext("audit-null", null, null),
         "telemetry-null",
         null,
@@ -513,25 +501,14 @@ class OcraVerificationServiceTest {
   @Test
   @DisplayName("inline credential object missing triggers inline_secret_missing problem")
   void inlineCredentialObjectMissingValidation() throws Exception {
-    Class<?> verificationContextClass =
-        Class.forName("io.openauth.sim.rest.ocra.OcraVerificationService$VerificationContext");
-    Class<?> inlineSecretClass =
-        Class.forName("io.openauth.sim.rest.ocra.OcraVerificationService$InlineSecret");
+    OcraVerificationService.VerificationContext context =
+        OcraVerificationService.VerificationContext.empty();
 
-    java.lang.reflect.Method emptyMethod = verificationContextClass.getDeclaredMethod("empty");
-    emptyMethod.setAccessible(true);
-    Object context = emptyMethod.invoke(null);
+    RuntimeException exception =
+        assertThrows(
+            RuntimeException.class, () -> OcraVerificationService.InlineSecret.from(null, context));
 
-    java.lang.reflect.Method fromMethod =
-        inlineSecretClass.getDeclaredMethod(
-            "from", OcraVerificationInlineCredential.class, verificationContextClass);
-    fromMethod.setAccessible(true);
-
-    InvocationTargetException exception =
-        assertThrows(InvocationTargetException.class, () -> fromMethod.invoke(null, null, context));
-
-    Throwable cause = exception.getCause();
-    assertEquals("inlineCredential.sharedSecretHex is required", cause.getMessage());
+    assertEquals("inlineCredential.sharedSecretHex is required", exception.getMessage());
   }
 
   @Test
@@ -562,26 +539,14 @@ class OcraVerificationServiceTest {
     OcraVerificationService service =
         new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
 
-    Object normalized = normalizedRequestFor(inlineRequest(buildMatchingOtp()));
-    java.lang.reflect.Method method =
-        OcraVerificationService.class.getDeclaredMethod(
-            "handleInvalid",
-            normalized.getClass(),
-            OcraCredentialDescriptor.class,
-            String.class,
-            String.class,
-            OcraReplayVerifier.OcraVerificationReason.class,
-            String.class,
-            OcraVerificationAuditContext.class,
-            long.class);
-    method.setAccessible(true);
+    OcraVerificationService.NormalizedRequest normalized =
+        normalizedRequestFor(inlineRequest(buildMatchingOtp()));
 
-    InvocationTargetException thrown =
+    IllegalStateException thrown =
         assertThrows(
-            InvocationTargetException.class,
+            IllegalStateException.class,
             () ->
-                method.invoke(
-                    service,
+                service.handleInvalid(
                     normalized,
                     inlineDescriptor(),
                     "inline",
@@ -591,8 +556,7 @@ class OcraVerificationServiceTest {
                     new OcraVerificationAuditContext("audit-strict", null, null),
                     3L));
 
-    assertTrue(thrown.getCause() instanceof IllegalStateException);
-    assertTrue(thrown.getCause().getMessage().contains("Unexpected verification state"));
+    assertTrue(thrown.getMessage().contains("Unexpected verification state"));
     assertTrueMessageLogged("reasonCode=unexpected_state");
     assertTrueMessageLogged("status=error");
   }
@@ -603,26 +567,14 @@ class OcraVerificationServiceTest {
     OcraVerificationService service =
         new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
 
-    Object normalized = normalizedRequestFor(inlineRequest(buildMatchingOtp()));
-    java.lang.reflect.Method method =
-        OcraVerificationService.class.getDeclaredMethod(
-            "handleInvalid",
-            normalized.getClass(),
-            OcraCredentialDescriptor.class,
-            String.class,
-            String.class,
-            OcraReplayVerifier.OcraVerificationReason.class,
-            String.class,
-            OcraVerificationAuditContext.class,
-            long.class);
-    method.setAccessible(true);
+    OcraVerificationService.NormalizedRequest normalized =
+        normalizedRequestFor(inlineRequest(buildMatchingOtp()));
 
-    InvocationTargetException thrown =
+    IllegalStateException thrown =
         assertThrows(
-            InvocationTargetException.class,
+            IllegalStateException.class,
             () ->
-                method.invoke(
-                    service,
+                service.handleInvalid(
                     normalized,
                     inlineDescriptor(),
                     "inline",
@@ -632,8 +584,7 @@ class OcraVerificationServiceTest {
                     new OcraVerificationAuditContext("audit-match", null, null),
                     2L));
 
-    assertTrue(thrown.getCause() instanceof IllegalStateException);
-    assertTrue(thrown.getCause().getMessage().contains("Unexpected verification state"));
+    assertTrue(thrown.getMessage().contains("Unexpected verification state"));
     assertTrueMessageLogged("reasonCode=unexpected_state");
     assertTrueMessageLogged("status=error");
   }
@@ -653,21 +604,9 @@ class OcraVerificationServiceTest {
     return new OcraVerificationRequest("123456", credentialId, null, context);
   }
 
-  private Object normalizedRequestFor(OcraVerificationRequest request) {
-    try {
-      Class<?> normalizedClass =
-          Class.forName("io.openauth.sim.rest.ocra.OcraVerificationService$NormalizedRequest");
-      java.lang.reflect.Method from =
-          normalizedClass.getDeclaredMethod(
-              "from", io.openauth.sim.rest.ocra.OcraVerificationRequest.class);
-      from.setAccessible(true);
-      return from.invoke(null, request);
-    } catch (ClassNotFoundException
-        | NoSuchMethodException
-        | IllegalAccessException
-        | InvocationTargetException ex) {
-      throw new AssertionError("Unable to construct NormalizedRequest", ex);
-    }
+  private OcraVerificationService.NormalizedRequest normalizedRequestFor(
+      OcraVerificationRequest request) {
+    return OcraVerificationService.NormalizedRequest.from(request);
   }
 
   private OcraCredentialDescriptor inlineDescriptor() {

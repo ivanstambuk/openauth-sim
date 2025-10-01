@@ -16,13 +16,11 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -120,8 +118,7 @@ class MaintenanceCliTest {
 
   @Test
   @DisplayName("parseOcraArguments captures optional parameters")
-  @SuppressWarnings("unchecked")
-  void parseOcraArgumentsCapturesOptionalParameters() throws Exception {
+  void parseOcraArgumentsCapturesOptionalParameters() {
     MaintenanceCli cli = new MaintenanceCli();
     OutputHarness harness = OutputHarness.create();
 
@@ -138,33 +135,14 @@ class MaintenanceCliTest {
       "--counter=2"
     };
 
-    Method method =
-        MaintenanceCli.class.getDeclaredMethod(
-            "parseOcraArguments", String[].class, PrintStream.class);
-    method.setAccessible(true);
+    MaintenanceCli.OcraArguments parsed = cli.parseOcraArguments(args, harness.err);
 
-    Object parsed = method.invoke(cli, new Object[] {args, harness.err});
-
-    Method sessionMethod = parsed.getClass().getDeclaredMethod("sessionInformation");
-    Method clientMethod = parsed.getClass().getDeclaredMethod("clientChallenge");
-    Method serverMethod = parsed.getClass().getDeclaredMethod("serverChallenge");
-    Method pinMethod = parsed.getClass().getDeclaredMethod("pinHashHex");
-    Method timestampMethod = parsed.getClass().getDeclaredMethod("timestampHex");
-    Method counterMethod = parsed.getClass().getDeclaredMethod("counter");
-
-    Optional<String> session = (Optional<String>) sessionMethod.invoke(parsed);
-    Optional<String> client = (Optional<String>) clientMethod.invoke(parsed);
-    Optional<String> server = (Optional<String>) serverMethod.invoke(parsed);
-    Optional<String> pin = (Optional<String>) pinMethod.invoke(parsed);
-    Optional<String> timestamp = (Optional<String>) timestampMethod.invoke(parsed);
-    Optional<Long> counter = (Optional<Long>) counterMethod.invoke(parsed);
-
-    assertTrue(session.isPresent());
-    assertTrue(client.isPresent());
-    assertTrue(server.isPresent());
-    assertTrue(pin.isPresent());
-    assertTrue(timestamp.isPresent());
-    assertTrue(counter.isPresent());
+    assertTrue(parsed.sessionInformation().isPresent());
+    assertTrue(parsed.clientChallenge().isPresent());
+    assertTrue(parsed.serverChallenge().isPresent());
+    assertTrue(parsed.pinHashHex().isPresent());
+    assertTrue(parsed.timestampHex().isPresent());
+    assertTrue(parsed.counter().isPresent());
     assertTrue(harness.err().isBlank());
   }
 
@@ -342,8 +320,7 @@ class MaintenanceCliTest {
 
   @Test
   @DisplayName("ocra command trims optional inputs when blank")
-  @SuppressWarnings("unchecked")
-  void ocraCommandTrimsOptionalInputs() throws Exception {
+  void ocraCommandTrimsOptionalInputs() {
     MaintenanceCli cli = new MaintenanceCli();
     OutputHarness harness = OutputHarness.create();
 
@@ -359,26 +336,14 @@ class MaintenanceCliTest {
       "--timestamp=   "
     };
 
-    var method =
-        MaintenanceCli.class.getDeclaredMethod(
-            "parseOcraArguments", String[].class, PrintStream.class);
-    method.setAccessible(true);
+    MaintenanceCli.OcraArguments parsed = cli.parseOcraArguments(args, harness.err);
 
-    Object parsed = method.invoke(cli, new Object[] {args, harness.err});
-
-    Method challengeMethod = parsed.getClass().getDeclaredMethod("challenge");
-    Method sessionMethod = parsed.getClass().getDeclaredMethod("sessionInformation");
-    Method clientMethod = parsed.getClass().getDeclaredMethod("clientChallenge");
-    Method serverMethod = parsed.getClass().getDeclaredMethod("serverChallenge");
-    Method pinMethod = parsed.getClass().getDeclaredMethod("pinHashHex");
-    Method timestampMethod = parsed.getClass().getDeclaredMethod("timestampHex");
-
-    assertTrue(((Optional<String>) challengeMethod.invoke(parsed)).isEmpty());
-    assertTrue(((Optional<String>) sessionMethod.invoke(parsed)).isEmpty());
-    assertTrue(((Optional<String>) clientMethod.invoke(parsed)).isEmpty());
-    assertTrue(((Optional<String>) serverMethod.invoke(parsed)).isEmpty());
-    assertTrue(((Optional<String>) pinMethod.invoke(parsed)).isEmpty());
-    assertTrue(((Optional<String>) timestampMethod.invoke(parsed)).isEmpty());
+    assertTrue(parsed.challenge().isEmpty());
+    assertTrue(parsed.sessionInformation().isEmpty());
+    assertTrue(parsed.clientChallenge().isEmpty());
+    assertTrue(parsed.serverChallenge().isEmpty());
+    assertTrue(parsed.pinHashHex().isEmpty());
+    assertTrue(parsed.timestampHex().isEmpty());
   }
 
   @Test

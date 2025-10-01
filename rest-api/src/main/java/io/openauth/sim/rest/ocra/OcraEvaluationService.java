@@ -198,8 +198,7 @@ class OcraEvaluationService {
     return "rest-ocra-" + UUID.randomUUID();
   }
 
-  private static Instant resolveTimestamp(
-      OcraCredentialDescriptor descriptor, String timestampHex) {
+  static Instant resolveTimestamp(OcraCredentialDescriptor descriptor, String timestampHex) {
     if (!hasText(timestampHex)) {
       return null;
     }
@@ -248,7 +247,7 @@ class OcraEvaluationService {
     return value != null && !value.isBlank();
   }
 
-  private static void validateChallenge(OcraCredentialDescriptor descriptor, String challenge) {
+  static void validateChallenge(OcraCredentialDescriptor descriptor, String challenge) {
     var challengeSpec = descriptor.suite().dataInput().challengeQuestion();
     if (challengeSpec.isEmpty()) {
       if (hasText(challenge)) {
@@ -281,7 +280,7 @@ class OcraEvaluationService {
     }
   }
 
-  private static boolean matchesFormat(String value, OcraChallengeFormat format) {
+  static boolean matchesFormat(String value, OcraChallengeFormat format) {
     return switch (format) {
       case NUMERIC -> value.chars().allMatch(Character::isDigit);
       case ALPHANUMERIC -> value.chars().allMatch(ch -> Character.isLetterOrDigit((char) ch));
@@ -290,7 +289,7 @@ class OcraEvaluationService {
     };
   }
 
-  private static boolean isHexCharacter(int ch) {
+  static boolean isHexCharacter(int ch) {
     char value = Character.toUpperCase((char) ch);
     return (value >= '0' && value <= '9') || (value >= 'A' && value <= 'F');
   }
@@ -302,7 +301,7 @@ class OcraEvaluationService {
     requireHex(request.timestampHex(), "timestampHex", false);
   }
 
-  private static void requireHex(String value, String field, boolean required) {
+  static void requireHex(String value, String field, boolean required) {
     if (!hasText(value)) {
       if (required) {
         throw new ValidationError(field, "missing_required", field + " is required");
@@ -322,7 +321,7 @@ class OcraEvaluationService {
     }
   }
 
-  private static String suiteOrUnknown(NormalizedRequest normalized, OcraEvaluationRequest raw) {
+  static String suiteOrUnknown(NormalizedRequest normalized, OcraEvaluationRequest raw) {
     if (normalized != null && hasText(normalized.suite())) {
       return normalized.suite();
     }
@@ -330,34 +329,31 @@ class OcraEvaluationService {
     return suite == null ? "unknown" : suite.trim();
   }
 
-  private static boolean hasSession(NormalizedRequest normalized, OcraEvaluationRequest raw) {
+  static boolean hasSession(NormalizedRequest normalized, OcraEvaluationRequest raw) {
     return normalized != null ? hasText(normalized.sessionHex()) : hasText(raw.sessionHex());
   }
 
-  private static boolean hasClientChallenge(
-      NormalizedRequest normalized, OcraEvaluationRequest raw) {
+  static boolean hasClientChallenge(NormalizedRequest normalized, OcraEvaluationRequest raw) {
     return normalized != null
         ? hasText(normalized.clientChallenge())
         : hasText(raw.clientChallenge());
   }
 
-  private static boolean hasServerChallenge(
-      NormalizedRequest normalized, OcraEvaluationRequest raw) {
+  static boolean hasServerChallenge(NormalizedRequest normalized, OcraEvaluationRequest raw) {
     return normalized != null
         ? hasText(normalized.serverChallenge())
         : hasText(raw.serverChallenge());
   }
 
-  private static boolean hasPin(NormalizedRequest normalized, OcraEvaluationRequest raw) {
+  static boolean hasPin(NormalizedRequest normalized, OcraEvaluationRequest raw) {
     return normalized != null ? hasText(normalized.pinHashHex()) : hasText(raw.pinHashHex());
   }
 
-  private static boolean hasTimestamp(NormalizedRequest normalized, OcraEvaluationRequest raw) {
+  static boolean hasTimestamp(NormalizedRequest normalized, OcraEvaluationRequest raw) {
     return normalized != null ? hasText(normalized.timestampHex()) : hasText(raw.timestampHex());
   }
 
-  private static boolean hasCredentialReference(
-      NormalizedRequest normalized, OcraEvaluationRequest raw) {
+  static boolean hasCredentialReference(NormalizedRequest normalized, OcraEvaluationRequest raw) {
     return normalized != null ? hasText(normalized.credentialId()) : hasText(raw.credentialId());
   }
 
@@ -366,7 +362,7 @@ class OcraEvaluationService {
     INLINE_SECRET
   }
 
-  private record NormalizedRequest(
+  static record NormalizedRequest(
       String credentialId,
       String suite,
       String sharedSecretHex,
@@ -413,8 +409,7 @@ class OcraEvaluationService {
     }
   }
 
-  private record FailureDetails(
-      String field, String reasonCode, String message, boolean sanitized) {
+  static record FailureDetails(String field, String reasonCode, String message, boolean sanitized) {
 
     static FailureDetails fromException(IllegalArgumentException ex) {
       if (ex instanceof ValidationError error) {

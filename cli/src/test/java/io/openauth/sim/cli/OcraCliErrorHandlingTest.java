@@ -11,14 +11,10 @@ import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.MapDbCredentialStore;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -273,7 +269,7 @@ final class OcraCliErrorHandlingTest {
       assertEquals(CommandLine.ExitCode.OK, importExit, harness.stderr());
 
       OcraCli.ListCommand listCommand = listCommand();
-      Object previous = replacePersistenceAdapter(listCommand, null);
+      var previous = listCommand.swapPersistenceAdapter(null);
 
       try {
         harness.reset();
@@ -285,7 +281,7 @@ final class OcraCliErrorHandlingTest {
         assertTrue(stderr.contains("reasonCode=unexpected_error"));
         assertTrue(stderr.contains("sanitized=false"));
       } finally {
-        replacePersistenceAdapter(listCommand, previous);
+        listCommand.swapPersistenceAdapter(previous);
       }
     } finally {
       deleteRecursively(directory);
@@ -297,11 +293,11 @@ final class OcraCliErrorHandlingTest {
   void deleteCommandHandlesIllegalDatabasePath() throws Exception {
     harness.reset();
     OcraCli parent = harness.parent();
-    Path original = replaceDatabase(parent, null);
+    Path original = parent.configuredDatabase();
     Path illegalPath = illegalDatabasePath();
 
     try {
-      replaceDatabase(parent, illegalPath);
+      parent.overrideDatabase(illegalPath);
       int exit = harness.execute("delete", "--credential-id", "alpha");
 
       assertEquals(CommandLine.ExitCode.USAGE, exit);
@@ -310,7 +306,7 @@ final class OcraCliErrorHandlingTest {
       assertTrue(stderr.contains("reasonCode=validation_error"));
       assertTrue(stderr.contains("sanitized=true"));
     } finally {
-      replaceDatabase(parent, original);
+      parent.overrideDatabase(original);
     }
   }
 
@@ -321,10 +317,10 @@ final class OcraCliErrorHandlingTest {
     OcraCli parent = harness.parent();
     Path parentFile = Files.createTempFile("ocra-cli-delete", ".tmp");
     Path database = parentFile.resolve("store.db");
-    Path original = replaceDatabase(parent, null);
+    Path original = parent.configuredDatabase();
 
     try {
-      replaceDatabase(parent, database);
+      parent.overrideDatabase(database);
       int exit = harness.execute("delete", "--credential-id", "zeta");
 
       assertEquals(CommandLine.ExitCode.SOFTWARE, exit);
@@ -333,7 +329,7 @@ final class OcraCliErrorHandlingTest {
       assertTrue(stderr.contains("reasonCode=unexpected_error"));
       assertTrue(stderr.contains("sanitized=false"));
     } finally {
-      replaceDatabase(parent, original);
+      parent.overrideDatabase(original);
       Files.deleteIfExists(parentFile);
     }
   }
@@ -417,23 +413,6 @@ final class OcraCliErrorHandlingTest {
     return (OcraCli.ListCommand) harness.commandLine().getSubcommands().get("list").getCommand();
   }
 
-  private static Object replacePersistenceAdapter(OcraCli.AbstractOcraCommand command, Object value)
-      throws Exception {
-    var field = OcraCli.AbstractOcraCommand.class.getDeclaredField("persistenceAdapter");
-    field.setAccessible(true);
-    Object previous = field.get(command);
-    field.set(command, value);
-    return previous;
-  }
-
-  private static Path replaceDatabase(OcraCli cli, Path path) throws Exception {
-    var field = OcraCli.class.getDeclaredField("database");
-    field.setAccessible(true);
-    Path previous = (Path) field.get(cli);
-    field.set(cli, path);
-    return previous;
-  }
-
   private static void seedInvalidOcraRecord(Path database) throws Exception {
     try (MapDbCredentialStore store = MapDbCredentialStore.file(database).open()) {
       Map<String, String> attributes = new HashMap<>();
@@ -465,32 +444,7 @@ final class OcraCliErrorHandlingTest {
   }
 
   private static Path illegalDatabasePath() {
-    InvocationHandler handler =
-        (proxy, method, args) -> {
-          String name = method.getName();
-          return switch (name) {
-            case "toAbsolutePath" -> throw new IllegalArgumentException("database path invalid");
-            case "toString" -> "invalid-path";
-            case "getFileSystem" -> FileSystems.getDefault();
-            case "compareTo" -> 0;
-            case "iterator" -> List.<Path>of().iterator();
-            case "normalize",
-                "toRealPath",
-                "getParent",
-                "getRoot",
-                "subpath",
-                "relativize",
-                "resolve",
-                "resolveSibling" ->
-                proxy;
-            case "equals" -> proxy == args[0];
-            case "hashCode" -> System.identityHashCode(proxy);
-            default ->
-                throw new UnsupportedOperationException(
-                    "Unsupported Path method: " + method.getName());
-          };
-        };
-    return (Path)
-        Proxy.newProxyInstance(Path.class.getClassLoader(), new Class<?>[] {Path.class}, handler);
+    return TestPaths.failingAbsolutePath(
+        Path.of("invalid-path"), new IllegalArgumentException("database path invalid"));
   }
 }

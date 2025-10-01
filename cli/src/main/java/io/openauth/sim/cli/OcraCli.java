@@ -61,6 +61,14 @@ public final class OcraCli implements Callable<Integer> {
       description = "Path to the credential store database (default: data/ocra-credentials.db)")
   private Path database;
 
+  void overrideDatabase(Path database) {
+    this.database = database;
+  }
+
+  Path configuredDatabase() {
+    return database;
+  }
+
   @Override
   public Integer call() {
     spec.commandLine().usage(spec.commandLine().getOut());
@@ -86,31 +94,31 @@ public final class OcraCli implements Callable<Integer> {
     return EVENT_PREFIX + suffix;
   }
 
-  private static boolean hasText(String value) {
+  static boolean hasText(String value) {
     return value != null && !value.isBlank();
   }
 
-  private static String sanitizeMessage(String message) {
+  static String sanitizeMessage(String message) {
     if (message == null) {
       return "unspecified";
     }
     return message.replace('\n', ' ').replace('\r', ' ').trim();
   }
 
-  private static void ensureParentDirectory(Path path) throws IOException {
+  static void ensureParentDirectory(Path path) throws IOException {
     Path parent = path.toAbsolutePath().getParent();
     if (parent != null) {
       Files.createDirectories(parent);
     }
   }
 
-  private static Map<String, String> mapOf(String key, String value) {
+  static Map<String, String> mapOf(String key, String value) {
     Map<String, String> map = new LinkedHashMap<>();
     map.put(key, value);
     return map;
   }
 
-  private void emit(
+  void emit(
       PrintWriter writer,
       String event,
       String status,
@@ -150,7 +158,7 @@ public final class OcraCli implements Callable<Integer> {
     @CommandLine.ParentCommand OcraCli parent;
 
     private final OcraCredentialFactory credentialFactory = new OcraCredentialFactory();
-    private final OcraCredentialPersistenceAdapter persistenceAdapter =
+    private OcraCredentialPersistenceAdapter persistenceAdapter =
         new OcraCredentialPersistenceAdapter();
 
     protected PrintWriter out() {
@@ -171,6 +179,13 @@ public final class OcraCli implements Callable<Integer> {
 
     protected OcraCredentialPersistenceAdapter persistenceAdapter() {
       return persistenceAdapter;
+    }
+
+    OcraCredentialPersistenceAdapter swapPersistenceAdapter(
+        OcraCredentialPersistenceAdapter adapter) {
+      OcraCredentialPersistenceAdapter previous = persistenceAdapter;
+      persistenceAdapter = adapter;
+      return previous;
     }
 
     protected int failValidation(String event, String reasonCode, String message) {
@@ -759,8 +774,7 @@ public final class OcraCli implements Callable<Integer> {
       };
     }
 
-    private int handleInvalid(
-        String event, OcraVerificationReason reason, Map<String, String> fields) {
+    int handleInvalid(String event, OcraVerificationReason reason, Map<String, String> fields) {
       return switch (reason) {
         case VALIDATION_FAILURE ->
             failValidation(event, "validation_error", "Verification inputs failed validation");
@@ -771,7 +785,7 @@ public final class OcraCli implements Callable<Integer> {
       };
     }
 
-    private static String reasonCodeFor(OcraVerificationReason reason) {
+    static String reasonCodeFor(OcraVerificationReason reason) {
       return switch (reason) {
         case MATCH -> "match";
         case STRICT_MISMATCH -> "strict_mismatch";
@@ -781,7 +795,7 @@ public final class OcraCli implements Callable<Integer> {
       };
     }
 
-    private static String normalize(String value) {
+    static String normalize(String value) {
       if (value == null) {
         return null;
       }

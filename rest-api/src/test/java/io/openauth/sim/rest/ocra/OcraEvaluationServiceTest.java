@@ -21,7 +21,6 @@ import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
-import java.lang.reflect.InvocationTargetException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -568,7 +567,8 @@ class OcraEvaluationServiceTest {
   @Test
   @DisplayName("failure details default to request/invalid_input when message unmapped")
   void failureDetailsDefaultForUnknownMessage() throws Exception {
-    Object failureDetails = invokeFailureDetails(new IllegalArgumentException("unexpected"));
+    OcraEvaluationService.FailureDetails failureDetails =
+        invokeFailureDetails(new IllegalArgumentException("unexpected"));
 
     assertEquals("request", invokeFailureAccessor(failureDetails, "field"));
     assertEquals("invalid_input", invokeFailureAccessor(failureDetails, "reasonCode"));
@@ -578,7 +578,8 @@ class OcraEvaluationServiceTest {
   @Test
   @DisplayName("failure details substitute default message when null")
   void failureDetailsDefaultMessageWhenNull() throws Exception {
-    Object failureDetails = invokeFailureDetails(new IllegalArgumentException((String) null));
+    OcraEvaluationService.FailureDetails failureDetails =
+        invokeFailureDetails(new IllegalArgumentException((String) null));
 
     assertEquals("Invalid input", invokeFailureAccessor(failureDetails, "message"));
   }
@@ -654,7 +655,7 @@ class OcraEvaluationServiceTest {
             "  ff  ",
             5L);
 
-    Object normalized = invokeNormalizedRequestFrom(raw);
+    OcraEvaluationService.NormalizedRequest normalized = invokeNormalizedRequestFrom(raw);
     assertEquals("credential", invokeNormalizedAccessor(normalized, "credentialId"));
     assertEquals("suite", invokeNormalizedAccessor(normalized, "suite"));
     assertEquals("deadbeef", invokeNormalizedAccessor(normalized, "sharedSecretHex"));
@@ -669,7 +670,7 @@ class OcraEvaluationServiceTest {
         new OcraEvaluationRequest(
             " ", " suite ", "value", "challenge", " ", " ", " ", " ", " ", null);
 
-    Object blankNormalized = invokeNormalizedRequestFrom(blank);
+    OcraEvaluationService.NormalizedRequest blankNormalized = invokeNormalizedRequestFrom(blank);
     assertEquals(null, invokeNormalizedAccessor(blankNormalized, "credentialId"));
     assertEquals("suite", invokeNormalizedAccessor(blankNormalized, "suite"));
     assertEquals(null, invokeNormalizedAccessor(blankNormalized, "sessionHex"));
@@ -685,7 +686,7 @@ class OcraEvaluationServiceTest {
     OcraEvaluationRequest raw =
         new OcraEvaluationRequest(null, null, null, null, null, null, null, null, null, null);
 
-    Object normalized = invokeNormalizedRequestFrom(raw);
+    OcraEvaluationService.NormalizedRequest normalized = invokeNormalizedRequestFrom(raw);
     assertEquals(null, invokeNormalizedAccessor(normalized, "credentialId"));
     assertEquals(null, invokeNormalizedAccessor(normalized, "suite"));
     assertEquals(null, invokeNormalizedAccessor(normalized, "sharedSecretHex"));
@@ -699,29 +700,25 @@ class OcraEvaluationServiceTest {
 
   @Test
   @DisplayName("hex character predicate recognises valid ranges")
-  void isHexCharacterCoverage() throws Exception {
-    java.lang.reflect.Method method =
-        OcraEvaluationService.class.getDeclaredMethod("isHexCharacter", int.class);
-    method.setAccessible(true);
-
-    assertTrue((boolean) method.invoke(null, (int) '0'));
-    assertTrue((boolean) method.invoke(null, (int) 'A'));
-    assertTrue((boolean) method.invoke(null, (int) 'f'));
-    assertFalse((boolean) method.invoke(null, (int) 'g'));
+  void isHexCharacterCoverage() {
+    assertTrue(OcraEvaluationService.isHexCharacter('0'));
+    assertTrue(OcraEvaluationService.isHexCharacter('A'));
+    assertTrue(OcraEvaluationService.isHexCharacter('f'));
+    assertFalse(OcraEvaluationService.isHexCharacter('g'));
   }
 
   @Test
   @DisplayName("failure details map timestamp drift and invalid inputs")
   void failureDetailsTimestampMappings() throws Exception {
-    Object driftExceeded =
+    OcraEvaluationService.FailureDetails driftExceeded =
         invokeFailureDetails(new IllegalArgumentException("timestamp outside permitted drift"));
     assertEquals("timestamp_drift_exceeded", invokeFailureAccessor(driftExceeded, "reasonCode"));
 
-    Object notPermitted =
+    OcraEvaluationService.FailureDetails notPermitted =
         invokeFailureDetails(new IllegalArgumentException("timestamp not permitted for suite"));
     assertEquals("timestamp_not_permitted", invokeFailureAccessor(notPermitted, "reasonCode"));
 
-    Object invalid =
+    OcraEvaluationService.FailureDetails invalid =
         invokeFailureDetails(
             new IllegalArgumentException("timestamp must represent a valid time window"));
     assertEquals("timestamp_invalid", invokeFailureAccessor(invalid, "reasonCode"));
@@ -1033,139 +1030,99 @@ class OcraEvaluationServiceTest {
         Map.of());
   }
 
-  private static Instant invokeResolveTimestamp(OcraCredentialDescriptor descriptor, String input)
-      throws Exception {
-    var method =
-        OcraEvaluationService.class.getDeclaredMethod(
-            "resolveTimestamp", OcraCredentialDescriptor.class, String.class);
-    method.setAccessible(true);
-    try {
-      return (Instant) method.invoke(null, descriptor, input);
-    } catch (InvocationTargetException ex) {
-      Throwable cause = ex.getCause();
-      if (cause instanceof RuntimeException runtime) {
-        throw runtime;
-      }
-      throw ex;
-    }
+  private static Instant invokeResolveTimestamp(OcraCredentialDescriptor descriptor, String input) {
+    return OcraEvaluationService.resolveTimestamp(descriptor, input);
   }
 
-  private static void invokeValidateChallenge(OcraCredentialDescriptor descriptor, String challenge)
-      throws Exception {
-    var method =
-        OcraEvaluationService.class.getDeclaredMethod(
-            "validateChallenge", OcraCredentialDescriptor.class, String.class);
-    method.setAccessible(true);
-    try {
-      method.invoke(null, descriptor, challenge);
-    } catch (InvocationTargetException ex) {
-      Throwable cause = ex.getCause();
-      if (cause instanceof RuntimeException runtime) {
-        throw runtime;
-      }
-      throw ex;
-    }
+  private static void invokeValidateChallenge(
+      OcraCredentialDescriptor descriptor, String challenge) {
+    OcraEvaluationService.validateChallenge(descriptor, challenge);
   }
 
-  private static Object invokeFailureDetails(IllegalArgumentException exception) throws Exception {
-    Class<?> failureDetailsClass =
-        Class.forName("io.openauth.sim.rest.ocra.OcraEvaluationService$FailureDetails");
-    var method =
-        failureDetailsClass.getDeclaredMethod("fromException", IllegalArgumentException.class);
-    method.setAccessible(true);
-    return method.invoke(null, exception);
+  private static OcraEvaluationService.FailureDetails invokeFailureDetails(
+      IllegalArgumentException exception) {
+    return OcraEvaluationService.FailureDetails.fromException(exception);
   }
 
-  private static Object invokeFailureAccessor(Object failureDetails, String methodName)
-      throws Exception {
-    var method = failureDetails.getClass().getDeclaredMethod(methodName);
-    method.setAccessible(true);
-    return method.invoke(failureDetails);
+  private static Object invokeFailureAccessor(
+      OcraEvaluationService.FailureDetails failureDetails, String methodName) {
+    return switch (methodName) {
+      case "field" -> failureDetails.field();
+      case "reasonCode" -> failureDetails.reasonCode();
+      case "message" -> failureDetails.message();
+      case "sanitized" -> failureDetails.sanitized();
+      default -> throw new IllegalArgumentException("Unknown accessor: " + methodName);
+    };
   }
 
-  private static Object invokeNormalizedRequestFrom(OcraEvaluationRequest raw) throws Exception {
-    Class<?> normalizedClass =
-        Class.forName("io.openauth.sim.rest.ocra.OcraEvaluationService$NormalizedRequest");
-    var method =
-        normalizedClass.getDeclaredMethod(
-            "from", Class.forName("io.openauth.sim.rest.ocra.OcraEvaluationRequest"));
-    method.setAccessible(true);
-    return method.invoke(null, raw);
+  private static OcraEvaluationService.NormalizedRequest invokeNormalizedRequestFrom(
+      OcraEvaluationRequest raw) {
+    return OcraEvaluationService.NormalizedRequest.from(raw);
   }
 
-  private static Object invokeNormalizedAccessor(Object normalized, String methodName)
-      throws Exception {
-    var method = normalized.getClass().getDeclaredMethod(methodName);
-    method.setAccessible(true);
-    return method.invoke(normalized);
+  private static Object invokeNormalizedAccessor(
+      OcraEvaluationService.NormalizedRequest normalized, String methodName) {
+    return switch (methodName) {
+      case "credentialId" -> normalized.credentialId();
+      case "suite" -> normalized.suite();
+      case "sharedSecretHex" -> normalized.sharedSecretHex();
+      case "challenge" -> normalized.challenge();
+      case "sessionHex" -> normalized.sessionHex();
+      case "clientChallenge" -> normalized.clientChallenge();
+      case "serverChallenge" -> normalized.serverChallenge();
+      case "pinHashHex" -> normalized.pinHashHex();
+      case "timestampHex" -> normalized.timestampHex();
+      case "counter" -> normalized.counter();
+      default -> throw new IllegalArgumentException("Unknown accessor: " + methodName);
+    };
   }
 
-  private static void invokeRequireHex(String value, String field, boolean required)
-      throws Exception {
-    var method =
-        OcraEvaluationService.class.getDeclaredMethod(
-            "requireHex", String.class, String.class, boolean.class);
-    method.setAccessible(true);
-    try {
-      method.invoke(null, value, field, required);
-    } catch (InvocationTargetException ex) {
-      Throwable cause = ex.getCause();
-      if (cause instanceof RuntimeException runtime) {
-        throw runtime;
-      }
-      throw ex;
-    }
+  private static void invokeRequireHex(String value, String field, boolean required) {
+    OcraEvaluationService.requireHex(value, field, required);
   }
 
   private static String invokeSuiteOrUnknown(
-      Object normalizedRequest, OcraEvaluationRequest rawRequest) throws Exception {
-    var method =
-        OcraEvaluationService.class.getDeclaredMethod(
-            "suiteOrUnknown",
-            Class.forName("io.openauth.sim.rest.ocra.OcraEvaluationService$NormalizedRequest"),
-            OcraEvaluationRequest.class);
-    method.setAccessible(true);
-    return (String) method.invoke(null, normalizedRequest, rawRequest);
+      OcraEvaluationService.NormalizedRequest normalizedRequest, OcraEvaluationRequest rawRequest) {
+    return OcraEvaluationService.suiteOrUnknown(normalizedRequest, rawRequest);
   }
 
-  private static boolean invokeHasSession(Object normalized, OcraEvaluationRequest raw)
-      throws Exception {
+  private static boolean invokeHasSession(Object normalized, OcraEvaluationRequest raw) {
     return invokeFlagHelper("hasSession", normalized, raw);
   }
 
-  private static boolean invokeHasClientChallenge(Object normalized, OcraEvaluationRequest raw)
-      throws Exception {
+  private static boolean invokeHasClientChallenge(Object normalized, OcraEvaluationRequest raw) {
     return invokeFlagHelper("hasClientChallenge", normalized, raw);
   }
 
-  private static boolean invokeHasServerChallenge(Object normalized, OcraEvaluationRequest raw)
-      throws Exception {
+  private static boolean invokeHasServerChallenge(Object normalized, OcraEvaluationRequest raw) {
     return invokeFlagHelper("hasServerChallenge", normalized, raw);
   }
 
-  private static boolean invokeHasPin(Object normalized, OcraEvaluationRequest raw)
-      throws Exception {
+  private static boolean invokeHasPin(Object normalized, OcraEvaluationRequest raw) {
     return invokeFlagHelper("hasPin", normalized, raw);
   }
 
-  private static boolean invokeHasTimestamp(Object normalized, OcraEvaluationRequest raw)
-      throws Exception {
+  private static boolean invokeHasTimestamp(Object normalized, OcraEvaluationRequest raw) {
     return invokeFlagHelper("hasTimestamp", normalized, raw);
   }
 
-  private static boolean invokeHasCredentialReference(Object normalized, OcraEvaluationRequest raw)
-      throws Exception {
+  private static boolean invokeHasCredentialReference(
+      Object normalized, OcraEvaluationRequest raw) {
     return invokeFlagHelper("hasCredentialReference", normalized, raw);
   }
 
   private static boolean invokeFlagHelper(
-      String methodName, Object normalized, OcraEvaluationRequest raw) throws Exception {
-    var method =
-        OcraEvaluationService.class.getDeclaredMethod(
-            methodName,
-            Class.forName("io.openauth.sim.rest.ocra.OcraEvaluationService$NormalizedRequest"),
-            OcraEvaluationRequest.class);
-    method.setAccessible(true);
-    return (boolean) method.invoke(null, normalized, raw);
+      String methodName, Object normalized, OcraEvaluationRequest raw) {
+    OcraEvaluationService.NormalizedRequest typed =
+        normalized instanceof OcraEvaluationService.NormalizedRequest record ? record : null;
+    return switch (methodName) {
+      case "hasSession" -> OcraEvaluationService.hasSession(typed, raw);
+      case "hasClientChallenge" -> OcraEvaluationService.hasClientChallenge(typed, raw);
+      case "hasServerChallenge" -> OcraEvaluationService.hasServerChallenge(typed, raw);
+      case "hasPin" -> OcraEvaluationService.hasPin(typed, raw);
+      case "hasTimestamp" -> OcraEvaluationService.hasTimestamp(typed, raw);
+      case "hasCredentialReference" -> OcraEvaluationService.hasCredentialReference(typed, raw);
+      default -> throw new IllegalArgumentException("Unknown helper: " + methodName);
+    };
   }
 }

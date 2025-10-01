@@ -5,9 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.store.CredentialStore;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,7 +30,7 @@ class RestPersistenceConfigurationTest {
   @Test
   @DisplayName("resolveDatabasePath falls back to default when blank")
   void resolveDatabasePathFallsBackToDefault() throws Exception {
-    Path resolved = invokeResolveDatabasePath("   ");
+    Path resolved = RestPersistenceConfiguration.resolveDatabasePath("   ");
     assertTrue(resolved.toString().endsWith("ocra-credentials.db"));
   }
 
@@ -41,7 +38,7 @@ class RestPersistenceConfigurationTest {
   @DisplayName("resolveDatabasePath honors configured absolute path")
   void resolveDatabasePathHonorsConfiguredPath() throws Exception {
     Path configured = Paths.get("build", "custom", "store.db").toAbsolutePath();
-    Path resolved = invokeResolveDatabasePath(configured.toString());
+    Path resolved = RestPersistenceConfiguration.resolveDatabasePath(configured.toString());
     assertEquals(configured, resolved);
   }
 
@@ -49,26 +46,6 @@ class RestPersistenceConfigurationTest {
   @DisplayName("ensureParentDirectory is a no-op when parent is null")
   void ensureParentDirectoryHandlesNullParent() throws Exception {
     Path singleFile = Paths.get("store.db").toAbsolutePath().getFileName();
-    invokeEnsureParentDirectory(singleFile);
-  }
-
-  private static Path invokeResolveDatabasePath(String input)
-      throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-    Method method =
-        RestPersistenceConfiguration.class.getDeclaredMethod("resolveDatabasePath", String.class);
-    method.setAccessible(true);
-    return (Path) method.invoke(null, input);
-  }
-
-  private static void invokeEnsureParentDirectory(Path path)
-      throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, IOException {
-    Method method =
-        RestPersistenceConfiguration.class.getDeclaredMethod("ensureParentDirectory", Path.class);
-    method.setAccessible(true);
-    try {
-      method.invoke(null, path);
-    } catch (InvocationTargetException ex) {
-      throw ex;
-    }
+    RestPersistenceConfiguration.ensureParentDirectory(singleFile);
   }
 }

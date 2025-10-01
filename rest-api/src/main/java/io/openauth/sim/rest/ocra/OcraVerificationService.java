@@ -295,7 +295,7 @@ class OcraVerificationService {
     return response;
   }
 
-  private void handleInvalid(
+  void handleInvalid(
       NormalizedRequest request,
       OcraCredentialDescriptor descriptor,
       String credentialSource,
@@ -373,7 +373,7 @@ class OcraVerificationService {
     }
   }
 
-  private void emitCredentialNotFoundTelemetry(
+  void emitCredentialNotFoundTelemetry(
       OcraVerificationAuditContext auditContext,
       String telemetryId,
       NormalizedRequest request,
@@ -520,7 +520,7 @@ class OcraVerificationService {
     return trimmed.isEmpty() ? Optional.empty() : Optional.of(trimmed);
   }
 
-  private static record NormalizedRequest(
+  static record NormalizedRequest(
       InputMode inputMode,
       String credentialId,
       Optional<InlineSecret> inlineSecret,
@@ -585,7 +585,7 @@ class OcraVerificationService {
     }
   }
 
-  private static record VerificationContext(
+  static record VerificationContext(
       Long counter,
       String challenge,
       String clientChallenge,
@@ -626,7 +626,7 @@ class OcraVerificationService {
     }
   }
 
-  private static record InlineSecret(
+  static record InlineSecret(
       String suite,
       String sharedSecretHex,
       Optional<Long> counter,

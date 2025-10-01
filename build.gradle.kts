@@ -310,10 +310,62 @@ val mutationTest = tasks.register("mutationTest") {
     }
 }
 
+val reflectionScan = tasks.register("reflectionScan") {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Fails when reflection APIs are referenced in source sets"
+
+    val moduleNames = listOf("core", "cli", "rest-api", "ui")
+    val projectDirectoryFile = layout.projectDirectory.asFile
+    val tokenFile = projectDirectoryFile.resolve("config/reflection-tokens.txt")
+    val moduleSrcDirs = moduleNames.map { moduleName -> projectDirectoryFile.resolve("$moduleName/src") }
+
+    inputs.file(tokenFile)
+    inputs.files(moduleSrcDirs)
+
+    doLast {
+        if (!tokenFile.exists()) {
+            throw GradleException("Missing reflection token configuration file: ${tokenFile.path}")
+        }
+
+        val tokens = tokenFile.readLines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !it.startsWith("#") }
+
+        if (tokens.isEmpty()) {
+            logger.lifecycle("No reflection tokens configured; skipping scan")
+            return@doLast
+        }
+
+        val offenders = mutableListOf<String>()
+
+        moduleSrcDirs.forEach { srcDir ->
+            if (!srcDir.exists()) {
+                return@forEach
+            }
+
+            srcDir.walkTopDown()
+                .filter { it.isFile && it.extension == "java" }
+                .forEach { sourceFile ->
+                    val content = sourceFile.readText()
+                    tokens.forEach { token ->
+                        if (content.contains(token)) {
+                            offenders += "${sourceFile.path} -> $token"
+                        }
+                    }
+                }
+        }
+
+        if (offenders.isNotEmpty()) {
+            logger.error("Reflection usage detected:\n" + offenders.joinToString(System.lineSeparator()))
+            throw GradleException("Reflection usage detected; see log for details")
+        }
+    }
+}
+
 val qualityGate = tasks.register("qualityGate") {
     group = LifecycleBasePlugin.VERIFICATION_GROUP
     description = "Runs the full quality automation gate"
-    dependsOn("spotlessCheck", "check")
+    dependsOn("spotlessCheck", "check", reflectionScan)
 }
 
 tasks.named("check") {

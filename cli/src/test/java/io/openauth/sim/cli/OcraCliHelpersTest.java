@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -38,19 +37,8 @@ final class OcraCliHelpersTest {
   }
 
   @Test
-  void emitSkipsBlankReasonCodeAndFieldValues() throws Exception {
+  void emitSkipsBlankReasonCodeAndFieldValues() {
     OcraCli cli = new OcraCli();
-
-    Method emit =
-        OcraCli.class.getDeclaredMethod(
-            "emit",
-            PrintWriter.class,
-            String.class,
-            String.class,
-            String.class,
-            boolean.class,
-            Map.class);
-    emit.setAccessible(true);
 
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     PrintWriter writer = new PrintWriter(buffer, true, StandardCharsets.UTF_8);
@@ -59,7 +47,7 @@ final class OcraCliHelpersTest {
     fields.put("emptyField", "   ");
     fields.put("valueField", "  present  ");
 
-    emit.invoke(cli, writer, "cli.ocra.test", "success", "   ", true, fields);
+    cli.emit(writer, "cli.ocra.test", "success", "   ", true, fields);
 
     String output = buffer.toString(StandardCharsets.UTF_8);
     assertTrue(output.contains("event=cli.ocra.test"));
@@ -77,22 +65,15 @@ final class OcraCliHelpersTest {
       root = FileSystems.getDefault().getRootDirectories().iterator().next();
     }
 
-    Method ensureParentDirectory =
-        OcraCli.class.getDeclaredMethod("ensureParentDirectory", Path.class);
-    ensureParentDirectory.setAccessible(true);
-
-    ensureParentDirectory.invoke(null, root);
+    OcraCli.ensureParentDirectory(root);
 
     assertTrue(Files.exists(root));
   }
 
   @Test
-  void hasTextCoversNullAndBlankInput() throws Exception {
-    Method hasText = OcraCli.class.getDeclaredMethod("hasText", String.class);
-    hasText.setAccessible(true);
-
-    assertFalse((boolean) hasText.invoke(null, (Object) null));
-    assertFalse((boolean) hasText.invoke(null, "   "));
-    assertTrue((boolean) hasText.invoke(null, "value"));
+  void hasTextCoversNullAndBlankInput() {
+    assertFalse(OcraCli.hasText(null));
+    assertFalse(OcraCli.hasText("   "));
+    assertTrue(OcraCli.hasText("value"));
   }
 }

@@ -20,10 +20,6 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -483,73 +479,50 @@ class OcraCliTest {
     assertTrue(verifyLine != null, "verify subcommand not registered");
     OcraCli.VerifyCommand command = verifyLine.getCommand();
 
-    Method handleInvalid =
-        OcraCli.VerifyCommand.class.getDeclaredMethod(
-            "handleInvalid", String.class, OcraVerificationReason.class, Map.class);
-    handleInvalid.setAccessible(true);
-
     int validationExit =
-        (int)
-            handleInvalid.invoke(
-                command,
-                "cli.ocra.verify",
-                OcraVerificationReason.VALIDATION_FAILURE,
-                new LinkedHashMap<>());
+        command.handleInvalid(
+            "cli.ocra.verify", OcraVerificationReason.VALIDATION_FAILURE, new LinkedHashMap<>());
     assertEquals(CommandLine.ExitCode.USAGE, validationExit, harness.stderr());
 
     int credentialExit =
-        (int)
-            handleInvalid.invoke(
-                command,
-                "cli.ocra.verify",
-                OcraVerificationReason.CREDENTIAL_NOT_FOUND,
-                new LinkedHashMap<>());
+        command.handleInvalid(
+            "cli.ocra.verify", OcraVerificationReason.CREDENTIAL_NOT_FOUND, new LinkedHashMap<>());
     assertEquals(CommandLine.ExitCode.USAGE, credentialExit, harness.stderr());
 
     int unexpectedExit =
-        (int)
-            handleInvalid.invoke(
-                command,
-                "cli.ocra.verify",
-                OcraVerificationReason.UNEXPECTED_ERROR,
-                new LinkedHashMap<>());
+        command.handleInvalid(
+            "cli.ocra.verify", OcraVerificationReason.UNEXPECTED_ERROR, new LinkedHashMap<>());
     assertEquals(CommandLine.ExitCode.SOFTWARE, unexpectedExit, harness.stderr());
 
     int unexpectedMatchExit =
-        (int)
-            handleInvalid.invoke(
-                command, "cli.ocra.verify", OcraVerificationReason.MATCH, new LinkedHashMap<>());
+        command.handleInvalid(
+            "cli.ocra.verify", OcraVerificationReason.MATCH, new LinkedHashMap<>());
     assertEquals(CommandLine.ExitCode.SOFTWARE, unexpectedMatchExit, harness.stderr());
   }
 
   @Test
   @DisplayName("verify reasonCodeFor covers every verification reason")
-  void verifyReasonCodeMapping() throws Exception {
-    Method reasonCodeFor =
-        OcraCli.VerifyCommand.class.getDeclaredMethod(
-            "reasonCodeFor", OcraVerificationReason.class);
-    reasonCodeFor.setAccessible(true);
-
-    assertEquals("match", reasonCodeFor.invoke(null, OcraVerificationReason.MATCH));
+  void verifyReasonCodeMapping() {
+    assertEquals("match", OcraCli.VerifyCommand.reasonCodeFor(OcraVerificationReason.MATCH));
     assertEquals(
-        "strict_mismatch", reasonCodeFor.invoke(null, OcraVerificationReason.STRICT_MISMATCH));
+        "strict_mismatch",
+        OcraCli.VerifyCommand.reasonCodeFor(OcraVerificationReason.STRICT_MISMATCH));
     assertEquals(
-        "validation_error", reasonCodeFor.invoke(null, OcraVerificationReason.VALIDATION_FAILURE));
+        "validation_error",
+        OcraCli.VerifyCommand.reasonCodeFor(OcraVerificationReason.VALIDATION_FAILURE));
     assertEquals(
         "credential_not_found",
-        reasonCodeFor.invoke(null, OcraVerificationReason.CREDENTIAL_NOT_FOUND));
+        OcraCli.VerifyCommand.reasonCodeFor(OcraVerificationReason.CREDENTIAL_NOT_FOUND));
     assertEquals(
-        "unexpected_error", reasonCodeFor.invoke(null, OcraVerificationReason.UNEXPECTED_ERROR));
+        "unexpected_error",
+        OcraCli.VerifyCommand.reasonCodeFor(OcraVerificationReason.UNEXPECTED_ERROR));
   }
 
   @Test
   @DisplayName("verify normalize trims whitespace to null")
-  void verifyNormalizeWhitespace() throws Exception {
-    Method normalize = OcraCli.VerifyCommand.class.getDeclaredMethod("normalize", String.class);
-    normalize.setAccessible(true);
-
-    assertEquals(null, normalize.invoke(null, "   "));
-    assertEquals("abc", normalize.invoke(null, "  abc  "));
+  void verifyNormalizeWhitespace() {
+    assertEquals(null, OcraCli.VerifyCommand.normalize("   "));
+    assertEquals("abc", OcraCli.VerifyCommand.normalize("  abc  "));
   }
 
   @Test
@@ -863,30 +836,13 @@ class OcraCliTest {
 
   @Test
   @DisplayName("emit helper omits blank fields and reason code when absent")
-  void emitHelperOmitsBlankFields() throws Exception {
+  void emitHelperOmitsBlankFields() {
     OcraCli cli = new OcraCli();
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     PrintWriter writer = new PrintWriter(buffer, true, StandardCharsets.UTF_8);
 
-    java.lang.reflect.Method emit =
-        OcraCli.class.getDeclaredMethod(
-            "emit",
-            PrintWriter.class,
-            String.class,
-            String.class,
-            String.class,
-            boolean.class,
-            Map.class);
-    emit.setAccessible(true);
-
-    emit.invoke(
-        cli,
-        writer,
-        "cli.ocra.test",
-        "success",
-        null,
-        true,
-        Map.of("field", "value", "blank", "   "));
+    cli.emit(
+        writer, "cli.ocra.test", "success", null, true, Map.of("field", "value", "blank", "   "));
 
     String output = buffer.toString(StandardCharsets.UTF_8);
     assertTrue(output.contains("event=cli.ocra.test"));
@@ -968,31 +924,13 @@ class OcraCliTest {
     persistDescriptor(database, descriptor);
   }
 
-  private static void setDatabase(OcraCli cli, Path database) throws Exception {
-    var field = OcraCli.class.getDeclaredField("database");
-    field.setAccessible(true);
-    field.set(cli, database);
+  private static void setDatabase(OcraCli cli, Path database) {
+    cli.overrideDatabase(database);
   }
 
   private static Path illegalDatabasePath() {
-    Path delegate = Path.of("invalid-path");
-    InvocationHandler handler =
-        (proxy, method, args) -> {
-          if ("toAbsolutePath".equals(method.getName())) {
-            throw new IllegalArgumentException("database path invalid");
-          }
-          try {
-            return method.invoke(delegate, args);
-          } catch (InvocationTargetException ex) {
-            Throwable target = ex.getTargetException();
-            if (target instanceof RuntimeException runtime) {
-              throw runtime;
-            }
-            throw ex;
-          }
-        };
-    return (Path)
-        Proxy.newProxyInstance(Path.class.getClassLoader(), new Class<?>[] {Path.class}, handler);
+    return TestPaths.failingAbsolutePath(
+        Path.of("invalid-path"), new IllegalArgumentException("database path invalid"));
   }
 
   private static void deleteRecursively(Path root) throws Exception {

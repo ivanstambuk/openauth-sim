@@ -136,6 +136,10 @@ public final class MapDbCredentialStore implements CredentialStore {
     db.close();
   }
 
+  Cache<String, Credential> cacheView() {
+    return cache;
+  }
+
   public static final class Builder {
     private final Path databasePath;
     private final boolean inMemory;

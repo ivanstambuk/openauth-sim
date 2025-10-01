@@ -105,7 +105,7 @@ public final class MaintenanceCli {
     return result.status() == MaintenanceStatus.FAIL ? 2 : 0;
   }
 
-  private ParsedArguments parseMaintenanceArguments(String[] args, PrintStream err) {
+  ParsedArguments parseMaintenanceArguments(String[] args, PrintStream err) {
     MaintenanceOperation operation;
     String command = args[0].toLowerCase(Locale.ROOT);
     switch (command) {
@@ -176,7 +176,7 @@ public final class MaintenanceCli {
     }
   }
 
-  private OcraArguments parseOcraArguments(String[] args, PrintStream err) {
+  OcraArguments parseOcraArguments(String[] args, PrintStream err) {
     String suite = null;
     String key = null;
     String challenge = null;
@@ -255,14 +255,14 @@ public final class MaintenanceCli {
     return "usage: maintenance <compact|verify> --database=<path> | ocra --suite=<suite> --key=<hex> [--challenge=...] [--session=...] [--counter=...] [--client=...] [--server=...] [--pin=...] [--timestamp=...]";
   }
 
-  private record ParsedArguments(MaintenanceOperation operation, Path databasePath, boolean valid) {
+  static record ParsedArguments(MaintenanceOperation operation, Path databasePath, boolean valid) {
 
     static ParsedArguments invalid() {
       return new ParsedArguments(null, null, false);
     }
   }
 
-  private record OcraArguments(
+  static record OcraArguments(
       String suite,
       String sharedSecretHex,
       Optional<String> challenge,
