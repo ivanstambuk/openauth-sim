@@ -12,6 +12,7 @@ Establish replay and verification workflows that accept operator-supplied one-ti
 3. 2025-10-01 – Operators may verify against either persisted credentials or a supplied inline secret, provided both paths produce identical audit telemetry (Option B).
 4. 2025-10-01 – Verification evidence will rely on existing structured telemetry/logging; no additional persisted receipts are required for this feature (Option A).
 5. 2025-10-01 – Replay checks enforce strict validation with no tolerance windows or resynchronisation; any mismatch is a definitive failure (Option A).
+6. 2025-10-01 – Performance benchmarks for R913 will run on the current WSL2 Linux host (x86_64) with OpenJDK 17.0.16; results will be recorded with hardware/JDK details for traceability (Option B).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

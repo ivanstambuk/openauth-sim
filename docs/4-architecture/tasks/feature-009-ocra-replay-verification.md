@@ -24,7 +24,7 @@ _Last updated: 2025-10-01_
 | R910 | Implement CLI verification command + telemetry | ORV-001, ORV-004, ORV-NFR-001 | ✅ (2025-10-01) |
 | R911 | Implement REST verification endpoint + DTO validation | ORV-002, ORV-003, ORV-005 | ✅ (2025-10-01) |
 | R912 | Ensure telemetry/logging contains required audit fields | ORV-004, ORV-NFR-001 | ✅ (2025-10-01) |
-| R913 | Capture performance measurements and document results | ORV-NFR-002 | ☐ |
+| R913 | Capture performance measurements and document results | ORV-NFR-002 | ✅ (2025-10-01 – WSL2 benchmark recorded) |
 | R914 | Update documentation/how-to guides for verification usage | ORV-001–ORV-005 | ☐ |
 | R915 | Run `./gradlew qualityGate`, capture metrics, update plan with closure notes | ORV-001–ORV-005, ORV-NFR-001–NFR-003 | ☐ |
 | R916 | Increase REST verification service coverage (timestamp validation, stored race) | ORV-002, ORV-003, ORV-004 | ✅ (2025-10-01) |
