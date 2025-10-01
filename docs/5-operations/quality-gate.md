@@ -1,10 +1,13 @@
 # Quality Gate – Usage & Troubleshooting
 
-_Last updated: 2025-09-30_
+_Last updated: 2025-10-01_
 
 The `qualityGate` Gradle task aggregates the architectural, coverage, and mutation checks that protect the OCRA stack. Run it locally before shipping changes touching `core`, `cli`, or `rest-api`, and rely on the CI workflow (`.github/workflows/ci.yml`) for enforcement on every push and pull request.
 
 ## Commands
+- **Format before commit:** `./gradlew spotlessApply`
+  - Runs Google Java Format via Spotless across all Java sources so contributors (human or AI) stage diffs that already satisfy the gate.
+  - Execute this before every commit to minimise formatter churn and keep `spotlessCheck` green during `qualityGate`.
 - **Full run:** `./gradlew qualityGate`
   - Executes `spotlessCheck`, `check`, `architectureTest`, `jacocoAggregatedReport`, `jacocoCoverageVerification`, and `mutationTest`.
   - Baseline runtime (warm cache, Apple M1 Pro 16 GB): ~1m56s.
