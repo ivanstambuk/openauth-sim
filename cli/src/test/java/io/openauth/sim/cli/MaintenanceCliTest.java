@@ -13,6 +13,7 @@ import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.MapDbCredentialStore;
+import io.openauth.sim.core.store.ocra.OcraStoreMigrations;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.core.store.testing.MapDbMaintenanceFixtures;
@@ -649,9 +650,13 @@ class MaintenanceCliTest {
     VersionedCredentialRecord record = adapter.serialize(descriptor);
     Credential credential = VersionedCredentialRecordMapper.toCredential(record);
 
-    try (MapDbCredentialStore store = MapDbCredentialStore.file(database).open()) {
+    try (MapDbCredentialStore store = ocraStoreBuilder(database).open()) {
       store.save(credential);
     }
+  }
+
+  private MapDbCredentialStore.Builder ocraStoreBuilder(Path database) {
+    return OcraStoreMigrations.apply(MapDbCredentialStore.file(database));
   }
 
   private void deleteRecursively(Path root) throws Exception {

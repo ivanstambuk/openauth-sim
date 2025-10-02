@@ -3,8 +3,6 @@ package io.openauth.sim.application.telemetry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -58,11 +56,11 @@ final class TelemetryContractTestSupport {
     return fields;
   }
 
-  static void assertEvaluationSuccessFrame(Object frame) {
+  static void assertEvaluationSuccessFrame(TelemetryFrame frame) {
     assertFrame(frame, EVALUATION_EVENT, "success", "success", true, evaluationSuccessFields());
   }
 
-  static void assertEvaluationValidationFrame(Object frame, boolean sanitized) {
+  static void assertEvaluationValidationFrame(TelemetryFrame frame, boolean sanitized) {
     assertFrame(
         frame,
         EVALUATION_EVENT,
@@ -72,14 +70,13 @@ final class TelemetryContractTestSupport {
         evaluationValidationFields());
   }
 
-  static void assertEvaluationErrorFrame(Object frame) {
+  static void assertEvaluationErrorFrame(TelemetryFrame frame) {
     assertFrame(
         frame, EVALUATION_EVENT, "error", "unexpected_error", false, evaluationErrorFields());
   }
 
-  @SuppressWarnings("unchecked")
   private static void assertFrame(
-      Object frame,
+      TelemetryFrame frame,
       String expectedEvent,
       String expectedStatus,
       String expectedReasonCode,
@@ -87,20 +84,12 @@ final class TelemetryContractTestSupport {
       Map<String, Object> expectedFields) {
     assertNotNull(frame, "Telemetry frame should not be null");
 
-    Class<?> frameType = frame.getClass();
+    assertEquals(expectedEvent, frame.event(), "Unexpected telemetry event");
+    assertEquals(expectedStatus, frame.status(), "Unexpected telemetry status");
+    assertEquals(expectedSanitized, frame.sanitized(), "Unexpected sanitized flag");
 
-    String event = (String) invoke(frame, frameType, "event");
-    assertEquals(expectedEvent, event, "Unexpected telemetry event");
-
-    String status = (String) invoke(frame, frameType, "status");
-    assertEquals(expectedStatus, status, "Unexpected telemetry status");
-
-    Boolean sanitized = (Boolean) invoke(frame, frameType, "sanitized");
-    assertEquals(expectedSanitized, sanitized, "Unexpected sanitized flag");
-
-    Object fieldsObject = invoke(frame, frameType, "fields");
-    assertNotNull(fieldsObject, "Telemetry fields must not be null");
-    Map<String, Object> actualFields = (Map<String, Object>) fieldsObject;
+    Map<String, Object> actualFields = frame.fields();
+    assertNotNull(actualFields, "Telemetry fields must not be null");
     assertEquals(
         telemetryId(),
         actualFields.get("telemetryId"),
@@ -114,22 +103,6 @@ final class TelemetryContractTestSupport {
           entry.getValue(),
           actualFields.get(entry.getKey()),
           () -> "Field mismatch for " + entry.getKey());
-    }
-  }
-
-  private static Object invoke(Object target, Class<?> type, String methodName) {
-    try {
-      Method method = type.getMethod(methodName);
-      return method.invoke(target);
-    } catch (NoSuchMethodException | IllegalAccessException ex) {
-      throw new AssertionError(
-          "Telemetry contract is missing method '" + methodName + "' on " + type.getName(), ex);
-    } catch (InvocationTargetException ex) {
-      Throwable cause = ex.getCause();
-      if (cause instanceof RuntimeException runtimeException) {
-        throw runtimeException;
-      }
-      throw new AssertionError("Telemetry frame accessor failed", cause);
     }
   }
 }

@@ -115,44 +115,6 @@ class MapDbCredentialStoreTest {
     }
   }
 
-  @Test
-  void upgradesLegacyOcraRecord() {
-    Path dbPath = tempDir.resolve("legacy.db");
-
-    try (DB db = DBMaker.fileDB(dbPath.toFile()).transactionEnable().closeOnJvmShutdown().make()) {
-      @SuppressWarnings("unchecked")
-      var map =
-          (org.mapdb.HTreeMap<String, VersionedCredentialRecord>)
-              db.hashMap("credentials", Serializer.STRING, Serializer.JAVA).createOrOpen();
-      map.put(
-          "legacy-token",
-          new VersionedCredentialRecord(
-              0,
-              "legacy-token",
-              CredentialType.OATH_OCRA,
-              SecretMaterial.fromHex("3132333435363738393031323334353637383930"),
-              java.time.Instant.parse("2025-09-20T10:15:30Z"),
-              java.time.Instant.parse("2025-09-21T11:16:31Z"),
-              Map.of(
-                  "suite", "OCRA-1:HOTP-SHA1-6:C-QN08",
-                  "counter", "5",
-                  "metadata.environment", "production")));
-      db.commit();
-    }
-
-    try (var store = MapDbCredentialStore.file(dbPath).open()) {
-      Credential credential = store.findByName("legacy-token").orElseThrow();
-      assertEquals(CredentialType.OATH_OCRA, credential.type());
-      assertEquals("legacy-token", credential.name());
-      assertEquals("production", credential.attributes().get("ocra.metadata.environment"));
-    }
-
-    VersionedCredentialRecord migrated = readRawRecord(dbPath, "legacy-token");
-    assertEquals(VersionedCredentialRecord.CURRENT_VERSION, migrated.schemaVersion());
-    assertEquals("OCRA-1:HOTP-SHA1-6:C-QN08", migrated.attributes().get("ocra.suite"));
-    assertEquals("5", migrated.attributes().get("ocra.counter"));
-  }
-
   @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
       value = "LG_LOST_LOGGER_DUE_TO_WEAK_REFERENCE",
       justification = "Test attaches a temporary handler to verify telemetry and restores state")

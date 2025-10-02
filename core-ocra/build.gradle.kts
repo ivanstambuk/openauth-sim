@@ -3,11 +3,11 @@ plugins {
 }
 
 dependencies {
+    api(projects.coreShared)
     implementation(projects.core)
-    implementation(projects.coreOcra)
 
-    testImplementation(platform(libs.junit.bom))
-    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.mapdb)
+    testCompileOnly(libs.spotbugs.annotations)
 }
 
 tasks.withType<Test>().configureEach {

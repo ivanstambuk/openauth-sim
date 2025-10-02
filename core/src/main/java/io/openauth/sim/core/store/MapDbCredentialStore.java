@@ -57,7 +57,7 @@ public final class MapDbCredentialStore implements CredentialStore {
     this.db = db;
     this.backing = backing;
     this.cache = cache;
-    this.migrations = migrations;
+    this.migrations = List.copyOf(migrations);
     this.storeProfile = storeProfile;
     this.encryption = encryption;
     if (!Boolean.getBoolean(SKIP_UPGRADE_PROPERTY)) {
@@ -147,9 +147,7 @@ public final class MapDbCredentialStore implements CredentialStore {
     private final Path databasePath;
     private final boolean inMemory;
     private CacheSettings cacheSettings;
-
-    private List<VersionedCredentialRecordMigration> migrations =
-        List.of(new OcraRecordSchemaV0ToV1Migration());
+    private final List<VersionedCredentialRecordMigration> migrations = new ArrayList<>();
 
     private Builder(Path databasePath, boolean inMemory) {
       this.databasePath = databasePath;
@@ -180,6 +178,24 @@ public final class MapDbCredentialStore implements CredentialStore {
 
     public Builder encryption(PersistenceEncryption encryption) {
       this.encryption = Objects.requireNonNull(encryption, "encryption");
+      return this;
+    }
+
+    public Builder registerMigration(VersionedCredentialRecordMigration migration) {
+      Objects.requireNonNull(migration, "migration");
+      boolean exists =
+          migrations.stream()
+              .anyMatch(existing -> existing.getClass().equals(migration.getClass()));
+      if (!exists) {
+        this.migrations.add(migration);
+      }
+      return this;
+    }
+
+    public Builder migrations(List<VersionedCredentialRecordMigration> migrations) {
+      Objects.requireNonNull(migrations, "migrations");
+      this.migrations.clear();
+      migrations.forEach(this::registerMigration);
       return this;
     }
 

@@ -1,6 +1,7 @@
 package io.openauth.sim.infra.persistence;
 
 import io.openauth.sim.core.store.MapDbCredentialStore;
+import io.openauth.sim.core.store.ocra.OcraStoreMigrations;
 import io.openauth.sim.core.support.ProjectPaths;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -22,11 +23,11 @@ public final class CredentialStoreFactory {
     if (parent != null) {
       Files.createDirectories(parent);
     }
-    return MapDbCredentialStore.file(absolute).open();
+    return OcraStoreMigrations.apply(MapDbCredentialStore.file(absolute)).open();
   }
 
   public static MapDbCredentialStore openInMemoryStore() {
-    return MapDbCredentialStore.inMemory().open();
+    return OcraStoreMigrations.apply(MapDbCredentialStore.inMemory()).open();
   }
 
   public static Path resolveDatabasePath(String configuredPath, String defaultFileName) {

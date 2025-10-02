@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     testImplementation(projects.core)
+    testImplementation(projects.coreOcra)
     testImplementation(projects.application)
     testImplementation(projects.cli)
     testImplementation(projects.restApi)

@@ -11,6 +11,7 @@ import io.openauth.sim.core.store.MapDbCredentialStore.MaintenanceHelper;
 import io.openauth.sim.core.store.MapDbCredentialStore.MaintenanceOperation;
 import io.openauth.sim.core.store.MapDbCredentialStore.MaintenanceResult;
 import io.openauth.sim.core.store.MapDbCredentialStore.MaintenanceStatus;
+import io.openauth.sim.core.store.ocra.OcraStoreMigrations;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -63,7 +64,8 @@ public final class MaintenanceCli {
       return 1;
     }
 
-    MapDbCredentialStore.Builder builder = MapDbCredentialStore.file(databasePath);
+    MapDbCredentialStore.Builder builder =
+        OcraStoreMigrations.apply(MapDbCredentialStore.file(databasePath));
 
     try {
       Path parent = databasePath.getParent();

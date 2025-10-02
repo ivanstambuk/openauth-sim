@@ -1,7 +1,5 @@
-package io.openauth.sim.core.credentials;
+package io.openauth.sim.core.credentials.ocra;
 
-import io.openauth.sim.core.credentials.ocra.OcraCapabilityMetadata;
-import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.model.CredentialCapability;
 import io.openauth.sim.core.model.CredentialType;
 import java.util.Collections;

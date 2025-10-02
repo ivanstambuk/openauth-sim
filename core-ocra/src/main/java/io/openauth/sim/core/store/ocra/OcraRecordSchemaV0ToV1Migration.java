@@ -1,9 +1,10 @@
-package io.openauth.sim.core.store;
+package io.openauth.sim.core.store.ocra;
 
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptorFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.model.CredentialType;
+import io.openauth.sim.core.store.VersionedCredentialRecordMigration;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import java.time.Duration;
 import java.util.LinkedHashMap;

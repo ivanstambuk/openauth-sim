@@ -28,6 +28,21 @@ _All clarifications captured in the specification have been resolved; no additio
 - R1405 – Implement `CredentialStoreFactory` infrastructure module and refactor facades/integration tests to use it. ☑ (2025-10-02 – New `infra-persistence` module supplies factory; CLI/REST delegate store provisioning and ArchUnit rule enforces factory usage)
 - R1406 – Consolidate telemetry via a common contract and adapters; update CLI/REST/UI emitters and tests. ☐ (Plan 2025-10-02 – Introduce `TelemetryEnvelope` interface + application-level adapter, add failing `TelemetryContractArchitectureTest`, and provide shared `TelemetryContractTestSupport` fixtures covering success/validation/error frames with sanitised payload flags before wiring facades.)
 - R1407 – Restructure core into shared vs protocol-specific modules; update Gradle configuration, ArchUnit rules, and ensure build passes. ☐
+  - R1407a – Record package-to-module mapping and add failing ArchUnit guard for `core-shared`/`core-ocra` boundaries. ☐
+  - R1407b – Scaffold `core-shared` module (Gradle wiring) and migrate `model` + `support` packages under red tests. ☑ (2025-10-02 – Module created; shared packages moved; architecture guard still red.)
+  - R1407c – Relocate serialization/encryption primitives to `core-shared`, exposing migration injection seams for consumers. ☑ (2025-10-02 – Shared module now hosts serialization/encryption packages; MapDB builder supports injected migrations.)
+  - R1407d – Stand up `core-ocra` module by moving OCRA descriptors, registry, and migrations; update dependent build files. ☑ (2025-10-02 – `core-ocra` module created, ocra packages moved, build graph updated.)
+  - R1407e – Refresh root Gradle (settings, PIT/Jacoco) and ArchUnit rules; drive module split to green via `architectureTest` + targeted module checks. ☑ (2025-10-02 – Added `core-ocra` to aggregated coverage/PIT targets, architecture suite passes, and `qualityGate` runs green.)
+
+  | Package | Destination module |
+  |---------|-------------------|
+  | `io.openauth.sim.core.model..` | `core-shared` |
+  | `io.openauth.sim.core.support..` | `core-shared` |
+  | `io.openauth.sim.core.store.serialization..` | `core-shared` |
+  | `io.openauth.sim.core.store.encryption..` | `core-shared` |
+  | `io.openauth.sim.core.credentials.ocra..` | `core-ocra` |
+  | `io.openauth.sim.core.credentials.CredentialRegistry` | `core-ocra` |
+  | `io.openauth.sim.core.store.ocra..` | `core-ocra` |
 - R1408 – Refresh documentation (AGENTS, how-to guides), knowledge map, and run `./gradlew spotlessApply check` + `qualityGate`; record metrics. ☐
 
 Ensure each increment stays within ≤10 minutes, following test-first cadence where applicable.
@@ -49,13 +64,19 @@ Ensure each increment stays within ≤10 minutes, following test-first cadence w
 - Specification completeness – PASS: Feature 014 spec documents objectives, requirements, and clarifications (`docs/4-architecture/specs/feature-014-architecture-harmonization.md`).
 - Open questions review – PASS: `docs/4-architecture/open-questions.md` has no Feature 014 entries.
 - Plan alignment – PASS: Plan references Feature 014 spec/tasks and mirrors success criteria.
-- Tasks coverage – PASS: Tasks T1401–T1411 map to AH-001–AH-005 and sequence tests before implementation.
+- Tasks coverage – PASS: Tasks T1401–T1419 (with T1410 aggregating the module split sub-tasks) map to AH-001–AH-005 and sequence tests before implementation.
 - Constitution compliance – PASS: Work adheres to spec-first, clarification gate, test-first, documentation sync, dependency control principles.
 - Tooling readiness – PASS: Plan lists `qualityGate`, scoped ArchUnit runs, and formatting commands; results logged here.
 
 ## Notes
 - Pending: update roadmap entry and knowledge map once increments begin.
 - Pending: capture telemetry schema decisions as part of R1406; log any open questions immediately if surfaced.
+- 2025-10-02 – R1407 planning: `core-shared` will retain foundational `model`, `support`, and persistence primitives while `core-ocra` owns protocol descriptors, registry wiring, and OCRA migrations. `MapDbCredentialStore.Builder` will expose migration injection so ocra defaults move out of the shared module.
+- 2025-10-02 – R1407a: Added `CoreModuleSplitArchitectureTest` enforcing that CLI/REST/UI avoid direct dependencies on OCRA internals and recorded target package mapping ahead of the module split (test currently red until migration).
+- 2025-10-02 – R1407b: Introduced `core-shared` Gradle module, migrated `model`/`support` packages, and reran architecture guard (still red until ocra descriptors move and facades drop direct dependencies).
+- 2025-10-02 – R1407c: Shifted serialization/encryption primitives into `core-shared` and taught `MapDbCredentialStore.Builder` to accept injected migrations while keeping current defaults.
+- 2025-10-02 – R1407d: Launched `core-ocra` module with descriptor/registry/migration moves, added OCRA persistence helper, and rewired CLI/REST/UI dependencies; `core-ocra` tests cover legacy migration path.
+- 2025-10-02 – R1407e: Expanded aggregated Jacoco/PIT configuration to include `core-ocra`, boosted module branch coverage to 90.87 %, and captured a passing `qualityGate` run (branches 0.9042, line 0.9691, PIT 91%).
 - 2025-10-01 – R1402: Added `FacadeDelegationArchitectureTest` asserting current CLI/REST dependencies on core OCRA/MapDB; rules expect violations until shared application layer lands.
 - 2025-10-01 – R1403 (in progress): Shared application module added; CLI evaluate/verify now delegate through `OcraEvaluationApplicationService` / `OcraVerificationApplicationService`. REST delegation and ArchUnit updates pending.
 - 2025-10-02 – R1403a/b: Added targeted tests across core (`OcraReplayVerifier`, `OcraSecretMaterialSupport`, descriptor/persistence helpers) and REST (`OcraVerificationService`, evaluation failure mapping) to raise Jacoco branch coverage to 90.67 %. `./gradlew :rest-api:test` and `./gradlew qualityGate` now pass.

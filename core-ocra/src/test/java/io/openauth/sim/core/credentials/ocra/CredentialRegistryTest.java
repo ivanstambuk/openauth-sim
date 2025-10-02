@@ -1,10 +1,9 @@
-package io.openauth.sim.core.credentials;
+package io.openauth.sim.core.credentials.ocra;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.model.CredentialCapability;
 import io.openauth.sim.core.model.CredentialType;
 import java.util.Optional;
@@ -12,7 +11,7 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-class CredentialRegistryTest {
+public class CredentialRegistryTest {
 
   @Test
   @DisplayName("default registry exposes OCRA capability metadata")
@@ -50,5 +49,17 @@ class CredentialRegistryTest {
     assertFalse(
         registry.factory(CredentialType.FIDO2, OcraCredentialFactory.class).isPresent(),
         "No factory should exist for unregistered credential type");
+
+    assertFalse(
+        registry.factory(CredentialType.OATH_OCRA, String.class).isPresent(),
+        "Factory lookup with mismatched type should return empty");
+  }
+
+  @Test
+  @DisplayName("lookup returns empty for unknown capability")
+  void missingCapabilityReturnsEmpty() {
+    CredentialRegistry registry = CredentialRegistry.withDefaults();
+
+    assertTrue(registry.capability(CredentialType.FIDO2).isEmpty());
   }
 }

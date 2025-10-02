@@ -9,6 +9,7 @@ import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.MapDbCredentialStore;
+import io.openauth.sim.core.store.ocra.OcraStoreMigrations;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
@@ -398,7 +399,7 @@ final class OcraCliErrorHandlingTest {
   }
 
   private static void seedInvalidOcraRecord(Path database) throws Exception {
-    try (MapDbCredentialStore store = MapDbCredentialStore.file(database).open()) {
+    try (MapDbCredentialStore store = ocraStoreBuilder(database).open()) {
       Map<String, String> attributes = new HashMap<>();
       attributes.put(OcraCredentialPersistenceAdapter.ATTR_SUITE, DEFAULT_SUITE);
       attributes.put(OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX, "value");
@@ -409,6 +410,10 @@ final class OcraCliErrorHandlingTest {
               SecretMaterial.fromHex(DEFAULT_SECRET_HEX),
               attributes));
     }
+  }
+
+  private static MapDbCredentialStore.Builder ocraStoreBuilder(Path database) {
+    return OcraStoreMigrations.apply(MapDbCredentialStore.file(database));
   }
 
   private static void deleteRecursively(Path directory) throws Exception {

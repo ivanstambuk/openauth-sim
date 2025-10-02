@@ -68,7 +68,7 @@ spotless {
 }
 
 val pitTargets = mapOf(
-    ":core" to listOf("io.openauth.sim.core.credentials.ocra.*")
+    ":core-ocra" to listOf("io.openauth.sim.core.credentials.ocra.*")
 )
 
 val pitSkip = providers.gradleProperty("pit.skip").map(String::toBoolean).getOrElse(false)
@@ -222,7 +222,8 @@ val architectureTest = tasks.register("architectureTest") {
     dependsOn(":core-architecture-tests:test")
 }
 
-val ocraModules = listOf(project(":core"), project(":application"), project(":cli"), project(":rest-api"))
+val ocraModules =
+    listOf(project(":core"), project(":core-ocra"), project(":application"), project(":cli"), project(":rest-api"))
 
 val jacocoAggregatedReport = tasks.register<JacocoReport>("jacocoAggregatedReport") {
     group = LifecycleBasePlugin.VERIFICATION_GROUP

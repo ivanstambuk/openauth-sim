@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
     implementation(projects.core)
+    implementation(projects.coreOcra)
     implementation(projects.application)
     implementation(projects.infraPersistence)
     implementation(libs.picocli)

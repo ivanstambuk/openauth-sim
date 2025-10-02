@@ -16,6 +16,7 @@ import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.MapDbCredentialStore;
+import io.openauth.sim.core.store.ocra.OcraStoreMigrations;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.io.ByteArrayOutputStream;
@@ -686,7 +687,7 @@ class OcraCliTest {
     Path database = tempDir.resolve("store.db");
     seedCredential(database, "ocra-only", DEFAULT_SUITE, null);
 
-    try (MapDbCredentialStore store = MapDbCredentialStore.file(database).open()) {
+    try (MapDbCredentialStore store = ocraStoreBuilder(database).open()) {
       store.save(
           Credential.create(
               "generic", CredentialType.GENERIC, SecretMaterial.fromHex("00"), Map.of()));
@@ -952,8 +953,12 @@ class OcraCliTest {
     if (parent != null) {
       Files.createDirectories(parent);
     }
-    try (MapDbCredentialStore store = MapDbCredentialStore.file(database).open()) {
+    try (MapDbCredentialStore store = ocraStoreBuilder(database).open()) {
       store.save(credential);
     }
+  }
+
+  private static MapDbCredentialStore.Builder ocraStoreBuilder(Path database) {
+    return OcraStoreMigrations.apply(MapDbCredentialStore.file(database));
   }
 }

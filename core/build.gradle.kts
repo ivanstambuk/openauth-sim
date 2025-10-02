@@ -4,6 +4,7 @@ plugins {
 }
 
 dependencies {
+    api(projects.coreShared)
     implementation(libs.mapdb)
     implementation(libs.caffeine)
 

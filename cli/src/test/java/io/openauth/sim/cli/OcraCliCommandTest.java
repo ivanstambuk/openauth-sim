@@ -12,6 +12,7 @@ import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator.OcraExecutionContext;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.MapDbCredentialStore;
+import io.openauth.sim.core.store.ocra.OcraStoreMigrations;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
@@ -60,7 +61,7 @@ final class OcraCliCommandTest {
     assertFalse(
         result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
 
-    try (MapDbCredentialStore store = MapDbCredentialStore.file(databasePath).open()) {
+    try (MapDbCredentialStore store = ocraStoreBuilder(databasePath).open()) {
       assertTrue(store.findByName("cli-token").isPresent());
     }
   }
@@ -97,7 +98,7 @@ final class OcraCliCommandTest {
     assertFalse(
         result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
 
-    try (MapDbCredentialStore store = MapDbCredentialStore.file(databasePath).open()) {
+    try (MapDbCredentialStore store = ocraStoreBuilder(databasePath).open()) {
       assertTrue(store.findByName("delete-token").isEmpty());
     }
   }
@@ -246,13 +247,17 @@ final class OcraCliCommandTest {
                 null,
                 Map.of("source", "cli-test")));
 
-    try (MapDbCredentialStore store = MapDbCredentialStore.file(databasePath).open()) {
+    try (MapDbCredentialStore store = ocraStoreBuilder(databasePath).open()) {
       store.save(
           VersionedCredentialRecordMapper.toCredential(
               new OcraCredentialPersistenceAdapter().serialize(descriptor)));
     }
 
     return descriptor;
+  }
+
+  private MapDbCredentialStore.Builder ocraStoreBuilder(Path databasePath) {
+    return OcraStoreMigrations.apply(MapDbCredentialStore.file(databasePath));
   }
 
   private Path databasePath(String prefix) {
