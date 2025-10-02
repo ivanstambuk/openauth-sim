@@ -3,6 +3,7 @@ package io.openauth.sim.architecture;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.lang.ArchRule;
@@ -23,6 +24,11 @@ final class FacadeDelegationArchitectureTest {
   private static final String REST_PACKAGE = "io.openauth.sim.rest";
   private static final String UI_PACKAGE = "io.openauth.sim.rest.ui";
   private static final String CORE_OCRA_PACKAGE = "io.openauth.sim.core.credentials.ocra";
+  private static final String APPLICATION_OCRA_PACKAGE = "io.openauth.sim.application.ocra";
+  private static final String REST_EVALUATION_SERVICE =
+      "io.openauth.sim.rest.ocra.OcraEvaluationService";
+  private static final String REST_VERIFICATION_SERVICE =
+      "io.openauth.sim.rest.ocra.OcraVerificationService";
 
   @Test
   @DisplayName("CLI still depends directly on core OCRA internals")
@@ -50,8 +56,8 @@ final class FacadeDelegationArchitectureTest {
   }
 
   @Test
-  @DisplayName("CLI still instantiates MapDbCredentialStore directly")
-  void cliStillCreatesMapDbStores() {
+  @DisplayName("CLI delegates MapDbCredentialStore creation to the factory")
+  void cliUsesCredentialStoreFactory() {
     JavaClasses imported =
         new ClassFileImporter().importPackages(CLI_PACKAGE, "io.openauth.sim.core");
 
@@ -59,15 +65,35 @@ final class FacadeDelegationArchitectureTest {
         ArchRuleDefinition.noClasses()
             .that()
             .resideInAPackage(CLI_PACKAGE + "..")
+            .and()
+            .haveSimpleNameNotContaining("Maintenance")
             .should()
             .dependOnClassesThat()
             .areAssignableTo(MapDbCredentialStore.class)
             .because("CredentialStoreFactory will own MapDB instantiation");
 
     EvaluationResult result = rule.evaluate(imported);
-    assertTrue(
+    assertFalse(
         result.hasViolation(),
-        () -> "CLI still calls MapDbCredentialStore directly; migrate to CredentialStoreFactory");
+        () -> "CLI should rely on CredentialStoreFactory for MapDbCredentialStore access");
+  }
+
+  @Test
+  @DisplayName("REST services depend on application-layer OCRA services")
+  void restServicesDelegateThroughApplicationLayer() {
+    JavaClasses imported =
+        new ClassFileImporter().importPackages(REST_PACKAGE, APPLICATION_OCRA_PACKAGE);
+
+    assertTrue(
+        dependsOnApplicationLayer(imported.get(REST_EVALUATION_SERVICE)),
+        () ->
+            "OcraEvaluationService should depend on application-layer services to avoid"
+                + " direct core coupling");
+    assertTrue(
+        dependsOnApplicationLayer(imported.get(REST_VERIFICATION_SERVICE)),
+        () ->
+            "OcraVerificationService should depend on application-layer services to avoid"
+                + " direct core coupling");
   }
 
   @Test
@@ -127,5 +153,11 @@ final class FacadeDelegationArchitectureTest {
         () ->
             "REST/UI still use %s directly; ensure verification delegates to application layer"
                 .formatted(OcraReplayVerifier.class));
+  }
+
+  private static boolean dependsOnApplicationLayer(JavaClass javaClass) {
+    return javaClass.getDirectDependenciesFromSelf().stream()
+        .map(dependency -> dependency.getTargetClass().getPackageName())
+        .anyMatch(packageName -> packageName.startsWith(APPLICATION_OCRA_PACKAGE));
   }
 }

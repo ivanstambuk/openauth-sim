@@ -6,6 +6,7 @@ plugins {
 dependencies {
     implementation(projects.core)
     implementation(projects.application)
+    implementation(projects.infraPersistence)
     implementation(libs.picocli)
 
     testImplementation(testFixtures(projects.core))

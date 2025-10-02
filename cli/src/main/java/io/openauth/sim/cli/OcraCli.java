@@ -6,6 +6,7 @@ import io.openauth.sim.application.ocra.OcraEvaluationApplicationService.Evaluat
 import io.openauth.sim.application.ocra.OcraEvaluationApplicationService.EvaluationResult;
 import io.openauth.sim.application.ocra.OcraEvaluationApplicationService.EvaluationValidationException;
 import io.openauth.sim.application.ocra.OcraEvaluationRequests;
+import io.openauth.sim.application.ocra.OcraInlineIdentifiers;
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService;
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationCommand;
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationReason;
@@ -19,12 +20,12 @@ import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretEncoding;
-import io.openauth.sim.core.store.MapDbCredentialStore;
+import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.core.support.ProjectPaths;
+import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
@@ -34,7 +35,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
@@ -108,13 +108,6 @@ public final class OcraCli implements Callable<Integer> {
       return "unspecified";
     }
     return message.replace('\n', ' ').replace('\r', ' ').trim();
-  }
-
-  static void ensureParentDirectory(Path path) throws IOException {
-    Path parent = path.toAbsolutePath().getParent();
-    if (parent != null) {
-      Files.createDirectories(parent);
-    }
   }
 
   static Map<String, String> mapOf(String key, String value) {
@@ -211,18 +204,17 @@ public final class OcraCli implements Callable<Integer> {
       parent.emit(parent.out(), event, status, reasonCode, true, fields);
     }
 
-    protected MapDbCredentialStore openStore() throws IOException {
+    protected CredentialStore openStore() throws IOException {
       Path database = databasePath();
       if (database == null) {
         throw new CommandLine.ExecutionException(
             parent.spec.commandLine(), "--database=<path> is required");
       }
-      ensureParentDirectory(database);
-      return MapDbCredentialStore.file(database).open();
+      return CredentialStoreFactory.openFileStore(database);
     }
 
     protected Optional<OcraCredentialDescriptor> resolveDescriptor(
-        MapDbCredentialStore store, String id) {
+        CredentialStore store, String id) {
       return store
           .findByName(id)
           .filter(credential -> credential.type() == CredentialType.OATH_OCRA)
@@ -299,7 +291,7 @@ public final class OcraCli implements Callable<Integer> {
     @Override
     public Integer call() {
       String event = event("import");
-      try (MapDbCredentialStore store = openStore()) {
+      try (CredentialStore store = openStore()) {
         Duration allowedDrift =
             allowedDriftSeconds == null ? null : Duration.ofSeconds(allowedDriftSeconds);
         OcraCredentialDescriptor descriptor =
@@ -340,7 +332,7 @@ public final class OcraCli implements Callable<Integer> {
     @Override
     public Integer call() {
       String event = event("list");
-      try (MapDbCredentialStore store = openStore()) {
+      try (CredentialStore store = openStore()) {
         List<OcraCredentialDescriptor> descriptors = new ArrayList<>();
         for (Credential credential : store.findAll()) {
           if (credential.type() != CredentialType.OATH_OCRA) {
@@ -403,7 +395,7 @@ public final class OcraCli implements Callable<Integer> {
     @Override
     public Integer call() {
       String event = event("delete");
-      try (MapDbCredentialStore store = openStore()) {
+      try (CredentialStore store = openStore()) {
         boolean removed = store.delete(credentialId.trim());
         if (!removed) {
           return failValidation(
@@ -503,7 +495,7 @@ public final class OcraCli implements Callable<Integer> {
 
       try {
         if (hasCredential) {
-          try (MapDbCredentialStore store = openStore()) {
+          try (CredentialStore store = openStore()) {
             OcraEvaluationApplicationService service =
                 new OcraEvaluationApplicationService(
                     Clock.systemUTC(), OcraCredentialResolvers.forStore(store));
@@ -538,7 +530,7 @@ public final class OcraCli implements Callable<Integer> {
         EvaluationCommand command =
             OcraEvaluationRequests.inline(
                 new OcraEvaluationRequests.InlineInputs(
-                    "cli-inline-" + Integer.toHexString(Objects.hash(suite, sharedSecretHex)),
+                    OcraInlineIdentifiers.sharedIdentifier(suite, sharedSecretHex),
                     suite,
                     sharedSecretHex,
                     challenge,
@@ -661,7 +653,7 @@ public final class OcraCli implements Callable<Integer> {
       try {
         if (hasCredential) {
           String descriptorId = credentialId.trim();
-          try (MapDbCredentialStore store = openStore()) {
+          try (CredentialStore store = openStore()) {
             OcraVerificationApplicationService service =
                 new OcraVerificationApplicationService(
                     Clock.systemUTC(), OcraCredentialResolvers.forVerificationStore(store), store);
@@ -702,7 +694,7 @@ public final class OcraCli implements Callable<Integer> {
         VerificationCommand command =
             OcraVerificationRequests.inline(
                 new OcraVerificationRequests.InlineInputs(
-                    "cli-inline-" + Integer.toHexString(Objects.hash(suite, sharedSecretHex)),
+                    OcraInlineIdentifiers.sharedIdentifier(suite, sharedSecretHex),
                     suite,
                     sharedSecretHex,
                     otp,

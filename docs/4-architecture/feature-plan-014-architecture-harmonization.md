@@ -21,12 +21,12 @@ _All clarifications captured in the specification have been resolved; no additio
 ## Proposed Increments
 - R1401 – Register Feature 014 across roadmap/knowledge map; confirm no open questions. ☑ (2025-10-01 – roadmap row added, knowledge map follow-up logged)
 - R1402 – Add failing architecture tests capturing desired module boundaries and facade delegation expectations. ☑ (2025-10-01 – ArchUnit guards assert current violations in CLI/REST; will flip once app layer lands)
-- R1403 – Implement shared OCRA application layer (evaluation + verification services) with dependency injection seams; update facades to delegate through it. ☐ (CLI delegates; REST/UI + coverage pending)
+- R1403 – Implement shared OCRA application layer (evaluation + verification services) with dependency injection seams; update facades to delegate through it. ☑ (2025-10-02 – REST/UI delegate via OcraApplicationConfiguration; ArchUnit enforces application-layer dependency)
 - R1403a – Extend application and core tests to cover negative/exceptional paths (credential missing, secret material mismatches) restoring branch coverage buffer. ☑ (2025-10-02)
 - R1403b – Expand REST verification service tests for `handleInvalid` and command envelope branches; ensure Jacoco branch coverage ≥0.90. ☑ (2025-10-02)
-- R1404 – Introduce shared DTO/normalization library and migrate CLI/REST/UI validation to use it (tests first). ☐
-- R1405 – Implement `CredentialStoreFactory` infrastructure module and refactor facades/integration tests to use it. ☐
-- R1406 – Consolidate telemetry via a common contract and adapters; update CLI/REST/UI emitters and tests. ☐
+- R1404 – Introduce shared DTO/normalization library and migrate CLI/REST/UI validation to use it (tests first). ☑ (2025-10-02 – Shared inline identifier helper added to `application`; CLI/REST consume it and alignment tests pass across stored/inline flows)
+- R1405 – Implement `CredentialStoreFactory` infrastructure module and refactor facades/integration tests to use it. ☑ (2025-10-02 – New `infra-persistence` module supplies factory; CLI/REST delegate store provisioning and ArchUnit rule enforces factory usage)
+- R1406 – Consolidate telemetry via a common contract and adapters; update CLI/REST/UI emitters and tests. ☐ (Plan 2025-10-02 – Introduce `TelemetryEnvelope` interface + application-level adapter, add failing contract tests in core-architecture-tests before wiring facades)
 - R1407 – Restructure core into shared vs protocol-specific modules; update Gradle configuration, ArchUnit rules, and ensure build passes. ☐
 - R1408 – Refresh documentation (AGENTS, how-to guides), knowledge map, and run `./gradlew spotlessApply check` + `qualityGate`; record metrics. ☐
 
@@ -59,5 +59,9 @@ Ensure each increment stays within ≤10 minutes, following test-first cadence w
 - 2025-10-01 – R1402: Added `FacadeDelegationArchitectureTest` asserting current CLI/REST dependencies on core OCRA/MapDB; rules expect violations until shared application layer lands.
 - 2025-10-01 – R1403 (in progress): Shared application module added; CLI evaluate/verify now delegate through `OcraEvaluationApplicationService` / `OcraVerificationApplicationService`. REST delegation and ArchUnit updates pending.
 - 2025-10-02 – R1403a/b: Added targeted tests across core (`OcraReplayVerifier`, `OcraSecretMaterialSupport`, descriptor/persistence helpers) and REST (`OcraVerificationService`, evaluation failure mapping) to raise Jacoco branch coverage to 90.67 %. `./gradlew :rest-api:test` and `./gradlew qualityGate` now pass.
+- 2025-10-02 – R1403 complete: REST/UI rely on shared application services; ArchUnit now enforces delegation to `io.openauth.sim.application.ocra`. `./gradlew qualityGate` reused configuration cache (≈12 s) with reflectionScan and architectureTest green.
+- 2025-10-02 – R1404 complete: Shared inline identifier helper (`OcraInlineIdentifiers`) applied across CLI/REST; `OcraDtoNormalizationAlignmentTest` now exercises stored/inline flows without skips.
+- 2025-10-02 – R1405 complete: Introduced `infra-persistence` module providing `CredentialStoreFactory`; CLI/REST delegate store provisioning and ArchUnit verifies MapDB access is confined to the factory.
+- 2025-10-02 – R1406 planning: Define `TelemetryContract` + `TelemetryEmitter` abstractions in application module, add failing `TelemetryContractArchitectureTest` ensuring facades depend only on the shared adapter, and extend REST/CLI telemetry unit tests to assert consistent sanitisation fields before implementation.
 
 Keep this plan synced after each increment, marking completion timestamps and summarising findings in the Notes section.

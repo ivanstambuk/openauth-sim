@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.ocra;
 
+import io.openauth.sim.application.ocra.OcraInlineIdentifiers;
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService;
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService.NormalizedRequest;
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationCommand;
@@ -328,8 +329,7 @@ class OcraVerificationService {
   }
 
   private static String inlineIdentifier(OcraVerificationInlineCredential inline) {
-    return "rest-ocra-inline-"
-        + Integer.toHexString(Objects.hash(inline.suite(), inline.sharedSecretHex()));
+    return OcraInlineIdentifiers.sharedIdentifier(inline.suite(), inline.sharedSecretHex());
   }
 
   private record CommandEnvelope(

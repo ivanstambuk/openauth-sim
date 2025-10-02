@@ -7,9 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -56,18 +53,6 @@ final class OcraCliHelpersTest {
     assertTrue(output.contains("valueField=present"));
     assertFalse(output.contains("reasonCode"));
     assertFalse(output.contains("emptyField"));
-  }
-
-  @Test
-  void ensureParentDirectoryHandlesPathsWithoutParent() throws Exception {
-    Path root = Path.of(System.getProperty("java.io.tmpdir")).toAbsolutePath().getRoot();
-    if (root == null) {
-      root = FileSystems.getDefault().getRootDirectories().iterator().next();
-    }
-
-    OcraCli.ensureParentDirectory(root);
-
-    assertTrue(Files.exists(root));
   }
 
   @Test

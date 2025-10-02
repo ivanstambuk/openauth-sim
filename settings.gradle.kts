@@ -4,6 +4,7 @@ rootProject.name = "openauth-sim"
 
 include("core")
 include("application")
+include("infra-persistence")
 include("cli")
 include("rest-api")
 include("ui")

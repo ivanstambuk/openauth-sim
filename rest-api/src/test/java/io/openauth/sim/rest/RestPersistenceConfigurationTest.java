@@ -41,11 +41,4 @@ class RestPersistenceConfigurationTest {
     Path resolved = RestPersistenceConfiguration.resolveDatabasePath(configured.toString());
     assertEquals(configured, resolved);
   }
-
-  @Test
-  @DisplayName("ensureParentDirectory is a no-op when parent is null")
-  void ensureParentDirectoryHandlesNullParent() throws Exception {
-    Path singleFile = Paths.get("store.db").toAbsolutePath().getFileName();
-    RestPersistenceConfiguration.ensureParentDirectory(singleFile);
-  }
 }

@@ -21,6 +21,7 @@ dependencies {
     implementation(enforcedPlatform(springBootBom))
     implementation(projects.core)
     implementation(projects.application)
+    implementation(projects.infraPersistence)
     implementation(springBootStarterWeb)
     implementation(springBootStarterThymeleaf)
     implementation(springDocStarter)

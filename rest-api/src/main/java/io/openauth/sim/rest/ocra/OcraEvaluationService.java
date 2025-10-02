@@ -6,6 +6,7 @@ import io.openauth.sim.application.ocra.OcraEvaluationApplicationService.Evaluat
 import io.openauth.sim.application.ocra.OcraEvaluationApplicationService.EvaluationValidationException;
 import io.openauth.sim.application.ocra.OcraEvaluationApplicationService.NormalizedRequest;
 import io.openauth.sim.application.ocra.OcraEvaluationRequests;
+import io.openauth.sim.application.ocra.OcraInlineIdentifiers;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Objects;
@@ -267,8 +268,7 @@ class OcraEvaluationService {
     }
 
     private static String inlineIdentifier(OcraEvaluationRequest request) {
-      return "rest-ocra-inline-"
-          + Integer.toHexString(Objects.hash(request.suite(), request.sharedSecretHex()));
+      return OcraInlineIdentifiers.sharedIdentifier(request.suite(), request.sharedSecretHex());
     }
   }
 
