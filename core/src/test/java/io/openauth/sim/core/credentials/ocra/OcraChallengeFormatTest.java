@@ -23,5 +23,7 @@ class OcraChallengeFormatTest {
   void fromTokenStringRejectsBlank() {
     assertEquals(OcraChallengeFormat.HEX, OcraChallengeFormat.fromToken("h"));
     assertThrows(IllegalArgumentException.class, () -> OcraChallengeFormat.fromToken("   "));
+    assertThrows(
+        IllegalArgumentException.class, () -> OcraChallengeFormat.fromToken((String) null));
   }
 }

@@ -60,6 +60,7 @@ This living map captures the explicit relationships between modules, data flows,
 | Date | Topic | Question | Status | Follow-up |
 |------|-------|----------|--------|-----------|
 | 2025-09-27 | Persistence design | Confirm MapDB caching topology (shared vs per facade) | Resolved | Resolved 2025-09-27 – Shared MapDB store with core-managed shared cache for all facades |
+| 2025-10-01 | Architecture harmonization | Capture shared application layer + telemetry relationships once implemented | Open | Update after R1403–R1408 to reflect new modules and contracts |
 
 ## PlantUML Sketch
 ```plantuml

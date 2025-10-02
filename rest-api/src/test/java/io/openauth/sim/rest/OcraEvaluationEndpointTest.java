@@ -24,6 +24,8 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -142,14 +144,12 @@ final class OcraEvaluationEndpointTest {
       assertFalse(
           responseBody.toLowerCase(Locale.ROOT).contains(secretSnippet.toLowerCase(Locale.ROOT)),
           () -> "secret material leaked in validation response: " + responseBody);
-      assertTrue(
-          handler.records().stream()
-              .anyMatch(
-                  record ->
-                      record.getLevel() == Level.WARNING
-                          && record.getMessage().contains("reasonCode=" + expectedReasonCode)
-                          && record.getMessage().contains("sanitized=true")),
-          "telemetry event missing reasonCode/sanitized attributes");
+      assertTelemetry(
+          handler,
+          record ->
+              record.getLevel() == Level.WARNING
+                  && record.getMessage().contains("reasonCode=" + expectedReasonCode)
+                  && record.getMessage().contains("sanitized=true"));
       assertFalse(
           handler.loggedSecrets(secretSnippet),
           () -> "secret material leaked in telemetry: " + handler.records());
@@ -488,7 +488,7 @@ final class OcraEvaluationEndpointTest {
   }
 
   private static final class TestLogHandler extends Handler {
-    private final java.util.List<LogRecord> records = new java.util.ArrayList<>();
+    private final CopyOnWriteArrayList<LogRecord> records = new CopyOnWriteArrayList<>();
 
     @Override
     public void publish(LogRecord record) {
@@ -544,5 +544,23 @@ final class OcraEvaluationEndpointTest {
     public void close() {
       store.clear();
     }
+  }
+
+  private static void assertTelemetry(
+      TestLogHandler handler, java.util.function.Predicate<LogRecord> predicate) {
+    long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(250);
+    while (System.nanoTime() < deadline) {
+      if (handler.records().stream().anyMatch(predicate)) {
+        return;
+      }
+      try {
+        Thread.sleep(10);
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        break;
+      }
+    }
+    throw new AssertionError(
+        "Telemetry event missing reasonCode/sanitized attributes: " + handler.records());
   }
 }

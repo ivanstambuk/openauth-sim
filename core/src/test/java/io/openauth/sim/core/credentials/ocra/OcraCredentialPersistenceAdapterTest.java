@@ -11,6 +11,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -142,5 +143,84 @@ class OcraCredentialPersistenceAdapterTest {
     assertEquals(5L, descriptor.counter().orElseThrow().longValue());
     assertTrue(descriptor.pinHash().isPresent());
     assertEquals(Duration.ofSeconds(60), descriptor.allowedTimestampDrift().orElseThrow());
+  }
+
+  @Test
+  @DisplayName("deserialize ignores non-OCRA metadata keys and preserves prefixed entries")
+  void deserializeIgnoresUnscopedMetadata() {
+    Map<String, String> attributes = new HashMap<>();
+    attributes.put(OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:QN08");
+    attributes.put("unrelated", "value");
+    attributes.put(OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX + "source", "rest");
+
+    VersionedCredentialRecord record =
+        new VersionedCredentialRecord(
+            OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
+            "metadata-demo",
+            CredentialType.OATH_OCRA,
+            SECRET,
+            Instant.now(),
+            Instant.now(),
+            attributes);
+
+    OcraCredentialPersistenceAdapter adapter =
+        new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
+
+    OcraCredentialDescriptor descriptor = adapter.deserialize(record);
+
+    assertTrue(descriptor.counter().isEmpty());
+    assertEquals(Map.of("source", "rest"), descriptor.metadata());
+  }
+
+  @Test
+  @DisplayName("deserialize yields empty optionals when attributes omitted")
+  void deserializeReturnsEmptyOptionalsWhenMissing() {
+    VersionedCredentialRecord record =
+        new VersionedCredentialRecord(
+            OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
+            "minimal",
+            CredentialType.OATH_OCRA,
+            SECRET,
+            Instant.now(),
+            Instant.now(),
+            Map.of(OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:QN08"));
+
+    OcraCredentialPersistenceAdapter adapter =
+        new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
+
+    OcraCredentialDescriptor descriptor = adapter.deserialize(record);
+
+    assertTrue(descriptor.counter().isEmpty());
+    assertTrue(descriptor.pinHash().isEmpty());
+    assertTrue(descriptor.allowedTimestampDrift().isEmpty());
+    assertTrue(descriptor.metadata().isEmpty());
+  }
+
+  @Test
+  @DisplayName("deserialize treats blank pin hash and timestamp drift as absent")
+  void deserializeSanitisesBlankAttributes() {
+    Map<String, String> attributes =
+        Map.of(
+            OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:QN08",
+            OcraCredentialPersistenceAdapter.ATTR_PIN_HASH, "   ",
+            OcraCredentialPersistenceAdapter.ATTR_ALLOWED_DRIFT_SECONDS, "   ");
+
+    VersionedCredentialRecord record =
+        new VersionedCredentialRecord(
+            OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
+            "blank-attrs",
+            CredentialType.OATH_OCRA,
+            SECRET,
+            Instant.now(),
+            Instant.now(),
+            attributes);
+
+    OcraCredentialPersistenceAdapter adapter =
+        new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
+
+    OcraCredentialDescriptor descriptor = adapter.deserialize(record);
+
+    assertTrue(descriptor.pinHash().isEmpty());
+    assertTrue(descriptor.allowedTimestampDrift().isEmpty());
   }
 }

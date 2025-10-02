@@ -3,20 +3,22 @@ package io.openauth.sim.rest.ocra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.application.ocra.OcraCredentialResolvers;
+import io.openauth.sim.application.ocra.OcraVerificationApplicationService;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
-import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,13 +30,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
-import org.springframework.beans.factory.ObjectProvider;
 
 class OcraVerificationServiceTest {
 
   private static final Clock FIXED_CLOCK =
       Clock.fixed(Instant.parse("2025-10-01T00:00:00Z"), ZoneOffset.UTC);
+  private static final String DEFAULT_SECRET_HEX = "31323334353637383930313233343536";
 
   private final TestHandler handler = new TestHandler();
   private final Logger logger = Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
@@ -46,6 +47,27 @@ class OcraVerificationServiceTest {
     logger.setLevel(Level.ALL);
   }
 
+  @Test
+  @DisplayName("invalid challenge format yields validation failure")
+  void invalidChallengeFormatTriggersValidationFailure() {
+    OcraVerificationService service = service();
+    OcraVerificationInlineCredential inline = inlineCredential();
+    OcraVerificationContext invalidContext =
+        new OcraVerificationContext("ABC", null, null, null, null, null, null);
+    OcraVerificationRequest request =
+        new OcraVerificationRequest(buildMatchingOtp(), null, inline, invalidContext);
+
+    OcraVerificationValidationException exception =
+        assertThrows(
+            OcraVerificationValidationException.class,
+            () ->
+                service.verify(
+                    request, new OcraVerificationAuditContext("req-invalid", null, null)));
+
+    assertEquals("validation_error", exception.reasonCode());
+    assertTelemetryMessageContains("validation_failure");
+  }
+
   @AfterEach
   void detachHandler() {
     logger.removeHandler(handler);
@@ -55,8 +77,7 @@ class OcraVerificationServiceTest {
   @Test
   @DisplayName("inline verification returns match and records hashed telemetry")
   void inlineVerificationMatch() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
+    OcraVerificationService service = service();
 
     OcraVerificationRequest request = inlineRequest(buildMatchingOtp());
     OcraVerificationAuditContext auditContext =
@@ -67,19 +88,16 @@ class OcraVerificationServiceTest {
     assertEquals("match", response.status());
     assertEquals("match", response.reasonCode());
     assertNotNull(response.metadata().contextFingerprint());
-
-    assertTrueMessageLogged("status=match");
-    assertTrueMessageLogged("otpHash=");
-    assertTrueMessageLogged("contextFingerprint=");
+    assertTelemetryMessageContains("status=match");
+    assertTelemetryMessageContains("otpHash=");
   }
 
   @Test
-  @DisplayName("inline verification returns mismatch and records strict mismatch telemetry")
+  @DisplayName("inline verification mismatch reports strict mismatch")
   void inlineVerificationMismatch() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
+    OcraVerificationService service = service();
 
-    OcraVerificationRequest request = inlineRequest("999999");
+    OcraVerificationRequest request = inlineRequest("654321");
     OcraVerificationAuditContext auditContext =
         new OcraVerificationAuditContext("req-inline-2", null, null);
 
@@ -87,319 +105,113 @@ class OcraVerificationServiceTest {
 
     assertEquals("mismatch", response.status());
     assertEquals("strict_mismatch", response.reasonCode());
-    assertTrueMessageLogged("status=mismatch");
-    assertTrueMessageLogged("reasonCode=strict_mismatch");
+    assertTelemetryMessageContains("status=mismatch");
+    assertTelemetryMessageContains("reasonCode=strict_mismatch");
   }
 
   @Test
-  @DisplayName(
-      "inline suite requiring timestamp without timestamp triggers replay validation failure")
-  void inlineVerificationMissingTimestampRequired() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-
-    OcraVerificationInlineCredential inlineCredential =
-        new OcraVerificationInlineCredential(
-            "OCRA-1:HOTP-SHA1-6:QN08-T1M", "31323334353637383930313233343536");
-    OcraVerificationContext context =
-        new OcraVerificationContext("12345678", null, null, null, null, null, null);
+  @DisplayName("otp omission surfaces otp_missing validation error")
+  void otpMissingValidation() {
+    OcraVerificationService service = service();
     OcraVerificationRequest request =
-        new OcraVerificationRequest("123456", null, inlineCredential, context);
-    OcraVerificationAuditContext auditContext =
-        new OcraVerificationAuditContext("req-inline-timestamp", "client-199", "operator-t");
+        new OcraVerificationRequest(null, null, inlineCredential(), context());
 
     OcraVerificationValidationException exception =
         assertThrows(
-            OcraVerificationValidationException.class, () -> service.verify(request, auditContext));
+            OcraVerificationValidationException.class,
+            () -> service.verify(request, new OcraVerificationAuditContext("req-otp", null, null)));
 
-    assertEquals("validation_failure", exception.reasonCode());
-    assertTrueMessageLogged("status=invalid");
-    assertTrueMessageLogged("reasonCode=validation_failure");
+    assertEquals("otp_missing", exception.reasonCode());
+    assertTelemetryMessageContains("reasonCode=otp_missing");
   }
 
   @Test
-  @DisplayName("stored credential verification succeeds and emits stored telemetry")
+  @DisplayName("inline credential missing suite surfaces suite_missing")
+  void inlineSuiteMissingValidation() {
+    OcraVerificationService service = service();
+    OcraVerificationInlineCredential inlineCredential =
+        new OcraVerificationInlineCredential("   ", "31323334");
+    OcraVerificationRequest request =
+        new OcraVerificationRequest("123456", null, inlineCredential, context());
+
+    OcraVerificationValidationException exception =
+        assertThrows(
+            OcraVerificationValidationException.class,
+            () ->
+                service.verify(request, new OcraVerificationAuditContext("req-suite", null, null)));
+
+    assertEquals("suite_missing", exception.reasonCode());
+    assertTelemetryMessageContains("reasonCode=suite_missing");
+  }
+
+  @Test
+  @DisplayName("inline credential missing shared secret surfaces shared_secret_missing")
+  void inlineSecretMissingValidation() {
+    OcraVerificationService service = service();
+    OcraVerificationInlineCredential inlineCredential =
+        new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", "   ");
+    OcraVerificationRequest request =
+        new OcraVerificationRequest("123456", null, inlineCredential, context());
+
+    OcraVerificationValidationException exception =
+        assertThrows(
+            OcraVerificationValidationException.class,
+            () ->
+                service.verify(
+                    request, new OcraVerificationAuditContext("req-secret", null, null)));
+
+    assertEquals("shared_secret_missing", exception.reasonCode());
+    assertTelemetryMessageContains("reasonCode=shared_secret_missing");
+  }
+
+  @Test
+  @DisplayName("stored credential verification succeeds and records stored telemetry")
   void storedVerificationMatch() {
     InMemoryCredentialStore store = new InMemoryCredentialStore();
     OcraCredentialDescriptor descriptor = inlineDescriptor();
-    OcraCredentialPersistenceAdapter adapter = new OcraCredentialPersistenceAdapter();
-    io.openauth.sim.core.store.serialization.VersionedCredentialRecord record =
-        adapter.serialize(descriptor);
-    store.save(
-        io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper.toCredential(
-            record));
+    var persistenceAdapter = new OcraCredentialPersistenceAdapter();
+    var record = persistenceAdapter.serialize(descriptor);
+    store.save(VersionedCredentialRecordMapper.toCredential(record));
 
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(store), provider(FIXED_CLOCK));
+    OcraVerificationService service = service(store);
 
-    OcraVerificationContext context =
-        new OcraVerificationContext("12345678", null, null, null, null, null, null);
     OcraVerificationRequest request =
-        new OcraVerificationRequest(buildMatchingOtp(), descriptor.name(), null, context);
-    OcraVerificationAuditContext auditContext =
-        new OcraVerificationAuditContext("req-stored-2", "client-101", "operator-c");
-
-    OcraVerificationResponse response = service.verify(request, auditContext);
+        new OcraVerificationRequest(buildMatchingOtp(), descriptor.name(), null, context());
+    OcraVerificationResponse response =
+        service.verify(request, new OcraVerificationAuditContext("req-stored", null, "operator"));
 
     assertEquals("match", response.status());
     assertEquals("stored", response.metadata().credentialSource());
-    assertTrueMessageLogged("credentialSource=stored");
+    assertTelemetryMessageContains("credentialSource=stored");
   }
 
   @Test
-  @DisplayName("missing stored credential emits telemetry and throws validation error")
-  void storedCredentialNotFound() {
+  @DisplayName("stored credential not found surfaces credential_not_found")
+  void storedCredentialMissing() {
     InMemoryCredentialStore store = new InMemoryCredentialStore();
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(store), provider(FIXED_CLOCK));
+    OcraVerificationService service = service(store);
 
     OcraVerificationRequest request = storedRequest("missing-credential");
-    OcraVerificationAuditContext auditContext =
-        new OcraVerificationAuditContext("req-stored-1", null, "operator-b");
-
-    OcraVerificationValidationException exception =
-        assertThrows(
-            OcraVerificationValidationException.class, () -> service.verify(request, auditContext));
-
-    assertEquals("credential_not_found", exception.reasonCode());
-    assertTrueMessageLogged("status=invalid");
-    assertTrueMessageLogged("reasonCode=credential_not_found");
-  }
-
-  @Test
-  @DisplayName("stored verification without store emits credential_not_found telemetry")
-  void storedVerificationWithoutStore() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-
-    OcraVerificationRequest request = storedRequest("inline-test");
-    OcraVerificationAuditContext auditContext =
-        new OcraVerificationAuditContext("req-stored-3", null, null);
-
-    OcraVerificationValidationException exception =
-        assertThrows(
-            OcraVerificationValidationException.class, () -> service.verify(request, auditContext));
-
-    assertEquals("credential_not_found", exception.reasonCode());
-    assertTrueMessageLogged("reasonCode=credential_not_found");
-  }
-
-  @Test
-  @DisplayName(
-      "stored credential disappearing between reads surfaces credential_not_found via replay")
-  void storedVerificationCredentialDisappearsDuringReplay() {
-    FlakyCredentialStore store = new FlakyCredentialStore();
-    store.setAfterFirstLookupBehavior(AfterFirstLookupBehavior.RETURN_EMPTY);
-
-    OcraCredentialDescriptor descriptor = inlineDescriptor();
-    OcraCredentialPersistenceAdapter adapter = new OcraCredentialPersistenceAdapter();
-    io.openauth.sim.core.store.serialization.VersionedCredentialRecord record =
-        adapter.serialize(descriptor);
-    store.save(
-        io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper.toCredential(
-            record));
-
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(store), provider(FIXED_CLOCK));
-
-    OcraVerificationRequest request = storedRequest(descriptor.name());
-    OcraVerificationAuditContext auditContext =
-        new OcraVerificationAuditContext("req-stored-race", "client-202", "operator-race");
-
-    OcraVerificationValidationException exception =
-        assertThrows(
-            OcraVerificationValidationException.class, () -> service.verify(request, auditContext));
-
-    assertEquals("credential_not_found", exception.reasonCode());
-    assertTrueMessageLogged("credentialSource=stored");
-    assertTrueMessageLogged("outcome=invalid");
-  }
-
-  @Test
-  @DisplayName("credential_not_found telemetry handles null request fallback")
-  void credentialNotFoundTelemetryNullRequest() throws Exception {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-
-    service.emitCredentialNotFoundTelemetry(
-        new OcraVerificationAuditContext("audit-null", null, null),
-        "telemetry-null",
-        null,
-        "credential store not configured",
-        4L);
-
-    assertTrueMessageLogged("credentialSource=stored");
-    assertTrueMessageLogged("credentialId=unknown");
-    assertTrueMessageLogged("otpHash=unavailable");
-  }
-
-  @Test
-  @DisplayName("stored verification unexpected error surfaces sanitized telemetry")
-  void storedVerificationUnexpectedErrorTelemetry() {
-    OcraCredentialDescriptor descriptor = inlineDescriptor();
-    OcraCredentialPersistenceAdapter adapter = new OcraCredentialPersistenceAdapter();
-    io.openauth.sim.core.store.serialization.VersionedCredentialRecord record =
-        adapter.serialize(descriptor);
-    Credential valid =
-        io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper.toCredential(
-            record);
-
-    java.util.Map<String, String> corruptedAttributes = new java.util.HashMap<>(valid.attributes());
-    corruptedAttributes.put(
-        io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX
-            + "source",
-        null);
-
-    Credential corrupted =
-        new Credential(
-            valid.name(),
-            valid.type(),
-            valid.secret(),
-            corruptedAttributes,
-            valid.createdAt(),
-            valid.updatedAt());
-
-    CorruptingCredentialStore store = new CorruptingCredentialStore(valid, corrupted);
-
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(store), provider(FIXED_CLOCK));
-
-    OcraVerificationRequest request = storedRequest(descriptor.name());
-    OcraVerificationAuditContext auditContext =
-        new OcraVerificationAuditContext("req-stored-unexpected", "client-303", "operator-x");
-
-    IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> service.verify(request, auditContext));
-
-    assertEquals("Unexpected error during OCRA verification", exception.getMessage());
-    assertTrueMessageLogged("reasonCode=unexpected_error");
-    assertTrueMessageLogged("status=error");
-  }
-
-  @Test
-  @DisplayName("inline verification missing challenge surfaces validation failure telemetry")
-  void inlineVerificationMissingChallenge() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-
-    OcraVerificationInlineCredential inlineCredential =
-        new OcraVerificationInlineCredential(
-            "OCRA-1:HOTP-SHA1-6:QN08", "31323334353637383930313233343536");
-    OcraVerificationContext context =
-        new OcraVerificationContext(null, null, null, null, null, null, null);
-    OcraVerificationRequest request =
-        new OcraVerificationRequest("123456", null, inlineCredential, context);
-    OcraVerificationAuditContext auditContext =
-        new OcraVerificationAuditContext("req-inline-3", null, null);
-
-    OcraVerificationValidationException exception =
-        assertThrows(
-            OcraVerificationValidationException.class, () -> service.verify(request, auditContext));
-
-    assertEquals("validation_failure", exception.reasonCode());
-    assertTrueMessageLogged("reasonCode=validation_failure");
-  }
-
-  @Test
-  @DisplayName("inline secret with invalid hex triggers validation failure via service catch")
-  void inlineSecretInvalidHexValidation() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-
-    OcraVerificationInlineCredential inlineCredential =
-        new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", "XYZ123");
-    OcraVerificationContext context =
-        new OcraVerificationContext("12345678", null, null, null, null, null, null);
-    OcraVerificationRequest request =
-        new OcraVerificationRequest("654321", null, inlineCredential, context);
-    OcraVerificationAuditContext auditContext =
-        new OcraVerificationAuditContext("req-inline-invalid-hex", null, "operator-hex");
-
-    OcraVerificationValidationException exception =
-        assertThrows(
-            OcraVerificationValidationException.class, () -> service.verify(request, auditContext));
-
-    assertEquals("validation_failure", exception.reasonCode());
-    assertTrueMessageLogged("status=invalid");
-    assertTrueMessageLogged("reasonCode=validation_failure");
-  }
-
-  @Test
-  @DisplayName("inline verification with invalid challenge triggers replay validation failure")
-  void inlineVerificationInvalidChallengeLength() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-    OcraVerificationInlineCredential inlineCredential =
-        new OcraVerificationInlineCredential(
-            "OCRA-1:HOTP-SHA1-6:QN08", "31323334353637383930313233343536");
-    OcraVerificationContext context =
-        new OcraVerificationContext("ABC", null, null, null, null, null, null);
-    OcraVerificationRequest request =
-        new OcraVerificationRequest("123456", null, inlineCredential, context);
-
-    OcraVerificationAuditContext auditContext =
-        new OcraVerificationAuditContext("req-invalid-challenge", null, null);
-
-    OcraVerificationValidationException exception =
-        assertThrows(
-            OcraVerificationValidationException.class, () -> service.verify(request, auditContext));
-
-    assertEquals("validation_failure", exception.reasonCode());
-  }
-
-  @Test
-  @DisplayName("missing OTP raises otp_missing validation error")
-  void otpMissingValidation() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-    OcraVerificationContext context =
-        new OcraVerificationContext("12345678", null, null, null, null, null, null);
-    OcraVerificationRequest request = new OcraVerificationRequest(null, "cred-1", null, context);
 
     OcraVerificationValidationException exception =
         assertThrows(
             OcraVerificationValidationException.class,
             () ->
                 service.verify(
-                    request, new OcraVerificationAuditContext("req-missing-otp", null, null)));
+                    request, new OcraVerificationAuditContext("req-missing", null, null)));
 
-    assertEquals("otp_missing", exception.reasonCode());
+    assertEquals("credential_not_found", exception.reasonCode());
+    assertTelemetryMessageContains("credential_not_found");
   }
 
   @Test
-  @DisplayName("whitespace OTP raises otp_missing validation error and records sanitized telemetry")
-  void otpWhitespaceValidation() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-    OcraVerificationContext context =
-        new OcraVerificationContext("12345678", null, null, null, null, null, null);
+  @DisplayName("supplying stored and inline credential payload surfaces credential_conflict")
+  void storedAndInlineConflict() {
+    OcraVerificationService service = service();
+    OcraVerificationInlineCredential inline =
+        new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", DEFAULT_SECRET_HEX);
     OcraVerificationRequest request =
-        new OcraVerificationRequest("    ", "cred-otp", null, context);
-
-    OcraVerificationValidationException exception =
-        assertThrows(
-            OcraVerificationValidationException.class,
-            () ->
-                service.verify(
-                    request, new OcraVerificationAuditContext("req-otp-whitespace", null, null)));
-
-    assertEquals("otp_missing", exception.reasonCode());
-    assertTrueMessageLogged("otpHash=unavailable");
-  }
-
-  @Test
-  @DisplayName("credential conflict validation surfaces credential_conflict reason")
-  void credentialConflictValidation() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-    OcraVerificationInlineCredential inlineCredential =
-        new OcraVerificationInlineCredential(
-            "OCRA-1:HOTP-SHA1-6:QN08", "31323334353637383930313233343536");
-    OcraVerificationContext context =
-        new OcraVerificationContext("12345678", null, null, null, null, null, null);
-
-    OcraVerificationRequest request =
-        new OcraVerificationRequest("123456", "cred-2", inlineCredential, context);
+        new OcraVerificationRequest(buildMatchingOtp(), "stored-token", inline, context());
 
     OcraVerificationValidationException exception =
         assertThrows(
@@ -409,16 +221,15 @@ class OcraVerificationServiceTest {
                     request, new OcraVerificationAuditContext("req-conflict", null, null)));
 
     assertEquals("credential_conflict", exception.reasonCode());
+    assertTelemetryMessageContains("credential_conflict");
   }
 
   @Test
-  @DisplayName("credential missing validation surfaces credential_missing reason")
-  void credentialMissingValidation() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-    OcraVerificationContext context =
-        new OcraVerificationContext("12345678", null, null, null, null, null, null);
-    OcraVerificationRequest request = new OcraVerificationRequest("123456", null, null, context);
+  @DisplayName("missing stored and inline payload surfaces credential_missing")
+  void missingStoredAndInlineCredential() {
+    OcraVerificationService service = service();
+    OcraVerificationRequest request =
+        new OcraVerificationRequest(buildMatchingOtp(), null, null, context());
 
     OcraVerificationValidationException exception =
         assertThrows(
@@ -428,225 +239,195 @@ class OcraVerificationServiceTest {
                     request, new OcraVerificationAuditContext("req-missing", null, null)));
 
     assertEquals("credential_missing", exception.reasonCode());
+    assertTelemetryMessageContains("credential_missing");
   }
 
   @Test
-  @DisplayName("inline credential missing suite surfaces suite_missing reason")
-  void inlineSuiteMissingValidation() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-    OcraVerificationInlineCredential inlineCredential =
-        new OcraVerificationInlineCredential(null, "31323334");
-    OcraVerificationContext context =
-        new OcraVerificationContext("12345678", null, null, null, null, null, null);
+  @DisplayName("resolver failures propagate as unexpected errors")
+  void resolverFailureTriggersUnexpectedError() {
+    OcraVerificationApplicationService applicationService =
+        new OcraVerificationApplicationService(
+            FIXED_CLOCK,
+            credentialId -> {
+              throw new IllegalStateException("resolver failure");
+            },
+            new InMemoryCredentialStore());
+    RecordingVerificationTelemetry telemetry = new RecordingVerificationTelemetry();
+    OcraVerificationService service = new OcraVerificationService(applicationService, telemetry);
 
-    OcraVerificationRequest request =
-        new OcraVerificationRequest("123456", null, inlineCredential, context);
-
-    OcraVerificationValidationException exception =
-        assertThrows(
-            OcraVerificationValidationException.class,
-            () ->
-                service.verify(request, new OcraVerificationAuditContext("req-suite", null, null)));
-
-    assertEquals("suite_missing", exception.reasonCode());
-  }
-
-  @Test
-  @DisplayName("inline credential blank suite surfaces suite_missing reason")
-  void inlineSuiteBlankValidation() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-    OcraVerificationInlineCredential inlineCredential =
-        new OcraVerificationInlineCredential("   ", "31323334");
-    OcraVerificationContext context =
-        new OcraVerificationContext("12345678", null, null, null, null, null, null);
-
-    OcraVerificationRequest request =
-        new OcraVerificationRequest("123456", null, inlineCredential, context);
-
-    OcraVerificationValidationException exception =
-        assertThrows(
-            OcraVerificationValidationException.class,
-            () ->
-                service.verify(
-                    request, new OcraVerificationAuditContext("req-suite-blank", null, null)));
-
-    assertEquals("suite_missing", exception.reasonCode());
-  }
-
-  @Test
-  @DisplayName("inline credential missing secret surfaces secret_missing reason")
-  void inlineSecretMissingValidation() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-    OcraVerificationInlineCredential inlineCredential =
-        new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", "   ");
-    OcraVerificationContext context =
-        new OcraVerificationContext("12345678", null, null, null, null, null, null);
-
-    OcraVerificationRequest request =
-        new OcraVerificationRequest("123456", null, inlineCredential, context);
-
-    OcraVerificationValidationException exception =
-        assertThrows(
-            OcraVerificationValidationException.class,
-            () ->
-                service.verify(
-                    request, new OcraVerificationAuditContext("req-secret", null, null)));
-
-    assertEquals("secret_missing", exception.reasonCode());
-  }
-
-  @Test
-  @DisplayName("inline credential object missing triggers inline_secret_missing problem")
-  void inlineCredentialObjectMissingValidation() throws Exception {
-    OcraVerificationService.VerificationContext context =
-        OcraVerificationService.VerificationContext.empty();
-
-    RuntimeException exception =
-        assertThrows(
-            RuntimeException.class,
-            () -> OcraVerificationService.InlineSecretPayload.from(null, context));
-
-    assertEquals("inlineCredential.sharedSecretHex is required", exception.getMessage());
-  }
-
-  @Test
-  @DisplayName("missing context surfaces context_missing reason")
-  void contextMissingValidation() {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-    OcraVerificationInlineCredential inlineCredential =
-        new OcraVerificationInlineCredential(
-            "OCRA-1:HOTP-SHA1-6:QN08", "31323334353637383930313233343536");
-
-    OcraVerificationRequest request =
-        new OcraVerificationRequest("123456", null, inlineCredential, null);
-
-    OcraVerificationValidationException exception =
-        assertThrows(
-            OcraVerificationValidationException.class,
-            () ->
-                service.verify(
-                    request, new OcraVerificationAuditContext("req-context", null, null)));
-
-    assertEquals("context_missing", exception.reasonCode());
-  }
-
-  @Test
-  @DisplayName("unexpected strict mismatch state triggers error telemetry and exception")
-  void handleInvalidStrictMismatchUnexpectedState() throws Exception {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
-
-    OcraVerificationService.NormalizedRequest normalized =
-        normalizedRequestFor(inlineRequest(buildMatchingOtp()));
-
-    IllegalStateException thrown =
+    IllegalStateException exception =
         assertThrows(
             IllegalStateException.class,
             () ->
-                service.handleInvalid(
-                    normalized,
-                    inlineDescriptor(),
-                    "inline",
-                    "inline-test",
-                    OcraReplayVerifier.OcraVerificationReason.STRICT_MISMATCH,
-                    "telemetry-strict",
-                    new OcraVerificationAuditContext("audit-strict", null, null),
-                    3L));
+                service.verify(
+                    storedRequest("stored-token"),
+                    new OcraVerificationAuditContext("req-unexpected", null, null)));
 
-    assertTrue(thrown.getMessage().contains("Unexpected verification state"));
-    assertTrueMessageLogged("reasonCode=unexpected_state");
-    assertTrueMessageLogged("status=error");
+    assertEquals("resolver failure", exception.getMessage());
+    telemetry.assertMessageContains("unexpected_error");
   }
 
   @Test
-  @DisplayName("unexpected match state triggers error telemetry and exception")
-  void handleInvalidMatchUnexpectedState() throws Exception {
-    OcraVerificationService service =
-        new OcraVerificationService(telemetry, provider(null), provider(FIXED_CLOCK));
+  @DisplayName("store failures surface unexpected_error and propagate")
+  void storedVerificationUnexpectedError() {
+    FailingCredentialStore failingStore = new FailingCredentialStore();
+    OcraVerificationService service = service(failingStore);
 
-    OcraVerificationService.NormalizedRequest normalized =
-        normalizedRequestFor(inlineRequest(buildMatchingOtp()));
+    OcraVerificationRequest request = storedRequest("stored-token");
 
-    IllegalStateException thrown =
+    IllegalStateException exception =
         assertThrows(
             IllegalStateException.class,
             () ->
-                service.handleInvalid(
-                    normalized,
-                    inlineDescriptor(),
-                    "inline",
-                    "inline-test",
-                    OcraReplayVerifier.OcraVerificationReason.MATCH,
-                    "telemetry-match",
-                    new OcraVerificationAuditContext("audit-match", null, null),
-                    2L));
+                service.verify(
+                    request, new OcraVerificationAuditContext("req-offline", null, null)));
 
-    assertTrue(thrown.getMessage().contains("Unexpected verification state"));
-    assertTrueMessageLogged("reasonCode=unexpected_state");
-    assertTrueMessageLogged("status=error");
+    assertEquals("store offline", exception.getMessage());
+    assertTelemetryMessageContains("reasonCode=unexpected_error");
   }
 
   @Test
-  @DisplayName("verification normalized request selects stored variant for credential references")
-  void verificationNormalizedStoredVariant() {
-    OcraVerificationRequest request = storedRequest("stored-credential");
+  @DisplayName("corrupted stored credential yields unexpected error validation")
+  void corruptedStoredCredentialTriggersUnexpected() {
+    OcraCredentialDescriptor descriptor = inlineDescriptor();
+    var adapter = new OcraCredentialPersistenceAdapter();
+    var record = adapter.serialize(descriptor);
+    var credential = VersionedCredentialRecordMapper.toCredential(record);
+    java.util.Map<String, String> corruptedAttributes =
+        new java.util.HashMap<>(credential.attributes());
+    corruptedAttributes.put("bad", null);
+    Credential corrupted =
+        new Credential(
+            credential.name(),
+            credential.type(),
+            credential.secret(),
+            corruptedAttributes,
+            credential.createdAt(),
+            credential.updatedAt());
 
-    OcraVerificationService.NormalizedRequest normalized = normalizedRequestFor(request);
+    CredentialStore corruptedStore =
+        new CredentialStore() {
+          @Override
+          public void save(Credential credential) {
+            throw new UnsupportedOperationException();
+          }
 
-    assertTrue(
-        normalized instanceof OcraVerificationService.NormalizedRequest.StoredCredential,
-        () ->
-            "Expected stored credential variant but was " + normalized.getClass().getSimpleName());
+          @Override
+          public Optional<Credential> findByName(String name) {
+            if (descriptor.name().equals(name)) {
+              return Optional.of(corrupted);
+            }
+            return Optional.empty();
+          }
+
+          @Override
+          public List<Credential> findAll() {
+            return List.of(corrupted);
+          }
+
+          @Override
+          public boolean delete(String name) {
+            return false;
+          }
+
+          @Override
+          public void close() {
+            // no-op
+          }
+        };
+
+    OcraVerificationApplicationService applicationService =
+        new OcraVerificationApplicationService(
+            FIXED_CLOCK,
+            credentialId ->
+                descriptor.name().equals(credentialId) ? Optional.of(descriptor) : Optional.empty(),
+            corruptedStore);
+    OcraVerificationService service = new OcraVerificationService(applicationService, telemetry);
+
+    OcraVerificationRequest request = storedRequest(descriptor.name());
+
+    OcraVerificationValidationException exception =
+        assertThrows(
+            OcraVerificationValidationException.class,
+            () ->
+                service.verify(
+                    request, new OcraVerificationAuditContext("req-corrupted", null, null)));
+
+    assertEquals("unexpected_error", exception.reasonCode());
+    assertTelemetryMessageContains("unexpected_error");
   }
 
   @Test
-  @DisplayName("verification normalized request selects inline variant for inline payloads")
-  void verificationNormalizedInlineVariant() {
-    OcraVerificationRequest request = inlineRequest(buildMatchingOtp());
+  @DisplayName("stored verification with extraneous timestamp returns validation error")
+  void storedVerificationValidationFailure() {
+    InMemoryCredentialStore store = new InMemoryCredentialStore();
+    OcraCredentialDescriptor descriptor = inlineDescriptor();
+    var persistenceAdapter = new OcraCredentialPersistenceAdapter();
+    store.save(
+        VersionedCredentialRecordMapper.toCredential(persistenceAdapter.serialize(descriptor)));
 
-    OcraVerificationService.NormalizedRequest normalized = normalizedRequestFor(request);
+    OcraVerificationService service = service(store);
 
-    assertTrue(
-        normalized instanceof OcraVerificationService.NormalizedRequest.InlineSecret,
-        () -> "Expected inline variant but was " + normalized.getClass().getSimpleName());
+    OcraVerificationContext invalidContext =
+        new OcraVerificationContext("12345678", null, null, null, "00FF", null, null);
+    OcraVerificationRequest request =
+        new OcraVerificationRequest(buildMatchingOtp(), descriptor.name(), null, invalidContext);
+
+    OcraVerificationValidationException exception =
+        assertThrows(
+            OcraVerificationValidationException.class,
+            () ->
+                service.verify(
+                    request, new OcraVerificationAuditContext("req-invalid-ts", null, null)));
+
+    assertEquals("validation_error", exception.reasonCode());
+    assertTelemetryMessageContains("validation_failure");
+  }
+
+  private OcraVerificationService service() {
+    return service(null);
+  }
+
+  private OcraVerificationService service(CredentialStore store) {
+    OcraVerificationApplicationService applicationService =
+        new OcraVerificationApplicationService(
+            FIXED_CLOCK,
+            store != null
+                ? OcraCredentialResolvers.forVerificationStore(store)
+                : OcraCredentialResolvers.emptyVerificationResolver(),
+            store);
+    return new OcraVerificationService(applicationService, telemetry);
   }
 
   private OcraVerificationRequest inlineRequest(String otp) {
-    OcraVerificationInlineCredential inlineCredential =
-        new OcraVerificationInlineCredential(
-            "OCRA-1:HOTP-SHA1-6:QN08", "31323334353637383930313233343536");
-    OcraVerificationContext context =
-        new OcraVerificationContext("12345678", null, null, null, null, null, null);
-    return new OcraVerificationRequest(otp, null, inlineCredential, context);
+    return new OcraVerificationRequest(otp, null, inlineCredential(), context());
   }
 
   private OcraVerificationRequest storedRequest(String credentialId) {
-    OcraVerificationContext context =
-        new OcraVerificationContext("12345678", null, null, null, null, null, null);
-    return new OcraVerificationRequest("123456", credentialId, null, context);
+    return new OcraVerificationRequest("123456", credentialId, null, context());
   }
 
-  private OcraVerificationService.NormalizedRequest normalizedRequestFor(
-      OcraVerificationRequest request) {
-    return OcraVerificationService.NormalizedRequest.from(request);
+  private OcraVerificationInlineCredential inlineCredential() {
+    return new OcraVerificationInlineCredential(
+        "OCRA-1:HOTP-SHA1-6:QN08", "31323334353637383930313233343536");
+  }
+
+  private OcraVerificationContext context() {
+    return new OcraVerificationContext("12345678", null, null, null, null, null, null);
   }
 
   private OcraCredentialDescriptor inlineDescriptor() {
-    OcraCredentialFactory factory = new OcraCredentialFactory();
-    return factory.createDescriptor(
-        new OcraCredentialFactory.OcraCredentialRequest(
-            "inline-test",
-            "OCRA-1:HOTP-SHA1-6:QN08",
-            "31323334353637383930313233343536",
-            SecretEncoding.HEX,
-            null,
-            null,
-            null,
-            Map.of()));
+    return new OcraCredentialFactory()
+        .createDescriptor(
+            new OcraCredentialFactory.OcraCredentialRequest(
+                "stored-token",
+                "OCRA-1:HOTP-SHA1-6:QN08",
+                "31323334353637383930313233343536",
+                SecretEncoding.HEX,
+                null,
+                null,
+                null,
+                Map.of("source", "service-test")));
   }
 
   private String buildMatchingOtp() {
@@ -657,69 +438,50 @@ class OcraVerificationServiceTest {
     return OcraResponseCalculator.generate(descriptor, executionContext);
   }
 
-  private void assertTrueMessageLogged(String contains) {
+  private void assertTelemetryMessageContains(String token) {
     boolean matched =
-        handler.records.stream().map(LogRecord::getMessage).anyMatch(msg -> msg.contains(contains));
+        handler.records.stream().map(LogRecord::getMessage).anyMatch(msg -> msg.contains(token));
     if (!matched) {
-      throw new AssertionError("Expected telemetry message containing: " + contains);
+      throw new AssertionError("Expected telemetry message containing: " + token);
     }
   }
 
-  private static <T> ObjectProvider<T> provider(T instance) {
-    return new SimpleObjectProvider<>(instance);
-  }
+  private static final class RecordingVerificationTelemetry extends OcraVerificationTelemetry {
+    private final java.util.List<String> messages = new java.util.ArrayList<>();
 
-  private static final class SimpleObjectProvider<T> implements ObjectProvider<T> {
-
-    private final T instance;
-
-    private SimpleObjectProvider(T instance) {
-      this.instance = instance;
+    @Override
+    void recordUnexpectedError(
+        OcraVerificationAuditContext context, TelemetryFrame frame, String reason) {
+      messages.add(frame.reasonCode());
     }
 
     @Override
-    public T getObject(Object... args) {
-      if (instance == null) {
-        throw new NoSuchBeanDefinitionException("test", "No instance available");
+    void recordMatch(OcraVerificationAuditContext context, TelemetryFrame frame) {
+      messages.add(frame.reasonCode());
+    }
+
+    @Override
+    void recordMismatch(OcraVerificationAuditContext context, TelemetryFrame frame) {
+      messages.add(frame.reasonCode());
+    }
+
+    @Override
+    void recordValidationFailure(
+        OcraVerificationAuditContext context, TelemetryFrame frame, String reason) {
+      messages.add(frame.reasonCode());
+    }
+
+    @Override
+    void recordCredentialNotFound(
+        OcraVerificationAuditContext context, TelemetryFrame frame, String reason) {
+      messages.add(frame.reasonCode());
+    }
+
+    void assertMessageContains(String token) {
+      boolean matched = messages.stream().anyMatch(msg -> msg.contains(token));
+      if (!matched) {
+        throw new AssertionError("Expected telemetry entry containing: " + token);
       }
-      return instance;
-    }
-
-    @Override
-    public T getObject() {
-      return getObject(new Object[0]);
-    }
-
-    @Override
-    public T getIfAvailable() {
-      return instance;
-    }
-
-    @Override
-    public T getIfAvailable(java.util.function.Supplier<T> supplier) {
-      return instance != null ? instance : supplier.get();
-    }
-
-    @Override
-    public T getIfUnique() {
-      return instance;
-    }
-
-    @Override
-    public T getIfUnique(java.util.function.Supplier<T> supplier) {
-      return instance != null ? instance : supplier.get();
-    }
-
-    @Override
-    public java.util.stream.Stream<T> stream() {
-      return instance == null
-          ? java.util.stream.Stream.empty()
-          : java.util.stream.Stream.of(instance);
-    }
-
-    @Override
-    public java.util.stream.Stream<T> orderedStream() {
-      return stream();
     }
   }
 
@@ -743,7 +505,7 @@ class OcraVerificationServiceTest {
   }
 
   private static final class InMemoryCredentialStore implements CredentialStore {
-    private final java.util.Map<String, Credential> storage = new java.util.HashMap<>();
+    private final Map<String, Credential> storage = new HashMap<>();
 
     @Override
     public void save(Credential credential) {
@@ -756,8 +518,8 @@ class OcraVerificationServiceTest {
     }
 
     @Override
-    public java.util.List<Credential> findAll() {
-      return java.util.List.copyOf(storage.values());
+    public List<Credential> findAll() {
+      return List.copyOf(storage.values());
     }
 
     @Override
@@ -771,76 +533,20 @@ class OcraVerificationServiceTest {
     }
   }
 
-  private static final class FlakyCredentialStore implements CredentialStore {
-    private final java.util.Map<String, Credential> storage = new java.util.HashMap<>();
-    private AfterFirstLookupBehavior afterFirstLookup = AfterFirstLookupBehavior.STABLE;
-    private boolean servedInitialLookup;
-
-    void setAfterFirstLookupBehavior(AfterFirstLookupBehavior behavior) {
-      this.afterFirstLookup = behavior;
-    }
-
+  private static final class FailingCredentialStore implements CredentialStore {
     @Override
     public void save(Credential credential) {
-      storage.put(credential.name(), credential);
+      throw new UnsupportedOperationException("save not supported");
     }
 
     @Override
     public Optional<Credential> findByName(String name) {
-      if (!servedInitialLookup) {
-        servedInitialLookup = true;
-        return Optional.ofNullable(storage.get(name));
-      }
-      return switch (afterFirstLookup) {
-        case RETURN_EMPTY -> Optional.empty();
-        case STABLE -> Optional.ofNullable(storage.get(name));
-      };
+      throw new IllegalStateException("store offline");
     }
 
     @Override
-    public java.util.List<Credential> findAll() {
-      return java.util.List.copyOf(storage.values());
-    }
-
-    @Override
-    public boolean delete(String name) {
-      return storage.remove(name) != null;
-    }
-
-    @Override
-    public void close() {
-      storage.clear();
-    }
-  }
-
-  private static final class CorruptingCredentialStore implements CredentialStore {
-    private final Credential initial;
-    private final Credential corrupted;
-    private int lookups;
-
-    private CorruptingCredentialStore(Credential initial, Credential corrupted) {
-      this.initial = initial;
-      this.corrupted = corrupted;
-    }
-
-    @Override
-    public void save(Credential credential) {
-      // no-op: credentials supplied via constructor
-    }
-
-    @Override
-    public Optional<Credential> findByName(String name) {
-      if (lookups == 0) {
-        lookups++;
-        return Optional.of(initial);
-      }
-      lookups++;
-      return Optional.of(corrupted);
-    }
-
-    @Override
-    public java.util.List<Credential> findAll() {
-      return java.util.List.of(initial, corrupted);
+    public List<Credential> findAll() {
+      return List.of();
     }
 
     @Override
@@ -852,10 +558,5 @@ class OcraVerificationServiceTest {
     public void close() {
       // no-op
     }
-  }
-
-  private enum AfterFirstLookupBehavior {
-    STABLE,
-    RETURN_EMPTY
   }
 }

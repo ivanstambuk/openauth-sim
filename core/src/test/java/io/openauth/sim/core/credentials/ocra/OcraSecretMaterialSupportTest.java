@@ -53,4 +53,21 @@ class OcraSecretMaterialSupportTest {
         IllegalArgumentException.class,
         () -> OcraSecretMaterialSupport.normaliseSharedSecret("@@@", SecretEncoding.BASE64));
   }
+
+  @Test
+  @DisplayName("normaliseHex rejects whitespace-only inputs")
+  void normaliseHexRejectsWhitespace() {
+    assertThrows(
+        IllegalArgumentException.class, () -> OcraSecretMaterialSupport.normaliseHex("   "));
+    assertThrows(
+        IllegalArgumentException.class, () -> OcraSecretMaterialSupport.normaliseHex("0x  "));
+  }
+
+  @Test
+  @DisplayName("normaliseBase64 rejects whitespace-only shared secret")
+  void normaliseBase64RejectsWhitespace() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> OcraSecretMaterialSupport.normaliseSharedSecret("   ", SecretEncoding.BASE64));
+  }
 }

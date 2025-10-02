@@ -222,7 +222,7 @@ val architectureTest = tasks.register("architectureTest") {
     dependsOn(":core-architecture-tests:test")
 }
 
-val ocraModules = listOf(project(":core"), project(":cli"), project(":rest-api"))
+val ocraModules = listOf(project(":core"), project(":application"), project(":cli"), project(":rest-api"))
 
 val jacocoAggregatedReport = tasks.register<JacocoReport>("jacocoAggregatedReport") {
     group = LifecycleBasePlugin.VERIFICATION_GROUP
@@ -314,7 +314,7 @@ val reflectionScan = tasks.register("reflectionScan") {
     group = LifecycleBasePlugin.VERIFICATION_GROUP
     description = "Fails when reflection APIs are referenced in source sets"
 
-    val moduleNames = listOf("core", "cli", "rest-api", "ui")
+    val moduleNames = listOf("core", "application", "cli", "rest-api", "ui")
     val projectDirectoryFile = layout.projectDirectory.asFile
     val tokenFile = projectDirectoryFile.resolve("config/reflection-tokens.txt")
     val moduleSrcDirs = moduleNames.map { moduleName -> projectDirectoryFile.resolve("$moduleName/src") }

@@ -1,32 +1,21 @@
 package io.openauth.sim.rest.ocra;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
-import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
-import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
-import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
-import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier;
-import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraInlineVerificationRequest;
-import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraStoredVerificationRequest;
-import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationReason;
-import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationResult;
-import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationStatus;
-import io.openauth.sim.core.model.SecretEncoding;
-import io.openauth.sim.core.store.CredentialStore;
-import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
-import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.application.ocra.OcraVerificationApplicationService;
+import io.openauth.sim.application.ocra.OcraVerificationApplicationService.NormalizedRequest;
+import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationCommand;
+import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationContext;
+import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationReason;
+import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationResult;
+import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationStatus;
+import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationValidationException;
+import io.openauth.sim.application.ocra.OcraVerificationRequests;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Clock;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -34,27 +23,13 @@ class OcraVerificationService {
 
   private static final Base64.Encoder BASE64_URL = Base64.getUrlEncoder().withoutPadding();
 
-  private final CredentialStore credentialStore;
-  private final OcraReplayVerifier storedVerifier;
-  private final OcraReplayVerifier inlineVerifier;
-  private final OcraCredentialFactory credentialFactory;
-  private final OcraCredentialPersistenceAdapter persistenceAdapter;
-  private final Clock clock;
+  private final OcraVerificationApplicationService applicationService;
   private final OcraVerificationTelemetry telemetry;
 
-  @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
   OcraVerificationService(
-      OcraVerificationTelemetry telemetry,
-      ObjectProvider<CredentialStore> credentialStoreProvider,
-      ObjectProvider<Clock> clockProvider) {
+      OcraVerificationApplicationService applicationService, OcraVerificationTelemetry telemetry) {
+    this.applicationService = Objects.requireNonNull(applicationService, "applicationService");
     this.telemetry = Objects.requireNonNull(telemetry, "telemetry");
-    this.credentialStore = credentialStoreProvider.getIfAvailable();
-    this.storedVerifier = new OcraReplayVerifier(this.credentialStore);
-    this.inlineVerifier = new OcraReplayVerifier(null);
-    this.credentialFactory = new OcraCredentialFactory();
-    this.persistenceAdapter = new OcraCredentialPersistenceAdapter();
-    Clock resolvedClock = clockProvider.getIfAvailable();
-    this.clock = resolvedClock == null ? Clock.systemUTC() : resolvedClock;
   }
 
   OcraVerificationResponse verify(
@@ -62,267 +37,97 @@ class OcraVerificationService {
     Objects.requireNonNull(rawRequest, "request");
     Objects.requireNonNull(auditContext, "auditContext");
 
-    String telemetryId = nextTelemetryId();
     long started = System.nanoTime();
+    String telemetryId = nextTelemetryId();
+    CommandEnvelope envelope = null;
 
-    NormalizedRequest request = null;
     try {
-      request = NormalizedRequest.from(rawRequest);
-      io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationContext
-          verificationContext = request.context().toCoreContext();
+      envelope = CommandEnvelope.from(rawRequest);
+      VerificationResult result = applicationService.verify(envelope.command());
+      long durationMillis = toMillis(started);
 
-      if (request instanceof NormalizedRequest.StoredCredential stored) {
-        return verifyStored(stored, auditContext, telemetryId, started, verificationContext);
-      }
-      if (request instanceof NormalizedRequest.InlineSecret inline) {
-        return verifyInline(inline, auditContext, telemetryId, started, verificationContext);
-      }
-      throw new IllegalStateException("Unsupported request variant: " + request);
-    } catch (ValidationProblem problem) {
       OcraVerificationTelemetry.TelemetryFrame frame =
-          telemetryFrameForFailure(
+          telemetryFrameForResult(result, envelope, telemetryId, durationMillis);
+
+      switch (result.status()) {
+        case MATCH -> telemetry.recordMatch(auditContext, frame.withOutcome("match"));
+        case MISMATCH -> telemetry.recordMismatch(auditContext, frame.withOutcome("mismatch"));
+        case INVALID -> handleInvalid(result, auditContext, frame, telemetryId, durationMillis);
+      }
+
+      if (result.status() == VerificationStatus.INVALID) {
+        throw new IllegalStateException("Verification invalid state should have been handled");
+      }
+
+      OcraVerificationMetadata metadata =
+          new OcraVerificationMetadata(
+              envelope.credentialSource(),
+              result.suite(),
+              result.responseDigits(),
+              durationMillis,
+              frame.contextFingerprint(),
               telemetryId,
-              request != null ? request.credentialSource() : "unknown",
-              request != null ? request.credentialId() : null,
-              request != null ? request.suite().orElse(null) : suiteFrom(rawRequest).orElse(null),
-              request != null ? request.otp() : rawRequest.otp(),
-              request != null ? request.context() : VerificationContext.empty(),
-              toMillis(started));
+              frame.outcome());
+
+      String status = result.status() == VerificationStatus.MATCH ? "match" : "mismatch";
+      return new OcraVerificationResponse(status, reasonCodeFor(result.reason()), metadata);
+    } catch (VerificationValidationException ex) {
+      long durationMillis = toMillis(started);
+      OcraVerificationTelemetry.TelemetryFrame frame =
+          telemetryFrameForFailure(telemetryId, envelope, rawRequest, durationMillis);
 
       telemetry.recordValidationFailure(
           auditContext,
-          frame.withReasonCode(problem.reasonCode()).withOutcome("invalid"),
-          problem.getMessage());
-
-      throw validationException(
-          telemetryId,
-          frame.normalizedSuite(),
-          problem.field(),
-          problem.reasonCode(),
-          problem.getMessage(),
-          problem.sanitized(),
-          problem);
-    } catch (IllegalArgumentException ex) {
-      OcraVerificationTelemetry.TelemetryFrame frame =
-          telemetryFrameForFailure(
-              telemetryId,
-              request != null ? request.credentialSource() : "unknown",
-              request != null ? request.credentialId() : null,
-              request != null ? request.suite().orElse(null) : suiteFrom(rawRequest).orElse(null),
-              request != null ? request.otp() : rawRequest.otp(),
-              request != null ? request.context() : VerificationContext.empty(),
-              toMillis(started));
-
-      telemetry.recordValidationFailure(
-          auditContext,
-          frame.withReasonCode("validation_failure").withOutcome("invalid"),
+          frame.withReasonCode(ex.reasonCode()).withOutcome("invalid"),
           ex.getMessage());
 
-      throw validationException(
+      throw new OcraVerificationValidationException(
           telemetryId,
           frame.normalizedSuite(),
-          null,
-          "validation_failure",
+          ex.field(),
+          ex.reasonCode(),
+          ex.getMessage(),
+          ex.sanitized(),
+          ex);
+    } catch (ValidationError ex) {
+      long durationMillis = toMillis(started);
+      OcraVerificationTelemetry.TelemetryFrame frame =
+          telemetryFrameForFailure(telemetryId, envelope, rawRequest, durationMillis);
+
+      telemetry.recordValidationFailure(
+          auditContext,
+          frame.withReasonCode(ex.reasonCode()).withOutcome("invalid"),
+          ex.getMessage());
+
+      throw new OcraVerificationValidationException(
+          telemetryId,
+          frame.normalizedSuite(),
+          ex.field(),
+          ex.reasonCode(),
           ex.getMessage(),
           true,
           ex);
-    }
-  }
+    } catch (RuntimeException ex) {
+      long durationMillis = toMillis(started);
+      OcraVerificationTelemetry.TelemetryFrame frame =
+          telemetryFrameForFailure(telemetryId, envelope, rawRequest, durationMillis);
 
-  private OcraVerificationResponse verifyStored(
-      NormalizedRequest.StoredCredential request,
-      OcraVerificationAuditContext auditContext,
-      String telemetryId,
-      long started,
-      io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationContext
-          verificationContext) {
-
-    if (credentialStore == null) {
-      emitCredentialNotFoundTelemetry(
-          auditContext, telemetryId, request, "Credential store not configured", toMillis(started));
-      throw validationException(
-          telemetryId,
-          request.suite().orElse(null),
-          "credentialId",
-          "credential_not_found",
-          "credential store not configured",
-          true,
-          null);
-    }
-
-    String credentialId = request.credentialId();
-    VersionedCredentialRecord record =
-        credentialStore
-            .findByName(credentialId)
-            .map(VersionedCredentialRecordMapper::toRecord)
-            .orElse(null);
-
-    if (record == null) {
-      emitCredentialNotFoundTelemetry(
+      telemetry.recordUnexpectedError(
           auditContext,
-          telemetryId,
-          request,
-          "credentialId %s not found".formatted(credentialId),
-          toMillis(started));
-      throw validationException(
-          telemetryId,
-          request.suite().orElse(null),
-          "credentialId",
-          "credential_not_found",
-          "credentialId %s not found".formatted(credentialId),
-          true,
-          null);
+          frame.withReasonCode("unexpected_error").withOutcome("error"),
+          ex.getMessage());
+      throw ex;
     }
-
-    OcraCredentialDescriptor descriptor = persistenceAdapter.deserialize(record);
-    OcraVerificationResult result =
-        storedVerifier.verifyStored(
-            new OcraStoredVerificationRequest(
-                descriptor.name(), request.otp(), verificationContext));
-
-    return emitResponse(
-        request,
-        descriptor,
-        auditContext,
-        telemetryId,
-        started,
-        result,
-        "stored",
-        descriptor.name());
   }
 
-  private OcraVerificationResponse verifyInline(
-      NormalizedRequest.InlineSecret request,
+  private void handleInvalid(
+      VerificationResult result,
       OcraVerificationAuditContext auditContext,
+      OcraVerificationTelemetry.TelemetryFrame frame,
       String telemetryId,
-      long started,
-      io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationContext
-          verificationContext) {
-
-    InlineSecretPayload inlineSecret =
-        request
-            .inlineSecret()
-            .orElseThrow(
-                () ->
-                    new ValidationProblem(
-                        "inlineCredential",
-                        "inline_secret_missing",
-                        "inlineCredential.sharedSecretHex is required",
-                        request.suite().orElse(null),
-                        true));
-
-    OcraCredentialDescriptor descriptor = createDescriptor(inlineSecret);
-    OcraInlineVerificationRequest inlineRequest =
-        new OcraInlineVerificationRequest(
-            descriptor.name(),
-            descriptor.suite().value(),
-            inlineSecret.sharedSecretHex(),
-            SecretEncoding.HEX,
-            request.otp(),
-            verificationContext,
-            descriptor.metadata());
-
-    OcraVerificationResult result = inlineVerifier.verifyInline(inlineRequest);
-
-    return emitResponse(
-        request,
-        descriptor,
-        auditContext,
-        telemetryId,
-        started,
-        result,
-        "inline",
-        descriptor.name());
-  }
-
-  private OcraVerificationResponse emitResponse(
-      NormalizedRequest request,
-      OcraCredentialDescriptor descriptor,
-      OcraVerificationAuditContext auditContext,
-      String telemetryId,
-      long started,
-      OcraVerificationResult result,
-      String credentialSource,
-      String credentialId) {
-
-    String suite = descriptor.suite().value();
-    long durationMillis = toMillis(started);
-    String otpHash = hashOtp(request.otp());
-    String fingerprint = fingerprint(suite, request.context());
-    String reasonCode = reasonCodeFor(result.reason());
-    String outcome = outcomeFor(result.status());
-
-    OcraVerificationTelemetry.TelemetryFrame frame =
-        new OcraVerificationTelemetry.TelemetryFrame(
-            telemetryId,
-            suite,
-            credentialSource,
-            credentialId,
-            otpHash,
-            fingerprint,
-            reasonCode,
-            outcome,
-            durationMillis,
-            true);
-
-    OcraVerificationMetadata metadata =
-        new OcraVerificationMetadata(
-            credentialSource,
-            suite,
-            descriptor.suite().cryptoFunction().responseDigits(),
-            durationMillis,
-            fingerprint,
-            telemetryId,
-            outcome);
-
-    OcraVerificationResponse response =
-        new OcraVerificationResponse(statusFor(result.status()), reasonCode, metadata);
-
-    switch (result.status()) {
-      case MATCH -> telemetry.recordMatch(auditContext, frame);
-      case MISMATCH -> telemetry.recordMismatch(auditContext, frame);
-      case INVALID ->
-          handleInvalid(
-              request,
-              descriptor,
-              credentialSource,
-              credentialId,
-              result.reason(),
-              telemetryId,
-              auditContext,
-              durationMillis);
-    }
-
-    return response;
-  }
-
-  void handleInvalid(
-      NormalizedRequest request,
-      OcraCredentialDescriptor descriptor,
-      String credentialSource,
-      String credentialId,
-      OcraVerificationReason reason,
-      String telemetryId,
-      OcraVerificationAuditContext auditContext,
       long durationMillis) {
 
-    String suite = descriptor == null ? request.suite().orElse(null) : descriptor.suite().value();
-    String otpHash = hashOtp(request.otp());
-    String fingerprint = suite == null ? null : fingerprint(suite, request.context());
-
-    OcraVerificationTelemetry.TelemetryFrame frame =
-        new OcraVerificationTelemetry.TelemetryFrame(
-            telemetryId,
-            suite,
-            credentialSource,
-            credentialId,
-            otpHash,
-            fingerprint,
-            reasonCodeFor(reason),
-            "invalid",
-            durationMillis,
-            true);
-
+    VerificationReason reason = result.reason();
     switch (reason) {
       case VALIDATION_FAILURE ->
           telemetry.recordValidationFailure(
@@ -334,7 +139,7 @@ class OcraVerificationService {
               auditContext,
               frame.withReasonCode("credential_not_found"),
               "credentialId %s not found"
-                  .formatted(Objects.requireNonNullElse(request.credentialId(), "unknown")));
+                  .formatted(Objects.requireNonNullElse(result.credentialId(), "unknown")));
       case UNEXPECTED_ERROR ->
           telemetry.recordUnexpectedError(
               auditContext,
@@ -347,131 +152,129 @@ class OcraVerificationService {
               "Unexpected verification state: " + reason);
     }
 
-    switch (reason) {
-      case VALIDATION_FAILURE ->
-          throw validationException(
-              telemetryId,
-              suite,
-              null,
-              "validation_failure",
-              "Verification inputs failed validation",
-              true,
-              null);
-      case CREDENTIAL_NOT_FOUND ->
-          throw validationException(
-              telemetryId,
-              suite,
-              "credentialId",
-              "credential_not_found",
-              "credentialId %s not found"
-                  .formatted(Objects.requireNonNullElse(request.credentialId(), "unknown")),
-              true,
-              null);
-      case UNEXPECTED_ERROR ->
-          throw new IllegalStateException("Unexpected error during OCRA verification");
-      case MATCH, STRICT_MISMATCH ->
-          throw new IllegalStateException("Unexpected verification state: " + reason);
-    }
+    throw new OcraVerificationValidationException(
+        telemetryId,
+        result.suite(),
+        null,
+        reasonCodeFor(reason),
+        "Verification request invalid",
+        true,
+        null);
   }
 
-  void emitCredentialNotFoundTelemetry(
-      OcraVerificationAuditContext auditContext,
+  private static OcraVerificationTelemetry.TelemetryFrame telemetryFrameForResult(
+      VerificationResult result,
+      CommandEnvelope envelope,
       String telemetryId,
-      NormalizedRequest request,
-      String reason,
       long durationMillis) {
-    OcraVerificationTelemetry.TelemetryFrame frame =
-        telemetryFrameForFailure(
-            telemetryId,
-            request != null ? request.credentialSource() : "stored",
-            request != null ? request.credentialId() : null,
-            request != null ? request.suite().orElse(null) : null,
-            request != null ? request.otp() : null,
-            request != null ? request.context() : VerificationContext.empty(),
-            durationMillis);
-    telemetry.recordCredentialNotFound(
-        auditContext, frame.withReasonCode("credential_not_found").withOutcome("invalid"), reason);
+    VerificationContext context = envelope.normalized().context();
+    String suite = result.suite();
+    String fingerprint = suite == null ? null : fingerprint(suite, context);
+    String otpHash = hashOtp(envelope.otp());
+    String outcome =
+        switch (result.status()) {
+          case MATCH -> "match";
+          case MISMATCH -> "mismatch";
+          case INVALID -> "invalid";
+        };
+
+    return new OcraVerificationTelemetry.TelemetryFrame(
+        telemetryId,
+        suite,
+        envelope.credentialSource(),
+        result.credentialId(),
+        otpHash,
+        fingerprint,
+        reasonCodeFor(result.reason()),
+        outcome,
+        durationMillis,
+        true);
   }
 
-  private OcraCredentialDescriptor createDescriptor(InlineSecretPayload inlineSecret) {
-    OcraCredentialRequest credentialRequest =
-        new OcraCredentialRequest(
-            inlineSecret.descriptorName(),
-            inlineSecret.suite(),
-            inlineSecret.sharedSecretHex(),
-            SecretEncoding.HEX,
-            inlineSecret.counter().orElse(null),
-            inlineSecret.pinHashHex(),
-            null,
-            Map.of("source", "rest-inline"));
-    return credentialFactory.createDescriptor(credentialRequest);
-  }
-
-  private String nextTelemetryId() {
-    return "rest-ocra-verify-" + UUID.randomUUID();
-  }
-
-  private static String statusFor(OcraVerificationStatus status) {
-    return switch (status) {
-      case MATCH -> "match";
-      case MISMATCH -> "mismatch";
-      case INVALID -> "invalid";
-    };
-  }
-
-  private static String outcomeFor(OcraVerificationStatus status) {
-    return switch (status) {
-      case MATCH -> "match";
-      case MISMATCH -> "mismatch";
-      case INVALID -> "invalid";
-    };
-  }
-
-  private static String reasonCodeFor(OcraVerificationReason reason) {
-    return switch (reason) {
-      case MATCH -> "match";
-      case STRICT_MISMATCH -> "strict_mismatch";
-      case VALIDATION_FAILURE -> "validation_failure";
-      case CREDENTIAL_NOT_FOUND -> "credential_not_found";
-      case UNEXPECTED_ERROR -> "unexpected_error";
-    };
-  }
-
-  private static long toMillis(long started) {
-    return Duration.ofNanos(System.nanoTime() - started).toMillis();
-  }
-
-  private OcraVerificationValidationException validationException(
+  private static OcraVerificationTelemetry.TelemetryFrame telemetryFrameForFailure(
       String telemetryId,
-      String suite,
-      String field,
-      String reasonCode,
-      String message,
-      boolean sanitized,
-      Throwable cause) {
-    return new OcraVerificationValidationException(
-        telemetryId, suite, field, reasonCode, message, sanitized, cause);
-  }
-
-  private OcraVerificationTelemetry.TelemetryFrame telemetryFrameForFailure(
-      String telemetryId,
-      String credentialSource,
-      String credentialId,
-      String suite,
-      String otp,
-      VerificationContext context,
+      CommandEnvelope envelope,
+      OcraVerificationRequest raw,
       long durationMillis) {
+    String suite =
+        Optional.ofNullable(envelope)
+            .map(CommandEnvelope::normalized)
+            .filter(n -> n instanceof NormalizedRequest.Inline inline)
+            .map(n -> ((NormalizedRequest.Inline) n).suite())
+            .orElseGet(() -> suiteFrom(raw).orElse(null));
+
+    VerificationContext context =
+        envelope != null
+            ? envelope.normalized().context()
+            : fallbackContext(raw, suite, credentialSource(raw));
+    String credentialSource =
+        envelope != null ? envelope.credentialSource() : credentialSource(raw);
+    String credentialId =
+        envelope != null && envelope.command() instanceof VerificationCommand.Stored stored
+            ? stored.credentialId()
+            : raw.credentialId();
+    String otpHash = hashOtp(envelope != null ? envelope.otp() : raw.otp());
+    String fingerprint = suite == null ? null : fingerprint(suite, context);
+
     return new OcraVerificationTelemetry.TelemetryFrame(
         telemetryId,
         suite,
         credentialSource,
         credentialId,
-        hashOtp(otp),
-        suite == null ? null : fingerprint(suite, context),
+        otpHash,
+        fingerprint,
         "validation_failure",
         "invalid",
         durationMillis,
         true);
+  }
+
+  private static VerificationContext fallbackContext(
+      OcraVerificationRequest request, String suite, String credentialSource) {
+    OcraVerificationContext payload = request.context();
+    return new VerificationContext(
+        credentialSource,
+        request.credentialId(),
+        suite,
+        payload != null ? trim(payload.challenge()) : null,
+        payload != null ? trim(payload.clientChallenge()) : null,
+        payload != null ? trim(payload.serverChallenge()) : null,
+        payload != null ? trim(payload.sessionHex()) : null,
+        payload != null ? trim(payload.pinHashHex()) : null,
+        payload != null ? trim(payload.timestampHex()) : null,
+        payload != null ? payload.counter() : null);
+  }
+
+  private static String credentialSource(OcraVerificationRequest request) {
+    if (request.credentialId() != null && !request.credentialId().isBlank()) {
+      return "stored";
+    }
+    if (request.inlineCredential() != null) {
+      return "inline";
+    }
+    return "unknown";
+  }
+
+  private static Optional<String> suiteFrom(OcraVerificationRequest request) {
+    if (request.inlineCredential() == null) {
+      return Optional.empty();
+    }
+    String value = request.inlineCredential().suite();
+    if (value == null) {
+      return Optional.empty();
+    }
+    String trimmed = value.trim();
+    return trimmed.isEmpty() ? Optional.empty() : Optional.of(trimmed);
+  }
+
+  private static String reasonCodeFor(VerificationReason reason) {
+    return switch (reason) {
+      case MATCH -> "match";
+      case STRICT_MISMATCH -> "strict_mismatch";
+      case VALIDATION_FAILURE -> "validation_error";
+      case CREDENTIAL_NOT_FOUND -> "credential_not_found";
+      case UNEXPECTED_ERROR -> "unexpected_error";
+    };
   }
 
   private static String hashOtp(String otp) {
@@ -501,231 +304,117 @@ class OcraVerificationService {
 
   private static String encodeSha256(byte[] input) {
     try {
-      MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      byte[] hash = digest.digest(input);
-      return BASE64_URL.encodeToString(hash);
-    } catch (NoSuchAlgorithmException ex) {
+      return BASE64_URL.encodeToString(
+          java.security.MessageDigest.getInstance("SHA-256").digest(input));
+    } catch (java.security.NoSuchAlgorithmException ex) {
       throw new IllegalStateException("SHA-256 not available", ex);
     }
   }
 
-  private static Optional<String> suiteFrom(OcraVerificationRequest request) {
-    if (request.inlineCredential() == null) {
-      return Optional.empty();
-    }
-    String value = request.inlineCredential().suite();
-    if (value == null) {
-      return Optional.empty();
-    }
-    String trimmed = value.trim();
-    return trimmed.isEmpty() ? Optional.empty() : Optional.of(trimmed);
+  private static long toMillis(long started) {
+    return Duration.ofNanos(System.nanoTime() - started).toMillis();
   }
 
-  sealed interface NormalizedRequest
-      permits NormalizedRequest.StoredCredential, NormalizedRequest.InlineSecret {
+  private String nextTelemetryId() {
+    return "rest-ocra-" + UUID.randomUUID();
+  }
 
-    VerificationContext context();
-
-    String otp();
-
-    String credentialSource();
-
-    default String credentialId() {
+  private static String trim(String value) {
+    if (value == null) {
       return null;
     }
+    String trimmed = value.trim();
+    return trimmed.isEmpty() ? null : trimmed;
+  }
 
-    default Optional<String> suite() {
-      return Optional.empty();
-    }
+  private static String inlineIdentifier(OcraVerificationInlineCredential inline) {
+    return "rest-ocra-inline-"
+        + Integer.toHexString(Objects.hash(inline.suite(), inline.sharedSecretHex()));
+  }
 
-    default Optional<InlineSecretPayload> inlineSecret() {
-      return Optional.empty();
-    }
+  private record CommandEnvelope(
+      VerificationCommand command,
+      NormalizedRequest normalized,
+      String credentialSource,
+      String otp) {
 
-    static NormalizedRequest from(OcraVerificationRequest request) {
-      VerificationContext context = VerificationContext.from(request.context());
-      String otp = normalize(request.otp());
-      if (!hasText(otp)) {
-        throw new ValidationProblem(
-            "otp", "otp_missing", "otp is required", suiteFrom(request).orElse(null), true);
+    static CommandEnvelope from(OcraVerificationRequest request) {
+      if (request.otp() == null || request.otp().isBlank()) {
+        throw new ValidationError("otp", "otp_missing", "otp is required for verification");
       }
-
-      boolean hasCredential = hasText(request.credentialId());
+      boolean hasCredential = request.credentialId() != null && !request.credentialId().isBlank();
       boolean hasInline = request.inlineCredential() != null;
 
       if (hasCredential && hasInline) {
-        throw new ValidationProblem(
-            "request",
-            "credential_conflict",
-            "Provide either credentialId or inlineCredential, not both",
-            suiteFrom(request).orElse(null),
-            true);
+        throw new ValidationError(
+            "request", "credential_conflict", "Provide either stored or inline credential payload");
       }
-
       if (!hasCredential && !hasInline) {
-        throw new ValidationProblem(
+        throw new ValidationError(
             "request",
             "credential_missing",
-            "credentialId or inlineCredential is required",
-            suiteFrom(request).orElse(null),
-            true);
+            "storedCredential or inlineCredential payload must be provided");
       }
 
       if (hasCredential) {
-        return new StoredCredential(request.credentialId().trim(), context, otp);
+        VerificationContext ctx = fallbackContext(request, null, "stored");
+        VerificationCommand command =
+            OcraVerificationRequests.stored(
+                new OcraVerificationRequests.StoredInputs(
+                    request.credentialId(),
+                    request.otp(),
+                    ctx.challenge(),
+                    ctx.clientChallenge(),
+                    ctx.serverChallenge(),
+                    ctx.sessionHex(),
+                    ctx.pinHashHex(),
+                    ctx.timestampHex(),
+                    ctx.counter()));
+        NormalizedRequest normalized =
+            OcraVerificationApplicationService.NormalizedRequest.from(command);
+        return new CommandEnvelope(command, normalized, "stored", request.otp());
       }
 
-      InlineSecretPayload inline = InlineSecretPayload.from(request.inlineCredential(), context);
-      return new InlineSecret(inline, context, otp);
-    }
-
-    private static String normalize(String value) {
-      if (value == null) {
-        return null;
+      OcraVerificationInlineCredential inline = request.inlineCredential();
+      if (inline.suite() == null || inline.suite().isBlank()) {
+        throw new ValidationError("suite", "suite_missing", "suite is required for inline mode");
       }
-      String trimmed = value.trim();
-      return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    record StoredCredential(String credentialId, VerificationContext context, String otp)
-        implements NormalizedRequest {
-
-      @Override
-      public String credentialSource() {
-        return "stored";
+      if (inline.sharedSecretHex() == null || inline.sharedSecretHex().isBlank()) {
+        throw new ValidationError(
+            "sharedSecretHex",
+            "shared_secret_missing",
+            "sharedSecretHex is required for inline mode");
       }
-
-      @Override
-      public String credentialId() {
-        return credentialId;
-      }
-    }
-
-    record InlineSecret(InlineSecretPayload payload, VerificationContext context, String otp)
-        implements NormalizedRequest {
-
-      @Override
-      public String credentialSource() {
-        return "inline";
-      }
-
-      @Override
-      public Optional<String> suite() {
-        return Optional.of(payload.suite());
-      }
-
-      @Override
-      public Optional<InlineSecretPayload> inlineSecret() {
-        return Optional.of(payload);
-      }
-    }
-  }
-
-  static record VerificationContext(
-      Long counter,
-      String challenge,
-      String clientChallenge,
-      String serverChallenge,
-      String sessionHex,
-      String timestampHex,
-      String pinHashHex) {
-
-    static VerificationContext from(io.openauth.sim.rest.ocra.OcraVerificationContext context) {
-      if (context == null) {
-        throw new ValidationProblem(
-            "context", "context_missing", "context is required", null, true);
-      }
-      return new VerificationContext(
-          context.counter(),
-          normalize(context.challenge()),
-          normalize(context.clientChallenge()),
-          normalize(context.serverChallenge()),
-          normalize(context.sessionHex()),
-          normalize(context.timestampHex()),
-          normalize(context.pinHashHex()));
-    }
-
-    static VerificationContext empty() {
-      return new VerificationContext(null, null, null, null, null, null, null);
-    }
-
-    io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationContext
-        toCoreContext() {
-      return new io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationContext(
-          counter,
-          challenge,
-          sessionHex,
-          clientChallenge,
-          serverChallenge,
-          pinHashHex,
-          timestampHex);
+      VerificationContext ctx = fallbackContext(request, inline.suite(), "inline");
+      VerificationCommand command =
+          OcraVerificationRequests.inline(
+              new OcraVerificationRequests.InlineInputs(
+                  inlineIdentifier(inline),
+                  inline.suite(),
+                  inline.sharedSecretHex(),
+                  request.otp(),
+                  ctx.challenge(),
+                  ctx.clientChallenge(),
+                  ctx.serverChallenge(),
+                  ctx.sessionHex(),
+                  ctx.pinHashHex(),
+                  ctx.timestampHex(),
+                  ctx.counter(),
+                  null));
+      NormalizedRequest normalized =
+          OcraVerificationApplicationService.NormalizedRequest.from(command);
+      return new CommandEnvelope(command, normalized, "inline", request.otp());
     }
   }
 
-  static record InlineSecretPayload(
-      String suite,
-      String sharedSecretHex,
-      Optional<Long> counter,
-      String pinHashHex,
-      String descriptorName) {
-
-    static InlineSecretPayload from(
-        OcraVerificationInlineCredential inlineCredential, VerificationContext context) {
-      if (inlineCredential == null) {
-        throw new ValidationProblem(
-            "inlineCredential",
-            "inline_secret_missing",
-            "inlineCredential.sharedSecretHex is required",
-            null,
-            true);
-      }
-
-      String suite = normalize(inlineCredential.suite());
-      if (!hasText(suite)) {
-        throw new ValidationProblem(
-            "inlineCredential.suite",
-            "suite_missing",
-            "suite is required for inline credentials",
-            null,
-            true);
-      }
-
-      String secret = normalizeHex(inlineCredential.sharedSecretHex());
-      if (!hasText(secret)) {
-        throw new ValidationProblem(
-            "inlineCredential.sharedSecretHex",
-            "secret_missing",
-            "sharedSecretHex is required",
-            suite,
-            true);
-      }
-
-      String descriptorName =
-          "rest-inline-"
-              + Integer.toHexString(Objects.hash(suite.toUpperCase(Locale.ROOT), secret));
-
-      return new InlineSecretPayload(
-          suite,
-          secret,
-          Optional.ofNullable(context.counter()),
-          context.pinHashHex(),
-          descriptorName);
-    }
-  }
-
-  private static final class ValidationProblem extends RuntimeException {
+  static final class ValidationError extends IllegalArgumentException {
     private final String field;
     private final String reasonCode;
-    private final String suite;
-    private final boolean sanitized;
 
-    ValidationProblem(
-        String field, String reasonCode, String message, String suite, boolean sanitized) {
+    ValidationError(String field, String reasonCode, String message) {
       super(message);
       this.field = field;
       this.reasonCode = reasonCode;
-      this.suite = suite;
-      this.sanitized = sanitized;
     }
 
     String field() {
@@ -735,33 +424,5 @@ class OcraVerificationService {
     String reasonCode() {
       return reasonCode;
     }
-
-    String suite() {
-      return suite;
-    }
-
-    boolean sanitized() {
-      return sanitized;
-    }
-  }
-
-  private static boolean hasText(String value) {
-    return value != null && !value.trim().isEmpty();
-  }
-
-  private static String normalize(String value) {
-    if (value == null) {
-      return null;
-    }
-    String trimmed = value.trim();
-    return trimmed.isEmpty() ? null : trimmed;
-  }
-
-  private static String normalizeHex(String value) {
-    if (value == null) {
-      return null;
-    }
-    String stripped = value.replace(" ", "").trim();
-    return stripped.isEmpty() ? null : stripped;
   }
 }

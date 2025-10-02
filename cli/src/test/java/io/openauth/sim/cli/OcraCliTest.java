@@ -4,11 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationReason;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
-import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationReason;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator.OcraExecutionContext;
 import io.openauth.sim.core.model.Credential;
@@ -237,7 +237,7 @@ class OcraCliTest {
     assertEquals(CommandLine.ExitCode.USAGE, exitCode);
     String output = harness.stdout() + harness.stderr();
     assertTrue(output.contains("event=cli.ocra.verify"));
-    assertTrue(output.contains("reasonCode=validation_error"));
+    assertTrue(output.contains("reasonCode=challenge_required"));
     assertTrue(output.toLowerCase(Locale.ROOT).contains("challenge"));
   }
 
@@ -365,7 +365,7 @@ class OcraCliTest {
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stdout() + harness.stderr());
     String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=validation_error"));
+    assertTrue(stderr.contains("reasonCode=challenge_required"));
 
     deleteRecursively(tempDir);
   }
@@ -481,48 +481,39 @@ class OcraCliTest {
 
     int validationExit =
         command.handleInvalid(
-            "cli.ocra.verify", OcraVerificationReason.VALIDATION_FAILURE, new LinkedHashMap<>());
+            "cli.ocra.verify", VerificationReason.VALIDATION_FAILURE, new LinkedHashMap<>());
     assertEquals(CommandLine.ExitCode.USAGE, validationExit, harness.stderr());
 
     int credentialExit =
         command.handleInvalid(
-            "cli.ocra.verify", OcraVerificationReason.CREDENTIAL_NOT_FOUND, new LinkedHashMap<>());
+            "cli.ocra.verify", VerificationReason.CREDENTIAL_NOT_FOUND, new LinkedHashMap<>());
     assertEquals(CommandLine.ExitCode.USAGE, credentialExit, harness.stderr());
 
     int unexpectedExit =
         command.handleInvalid(
-            "cli.ocra.verify", OcraVerificationReason.UNEXPECTED_ERROR, new LinkedHashMap<>());
+            "cli.ocra.verify", VerificationReason.UNEXPECTED_ERROR, new LinkedHashMap<>());
     assertEquals(CommandLine.ExitCode.SOFTWARE, unexpectedExit, harness.stderr());
 
     int unexpectedMatchExit =
-        command.handleInvalid(
-            "cli.ocra.verify", OcraVerificationReason.MATCH, new LinkedHashMap<>());
+        command.handleInvalid("cli.ocra.verify", VerificationReason.MATCH, new LinkedHashMap<>());
     assertEquals(CommandLine.ExitCode.SOFTWARE, unexpectedMatchExit, harness.stderr());
   }
 
   @Test
   @DisplayName("verify reasonCodeFor covers every verification reason")
   void verifyReasonCodeMapping() {
-    assertEquals("match", OcraCli.VerifyCommand.reasonCodeFor(OcraVerificationReason.MATCH));
+    assertEquals("match", OcraCli.VerifyCommand.reasonCodeFor(VerificationReason.MATCH));
     assertEquals(
-        "strict_mismatch",
-        OcraCli.VerifyCommand.reasonCodeFor(OcraVerificationReason.STRICT_MISMATCH));
+        "strict_mismatch", OcraCli.VerifyCommand.reasonCodeFor(VerificationReason.STRICT_MISMATCH));
     assertEquals(
         "validation_error",
-        OcraCli.VerifyCommand.reasonCodeFor(OcraVerificationReason.VALIDATION_FAILURE));
+        OcraCli.VerifyCommand.reasonCodeFor(VerificationReason.VALIDATION_FAILURE));
     assertEquals(
         "credential_not_found",
-        OcraCli.VerifyCommand.reasonCodeFor(OcraVerificationReason.CREDENTIAL_NOT_FOUND));
+        OcraCli.VerifyCommand.reasonCodeFor(VerificationReason.CREDENTIAL_NOT_FOUND));
     assertEquals(
         "unexpected_error",
-        OcraCli.VerifyCommand.reasonCodeFor(OcraVerificationReason.UNEXPECTED_ERROR));
-  }
-
-  @Test
-  @DisplayName("verify normalize trims whitespace to null")
-  void verifyNormalizeWhitespace() {
-    assertEquals(null, OcraCli.VerifyCommand.normalize("   "));
-    assertEquals("abc", OcraCli.VerifyCommand.normalize("  abc  "));
+        OcraCli.VerifyCommand.reasonCodeFor(VerificationReason.UNEXPECTED_ERROR));
   }
 
   @Test
@@ -576,9 +567,9 @@ class OcraCliTest {
             "1234");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=validation_error"));
-    assertTrue(stderr.contains("challengeQuestion must contain"));
+    String output = harness.stdout() + harness.stderr();
+    assertTrue(output.contains("reasonCode=challenge_length"));
+    assertTrue(output.contains("challengeQuestion must contain"));
   }
 
   @Test

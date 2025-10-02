@@ -2,7 +2,9 @@ package io.openauth.sim.rest.ocra;
 
 import java.util.Locale;
 import java.util.Objects;
+import java.util.logging.Handler;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +12,10 @@ import org.springframework.stereotype.Component;
 class OcraEvaluationTelemetry {
 
   private static final Logger LOGGER = Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
+
+  static {
+    LOGGER.setLevel(Level.ALL);
+  }
 
   void recordSuccess(
       String telemetryId,
@@ -113,22 +119,29 @@ class OcraEvaluationTelemetry {
       String reason,
       boolean sanitized,
       long durationMillis) {
-    LOGGER.log(
-        level,
-        buildMessage(
-            status,
-            telemetryId,
-            suite,
-            hasCredentialReference,
-            hasSession,
-            hasClientChallenge,
-            hasServerChallenge,
-            hasPin,
-            hasTimestamp,
-            reasonCode,
-            sanitize(reason),
-            sanitized,
-            durationMillis));
+    LogRecord record =
+        new LogRecord(
+            level,
+            buildMessage(
+                status,
+                telemetryId,
+                suite,
+                hasCredentialReference,
+                hasSession,
+                hasClientChallenge,
+                hasServerChallenge,
+                hasPin,
+                hasTimestamp,
+                reasonCode,
+                sanitize(reason),
+                sanitized,
+                durationMillis));
+
+    LOGGER.log(record);
+    for (Handler handler : LOGGER.getHandlers()) {
+      handler.publish(record);
+      handler.flush();
+    }
   }
 
   private static String buildMessage(

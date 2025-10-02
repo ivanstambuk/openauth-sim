@@ -160,4 +160,96 @@ final class OcraDescriptorFactoryTest {
                 null,
                 Map.of()));
   }
+
+  @Test
+  @DisplayName("counter not permitted for suite is rejected")
+  void counterNotPermittedRejected() {
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                factory.create(
+                    "no-counter",
+                    "OCRA-1:HOTP-SHA1-6:QN08",
+                    SecretMaterial.fromHex("31323334"),
+                    5L,
+                    null,
+                    null,
+                    Map.of()));
+
+    assertTrue(exception.getMessage().contains("counterValue"));
+  }
+
+  @Test
+  @DisplayName("negative counter value is rejected for suites requiring counters")
+  void negativeCounterRejected() {
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                factory.create(
+                    "negative-counter",
+                    "OCRA-1:HOTP-SHA1-6:C-QN08",
+                    SecretMaterial.fromHex("31323334"),
+                    -1L,
+                    null,
+                    null,
+                    Map.of()));
+
+    assertTrue(exception.getMessage().contains("counterValue"));
+  }
+
+  @Test
+  @DisplayName("pin hash length must align with suite hash algorithm")
+  void pinHashLengthMustMatchSuite() {
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                factory.create(
+                    "pin-length",
+                    "OCRA-1:HOTP-SHA1-6:C-QN08-PSHA256",
+                    SecretMaterial.fromHex("31323334"),
+                    10L,
+                    "5e884898da28047151d0e56f8dc6292773603d0d",
+                    null,
+                    Map.of()));
+
+    assertTrue(exception.getMessage().contains("pinHash"));
+  }
+
+  @Test
+  @DisplayName("allowed timestamp drift must be positive when provided")
+  void allowedTimestampDriftMustBePositive() {
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                factory.create(
+                    "invalid-drift",
+                    "OCRA-1:HOTP-SHA1-6:QN08-T1",
+                    SecretMaterial.fromHex("31323334"),
+                    null,
+                    null,
+                    Duration.ZERO,
+                    Map.of()));
+
+    assertTrue(exception.getMessage().contains("allowedTimestampDrift"));
+  }
+
+  @Test
+  @DisplayName("metadata defaults to empty map when null")
+  void metadataDefaultsToEmptyWhenNull() {
+    OcraCredentialDescriptor descriptor =
+        factory.create(
+            "metadata-null",
+            "OCRA-1:HOTP-SHA1-6:QN08",
+            SecretMaterial.fromHex("31323334"),
+            null,
+            null,
+            null,
+            null);
+
+    assertTrue(descriptor.metadata().isEmpty());
+  }
 }

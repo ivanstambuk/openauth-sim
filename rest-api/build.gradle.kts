@@ -20,6 +20,7 @@ dependencies {
 
     implementation(enforcedPlatform(springBootBom))
     implementation(projects.core)
+    implementation(projects.application)
     implementation(springBootStarterWeb)
     implementation(springBootStarterThymeleaf)
     implementation(springDocStarter)

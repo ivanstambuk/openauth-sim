@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -389,6 +391,58 @@ final class OcraReplayVerifierTest {
   }
 
   @Test
+  @DisplayName("stored verification surfaces validation failure when metadata key blank")
+  void storedVerificationValidationFailureOnMetadata() {
+    OcraRfc6287VectorFixtures.OneWayVector vector =
+        OcraRfc6287VectorFixtures.counterAndPinVectors().get(0);
+
+    OcraCredentialDescriptor descriptor =
+        FACTORY.createDescriptor(
+            new OcraCredentialRequest(
+                "metadata-invalid",
+                vector.ocraSuite(),
+                vector.sharedSecretHex(),
+                SecretEncoding.HEX,
+                vector.counter(),
+                vector.pinHashHex(),
+                null,
+                Map.of("source", "test")));
+
+    Credential credential = toCredential(descriptor);
+    Map<String, String> corruptedAttributes = new HashMap<>(credential.attributes());
+    corruptedAttributes.put(OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX + " ", "value");
+
+    Credential corrupted =
+        new Credential(
+            credential.name(),
+            credential.type(),
+            credential.secret(),
+            corruptedAttributes,
+            credential.createdAt(),
+            credential.updatedAt());
+
+    OcraReplayVerifier verifier = new OcraReplayVerifier(new SingleCredentialStore(corrupted));
+
+    OcraVerificationContext context =
+        new OcraVerificationContext(
+            vector.counter(),
+            vector.question(),
+            vector.sessionInformation(),
+            null,
+            null,
+            vector.pinHashHex(),
+            vector.timestampHex());
+
+    OcraStoredVerificationRequest request =
+        new OcraStoredVerificationRequest("metadata-invalid", vector.expectedOtp(), context);
+
+    OcraVerificationResult result = verifier.verifyStored(request);
+
+    assertEquals(OcraVerificationStatus.INVALID, result.status());
+    assertEquals(OcraVerificationReason.VALIDATION_FAILURE, result.reason());
+  }
+
+  @Test
   @DisplayName("stored verification returns credential_not_found when store unavailable")
   void storedVerificationWithoutStore() {
     OcraReplayVerifier verifier = new OcraReplayVerifier(null);
@@ -488,6 +542,37 @@ final class OcraReplayVerifierTest {
 
     assertEquals(OcraVerificationStatus.INVALID, result.status());
     assertEquals(OcraVerificationReason.VALIDATION_FAILURE, result.reason());
+  }
+
+  @Test
+  @DisplayName("validation logging emits when logger set to FINE")
+  void validationLoggingHonoursFineLevel() {
+    Logger logger = Logger.getLogger("io.openauth.sim.core.credentials.ocra.replay");
+    Level original = logger.getLevel();
+    logger.setLevel(Level.FINE);
+    try {
+      OcraReplayVerifier verifier = new OcraReplayVerifier(null);
+
+      OcraVerificationContext context =
+          new OcraVerificationContext(null, "12345678", null, null, null, null, null);
+
+      OcraInlineVerificationRequest request =
+          new OcraInlineVerificationRequest(
+              "inline-fine-logging",
+              "OCRA-1:HOTP-SHA1-6:QA08-T1",
+              OcraRfc6287VectorFixtures.STANDARD_KEY_20,
+              SecretEncoding.HEX,
+              "000000",
+              context,
+              Map.of("source", "test"));
+
+      OcraVerificationResult result = verifier.verifyInline(request);
+
+      assertEquals(OcraVerificationStatus.INVALID, result.status());
+      assertEquals(OcraVerificationReason.VALIDATION_FAILURE, result.reason());
+    } finally {
+      logger.setLevel(original);
+    }
   }
 
   private static OcraCredentialDescriptor toDescriptor(Credential credential) {
