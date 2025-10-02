@@ -7,22 +7,34 @@ import io.openauth.sim.application.ocra.OcraEvaluationApplicationService.Evaluat
 import io.openauth.sim.application.ocra.OcraEvaluationApplicationService.NormalizedRequest;
 import io.openauth.sim.application.ocra.OcraEvaluationRequests;
 import io.openauth.sim.application.ocra.OcraInlineIdentifiers;
+import io.openauth.sim.application.telemetry.TelemetryContracts;
+import io.openauth.sim.application.telemetry.TelemetryFrame;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 @Service
 class OcraEvaluationService {
 
-  private final OcraEvaluationApplicationService applicationService;
-  private final OcraEvaluationTelemetry telemetry;
+  private static final Logger TELEMETRY_LOGGER =
+      Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
 
-  OcraEvaluationService(
-      OcraEvaluationApplicationService applicationService, OcraEvaluationTelemetry telemetry) {
+  static {
+    TELEMETRY_LOGGER.setLevel(Level.ALL);
+  }
+
+  private final OcraEvaluationApplicationService applicationService;
+
+  OcraEvaluationService(OcraEvaluationApplicationService applicationService) {
     this.applicationService = Objects.requireNonNull(applicationService, "applicationService");
-    this.telemetry = Objects.requireNonNull(telemetry, "telemetry");
   }
 
   OcraEvaluationResponse evaluate(OcraEvaluationRequest rawRequest) {
@@ -38,16 +50,20 @@ class OcraEvaluationService {
       NormalizedRequest normalized = result.request();
       long durationMillis = toMillis(started);
 
-      telemetry.recordSuccess(
-          telemetryId,
-          result.suite(),
-          result.credentialReference(),
-          hasText(normalized.sessionHex()),
-          hasText(normalized.clientChallenge()),
-          hasText(normalized.serverChallenge()),
-          hasText(normalized.pinHashHex()),
-          hasText(normalized.timestampHex()),
-          durationMillis);
+      TelemetryFrame frame =
+          TelemetryContracts.ocraEvaluationAdapter()
+              .success(
+                  telemetryId,
+                  successFields(
+                      result,
+                      hasText(normalized.sessionHex()),
+                      hasText(normalized.clientChallenge()),
+                      hasText(normalized.serverChallenge()),
+                      hasText(normalized.pinHashHex()),
+                      hasText(normalized.timestampHex()),
+                      durationMillis));
+
+      logEvaluation(Level.INFO, frame);
 
       return new OcraEvaluationResponse(result.suite(), result.otp(), telemetryId);
     } catch (EvaluationValidationException ex) {
@@ -55,19 +71,24 @@ class OcraEvaluationService {
       FailureDetails failure = FailureDetails.from(ex);
       String suite = suiteOrUnknown(envelope, rawRequest);
 
-      telemetry.recordValidationFailure(
-          telemetryId,
-          suite,
-          hasCredentialReference(envelope, rawRequest),
-          hasSession(envelope, rawRequest),
-          hasClientChallenge(envelope, rawRequest),
-          hasServerChallenge(envelope, rawRequest),
-          hasPin(envelope, rawRequest),
-          hasTimestamp(envelope, rawRequest),
-          failure.reasonCode(),
-          failure.message(),
-          failure.sanitized(),
-          durationMillis);
+      TelemetryFrame frame =
+          TelemetryContracts.ocraEvaluationAdapter()
+              .validationFailure(
+                  telemetryId,
+                  failure.reasonCode(),
+                  failure.message(),
+                  failure.sanitized(),
+                  failureFields(
+                      suite,
+                      hasCredentialReference(envelope, rawRequest),
+                      hasSession(envelope, rawRequest),
+                      hasClientChallenge(envelope, rawRequest),
+                      hasServerChallenge(envelope, rawRequest),
+                      hasPin(envelope, rawRequest),
+                      hasTimestamp(envelope, rawRequest),
+                      durationMillis));
+
+      logEvaluation(Level.WARNING, frame);
 
       throw new OcraEvaluationValidationException(
           telemetryId,
@@ -82,19 +103,24 @@ class OcraEvaluationService {
       FailureDetails failure = FailureDetails.from(ex);
       String suite = suiteOrUnknown(envelope, rawRequest);
 
-      telemetry.recordValidationFailure(
-          telemetryId,
-          suite,
-          hasCredentialReference(envelope, rawRequest),
-          hasSession(envelope, rawRequest),
-          hasClientChallenge(envelope, rawRequest),
-          hasServerChallenge(envelope, rawRequest),
-          hasPin(envelope, rawRequest),
-          hasTimestamp(envelope, rawRequest),
-          failure.reasonCode(),
-          failure.message(),
-          failure.sanitized(),
-          durationMillis);
+      TelemetryFrame frame =
+          TelemetryContracts.ocraEvaluationAdapter()
+              .validationFailure(
+                  telemetryId,
+                  failure.reasonCode(),
+                  failure.message(),
+                  failure.sanitized(),
+                  failureFields(
+                      suite,
+                      hasCredentialReference(envelope, rawRequest),
+                      hasSession(envelope, rawRequest),
+                      hasClientChallenge(envelope, rawRequest),
+                      hasServerChallenge(envelope, rawRequest),
+                      hasPin(envelope, rawRequest),
+                      hasTimestamp(envelope, rawRequest),
+                      durationMillis));
+
+      logEvaluation(Level.WARNING, frame);
 
       throw new OcraEvaluationValidationException(
           telemetryId, suite, failure.field(), failure.reasonCode(), failure.message(), true, ex);
@@ -103,19 +129,24 @@ class OcraEvaluationService {
       FailureDetails failure = FailureDetails.fromIllegalArgument(ex.getMessage());
       String suite = suiteOrUnknown(envelope, rawRequest);
 
-      telemetry.recordValidationFailure(
-          telemetryId,
-          suite,
-          hasCredentialReference(envelope, rawRequest),
-          hasSession(envelope, rawRequest),
-          hasClientChallenge(envelope, rawRequest),
-          hasServerChallenge(envelope, rawRequest),
-          hasPin(envelope, rawRequest),
-          hasTimestamp(envelope, rawRequest),
-          failure.reasonCode(),
-          failure.message(),
-          true,
-          durationMillis);
+      TelemetryFrame frame =
+          TelemetryContracts.ocraEvaluationAdapter()
+              .validationFailure(
+                  telemetryId,
+                  failure.reasonCode(),
+                  failure.message(),
+                  true,
+                  failureFields(
+                      suite,
+                      hasCredentialReference(envelope, rawRequest),
+                      hasSession(envelope, rawRequest),
+                      hasClientChallenge(envelope, rawRequest),
+                      hasServerChallenge(envelope, rawRequest),
+                      hasPin(envelope, rawRequest),
+                      hasTimestamp(envelope, rawRequest),
+                      durationMillis));
+
+      logEvaluation(Level.WARNING, frame);
 
       throw new OcraEvaluationValidationException(
           telemetryId, suite, failure.field(), failure.reasonCode(), failure.message(), true, ex);
@@ -123,19 +154,24 @@ class OcraEvaluationService {
       long durationMillis = toMillis(started);
       String suite = suiteOrUnknown(envelope, rawRequest);
 
-      telemetry.recordError(
-          telemetryId,
-          suite,
-          hasCredentialReference(envelope, rawRequest),
-          hasSession(envelope, rawRequest),
-          hasClientChallenge(envelope, rawRequest),
-          hasServerChallenge(envelope, rawRequest),
-          hasPin(envelope, rawRequest),
-          hasTimestamp(envelope, rawRequest),
-          "unexpected_error",
-          ex.getMessage(),
-          false,
-          durationMillis);
+      TelemetryFrame frame =
+          TelemetryContracts.ocraEvaluationAdapter()
+              .error(
+                  telemetryId,
+                  "unexpected_error",
+                  ex.getMessage(),
+                  false,
+                  failureFields(
+                      suite,
+                      hasCredentialReference(envelope, rawRequest),
+                      hasSession(envelope, rawRequest),
+                      hasClientChallenge(envelope, rawRequest),
+                      hasServerChallenge(envelope, rawRequest),
+                      hasPin(envelope, rawRequest),
+                      hasTimestamp(envelope, rawRequest),
+                      durationMillis));
+
+      logEvaluation(Level.SEVERE, frame);
       throw ex;
     }
   }
@@ -168,6 +204,66 @@ class OcraEvaluationService {
     return envelope != null
         ? hasText(envelope.normalized().timestampHex())
         : hasText(raw.timestampHex());
+  }
+
+  private static Map<String, Object> successFields(
+      EvaluationResult result,
+      boolean hasSession,
+      boolean hasClientChallenge,
+      boolean hasServerChallenge,
+      boolean hasPin,
+      boolean hasTimestamp,
+      long durationMillis) {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("suite", Objects.requireNonNullElse(result.suite(), "unknown"));
+    fields.put("hasCredentialReference", result.credentialReference());
+    fields.put("hasSessionPayload", hasSession);
+    fields.put("hasClientChallenge", hasClientChallenge);
+    fields.put("hasServerChallenge", hasServerChallenge);
+    fields.put("hasPin", hasPin);
+    fields.put("hasTimestamp", hasTimestamp);
+    fields.put("durationMillis", durationMillis);
+    return fields;
+  }
+
+  private static Map<String, Object> failureFields(
+      String suite,
+      boolean hasCredentialReference,
+      boolean hasSession,
+      boolean hasClientChallenge,
+      boolean hasServerChallenge,
+      boolean hasPin,
+      boolean hasTimestamp,
+      long durationMillis) {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("suite", Objects.requireNonNullElse(suite, "unknown"));
+    fields.put("hasCredentialReference", hasCredentialReference);
+    fields.put("hasSessionPayload", hasSession);
+    fields.put("hasClientChallenge", hasClientChallenge);
+    fields.put("hasServerChallenge", hasServerChallenge);
+    fields.put("hasPin", hasPin);
+    fields.put("hasTimestamp", hasTimestamp);
+    fields.put("durationMillis", durationMillis);
+    return fields;
+  }
+
+  private static void logEvaluation(Level level, TelemetryFrame frame) {
+    StringBuilder builder =
+        new StringBuilder("event=rest.")
+            .append(frame.event())
+            .append(" status=")
+            .append(frame.status());
+
+    frame
+        .fields()
+        .forEach((key, value) -> builder.append(' ').append(key).append('=').append(value));
+
+    LogRecord record = new LogRecord(level, builder.toString());
+    TELEMETRY_LOGGER.log(record);
+    for (Handler handler : TELEMETRY_LOGGER.getHandlers()) {
+      handler.publish(record);
+      handler.flush();
+    }
   }
 
   private static boolean hasCredentialReference(

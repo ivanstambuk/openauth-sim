@@ -17,7 +17,6 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,10 +78,9 @@ class OcraVerificationServiceBranchCoverageTest {
         credentialId ->
             descriptor.name().equals(credentialId) ? Optional.of(descriptor) : Optional.empty();
     CredentialStore store = new SingleCredentialStore(corrupted);
-    RecordingTelemetry telemetry = new RecordingTelemetry();
     OcraVerificationApplicationService applicationService =
         new OcraVerificationApplicationService(FIXED_CLOCK, resolver, store);
-    OcraVerificationService service = new OcraVerificationService(applicationService, telemetry);
+    OcraVerificationService service = new OcraVerificationService(applicationService);
 
     OcraVerificationRequest request = storedRequest(descriptor.name());
 
@@ -96,10 +94,6 @@ class OcraVerificationServiceBranchCoverageTest {
     assertEquals("unexpected_error", exception.reasonCode());
   }
 
-  private OcraVerificationService service() {
-    return service(null);
-  }
-
   private OcraVerificationService service(CredentialStore store) {
     OcraVerificationApplicationService applicationService =
         new OcraVerificationApplicationService(
@@ -108,7 +102,7 @@ class OcraVerificationServiceBranchCoverageTest {
                 ? OcraCredentialResolvers.forVerificationStore(store)
                 : OcraCredentialResolvers.emptyVerificationResolver(),
             store);
-    return new OcraVerificationService(applicationService, new OcraVerificationTelemetry());
+    return new OcraVerificationService(applicationService);
   }
 
   private OcraVerificationRequest inlineRequest(String otp) {
@@ -208,22 +202,6 @@ class OcraVerificationServiceBranchCoverageTest {
     @Override
     public void close() {
       // no-op
-    }
-  }
-
-  private static final class RecordingTelemetry extends OcraVerificationTelemetry {
-    private final List<String> messages = new ArrayList<>();
-
-    @Override
-    void recordValidationFailure(
-        OcraVerificationAuditContext context, TelemetryFrame frame, String reason) {
-      messages.add(frame.reasonCode());
-    }
-
-    @Override
-    void recordUnexpectedError(
-        OcraVerificationAuditContext context, TelemetryFrame frame, String reason) {
-      messages.add(frame.reasonCode());
     }
   }
 }

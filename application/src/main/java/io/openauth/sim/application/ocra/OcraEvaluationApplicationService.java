@@ -279,10 +279,14 @@ public final class OcraEvaluationApplicationService {
     Optional<ResolvedCredential> findById(String credentialId);
   }
 
-  public record ResolvedCredential(OcraCredentialDescriptor descriptor) {}
+  public record ResolvedCredential(OcraCredentialDescriptor descriptor) {
+    // Marker record for resolved credential data.
+  }
 
   public record EvaluationResult(
-      String suite, String otp, boolean credentialReference, NormalizedRequest request) {}
+      String suite, String otp, boolean credentialReference, NormalizedRequest request) {
+    // Result payload returned to callers.
+  }
 
   public static final class EvaluationValidationException extends RuntimeException {
     private final String field;
@@ -387,7 +391,9 @@ public final class OcraEvaluationApplicationService {
         String pinHashHex,
         String timestampHex,
         Long counter)
-        implements NormalizedRequest {}
+        implements NormalizedRequest {
+      // Normalized fields for stored credential execution.
+    }
 
     public record InlineSecret(
         String identifier,
@@ -401,6 +407,8 @@ public final class OcraEvaluationApplicationService {
         String timestampHex,
         Long counter,
         Duration allowedDrift)
-        implements NormalizedRequest {}
+        implements NormalizedRequest {
+      // Normalized fields for inline credential execution.
+    }
   }
 }

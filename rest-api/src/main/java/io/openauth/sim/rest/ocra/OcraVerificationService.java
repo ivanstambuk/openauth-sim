@@ -10,13 +10,21 @@ import io.openauth.sim.application.ocra.OcraVerificationApplicationService.Verif
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationStatus;
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationValidationException;
 import io.openauth.sim.application.ocra.OcraVerificationRequests;
+import io.openauth.sim.application.telemetry.TelemetryContracts;
+import io.openauth.sim.application.telemetry.TelemetryFrame;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,13 +32,17 @@ class OcraVerificationService {
 
   private static final Base64.Encoder BASE64_URL = Base64.getUrlEncoder().withoutPadding();
 
-  private final OcraVerificationApplicationService applicationService;
-  private final OcraVerificationTelemetry telemetry;
+  private static final Logger TELEMETRY_LOGGER =
+      Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
 
-  OcraVerificationService(
-      OcraVerificationApplicationService applicationService, OcraVerificationTelemetry telemetry) {
+  static {
+    TELEMETRY_LOGGER.setLevel(Level.ALL);
+  }
+
+  private final OcraVerificationApplicationService applicationService;
+
+  OcraVerificationService(OcraVerificationApplicationService applicationService) {
     this.applicationService = Objects.requireNonNull(applicationService, "applicationService");
-    this.telemetry = Objects.requireNonNull(telemetry, "telemetry");
   }
 
   OcraVerificationResponse verify(
@@ -46,45 +58,71 @@ class OcraVerificationService {
       envelope = CommandEnvelope.from(rawRequest);
       VerificationResult result = applicationService.verify(envelope.command());
       long durationMillis = toMillis(started);
-
-      OcraVerificationTelemetry.TelemetryFrame frame =
-          telemetryFrameForResult(result, envelope, telemetryId, durationMillis);
+      VerificationLogPayload payload = null;
 
       switch (result.status()) {
-        case MATCH -> telemetry.recordMatch(auditContext, frame.withOutcome("match"));
-        case MISMATCH -> telemetry.recordMismatch(auditContext, frame.withOutcome("mismatch"));
-        case INVALID -> handleInvalid(result, auditContext, frame, telemetryId, durationMillis);
+        case MATCH -> {
+          payload = verificationPayloadForResult(result, envelope, "match", durationMillis);
+          TelemetryFrame frame =
+              TelemetryContracts.ocraVerificationAdapter()
+                  .status(
+                      "match",
+                      telemetryId,
+                      reasonCodeFor(result.reason()),
+                      true,
+                      null,
+                      payload.fields());
+          logVerification(Level.INFO, 200, auditContext, frame);
+        }
+        case MISMATCH -> {
+          payload = verificationPayloadForResult(result, envelope, "mismatch", durationMillis);
+          TelemetryFrame frame =
+              TelemetryContracts.ocraVerificationAdapter()
+                  .status(
+                      "mismatch",
+                      telemetryId,
+                      reasonCodeFor(result.reason()),
+                      true,
+                      null,
+                      payload.fields());
+          logVerification(Level.INFO, 200, auditContext, frame);
+        }
+        case INVALID ->
+            handleInvalid(result, envelope, rawRequest, auditContext, telemetryId, durationMillis);
       }
 
       if (result.status() == VerificationStatus.INVALID) {
         throw new IllegalStateException("Verification invalid state should have been handled");
       }
 
+      Objects.requireNonNull(payload, "verification payload");
       OcraVerificationMetadata metadata =
           new OcraVerificationMetadata(
               envelope.credentialSource(),
               result.suite(),
               result.responseDigits(),
               durationMillis,
-              frame.contextFingerprint(),
+              (String) payload.fields().getOrDefault("contextFingerprint", "unavailable"),
               telemetryId,
-              frame.outcome());
+              (String) payload.fields().getOrDefault("outcome", "unknown"));
 
       String status = result.status() == VerificationStatus.MATCH ? "match" : "mismatch";
       return new OcraVerificationResponse(status, reasonCodeFor(result.reason()), metadata);
     } catch (VerificationValidationException ex) {
       long durationMillis = toMillis(started);
-      OcraVerificationTelemetry.TelemetryFrame frame =
-          telemetryFrameForFailure(telemetryId, envelope, rawRequest, durationMillis);
+      VerificationLogPayload payload =
+          verificationPayloadForFailure(envelope, rawRequest, "invalid", durationMillis);
 
-      telemetry.recordValidationFailure(
-          auditContext,
-          frame.withReasonCode(ex.reasonCode()).withOutcome("invalid"),
-          ex.getMessage());
+      TelemetryFrame frame =
+          TelemetryContracts.ocraVerificationAdapter()
+              .validationFailure(
+                  telemetryId, ex.reasonCode(), ex.getMessage(), ex.sanitized(), payload.fields());
+
+      logVerification(Level.WARNING, 422, auditContext, frame);
 
       throw new OcraVerificationValidationException(
           telemetryId,
-          frame.normalizedSuite(),
+          payload.suite(),
           ex.field(),
           ex.reasonCode(),
           ex.getMessage(),
@@ -92,70 +130,99 @@ class OcraVerificationService {
           ex);
     } catch (ValidationError ex) {
       long durationMillis = toMillis(started);
-      OcraVerificationTelemetry.TelemetryFrame frame =
-          telemetryFrameForFailure(telemetryId, envelope, rawRequest, durationMillis);
+      VerificationLogPayload payload =
+          verificationPayloadForFailure(envelope, rawRequest, "invalid", durationMillis);
 
-      telemetry.recordValidationFailure(
-          auditContext,
-          frame.withReasonCode(ex.reasonCode()).withOutcome("invalid"),
-          ex.getMessage());
+      TelemetryFrame frame =
+          TelemetryContracts.ocraVerificationAdapter()
+              .validationFailure(
+                  telemetryId, ex.reasonCode(), ex.getMessage(), true, payload.fields());
+
+      logVerification(Level.WARNING, 422, auditContext, frame);
 
       throw new OcraVerificationValidationException(
-          telemetryId,
-          frame.normalizedSuite(),
-          ex.field(),
-          ex.reasonCode(),
-          ex.getMessage(),
-          true,
-          ex);
+          telemetryId, payload.suite(), ex.field(), ex.reasonCode(), ex.getMessage(), true, ex);
     } catch (RuntimeException ex) {
       long durationMillis = toMillis(started);
-      OcraVerificationTelemetry.TelemetryFrame frame =
-          telemetryFrameForFailure(telemetryId, envelope, rawRequest, durationMillis);
+      VerificationLogPayload payload =
+          verificationPayloadForFailure(envelope, rawRequest, "error", durationMillis);
 
-      telemetry.recordUnexpectedError(
-          auditContext,
-          frame.withReasonCode("unexpected_error").withOutcome("error"),
-          ex.getMessage());
+      TelemetryFrame frame =
+          TelemetryContracts.ocraVerificationAdapter()
+              .error(telemetryId, "unexpected_error", ex.getMessage(), true, payload.fields());
+
+      logVerification(Level.SEVERE, 500, auditContext, frame);
       throw ex;
     }
   }
 
   private void handleInvalid(
       VerificationResult result,
+      CommandEnvelope envelope,
+      OcraVerificationRequest rawRequest,
       OcraVerificationAuditContext auditContext,
-      OcraVerificationTelemetry.TelemetryFrame frame,
       String telemetryId,
       long durationMillis) {
 
     VerificationReason reason = result.reason();
+    String outcome =
+        switch (reason) {
+          case VALIDATION_FAILURE, CREDENTIAL_NOT_FOUND -> "invalid";
+          case UNEXPECTED_ERROR, MATCH, STRICT_MISMATCH -> "error";
+        };
+
+    VerificationLogPayload payload =
+        verificationPayloadForResult(result, envelope, outcome, durationMillis);
+
+    String status;
+    String reasonCode;
+    String message;
+    int httpStatus;
+    Level level;
+
     switch (reason) {
-      case VALIDATION_FAILURE ->
-          telemetry.recordValidationFailure(
-              auditContext,
-              frame.withReasonCode("validation_failure"),
-              "Verification inputs failed validation");
-      case CREDENTIAL_NOT_FOUND ->
-          telemetry.recordCredentialNotFound(
-              auditContext,
-              frame.withReasonCode("credential_not_found"),
-              "credentialId %s not found"
-                  .formatted(Objects.requireNonNullElse(result.credentialId(), "unknown")));
-      case UNEXPECTED_ERROR ->
-          telemetry.recordUnexpectedError(
-              auditContext,
-              frame.withReasonCode("unexpected_error"),
-              "Unexpected error during verification");
-      case MATCH, STRICT_MISMATCH ->
-          telemetry.recordUnexpectedError(
-              auditContext,
-              frame.withReasonCode("unexpected_state"),
-              "Unexpected verification state: " + reason);
+      case VALIDATION_FAILURE -> {
+        status = "invalid";
+        reasonCode = "validation_failure";
+        message = "Verification inputs failed validation";
+        httpStatus = 422;
+        level = Level.WARNING;
+      }
+      case CREDENTIAL_NOT_FOUND -> {
+        status = "invalid";
+        reasonCode = "credential_not_found";
+        message =
+            "credentialId %s not found"
+                .formatted(Objects.requireNonNullElse(result.credentialId(), "unknown"));
+        httpStatus = 404;
+        level = Level.WARNING;
+      }
+      case UNEXPECTED_ERROR -> {
+        status = "error";
+        reasonCode = "unexpected_error";
+        message = "Unexpected error during verification";
+        httpStatus = 500;
+        level = Level.SEVERE;
+      }
+      case MATCH, STRICT_MISMATCH -> {
+        status = "error";
+        reasonCode = "unexpected_state";
+        message = "Unexpected verification state: " + reason;
+        httpStatus = 500;
+        level = Level.SEVERE;
+      }
+      default -> throw new IllegalStateException("Unhandled verification reason " + reason);
     }
+
+    TelemetryFrame frame =
+        TelemetryContracts.ocraVerificationAdapter()
+            .status(status, telemetryId, reasonCode, true, message, payload.fields());
+
+    logVerification(level, httpStatus, auditContext, frame);
 
     throw new OcraVerificationValidationException(
         telemetryId,
-        result.suite(),
+        payload.suite(),
         null,
         reasonCodeFor(reason),
         "Verification request invalid",
@@ -163,40 +230,26 @@ class OcraVerificationService {
         null);
   }
 
-  private static OcraVerificationTelemetry.TelemetryFrame telemetryFrameForResult(
-      VerificationResult result,
-      CommandEnvelope envelope,
-      String telemetryId,
-      long durationMillis) {
+  private static VerificationLogPayload verificationPayloadForResult(
+      VerificationResult result, CommandEnvelope envelope, String outcome, long durationMillis) {
     VerificationContext context = envelope.normalized().context();
     String suite = result.suite();
     String fingerprint = suite == null ? null : fingerprint(suite, context);
     String otpHash = hashOtp(envelope.otp());
-    String outcome =
-        switch (result.status()) {
-          case MATCH -> "match";
-          case MISMATCH -> "mismatch";
-          case INVALID -> "invalid";
-        };
-
-    return new OcraVerificationTelemetry.TelemetryFrame(
-        telemetryId,
-        suite,
-        envelope.credentialSource(),
-        result.credentialId(),
-        otpHash,
-        fingerprint,
-        reasonCodeFor(result.reason()),
-        outcome,
-        durationMillis,
-        true);
+    Map<String, Object> fields =
+        verificationFields(
+            suite,
+            envelope.credentialSource(),
+            result.credentialId(),
+            otpHash,
+            fingerprint,
+            outcome,
+            durationMillis);
+    return new VerificationLogPayload(Objects.requireNonNullElse(suite, "unknown"), fields);
   }
 
-  private static OcraVerificationTelemetry.TelemetryFrame telemetryFrameForFailure(
-      String telemetryId,
-      CommandEnvelope envelope,
-      OcraVerificationRequest raw,
-      long durationMillis) {
+  private static VerificationLogPayload verificationPayloadForFailure(
+      CommandEnvelope envelope, OcraVerificationRequest raw, String outcome, long durationMillis) {
     String suite =
         Optional.ofNullable(envelope)
             .map(CommandEnvelope::normalized)
@@ -204,10 +257,6 @@ class OcraVerificationService {
             .map(n -> ((NormalizedRequest.Inline) n).suite())
             .orElseGet(() -> suiteFrom(raw).orElse(null));
 
-    VerificationContext context =
-        envelope != null
-            ? envelope.normalized().context()
-            : fallbackContext(raw, suite, credentialSource(raw));
     String credentialSource =
         envelope != null ? envelope.credentialSource() : credentialSource(raw);
     String credentialId =
@@ -215,19 +264,69 @@ class OcraVerificationService {
             ? stored.credentialId()
             : raw.credentialId();
     String otpHash = hashOtp(envelope != null ? envelope.otp() : raw.otp());
+    VerificationContext context =
+        envelope != null
+            ? envelope.normalized().context()
+            : fallbackContext(raw, suite, credentialSource);
     String fingerprint = suite == null ? null : fingerprint(suite, context);
 
-    return new OcraVerificationTelemetry.TelemetryFrame(
-        telemetryId,
-        suite,
-        credentialSource,
-        credentialId,
-        otpHash,
-        fingerprint,
-        "validation_failure",
-        "invalid",
-        durationMillis,
-        true);
+    Map<String, Object> fields =
+        verificationFields(
+            suite, credentialSource, credentialId, otpHash, fingerprint, outcome, durationMillis);
+    return new VerificationLogPayload(Objects.requireNonNullElse(suite, "unknown"), fields);
+  }
+
+  private static Map<String, Object> verificationFields(
+      String suite,
+      String credentialSource,
+      String credentialId,
+      String otpHash,
+      String contextFingerprint,
+      String outcome,
+      long durationMillis) {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("suite", Objects.requireNonNullElse(suite, "unknown"));
+    fields.put("credentialSource", Objects.requireNonNullElse(credentialSource, "unknown"));
+    fields.put("credentialId", Objects.requireNonNullElse(credentialId, "unknown"));
+    fields.put("otpHash", Objects.requireNonNullElse(otpHash, "unavailable"));
+    fields.put("contextFingerprint", Objects.requireNonNullElse(contextFingerprint, "unavailable"));
+    fields.put("outcome", outcome);
+    fields.put("durationMillis", durationMillis);
+    return fields;
+  }
+
+  private static void logVerification(
+      Level level, int httpStatus, OcraVerificationAuditContext context, TelemetryFrame frame) {
+    StringBuilder builder =
+        new StringBuilder("event=rest.")
+            .append(frame.event())
+            .append(" status=")
+            .append(frame.status());
+
+    frame
+        .fields()
+        .forEach((key, value) -> builder.append(' ').append(key).append('=').append(value));
+
+    builder
+        .append(' ')
+        .append("httpStatus=")
+        .append(httpStatus)
+        .append(' ')
+        .append("requestId=")
+        .append(Objects.requireNonNullElse(context.requestId(), "rest-ocra-request-unknown"))
+        .append(' ')
+        .append("clientId=")
+        .append(Objects.requireNonNullElse(context.clientId(), "unspecified"))
+        .append(' ')
+        .append("operator=")
+        .append(context.resolvedOperatorPrincipal());
+
+    LogRecord record = new LogRecord(level, builder.toString());
+    TELEMETRY_LOGGER.log(record);
+    for (Handler handler : TELEMETRY_LOGGER.getHandlers()) {
+      handler.publish(record);
+      handler.flush();
+    }
   }
 
   private static VerificationContext fallbackContext(
@@ -276,6 +375,10 @@ class OcraVerificationService {
       case CREDENTIAL_NOT_FOUND -> "credential_not_found";
       case UNEXPECTED_ERROR -> "unexpected_error";
     };
+  }
+
+  private record VerificationLogPayload(String suite, Map<String, Object> fields) {
+    // Marker payload object used for telemetry logging.
   }
 
   private static String hashOtp(String otp) {

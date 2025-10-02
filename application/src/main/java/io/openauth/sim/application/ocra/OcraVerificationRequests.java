@@ -6,7 +6,9 @@ import java.util.Objects;
 
 public final class OcraVerificationRequests {
 
-  private OcraVerificationRequests() {}
+  private OcraVerificationRequests() {
+    throw new AssertionError("No instances");
+  }
 
   public static VerificationCommand stored(StoredInputs inputs) {
     Objects.requireNonNull(inputs, "inputs");
@@ -80,7 +82,9 @@ public final class OcraVerificationRequests {
       String sessionHex,
       String pinHashHex,
       String timestampHex,
-      Long counter) {}
+      Long counter) {
+    // Data carrier for stored OCRA verification inputs.
+  }
 
   public record InlineInputs(
       String identifier,
@@ -94,5 +98,7 @@ public final class OcraVerificationRequests {
       String pinHashHex,
       String timestampHex,
       Long counter,
-      Duration allowedDrift) {}
+      Duration allowedDrift) {
+    // Data carrier for inline OCRA verification inputs.
+  }
 }

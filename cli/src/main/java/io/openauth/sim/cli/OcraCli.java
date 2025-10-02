@@ -13,6 +13,9 @@ import io.openauth.sim.application.ocra.OcraVerificationApplicationService.Verif
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationResult;
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationValidationException;
 import io.openauth.sim.application.ocra.OcraVerificationRequests;
+import io.openauth.sim.application.telemetry.OcraTelemetryAdapter;
+import io.openauth.sim.application.telemetry.TelemetryContracts;
+import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
@@ -36,6 +39,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
 
@@ -54,6 +58,10 @@ import picocli.CommandLine;
 public final class OcraCli implements Callable<Integer> {
 
   private static final String EVENT_PREFIX = "cli.ocra.";
+  private static final OcraTelemetryAdapter EVALUATION_TELEMETRY =
+      TelemetryContracts.ocraEvaluationAdapter();
+  private static final OcraTelemetryAdapter VERIFICATION_TELEMETRY =
+      TelemetryContracts.ocraVerificationAdapter();
 
   @CommandLine.Spec private CommandLine.Model.CommandSpec spec;
 
@@ -123,6 +131,88 @@ public final class OcraCli implements Callable<Integer> {
       String reasonCode,
       boolean sanitized,
       Map<String, String> fields) {
+    if (event.endsWith(".evaluate")) {
+      TelemetryFrame frame =
+          buildFrame(EVALUATION_TELEMETRY, status, reasonCode, sanitized, fields);
+      writeFrame(writer, event, frame);
+      return;
+    }
+    if (event.endsWith(".verify")) {
+      TelemetryFrame frame =
+          buildFrame(VERIFICATION_TELEMETRY, status, reasonCode, sanitized, fields);
+      writeFrame(writer, event, frame);
+      return;
+    }
+
+    legacyEmit(writer, event, status, reasonCode, sanitized, fields);
+  }
+
+  private static TelemetryFrame buildFrame(
+      OcraTelemetryAdapter adapter,
+      String status,
+      String reasonCode,
+      boolean sanitized,
+      Map<String, String> fields) {
+    Map<String, Object> payload = new LinkedHashMap<>();
+    String message = null;
+    for (Map.Entry<String, String> entry : fields.entrySet()) {
+      String value = entry.getValue();
+      if (!hasText(value)) {
+        continue;
+      }
+      if ("reason".equals(entry.getKey())) {
+        message = value.trim();
+      }
+      payload.put(entry.getKey(), value.trim());
+    }
+
+    String telemetryId = nextTelemetryId();
+    return switch (status) {
+      case "success" -> adapter.success(telemetryId, payload);
+      case "invalid" ->
+          adapter.validationFailure(telemetryId, reasonCode, message, sanitized, payload);
+      case "error" -> adapter.error(telemetryId, reasonCode, message, sanitized, payload);
+      default -> adapter.status(status, telemetryId, reasonCode, sanitized, message, payload);
+    };
+  }
+
+  private static void writeFrame(PrintWriter writer, String event, TelemetryFrame frame) {
+    StringBuilder builder =
+        new StringBuilder("event=").append(event).append(" status=").append(frame.status());
+
+    Object reasonCode = frame.fields().get("reasonCode");
+    if (reasonCode != null) {
+      builder.append(' ').append("reasonCode=").append(reasonCode);
+    }
+
+    Object sanitized = frame.fields().get("sanitized");
+    if (sanitized != null) {
+      builder.append(' ').append("sanitized=").append(sanitized);
+    }
+
+    frame
+        .fields()
+        .forEach(
+            (key, value) -> {
+              if ("telemetryId".equals(key)) {
+                return;
+              }
+              if ("reasonCode".equals(key) || "sanitized".equals(key)) {
+                return;
+              }
+              builder.append(' ').append(key).append('=').append(value);
+            });
+
+    writer.println(builder);
+  }
+
+  private static void legacyEmit(
+      PrintWriter writer,
+      String event,
+      String status,
+      String reasonCode,
+      boolean sanitized,
+      Map<String, String> fields) {
     StringBuilder builder =
         new StringBuilder("event=").append(event).append(" status=").append(status).append(' ');
     if (reasonCode != null && !reasonCode.isBlank()) {
@@ -137,6 +227,10 @@ public final class OcraCli implements Callable<Integer> {
       builder.append(' ').append(entry.getKey()).append('=').append(value.trim());
     }
     writer.println(builder);
+  }
+
+  private static String nextTelemetryId() {
+    return "cli-" + UUID.randomUUID();
   }
 
   private int failValidation(String event, String reasonCode, String message) {

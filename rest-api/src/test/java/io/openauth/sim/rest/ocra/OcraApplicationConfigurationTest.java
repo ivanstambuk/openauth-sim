@@ -89,7 +89,9 @@ final class OcraApplicationConfigurationTest {
 
   private static final class InMemoryStore implements CredentialStore {
     @Override
-    public void save(Credential credential) {}
+    public void save(Credential credential) {
+      // No-op for test stub
+    }
 
     @Override
     public Optional<Credential> findByName(String name) {
@@ -107,6 +109,8 @@ final class OcraApplicationConfigurationTest {
     }
 
     @Override
-    public void close() {}
+    public void close() {
+      // No-op for test stub
+    }
   }
 }

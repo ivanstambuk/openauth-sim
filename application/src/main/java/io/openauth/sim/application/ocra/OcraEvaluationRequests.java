@@ -6,7 +6,9 @@ import java.util.Objects;
 
 public final class OcraEvaluationRequests {
 
-  private OcraEvaluationRequests() {}
+  private OcraEvaluationRequests() {
+    throw new AssertionError("No instances");
+  }
 
   public static EvaluationCommand stored(StoredInputs inputs) {
     Objects.requireNonNull(inputs, "inputs");
@@ -69,7 +71,9 @@ public final class OcraEvaluationRequests {
       String serverChallenge,
       String pinHashHex,
       String timestampHex,
-      Long counter) {}
+      Long counter) {
+    // Data carrier for stored OCRA evaluation inputs.
+  }
 
   public record InlineInputs(
       String identifier,
@@ -82,5 +86,7 @@ public final class OcraEvaluationRequests {
       String pinHashHex,
       String timestampHex,
       Long counter,
-      Duration allowedDrift) {}
+      Duration allowedDrift) {
+    // Data carrier for inline OCRA evaluation inputs.
+  }
 }

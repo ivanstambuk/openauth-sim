@@ -546,6 +546,9 @@ final class OcraReplayVerifierTest {
 
   @Test
   @DisplayName("validation logging emits when logger set to FINE")
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "LG_LOST_LOGGER_DUE_TO_WEAK_REFERENCE",
+      justification = "Test intentionally manipulates logger handlers for verification")
   void validationLoggingHonoursFineLevel() {
     Logger logger = Logger.getLogger("io.openauth.sim.core.credentials.ocra.replay");
     Level original = logger.getLevel();

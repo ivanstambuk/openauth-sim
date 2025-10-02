@@ -11,7 +11,9 @@ import java.util.Optional;
 /** Utility factory for shared OCRA credential resolvers. */
 public final class OcraCredentialResolvers {
 
-  private OcraCredentialResolvers() {}
+  private OcraCredentialResolvers() {
+    throw new AssertionError("No instances");
+  }
 
   public static OcraEvaluationApplicationService.CredentialResolver forStore(
       CredentialStore credentialStore) {

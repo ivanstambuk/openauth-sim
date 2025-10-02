@@ -33,6 +33,7 @@ Introduce a shared application layer, unified infrastructure components, and con
 - Extend automated tests to cover error, validation-failure, and unexpected-state branches in the shared services so delegates expose deterministic outcomes and sustain coverage budgets.
 - Create `infra-persistence` utilities where `CredentialStoreFactory` lives; CLI/REST share defaults and configuration resolution.
 - Telemetry contract surfaced as interfaces (`TelemetryEvent`, `TelemetryEmitter`) with adapters for CLI (PrintWriter), REST (JUL/SLF4J), and UI; future adapters can publish to metrics.
+- Application module will host telemetry contract test fixtures (`TelemetryContractTestSupport`) exercising success, validation, and error frames with sanitisation flags so downstream modules can share assertions.
 - Core module split: move OCRA-specific classes into `core-ocra`; keep shared primitives in `core-shared`. Update knowledge map and ArchUnit boundaries accordingly.
 - Shared DTOs (e.g., `OcraExecutionRequest`, `OcraVerificationRequest`) live alongside the application layer, ensuring single normalization path for inline/stored credential flows.
 

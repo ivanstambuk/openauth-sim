@@ -569,11 +569,11 @@
             : function (endpoint, options) {
                 return new Promise(function (resolve, reject) {
                   try {
-                    var requestOptions = options || {};
+                    var requestOptions = options || { };
                     var xhr = new XMLHttpRequest();
                     var method = requestOptions.method || 'GET';
                     xhr.open(method, endpoint, true);
-                    var headers = requestOptions.headers || {};
+                    var headers = requestOptions.headers || { };
                     Object.keys(headers).forEach(function (key) {
                       xhr.setRequestHeader(key, headers[key]);
                     });
@@ -1492,7 +1492,7 @@
         }
 
         function buildPayload() {
-          var payload = {};
+          var payload = { };
           var selectedMode = document.querySelector('input[name="mode"]:checked');
           var modeValue = selectedMode ? selectedMode.value : 'inline';
           if (modeValue === 'credential') {
@@ -1591,7 +1591,7 @@
         }
 
         function deriveErrorMessage(body) {
-          const details = body && body.details ? body.details : {};
+          const details = body && body.details ? body.details : { };
           const reason = details.reasonCode || ((body && body.error) || 'invalid_input');
           const sanitizedFlag =
             details.sanitized === false || details.sanitized === 'false'
@@ -1667,7 +1667,7 @@
               setBusy(false);
               scrubSecrets();
               if (result.ok) {
-                renderSuccess(result.body || {}, payload);
+                renderSuccess(result.body || { }, payload);
                 return;
               }
               renderError(result.body);

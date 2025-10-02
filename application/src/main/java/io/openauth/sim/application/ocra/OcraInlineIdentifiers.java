@@ -8,7 +8,9 @@ public final class OcraInlineIdentifiers {
 
   private static final String PREFIX = "ocra-inline-";
 
-  private OcraInlineIdentifiers() {}
+  private OcraInlineIdentifiers() {
+    throw new AssertionError("No instances");
+  }
 
   public static String sharedIdentifier(String suite, String sharedSecretHex) {
     Objects.requireNonNull(suite, "suite");

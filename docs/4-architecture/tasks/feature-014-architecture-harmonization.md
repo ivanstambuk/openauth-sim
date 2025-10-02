@@ -13,8 +13,8 @@ _Last updated: 2025-10-02_
 | T1405 | Implement shared DTO/normalization library and migrate facades to green the tests. | AH-005 | ✅ (2025-10-02 – Introduced `CredentialStoreFactory` in `infra-persistence`; CLI/REST delegate creation and ArchUnit guard passes) |
 | T1406 | Add failing tests around centralized `CredentialStoreFactory` (unit + integration seams). | AH-002 | ✅ (2025-10-02 – `infra-persistence` tests cover file/in-memory wiring + path resolution) |
 | T1407 | Implement `CredentialStoreFactory` infrastructure and update facades/tests. | AH-002 | ✅ (2025-10-02 – CLI/REST consume factory; ArchUnit guard verifies MapDB isolation) |
-| T1408 | Add failing telemetry contract tests ensuring consistent sanitized outputs across facades. | AH-003, AH-NFR-002 | ☐ (Plan 2025-10-02 – Define shared `TelemetryContractTestSupport` + ArchUnit coverage before adapter wiring) |
-| T1409 | Implement telemetry contract + adapters and update documentation/tests to pass. | AH-003, AH-NFR-002 | ☐ |
+| T1408 | Add failing telemetry contract tests ensuring consistent sanitized outputs across facades. | AH-003, AH-NFR-002 | ✅ (2025-10-02 – Added `OcraTelemetryContractTest` + shared `TelemetryContractTestSupport` in `application`, and `TelemetryContractArchitectureTest` enforcing adapter usage; tests currently red pending shared adapter implementation) |
+| T1409 | Implement telemetry contract + adapters and update documentation/tests to pass. | AH-003, AH-NFR-002 | ✅ (2025-10-02 – Added shared `TelemetryContracts`, new contract fixtures/architecture guard, refactored CLI/REST logging to use the adapter, and refreshed REST telemetry snapshot.) |
 | T1410 | Split core modules, update Gradle + ArchUnit boundaries, and rerun quality gate. | AH-004, AH-NFR-001 | ☐ |
 | T1411 | Sync documentation (AGENTS, how-to), run `spotlessApply` + `qualityGate`, record results. | AH-001–AH-005, AH-NFR-001–003 | ☐ |
 | T1412 | Add failing tests covering negative branches in `OcraReplayVerifier` and related helpers to restore branch coverage headroom. | AH-001, AH-005 | ✅ (2025-10-02) |

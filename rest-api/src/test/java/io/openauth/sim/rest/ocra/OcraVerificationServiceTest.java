@@ -39,7 +39,6 @@ class OcraVerificationServiceTest {
 
   private final TestHandler handler = new TestHandler();
   private final Logger logger = Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
-  private final OcraVerificationTelemetry telemetry = new OcraVerificationTelemetry();
 
   @BeforeEach
   void attachHandler() {
@@ -252,8 +251,7 @@ class OcraVerificationServiceTest {
               throw new IllegalStateException("resolver failure");
             },
             new InMemoryCredentialStore());
-    RecordingVerificationTelemetry telemetry = new RecordingVerificationTelemetry();
-    OcraVerificationService service = new OcraVerificationService(applicationService, telemetry);
+    OcraVerificationService service = new OcraVerificationService(applicationService);
 
     IllegalStateException exception =
         assertThrows(
@@ -264,7 +262,7 @@ class OcraVerificationServiceTest {
                     new OcraVerificationAuditContext("req-unexpected", null, null)));
 
     assertEquals("resolver failure", exception.getMessage());
-    telemetry.assertMessageContains("unexpected_error");
+    assertTelemetryMessageContains("unexpected_error");
   }
 
   @Test
@@ -342,7 +340,7 @@ class OcraVerificationServiceTest {
             credentialId ->
                 descriptor.name().equals(credentialId) ? Optional.of(descriptor) : Optional.empty(),
             corruptedStore);
-    OcraVerificationService service = new OcraVerificationService(applicationService, telemetry);
+    OcraVerificationService service = new OcraVerificationService(applicationService);
 
     OcraVerificationRequest request = storedRequest(descriptor.name());
 
@@ -396,7 +394,7 @@ class OcraVerificationServiceTest {
                 ? OcraCredentialResolvers.forVerificationStore(store)
                 : OcraCredentialResolvers.emptyVerificationResolver(),
             store);
-    return new OcraVerificationService(applicationService, telemetry);
+    return new OcraVerificationService(applicationService);
   }
 
   private OcraVerificationRequest inlineRequest(String otp) {
@@ -443,45 +441,6 @@ class OcraVerificationServiceTest {
         handler.records.stream().map(LogRecord::getMessage).anyMatch(msg -> msg.contains(token));
     if (!matched) {
       throw new AssertionError("Expected telemetry message containing: " + token);
-    }
-  }
-
-  private static final class RecordingVerificationTelemetry extends OcraVerificationTelemetry {
-    private final java.util.List<String> messages = new java.util.ArrayList<>();
-
-    @Override
-    void recordUnexpectedError(
-        OcraVerificationAuditContext context, TelemetryFrame frame, String reason) {
-      messages.add(frame.reasonCode());
-    }
-
-    @Override
-    void recordMatch(OcraVerificationAuditContext context, TelemetryFrame frame) {
-      messages.add(frame.reasonCode());
-    }
-
-    @Override
-    void recordMismatch(OcraVerificationAuditContext context, TelemetryFrame frame) {
-      messages.add(frame.reasonCode());
-    }
-
-    @Override
-    void recordValidationFailure(
-        OcraVerificationAuditContext context, TelemetryFrame frame, String reason) {
-      messages.add(frame.reasonCode());
-    }
-
-    @Override
-    void recordCredentialNotFound(
-        OcraVerificationAuditContext context, TelemetryFrame frame, String reason) {
-      messages.add(frame.reasonCode());
-    }
-
-    void assertMessageContains(String token) {
-      boolean matched = messages.stream().anyMatch(msg -> msg.contains(token));
-      if (!matched) {
-        throw new AssertionError("Expected telemetry entry containing: " + token);
-      }
     }
   }
 

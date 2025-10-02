@@ -1,5 +1,6 @@
 package io.openauth.sim.application.ocra;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
@@ -227,7 +228,9 @@ public final class OcraVerificationApplicationService {
       boolean credentialReference,
       String credentialId,
       int responseDigits,
-      NormalizedRequest request) {}
+      NormalizedRequest request) {
+    // Verification outcome data structure.
+  }
 
   public enum VerificationStatus {
     MATCH,
@@ -367,6 +370,9 @@ public final class OcraVerificationApplicationService {
       }
     }
 
+    @SuppressFBWarnings(
+        value = "UPM_UNCALLED_PRIVATE_METHOD",
+        justification = "Helper invoked from nested constructor; SpotBugs false positive")
     private static String normalizeHex(String value, String field) {
       if (!hasText(value)) {
         return null;

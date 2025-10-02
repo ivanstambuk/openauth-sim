@@ -11,7 +11,9 @@ import java.util.Objects;
 /** Central factory for MapDB-backed credential stores used by CLI, REST, and tests. */
 public final class CredentialStoreFactory {
 
-  private CredentialStoreFactory() {}
+  private CredentialStoreFactory() {
+    throw new AssertionError("No instances");
+  }
 
   public static MapDbCredentialStore openFileStore(Path path) throws IOException {
     Objects.requireNonNull(path, "path");
