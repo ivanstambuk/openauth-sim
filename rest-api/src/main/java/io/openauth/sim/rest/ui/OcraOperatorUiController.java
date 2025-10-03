@@ -21,6 +21,7 @@ final class OcraOperatorUiController {
 
   private static final String REST_EVALUATION_PATH = "/api/v1/ocra/evaluate";
   private static final String CSRF_ATTRIBUTE = "ocra-ui-csrf-token";
+  private static final String REST_VERIFICATION_PATH = "/api/v1/ocra/verify";
   private static final List<PolicyPreset> INLINE_POLICY_PRESETS =
       List.of(
           new PolicyPreset(
@@ -124,6 +125,15 @@ final class OcraOperatorUiController {
     model.addAttribute("credentialsEndpoint", "/api/v1/ocra/credentials");
     populatePolicyPresets(model);
     return "ui/ocra/evaluate";
+  }
+
+  @GetMapping("/replay")
+  String replayView(HttpServletRequest request, Model model) {
+    HttpSession session = request.getSession(true);
+    model.addAttribute("csrfToken", ensureCsrfToken(session));
+    model.addAttribute("verificationEndpoint", REST_VERIFICATION_PATH);
+    model.addAttribute("credentialsEndpoint", "/api/v1/ocra/credentials");
+    return "ui/ocra/replay";
   }
 
   private void populatePolicyPresets(Model model) {

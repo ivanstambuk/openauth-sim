@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>OCRA Replay</title>
+    <link rel="stylesheet" th:href="@{/ui/ocra/console.css}" />
+  </head>
+  <body>
+    <main aria-labelledby="replay-heading">
+      <h1 id="replay-heading">OCRA Replay Console</h1>
+      <p class="summary">
+        Verify historical OTP submissions against stored credentials or inline secrets. Payloads are
+        forwarded to the REST replay endpoint and sanitized telemetry is surfaced for audit trails.
+      </p>
+
+      <section class="card-shell" aria-labelledby="replay-section-title">
+        <div class="section-columns">
+          <div>
+            <h2 id="replay-section-title" class="section-title">Replay an OTP</h2>
+            <form
+                action="#"
+                aria-describedby="replay-heading"
+                class="evaluation-form"
+                novalidate="novalidate"
+                data-testid="ocra-replay-form"
+                th:attr="data-replay-endpoint=${verificationEndpoint},data-credentials-endpoint=${credentialsEndpoint},data-csrf=${csrfToken}"
+              >
+              <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+
+              <fieldset class="mode-toggle" aria-describedby="replay-mode-help">
+                <legend>Choose replay mode</legend>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="replayModeStored"
+                    name="replayMode"
+                    value="stored"
+                    checked
+                  />
+                  <label for="replayModeStored">Stored credential</label>
+                  <p id="stored-mode-hint" class="hint">
+                    Select an existing credential and supply the original OTP context. Secrets remain hidden.
+                  </p>
+                </div>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="replayModeInline"
+                    name="replayMode"
+                    value="inline"
+                  />
+                  <label for="replayModeInline">Inline credential</label>
+                  <p id="inline-mode-hint" class="hint">
+                    Provide the suite, shared secret, and OTP context directly for ad-hoc verification.
+                  </p>
+                </div>
+              </fieldset>
+
+              <div class="field-grid">
+                <div>
+                  <label for="replayOtp">One-time password</label>
+                  <input
+                    id="replayOtp"
+                    name="otp"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    required
+                  />
+                </div>
+                <div>
+                  <label for="replayChallenge">Challenge</label>
+                  <input id="replayChallenge" name="challenge" type="text" required />
+                </div>
+              </div>
+
+              <section
+                id="replay-stored-section"
+                data-replay-section="stored"
+                aria-labelledby="stored-mode-hint"
+              >
+                <div class="field-grid">
+                  <div>
+                    <label for="replayCredentialId">Stored credential</label>
+                    <select id="replayCredentialId" data-stored-required="true" disabled>
+                      <option value="">Loading credentials…</option>
+                    </select>
+                    <p class="hint" data-testid="replay-credential-status">
+                      Fetching credential inventory…
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                id="replay-inline-section"
+                data-replay-section="inline"
+                aria-labelledby="inline-mode-hint"
+                hidden
+                aria-hidden="true"
+              >
+                <div class="field-grid">
+                  <div>
+                    <label for="replaySuite">OCRA suite</label>
+                    <input id="replaySuite" data-inline-required="true" type="text" disabled />
+                  </div>
+                  <div>
+                    <label for="replaySharedSecretHex">Shared secret (hex)</label>
+                    <textarea
+                      id="replaySharedSecretHex"
+                      data-inline-required="true"
+                      rows="3"
+                      spellcheck="false"
+                      disabled
+                    ></textarea>
+                    <p class="hint">Secrets are sanitized before rendering telemetry details.</p>
+                  </div>
+                </div>
+              </section>
+
+              <div class="advanced-actions">
+                <button
+                  type="button"
+                  class="button-link"
+                  data-testid="replay-advanced-toggle"
+                  aria-expanded="false"
+                  aria-controls="replay-advanced"
+                >
+                  Show advanced context
+                </button>
+              </div>
+
+              <section
+                id="replay-advanced"
+                class="advanced-panel"
+                data-testid="ocra-replay-advanced-panel"
+                data-open="false"
+                aria-hidden="true"
+              >
+                <div class="field-grid">
+                  <div>
+                    <label for="replaySessionHex">Session (hex)</label>
+                    <textarea id="replaySessionHex" rows="3" spellcheck="false"></textarea>
+                  </div>
+                  <div>
+                    <label for="replayCounter">Counter</label>
+                    <input id="replayCounter" type="number" min="0" step="1" />
+                  </div>
+                  <div>
+                    <label for="replayTimestampHex">Timestamp (hex)</label>
+                    <input id="replayTimestampHex" type="text" />
+                  </div>
+                  <div>
+                    <label for="replayClientChallenge">Client challenge</label>
+                    <input id="replayClientChallenge" type="text" />
+                  </div>
+                  <div>
+                    <label for="replayServerChallenge">Server challenge</label>
+                    <input id="replayServerChallenge" type="text" />
+                  </div>
+                  <div>
+                    <label for="replayPinHashHex">PIN hash (hex)</label>
+                    <input id="replayPinHashHex" type="text" />
+                  </div>
+                </div>
+              </section>
+
+              <div class="form-actions">
+                <button type="submit" class="button-primary" data-testid="ocra-replay-submit">
+                  Verify OTP
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <aside class="result-aside">
+            <div class="result-card" data-testid="ocra-replay-result" hidden aria-hidden="true">
+              <h3>Replay result</h3>
+              <dl>
+                <div>
+                  <dt>Status</dt>
+                  <dd data-testid="ocra-replay-status">—</dd>
+                </div>
+                <div>
+                  <dt>Telemetry</dt>
+                  <dd data-testid="ocra-replay-telemetry">—</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="error-card" data-testid="ocra-replay-error" hidden aria-hidden="true">
+              <h3>Replay request failed</h3>
+              <p data-testid="ocra-replay-error-primary">Unable to process the request.</p>
+              <p class="hint" data-testid="ocra-replay-error-secondary">
+                Additional context is sanitized to protect credential material.
+              </p>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script th:inline="javascript">
+      (function () {
+        var doc = document;
+        var form = doc.querySelector('[data-testid="ocra-replay-form"]');
+        if (!form) {
+          window.__ocraReplayReady = true;
+          return;
+        }
+
+        var fetchDelegate =
+          typeof window.fetch === 'function'
+            ? function (endpoint, options) {
+                return window.fetch(endpoint, options);
+              }
+            : function (endpoint, options) {
+                return new Promise(function (resolve, reject) {
+                  try {
+                    var xhr = new XMLHttpRequest();
+                    var method = (options && options.method) || 'GET';
+                    xhr.open(method, endpoint, true);
+                    var headers = (options && options.headers) || { };
+                    Object.keys(headers).forEach(function (key) {
+                      xhr.setRequestHeader(key, headers[key]);
+                    });
+                    if (options && options.credentials && options.credentials !== 'omit') {
+                      xhr.withCredentials = true;
+                    }
+                    xhr.onload = function () {
+                      var text = xhr.responseText || '';
+                      resolve({
+                        ok: xhr.status >= 200 && xhr.status < 300,
+                        status: xhr.status,
+                        text: function () {
+                          return Promise.resolve(text);
+                        },
+                      });
+                    };
+                    xhr.onerror = function () {
+                      reject(new Error('Request failed'));
+                    };
+                    xhr.send((options && options.body) || null);
+                  } catch (error) {
+                    reject(error);
+                  }
+                });
+              };
+
+        var modeRadios = form.querySelectorAll('input[name="replayMode"]');
+        var storedSection = doc.getElementById('replay-stored-section');
+        var inlineSection = doc.getElementById('replay-inline-section');
+        var credentialSelect = doc.getElementById('replayCredentialId');
+        var credentialStatus = doc.querySelector('[data-testid="replay-credential-status"]');
+        var inlineFields = doc.querySelectorAll('[data-inline-required]');
+        var storedFields = doc.querySelectorAll('[data-stored-required]');
+        var otpInput = doc.getElementById('replayOtp');
+        var challengeInput = doc.getElementById('replayChallenge');
+        var sessionInput = doc.getElementById('replaySessionHex');
+        var counterInput = doc.getElementById('replayCounter');
+        var timestampInput = doc.getElementById('replayTimestampHex');
+        var clientChallengeInput = doc.getElementById('replayClientChallenge');
+        var serverChallengeInput = doc.getElementById('replayServerChallenge');
+        var pinHashInput = doc.getElementById('replayPinHashHex');
+        var suiteInput = doc.getElementById('replaySuite');
+        var secretInput = doc.getElementById('replaySharedSecretHex');
+        var submitButton = form.querySelector('[data-testid="ocra-replay-submit"]');
+        var advancedToggle = doc.querySelector('[data-testid="replay-advanced-toggle"]');
+        var advancedPanel = doc.querySelector('[data-testid="ocra-replay-advanced-panel"]');
+        var resultPanel = doc.querySelector('[data-testid="ocra-replay-result"]');
+        var statusValue = doc.querySelector('[data-testid="ocra-replay-status"]');
+        var telemetryValue = doc.querySelector('[data-testid="ocra-replay-telemetry"]');
+        var errorPanel = doc.querySelector('[data-testid="ocra-replay-error"]');
+        var errorPrimary = doc.querySelector('[data-testid="ocra-replay-error-primary"]');
+        var errorSecondary = doc.querySelector('[data-testid="ocra-replay-error-secondary"]');
+        var credentialsEndpoint = form.getAttribute('data-credentials-endpoint');
+        var verificationEndpoint = form.getAttribute('data-replay-endpoint');
+        var csrfToken = form.getAttribute('data-csrf');
+        var credentialCache = null;
+        var credentialPromise = null;
+        window.__ocraReplayLastResponse = null;
+        window.__ocraReplayLastPayload = null;
+
+        function setBusy(isBusy) {
+          if (!submitButton) {
+            return;
+          }
+          submitButton.disabled = !!isBusy;
+          submitButton.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+        }
+
+        function show(element) {
+          if (!element) {
+            return;
+          }
+          element.removeAttribute('hidden');
+          element.setAttribute('aria-hidden', 'false');
+        }
+
+        function hide(element) {
+          if (!element) {
+            return;
+          }
+          element.setAttribute('hidden', 'hidden');
+          element.setAttribute('aria-hidden', 'true');
+        }
+
+        function clearPanels() {
+          hide(resultPanel);
+          hide(errorPanel);
+        }
+
+        function enableFields(collection, enabled, requiredAttr) {
+          collection.forEach(function (element) {
+            if (!element) {
+              return;
+            }
+            if (enabled) {
+              element.removeAttribute('disabled');
+              if (requiredAttr) {
+                element.setAttribute('required', 'required');
+              }
+            } else {
+              element.setAttribute('disabled', 'disabled');
+              if (requiredAttr) {
+                element.removeAttribute('required');
+              }
+              if (typeof element.value === 'string') {
+                element.value = '';
+              }
+            }
+          });
+        }
+
+        function syncMode() {
+          var selected = form.querySelector('input[name="replayMode"]:checked');
+          var mode = selected ? selected.value : 'stored';
+          if (mode === 'stored') {
+            show(storedSection);
+            hide(inlineSection);
+            enableFields(inlineFields, false, true);
+            enableFields(storedFields, true, true);
+            fetchStoredCredentials();
+          } else {
+            hide(storedSection);
+            show(inlineSection);
+            enableFields(inlineFields, true, true);
+            enableFields(storedFields, false, true);
+          }
+        }
+
+        function parseJson(text) {
+          if (!text) {
+            return null;
+          }
+          try {
+            return JSON.parse(text);
+          } catch (err) {
+            return null;
+          }
+        }
+
+        function fetchStoredCredentials() {
+          if (!credentialsEndpoint) {
+            return;
+          }
+          if (credentialCache) {
+            return;
+          }
+          if (credentialPromise) {
+            return;
+          }
+          credentialPromise = fetchDelegate(credentialsEndpoint, {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+          })
+            .then(function (response) {
+              return response.text().then(function (text) {
+                return { ok: response.ok, body: parseJson(text) };
+              });
+            })
+            .then(function (result) {
+              credentialPromise = null;
+              if (!result.ok || !Array.isArray(result.body)) {
+                if (credentialStatus) {
+                  credentialStatus.textContent = 'Unable to load credential inventory.';
+                }
+                return;
+              }
+              credentialCache = result.body;
+              renderCredentialOptions();
+            })
+            .catch(function () {
+              credentialPromise = null;
+              if (credentialStatus) {
+                credentialStatus.textContent = 'Unable to load credential inventory.';
+              }
+            });
+        }
+
+        function renderCredentialOptions() {
+          if (!credentialSelect) {
+            return;
+          }
+          var options = Array.isArray(credentialCache) ? credentialCache : [];
+          credentialSelect.innerHTML = '';
+          var placeholder = doc.createElement('option');
+          placeholder.value = '';
+          placeholder.textContent = options.length ? 'Select a credential' : 'No credentials available';
+          credentialSelect.appendChild(placeholder);
+          options.forEach(function (entry) {
+            if (!entry || typeof entry.id !== 'string') {
+              return;
+            }
+            var option = doc.createElement('option');
+            option.value = entry.id;
+            option.textContent = entry.id + (entry.label ? ' — ' + entry.label : '');
+            credentialSelect.appendChild(option);
+          });
+          credentialSelect.disabled = options.length === 0;
+          if (credentialStatus) {
+            credentialStatus.textContent = options.length
+              ? 'Credentials are sourced from the MapDB store.'
+              : 'No stored credentials found. Import one before replaying.';
+          }
+        }
+
+        function buildContext() {
+          var context = {};
+          if (challengeInput && challengeInput.value) {
+            context.challenge = challengeInput.value.trim();
+          }
+          if (sessionInput && sessionInput.value) {
+            context.sessionHex = sessionInput.value.trim();
+          }
+          if (clientChallengeInput && clientChallengeInput.value) {
+            context.clientChallenge = clientChallengeInput.value.trim();
+          }
+          if (serverChallengeInput && serverChallengeInput.value) {
+            context.serverChallenge = serverChallengeInput.value.trim();
+          }
+          if (pinHashInput && pinHashInput.value) {
+            context.pinHashHex = pinHashInput.value.trim();
+          }
+          if (timestampInput && timestampInput.value) {
+            context.timestampHex = timestampInput.value.trim();
+          }
+          if (counterInput && counterInput.value !== '') {
+            var parsed = Number(counterInput.value);
+            if (!Number.isNaN(parsed)) {
+              context.counter = parsed;
+            }
+          }
+          return context;
+        }
+
+        function buildPayload(mode) {
+          var payload = { otp: otpInput ? otpInput.value.trim() : '' };
+          var context = buildContext();
+          payload.context = context;
+          if (mode === 'stored') {
+            var credentialId = credentialSelect ? credentialSelect.value.trim() : '';
+            payload.credentialId = credentialId;
+          } else {
+            var suite = suiteInput ? suiteInput.value.trim() : '';
+            var secret = secretInput ? secretInput.value.trim() : '';
+            var inline = {};
+            if (suite) {
+              inline.suite = suite;
+            }
+            if (secret) {
+              inline.sharedSecretHex = secret;
+            }
+            payload.inlineCredential = inline;
+          }
+          return payload;
+        }
+
+        function sanitizeContextFields() {
+          if (secretInput) {
+            secretInput.value = '';
+          }
+        }
+
+        function renderSuccess(body, mode) {
+          if (!body) {
+            return;
+          }
+          var statusText = (body.status || 'unknown').toString();
+          var metadata = body.metadata || {};
+          var outcome = metadata.outcome || body.reasonCode || statusText;
+          var sanitized = 'true';
+          if (statusValue) {
+            statusValue.textContent = statusText === 'match' ? 'Match' : statusText;
+          }
+          if (telemetryValue) {
+            var telemetryId = metadata.telemetryId || 'n/a';
+            telemetryValue.textContent =
+              'telemetryId=' + telemetryId + ' mode=' + mode + ' outcome=' + outcome + ' sanitized=' + sanitized;
+          }
+          hide(errorPanel);
+          show(resultPanel);
+        }
+
+        function renderError(body) {
+          var field = '';
+          var specificReason = '';
+          if (body && body.details) {
+            var details = body.details;
+            if (typeof details.reasonCode === 'string') {
+              specificReason = details.reasonCode;
+            }
+            if (typeof details.field === 'string') {
+              field = details.field;
+            }
+          }
+          if (errorPrimary) {
+            errorPrimary.textContent = body && body.message ? body.message : 'Unable to process replay request.';
+          }
+          if (errorSecondary) {
+            var reasonLabel = 'validation_failure';
+            if (specificReason && specificReason !== reasonLabel) {
+              reasonLabel = reasonLabel + ' (' + specificReason + ')';
+            }
+            var suffix = field ? ' Field: ' + field + '.' : '';
+            errorSecondary.textContent = 'Reason: ' + reasonLabel + '.' + suffix;
+          }
+          hide(resultPanel);
+          show(errorPanel);
+        }
+
+        function handleSubmit(event) {
+          event.preventDefault();
+          clearPanels();
+          setBusy(true);
+          var selected = form.querySelector('input[name="replayMode"]:checked');
+          var mode = selected ? selected.value : 'stored';
+          var payload = buildPayload(mode);
+          var headers = {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          };
+          if (csrfToken) {
+            headers['X-CSRF-TOKEN'] = csrfToken;
+          }
+
+          try {
+            window.__ocraReplayLastPayload = JSON.stringify(payload);
+          } catch (err) {
+            window.__ocraReplayLastPayload = null;
+          }
+
+          fetchDelegate(verificationEndpoint || '/api/v1/ocra/verify', {
+            method: 'POST',
+            headers: headers,
+            credentials: 'same-origin',
+            body: JSON.stringify(payload),
+          })
+            .then(function (response) {
+              return response.text().then(function (text) {
+                return { ok: response.ok, body: parseJson(text) };
+              });
+            })
+            .then(function (result) {
+              setBusy(false);
+              sanitizeContextFields();
+              try {
+                window.__ocraReplayLastResponse = JSON.stringify({
+                  ok: !!result.ok,
+                  body: result.body || null,
+                  mode: mode,
+                });
+              } catch (err) {
+                window.__ocraReplayLastResponse = null;
+              }
+              if (result.ok) {
+                renderSuccess(result.body, mode);
+                return;
+              }
+              renderError(result.body || null);
+            })
+            .catch(function () {
+              setBusy(false);
+              sanitizeContextFields();
+              window.__ocraReplayLastResponse = JSON.stringify({
+                ok: false,
+                body: null,
+                mode: mode,
+                error: 'network',
+              });
+              renderError(null);
+            });
+        }
+
+        function toggleAdvanced() {
+          var isExpanded = advancedToggle.getAttribute('aria-expanded') === 'true';
+          if (isExpanded) {
+            advancedToggle.setAttribute('aria-expanded', 'false');
+            advancedToggle.textContent = 'Show advanced context';
+            advancedPanel.setAttribute('data-open', 'false');
+            hide(advancedPanel);
+          } else {
+            advancedToggle.setAttribute('aria-expanded', 'true');
+            advancedToggle.textContent = 'Hide advanced context';
+            advancedPanel.setAttribute('data-open', 'true');
+            show(advancedPanel);
+          }
+        }
+
+        modeRadios.forEach(function (input) {
+          input.addEventListener('change', syncMode);
+        });
+        form.addEventListener('submit', handleSubmit);
+        advancedToggle.addEventListener('click', toggleAdvanced);
+
+        syncMode();
+        window.__ocraReplayReady = true;
+      })();
+    </script>
+  </body>
+</html>

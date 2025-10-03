@@ -96,7 +96,7 @@ public final class OcraCredentialFactory {
 
     String trimmed = challenge.trim();
     OcraChallengeQuestion spec = challengeSpec.orElseThrow();
-    if (trimmed.length() != spec.length()) {
+    if (trimmed.length() < spec.length()) {
       logValidationFailure(
           descriptor.suite().value(),
           descriptor.name(),
@@ -104,7 +104,7 @@ public final class OcraCredentialFactory {
           MESSAGE_ID_CHALLENGE,
           "challenge length out of range");
       throw new IllegalArgumentException(
-          "challengeQuestion must contain "
+          "challengeQuestion must contain at least "
               + spec.length()
               + " characters for format "
               + spec.format());
