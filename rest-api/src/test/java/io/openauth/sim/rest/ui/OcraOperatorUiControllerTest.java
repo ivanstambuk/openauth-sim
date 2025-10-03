@@ -13,7 +13,7 @@ import org.springframework.ui.ConcurrentModel;
 class OcraOperatorUiControllerTest {
 
   private final OcraOperatorUiController controller =
-      new OcraOperatorUiController(new ObjectMapper());
+      new OcraOperatorUiController(new ObjectMapper(), new OcraOperatorUiReplayLogger());
 
   @Test
   @DisplayName("evaluationForm populates CSRF token, endpoints, and presets")
@@ -77,7 +77,7 @@ class OcraOperatorUiControllerTest {
   @DisplayName("evaluationForm wraps JSON errors in IllegalStateException")
   void evaluationFormWrapsJsonErrors() {
     OcraOperatorUiController failingController =
-        new OcraOperatorUiController(new FailingObjectMapper());
+        new OcraOperatorUiController(new FailingObjectMapper(), new OcraOperatorUiReplayLogger());
 
     OcraEvaluationForm form = failingController.formModel();
     MockHttpServletRequest request = new MockHttpServletRequest();
@@ -88,6 +88,21 @@ class OcraOperatorUiControllerTest {
             () -> failingController.evaluationForm(form, request, new ConcurrentModel()));
 
     assertTrue(exception.getMessage().contains("Unable to render policy presets"));
+  }
+
+  @Test
+  @DisplayName("replayView exposes verification, credentials, and telemetry endpoints")
+  void replayViewExposesEndpoints() {
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    ConcurrentModel model = new ConcurrentModel();
+
+    String view = controller.replayView(request, model);
+
+    assertEquals("ui/ocra/replay", view);
+    assertEquals("/api/v1/ocra/verify", model.getAttribute("verificationEndpoint"));
+    assertEquals("/api/v1/ocra/credentials", model.getAttribute("credentialsEndpoint"));
+    assertEquals("/ui/ocra/replay/telemetry", model.getAttribute("telemetryEndpoint"));
+    assertNotNull(model.getAttribute("csrfToken"));
   }
 
   @Test

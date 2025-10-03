@@ -16,6 +16,12 @@ OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.res
 
 Keep this snapshot in sync when telemetry fields change.
 
+## Sample Output – Operator UI Replay (2025-10-03)
+```
+2025-10-03T11:44:28.412+02:00  INFO 821640 --- [nio-8080-exec-4] io.openauth.sim.rest.ui.telemetry       : event=ui.ocra.replay status=match telemetryId=ui-replay-35f8fbb7 origin=ui uiView=replay mode=stored credentialSource=stored outcome=match contextFingerprint=d8o6y8HgxWfaJQ2a1zAifg sanitized=true
+2025-10-03T11:44:29.006+02:00  WARN 821640 --- [nio-8080-exec-5] io.openauth.sim.rest.ui.telemetry       : event=ui.ocra.replay status=invalid telemetryId=ui-replay-f03bd90a origin=ui uiView=replay mode=inline credentialSource=inline outcome=invalid contextFingerprint=unavailable sanitized=true reasonCode=validation_error reason=Replay payload invalid
+```
+
 ## Sample Output – Verification (2025-10-02)
 ```
 2025-10-02T09:19:03.147+02:00  INFO 821640 --- [    Test worker] io.openauth.sim.rest.ocra.telemetry      : event=rest.ocra.verify status=match outcome=match reasonCode=match telemetryId=rest-ocra-verify-b8758708-1e33-4b2a-a23e-4b37a6d5db67 credentialSource=stored credentialId=inline-test otpHash=v3jAL0y3TQ1uDkL9DSN3rA contextFingerprint=d8o6y8HgxWfaJQ2a1zAifg sanitized=true durationMillis=7 httpStatus=200 requestId=req-inline-1 clientId=client-77 operator=operator-a

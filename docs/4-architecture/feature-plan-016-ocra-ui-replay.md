@@ -39,7 +39,12 @@ Each increment should take ≤10 minutes and finish with the relevant tests red�
 
 ## Notes
 Use this section to log telemetry schema updates, notable UI decisions, and benchmark/latency observations as work proceeds.
+- 2025-10-03 – Quality gate run via `./gradlew :rest-api:test spotlessApply check` (no `systemTest` task defined for rest-api); build clean and telemetry docs synced.
 - 2025-10-03 – Added Selenium replay suite (`OcraOperatorUiReplaySeleniumTest`) covering stored and inline flows; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiReplaySeleniumTest"` currently fails (no replay screen yet) with timeouts/illegal argument at waitForReplayBootstrap (line 256).
+- 2025-10-03 – Confirmed with owner that T1602 covers inline replay Selenium coverage; stored replay navigation remains part of earlier tasks.
+- 2025-10-03 – MockMvc verification endpoint tests assert metadata.mode + telemetry mode fields; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.OcraVerificationEndpointTest"` now passes after service telemetry wiring update.
+- 2025-10-03 – Replay template JS now consumes REST metadata.mode/credentialSource to render telemetry summaries; Selenium replay suite verifies stored/inline flows show hashed fingerprints and sanitized flags.
+- 2025-10-03 – UI replay telemetry now posts to `/ui/ocra/replay/telemetry`; new logger component emits through `TelemetryContracts.ocraVerificationAdapter` with mode/outcome/context fingerprints, covered by unit + WebMvc tests.
 
 ## Analysis Gate (2025-10-03)
 - Specification completeness – PASS: Feature 016 spec defines objectives, functional/non-functional requirements, and captured clarifications.

@@ -23,7 +23,7 @@
                 class="evaluation-form"
                 novalidate="novalidate"
                 data-testid="ocra-replay-form"
-                th:attr="data-replay-endpoint=${verificationEndpoint},data-credentials-endpoint=${credentialsEndpoint},data-csrf=${csrfToken}"
+                th:attr="data-replay-endpoint=${verificationEndpoint},data-credentials-endpoint=${credentialsEndpoint},data-telemetry-endpoint=${telemetryEndpoint},data-csrf=${csrfToken}"
               >
               <input type="hidden" name="_csrf" th:value="${csrfToken}" />
 
@@ -275,11 +275,38 @@
         var errorSecondary = doc.querySelector('[data-testid="ocra-replay-error-secondary"]');
         var credentialsEndpoint = form.getAttribute('data-credentials-endpoint');
         var verificationEndpoint = form.getAttribute('data-replay-endpoint');
+        var telemetryEndpoint = form.getAttribute('data-telemetry-endpoint');
         var csrfToken = form.getAttribute('data-csrf');
         var credentialCache = null;
         var credentialPromise = null;
         window.__ocraReplayLastResponse = null;
         window.__ocraReplayLastPayload = null;
+
+        function normalizeBoolean(value, fallback) {
+          if (typeof value === 'boolean') {
+            return value ? 'true' : 'false';
+          }
+          if (typeof value === 'string') {
+            var trimmed = value.trim().toLowerCase();
+            if (trimmed === 'true') {
+              return 'true';
+            }
+            if (trimmed === 'false') {
+              return 'false';
+            }
+          }
+          return fallback || 'false';
+        }
+
+        function fallback(value, defaultValue) {
+          if (value === null || value === undefined) {
+            return defaultValue;
+          }
+          if (typeof value === 'string' && value.trim() === '') {
+            return defaultValue;
+          }
+          return value;
+        }
 
         function setBusy(isBusy) {
           if (!submitButton) {
@@ -341,11 +368,17 @@
             enableFields(inlineFields, false, true);
             enableFields(storedFields, true, true);
             fetchStoredCredentials();
+            if (credentialSelect && !credentialSelect.disabled) {
+              credentialSelect.focus();
+            }
           } else {
             hide(storedSection);
             show(inlineSection);
             enableFields(inlineFields, true, true);
             enableFields(storedFields, false, true);
+            if (suiteInput) {
+              suiteInput.focus();
+            }
           }
         }
 
@@ -461,18 +494,22 @@
           payload.context = context;
           if (mode === 'stored') {
             var credentialId = credentialSelect ? credentialSelect.value.trim() : '';
-            payload.credentialId = credentialId;
+            if (credentialId) {
+              payload.credentialId = credentialId;
+            }
           } else {
             var suite = suiteInput ? suiteInput.value.trim() : '';
             var secret = secretInput ? secretInput.value.trim() : '';
-            var inline = {};
-            if (suite) {
-              inline.suite = suite;
+            if (suite || secret) {
+              var inline = {};
+              if (suite) {
+                inline.suite = suite;
+              }
+              if (secret) {
+                inline.sharedSecretHex = secret;
+              }
+              payload.inlineCredential = inline;
             }
-            if (secret) {
-              inline.sharedSecretHex = secret;
-            }
-            payload.inlineCredential = inline;
           }
           return payload;
         }
@@ -483,29 +520,60 @@
           }
         }
 
-        function renderSuccess(body, mode) {
+        function renderSuccess(body, fallbackMode) {
           if (!body) {
-            return;
+            return null;
           }
           var statusText = (body.status || 'unknown').toString();
+          var reasonCode = body.reasonCode || statusText;
           var metadata = body.metadata || {};
-          var outcome = metadata.outcome || body.reasonCode || statusText;
-          var sanitized = 'true';
+          var mode = fallback(metadata.mode || metadata.credentialSource, fallbackMode || 'stored');
+          var outcome = fallback(metadata.outcome, reasonCode);
+          var sanitized = normalizeBoolean(metadata.sanitized, 'true');
+          var telemetryId = fallback(metadata.telemetryId, 'n/a');
+          var credentialSource = fallback(metadata.credentialSource, mode);
+          var fingerprint = fallback(metadata.contextFingerprint, 'unavailable');
           if (statusValue) {
-            statusValue.textContent = statusText === 'match' ? 'Match' : statusText;
+            var normalized = statusText === 'match' ? 'Match' : statusText === 'mismatch' ? 'Mismatch' : statusText;
+            statusValue.textContent = normalized;
           }
           if (telemetryValue) {
-            var telemetryId = metadata.telemetryId || 'n/a';
             telemetryValue.textContent =
-              'telemetryId=' + telemetryId + ' mode=' + mode + ' outcome=' + outcome + ' sanitized=' + sanitized;
+              'telemetryId=' + telemetryId +
+              ' mode=' + mode +
+              ' credentialSource=' + credentialSource +
+              ' reasonCode=' + reasonCode +
+              ' outcome=' + outcome +
+              ' contextFingerprint=' + fingerprint +
+              ' sanitized=' + sanitized;
           }
           hide(errorPanel);
           show(resultPanel);
+          return {
+            telemetryId: telemetryId,
+            status: statusText,
+            reasonCode: reasonCode,
+            reason: null,
+            mode: mode,
+            credentialSource: credentialSource,
+            outcome: outcome,
+            contextFingerprint: fingerprint,
+            sanitized: sanitized === 'true',
+          };
         }
 
-        function renderError(body) {
+        function renderError(body, fallbackMode) {
           var field = '';
           var specificReason = '';
+          var sanitized = 'true';
+          var telemetryId = null;
+          var mode = fallbackMode || 'stored';
+          var statusValue = 'invalid';
+          if (body && body.status) {
+            statusValue = body.status;
+          } else if (!body) {
+            statusValue = 'error';
+          }
           if (body && body.details) {
             var details = body.details;
             if (typeof details.reasonCode === 'string') {
@@ -514,9 +582,19 @@
             if (typeof details.field === 'string') {
               field = details.field;
             }
+            if (details.sanitized !== undefined) {
+              sanitized = normalizeBoolean(details.sanitized, sanitized);
+            }
+            if (typeof details.telemetryId === 'string') {
+              telemetryId = details.telemetryId;
+            }
+            if (typeof details.mode === 'string') {
+              mode = details.mode;
+            }
           }
+          var reason = body && body.message ? body.message : 'Unable to process replay request.';
           if (errorPrimary) {
-            errorPrimary.textContent = body && body.message ? body.message : 'Unable to process replay request.';
+            errorPrimary.textContent = reason;
           }
           if (errorSecondary) {
             var reasonLabel = 'validation_failure';
@@ -524,10 +602,62 @@
               reasonLabel = reasonLabel + ' (' + specificReason + ')';
             }
             var suffix = field ? ' Field: ' + field + '.' : '';
-            errorSecondary.textContent = 'Reason: ' + reasonLabel + '.' + suffix;
+            errorSecondary.textContent = 'Reason: ' + reasonLabel + '. Sanitized: ' + sanitized + '.' + suffix;
           }
           hide(resultPanel);
           show(errorPanel);
+          var reasonCodeValue = specificReason || (statusValue === 'error' ? 'unexpected_error' : 'validation_failure');
+          return {
+            telemetryId: telemetryId,
+            status: statusValue,
+            reasonCode: reasonCodeValue,
+            reason: reason,
+            mode: mode,
+            credentialSource: body && body.metadata && body.metadata.credentialSource
+              ? body.metadata.credentialSource
+              : mode,
+            outcome: specificReason || 'invalid',
+            contextFingerprint: body && body.metadata && body.metadata.contextFingerprint
+              ? body.metadata.contextFingerprint
+              : 'unavailable',
+            sanitized: sanitized === 'true',
+          };
+        }
+
+        function emitTelemetry(summary) {
+          if (!summary || !telemetryEndpoint) {
+            return;
+          }
+          var telemetryId = summary.telemetryId;
+          if (!telemetryId || telemetryId === 'n/a') {
+            return;
+          }
+          var payload = {
+            telemetryId: telemetryId,
+            status: summary.status,
+            reasonCode: summary.reasonCode,
+            reason: summary.reason,
+            mode: summary.mode,
+            credentialSource: summary.credentialSource,
+            outcome: summary.outcome,
+            contextFingerprint: summary.contextFingerprint,
+            sanitized: summary.sanitized,
+          };
+          var headers = {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          };
+          if (csrfToken) {
+            headers['X-CSRF-TOKEN'] = csrfToken;
+          }
+          fetchDelegate(telemetryEndpoint, {
+            method: 'POST',
+            headers: headers,
+            credentials: 'same-origin',
+            body: JSON.stringify(payload),
+          }).catch(function () {
+            // Telemetry is best effort; suppress failures.
+          });
         }
 
         function handleSubmit(event) {
@@ -566,31 +696,34 @@
               setBusy(false);
               sanitizeContextFields();
               try {
-                window.__ocraReplayLastResponse = JSON.stringify({
-                  ok: !!result.ok,
-                  body: result.body || null,
-                  mode: mode,
-                });
-              } catch (err) {
-                window.__ocraReplayLastResponse = null;
-              }
-              if (result.ok) {
-                renderSuccess(result.body, mode);
-                return;
-              }
-              renderError(result.body || null);
-            })
-            .catch(function () {
-              setBusy(false);
-              sanitizeContextFields();
               window.__ocraReplayLastResponse = JSON.stringify({
-                ok: false,
-                body: null,
+                ok: !!result.ok,
+                body: result.body || null,
                 mode: mode,
-                error: 'network',
               });
-              renderError(null);
+            } catch (err) {
+              window.__ocraReplayLastResponse = null;
+            }
+            if (result.ok) {
+              var summary = renderSuccess(result.body || {}, mode);
+              emitTelemetry(summary);
+              return;
+            }
+            var errorSummary = renderError(result.body || null, mode);
+            emitTelemetry(errorSummary);
+          })
+          .catch(function () {
+            setBusy(false);
+            sanitizeContextFields();
+            window.__ocraReplayLastResponse = JSON.stringify({
+              ok: false,
+              body: null,
+              mode: mode,
+              error: 'network',
             });
+            var summary = renderError(null, mode);
+            emitTelemetry(summary);
+          });
         }
 
         function toggleAdvanced() {

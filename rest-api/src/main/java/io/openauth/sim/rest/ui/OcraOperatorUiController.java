@@ -13,6 +13,8 @@ import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
@@ -101,9 +103,11 @@ final class OcraOperatorUiController {
                   1L)));
 
   private final ObjectMapper objectMapper;
+  private final OcraOperatorUiReplayLogger telemetry;
 
-  OcraOperatorUiController(ObjectMapper objectMapper) {
+  OcraOperatorUiController(ObjectMapper objectMapper, OcraOperatorUiReplayLogger telemetry) {
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
+    this.telemetry = Objects.requireNonNull(telemetry, "telemetry");
   }
 
   @ModelAttribute("form")
@@ -133,7 +137,15 @@ final class OcraOperatorUiController {
     model.addAttribute("csrfToken", ensureCsrfToken(session));
     model.addAttribute("verificationEndpoint", REST_VERIFICATION_PATH);
     model.addAttribute("credentialsEndpoint", "/api/v1/ocra/credentials");
+    model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
     return "ui/ocra/replay";
+  }
+
+  @PostMapping(value = "/replay/telemetry", consumes = "application/json")
+  org.springframework.http.ResponseEntity<Void> replayTelemetry(
+      @RequestBody OcraReplayUiEventRequest request) {
+    telemetry.record(request);
+    return org.springframework.http.ResponseEntity.noContent().build();
   }
 
   private void populatePolicyPresets(Model model) {

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record OcraVerificationMetadata(
     @JsonProperty("credentialSource") String credentialSource,
+    @JsonProperty("mode") String mode,
     @JsonProperty("suite") String suite,
     @JsonProperty("otpLength") int otpLength,
     @JsonProperty("durationMillis") long durationMillis,

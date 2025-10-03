@@ -132,9 +132,7 @@ final class OcraOperatorUiReplaySeleniumTest {
     waitForElementEnabled(By.id("replaySessionHex"));
     driver.findElement(By.id("replaySessionHex")).sendKeys(STORED_SESSION_HEX);
 
-    driver
-        .findElement(By.cssSelector("button[data-testid='ocra-replay-submit']"))
-        .click();
+    driver.findElement(By.cssSelector("button[data-testid='ocra-replay-submit']")).click();
 
     JsonNode response = awaitReplayResponse();
     String payload = currentPayload();
@@ -155,7 +153,14 @@ final class OcraOperatorUiReplaySeleniumTest {
 
     WebElement telemetry =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-replay-telemetry']"));
-    assertThat(telemetry.getText()).contains("mode=stored").contains("outcome=match");
+    assertThat(telemetry.getText())
+        .contains("telemetryId=")
+        .contains("mode=stored")
+        .contains("credentialSource=stored")
+        .contains("reasonCode=match")
+        .contains("outcome=match")
+        .contains("sanitized=true")
+        .contains("contextFingerprint=");
 
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-replay-error']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
@@ -189,9 +194,7 @@ final class OcraOperatorUiReplaySeleniumTest {
     waitForElementEnabled(By.id("replaySessionHex"));
     driver.findElement(By.id("replaySessionHex")).sendKeys(STORED_SESSION_HEX);
 
-    driver
-        .findElement(By.cssSelector("button[data-testid='ocra-replay-submit']"))
-        .click();
+    driver.findElement(By.cssSelector("button[data-testid='ocra-replay-submit']")).click();
 
     JsonNode response = awaitReplayResponse();
     String payload = currentPayload();
@@ -208,7 +211,14 @@ final class OcraOperatorUiReplaySeleniumTest {
 
     WebElement telemetry =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-replay-telemetry']"));
-    assertThat(telemetry.getText()).contains("mode=inline").contains("sanitized=true");
+    assertThat(telemetry.getText())
+        .contains("telemetryId=")
+        .contains("mode=inline")
+        .contains("credentialSource=inline")
+        .contains("reasonCode=match")
+        .contains("outcome=match")
+        .contains("sanitized=true")
+        .contains("contextFingerprint=");
 
     WebElement status =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-replay-status']"));
@@ -231,9 +241,7 @@ final class OcraOperatorUiReplaySeleniumTest {
     driver.findElement(By.id("replaySharedSecretHex")).sendKeys(STORED_SECRET_HEX);
     driver.findElement(By.id("replayChallenge")).sendKeys(STORED_CHALLENGE);
 
-    driver
-        .findElement(By.cssSelector("button[data-testid='ocra-replay-submit']"))
-        .click();
+    driver.findElement(By.cssSelector("button[data-testid='ocra-replay-submit']")).click();
 
     JsonNode response = awaitReplayResponse();
     assertThat(response.path("ok").asBoolean())
@@ -248,7 +256,8 @@ final class OcraOperatorUiReplaySeleniumTest {
     assertThat(errorPanel.getAttribute("hidden")).isNull();
     assertThat(errorPanel.getText()).contains("validation_failure").contains("otp");
 
-    WebElement resultPanel = driver.findElement(By.cssSelector("[data-testid='ocra-replay-result']"));
+    WebElement resultPanel =
+        driver.findElement(By.cssSelector("[data-testid='ocra-replay-result']"));
     assertThat(resultPanel.getAttribute("hidden")).isNotNull();
   }
 
@@ -277,8 +286,7 @@ final class OcraOperatorUiReplaySeleniumTest {
   }
 
   private void waitForElementEnabled(By locator) {
-    new WebDriverWait(driver, WAIT_TIMEOUT)
-        .until(ExpectedConditions.elementToBeClickable(locator));
+    new WebDriverWait(driver, WAIT_TIMEOUT).until(ExpectedConditions.elementToBeClickable(locator));
   }
 
   private void waitForBackgroundJavaScript() {

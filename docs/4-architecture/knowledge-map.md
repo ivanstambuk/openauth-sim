@@ -27,6 +27,8 @@ This living map captures the explicit relationships between modules, data flows,
 - `infra-persistence` module centralises `CredentialStoreFactory` wiring so CLI, REST, and tests acquire MapDB-backed stores through a shared configuration seam while keeping encryption profiles and migrations injectable.
 - CLI module now exposes `maintenance <compact|verify>` commands that orchestrate the helper for operators working on local MapDB stores.
 - Upcoming Feature 016 will add a dedicated replay screen to the operator UI (within `rest-api`), driving `/api/v1/ocra/verify` with stored/inline modes and emitting replay-specific telemetry through `application.telemetry`.
+- REST OCRA verification metadata now includes a `mode` attribute (stored vs inline) exposed to telemetry so replay facades can log outcome context consistently.
+- Operator UI replay screen now posts sanitized telemetry summaries to `TelemetryContracts.ocraVerificationAdapter`, tagging `origin=ui` and surfacing mode/outcome/fingerprint for downstream analytics.
 - `core-shared` module centralises credential models, repository utilities, and persistence primitives consumed by `core`, `core-ocra`, and higher-level facades.
 - `core-ocra` module owns OCRA descriptors, registry defaults, and migrations; `OcraStoreMigrations` registers OCRA-specific upgrades when configuring `MapDbCredentialStore` builders.
 - CLI module now orchestrates OCRA credential import/list/delete/evaluate commands, delegating to MapDB persistence and core OCRA adapters while emitting sanitized telemetry.

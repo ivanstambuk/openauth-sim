@@ -276,6 +276,9 @@
           "credentialSource" : {
             "type" : "string"
           },
+          "mode" : {
+            "type" : "string"
+          },
           "suite" : {
             "type" : "string"
           },

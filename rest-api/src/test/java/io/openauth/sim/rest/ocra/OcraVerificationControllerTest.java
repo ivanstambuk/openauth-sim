@@ -33,6 +33,7 @@ class OcraVerificationControllerTest {
     OcraVerificationMetadata metadata =
         new OcraVerificationMetadata(
             "stored",
+            "stored",
             "OCRA-1:HOTP-SHA1-6:QN08",
             6,
             12,
@@ -54,6 +55,7 @@ class OcraVerificationControllerTest {
         .andExpect(jsonPath("$.reasonCode").value("match"))
         .andExpect(jsonPath("$.metadata.telemetryId").value("rest-ocra-verify-1"))
         .andExpect(jsonPath("$.metadata.credentialSource").value("stored"))
+        .andExpect(jsonPath("$.metadata.mode").value("stored"))
         .andExpect(jsonPath("$.metadata.outcome").value("match"));
   }
 
@@ -62,6 +64,7 @@ class OcraVerificationControllerTest {
   void verifyReturnsMismatch() throws Exception {
     OcraVerificationMetadata metadata =
         new OcraVerificationMetadata(
+            "stored",
             "stored",
             "OCRA-1:HOTP-SHA1-6:QN08",
             6,
@@ -83,6 +86,7 @@ class OcraVerificationControllerTest {
         .andExpect(jsonPath("$.status").value("mismatch"))
         .andExpect(jsonPath("$.reasonCode").value("strict_mismatch"))
         .andExpect(jsonPath("$.metadata.telemetryId").value("rest-ocra-verify-2"))
+        .andExpect(jsonPath("$.metadata.mode").value("stored"))
         .andExpect(jsonPath("$.metadata.outcome").value("mismatch"));
   }
 
@@ -177,7 +181,14 @@ class OcraVerificationControllerTest {
   void verifyGeneratesDefaultAuditContext() throws Exception {
     OcraVerificationMetadata metadata =
         new OcraVerificationMetadata(
-            "stored", "OCRA-1:HOTP-SHA1-6:QN08", 6, 9, "fingerprint", "telemetry", "match");
+            "stored",
+            "stored",
+            "OCRA-1:HOTP-SHA1-6:QN08",
+            6,
+            9,
+            "fingerprint",
+            "telemetry",
+            "match");
     org.mockito.ArgumentCaptor<OcraVerificationAuditContext> captor =
         org.mockito.ArgumentCaptor.forClass(OcraVerificationAuditContext.class);
     when(service.verify(any(OcraVerificationRequest.class), captor.capture()))
@@ -224,7 +235,14 @@ class OcraVerificationControllerTest {
   void verifyCapturesOperatorPrincipal() throws Exception {
     OcraVerificationMetadata metadata =
         new OcraVerificationMetadata(
-            "stored", "OCRA-1:HOTP-SHA1-6:QN08", 6, 9, "fingerprint", "telemetry", "match");
+            "stored",
+            "stored",
+            "OCRA-1:HOTP-SHA1-6:QN08",
+            6,
+            9,
+            "fingerprint",
+            "telemetry",
+            "match");
     org.mockito.ArgumentCaptor<OcraVerificationAuditContext> captor =
         org.mockito.ArgumentCaptor.forClass(OcraVerificationAuditContext.class);
     when(service.verify(any(OcraVerificationRequest.class), captor.capture()))
@@ -255,7 +273,14 @@ class OcraVerificationControllerTest {
   void verifyNormalizesBlankHeaders() throws Exception {
     OcraVerificationMetadata metadata =
         new OcraVerificationMetadata(
-            "stored", "OCRA-1:HOTP-SHA1-6:QN08", 6, 12, "hash", "telemetry-blank", "match");
+            "stored",
+            "stored",
+            "OCRA-1:HOTP-SHA1-6:QN08",
+            6,
+            12,
+            "hash",
+            "telemetry-blank",
+            "match");
     org.mockito.ArgumentCaptor<OcraVerificationAuditContext> captor =
         org.mockito.ArgumentCaptor.forClass(OcraVerificationAuditContext.class);
     when(service.verify(any(OcraVerificationRequest.class), captor.capture()))

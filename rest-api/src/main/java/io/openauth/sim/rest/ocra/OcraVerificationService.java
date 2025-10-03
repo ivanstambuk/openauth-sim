@@ -96,9 +96,11 @@ class OcraVerificationService {
       }
 
       Objects.requireNonNull(payload, "verification payload");
+      String mode = normalizedMode(envelope.credentialSource());
       OcraVerificationMetadata metadata =
           new OcraVerificationMetadata(
               envelope.credentialSource(),
+              mode,
               result.suite(),
               result.responseDigits(),
               durationMillis,
@@ -240,6 +242,7 @@ class OcraVerificationService {
         verificationFields(
             suite,
             envelope.credentialSource(),
+            normalizedMode(envelope.credentialSource()),
             result.credentialId(),
             otpHash,
             fingerprint,
@@ -272,13 +275,21 @@ class OcraVerificationService {
 
     Map<String, Object> fields =
         verificationFields(
-            suite, credentialSource, credentialId, otpHash, fingerprint, outcome, durationMillis);
+            suite,
+            credentialSource,
+            normalizedMode(credentialSource),
+            credentialId,
+            otpHash,
+            fingerprint,
+            outcome,
+            durationMillis);
     return new VerificationLogPayload(Objects.requireNonNullElse(suite, "unknown"), fields);
   }
 
   private static Map<String, Object> verificationFields(
       String suite,
       String credentialSource,
+      String mode,
       String credentialId,
       String otpHash,
       String contextFingerprint,
@@ -287,6 +298,7 @@ class OcraVerificationService {
     Map<String, Object> fields = new LinkedHashMap<>();
     fields.put("suite", Objects.requireNonNullElse(suite, "unknown"));
     fields.put("credentialSource", Objects.requireNonNullElse(credentialSource, "unknown"));
+    fields.put("mode", Objects.requireNonNullElse(mode, "unknown"));
     fields.put("credentialId", Objects.requireNonNullElse(credentialId, "unknown"));
     fields.put("otpHash", Objects.requireNonNullElse(otpHash, "unavailable"));
     fields.put("contextFingerprint", Objects.requireNonNullElse(contextFingerprint, "unavailable"));
@@ -353,6 +365,13 @@ class OcraVerificationService {
       return "inline";
     }
     return "unknown";
+  }
+
+  private static String normalizedMode(String credentialSource) {
+    if (credentialSource == null || credentialSource.isBlank()) {
+      return "unknown";
+    }
+    return credentialSource;
   }
 
   private static Optional<String> suiteFrom(OcraVerificationRequest request) {
