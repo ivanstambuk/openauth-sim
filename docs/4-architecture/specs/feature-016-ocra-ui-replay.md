@@ -8,6 +8,7 @@ Extend the operator console with replay/verification capabilities so auditors ca
 
 ## Clarifications
 - 2025-10-03 – Replay inline mode reuses the evaluation console's inline sample presets so operators can auto-fill suite/secret/context data (user selected Option A). Load-a-sample stays inline-only to match the evaluation console.
+- 2025-10-03 – Selecting a replay inline preset should populate the expected OTP alongside other context fields so auditors can submit immediately (user request).
 - 2025-10-03 – Operator UI telemetry posts to `/ui/ocra/replay/telemetry`, feeding the shared `TelemetryContracts.ocraVerificationAdapter` with `origin=ui` and replay context (mode, outcome, fingerprint).
 - 2025-10-03 – Replay REST responses will surface a `mode` attribute (stored vs inline) in metadata and telemetry events so UI instrumentation can log mode-specific outcomes (user accepted).
 - 2025-10-03 – Task T1602 remains focused on inline replay Selenium coverage; stored replay navigation stays with earlier increments (user selected Option B).

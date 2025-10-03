@@ -14,5 +14,7 @@ _Last updated: 2025-10-03_
 - [x] T1608 – Add Selenium assertion for inline preset dropdown behaviour (expected to fail before implementation). (_2025-10-03_)
 - [x] T1609 – Surface inline presets on replay view (controller/template/JS) and rerun Selenium + `./gradlew spotlessApply check`. (_2025-10-03_)
 - [x] T1610 – Hide/disable replay sample presets when stored mode is active and update Selenium coverage. (_2025-10-03_)
+- [x] T1611 – Add expected OTP values to inline policy presets and document the change. (_2025-10-03_)
+- [x] T1612 – Update replay JS + Selenium suites so selecting a preset populates OTP and succeeds on submission; rerun `./gradlew :rest-api:test spotlessApply check`. (_2025-10-03_)
 
 Update this checklist as increments complete; keep tests ahead of implementation to maintain VDD cadence.

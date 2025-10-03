@@ -27,6 +27,8 @@ Reference specification: `docs/4-architecture/specs/feature-016-ocra-ui-replay.m
 - ☑ R1608 – Update replay controller/template/JS to surface inline presets (Option A), ensure dropdown drives field population, then rerun Selenium + `./gradlew spotlessApply check`. (2025-10-03 – Tests + quality gate green.)
 - ☑ R1609 – Ensure replay inline presets remain hidden/disabled when stored mode is active, mirroring evaluation console behaviour. (2025-10-03 – Template/JS updated, preset container toggled with mode.)
 - ☑ R1610 – Extend Selenium coverage for stored mode preset visibility, then rerun `./gradlew :rest-api:test spotlessApply check`. (2025-10-03 – Stored-mode assertion verifies selector hidden; build commands green.)
+- ☑ R1611 – Extend inline sample definitions/tests to include expected OTP data for replay presets. (2025-10-03 – Presets include computed OTP strings mirrored in docs/tests.)
+- ☑ R1612 – Update replay template/JS to populate OTP when a preset is selected; rerun UI Selenium and quality gate commands. (2025-10-03 – UI auto-fills OTP; Selenium asserts non-empty and successful replay.)
 
 Each increment should take ≤10 minutes and finish with the relevant tests red→green before moving on.
 
@@ -55,6 +57,7 @@ Use this section to log telemetry schema updates, notable UI decisions, and benc
 - 2025-10-03 – Replay inline view now reuses evaluation presets (Option A); JS applies preset selections to suite/context fields, covered by Selenium auto-fill assertions.
 - 2025-10-03 – User confirmed sample presets must remain inline-only; need to align replay visibility with evaluation screen.
 - 2025-10-03 – Replayed UI now toggles preset dropdown with stored/inline modes; Selenium stored-mode test asserts hidden state to prevent regressions.
+- 2025-10-03 – Inline presets now carry expected OTP values; replay JS applies them and Selenium verifies match flow without manual entry.
 ## Analysis Gate (2025-10-03)
 - Specification completeness – PASS: Feature 016 spec defines objectives, functional/non-functional requirements, and captured clarifications.
 - Open questions review – PASS: `docs/4-architecture/open-questions.md` has no entries for this feature.

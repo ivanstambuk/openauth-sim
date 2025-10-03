@@ -38,7 +38,8 @@ final class OcraOperatorUiController {
                   null,
                   null,
                   null,
-                  null)),
+                  null,
+                  "17477202")),
           new PolicyPreset(
               "qa08-s128",
               "QA08 S128 (session 128)",
@@ -51,7 +52,8 @@ final class OcraOperatorUiController {
                   null,
                   null,
                   null,
-                  null)),
+                  null,
+                  "18468077")),
           new PolicyPreset(
               "qa08-s256",
               "QA08 S256 (session 256)",
@@ -67,7 +69,8 @@ final class OcraOperatorUiController {
                   null,
                   null,
                   null,
-                  null)),
+                  null,
+                  "77715695")),
           new PolicyPreset(
               "qa08-s512",
               "QA08 S512 (session 512)",
@@ -87,7 +90,8 @@ final class OcraOperatorUiController {
                   null,
                   null,
                   null,
-                  null)),
+                  null,
+                  "05806151")),
           new PolicyPreset(
               "c-qh64",
               "C-QH64 (HOTP-SHA256-6)",
@@ -100,7 +104,8 @@ final class OcraOperatorUiController {
                   null,
                   null,
                   null,
-                  1L)));
+                  1L,
+                  "429968")));
 
   private final ObjectMapper objectMapper;
   private final OcraOperatorUiReplayLogger telemetry;
@@ -167,6 +172,7 @@ final class OcraOperatorUiController {
                     putIfNotNull(sampleMap, "pinHashHex", sample.getPinHashHex());
                     putIfNotNull(sampleMap, "timestampHex", sample.getTimestampHex());
                     putIfNotNull(sampleMap, "counter", sample.getCounter());
+                    putIfNotNull(sampleMap, "expectedOtp", sample.getExpectedOtp());
                     return Map.of(
                         "key", preset.getKey(), "label", preset.getLabel(), "sample", sampleMap);
                   })
@@ -221,6 +227,7 @@ final class OcraOperatorUiController {
     private final String pinHashHex;
     private final String timestampHex;
     private final Long counter;
+    private final String expectedOtp;
 
     InlineSample(
         String suite,
@@ -231,7 +238,8 @@ final class OcraOperatorUiController {
         String serverChallenge,
         String pinHashHex,
         String timestampHex,
-        Long counter) {
+        Long counter,
+        String expectedOtp) {
       this.suite = suite;
       this.sharedSecretHex = sharedSecretHex;
       this.challenge = challenge;
@@ -241,6 +249,7 @@ final class OcraOperatorUiController {
       this.pinHashHex = pinHashHex;
       this.timestampHex = timestampHex;
       this.counter = counter;
+      this.expectedOtp = expectedOtp;
     }
 
     public String getSuite() {
@@ -277,6 +286,10 @@ final class OcraOperatorUiController {
 
     public Long getCounter() {
       return counter;
+    }
+
+    public String getExpectedOtp() {
+      return expectedOtp;
     }
   }
 

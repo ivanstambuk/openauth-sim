@@ -106,6 +106,9 @@ final class OcraOperatorUiReplaySeleniumTest {
     driver.get(baseUrl("/ui/ocra/replay"));
     waitForReplayBootstrap();
 
+    WebElement otpFieldBefore = driver.findElement(By.id("replayOtp"));
+    assertThat(otpFieldBefore.getAttribute("value")).isEmpty();
+
     String presetVisibilityScript =
         "var el = document.querySelector(\"select[data-testid='replay-inline-policy-select']\");"
             + "if (!el) { return false; }"
@@ -207,14 +210,15 @@ final class OcraOperatorUiReplaySeleniumTest {
     preset.selectByValue("qa08-s064");
     waitForBackgroundJavaScript();
 
+    WebElement otpField = driver.findElement(By.id("replayOtp"));
+    String autoOtp = otpField.getAttribute("value");
+    assertThat(autoOtp).isNotBlank();
     assertThat(driver.findElement(By.id("replaySuite")).getAttribute("value"))
         .isEqualTo(STORED_SUITE);
     assertThat(driver.findElement(By.id("replaySharedSecretHex")).getAttribute("value"))
         .isEqualTo(STORED_SECRET_HEX);
     assertThat(driver.findElement(By.id("replayChallenge")).getAttribute("value"))
         .isEqualTo(STORED_CHALLENGE);
-
-    driver.findElement(By.id("replayOtp")).sendKeys(STORED_EXPECTED_OTP);
 
     WebElement advancedToggle =
         driver.findElement(By.cssSelector("button[data-testid='replay-advanced-toggle']"));

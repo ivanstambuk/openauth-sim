@@ -617,6 +617,9 @@
                 : sample.counter;
             counterInput.value = counterValue;
           }
+          if (otpInput) {
+            otpInput.value = fallback(sample.expectedOtp, '');
+          }
         }
 
         function sanitizeContextFields() {
