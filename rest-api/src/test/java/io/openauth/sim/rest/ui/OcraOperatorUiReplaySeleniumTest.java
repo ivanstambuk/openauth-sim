@@ -168,13 +168,26 @@ final class OcraOperatorUiReplaySeleniumTest {
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-replay-status']"));
     assertThat(status.getText()).isEqualTo("Match");
 
-    assertThat(telemetryValue(resultPanel, "ocra-replay-telemetry-id")).isNotBlank();
     assertThat(telemetryValue(resultPanel, "ocra-replay-telemetry-mode")).isEqualTo("stored");
-    assertThat(telemetryValue(resultPanel, "ocra-replay-credential-source")).isEqualTo("stored");
     assertThat(telemetryValue(resultPanel, "ocra-replay-reason-code")).isEqualTo("match");
     assertThat(telemetryValue(resultPanel, "ocra-replay-outcome")).isEqualTo("match");
-    assertThat(telemetryValue(resultPanel, "ocra-replay-fingerprint")).isNotBlank();
-    assertThat(telemetryValue(resultPanel, "ocra-replay-sanitized")).isEqualTo("Yes");
+    assertThat(resultPanel.findElements(By.cssSelector(".result-metadata .result-row")))
+        .as("Replay result should render one metadata row per entry")
+        .hasSize(3);
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-replay-telemetry-id']")))
+        .as("Telemetry ID field should be removed from replay result")
+        .isEmpty();
+    assertThat(
+            resultPanel.findElements(
+                By.cssSelector("[data-testid='ocra-replay-credential-source']")))
+        .as("Credential Source field should be removed from replay result")
+        .isEmpty();
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-replay-fingerprint']")))
+        .as("Context Fingerprint field should be removed from replay result")
+        .isEmpty();
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-replay-sanitized']")))
+        .as("Sanitized field should be removed from replay result")
+        .isEmpty();
 
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-replay-error']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
@@ -269,13 +282,26 @@ final class OcraOperatorUiReplaySeleniumTest {
                     By.cssSelector("[data-testid='ocra-replay-result']")));
     assertThat(resultPanel.getAttribute("hidden")).isNull();
 
-    assertThat(telemetryValue(resultPanel, "ocra-replay-telemetry-id")).isNotBlank();
     assertThat(telemetryValue(resultPanel, "ocra-replay-telemetry-mode")).isEqualTo("inline");
-    assertThat(telemetryValue(resultPanel, "ocra-replay-credential-source")).isEqualTo("inline");
     assertThat(telemetryValue(resultPanel, "ocra-replay-reason-code")).isEqualTo("match");
     assertThat(telemetryValue(resultPanel, "ocra-replay-outcome")).isEqualTo("match");
-    assertThat(telemetryValue(resultPanel, "ocra-replay-fingerprint")).isNotBlank();
-    assertThat(telemetryValue(resultPanel, "ocra-replay-sanitized")).isEqualTo("Yes");
+    assertThat(resultPanel.findElements(By.cssSelector(".result-metadata .result-row")))
+        .as("Replay result should render one metadata row per entry")
+        .hasSize(3);
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-replay-telemetry-id']")))
+        .as("Telemetry ID field should be removed from replay result")
+        .isEmpty();
+    assertThat(
+            resultPanel.findElements(
+                By.cssSelector("[data-testid='ocra-replay-credential-source']")))
+        .as("Credential Source field should be removed from replay result")
+        .isEmpty();
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-replay-fingerprint']")))
+        .as("Context Fingerprint field should be removed from replay result")
+        .isEmpty();
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-replay-sanitized']")))
+        .as("Sanitized field should be removed from replay result")
+        .isEmpty();
 
     WebElement status =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-replay-status']"));

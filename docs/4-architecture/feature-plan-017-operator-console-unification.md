@@ -23,6 +23,9 @@ Reference specification: `docs/4-architecture/specs/feature-017-operator-console
 - ☑ R1706 – Update operator documentation and screenshots, refresh knowledge map if new components are introduced, rerun `./gradlew :rest-api:test spotlessApply check`.
 - ☑ R1707 – Decommission legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` routes (redirect or remove), update coverage, and rerun `./gradlew :rest-api:test spotlessApply check`.
 - ☑ R1708 – Align replay tab controls so "Load a sample vector" renders directly under the replay mode selector; update Selenium coverage and rerun `./gradlew :rest-api:test spotlessApply check`.
+- ☑ R1709 – Remove replay result fields (Telemetry ID, Credential Source, Context Fingerprint, Sanitized), adjust scripts/tests, and rerun `./gradlew :rest-api:test spotlessApply check`.
+- ☑ R1710 – Stack evaluation and replay metadata so each label/value appears on its own row; update styles/tests and rerun `./gradlew :rest-api:test spotlessApply check`.
+- ☑ R1711 – Remove Suite from evaluation results, adjust scripts/tests, and rerun `./gradlew :rest-api:test spotlessApply check`.
 
 Each increment must stay within ≤10 minutes, lead with tests, and capture notes/telemetry adjustments in this plan as work proceeds.
 
@@ -49,6 +52,12 @@ Each increment must stay within ≤10 minutes, lead with tests, and capture note
 - 2025-10-03 – Follow-up styling refinements: darkened inline field backgrounds, moved protocol tabs into the console header, and removed the legacy summary copy per UI feedback.
 - 2025-10-03 – Completed R1707: removed `/ui/ocra/evaluate` + `/ui/ocra/replay` routes, redirected `/ui/ocra` to `/ui/console`, updated tests to assert 404s for legacy paths, and reused temp databases in OpenAPI suites to avoid MapDB lock contention.
 - 2025-10-03 – Completed R1708: moved preset loader immediately below replay mode selector, updated Selenium assertions for control order, and reran `./gradlew :rest-api:test` plus `spotlessApply check`.
+- 2025-10-03 – New directive captured as R1709: remove Telemetry ID, Credential Source, Context Fingerprint, and Sanitized values from replay results while keeping remaining metadata visible.
+- 2025-10-03 – Completed R1709: replay fragment now renders only mode/reason/outcome, Selenium asserts removed fields stay absent, and `./gradlew :rest-api:test spotlessApply check` passed.
+- 2025-10-03 – New directive captured as R1710: update evaluation and replay result cards to render one metadata item per row instead of auto-fit grid columns.
+- 2025-10-03 – Completed R1710: templates now wrap each label/value in `.result-row`, CSS enforces stacked layout, Selenium verifies row counts, and build passed via `./gradlew :rest-api:test spotlessApply check`.
+- 2025-10-03 – New directive captured as R1711: evaluation results should only display Status and Sanitized metadata alongside the OTP value.
+- 2025-10-03 – Completed R1711: removed Suite row from evaluation result, cleaned templating/scripts, tightened Selenium expectations, and reran `./gradlew :rest-api:test spotlessApply check` successfully.
 Use this section to log telemetry schema additions, performance observations, and accessibility adjustments.
 
 ## Analysis Gate (2025-10-03)

@@ -12,5 +12,8 @@ _Last updated: 2025-10-03_
 - [x] T1706 – Update documentation, knowledge map, and rerun `./gradlew spotlessApply check` for final verification.
 - [x] T1707 – Remove or redirect legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` routes; update tests to enforce `/ui/console` as sole entry point.
 - [x] T1708 – Reposition replay tab sample loader beneath the mode selector, add Selenium assertion, and rerun `./gradlew :rest-api:test spotlessApply check`.
+- [x] T1709 – Drop replay result telemetry detail fields, update scripts/tests accordingly, and rerun `./gradlew :rest-api:test spotlessApply check`.
+- [x] T1710 – Stack evaluation/replay metadata as single-row entries, adjust CSS/tests, and rerun `./gradlew :rest-api:test spotlessApply check`.
+- [x] T1711 – Remove Suite from evaluation result metadata, update scripts/tests, and rerun `./gradlew :rest-api:test spotlessApply check`.
 
 Update this checklist as increments progress; keep tests ahead of implementation per VDD cadence.

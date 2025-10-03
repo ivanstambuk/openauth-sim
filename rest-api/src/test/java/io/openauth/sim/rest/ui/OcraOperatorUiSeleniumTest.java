@@ -372,6 +372,15 @@ final class OcraOperatorUiSeleniumTest {
     WebElement metadata =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-telemetry-summary']"));
     assertThat(metadata.getText()).contains("Success").contains("true");
+    assertThat(metadata.findElements(By.cssSelector(".result-row")))
+        .as("Evaluation metadata should render one row per entry")
+        .hasSize(2)
+        .allSatisfy(
+            row ->
+                assertThat(row.findElements(By.cssSelector("dt, dd")))
+                    .as("Result row should contain a dt label and a dd value")
+                    .hasSize(2));
+    assertThat(metadata.getText()).doesNotContain("Suite");
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
   }

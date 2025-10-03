@@ -624,22 +624,40 @@ fieldset {
 }
 
 .result-metadata {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: var(--ocra-spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ocra-spacing-sm);
   margin-top: var(--ocra-spacing-md);
 }
 
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--ocra-spacing-md);
+  padding: var(--ocra-spacing-xs) 0;
+  border-bottom: 1px solid rgba(22, 211, 243, 0.08);
+}
+
+.result-row:last-child {
+  border-bottom: none;
+}
+
 .result-metadata dt {
+  flex: 1;
   font-weight: 600;
   color: var(--ocra-color-text-muted);
+  margin: 0;
 }
 
 .result-metadata dd {
+  flex: 0 1 60%;
   margin: 0;
   font-family: var(--ocra-font-family-mono);
   font-size: 0.95rem;
   letter-spacing: 0.03em;
+  text-align: right;
+  white-space: pre-wrap;
 }
 
 .error-panel {

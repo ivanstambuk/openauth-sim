@@ -216,20 +216,18 @@
                 <span data-testid="ocra-replay-status" class="status-badge">—</span>
               </div>
               <dl class="result-metadata" data-testid="ocra-replay-telemetry">
-                <dt>Telemetry ID</dt>
-                <dd data-testid="ocra-replay-telemetry-id">—</dd>
-                <dt>Mode</dt>
-                <dd data-testid="ocra-replay-telemetry-mode">—</dd>
-                <dt>Credential Source</dt>
-                <dd data-testid="ocra-replay-credential-source">—</dd>
-                <dt>Reason Code</dt>
-                <dd data-testid="ocra-replay-reason-code">—</dd>
-                <dt>Outcome</dt>
-                <dd data-testid="ocra-replay-outcome">—</dd>
-                <dt>Context Fingerprint</dt>
-                <dd data-testid="ocra-replay-fingerprint">—</dd>
-                <dt>Sanitized</dt>
-                <dd data-testid="ocra-replay-sanitized">—</dd>
+                <div class="result-row">
+                  <dt>Mode</dt>
+                  <dd data-testid="ocra-replay-telemetry-mode">—</dd>
+                </div>
+                <div class="result-row">
+                  <dt>Reason Code</dt>
+                  <dd data-testid="ocra-replay-reason-code">—</dd>
+                </div>
+                <div class="result-row">
+                  <dt>Outcome</dt>
+                  <dd data-testid="ocra-replay-outcome">—</dd>
+                </div>
               </dl>
             </section>
 
@@ -321,13 +319,9 @@
         var advancedPanel = doc.querySelector('[data-testid="ocra-replay-advanced-panel"]');
         var resultPanel = doc.querySelector('[data-testid="ocra-replay-result"]');
         var statusBadge = doc.querySelector('[data-testid="ocra-replay-status"]');
-        var telemetryIdValue = doc.querySelector('[data-testid="ocra-replay-telemetry-id"]');
         var telemetryModeValue = doc.querySelector('[data-testid="ocra-replay-telemetry-mode"]');
-        var credentialSourceValue = doc.querySelector('[data-testid="ocra-replay-credential-source"]');
         var reasonCodeValue = doc.querySelector('[data-testid="ocra-replay-reason-code"]');
         var outcomeValue = doc.querySelector('[data-testid="ocra-replay-outcome"]');
-        var fingerprintValue = doc.querySelector('[data-testid="ocra-replay-fingerprint"]');
-        var sanitizedValue = doc.querySelector('[data-testid="ocra-replay-sanitized"]');
         var errorPanel = doc.querySelector('[data-testid="ocra-replay-error"]');
         var errorPrimary = doc.querySelector('[data-testid="ocra-replay-error-primary"]');
         var errorSecondary = doc.querySelector('[data-testid="ocra-replay-error-secondary"]');
@@ -617,13 +611,9 @@
             statusBadge.textContent = '—';
             statusBadge.classList.remove('status-badge--success', 'status-badge--error', 'status-badge--info');
           }
-          setTelemetryField(telemetryIdValue, '—');
           setTelemetryField(telemetryModeValue, '—');
-          setTelemetryField(credentialSourceValue, '—');
           setTelemetryField(reasonCodeValue, '—');
           setTelemetryField(outcomeValue, '—');
-          setTelemetryField(fingerprintValue, '—');
-          setTelemetryField(sanitizedValue, '—');
         }
 
         function setTelemetryField(node, value) {
@@ -723,15 +713,9 @@
           var credentialSource = fallback(metadata.credentialSource, mode);
           var fingerprint = fallback(metadata.contextFingerprint, 'unavailable');
           applyStatusBadge(statusText);
-          setTelemetryField(telemetryIdValue, telemetryId);
           setTelemetryField(telemetryModeValue, mode);
-          setTelemetryField(credentialSourceValue, credentialSource);
           setTelemetryField(reasonCodeValue, reasonCode);
           setTelemetryField(outcomeValue, outcome);
-          setTelemetryField(fingerprintValue, fingerprint);
-          setTelemetryField(
-            sanitizedValue,
-            sanitized === 'true' ? 'Yes' : sanitized === 'false' ? 'No' : sanitized);
           hide(errorPanel);
           show(resultPanel);
           return {

@@ -12,6 +12,9 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 - 2025-10-03 – The futuristic visual design must rely on the current Thymeleaf + vanilla JS tooling; no new JavaScript/CSS dependencies may be added without explicit approval (user directive).
 - 2025-10-03 – Legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` routes must be decommissioned now that the unified console is live; navigation should flow through `/ui/console` only (owner directive).
 - 2025-10-03 – In the OCRA replay tab, the "Load a sample vector" control must appear immediately below the replay mode selector, mirroring the evaluate tab layout (user directive).
+- 2025-10-03 – Replay result cards must omit Telemetry ID, Credential Source, Context Fingerprint, and Sanitized fields to reduce visual clutter (user directive).
+- 2025-10-03 – Result metadata in both evaluation and replay panels must display one label/value per row instead of multi-column grids (user directive).
+- 2025-10-03 – Evaluation result cards must omit the Suite field to keep the summary minimal (user directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -23,6 +26,9 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 | OCU-005 | Update operator documentation to describe the unified console, dark theme, and protocol tabs, including guidance for placeholder protocols. | Docs under `docs/1-concepts` or how-to guides reflect the new UI with updated screenshots/description. |
 | OCU-006 | Remove or redirect legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` routes so operators access flows exclusively via `/ui/console`. | UI/system tests verify the legacy endpoints return 404/redirect responses and `/ui/console` remains the single entry point. |
 | OCU-007 | Align replay tab controls so "Load a sample vector" sits directly beneath the replay mode selector, providing consistent spacing with the evaluate tab. | Selenium/UI assertions confirm the control order and spacing within the replay tab matches the evaluate tab arrangement. |
+| OCU-008 | Remove Telemetry ID, Credential Source, Context Fingerprint, and Sanitized fields from replay results while keeping mode, reason, and outcome visible. | Selenium/UI tests verify the result card no longer renders the removed fields and continues to present remaining metadata. |
+| OCU-009 | Render replay and evaluation metadata with a single label/value per row layout. | Selenium/UI tests confirm result cards expose `.result-row` groupings for each metadata item and no multi-column grid remains. |
+| OCU-010 | Remove the Suite field from the evaluation result metadata while preserving status and sanitized indicators. | Selenium/UI tests verify the evaluation result renders only Status and Sanitized rows alongside the OTP value. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |

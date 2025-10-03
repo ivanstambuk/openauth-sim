@@ -437,12 +437,14 @@
                 <strong data-testid="ocra-otp-value"></strong>
               </p>
               <dl data-testid="ocra-telemetry-summary" class="result-metadata">
-                <dt>Status</dt>
-                <dd data-testid="ocra-status-value"></dd>
-                <dt>Sanitized</dt>
-                <dd data-testid="ocra-sanitized-flag"></dd>
-                <dt>Suite</dt>
-                <dd data-testid="ocra-suite-value"></dd>
+                <div class="result-row">
+                  <dt>Status</dt>
+                  <dd data-testid="ocra-status-value"></dd>
+                </div>
+                <div class="result-row">
+                  <dt>Sanitized</dt>
+                  <dd data-testid="ocra-sanitized-flag"></dd>
+                </div>
               </dl>
             </section>
 
@@ -551,7 +553,6 @@
         const statusValue = document.querySelector('[data-testid="ocra-status-value"]');
         const otpValue = document.querySelector('[data-testid="ocra-otp-value"]');
         const sanitizedValue = document.querySelector('[data-testid="ocra-sanitized-flag"]');
-        const suiteValue = document.querySelector('[data-testid="ocra-suite-value"]');
         const errorPanel = document.querySelector('[data-testid="ocra-error-panel"]');
         const errorPrimary = document.querySelector('[data-testid="ocra-error-primary"]');
         const errorSecondary = document.querySelector('[data-testid="ocra-error-secondary"]');
@@ -1288,7 +1289,6 @@
           setTextContent(statusValue, '');
           setTextContent(otpValue, '');
           setTextContent(sanitizedValue, '');
-          setTextContent(suiteValue, '');
           setTextContent(errorPrimary, '');
           setTextContent(errorSecondary, '');
         }
@@ -1588,7 +1588,6 @@
         }
 
         function renderSuccess(body, payload) {
-          const suiteText = body && body.suite ? body.suite : payload.suite || '';
           setTextContent(statusValue, 'Success');
           setTextContent(otpValue, body && body.otp ? body.otp : '');
           const sanitizedFlag =
@@ -1596,7 +1595,6 @@
               ? String(body.sanitized)
               : 'true';
           setTextContent(sanitizedValue, sanitizedFlag);
-          setTextContent(suiteValue, suiteText);
           showPanel(resultPanel);
           hidePanel(errorPanel);
         }
