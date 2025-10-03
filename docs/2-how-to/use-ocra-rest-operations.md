@@ -5,14 +5,14 @@ This guide teaches operators how to interact with every OCRA REST endpoint expos
 ## Prerequisites
 - Java 17 JDK configured (`JAVA_HOME` must point to it).
 - Repository dependencies installed via Gradle.
-- Default MapDB database (`data/ocra-credentials.db`) populated with any credentials you plan to reference. Use the CLI guide if you need to import fixtures.
+- Default MapDB database (`data/ocra-credentials.db`) populated with any credentials you plan to reference. The REST service delegates persistence to `CredentialStoreFactory`, so the same file is shared with CLI/UI. Use the CLI guide if you need to import fixtures.
 
 ## 1. Start the REST Service
 From the repository root:
 ```bash
 ./gradlew :rest-api:bootRun
 ```
-The service exposes endpoints on `http://localhost:8080`.
+The service exposes endpoints on `http://localhost:8080` and wires OCRA orchestration through the shared application services (no direct domain wiring required).
 
 ### Inspect the OpenAPI Contract
 Once the service is running:
@@ -146,7 +146,7 @@ The response mirrors the stored path but reports `credentialSource="inline"` in 
 - `status=invalid` / `reasonCode=validation_failure` – request failed validation (`422 Unprocessable Entity`).
 - `reasonCode=credential_not_found` – MapDB does not contain the requested ID (`404 Not Found`).
 
-Each response contains `metadata.durationMillis` so you can confirm latency stays under 150 ms (stored) or 200 ms (inline).
+Each response contains `metadata.durationMillis` so you can confirm latency stays under 150 ms (stored) or 200 ms (inline). Structured telemetry is emitted through `TelemetryContracts`, keeping logs sanitised without bespoke adapters.
 
 ### 4.4 Audit telemetry
 Verification emits `event=rest.ocra.verify` with hashed payloads (`otpHash`, `contextFingerprint`) and an explicit `credentialSource`. Capture the `telemetryId`, `reasonCode`, and `outcome` fields when filing audit reports. Sample log lines live in `docs/3-reference/rest-ocra-telemetry-snapshot.md`.

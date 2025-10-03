@@ -1,6 +1,6 @@
 # REST OCRA Telemetry Snapshot
 
-This snapshot records representative log lines emitted by the OCRA evaluation and verification endpoints during automated tests. Regenerate it with:
+This snapshot records representative log lines emitted by the OCRA evaluation and verification endpoints through the shared `TelemetryContracts` adapter during automated tests. Regenerate it with:
 
 ```
 OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.rest.ocra.OcraVerificationServiceTest --info

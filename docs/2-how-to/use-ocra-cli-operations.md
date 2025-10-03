@@ -27,7 +27,7 @@ Invoke commands via the Gradle helper:
 ```bash
 ./gradlew :cli:runOcraCli --args="[--database <path>] <command> [options]"
 ```
-If `--database` is omitted, the CLI uses `data/ocra-credentials.db` (shared with REST/UI facades).
+If `--database` is omitted, the CLI asks `CredentialStoreFactory` to resolve the path and defaults to `data/ocra-credentials.db` (shared with REST/UI facades).
 
 All commands emit structured telemetry lines (see `docs/3-reference/cli-ocra-telemetry-snapshot.md`) with `sanitized=true`.
 

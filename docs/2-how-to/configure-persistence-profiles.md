@@ -1,17 +1,39 @@
 # Configure MapDB Persistence Profiles
 
-_Status: Draft_
-_Last updated: 2025-09-28_
+_Status: In Progress_
+_Last updated: 2025-10-02_
 
 ## Overview
 
-MapDB-backed credential persistence supports multiple deployment profiles that balance cache footprint, latency, and durability. The `MapDbCredentialStore` builder exposes sensible defaults for in-memory, file-backed, and containerised deployments. This guide explains how to select a profile, adjust cache behaviour, and validate the resulting configuration using the project’s tooling.
+MapDB-backed credential persistence supports multiple deployment profiles that balance cache footprint, latency, and durability. The shared `infra-persistence` module now exposes `CredentialStoreFactory`, which applies OCRA migrations and recommended cache defaults for CLI, REST, UI, and test surfaces. This guide explains how to select a profile, adjust cache behaviour, and validate the resulting configuration using the project’s tooling. For advanced tuning you can still work with `MapDbCredentialStore` builders directly, but always start from the factory-applied builder so migrations stay registered.
 
 ## Prerequisites
 
 - Java 17 runtime (verify with `java -version`).
-- Access to the `core` module so you can construct `MapDbCredentialStore` instances.
+- Access to the `infra-persistence` module so you can invoke `CredentialStoreFactory` helpers (the CLI/REST modules already depend on it).
 - Optional: write access to a persistent filesystem path when using the `FILE` profile.
+
+## Use the Shared Factory for Defaults
+
+Most workflows simply need a store that respects the project’s migrations and cache recommendations. The factory returns ready-to-use instances:
+
+```java
+import io.openauth.sim.infra.persistence.CredentialStoreFactory;
+
+try (MapDbCredentialStore store = CredentialStoreFactory.openFileStore(Paths.get("./data/ocra-credentials.db"))) {
+  // interact with the credential store
+}
+```
+
+For ephemeral usage:
+
+```java
+try (MapDbCredentialStore store = CredentialStoreFactory.openInMemoryStore()) {
+  // interact with the credential store
+}
+```
+
+If you need to override cache settings or encryption, derive the builder through `OcraStoreMigrations.apply(MapDbCredentialStore.file(...))` before calling `open()` so you preserve migration wiring (see Profile sections below).
 
 ## Profiles
 
@@ -26,7 +48,7 @@ MapDB-backed credential persistence supports multiple deployment profiles that b
 
 **Configuration:**
 ```java
-try (MapDbCredentialStore store = MapDbCredentialStore.inMemory().open()) {
+try (MapDbCredentialStore store = CredentialStoreFactory.openInMemoryStore()) {
   // interact with the credential store
 }
 ```
@@ -47,8 +69,8 @@ try (MapDbCredentialStore store = MapDbCredentialStore.inMemory().open()) {
 
 **Configuration:**
 ```java
-Path databasePath = Paths.get("./build/data/credentials.db");
-try (MapDbCredentialStore store = MapDbCredentialStore.file(databasePath).open()) {
+Path databasePath = CredentialStoreFactory.resolveDatabasePath(null, "ocra-credentials.db");
+try (MapDbCredentialStore store = CredentialStoreFactory.openFileStore(databasePath)) {
   // interact with the credential store
 }
 ```
@@ -72,10 +94,10 @@ MapDB enables memory-mapped IO (when supported) and transactional commits for du
 **Configuration:**
 ```java
 Path volumePath = Paths.get(System.getenv("PERSISTENCE_VOLUME"));
-MapDbCredentialStore.CacheSettings containerSettings =
-    MapDbCredentialStore.CacheSettings.containerDefaults();
-try (MapDbCredentialStore store =
-    MapDbCredentialStore.file(volumePath).cacheSettings(containerSettings).open()) {
+MapDbCredentialStore.Builder builder =
+    OcraStoreMigrations.apply(MapDbCredentialStore.file(volumePath))
+        .cacheSettings(MapDbCredentialStore.CacheSettings.containerDefaults());
+try (MapDbCredentialStore store = builder.open()) {
   // interact with the credential store
 }
 ```

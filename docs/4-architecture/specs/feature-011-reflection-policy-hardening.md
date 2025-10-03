@@ -1,7 +1,7 @@
 # Feature 011 – Reflection Policy Hardening
 
-_Status: Draft_
-_Last updated: 2025-10-01_
+_Status: Complete_
+_Last updated: 2025-10-02_
 
 ## Overview
 Eliminate reflection-based access across the OpenAuth Simulator codebase, improve testability of affected components, and establish forward-looking guidance so future contributions avoid reflective patterns. The effort spans refactoring existing production and test code, updating contributor instructions, and adding automation that flags reflection usage before it reaches the repository.

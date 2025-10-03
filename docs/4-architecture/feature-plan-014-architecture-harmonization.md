@@ -1,6 +1,6 @@
 # Feature Plan 014 – Architecture Harmonization
 
-_Status: In Progress_
+_Status: Complete_
 _Last updated: 2025-10-02_
 
 ## Objective
@@ -26,9 +26,9 @@ _All clarifications captured in the specification have been resolved; no additio
 - R1403b – Expand REST verification service tests for `handleInvalid` and command envelope branches; ensure Jacoco branch coverage ≥0.90. ☑ (2025-10-02)
 - R1404 – Introduce shared DTO/normalization library and migrate CLI/REST/UI validation to use it (tests first). ☑ (2025-10-02 – Shared inline identifier helper added to `application`; CLI/REST consume it and alignment tests pass across stored/inline flows)
 - R1405 – Implement `CredentialStoreFactory` infrastructure module and refactor facades/integration tests to use it. ☑ (2025-10-02 – New `infra-persistence` module supplies factory; CLI/REST delegate store provisioning and ArchUnit rule enforces factory usage)
-- R1406 – Consolidate telemetry via a common contract and adapters; update CLI/REST/UI emitters and tests. ☐ (Plan 2025-10-02 – Introduce `TelemetryEnvelope` interface + application-level adapter, add failing `TelemetryContractArchitectureTest`, and provide shared `TelemetryContractTestSupport` fixtures covering success/validation/error frames with sanitised payload flags before wiring facades.)
-- R1407 – Restructure core into shared vs protocol-specific modules; update Gradle configuration, ArchUnit rules, and ensure build passes. ☐
-  - R1407a – Record package-to-module mapping and add failing ArchUnit guard for `core-shared`/`core-ocra` boundaries. ☐
+- R1406 – Consolidate telemetry via a common contract and adapters; update CLI/REST/UI emitters and tests. ☑ (2025-10-02 – Introduced `TelemetryContracts` with shared adapters, added `TelemetryContractTestSupport`, and greened `TelemetryContractArchitectureTest` across CLI/REST/UI.)
+- R1407 – Restructure core into shared vs protocol-specific modules; update Gradle configuration, ArchUnit rules, and ensure build passes. ☑ (2025-10-02 – Completed `core-shared`/`core-ocra` split, refreshed Gradle/ArchUnit wiring, and verified `qualityGate` + `architectureTest` success.)
+  - R1407a – Record package-to-module mapping and add failing ArchUnit guard for `core-shared`/`core-ocra` boundaries. ☑ (2025-10-02 – Documented target package allocation and activated `CoreModuleSplitArchitectureTest` enforcing new boundaries.)
   - R1407b – Scaffold `core-shared` module (Gradle wiring) and migrate `model` + `support` packages under red tests. ☑ (2025-10-02 – Module created; shared packages moved; architecture guard still red.)
   - R1407c – Relocate serialization/encryption primitives to `core-shared`, exposing migration injection seams for consumers. ☑ (2025-10-02 – Shared module now hosts serialization/encryption packages; MapDB builder supports injected migrations.)
   - R1407d – Stand up `core-ocra` module by moving OCRA descriptors, registry, and migrations; update dependent build files. ☑ (2025-10-02 – `core-ocra` module created, ocra packages moved, build graph updated.)
@@ -43,7 +43,7 @@ _All clarifications captured in the specification have been resolved; no additio
   | `io.openauth.sim.core.credentials.ocra..` | `core-ocra` |
   | `io.openauth.sim.core.credentials.CredentialRegistry` | `core-ocra` |
   | `io.openauth.sim.core.store.ocra..` | `core-ocra` |
-- R1408 – Refresh documentation (AGENTS, how-to guides), knowledge map, and run `./gradlew spotlessApply check` + `qualityGate`; record metrics. ☐
+- R1408 – Refresh documentation (AGENTS, how-to guides), knowledge map, and run `./gradlew spotlessApply check` + `qualityGate`; record metrics. ☑ (2025-10-02 – Updated AGENTS, persistence/REST how-to guides, telemetry snapshot, and re-ran spotless/quality gate post-doc edits.)
 
 Ensure each increment stays within ≤10 minutes, following test-first cadence where applicable.
 
@@ -69,21 +69,17 @@ Ensure each increment stays within ≤10 minutes, following test-first cadence w
 - Tooling readiness – PASS: Plan lists `qualityGate`, scoped ArchUnit runs, and formatting commands; results logged here.
 
 ## Notes
-- Pending: update roadmap entry and knowledge map once increments begin.
-- Pending: capture telemetry schema decisions as part of R1406; log any open questions immediately if surfaced.
-- 2025-10-02 – R1407 planning: `core-shared` will retain foundational `model`, `support`, and persistence primitives while `core-ocra` owns protocol descriptors, registry wiring, and OCRA migrations. `MapDbCredentialStore.Builder` will expose migration injection so ocra defaults move out of the shared module.
-- 2025-10-02 – R1407a: Added `CoreModuleSplitArchitectureTest` enforcing that CLI/REST/UI avoid direct dependencies on OCRA internals and recorded target package mapping ahead of the module split (test currently red until migration).
-- 2025-10-02 – R1407b: Introduced `core-shared` Gradle module, migrated `model`/`support` packages, and reran architecture guard (still red until ocra descriptors move and facades drop direct dependencies).
-- 2025-10-02 – R1407c: Shifted serialization/encryption primitives into `core-shared` and taught `MapDbCredentialStore.Builder` to accept injected migrations while keeping current defaults.
-- 2025-10-02 – R1407d: Launched `core-ocra` module with descriptor/registry/migration moves, added OCRA persistence helper, and rewired CLI/REST/UI dependencies; `core-ocra` tests cover legacy migration path.
-- 2025-10-02 – R1407e: Expanded aggregated Jacoco/PIT configuration to include `core-ocra`, boosted module branch coverage to 90.87 %, and captured a passing `qualityGate` run (branches 0.9042, line 0.9691, PIT 91%).
-- 2025-10-01 – R1402: Added `FacadeDelegationArchitectureTest` asserting current CLI/REST dependencies on core OCRA/MapDB; rules expect violations until shared application layer lands.
-- 2025-10-01 – R1403 (in progress): Shared application module added; CLI evaluate/verify now delegate through `OcraEvaluationApplicationService` / `OcraVerificationApplicationService`. REST delegation and ArchUnit updates pending.
+- 2025-10-02 – Roadmap and knowledge map updated; Workstream 12 now marked in progress and shared telemetry/module split relationships captured.
+- 2025-10-01 – R1402: Added `FacadeDelegationArchitectureTest` asserting existing CLI/REST dependencies on core OCRA/MapDB; rules flipped green after R1403 completion.
+- 2025-10-01 – R1403 kickoff: Shared application module scaffolded so CLI evaluation/verification delegate through `OcraEvaluationApplicationService` / `OcraVerificationApplicationService` ahead of REST/UI wiring.
 - 2025-10-02 – R1403a/b: Added targeted tests across core (`OcraReplayVerifier`, `OcraSecretMaterialSupport`, descriptor/persistence helpers) and REST (`OcraVerificationService`, evaluation failure mapping) to raise Jacoco branch coverage to 90.67 %. `./gradlew :rest-api:test` and `./gradlew qualityGate` now pass.
-- 2025-10-02 – R1403 complete: REST/UI rely on shared application services; ArchUnit now enforces delegation to `io.openauth.sim.application.ocra`. `./gradlew qualityGate` reused configuration cache (≈12 s) with reflectionScan and architectureTest green.
+- 2025-10-02 – R1403 complete: REST/UI rely on shared application services; ArchUnit now enforces delegation to `io.openauth.sim.application.ocra`. `./gradlew qualityGate` reused configuration cache (≈12 s) with `reflectionScan` and `architectureTest` green.
 - 2025-10-02 – R1404 complete: Shared inline identifier helper (`OcraInlineIdentifiers`) applied across CLI/REST; `OcraDtoNormalizationAlignmentTest` now exercises stored/inline flows without skips.
 - 2025-10-02 – R1405 complete: Introduced `infra-persistence` module providing `CredentialStoreFactory`; CLI/REST delegate store provisioning and ArchUnit verifies MapDB access is confined to the factory.
-- 2025-10-02 – R1406 planning: Define `TelemetryContract` + `TelemetryEmitter` abstractions in application module, add failing `TelemetryContractArchitectureTest` ensuring facades depend only on the shared adapter, introduce shared `TelemetryContractTestSupport` fixtures, and extend REST/CLI telemetry unit tests to assert consistent sanitisation fields before implementation.
 - 2025-10-02 – R1406: Added shared `TelemetryContracts`/`TelemetryFrame`, migrated CLI/REST telemetry to the adapter, introduced architecture coverage, and refreshed REST telemetry snapshot; CLI tests assert command outputs without bespoke telemetry classes.
+- 2025-10-02 – R1407a: Documented package allocation and enabled `CoreModuleSplitArchitectureTest` enforcing new boundaries; suite now passes.
+- 2025-10-02 – R1407b–e: Completed `core-shared` / `core-ocra` module split, relocated serialization/encryption primitives, wired migrations, refreshed Gradle/ArchUnit/PIT/Jacoco configuration, and recorded a passing `qualityGate` run (branches 0.9042, line 0.9691, PIT 91%).
+- 2025-10-02 – T1411: Synced documentation (knowledge map updated with `infra-persistence` relationship) and reran `./gradlew spotlessApply` + `./gradlew qualityGate` (configuration cache reuse ≈1s/0.8s, no changes required).
+- 2025-10-02 – R1408 complete: Refreshed AGENTS, persistence configuration how-to, CLI/REST guides, and REST telemetry snapshot to reference `CredentialStoreFactory` + shared telemetry adapters; post-edit runs of `./gradlew spotlessApply` (~1.2s) and `./gradlew qualityGate` (~0.8s) remained green.
 
 Keep this plan synced after each increment, marking completion timestamps and summarising findings in the Notes section.
