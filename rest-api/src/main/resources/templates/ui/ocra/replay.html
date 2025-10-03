@@ -99,6 +99,25 @@
                 hidden
                 aria-hidden="true"
               >
+                <div>
+                  <label for="replayPolicyPreset">Load a sample vector</label>
+                  <select
+                    id="replayPolicyPreset"
+                    name="replayPolicyPreset"
+                    data-testid="replay-inline-policy-select"
+                  >
+                    <option value="">Select a sample</option>
+                    <option
+                      th:each="preset : ${policyPresets}"
+                      th:value="${preset.key}"
+                      th:text="${preset.label}"
+                    ></option>
+                  </select>
+                  <p class="hint">
+                    Choosing a preset auto-fills the inline fields with illustrative data.
+                  </p>
+                </div>
+
                 <div class="field-grid">
                   <div>
                     <label for="replaySuite">OCRA suite</label>
@@ -200,6 +219,12 @@
       </section>
     </main>
 
+    <script
+      id="ocra-replay-policy-presets"
+      type="application/json"
+      th:utext="${policyPresetJson}"
+    ></script>
+
     <script th:inline="javascript">
       (function () {
         var doc = document;
@@ -277,10 +302,35 @@
         var verificationEndpoint = form.getAttribute('data-replay-endpoint');
         var telemetryEndpoint = form.getAttribute('data-telemetry-endpoint');
         var csrfToken = form.getAttribute('data-csrf');
+        var presetSelect = doc.getElementById('replayPolicyPreset');
+        var presetSource = doc.getElementById('ocra-replay-policy-presets');
         var credentialCache = null;
         var credentialPromise = null;
         window.__ocraReplayLastResponse = null;
         window.__ocraReplayLastPayload = null;
+        var presetMap = Object.create(null);
+
+        if (presetSource && presetSource.textContent) {
+          try {
+            var presetPayload = JSON.parse(presetSource.textContent);
+            if (Array.isArray(presetPayload)) {
+              presetPayload.forEach(function (entry) {
+                if (
+                  entry &&
+                  typeof entry.key === 'string' &&
+                  entry.sample &&
+                  typeof entry.sample === 'object'
+                ) {
+                  presetMap[entry.key] = entry.sample;
+                }
+              });
+            }
+          } catch (error) {
+            // ignore malformed preset payloads
+          }
+        }
+
+        window.__ocraReplayPresets = presetMap;
 
         function normalizeBoolean(value, fallback) {
           if (typeof value === 'boolean') {
@@ -367,6 +417,9 @@
             hide(inlineSection);
             enableFields(inlineFields, false, true);
             enableFields(storedFields, true, true);
+            if (presetSelect) {
+              presetSelect.value = '';
+            }
             fetchStoredCredentials();
             if (credentialSelect && !credentialSelect.disabled) {
               credentialSelect.focus();
@@ -376,6 +429,9 @@
             show(inlineSection);
             enableFields(inlineFields, true, true);
             enableFields(storedFields, false, true);
+            if (presetSelect && presetSelect.disabled) {
+              presetSelect.removeAttribute('disabled');
+            }
             if (suiteInput) {
               suiteInput.focus();
             }
@@ -512,6 +568,47 @@
             }
           }
           return payload;
+        }
+
+        function applyPresetFields(presetKey) {
+          if (!presetKey) {
+            return;
+          }
+          var sample = presetMap[presetKey];
+          if (!sample || typeof sample !== 'object') {
+            return;
+          }
+          if (suiteInput) {
+            suiteInput.value = fallback(sample.suite, '');
+          }
+          if (secretInput) {
+            secretInput.value = fallback(sample.sharedSecretHex, '');
+          }
+          if (challengeInput) {
+            challengeInput.value = fallback(sample.challenge, '');
+          }
+          if (sessionInput) {
+            sessionInput.value = fallback(sample.sessionHex, '');
+          }
+          if (clientChallengeInput) {
+            clientChallengeInput.value = fallback(sample.clientChallenge, '');
+          }
+          if (serverChallengeInput) {
+            serverChallengeInput.value = fallback(sample.serverChallenge, '');
+          }
+          if (pinHashInput) {
+            pinHashInput.value = fallback(sample.pinHashHex, '');
+          }
+          if (timestampInput) {
+            timestampInput.value = fallback(sample.timestampHex, '');
+          }
+          if (counterInput) {
+            var counterValue =
+              sample.counter === null || sample.counter === undefined
+                ? ''
+                : sample.counter;
+            counterInput.value = counterValue;
+          }
         }
 
         function sanitizeContextFields() {
@@ -746,6 +843,15 @@
         });
         form.addEventListener('submit', handleSubmit);
         advancedToggle.addEventListener('click', toggleAdvanced);
+        if (presetSelect) {
+          presetSelect.addEventListener('change', function (event) {
+            var selectedKey = event && event.target ? event.target.value : '';
+            if (!selectedKey) {
+              return;
+            }
+            applyPresetFields(selectedKey);
+          });
+        }
 
         syncMode();
         window.__ocraReplayReady = true;

@@ -23,6 +23,8 @@ Reference specification: `docs/4-architecture/specs/feature-016-ocra-ui-replay.m
 - ☑ R1604 – Implement replay screen templates, controllers, and REST wiring to satisfy stored/inline flows with telemetry. (2025-10-03 – UI renders replay screen; REST + telemetry suites green.)
 - ☑ R1605 – Polish UI copy/accessibility, update telemetry adapters, and rerun Selenium suites. (2025-10-03 – Replay Selenium tests green with hashed fingerprints + WCAG contrast checks.)
 - ☑ R1606 – Refresh operator how-to/telemetry docs, rerun `./gradlew spotlessApply check`, and stage notes for commit. (2025-10-03 – Docs updated for replay workflow; quality gate reused configuration cache and passed.)
+- ☑ R1607 – Extend Selenium coverage to assert replay inline mode exposes the inline sample preset selector and auto-fills fields when a preset is chosen. (2025-10-03 – Failing test observed prior to implementation.)
+- ☑ R1608 – Update replay controller/template/JS to surface inline presets (Option A), ensure dropdown drives field population, then rerun Selenium + `./gradlew spotlessApply check`. (2025-10-03 – Tests + quality gate green.)
 
 Each increment should take ≤10 minutes and finish with the relevant tests red→green before moving on.
 
@@ -48,6 +50,7 @@ Use this section to log telemetry schema updates, notable UI decisions, and benc
 
 - 2025-10-03 – Replay Selenium suite passes post-implementation; verifies hashed fingerprints and sanitized flags for stored/inline flows.
 - 2025-10-03 – Operator UI how-to and telemetry snapshot updated for replay workflow; `./gradlew spotlessApply check` rerun (configuration cache) and passed.
+- 2025-10-03 – Replay inline view now reuses evaluation presets (Option A); JS applies preset selections to suite/context fields, covered by Selenium auto-fill assertions.
 ## Analysis Gate (2025-10-03)
 - Specification completeness – PASS: Feature 016 spec defines objectives, functional/non-functional requirements, and captured clarifications.
 - Open questions review – PASS: `docs/4-architecture/open-questions.md` has no entries for this feature.

@@ -138,6 +138,7 @@ final class OcraOperatorUiController {
     model.addAttribute("verificationEndpoint", REST_VERIFICATION_PATH);
     model.addAttribute("credentialsEndpoint", "/api/v1/ocra/credentials");
     model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
+    populatePolicyPresets(model);
     return "ui/ocra/replay";
   }
 

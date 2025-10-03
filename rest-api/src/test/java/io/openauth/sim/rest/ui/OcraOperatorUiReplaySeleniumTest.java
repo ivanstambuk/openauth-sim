@@ -179,10 +179,26 @@ final class OcraOperatorUiReplaySeleniumTest {
     waitForElementEnabled(By.id("replaySharedSecretHex"));
     waitForElementEnabled(By.id("replayOtp"));
     waitForElementEnabled(By.id("replayChallenge"));
-    driver.findElement(By.id("replaySuite")).sendKeys(STORED_SUITE);
-    driver.findElement(By.id("replaySharedSecretHex")).sendKeys(STORED_SECRET_HEX);
+
+    WebElement presetSelect =
+        new WebDriverWait(driver, WAIT_TIMEOUT)
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("select[data-testid='replay-inline-policy-select']")));
+    assertThat(presetSelect.isDisplayed()).isTrue();
+
+    Select preset = new Select(presetSelect);
+    preset.selectByValue("qa08-s064");
+    waitForBackgroundJavaScript();
+
+    assertThat(driver.findElement(By.id("replaySuite")).getAttribute("value"))
+        .isEqualTo(STORED_SUITE);
+    assertThat(driver.findElement(By.id("replaySharedSecretHex")).getAttribute("value"))
+        .isEqualTo(STORED_SECRET_HEX);
+    assertThat(driver.findElement(By.id("replayChallenge")).getAttribute("value"))
+        .isEqualTo(STORED_CHALLENGE);
+
     driver.findElement(By.id("replayOtp")).sendKeys(STORED_EXPECTED_OTP);
-    driver.findElement(By.id("replayChallenge")).sendKeys(STORED_CHALLENGE);
 
     WebElement advancedToggle =
         driver.findElement(By.cssSelector("button[data-testid='replay-advanced-toggle']"));
@@ -192,7 +208,8 @@ final class OcraOperatorUiReplaySeleniumTest {
     }
 
     waitForElementEnabled(By.id("replaySessionHex"));
-    driver.findElement(By.id("replaySessionHex")).sendKeys(STORED_SESSION_HEX);
+    assertThat(driver.findElement(By.id("replaySessionHex")).getAttribute("value"))
+        .isEqualTo(STORED_SESSION_HEX);
 
     driver.findElement(By.cssSelector("button[data-testid='ocra-replay-submit']")).click();
 
@@ -219,9 +236,6 @@ final class OcraOperatorUiReplaySeleniumTest {
         .contains("outcome=match")
         .contains("sanitized=true")
         .contains("contextFingerprint=");
-
-    WebElement secretField = driver.findElement(By.id("replaySharedSecretHex"));
-    assertThat(secretField.getAttribute("value")).isEqualTo(STORED_SECRET_HEX);
 
     WebElement status =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-replay-status']"));

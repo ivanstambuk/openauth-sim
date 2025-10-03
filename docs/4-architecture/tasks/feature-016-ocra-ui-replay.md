@@ -11,5 +11,7 @@ _Last updated: 2025-10-03_
 - [x] T1605 – Add telemetry instrumentation + unit tests verifying new fields (mode/outcome/fingerprint) for UI replay events. (_2025-10-03_)
 - [x] T1606 – Update operator how-to guide and telemetry reference docs to describe UI replay usage. (_2025-10-03_)
 - [x] T1607 – Run `./gradlew :rest-api:test :rest-api:systemTest spotlessApply check`, self-review diffs, and capture notes in the feature plan. (_2025-10-03_)
+- [x] T1608 – Add Selenium assertion for inline preset dropdown behaviour (expected to fail before implementation). (_2025-10-03_)
+- [x] T1609 – Surface inline presets on replay view (controller/template/JS) and rerun Selenium + `./gradlew spotlessApply check`. (_2025-10-03_)
 
 Update this checklist as increments complete; keep tests ahead of implementation to maintain VDD cadence.
