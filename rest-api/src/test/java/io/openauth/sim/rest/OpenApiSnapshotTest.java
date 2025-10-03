@@ -14,9 +14,12 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -31,6 +34,16 @@ final class OpenApiSnapshotTest {
       Path.of("..", "docs", "3-reference", "rest-openapi.yaml").normalize();
 
   @Autowired private MockMvc mockMvc;
+  @TempDir static Path tempDir;
+  private static Path databasePath;
+
+  @DynamicPropertySource
+  static void configure(DynamicPropertyRegistry registry) {
+    databasePath = tempDir.resolve("openapi-snapshot.db");
+    registry.add(
+        "openauth.sim.persistence.database-path", () -> databasePath.toAbsolutePath().toString());
+    registry.add("openauth.sim.persistence.enable-store", () -> "true");
+  }
 
   @BeforeAll
   static void ensureSnapshotDirectoryExists() throws IOException {

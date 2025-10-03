@@ -16,17 +16,26 @@ class OcraOperatorUiControllerTest {
       new OcraOperatorUiController(new ObjectMapper(), new OcraOperatorUiReplayLogger());
 
   @Test
-  @DisplayName("evaluationForm populates CSRF token, endpoints, and presets")
-  void evaluationFormPopulatesModel() {
+  @DisplayName("landingPage redirects to unified console")
+  void landingPageRedirectsToConsole() {
+    assertEquals("redirect:/ui/console", controller.landingPage());
+  }
+
+  @Test
+  @DisplayName("unified console populates CSRF token, endpoints, and presets")
+  void unifiedConsolePopulatesModel() {
     OcraEvaluationForm form = controller.formModel();
     MockHttpServletRequest request = new MockHttpServletRequest();
     ConcurrentModel model = new ConcurrentModel();
 
-    String view = controller.evaluationForm(form, request, model);
+    String view = controller.unifiedConsole(form, request, model);
 
-    assertEquals("ui/ocra/evaluate", view);
+    assertEquals("ui/console/index", view);
     assertEquals("/api/v1/ocra/evaluate", model.getAttribute("evaluationEndpoint"));
+    assertEquals("/api/v1/ocra/verify", model.getAttribute("verificationEndpoint"));
     assertEquals("/api/v1/ocra/credentials", model.getAttribute("credentialsEndpoint"));
+    assertEquals("/ui/ocra/replay/telemetry", model.getAttribute("telemetryEndpoint"));
+    assertEquals("ocra", model.getAttribute("activeProtocol"));
 
     String csrf = (String) model.getAttribute("csrfToken");
     assertNotNull(csrf);
@@ -40,8 +49,8 @@ class OcraOperatorUiControllerTest {
   }
 
   @Test
-  @DisplayName("evaluationForm reuses existing CSRF token")
-  void evaluationFormReusesExistingToken() {
+  @DisplayName("unified console reuses existing CSRF token")
+  void unifiedConsoleReusesExistingToken() {
     OcraEvaluationForm form = controller.formModel();
     MockHttpServletRequest request = new MockHttpServletRequest();
     jakarta.servlet.http.HttpSession originalSession = request.getSession(true);
@@ -49,15 +58,15 @@ class OcraOperatorUiControllerTest {
     originalSession.setAttribute("ocra-ui-csrf-token", "existing-token");
     ConcurrentModel model = new ConcurrentModel();
 
-    controller.evaluationForm(form, request, model);
+    controller.unifiedConsole(form, request, model);
 
     assertEquals("existing-token", model.getAttribute("csrfToken"));
     assertEquals("existing-token", originalSession.getAttribute("ocra-ui-csrf-token"));
   }
 
   @Test
-  @DisplayName("evaluationForm regenerates CSRF token when stored value blank")
-  void evaluationFormRegeneratesBlankToken() {
+  @DisplayName("unified console regenerates CSRF token when stored value blank")
+  void unifiedConsoleRegeneratesBlankToken() {
     OcraEvaluationForm form = controller.formModel();
     MockHttpServletRequest request = new MockHttpServletRequest();
     jakarta.servlet.http.HttpSession session = request.getSession(true);
@@ -65,7 +74,7 @@ class OcraOperatorUiControllerTest {
     session.setAttribute("ocra-ui-csrf-token", "   ");
     ConcurrentModel model = new ConcurrentModel();
 
-    controller.evaluationForm(form, request, model);
+    controller.unifiedConsole(form, request, model);
 
     String token = (String) model.getAttribute("csrfToken");
     assertNotNull(token);
@@ -74,8 +83,8 @@ class OcraOperatorUiControllerTest {
   }
 
   @Test
-  @DisplayName("evaluationForm wraps JSON errors in IllegalStateException")
-  void evaluationFormWrapsJsonErrors() {
+  @DisplayName("unified console wraps JSON errors in IllegalStateException")
+  void unifiedConsoleWrapsJsonErrors() {
     OcraOperatorUiController failingController =
         new OcraOperatorUiController(new FailingObjectMapper(), new OcraOperatorUiReplayLogger());
 
@@ -85,24 +94,9 @@ class OcraOperatorUiControllerTest {
     IllegalStateException exception =
         org.junit.jupiter.api.Assertions.assertThrows(
             IllegalStateException.class,
-            () -> failingController.evaluationForm(form, request, new ConcurrentModel()));
+            () -> failingController.unifiedConsole(form, request, new ConcurrentModel()));
 
     assertTrue(exception.getMessage().contains("Unable to render policy presets"));
-  }
-
-  @Test
-  @DisplayName("replayView exposes verification, credentials, and telemetry endpoints")
-  void replayViewExposesEndpoints() {
-    MockHttpServletRequest request = new MockHttpServletRequest();
-    ConcurrentModel model = new ConcurrentModel();
-
-    String view = controller.replayView(request, model);
-
-    assertEquals("ui/ocra/replay", view);
-    assertEquals("/api/v1/ocra/verify", model.getAttribute("verificationEndpoint"));
-    assertEquals("/api/v1/ocra/credentials", model.getAttribute("credentialsEndpoint"));
-    assertEquals("/ui/ocra/replay/telemetry", model.getAttribute("telemetryEndpoint"));
-    assertNotNull(model.getAttribute("csrfToken"));
   }
 
   @Test

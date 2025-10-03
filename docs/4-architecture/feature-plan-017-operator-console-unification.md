@@ -9,7 +9,7 @@ Unify the operator UI into a single dark-themed console with protocol tabs, reta
 Reference specification: `docs/4-architecture/specs/feature-017-operator-console-unification.md`.
 
 ## Success Criteria
-- Unified console at `/ui/console` replaces separate evaluation/replay routes while keeping OCRA workflows functional (OCU-001/OCU-002).
+- Unified console at `/ui/console` replaces separate evaluation/replay routes while keeping OCRA workflows functional and legacy paths removed (OCU-001/OCU-002/OCU-006).
 - Dark theme and reduced margins deliver the requested terminal aesthetic without breaking accessibility (OCU-003).
 - Telemetry and docs remain aligned with the unified console layout (OCU-004/OCU-005).
 - `./gradlew :rest-api:test spotlessApply check` passes after each increment and final changes include documentation updates.
@@ -19,8 +19,9 @@ Reference specification: `docs/4-architecture/specs/feature-017-operator-console
 - ☑ R1702 – Update existing Selenium suites to target the unified console while maintaining regression coverage for OCRA workflows.
 - ☑ R1703 – Implemented consolidated Thymeleaf template/fragment structure, routing updates, and basic tab skeleton (OCRA active, others disabled); reran affected tests.
 - ☑ R1704 – Apply dark theme token updates, responsive layout, and remove perimeter gutters; extend accessibility checks.
-- ☐ R1705 – Rewire evaluation/replay functionality within the unified console (form wiring, REST calls, telemetry), rerun Selenium and unit suites.
-- ☐ R1706 – Update operator documentation and screenshots, refresh knowledge map if new components are introduced, rerun `./gradlew :rest-api:test spotlessApply check`.
+- ☑ R1705 – Rewire evaluation/replay functionality within the unified console (form wiring, REST calls, telemetry), rerun Selenium and unit suites.
+- ☑ R1706 – Update operator documentation and screenshots, refresh knowledge map if new components are introduced, rerun `./gradlew :rest-api:test spotlessApply check`.
+- ☑ R1707 – Decommission legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` routes (redirect or remove), update coverage, and rerun `./gradlew :rest-api:test spotlessApply check`.
 
 Each increment must stay within ≤10 minutes, lead with tests, and capture notes/telemetry adjustments in this plan as work proceeds.
 
@@ -45,6 +46,7 @@ Each increment must stay within ≤10 minutes, lead with tests, and capture note
 - 2025-10-03 – Completed R1705: embedded evaluation/replay forms within `/ui/console`, added mode toggle script, and reran `./gradlew :rest-api:test` to confirm Selenium coverage.
 - 2025-10-03 – Completed R1706: refreshed operator documentation + knowledge map for the inline console and reran `./gradlew spotlessApply check` as the verification gate.
 - 2025-10-03 – Follow-up styling refinements: darkened inline field backgrounds, moved protocol tabs into the console header, and removed the legacy summary copy per UI feedback.
+- 2025-10-03 – Completed R1707: removed `/ui/ocra/evaluate` + `/ui/ocra/replay` routes, redirected `/ui/ocra` to `/ui/console`, updated tests to assert 404s for legacy paths, and reused temp databases in OpenAPI suites to avoid MapDB lock contention.
 Use this section to log telemetry schema additions, performance observations, and accessibility adjustments.
 
 ## Analysis Gate (2025-10-03)

@@ -10,6 +10,7 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 - 2025-10-03 – Evaluation and replay screens will be collapsed into one console with protocol tabs, allowing operators to switch between OCRA modes without leaving the page (user approved).
 - 2025-10-03 – Non-OCRA protocol tabs (FIDO2/WebAuthn, EMV/CAP) will ship as disabled placeholders that signal upcoming support but do not expose active flows yet (user selected Option B).
 - 2025-10-03 – The futuristic visual design must rely on the current Thymeleaf + vanilla JS tooling; no new JavaScript/CSS dependencies may be added without explicit approval (user directive).
+- 2025-10-03 – Legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` routes must be decommissioned now that the unified console is live; navigation should flow through `/ui/console` only (owner directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -19,6 +20,7 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 | OCU-003 | Apply a responsive dark theme with minimized whitespace so the unified console reflects the requested terminal aesthetic. | Visual review and accessibility tooling verify the dark palette meets WCAG AA and layouts expand across the viewport. |
 | OCU-004 | Maintain telemetry emission for both evaluation and replay actions, including any new metadata introduced by the unified console. | Telemetry tests verify payloads include mode/outcome/context without leaking secrets and remain compatible with existing adapters. |
 | OCU-005 | Update operator documentation to describe the unified console, dark theme, and protocol tabs, including guidance for placeholder protocols. | Docs under `docs/1-concepts` or how-to guides reflect the new UI with updated screenshots/description. |
+| OCU-006 | Remove or redirect legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` routes so operators access flows exclusively via `/ui/console`. | UI/system tests verify the legacy endpoints return 404/redirect responses and `/ui/console` remains the single entry point. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |

@@ -83,8 +83,7 @@ final class OcraOperatorUiEndToEndTest {
   @Test
   @DisplayName("Stored credential evaluation succeeds via operator UI")
   void storedCredentialSubmissionSucceeds() {
-    ResponseEntity<String> formResponse =
-        restTemplate.getForEntity("/ui/ocra/evaluate", String.class);
+    ResponseEntity<String> formResponse = restTemplate.getForEntity("/ui/console", String.class);
     assertThat(formResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
     String csrfToken = extractCsrf(formResponse.getBody());
     String sessionCookie = firstCookie(formResponse.getHeaders());
@@ -113,6 +112,18 @@ final class OcraOperatorUiEndToEndTest {
     assertThat(body).isNotNull();
     assertThat(body.otp()).isEqualTo("17477202");
     assertThat(body.telemetryId()).isNotBlank();
+  }
+
+  @Test
+  @DisplayName("Legacy operator routes return 404 after console unification")
+  void legacyRoutesReturnNotFound() {
+    ResponseEntity<String> evaluateResponse =
+        restTemplate.getForEntity("/ui/ocra/evaluate", String.class);
+    ResponseEntity<String> replayResponse =
+        restTemplate.getForEntity("/ui/ocra/replay", String.class);
+
+    assertThat(evaluateResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(replayResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
   }
 
   private static String extractCsrf(String html) {

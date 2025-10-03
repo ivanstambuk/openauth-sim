@@ -122,7 +122,7 @@ final class OcraOperatorUiController {
 
   @GetMapping("/ocra")
   String landingPage() {
-    return "ui/ocra/index";
+    return "redirect:/ui/console";
   }
 
   @GetMapping("/console")
@@ -137,28 +137,6 @@ final class OcraOperatorUiController {
     model.addAttribute("activeProtocol", "ocra");
     populatePolicyPresets(model);
     return "ui/console/index";
-  }
-
-  @GetMapping("/ocra/evaluate")
-  String evaluationForm(
-      @ModelAttribute("form") OcraEvaluationForm form, HttpServletRequest request, Model model) {
-    HttpSession session = request.getSession(true);
-    model.addAttribute("csrfToken", ensureCsrfToken(session));
-    model.addAttribute("evaluationEndpoint", REST_EVALUATION_PATH);
-    model.addAttribute("credentialsEndpoint", "/api/v1/ocra/credentials");
-    populatePolicyPresets(model);
-    return "ui/ocra/evaluate";
-  }
-
-  @GetMapping("/ocra/replay")
-  String replayView(HttpServletRequest request, Model model) {
-    HttpSession session = request.getSession(true);
-    model.addAttribute("csrfToken", ensureCsrfToken(session));
-    model.addAttribute("verificationEndpoint", REST_VERIFICATION_PATH);
-    model.addAttribute("credentialsEndpoint", "/api/v1/ocra/credentials");
-    model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
-    populatePolicyPresets(model);
-    return "ui/ocra/replay";
   }
 
   @PostMapping(value = "/ocra/replay/telemetry", consumes = "application/json")

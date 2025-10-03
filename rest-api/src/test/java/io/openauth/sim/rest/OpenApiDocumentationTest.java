@@ -8,12 +8,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.file.Path;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -22,6 +26,16 @@ final class OpenApiDocumentationTest {
 
   @Autowired private MockMvc mockMvc;
   private static final ObjectMapper MAPPER = new ObjectMapper();
+  @TempDir static Path tempDir;
+  private static Path databasePath;
+
+  @DynamicPropertySource
+  static void configure(DynamicPropertyRegistry registry) {
+    databasePath = tempDir.resolve("openapi-docs.db");
+    registry.add(
+        "openauth.sim.persistence.database-path", () -> databasePath.toAbsolutePath().toString());
+    registry.add("openauth.sim.persistence.enable-store", () -> "true");
+  }
 
   @Test
   @DisplayName("OpenAPI document includes the OCRA evaluation endpoint")
