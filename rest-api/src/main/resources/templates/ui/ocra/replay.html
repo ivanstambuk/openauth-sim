@@ -99,7 +99,7 @@
                 hidden
                 aria-hidden="true"
               >
-                <div>
+                <div data-replay-inline-preset>
                   <label for="replayPolicyPreset">Load a sample vector</label>
                   <select
                     id="replayPolicyPreset"
@@ -303,6 +303,7 @@
         var telemetryEndpoint = form.getAttribute('data-telemetry-endpoint');
         var csrfToken = form.getAttribute('data-csrf');
         var presetSelect = doc.getElementById('replayPolicyPreset');
+        var presetContainer = doc.querySelector('[data-replay-inline-preset]');
         var presetSource = doc.getElementById('ocra-replay-policy-presets');
         var credentialCache = null;
         var credentialPromise = null;
@@ -419,6 +420,10 @@
             enableFields(storedFields, true, true);
             if (presetSelect) {
               presetSelect.value = '';
+              presetSelect.setAttribute('disabled', 'disabled');
+            }
+            if (presetContainer) {
+              hide(presetContainer);
             }
             fetchStoredCredentials();
             if (credentialSelect && !credentialSelect.disabled) {
@@ -429,8 +434,11 @@
             show(inlineSection);
             enableFields(inlineFields, true, true);
             enableFields(storedFields, false, true);
-            if (presetSelect && presetSelect.disabled) {
+            if (presetSelect) {
               presetSelect.removeAttribute('disabled');
+            }
+            if (presetContainer) {
+              show(presetContainer);
             }
             if (suiteInput) {
               suiteInput.focus();

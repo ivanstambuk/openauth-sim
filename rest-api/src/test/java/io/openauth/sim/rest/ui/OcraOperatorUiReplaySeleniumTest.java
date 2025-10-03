@@ -105,6 +105,21 @@ final class OcraOperatorUiReplaySeleniumTest {
 
     driver.get(baseUrl("/ui/ocra/replay"));
     waitForReplayBootstrap();
+
+    String presetVisibilityScript =
+        "var el = document.querySelector(\"select[data-testid='replay-inline-policy-select']\");"
+            + "if (!el) { return false; }"
+            + "var section = el.closest('[data-replay-section=\"inline\"]');"
+            + "if (!section) { return false; }"
+            + "var hidden = section.hasAttribute('hidden');"
+            + "var displayNone = section.offsetParent === null;"
+            + "return !hidden && !displayNone;";
+
+    Boolean presetVisible =
+        (Boolean) ((JavascriptExecutor) driver).executeScript(presetVisibilityScript);
+    assertThat(presetVisible)
+        .as("inline preset selector should be hidden when stored mode active")
+        .isFalse();
     WebElement storedMode = driver.findElement(By.id("replayModeStored"));
     if (!storedMode.isSelected()) {
       storedMode.click();
@@ -175,6 +190,7 @@ final class OcraOperatorUiReplaySeleniumTest {
     driver.findElement(By.id("replayModeInline")).click();
     waitForBackgroundJavaScript();
 
+    waitForElementEnabled(By.cssSelector("select[data-testid='replay-inline-policy-select']"));
     waitForElementEnabled(By.id("replaySuite"));
     waitForElementEnabled(By.id("replaySharedSecretHex"));
     waitForElementEnabled(By.id("replayOtp"));

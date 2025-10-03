@@ -25,6 +25,8 @@ Reference specification: `docs/4-architecture/specs/feature-016-ocra-ui-replay.m
 - ☑ R1606 – Refresh operator how-to/telemetry docs, rerun `./gradlew spotlessApply check`, and stage notes for commit. (2025-10-03 – Docs updated for replay workflow; quality gate reused configuration cache and passed.)
 - ☑ R1607 – Extend Selenium coverage to assert replay inline mode exposes the inline sample preset selector and auto-fills fields when a preset is chosen. (2025-10-03 – Failing test observed prior to implementation.)
 - ☑ R1608 – Update replay controller/template/JS to surface inline presets (Option A), ensure dropdown drives field population, then rerun Selenium + `./gradlew spotlessApply check`. (2025-10-03 – Tests + quality gate green.)
+- ☑ R1609 – Ensure replay inline presets remain hidden/disabled when stored mode is active, mirroring evaluation console behaviour. (2025-10-03 – Template/JS updated, preset container toggled with mode.)
+- ☑ R1610 – Extend Selenium coverage for stored mode preset visibility, then rerun `./gradlew :rest-api:test spotlessApply check`. (2025-10-03 – Stored-mode assertion verifies selector hidden; build commands green.)
 
 Each increment should take ≤10 minutes and finish with the relevant tests red→green before moving on.
 
@@ -51,6 +53,8 @@ Use this section to log telemetry schema updates, notable UI decisions, and benc
 - 2025-10-03 – Replay Selenium suite passes post-implementation; verifies hashed fingerprints and sanitized flags for stored/inline flows.
 - 2025-10-03 – Operator UI how-to and telemetry snapshot updated for replay workflow; `./gradlew spotlessApply check` rerun (configuration cache) and passed.
 - 2025-10-03 – Replay inline view now reuses evaluation presets (Option A); JS applies preset selections to suite/context fields, covered by Selenium auto-fill assertions.
+- 2025-10-03 – User confirmed sample presets must remain inline-only; need to align replay visibility with evaluation screen.
+- 2025-10-03 – Replayed UI now toggles preset dropdown with stored/inline modes; Selenium stored-mode test asserts hidden state to prevent regressions.
 ## Analysis Gate (2025-10-03)
 - Specification completeness – PASS: Feature 016 spec defines objectives, functional/non-functional requirements, and captured clarifications.
 - Open questions review – PASS: `docs/4-architecture/open-questions.md` has no entries for this feature.
