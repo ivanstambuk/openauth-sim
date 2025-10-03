@@ -14,9 +14,6 @@ import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,9 +29,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class OcraVerificationServiceTest {
-
-  private static final Clock FIXED_CLOCK =
-      Clock.fixed(Instant.parse("2025-10-01T00:00:00Z"), ZoneOffset.UTC);
   private static final String DEFAULT_SECRET_HEX = "31323334353637383930313233343536";
 
   private final TestHandler handler = new TestHandler();
@@ -246,7 +240,6 @@ class OcraVerificationServiceTest {
   void resolverFailureTriggersUnexpectedError() {
     OcraVerificationApplicationService applicationService =
         new OcraVerificationApplicationService(
-            FIXED_CLOCK,
             credentialId -> {
               throw new IllegalStateException("resolver failure");
             },
@@ -336,7 +329,6 @@ class OcraVerificationServiceTest {
 
     OcraVerificationApplicationService applicationService =
         new OcraVerificationApplicationService(
-            FIXED_CLOCK,
             credentialId ->
                 descriptor.name().equals(credentialId) ? Optional.of(descriptor) : Optional.empty(),
             corruptedStore);
@@ -389,7 +381,6 @@ class OcraVerificationServiceTest {
   private OcraVerificationService service(CredentialStore store) {
     OcraVerificationApplicationService applicationService =
         new OcraVerificationApplicationService(
-            FIXED_CLOCK,
             store != null
                 ? OcraCredentialResolvers.forVerificationStore(store)
                 : OcraCredentialResolvers.emptyVerificationResolver(),

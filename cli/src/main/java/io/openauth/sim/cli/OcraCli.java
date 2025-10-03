@@ -750,7 +750,7 @@ public final class OcraCli implements Callable<Integer> {
           try (CredentialStore store = openStore()) {
             OcraVerificationApplicationService service =
                 new OcraVerificationApplicationService(
-                    Clock.systemUTC(), OcraCredentialResolvers.forVerificationStore(store), store);
+                    OcraCredentialResolvers.forVerificationStore(store), store);
             VerificationCommand command =
                 OcraVerificationRequests.stored(
                     new OcraVerificationRequests.StoredInputs(
@@ -784,7 +784,7 @@ public final class OcraCli implements Callable<Integer> {
 
         OcraVerificationApplicationService service =
             new OcraVerificationApplicationService(
-                Clock.systemUTC(), OcraCredentialResolvers.emptyVerificationResolver(), null);
+                OcraCredentialResolvers.emptyVerificationResolver(), null);
         VerificationCommand command =
             OcraVerificationRequests.inline(
                 new OcraVerificationRequests.InlineInputs(

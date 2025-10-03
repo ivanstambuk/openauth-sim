@@ -11,7 +11,6 @@ import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerification
 import io.openauth.sim.core.credentials.ocra.OcraReplayVerifier.OcraVerificationResult;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
-import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
@@ -19,15 +18,13 @@ import java.util.Optional;
 
 public final class OcraVerificationApplicationService {
 
-  private final Clock clock;
   private final CredentialResolver credentialResolver;
   private final OcraReplayVerifier storedVerifier;
   private final OcraReplayVerifier inlineVerifier;
   private final OcraCredentialFactory credentialFactory;
 
   public OcraVerificationApplicationService(
-      Clock clock, CredentialResolver credentialResolver, CredentialStore credentialStore) {
-    this.clock = Objects.requireNonNull(clock, "clock");
+      CredentialResolver credentialResolver, CredentialStore credentialStore) {
     this.credentialResolver = Objects.requireNonNull(credentialResolver, "credentialResolver");
     this.storedVerifier = new OcraReplayVerifier(credentialStore);
     this.inlineVerifier = new OcraReplayVerifier(null);

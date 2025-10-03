@@ -28,11 +28,9 @@ class OcraApplicationConfiguration {
 
   @Bean
   OcraVerificationApplicationService ocraVerificationApplicationService(
-      ObjectProvider<Clock> clockProvider, ObjectProvider<CredentialStore> storeProvider) {
-    Clock clock = Optional.ofNullable(clockProvider.getIfAvailable()).orElse(Clock.systemUTC());
+      ObjectProvider<CredentialStore> storeProvider) {
     CredentialStore store = storeProvider.getIfAvailable();
     return new OcraVerificationApplicationService(
-        clock,
         store != null
             ? OcraCredentialResolvers.forVerificationStore(store)
             : OcraCredentialResolvers.emptyVerificationResolver(),

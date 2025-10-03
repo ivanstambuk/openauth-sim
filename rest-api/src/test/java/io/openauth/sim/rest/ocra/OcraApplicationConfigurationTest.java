@@ -48,15 +48,12 @@ final class OcraApplicationConfigurationTest {
   @Test
   @DisplayName("Verification application service accepts optional store")
   void verificationServiceWithAndWithoutStore() {
-    ObjectProvider<Clock> clockProvider = providerOf(Clock.systemUTC());
-
     OcraVerificationApplicationService withoutStore =
-        configuration.ocraVerificationApplicationService(clockProvider, providerOf(null));
+        configuration.ocraVerificationApplicationService(providerOf(null));
     assertNotNull(withoutStore);
 
     OcraVerificationApplicationService withStore =
-        configuration.ocraVerificationApplicationService(
-            clockProvider, providerOf(new InMemoryStore()));
+        configuration.ocraVerificationApplicationService(providerOf(new InMemoryStore()));
     assertNotNull(withStore);
   }
 

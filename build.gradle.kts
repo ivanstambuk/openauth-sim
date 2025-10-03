@@ -1,20 +1,24 @@
+import com.github.spotbugs.snom.Confidence
+import com.github.spotbugs.snom.Effort
+import com.github.spotbugs.snom.SpotBugsExtension
+import com.github.spotbugs.snom.SpotBugsTask
+import info.solidsoft.gradle.pitest.PitestPluginExtension
 import net.ltgt.gradle.errorprone.ErrorProneOptions
 import net.ltgt.gradle.errorprone.errorprone
-import info.solidsoft.gradle.pitest.PitestPluginExtension
 import org.gradle.api.JavaVersion
 import org.gradle.api.artifacts.VersionCatalog
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.plugins.quality.CheckstyleExtension
-import org.gradle.api.plugins.quality.PmdExtension
 import org.gradle.api.plugins.quality.Pmd
+import org.gradle.api.plugins.quality.PmdExtension
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
-import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
-import org.gradle.testing.jacoco.tasks.JacocoReport
-import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
-import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.kotlin.dsl.getByType
+import org.gradle.language.base.plugins.LifecycleBasePlugin
+import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
+import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
     base
@@ -119,6 +123,16 @@ subprojects {
             xml.required.set(true)
             html.required.set(false)
         }
+    }
+
+    extensions.configure<SpotBugsExtension> {
+        effort.set(Effort.MAX)
+        reportLevel.set(Confidence.LOW)
+        includeFilter.set(rootProject.layout.projectDirectory.file("config/spotbugs/dead-state-include.xml"))
+    }
+
+    tasks.withType<SpotBugsTask>().configureEach {
+        extraArgs.add("-longBugCodes")
     }
 
     configurations.configureEach {

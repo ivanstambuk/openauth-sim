@@ -25,6 +25,7 @@ Use this checklist after a feature's specification, plan, and tasks exist but be
    - [ ] No planned work violates principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
 6. **Tooling readiness**
    - [ ] Commands (`./gradlew spotlessApply check`) documented for the feature plan or runbook.
+   - [ ] SpotBugs dead-state detectors (Feature 015) noted, including the module command used to validate `URF/UWF/UUF/NP` findings.
    - [ ] Analysis results recorded in the feature plan (copy this checklist with pass/fail notes).
 
 ## Output

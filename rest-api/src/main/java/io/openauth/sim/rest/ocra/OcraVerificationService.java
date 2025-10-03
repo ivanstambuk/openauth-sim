@@ -253,7 +253,7 @@ class OcraVerificationService {
     String suite =
         Optional.ofNullable(envelope)
             .map(CommandEnvelope::normalized)
-            .filter(n -> n instanceof NormalizedRequest.Inline inline)
+            .filter(n -> n instanceof NormalizedRequest.Inline)
             .map(n -> ((NormalizedRequest.Inline) n).suite())
             .orElseGet(() -> suiteFrom(raw).orElse(null));
 

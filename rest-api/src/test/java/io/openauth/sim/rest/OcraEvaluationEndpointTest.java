@@ -59,7 +59,6 @@ final class OcraEvaluationEndpointTest {
   private static final String SESSION_HEX_128 = SESSION_HEX_64 + SESSION_HEX_64;
   private static final String SESSION_HEX_256 = SESSION_HEX_128 + SESSION_HEX_128;
   private static final String SESSION_HEX_512 = SESSION_HEX_256 + SESSION_HEX_256;
-  private static final String PIN_SUITE = "OCRA-1:HOTP-SHA1-6:QA08-PSHA1";
   private static final String TIMESTAMP_SUITE = "OCRA-1:HOTPT30SHA256-7:QN08";
   private static final Duration TIMESTAMP_STEP = Duration.ofSeconds(30);
   private static final Instant FIXED_NOW = Instant.parse("2025-09-28T12:00:00Z");

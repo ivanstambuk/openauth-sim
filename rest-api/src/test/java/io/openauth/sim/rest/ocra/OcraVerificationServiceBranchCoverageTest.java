@@ -14,9 +14,6 @@ import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,9 +22,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class OcraVerificationServiceBranchCoverageTest {
-
-  private static final Clock FIXED_CLOCK =
-      Clock.fixed(Instant.parse("2025-10-01T00:00:00Z"), ZoneOffset.UTC);
   private static final String DEFAULT_SECRET_HEX = "31323334353637383930313233343536";
 
   @Test
@@ -79,7 +73,7 @@ class OcraVerificationServiceBranchCoverageTest {
             descriptor.name().equals(credentialId) ? Optional.of(descriptor) : Optional.empty();
     CredentialStore store = new SingleCredentialStore(corrupted);
     OcraVerificationApplicationService applicationService =
-        new OcraVerificationApplicationService(FIXED_CLOCK, resolver, store);
+        new OcraVerificationApplicationService(resolver, store);
     OcraVerificationService service = new OcraVerificationService(applicationService);
 
     OcraVerificationRequest request = storedRequest(descriptor.name());
@@ -97,7 +91,6 @@ class OcraVerificationServiceBranchCoverageTest {
   private OcraVerificationService service(CredentialStore store) {
     OcraVerificationApplicationService applicationService =
         new OcraVerificationApplicationService(
-            FIXED_CLOCK,
             store != null
                 ? OcraCredentialResolvers.forVerificationStore(store)
                 : OcraCredentialResolvers.emptyVerificationResolver(),
@@ -105,16 +98,8 @@ class OcraVerificationServiceBranchCoverageTest {
     return new OcraVerificationService(applicationService);
   }
 
-  private OcraVerificationRequest inlineRequest(String otp) {
-    return new OcraVerificationRequest(otp, null, inlineCredential(), context());
-  }
-
   private OcraVerificationRequest storedRequest(String credentialId) {
     return new OcraVerificationRequest("123456", credentialId, null, context());
-  }
-
-  private OcraVerificationInlineCredential inlineCredential() {
-    return new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", DEFAULT_SECRET_HEX);
   }
 
   private OcraVerificationContext context() {
