@@ -12,6 +12,6 @@ _Last updated: 2025-10-03_
 | T1504 | Update documentation (analysis gate checklist + tooling guide) describing the new detectors and suppression policy; rerun `./gradlew spotlessApply check` post-doc changes. | SB-003 | ✅ (2025-10-03 – Updated analysis gate checklist + quality gate guide, reran `./gradlew spotlessApply check`) |
 | T1505 | Capture runtime impact/notes in feature plan and synchronise final artefacts (plan/tasks/spec). | SB-001–SB-003 | ✅ (2025-10-03 – Added command notes to feature plan and synced spec/plan/tasks) |
 | T1506 | Add PMD `UnusedPrivateField`, address violations (e.g., remove unused constants), rerun `./gradlew :rest-api:pmdTest` and `./gradlew check`. | SB-004 | ✅ (2025-10-03 – Rule added to PMD ruleset, removed `PIN_SUITE`, `:rest-api:pmdTest` green) |
-| T1507 | Add PMD `UnusedPrivateMethod`, remove dead helpers (e.g., `inlineCredential()`), rerun `./gradlew :rest-api:pmdTest` and `./gradlew check`. | SB-004 | ☐ |
+| T1507 | Add PMD `UnusedPrivateMethod`, remove dead helpers (e.g., `inlineCredential()`), rerun `./gradlew :rest-api:pmdTest` and `./gradlew check`. | SB-004 | ✅ (2025-10-03 – Rule enforced; commands rerun, no violations) |
 
 Update the status column as tasks complete, keeping each increment ≤10 minutes and sequencing validation commands before code implementation when feasible.

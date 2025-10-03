@@ -24,7 +24,7 @@ Reference specification: `docs/4-architecture/specs/feature-015-spotbugs-dead-st
 - R1504 – Update documentation (analysis gate checklist + tooling guide) to include the new detectors and remediation guidance; sync knowledge map if necessary. ☑ (2025-10-03 – Documented detector list in analysis gate checklist and quality gate guide; reran `spotlessApply check` after edits)
 - R1505 – Record final command outputs and note detector adoption in plan Notes; ensure feature artefacts (spec/plan/tasks) reflect completion. ☑ (2025-10-03 – Notes capture failing/passing SpotBugs + check runs; spec/plan/tasks aligned)
 - R1506 – Add PMD `UnusedPrivateField`, remediate violations (e.g., `PIN_SUITE`), and rerun `pmdMain`/`pmdTest`. ☑ (2025-10-03 – Added rule to PMD ruleset, removed unused `PIN_SUITE`, `:rest-api:pmdTest` passes)
-- R1507 – Enable PMD `UnusedPrivateMethod`, clean up unused helpers (e.g., `inlineCredential()`), rerun `pmdMain`/`pmdTest`. ☐
+- R1507 – Enable PMD `UnusedPrivateMethod`, clean up unused helpers (e.g., `inlineCredential()`), rerun `pmdMain`/`pmdTest`. ☑ (2025-10-03 – Rule active, no violations after cleanup; reran `:rest-api:pmdTest` and root `check`.)
 
 Each increment should take ≤10 minutes with tests preceding implementation where applicable.
 
@@ -43,7 +43,7 @@ Use this section to log detector findings, suppressions (with rationale), and ru
 - 2025-10-03 – `./gradlew :application:spotbugsMain --rerun-tasks` failed with `URF_UNREAD_FIELD` on `OcraVerificationApplicationService.clock`, confirming detector activation; rerun passed after removing the unused field.
 - 2025-10-03 – Full `./gradlew spotlessApply check` succeeded (≈3m16s) with no additional dead-state findings; SpotBugs warnings limited to existing serialVersionUID notices.
 - 2025-10-03 – Added PMD `UnusedPrivateField` (bestpractices); initial run flagged `PIN_SUITE` in REST test, removed constant, reran `:rest-api:pmdTest` (pass).
-- 2025-10-03 – Pending: extend PMD with `UnusedPrivateMethod` to catch unused test helpers (e.g., `inlineCredential`).
+- 2025-10-03 – Verified PMD `UnusedPrivateMethod` is active; `./gradlew :rest-api:pmdTest` and `./gradlew check` both green with rule enforced.
 
 ## Analysis Gate (2025-10-03)
 - Specification completeness – PASS: Feature 015 spec defines objectives, requirements, clarifications (2025-10-03).
