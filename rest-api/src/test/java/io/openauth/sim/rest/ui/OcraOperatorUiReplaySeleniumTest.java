@@ -103,7 +103,7 @@ final class OcraOperatorUiReplaySeleniumTest {
         .as("Sample credential database should be available for replay tests")
         .isTrue();
 
-    driver.get(baseUrl("/ui/ocra/replay"));
+    navigateToReplayConsole();
     waitForReplayBootstrap();
 
     WebElement otpFieldBefore = driver.findElement(By.id("replayOtp"));
@@ -184,7 +184,7 @@ final class OcraOperatorUiReplaySeleniumTest {
   @Test
   @DisplayName("Inline replay renders match outcome and sanitized telemetry")
   void inlineReplayRendersMatchOutcome() {
-    driver.get(baseUrl("/ui/ocra/replay"));
+    navigateToReplayConsole();
     waitForReplayBootstrap();
 
     driver.findElement(By.id("replayModeInline")).click();
@@ -259,7 +259,7 @@ final class OcraOperatorUiReplaySeleniumTest {
   @Test
   @DisplayName("Inline replay surfaces validation error when OTP is missing")
   void inlineReplaySurfacesValidationError() {
-    driver.get(baseUrl("/ui/ocra/replay"));
+    navigateToReplayConsole();
     waitForReplayBootstrap();
 
     driver.findElement(By.id("replayModeInline")).click();
@@ -355,6 +355,15 @@ final class OcraOperatorUiReplaySeleniumTest {
 
   private String telemetryValue(WebElement panel, String testId) {
     return panel.findElement(By.cssSelector("[data-testid='" + testId + "']")).getText().trim();
+  }
+
+  private void navigateToReplayConsole() {
+    driver.get(baseUrl("/ui/console"));
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='ocra-open-replay']")));
+    driver.findElement(By.cssSelector("[data-testid='ocra-open-replay']")).click();
   }
 
   private String baseUrl(String path) {

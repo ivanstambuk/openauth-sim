@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-@RequestMapping("/ui/ocra")
+@RequestMapping("/ui")
 final class OcraOperatorUiController {
 
   private static final String REST_EVALUATION_PATH = "/api/v1/ocra/evaluate";
@@ -120,12 +120,26 @@ final class OcraOperatorUiController {
     return new OcraEvaluationForm();
   }
 
-  @GetMapping
+  @GetMapping("/ocra")
   String landingPage() {
     return "ui/ocra/index";
   }
 
-  @GetMapping("/evaluate")
+  @GetMapping("/console")
+  String unifiedConsole(
+      @ModelAttribute("form") OcraEvaluationForm form, HttpServletRequest request, Model model) {
+    HttpSession session = request.getSession(true);
+    model.addAttribute("csrfToken", ensureCsrfToken(session));
+    model.addAttribute("evaluationEndpoint", REST_EVALUATION_PATH);
+    model.addAttribute("verificationEndpoint", REST_VERIFICATION_PATH);
+    model.addAttribute("credentialsEndpoint", "/api/v1/ocra/credentials");
+    model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
+    model.addAttribute("activeProtocol", "ocra");
+    populatePolicyPresets(model);
+    return "ui/console/index";
+  }
+
+  @GetMapping("/ocra/evaluate")
   String evaluationForm(
       @ModelAttribute("form") OcraEvaluationForm form, HttpServletRequest request, Model model) {
     HttpSession session = request.getSession(true);
@@ -136,7 +150,7 @@ final class OcraOperatorUiController {
     return "ui/ocra/evaluate";
   }
 
-  @GetMapping("/replay")
+  @GetMapping("/ocra/replay")
   String replayView(HttpServletRequest request, Model model) {
     HttpSession session = request.getSession(true);
     model.addAttribute("csrfToken", ensureCsrfToken(session));
@@ -147,7 +161,7 @@ final class OcraOperatorUiController {
     return "ui/ocra/replay";
   }
 
-  @PostMapping(value = "/replay/telemetry", consumes = "application/json")
+  @PostMapping(value = "/ocra/replay/telemetry", consumes = "application/json")
   org.springframework.http.ResponseEntity<Void> replayTelemetry(
       @RequestBody OcraReplayUiEventRequest request) {
     telemetry.record(request);

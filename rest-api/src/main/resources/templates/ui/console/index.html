@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Operator Console</title>
+    <link rel="stylesheet" th:href="@{/ui/ocra/console.css}" />
+  </head>
+  <body>
+    <main class="operator-console" aria-labelledby="operator-console-heading">
+      <header class="console-header">
+        <h1 id="operator-console-heading">Operator Console</h1>
+        <p class="summary">
+          Manage OCRA evaluation and replay flows from a single console. Additional protocol tabs will
+          activate as their implementations ship.
+        </p>
+      </header>
+
+      <div
+          class="protocol-tabs"
+          data-testid="operator-protocol-tabs"
+          role="tablist"
+          aria-label="Operator protocol selector"
+        >
+        <button
+            class="protocol-tab protocol-tab--active"
+            data-testid="protocol-tab-ocra"
+            role="tab"
+            aria-selected="true"
+            aria-controls="protocol-panel-ocra"
+          >
+          OCRA
+        </button>
+        <button
+            class="protocol-tab"
+            data-testid="protocol-tab-fido2"
+            role="tab"
+            aria-disabled="true"
+          >
+          FIDO2 / WebAuthn
+        </button>
+        <button
+            class="protocol-tab"
+            data-testid="protocol-tab-emv"
+            role="tab"
+            aria-disabled="true"
+          >
+          EMV / CAP
+        </button>
+      </div>
+
+      <section
+          id="protocol-panel-ocra"
+          class="protocol-panel"
+          aria-labelledby="protocol-tab-ocra"
+        >
+        <div
+            class="ocra-mode-toggle"
+            data-testid="ocra-mode-toggle"
+            data-mode="evaluate"
+            role="tablist"
+            aria-label="OCRA interaction modes"
+          >
+          <span class="mode-pill mode-pill--active" role="tab" aria-selected="true">Evaluate</span>
+          <span class="mode-pill" role="tab" aria-selected="false">Replay</span>
+        </div>
+
+        <section class="ocra-placeholder" aria-live="polite">
+          <h2>Unified flow in progress</h2>
+          <p>
+            OCRA evaluation and replay are being merged into this console. Use the links below until
+            the integrated forms arrive.
+          </p>
+          <div class="placeholder-links" role="group" aria-label="Legacy OCRA views">
+            <a
+                class="placeholder-link"
+                data-testid="ocra-open-evaluate"
+                th:href="@{/ui/ocra/evaluate}"
+              >
+              Open evaluation console
+            </a>
+            <a
+                class="placeholder-link"
+                data-testid="ocra-open-replay"
+                th:href="@{/ui/ocra/replay}"
+              >
+              Open replay console
+            </a>
+          </div>
+        </section>
+      </section>
+
+      <section class="protocol-panel protocol-panel--disabled" aria-hidden="true">
+        <h2>FIDO2 / WebAuthn</h2>
+        <p>
+          Placeholder for upcoming FIDO2/WebAuthn operator tools. Watch the roadmap for enablement updates.
+        </p>
+      </section>
+
+      <section class="protocol-panel protocol-panel--disabled" aria-hidden="true">
+        <h2>EMV / CAP</h2>
+        <p>
+          Placeholder for future EMV/CAP tooling. Tabs will activate once protocol support is prioritised.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

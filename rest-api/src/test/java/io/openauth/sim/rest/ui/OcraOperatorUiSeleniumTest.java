@@ -134,8 +134,7 @@ final class OcraOperatorUiSeleniumTest {
   @MethodSource("inlinePresetScenarios")
   @DisplayName("Inline policy presets populate fields and evaluate successfully")
   void inlinePolicyPresetEvaluatesSuccessfully(InlinePresetScenario scenario) {
-    driver.get(baseUrl("/ui/ocra/evaluate"));
-    waitForPresetScripts();
+    navigateToEvaluationConsole();
 
     WebElement credentialSection = driver.findElement(By.id("credential-parameters"));
     assertThat(credentialSection.getAttribute("hidden")).isNotNull();
@@ -180,8 +179,7 @@ final class OcraOperatorUiSeleniumTest {
   @DisplayName("Stored credential auto-populate fills required inputs and yields success")
   void storedCredentialAutoPopulateFillsRequiredInputs(
       String description, StoredCredentialScenario scenario) {
-    driver.get(baseUrl("/ui/ocra/evaluate"));
-    waitForPresetScripts();
+    navigateToEvaluationConsole();
 
     // Seed inline inputs so we can verify they are overridden or cleared.
     driver.findElement(By.id("challenge")).sendKeys("PLACEHOLDER");
@@ -289,8 +287,7 @@ final class OcraOperatorUiSeleniumTest {
   @DisplayName("Stored credential selection disables unsupported request parameters")
   void storedCredentialSelectionDisablesUnsupportedParameters(
       String description, StoredCredentialScenario scenario) {
-    driver.get(baseUrl("/ui/ocra/evaluate"));
-    waitForPresetScripts();
+    navigateToEvaluationConsole();
 
     driver.findElement(By.id("mode-credential")).click();
     waitForBackgroundJavaScript();
@@ -343,8 +340,7 @@ final class OcraOperatorUiSeleniumTest {
   @Test
   @DisplayName("Stored credential flow succeeds via Selenium driver")
   void storedCredentialEvaluationSucceeds() {
-    driver.get(baseUrl("/ui/ocra/evaluate"));
-    waitForPresetScripts();
+    navigateToEvaluationConsole();
 
     WebElement credentialSection = driver.findElement(By.id("credential-parameters"));
     assertThat(credentialSection.getAttribute("hidden")).isNotNull();
@@ -383,8 +379,7 @@ final class OcraOperatorUiSeleniumTest {
   @Test
   @DisplayName("Advanced parameters disclosure toggles visibility")
   void advancedParametersDisclosureTogglesVisibility() {
-    driver.get(baseUrl("/ui/ocra/evaluate"));
-    waitForPresetScripts();
+    navigateToEvaluationConsole();
 
     WebElement parametersStack =
         driver.findElement(By.cssSelector(".request-parameters .stack-sm"));
@@ -414,8 +409,7 @@ final class OcraOperatorUiSeleniumTest {
   @Test
   @DisplayName("Inline policy builder applies suite and generated secret")
   void inlinePolicyBuilderPopulatesSuiteAndSecret() {
-    driver.get(baseUrl("/ui/ocra/evaluate"));
-    waitForPresetScripts();
+    navigateToEvaluationConsole();
 
     WebElement versionField = driver.findElement(By.id("builderVersion"));
     assertThat(versionField.getAttribute("value")).isEqualTo("OCRA-1");
@@ -467,8 +461,7 @@ final class OcraOperatorUiSeleniumTest {
   @Test
   @DisplayName("Builder selects use compact styling class and height")
   void builderSelectsUseCompactStyling() {
-    driver.get(baseUrl("/ui/ocra/evaluate"));
-    waitForPresetScripts();
+    navigateToEvaluationConsole();
 
     List<WebElement> selects =
         List.of(
@@ -494,8 +487,7 @@ final class OcraOperatorUiSeleniumTest {
   @Test
   @DisplayName("Session checkbox uses compact styling container")
   void sessionCheckboxUsesCompactStyling() {
-    driver.get(baseUrl("/ui/ocra/evaluate"));
-    waitForPresetScripts();
+    navigateToEvaluationConsole();
 
     WebElement sessionLabel = driver.findElement(By.cssSelector("label[for='builderSession']"));
     assertThat(sessionLabel.getAttribute("class")).contains("choice-control");
@@ -512,8 +504,7 @@ final class OcraOperatorUiSeleniumTest {
   @Test
   @DisplayName("Inline data inputs adopt grid layout and accent styling")
   void inlineCheckboxesAdoptGridLayoutAndAccentStyling() {
-    driver.get(baseUrl("/ui/ocra/evaluate"));
-    waitForPresetScripts();
+    navigateToEvaluationConsole();
 
     WebElement choiceContainer =
         driver.findElement(By.cssSelector("[data-testid='ocra-builder-data-inputs']"));
@@ -541,7 +532,7 @@ final class OcraOperatorUiSeleniumTest {
                 "return window.getComputedStyle(arguments[0]).getPropertyValue('accent-color');",
                 counterCheckbox);
     assertThat(accentColor).isNotBlank();
-    assertThat(accentColor).containsAnyOf("26, 166, 160", "var(--ocra-color-primary-accent)");
+    assertThat(accentColor).containsAnyOf("22, 211, 243", "var(--ocra-color-primary-accent)");
 
     Number checkboxWidth =
         (Number)
@@ -674,6 +665,16 @@ final class OcraOperatorUiSeleniumTest {
         });
   }
 
+  private void navigateToEvaluationConsole() {
+    driver.get(baseUrl("/ui/console"));
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='ocra-open-evaluate']")));
+    driver.findElement(By.cssSelector("[data-testid='ocra-open-evaluate']")).click();
+    waitForPresetScripts();
+  }
+
   private String baseUrl(String path) {
     return "http://localhost:" + port + path;
   }
@@ -731,6 +732,29 @@ final class OcraOperatorUiSeleniumTest {
     return Boolean.TRUE.equals(disabled);
   }
 
+  private String normalizeColor(String color) {
+    if (color == null) {
+      return "";
+    }
+    String trimmed = color.trim().toLowerCase();
+    if (trimmed.startsWith("#")) {
+      String hex = trimmed.substring(1);
+      if (hex.length() == 3) {
+        StringBuilder expanded = new StringBuilder();
+        for (char c : hex.toCharArray()) {
+          expanded.append(c).append(c);
+        }
+        hex = expanded.toString();
+      }
+      int value = Integer.parseInt(hex, 16);
+      int r = (value >> 16) & 0xFF;
+      int g = (value >> 8) & 0xFF;
+      int b = value & 0xFF;
+      return String.format("rgb(%d,%d,%d)", r, g, b);
+    }
+    return trimmed.replaceAll("\\s+", "");
+  }
+
   private void waitForDisabledState(String elementId, boolean expectedDisabled) {
     new WebDriverWait(driver, Duration.ofSeconds(5))
         .until(d -> isDisabled(elementId) == expectedDisabled);
@@ -744,7 +768,11 @@ final class OcraOperatorUiSeleniumTest {
                 "var el = document.getElementById(arguments[0]);"
                     + " return el ? window.getComputedStyle(el).getPropertyValue('background-color') : '';",
                 elementId);
-    assertThat(background).contains("231").contains("236").contains("244");
+    String expectedVar =
+        (String)
+            executor.executeScript(
+                "return getComputedStyle(document.documentElement).getPropertyValue('--ocra-color-surface-disabled');");
+    assertThat(normalizeColor(background)).isEqualTo(normalizeColor(expectedVar));
     String cursor =
         (String)
             executor.executeScript(
