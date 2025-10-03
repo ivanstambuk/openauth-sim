@@ -26,13 +26,13 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 10 | Reflection policy hardening | Eradicate reflection usage, add quality guardrails, update contributor guidance | Complete | Spec: [Feature 011](specs/feature-011-reflection-policy-hardening.md), Plan: [Feature Plan 011](feature-plan-011-reflection-policy-hardening.md), Tasks: [Feature 011 Tasks](tasks/feature-011-reflection-policy-hardening.md); Closed 2025-10-02 after `reflectionScan` + `qualityGate` reruns validated no-reflection guardrails |
 | 11 | Java 17 language enhancements | Adopt sealed hierarchies and text blocks across OCRA CLI/REST internals | Complete | Spec: [Feature 013](specs/feature-013-java17-enhancements.md), Plan: [Feature Plan 013](feature-plan-013-java17-enhancements.md), Tasks: [Feature 013 Tasks](tasks/feature-013-java17-enhancements.md); Closed 2025-10-01 with `qualityGate` validation |
 | 12 | Architecture harmonization | Share OCRA orchestration, persistence provisioning, telemetry, and DTO seams across facades while preparing protocol-specific modules | Complete | Spec: [Feature 014](specs/feature-014-architecture-harmonization.md), Plan: [Feature Plan 014](feature-plan-014-architecture-harmonization.md), Tasks: [Feature 014 Tasks](tasks/feature-014-architecture-harmonization.md); Closed 2025-10-02 after R1408 documentation sync + quality gate rerun |
-| 13 | SpotBugs dead-state enforcement | Fail builds on unread/unwritten field detectors across JVM modules | In progress | Spec: [Feature 015](specs/feature-015-spotbugs-dead-state-enforcement.md), Plan: [Feature Plan 015](feature-plan-015-spotbugs-dead-state-enforcement.md), Tasks: [Feature 015 Tasks](tasks/feature-015-spotbugs-dead-state-enforcement.md); Kickoff 2025-10-03 ensuring SpotBugs include filter + remediation |
+| 13 | SpotBugs dead-state enforcement | Fail builds on unread/unwritten field detectors across JVM modules | Complete | Spec: [Feature 015](specs/feature-015-spotbugs-dead-state-enforcement.md), Plan: [Feature Plan 015](feature-plan-015-spotbugs-dead-state-enforcement.md), Tasks: [Feature 015 Tasks](tasks/feature-015-spotbugs-dead-state-enforcement.md); Closed 2025-10-03 after SpotBugs+PMD guardrails verified via `./gradlew :rest-api:pmdTest` and root `check` |
 
 ## Upcoming Milestones
 
 1. Spin up dedicated workstreams for non-OCRA credential protocols (CLI/REST/persistence) once scope is prioritised.
 2. Confirm the next high-priority facade effort (non-OCRA protocols vs Workstream 9 learning UI) through the clarification gate and update roadmap/scope documents.
-3. Roll out Feature 015 SpotBugs enforcement and monitor runtime impact after detectors activate.
+3. Monitor SpotBugs/PMD runtime impact post-Feature 015 rollout and capture build timing metrics in `docs/5-operations/analysis-gate-checklist.md` by 2025-10-07.
 4. Prototype educational simulator UI flows (Workstream 9) to complement human operators.
 5. Complete Feature 011 increments (reflection removal + guardrails) and roll the policy into standard operating instructions.
 

@@ -1,6 +1,6 @@
 # Feature 015 – SpotBugs Dead-State Enforcement Tasks
 
-_Status: Draft_
+_Status: Complete_
 _Last updated: 2025-10-03_
 
 ## Tasks

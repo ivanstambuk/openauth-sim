@@ -1,6 +1,6 @@
 # Feature 015 – SpotBugs Dead-State Enforcement
 
-_Status: Draft_
+_Status: Complete_
 _Last updated: 2025-10-03_
 
 ## Overview
@@ -44,5 +44,6 @@ Harden the static-analysis quality gate by promoting SpotBugs dead-state detecto
 ## Verification
 - `./gradlew spotlessApply check` succeeds with the include filter in place and no open findings.
 - Documentation updates merged alongside code so the analysis gate reflects the new guardrails.
+- 2025-10-03 – Verified `./gradlew :rest-api:pmdTest`, `./gradlew pmdMain`, and `./gradlew check` with dead-state detectors active.
 
 Update this specification as clarifications evolve or scope expands.
