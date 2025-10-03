@@ -62,6 +62,30 @@
                 </div>
               </fieldset>
 
+              <div
+                class="inline-preset"
+                data-replay-inline-preset
+                hidden="hidden"
+                aria-hidden="true"
+              >
+                <label for="replayPolicyPreset">Load a sample vector</label>
+                <select
+                  id="replayPolicyPreset"
+                  name="replayPolicyPreset"
+                  data-testid="replay-inline-policy-select"
+                >
+                  <option value="">Select a sample</option>
+                  <option
+                    th:each="preset : ${policyPresets}"
+                    th:value="${preset.key}"
+                    th:text="${preset.label}"
+                  ></option>
+                </select>
+                <p class="hint">
+                  Choosing a preset auto-fills the inline fields with illustrative data.
+                </p>
+              </div>
+
               <div class="field-grid">
                 <div>
                   <label for="replayOtp">One-time password</label>
@@ -105,25 +129,6 @@
                 hidden
                 aria-hidden="true"
               >
-                <div data-replay-inline-preset class="inline-preset">
-                  <label for="replayPolicyPreset">Load a sample vector</label>
-                  <select
-                    id="replayPolicyPreset"
-                    name="replayPolicyPreset"
-                    data-testid="replay-inline-policy-select"
-                  >
-                    <option value="">Select a sample</option>
-                    <option
-                      th:each="preset : ${policyPresets}"
-                      th:value="${preset.key}"
-                      th:text="${preset.label}"
-                    ></option>
-                  </select>
-                  <p class="hint">
-                    Choosing a preset auto-fills the inline fields with illustrative data.
-                  </p>
-                </div>
-
                 <div class="field-grid">
                   <div>
                     <label for="replaySuite">OCRA suite</label>

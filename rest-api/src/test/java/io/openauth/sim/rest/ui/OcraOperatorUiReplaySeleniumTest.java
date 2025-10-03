@@ -110,13 +110,12 @@ final class OcraOperatorUiReplaySeleniumTest {
     assertThat(otpFieldBefore.getAttribute("value")).isEmpty();
 
     String presetVisibilityScript =
-        "var el = document.querySelector(\"select[data-testid='replay-inline-policy-select']\");"
+        "var el = document.querySelector('[data-replay-inline-preset]');"
             + "if (!el) { return false; }"
-            + "var section = el.closest('[data-replay-section=\"inline\"]');"
-            + "if (!section) { return false; }"
-            + "var hidden = section.hasAttribute('hidden');"
-            + "var displayNone = section.offsetParent === null;"
-            + "return !hidden && !displayNone;";
+            + "var hidden = el.hasAttribute('hidden');"
+            + "var ariaHidden = el.getAttribute('aria-hidden') === 'true';"
+            + "var displayNone = el.offsetParent === null;"
+            + "return !hidden && !ariaHidden && !displayNone;";
 
     Boolean presetVisible =
         (Boolean) ((JavascriptExecutor) driver).executeScript(presetVisibilityScript);
@@ -202,6 +201,33 @@ final class OcraOperatorUiReplaySeleniumTest {
                 ExpectedConditions.presenceOfElementLocated(
                     By.cssSelector("select[data-testid='replay-inline-policy-select']")));
     assertThat(presetSelect.isDisplayed()).isTrue();
+    WebElement replayForm = driver.findElement(By.cssSelector("[data-testid='ocra-replay-form']"));
+    WebElement modeToggle = replayForm.findElement(By.cssSelector("fieldset.mode-toggle"));
+    WebElement presetContainer =
+        replayForm.findElement(By.cssSelector("[data-replay-inline-preset]"));
+    Boolean presetFollowsMode =
+        (Boolean)
+            ((JavascriptExecutor) driver)
+                .executeScript(
+                    "var next = arguments[0].nextElementSibling;"
+                        + "return !!next && next.hasAttribute('data-replay-inline-preset');",
+                    modeToggle);
+    assertThat(presetFollowsMode)
+        .as("Sample preset block should follow the replay mode selector")
+        .isTrue();
+    Boolean otpInputsInNextBlock =
+        (Boolean)
+            ((JavascriptExecutor) driver)
+                .executeScript(
+                    "var next = arguments[0].nextElementSibling;"
+                        + "if (!next) { return false; }"
+                        + "return !!next.querySelector('#replayOtp');",
+                    presetContainer);
+    assertThat(otpInputsInNextBlock)
+        .as("OTP field group should follow the sample preset block")
+        .isTrue();
+    assertThat(presetContainer.getAttribute("hidden")).isNull();
+    assertThat(presetContainer.isDisplayed()).isTrue();
 
     Select preset = new Select(presetSelect);
     preset.selectByValue("qa08-s064");

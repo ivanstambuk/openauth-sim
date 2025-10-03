@@ -11,6 +11,7 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 - 2025-10-03 – Non-OCRA protocol tabs (FIDO2/WebAuthn, EMV/CAP) will ship as disabled placeholders that signal upcoming support but do not expose active flows yet (user selected Option B).
 - 2025-10-03 – The futuristic visual design must rely on the current Thymeleaf + vanilla JS tooling; no new JavaScript/CSS dependencies may be added without explicit approval (user directive).
 - 2025-10-03 – Legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` routes must be decommissioned now that the unified console is live; navigation should flow through `/ui/console` only (owner directive).
+- 2025-10-03 – In the OCRA replay tab, the "Load a sample vector" control must appear immediately below the replay mode selector, mirroring the evaluate tab layout (user directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -21,6 +22,7 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 | OCU-004 | Maintain telemetry emission for both evaluation and replay actions, including any new metadata introduced by the unified console. | Telemetry tests verify payloads include mode/outcome/context without leaking secrets and remain compatible with existing adapters. |
 | OCU-005 | Update operator documentation to describe the unified console, dark theme, and protocol tabs, including guidance for placeholder protocols. | Docs under `docs/1-concepts` or how-to guides reflect the new UI with updated screenshots/description. |
 | OCU-006 | Remove or redirect legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` routes so operators access flows exclusively via `/ui/console`. | UI/system tests verify the legacy endpoints return 404/redirect responses and `/ui/console` remains the single entry point. |
+| OCU-007 | Align replay tab controls so "Load a sample vector" sits directly beneath the replay mode selector, providing consistent spacing with the evaluate tab. | Selenium/UI assertions confirm the control order and spacing within the replay tab matches the evaluate tab arrangement. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |

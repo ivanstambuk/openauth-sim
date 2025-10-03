@@ -22,6 +22,7 @@ Reference specification: `docs/4-architecture/specs/feature-017-operator-console
 - ☑ R1705 – Rewire evaluation/replay functionality within the unified console (form wiring, REST calls, telemetry), rerun Selenium and unit suites.
 - ☑ R1706 – Update operator documentation and screenshots, refresh knowledge map if new components are introduced, rerun `./gradlew :rest-api:test spotlessApply check`.
 - ☑ R1707 – Decommission legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` routes (redirect or remove), update coverage, and rerun `./gradlew :rest-api:test spotlessApply check`.
+- ☑ R1708 – Align replay tab controls so "Load a sample vector" renders directly under the replay mode selector; update Selenium coverage and rerun `./gradlew :rest-api:test spotlessApply check`.
 
 Each increment must stay within ≤10 minutes, lead with tests, and capture notes/telemetry adjustments in this plan as work proceeds.
 
@@ -47,6 +48,7 @@ Each increment must stay within ≤10 minutes, lead with tests, and capture note
 - 2025-10-03 – Completed R1706: refreshed operator documentation + knowledge map for the inline console and reran `./gradlew spotlessApply check` as the verification gate.
 - 2025-10-03 – Follow-up styling refinements: darkened inline field backgrounds, moved protocol tabs into the console header, and removed the legacy summary copy per UI feedback.
 - 2025-10-03 – Completed R1707: removed `/ui/ocra/evaluate` + `/ui/ocra/replay` routes, redirected `/ui/ocra` to `/ui/console`, updated tests to assert 404s for legacy paths, and reused temp databases in OpenAPI suites to avoid MapDB lock contention.
+- 2025-10-03 – Completed R1708: moved preset loader immediately below replay mode selector, updated Selenium assertions for control order, and reran `./gradlew :rest-api:test` plus `spotlessApply check`.
 Use this section to log telemetry schema additions, performance observations, and accessibility adjustments.
 
 ## Analysis Gate (2025-10-03)

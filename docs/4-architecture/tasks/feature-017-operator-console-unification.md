@@ -11,5 +11,6 @@ _Last updated: 2025-10-03_
 - [x] T1705 – Rewire evaluation/replay flows within the unified console, ensuring REST/telemetry tests pass.
 - [x] T1706 – Update documentation, knowledge map, and rerun `./gradlew spotlessApply check` for final verification.
 - [x] T1707 – Remove or redirect legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` routes; update tests to enforce `/ui/console` as sole entry point.
+- [x] T1708 – Reposition replay tab sample loader beneath the mode selector, add Selenium assertion, and rerun `./gradlew :rest-api:test spotlessApply check`.
 
 Update this checklist as increments progress; keep tests ahead of implementation per VDD cadence.
