@@ -169,16 +169,13 @@ final class OcraOperatorUiReplaySeleniumTest {
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-replay-status']"));
     assertThat(status.getText()).isEqualTo("Match");
 
-    WebElement telemetry =
-        resultPanel.findElement(By.cssSelector("[data-testid='ocra-replay-telemetry']"));
-    assertThat(telemetry.getText())
-        .contains("telemetryId=")
-        .contains("mode=stored")
-        .contains("credentialSource=stored")
-        .contains("reasonCode=match")
-        .contains("outcome=match")
-        .contains("sanitized=true")
-        .contains("contextFingerprint=");
+    assertThat(telemetryValue(resultPanel, "ocra-replay-telemetry-id")).isNotBlank();
+    assertThat(telemetryValue(resultPanel, "ocra-replay-telemetry-mode")).isEqualTo("stored");
+    assertThat(telemetryValue(resultPanel, "ocra-replay-credential-source")).isEqualTo("stored");
+    assertThat(telemetryValue(resultPanel, "ocra-replay-reason-code")).isEqualTo("match");
+    assertThat(telemetryValue(resultPanel, "ocra-replay-outcome")).isEqualTo("match");
+    assertThat(telemetryValue(resultPanel, "ocra-replay-fingerprint")).isNotBlank();
+    assertThat(telemetryValue(resultPanel, "ocra-replay-sanitized")).isEqualTo("Yes");
 
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-replay-error']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
@@ -246,16 +243,13 @@ final class OcraOperatorUiReplaySeleniumTest {
                     By.cssSelector("[data-testid='ocra-replay-result']")));
     assertThat(resultPanel.getAttribute("hidden")).isNull();
 
-    WebElement telemetry =
-        resultPanel.findElement(By.cssSelector("[data-testid='ocra-replay-telemetry']"));
-    assertThat(telemetry.getText())
-        .contains("telemetryId=")
-        .contains("mode=inline")
-        .contains("credentialSource=inline")
-        .contains("reasonCode=match")
-        .contains("outcome=match")
-        .contains("sanitized=true")
-        .contains("contextFingerprint=");
+    assertThat(telemetryValue(resultPanel, "ocra-replay-telemetry-id")).isNotBlank();
+    assertThat(telemetryValue(resultPanel, "ocra-replay-telemetry-mode")).isEqualTo("inline");
+    assertThat(telemetryValue(resultPanel, "ocra-replay-credential-source")).isEqualTo("inline");
+    assertThat(telemetryValue(resultPanel, "ocra-replay-reason-code")).isEqualTo("match");
+    assertThat(telemetryValue(resultPanel, "ocra-replay-outcome")).isEqualTo("match");
+    assertThat(telemetryValue(resultPanel, "ocra-replay-fingerprint")).isNotBlank();
+    assertThat(telemetryValue(resultPanel, "ocra-replay-sanitized")).isEqualTo("Yes");
 
     WebElement status =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-replay-status']"));
@@ -357,6 +351,10 @@ final class OcraOperatorUiReplaySeleniumTest {
     Object value =
         ((JavascriptExecutor) driver).executeScript("return window.__ocraReplayLastPayload;");
     return value instanceof String ? (String) value : null;
+  }
+
+  private String telemetryValue(WebElement panel, String testId) {
+    return panel.findElement(By.cssSelector("[data-testid='" + testId + "']")).getText().trim();
   }
 
   private String baseUrl(String path) {

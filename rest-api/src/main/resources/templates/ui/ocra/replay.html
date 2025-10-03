@@ -193,19 +193,34 @@
           </div>
 
           <aside class="result-aside">
-            <div class="result-card" data-testid="ocra-replay-result" hidden aria-hidden="true">
-              <h3>Replay result</h3>
-              <dl>
-                <div>
-                  <dt>Status</dt>
-                  <dd data-testid="ocra-replay-status">—</dd>
-                </div>
-                <div>
-                  <dt>Telemetry</dt>
-                  <dd data-testid="ocra-replay-telemetry">—</dd>
-                </div>
+            <section
+              class="result-panel"
+              data-testid="ocra-replay-result"
+              hidden
+              aria-hidden="true"
+              aria-labelledby="replay-result-heading"
+            >
+              <div class="result-header">
+                <h3 id="replay-result-heading">Replay result</h3>
+                <span data-testid="ocra-replay-status" class="status-badge">—</span>
+              </div>
+              <dl class="result-metadata" data-testid="ocra-replay-telemetry">
+                <dt>Telemetry ID</dt>
+                <dd data-testid="ocra-replay-telemetry-id">—</dd>
+                <dt>Mode</dt>
+                <dd data-testid="ocra-replay-telemetry-mode">—</dd>
+                <dt>Credential Source</dt>
+                <dd data-testid="ocra-replay-credential-source">—</dd>
+                <dt>Reason Code</dt>
+                <dd data-testid="ocra-replay-reason-code">—</dd>
+                <dt>Outcome</dt>
+                <dd data-testid="ocra-replay-outcome">—</dd>
+                <dt>Context Fingerprint</dt>
+                <dd data-testid="ocra-replay-fingerprint">—</dd>
+                <dt>Sanitized</dt>
+                <dd data-testid="ocra-replay-sanitized">—</dd>
               </dl>
-            </div>
+            </section>
 
             <div class="error-card" data-testid="ocra-replay-error" hidden aria-hidden="true">
               <h3>Replay request failed</h3>
@@ -293,8 +308,14 @@
         var advancedToggle = doc.querySelector('[data-testid="replay-advanced-toggle"]');
         var advancedPanel = doc.querySelector('[data-testid="ocra-replay-advanced-panel"]');
         var resultPanel = doc.querySelector('[data-testid="ocra-replay-result"]');
-        var statusValue = doc.querySelector('[data-testid="ocra-replay-status"]');
-        var telemetryValue = doc.querySelector('[data-testid="ocra-replay-telemetry"]');
+        var statusBadge = doc.querySelector('[data-testid="ocra-replay-status"]');
+        var telemetryIdValue = doc.querySelector('[data-testid="ocra-replay-telemetry-id"]');
+        var telemetryModeValue = doc.querySelector('[data-testid="ocra-replay-telemetry-mode"]');
+        var credentialSourceValue = doc.querySelector('[data-testid="ocra-replay-credential-source"]');
+        var reasonCodeValue = doc.querySelector('[data-testid="ocra-replay-reason-code"]');
+        var outcomeValue = doc.querySelector('[data-testid="ocra-replay-outcome"]');
+        var fingerprintValue = doc.querySelector('[data-testid="ocra-replay-fingerprint"]');
+        var sanitizedValue = doc.querySelector('[data-testid="ocra-replay-sanitized"]');
         var errorPanel = doc.querySelector('[data-testid="ocra-replay-error"]');
         var errorPrimary = doc.querySelector('[data-testid="ocra-replay-error-primary"]');
         var errorSecondary = doc.querySelector('[data-testid="ocra-replay-error-secondary"]');
@@ -386,6 +407,7 @@
         function clearPanels() {
           hide(resultPanel);
           hide(errorPanel);
+          resetResultDisplay();
         }
 
         function enableFields(collection, enabled, requiredAttr) {
@@ -578,6 +600,53 @@
           return payload;
         }
 
+        function resetResultDisplay() {
+          if (statusBadge) {
+            statusBadge.textContent = '—';
+            statusBadge.classList.remove('status-badge--success', 'status-badge--error', 'status-badge--info');
+          }
+          setTelemetryField(telemetryIdValue, '—');
+          setTelemetryField(telemetryModeValue, '—');
+          setTelemetryField(credentialSourceValue, '—');
+          setTelemetryField(reasonCodeValue, '—');
+          setTelemetryField(outcomeValue, '—');
+          setTelemetryField(fingerprintValue, '—');
+          setTelemetryField(sanitizedValue, '—');
+        }
+
+        function setTelemetryField(node, value) {
+          if (!node) {
+            return;
+          }
+          node.textContent = value || '—';
+        }
+
+        function applyStatusBadge(statusText) {
+          if (!statusBadge) {
+            return;
+          }
+          var normalized = typeof statusText === 'string' ? statusText.toLowerCase() : 'unknown';
+          var display = normalized;
+          if (normalized === 'match') {
+            display = 'Match';
+          } else if (normalized === 'mismatch' || normalized === 'strict_mismatch') {
+            display = 'Mismatch';
+          } else if (normalized === 'invalid') {
+            display = 'Invalid';
+          } else if (normalized === 'error') {
+            display = 'Error';
+          }
+          statusBadge.textContent = display;
+          statusBadge.classList.remove('status-badge--success', 'status-badge--error', 'status-badge--info');
+          if (normalized === 'match') {
+            statusBadge.classList.add('status-badge--success');
+          } else if (normalized === 'mismatch' || normalized === 'strict_mismatch' || normalized === 'error') {
+            statusBadge.classList.add('status-badge--error');
+          } else {
+            statusBadge.classList.add('status-badge--info');
+          }
+        }
+
         function applyPresetFields(presetKey) {
           if (!presetKey) {
             return;
@@ -641,20 +710,16 @@
           var telemetryId = fallback(metadata.telemetryId, 'n/a');
           var credentialSource = fallback(metadata.credentialSource, mode);
           var fingerprint = fallback(metadata.contextFingerprint, 'unavailable');
-          if (statusValue) {
-            var normalized = statusText === 'match' ? 'Match' : statusText === 'mismatch' ? 'Mismatch' : statusText;
-            statusValue.textContent = normalized;
-          }
-          if (telemetryValue) {
-            telemetryValue.textContent =
-              'telemetryId=' + telemetryId +
-              ' mode=' + mode +
-              ' credentialSource=' + credentialSource +
-              ' reasonCode=' + reasonCode +
-              ' outcome=' + outcome +
-              ' contextFingerprint=' + fingerprint +
-              ' sanitized=' + sanitized;
-          }
+          applyStatusBadge(statusText);
+          setTelemetryField(telemetryIdValue, telemetryId);
+          setTelemetryField(telemetryModeValue, mode);
+          setTelemetryField(credentialSourceValue, credentialSource);
+          setTelemetryField(reasonCodeValue, reasonCode);
+          setTelemetryField(outcomeValue, outcome);
+          setTelemetryField(fingerprintValue, fingerprint);
+          setTelemetryField(
+            sanitizedValue,
+            sanitized === 'true' ? 'Yes' : sanitized === 'false' ? 'No' : sanitized);
           hide(errorPanel);
           show(resultPanel);
           return {
@@ -712,6 +777,7 @@
             var suffix = field ? ' Field: ' + field + '.' : '';
             errorSecondary.textContent = 'Reason: ' + reasonLabel + '. Sanitized: ' + sanitized + '.' + suffix;
           }
+          resetResultDisplay();
           hide(resultPanel);
           show(errorPanel);
           var reasonCodeValue = specificReason || (statusValue === 'error' ? 'unexpected_error' : 'validation_failure');

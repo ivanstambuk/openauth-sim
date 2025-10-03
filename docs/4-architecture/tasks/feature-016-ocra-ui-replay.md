@@ -16,5 +16,6 @@ _Last updated: 2025-10-03_
 - [x] T1610 – Hide/disable replay sample presets when stored mode is active and update Selenium coverage. (_2025-10-03_)
 - [x] T1611 – Add expected OTP values to inline policy presets and document the change. (_2025-10-03_)
 - [x] T1612 – Update replay JS + Selenium suites so selecting a preset populates OTP and succeeds on submission; rerun `./gradlew :rest-api:test spotlessApply check`. (_2025-10-03_)
+- [x] T1613 – Align replay result card styling with evaluation console (status emphasis and telemetry list) plus UI test refinements. (_2025-10-03_)
 
 Update this checklist as increments complete; keep tests ahead of implementation to maintain VDD cadence.
