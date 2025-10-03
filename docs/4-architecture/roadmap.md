@@ -40,7 +40,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 
 - [x] Create detailed feature plans for Workstreams 2–5 (Feature Plan 001 covers Workstream 1). Completed 2025-09-30.
 - [x] Confirm next priority (UI replay before learning UI) via clarification gate and log outcomes in `docs/4-architecture/open-questions.md`. Completed 2025-10-03.
-- [ ] Draft specification and feature plan for the selected post-Feature 009 workstream before implementation begins. (Feature 016 spec drafted 2025-10-03; feature plan pending.)
+- [x] Draft specification and feature plan for the selected post-Feature 009 workstream before implementation begins. (Feature 016 spec + plan completed 2025-10-03; documentation synced.)
 - [ ] Capture ADRs for crypto design decisions (key formats, hashing algorithms, etc.).
 - [ ] Identify specification links for inclusion in docs once network lookups are permitted.
 - [x] Produce Maintenance CLI coverage hotspot analysis (Feature 012) to safeguard the ≥0.90 Jacoco buffer for Maintenance CLI. Completed 2025-10-01.

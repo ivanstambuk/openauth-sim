@@ -220,6 +220,9 @@ final class OcraOperatorUiReplaySeleniumTest {
         .contains("sanitized=true")
         .contains("contextFingerprint=");
 
+    WebElement secretField = driver.findElement(By.id("replaySharedSecretHex"));
+    assertThat(secretField.getAttribute("value")).isEqualTo(STORED_SECRET_HEX);
+
     WebElement status =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-replay-status']"));
     assertThat(status.getText()).isEqualTo("Match");
@@ -255,6 +258,9 @@ final class OcraOperatorUiReplaySeleniumTest {
                     By.cssSelector("[data-testid='ocra-replay-error']")));
     assertThat(errorPanel.getAttribute("hidden")).isNull();
     assertThat(errorPanel.getText()).contains("validation_failure").contains("otp");
+
+    WebElement secretField = driver.findElement(By.id("replaySharedSecretHex"));
+    assertThat(secretField.getAttribute("value")).isEqualTo(STORED_SECRET_HEX);
 
     WebElement resultPanel =
         driver.findElement(By.cssSelector("[data-testid='ocra-replay-result']"));
