@@ -1,6 +1,6 @@
 # Feature 016 – Task Checklist
 
-_Status: Draft_
+_Status: Complete_
 _Last updated: 2025-10-03_
 
 ## Tasks (≤10 min each)
@@ -9,7 +9,7 @@ _Last updated: 2025-10-03_
 - [x] T1603 – Introduce MockMvc/WebTestClient tests for replay controller forwarding, covering stored/inline payloads and error handling. (_2025-10-03_)
 - [x] T1604 – Implement replay screen templates, controller actions, and REST wiring to satisfy stored/inline flows and make tests green. (_2025-10-03_)
 - [x] T1605 – Add telemetry instrumentation + unit tests verifying new fields (mode/outcome/fingerprint) for UI replay events. (_2025-10-03_)
-- [ ] T1606 – Update operator how-to guide and telemetry reference docs to describe UI replay usage.
+- [x] T1606 – Update operator how-to guide and telemetry reference docs to describe UI replay usage. (_2025-10-03_)
 - [x] T1607 – Run `./gradlew :rest-api:test :rest-api:systemTest spotlessApply check`, self-review diffs, and capture notes in the feature plan. (_2025-10-03_)
 
 Update this checklist as increments complete; keep tests ahead of implementation to maintain VDD cadence.
