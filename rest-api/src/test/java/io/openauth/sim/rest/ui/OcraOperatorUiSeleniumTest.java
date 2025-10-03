@@ -667,11 +667,23 @@ final class OcraOperatorUiSeleniumTest {
 
   private void navigateToEvaluationConsole() {
     driver.get(baseUrl("/ui/console"));
-    new WebDriverWait(driver, Duration.ofSeconds(5))
-        .until(
-            ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("[data-testid='ocra-open-evaluate']")));
-    driver.findElement(By.cssSelector("[data-testid='ocra-open-evaluate']")).click();
+    WebElement modeToggle =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-testid='ocra-mode-toggle']")));
+    waitForPresetScripts();
+
+    if (!"evaluate".equals(modeToggle.getAttribute("data-mode"))) {
+      driver.findElement(By.cssSelector("[data-testid='ocra-mode-select-evaluate']")).click();
+      new WebDriverWait(driver, Duration.ofSeconds(5))
+          .until(d -> "evaluate".equals(modeToggle.getAttribute("data-mode")));
+    }
+
+    waitForPanelVisibility(
+        By.cssSelector("[data-testid='ocra-evaluate-panel']"), PanelVisibility.VISIBLE);
+    waitForPanelVisibility(
+        By.cssSelector("[data-testid='ocra-replay-panel']"), PanelVisibility.HIDDEN);
     waitForPresetScripts();
   }
 
@@ -686,6 +698,16 @@ final class OcraOperatorUiSeleniumTest {
 
   private void waitForBackgroundJavaScript() {
     driver.getWebClient().waitForBackgroundJavaScript(Duration.ofSeconds(2).toMillis());
+  }
+
+  private void waitForPanelVisibility(By locator, PanelVisibility expectedVisibility) {
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            d -> {
+              WebElement element = d.findElement(locator);
+              boolean hidden = element.getAttribute("hidden") != null;
+              return expectedVisibility == PanelVisibility.VISIBLE ? !hidden : hidden;
+            });
   }
 
   private void assertValueWithWait(By locator, String expected) {
@@ -758,6 +780,11 @@ final class OcraOperatorUiSeleniumTest {
   private void waitForDisabledState(String elementId, boolean expectedDisabled) {
     new WebDriverWait(driver, Duration.ofSeconds(5))
         .until(d -> isDisabled(elementId) == expectedDisabled);
+  }
+
+  private enum PanelVisibility {
+    VISIBLE,
+    HIDDEN
   }
 
   private void assertDisabledStyling(String elementId) {

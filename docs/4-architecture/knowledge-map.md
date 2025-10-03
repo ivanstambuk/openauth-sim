@@ -26,9 +26,9 @@ This living map captures the explicit relationships between modules, data flows,
 - Application module now owns shared telemetry adapters (`TelemetryContracts`) that produce consistent `TelemetryFrame` payloads for CLI and REST, replacing facade-local telemetry classes.
 - `infra-persistence` module centralises `CredentialStoreFactory` wiring so CLI, REST, and tests acquire MapDB-backed stores through a shared configuration seam while keeping encryption profiles and migrations injectable.
 - CLI module now exposes `maintenance <compact|verify>` commands that orchestrate the helper for operators working on local MapDB stores.
-- Upcoming Feature 016 will add a dedicated replay screen to the operator UI (within `rest-api`), driving `/api/v1/ocra/verify` with stored/inline modes and emitting replay-specific telemetry through `application.telemetry`.
+- Unified operator console at `/ui/console` now embeds OCRA evaluation and replay forms with an accessible mode toggle, reusing Thymeleaf fragments while keeping placeholder protocol tabs disabled until new facades arrive.
 - REST OCRA verification metadata now includes a `mode` attribute (stored vs inline) exposed to telemetry so replay facades can log outcome context consistently.
-- Operator UI replay screen now posts sanitized telemetry summaries to `TelemetryContracts.ocraVerificationAdapter`, tagging `origin=ui` and surfacing mode/outcome/fingerprint for downstream analytics.
+- Operator console replay mode posts sanitized telemetry summaries to `TelemetryContracts.ocraVerificationAdapter`, tagging `origin=ui` and surfacing mode/outcome/fingerprint for downstream analytics.
 - `core-shared` module centralises credential models, repository utilities, and persistence primitives consumed by `core`, `core-ocra`, and higher-level facades.
 - `core-ocra` module owns OCRA descriptors, registry defaults, and migrations; `OcraStoreMigrations` registers OCRA-specific upgrades when configuring `MapDbCredentialStore` builders.
 - CLI module now orchestrates OCRA credential import/list/delete/evaluate commands, delegating to MapDB persistence and core OCRA adapters while emitting sanitized telemetry.
@@ -50,7 +50,7 @@ This living map captures the explicit relationships between modules, data flows,
 - REST OCRA telemetry snapshot is archived under `docs/3-reference/rest-ocra-telemetry-snapshot.md` to illustrate redaction guarantees for operators.
 - REST OCRA telemetry events now emit `reasonCode` and `sanitized` attributes so downstream alerting can distinguish validation failures from unexpected errors without leaking secrets.
 - REST OCRA evaluation supports credential lookup via `credentialId`, resolving descriptors from the persistence adapter while preserving the existing inline secret mode.
-- REST module now hosts Thymeleaf-backed operator views under `/ui/ocra`, delegating evaluations to the existing REST endpoint while emitting sanitized telemetry and enforcing session-backed CSRF tokens.
+- REST module now serves the unified Thymeleaf operator console at `/ui/console`, reusing `/ui/ocra` fragments under the hood while delegating evaluations to the REST endpoint and enforcing session-backed CSRF tokens.
 - REST module exposes `/api/v1/ocra/credentials` to surface sanitized OCRA credential summaries for operator dropdowns without leaking secret material.
 - Shared MapDB persistence defaults to `data/ocra-credentials.db` at the repository root, keeping CLI, REST, and UI facades aligned unless overridden.
 - MapDB store now exposes a package-private cache accessor used by internal tests, eliminating the need for reflective field access while keeping cache internals encapsulated.

@@ -13,7 +13,13 @@
         Required fields are marked and secrets are never echoed back.
       </p>
 
-      <section aria-labelledby="evaluate-heading" class="card-shell">
+      <section
+        aria-labelledby="evaluate-heading"
+        class="card-shell"
+        data-testid="ocra-evaluate-panel"
+        th:fragment="ocraEvaluatePanel(visible)"
+        th:attr="hidden=${visible == null || visible} ? null : 'hidden', aria-hidden=${visible == null || visible} ? null : 'true'"
+      >
         <div class="section-columns">
           <div>
             <h2 id="evaluate-heading" class="section-title">Evaluate an OCRA response</h2>
@@ -462,10 +468,15 @@
     <script
       id="ocra-policy-presets"
       type="application/json"
+      th:fragment="ocraPolicyPresetData"
       th:utext="${policyPresetJson}"
     ></script>
 
-    <script th:inline="javascript" data-testid="ocra-fetch-script">
+    <script
+      th:inline="javascript"
+      data-testid="ocra-fetch-script"
+      th:fragment="ocraEvaluateScripts"
+    >
       (function () {
         const modeInputs = document.querySelectorAll('input[name="mode"]');
         const sections = document.querySelectorAll('[data-mode-section]');

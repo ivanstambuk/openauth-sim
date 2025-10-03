@@ -8,49 +8,52 @@
   <body>
     <main class="operator-console" aria-labelledby="operator-console-heading">
       <header class="console-header">
-        <h1 id="operator-console-heading">Operator Console</h1>
-        <p class="summary">
-          Manage OCRA evaluation and replay flows from a single console. Additional protocol tabs will
-          activate as their implementations ship.
-        </p>
+        <div class="console-header__title">
+          <h1 id="operator-console-heading">Operator Console</h1>
+        </div>
+        <div
+            class="protocol-tabs"
+            data-testid="operator-protocol-tabs"
+            role="tablist"
+            aria-label="Operator protocol selector"
+          >
+          <button
+              class="protocol-tab protocol-tab--active"
+              data-testid="protocol-tab-ocra"
+              data-protocol-tab="ocra"
+              role="tab"
+              aria-selected="true"
+              aria-controls="protocol-panel-ocra"
+            >
+            OCRA
+          </button>
+          <button
+              class="protocol-tab"
+              data-testid="protocol-tab-fido2"
+              role="tab"
+              data-protocol-tab="fido2"
+              aria-selected="false"
+              aria-controls="protocol-panel-fido2"
+            >
+            FIDO2 / WebAuthn
+          </button>
+          <button
+              class="protocol-tab"
+              data-testid="protocol-tab-emv"
+              role="tab"
+              data-protocol-tab="emv"
+              aria-selected="false"
+              aria-controls="protocol-panel-emv"
+            >
+            EMV / CAP
+          </button>
+        </div>
       </header>
-
-      <div
-          class="protocol-tabs"
-          data-testid="operator-protocol-tabs"
-          role="tablist"
-          aria-label="Operator protocol selector"
-        >
-        <button
-            class="protocol-tab protocol-tab--active"
-            data-testid="protocol-tab-ocra"
-            role="tab"
-            aria-selected="true"
-            aria-controls="protocol-panel-ocra"
-          >
-          OCRA
-        </button>
-        <button
-            class="protocol-tab"
-            data-testid="protocol-tab-fido2"
-            role="tab"
-            aria-disabled="true"
-          >
-          FIDO2 / WebAuthn
-        </button>
-        <button
-            class="protocol-tab"
-            data-testid="protocol-tab-emv"
-            role="tab"
-            aria-disabled="true"
-          >
-          EMV / CAP
-        </button>
-      </div>
 
       <section
           id="protocol-panel-ocra"
           class="protocol-panel"
+          data-protocol-panel="ocra"
           aria-labelledby="protocol-tab-ocra"
         >
         <div
@@ -60,48 +63,169 @@
             role="tablist"
             aria-label="OCRA interaction modes"
           >
-          <span class="mode-pill mode-pill--active" role="tab" aria-selected="true">Evaluate</span>
-          <span class="mode-pill" role="tab" aria-selected="false">Replay</span>
+          <button
+              type="button"
+              class="mode-pill mode-pill--active"
+              data-testid="ocra-mode-select-evaluate"
+              role="tab"
+              aria-selected="true"
+            >
+            Evaluate
+          </button>
+          <button
+              type="button"
+              class="mode-pill"
+              data-testid="ocra-mode-select-replay"
+              role="tab"
+              aria-selected="false"
+            >
+            Replay
+          </button>
         </div>
 
-        <section class="ocra-placeholder" aria-live="polite">
-          <h2>Unified flow in progress</h2>
-          <p>
-            OCRA evaluation and replay are being merged into this console. Use the links below until
-            the integrated forms arrive.
-          </p>
-          <div class="placeholder-links" role="group" aria-label="Legacy OCRA views">
-            <a
-                class="placeholder-link"
-                data-testid="ocra-open-evaluate"
-                th:href="@{/ui/ocra/evaluate}"
-              >
-              Open evaluation console
-            </a>
-            <a
-                class="placeholder-link"
-                data-testid="ocra-open-replay"
-                th:href="@{/ui/ocra/replay}"
-              >
-              Open replay console
-            </a>
-          </div>
-        </section>
-      </section>
+        <th:block th:replace="~{ui/ocra/evaluate :: ocraEvaluatePanel(visible=${true})}"></th:block>
+        <th:block th:replace="~{ui/ocra/evaluate :: ocraPolicyPresetData}"></th:block>
 
-      <section class="protocol-panel protocol-panel--disabled" aria-hidden="true">
+        <th:block th:replace="~{ui/ocra/replay :: ocraReplayPanel(visible=${false})}"></th:block>
+        <th:block th:replace="~{ui/ocra/replay :: ocraReplayPresetData}"></th:block>
+      </section>
+      <section
+          id="protocol-panel-fido2"
+          class="protocol-panel protocol-panel--placeholder"
+          data-protocol-panel="fido2"
+          aria-labelledby="protocol-tab-fido2"
+          hidden="hidden"
+          aria-hidden="true"
+        >
         <h2>FIDO2 / WebAuthn</h2>
         <p>
-          Placeholder for upcoming FIDO2/WebAuthn operator tools. Watch the roadmap for enablement updates.
+          Operator tooling for FIDO2/WebAuthn is in design. Tabs will activate once the protocol facade
+          ships with REST + UI support.
         </p>
       </section>
 
-      <section class="protocol-panel protocol-panel--disabled" aria-hidden="true">
+      <section
+          id="protocol-panel-emv"
+          class="protocol-panel protocol-panel--placeholder"
+          data-protocol-panel="emv"
+          aria-labelledby="protocol-tab-emv"
+          hidden="hidden"
+          aria-hidden="true"
+        >
         <h2>EMV / CAP</h2>
         <p>
-          Placeholder for future EMV/CAP tooling. Tabs will activate once protocol support is prioritised.
+          EMV/CAP operator workflows are planned. This panel will light up when credential flows and UI
+          scaffolding are available.
         </p>
       </section>
     </main>
+    <th:block th:replace="~{ui/ocra/evaluate :: ocraEvaluateScripts}"></th:block>
+    <th:block th:replace="~{ui/ocra/replay :: ocraReplayScripts}"></th:block>
+
+    <script th:inline="javascript">
+      (function () {
+        const protocolTabs = Array.from(
+          document.querySelectorAll('[data-protocol-tab]')
+        );
+        const protocolPanels = Array.from(
+          document.querySelectorAll('[data-protocol-panel]')
+        );
+
+        const modeToggle = document.querySelector("[data-testid='ocra-mode-toggle']");
+        const evaluateButton =
+          modeToggle && modeToggle.querySelector("[data-testid='ocra-mode-select-evaluate']");
+        const replayButton =
+          modeToggle && modeToggle.querySelector("[data-testid='ocra-mode-select-replay']");
+        const evaluatePanel = document.querySelector("[data-testid='ocra-evaluate-panel']");
+        const replayPanel = document.querySelector("[data-testid='ocra-replay-panel']");
+
+        function setPanelVisibility(panel, hidden) {
+          if (!panel) {
+            return;
+          }
+          if (hidden) {
+            panel.setAttribute("hidden", "hidden");
+            panel.setAttribute("aria-hidden", "true");
+          } else {
+            panel.removeAttribute("hidden");
+            panel.removeAttribute("aria-hidden");
+          }
+        }
+
+        function toggleButtonState(button, active) {
+          if (!button) {
+            return;
+          }
+          button.classList.toggle("mode-pill--active", active);
+          button.setAttribute("aria-selected", active ? "true" : "false");
+        }
+
+        function setActiveMode(mode) {
+          if (!modeToggle) {
+            return;
+          }
+          modeToggle.setAttribute("data-mode", mode);
+          const isEvaluate = mode === "evaluate";
+          toggleButtonState(evaluateButton, isEvaluate);
+          toggleButtonState(replayButton, !isEvaluate);
+          setPanelVisibility(evaluatePanel, !isEvaluate);
+          setPanelVisibility(replayPanel, isEvaluate);
+        }
+
+        function setActiveProtocol(protocol) {
+          protocolTabs.forEach((tab) => {
+            const tabProtocol = tab.getAttribute('data-protocol-tab');
+            const isActive = tabProtocol === protocol;
+            tab.classList.toggle('protocol-tab--active', isActive);
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+          });
+
+          protocolPanels.forEach((panel) => {
+            const panelProtocol = panel.getAttribute('data-protocol-panel');
+            const isActive = panelProtocol === protocol;
+            setPanelVisibility(panel, !isActive);
+          });
+
+          if (protocol === 'ocra') {
+            setPanelVisibility(modeToggle, false);
+            setActiveMode(modeToggle ? modeToggle.getAttribute('data-mode') || 'evaluate' : 'evaluate');
+          } else {
+            setPanelVisibility(modeToggle, true);
+          }
+        }
+
+        protocolTabs.forEach((tab) => {
+          tab.addEventListener('click', function (event) {
+            event.preventDefault();
+            const protocol = tab.getAttribute('data-protocol-tab');
+            if (!protocol) {
+              return;
+            }
+            if (protocol === 'ocra' && modeToggle && modeToggle.hasAttribute('hidden')) {
+              setPanelVisibility(modeToggle, false);
+            }
+            if (protocol === 'ocra') {
+              setActiveMode(modeToggle ? modeToggle.getAttribute('data-mode') || 'evaluate' : 'evaluate');
+            }
+            setActiveProtocol(protocol);
+          });
+        });
+
+        if (evaluateButton) {
+          evaluateButton.addEventListener('click', function () {
+            setActiveMode('evaluate');
+          });
+        }
+
+        if (replayButton) {
+          replayButton.addEventListener('click', function () {
+            setActiveMode('replay');
+          });
+        }
+
+        setActiveProtocol('ocra');
+        setActiveMode('evaluate');
+      })();
+    </script>
   </body>
 </html>

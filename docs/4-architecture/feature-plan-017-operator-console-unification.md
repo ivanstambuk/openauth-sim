@@ -41,6 +41,10 @@ Each increment must stay within ≤10 minutes, lead with tests, and capture note
 - 2025-10-03 – R1704 swapped the operator palette to the new dark theme, widened layouts, and re-styled console tabs/placeholders while keeping forms accessible.
 - 2025-10-03 – R1703 merged evaluation/replay entry points under `/ui/console` with placeholder content and links back to legacy pages; Selenium suite now passes.
 - 2025-10-03 – Added Selenium coverage for unified console/tab expectations (R1701); tests passed once the `/ui/console` scaffold landed in R1703.
+- 2025-10-03 – Initiated R1705 by drafting Selenium expectations for inline evaluation/replay forms directly on `/ui/console`, forcing red coverage until the forms and telemetry wiring landed.
+- 2025-10-03 – Completed R1705: embedded evaluation/replay forms within `/ui/console`, added mode toggle script, and reran `./gradlew :rest-api:test` to confirm Selenium coverage.
+- 2025-10-03 – Completed R1706: refreshed operator documentation + knowledge map for the inline console and reran `./gradlew spotlessApply check` as the verification gate.
+- 2025-10-03 – Follow-up styling refinements: darkened inline field backgrounds, moved protocol tabs into the console header, and removed the legacy summary copy per UI feedback.
 Use this section to log telemetry schema additions, performance observations, and accessibility adjustments.
 
 ## Analysis Gate (2025-10-03)
@@ -50,4 +54,3 @@ Use this section to log telemetry schema additions, performance observations, an
 - [x] Tasks coverage – Tasks T1701–T1706 map to requirements, with tests preceding implementation and ≤10 min scope.
 - [x] Constitution compliance – Work keeps to existing modules, honors spec-first/test-first, and does not introduce new dependencies.
 - [x] Tooling readiness – Plan cites `./gradlew :rest-api:test spotlessApply check`; SpotBugs dead-state enforcement stays active via root `check` invocation.
-

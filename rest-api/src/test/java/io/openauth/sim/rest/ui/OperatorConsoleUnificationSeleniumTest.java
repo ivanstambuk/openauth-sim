@@ -68,19 +68,82 @@ final class OperatorConsoleUnificationSeleniumTest {
     assertThat(ocraTab.getAttribute("aria-selected")).isEqualTo("true");
 
     WebElement fidoTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-fido2']"));
-    assertThat(fidoTab.getAttribute("aria-disabled")).isEqualTo("true");
+    assertThat(fidoTab.getAttribute("aria-selected")).isEqualTo("false");
 
     WebElement emvTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-emv']"));
-    assertThat(emvTab.getAttribute("aria-disabled")).isEqualTo("true");
+    assertThat(emvTab.getAttribute("aria-selected")).isEqualTo("false");
 
     WebElement modeToggle = driver.findElement(By.cssSelector("[data-testid='ocra-mode-toggle']"));
     assertThat(modeToggle.getAttribute("data-mode"))
         .as("OCRA mode toggle should default to evaluation")
         .isEqualTo("evaluate");
 
-    WebElement evaluateLink =
-        driver.findElement(By.cssSelector("[data-testid='ocra-open-evaluate']"));
-    assertThat(evaluateLink.getAttribute("href")).contains("/ui/ocra/evaluate");
+    WebElement ocraPanel = driver.findElement(By.cssSelector("[data-protocol-panel='ocra']"));
+    WebElement evaluateSection =
+        ocraPanel.findElement(By.cssSelector("[data-testid='ocra-evaluate-panel']"));
+    assertThat(evaluateSection.getAttribute("hidden"))
+        .as("Evaluation panel should be visible by default")
+        .isNull();
+    WebElement evaluateForm =
+        evaluateSection.findElement(By.cssSelector("[data-testid='ocra-evaluate-form']"));
+    assertThat(evaluateForm).isNotNull();
+
+    WebElement replaySection =
+        driver.findElement(By.cssSelector("[data-testid='ocra-replay-panel']"));
+    assertThat(replaySection.getAttribute("hidden"))
+        .as("Replay panel should start hidden")
+        .isNotNull();
+    WebElement replayForm =
+        replaySection.findElement(By.cssSelector("[data-testid='ocra-replay-form']"));
+    assertThat(replayForm).isNotNull();
+
+    WebElement replayToggle =
+        driver.findElement(By.cssSelector("[data-testid='ocra-mode-select-replay']"));
+    replayToggle.click();
+
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> "replay".equals(modeToggle.getAttribute("data-mode")));
+
+    assertThat(evaluateSection.getAttribute("hidden"))
+        .as("Evaluation panel should be hidden after switching to replay")
+        .isNotNull();
+    assertThat(replaySection.getAttribute("hidden"))
+        .as("Replay panel should be visible after switch")
+        .isNull();
+
+    WebElement evaluateToggle =
+        driver.findElement(By.cssSelector("[data-testid='ocra-mode-select-evaluate']"));
+    evaluateToggle.click();
+
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> "evaluate".equals(modeToggle.getAttribute("data-mode")));
+
+    assertThat(evaluateSection.getAttribute("hidden")).isNull();
+    assertThat(replaySection.getAttribute("hidden")).isNotNull();
+
+    fidoTab.click();
+    WebElement fidoPanel = driver.findElement(By.cssSelector("[data-protocol-panel='fido2']"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(panel -> fidoPanel.getAttribute("hidden") == null);
+    assertThat(modeToggle.getAttribute("hidden"))
+        .as("Mode toggle should hide for non-OCRA protocols")
+        .isNotNull();
+    assertThat(ocraPanel.getAttribute("hidden")).isNotNull();
+    assertThat(fidoPanel.getText()).contains("FIDO2");
+
+    emvTab.click();
+    WebElement emvPanel = driver.findElement(By.cssSelector("[data-protocol-panel='emv']"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(panel -> emvPanel.getAttribute("hidden") == null);
+    assertThat(emvPanel.getText()).contains("EMV");
+
+    ocraTab.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(panel -> modeToggle.getAttribute("hidden") == null);
+    assertThat(modeToggle.getAttribute("data-mode")).isEqualTo("evaluate");
+    assertThat(ocraPanel.getAttribute("hidden")).isNull();
+    assertThat(fidoPanel.getAttribute("hidden")).isNotNull();
+    assertThat(emvPanel.getAttribute("hidden")).isNotNull();
   }
 
   private String baseUrl(String path) {

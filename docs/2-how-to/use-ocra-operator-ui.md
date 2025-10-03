@@ -15,12 +15,12 @@ calls with consistent telemetry.
 - OCRA credentials already exist if you plan to use stored flows (evaluation presets or replay).
 
 ## Launching the Console
-1. Navigate to `http://localhost:8080/ui/ocra`.
-2. The navigation bar exposes **Evaluate** (default view) and **Replay**. Keyboard shortcuts (`Tab`/`Shift+Tab`) move between the tabs and their content sections.
-3. Every view uses CSRF-protected fetch requests; tokens are bound to your HTTP session and reused by the JavaScript client.
-4. If you seeded credentials via the CLI, ensure you reused the same database path as the REST app (for example `--database=data/ocra-credentials.db`).
+1. Navigate to `http://localhost:8080/ui/console`. The unified operator console now hosts all OCRA interactions; additional protocol tabs are disabled until their implementations land.
+2. The OCRA panel loads by default and presents a dark-themed mode toggle labelled **Evaluate** and **Replay**. Keyboard navigation lands on the toggle first so operators can switch modes with `Enter`/`Space`.
+3. Both forms execute CSRF-protected JSON fetches; session-bound tokens are embedded in the page and reused by the JavaScript client.
+4. If you seeded credentials via the CLI, make sure the REST app points at the same MapDB database (for example `--openauth.sim.persistence.database-path=data/ocra-credentials.db`).
 
-## Using the Evaluation Console
+## Running Evaluations (Evaluate Mode)
 
 ### Choosing an Evaluation Mode
 - **Inline parameters** – Provide the OCRA suite and shared secret as hex. Use this for ad-hoc checks when you do not want to rely on persisted credentials. A preset dropdown loads sample vectors (derived from the automated tests) to speed up manual verification. Presets include both the RFC 6287 session samples and the `OCRA-1:HOTP-SHA256-6:C-QH64` counter/hex scenario generated via the Appendix B workflow described in `generate-ocra-test-vectors.md`.
@@ -33,10 +33,10 @@ The mode toggle is keyboard-accessible and announces which section is visible. J
 - Request parameters (challenge, client/server challenge, session, timestamp, counter) map one-to-one with `POST /api/v1/ocra/evaluate`. Leave fields blank to accept backend defaults. The counter field is automatically populated when you select the C-QH64 preset so results match the documented test vectors. Stored credential mode can auto-populate required fields; the UI clears values the selected suite forbids so you avoid validation conflicts.
 - Shared secrets remain visible after each evaluation so you can iterate on the same test data during verification. Clear the field manually if you need to hide the value. The fetch handler still clears the optional PIN hash field once the REST call completes.
 
-## Using the Replay Screen
-1. Select the **Replay** tab in the navigation bar or browse directly to `http://localhost:8080/ui/ocra/replay`.
-2. The screen presents two cards: **Stored credential replay** and **Inline replay**. Toggle buttons are keyboard-focusable and announce which mode is active.
-3. Once a replay completes, the UI sends a follow-up POST to `/ui/ocra/replay/telemetry` so the shared telemetry adapter records the outcome with `origin=ui` and replay metadata.
+## Running Replays (Replay Mode)
+1. Click the **Replay** toggle inside the OCRA panel. The evaluation form hides while the replay fields become visible in-place.
+2. Replay mode exposes two subsections: **Stored credential replay** (default) and **Inline replay**. The radio buttons drive the same async wiring HtmlUnit exercises in the Selenium suite, so keyboard users receive focus and `aria-live` announcements when sections change.
+3. Successful replays trigger a telemetry POST to `/ui/ocra/replay/telemetry` with `origin=ui`, `mode`, outcome, sanitized fingerprint, and credential source so downstream observability matches the REST facade.
 
 ### Stored Credential Replays
 - Pick a credential from the dropdown. The UI fetches the credential inventory from `/api/v1/ocra/credentials` and caches it for the active session.
@@ -49,8 +49,8 @@ The mode toggle is keyboard-accessible and announces which section is visible. J
 - Validation feedback appears inline; failing fields gain `aria-invalid="true"` and error messages for assistive technology. Successful submissions echo the telemetry ID plus the sanitized fingerprint hash so teams can cross-check backend logs.
 
 ## Reading Results and Telemetry
-- Evaluation results render the OTP, status, telemetry ID, reason code, and suite. Replay responses focus on match/mismatch status, credential source (`stored` vs `inline`), sanitized flag, and the hashed context fingerprint.
-- Copy the telemetry panel when escalating issues; it matches the REST metadata (`mode`, `credentialSource`, `outcome`, `contextFingerprint`) and is already redacted for safety.
+- Evaluation results render the OTP, status, telemetry ID, reason code, and suite inside the console’s right-hand column. Replay responses focus on match/mismatch status, credential source (`stored` vs `inline`), sanitized flag, and the hashed context fingerprint directly beneath the form.
+- Copy the telemetry panel when escalating issues; it mirrors the REST metadata (`mode`, `credentialSource`, `outcome`, `contextFingerprint`) and is already redacted for safety.
 - Validation errors reuse sanitized reason codes/messages from the REST API. Unexpected server errors surface a generic banner without secret material. Error panels appear only when the REST call returns a non-2xx status.
 
 ## Logging & Observability Notes

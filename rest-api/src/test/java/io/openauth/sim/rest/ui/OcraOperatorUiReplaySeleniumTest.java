@@ -357,13 +357,39 @@ final class OcraOperatorUiReplaySeleniumTest {
     return panel.findElement(By.cssSelector("[data-testid='" + testId + "']")).getText().trim();
   }
 
+  private void waitForPanelVisibility(By locator, PanelVisibility expectedVisibility) {
+    new WebDriverWait(driver, WAIT_TIMEOUT)
+        .until(
+            d -> {
+              WebElement element = d.findElement(locator);
+              boolean hidden = element.getAttribute("hidden") != null;
+              return expectedVisibility == PanelVisibility.VISIBLE ? !hidden : hidden;
+            });
+  }
+
+  private enum PanelVisibility {
+    VISIBLE,
+    HIDDEN
+  }
+
   private void navigateToReplayConsole() {
     driver.get(baseUrl("/ui/console"));
-    new WebDriverWait(driver, Duration.ofSeconds(5))
-        .until(
-            ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("[data-testid='ocra-open-replay']")));
-    driver.findElement(By.cssSelector("[data-testid='ocra-open-replay']")).click();
+    WebElement modeToggle =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-testid='ocra-mode-toggle']")));
+
+    if (!"replay".equals(modeToggle.getAttribute("data-mode"))) {
+      driver.findElement(By.cssSelector("[data-testid='ocra-mode-select-replay']")).click();
+      new WebDriverWait(driver, Duration.ofSeconds(5))
+          .until(d -> "replay".equals(modeToggle.getAttribute("data-mode")));
+    }
+
+    waitForPanelVisibility(
+        By.cssSelector("[data-testid='ocra-replay-panel']"), PanelVisibility.VISIBLE);
+    waitForPanelVisibility(
+        By.cssSelector("[data-testid='ocra-evaluate-panel']"), PanelVisibility.HIDDEN);
   }
 
   private String baseUrl(String path) {

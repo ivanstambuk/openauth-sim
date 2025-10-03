@@ -13,7 +13,13 @@
         forwarded to the REST replay endpoint and sanitized telemetry is surfaced for audit trails.
       </p>
 
-      <section class="card-shell" aria-labelledby="replay-section-title">
+      <section
+        class="card-shell"
+        aria-labelledby="replay-section-title"
+        data-testid="ocra-replay-panel"
+        th:fragment="ocraReplayPanel(visible)"
+        th:attr="hidden=${visible == null || visible} ? null : 'hidden', aria-hidden=${visible == null || visible} ? null : 'true'"
+      >
         <div class="section-columns">
           <div>
             <h2 id="replay-section-title" class="section-title">Replay an OTP</h2>
@@ -99,7 +105,7 @@
                 hidden
                 aria-hidden="true"
               >
-                <div data-replay-inline-preset>
+                <div data-replay-inline-preset class="inline-preset">
                   <label for="replayPolicyPreset">Load a sample vector</label>
                   <select
                     id="replayPolicyPreset"
@@ -237,10 +243,11 @@
     <script
       id="ocra-replay-policy-presets"
       type="application/json"
+      th:fragment="ocraReplayPresetData"
       th:utext="${policyPresetJson}"
     ></script>
 
-    <script th:inline="javascript">
+    <script th:inline="javascript" th:fragment="ocraReplayScripts">
       (function () {
         var doc = document;
         var form = doc.querySelector('[data-testid="ocra-replay-form"]');
