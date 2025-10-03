@@ -1,6 +1,7 @@
 package io.openauth.sim.core.store;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.model.Credential;
@@ -22,7 +23,7 @@ final class OcraStoreMigrationsTest {
   @TempDir Path tempDir;
 
   @Test
-  void upgradesLegacyRecordsViaHelper() {
+  void failsWhenLegacyRecordsExistWithoutMigration() {
     Path dbPath = tempDir.resolve("legacy.db");
 
     try (DB db = DBMaker.fileDB(dbPath.toFile()).transactionEnable().closeOnJvmShutdown().make()) {
@@ -61,44 +62,45 @@ final class OcraStoreMigrationsTest {
       db.commit();
     }
 
-    try (MapDbCredentialStore store =
-        OcraStoreMigrations.apply(MapDbCredentialStore.file(dbPath)).open()) {
-      Credential credential = store.findByName("legacy-token").orElseThrow();
-      assertEquals(CredentialType.OATH_OCRA, credential.type());
-      assertEquals("legacy-token", credential.name());
-      assertEquals("production", credential.attributes().get("ocra.metadata.environment"));
-
-      Credential pinCredential = store.findByName("legacy-pin").orElseThrow();
-      assertEquals("legacy-pin", pinCredential.name());
-      assertEquals("12", pinCredential.attributes().get("ocra.counter"));
-      assertEquals(
-          "5e884898da28047151d0e56f8dc6292773603d0d",
-          pinCredential.attributes().get("ocra.pinHash"));
-      assertEquals("ops", pinCredential.attributes().get("ocra.metadata.operator"));
-    }
-
-    VersionedCredentialRecord migrated = readRawRecord(dbPath, "legacy-token");
-    assertEquals(VersionedCredentialRecord.CURRENT_VERSION, migrated.schemaVersion());
-    assertEquals("OCRA-1:HOTP-SHA1-6:C-QN08", migrated.attributes().get("ocra.suite"));
-    assertEquals("5", migrated.attributes().get("ocra.counter"));
-    assertTrue(migrated.attributes().containsKey("ocra.metadata.environment"));
-
-    VersionedCredentialRecord migratedPin = readRawRecord(dbPath, "legacy-pin");
-    assertEquals(VersionedCredentialRecord.CURRENT_VERSION, migratedPin.schemaVersion());
-    assertEquals("OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1", migratedPin.attributes().get("ocra.suite"));
-    assertEquals("12", migratedPin.attributes().get("ocra.counter"));
-    assertEquals(
-        "5e884898da28047151d0e56f8dc6292773603d0d", migratedPin.attributes().get("ocra.pinHash"));
+    IllegalStateException failure =
+        assertThrows(
+            IllegalStateException.class,
+            () -> {
+              try (MapDbCredentialStore store =
+                  OcraStoreMigrations.apply(MapDbCredentialStore.file(dbPath)).open()) {
+                store.findByName("legacy-token");
+              }
+            });
+    assertTrue(failure.getMessage().contains("No migration path to latest schema"));
   }
 
-  private static VersionedCredentialRecord readRawRecord(Path databasePath, String name) {
-    try (DB db =
-        DBMaker.fileDB(databasePath.toFile()).transactionEnable().closeOnJvmShutdown().make()) {
+  @Test
+  void opensCurrentSchemaRecords() {
+    Path dbPath = tempDir.resolve("current.db");
+
+    try (DB db = DBMaker.fileDB(dbPath.toFile()).transactionEnable().closeOnJvmShutdown().make()) {
       @SuppressWarnings("unchecked")
       var map =
           (org.mapdb.HTreeMap<String, VersionedCredentialRecord>)
               db.hashMap("credentials", Serializer.STRING, Serializer.JAVA).createOrOpen();
-      return map.get(name);
+      map.put(
+          "ocra-current",
+          new VersionedCredentialRecord(
+              VersionedCredentialRecord.CURRENT_VERSION,
+              "ocra-current",
+              CredentialType.OATH_OCRA,
+              SecretMaterial.fromHex("3132333435363738393031323334353637383930"),
+              Instant.parse("2025-10-02T10:15:30Z"),
+              Instant.parse("2025-10-02T10:16:30Z"),
+              Map.of("ocra.suite", "OCRA-1:HOTP-SHA1-6:C-QN08")));
+      db.commit();
+    }
+
+    try (MapDbCredentialStore store =
+        OcraStoreMigrations.apply(MapDbCredentialStore.file(dbPath)).open()) {
+      Credential credential = store.findByName("ocra-current").orElseThrow();
+      assertEquals(CredentialType.OATH_OCRA, credential.type());
+      assertEquals("OCRA-1:HOTP-SHA1-6:C-QN08", credential.attributes().get("ocra.suite"));
     }
   }
 }

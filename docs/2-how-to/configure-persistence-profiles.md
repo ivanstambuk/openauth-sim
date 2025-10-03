@@ -33,7 +33,7 @@ try (MapDbCredentialStore store = CredentialStoreFactory.openInMemoryStore()) {
 }
 ```
 
-If you need to override cache settings or encryption, derive the builder through `OcraStoreMigrations.apply(MapDbCredentialStore.file(...))` before calling `open()` so you preserve migration wiring (see Profile sections below).
+If you need to override cache settings or encryption, derive the builder through `OcraStoreMigrations.apply(MapDbCredentialStore.file(...))` before calling `open()` so you preserve the shared OCRA persistence configuration entry point (see Profile sections below).
 
 ## Profiles
 

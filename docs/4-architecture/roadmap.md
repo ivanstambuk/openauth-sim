@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-_Last updated: 2025-10-01_
+_Last updated: 2025-10-03_
 
 This roadmap tracks the major workstreams required to reach a feature-complete OpenAuth Simulator. Update this file whenever scope or status changes so future sessions can pick up without replaying prior conversations.
 
@@ -46,5 +46,6 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 - [x] Produce Maintenance CLI coverage hotspot analysis (Feature 012) to safeguard the ≥0.90 Jacoco buffer for Maintenance CLI. Completed 2025-10-01.
 - [x] Bootstrap architecture knowledge map in `docs/4-architecture/knowledge-map.md`.
 - [x] Publish OCRA capability matrix and telemetry contract in `docs/1-concepts` (T014).
+- [ ] Retire legacy OCRA MapDB migration path and document schema-v1 baseline (Feature 018). In progress 2025-10-03.
 
 Keep this roadmap synced with each significant decision or completion event.

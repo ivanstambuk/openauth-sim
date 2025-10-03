@@ -546,8 +546,8 @@ class MaintenanceCliTest {
   }
 
   @Test
-  @DisplayName("verify command prints issues for legacy record migration failures")
-  void verifyCommandPrintsIssuesForLegacyMigrationFailure() throws Exception {
+  @DisplayName("verify command prints issues when migration path is missing")
+  void verifyCommandPrintsIssuesForMissingMigrationPath() throws Exception {
     MaintenanceCli cli = new MaintenanceCli();
     OutputHarness harness = OutputHarness.create();
     Path tempDir = Files.createTempDirectory("maintenance-cli-legacy");
@@ -573,7 +573,7 @@ class MaintenanceCliTest {
       assertTrue(stdout.contains("issues=1"), stdout);
       assertTrue(
           stdout.contains(
-              "issue=issue-fixture:Legacy OCRA record missing required attribute 'suite'"),
+              "issue=issue-fixture:No migration path to latest schema for credential 'issue-fixture'"),
           stdout);
       assertTrue(harness.err().isBlank(), harness.err());
     } finally {
