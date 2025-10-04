@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+log() { echo "[commit-msg] $*" >&2; }
+die() { log "$*"; exit 1; }
+require_command() {
+  local binary=$1
+  local guidance=$2
+  command -v "$binary" >/dev/null 2>&1 || die "$guidance"
+}
+
+main() {
+  local commit_msg_file=${1:-}
+  [[ -n $commit_msg_file ]] || die "Git did not supply a commit message file path."
+  [[ -f $commit_msg_file ]] || die "Commit message file '$commit_msg_file' not found."
+
+  require_command gitlint "Install gitlint: https://github.com/jorisroovers/gitlint#installation"
+  log "Running gitlint"
+  gitlint --staged --msg-filename "$commit_msg_file"
+}
+
+main "$@"

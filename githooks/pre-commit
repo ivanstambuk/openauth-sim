@@ -6,7 +6,7 @@ set -euo pipefail
 #   1. Collect staged files and verify prerequisites
 #   2. Guard against oversized/binary artefacts
 #   3. Run Gradle formatting + targeted tests + check (sans full test suite)
-#   4. Execute secret scanning (gitleaks) and commit message linting (gitlint)
+#   4. Execute secret scanning (gitleaks)
 # -----------------------------------------------------------------------------
 
 ROOT_DIR=$(git rev-parse --show-toplevel)
@@ -106,11 +106,6 @@ run_external_scanners() {
   log "Running gitleaks secret scan"
   gitleaks protect --no-banner --redact --staged --source "$ROOT_DIR"
 
-  require_command gitlint "Install gitlint: https://github.com/jorisroovers/gitlint#installation"
-  log "Running gitlint on staged commit message"
-  local commit_msg_file
-  commit_msg_file=$(git rev-parse --git-path COMMIT_EDITMSG)
-  gitlint --staged --msg-filename "$commit_msg_file"
 }
 
 main() {

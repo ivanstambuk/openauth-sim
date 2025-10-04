@@ -47,5 +47,6 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 - [x] Bootstrap architecture knowledge map in `docs/4-architecture/knowledge-map.md`.
 - [x] Publish OCRA capability matrix and telemetry contract in `docs/1-concepts` (T014).
 - [ ] Retire legacy OCRA MapDB migration path and document schema-v1 baseline (Feature 018). In progress 2025-10-03.
+- [x] Relocate commit message linting to commit-msg hook (Feature 019). Completed 2025-10-04.
 
 Keep this roadmap synced with each significant decision or completion event.
