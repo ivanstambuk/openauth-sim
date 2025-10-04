@@ -108,7 +108,9 @@ run_external_scanners() {
 
   require_command gitlint "Install gitlint: https://github.com/jorisroovers/gitlint#installation"
   log "Running gitlint on staged commit message"
-  gitlint --staged
+  local commit_msg_file
+  commit_msg_file=$(git rev-parse --git-path COMMIT_EDITMSG)
+  gitlint --staged --msg-filename "$commit_msg_file"
 }
 
 main() {
