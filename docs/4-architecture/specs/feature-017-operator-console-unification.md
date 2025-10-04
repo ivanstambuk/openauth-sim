@@ -20,6 +20,7 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 - 2025-10-04 – Allow operators to invoke seeding multiple times; subsequent runs append only credentials that are not already present (user selected Option C).
 - 2025-10-04 – Implement seeding through a REST endpoint invoked from the UI button, capturing telemetry for each invocation (user selected Option A).
 - 2025-10-04 – The `Seed sample credentials` control should appear only when the stored credential mode is selected; hide it for inline mode to reduce noise (user directive).
+- 2025-10-04 – In the replay tab, the stored credential selector must render immediately beneath the mode chooser so operators can access it without scrolling past inline fields (user directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

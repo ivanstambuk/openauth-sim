@@ -67,6 +67,7 @@ Each increment must stay within ≤10 minutes, lead with tests, and capture note
 - 2025-10-04 – Completed R1713: introduced an application-layer seeding service, delegated REST logic through it, wired the UI button, and reran `./gradlew :rest-api:test`.
 - 2025-10-04 – Completed R1714: refreshed documentation, knowledge map, and snapshots for the seeding workflow and reran `./gradlew spotlessApply check`.
 - 2025-10-04 – Updated operator docs and UI logic so the seeding control only renders when stored credential mode is active, keeping inline mode uncluttered.
+- 2025-10-04 – Adjusted replay layout so the stored credential selector sits directly beneath the mode chooser per operator feedback.
 Use this section to log telemetry schema additions, performance observations, and accessibility adjustments.
 
 ## Analysis Gate (2025-10-03)

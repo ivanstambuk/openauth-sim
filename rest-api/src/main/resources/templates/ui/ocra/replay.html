@@ -62,6 +62,24 @@
                 </div>
               </fieldset>
 
+              <section
+                id="replay-stored-section"
+                data-replay-section="stored"
+                aria-labelledby="stored-mode-hint"
+              >
+                <div class="field-grid">
+                  <div>
+                    <label for="replayCredentialId">Stored credential</label>
+                    <select id="replayCredentialId" data-stored-required="true" disabled>
+                      <option value="">Loading credentials…</option>
+                    </select>
+                    <p class="hint" data-testid="replay-credential-status">
+                      Fetching credential inventory…
+                    </p>
+                  </div>
+                </div>
+              </section>
+
               <div
                 class="inline-preset"
                 data-replay-inline-preset
@@ -103,24 +121,6 @@
                   <input id="replayChallenge" name="challenge" type="text" required />
                 </div>
               </div>
-
-              <section
-                id="replay-stored-section"
-                data-replay-section="stored"
-                aria-labelledby="stored-mode-hint"
-              >
-                <div class="field-grid">
-                  <div>
-                    <label for="replayCredentialId">Stored credential</label>
-                    <select id="replayCredentialId" data-stored-required="true" disabled>
-                      <option value="">Loading credentials…</option>
-                    </select>
-                    <p class="hint" data-testid="replay-credential-status">
-                      Fetching credential inventory…
-                    </p>
-                  </div>
-                </div>
-              </section>
 
               <section
                 id="replay-inline-section"
