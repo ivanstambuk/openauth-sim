@@ -8,6 +8,7 @@ The current pre-commit hook executes `gitlint` by reading `.git/COMMIT_EDITMSG`.
 
 ## Clarifications
 - 2025-10-04 – Commit message linting must move to a `commit-msg` hook that Git invokes with the commit message file path (Option B from the clarification gate). The pre-commit hook should no longer read `.git/COMMIT_EDITMSG`.
+- 2025-10-04 – When Spotless reports a stale configuration cache during pre-commit, the hook should automatically remove `.gradle/configuration-cache` and retry once (Option A from follow-up clarification).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -15,6 +16,7 @@ The current pre-commit hook executes `gitlint` by reading `.git/COMMIT_EDITMSG`.
 | CMH-001 | Provide a `githooks/commit-msg` script that runs `gitlint` against the message file argument Git supplies. | Running `GIT_PARAMS=.git/COMMIT_EDITMSG githooks/commit-msg .git/COMMIT_EDITMSG` succeeds when `gitlint` passes and fails when lint rules are violated. |
 | CMH-002 | Update the pre-commit hook to drop the dependency on `.git/COMMIT_EDITMSG` while retaining gitleaks, Gradle formatting, targeted tests, and `check`. | Executing `githooks/pre-commit` on staged changes no longer shells out to `gitlint` yet still runs the remaining stages. |
 | CMH-003 | Document the new hook architecture so contributors know `gitlint` now fires during the `commit-msg` stage. | Contributor runbooks reference the `commit-msg` hook for message linting and no longer instruct developers to rely on `.git/COMMIT_EDITMSG`. |
+| CMH-004 | Handle Spotless stale cache errors by clearing `.gradle/configuration-cache` once and rerunning the failed Gradle command inside the pre-commit hook. | Triggering the stale-cache message during a hook run removes the cache, reruns the Gradle task, and succeeds without manual intervention. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |
@@ -40,3 +42,4 @@ The current pre-commit hook executes `gitlint` by reading `.git/COMMIT_EDITMSG`.
 - Manual invocation of the new `commit-msg` hook demonstrates lint pass/fail scenarios.
 - Updated documentation merged alongside hook changes.
 - 2025-10-04 – `githooks/commit-msg /tmp/gitlint-pass.XSp1tL` passed while `/tmp/gitlint-fail.UaXqSh` failed as expected; `githooks/pre-commit` and `./gradlew --no-daemon spotlessApply check` both succeeded.
+- 2025-10-04 – Simulated Spotless stale-cache failure via stubbed `gradlew`; auto-retry cleared `.gradle/configuration-cache` and the hook succeeded.

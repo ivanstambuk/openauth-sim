@@ -28,6 +28,38 @@ human_readable_size() {
   fi
 }
 
+
+run_gradle_with_retry() {
+  local description=$1
+  shift
+  local -a gradle_args=("$@")
+  log "$description"
+
+  local output=""
+  local exit_code=0
+  set +e
+  output=$("$ROOT_DIR"/gradlew --no-daemon "${gradle_args[@]}" 2>&1)
+  exit_code=$?
+  set -e
+  if [[ -n $output ]]; then
+    printf '%s\n' "$output"
+  fi
+
+  if (( exit_code == 0 )); then
+    return 0
+  fi
+
+  if grep -q 'Spotless JVM-local cache is stale' <<<"$output"; then
+    local cache_dir="$ROOT_DIR/.gradle/configuration-cache"
+    log "Detected Spotless stale cache; removing '$cache_dir' and retrying once."
+    rm -rf "$cache_dir"
+    "$ROOT_DIR"/gradlew --no-daemon "${gradle_args[@]}"
+    return 0
+  fi
+
+  return $exit_code
+}
+
 collect_staged_files() {
   mapfile -t STAGED_FILES < <(git diff --cached --name-only --diff-filter=AM)
   if (( ${#STAGED_FILES[@]} == 0 )); then
@@ -77,8 +109,7 @@ enforce_staged_file_guards() {
 }
 
 run_gradle_pipeline() {
-  log "Running Gradle spotlessApply"
-  "$ROOT_DIR"/gradlew --no-daemon spotlessApply
+  run_gradle_with_retry "Running Gradle spotlessApply" spotlessApply
 
   declare -gA TEST_TASKS=()
   for file in "${STAGED_FILES[@]}"; do
@@ -91,14 +122,12 @@ run_gradle_pipeline() {
   done
 
   if (( ${#TEST_TASKS[@]} > 0 )); then
-    log "Running targeted test suites: ${!TEST_TASKS[@]}"
-    "$ROOT_DIR"/gradlew --no-daemon "${!TEST_TASKS[@]}"
+    run_gradle_with_retry "Running targeted test suites: ${!TEST_TASKS[@]}" "${!TEST_TASKS[@]}"
   else
     log "No staged production code changes detected; skipping targeted tests."
   fi
 
-  log "Running Gradle check (excluding test task)"
-  "$ROOT_DIR"/gradlew --no-daemon check -x test
+  run_gradle_with_retry "Running Gradle check (excluding test task)" check -x test
 }
 
 run_external_scanners() {
