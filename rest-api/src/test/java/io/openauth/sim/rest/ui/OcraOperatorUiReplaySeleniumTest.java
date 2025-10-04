@@ -218,26 +218,32 @@ final class OcraOperatorUiReplaySeleniumTest {
     WebElement modeToggle = replayForm.findElement(By.cssSelector("fieldset.mode-toggle"));
     WebElement presetContainer =
         replayForm.findElement(By.cssSelector("[data-replay-inline-preset]"));
-    Boolean presetFollowsMode =
+    Boolean presetAfterMode =
         (Boolean)
             ((JavascriptExecutor) driver)
                 .executeScript(
-                    "var next = arguments[0].nextElementSibling;"
-                        + "return !!next && next.hasAttribute('data-replay-inline-preset');",
+                    "var preset = arguments[0];"
+                        + "var mode = arguments[1];"
+                        + "if (!preset || !mode) { return false; }"
+                        + "var position = mode.compareDocumentPosition(preset);"
+                        + "return (position & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;",
+                    presetContainer,
                     modeToggle);
-    assertThat(presetFollowsMode)
-        .as("Sample preset block should follow the replay mode selector")
+    assertThat(presetAfterMode)
+        .as("Sample preset block should render after the replay mode selector")
         .isTrue();
-    Boolean otpInputsInNextBlock =
+    Boolean presetBeforeOtp =
         (Boolean)
             ((JavascriptExecutor) driver)
                 .executeScript(
-                    "var next = arguments[0].nextElementSibling;"
-                        + "if (!next) { return false; }"
-                        + "return !!next.querySelector('#replayOtp');",
+                    "var preset = arguments[0];"
+                        + "var otp = document.getElementById('replayOtp');"
+                        + "if (!preset || !otp) { return false; }"
+                        + "var position = preset.compareDocumentPosition(otp);"
+                        + "return (position & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;",
                     presetContainer);
-    assertThat(otpInputsInNextBlock)
-        .as("OTP field group should follow the sample preset block")
+    assertThat(presetBeforeOtp)
+        .as("OTP field group should appear after the sample preset block")
         .isTrue();
     assertThat(presetContainer.getAttribute("hidden")).isNull();
     assertThat(presetContainer.isDisplayed()).isTrue();

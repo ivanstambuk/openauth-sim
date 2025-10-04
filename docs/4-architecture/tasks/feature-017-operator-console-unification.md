@@ -18,5 +18,8 @@ _Last updated: 2025-10-04_
 - [x] T1712 – Add failing Selenium/Web layer coverage for the seeding control + REST endpoint contract; run `./gradlew :rest-api:test` to confirm red.
 - [x] T1713 – Implement the seeding endpoint, domain wiring, and UI control (append-only) with telemetry updates; rerun `./gradlew :rest-api:test`.
 - [x] T1714 – Update docs/knowledge map for the seeding workflow and rerun `./gradlew spotlessApply check`.
+- [x] T1715 – Add Selenium/Web tests covering query-parameter deep links and history behaviour for `/ui/console`, ensure they fail prior to implementation.
+- [x] T1716 – Implement query-parameter state management + history handling for the console, run `./gradlew :rest-api:test` to verify green.
+- [x] T1717 – Refresh docs/knowledge map and telemetry notes for the stateful URL behaviour, rerun `./gradlew spotlessApply check`.
 
 Update this checklist as increments progress; keep tests ahead of implementation per VDD cadence.

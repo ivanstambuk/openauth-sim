@@ -139,16 +139,21 @@
         const evaluatePanel = document.querySelector("[data-testid='ocra-evaluate-panel']");
         const replayPanel = document.querySelector("[data-testid='ocra-replay-panel']");
 
+        const allowedProtocols = new Set(['ocra', 'fido2', 'emv']);
+        const allowedTabs = new Set(['evaluate', 'replay']);
+        let currentProtocol = 'ocra';
+        let lastOcraTab = 'evaluate';
+
         function setPanelVisibility(panel, hidden) {
           if (!panel) {
             return;
           }
           if (hidden) {
-            panel.setAttribute("hidden", "hidden");
-            panel.setAttribute("aria-hidden", "true");
+            panel.setAttribute('hidden', 'hidden');
+            panel.setAttribute('aria-hidden', 'true');
           } else {
-            panel.removeAttribute("hidden");
-            panel.removeAttribute("aria-hidden");
+            panel.removeAttribute('hidden');
+            panel.removeAttribute('aria-hidden');
           }
         }
 
@@ -156,23 +161,24 @@
           if (!button) {
             return;
           }
-          button.classList.toggle("mode-pill--active", active);
-          button.setAttribute("aria-selected", active ? "true" : "false");
+          button.classList.toggle('mode-pill--active', active);
+          button.setAttribute('aria-selected', active ? 'true' : 'false');
         }
 
         function setActiveMode(mode) {
           if (!modeToggle) {
             return;
           }
-          modeToggle.setAttribute("data-mode", mode);
-          const isEvaluate = mode === "evaluate";
+          modeToggle.setAttribute('data-mode', mode);
+          const isEvaluate = mode === 'evaluate';
           toggleButtonState(evaluateButton, isEvaluate);
           toggleButtonState(replayButton, !isEvaluate);
           setPanelVisibility(evaluatePanel, !isEvaluate);
           setPanelVisibility(replayPanel, isEvaluate);
+          lastOcraTab = mode;
         }
 
-        function setActiveProtocol(protocol) {
+        function setActiveProtocol(protocol, ocraMode) {
           protocolTabs.forEach((tab) => {
             const tabProtocol = tab.getAttribute('data-protocol-tab');
             const isActive = tabProtocol === protocol;
@@ -188,43 +194,121 @@
 
           if (protocol === 'ocra') {
             setPanelVisibility(modeToggle, false);
-            setActiveMode(modeToggle ? modeToggle.getAttribute('data-mode') || 'evaluate' : 'evaluate');
+            setActiveMode(ocraMode || lastOcraTab || 'evaluate');
           } else {
             setPanelVisibility(modeToggle, true);
           }
+
+          currentProtocol = protocol;
+        }
+
+        function normalizeState(state) {
+          const protocol = allowedProtocols.has(state && state.protocol)
+            ? state.protocol
+            : 'ocra';
+          if (protocol === 'ocra') {
+            const tab = allowedTabs.has(state && state.tab) ? state.tab : 'evaluate';
+            return { protocol, tab };
+          }
+          return { protocol };
+        }
+
+        function buildSearch(state) {
+          const params = new URLSearchParams();
+          params.set('protocol', state.protocol);
+          if (state.protocol === 'ocra') {
+            params.set('tab', state.tab);
+          }
+          const rendered = params.toString();
+          return rendered ? `?${rendered}` : window.location.search;
+        }
+
+        function pushUrlState(state, options) {
+          const search = buildSearch(state);
+          const url = `${window.location.pathname}${search}`;
+          const historyState = state.protocol === 'ocra'
+            ? { protocol: state.protocol, tab: state.tab }
+            : { protocol: state.protocol };
+
+          if (options.replace) {
+            window.history.replaceState(historyState, '', url);
+            return;
+          }
+
+          if (window.location.search === search) {
+            return;
+          }
+
+          window.history.pushState(historyState, '', url);
+        }
+
+        function applyConsoleState(nextState, options) {
+          const normalized = normalizeState(nextState);
+          const desiredProtocol = normalized.protocol;
+          const desiredTab =
+            desiredProtocol === 'ocra' ? normalized.tab : lastOcraTab;
+
+          const isSameProtocol = desiredProtocol === currentProtocol;
+          const isSameOcraTab =
+            desiredProtocol !== 'ocra' || desiredTab === lastOcraTab;
+
+          if (!isSameProtocol || !isSameOcraTab) {
+            setActiveProtocol(desiredProtocol, desiredProtocol === 'ocra' ? normalized.tab : undefined);
+          } else if (desiredProtocol === 'ocra') {
+            setActiveMode(normalized.tab);
+          }
+
+          if (desiredProtocol === 'ocra') {
+            lastOcraTab = normalized.tab;
+          }
+
+          if (options.updateUrl) {
+            pushUrlState(normalized, options);
+          }
+        }
+
+        function parseStateFromLocation() {
+          const params = new URLSearchParams(window.location.search);
+          const protocol = params.get('protocol');
+          const tab = params.get('tab');
+          return normalizeState({ protocol, tab });
         }
 
         protocolTabs.forEach((tab) => {
           tab.addEventListener('click', function (event) {
             event.preventDefault();
             const protocol = tab.getAttribute('data-protocol-tab');
-            if (!protocol) {
+            if (!protocol || !allowedProtocols.has(protocol)) {
               return;
             }
-            if (protocol === 'ocra' && modeToggle && modeToggle.hasAttribute('hidden')) {
-              setPanelVisibility(modeToggle, false);
-            }
-            if (protocol === 'ocra') {
-              setActiveMode(modeToggle ? modeToggle.getAttribute('data-mode') || 'evaluate' : 'evaluate');
-            }
-            setActiveProtocol(protocol);
+            const nextState =
+              protocol === 'ocra'
+                ? { protocol: 'ocra', tab: lastOcraTab }
+                : { protocol };
+            applyConsoleState(nextState, { updateUrl: true });
           });
         });
 
         if (evaluateButton) {
-          evaluateButton.addEventListener('click', function () {
-            setActiveMode('evaluate');
+          evaluateButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            applyConsoleState({ protocol: 'ocra', tab: 'evaluate' }, { updateUrl: true });
           });
         }
 
         if (replayButton) {
-          replayButton.addEventListener('click', function () {
-            setActiveMode('replay');
+          replayButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            applyConsoleState({ protocol: 'ocra', tab: 'replay' }, { updateUrl: true });
           });
         }
 
-        setActiveProtocol('ocra');
-        setActiveMode('evaluate');
+        window.addEventListener('popstate', function (event) {
+          const state = event.state ? normalizeState(event.state) : parseStateFromLocation();
+          applyConsoleState(state, { updateUrl: false });
+        });
+
+        applyConsoleState(parseStateFromLocation(), { updateUrl: true, replace: true });
       })();
     </script>
   </body>

@@ -27,6 +27,7 @@ This living map captures the explicit relationships between modules, data flows,
 - `infra-persistence` module centralises `CredentialStoreFactory` wiring so CLI, REST, and tests acquire MapDB-backed stores through a shared configuration seam while keeping encryption profiles and future migrations/overrides injectable.
 - CLI module now exposes `maintenance <compact|verify>` commands that orchestrate the helper for operators working on local MapDB stores.
 - Unified operator console at `/ui/console` now embeds OCRA evaluation and replay forms with an accessible mode toggle, reusing Thymeleaf fragments while keeping placeholder protocol tabs disabled until new facades arrive; legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` views now redirect/not-found so the console remains the single entry point.
+- Console state (protocol + OCRA tab) is now encoded via query parameters so deep links and history navigation stay in sync across disabled placeholders, with telemetry unaffected because tab changes remain client-side.
 - REST OCRA verification metadata now includes a `mode` attribute (stored vs inline) exposed to telemetry so replay facades can log outcome context consistently.
 - Operator console replay mode posts sanitized telemetry summaries to `TelemetryContracts.ocraVerificationAdapter`, tagging `origin=ui` and surfacing mode/outcome/fingerprint for downstream analytics.
 - `core-shared` module centralises credential models, repository utilities, and persistence primitives consumed by `core`, `core-ocra`, and higher-level facades.

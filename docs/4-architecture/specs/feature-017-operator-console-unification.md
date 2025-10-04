@@ -21,6 +21,8 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 - 2025-10-04 – Implement seeding through a REST endpoint invoked from the UI button, capturing telemetry for each invocation (user selected Option A).
 - 2025-10-04 – The `Seed sample credentials` control should appear only when the stored credential mode is selected; hide it for inline mode to reduce noise (user directive).
 - 2025-10-04 – In the replay tab, the stored credential selector must render immediately beneath the mode chooser so operators can access it without scrolling past inline fields (user directive).
+- 2025-10-04 – Encode the selected protocol and tab in `/ui/console` using query parameters (e.g., `protocol=ocra&tab=replay`), ensuring refreshable deep links (user selected Option A).
+- 2025-10-04 – Preserve disabled protocol placeholders when deep-linked or navigated via the browser history, pushing history entries for tab changes (user selected Option B).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -36,6 +38,7 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 | OCU-009 | Render replay and evaluation metadata with a single label/value per row layout. | Selenium/UI tests confirm result cards expose `.result-row` groupings for each metadata item and no multi-column grid remains. |
 | OCU-010 | Remove the Suite field from the evaluation result metadata while preserving status and sanitized indicators. | Selenium/UI tests verify the evaluation result renders only Status and Sanitized rows alongside the OTP value. |
 | OCU-011 | Provide a `Seed sample credentials` control when the stored credential registry is empty; the action calls a REST endpoint to insert canonical OCRA suites (matching inline autofill) and may be re-run to add any missing suites without overwriting existing ones. | UI/system tests confirm the button appears only when appropriate, invokes the endpoint, appends missing suites, and records telemetry; stored credentials remain intact if already present. |
+| OCU-012 | Reflect the selected authenticator protocol and sub-tab in `/ui/console` query parameters and restore the appropriate state (including disabled placeholders) on refresh, deep-link, and history navigation. | Selenium/UI tests verify query parameters update on tab changes, direct visits load the corresponding view, and history navigation replays tab state without desynchronisation. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |

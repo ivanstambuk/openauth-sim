@@ -30,6 +30,9 @@ Reference specification: `docs/4-architecture/specs/feature-017-operator-console
 - ☑ R1712 – Add failing Selenium/Web layer coverage for the `Seed sample credentials` control, REST endpoint contract, and telemetry expectations when the store is empty.
 - ☑ R1713 – Implement the seeding REST endpoint, domain wiring, and UI button (append-only) with telemetry + persistence updates, then rerun `./gradlew :rest-api:test`.
 - ☑ R1714 – Refresh documentation/knowledge map for the seeding workflow, ensure repeated seeding behaviour is described, and rerun `./gradlew spotlessApply check`.
+- ☑ R1715 – Add failing Selenium/Web tests asserting query-parameter deep links and history behaviour for `/ui/console` tabs; run `./gradlew :rest-api:test` to confirm red.
+- ☑ R1716 – Implement query-parameter state management and history handling in the console controller/JS, ensure disabled protocols render placeholders, and rerun `./gradlew :rest-api:test`.
+- ☑ R1717 – Update documentation/knowledge map for stateful URLs, capture telemetry implications, and rerun `./gradlew spotlessApply check`.
 
 Each increment must stay within ≤10 minutes, lead with tests, and capture notes/telemetry adjustments in this plan as work proceeds.
 
@@ -68,6 +71,11 @@ Each increment must stay within ≤10 minutes, lead with tests, and capture note
 - 2025-10-04 – Completed R1714: refreshed documentation, knowledge map, and snapshots for the seeding workflow and reran `./gradlew spotlessApply check`.
 - 2025-10-04 – Updated operator docs and UI logic so the seeding control only renders when stored credential mode is active, keeping inline mode uncluttered.
 - 2025-10-04 – Adjusted replay layout so the stored credential selector sits directly beneath the mode chooser per operator feedback.
+- 2025-10-04 – Captured directive to encode console state via query parameters and preserve tab navigation/history (OCU-012); pending R1715–R1717.
+- 2025-10-04 – Initiated R1715 by adding failing Selenium coverage for query-parameter deep links and history navigation; `OperatorConsoleUnificationSeleniumTest` now red pending implementation.
+- 2025-10-04 – Completed R1716: console script now normalises query parameters, pushes/pops history state, and updates URLs during tab/mode changes; `./gradlew :rest-api:test` rerun shows new Selenium tests green alongside pre-existing OpenAPI/replay failures.
+- 2025-10-04 – Completed R1717: refreshed the operator UI how-to and knowledge map to document stateful URLs and confirm telemetry remains client-only for tab transitions; reran `./gradlew spotlessApply check` (fails on existing OpenAPI + replay suites).
+- 2025-10-04 – Regenerated OpenAPI JSON/YAML snapshots via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.rest.OpenApiSnapshotTest` after console state wiring added new metadata, then reran `./gradlew spotlessApply check` to confirm green.
 Use this section to log telemetry schema additions, performance observations, and accessibility adjustments.
 
 ## Analysis Gate (2025-10-03)

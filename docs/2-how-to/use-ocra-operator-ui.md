@@ -1,7 +1,7 @@
 # How-To: Use the OCRA Operator UI
 
 _Status: Draft_
-_Last updated: 2025-10-03_
+_Last updated: 2025-10-04_
 
 The operator UI provides a browser-based workflow for running OCRA evaluations and replaying
 previous OTP submissions against the REST facade without exposing shared secrets in logs or
@@ -16,9 +16,10 @@ calls with consistent telemetry.
 
 ## Launching the Console
 1. Navigate to `http://localhost:8080/ui/console`. The unified operator console now hosts all OCRA interactions; additional protocol tabs are disabled until their implementations land.
-2. The OCRA panel loads by default and presents a dark-themed mode toggle labelled **Evaluate** and **Replay**. Keyboard navigation lands on the toggle first so operators can switch modes with `Enter`/`Space`.
-3. Both forms execute CSRF-protected JSON fetches; session-bound tokens are embedded in the page and reused by the JavaScript client.
-4. If you seeded credentials via the CLI, make sure the REST app points at the same MapDB database (for example `--openauth.sim.persistence.database-path=data/ocra-credentials.db`).
+2. The console encodes the active protocol and OCRA tab in query parameters (for example `?protocol=ocra&tab=replay`), so bookmarks and shared URLs reload the correct state. Deep-linking to disabled protocols (FIDO2/WebAuthn, EMV/CAP) still surfaces their placeholder copy while keeping OCRA-specific controls hidden.
+3. The OCRA panel loads by default and presents a dark-themed mode toggle labelled **Evaluate** and **Replay**. Keyboard navigation lands on the toggle first so operators can switch modes with `Enter`/`Space`.
+4. Both forms execute CSRF-protected JSON fetches; session-bound tokens are embedded in the page and reused by the JavaScript client.
+5. If you seeded credentials via the CLI, make sure the REST app points at the same MapDB database (for example `--openauth.sim.persistence.database-path=data/ocra-credentials.db`).
 
 ## Running Evaluations (Evaluate Mode)
 
@@ -49,8 +50,8 @@ The mode toggle is keyboard-accessible and announces which section is visible. J
 - Validation feedback appears inline; failing fields gain `aria-invalid="true"` and error messages for assistive technology. Successful submissions echo the telemetry ID plus the sanitized fingerprint hash so teams can cross-check backend logs.
 
 ## Reading Results and Telemetry
-- Evaluation results render the OTP, status, telemetry ID, reason code, and suite inside the console’s right-hand column. Replay responses focus on match/mismatch status, credential source (`stored` vs `inline`), sanitized flag, and the hashed context fingerprint directly beneath the form.
-- Copy the telemetry panel when escalating issues; it mirrors the REST metadata (`mode`, `credentialSource`, `outcome`, `contextFingerprint`) and is already redacted for safety.
+- Evaluation results render the generated OTP alongside status and sanitized rows. Suite details moved to the preset dropdowns, keeping the card compact while still surfacing success/failure at a glance.
+- Replay responses now highlight match/mismatch outcome and any attached reason code without echoing telemetry identifiers or credential metadata. Operators can still cross-check telemetry via backend logs using the request timestamp.
 - Validation errors reuse sanitized reason codes/messages from the REST API. Unexpected server errors surface a generic banner without secret material. Error panels appear only when the REST call returns a non-2xx status.
 
 ## Logging & Observability Notes

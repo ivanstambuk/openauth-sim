@@ -77,8 +77,7 @@ final class OcraOperatorUiSeedingSeleniumTest {
 
     WebElement storedModeRadio =
         new WebDriverWait(driver, Duration.ofSeconds(5))
-            .until(
-                ExpectedConditions.elementToBeClickable(By.id("mode-credential")));
+            .until(ExpectedConditions.elementToBeClickable(By.id("mode-credential")));
     storedModeRadio.click();
 
     WebElement seedButton =

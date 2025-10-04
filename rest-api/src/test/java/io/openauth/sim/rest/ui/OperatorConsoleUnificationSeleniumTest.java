@@ -146,6 +146,107 @@ final class OperatorConsoleUnificationSeleniumTest {
     assertThat(emvPanel.getAttribute("hidden")).isNotNull();
   }
 
+  @Test
+  @DisplayName("Query parameters restore protocol and tab selection on load")
+  void queryParametersRestoreConsoleState() {
+    driver.get(baseUrl("/ui/console?protocol=ocra&tab=replay"));
+
+    WebElement modeToggle =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-testid='ocra-mode-toggle']")));
+    assertThat(driver.getCurrentUrl()).contains("protocol=ocra").contains("tab=replay");
+    assertThat(modeToggle.getAttribute("data-mode")).isEqualTo("replay");
+
+    WebElement replayPanel =
+        driver.findElement(By.cssSelector("[data-testid='ocra-replay-panel']"));
+    assertThat(replayPanel.getAttribute("hidden"))
+        .as("Replay panel should be visible when tab=replay")
+        .isNull();
+    WebElement evaluatePanel =
+        driver.findElement(By.cssSelector("[data-testid='ocra-evaluate-panel']"));
+    assertThat(evaluatePanel.getAttribute("hidden"))
+        .as("Evaluation panel should hide when tab=replay")
+        .isNotNull();
+
+    driver.get(baseUrl("/ui/console?protocol=fido2"));
+
+    WebElement fidoTab =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-testid='protocol-tab-fido2']")));
+    assertThat(driver.getCurrentUrl()).contains("protocol=fido2");
+    assertThat(fidoTab.getAttribute("aria-selected")).isEqualTo("true");
+
+    WebElement fidoPanel = driver.findElement(By.cssSelector("[data-protocol-panel='fido2']"));
+    assertThat(fidoPanel.getAttribute("hidden")).isNull();
+
+    WebElement ocraPanel = driver.findElement(By.cssSelector("[data-protocol-panel='ocra']"));
+    assertThat(ocraPanel.getAttribute("hidden"))
+        .as("OCRA panel should hide when deep-linking to FIDO2")
+        .isNotNull();
+
+    WebElement ocraModeToggle =
+        driver.findElement(By.cssSelector("[data-testid='ocra-mode-toggle']"));
+    assertThat(ocraModeToggle.getAttribute("hidden"))
+        .as("Mode toggle should be hidden for disabled protocols")
+        .isNotNull();
+  }
+
+  @Test
+  @DisplayName("Tab navigation updates query parameters and browser history")
+  void tabNavigationUpdatesHistory() {
+    driver.get(baseUrl("/ui/console"));
+
+    WebElement fidoTab =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-testid='protocol-tab-fido2']")));
+    WebElement ocraTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-ocra']"));
+
+    fidoTab.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("protocol=fido2"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=fido2");
+
+    ocraTab.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("protocol=ocra"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=ocra");
+    assertThat(driver.getCurrentUrl()).contains("tab=evaluate");
+
+    WebElement replayToggle =
+        driver.findElement(By.cssSelector("[data-testid='ocra-mode-select-replay']"));
+    WebElement modeToggle = driver.findElement(By.cssSelector("[data-testid='ocra-mode-toggle']"));
+
+    replayToggle.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> "replay".equals(modeToggle.getAttribute("data-mode")));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("tab=replay"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=ocra").contains("tab=replay");
+
+    driver.navigate().back();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> "evaluate".equals(modeToggle.getAttribute("data-mode")));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("tab=evaluate"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=ocra").contains("tab=evaluate");
+
+    driver.navigate().back();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("protocol=fido2"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=fido2");
+
+    driver.navigate().forward();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("protocol=ocra"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=ocra").contains("tab=evaluate");
+  }
+
   private String baseUrl(String path) {
     return "http://localhost:" + port + path;
   }
