@@ -12,6 +12,7 @@ The current pre-commit hook executes `gitlint` by reading `.git/COMMIT_EDITMSG`.
 - 2025-10-04 – When Spotless reports a stale configuration cache during pre-commit, the hook should automatically remove `.gradle/configuration-cache` and retry once (Option A from follow-up clarification).
 - 2025-10-04 – CI must run gitlint with the repository configuration on pushes and pull requests.
 - 2025-10-04 – Spotless retry helper must match the exact stale-cache message and log retry success/failure.
+- 2025-10-04 – Pre-commit should warm the Gradle configuration cache once per run before other tasks.
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -23,6 +24,7 @@ The current pre-commit hook executes `gitlint` by reading `.git/COMMIT_EDITMSG`.
 | CMH-005 | Provide a version-controlled `.gitlint` that aligns with Conventional Commit rules (title ≤100 chars, body ≤120 chars, minimum body length 20, enforced allowed types, project forbidden words). | `gitlint --staged` uses the repo config and fails when commits break the policy; documentation references the enforced types and limits. |
 | CMH-006 | Ensure CI runs gitlint using the repository configuration for pushes and pull requests. | CI workflow includes a gitlint job that fails when commits violate `.gitlint`. |
 | CMH-004B | Restrict Spotless cache clearing to exact stale-cache messages and log retry outcomes. | Pre-commit hook only clears cache when the failure line matches exactly and logs success/failure. |
+| CMH-004C | Warm the Gradle configuration cache once per pre-commit invocation. | Pre-commit runs `./gradlew --no-daemon help --configuration-cache` (with retry guard) before other Gradle tasks. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |
@@ -52,3 +54,4 @@ The current pre-commit hook executes `gitlint` by reading `.git/COMMIT_EDITMSG`.
 - 2025-10-04 – `.gitlint` config added with Conventional Commit enforcement; gitlint run passes on compliant commit message and fails on disallowed type.
 - 2025-10-04 – CI gitlint job added to workflow; failure observed on non-compliant commit and passes otherwise.
 - 2025-10-04 – Spotless retry helper now matches the exact stale-cache signature and logs outcome.
+- 2025-10-04 – Pre-commit warms configuration cache via `help --configuration-cache` before other tasks.

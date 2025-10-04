@@ -14,6 +14,7 @@ _Last updated: 2025-10-04_
 | T1906 | Add repository `.gitlint`, update documentation (runbook/AGENTS/spec/plan), and verify gitlint accepts compliant and rejects non-compliant messages. | CMH-005 | ✅ (2025-10-04 – Added `.gitlint`, updated AGENTS/runbook/spec/plan; `gitlint --msg-filename /tmp/gitlint-pass.*` passes and `/tmp/gitlint-fail.*` fails on type/length rules.) |
 | T1907 | Integrate gitlint into CI workflow (`.github/workflows/ci.yml`) with fetch-depth 0 and dynamic commit range. | CMH-006 | ✅ (2025-10-04 – Added gitlint job in `ci.yml` with dynamic range selection.) |
 | T1908 | Restrict Spotless retry to exact stale-cache message and log retry success/failure. | CMH-004B | ✅ (2025-10-04 – Updated retry helper to match the exact signature and log success/failure.) |
+| T1909 | Warm configuration cache via `./gradlew --no-daemon help --configuration-cache` once per pre-commit run. | CMH-004C | ✅ (2025-10-04 – Added warm step using retry helper before other Gradle tasks.) |
 
 Update the status column as tasks complete, keeping each increment ≤10 minutes and sequencing validation commands before code whenever feasible.
 

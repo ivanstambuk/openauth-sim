@@ -127,6 +127,8 @@ enforce_staged_file_guards() {
 }
 
 run_gradle_pipeline() {
+  run_gradle_with_retry "Warming Gradle configuration cache" help --configuration-cache
+
   run_gradle_with_retry "Running Gradle spotlessApply" spotlessApply
 
   declare -gA TEST_TASKS=()

@@ -15,6 +15,8 @@ Reference specification: `docs/4-architecture/specs/feature-019-commit-msg-hook-
 - Pre-commit hook auto-heals Spotless stale cache failures without manual intervention (CMH-004).
 - Repository `.gitlint` enforces Conventional Commit rules (CMH-005).
 - CI runs gitlint checks using the repository configuration (CMH-006).
+- CI runs gitlint checks using the repository configuration (CMH-006).
+- Gradle configuration cache warmed once per pre-commit invocation (CMH-004C).
 - `./gradlew spotlessApply check` passes after each increment.
 
 ## Proposed Increments
@@ -46,6 +48,7 @@ Each increment must stay within ≤10 minutes, lead with tests where possible (m
 - 2025-10-04 – R1904 added `.gitlint` config, updated docs, and validated gitlint pass/fail scenarios.
 - 2025-10-04 – R1905 added CI gitlint job and documented server-side enforcement.
 - 2025-10-04 – R1906 tightened Spotless retry matching/logging with success/failure logs.
+- 2025-10-04 – R1907 warmed configuration cache at hook start using `help --configuration-cache`.
 
 ## Analysis Gate
 _Re-run after tasks checklist is published and increments scoped._
