@@ -553,6 +553,7 @@
         const statusValue = document.querySelector('[data-testid="ocra-status-value"]');
         const otpValue = document.querySelector('[data-testid="ocra-otp-value"]');
         const sanitizedValue = document.querySelector('[data-testid="ocra-sanitized-flag"]');
+        const resultMetadata = document.querySelector('[data-testid="ocra-telemetry-summary"]');
         const errorPanel = document.querySelector('[data-testid="ocra-error-panel"]');
         const errorPrimary = document.querySelector('[data-testid="ocra-error-primary"]');
         const errorSecondary = document.querySelector('[data-testid="ocra-error-secondary"]');
@@ -1291,6 +1292,7 @@
           setTextContent(sanitizedValue, '');
           setTextContent(errorPrimary, '');
           setTextContent(errorSecondary, '');
+          pruneLegacySuiteRows(resultMetadata);
         }
 
         function toTrimmedValue(input) {
@@ -1597,6 +1599,23 @@
           setTextContent(sanitizedValue, sanitizedFlag);
           showPanel(resultPanel);
           hidePanel(errorPanel);
+          pruneLegacySuiteRows(resultMetadata);
+        }
+
+        function pruneLegacySuiteRows(container) {
+          if (!container) {
+            return;
+          }
+          container.querySelectorAll('.result-row').forEach(function (row) {
+            const label = row.querySelector('dt');
+            if (!label) {
+              return;
+            }
+            const labelText = (label.textContent || '').trim().toLowerCase();
+            if (labelText === 'suite') {
+              row.remove();
+            }
+          });
         }
 
         function deriveErrorMessage(body) {

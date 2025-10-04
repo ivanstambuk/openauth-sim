@@ -57,7 +57,7 @@ Each increment must stay within ≤10 minutes, lead with tests, and capture note
 - 2025-10-03 – New directive captured as R1710: update evaluation and replay result cards to render one metadata item per row instead of auto-fit grid columns.
 - 2025-10-03 – Completed R1710: templates now wrap each label/value in `.result-row`, CSS enforces stacked layout, Selenium verifies row counts, and build passed via `./gradlew :rest-api:test spotlessApply check`.
 - 2025-10-03 – New directive captured as R1711: evaluation results should only display Status and Sanitized metadata alongside the OTP value.
-- 2025-10-03 – Completed R1711: removed Suite row from evaluation result, cleaned templating/scripts, tightened Selenium expectations, and reran `./gradlew :rest-api:test spotlessApply check` successfully.
+- 2025-10-03 – Completed R1711: removed Suite row from evaluation result, added defensive DOM prune for cached markup, tightened Selenium expectations, and reran `./gradlew :rest-api:test spotlessApply check` successfully.
 Use this section to log telemetry schema additions, performance observations, and accessibility adjustments.
 
 ## Analysis Gate (2025-10-03)
