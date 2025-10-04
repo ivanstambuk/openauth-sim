@@ -545,9 +545,9 @@
           });
           credentialSelect.disabled = options.length === 0;
           if (credentialStatus) {
-            credentialStatus.textContent = options.length
-              ? 'Credentials are sourced from the MapDB store.'
-              : 'No stored credentials found. Import one before replaying.';
+          credentialStatus.textContent = options.length
+            ? ''
+            : 'No stored credentials found. Import one before replaying.';
           }
         }
 
