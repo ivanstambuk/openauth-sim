@@ -104,7 +104,7 @@ run_gradle_pipeline() {
 run_external_scanners() {
   require_command gitleaks "Install gitleaks: https://github.com/gitleaks/gitleaks#installation"
   log "Running gitleaks secret scan"
-  gitleaks detect --no-banner --redact --staged --source "$ROOT_DIR"
+  gitleaks protect --no-banner --redact --staged --source "$ROOT_DIR"
 
   require_command gitlint "Install gitlint: https://github.com/jorisroovers/gitlint#installation"
   log "Running gitlint on staged commit message"

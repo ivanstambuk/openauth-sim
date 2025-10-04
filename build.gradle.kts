@@ -244,7 +244,9 @@ val jacocoAggregatedReport = tasks.register<JacocoReport>("jacocoAggregatedRepor
     description = "Generates aggregated Jacoco coverage across OCRA modules"
 
     val testTasks = ocraModules.map { module -> module.tasks.named("test") }
+    val classTasks = ocraModules.map { module -> module.tasks.named("classes") }
     dependsOn(testTasks)
+    dependsOn(classTasks)
 
     val executionFiles = ocraModules.map { module -> module.layout.buildDirectory.file("jacoco/test.exec") }
     executionData.setFrom(executionFiles)
@@ -278,7 +280,9 @@ val jacocoAggregatedReport = tasks.register<JacocoReport>("jacocoAggregatedRepor
 val jacocoCoverageVerification = tasks.register<JacocoCoverageVerification>("jacocoCoverageVerification") {
     group = LifecycleBasePlugin.VERIFICATION_GROUP
     description = "Fails the build if aggregated OCRA coverage dips below thresholds"
+    val classTasks = ocraModules.map { module -> module.tasks.named("classes") }
     dependsOn(jacocoAggregatedReport)
+    dependsOn(classTasks)
 
     val executionFiles = ocraModules.map { module -> module.layout.buildDirectory.file("jacoco/test.exec") }
     executionData.setFrom(executionFiles)
