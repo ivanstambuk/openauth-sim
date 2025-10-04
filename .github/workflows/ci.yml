@@ -27,6 +27,38 @@ jobs:
       - name: Run quality gate
         run: ./gradlew --no-daemon qualityGate
 
+  gitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install gitlint
+        run: pip install gitlint
+
+      - name: Determine commit range
+        id: commit_range
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "range=${{ github.event.pull_request.base.sha }}..${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+              echo "range=${{ github.sha }}" >> $GITHUB_OUTPUT
+            else
+              echo "range=${{ github.event.before }}..${{ github.sha }}" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Run gitlint
+        run: gitlint --config .gitlint --commits ${{ steps.commit_range.outputs.range }}
+
   secret-scanning:
     runs-on: ubuntu-latest
     steps:
