@@ -35,6 +35,8 @@ Reference specification: `docs/4-architecture/specs/feature-017-operator-console
 - ☑ R1717 – Update documentation/knowledge map for stateful URLs, capture telemetry implications, and rerun `./gradlew spotlessApply check`.
 - ☑ R1718 – Add failing Selenium/UI assertion that the evaluation result card no longer renders a Sanitized row. (2025-10-04 – Selenium assertion added before UI update.)
 - ☑ R1719 – Remove the Sanitized row from evaluation results, update UI scripts/tests, and rerun `./gradlew :rest-api:test spotlessApply check`. (2025-10-04 – Evaluation template/JS updated; tests and quality gate green.)
+- ☑ R1720 – Extend Selenium coverage so the seeding status surfaces beneath the seed control while the original hint remains unchanged. (2025-10-04 – Selenium test now asserts hint text + hidden status element before implementation.)
+- ☑ R1721 – Adjust the console template/scripts to render seeding feedback under the seed control with danger styling for failures, then rerun `./gradlew :rest-api:test`. (2025-10-04 – Template adds dedicated seed status element with red-error handling; REST UI tests + `./gradlew spotlessApply check` verified.)
 
 Each increment must stay within ≤10 minutes, lead with tests, and capture notes/telemetry adjustments in this plan as work proceeds.
 

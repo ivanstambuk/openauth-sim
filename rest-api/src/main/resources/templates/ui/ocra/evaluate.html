@@ -74,9 +74,16 @@
               >
                 Seed sample credentials
               </button>
-              <p class="hint">
+              <p class="hint" data-testid="ocra-seed-hint">
                 Adds canonical demo credentials when the registry is empty or missing presets.
               </p>
+              <p
+                class="credential-status"
+                data-testid="ocra-seed-status"
+                aria-live="polite"
+                hidden="hidden"
+                aria-hidden="true"
+              ></p>
             </div>
 
             <section
@@ -507,11 +514,11 @@
         const autoFillButton = document.querySelector('[data-testid="stored-credential-autofill"]');
         const seedActions = document.querySelector('[data-testid="ocra-seed-actions"]');
         const seedButton = document.querySelector('[data-testid="ocra-seed-credentials"]');
+        const seedStatus = document.querySelector('[data-testid="ocra-seed-status"]');
         const seedEndpoint = form ? form.getAttribute('data-seed-endpoint') : null;
         let credentialCache = null;
         let credentialFetchPromise = null;
         let seedInProgress = false;
-        let pendingSeedMessage = null;
         let credentialMetadata = Object.create(null);
         const inlinePresets =
           inlinePresetElement && inlinePresetElement.textContent
@@ -683,6 +690,7 @@
             if (seedButton) {
               seedButton.setAttribute('disabled', 'disabled');
             }
+            setSeedStatus('', false);
           }
         }
 
@@ -746,9 +754,6 @@
                 setCredentialStatus(
                   'No stored credentials found. Use "Seed sample credentials" or import via the CLI.',
                   false);
-              } else if (pendingSeedMessage) {
-                setCredentialStatus(pendingSeedMessage, false);
-                pendingSeedMessage = null;
               } else {
                 setCredentialStatus('', false);
               }
@@ -1245,6 +1250,28 @@
           }
         }
 
+        function setSeedStatus(message, isError) {
+          if (!seedStatus) {
+            return;
+          }
+          const hasMessage = typeof message === 'string' && message.trim().length > 0;
+          if (!hasMessage) {
+            seedStatus.textContent = '';
+            seedStatus.classList.remove('credential-status--error');
+            seedStatus.setAttribute('hidden', 'hidden');
+            seedStatus.setAttribute('aria-hidden', 'true');
+            return;
+          }
+          seedStatus.textContent = message;
+          if (isError) {
+            seedStatus.classList.add('credential-status--error');
+          } else {
+            seedStatus.classList.remove('credential-status--error');
+          }
+          seedStatus.removeAttribute('hidden');
+          seedStatus.setAttribute('aria-hidden', 'false');
+        }
+
         function applyPreset(presetKey) {
           if (!presetKey) {
             return;
@@ -1734,12 +1761,12 @@
               return;
             }
             if (!seedEndpoint) {
-              setCredentialStatus('Seeding endpoint unavailable.', true);
+              setSeedStatus('Seeding endpoint unavailable.', true);
               return;
             }
             seedInProgress = true;
             seedButton.setAttribute('disabled', 'disabled');
-            setCredentialStatus('Seeding sample credentials…', false);
+            setSeedStatus('Seeding sample credentials…', false);
             const csrfInput = form ? form.querySelector('input[name="_csrf"]') : null;
             const csrfToken = csrfInput && typeof csrfInput.value === 'string' ? csrfInput.value : '';
             const headers = {
@@ -1777,14 +1804,13 @@
                 if (addedCount === 0) {
                   message += ' All sample credentials are already present.';
                 }
-                setCredentialStatus(message, false);
-                pendingSeedMessage = message;
+                setSeedStatus(message, false);
                 credentialCache = null;
                 credentialFetchPromise = null;
                 return ensureCredentialsLoaded();
               })
               .catch(function () {
-                setCredentialStatus('Unable to seed sample credentials.', true);
+                setSeedStatus('Unable to seed sample credentials.', true);
               })
               .finally(function () {
                 seedInProgress = false;

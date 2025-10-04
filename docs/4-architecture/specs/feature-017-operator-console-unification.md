@@ -24,6 +24,8 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 - 2025-10-04 – In the replay tab, the stored credential selector must render immediately beneath the mode chooser so operators can access it without scrolling past inline fields (user directive).
 - 2025-10-04 – Encode the selected protocol and tab in `/ui/console` using query parameters (e.g., `protocol=ocra&tab=replay`), ensuring refreshable deep links (user selected Option A).
 - 2025-10-04 – Preserve disabled protocol placeholders when deep-linked or navigated via the browser history, pushing history entries for tab changes (user selected Option B).
+- 2025-10-04 – Display seeding status messages directly beneath the `Seed sample credentials` button while keeping the original hint text visible (user selected Option B).
+- 2025-10-04 – Highlight seeding failures with the existing red/danger styling so operators can spot errors quickly (user directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

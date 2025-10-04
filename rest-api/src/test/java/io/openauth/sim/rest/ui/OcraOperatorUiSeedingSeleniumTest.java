@@ -86,6 +86,16 @@ final class OcraOperatorUiSeedingSeleniumTest {
                 ExpectedConditions.elementToBeClickable(
                     By.cssSelector("button[data-testid='ocra-seed-credentials']")));
 
+    WebElement seedHint = driver.findElement(By.cssSelector("[data-testid='ocra-seed-hint']"));
+    String seedHintText = seedHint.getDomProperty("textContent");
+    if (seedHintText == null) {
+      seedHintText = seedHint.getAttribute("textContent");
+    }
+    assertThat(seedHintText).contains("Adds canonical demo credentials");
+
+    WebElement seedStatus = driver.findElement(By.cssSelector("[data-testid='ocra-seed-status']"));
+    assertThat(seedStatus.getAttribute("hidden")).isNotNull();
+
     Select storedSelect =
         new Select(
             driver.findElement(By.cssSelector("select[data-testid='stored-credential-select']")));
@@ -111,13 +121,18 @@ final class OcraOperatorUiSeedingSeleniumTest {
     new WebDriverWait(driver, Duration.ofSeconds(5))
         .until(webDriver -> storedSelect.getOptions().size() == CANONICAL_SUITES.size() + 1);
 
-    WebElement seedStatus =
-        driver.findElement(By.cssSelector("[data-testid='stored-credential-status']"));
     String statusMessage = seedStatus.getDomProperty("textContent");
     if (statusMessage == null) {
       statusMessage = seedStatus.getAttribute("textContent");
     }
     assertThat(statusMessage).contains("Seeded");
+    assertThat(seedStatus.getAttribute("hidden")).isNull();
+
+    String finalHintText = seedHint.getDomProperty("textContent");
+    if (finalHintText == null) {
+      finalHintText = seedHint.getAttribute("textContent");
+    }
+    assertThat(finalHintText).isEqualTo(seedHintText);
   }
 
   private void waitForBackgroundJavaScript() {

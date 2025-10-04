@@ -23,5 +23,7 @@ _Last updated: 2025-10-04_
 - [x] T1717 – Refresh docs/knowledge map and telemetry notes for the stateful URL behaviour, rerun `./gradlew spotlessApply check`.
 - [x] T1718 – Add failing Selenium coverage asserting the evaluation result no longer renders a Sanitized row. (_2025-10-04_)
 - [x] T1719 – Remove the Sanitized row from evaluation results, update Selenium expectations, and rerun `./gradlew :rest-api:test spotlessApply check`. (_2025-10-04_)
+- [x] T1720 – Update Selenium coverage for seeding status placement beneath the seed control with persistent hint text. (_2025-10-04_)
+- [x] T1721 – Implement seeding status layout/script adjustments and rerun `./gradlew :rest-api:test spotlessApply check`. (_2025-10-04_)
 
 Update this checklist as increments progress; keep tests ahead of implementation per VDD cadence.
