@@ -1,7 +1,7 @@
 # Feature 017 – Task Checklist
 
 _Status: Draft_
-_Last updated: 2025-10-03_
+_Last updated: 2025-10-04_
 
 ## Tasks (≤10 min each)
 - [x] T1701 – Add Selenium coverage expecting unified operator console route with protocol tabs (fails until implementation).
@@ -15,5 +15,8 @@ _Last updated: 2025-10-03_
 - [x] T1709 – Drop replay result telemetry detail fields, update scripts/tests accordingly, and rerun `./gradlew :rest-api:test spotlessApply check`.
 - [x] T1710 – Stack evaluation/replay metadata as single-row entries, adjust CSS/tests, and rerun `./gradlew :rest-api:test spotlessApply check`.
 - [x] T1711 – Remove Suite from evaluation result metadata, update scripts/tests, and rerun `./gradlew :rest-api:test spotlessApply check`.
+- [x] T1712 – Add failing Selenium/Web layer coverage for the seeding control + REST endpoint contract; run `./gradlew :rest-api:test` to confirm red.
+- [x] T1713 – Implement the seeding endpoint, domain wiring, and UI control (append-only) with telemetry updates; rerun `./gradlew :rest-api:test`.
+- [x] T1714 – Update docs/knowledge map for the seeding workflow and rerun `./gradlew spotlessApply check`.
 
 Update this checklist as increments progress; keep tests ahead of implementation per VDD cadence.

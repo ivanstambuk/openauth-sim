@@ -26,6 +26,45 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "description" : "Verification completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationResponse"
+                },
+                "examples" : {
+                  "Match" : {
+                    "summary" : "Successful verification",
+                    "description" : "Match",
+                    "value" : {
+                      "status" : "match",
+                      "reasonCode" : "match",
+                      "metadata" : {
+                        "credentialSource" : "stored",
+                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
+                        "otpLength" : 8,
+                        "durationMillis" : 11,
+                        "contextFingerprint" : "Base64URL-Hash",
+                        "telemetryId" : "rest-ocra-verify-<uuid>",
+                        "outcome" : "match"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
           "422" : {
             "description" : "Verification payload failed validation",
             "content" : {
@@ -63,45 +102,6 @@
                 }
               }
             }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "Verification completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationResponse"
-                },
-                "examples" : {
-                  "Match" : {
-                    "summary" : "Successful verification",
-                    "description" : "Match",
-                    "value" : {
-                      "status" : "match",
-                      "reasonCode" : "match",
-                      "metadata" : {
-                        "credentialSource" : "stored",
-                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
-                        "otpLength" : 8,
-                        "durationMillis" : 11,
-                        "contextFingerprint" : "Base64URL-Hash",
-                        "telemetryId" : "rest-ocra-verify-<uuid>",
-                        "outcome" : "match"
-                      }
-                    }
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -123,26 +123,6 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation successful",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected server error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
-                }
-              }
-            }
-          },
           "400" : {
             "description" : "Invalid request payload",
             "content" : {
@@ -167,6 +147,44 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation successful",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ocra/credentials/seed" : {
+      "post" : {
+        "tags" : [ "ocra-credential-directory-controller" ],
+        "operationId" : "seedCredentials",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SeedResponse"
                 }
               }
             }
@@ -253,23 +271,6 @@
           }
         }
       },
-      "OcraVerificationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          }
-        }
-      },
       "OcraVerificationMetadata" : {
         "type" : "object",
         "properties" : {
@@ -315,6 +316,23 @@
           }
         }
       },
+      "OcraVerificationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
       "OcraEvaluationRequest" : {
         "type" : "object",
         "properties" : {
@@ -351,6 +369,23 @@
           }
         }
       },
+      "OcraEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
       "OcraEvaluationResponse" : {
         "type" : "object",
         "properties" : {
@@ -365,18 +400,20 @@
           }
         }
       },
-      "OcraEvaluationErrorResponse" : {
+      "SeedResponse" : {
         "type" : "object",
         "properties" : {
-          "error" : {
-            "type" : "string"
+          "addedCount" : {
+            "type" : "integer",
+            "format" : "int32"
           },
-          "message" : {
-            "type" : "string"
+          "canonicalCount" : {
+            "type" : "integer",
+            "format" : "int32"
           },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
+          "addedCredentialIds" : {
+            "type" : "array",
+            "items" : {
               "type" : "string"
             }
           }

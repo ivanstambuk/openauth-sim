@@ -1,7 +1,7 @@
 # Feature Plan 017 – Operator Console Unification
 
 _Status: Draft_
-_Last updated: 2025-10-03_
+_Last updated: 2025-10-04_
 
 ## Objective
 Unify the operator UI into a single dark-themed console with protocol tabs, retain OCRA evaluation and replay functionality, and stay within the existing Thymeleaf + vanilla JS stack.
@@ -12,6 +12,7 @@ Reference specification: `docs/4-architecture/specs/feature-017-operator-console
 - Unified console at `/ui/console` replaces separate evaluation/replay routes while keeping OCRA workflows functional and legacy paths removed (OCU-001/OCU-002/OCU-006).
 - Dark theme and reduced margins deliver the requested terminal aesthetic without breaking accessibility (OCU-003).
 - Telemetry and docs remain aligned with the unified console layout (OCU-004/OCU-005).
+- Console exposes a manual `Seed sample credentials` flow backed by a REST endpoint that appends canonical suites when missing and logs telemetry, while leaving existing credentials intact (OCU-011).
 - `./gradlew :rest-api:test spotlessApply check` passes after each increment and final changes include documentation updates.
 
 ## Proposed Increments
@@ -26,6 +27,9 @@ Reference specification: `docs/4-architecture/specs/feature-017-operator-console
 - ☑ R1709 – Remove replay result fields (Telemetry ID, Credential Source, Context Fingerprint, Sanitized), adjust scripts/tests, and rerun `./gradlew :rest-api:test spotlessApply check`.
 - ☑ R1710 – Stack evaluation and replay metadata so each label/value appears on its own row; update styles/tests and rerun `./gradlew :rest-api:test spotlessApply check`.
 - ☑ R1711 – Remove Suite from evaluation results, adjust scripts/tests, and rerun `./gradlew :rest-api:test spotlessApply check`.
+- ☑ R1712 – Add failing Selenium/Web layer coverage for the `Seed sample credentials` control, REST endpoint contract, and telemetry expectations when the store is empty.
+- ☑ R1713 – Implement the seeding REST endpoint, domain wiring, and UI button (append-only) with telemetry + persistence updates, then rerun `./gradlew :rest-api:test`.
+- ☑ R1714 – Refresh documentation/knowledge map for the seeding workflow, ensure repeated seeding behaviour is described, and rerun `./gradlew spotlessApply check`.
 
 Each increment must stay within ≤10 minutes, lead with tests, and capture notes/telemetry adjustments in this plan as work proceeds.
 
@@ -58,6 +62,10 @@ Each increment must stay within ≤10 minutes, lead with tests, and capture note
 - 2025-10-03 – Completed R1710: templates now wrap each label/value in `.result-row`, CSS enforces stacked layout, Selenium verifies row counts, and build passed via `./gradlew :rest-api:test spotlessApply check`.
 - 2025-10-03 – New directive captured as R1711: evaluation results should only display Status and Sanitized metadata alongside the OTP value.
 - 2025-10-03 – Completed R1711: removed Suite row from evaluation result, tightened Selenium expectations, and reran `./gradlew :rest-api:test spotlessApply check` successfully.
+- 2025-10-04 – Initiated R1712 with Selenium + endpoint tests covering the seeding control, REST contract, and telemetry expectations.
+- 2025-10-04 – Completed R1712: seeding UI/REST telemetry tests now cover empty-store behaviour; red tests drove the implementation.
+- 2025-10-04 – Completed R1713: introduced an application-layer seeding service, delegated REST logic through it, wired the UI button, and reran `./gradlew :rest-api:test`.
+- 2025-10-04 – Completed R1714: refreshed documentation, knowledge map, and snapshots for the seeding workflow and reran `./gradlew spotlessApply check`.
 Use this section to log telemetry schema additions, performance observations, and accessibility adjustments.
 
 ## Analysis Gate (2025-10-03)

@@ -48,4 +48,23 @@ final class OcraTelemetryContractTest {
 
     TelemetryContractTestSupport.assertEvaluationErrorFrame(frame);
   }
+
+  @Test
+  void ocraSeedingAdapterProducesSeedStatusFrame() {
+    OcraTelemetryAdapter adapter = TelemetryContracts.ocraSeedingAdapter();
+
+    TelemetryFrame frame =
+        adapter.status(
+            "seeded",
+            TelemetryContractTestSupport.telemetryId(),
+            "seeded",
+            true,
+            null,
+            Map.of("addedCount", 5));
+
+    org.junit.jupiter.api.Assertions.assertEquals("ocra.seed", frame.event());
+    org.junit.jupiter.api.Assertions.assertEquals("seeded", frame.status());
+    org.junit.jupiter.api.Assertions.assertTrue(frame.sanitized());
+    org.junit.jupiter.api.Assertions.assertEquals(5, frame.fields().get("addedCount"));
+  }
 }

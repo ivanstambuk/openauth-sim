@@ -3,6 +3,7 @@ package io.openauth.sim.rest.ocra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.application.ocra.OcraSeedApplicationService;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
@@ -21,7 +22,7 @@ class OcraCredentialDirectoryControllerTest {
   @DisplayName("returns empty list when credential store unavailable")
   void listCredentialsWithoutStore() {
     OcraCredentialDirectoryController controller =
-        new OcraCredentialDirectoryController(provider(null));
+        new OcraCredentialDirectoryController(provider(null), seedServiceFor(null));
 
     List<OcraCredentialSummary> summaries = controller.listCredentials();
 
@@ -44,7 +45,7 @@ class OcraCredentialDirectoryControllerTest {
 
     FixedCredentialStore store = new FixedCredentialStore(List.of(ocraA, generic, ocraB));
     OcraCredentialDirectoryController controller =
-        new OcraCredentialDirectoryController(provider(store));
+        new OcraCredentialDirectoryController(provider(store), seedServiceFor(store));
 
     List<OcraCredentialSummary> summaries = controller.listCredentials();
 
@@ -99,6 +100,10 @@ class OcraCredentialDirectoryControllerTest {
         return stream();
       }
     };
+  }
+
+  private static OcraCredentialSeedService seedServiceFor(CredentialStore store) {
+    return new OcraCredentialSeedService(provider(store), new OcraSeedApplicationService());
   }
 
   private static final class FixedCredentialStore implements CredentialStore {

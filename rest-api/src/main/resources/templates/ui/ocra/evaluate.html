@@ -28,7 +28,7 @@
                 aria-describedby="console-summary"
                 data-testid="ocra-evaluate-form"
                 class="evaluation-form"
-                th:attr="data-evaluate-endpoint=${evaluationEndpoint},data-credentials-endpoint=${credentialsEndpoint}"
+                th:attr="data-evaluate-endpoint=${evaluationEndpoint},data-credentials-endpoint=${credentialsEndpoint},data-seed-endpoint=${seedEndpoint}"
               >
             <input type="hidden" name="_csrf" th:value="${csrfToken}" />
 
@@ -65,6 +65,19 @@
                 </p>
               </div>
             </fieldset>
+
+            <div class="seed-actions" data-testid="ocra-seed-actions" hidden="hidden" aria-hidden="true">
+              <button
+                type="button"
+                class="button-secondary"
+                data-testid="ocra-seed-credentials"
+              >
+                Seed sample credentials
+              </button>
+              <p class="hint">
+                Adds canonical demo credentials when the registry is empty or missing presets.
+              </p>
+            </div>
 
             <section
               id="inline-parameters"
@@ -496,8 +509,13 @@
           ? form.getAttribute('data-credentials-endpoint')
           : null;
         const autoFillButton = document.querySelector('[data-testid="stored-credential-autofill"]');
+        const seedActions = document.querySelector('[data-testid="ocra-seed-actions"]');
+        const seedButton = document.querySelector('[data-testid="ocra-seed-credentials"]');
+        const seedEndpoint = form ? form.getAttribute('data-seed-endpoint') : null;
         let credentialCache = null;
         let credentialFetchPromise = null;
+        let seedInProgress = false;
+        let pendingSeedMessage = null;
         let credentialMetadata = Object.create(null);
         const inlinePresets =
           inlinePresetElement && inlinePresetElement.textContent
@@ -653,9 +671,23 @@
             ensureCredentialsLoaded().then(function () {
               handleStoredCredentialSelection();
             });
+            if (seedActions) {
+              seedActions.removeAttribute('hidden');
+              seedActions.setAttribute('aria-hidden', 'false');
+              if (seedButton && !seedInProgress) {
+                seedButton.removeAttribute('disabled');
+              }
+            }
           } else {
             setCredentialStatus('', false);
             enableAllRequestParameters();
+            if (seedActions) {
+              seedActions.setAttribute('hidden', 'hidden');
+              seedActions.setAttribute('aria-hidden', 'true');
+            }
+            if (seedButton) {
+              seedButton.setAttribute('disabled', 'disabled');
+            }
           }
         }
 
@@ -716,7 +748,12 @@
               updateCredentialMetadata(credentialCache);
               renderCredentialOptions(credentialCache);
               if (credentialCache.length === 0) {
-                setCredentialStatus('No stored credentials found. Import credentials via the CLI.', false);
+                setCredentialStatus(
+                  'No stored credentials found. Use "Seed sample credentials" or import via the CLI.',
+                  false);
+              } else if (pendingSeedMessage) {
+                setCredentialStatus(pendingSeedMessage, false);
+                pendingSeedMessage = null;
               } else {
                 setCredentialStatus('', false);
               }
@@ -1700,6 +1737,71 @@
 
         if (credentialSelect) {
           credentialSelect.addEventListener('change', handleStoredCredentialSelection);
+        }
+
+        if (seedButton) {
+          seedButton.addEventListener('click', function () {
+            if (seedInProgress) {
+              return;
+            }
+            if (!seedEndpoint) {
+              setCredentialStatus('Seeding endpoint unavailable.', true);
+              return;
+            }
+            seedInProgress = true;
+            seedButton.setAttribute('disabled', 'disabled');
+            setCredentialStatus('Seeding sample credentials…', false);
+            const csrfInput = form ? form.querySelector('input[name="_csrf"]') : null;
+            const csrfToken = csrfInput && typeof csrfInput.value === 'string' ? csrfInput.value : '';
+            const headers = {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            };
+            if (csrfToken) {
+              headers['X-CSRF-TOKEN'] = csrfToken;
+            }
+
+            fetchDelegate(seedEndpoint, {
+              method: 'POST',
+              headers: headers,
+              credentials: 'same-origin',
+            })
+              .then(function (response) {
+                return response.text().then(function (text) {
+                  return { ok: response.ok, body: parseJsonSafely(text) };
+                });
+              })
+              .then(function (result) {
+                if (!result.ok) {
+                  throw new Error('Seed request failed');
+                }
+                var addedCount = 0;
+                if (result.body) {
+                  if (typeof result.body.addedCount === 'number') {
+                    addedCount = result.body.addedCount;
+                  } else if (Array.isArray(result.body.addedCredentialIds)) {
+                    addedCount = result.body.addedCredentialIds.length;
+                  }
+                }
+                var message =
+                  'Seeded ' + addedCount + ' sample credential' + (addedCount === 1 ? '' : 's') + '.';
+                if (addedCount === 0) {
+                  message += ' All sample credentials are already present.';
+                }
+                setCredentialStatus(message, false);
+                pendingSeedMessage = message;
+                credentialCache = null;
+                credentialFetchPromise = null;
+                return ensureCredentialsLoaded();
+              })
+              .catch(function () {
+                setCredentialStatus('Unable to seed sample credentials.', true);
+              })
+              .finally(function () {
+                seedInProgress = false;
+                seedButton.removeAttribute('disabled');
+              });
+          });
         }
 
         if (advancedToggle) {

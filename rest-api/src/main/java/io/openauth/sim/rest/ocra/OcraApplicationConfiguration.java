@@ -2,6 +2,7 @@ package io.openauth.sim.rest.ocra;
 
 import io.openauth.sim.application.ocra.OcraCredentialResolvers;
 import io.openauth.sim.application.ocra.OcraEvaluationApplicationService;
+import io.openauth.sim.application.ocra.OcraSeedApplicationService;
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService;
 import io.openauth.sim.core.store.CredentialStore;
 import java.time.Clock;
@@ -35,5 +36,10 @@ class OcraApplicationConfiguration {
             ? OcraCredentialResolvers.forVerificationStore(store)
             : OcraCredentialResolvers.emptyVerificationResolver(),
         store);
+  }
+
+  @Bean
+  OcraSeedApplicationService ocraSeedApplicationService() {
+    return new OcraSeedApplicationService();
   }
 }

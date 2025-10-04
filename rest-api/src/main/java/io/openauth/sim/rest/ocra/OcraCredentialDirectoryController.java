@@ -6,11 +6,13 @@ import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.store.CredentialStore;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,9 +24,13 @@ final class OcraCredentialDirectoryController {
       Comparator.comparing(OcraCredentialSummary::getId, String.CASE_INSENSITIVE_ORDER);
 
   private final CredentialStore credentialStore;
+  private final OcraCredentialSeedService seedService;
 
-  OcraCredentialDirectoryController(ObjectProvider<CredentialStore> credentialStoreProvider) {
+  OcraCredentialDirectoryController(
+      ObjectProvider<CredentialStore> credentialStoreProvider,
+      OcraCredentialSeedService seedService) {
     this.credentialStore = credentialStoreProvider.getIfAvailable();
+    this.seedService = Objects.requireNonNull(seedService, "seedService");
   }
 
   @GetMapping("/credentials")
@@ -37,6 +43,37 @@ final class OcraCredentialDirectoryController {
         .map(OcraCredentialDirectoryController::toSummary)
         .sorted(SUMMARY_COMPARATOR)
         .collect(Collectors.toUnmodifiableList());
+  }
+
+  @PostMapping(value = "/credentials/seed", produces = MediaType.APPLICATION_JSON_VALUE)
+  SeedResponse seedCredentials() {
+    OcraCredentialSeedService.SeedResult result = seedService.seedCanonicalCredentials();
+    return new SeedResponse(
+        result.addedCount(), result.canonicalCount(), result.addedCredentialIds());
+  }
+
+  static final class SeedResponse {
+    private final int addedCount;
+    private final int canonicalCount;
+    private final List<String> addedCredentialIds;
+
+    SeedResponse(int addedCount, int canonicalCount, List<String> addedCredentialIds) {
+      this.addedCount = addedCount;
+      this.canonicalCount = canonicalCount;
+      this.addedCredentialIds = List.copyOf(addedCredentialIds);
+    }
+
+    public int getAddedCount() {
+      return addedCount;
+    }
+
+    public int getCanonicalCount() {
+      return canonicalCount;
+    }
+
+    public List<String> getAddedCredentialIds() {
+      return addedCredentialIds;
+    }
   }
 
   private static OcraCredentialSummary toSummary(Credential credential) {

@@ -22,6 +22,33 @@ paths:
               $ref: "#/components/schemas/OcraVerificationRequest"
         required: true
       responses:
+        "200":
+          description: "Verification completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationResponse"
+              examples:
+                Match:
+                  summary: "Successful verification"
+                  description: "Match"
+                  value:
+                    status: "match"
+                    reasonCode: "match"
+                    metadata:
+                      credentialSource: "stored"
+                      suite: "OCRA-1:HOTP-SHA256-8:QA08-S064"
+                      otpLength: 8
+                      durationMillis: 11
+                      contextFingerprint: "Base64URL-Hash"
+                      telemetryId: "rest-ocra-verify-<uuid>"
+                      outcome: "match"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "422":
           description: "Verification payload failed validation"
           content:
@@ -48,33 +75,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OcraVerificationErrorResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
-        "200":
-          description: "Verification completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationResponse"
-              examples:
-                Match:
-                  summary: "Successful verification"
-                  description: "Match"
-                  value:
-                    status: "match"
-                    reasonCode: "match"
-                    metadata:
-                      credentialSource: "stored"
-                      suite: "OCRA-1:HOTP-SHA256-8:QA08-S064"
-                      otpLength: 8
-                      durationMillis: 11
-                      contextFingerprint: "Base64URL-Hash"
-                      telemetryId: "rest-ocra-verify-<uuid>"
-                      outcome: "match"
   /api/v1/ocra/evaluate:
     post:
       tags:
@@ -89,18 +89,6 @@ paths:
               $ref: "#/components/schemas/OcraEvaluationRequest"
         required: true
       responses:
-        "200":
-          description: "Evaluation successful"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationResponse"
-        "500":
-          description: "Unexpected server error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
         "400":
           description: "Invalid request payload"
           content:
@@ -121,6 +109,30 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
+        "200":
+          description: "Evaluation successful"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationResponse"
+        "500":
+          description: "Unexpected server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
+  /api/v1/ocra/credentials/seed:
+    post:
+      tags:
+      - "ocra-credential-directory-controller"
+      operationId: "seedCredentials"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeedResponse"
   /api/v1/ocra/credentials:
     get:
       tags:
@@ -173,17 +185,6 @@ components:
           $ref: "#/components/schemas/OcraVerificationInlineCredential"
         context:
           $ref: "#/components/schemas/OcraVerificationContext"
-    OcraVerificationErrorResponse:
-      type: "object"
-      properties:
-        error:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
     OcraVerificationMetadata:
       type: "object"
       properties:
@@ -214,6 +215,17 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/OcraVerificationMetadata"
+    OcraVerificationErrorResponse:
+      type: "object"
+      properties:
+        error:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
     OcraEvaluationRequest:
       type: "object"
       properties:
@@ -238,15 +250,6 @@ components:
         counter:
           type: "integer"
           format: "int64"
-    OcraEvaluationResponse:
-      type: "object"
-      properties:
-        suite:
-          type: "string"
-        otp:
-          type: "string"
-        telemetryId:
-          type: "string"
     OcraEvaluationErrorResponse:
       type: "object"
       properties:
@@ -257,6 +260,28 @@ components:
         details:
           type: "object"
           additionalProperties:
+            type: "string"
+    OcraEvaluationResponse:
+      type: "object"
+      properties:
+        suite:
+          type: "string"
+        otp:
+          type: "string"
+        telemetryId:
+          type: "string"
+    SeedResponse:
+      type: "object"
+      properties:
+        addedCount:
+          type: "integer"
+          format: "int32"
+        canonicalCount:
+          type: "integer"
+          format: "int32"
+        addedCredentialIds:
+          type: "array"
+          items:
             type: "string"
     OcraCredentialSummary:
       type: "object"

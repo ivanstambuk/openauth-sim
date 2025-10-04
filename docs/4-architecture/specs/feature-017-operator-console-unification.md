@@ -1,7 +1,7 @@
 # Feature 017 – Operator Console Unification
 
 _Status: Draft_
-_Last updated: 2025-10-03_
+_Last updated: 2025-10-04_
 
 ## Overview
 Deliver a single dark-themed operator console that unifies OCRA evaluation and replay workflows while establishing protocol tabs for future facades (FIDO2/WebAuthn, EMV/CAP). The console retains the existing Spring Boot + Thymeleaf + vanilla JS stack, removes surplus whitespace, and keeps OCRA as the only fully interactive protocol while the others surface disabled previews until their implementations arrive.
@@ -15,6 +15,11 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 - 2025-10-03 – Replay result cards must omit Telemetry ID, Credential Source, Context Fingerprint, and Sanitized fields to reduce visual clutter (user directive).
 - 2025-10-03 – Result metadata in both evaluation and replay panels must display one label/value per row instead of multi-column grids (user directive).
 - 2025-10-03 – Evaluation result cards must omit the Suite field to keep the summary minimal (user directive).
+- 2025-10-04 – When no stored credentials exist, surface a manual "Seed sample credentials" action in the operator console instead of auto-populating (user selected Option B).
+- 2025-10-04 – Seed the MapDB store using the same canonical suites used by the inline autofill option (one credential per suite) so future iterations can append project-specific fixtures (user selected Option B).
+- 2025-10-04 – Allow operators to invoke seeding multiple times; subsequent runs append only credentials that are not already present (user selected Option C).
+- 2025-10-04 – Implement seeding through a REST endpoint invoked from the UI button, capturing telemetry for each invocation (user selected Option A).
+- 2025-10-04 – The `Seed sample credentials` control should appear only when the stored credential mode is selected; hide it for inline mode to reduce noise (user directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -29,6 +34,7 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 | OCU-008 | Remove Telemetry ID, Credential Source, Context Fingerprint, and Sanitized fields from replay results while keeping mode, reason, and outcome visible. | Selenium/UI tests verify the result card no longer renders the removed fields and continues to present remaining metadata. |
 | OCU-009 | Render replay and evaluation metadata with a single label/value per row layout. | Selenium/UI tests confirm result cards expose `.result-row` groupings for each metadata item and no multi-column grid remains. |
 | OCU-010 | Remove the Suite field from the evaluation result metadata while preserving status and sanitized indicators. | Selenium/UI tests verify the evaluation result renders only Status and Sanitized rows alongside the OTP value. |
+| OCU-011 | Provide a `Seed sample credentials` control when the stored credential registry is empty; the action calls a REST endpoint to insert canonical OCRA suites (matching inline autofill) and may be re-run to add any missing suites without overwriting existing ones. | UI/system tests confirm the button appears only when appropriate, invokes the endpoint, appends missing suites, and records telemetry; stored credentials remain intact if already present. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |

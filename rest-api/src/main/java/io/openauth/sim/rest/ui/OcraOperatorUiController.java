@@ -24,89 +24,6 @@ final class OcraOperatorUiController {
   private static final String REST_EVALUATION_PATH = "/api/v1/ocra/evaluate";
   private static final String CSRF_ATTRIBUTE = "ocra-ui-csrf-token";
   private static final String REST_VERIFICATION_PATH = "/api/v1/ocra/verify";
-  private static final List<PolicyPreset> INLINE_POLICY_PRESETS =
-      List.of(
-          new PolicyPreset(
-              "qa08-s064",
-              "QA08 S064 (session 64)",
-              new InlineSample(
-                  "OCRA-1:HOTP-SHA256-8:QA08-S064",
-                  "3132333435363738393031323334353637383930313233343536373839303132",
-                  "SESSION01",
-                  "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567",
-                  null,
-                  null,
-                  null,
-                  null,
-                  null,
-                  "17477202")),
-          new PolicyPreset(
-              "qa08-s128",
-              "QA08 S128 (session 128)",
-              new InlineSample(
-                  "OCRA-1:HOTP-SHA256-8:QA08-S128",
-                  "3132333435363738393031323334353637383930313233343536373839303132",
-                  "SESSION01",
-                  "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF0123456700112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567",
-                  null,
-                  null,
-                  null,
-                  null,
-                  null,
-                  "18468077")),
-          new PolicyPreset(
-              "qa08-s256",
-              "QA08 S256 (session 256)",
-              new InlineSample(
-                  "OCRA-1:HOTP-SHA256-8:QA08-S256",
-                  "3132333435363738393031323334353637383930313233343536373839303132",
-                  "SESSION01",
-                  ("00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
-                      + "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
-                      + "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
-                      + "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"),
-                  null,
-                  null,
-                  null,
-                  null,
-                  null,
-                  "77715695")),
-          new PolicyPreset(
-              "qa08-s512",
-              "QA08 S512 (session 512)",
-              new InlineSample(
-                  "OCRA-1:HOTP-SHA256-8:QA08-S512",
-                  "3132333435363738393031323334353637383930313233343536373839303132",
-                  "SESSION01",
-                  ("00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
-                      + "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
-                      + "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
-                      + "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
-                      + "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
-                      + "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
-                      + "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"
-                      + "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567"),
-                  null,
-                  null,
-                  null,
-                  null,
-                  null,
-                  "05806151")),
-          new PolicyPreset(
-              "c-qh64",
-              "C-QH64 (HOTP-SHA256-6)",
-              new InlineSample(
-                  "OCRA-1:HOTP-SHA256-6:C-QH64",
-                  "3132333435363738393031323334353637383930313233343536373839303132",
-                  "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF",
-                  null,
-                  null,
-                  null,
-                  null,
-                  null,
-                  1L,
-                  "429968")));
-
   private final ObjectMapper objectMapper;
   private final OcraOperatorUiReplayLogger telemetry;
 
@@ -133,6 +50,7 @@ final class OcraOperatorUiController {
     model.addAttribute("evaluationEndpoint", REST_EVALUATION_PATH);
     model.addAttribute("verificationEndpoint", REST_VERIFICATION_PATH);
     model.addAttribute("credentialsEndpoint", "/api/v1/ocra/credentials");
+    model.addAttribute("seedEndpoint", "/api/v1/ocra/credentials/seed");
     model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
     model.addAttribute("activeProtocol", "ocra");
     populatePolicyPresets(model);
@@ -147,10 +65,11 @@ final class OcraOperatorUiController {
   }
 
   private void populatePolicyPresets(Model model) {
-    model.addAttribute("policyPresets", INLINE_POLICY_PRESETS);
+    List<PolicyPreset> presets = OcraOperatorSampleData.policyPresets();
+    model.addAttribute("policyPresets", presets);
     try {
       List<Map<String, Object>> payload =
-          INLINE_POLICY_PRESETS.stream()
+          presets.stream()
               .map(
                   preset -> {
                     Map<String, Object> sampleMap = new java.util.LinkedHashMap<>();
