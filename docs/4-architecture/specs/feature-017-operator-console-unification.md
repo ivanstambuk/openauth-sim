@@ -26,6 +26,7 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 - 2025-10-04 – Preserve disabled protocol placeholders when deep-linked or navigated via the browser history, pushing history entries for tab changes (user selected Option B).
 - 2025-10-04 – Display seeding status messages directly beneath the `Seed sample credentials` button while keeping the original hint text visible (user selected Option B).
 - 2025-10-04 – Highlight seeding failures with the existing red/danger styling so operators can spot errors quickly (user directive).
+- 2025-10-04 – Treat "no credentials added" outcomes as a warning: render the status in an accent distinct from the neutral hint (user directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

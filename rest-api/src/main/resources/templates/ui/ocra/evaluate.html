@@ -690,7 +690,7 @@
             if (seedButton) {
               seedButton.setAttribute('disabled', 'disabled');
             }
-            setSeedStatus('', false);
+            setSeedStatus('', 'neutral');
           }
         }
 
@@ -1250,7 +1250,7 @@
           }
         }
 
-        function setSeedStatus(message, isError) {
+        function setSeedStatus(message, severity) {
           if (!seedStatus) {
             return;
           }
@@ -1258,15 +1258,18 @@
           if (!hasMessage) {
             seedStatus.textContent = '';
             seedStatus.classList.remove('credential-status--error');
+            seedStatus.classList.remove('credential-status--warning');
             seedStatus.setAttribute('hidden', 'hidden');
             seedStatus.setAttribute('aria-hidden', 'true');
             return;
           }
           seedStatus.textContent = message;
-          if (isError) {
+          seedStatus.classList.remove('credential-status--error');
+          seedStatus.classList.remove('credential-status--warning');
+          if (severity === 'error') {
             seedStatus.classList.add('credential-status--error');
-          } else {
-            seedStatus.classList.remove('credential-status--error');
+          } else if (severity === 'warning') {
+            seedStatus.classList.add('credential-status--warning');
           }
           seedStatus.removeAttribute('hidden');
           seedStatus.setAttribute('aria-hidden', 'false');
@@ -1761,12 +1764,12 @@
               return;
             }
             if (!seedEndpoint) {
-              setSeedStatus('Seeding endpoint unavailable.', true);
+              setSeedStatus('Seeding endpoint unavailable.', 'error');
               return;
             }
             seedInProgress = true;
             seedButton.setAttribute('disabled', 'disabled');
-            setSeedStatus('Seeding sample credentials…', false);
+            setSeedStatus('Seeding sample credentials…', 'neutral');
             const csrfInput = form ? form.querySelector('input[name="_csrf"]') : null;
             const csrfToken = csrfInput && typeof csrfInput.value === 'string' ? csrfInput.value : '';
             const headers = {
@@ -1804,13 +1807,13 @@
                 if (addedCount === 0) {
                   message += ' All sample credentials are already present.';
                 }
-                setSeedStatus(message, false);
+                setSeedStatus(message, addedCount === 0 ? 'warning' : 'neutral');
                 credentialCache = null;
                 credentialFetchPromise = null;
                 return ensureCredentialsLoaded();
               })
               .catch(function () {
-                setSeedStatus('Unable to seed sample credentials.', true);
+                setSeedStatus('Unable to seed sample credentials.', 'error');
               })
               .finally(function () {
                 seedInProgress = false;

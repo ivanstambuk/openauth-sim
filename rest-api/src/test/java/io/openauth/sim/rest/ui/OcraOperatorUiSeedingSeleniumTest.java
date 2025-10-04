@@ -127,6 +127,8 @@ final class OcraOperatorUiSeedingSeleniumTest {
     }
     assertThat(statusMessage).contains("Seeded");
     assertThat(seedStatus.getAttribute("hidden")).isNull();
+    assertThat(seedStatus.getAttribute("class")).contains("credential-status--warning");
+    assertThat(seedStatus.getAttribute("class")).doesNotContain("credential-status--error");
 
     String finalHintText = seedHint.getDomProperty("textContent");
     if (finalHintText == null) {

@@ -13,6 +13,7 @@
   --ocra-color-primary: #16d3f3;
   --ocra-color-primary-accent: #4fffc8;
   --ocra-color-primary-soft: rgba(22, 211, 243, 0.16);
+  --ocra-color-warning: #ffb86c;
   --ocra-color-danger: #ff5d7a;
   --ocra-color-success: #41e0b0;
   --ocra-radius-sm: 0.375rem;
@@ -503,6 +504,10 @@ fieldset {
   margin-top: var(--ocra-spacing-xs);
   font-size: 0.95rem;
   color: var(--ocra-color-text-muted);
+}
+
+.credential-status.credential-status--warning {
+  color: var(--ocra-color-warning);
 }
 
 .credential-status.credential-status--error {
