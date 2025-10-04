@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -64,14 +66,46 @@ final class OperatorConsoleUnificationSeleniumTest {
                     By.cssSelector("[data-testid='operator-protocol-tabs']")));
     assertThat(tabList.getAttribute("role")).isEqualTo("tablist");
 
+    List<WebElement> tabs = tabList.findElements(By.cssSelector("[data-protocol-tab]"));
+    List<String> tabLabels =
+        tabs.stream().map(WebElement::getText).map(String::trim).collect(Collectors.toList());
+    assertThat(tabLabels)
+        .containsExactly(
+            "HOTP",
+            "TOTP",
+            "OCRA",
+            "EMV / CAP",
+            "FIDO2 / WebAuthn",
+            "EUDIW OpenID4VP 1.0",
+            "EUDIW ISO/IEC 18013-5",
+            "EUDIW SIOPv2");
+
+    WebElement hotpTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-hotp']"));
+    assertThat(hotpTab.getAttribute("aria-selected")).isEqualTo("false");
+
+    WebElement totpTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-totp']"));
+    assertThat(totpTab.getAttribute("aria-selected")).isEqualTo("false");
+
     WebElement ocraTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-ocra']"));
     assertThat(ocraTab.getAttribute("aria-selected")).isEqualTo("true");
+
+    WebElement emvTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-emv']"));
+    assertThat(emvTab.getAttribute("aria-selected")).isEqualTo("false");
 
     WebElement fidoTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-fido2']"));
     assertThat(fidoTab.getAttribute("aria-selected")).isEqualTo("false");
 
-    WebElement emvTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-emv']"));
-    assertThat(emvTab.getAttribute("aria-selected")).isEqualTo("false");
+    WebElement eudiOpenidTab =
+        driver.findElement(By.cssSelector("[data-testid='protocol-tab-eudi-openid4vp']"));
+    assertThat(eudiOpenidTab.getAttribute("aria-selected")).isEqualTo("false");
+
+    WebElement eudiIsoTab =
+        driver.findElement(By.cssSelector("[data-testid='protocol-tab-eudi-iso-18013-5']"));
+    assertThat(eudiIsoTab.getAttribute("aria-selected")).isEqualTo("false");
+
+    WebElement eudiSiopTab =
+        driver.findElement(By.cssSelector("[data-testid='protocol-tab-eudi-siopv2']"));
+    assertThat(eudiSiopTab.getAttribute("aria-selected")).isEqualTo("false");
 
     WebElement modeToggle = driver.findElement(By.cssSelector("[data-testid='ocra-mode-toggle']"));
     assertThat(modeToggle.getAttribute("data-mode"))
@@ -121,29 +155,71 @@ final class OperatorConsoleUnificationSeleniumTest {
     assertThat(evaluateSection.getAttribute("hidden")).isNull();
     assertThat(replaySection.getAttribute("hidden")).isNotNull();
 
-    fidoTab.click();
-    WebElement fidoPanel = driver.findElement(By.cssSelector("[data-protocol-panel='fido2']"));
+    hotpTab.click();
+    WebElement hotpPanel = driver.findElement(By.cssSelector("[data-protocol-panel='hotp']"));
     new WebDriverWait(driver, Duration.ofSeconds(3))
-        .until(panel -> fidoPanel.getAttribute("hidden") == null);
+        .until(panel -> hotpPanel.getAttribute("hidden") == null);
     assertThat(modeToggle.getAttribute("hidden"))
         .as("Mode toggle should hide for non-OCRA protocols")
         .isNotNull();
     assertThat(ocraPanel.getAttribute("hidden")).isNotNull();
-    assertThat(fidoPanel.getText()).contains("FIDO2");
+    assertThat(hotpPanel.findElement(By.tagName("h2")).getText()).contains("HOTP");
+
+    totpTab.click();
+    WebElement totpPanel = driver.findElement(By.cssSelector("[data-protocol-panel='totp']"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(panel -> totpPanel.getAttribute("hidden") == null);
+    assertThat(totpPanel.findElement(By.tagName("h2")).getText()).contains("TOTP");
 
     emvTab.click();
     WebElement emvPanel = driver.findElement(By.cssSelector("[data-protocol-panel='emv']"));
     new WebDriverWait(driver, Duration.ofSeconds(3))
         .until(panel -> emvPanel.getAttribute("hidden") == null);
+    assertThat(modeToggle.getAttribute("hidden"))
+        .as("Mode toggle should hide for non-OCRA protocols")
+        .isNotNull();
+    assertThat(ocraPanel.getAttribute("hidden")).isNotNull();
     assertThat(emvPanel.getText()).contains("EMV");
+
+    fidoTab.click();
+    WebElement fidoPanel = driver.findElement(By.cssSelector("[data-protocol-panel='fido2']"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(panel -> fidoPanel.getAttribute("hidden") == null);
+    assertThat(fidoPanel.getText()).contains("FIDO2");
+
+    eudiOpenidTab.click();
+    WebElement eudiOpenidPanel =
+        driver.findElement(By.cssSelector("[data-protocol-panel='eudi-openid4vp']"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(panel -> eudiOpenidPanel.getAttribute("hidden") == null);
+    assertThat(eudiOpenidPanel.findElement(By.tagName("h2")).getText()).contains("OpenID4VP");
+
+    eudiIsoTab.click();
+    WebElement eudiIsoPanel =
+        driver.findElement(By.cssSelector("[data-protocol-panel='eudi-iso-18013-5']"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(panel -> eudiIsoPanel.getAttribute("hidden") == null);
+    assertThat(eudiIsoPanel.findElement(By.tagName("h2")).getText()).contains("ISO/IEC 18013-5");
+
+    eudiSiopTab.click();
+    WebElement eudiSiopPanel =
+        driver.findElement(By.cssSelector("[data-protocol-panel='eudi-siopv2']"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(panel -> eudiSiopPanel.getAttribute("hidden") == null);
+    assertThat(eudiSiopPanel.findElement(By.tagName("h2")).getText()).contains("SIOPv2");
 
     ocraTab.click();
     new WebDriverWait(driver, Duration.ofSeconds(3))
         .until(panel -> modeToggle.getAttribute("hidden") == null);
     assertThat(modeToggle.getAttribute("data-mode")).isEqualTo("evaluate");
     assertThat(ocraPanel.getAttribute("hidden")).isNull();
-    assertThat(fidoPanel.getAttribute("hidden")).isNotNull();
+    assertThat(hotpPanel.getAttribute("hidden")).isNotNull();
+    assertThat(totpPanel.getAttribute("hidden")).isNotNull();
     assertThat(emvPanel.getAttribute("hidden")).isNotNull();
+    assertThat(fidoPanel.getAttribute("hidden")).isNotNull();
+    assertThat(eudiOpenidPanel.getAttribute("hidden")).isNotNull();
+    assertThat(eudiIsoPanel.getAttribute("hidden")).isNotNull();
+    assertThat(eudiSiopPanel.getAttribute("hidden")).isNotNull();
   }
 
   @Test
@@ -170,29 +246,48 @@ final class OperatorConsoleUnificationSeleniumTest {
         .as("Evaluation panel should hide when tab=replay")
         .isNotNull();
 
-    driver.get(baseUrl("/ui/console?protocol=fido2"));
+    List<String[]> protocolExpectations =
+        List.of(
+            new String[] {"hotp", "protocol-tab-hotp", "hotp"},
+            new String[] {"totp", "protocol-tab-totp", "totp"},
+            new String[] {"emv", "protocol-tab-emv", "emv"},
+            new String[] {"fido2", "protocol-tab-fido2", "fido2"},
+            new String[] {"eudi-openid4vp", "protocol-tab-eudi-openid4vp", "eudi-openid4vp"},
+            new String[] {"eudi-iso-18013-5", "protocol-tab-eudi-iso-18013-5", "eudi-iso-18013-5"},
+            new String[] {"eudi-siopv2", "protocol-tab-eudi-siopv2", "eudi-siopv2"});
 
-    WebElement fidoTab =
-        new WebDriverWait(driver, Duration.ofSeconds(3))
-            .until(
-                ExpectedConditions.presenceOfElementLocated(
-                    By.cssSelector("[data-testid='protocol-tab-fido2']")));
-    assertThat(driver.getCurrentUrl()).contains("protocol=fido2");
-    assertThat(fidoTab.getAttribute("aria-selected")).isEqualTo("true");
+    for (String[] expectation : protocolExpectations) {
+      String protocol = expectation[0];
+      String tabTestId = expectation[1];
+      String panelKey = expectation[2];
 
-    WebElement fidoPanel = driver.findElement(By.cssSelector("[data-protocol-panel='fido2']"));
-    assertThat(fidoPanel.getAttribute("hidden")).isNull();
+      driver.get(baseUrl("/ui/console?protocol=" + protocol));
 
-    WebElement ocraPanel = driver.findElement(By.cssSelector("[data-protocol-panel='ocra']"));
-    assertThat(ocraPanel.getAttribute("hidden"))
-        .as("OCRA panel should hide when deep-linking to FIDO2")
-        .isNotNull();
+      WebElement tab =
+          new WebDriverWait(driver, Duration.ofSeconds(3))
+              .until(
+                  ExpectedConditions.presenceOfElementLocated(
+                      By.cssSelector("[data-testid='" + tabTestId + "']")));
+      assertThat(driver.getCurrentUrl()).contains("protocol=" + protocol);
+      assertThat(tab.getAttribute("aria-selected")).isEqualTo("true");
 
-    WebElement ocraModeToggle =
-        driver.findElement(By.cssSelector("[data-testid='ocra-mode-toggle']"));
-    assertThat(ocraModeToggle.getAttribute("hidden"))
-        .as("Mode toggle should be hidden for disabled protocols")
-        .isNotNull();
+      WebElement panel =
+          driver.findElement(By.cssSelector("[data-protocol-panel='" + panelKey + "']"));
+      assertThat(panel.getAttribute("hidden")).isNull();
+
+      WebElement ocraPanel = driver.findElement(By.cssSelector("[data-protocol-panel='ocra']"));
+      if (!"ocra".equals(protocol)) {
+        assertThat(ocraPanel.getAttribute("hidden"))
+            .as("OCRA panel should hide when deep-linking to " + protocol)
+            .isNotNull();
+      }
+
+      WebElement ocraModeToggle =
+          driver.findElement(By.cssSelector("[data-testid='ocra-mode-toggle']"));
+      assertThat(ocraModeToggle.getAttribute("hidden"))
+          .as("Mode toggle should be hidden for disabled protocols")
+          .isNotNull();
+    }
   }
 
   @Test
@@ -200,17 +295,66 @@ final class OperatorConsoleUnificationSeleniumTest {
   void tabNavigationUpdatesHistory() {
     driver.get(baseUrl("/ui/console"));
 
-    WebElement fidoTab =
+    WebElement hotpTab =
         new WebDriverWait(driver, Duration.ofSeconds(3))
             .until(
                 ExpectedConditions.presenceOfElementLocated(
-                    By.cssSelector("[data-testid='protocol-tab-fido2']")));
+                    By.cssSelector("[data-testid='protocol-tab-hotp']")));
+    WebElement totpTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-totp']"));
+    WebElement emvTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-emv']"));
+    WebElement fidoTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-fido2']"));
+    WebElement eudiOpenidTab =
+        driver.findElement(By.cssSelector("[data-testid='protocol-tab-eudi-openid4vp']"));
+    WebElement eudiIsoTab =
+        driver.findElement(By.cssSelector("[data-testid='protocol-tab-eudi-iso-18013-5']"));
+    WebElement eudiSiopTab =
+        driver.findElement(By.cssSelector("[data-testid='protocol-tab-eudi-siopv2']"));
     WebElement ocraTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-ocra']"));
+
+    hotpTab.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("protocol=hotp"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=hotp");
+
+    totpTab.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("protocol=totp"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=totp");
+
+    emvTab.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("protocol=emv"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=emv");
 
     fidoTab.click();
     new WebDriverWait(driver, Duration.ofSeconds(3))
         .until(d -> driver.getCurrentUrl().contains("protocol=fido2"));
     assertThat(driver.getCurrentUrl()).contains("protocol=fido2");
+
+    driver.navigate().back();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("protocol=emv"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=emv");
+
+    driver.navigate().forward();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("protocol=fido2"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=fido2");
+
+    eudiOpenidTab.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("protocol=eudi-openid4vp"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=eudi-openid4vp");
+
+    eudiIsoTab.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("protocol=eudi-iso-18013-5"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=eudi-iso-18013-5");
+
+    eudiSiopTab.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("protocol=eudi-siopv2"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=eudi-siopv2");
 
     ocraTab.click();
     new WebDriverWait(driver, Duration.ofSeconds(3))
@@ -236,15 +380,12 @@ final class OperatorConsoleUnificationSeleniumTest {
         .until(d -> driver.getCurrentUrl().contains("tab=evaluate"));
     assertThat(driver.getCurrentUrl()).contains("protocol=ocra").contains("tab=evaluate");
 
-    driver.navigate().back();
-    new WebDriverWait(driver, Duration.ofSeconds(3))
-        .until(d -> driver.getCurrentUrl().contains("protocol=fido2"));
-    assertThat(driver.getCurrentUrl()).contains("protocol=fido2");
-
     driver.navigate().forward();
     new WebDriverWait(driver, Duration.ofSeconds(3))
-        .until(d -> driver.getCurrentUrl().contains("protocol=ocra"));
-    assertThat(driver.getCurrentUrl()).contains("protocol=ocra").contains("tab=evaluate");
+        .until(d -> "replay".equals(modeToggle.getAttribute("data-mode")));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> driver.getCurrentUrl().contains("tab=replay"));
+    assertThat(driver.getCurrentUrl()).contains("protocol=ocra").contains("tab=replay");
   }
 
   private String baseUrl(String path) {

@@ -18,6 +18,26 @@
             aria-label="Operator protocol selector"
           >
           <button
+              class="protocol-tab"
+              data-testid="protocol-tab-hotp"
+              data-protocol-tab="hotp"
+              role="tab"
+              aria-selected="false"
+              aria-controls="protocol-panel-hotp"
+            >
+            HOTP
+          </button>
+          <button
+              class="protocol-tab"
+              data-testid="protocol-tab-totp"
+              data-protocol-tab="totp"
+              role="tab"
+              aria-selected="false"
+              aria-controls="protocol-panel-totp"
+            >
+            TOTP
+          </button>
+          <button
               class="protocol-tab protocol-tab--active"
               data-testid="protocol-tab-ocra"
               data-protocol-tab="ocra"
@@ -26,6 +46,16 @@
               aria-controls="protocol-panel-ocra"
             >
             OCRA
+          </button>
+          <button
+              class="protocol-tab"
+              data-testid="protocol-tab-emv"
+              role="tab"
+              data-protocol-tab="emv"
+              aria-selected="false"
+              aria-controls="protocol-panel-emv"
+            >
+            EMV / CAP
           </button>
           <button
               class="protocol-tab"
@@ -39,13 +69,33 @@
           </button>
           <button
               class="protocol-tab"
-              data-testid="protocol-tab-emv"
+              data-testid="protocol-tab-eudi-openid4vp"
+              data-protocol-tab="eudi-openid4vp"
               role="tab"
-              data-protocol-tab="emv"
               aria-selected="false"
-              aria-controls="protocol-panel-emv"
+              aria-controls="protocol-panel-eudi-openid4vp"
             >
-            EMV / CAP
+            EUDIW OpenID4VP 1.0
+          </button>
+          <button
+              class="protocol-tab"
+              data-testid="protocol-tab-eudi-iso-18013-5"
+              data-protocol-tab="eudi-iso-18013-5"
+              role="tab"
+              aria-selected="false"
+              aria-controls="protocol-panel-eudi-iso-18013-5"
+            >
+            EUDIW ISO/IEC 18013-5
+          </button>
+          <button
+              class="protocol-tab"
+              data-testid="protocol-tab-eudi-siopv2"
+              data-protocol-tab="eudi-siopv2"
+              role="tab"
+              aria-selected="false"
+              aria-controls="protocol-panel-eudi-siopv2"
+            >
+            EUDIW SIOPv2
           </button>
         </div>
       </header>
@@ -90,17 +140,32 @@
         <th:block th:replace="~{ui/ocra/replay :: ocraReplayPresetData}"></th:block>
       </section>
       <section
-          id="protocol-panel-fido2"
+          id="protocol-panel-hotp"
           class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="fido2"
-          aria-labelledby="protocol-tab-fido2"
+          data-protocol-panel="hotp"
+          aria-labelledby="protocol-tab-hotp"
           hidden="hidden"
           aria-hidden="true"
         >
-        <h2>FIDO2 / WebAuthn</h2>
+        <h2>HOTP</h2>
         <p>
-          Operator tooling for FIDO2/WebAuthn is in design. Tabs will activate once the protocol facade
-          ships with REST + UI support.
+          HOTP operator tooling is planned. This panel will activate once HOTP credential issuance and
+          verification flows reach the simulator.
+        </p>
+      </section>
+
+      <section
+          id="protocol-panel-totp"
+          class="protocol-panel protocol-panel--placeholder"
+          data-protocol-panel="totp"
+          aria-labelledby="protocol-tab-totp"
+          hidden="hidden"
+          aria-hidden="true"
+        >
+        <h2>TOTP</h2>
+        <p>
+          TOTP support is on the roadmap. Tabs will activate once core, REST, and UI pathways are wired for
+          time-based OTP credentials.
         </p>
       </section>
 
@@ -116,6 +181,66 @@
         <p>
           EMV/CAP operator workflows are planned. This panel will light up when credential flows and UI
           scaffolding are available.
+        </p>
+      </section>
+
+      <section
+          id="protocol-panel-fido2"
+          class="protocol-panel protocol-panel--placeholder"
+          data-protocol-panel="fido2"
+          aria-labelledby="protocol-tab-fido2"
+          hidden="hidden"
+          aria-hidden="true"
+        >
+        <h2>FIDO2 / WebAuthn</h2>
+        <p>
+          Operator tooling for FIDO2/WebAuthn is in design. Tabs will activate once the protocol facade
+          ships with REST + UI support.
+        </p>
+      </section>
+
+      <section
+          id="protocol-panel-eudi-openid4vp"
+          class="protocol-panel protocol-panel--placeholder"
+          data-protocol-panel="eudi-openid4vp"
+          aria-labelledby="protocol-tab-eudi-openid4vp"
+          hidden="hidden"
+          aria-hidden="true"
+        >
+        <h2>EUDIW OpenID4VP 1.0</h2>
+        <p>
+          EUDI wallet OpenID4VP 1.0 presentation tooling will land in a dedicated workstream. Placeholder
+          remains until the simulator can orchestrate credential offers and verifications.
+        </p>
+      </section>
+
+      <section
+          id="protocol-panel-eudi-iso-18013-5"
+          class="protocol-panel protocol-panel--placeholder"
+          data-protocol-panel="eudi-iso-18013-5"
+          aria-labelledby="protocol-tab-eudi-iso-18013-5"
+          hidden="hidden"
+          aria-hidden="true"
+        >
+        <h2>EUDIW ISO/IEC 18013-5</h2>
+        <p>
+          ISO/IEC 18013-5 mobile driving licence flows will surface here once credential issuance and
+          presentation pipelines are implemented.
+        </p>
+      </section>
+
+      <section
+          id="protocol-panel-eudi-siopv2"
+          class="protocol-panel protocol-panel--placeholder"
+          data-protocol-panel="eudi-siopv2"
+          aria-labelledby="protocol-tab-eudi-siopv2"
+          hidden="hidden"
+          aria-hidden="true"
+        >
+        <h2>EUDIW SIOPv2</h2>
+        <p>
+          SIOPv2 authentication journeys for the EUDI wallet will appear here when the simulator supports
+          self-issued OpenID provider interactions.
         </p>
       </section>
     </main>
@@ -139,7 +264,16 @@
         const evaluatePanel = document.querySelector("[data-testid='ocra-evaluate-panel']");
         const replayPanel = document.querySelector("[data-testid='ocra-replay-panel']");
 
-        const allowedProtocols = new Set(['ocra', 'fido2', 'emv']);
+        const allowedProtocols = new Set([
+          'hotp',
+          'totp',
+          'ocra',
+          'eudi-openid4vp',
+          'eudi-iso-18013-5',
+          'eudi-siopv2',
+          'fido2',
+          'emv',
+        ]);
         const allowedTabs = new Set(['evaluate', 'replay']);
         let currentProtocol = 'ocra';
         let lastOcraTab = 'evaluate';

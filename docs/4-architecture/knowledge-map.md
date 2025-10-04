@@ -18,7 +18,7 @@ This living map captures the explicit relationships between modules, data flows,
 - Core persistence serialization contracts convert protocol descriptors into versioned credential records, now stored by `MapDbCredentialStore` with optional schema migrations when configured.
 - OCRA validation telemetry emits structured debug events that future observability modules can ingest without exposing secret material.
 - `docs/1-concepts/README.md` documents the OCRA capability matrix and telemetry contract operators should consult when integrating facades.
-- FIDO2, EUDI, and EMV packages remain pending; future knowledge-map updates will add their relationships once plans land.
+- HOTP, TOTP, FIDO2/WebAuthn, EMV/CAP, and EUDI wallet packages (OpenID4VP 1.0, ISO/IEC 18013-5, SIOPv2) remain pending; placeholder tabs now surface in the operator console to advertise upcoming support while specs/plans are drafted.
 - MapDB-backed persistence layer (planned) will expose repositories consumed by CLI, REST API, and UI facades.
 - MapDB-backed persistence now emits Level.FINE telemetry events (`persistence.credential.lookup` / `persistence.credential.mutation`) capturing cache hit/miss and latency metrics without leaking secret material.
 - MapDB maintenance helper (T205) provides synchronous compaction and integrity checks with structured `MaintenanceResult` outputs and telemetry so admin facades can surface maintenance outcomes.
@@ -26,7 +26,7 @@ This living map captures the explicit relationships between modules, data flows,
 - Application module now owns shared telemetry adapters (`TelemetryContracts`) that produce consistent `TelemetryFrame` payloads for CLI and REST, replacing facade-local telemetry classes.
 - `infra-persistence` module centralises `CredentialStoreFactory` wiring so CLI, REST, and tests acquire MapDB-backed stores through a shared configuration seam while keeping encryption profiles and future migrations/overrides injectable.
 - CLI module now exposes `maintenance <compact|verify>` commands that orchestrate the helper for operators working on local MapDB stores.
-- Unified operator console at `/ui/console` now embeds OCRA evaluation and replay forms with an accessible mode toggle, reusing Thymeleaf fragments while keeping placeholder protocol tabs disabled until new facades arrive; legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` views now redirect/not-found so the console remains the single entry point.
+- Unified operator console at `/ui/console` now embeds OCRA evaluation/replay flows with an accessible mode toggle and surfaces clickable placeholder tabs for HOTP, TOTP, OCRA, EMV/CAP, FIDO2/WebAuthn, EUDIW OpenID4VP 1.0, EUDIW ISO/IEC 18013-5, and EUDIW SIOPv2; legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` views now redirect/not-found so the console remains the single entry point.
 - Console state (protocol + OCRA tab) is now encoded via query parameters so deep links and history navigation stay in sync across disabled placeholders, with telemetry unaffected because tab changes remain client-side.
 - REST OCRA verification metadata now includes a `mode` attribute (stored vs inline) exposed to telemetry so replay facades can log outcome context consistently.
 - Operator console replay mode posts sanitized telemetry summaries to `TelemetryContracts.ocraVerificationAdapter`, tagging `origin=ui` and surfacing mode/outcome/fingerprint for downstream analytics.
