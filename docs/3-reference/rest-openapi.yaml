@@ -123,6 +123,8 @@ paths:
                 $ref: "#/components/schemas/OcraEvaluationErrorResponse"
   /api/v1/ocra/credentials/seed:
     post:
+      summary: "Seed canonical stored credentials"
+      description: "Appends any missing preset OCRA credentials used by the operator console's stored mode without overwriting existing records."
       tags:
       - "ocra-credential-directory-controller"
       operationId: "seedCredentials"
