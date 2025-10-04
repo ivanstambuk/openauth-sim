@@ -2,279 +2,121 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Operator Console</title>
-    <link rel="stylesheet" th:href="@{/ui/ocra/console.css}" />
-    <link rel="stylesheet" th:href="@{/ui/protocol-info.css}" />
+    <title>Protocol Info Surface Demo</title>
+    <link rel="stylesheet" href="protocol-info.css" />
+    <style>
+      body {
+        font-family: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: #050b16;
+        color: #e2ecf9;
+        margin: 0;
+        padding: 2.5rem;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+      }
+      main {
+        max-width: 960px;
+        width: 100%;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      .demo-protocols {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 1.5rem;
+        padding: 0.5rem 0.6rem;
+        border-radius: 999px;
+        background: rgba(6, 17, 32, 0.82);
+        border: 1px solid rgba(22, 211, 243, 0.28);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(22, 211, 243, 0.08);
+      }
+      .demo-protocols__tab {
+        padding: 0.6rem 1.1rem;
+        border-radius: 0.625rem;
+        border: 1px solid rgba(22, 211, 243, 0.35);
+        background: rgba(22, 211, 243, 0.12);
+        color: #16d3f3;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease;
+      }
+      .demo-protocols__tab:hover,
+      .demo-protocols__tab:focus-visible {
+        background: rgba(22, 211, 243, 0.24);
+        color: #4fffc8;
+        outline: none;
+      }
+      .demo-protocols__tab--active {
+        background: rgba(22, 211, 243, 0.22);
+        color: #4fffc8;
+        box-shadow: 0 0 1.4rem rgba(22, 211, 243, 0.35);
+      }
+      .demo-protocols .protocol-info-trigger {
+        margin-left: 0.4rem;
+        border-left: 1px solid rgba(22, 211, 243, 0.24);
+        background: rgba(22, 211, 243, 0.12);
+      }
+      .demo-active-protocol {
+        margin-bottom: 1.5rem;
+        color: rgba(226, 236, 249, 0.72);
+      }
+    </style>
   </head>
   <body>
-    <main class="operator-console" aria-labelledby="operator-console-heading">
-      <header class="console-header">
-        <div class="console-header__title">
-          <h1 id="operator-console-heading">Operator Console</h1>
-        </div>
-        <div
-            class="protocol-tabs"
-            data-testid="operator-protocol-tabs"
-            role="tablist"
-            aria-label="Operator protocol selector"
-          >
-            <button
-                class="protocol-tab"
-                data-testid="protocol-tab-hotp"
-                data-protocol-tab="hotp"
-                role="tab"
-                aria-selected="false"
-                aria-controls="protocol-panel-hotp"
-              >
-              HOTP
-            </button>
-            <button
-                class="protocol-tab"
-                data-testid="protocol-tab-totp"
-                data-protocol-tab="totp"
-                role="tab"
-                aria-selected="false"
-                aria-controls="protocol-panel-totp"
-              >
-              TOTP
-            </button>
-            <button
-                class="protocol-tab protocol-tab--active"
-                data-testid="protocol-tab-ocra"
-                data-protocol-tab="ocra"
-                role="tab"
-                aria-selected="true"
-                aria-controls="protocol-panel-ocra"
-              >
-              OCRA
-            </button>
-            <button
-                class="protocol-tab"
-                data-testid="protocol-tab-emv"
-                role="tab"
-                data-protocol-tab="emv"
-                aria-selected="false"
-                aria-controls="protocol-panel-emv"
-              >
-              EMV / CAP
-            </button>
-            <button
-                class="protocol-tab"
-                data-testid="protocol-tab-fido2"
-                role="tab"
-                data-protocol-tab="fido2"
-                aria-selected="false"
-                aria-controls="protocol-panel-fido2"
-              >
-              FIDO2 / WebAuthn
-            </button>
-            <button
-                class="protocol-tab"
-                data-testid="protocol-tab-eudi-openid4vp"
-                data-protocol-tab="eudi-openid4vp"
-                role="tab"
-                aria-selected="false"
-                aria-controls="protocol-panel-eudi-openid4vp"
-              >
-              EUDIW OpenID4VP 1.0
-            </button>
-            <button
-                class="protocol-tab"
-                data-testid="protocol-tab-eudi-iso-18013-5"
-                data-protocol-tab="eudi-iso-18013-5"
-                role="tab"
-                aria-selected="false"
-                aria-controls="protocol-panel-eudi-iso-18013-5"
-              >
-              EUDIW ISO/IEC 18013-5
-            </button>
-            <button
-                class="protocol-tab"
-                data-testid="protocol-tab-eudi-siopv2"
-                data-protocol-tab="eudi-siopv2"
-                role="tab"
-                aria-selected="false"
-                aria-controls="protocol-panel-eudi-siopv2"
-              >
-              EUDIW SIOPv2
-            </button>
-            <button
-                type="button"
-                class="protocol-info-trigger"
-                data-testid="protocol-info-trigger"
-                data-protocol="ocra"
-                aria-label="Protocol info"
-                aria-haspopup="dialog"
-                aria-controls="protocol-info-surface"
-                aria-expanded="false"
-              >
-              <span aria-hidden="true">i</span>
-            </button>
-          </div>
-      </header>
-
-      <section
-          id="protocol-panel-ocra"
-          class="protocol-panel"
-          data-protocol-panel="ocra"
-          aria-labelledby="protocol-tab-ocra"
+    <main id="protocol-info-demo-root">
+      <h1>Protocol Info Surface Demo</h1>
+      <p class="demo-active-protocol">
+        Trigger the surface to explore protocol guidance. Use Shift + ? to toggle the drawer.
+      </p>
+      <div class="demo-protocols">
+        <button type="button" class="demo-protocols__tab demo-protocols__tab--active" data-demo-protocol="ocra">OCRA</button>
+        <button type="button" class="demo-protocols__tab" data-demo-protocol="hotp">HOTP</button>
+        <button type="button" class="demo-protocols__tab" data-demo-protocol="totp">TOTP</button>
+        <button type="button" class="demo-protocols__tab" data-demo-protocol="emv">EMV / CAP</button>
+        <button type="button" class="demo-protocols__tab" data-demo-protocol="fido2">FIDO2 / WebAuthn</button>
+        <button type="button" class="demo-protocols__tab" data-demo-protocol="eudi-openid4vp">
+          EUDIW OpenID4VP 1.0
+        </button>
+        <button type="button" class="demo-protocols__tab" data-demo-protocol="eudi-iso-18013-5">
+          EUDIW ISO/IEC 18013-5
+        </button>
+        <button type="button" class="demo-protocols__tab" data-demo-protocol="eudi-siopv2">
+          EUDIW SIOPv2
+        </button>
+        <button
+          type="button"
+          class="protocol-info-trigger"
+          data-protocol="ocra"
+          aria-label="Protocol info"
+          aria-haspopup="dialog"
+          aria-controls="protocol-info-surface"
+          aria-expanded="false"
         >
-        <div
-            class="ocra-mode-toggle"
-            data-testid="ocra-mode-toggle"
-            data-mode="evaluate"
-            role="tablist"
-            aria-label="OCRA interaction modes"
-          >
-          <button
-              type="button"
-              class="mode-pill mode-pill--active"
-              data-testid="ocra-mode-select-evaluate"
-              role="tab"
-              aria-selected="true"
-            >
-            Evaluate
-          </button>
-          <button
-              type="button"
-              class="mode-pill"
-              data-testid="ocra-mode-select-replay"
-              role="tab"
-              aria-selected="false"
-            >
-            Replay
-          </button>
-        </div>
-
-        <th:block th:replace="~{ui/ocra/evaluate :: ocraEvaluatePanel(visible=${true})}"></th:block>
-        <th:block th:replace="~{ui/ocra/evaluate :: ocraPolicyPresetData}"></th:block>
-
-        <th:block th:replace="~{ui/ocra/replay :: ocraReplayPanel(visible=${false})}"></th:block>
-        <th:block th:replace="~{ui/ocra/replay :: ocraReplayPresetData}"></th:block>
-      </section>
-      <section
-          id="protocol-panel-hotp"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="hotp"
-          aria-labelledby="protocol-tab-hotp"
-          hidden="hidden"
-          aria-hidden="true"
-        >
-        <h2>HOTP</h2>
-        <p>
-          HOTP operator tooling is planned. This panel will activate once HOTP credential issuance and
-          verification flows reach the simulator.
-        </p>
-      </section>
-
-      <section
-          id="protocol-panel-totp"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="totp"
-          aria-labelledby="protocol-tab-totp"
-          hidden="hidden"
-          aria-hidden="true"
-        >
-        <h2>TOTP</h2>
-        <p>
-          TOTP support is on the roadmap. Tabs will activate once core, REST, and UI pathways are wired for
-          time-based OTP credentials.
-        </p>
-      </section>
-
-      <section
-          id="protocol-panel-emv"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="emv"
-          aria-labelledby="protocol-tab-emv"
-          hidden="hidden"
-          aria-hidden="true"
-        >
-        <h2>EMV / CAP</h2>
-        <p>
-          EMV/CAP operator workflows are planned. This panel will light up when credential flows and UI
-          scaffolding are available.
-        </p>
-      </section>
-
-      <section
-          id="protocol-panel-fido2"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="fido2"
-          aria-labelledby="protocol-tab-fido2"
-          hidden="hidden"
-          aria-hidden="true"
-        >
-        <h2>FIDO2 / WebAuthn</h2>
-        <p>
-          Operator tooling for FIDO2/WebAuthn is in design. Tabs will activate once the protocol facade
-          ships with REST + UI support.
-        </p>
-      </section>
-
-      <section
-          id="protocol-panel-eudi-openid4vp"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="eudi-openid4vp"
-          aria-labelledby="protocol-tab-eudi-openid4vp"
-          hidden="hidden"
-          aria-hidden="true"
-        >
-        <h2>EUDIW OpenID4VP 1.0</h2>
-        <p>
-          EUDI wallet OpenID4VP 1.0 presentation tooling will land in a dedicated workstream. Placeholder
-          remains until the simulator can orchestrate credential offers and verifications.
-        </p>
-      </section>
-
-      <section
-          id="protocol-panel-eudi-iso-18013-5"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="eudi-iso-18013-5"
-          aria-labelledby="protocol-tab-eudi-iso-18013-5"
-          hidden="hidden"
-          aria-hidden="true"
-        >
-        <h2>EUDIW ISO/IEC 18013-5</h2>
-        <p>
-          ISO/IEC 18013-5 mobile driving licence flows will surface here once credential issuance and
-          presentation pipelines are implemented.
-        </p>
-      </section>
-
-      <section
-          id="protocol-panel-eudi-siopv2"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="eudi-siopv2"
-          aria-labelledby="protocol-tab-eudi-siopv2"
-          hidden="hidden"
-          aria-hidden="true"
-        >
-        <h2>EUDIW SIOPv2</h2>
-        <p>
-          SIOPv2 authentication journeys for the EUDI wallet will appear here when the simulator supports
-          self-issued OpenID provider interactions.
-        </p>
-      </section>
+          <span aria-hidden="true">i</span>
+        </button>
+      </div>
 
       <div
-          class="protocol-info-backdrop"
-          data-testid="protocol-info-backdrop"
-          data-mode="drawer"
-          data-visible="false"
-          hidden="hidden"
-        ></div>
+        class="protocol-info-backdrop"
+        data-testid="protocol-info-backdrop"
+        data-mode="drawer"
+        data-visible="false"
+        hidden="hidden"
+      ></div>
       <aside
-          id="protocol-info-surface"
-          class="protocol-info-surface"
-          data-testid="protocol-info-surface"
-          data-open="false"
-          data-surface-mode="drawer"
-          data-active-protocol="ocra"
-          role="complementary"
-          aria-labelledby="protocol-info-title"
-          hidden="hidden"
-        >
+        id="protocol-info-surface"
+        class="protocol-info-surface"
+        data-testid="protocol-info-surface"
+        data-open="false"
+        data-surface-mode="drawer"
+        data-active-protocol="ocra"
+        role="complementary"
+        aria-labelledby="protocol-info-title"
+        hidden="hidden"
+      >
         <header class="protocol-info-header">
           <div class="protocol-info-header__titles">
             <p class="protocol-info-subtitle" data-testid="protocol-info-subtitle">Protocol guidance</p>
@@ -282,19 +124,19 @@
           </div>
           <div class="protocol-info-header__actions">
             <button
-                type="button"
-                class="protocol-info-action"
-                data-testid="protocol-info-expand"
-                aria-label="Expand to modal"
-              >
+              type="button"
+              class="protocol-info-action"
+              data-testid="protocol-info-expand"
+              aria-label="Expand to modal"
+            >
               Expand
             </button>
             <button
-                type="button"
-                class="protocol-info-action protocol-info-action--primary"
-                data-testid="protocol-info-close"
-                aria-label="Close protocol info"
-              >
+              type="button"
+              class="protocol-info-action protocol-info-action--primary"
+              data-testid="protocol-info-close"
+              aria-label="Close protocol info"
+            >
               Close
             </button>
           </div>
@@ -398,8 +240,8 @@
                 "heading": "Security notes & pitfalls",
                 "bullets": [
                   "High drift windows expand brute-force exposure; keep look-ahead ≤10.",
-                  "Store counters atomically to avoid replay vulnerabilities after verification failures.",
-                  "Limit OTP retry attempts and introduce back-off for online verification."
+                  "Persist counter checkpoints to avoid replay when devices desynchronise.",
+                  "Store HOTP secrets encrypted at rest; treat as high-value credentials."
                 ]
               },
               {
@@ -414,42 +256,43 @@
           },
           "totp": {
             "title": "TOTP (Time-Based One-Time Password)",
-            "subtitle": "Time window OTP",
+            "subtitle": "Time-stepped OTP",
             "sections": [
               {
                 "key": "overview",
                 "heading": "Overview",
                 "defaultOpen": true,
                 "paragraphs": [
-                  "TOTP (RFC 6238) extends HOTP by deriving the moving factor from Unix time segments, typically 30-second steps.",
-                  "Operator tooling will surface drift diagnostics and skew detection when the facade ships."
+                  "TOTP (RFC 6238) derives moving OTP values from the Unix timestamp and a shared secret, using dynamic truncation to produce human-readable codes.",
+                  "Future simulator work will surface drift tolerance controls and telemetry around verification results."
                 ]
               },
               {
                 "key": "how-it-works",
                 "heading": "How it works",
                 "steps": [
-                  "Quantise current time into step windows (default 30 seconds).",
-                  "Compute HMAC using the shared secret and the time step counter.",
-                  "Apply dynamic truncation and format digits for display."
+                  "Choose a time step (typically 30 seconds) and compute the moving counter floor(timestamp / step).",
+                  "Derive an HMAC digest using the shared secret and the moving counter.",
+                  "Apply dynamic truncation to obtain a 6–8 digit OTP.",
+                  "Verifier recomputes OTP within an allowed drift window to tolerate clock skew."
                 ]
               },
               {
                 "key": "parameters",
                 "heading": "Parameters & formats",
                 "bullets": [
-                  "Supported hash algorithms: SHA-1, SHA-256, SHA-512.",
-                  "Common digit lengths: 6 or 8; align with relying-party expectations.",
-                  "Allow ±1 window drift by default; adjust for device skew after telemetry review."
+                  "Common steps: 30s for user authentication, 60s for slower backends.",
+                  "Secrets encoded with Base32 for compatibility with OTP provisioning URIs.",
+                  "Drift window typically ±1 step; expand cautiously for high latency networks."
                 ]
               },
               {
                 "key": "security",
                 "heading": "Security notes & pitfalls",
                 "bullets": [
-                  "Block token reuse within the same window to mitigate race conditions.",
-                  "Monitor for monotonic clock skew; sync frequently on mobile hardware.",
-                  "Prefer SHA-256+ for high assurance to avoid SHA-1 collision concerns."
+                  "Sync server clocks using NTP to keep drift within tolerances.",
+                  "Invalidate codes after single use to mitigate replay.",
+                  "Alert operators when drift window expands beyond policy thresholds."
                 ]
               },
               {
@@ -463,133 +306,134 @@
             ]
           },
           "emv": {
-            "title": "EMV / CAP", "subtitle": "Cardholder authentication program",
+            "title": "EMV / CAP",
+            "subtitle": "Chip authentication program",
             "sections": [
               {
                 "key": "overview",
                 "heading": "Overview",
                 "defaultOpen": true,
                 "paragraphs": [
-                  "EMV/CAP authenticators rely on smart cards that derive responses from transaction challenge data.",
-                  "The simulator will mirror issuer scripts and response parsing in a future increment."
+                  "EMV/CAP authenticators compute transaction signatures with EMV-grade smart cards and offline terminals, producing short CAP codes for retail approval flows.",
+                  "Simulator coverage will model issuer scripts, ARQC verification, and CAP conversion."
                 ]
               },
               {
                 "key": "how-it-works",
                 "heading": "How it works",
                 "steps": [
-                  "Reader prompts the cardholder to insert the EMV card and enter the PIN.",
-                  "Terminal constructs a challenge (ATC, amount, currency) and sends to the card applet.",
-                  "Card signs the payload, returning a CAP result that the bank verifies."
+                  "Terminal reads card data, authenticates using static or dynamic data authentication.",
+                  "Issuer scripts instruct the card to compute an ARQC using transaction data.",
+                  "CAP converts ARQC hashes into human-readable response codes for operator approval."
                 ]
               },
               {
                 "key": "parameters",
                 "heading": "Parameters & formats",
                 "bullets": [
-                  "Application Transaction Counter (ATC) increments for each authorization attempt.",
-                  "Transaction data encoded using BCD; issuer script maps to CAP format codes.",
-                  "Result codes map to response types (Signature, Identify, Respond, Challenge)."
+                  "ARQC inputs: transaction counter, amount, currency, unpredictable number, terminal country code.",
+                  "CAP calculators display 8-digit codes; verification uses issuer-provisioned hashing schemes.",
+                  "Terminal verification results determine CVM outcomes (signature, PIN, offline)."
                 ]
               },
               {
                 "key": "security",
                 "heading": "Security notes & pitfalls",
                 "bullets": [
-                  "Protect offline PIN verification channels; fallback to online PIN when risk high.",
-                  "Monitor ATC gaps for potential relay or clone events.",
-                  "Enforce timeouts between challenge issuance and response submission."
+                  "Protect issuer master keys; compromise enables transaction replay and counterfeit cards.",
+                  "Monitor ATC rollovers and unexpected terminal UN values.",
+                  "Require CAP operator dual control for high-risk transaction confirmation."
                 ]
               },
               {
                 "key": "references",
                 "heading": "Specifications & test vectors",
                 "links": [
-                  { "label": "EMV Book 3", "url": "https://www.emvco.com/specifications/" },
-                  { "label": "CAP Specification", "url": "https://www.emvco.com/emv-technologies/cardholder-authentication-program/" }
+                  { "label": "EMV Book 2", "url": "https://www.emvco.com/emv-technologies/contact/" },
+                  { "label": "CAP specification", "url": "https://www.emvco.com/emv-technologies/3-d-secure/" }
                 ]
               }
             ]
           },
           "fido2": {
             "title": "FIDO2 / WebAuthn",
-            "subtitle": "Passkey-style public key assertions",
+            "subtitle": "Phishing-resistant public-key authentication",
             "sections": [
               {
                 "key": "overview",
                 "heading": "Overview",
                 "defaultOpen": true,
                 "paragraphs": [
-                  "FIDO2 unifies WebAuthn (client) and CTAP (authenticator) protocols to deliver phishing-resistant authentication.",
-                  "Upcoming simulator flows will replay attestation and assertion ceremonies for operator testing."
+                  "FIDO2 pairs WebAuthn (client/platform authenticators) with CTAP2 devices to deliver phishing-resistant, origin-bound authentication.",
+                  "Simulator flows will expose ceremony walkthroughs and metadata-driven credential policies."
                 ]
               },
               {
                 "key": "how-it-works",
                 "heading": "How it works",
                 "steps": [
-                  "Relying party issues a challenge and conveys relying-party ID and user info.",
-                  "Authenticator signs the challenge with a private key scoped to the RP ID.",
-                  "Server validates the signature, origin, and counter increments."
+                  "Relying party challenges the client via WebAuthn create/get ceremonies.",
+                  "Authenticator signs client data (origin, challenge, flags) using resident keys or discoverable credentials.",
+                  "Relying party verifies signature, checks attestation/metadata, and stores credential IDs for subsequent logins."
                 ]
               },
               {
                 "key": "parameters",
                 "heading": "Parameters & formats",
                 "bullets": [
-                  "Credential sources carry RP ID hash, user handle, credential ID, and public key.",
-                  "Authenticator data encodes the sign count and extension flags.",
-                  "Client data JSON binds challenge, origin, and type (webauthn.get / .create)."
+                  "Relying parties specify `pubKeyCredParams`, authenticator selection criteria, and attestation preference.",
+                  "ClientDataJSON encodes challenge, origin, and Cross-Origin flag.",
+                  "AuthenticatorData conveys AAGUID, sign count, flags, and optional attested credential data."
                 ]
               },
               {
                 "key": "security",
                 "heading": "Security notes & pitfalls",
                 "bullets": [
-                  "Track signature counter regressions to detect cloned authenticators.",
-                  "Always verify client extensions (appid, credProps) according to RP policy.",
-                  "Prefer platform authenticators with UV or passkeys for step-up auth."
+                  "Enforce RP ID hash checks to prevent look-alike domain phishing.",
+                  "Track signature counters to detect cloned authenticators.",
+                  "Validate attestation metadata or prefer self-attestation if privacy bound."
                 ]
               },
               {
                 "key": "references",
                 "heading": "Specifications & test vectors",
                 "links": [
-                  { "label": "W3C WebAuthn", "url": "https://www.w3.org/TR/webauthn-2/" },
-                  { "label": "FIDO2 CTAP", "url": "https://fidoalliance.org/specifications/" }
+                  { "label": "WebAuthn Level 2", "url": "https://www.w3.org/TR/webauthn-2/" },
+                  { "label": "FIDO2 CTAP2", "url": "https://fidoalliance.org/specs/fido-v2.3-rd-20220621/fido-client-to-authenticator-protocol-v2.3-rd-20220621.html" }
                 ]
               }
             ]
           },
           "eudi-openid4vp": {
             "title": "EUDIW OpenID4VP 1.0",
-            "subtitle": "Verifiable presentation exchange",
+            "subtitle": "Verifiable presentation over OpenID Connect",
             "sections": [
               {
                 "key": "overview",
                 "heading": "Overview",
                 "defaultOpen": true,
                 "paragraphs": [
-                  "OpenID4VP enables wallet-to-verifier presentation of verifiable credentials defined in the EUDI architecture.",
-                  "Simulator coverage will illustrate presentation definitions and response validation."
+                  "OpenID4VP lets verifiers request verifiable credentials from EUDI wallets using OpenID Connect flows, binding presentations to relying party sessions.",
+                  "Simulator content will illustrate request_uri resolution, presentation submissions, and trust frameworks."
                 ]
               },
               {
                 "key": "how-it-works",
                 "heading": "How it works",
                 "steps": [
-                  "Verifier issues an authorization request embedding presentation definition requirements.",
-                  "Wallet selects credentials that satisfy input descriptors and returns a signed VP token.",
-                  "Verifier validates proofs, issuer signatures, and audience bindings."
+                  "Verifier publishes a presentation definition accessible via request_uri.",
+                  "Wallet resolves the definition, assembles verifiable credentials, and signs submission data.",
+                  "Verifier validates credential proofs, applies trust list policies, and issues an authorization response."
                 ]
               },
               {
                 "key": "parameters",
                 "heading": "Parameters & formats",
                 "bullets": [
-                  "Presentation definitions structure: input_descriptors, constraints, format filters.",
-                  "VP token carries verifiablePresentation and presentation_submission members.",
-                  "Responses conveyed over back-channel or front-channel depending on client type."
+                  "Presentation submission objects map input descriptors to credential paths.",
+                  "request_uri payloads embed the presentation definition alongside client metadata.",
+                  "Wallet attestation captures device, software version, and key attestation material where required."
                 ]
               },
               {
@@ -714,9 +558,48 @@
         }
       }
     </script>
-    <th:block th:replace="~{ui/ocra/evaluate :: ocraEvaluateScripts}"></th:block>
-    <th:block th:replace="~{ui/ocra/replay :: ocraReplayScripts}"></th:block>
-    <script th:src="@{/ui/protocol-info.js}"></script>
-    <script th:src="@{/ui/ocra/console.js}"></script>
+    <script src="protocol-info.js"></script>
+    <script>
+      (function () {
+        var demoRoot = document.getElementById('protocol-info-demo-root');
+        var status = demoRoot.querySelector('.demo-active-protocol');
+        var tabs = Array.prototype.slice.call(
+          document.querySelectorAll('[data-demo-protocol]')
+        );
+        var trigger = document.querySelector('.protocol-info-trigger');
+
+        function setActive(protocol, options) {
+          tabs.forEach(function (tab) {
+            var isActive = tab.getAttribute('data-demo-protocol') === protocol;
+            tab.classList.toggle('demo-protocols__tab--active', isActive);
+          });
+          if (trigger) {
+            trigger.setAttribute('data-protocol', protocol);
+          }
+          if (status) {
+            status.textContent = 'Active protocol: ' + protocol.toUpperCase();
+          }
+          if (window.ProtocolInfo) {
+            window.ProtocolInfo.setProtocol(protocol, options || { notifyHost: true });
+          }
+        }
+
+        tabs.forEach(function (tab) {
+          tab.addEventListener('click', function () {
+            var protocol = tab.getAttribute('data-demo-protocol');
+            setActive(protocol, { notifyHost: true });
+          });
+        });
+
+        window.ProtocolInfo.mount({
+          root: demoRoot,
+          onProtocolActivated: function (protocol) {
+            setActive(protocol, { notifyHost: false });
+          },
+        });
+
+        setActive('ocra');
+      })();
+    </script>
   </body>
 </html>

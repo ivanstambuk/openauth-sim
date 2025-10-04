@@ -111,6 +111,9 @@ enforce_staged_file_guards() {
     if [[ $mime_type == application/json* ]]; then
       continue
     fi
+    if [[ $mime_type == application/javascript* || $mime_type == text/javascript* ]]; then
+      continue
+    fi
     if [[ $mime_type == application/x-yaml* || $mime_type == text/yaml* ]]; then
       continue
     fi

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -388,7 +389,216 @@ final class OperatorConsoleUnificationSeleniumTest {
     assertThat(driver.getCurrentUrl()).contains("protocol=ocra").contains("tab=replay");
   }
 
+  @Test
+  @DisplayName("Protocol info trigger tracks active protocol state")
+  void protocolInfoTriggerTracksActiveProtocolState() {
+    driver.get(baseUrl("/ui/console"));
+
+    WebElement surface = waitForProtocolInfoSurface();
+    if ("true".equals(surface.getAttribute("data-open"))) {
+      WebElement closeButton =
+          surface.findElement(By.cssSelector("[data-testid='protocol-info-close']"));
+      closeButton.click();
+      waitForAttribute(surface, "data-open", "false");
+    }
+
+    WebElement trigger =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-testid='protocol-info-trigger']")));
+
+    assertThat(trigger.getTagName()).isEqualTo("button");
+    assertThat(trigger.isDisplayed()).isTrue();
+    assertThat(trigger.getAttribute("aria-label")).isEqualTo("Protocol info");
+    assertThat(trigger.getAttribute("aria-haspopup")).isEqualTo("dialog");
+    assertThat(trigger.getAttribute("aria-controls")).isEqualTo("protocol-info-surface");
+    assertThat(trigger.getAttribute("aria-expanded")).isEqualTo("false");
+    assertThat(trigger.getAttribute("data-protocol")).isEqualTo("ocra");
+
+    List<String> protocolOrder =
+        List.of(
+            "ocra",
+            "hotp",
+            "totp",
+            "emv",
+            "fido2",
+            "eudi-openid4vp",
+            "eudi-iso-18013-5",
+            "eudi-siopv2");
+
+    for (String protocol : protocolOrder) {
+      if (!"ocra".equals(protocol)) {
+        WebElement tab =
+            driver.findElement(By.cssSelector("[data-testid='protocol-tab-" + protocol + "']"));
+        tab.click();
+      }
+
+      new WebDriverWait(driver, Duration.ofSeconds(3))
+          .until(d -> protocol.equals(trigger.getAttribute("data-protocol")));
+
+      assertThat(trigger.getAttribute("data-protocol")).isEqualTo(protocol);
+    }
+  }
+
+  @Test
+  @DisplayName("Protocol info surface opens via trigger, keyboard shortcut, and expands to modal")
+  void protocolInfoSurfaceSupportsShortcutsAndExpansion() {
+    driver.get(baseUrl("/ui/console"));
+
+    WebElement infoTrigger =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-testid='protocol-info-trigger']")));
+
+    WebElement initialSurface = waitForProtocolInfoSurface();
+    if ("true".equals(initialSurface.getAttribute("data-open"))) {
+      WebElement closeButton =
+          initialSurface.findElement(By.cssSelector("[data-testid='protocol-info-close']"));
+      closeButton.click();
+      waitForAttribute(initialSurface, "data-open", "false");
+    }
+
+    infoTrigger.click();
+
+    WebElement surface = waitForProtocolInfoSurface();
+    waitForAttribute(surface, "data-open", "true");
+
+    assertThat(surface.getAttribute("data-surface-mode")).isEqualTo("drawer");
+    assertThat(surface.getAttribute("role")).isEqualTo("complementary");
+    assertThat(surface.getAttribute("aria-modal")).isNull();
+
+    dispatchKeyDown("Escape", false, "Escape");
+    waitForAttribute(surface, "data-open", "false");
+    assertThat(infoTrigger.getAttribute("aria-expanded")).isEqualTo("false");
+
+    dispatchKeyDown("?", true, "Slash");
+    waitForAttribute(surface, "data-open", "true");
+
+    WebElement expandButton =
+        surface.findElement(By.cssSelector("[data-testid='protocol-info-expand']"));
+    expandButton.click();
+
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> "modal".equals(surface.getAttribute("data-surface-mode")));
+    assertThat(surface.getAttribute("role")).isEqualTo("dialog");
+    assertThat(surface.getAttribute("aria-modal")).isEqualTo("true");
+
+    WebElement closeButton =
+        surface.findElement(By.cssSelector("[data-testid='protocol-info-close']"));
+    assertThat(activeElementTestId()).isEqualTo("protocol-info-close");
+
+    closeButton.click();
+
+    waitForAttribute(surface, "data-open", "false");
+    assertThat(activeElementTestId()).isEqualTo("protocol-info-trigger");
+    assertThat(infoTrigger.getAttribute("aria-expanded")).isEqualTo("false");
+  }
+
+  @Test
+  @DisplayName("Protocol info surface stays open across protocol switches and updates content")
+  void protocolInfoSurfaceUpdatesAcrossProtocols() {
+    driver.get(baseUrl("/ui/console"));
+
+    WebElement infoTrigger =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-testid='protocol-info-trigger']")));
+
+    WebElement initialSurface = waitForProtocolInfoSurface();
+    if ("true".equals(initialSurface.getAttribute("data-open"))) {
+      WebElement closeButton =
+          initialSurface.findElement(By.cssSelector("[data-testid='protocol-info-close']"));
+      closeButton.click();
+      waitForAttribute(initialSurface, "data-open", "false");
+    }
+    infoTrigger.click();
+
+    WebElement surface = waitForProtocolInfoSurface();
+    waitForAttribute(surface, "data-open", "true");
+    assertThat(surface.getAttribute("data-active-protocol")).isEqualTo("ocra");
+    assertThat(infoTrigger.getAttribute("data-protocol")).isEqualTo("ocra");
+
+    assertThat(sectionKeys(surface))
+        .containsExactly("overview", "how-it-works", "parameters", "security", "references");
+    assertThat(protocolHeadingText(surface)).contains("OCRA");
+
+    WebElement hotpTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-hotp']"));
+    hotpTab.click();
+
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> "hotp".equals(surface.getAttribute("data-active-protocol")));
+    assertThat(surface.getAttribute("data-open")).isEqualTo("true");
+    assertThat(protocolHeadingText(surface)).contains("HOTP");
+    assertThat(infoTrigger.getAttribute("data-protocol")).isEqualTo("hotp");
+
+    WebElement totpTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-totp']"));
+    totpTab.click();
+
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> "totp".equals(surface.getAttribute("data-active-protocol")));
+    assertThat(protocolHeadingText(surface)).contains("TOTP");
+    assertThat(infoTrigger.getAttribute("data-protocol")).isEqualTo("totp");
+
+    assertThat(
+            surface
+                .findElement(By.cssSelector("[data-testid='protocol-info-panel-overview']"))
+                .getAttribute("data-open"))
+        .isEqualTo("true");
+
+    WebElement ocraTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-ocra']"));
+    ocraTab.click();
+
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> "ocra".equals(surface.getAttribute("data-active-protocol")));
+    assertThat(protocolHeadingText(surface)).contains("OCRA");
+    assertThat(infoTrigger.getAttribute("data-protocol")).isEqualTo("ocra");
+  }
+
   private String baseUrl(String path) {
     return "http://localhost:" + port + path;
+  }
+
+  private WebElement waitForProtocolInfoSurface() {
+    return new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='protocol-info-surface']")));
+  }
+
+  private void waitForAttribute(WebElement element, String attributeName, String expectedValue) {
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> expectedValue.equals(element.getAttribute(attributeName)));
+  }
+
+  private void dispatchKeyDown(String key, boolean shiftKey, String code) {
+    ((JavascriptExecutor) driver)
+        .executeScript(
+            "document.dispatchEvent(new KeyboardEvent('keydown', {"
+                + "key: arguments[0], shiftKey: arguments[1], code: arguments[2]}));",
+            key,
+            shiftKey,
+            code);
+  }
+
+  private String activeElementTestId() {
+    return (String)
+        ((JavascriptExecutor) driver)
+            .executeScript(
+                "return document.activeElement ? document.activeElement.getAttribute('data-testid') : null;");
+  }
+
+  private List<String> sectionKeys(WebElement surface) {
+    return surface
+        .findElements(By.cssSelector("[data-testid='protocol-info-accordion-header']"))
+        .stream()
+        .map(header -> header.getAttribute("data-section-key"))
+        .collect(Collectors.toList());
+  }
+
+  private String protocolHeadingText(WebElement surface) {
+    return surface.findElement(By.cssSelector("[data-testid='protocol-info-title']")).getText();
   }
 }

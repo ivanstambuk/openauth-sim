@@ -60,3 +60,9 @@ Long-form documentation lives in `/docs`:
 | `docs/_assets`           | Diagram sources and shared images                            |
 
 Consult the living [Implementation Roadmap](docs/4-architecture/roadmap.md) for future priorities, and see `AGENTS.md` for AI agent expectations. Contributions welcome—read [CONTRIBUTING.md](CONTRIBUTING.md) before raising PRs.
+
+## Protocol Info embeddable assets
+
+- CSS/JS bundles live at `rest-api/src/main/resources/static/ui/protocol-info.css` and `protocol-info.js`. They expose the `ProtocolInfo` API used by the operator console and external integrations.
+- A standalone demo is available at `rest-api/src/main/resources/static/ui/protocol-info-demo.html` for manual QA without running the Spring Boot application.
+- Integration guidance (including JSON schema, API usage, CustomEvents, and persistence keys) is documented in [docs/2-how-to/embed-protocol-info-surface.md](docs/2-how-to/embed-protocol-info-surface.md).
