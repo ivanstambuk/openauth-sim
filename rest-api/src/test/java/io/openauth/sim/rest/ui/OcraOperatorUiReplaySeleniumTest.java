@@ -51,10 +51,11 @@ final class OcraOperatorUiReplaySeleniumTest {
       "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF"
           + "112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567";
   private static final String STORED_EXPECTED_OTP = "17477202";
+  private static final String CUSTOM_CREDENTIAL_ID = "custom-no-sample";
+  private static final String CUSTOM_SUITE = "OCRA-1:HOTP-SHA1-6:QA08";
 
   @TempDir static Path tempDir;
   private static Path databasePath;
-  private static boolean sampleDatabaseCopied;
 
   @DynamicPropertySource
   static void configure(DynamicPropertyRegistry registry) {
@@ -65,9 +66,8 @@ final class OcraOperatorUiReplaySeleniumTest {
     }
     try {
       Files.copy(samplePath, databasePath, StandardCopyOption.REPLACE_EXISTING);
-      sampleDatabaseCopied = true;
     } catch (IOException ignored) {
-      sampleDatabaseCopied = false;
+      // fall back to empty store when sample copy unavailable
     }
     registry.add(
         "openauth.sim.persistence.database-path", () -> databasePath.toAbsolutePath().toString());
@@ -189,6 +189,55 @@ final class OcraOperatorUiReplaySeleniumTest {
 
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-replay-error']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
+  }
+
+  @Test
+  @DisplayName("Stored sample loader populates OTP and context for curated credential")
+  void storedSampleLoaderAppliesContext() {
+    navigateToReplayConsole();
+    waitForReplayBootstrap();
+    waitForStoredCredentialOptions();
+
+    Select credentialSelect = new Select(driver.findElement(By.id("replayCredentialId")));
+    credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
+
+    waitForSampleButtonEnabled();
+    waitForSampleStatusContains("Sample data ready");
+
+    WebElement loadButton = sampleLoadButton();
+    loadButton.click();
+
+    waitForSampleStatusContains("Sample data applied");
+
+    WebElement otpField = driver.findElement(By.id("replayOtp"));
+    assertThat(otpField.getAttribute("value")).isEqualTo(STORED_EXPECTED_OTP);
+    assertThat(driver.findElement(By.id("replayChallenge")).getAttribute("value"))
+        .isEqualTo(STORED_CHALLENGE);
+    assertThat(driver.findElement(By.id("replaySessionHex")).getAttribute("value"))
+        .isEqualTo(STORED_SESSION_HEX);
+
+    WebElement advancedPanel =
+        driver.findElement(By.cssSelector("[data-testid='ocra-replay-advanced-panel']"));
+    assertThat(advancedPanel.getAttribute("data-open")).isEqualTo("true");
+    assertThat(advancedPanel.getAttribute("hidden")).isNull();
+  }
+
+  @Test
+  @DisplayName("Sample loader remains disabled when curated data is unavailable")
+  void sampleLoaderDisabledForUnknownCredential() {
+    navigateToReplayConsole();
+    waitForReplayBootstrap();
+    waitForStoredCredentialOptions();
+
+    Select credentialSelect = new Select(driver.findElement(By.id("replayCredentialId")));
+    credentialSelect.selectByValue(CUSTOM_CREDENTIAL_ID);
+
+    waitForSampleStatusContains("No curated sample data");
+    waitForSampleButtonDisabled();
+
+    WebElement loadButton = sampleLoadButton();
+    assertThat(loadButton.isEnabled()).isFalse();
+    assertThat(driver.findElement(By.id("replayOtp")).getAttribute("value")).isEmpty();
   }
 
   @Test
@@ -374,6 +423,34 @@ final class OcraOperatorUiReplaySeleniumTest {
             });
   }
 
+  private WebElement sampleLoadButton() {
+    return driver.findElement(By.cssSelector("[data-testid='replay-sample-load']"));
+  }
+
+  private WebElement sampleStatusElement() {
+    return driver.findElement(By.cssSelector("[data-testid='replay-sample-status']"));
+  }
+
+  private void waitForSampleButtonEnabled() {
+    new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> sampleLoadButton().isEnabled());
+  }
+
+  private void waitForSampleButtonDisabled() {
+    new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> !sampleLoadButton().isEnabled());
+  }
+
+  private void waitForSampleStatusContains(String fragment) {
+    new WebDriverWait(driver, WAIT_TIMEOUT)
+        .until(
+            d -> {
+              WebElement status = sampleStatusElement();
+              if (status.getAttribute("hidden") != null) {
+                return false;
+              }
+              return status.getText().contains(fragment);
+            });
+  }
+
   private void waitForElementEnabled(By locator) {
     new WebDriverWait(driver, WAIT_TIMEOUT).until(ExpectedConditions.elementToBeClickable(locator));
   }
@@ -452,15 +529,21 @@ final class OcraOperatorUiReplaySeleniumTest {
   }
 
   private void seedStoredCredential() {
-    if (sampleDatabaseCopied && credentialStore.exists(STORED_CREDENTIAL_ID)) {
-      return;
+    if (!credentialStore.exists(STORED_CREDENTIAL_ID)) {
+      persistCredential(STORED_CREDENTIAL_ID, STORED_SUITE);
     }
-    credentialStore.delete(STORED_CREDENTIAL_ID);
+    if (!credentialStore.exists(CUSTOM_CREDENTIAL_ID)) {
+      persistCredential(CUSTOM_CREDENTIAL_ID, CUSTOM_SUITE);
+    }
+  }
+
+  private void persistCredential(String credentialId, String suite) {
+    credentialStore.delete(credentialId);
     OcraCredentialFactory factory = new OcraCredentialFactory();
     OcraCredentialRequest request =
         new OcraCredentialRequest(
-            STORED_CREDENTIAL_ID,
-            STORED_SUITE,
+            credentialId,
+            suite,
             STORED_SECRET_HEX,
             SecretEncoding.HEX,
             null,
@@ -472,6 +555,6 @@ final class OcraOperatorUiReplaySeleniumTest {
         VersionedCredentialRecordMapper.toCredential(
             new OcraCredentialPersistenceAdapter().serialize(descriptor));
     credentialStore.save(credential);
-    assertThat(credentialStore.exists(STORED_CREDENTIAL_ID)).isTrue();
+    assertThat(credentialStore.exists(credentialId)).isTrue();
   }
 }

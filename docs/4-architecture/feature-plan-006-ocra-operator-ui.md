@@ -68,6 +68,10 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R073 – Ensure stored credential selection disables split challenge inputs when suites only support combined challenges. ✅ 2025-09-29
 - R074 – Style disabled request parameter fields with muted appearance and add regression coverage. ✅ 2025-09-29
 - R075 – Run final validation (`./gradlew rest-api:test` + `spotlessApply check`), capture closure notes, and prep roadmap update. ✅ 2025-09-30
+- R076 – Refresh spec/plan/tasks to document stored replay sample helper scope and operator decision (Option A). ✅ 2025-10-04
+- R077 – Add `/api/v1/ocra/credentials/{id}/sample` endpoint with fixture catalog + MockMvc coverage. ✅ 2025-10-04
+- R078 – Implement replay “Load sample data” button + client fetch handler with unit/MockMvc coverage. ✅ 2025-10-04
+- R079 – Expand Selenium replay tests to exercise curated sample auto-fill and fallback behaviour. ✅ 2025-10-04
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -127,6 +131,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-29 – R073 delivery: Hardened stored credential parameter gating so split challenges stay disabled when suites only accept combined questions; updated Selenium coverage and reran `./gradlew spotlessApply check`.
 - 2025-09-29 – R074 delivery: Styled disabled request parameter inputs with muted backgrounds/borders, added Selenium assertions for cursor/background checks, and reran `./gradlew spotlessApply check`.
 - 2025-09-30 – R075 validation: Ran `./gradlew rest-api:test` and `./gradlew spotlessApply check` to confirm end-to-end coverage before closing Feature 006 and updating the roadmap.
+- 2025-10-04 – Logged follow-up to add an explicit replay "Load sample data" button for curated stored credentials; operators must opt-in to filling preset context rather than triggering it on selection.
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

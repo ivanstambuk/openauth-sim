@@ -68,5 +68,9 @@ _Last updated: 2025-09-30_
 | R073 | Ensure stored credential selection disables split challenge inputs when suites only support combined challenges | UI-OCRA-009, UI-OCRA-005 | ✅ |
 | R074 | Style disabled request parameter fields with muted appearance and add regression coverage | UI-OCRA-009, UI-NFR-001 | ✅ |
 | R075 | Run final validation (`./gradlew rest-api:test`, `spotlessApply check`) and close roadmap entry | UI-OCRA-001–UI-OCRA-009, Verification | ✅ |
+| R076 | Update spec/plan/tasks with stored replay helper scope and user decision | UI-OCRA-010 | ✅ |
+| R077 | Add `/api/v1/ocra/credentials/{id}/sample` endpoint + tests covering curated and missing samples | UI-OCRA-010 | ✅ |
+| R078 | Implement replay “Load sample data” UI button + fetch handler with MockMvc/JS unit coverage | UI-OCRA-010 | ✅ |
+| R079 | Extend Selenium replay test to assert sample auto-fill success and graceful fallback | UI-OCRA-010 | ✅ |
 
 Update this checklist as work progresses.

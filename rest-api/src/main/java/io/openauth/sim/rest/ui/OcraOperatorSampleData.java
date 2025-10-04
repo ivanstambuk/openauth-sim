@@ -2,8 +2,10 @@ package io.openauth.sim.rest.ui;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /** Shared sample data for inline presets and credential seeding. */
@@ -13,6 +15,7 @@ public final class OcraOperatorSampleData {
       "3132333435363738393031323334353637383930313233343536373839303132";
 
   private static final Map<String, String> BASE_METADATA = Map.of("seedSource", "operator-ui");
+  private static final Map<String, String> ALIASES = Map.of("operator-demo", "qa08-s064");
 
   private static final List<SampleDefinition> DEFINITIONS =
       List.of(
@@ -134,6 +137,50 @@ public final class OcraOperatorSampleData {
 
   public static List<SampleDefinition> seedDefinitions() {
     return DEFINITIONS;
+  }
+
+  public static Optional<SampleDefinition> findByCredentialName(String credentialName) {
+    if (credentialName == null || credentialName.isBlank()) {
+      return Optional.empty();
+    }
+    String normalized = credentialName.trim();
+    for (SampleDefinition definition : DEFINITIONS) {
+      if (definition.credentialName().equalsIgnoreCase(normalized)) {
+        return Optional.of(definition);
+      }
+    }
+    String aliasKey = ALIASES.get(normalized.toLowerCase(Locale.ROOT));
+    if (aliasKey != null) {
+      return findByPresetKey(aliasKey);
+    }
+    return Optional.empty();
+  }
+
+  public static Optional<SampleDefinition> findByPresetKey(String presetKey) {
+    if (presetKey == null || presetKey.isBlank()) {
+      return Optional.empty();
+    }
+    String normalized = presetKey.trim();
+    for (SampleDefinition definition : DEFINITIONS) {
+      String value = definition.metadata().get("presetKey");
+      if (value != null && value.equalsIgnoreCase(normalized)) {
+        return Optional.of(definition);
+      }
+    }
+    return Optional.empty();
+  }
+
+  public static Optional<SampleDefinition> findBySuite(String suite) {
+    if (suite == null || suite.isBlank()) {
+      return Optional.empty();
+    }
+    String normalized = suite.trim();
+    for (SampleDefinition definition : DEFINITIONS) {
+      if (definition.suite().equalsIgnoreCase(normalized)) {
+        return Optional.of(definition);
+      }
+    }
+    return Optional.empty();
   }
 
   private static SampleDefinition seedDefinition(

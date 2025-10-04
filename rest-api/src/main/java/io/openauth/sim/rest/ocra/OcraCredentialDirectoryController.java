@@ -4,14 +4,19 @@ import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.rest.ui.OcraOperatorSampleData;
+import io.openauth.sim.rest.ui.OcraOperatorSampleData.SampleDefinition;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -52,6 +57,20 @@ final class OcraCredentialDirectoryController {
         result.addedCount(), result.canonicalCount(), result.addedCredentialIds());
   }
 
+  @GetMapping("/credentials/{credentialId}/sample")
+  ResponseEntity<OcraCredentialSampleResponse> fetchSample(
+      @PathVariable("credentialId") String credentialId) {
+    if (credentialStore == null || !StringUtils.hasText(credentialId)) {
+      return ResponseEntity.notFound().build();
+    }
+
+    return credentialStore
+        .findByName(credentialId)
+        .flatMap(this::toSampleResponse)
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.notFound().build());
+  }
+
   static final class SeedResponse {
     private final int addedCount;
     private final int canonicalCount;
@@ -81,6 +100,57 @@ final class OcraCredentialDirectoryController {
     String suite = credential.attributes().get(OcraCredentialPersistenceAdapter.ATTR_SUITE);
     String label = buildLabel(identifier, suite);
     return new OcraCredentialSummary(identifier, label, suite);
+  }
+
+  private Optional<OcraCredentialSampleResponse> toSampleResponse(Credential credential) {
+    if (credential.type() != CredentialType.OATH_OCRA) {
+      return Optional.empty();
+    }
+
+    return resolveSampleDefinition(credential)
+        .map(definition -> buildSampleResponse(credential.name(), definition));
+  }
+
+  private Optional<SampleDefinition> resolveSampleDefinition(Credential credential) {
+    String presetKey =
+        credential
+            .attributes()
+            .get(OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX + "presetKey");
+
+    Optional<SampleDefinition> byPresetKey =
+        StringUtils.hasText(presetKey)
+            ? OcraOperatorSampleData.findByPresetKey(presetKey)
+            : Optional.empty();
+
+    Optional<SampleDefinition> byCredentialName =
+        OcraOperatorSampleData.findByCredentialName(credential.name());
+
+    if (byPresetKey.isPresent()) {
+      return byPresetKey;
+    }
+
+    if (byCredentialName.isPresent()) {
+      return byCredentialName;
+    }
+
+    String suite = credential.attributes().get(OcraCredentialPersistenceAdapter.ATTR_SUITE);
+    return OcraOperatorSampleData.findBySuite(suite);
+  }
+
+  private static OcraCredentialSampleResponse buildSampleResponse(
+      String credentialId, SampleDefinition definition) {
+    String presetKey = definition.metadata().get("presetKey");
+    OcraCredentialSampleResponse.Context context =
+        new OcraCredentialSampleResponse.Context(
+            definition.challenge(),
+            definition.sessionHex(),
+            definition.clientChallenge(),
+            definition.serverChallenge(),
+            definition.pinHashHex(),
+            definition.timestampHex(),
+            definition.counter());
+    return new OcraCredentialSampleResponse(
+        credentialId, presetKey, definition.suite(), definition.expectedOtp(), context);
   }
 
   private static String buildLabel(String identifier, String suite) {

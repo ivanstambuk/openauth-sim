@@ -26,6 +26,16 @@
           "required" : true
         },
         "responses" : {
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
           "404" : {
             "description" : "Credential not found",
             "content" : {
@@ -61,16 +71,6 @@
                       }
                     }
                   }
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
                 }
               }
             }
@@ -123,26 +123,6 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected server error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "Evaluation successful",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
-                }
-              }
-            }
-          },
           "400" : {
             "description" : "Invalid request payload",
             "content" : {
@@ -167,6 +147,26 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation successful",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
                 }
               }
             }
@@ -206,6 +206,32 @@
                   "items" : {
                     "$ref" : "#/components/schemas/OcraCredentialSummary"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ocra/credentials/{credentialId}/sample" : {
+      "get" : {
+        "tags" : [ "ocra-credential-directory-controller" ],
+        "operationId" : "fetchSample",
+        "parameters" : [ {
+          "name" : "credentialId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraCredentialSampleResponse"
                 }
               }
             }
@@ -430,6 +456,53 @@
           },
           "suite" : {
             "type" : "string"
+          }
+        }
+      },
+      "Context" : {
+        "type" : "object",
+        "properties" : {
+          "challenge" : {
+            "type" : "string"
+          },
+          "sessionHex" : {
+            "type" : "string"
+          },
+          "clientChallenge" : {
+            "type" : "string"
+          },
+          "serverChallenge" : {
+            "type" : "string"
+          },
+          "pinHashHex" : {
+            "type" : "string"
+          },
+          "timestampHex" : {
+            "type" : "string"
+          },
+          "counter" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "OcraCredentialSampleResponse" : {
+        "type" : "object",
+        "properties" : {
+          "credentialId" : {
+            "type" : "string"
+          },
+          "presetKey" : {
+            "type" : "string"
+          },
+          "suite" : {
+            "type" : "string"
+          },
+          "otp" : {
+            "type" : "string"
+          },
+          "context" : {
+            "$ref" : "#/components/schemas/Context"
           }
         }
       }

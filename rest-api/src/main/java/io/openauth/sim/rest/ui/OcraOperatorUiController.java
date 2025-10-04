@@ -50,6 +50,8 @@ final class OcraOperatorUiController {
     model.addAttribute("evaluationEndpoint", REST_EVALUATION_PATH);
     model.addAttribute("verificationEndpoint", REST_VERIFICATION_PATH);
     model.addAttribute("credentialsEndpoint", "/api/v1/ocra/credentials");
+    model.addAttribute(
+        "credentialSampleEndpoint", "/api/v1/ocra/credentials/{credentialId}/sample");
     model.addAttribute("seedEndpoint", "/api/v1/ocra/credentials/seed");
     model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
     model.addAttribute("activeProtocol", "ocra");

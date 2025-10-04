@@ -29,7 +29,7 @@
                 class="evaluation-form"
                 novalidate="novalidate"
                 data-testid="ocra-replay-form"
-                th:attr="data-replay-endpoint=${verificationEndpoint},data-credentials-endpoint=${credentialsEndpoint},data-telemetry-endpoint=${telemetryEndpoint},data-csrf=${csrfToken}"
+                th:attr="data-replay-endpoint=${verificationEndpoint},data-credentials-endpoint=${credentialsEndpoint},data-sample-template=${credentialSampleEndpoint},data-telemetry-endpoint=${telemetryEndpoint},data-csrf=${csrfToken}"
               >
               <input type="hidden" name="_csrf" th:value="${csrfToken}" />
 
@@ -77,6 +77,28 @@
                       Fetching credential inventory…
                     </p>
                   </div>
+                </div>
+                <div
+                  class="seed-actions"
+                  data-testid="replay-sample-actions"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
+                  <button
+                    type="button"
+                    class="button-secondary"
+                    data-testid="replay-sample-load"
+                    disabled
+                    aria-disabled="true"
+                  >
+                    Load sample data
+                  </button>
+                  <p
+                    class="hint credential-status"
+                    data-testid="replay-sample-status"
+                    hidden="hidden"
+                    aria-hidden="true"
+                  ></p>
                 </div>
               </section>
 
@@ -329,6 +351,14 @@
         var presetSource = doc.getElementById('ocra-replay-policy-presets');
         var credentialCache = null;
         var credentialPromise = null;
+        var sampleActions = doc.querySelector('[data-testid="replay-sample-actions"]');
+        var sampleButton = doc.querySelector('[data-testid="replay-sample-load"]');
+        var sampleStatus = doc.querySelector('[data-testid="replay-sample-status"]');
+        var sampleEndpointTemplate = form.getAttribute('data-sample-template');
+        var sampleCache = Object.create(null);
+        var sampleRequests = Object.create(null);
+        var activeCredentialId = '';
+        var NO_SAMPLE = { unavailable: true };
         window.__ocraReplayLastResponse = null;
         window.__ocraReplayLastPayload = null;
         var presetMap = Object.create(null);
@@ -379,6 +409,143 @@
             return defaultValue;
           }
           return value;
+        }
+
+        function currentMode() {
+          var selected = form && form.querySelector('input[name="replayMode"]:checked');
+          return selected ? selected.value : 'stored';
+        }
+
+        function sampleEndpointFor(credentialId) {
+          if (!sampleEndpointTemplate || !credentialId) {
+            return null;
+          }
+          return sampleEndpointTemplate.replace(
+            '{credentialId}',
+            encodeURIComponent(credentialId)
+          );
+        }
+
+        function resetSampleUI() {
+          if (sampleButton) {
+            sampleButton.setAttribute('disabled', 'disabled');
+            sampleButton.setAttribute('aria-disabled', 'true');
+          }
+          if (sampleStatus) {
+            sampleStatus.textContent = '';
+            sampleStatus.classList.remove('credential-status--error', 'credential-status--warning');
+            sampleStatus.setAttribute('hidden', 'hidden');
+            sampleStatus.setAttribute('aria-hidden', 'true');
+          }
+        }
+
+        function setSampleStatus(message, severity) {
+          if (!sampleStatus) {
+            return;
+          }
+          if (!message) {
+            sampleStatus.textContent = '';
+            sampleStatus.classList.remove('credential-status--error', 'credential-status--warning');
+            sampleStatus.setAttribute('hidden', 'hidden');
+            sampleStatus.setAttribute('aria-hidden', 'true');
+            return;
+          }
+          sampleStatus.textContent = message;
+          sampleStatus.classList.remove('credential-status--error', 'credential-status--warning');
+          if (severity === 'error') {
+            sampleStatus.classList.add('credential-status--error');
+          } else if (severity === 'warning') {
+            sampleStatus.classList.add('credential-status--warning');
+          }
+          sampleStatus.removeAttribute('hidden');
+          sampleStatus.setAttribute('aria-hidden', 'false');
+        }
+
+        function enableSampleButton() {
+          if (!sampleButton) {
+            return;
+          }
+          sampleButton.removeAttribute('disabled');
+          sampleButton.setAttribute('aria-disabled', 'false');
+        }
+
+        function disableSampleButton() {
+          if (!sampleButton) {
+            return;
+          }
+          sampleButton.setAttribute('disabled', 'disabled');
+          sampleButton.setAttribute('aria-disabled', 'true');
+        }
+
+        function updateSampleVisibility() {
+          if (!sampleActions) {
+            return;
+          }
+          if (currentMode() !== 'stored') {
+            hide(sampleActions);
+            resetSampleUI();
+            return;
+          }
+          var hasCredentials = Array.isArray(credentialCache) && credentialCache.length > 0;
+          if (hasCredentials) {
+            show(sampleActions);
+          } else {
+            hide(sampleActions);
+            resetSampleUI();
+          }
+        }
+
+        function sampleAvailable(sample) {
+          return (
+            sample &&
+            sample !== NO_SAMPLE &&
+            typeof sample === 'object' &&
+            sample.context &&
+            typeof sample.context === 'object'
+          );
+        }
+
+        function ensureSample(credentialId) {
+          if (!credentialId) {
+            return Promise.resolve(NO_SAMPLE);
+          }
+          if (Object.prototype.hasOwnProperty.call(sampleCache, credentialId)) {
+            return Promise.resolve(sampleCache[credentialId]);
+          }
+          if (sampleRequests[credentialId]) {
+            return sampleRequests[credentialId];
+          }
+          var endpoint = sampleEndpointFor(credentialId);
+          if (!endpoint) {
+            sampleCache[credentialId] = NO_SAMPLE;
+            return Promise.resolve(NO_SAMPLE);
+          }
+          var request = fetchDelegate(endpoint, {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+          })
+            .then(function (response) {
+              return response.text().then(function (text) {
+                return { ok: response.ok, body: parseJson(text) };
+              });
+            })
+            .then(function (result) {
+              delete sampleRequests[credentialId];
+              if (result.ok && result.body && typeof result.body === 'object') {
+                sampleCache[credentialId] = result.body;
+                return result.body;
+              }
+              sampleCache[credentialId] = NO_SAMPLE;
+              return NO_SAMPLE;
+            })
+            .catch(function () {
+              delete sampleRequests[credentialId];
+              sampleCache[credentialId] = NO_SAMPLE;
+              return NO_SAMPLE;
+            });
+          sampleRequests[credentialId] = request;
+          return request;
         }
 
         function setBusy(isBusy) {
@@ -449,6 +616,8 @@
               hide(presetContainer);
             }
             fetchStoredCredentials();
+            updateSampleVisibility();
+            handleCredentialSelection();
             if (credentialSelect && !credentialSelect.disabled) {
               credentialSelect.focus();
             }
@@ -466,6 +635,7 @@
             if (suiteInput) {
               suiteInput.focus();
             }
+            updateSampleVisibility();
           }
         }
 
@@ -516,7 +686,43 @@
               if (credentialStatus) {
                 credentialStatus.textContent = 'Unable to load credential inventory.';
               }
+              credentialCache = [];
+              renderCredentialOptions();
+              updateSampleVisibility();
+              resetSampleUI();
             });
+        }
+
+        function handleCredentialSelection() {
+          if (!credentialSelect || currentMode() !== 'stored') {
+            return;
+          }
+          if (!Array.isArray(credentialCache) || credentialCache.length === 0) {
+            resetSampleUI();
+            return;
+          }
+          var credentialId = credentialSelect.value ? credentialSelect.value.trim() : '';
+          activeCredentialId = credentialId;
+          resetSampleUI();
+          if (!credentialId) {
+            disableSampleButton();
+            setSampleStatus('Select a credential to enable sample loading.', 'info');
+            return;
+          }
+          setSampleStatus('Checking for sample data…', 'info');
+          disableSampleButton();
+          ensureSample(credentialId).then(function (sample) {
+            if (credentialId !== activeCredentialId) {
+              return;
+            }
+            if (sampleAvailable(sample)) {
+              enableSampleButton();
+              setSampleStatus('Sample data ready. Click to load context.', 'info');
+            } else {
+              disableSampleButton();
+              setSampleStatus('No curated sample data available for this credential.', 'warning');
+            }
+          });
         }
 
         function renderCredentialOptions() {
@@ -544,6 +750,8 @@
             ? ''
             : 'No stored credentials found. Import one before replaying.';
           }
+          updateSampleVisibility();
+          handleCredentialSelection();
         }
 
         function buildContext() {
@@ -599,6 +807,55 @@
             }
           }
           return payload;
+        }
+
+        function applySample(sample) {
+          if (!sampleAvailable(sample)) {
+            return;
+          }
+          clearPanels();
+          var context = sample.context || {};
+          if (otpInput) {
+            otpInput.value = fallback(sample.otp, '');
+          }
+          if (challengeInput) {
+            challengeInput.value = fallback(context.challenge, '');
+          }
+          if (sessionInput) {
+            sessionInput.value = fallback(context.sessionHex, '');
+          }
+          if (clientChallengeInput) {
+            clientChallengeInput.value = fallback(context.clientChallenge, '');
+          }
+          if (serverChallengeInput) {
+            serverChallengeInput.value = fallback(context.serverChallenge, '');
+          }
+          if (pinHashInput) {
+            pinHashInput.value = fallback(context.pinHashHex, '');
+          }
+          if (timestampInput) {
+            timestampInput.value = fallback(context.timestampHex, '');
+          }
+          if (counterInput) {
+            counterInput.value =
+              context.counter === null || context.counter === undefined
+                ? ''
+                : String(context.counter);
+          }
+
+          var hasAdvanced = Boolean(
+            (context.sessionHex && context.sessionHex.trim && context.sessionHex.trim() !== '') ||
+            (context.clientChallenge &&
+              context.clientChallenge.trim &&
+              context.clientChallenge.trim() !== '') ||
+            (context.serverChallenge &&
+              context.serverChallenge.trim &&
+              context.serverChallenge.trim() !== '') ||
+            (context.pinHashHex && context.pinHashHex.trim && context.pinHashHex.trim() !== '') ||
+            (context.timestampHex && context.timestampHex.trim && context.timestampHex.trim() !== '') ||
+            (context.counter !== null && context.counter !== undefined)
+          );
+          setAdvancedOpen(hasAdvanced);
         }
 
         function resetResultDisplay() {
@@ -889,19 +1146,27 @@
           });
         }
 
-        function toggleAdvanced() {
+        function setAdvancedOpen(open) {
+          if (!advancedToggle || !advancedPanel) {
+            return;
+          }
           var isExpanded = advancedToggle.getAttribute('aria-expanded') === 'true';
-          if (isExpanded) {
-            advancedToggle.setAttribute('aria-expanded', 'false');
-            advancedToggle.textContent = 'Show advanced context';
-            advancedPanel.setAttribute('data-open', 'false');
-            hide(advancedPanel);
-          } else {
+          if (open && !isExpanded) {
             advancedToggle.setAttribute('aria-expanded', 'true');
             advancedToggle.textContent = 'Hide advanced context';
             advancedPanel.setAttribute('data-open', 'true');
             show(advancedPanel);
+          } else if (!open && isExpanded) {
+            advancedToggle.setAttribute('aria-expanded', 'false');
+            advancedToggle.textContent = 'Show advanced context';
+            advancedPanel.setAttribute('data-open', 'false');
+            hide(advancedPanel);
           }
+        }
+
+        function toggleAdvanced() {
+          var isExpanded = advancedToggle.getAttribute('aria-expanded') === 'true';
+          setAdvancedOpen(!isExpanded);
         }
 
         modeRadios.forEach(function (input) {
@@ -909,6 +1174,39 @@
         });
         form.addEventListener('submit', handleSubmit);
         advancedToggle.addEventListener('click', toggleAdvanced);
+        if (credentialSelect) {
+          credentialSelect.addEventListener('change', handleCredentialSelection);
+        }
+        if (sampleButton) {
+          sampleButton.addEventListener('click', function () {
+            var credentialId = credentialSelect ? credentialSelect.value.trim() : '';
+            if (!credentialId) {
+              return;
+            }
+            var cached = sampleCache[credentialId];
+            if (sampleAvailable(cached)) {
+              applySample(cached);
+              setSampleStatus('Sample data applied. Review context before verifying.', 'info');
+              enableSampleButton();
+              return;
+            }
+            disableSampleButton();
+            setSampleStatus('Loading sample data…', 'info');
+            ensureSample(credentialId).then(function (sample) {
+              if (credentialId !== activeCredentialId) {
+                return;
+              }
+              if (sampleAvailable(sample)) {
+                applySample(sample);
+                setSampleStatus('Sample data applied. Review context before verifying.', 'info');
+                enableSampleButton();
+              } else {
+                setSampleStatus('No curated sample data available for this credential.', 'warning');
+                disableSampleButton();
+              }
+            });
+          });
+        }
         if (presetSelect) {
           presetSelect.addEventListener('change', function (event) {
             var selectedKey = event && event.target ? event.target.value : '';
