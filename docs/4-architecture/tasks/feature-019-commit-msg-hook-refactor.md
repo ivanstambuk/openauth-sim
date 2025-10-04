@@ -12,6 +12,8 @@ _Last updated: 2025-10-04_
 | T1904 | Update documentation (runbook/contributor guidance), sync spec/plan/tasks, and clear resolved open question. | CMH-003 | ✅ (2025-10-04 – Updated runbook + AGENTS hook guard, synced roadmap/spec/plan/tasks, open questions log cleared.) |
 | T1905 | Implement Spotless stale-cache auto-recovery in `githooks/pre-commit` and validate with a simulated failure. | CMH-004 | ✅ (2025-10-04 – Added retry helper, staged `githooks/pre-commit`, stubbed `gradlew` to emit the stale-cache error once, confirmed the hook cleared `.gradle/configuration-cache` and reran Gradle successfully, then restored wrapper.) |
 | T1906 | Add repository `.gitlint`, update documentation (runbook/AGENTS/spec/plan), and verify gitlint accepts compliant and rejects non-compliant messages. | CMH-005 | ✅ (2025-10-04 – Added `.gitlint`, updated AGENTS/runbook/spec/plan; `gitlint --msg-filename /tmp/gitlint-pass.*` passes and `/tmp/gitlint-fail.*` fails on type/length rules.) |
+| T1907 | Integrate gitlint into CI workflow (`.github/workflows/ci.yml`) with fetch-depth 0 and dynamic commit range. | CMH-006 | ✅ (2025-10-04 – Added gitlint job in `ci.yml` with dynamic range selection.) |
+| T1908 | Restrict Spotless retry to exact stale-cache message and log retry success/failure. | CMH-004B | ✅ (2025-10-04 – Updated retry helper to match the exact signature and log success/failure.) |
 
 Update the status column as tasks complete, keeping each increment ≤10 minutes and sequencing validation commands before code whenever feasible.
 

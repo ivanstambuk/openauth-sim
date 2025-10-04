@@ -49,12 +49,30 @@ run_gradle_with_retry() {
     return 0
   fi
 
-  if grep -q 'Spotless JVM-local cache is stale' <<<"$output"; then
+  local stale_signature='Spotless JVM-local cache is stale. Regenerate the cache with'
+
+  if grep -Fq "$stale_signature" <<<"$output"; then
     local cache_dir="$ROOT_DIR/.gradle/configuration-cache"
     log "Detected Spotless stale cache; removing '$cache_dir' and retrying once."
     rm -rf "$cache_dir"
-    "$ROOT_DIR"/gradlew --no-daemon "${gradle_args[@]}"
-    return 0
+
+    set +e
+    local retry_output
+    local retry_exit=0
+    retry_output=$("$ROOT_DIR"/gradlew --no-daemon "${gradle_args[@]}" 2>&1)
+    retry_exit=$?
+    set -e
+    if [[ -n $retry_output ]]; then
+      printf '%s\n' "$retry_output"
+    fi
+
+    if (( retry_exit == 0 )); then
+      log "Spotless retry succeeded after cache clear."
+      return 0
+    else
+      log "Spotless retry failed after cache clear (exit $retry_exit)."
+      return $retry_exit
+    fi
   fi
 
   return $exit_code
