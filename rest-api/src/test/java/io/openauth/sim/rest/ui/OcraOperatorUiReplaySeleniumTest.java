@@ -167,13 +167,11 @@ final class OcraOperatorUiReplaySeleniumTest {
     WebElement status =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-replay-status']"));
     assertThat(status.getText()).isEqualTo("Match");
-
-    assertThat(telemetryValue(resultPanel, "ocra-replay-telemetry-mode")).isEqualTo("stored");
     assertThat(telemetryValue(resultPanel, "ocra-replay-reason-code")).isEqualTo("match");
     assertThat(telemetryValue(resultPanel, "ocra-replay-outcome")).isEqualTo("match");
     assertThat(resultPanel.findElements(By.cssSelector(".result-metadata .result-row")))
         .as("Replay result should render one metadata row per entry")
-        .hasSize(3);
+        .hasSize(2);
     assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-replay-telemetry-id']")))
         .as("Telemetry ID field should be removed from replay result")
         .isEmpty();
@@ -288,12 +286,11 @@ final class OcraOperatorUiReplaySeleniumTest {
                     By.cssSelector("[data-testid='ocra-replay-result']")));
     assertThat(resultPanel.getAttribute("hidden")).isNull();
 
-    assertThat(telemetryValue(resultPanel, "ocra-replay-telemetry-mode")).isEqualTo("inline");
     assertThat(telemetryValue(resultPanel, "ocra-replay-reason-code")).isEqualTo("match");
     assertThat(telemetryValue(resultPanel, "ocra-replay-outcome")).isEqualTo("match");
     assertThat(resultPanel.findElements(By.cssSelector(".result-metadata .result-row")))
         .as("Replay result should render one metadata row per entry")
-        .hasSize(3);
+        .hasSize(2);
     assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-replay-telemetry-id']")))
         .as("Telemetry ID field should be removed from replay result")
         .isEmpty();

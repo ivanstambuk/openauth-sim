@@ -33,6 +33,8 @@ Reference specification: `docs/4-architecture/specs/feature-017-operator-console
 - ☑ R1715 – Add failing Selenium/Web tests asserting query-parameter deep links and history behaviour for `/ui/console` tabs; run `./gradlew :rest-api:test` to confirm red.
 - ☑ R1716 – Implement query-parameter state management and history handling in the console controller/JS, ensure disabled protocols render placeholders, and rerun `./gradlew :rest-api:test`.
 - ☑ R1717 – Update documentation/knowledge map for stateful URLs, capture telemetry implications, and rerun `./gradlew spotlessApply check`.
+- ☑ R1718 – Add failing Selenium/UI assertion that the evaluation result card no longer renders a Sanitized row. (2025-10-04 – Selenium assertion added before UI update.)
+- ☑ R1719 – Remove the Sanitized row from evaluation results, update UI scripts/tests, and rerun `./gradlew :rest-api:test spotlessApply check`. (2025-10-04 – Evaluation template/JS updated; tests and quality gate green.)
 
 Each increment must stay within ≤10 minutes, lead with tests, and capture notes/telemetry adjustments in this plan as work proceeds.
 
@@ -51,6 +53,7 @@ Each increment must stay within ≤10 minutes, lead with tests, and capture note
 
 - 2025-10-03 – R1702 updated evaluation/replay Selenium suites to launch via `/ui/console` links before exercising existing flows, keeping regression coverage intact while touching the new layout.
 - 2025-10-03 – R1704 swapped the operator palette to the new dark theme, widened layouts, and re-styled console tabs/placeholders while keeping forms accessible.
+- 2025-10-04 – New request (R1718/R1719) to drop the Sanitized indicator from evaluation results; pending test-first removal.
 - 2025-10-03 – R1703 merged evaluation/replay entry points under `/ui/console` with placeholder content and links back to legacy pages; Selenium suite now passes.
 - 2025-10-03 – Added Selenium coverage for unified console/tab expectations (R1701); tests passed once the `/ui/console` scaffold landed in R1703.
 - 2025-10-03 – Initiated R1705 by drafting Selenium expectations for inline evaluation/replay forms directly on `/ui/console`, forcing red coverage until the forms and telemetry wiring landed.

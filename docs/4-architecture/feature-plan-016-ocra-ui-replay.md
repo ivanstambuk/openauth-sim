@@ -1,7 +1,7 @@
 # Feature Plan 016 – OCRA UI Replay
 
-_Status: Complete_
-_Last updated: 2025-10-03_
+_Status: In Progress_
+_Last updated: 2025-10-04_
 
 ## Objective
 Extend the operator console with a dedicated replay screen that supports stored and inline OCRA verification flows by calling `/api/v1/ocra/verify`, surfaces outcome/telemetry details, and maintains accessibility and telemetry guardrails alongside existing evaluation tooling.
@@ -30,6 +30,12 @@ Reference specification: `docs/4-architecture/specs/feature-016-ocra-ui-replay.m
 - ☑ R1611 – Extend inline sample definitions/tests to include expected OTP data for replay presets. (2025-10-03 – Presets include computed OTP strings mirrored in docs/tests.)
 - ☑ R1612 – Update replay template/JS to populate OTP when a preset is selected; rerun UI Selenium and quality gate commands. (2025-10-03 – UI auto-fills OTP; Selenium asserts non-empty and successful replay.)
 - ☑ R1613 – Tidy replay result card styling (status emphasis, telemetry rows) to match evaluation console. (2025-10-03 – Result badge + telemetry grid align with evaluation UI.)
+- ☑ R1614 – Extend Selenium replay suite with a failing scenario covering the new inline auto-fill button (expects preset values applied automatically). (2025-10-04 – Test currently red awaiting button wiring.)
+- ☑ R1615 – Implement inline auto-fill action wiring (template + JS) to trigger preset population with one click, then rerun Selenium and `./gradlew spotlessApply check`. (2025-10-04 – Replay inline auto-fill button added; targeted Selenium + spotless/check green.)
+- ☑ R1616 – Update operator UI docs/telemetry references for the auto-fill control and rerun quality gate commands. (2025-10-04 – How-to guide updated; knowledge map + quality gate synced.)
+- ☑ R1617 – Remove the replay inline auto-fill button so presets populate immediately on selection, adjust UI/JS/tests accordingly. (2025-10-04 – Button removed; preset change listeners handle auto-fill.)
+- ☑ R1618 – Refresh documentation/knowledge map/spec entries for the button removal and rerun targeted tests + `spotlessApply check`. (2025-10-04 – Docs/specs updated; replay Selenium + spotless/check rerun.)
+- ☑ R1619 – Remove the replay metadata "Mode" row (retain reason/outcome), update UI/JS/tests, and rerun `./gradlew :rest-api:test spotlessApply check`. (2025-10-04 – Mode row removed; reason/outcome retained with tests and quality gate rerun.)
 
 Each increment should take ≤10 minutes and finish with the relevant tests red→green before moving on.
 
@@ -45,6 +51,10 @@ Each increment should take ≤10 minutes and finish with the relevant tests red�
 - Quality gate: `./gradlew spotlessApply check` after each self-contained increment.
 
 ## Notes
+- 2025-10-04 – Owner requested an inline auto-fill button equivalent to evaluate; Option B selected (sample preset auto-fill). Added R1614–R1616 increments.
+- 2025-10-04 – Implemented inline auto-fill control with Selenium coverage; reran targeted replay test and full `spotlessApply check` before updating operator docs.
+- 2025-10-04 – Follow-up request removes the inline auto-fill button; queued R1617–R1618 to revert UI wiring and documentation.
+
 Use this section to log telemetry schema updates, notable UI decisions, and benchmark/latency observations as work proceeds.
 - 2025-10-03 – Quality gate run via `./gradlew :rest-api:test spotlessApply check` (no `systemTest` task defined for rest-api); recorded as baseline before UI implementation.
 - 2025-10-03 – Added Selenium replay suite (`OcraOperatorUiReplaySeleniumTest`) covering stored and inline flows; initial run failed before the replay screen existed, documenting the red state for R1602.

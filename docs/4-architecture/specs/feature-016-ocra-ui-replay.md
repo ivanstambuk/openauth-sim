@@ -1,15 +1,17 @@
 # Feature 016 – OCRA UI Replay
 
 _Status: Draft_
-_Last updated: 2025-10-03_
+_Last updated: 2025-10-04_
 
 ## Overview
 Extend the operator console with replay/verification capabilities so auditors can validate historical OCRA OTP submissions without leaving the UI. The feature introduces a dedicated replay screen that drives the existing REST `/api/v1/ocra/verify` endpoint, supports both stored-credential and inline-secret flows, and surfaces enhanced telemetry so replay usage is traceable alongside CLI and REST facades.
 
 ## Clarifications
+- 2025-10-04 – Inline replay presets continue to auto-fill immediately when selected; no separate button is required (user preference).
 - 2025-10-03 – Replay inline mode reuses the evaluation console's inline sample presets so operators can auto-fill suite/secret/context data (user selected Option A). Load-a-sample stays inline-only to match the evaluation console.
 - 2025-10-03 – Selecting a replay inline preset should populate the expected OTP alongside other context fields so auditors can submit immediately (user request).
 - 2025-10-03 – Replay result card should mirror the evaluation console aesthetics: highlight status with visual emphasis and present telemetry as labeled rows for readability (user request).
+- 2025-10-04 – Replay result cards may omit the mode row; reason code and outcome remain sufficient for operator context (user directive).
 - 2025-10-03 – Operator UI telemetry posts to `/ui/ocra/replay/telemetry`, feeding the shared `TelemetryContracts.ocraVerificationAdapter` with `origin=ui` and replay context (mode, outcome, fingerprint).
 - 2025-10-03 – Replay REST responses will surface a `mode` attribute (stored vs inline) in metadata and telemetry events so UI instrumentation can log mode-specific outcomes (user accepted).
 - 2025-10-03 – Task T1602 remains focused on inline replay Selenium coverage; stored replay navigation stays with earlier increments (user selected Option B).

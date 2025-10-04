@@ -217,10 +217,6 @@
               </div>
               <dl class="result-metadata" data-testid="ocra-replay-telemetry">
                 <div class="result-row">
-                  <dt>Mode</dt>
-                  <dd data-testid="ocra-replay-telemetry-mode">—</dd>
-                </div>
-                <div class="result-row">
                   <dt>Reason Code</dt>
                   <dd data-testid="ocra-replay-reason-code">—</dd>
                 </div>
@@ -319,7 +315,6 @@
         var advancedPanel = doc.querySelector('[data-testid="ocra-replay-advanced-panel"]');
         var resultPanel = doc.querySelector('[data-testid="ocra-replay-result"]');
         var statusBadge = doc.querySelector('[data-testid="ocra-replay-status"]');
-        var telemetryModeValue = doc.querySelector('[data-testid="ocra-replay-telemetry-mode"]');
         var reasonCodeValue = doc.querySelector('[data-testid="ocra-replay-reason-code"]');
         var outcomeValue = doc.querySelector('[data-testid="ocra-replay-outcome"]');
         var errorPanel = doc.querySelector('[data-testid="ocra-replay-error"]');
@@ -611,7 +606,6 @@
             statusBadge.textContent = '—';
             statusBadge.classList.remove('status-badge--success', 'status-badge--error', 'status-badge--info');
           }
-          setTelemetryField(telemetryModeValue, '—');
           setTelemetryField(reasonCodeValue, '—');
           setTelemetryField(outcomeValue, '—');
         }
@@ -713,7 +707,6 @@
           var credentialSource = fallback(metadata.credentialSource, mode);
           var fingerprint = fallback(metadata.contextFingerprint, 'unavailable');
           applyStatusBadge(statusText);
-          setTelemetryField(telemetryModeValue, mode);
           setTelemetryField(reasonCodeValue, reasonCode);
           setTelemetryField(outcomeValue, outcome);
           hide(errorPanel);

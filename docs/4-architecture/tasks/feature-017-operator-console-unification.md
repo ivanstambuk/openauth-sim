@@ -21,5 +21,7 @@ _Last updated: 2025-10-04_
 - [x] T1715 – Add Selenium/Web tests covering query-parameter deep links and history behaviour for `/ui/console`, ensure they fail prior to implementation.
 - [x] T1716 – Implement query-parameter state management + history handling for the console, run `./gradlew :rest-api:test` to verify green.
 - [x] T1717 – Refresh docs/knowledge map and telemetry notes for the stateful URL behaviour, rerun `./gradlew spotlessApply check`.
+- [x] T1718 – Add failing Selenium coverage asserting the evaluation result no longer renders a Sanitized row. (_2025-10-04_)
+- [x] T1719 – Remove the Sanitized row from evaluation results, update Selenium expectations, and rerun `./gradlew :rest-api:test spotlessApply check`. (_2025-10-04_)
 
 Update this checklist as increments progress; keep tests ahead of implementation per VDD cadence.

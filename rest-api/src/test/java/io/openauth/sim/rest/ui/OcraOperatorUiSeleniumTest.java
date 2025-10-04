@@ -165,9 +165,9 @@ final class OcraOperatorUiSeleniumTest {
     WebElement statusValue =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-status-value']"));
     assertThat(statusValue.getText()).isEqualTo("Success");
-    WebElement sanitizedValue =
-        resultPanel.findElement(By.cssSelector("[data-testid='ocra-sanitized-flag']"));
-    assertThat(sanitizedValue.getText()).isEqualTo("true");
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-sanitized-flag']")))
+        .as("Sanitized row should be removed from evaluation results")
+        .isEmpty();
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
     assertValueWithWait(By.id("sharedSecretHex"), scenario.expectedSharedSecretHex());
@@ -371,15 +371,16 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(otpElement.getText()).contains(QA_EXPECTED_OTP);
     WebElement metadata =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-telemetry-summary']"));
-    assertThat(metadata.getText()).contains("Success").contains("true");
+    assertThat(metadata.getText()).contains("Success");
     assertThat(metadata.findElements(By.cssSelector(".result-row")))
         .as("Evaluation metadata should render one row per entry")
-        .hasSize(2)
+        .hasSize(1)
         .allSatisfy(
             row ->
                 assertThat(row.findElements(By.cssSelector("dt, dd")))
                     .as("Result row should contain a dt label and a dd value")
                     .hasSize(2));
+    assertThat(metadata.getText()).doesNotContain("Sanitized");
     assertThat(metadata.getText()).doesNotContain("Suite");
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();

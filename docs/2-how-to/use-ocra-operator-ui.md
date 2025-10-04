@@ -48,9 +48,10 @@ The mode toggle is keyboard-accessible and announces which section is visible. J
 ### Inline Secret Replays
 - Supply the full suite descriptor, shared secret hex, and OTP along with context fields. The UI enforces the same required/optional constraints as the REST endpoint and redacts the secret from telemetry.
 - Validation feedback appears inline; failing fields gain `aria-invalid="true"` and error messages for assistive technology. Successful submissions echo the telemetry ID plus the sanitized fingerprint hash so teams can cross-check backend logs.
+- Selecting a preset instantly repopulates the suite, shared secret, OTP, and advanced context with curated sample values so operators can reset the form without extra clicks.
 
 ## Reading Results and Telemetry
-- Evaluation results render the generated OTP alongside status and sanitized rows. Suite details moved to the preset dropdowns, keeping the card compact while still surfacing success/failure at a glance.
+- Evaluation results render the generated OTP alongside the status row. Sanitisation remains enforced by the REST API, so the UI no longer surfaces a separate flag. Suite details moved to the preset dropdowns, keeping the card compact while still surfacing success/failure at a glance.
 - Replay responses now highlight match/mismatch outcome and any attached reason code without echoing telemetry identifiers or credential metadata. Operators can still cross-check telemetry via backend logs using the request timestamp.
 - Validation errors reuse sanitized reason codes/messages from the REST API. Unexpected server errors surface a generic banner without secret material. Error panels appear only when the REST call returns a non-2xx status.
 

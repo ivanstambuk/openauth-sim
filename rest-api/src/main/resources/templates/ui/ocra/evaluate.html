@@ -454,10 +454,6 @@
                   <dt>Status</dt>
                   <dd data-testid="ocra-status-value"></dd>
                 </div>
-                <div class="result-row">
-                  <dt>Sanitized</dt>
-                  <dd data-testid="ocra-sanitized-flag"></dd>
-                </div>
               </dl>
             </section>
 
@@ -570,7 +566,6 @@
         const resultPanel = document.querySelector('[data-testid="ocra-result-panel"]');
         const statusValue = document.querySelector('[data-testid="ocra-status-value"]');
         const otpValue = document.querySelector('[data-testid="ocra-otp-value"]');
-        const sanitizedValue = document.querySelector('[data-testid="ocra-sanitized-flag"]');
         const errorPanel = document.querySelector('[data-testid="ocra-error-panel"]');
         const errorPrimary = document.querySelector('[data-testid="ocra-error-primary"]');
         const errorSecondary = document.querySelector('[data-testid="ocra-error-secondary"]');
@@ -1325,7 +1320,6 @@
           hidePanel(errorPanel);
           setTextContent(statusValue, '');
           setTextContent(otpValue, '');
-          setTextContent(sanitizedValue, '');
           setTextContent(errorPrimary, '');
           setTextContent(errorSecondary, '');
         }
@@ -1627,11 +1621,6 @@
         function renderSuccess(body, payload) {
           setTextContent(statusValue, 'Success');
           setTextContent(otpValue, body && body.otp ? body.otp : '');
-          const sanitizedFlag =
-            body && Object.prototype.hasOwnProperty.call(body, 'sanitized')
-              ? String(body.sanitized)
-              : 'true';
-          setTextContent(sanitizedValue, sanitizedFlag);
           showPanel(resultPanel);
           hidePanel(errorPanel);
         }

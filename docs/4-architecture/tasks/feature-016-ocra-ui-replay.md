@@ -1,7 +1,7 @@
 # Feature 016 – Task Checklist
 
-_Status: Complete_
-_Last updated: 2025-10-03_
+_Status: In Progress_
+_Last updated: 2025-10-04_
 
 ## Tasks (≤10 min each)
 - [x] T1601 – Extend Selenium/system suite with failing scenarios for replay navigation + stored credential success path. (_2025-10-03_)
@@ -19,3 +19,9 @@ _Last updated: 2025-10-03_
 - [x] T1613 – Align replay result card styling with evaluation console (status emphasis and telemetry list) plus UI test refinements. (_2025-10-03_)
 
 Update this checklist as increments complete; keep tests ahead of implementation to maintain VDD cadence.
+- [x] T1614 – Add failing Selenium coverage asserting inline auto-fill button populates preset data in replay mode. (_2025-10-04_)
+- [x] T1615 – Implement inline auto-fill control (template + JS), ensure presets apply suite/secret/context/OTP, and rerun Selenium + `./gradlew spotlessApply check`. (_2025-10-04_)
+- [x] T1616 – Update operator UI docs/telemetry guidance for the new auto-fill feature and rerun quality gate commands. (_2025-10-04_)
+- [x] T1617 – Remove replay inline auto-fill button, adjust templates/JS/tests so preset selection alone populates fields. (_2025-10-04_)
+- [x] T1618 – Update documentation/spec/knowledge map for the removal and rerun affected tests + `./gradlew spotlessApply check`. (_2025-10-04_)
+- [x] T1619 – Drop the replay "Mode" metadata row (keep reason/outcome), update Selenium/UI expectations, and rerun ./gradlew :rest-api:test spotlessApply check. (_2025-10-04_)

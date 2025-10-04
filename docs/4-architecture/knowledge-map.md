@@ -63,6 +63,9 @@ This living map captures the explicit relationships between modules, data flows,
 - REST seeding endpoint delegates credential creation to the application-layer `OcraSeedApplicationService`, ensuring facades no longer instantiate core factories directly while supporting append-only MapDB inserts.
 - Operator console now reveals the seeding control only when stored credential mode is active, keeping inline-mode evaluations uncluttered while still allowing append-only seeding flows.
 - Stored credential mode now ships with a client-side “Auto-fill parameters” helper that parses the selected OCRA suite and generates compatible challenge/counter/session/timestamp values, clearing disallowed inputs to avoid REST validation errors.
+- Replay inline presets auto-populate immediately just like evaluation presets, keeping the UI flows consistent without extra controls.
+- Evaluation result cards now present only OTP and status; sanitisation remains enforced server-side without an explicit UI indicator.
+- Replay result cards now surface reason code and outcome while dropping the UI-only mode label; telemetry still records mode for audits.
 - REST facade now boots a MapDB-backed `CredentialStore` bean (path configurable via `openauth.sim.persistence.database-path`), enabling stored credential evaluations in both REST and UI flows.
 - `infra-persistence` module exposes `CredentialStoreFactory`, centralising MapDB provisioning so CLI and REST facades obtain `CredentialStore` instances without direct builder usage.
 - How-to catalogue documents the Appendix B Java workflow for generating new OCRA test vectors, keeping domain/UI fixtures aligned with the draft reference implementation.
