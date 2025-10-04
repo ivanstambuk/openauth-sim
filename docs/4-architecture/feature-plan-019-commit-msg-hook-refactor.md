@@ -13,12 +13,14 @@ Reference specification: `docs/4-architecture/specs/feature-019-commit-msg-hook-
 - `githooks/pre-commit` no longer reads `.git/COMMIT_EDITMSG` yet continues running gitleaks, Gradle formatting, targeted tests, and `check` (CMH-002).
 - Contributor documentation clarifies hook responsibilities and installation expectations (CMH-003).
 - Pre-commit hook auto-heals Spotless stale cache failures without manual intervention (CMH-004).
+- Repository `.gitlint` enforces Conventional Commit rules (CMH-005).
 - `./gradlew spotlessApply check` passes after each increment.
 
 ## Proposed Increments
 - ☑ R1901 – Implement `githooks/commit-msg`, adjust `githooks/pre-commit` to remove gitlint usage, and ensure scripts are executable.
 - ☑ R1902 – Update contributor documentation (runbook + relevant references), exercise the hooks manually, and run `./gradlew spotlessApply check`.
 - ☑ R1903 – Teach the pre-commit hook to clear `.gradle/configuration-cache` once when the Spotless stale-cache error appears and rerun the failing Gradle command.
+- ☑ R1904 – Add repository `.gitlint`, update documentation, and validate gitlint enforcement against allowed/disallowed commit messages.
 
 Each increment must stay within ≤10 minutes, lead with tests where possible (manual hook invocations), and log outcomes below.
 
@@ -38,6 +40,7 @@ Each increment must stay within ≤10 minutes, lead with tests where possible (m
 - 2025-10-04 – R1901 delivered commit-msg hook + pre-commit update; manual fixtures prepared for validation.
 - 2025-10-04 – R1902 ran commit-msg/pre-commit hooks, cleared `.gradle/configuration-cache`, updated runbook + AGENTS, and reran `./gradlew --no-daemon spotlessApply check`.
 - 2025-10-04 – R1903 added Spotless stale-cache auto-retry to the pre-commit hook and verified via stubbed wrapper simulation.
+- 2025-10-04 – R1904 added `.gitlint` config, updated docs, and validated gitlint pass/fail scenarios.
 
 ## Analysis Gate
 _Re-run after tasks checklist is published and increments scoped._

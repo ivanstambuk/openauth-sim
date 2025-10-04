@@ -32,4 +32,4 @@ Owner/On-call escalation:
 
 Post-incident notes:
 - Update feature plans, roadmap, and open-questions log to reflect decisions made during the new session kickoff.
-- Validate local tooling: ensure the shared pre-commit hook is installed (`git config core.hooksPath githooks`) because it now runs Gradle formatting, targeted module tests, secret scanning (gitleaks), and a binary/size guard on every staged change. Confirm the companion `commit-msg` hook is present so gitlint continues linting commit messages.
+- Validate local tooling: ensure the shared pre-commit hook is installed (`git config core.hooksPath githooks`) because it now runs Gradle formatting, targeted module tests, secret scanning (gitleaks), and a binary/size guard on every staged change. Confirm the companion `commit-msg` hook is present and that gitlint picks up the repo `.gitlint` conventional-commit policy.

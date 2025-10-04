@@ -1,0 +1,22 @@
+[general]
+contrib=contrib-title-conventional-commits
+ignore=body-is-missing
+
+[title-max-length]
+line-length=100
+
+[body-max-line-length]
+line-length=120
+
+[body-min-length]
+min-length=20
+
+[title-match-regex]
+regex=^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?: .+
+
+[contrib-title-conventional-commits]
+types=feat,fix,docs,style,refactor,perf,test,chore,build,ci,revert
+
+[title-must-not-contain-word]
+words=fixup,tmp,WIP
+

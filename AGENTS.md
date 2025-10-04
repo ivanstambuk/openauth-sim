@@ -7,7 +7,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
   - Whenever you present alternative approaches—whether for open questions or general solution proposals—precede each clarification with a numbered heading (1., 2., …) and enumerate options alphabetically (A, B, C …); include pros and cons for each option and state the recommended choice (with rationale) before requesting a decision.
 - **Work in small steps.** Deliver self-contained changes that finish in ≤10 minutes, run `./gradlew spotlessApply check`, and commit with a conventional message.
 - **Confirm prerequisites.** Ensure `JAVA_HOME` points to a Java 17 JDK before invoking Gradle or Git hooks.
-- **Hook guard.** Verify `git config core.hooksPath githooks` before staging changes; reapply the setting after fresh clones or tool resets so the managed pre-commit and commit-msg hooks run.
+- **Hook guard.** Verify `git config core.hooksPath githooks` before staging changes; reapply the setting after fresh clones or tool resets so the managed pre-commit and commit-msg hooks run with the repo `.gitlint` policy.
 - **Prime the knowledge map.** Skim `docs/4-architecture/knowledge-map.md` before planning so new work reinforces the architectural relationships already captured there.
 
 ## Specification Pipeline
@@ -29,7 +29,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 
 ## During Implementation
 - **Sync context to disk.** Update the roadmap (`docs/4-architecture/roadmap.md`), feature specs, feature plans, and tasks documents as progress is made. Use ADRs only for final decisions.
-- **Tests are compulsory.** Always run `./gradlew spotlessApply check`. If a test remains red, disable it with a TODO, note the reason, and capture the follow-up in the relevant plan.
+- **Tests are compulsory.** Always run `./gradlew spotlessApply check`. If a test remains red, disable it with a TODO, note the reason, and capture the follow-up in the relevant plan. Commit messages must satisfy the repository `.gitlint` conventional-commit rules.
 - **Maintain the knowledge map.** Add, adjust, or prune entries in `docs/4-architecture/knowledge-map.md` whenever new modules, dependencies, or contracts appear.
 - **RCI self-review.** Before hand-off, review your own changes, rerun checks, and ensure documentation/test coverage matches the behaviour.
 - **Commit + push immediately.** Once an increment passes `./gradlew spotlessApply check`, create a conventional commit for the scoped change and push to the tracked remote before taking on the next task, unless the user explicitly requests otherwise.

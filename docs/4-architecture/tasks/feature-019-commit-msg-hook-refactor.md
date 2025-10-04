@@ -11,6 +11,7 @@ _Last updated: 2025-10-04_
 | T1903 | Run manual hook checks (`githooks/commit-msg` with pass/fail fixtures, `githooks/pre-commit` on staged sample) and execute `./gradlew spotlessApply check`. | CMH-001, CMH-002 | ✅ (2025-10-04 – `githooks/commit-msg /tmp/gitlint-pass.XSp1tL` passed; `/tmp/gitlint-fail.UaXqSh` failed as expected; `githooks/pre-commit` and `./gradlew --no-daemon spotlessApply check` both succeeded after clearing `.gradle/configuration-cache`.) |
 | T1904 | Update documentation (runbook/contributor guidance), sync spec/plan/tasks, and clear resolved open question. | CMH-003 | ✅ (2025-10-04 – Updated runbook + AGENTS hook guard, synced roadmap/spec/plan/tasks, open questions log cleared.) |
 | T1905 | Implement Spotless stale-cache auto-recovery in `githooks/pre-commit` and validate with a simulated failure. | CMH-004 | ✅ (2025-10-04 – Added retry helper, staged `githooks/pre-commit`, stubbed `gradlew` to emit the stale-cache error once, confirmed the hook cleared `.gradle/configuration-cache` and reran Gradle successfully, then restored wrapper.) |
+| T1906 | Add repository `.gitlint`, update documentation (runbook/AGENTS/spec/plan), and verify gitlint accepts compliant and rejects non-compliant messages. | CMH-005 | ✅ (2025-10-04 – Added `.gitlint`, updated AGENTS/runbook/spec/plan; `gitlint --msg-filename /tmp/gitlint-pass.*` passes and `/tmp/gitlint-fail.*` fails on type/length rules.) |
 
 Update the status column as tasks complete, keeping each increment ≤10 minutes and sequencing validation commands before code whenever feasible.
 
