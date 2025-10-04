@@ -99,12 +99,12 @@ final class OcraOperatorUiReplaySeleniumTest {
   @Test
   @DisplayName("Stored credential replay renders match outcome with telemetry metadata")
   void storedCredentialReplayRendersMatchOutcome() {
-    assertThat(sampleDatabaseCopied)
-        .as("Sample credential database should be available for replay tests")
-        .isTrue();
-
     navigateToReplayConsole();
     waitForReplayBootstrap();
+
+    assertThat(credentialStore.exists(STORED_CREDENTIAL_ID))
+        .as("Stored replay credential should exist after fallback seeding")
+        .isTrue();
 
     WebElement otpFieldBefore = driver.findElement(By.id("replayOtp"));
     assertThat(otpFieldBefore.getAttribute("value")).isEmpty();

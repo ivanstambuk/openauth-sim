@@ -61,6 +61,7 @@ Use this section to log telemetry schema updates, notable UI decisions, and benc
 - 2025-10-03 – Confirmed with owner that T1602 covers inline replay Selenium coverage; stored replay navigation remains part of earlier tasks.
 - 2025-10-03 – MockMvc verification endpoint tests assert metadata.mode + telemetry mode fields; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.OcraVerificationEndpointTest"` now passes after service telemetry wiring update.
 - 2025-10-03 – Replay template JS now consumes REST metadata.mode/credentialSource to render telemetry summaries; Selenium replay suite verifies stored/inline flows show hashed fingerprints and sanitized flags.
+- 2025-10-04 – Stored replay Selenium test now treats the bundled sample MapDB as optional, falling back to programmatic credential seeding when the copy step fails (Option B).
 - 2025-10-03 – UI replay telemetry now posts to `/ui/ocra/replay/telemetry`; new logger component emits through `TelemetryContracts.ocraVerificationAdapter` with mode/outcome/context fingerprints, covered by unit + WebMvc tests.
 
 - 2025-10-03 – Replay Selenium suite passes post-implementation; verifies hashed fingerprints and sanitized flags for stored/inline flows.
