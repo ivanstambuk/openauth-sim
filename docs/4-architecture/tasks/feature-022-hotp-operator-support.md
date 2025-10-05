@@ -29,5 +29,8 @@ _Last updated: 2025-10-05_
 - ☑ T2223 – Implement HOTP operator console query-param updates and ensure T2222 passes. (`./gradlew spotlessApply check` green 2025-10-05; Selenium `hotpReplayDeepLinkSurvivesRefresh` confirms refresh persistence.)
 - ☑ T2224 – Update operator console Selenium tests to fail when inline/stored evaluation panels still render headings or hint copy after mode selection (`./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleUnificationSeleniumTest"` red as expected).
 - ☑ T2225 – Remove the HOTP evaluation headings/hints from the UI template/JS, adjust accessibility attributes, and make T2224 pass with targeted UI suites plus `./gradlew spotlessApply check` (green 2025-10-05).
+- ☑ T2226 – Add failing REST + UI tests ensuring inline HOTP requests omit the identifier field and update OpenAPI expectations accordingly. (2025-10-05: `HotpEvaluationServiceTest`, controller tests, and Selenium coverage updated to expect no identifier.)
+- ☑ T2227 – Strip identifier handling from HOTP inline evaluation across REST/application/core layers, update UI payloads, regenerate snapshots, and rerun `./gradlew spotlessApply check`. (2025-10-05: identifier removed; OpenAPI regenerated; build passes save for known spotless tool issue documented in build notes.)
+- ☑ T2228 – Force google-java-format 1.28.0 across Spotless and annotation processor configurations, refresh dependency locks, and rerun `./gradlew spotlessApply check` to confirm the formatter mismatch is resolved. (2025-10-05: added resolution strategy force, rewrote locks via targeted compile/compileTest tasks, and verified Spotless/build.)
 
 Mark tasks as work completes and record tooling outcomes within the feature plan.
