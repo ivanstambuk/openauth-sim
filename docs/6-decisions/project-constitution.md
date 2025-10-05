@@ -31,6 +31,8 @@ This constitution establishes the non-negotiable operating principles for the Op
 
 ### Principle 3 – Test-First Quality Discipline
 - Write or update executable tests (unit, integration, contract) before implementing behavior.
+- During specification and planning, enumerate the success, validation, and failure branches and stage failing test cases for each path before implementation begins.
+- Keep increments focused on straight-line logic by extracting validation/normalisation into small helpers that return simple enums/results, limiting new branching introduced per change.
 - Run `./gradlew spotlessApply check` after every self-contained increment; a red build must be fixed or the failing test explicitly quarantined with a documented follow-up.
 - Maintain architectural rules via ArchUnit and related automation when modules change.
 

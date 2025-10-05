@@ -21,8 +21,10 @@ Use this checklist after a feature's specification, plan, and tasks exist but be
 4. **Tasks coverage**
    - [ ] Every functional requirement maps to at least one task.
    - [ ] Tasks sequence tests before implementation and keep increments ≤10 minutes.
+   - [ ] Planned tests enumerate the success, validation, and failure branches with failing cases queued before implementation begins.
 5. **Constitution compliance**
    - [ ] No planned work violates principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
+   - [ ] Planned increments minimise new control-flow complexity by extracting validation/normalisation into small helpers, keeping each change nearly straight-line.
 6. **Tooling readiness**
    - [ ] Commands (`./gradlew spotlessApply check`) documented for the feature plan or runbook.
    - [ ] SpotBugs dead-state detectors (Feature 015) noted, including the module command used to validate `URF/UWF/UUF/NP` findings.
