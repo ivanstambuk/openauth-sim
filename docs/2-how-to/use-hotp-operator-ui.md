@@ -3,7 +3,7 @@
 _Status: Draft_
 _Last updated: 2025-10-05_
 
-The operator console embedded in the REST API now provides HOTP evaluation tooling alongside the existing OCRA flows. This guide walks through evaluating stored credentials, running inline checks, and understanding telemetry/counter updates.
+The operator console embedded in the REST API now provides HOTP evaluation and replay tooling alongside the existing OCRA flows. This guide walks through evaluating stored credentials, running inline checks, replaying observed OTPs without mutating counters, and interpreting telemetry identifiers.
 
 ## Prerequisites
 - Run the REST API (`./gradlew :rest-api:bootRun`) so the operator console is reachable at `http://localhost:8080/ui/console`.
@@ -22,9 +22,17 @@ The operator console embedded in the REST API now provides HOTP evaluation tooli
 2. Choose **Evaluate inline parameters** to call `/api/v1/hotp/evaluate/inline` without mutating stored credentials.
 3. Result metadata indicates the credential source (`inline`) and echoes counter bounds so you can confirm drift handling before persisting the credential.
 
+## Replay Observed HOTP OTPs
+1. Activate the **Replay** pill within the HOTP tab to load the replay form. The console defaults to **Stored** mode and surfaces a CSRF-aware form bound to `/api/v1/hotp/replay`.
+2. For stored credentials, choose an entry from the dropdown, paste the observed OTP, and submit **Replay stored credential**. The response echoes counter metadata but leaves the MapDB counter untouched.
+3. Switch mode to **Inline** to replay ad-hoc secrets. Provide the identifier, shared secret (hex), hash algorithm, digit length, counter, and observed OTP; optional advanced metadata (label/notes) is sent as contextual hints without persistence.
+4. Use **Load a sample vector** to populate demo values that mirror the Selenium coverage. Inline presets derive from RFC 4226 test vectors, while stored presets reuse the seeded credential shipped with the UI smoke tests.
+5. Results report a **match**/**mismatch** status plus telemetry metadata; validation issues render sanitized error details and never mutate counters or stored credentials.
+
 ## Telemetry and Counter Hygiene
-- All evaluations emit `rest.hotp.evaluate` telemetry via the shared `TelemetryContracts` adapters. Result panels surface the telemetry identifier for correlation with downstream logs.
-- Stored evaluations include `previousCounter`/`nextCounter` values so operators can identify drift or replay attempts quickly. Inline evaluations report the submitted counter for audit.
+- Stored and inline evaluations emit `rest.hotp.evaluate` telemetry via the shared `TelemetryContracts` adapters. Result panels surface the telemetry identifier so operators can correlate with downstream logs.
+- Replay flows emit `rest.hotp.replay` telemetry. The UI normalises telemetry IDs to the `ui-hotp-*` prefix for operator readability while preserving the original identifier in the metadata list.
+- Replay responses expose `credentialSource`, `previousCounter`, and `nextCounter` without mutating counters. Evaluation responses include the counter delta when the OTP matches and a sanitized payload when validation fails.
 - UI requests reuse the console CSRF token; if a 403 occurs, refresh the page to mint a new session token before retrying.
 - Seed or import additional HOTP credentials with the CLI (`./gradlew :cli:run --args='hotp import …'`) to keep the directory populated for operator drills.
 

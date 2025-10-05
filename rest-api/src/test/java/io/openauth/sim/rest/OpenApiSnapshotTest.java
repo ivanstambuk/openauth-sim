@@ -87,6 +87,21 @@ final class OpenApiSnapshotTest {
     assertEquals(expectedYaml, currentYaml, "OpenAPI YAML snapshot drift detected");
   }
 
+  @Test
+  @DisplayName("OpenAPI documents HOTP replay endpoint")
+  void openApiDocumentsHotpReplayEndpoint() throws Exception {
+    String jsonResponse =
+        mockMvc.perform(get("/v3/api-docs")).andReturn().getResponse().getContentAsString();
+
+    JsonNode root = normaliseJson(jsonResponse);
+    JsonNode paths = root.path("paths");
+    assertTrue(paths.has("/api/v1/hotp/replay"), "HOTP replay path must be documented");
+    JsonNode replayOperation = paths.path("/api/v1/hotp/replay").path("post");
+    assertTrue(
+        replayOperation.isObject(),
+        "HOTP replay POST operation must be present in OpenAPI contract");
+  }
+
   private static JsonNode normaliseJson(String json) throws IOException {
     return JSON_MAPPER.readTree(json);
   }

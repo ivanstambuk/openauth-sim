@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService;
+import io.openauth.sim.application.hotp.HotpReplayApplicationService;
 import io.openauth.sim.core.store.CredentialStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,20 @@ final class HotpApplicationConfigurationTest {
   }
 
   @Test
+  @DisplayName("Configuration wires HotpReplayApplicationService when store present")
+  void configurationProvidesReplayService() {
+    CredentialStore store = Mockito.mock(CredentialStore.class);
+    @SuppressWarnings("unchecked")
+    ObjectProvider<CredentialStore> provider = Mockito.mock(ObjectProvider.class);
+    Mockito.when(provider.getIfAvailable()).thenReturn(store);
+
+    HotpApplicationConfiguration configuration = new HotpApplicationConfiguration();
+    HotpReplayApplicationService service = configuration.hotpReplayApplicationService(provider);
+
+    assertNotNull(service);
+  }
+
+  @Test
   @DisplayName("Configuration throws when CredentialStore missing")
   void configurationRequiresCredentialStore() {
     @SuppressWarnings("unchecked")
@@ -42,5 +57,11 @@ final class HotpApplicationConfigurationTest {
             IllegalStateException.class,
             () -> configuration.hotpEvaluationApplicationService(provider));
     assertTrue(exception.getMessage().contains("CredentialStore"));
+
+    IllegalStateException replayException =
+        assertThrows(
+            IllegalStateException.class,
+            () -> configuration.hotpReplayApplicationService(provider));
+    assertTrue(replayException.getMessage().contains("CredentialStore"));
   }
 }

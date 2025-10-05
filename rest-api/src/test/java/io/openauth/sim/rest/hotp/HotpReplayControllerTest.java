@@ -1,0 +1,161 @@
+package io.openauth.sim.rest.hotp;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+class HotpReplayControllerTest {
+
+  private HotpReplayService service;
+  private HotpReplayController controller;
+
+  @BeforeEach
+  void setUp() {
+    service = Mockito.mock(HotpReplayService.class);
+    controller = new HotpReplayController(service);
+  }
+
+  @Test
+  @DisplayName("Replay delegates to service and returns the response body")
+  void replayDelegatesToService() {
+    HotpReplayRequest request =
+        new HotpReplayRequest("cred-1", null, null, null, null, null, "123456", null);
+    HotpReplayResponse expected =
+        new HotpReplayResponse(
+            "match",
+            "match",
+            new HotpReplayMetadata("stored", "cred-1", true, "SHA1", 6, 10L, 10L, "rest-hotp-1"));
+
+    when(service.replay(request)).thenReturn(expected);
+
+    ResponseEntity<HotpReplayResponse> response = controller.replay(request);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertThat(response.getBody()).isEqualTo(expected);
+    verify(service).replay(request);
+  }
+
+  @Test
+  @DisplayName("Stored credential not found surfaces 404 with enriched details")
+  void validationNotFoundReturns404() {
+    HotpReplayValidationException exception =
+        new HotpReplayValidationException(
+            "rest-hotp-404",
+            "stored",
+            "cred-404",
+            "credential_not_found",
+            true,
+            Map.of("field", "credentialId"),
+            "Credential not found");
+
+    ResponseEntity<HotpReplayErrorResponse> response = controller.handleValidation(exception);
+
+    assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    HotpReplayErrorResponse body = response.getBody();
+    assertThat(body).isNotNull();
+    assertEquals("invalid_input", body.error());
+    assertEquals("Credential not found", body.message());
+    assertThat(body.details())
+        .containsEntry("telemetryId", "rest-hotp-404")
+        .containsEntry("credentialSource", "stored")
+        .containsEntry("credentialId", "cred-404")
+        .containsEntry("reasonCode", "credential_not_found")
+        .containsEntry("sanitized", "true");
+  }
+
+  @Test
+  @DisplayName("Inline validation failures return 400 and surface identifier details")
+  void validationInlineReturns400() {
+    HotpReplayValidationException exception =
+        new HotpReplayValidationException(
+            "rest-hotp-inline",
+            "inline",
+            "device-inline",
+            "otp_required",
+            false,
+            Map.of("field", "otp"),
+            "OTP is required");
+
+    ResponseEntity<HotpReplayErrorResponse> response = controller.handleValidation(exception);
+
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    HotpReplayErrorResponse body = response.getBody();
+    assertThat(body).isNotNull();
+    assertEquals("invalid_input", body.error());
+    assertEquals("OTP is required", body.message());
+    assertThat(body.details())
+        .containsEntry("telemetryId", "rest-hotp-inline")
+        .containsEntry("credentialSource", "inline")
+        .containsEntry("identifier", "device-inline")
+        .containsEntry("reasonCode", "otp_required")
+        .containsEntry("sanitized", "false");
+  }
+
+  @Test
+  @DisplayName("Unexpected exceptions return 500 with sanitized=false")
+  void unexpectedExceptionsReturn500() {
+    HotpReplayUnexpectedException exception =
+        new HotpReplayUnexpectedException(
+            "rest-hotp-error", "inline", "Failure", Map.of("hint", "retry"));
+
+    ResponseEntity<HotpReplayErrorResponse> response = controller.handleUnexpected(exception);
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+    HotpReplayErrorResponse body = response.getBody();
+    assertThat(body).isNotNull();
+    assertEquals("internal_error", body.error());
+    assertEquals("HOTP replay failed", body.message());
+    assertThat(body.details())
+        .containsEntry("telemetryId", "rest-hotp-error")
+        .containsEntry("credentialSource", "inline")
+        .containsEntry("status", "error")
+        .containsEntry("sanitized", "false")
+        .containsEntry("hint", "retry");
+  }
+
+  @Test
+  @DisplayName("Fallback handler returns 500 with static error payload")
+  void fallbackReturns500() {
+    ResponseEntity<HotpReplayErrorResponse> response =
+        controller.handleFallback(new RuntimeException("boom"));
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+    HotpReplayErrorResponse body = response.getBody();
+    assertThat(body).isNotNull();
+    assertEquals("internal_error", body.error());
+    assertEquals("HOTP replay failed", body.message());
+    assertThat(body.details()).containsEntry("status", "error").containsEntry("sanitized", "false");
+  }
+
+  @Test
+  @DisplayName("Validation handler omits identifier and reason when payload is blank")
+  void validationHandlesBlankIdentifier() {
+    Map<String, String> baseDetails = new LinkedHashMap<>();
+    HotpReplayValidationException exception =
+        new HotpReplayValidationException(
+            "rest-hotp-blank", "inline", "  ", null, true, baseDetails, "Input invalid");
+
+    ResponseEntity<HotpReplayErrorResponse> response = controller.handleValidation(exception);
+
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    HotpReplayErrorResponse body = response.getBody();
+    assertThat(body).isNotNull();
+    assertEquals("invalid_input", body.error());
+    assertThat(body.details())
+        .containsEntry("telemetryId", "rest-hotp-blank")
+        .containsEntry("credentialSource", "inline")
+        .containsEntry("sanitized", "true")
+        .doesNotContainKey("identifier")
+        .doesNotContainKey("reasonCode");
+  }
+}

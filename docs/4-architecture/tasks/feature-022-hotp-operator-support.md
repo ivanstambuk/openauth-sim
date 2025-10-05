@@ -20,5 +20,10 @@ _Last updated: 2025-10-05_
 - ☑ T2214 – Add failing operator console integration/system tests for HOTP inline evaluation flows plus accessibility assertions.
 - ☑ T2215 – Implement HOTP inline evaluation in the operator console and ensure T2214 passes.
 - ☑ T2216 – Update operator how-to docs, roadmap notes, knowledge map, and rerun `./gradlew spotlessApply check` after HOTP UI work.
+- ☑ T2217 – Add failing REST MockMvc tests + OpenAPI expectations for `POST /api/v1/hotp/replay` (stored + inline) asserting counters remain unchanged and telemetry uses `hotp.replay` (2025-10-05 run: `./gradlew :rest-api:test --tests "io.openauth.sim.rest.HotpReplayEndpointTest"` initially failed pending implementation; see T2218 for the passing follow-up).
+- ☑ T2218 – Implement HOTP replay service/controller wiring, ensure counters are read-only, refresh OpenAPI snapshots, and satisfy T2217 (`./gradlew :application:test --tests "io.openauth.sim.application.hotp.HotpReplayApplicationServiceTest"` + `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, followed by full `./gradlew :rest-api:test`).
+- ☑ T2219 – Add failing Selenium coverage for HOTP replay UI (stored + inline) mirroring OCRA behaviour (sample data, advanced toggles, telemetry identifier surfacing).
+- ☑ T2220 – Implement HOTP replay UI template/JS wiring and make T2219 pass.
+- ☑ T2221 – Update operator docs, roadmap, knowledge map, and telemetry references for HOTP replay; rerun `./gradlew spotlessApply check`.
 
 Mark tasks as work completes and record tooling outcomes within the feature plan.

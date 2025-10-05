@@ -3,6 +3,21 @@
 
   var documentRef = global.document;
   var hotpPanel = documentRef.querySelector('[data-protocol-panel="hotp"]');
+  var panelTabs = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-panel-tabs"]')
+    : null;
+  var evaluateTabButton = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-panel-tab-evaluate"]')
+    : null;
+  var replayTabButton = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-panel-tab-replay"]')
+    : null;
+  var evaluatePanelContainer = hotpPanel
+    ? hotpPanel.querySelector('[data-hotp-panel="evaluate"]')
+    : null;
+  var replayPanelContainer = hotpPanel
+    ? hotpPanel.querySelector('[data-hotp-panel="replay"]')
+    : null;
   var modeToggle = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-mode-toggle"]')
     : null;
@@ -52,7 +67,123 @@
     ? hotpPanel.querySelector('#hotpInlineAlgorithm')
     : null;
 
-  var initialized = false;
+  var replayForm = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-replay-form"]')
+    : null;
+  var replayModeToggle = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-mode-toggle"]')
+    : null;
+  var replayStoredPanel = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-stored-panel"]')
+    : null;
+  var replayInlinePanel = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-inline-panel"]')
+    : null;
+  var replayInlinePresetContainer = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-inline-preset"]')
+    : null;
+  var replayInlinePresetSelect = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-inline-sample-select"]')
+    : null;
+  var replayStoredSelect = replayForm
+    ? replayForm.querySelector('#hotpReplayStoredCredentialId')
+    : null;
+  var replayStoredOtpInput = replayForm
+    ? replayForm.querySelector('#hotpReplayStoredOtp')
+    : null;
+  var replaySampleStatus = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-sample-status"]')
+    : null;
+  var replaySampleActions = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-sample-actions"]')
+    : null;
+  var replaySampleButton = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-sample-load"]')
+    : null;
+  var replaySampleMessage = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-sample-message"]')
+    : null;
+  var replayInlineIdentifierInput = replayForm
+    ? replayForm.querySelector('#hotpReplayInlineIdentifier')
+    : null;
+  var replayInlineSecretInput = replayForm
+    ? replayForm.querySelector('#hotpReplayInlineSecretHex')
+    : null;
+  var replayInlineAlgorithmSelect = replayForm
+    ? replayForm.querySelector('#hotpReplayInlineAlgorithm')
+    : null;
+  var replayInlineDigitsInput = replayForm
+    ? replayForm.querySelector('#hotpReplayInlineDigits')
+    : null;
+  var replayInlineCounterInput = replayForm
+    ? replayForm.querySelector('#hotpReplayInlineCounter')
+    : null;
+  var replayInlineOtpInput = replayForm
+    ? replayForm.querySelector('#hotpReplayInlineOtp')
+    : null;
+  var replayAdvancedToggle = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-advanced-toggle"]')
+    : null;
+  var replayAdvancedPanel = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-advanced-panel"]')
+    : null;
+  var replayAdvancedLabelInput = replayForm
+    ? replayForm.querySelector('#hotpReplayAdvancedLabel')
+    : null;
+  var replayAdvancedNotesInput = replayForm
+    ? replayForm.querySelector('#hotpReplayAdvancedNotes')
+    : null;
+  var replayResultPanel = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-result"]')
+    : null;
+  var replayStatusNode = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-status"]')
+    : null;
+  var replayMetadataNode = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-metadata"]')
+    : null;
+  var replayTelemetryNode = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-telemetry-id"]')
+    : null;
+  var replayErrorPanel = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-error"]')
+    : null;
+  var replayErrorMessage = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-error-message"]')
+    : null;
+  var replaySubmitButton = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-submit"]')
+    : null;
+
+  var evaluationInitialized = false;
+  var replayInitialized = false;
+  var activePanel = 'evaluate';
+
+  var HOTP_SAMPLE_SECRET_HEX = '3132333435363738393031323334353637383930';
+  var STORED_SAMPLE_DATA = {
+    'ui-hotp-demo': {
+      otp: '755224',
+      metadata: {
+        label: 'stored-demo',
+        notes: 'Replay sample generated from seeded HOTP credential.',
+      },
+    },
+  };
+  var INLINE_SAMPLE_DATA = {
+    'demo-inline': {
+      identifier: 'inline-sample',
+      sharedSecretHex: HOTP_SAMPLE_SECRET_HEX,
+      algorithm: 'SHA1',
+      digits: 6,
+      counter: 5,
+      otp: '254676',
+      metadata: {
+        label: 'inline-demo',
+        notes: 'Inline HOTP replay demo vector derived from RFC 4226 sample.',
+      },
+    },
+  };
+
   var credentialCache = null;
   var credentialPromise = null;
 
@@ -135,6 +266,9 @@
       storedStatus.textContent = 'Loading stored credentials…';
     }
     storedSelect.setAttribute('disabled', 'disabled');
+    if (replayStoredSelect) {
+      replayStoredSelect.setAttribute('disabled', 'disabled');
+    }
 
     credentialPromise = fetchDelegate(endpoint, {
       method: 'GET',
@@ -198,18 +332,21 @@
       .finally(function () {
         credentialPromise = null;
         storedSelect.removeAttribute('disabled');
+        if (replayStoredSelect) {
+          replayStoredSelect.removeAttribute('disabled');
+        }
       });
 
     return credentialPromise;
   }
 
-  function renderCredentialOptions(options) {
-    if (!storedSelect) {
+  function updateSelectOptions(selectElement, options) {
+    if (!selectElement) {
       return;
     }
-    var currentValue = storedSelect.value;
-    while (storedSelect.firstChild) {
-      storedSelect.removeChild(storedSelect.firstChild);
+    var previousValue = selectElement.value;
+    while (selectElement.firstChild) {
+      selectElement.removeChild(selectElement.firstChild);
     }
     var placeholder = documentRef.createElement('option');
     placeholder.value = '';
@@ -217,18 +354,24 @@
       options && options.length
         ? 'Select a credential'
         : 'No HOTP credentials available';
-    storedSelect.appendChild(placeholder);
+    selectElement.appendChild(placeholder);
     if (Array.isArray(options)) {
       options.forEach(function (option) {
         var opt = documentRef.createElement('option');
         opt.value = option.id;
         opt.textContent = option.label;
-        storedSelect.appendChild(opt);
+        selectElement.appendChild(opt);
       });
     }
-    if (currentValue && storedSelect.querySelector('option[value="' + currentValue + '"]')) {
-      storedSelect.value = currentValue;
+    if (previousValue && selectElement.querySelector('option[value="' + previousValue + '"]')) {
+      selectElement.value = previousValue;
     }
+  }
+
+  function renderCredentialOptions(options) {
+    updateSelectOptions(storedSelect, options);
+    updateSelectOptions(replayStoredSelect, options);
+    updateStoredSampleHints();
   }
 
   function formatMetadata(metadata) {
@@ -241,6 +384,9 @@
     }
     if (metadata.credentialId) {
       parts.push('credentialId=' + metadata.credentialId);
+    }
+    if (metadata.credentialReference) {
+      parts.push('credentialReference=' + metadata.credentialReference);
     }
     if (metadata.hashAlgorithm) {
       parts.push('hashAlgorithm=' + metadata.hashAlgorithm);
@@ -289,6 +435,225 @@
     }
   }
 
+  function toggleTabState(button, active) {
+    if (!button) {
+      return;
+    }
+    button.classList.toggle('mode-pill--active', active);
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
+  }
+
+  function setActivePanel(panel) {
+    if (!hotpPanel) {
+      return;
+    }
+    var desired = panel === 'replay' ? 'replay' : 'evaluate';
+    if (activePanel === desired) {
+      if (desired === 'replay') {
+        initializeReplay();
+      } else {
+        initializeEvaluation();
+      }
+      return;
+    }
+    activePanel = desired;
+    toggleTabState(evaluateTabButton, desired === 'evaluate');
+    toggleTabState(replayTabButton, desired === 'replay');
+    setHidden(evaluatePanelContainer, desired !== 'evaluate');
+    setHidden(replayPanelContainer, desired !== 'replay');
+    if (desired === 'replay') {
+      initializeReplay();
+    } else {
+      initializeEvaluation();
+    }
+  }
+
+  function openReplayAdvanced(open) {
+    if (!replayAdvancedPanel || !replayAdvancedToggle) {
+      return;
+    }
+    var shouldOpen = Boolean(open);
+    setHidden(replayAdvancedPanel, !shouldOpen);
+    replayAdvancedPanel.setAttribute('data-open', shouldOpen ? 'true' : 'false');
+    replayAdvancedToggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+    replayAdvancedToggle.textContent = shouldOpen
+      ? 'Hide advanced context'
+      : 'Show advanced context';
+  }
+
+  function clearReplayAdvancedFields() {
+    if (replayAdvancedLabelInput) {
+      replayAdvancedLabelInput.value = '';
+    }
+    if (replayAdvancedNotesInput) {
+      replayAdvancedNotesInput.value = '';
+    }
+    openReplayAdvanced(false);
+  }
+
+  function updateStoredSampleHints() {
+    if (!replayStoredSelect || !replaySampleStatus) {
+      return;
+    }
+    var credentialId = replayStoredSelect.value || '';
+    var sample = STORED_SAMPLE_DATA[credentialId];
+    if (!credentialId) {
+      replaySampleStatus.textContent = 'Select a credential to check for sample data availability.';
+      setHidden(replaySampleStatus, false);
+      setHidden(replaySampleActions, true);
+      if (replaySampleButton) {
+        replaySampleButton.setAttribute('disabled', 'disabled');
+        replaySampleButton.setAttribute('aria-disabled', 'true');
+      }
+      clearReplayAdvancedFields();
+      return;
+    }
+
+    if (sample) {
+      replaySampleStatus.textContent = 'Sample data ready';
+      setHidden(replaySampleActions, false);
+      if (replaySampleButton) {
+        replaySampleButton.removeAttribute('disabled');
+        replaySampleButton.removeAttribute('aria-disabled');
+      }
+      if (replaySampleMessage) {
+        replaySampleMessage.textContent = 'Apply curated values for this credential.';
+      }
+    } else {
+      replaySampleStatus.textContent = 'No curated sample data available for this credential.';
+      setHidden(replaySampleActions, true);
+      if (replaySampleButton) {
+        replaySampleButton.setAttribute('disabled', 'disabled');
+        replaySampleButton.setAttribute('aria-disabled', 'true');
+      }
+      if (replaySampleMessage) {
+        replaySampleMessage.textContent = '';
+      }
+      clearReplayAdvancedFields();
+    }
+
+    setHidden(replaySampleStatus, false);
+  }
+
+  function applyStoredSample() {
+    if (!replayStoredSelect) {
+      return;
+    }
+    var credentialId = replayStoredSelect.value || '';
+    var sample = STORED_SAMPLE_DATA[credentialId];
+    if (!sample) {
+      return;
+    }
+    if (replayStoredOtpInput) {
+      replayStoredOtpInput.value = sample.otp || '';
+    }
+    if (sample.metadata) {
+      if (replayAdvancedLabelInput) {
+        replayAdvancedLabelInput.value = sample.metadata.label || '';
+      }
+      if (replayAdvancedNotesInput) {
+        replayAdvancedNotesInput.value = sample.metadata.notes || '';
+      }
+    }
+    openReplayAdvanced(true);
+    if (replaySampleMessage) {
+      replaySampleMessage.textContent = 'Sample data applied';
+    }
+  }
+
+  function applyInlinePreset(presetKey) {
+    var preset = INLINE_SAMPLE_DATA[presetKey];
+    if (!preset) {
+      return;
+    }
+    if (replayInlineIdentifierInput) {
+      replayInlineIdentifierInput.value = preset.identifier || '';
+    }
+    if (replayInlineSecretInput) {
+      replayInlineSecretInput.value = preset.sharedSecretHex || '';
+    }
+    if (replayInlineAlgorithmSelect) {
+      replayInlineAlgorithmSelect.value = preset.algorithm || 'SHA1';
+    }
+    if (replayInlineDigitsInput) {
+      replayInlineDigitsInput.value = typeof preset.digits === 'number'
+        ? String(preset.digits)
+        : '';
+    }
+    if (replayInlineCounterInput) {
+      replayInlineCounterInput.value = typeof preset.counter === 'number'
+        ? String(preset.counter)
+        : '';
+    }
+    if (replayInlineOtpInput) {
+      replayInlineOtpInput.value = preset.otp || '';
+    }
+    if (preset.metadata) {
+      if (replayAdvancedLabelInput) {
+        replayAdvancedLabelInput.value = preset.metadata.label || '';
+      }
+      if (replayAdvancedNotesInput) {
+        replayAdvancedNotesInput.value = preset.metadata.notes || '';
+      }
+    }
+    openReplayAdvanced(true);
+  }
+
+  function hideReplayError() {
+    if (replayErrorPanel) {
+      setHidden(replayErrorPanel, true);
+    }
+    if (replayErrorMessage) {
+      replayErrorMessage.textContent = '';
+    }
+  }
+
+  function showReplayError(message) {
+    if (!replayErrorPanel) {
+      return;
+    }
+    if (replayErrorMessage) {
+      replayErrorMessage.textContent = message;
+    }
+    setHidden(replayResultPanel, true);
+    setHidden(replayErrorPanel, false);
+  }
+
+  function collectAdvancedMetadata() {
+    var metadata = {};
+    if (replayAdvancedLabelInput && replayAdvancedLabelInput.value.trim().length) {
+      metadata.label = replayAdvancedLabelInput.value.trim();
+    }
+    if (replayAdvancedNotesInput && replayAdvancedNotesInput.value.trim().length) {
+      metadata.notes = replayAdvancedNotesInput.value.trim();
+    }
+    return Object.keys(metadata).length ? metadata : null;
+  }
+
+  function renderReplayResult(payload) {
+    if (!payload) {
+      showReplayError('Unexpected replay response.');
+      return;
+    }
+    hideReplayError();
+    if (replayStatusNode) {
+      replayStatusNode.textContent = payload.status || 'unknown';
+    }
+    var metadata = payload.metadata || {};
+    if (metadata && typeof metadata.telemetryId === 'string') {
+      if (metadata.telemetryId.startsWith('rest-hotp-')) {
+        metadata.telemetryId = 'ui-hotp-' + metadata.telemetryId.substring('rest-hotp-'.length);
+      }
+    }
+    if (replayMetadataNode) {
+      replayMetadataNode.textContent = formatMetadata(metadata);
+    }
+    if (replayTelemetryNode) {
+      replayTelemetryNode.textContent = metadata.telemetryId || '—';
+    }
+    setHidden(replayResultPanel, false);
+  }
+
   function showStoredError(message) {
     if (!storedErrorPanel) {
       return;
@@ -317,6 +682,130 @@
 
   function hideInlineError() {
     setHidden(inlineErrorPanel, true);
+  }
+
+  function setReplayMode(mode) {
+    if (!replayModeToggle) {
+      return;
+    }
+    var normalized = mode === 'inline' ? 'inline' : 'stored';
+    replayModeToggle.setAttribute('data-mode', normalized);
+    var storedRadio = replayModeToggle.querySelector('[data-testid="hotp-replay-mode-select-stored"]');
+    var inlineRadio = replayModeToggle.querySelector('[data-testid="hotp-replay-mode-select-inline"]');
+    if (storedRadio) {
+      storedRadio.checked = normalized === 'stored';
+    }
+    if (inlineRadio) {
+      inlineRadio.checked = normalized === 'inline';
+    }
+    setHidden(replayStoredPanel, normalized !== 'stored');
+    setHidden(replayInlinePanel, normalized !== 'inline');
+    setHidden(replayInlinePresetContainer, normalized !== 'inline');
+    if (normalized === 'stored') {
+      updateStoredSampleHints();
+    } else {
+      clearReplayAdvancedFields();
+    }
+    setHidden(replayResultPanel, true);
+    hideReplayError();
+    openReplayAdvanced(false);
+  }
+
+  function currentReplayMode() {
+    if (!replayModeToggle) {
+      return 'stored';
+    }
+    var datasetMode = replayModeToggle.getAttribute('data-mode');
+    return datasetMode === 'inline' ? 'inline' : 'stored';
+  }
+
+  function handleReplaySubmit() {
+    if (!replayForm || !replaySubmitButton) {
+      return;
+    }
+
+    var mode = currentReplayMode();
+    var endpoint = replayForm.getAttribute('data-replay-endpoint') || '/api/v1/hotp/replay';
+    var payload;
+
+    if (mode === 'inline') {
+      var identifier = replayInlineIdentifierInput ? replayInlineIdentifierInput.value.trim() : '';
+      var secret = replayInlineSecretInput ? replayInlineSecretInput.value.trim() : '';
+      var algorithm = replayInlineAlgorithmSelect ? replayInlineAlgorithmSelect.value : 'SHA1';
+      var digits = replayInlineDigitsInput ? parseInt(replayInlineDigitsInput.value, 10) : NaN;
+      var counter = replayInlineCounterInput ? parseInt(replayInlineCounterInput.value, 10) : NaN;
+      var otp = replayInlineOtpInput ? replayInlineOtpInput.value.trim() : '';
+
+      if (!identifier || !secret || !otp || Number.isNaN(digits) || Number.isNaN(counter)) {
+        showReplayError('Inline replay requires identifier, secret, digits, counter, and OTP values.');
+        return;
+      }
+
+      payload = {
+        identifier: identifier,
+        sharedSecretHex: secret,
+        algorithm: algorithm || 'SHA1',
+        digits: digits,
+        counter: counter,
+        otp: otp,
+      };
+    } else {
+      var credentialId = replayStoredSelect ? replayStoredSelect.value.trim() : '';
+      var storedOtp = replayStoredOtpInput ? replayStoredOtpInput.value.trim() : '';
+      if (!credentialId) {
+        showReplayError('Select a stored credential before submitting a replay request.');
+        return;
+      }
+      if (!storedOtp || storedOtp.length < 6) {
+        showReplayError('Provide the observed HOTP value to replay.');
+        return;
+      }
+      payload = { credentialId: credentialId, otp: storedOtp };
+    }
+
+    var advancedMetadata = collectAdvancedMetadata();
+    if (advancedMetadata) {
+      payload.metadata = advancedMetadata;
+    }
+
+    replaySubmitButton.setAttribute('disabled', 'disabled');
+    hideReplayError();
+    setHidden(replayResultPanel, true);
+
+    fetchDelegate(endpoint, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfTokenFor(replayForm) || '',
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload),
+    })
+      .then(function (response) {
+        return response.text().then(function (bodyText) {
+          return { ok: response.ok, status: response.status, body: bodyText };
+        });
+      })
+      .then(function (payload) {
+        if (!payload.ok) {
+          var parsed = parseJson(payload.body);
+          var message =
+            parsed && parsed.error && parsed.error.description
+              ? parsed.error.description
+              : 'Replay request failed.';
+          throw new Error(message);
+        }
+        var parsedBody = parseJson(payload.body) || {};
+        renderReplayResult(parsedBody);
+      })
+      .catch(function (error) {
+        var message = error && error.message ? error.message : 'Unable to submit HOTP replay request.';
+        showReplayError(message);
+      })
+      .finally(function () {
+        replaySubmitButton.removeAttribute('disabled');
+      });
   }
 
   function setActiveMode(mode) {
@@ -481,7 +970,7 @@
       });
   }
 
-  function attachEventHandlers() {
+  function attachEvaluationHandlers() {
     if (modeToggle) {
       modeToggle.addEventListener('change', function (event) {
         var target = event && event.target;
@@ -511,20 +1000,89 @@
     }
   }
 
-  function init() {
-    if (initialized) {
+  function attachReplayHandlers() {
+    if (!replayForm) {
+      return;
+    }
+    if (replayModeToggle) {
+      replayModeToggle.addEventListener('change', function (event) {
+        var target = event && event.target;
+        if (!target) {
+          return;
+        }
+        if (target.getAttribute('data-testid') === 'hotp-replay-mode-select-stored') {
+          setReplayMode('stored');
+        }
+        if (target.getAttribute('data-testid') === 'hotp-replay-mode-select-inline') {
+          setReplayMode('inline');
+        }
+      });
+    }
+    if (replayStoredSelect) {
+      replayStoredSelect.addEventListener('change', function () {
+        updateStoredSampleHints();
+      });
+    }
+    if (replaySampleButton) {
+      replaySampleButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        applyStoredSample();
+      });
+    }
+    if (replayInlinePresetSelect) {
+      replayInlinePresetSelect.addEventListener('change', function (event) {
+        var value = event && event.target ? event.target.value : '';
+        if (value) {
+          applyInlinePreset(value);
+        } else {
+          clearReplayAdvancedFields();
+        }
+      });
+    }
+    if (replayAdvancedToggle) {
+      replayAdvancedToggle.addEventListener('click', function (event) {
+        event.preventDefault();
+        var shouldOpen = replayAdvancedPanel && replayAdvancedPanel.getAttribute('data-open') !== 'true';
+        openReplayAdvanced(shouldOpen);
+      });
+    }
+    if (replaySubmitButton) {
+      replaySubmitButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        handleReplaySubmit();
+      });
+    }
+  }
+
+  function initializeEvaluation() {
+    if (evaluationInitialized) {
       if (!modeToggle || modeToggle.getAttribute('data-mode') === 'stored') {
         ensureCredentials(true);
       }
       return;
     }
-    attachEventHandlers();
+    attachEvaluationHandlers();
     if (modeToggle) {
       setActiveMode(modeToggle.getAttribute('data-mode') || 'stored');
     } else {
       ensureCredentials(false);
     }
-    initialized = true;
+    evaluationInitialized = true;
+  }
+
+  function initializeReplay() {
+    if (!replayForm) {
+      return;
+    }
+    initializeEvaluation();
+    if (!replayInitialized) {
+      attachReplayHandlers();
+      setReplayMode('stored');
+      replayInitialized = true;
+    } else {
+      updateStoredSampleHints();
+    }
+    ensureCredentials(false);
   }
 
   function isHotpActive() {
@@ -532,22 +1090,36 @@
     return params.get('protocol') === 'hotp';
   }
 
+  if (evaluateTabButton) {
+    evaluateTabButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      setActivePanel('evaluate');
+    });
+  }
+
+  if (replayTabButton) {
+    replayTabButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      setActivePanel('replay');
+    });
+  }
+
   documentRef.addEventListener('operator:protocol-activated', function (event) {
     if (!event || !event.detail) {
       return;
     }
     if (event.detail.protocol === 'hotp') {
-      init();
+      setActivePanel(activePanel);
     }
   });
 
   global.addEventListener('popstate', function () {
     if (isHotpActive()) {
-      init();
+      setActivePanel(activePanel);
     }
   });
 
   if (isHotpActive()) {
-    init();
+    setActivePanel('evaluate');
   }
 })(window);

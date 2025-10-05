@@ -15,6 +15,7 @@ public final class TelemetryContractTestSupport {
   private static final String OCRA_EVALUATION_EVENT = "ocra.evaluate";
   private static final String HOTP_EVALUATION_EVENT = "hotp.evaluate";
   private static final String HOTP_ISSUANCE_EVENT = "hotp.issue";
+  private static final String HOTP_REPLAY_EVENT = "hotp.replay";
 
   private TelemetryContractTestSupport() {
     throw new AssertionError("No instances");
@@ -150,6 +151,54 @@ public final class TelemetryContractTestSupport {
 
   public static void assertHotpIssuanceSuccessFrame(TelemetryFrame frame) {
     assertFrame(frame, HOTP_ISSUANCE_EVENT, "issued", "issued", true, hotpIssuanceSuccessFields());
+  }
+
+  public static void assertHotpReplaySuccessFrame(
+      TelemetryFrame frame, String credentialSource, long counter) {
+    assertFrame(
+        frame,
+        HOTP_REPLAY_EVENT,
+        "success",
+        "match",
+        true,
+        hotpReplayFields(credentialSource, counter, null));
+  }
+
+  public static void assertHotpReplayValidationFrame(
+      TelemetryFrame frame, boolean sanitized, String credentialSource, long counter) {
+    assertFrame(
+        frame,
+        HOTP_REPLAY_EVENT,
+        "invalid",
+        "otp_mismatch",
+        sanitized,
+        hotpReplayFields(credentialSource, counter, "OTP mismatch"));
+  }
+
+  public static void assertHotpReplayErrorFrame(
+      TelemetryFrame frame, String credentialSource, long counter) {
+    assertFrame(
+        frame,
+        HOTP_REPLAY_EVENT,
+        "error",
+        "unexpected_error",
+        false,
+        hotpReplayFields(credentialSource, counter, "java.lang.IllegalStateException: boom"));
+  }
+
+  private static Map<String, Object> hotpReplayFields(
+      String credentialSource, long counter, String reason) {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("credentialSource", credentialSource);
+    fields.put("credentialId", "hotp-credential");
+    fields.put("hashAlgorithm", "SHA1");
+    fields.put("digits", 6);
+    fields.put("previousCounter", counter);
+    fields.put("nextCounter", counter);
+    if (reason != null) {
+      fields.put("reason", reason);
+    }
+    return fields;
   }
 
   private static void assertFrame(

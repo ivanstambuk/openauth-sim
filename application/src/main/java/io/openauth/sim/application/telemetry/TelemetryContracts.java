@@ -18,6 +18,9 @@ public final class TelemetryContracts {
   private static final HotpTelemetryAdapter HOTP_ISSUANCE_ADAPTER =
       new HotpTelemetryAdapter("hotp.issue");
 
+  private static final HotpTelemetryAdapter HOTP_REPLAY_ADAPTER =
+      new HotpTelemetryAdapter("hotp.replay");
+
   private TelemetryContracts() {
     throw new AssertionError("No instances");
   }
@@ -45,5 +48,10 @@ public final class TelemetryContracts {
   /** Returns the shared adapter for HOTP issuance telemetry. */
   public static HotpTelemetryAdapter hotpIssuanceAdapter() {
     return HOTP_ISSUANCE_ADAPTER;
+  }
+
+  /** Returns the shared adapter for HOTP replay telemetry. */
+  public static HotpTelemetryAdapter hotpReplayAdapter() {
+    return HOTP_REPLAY_ADAPTER;
   }
 }

@@ -29,6 +29,11 @@ Reference specification: `docs/4-architecture/specs/feature-022-hotp-operator-su
 - ☑ R2210 – Add failing operator console tests for HOTP inline evaluation (manual secret entry) and accessibility coverage.
 - ☑ R2211 – Implement HOTP inline evaluation in the operator console, reuse REST telemetry, and satisfy R2210.
 - ☑ R2212 – Update operator how-to docs, roadmap, knowledge map, and rerun `./gradlew spotlessApply check` after HOTP UI additions.
+- ☑ R2213 – Add failing REST MockMvc + telemetry tests for HOTP replay (stored + inline) covering non-mutating counter behaviour and dedicated `hotp.replay` adapter wiring.
+- ☑ R2214 – Implement HOTP replay service/controller pair with dedicated `POST /api/v1/hotp/replay` endpoint, ensure counters stay unchanged, refresh OpenAPI snapshots, and satisfy R2213.
+- ☑ R2215 – Add failing Selenium tests for HOTP replay UI (stored + inline) including sample data and advanced context toggles mirroring OCRA, asserting telemetry identifiers surface.
+- ☑ R2216 – Implement HOTP replay UI wiring (Thymeleaf templates + static JS), integrate with REST replay endpoint, and make R2215 pass.
+- ☑ R2217 – Sync documentation/knowledge map/roadmap with HOTP replay, capture telemetry guidance, and rerun `./gradlew spotlessApply check`.
 
 Each increment must complete within ≤10 minutes, lead with tests where practicable, and record tooling outcomes below.
 
@@ -47,7 +52,7 @@ Each increment must complete within ≤10 minutes, lead with tests where practic
 - Capture intent logs and command sequences for each increment in this plan.
 - HOTP UI work is now in scope for evaluation flows (stored + inline) within the existing operator console; issuance remains out of scope per 2025-10-05 directive and is tracked on the roadmap.
 - Operator UI remains evaluation-only; issuance flows stay deferred per 2025-10-05 directive and are tracked on the roadmap for future consideration.
-- HOTP operator UI reuses REST telemetry (`hotp.evaluate`) without adding UI-specific events and requires operator documentation updates once implemented.
+- HOTP replay work introduces dedicated `hotp.replay` telemetry streams for REST and UI surfaces while keeping evaluation events untouched; documentation must call out both namespaces.
 - 2025-10-04 – R2201 added HOTP generator/validator tests (failing) covering RFC 4226 vectors, 8-digit support, secret bounds, validation success/failure, and counter overflow guard; `./gradlew :core:test --tests io.openauth.sim.core.otp.hotp.*` fails as expected with `UnsupportedOperationException` placeholders.
 - 2025-10-04 – R2202 implemented HOTP generator/validator, enforcing secret length, digit bounds, counter overflow guard, and RFC 4226 dynamic truncation; `./gradlew :core:test --tests io.openauth.sim.core.otp.hotp.*` passes and full `./gradlew --no-configuration-cache spotlessApply check` validates the suite (mutation tests included).
 - 2025-10-04 – R2203 added integration coverage exercising `CredentialStoreFactory` with mixed OCRA/HOTP records; initial run (`./gradlew :infra-persistence:test --tests io.openauth.sim.infra.persistence.CredentialStoreFactoryHotpIntegrationTest`) failed while HOTP type/metadata were absent, then T2204 normalised persisted attributes (defaulting `hotp.counter`) so the test and full `./gradlew --no-configuration-cache spotlessApply check` now pass.
@@ -62,11 +67,17 @@ Each increment must complete within ≤10 minutes, lead with tests where practic
 - 2025-10-05 – R2211 wired inline HOTP evaluation UI (identifier/secret/algorithm/digits/counter inputs) and shared result rendering, keeping telemetry metadata intact; Selenium suite above exercises both flows and confirms accessibility attributes.
 - 2025-10-05 – Added HOTP credential directory endpoint + unit tests to supply the UI with stored credential metadata (`./gradlew :rest-api:test --tests "io.openauth.sim.rest.hotp.HotpCredentialDirectoryControllerTest"`).
 - 2025-10-05 – R2212 refreshed operator documentation (new HOTP UI how-to, roadmap/knowledge-map updates) and re-ran the quality gate (`./gradlew spotlessApply check`), restoring aggregated branch coverage ≥0.90 after adding validation edge-case tests.
+- 2025-10-05 – Replay scope confirmed: dedicated `POST /api/v1/hotp/replay` endpoint (stored + inline, read-only counters), operator UI mirroring OCRA replay, and dedicated `hotp.replay` telemetry stream.
+- 2025-10-05 – R2213 drafted failing REST MockMvc coverage for HOTP replay (stored + inline) with telemetry assertions plus an OpenAPI contract check; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.HotpReplayEndpointTest"` fails (404) and `./gradlew :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest.openApiDocumentsHotpReplayEndpoint"` fails (path absent) pending replay implementation.
+- 2025-10-05 – R2214 implemented HOTP replay application + REST layers, refreshed OpenAPI snapshots, and satisfied the new tests; `./gradlew :application:test --tests "io.openauth.sim.application.hotp.HotpReplayApplicationServiceTest"`, `./gradlew :rest-api:test --tests "io.openauth.sim.rest.HotpReplayEndpointTest"`, and full `./gradlew :rest-api:test` now pass after `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` updated snapshots.
+- 2025-10-05 – R2215 authored failing Selenium coverage for HOTP replay stored/inline flows (sample loader, advanced toggle, telemetry surfacing). Targeted run `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiReplaySeleniumTest"` currently fails with TimeoutException because the replay tab lacks UI wiring (expected until R2216 lands).
+- 2025-10-05 – R2216 wired HOTP replay Thymeleaf/JS, enabling stored + inline sample presets, advanced context toggle, and telemetry normalization to `ui-hotp-*`. Targeted suite `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiReplaySeleniumTest"` now passes, and replay metadata surfaces `credentialSource`, `previousCounter`, `nextCounter`, and UI-prefixed telemetry identifiers.
+- 2025-10-05 – R2217 refreshed HOTP operator docs/roadmap/knowledge map with replay coverage and telemetry guidance, added focused REST tests for `HotpReplayService`/`HotpReplayController` plus a Selenium helper tweak to await enabled selects, and re-ran `./gradlew :rest-api:test --tests "io.openauth.sim.rest.hotp.HotpReplayServiceTest" --tests "io.openauth.sim.rest.hotp.HotpReplayControllerTest"` followed by `./gradlew :rest-api:test`. Final verification via `./gradlew --no-configuration-cache spotlessApply check` restored branch coverage ≥0.90.
 
 ## Analysis Gate (2025-10-04)
 - [x] Specification completeness – HOS requirements and clarifications recorded (telemetry parity, shared schema, CLI/REST scope).
 - [x] Open questions review – No open entries for Feature 022 in `open-questions.md`.
 - [x] Plan alignment – Feature plan references spec/tasks and mirrors success criteria.
-- [x] Tasks coverage – T2201–T2211 cover test-first increments for each requirement.
+- [x] Tasks coverage – T2201–T2221 cover test-first increments for each requirement.
 - [x] Constitution compliance – Work honours spec-first, test-first, dependency guardrails.
 - [x] Tooling readiness – Plan documents `./gradlew spotlessApply check`, reuses SpotBugs/quality gate context.

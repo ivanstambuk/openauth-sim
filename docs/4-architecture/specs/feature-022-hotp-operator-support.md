@@ -18,6 +18,9 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-05 – Operator documentation will be updated to reflect HOTP UI availability and usage patterns (option A selected).
 - 2025-10-05 – HOTP operator UI acquires stored credentials via `/api/v1/hotp/credentials`, using the shared console CSRF token when invoking `/api/v1/hotp/evaluate` and `/api/v1/hotp/evaluate/inline` (implementation note).
 - 2025-10-05 – HOTP operator console reuses the evaluate/replay pill header with Evaluate active and a Replay tab present (currently without behaviour) to mirror OCRA styling while signalling future scope (option B confirmed).
+- 2025-10-05 – HOTP replay will ship a dedicated non-mutating REST endpoint (`POST /api/v1/hotp/replay`) handling stored and inline submissions without advancing counters (option A confirmed).
+- 2025-10-05 – HOTP operator replay UI will mirror the OCRA replay experience with stored and inline modes, sample data affordances, and advanced context toggles (option A confirmed).
+- 2025-10-05 – HOTP replay interactions emit dedicated `hotp.replay` telemetry frames (REST and UI), keeping evaluation metrics separate (option A confirmed).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

@@ -56,6 +56,7 @@ final class OcraOperatorUiController {
     model.addAttribute("hotpStoredEvaluateEndpoint", "/api/v1/hotp/evaluate");
     model.addAttribute("hotpInlineEvaluateEndpoint", "/api/v1/hotp/evaluate/inline");
     model.addAttribute("hotpCredentialsEndpoint", "/api/v1/hotp/credentials");
+    model.addAttribute("hotpReplayEndpoint", "/api/v1/hotp/replay");
     model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
     model.addAttribute("activeProtocol", "ocra");
     populatePolicyPresets(model);
