@@ -114,7 +114,6 @@ final class HotpEvaluationApplicationServiceTest {
   void evaluateInlineCredentialSucceedsWithoutPersistingCounter() {
     EvaluationCommand.Inline command =
         new EvaluationCommand.Inline(
-            CREDENTIAL_ID,
             SECRET.asHex(),
             ALGORITHM,
             DIGITS,
@@ -130,14 +129,14 @@ final class HotpEvaluationApplicationServiceTest {
     assertEquals(6L, result.nextCounter());
     assertEquals(5L, result.previousCounter());
     assertTrue(!result.credentialReference());
+    assertEquals(null, result.credentialId());
     assertTrue(store.findAll().isEmpty());
   }
 
   @Test
   void evaluateInlineRejectsNonNumericOtp() {
     EvaluationCommand.Inline command =
-        new EvaluationCommand.Inline(
-            CREDENTIAL_ID, SECRET.asHex(), ALGORITHM, DIGITS, 5L, "ABCDEF", Map.of());
+        new EvaluationCommand.Inline(SECRET.asHex(), ALGORITHM, DIGITS, 5L, "ABCDEF", Map.of());
 
     EvaluationResult result = service.evaluate(command);
 

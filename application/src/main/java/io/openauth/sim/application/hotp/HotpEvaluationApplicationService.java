@@ -22,6 +22,8 @@ public final class HotpEvaluationApplicationService {
   private static final String ATTR_DIGITS = "hotp.digits";
   private static final String ATTR_COUNTER = "hotp.counter";
 
+  private static final String INLINE_DESCRIPTOR_NAME = "hotp-inline-request";
+
   private final CredentialStore credentialStore;
 
   public HotpEvaluationApplicationService(CredentialStore credentialStore) {
@@ -53,7 +55,6 @@ public final class HotpEvaluationApplicationService {
     }
 
     record Inline(
-        String identifier,
         String sharedSecretHex,
         HotpHashAlgorithm algorithm,
         int digits,
@@ -63,7 +64,6 @@ public final class HotpEvaluationApplicationService {
         implements EvaluationCommand {
 
       public Inline {
-        identifier = Objects.requireNonNull(identifier, "identifier").trim();
         sharedSecretHex = Objects.requireNonNull(sharedSecretHex, "sharedSecretHex").trim();
         algorithm = Objects.requireNonNull(algorithm, "algorithm");
         metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
@@ -148,7 +148,7 @@ public final class HotpEvaluationApplicationService {
     try {
       HotpDescriptor descriptor =
           HotpDescriptor.create(
-              command.identifier(),
+              INLINE_DESCRIPTOR_NAME,
               SecretMaterial.fromHex(command.sharedSecretHex()),
               command.algorithm(),
               command.digits());
@@ -158,14 +158,14 @@ public final class HotpEvaluationApplicationService {
           command.otp(),
           command.counter(),
           false,
-          command.identifier(),
+          null,
           "inline",
           nextCounter -> {
             // inline evaluations do not mutate shared state
           });
     } catch (IllegalArgumentException ex) {
       return validationFailure(
-          command.identifier(),
+          null,
           false,
           "inline",
           command.algorithm(),
@@ -176,13 +176,7 @@ public final class HotpEvaluationApplicationService {
           ex.getMessage());
     } catch (RuntimeException ex) {
       return unexpectedErrorResult(
-          command.identifier(),
-          false,
-          "inline",
-          command.algorithm(),
-          command.digits(),
-          command.counter(),
-          ex);
+          null, false, "inline", command.algorithm(), command.digits(), command.counter(), ex);
     }
   }
 

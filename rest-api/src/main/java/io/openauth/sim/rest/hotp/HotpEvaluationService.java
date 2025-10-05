@@ -57,29 +57,24 @@ class HotpEvaluationService {
     Objects.requireNonNull(request, "request");
     String telemetryId = nextTelemetryId();
 
-    String identifier =
-        requireText(request.identifier(), "identifier", telemetryId, Mode.INLINE, null);
     String secretHex =
         requireText(
             request.sharedSecretHex(),
             "sharedSecretHex",
             telemetryId,
             Mode.INLINE,
-            Map.of("identifier", identifier));
-    HotpHashAlgorithm algorithm = parseAlgorithm(request.algorithm(), telemetryId, identifier);
-    int digits = requireDigits(request.digits(), telemetryId, identifier);
-    long counter = requireCounter(request.counter(), telemetryId, identifier);
+            Map.of("field", "sharedSecretHex"));
+    HotpHashAlgorithm algorithm = parseAlgorithm(request.algorithm(), telemetryId);
+    int digits = requireDigits(request.digits(), telemetryId);
+    long counter = requireCounter(request.counter(), telemetryId);
     String otp =
-        requireText(
-            request.otp(), "otp", telemetryId, Mode.INLINE, Map.of("identifier", identifier));
+        requireText(request.otp(), "otp", telemetryId, Mode.INLINE, Map.of("field", "otp"));
     Map<String, String> metadata =
         request.metadata() == null ? Map.of() : Map.copyOf(request.metadata());
 
     EvaluationCommand command =
-        new EvaluationCommand.Inline(
-            identifier, secretHex, algorithm, digits, counter, otp, metadata);
-    return handleResult(
-        command, Mode.INLINE, telemetryId, identifier, Map.of("identifier", identifier));
+        new EvaluationCommand.Inline(secretHex, algorithm, digits, counter, otp, metadata);
+    return handleResult(command, Mode.INLINE, telemetryId, null, Map.of());
   }
 
   private HotpEvaluationResponse handleResult(
@@ -204,37 +199,35 @@ class HotpEvaluationService {
     return value.trim();
   }
 
-  private int requireDigits(Integer digits, String telemetryId, String identifier) {
+  private int requireDigits(Integer digits, String telemetryId) {
     if (digits == null) {
       throw validationFailure(
           telemetryId,
           Mode.INLINE,
-          identifier,
+          null,
           "digits is required",
           "digits_required",
-          Map.of("field", "digits", "identifier", identifier));
+          Map.of("field", "digits"));
     }
     return digits;
   }
 
-  private long requireCounter(Long counter, String telemetryId, String identifier) {
+  private long requireCounter(Long counter, String telemetryId) {
     if (counter == null) {
       throw validationFailure(
           telemetryId,
           Mode.INLINE,
-          identifier,
+          null,
           "counter is required",
           "counter_required",
-          Map.of("field", "counter", "identifier", identifier));
+          Map.of("field", "counter"));
     }
     return counter;
   }
 
-  private HotpHashAlgorithm parseAlgorithm(
-      String algorithm, String telemetryId, String identifier) {
+  private HotpHashAlgorithm parseAlgorithm(String algorithm, String telemetryId) {
     String normalized =
-        requireText(
-                algorithm, "algorithm", telemetryId, Mode.INLINE, Map.of("identifier", identifier))
+        requireText(algorithm, "algorithm", telemetryId, Mode.INLINE, Map.of("field", "algorithm"))
             .toUpperCase(Locale.ROOT);
     try {
       return HotpHashAlgorithm.valueOf(normalized);
@@ -242,25 +235,25 @@ class HotpEvaluationService {
       throw validationFailure(
           telemetryId,
           Mode.INLINE,
-          identifier,
+          null,
           "Unsupported HOTP algorithm: " + normalized,
           "algorithm_invalid",
-          Map.of("field", "algorithm", "identifier", identifier));
+          Map.of("field", "algorithm"));
     }
   }
 
   private HotpEvaluationValidationException validationFailure(
       String telemetryId,
       Mode mode,
-      String identifier,
+      String credentialReference,
       String message,
       String reasonCode,
       Map<String, String> baseDetails) {
 
     Map<String, Object> telemetryFields = new LinkedHashMap<>();
     telemetryFields.put("credentialSource", mode.source);
-    if (identifier != null && !identifier.isBlank()) {
-      telemetryFields.put(mode == Mode.STORED ? "credentialId" : "identifier", identifier);
+    if (credentialReference != null && !credentialReference.isBlank()) {
+      telemetryFields.put(mode == Mode.STORED ? "credentialId" : "identifier", credentialReference);
     }
     baseDetails.forEach(telemetryFields::putIfAbsent);
 
@@ -272,7 +265,7 @@ class HotpEvaluationService {
         sanitizedDetails(telemetryFields, baseDetails, true, telemetryId, mode.source);
 
     return new HotpEvaluationValidationException(
-        telemetryId, mode.source, identifier, reasonCode, true, details, message);
+        telemetryId, mode.source, credentialReference, reasonCode, true, details, message);
   }
 
   private static Map<String, String> mergeDetails(Map<String, String> original, String field) {

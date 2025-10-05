@@ -51,13 +51,12 @@ class HotpEvaluationControllerTest {
   @DisplayName("Inline evaluation returns response payload with metadata")
   void inlineEvaluationReturnsResponse() throws Exception {
     HotpEvaluationMetadata metadata =
-        new HotpEvaluationMetadata("inline", "device-123", false, "SHA1", 6, 7L, 7L, "rest-hotp-2");
+        new HotpEvaluationMetadata("inline", null, false, "SHA1", 6, 7L, 7L, "rest-hotp-2");
     HotpEvaluationResponse response = new HotpEvaluationResponse("match", "match", metadata);
     when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenReturn(response);
 
     HotpInlineEvaluationRequest request =
         new HotpInlineEvaluationRequest(
-            "device-123",
             "3132333435363738393031323334353637383930",
             "SHA1",
             6,
@@ -73,7 +72,8 @@ class HotpEvaluationControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("match"))
         .andExpect(jsonPath("$.metadata.credentialSource").value("inline"))
-        .andExpect(jsonPath("$.metadata.telemetryId").value("rest-hotp-2"));
+        .andExpect(jsonPath("$.metadata.telemetryId").value("rest-hotp-2"))
+        .andExpect(jsonPath("$.metadata.credentialId").doesNotExist());
   }
 
   @Test
@@ -111,22 +111,16 @@ class HotpEvaluationControllerTest {
         new HotpEvaluationValidationException(
             "rest-hotp-4",
             "inline",
-            "device-1",
+            null,
             "counter_required",
             true,
-            Map.of("field", "counter", "identifier", "device-1"),
+            Map.of("field", "counter"),
             "counter required");
     when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenThrow(exception);
 
     HotpInlineEvaluationRequest request =
         new HotpInlineEvaluationRequest(
-            "device-1",
-            "3132333435363738393031323334353637383930",
-            "SHA1",
-            6,
-            0L,
-            "000000",
-            Map.of());
+            "3132333435363738393031323334353637383930", "SHA1", 6, 0L, "000000", Map.of());
 
     mockMvc
         .perform(
@@ -136,8 +130,8 @@ class HotpEvaluationControllerTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error").value("invalid_input"))
         .andExpect(jsonPath("$.details.reasonCode").value("counter_required"))
-        .andExpect(jsonPath("$.details.identifier").value("device-1"))
-        .andExpect(jsonPath("$.details.sanitized").value("true"));
+        .andExpect(jsonPath("$.details.sanitized").value("true"))
+        .andExpect(jsonPath("$.details.identifier").doesNotExist());
   }
 
   @Test
@@ -148,13 +142,7 @@ class HotpEvaluationControllerTest {
 
     HotpInlineEvaluationRequest request =
         new HotpInlineEvaluationRequest(
-            "device-123",
-            "3132333435363738393031323334353637383930",
-            "SHA1",
-            6,
-            0L,
-            "123456",
-            Map.of());
+            "3132333435363738393031323334353637383930", "SHA1", 6, 0L, "123456", Map.of());
 
     mockMvc
         .perform(
@@ -198,7 +186,7 @@ class HotpEvaluationControllerTest {
 
     HotpInlineEvaluationRequest request =
         new HotpInlineEvaluationRequest(
-            "device-99", "3132333435363738393031323334353637383930", "SHA1", 6, 0L, "", Map.of());
+            "3132333435363738393031323334353637383930", "SHA1", 6, 0L, "", Map.of());
 
     mockMvc
         .perform(

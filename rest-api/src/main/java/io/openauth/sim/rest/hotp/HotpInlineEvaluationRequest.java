@@ -7,7 +7,6 @@ import java.util.Map;
 /** Request payload for inline HOTP evaluation (placeholder). */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpInlineEvaluationRequest(
-    @JsonProperty("identifier") String identifier,
     @JsonProperty("sharedSecretHex") String sharedSecretHex,
     @JsonProperty("algorithm") String algorithm,
     @JsonProperty("digits") Integer digits,

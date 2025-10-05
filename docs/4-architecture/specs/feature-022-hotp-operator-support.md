@@ -25,6 +25,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-05 – HOTP evaluation panels remove the stored/inline headings and hint copy so operators see the input fields immediately after selecting a mode (user directive).
 - 2025-10-05 – HOTP mode selection mirrors OCRA ordering with Inline parameters listed before Stored credential for consistent operator workflows (user directive).
 - 2025-10-05 – HOTP replay hints read “Select a persisted credential, and replay the OTP without advancing counters.” and “Provide HOTP parameters directly for ad-hoc verification.” to align copy with operator guidance (user directive).
+- 2025-10-05 – HOTP inline evaluation no longer collects an operator-provided identifier; the REST/API surface accepts only secret, algorithm, digits, counter, and OTP for inline requests (user directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -32,7 +33,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 | HOS-001 | Introduce HOTP credential descriptors, generator, and validator aligned with RFC 4226 (configurable digits and moving factor) exposed through the core domain/application modules. | Unit tests cover boundary cases (counter rollovers, digit lengths, secret sizes) and mutation tests exercise success/failure paths. |
 | HOS-002 | Persist HOTP credentials using the shared MapDB store (`CredentialType.OATH_HOTP`) with schema-v1 metadata for counter state and issuance context. | Integration tests confirm HOTP records coexist with OCRA entries and are retrievable via the shared `CredentialStoreFactory`. |
 | HOS-003 | Provide CLI commands to create/list/evaluate HOTP credentials, mirroring OCRA command UX while emitting telemetry events. | Picocli tests verify command output/exit codes; telemetry assertions capture `hotp.command.*` frames. |
-| HOS-004 | Expose REST endpoints for HOTP evaluation (stored credential and inline secret modes) with OpenAPI updates and consistent telemetry. | Spring MVC tests confirm endpoint contracts; OpenAPI snapshots show HOTP sections; telemetry adapters emit `hotp.rest.*` frames and REST telemetry logs redact OTP material. |
+| HOS-004 | Expose REST endpoints for HOTP evaluation (stored credential and inline secret modes) with OpenAPI updates and consistent telemetry; inline mode omits operator-provided identifiers. | Spring MVC tests confirm endpoint contracts; OpenAPI snapshots show HOTP sections; telemetry adapters emit `hotp.rest.*` frames and REST telemetry logs redact OTP material. |
 | HOS-005 | Document HOTP usage (how-to guides, roadmap, knowledge map) and highlight CLI/REST entry points plus schema reuse. | Docs updated under `docs/2-how-to/`, roadmap milestone notes mention HOTP delivery, knowledge map links HOTP modules to shared persistence/telemetry. |
 | HOS-006 | Surface HOTP evaluation in the operator UI by extending the existing console with stored credential selection and inline secret evaluation flows that call the REST API. Issuance remains out of scope. | UI integration tests (e.g., Spring/Selenium) cover stored + inline evaluation; UI links reuse REST telemetry without new event types; UX reflects documentation requirements. |
 

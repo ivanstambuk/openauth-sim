@@ -68,7 +68,7 @@ final class HotpEvaluationServiceTest {
         new TelemetrySignal(
             TelemetryStatus.INVALID, "otp_mismatch", "OTP mismatch", true, fields, null);
     EvaluationResult result =
-        new EvaluationResult(signal, false, "device-123", 5L, 5L, HotpHashAlgorithm.SHA1, 6);
+        new EvaluationResult(signal, false, null, 5L, 5L, HotpHashAlgorithm.SHA1, 6);
 
     Mockito.when(applicationService.evaluate(Mockito.any(EvaluationCommand.Inline.class)))
         .thenReturn(result);
@@ -76,17 +76,43 @@ final class HotpEvaluationServiceTest {
     HotpEvaluationResponse response =
         service.evaluateInline(
             new HotpInlineEvaluationRequest(
-                "device-123",
-                "3132333435363738393031323334353637383930",
-                "SHA1",
-                6,
-                5L,
-                "000000",
-                Map.of()));
+                "3132333435363738393031323334353637383930", "SHA1", 6, 5L, "000000", Map.of()));
 
     assertEquals("mismatch", response.status());
     assertEquals("otp_mismatch", response.reasonCode());
     assertEquals("inline", response.metadata().credentialSource());
+    assertFalse(Boolean.TRUE.equals(response.metadata().credentialReference()));
+    assertEquals(null, response.metadata().credentialId());
+    Mockito.verify(applicationService).evaluate(Mockito.any(EvaluationCommand.Inline.class));
+  }
+
+  @Test
+  @DisplayName("Inline evaluation returns match response without credential reference")
+  void inlineEvaluationReturnsMatch() {
+    HotpEvaluationService service = new HotpEvaluationService(applicationService);
+
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("credentialSource", "inline");
+    fields.put("hashAlgorithm", HotpHashAlgorithm.SHA1.name());
+    fields.put("digits", 6);
+    TelemetrySignal signal =
+        new TelemetrySignal(TelemetryStatus.SUCCESS, "match", null, true, fields, null);
+    EvaluationResult result =
+        new EvaluationResult(signal, false, null, 10L, 11L, HotpHashAlgorithm.SHA1, 6);
+
+    Mockito.when(applicationService.evaluate(Mockito.any(EvaluationCommand.Inline.class)))
+        .thenReturn(result);
+
+    HotpEvaluationResponse response =
+        service.evaluateInline(
+            new HotpInlineEvaluationRequest(
+                "3132333435363738393031323334353637383930", "SHA1", 6, 10L, "1234567", Map.of()));
+
+    assertEquals("match", response.status());
+    assertEquals("match", response.reasonCode());
+    assertEquals("inline", response.metadata().credentialSource());
+    assertEquals(null, response.metadata().credentialId());
+    assertTrue(response.metadata().telemetryId().startsWith("rest-hotp-"));
     Mockito.verify(applicationService).evaluate(Mockito.any(EvaluationCommand.Inline.class));
   }
 
@@ -101,7 +127,6 @@ final class HotpEvaluationServiceTest {
             () ->
                 service.evaluateInline(
                     new HotpInlineEvaluationRequest(
-                        "device-789",
                         "3132333435363738393031323334353637383930",
                         "sha999",
                         6,
@@ -126,7 +151,6 @@ final class HotpEvaluationServiceTest {
             () ->
                 service.evaluateInline(
                     new HotpInlineEvaluationRequest(
-                        "device-456",
                         "3132333435363738393031323334353637383930",
                         "SHA1",
                         6,
@@ -135,6 +159,48 @@ final class HotpEvaluationServiceTest {
                         Map.of())));
 
     assertEquals("counter_required", exception.reasonCode());
+    assertEquals("true", exception.details().get("sanitized"));
+    Mockito.verifyNoInteractions(applicationService);
+  }
+
+  @Test
+  @DisplayName("Inline evaluation requires shared secret material")
+  void inlineEvaluationRequiresSecret() {
+    HotpEvaluationService service = new HotpEvaluationService(applicationService);
+
+    HotpEvaluationValidationException exception =
+        assertThrows(
+            HotpEvaluationValidationException.class,
+            () ->
+                service.evaluateInline(
+                    new HotpInlineEvaluationRequest("   ", "SHA1", 6, 0L, "123456", Map.of())));
+
+    assertEquals("sharedSecretHex_required", exception.reasonCode());
+    assertEquals("sharedSecretHex", exception.details().get("field"));
+    assertEquals("true", exception.details().get("sanitized"));
+    Mockito.verifyNoInteractions(applicationService);
+  }
+
+  @Test
+  @DisplayName("Inline evaluation requires OTP values")
+  void inlineEvaluationRequiresOtp() {
+    HotpEvaluationService service = new HotpEvaluationService(applicationService);
+
+    HotpEvaluationValidationException exception =
+        assertThrows(
+            HotpEvaluationValidationException.class,
+            () ->
+                service.evaluateInline(
+                    new HotpInlineEvaluationRequest(
+                        "3132333435363738393031323334353637383930",
+                        "SHA1",
+                        6,
+                        0L,
+                        "   ",
+                        Map.of())));
+
+    assertEquals("otp_required", exception.reasonCode());
+    assertEquals("otp", exception.details().get("field"));
     assertEquals("true", exception.details().get("sanitized"));
     Mockito.verifyNoInteractions(applicationService);
   }
@@ -183,7 +249,7 @@ final class HotpEvaluationServiceTest {
         new TelemetrySignal(
             TelemetryStatus.INVALID, "digits_mismatch", "digits mismatch", true, fields, null);
     EvaluationResult result =
-        new EvaluationResult(signal, false, "device-123", 0L, 0L, HotpHashAlgorithm.SHA1, 6);
+        new EvaluationResult(signal, false, null, 0L, 0L, HotpHashAlgorithm.SHA1, 6);
 
     Mockito.when(applicationService.evaluate(Mockito.any(EvaluationCommand.Inline.class)))
         .thenReturn(result);
@@ -194,7 +260,6 @@ final class HotpEvaluationServiceTest {
             () ->
                 service.evaluateInline(
                     new HotpInlineEvaluationRequest(
-                        "device-123",
                         "3132333435363738393031323334353637383930",
                         "SHA1",
                         6,
@@ -204,8 +269,44 @@ final class HotpEvaluationServiceTest {
 
     assertEquals("digits_mismatch", exception.reasonCode());
     assertEquals("true", exception.details().get("sanitized"));
-    assertEquals("device-123", exception.details().get("identifier"));
     assertEquals("6", exception.details().get("digits"));
+    assertFalse(exception.details().containsKey("identifier"));
+  }
+
+  @Test
+  @DisplayName("Inline validation can surface unsanitized telemetry fields")
+  void inlineEvaluationPropagatesUnsanitizedTelemetry() {
+    HotpEvaluationService service = new HotpEvaluationService(applicationService);
+
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("digits", 8);
+    fields.put("credentialSource", "inline");
+    TelemetrySignal signal =
+        new TelemetrySignal(
+            TelemetryStatus.INVALID, "validation_error", "secret malformed", false, fields, null);
+    EvaluationResult result =
+        new EvaluationResult(signal, false, null, 2L, 2L, HotpHashAlgorithm.SHA1, 8);
+
+    Mockito.when(applicationService.evaluate(Mockito.any(EvaluationCommand.Inline.class)))
+        .thenReturn(result);
+
+    HotpEvaluationValidationException exception =
+        assertThrows(
+            HotpEvaluationValidationException.class,
+            () ->
+                service.evaluateInline(
+                    new HotpInlineEvaluationRequest(
+                        "3132333435363738393031323334353637383930",
+                        "SHA1",
+                        8,
+                        2L,
+                        "654321",
+                        Map.of())));
+
+    assertEquals("validation_error", exception.reasonCode());
+    assertEquals("false", exception.details().get("sanitized"));
+    assertEquals("inline", exception.details().get("credentialSource"));
+    Mockito.verify(applicationService).evaluate(Mockito.any(EvaluationCommand.Inline.class));
   }
 
   @Test

@@ -155,7 +155,9 @@ final class HotpOperatorUiSeleniumTest {
       throw new AssertionError("HOTP inline panel should not render redundant headings");
     }
 
-    driver.findElement(By.id("hotpInlineIdentifier")).sendKeys("device-456");
+    if (!driver.findElements(By.id("hotpInlineIdentifier")).isEmpty()) {
+      throw new AssertionError("HOTP inline identifier field should not be rendered");
+    }
     driver.findElement(By.id("hotpInlineSecretHex")).sendKeys(SECRET_HEX);
     driver.findElement(By.id("hotpInlineDigits")).clear();
     driver.findElement(By.id("hotpInlineDigits")).sendKeys(Integer.toString(DIGITS));

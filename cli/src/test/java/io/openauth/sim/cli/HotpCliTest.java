@@ -260,6 +260,29 @@ final class HotpCliTest {
   }
 
   @Test
+  void sanitizeMessageHandlesNullAndWhitespace() {
+    assertEquals("unspecified", HotpCli.sanitizeMessage(null));
+    assertEquals("boom", HotpCli.sanitizeMessage("  boom\n"));
+  }
+
+  @Test
+  void listUsesOverriddenDatabasePath() throws Exception {
+    Path custom = tempDir.resolve("overridden.db");
+    CommandHarness harness = CommandHarness.create();
+    harness.cli().overrideDatabase(custom);
+
+    int exitCode = harness.execute("list");
+
+    assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+    assertTrue(harness.stdout().contains("event=cli.hotp.list"));
+
+    var databasePath = HotpCli.class.getDeclaredMethod("databasePath");
+    databasePath.setAccessible(true);
+    Path resolved = (Path) databasePath.invoke(harness.cli());
+    assertEquals(custom.toAbsolutePath(), resolved);
+  }
+
+  @Test
   void evaluateReportsCounterOverflow() throws Exception {
     Path databasePath = databasePath();
 

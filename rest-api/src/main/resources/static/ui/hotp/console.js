@@ -60,9 +60,6 @@
   var inlineButton = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-inline-evaluate-button"]')
     : null;
-  var inlineIdentifierInput = hotpPanel
-    ? hotpPanel.querySelector('#hotpInlineIdentifier')
-    : null;
   var inlineAlgorithmSelect = hotpPanel
     ? hotpPanel.querySelector('#hotpInlineAlgorithm')
     : null;
@@ -981,7 +978,6 @@
     setHidden(inlineResultPanel, true);
 
     var payload = {
-      identifier: inlineIdentifierInput ? inlineIdentifierInput.value : null,
       sharedSecretHex: secret.trim(),
       algorithm: inlineAlgorithmSelect ? inlineAlgorithmSelect.value : 'SHA1',
       digits: digits,

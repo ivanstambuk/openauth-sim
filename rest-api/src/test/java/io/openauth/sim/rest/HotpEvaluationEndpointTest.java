@@ -276,7 +276,6 @@ class HotpEvaluationEndpointTest {
                       .content(
                           """
                               {
-                                "identifier": "device-789",
                                 "sharedSecretHex": "%s",
                                 "algorithm": "SHA1",
                                 "counter": 2,
@@ -295,7 +294,7 @@ class HotpEvaluationEndpointTest {
       JsonNode details = response.get("details");
       assertEquals("digits_required", details.get("reasonCode").asText());
       assertEquals("true", details.get("sanitized").asText());
-      assertEquals("device-789", details.get("identifier").asText());
+      assertFalse(details.has("identifier"));
       assertFalse(responseBody.contains(SECRET_HEX));
 
       assertTelemetry(

@@ -1,0 +1,28 @@
+# This is a Gradle generated file for dependency locking.
+# Manual edits can break the build and are not advised.
+# This file is expected to be part of source control.
+com.github.ben-manes.caffeine:caffeine:3.2.2=annotationProcessor
+com.github.kevinstern:software-and-algorithms:1.0=annotationProcessor
+com.github.spotbugs:spotbugs-annotations:4.8.3=compileClasspath
+com.google.auto.service:auto-service-annotations:1.0.1=annotationProcessor
+com.google.auto.value:auto-value-annotations:1.9=annotationProcessor
+com.google.auto:auto-common:1.2.2=annotationProcessor
+com.google.code.findbugs:jsr305:3.0.2=annotationProcessor,compileClasspath
+com.google.errorprone:error_prone_annotation:2.42.0=annotationProcessor
+com.google.errorprone:error_prone_annotations:2.42.0=annotationProcessor
+com.google.errorprone:error_prone_check_api:2.42.0=annotationProcessor
+com.google.errorprone:error_prone_core:2.42.0=annotationProcessor
+com.google.errorprone:javac:9+181-r4173-1=errorproneJavac
+com.google.googlejavaformat:google-java-format:1.28.0=annotationProcessor
+com.google.guava:failureaccess:1.0.2=annotationProcessor
+com.google.guava:guava:33.4.0-jre=annotationProcessor
+com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava=annotationProcessor
+com.google.j2objc:j2objc-annotations:3.0.0=annotationProcessor
+com.google.protobuf:protobuf-java:3.25.5=annotationProcessor
+io.github.eisop:dataflow-errorprone:3.41.0-eisop1=annotationProcessor
+io.github.java-diff-utils:java-diff-utils:4.12=annotationProcessor
+javax.inject:javax.inject:1=annotationProcessor
+org.checkerframework:checker-qual:3.43.0=annotationProcessor
+org.jspecify:jspecify:1.0.0=annotationProcessor
+org.pcollections:pcollections:4.0.1=annotationProcessor
+empty=

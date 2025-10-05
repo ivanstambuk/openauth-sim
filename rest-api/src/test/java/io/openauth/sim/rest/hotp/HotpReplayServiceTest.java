@@ -2,6 +2,7 @@ package io.openauth.sim.rest.hotp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -327,6 +328,47 @@ class HotpReplayServiceTest {
 
     assertEquals("mode_required", exception.reasonCode());
     Mockito.verifyNoInteractions(applicationService);
+  }
+
+  @Test
+  @DisplayName("Inline replay requires digits metadata")
+  void replayInlineRequiresDigits() {
+    HotpReplayApplicationService applicationService =
+        Mockito.mock(HotpReplayApplicationService.class);
+    HotpReplayService service = new HotpReplayService(applicationService);
+
+    HotpReplayValidationException exception =
+        assertThrows(
+            HotpReplayValidationException.class,
+            () ->
+                service.replay(
+                    new HotpReplayRequest(
+                        null,
+                        "device-inline",
+                        "3132333435363738393031323334353637383930",
+                        "SHA1",
+                        null,
+                        4L,
+                        "987654",
+                        null)));
+
+    assertEquals("digits_required", exception.reasonCode());
+    assertEquals("inline", exception.credentialSource());
+    Mockito.verifyNoInteractions(applicationService);
+  }
+
+  @Test
+  @DisplayName("Replay helpers handle null-safe utilities")
+  void replayUtilityMethodsHandleNulls() throws Exception {
+    var hasText = HotpReplayService.class.getDeclaredMethod("hasText", String.class);
+    hasText.setAccessible(true);
+    assertFalse((boolean) hasText.invoke(null, "  "));
+    assertTrue((boolean) hasText.invoke(null, "demo"));
+
+    var safeMessage = HotpReplayService.class.getDeclaredMethod("safeMessage", String.class);
+    safeMessage.setAccessible(true);
+    assertEquals("", safeMessage.invoke(null, (Object) null));
+    assertEquals("boom", safeMessage.invoke(null, "  boom  \n"));
   }
 
   @Test
