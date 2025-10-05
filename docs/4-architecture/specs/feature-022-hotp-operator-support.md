@@ -4,15 +4,20 @@ _Status: Draft_
 _Last updated: 2025-10-05_
 
 ## Overview
-Deliver RFC 4226 HOTP capabilities across the simulator so operators can register and validate HOTP credentials alongside the existing OCRA flows. This feature introduces a dedicated HOTP domain model, persistence wiring, telemetry events, and façade endpoints (CLI + REST) while keeping the UI scope for a later feature.
+Deliver RFC 4226 HOTP capabilities across the simulator so operators can register and validate HOTP credentials alongside the existing OCRA flows. This feature introduces a dedicated HOTP domain model, persistence wiring, telemetry events, façade endpoints (CLI + REST), and operator console UI evaluation flows (stored + inline) while keeping issuance out of scope.
 
 ## Clarifications
 - 2025-10-04 – Initial delivery must ship an end-to-end slice (core domain, application adapters, CLI commands, and REST endpoints) instead of a core-only milestone (user directive; Option B selected).
 - 2025-10-04 – HOTP credentials reuse the existing MapDB credential store/schema-v1 baseline alongside OCRA descriptors; no dedicated HOTP store is created (user directive; Option A selected).
 - 2025-10-04 – Telemetry coverage must match the OCRA parity level (issuance, evaluation, failure reasons) using the shared `TelemetryContracts` adapters (user directive; Option A selected).
-- 2025-10-04 – First operator-facing surfaces include the CLI and REST API; UI work is deferred to a future feature (user directive; Option B selected).
 - 2025-10-04 – Application layer owns HOTP counter persistence and telemetry-ready metadata so CLI/REST facades remain thin (user directive; Option A selected).
 - 2025-10-05 – HOTP telemetry events adopt the `hotp.evaluate` and `hotp.issue` namespaces via `TelemetryContracts` to keep parity with future facade integrations (worklog confirmation).
+- 2025-10-05 – Operator UI remains evaluation-only across all credential types; HOTP UI excludes issuance until a future roadmap decision revisits the scope (user directive).
+- 2025-10-05 – HOTP operator UI lives within the existing operator console tab, supporting stored credential evaluation and inline secret evaluation flows (options B + C selected).
+- 2025-10-05 – HOTP operator UI reuses existing REST telemetry events; no additional UI-specific telemetry frames are required (option A selected).
+- 2025-10-05 – Operator documentation will be updated to reflect HOTP UI availability and usage patterns (option A selected).
+- 2025-10-05 – HOTP operator UI acquires stored credentials via `/api/v1/hotp/credentials`, using the shared console CSRF token when invoking `/api/v1/hotp/evaluate` and `/api/v1/hotp/evaluate/inline` (implementation note).
+- 2025-10-05 – HOTP operator console reuses the evaluate/replay pill header with Evaluate active and a Replay tab present (currently without behaviour) to mirror OCRA styling while signalling future scope (option B confirmed).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -22,6 +27,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 | HOS-003 | Provide CLI commands to create/list/evaluate HOTP credentials, mirroring OCRA command UX while emitting telemetry events. | Picocli tests verify command output/exit codes; telemetry assertions capture `hotp.command.*` frames. |
 | HOS-004 | Expose REST endpoints for HOTP evaluation (stored credential and inline secret modes) with OpenAPI updates and consistent telemetry. | Spring MVC tests confirm endpoint contracts; OpenAPI snapshots show HOTP sections; telemetry adapters emit `hotp.rest.*` frames and REST telemetry logs redact OTP material. |
 | HOS-005 | Document HOTP usage (how-to guides, roadmap, knowledge map) and highlight CLI/REST entry points plus schema reuse. | Docs updated under `docs/2-how-to/`, roadmap milestone notes mention HOTP delivery, knowledge map links HOTP modules to shared persistence/telemetry. |
+| HOS-006 | Surface HOTP evaluation in the operator UI by extending the existing console with stored credential selection and inline secret evaluation flows that call the REST API. Issuance remains out of scope. | UI integration tests (e.g., Spring/Selenium) cover stored + inline evaluation; UI links reuse REST telemetry without new event types; UX reflects documentation requirements. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |
@@ -35,6 +41,8 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - Add integration tests that open a MapDB store containing both OCRA and HOTP credentials to confirm shared persistence behaviour.
 - Expand CLI command tests (JUnit + Picocli) to cover new HOTP options and telemetry emission.
 - Update REST API tests (Spring MockMvc) and OpenAPI snapshot assertions to cover HOTP contracts.
+- Extend operator UI tests (integration/system) to cover HOTP stored + inline evaluation flows and ensure accessibility + telemetry expectations are met.
+- Add coverage around the HOTP credential directory endpoint feeding the operator UI so stored credential listings remain deterministic.
 - Re-run mutation, SpotBugs, and ArchUnit suites to guard against regressions in new code paths.
 
 ## Dependencies & Risks

@@ -26,26 +26,6 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
           "200" : {
             "description" : "Verification completed",
             "content" : {
@@ -71,6 +51,16 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
                 }
               }
             }
@@ -102,6 +92,16 @@
                 }
               }
             }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -123,12 +123,12 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation successful",
+          "500" : {
+            "description" : "Unexpected server error",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
                 }
               }
             }
@@ -161,12 +161,12 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected server error",
+          "200" : {
+            "description" : "Evaluation successful",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
                 }
               }
             }
@@ -209,6 +209,16 @@
           "required" : true
         },
         "responses" : {
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
           "404" : {
             "description" : "Credential not found",
             "content" : {
@@ -225,16 +235,6 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -269,22 +269,22 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -342,6 +342,27 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OcraCredentialSampleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hotp/credentials" : {
+      "get" : {
+        "tags" : [ "hotp-credential-directory-controller" ],
+        "operationId" : "listCredentials_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/HotpCredentialSummary"
+                  }
                 }
               }
             }
@@ -407,23 +428,6 @@
           }
         }
       },
-      "OcraVerificationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          }
-        }
-      },
       "OcraVerificationMetadata" : {
         "type" : "object",
         "properties" : {
@@ -469,6 +473,23 @@
           }
         }
       },
+      "OcraVerificationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
       "OcraEvaluationRequest" : {
         "type" : "object",
         "properties" : {
@@ -505,20 +526,6 @@
           }
         }
       },
-      "OcraEvaluationResponse" : {
-        "type" : "object",
-        "properties" : {
-          "suite" : {
-            "type" : "string"
-          },
-          "otp" : {
-            "type" : "string"
-          },
-          "telemetryId" : {
-            "type" : "string"
-          }
-        }
-      },
       "OcraEvaluationErrorResponse" : {
         "type" : "object",
         "properties" : {
@@ -533,6 +540,20 @@
             "additionalProperties" : {
               "type" : "string"
             }
+          }
+        }
+      },
+      "OcraEvaluationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "suite" : {
+            "type" : "string"
+          },
+          "otp" : {
+            "type" : "string"
+          },
+          "telemetryId" : {
+            "type" : "string"
           }
         }
       },
@@ -718,6 +739,25 @@
           },
           "context" : {
             "$ref" : "#/components/schemas/Context"
+          }
+        }
+      },
+      "HotpCredentialSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "digits" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "counter" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       }

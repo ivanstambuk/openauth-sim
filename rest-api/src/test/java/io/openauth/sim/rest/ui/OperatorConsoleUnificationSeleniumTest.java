@@ -157,14 +157,59 @@ final class OperatorConsoleUnificationSeleniumTest {
     assertThat(replaySection.getAttribute("hidden")).isNotNull();
 
     hotpTab.click();
-    WebElement hotpPanel = driver.findElement(By.cssSelector("[data-protocol-panel='hotp']"));
+    By hotpPanelLocator = By.cssSelector("[data-protocol-panel='hotp']");
+    WebElement hotpPanel = driver.findElement(hotpPanelLocator);
     new WebDriverWait(driver, Duration.ofSeconds(3))
-        .until(panel -> hotpPanel.getAttribute("hidden") == null);
+        .until(panel -> driver.findElement(hotpPanelLocator).getAttribute("hidden") == null);
     assertThat(modeToggle.getAttribute("hidden"))
         .as("Mode toggle should hide for non-OCRA protocols")
         .isNotNull();
     assertThat(ocraPanel.getAttribute("hidden")).isNotNull();
-    assertThat(hotpPanel.findElement(By.tagName("h2")).getText()).contains("HOTP");
+
+    WebElement hotpPanelTabs =
+        hotpPanel.findElement(By.cssSelector("[data-testid='hotp-panel-tabs']"));
+    WebElement hotpEvaluateTab =
+        hotpPanelTabs.findElement(By.cssSelector("[data-testid='hotp-panel-tab-evaluate']"));
+    WebElement hotpReplayTab =
+        hotpPanelTabs.findElement(By.cssSelector("[data-testid='hotp-panel-tab-replay']"));
+
+    assertThat(hotpEvaluateTab.getAttribute("aria-selected")).isEqualTo("true");
+    assertThat(hotpReplayTab.getAttribute("aria-selected")).isEqualTo("false");
+
+    WebElement hotpModeToggle =
+        hotpPanel.findElement(By.cssSelector("[data-testid='hotp-mode-toggle']"));
+    assertThat(hotpModeToggle.getAttribute("data-mode")).isEqualTo("stored");
+    WebElement storedToggle =
+        hotpModeToggle.findElement(By.cssSelector("[data-testid='hotp-mode-select-stored']"));
+    WebElement inlineToggle =
+        hotpModeToggle.findElement(By.cssSelector("[data-testid='hotp-mode-select-inline']"));
+    storedToggle.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> "stored".equals(hotpModeToggle.getAttribute("data-mode")));
+    assertThat(storedToggle.isSelected()).isTrue();
+    assertThat(inlineToggle.isSelected()).isFalse();
+
+    By storedPanelLocator = By.cssSelector("[data-testid='hotp-stored-evaluation-panel']");
+    By inlinePanelLocator = By.cssSelector("[data-testid='hotp-inline-evaluation-panel']");
+
+    WebElement storedCard = hotpPanel.findElement(storedPanelLocator);
+    assertThat(storedCard.isDisplayed()).isTrue();
+    assertThat(storedCard.findElement(By.tagName("h2")).getText()).contains("Stored credential");
+    WebElement inlineCard = driver.findElement(inlinePanelLocator);
+    assertThat(inlineCard.isDisplayed()).isFalse();
+
+    inlineToggle.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> "inline".equals(hotpModeToggle.getAttribute("data-mode")));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.findElement(inlinePanelLocator).isDisplayed());
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> !d.findElement(storedPanelLocator).isDisplayed());
+    storedCard = driver.findElement(storedPanelLocator);
+    inlineCard = driver.findElement(inlinePanelLocator);
+    assertThat(storedCard.isDisplayed()).isFalse();
+    assertThat(inlineCard.isDisplayed()).isTrue();
+    assertThat(inlineCard.findElement(By.tagName("h2")).getText()).contains("Inline evaluation");
 
     totpTab.click();
     WebElement totpPanel = driver.findElement(By.cssSelector("[data-protocol-panel='totp']"));

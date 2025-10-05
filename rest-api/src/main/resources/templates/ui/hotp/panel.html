@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>HOTP Operator Panel</title>
+  </head>
+  <body>
+    <section
+        th:fragment="hotpPanel(visible)"
+        id="protocol-panel-hotp"
+        class="protocol-panel"
+        data-protocol-panel="hotp"
+        th:attr="hidden=${visible == null || !visible} ? 'hidden' : null, aria-hidden=${visible == null || !visible} ? 'true' : null"
+        aria-labelledby="protocol-tab-hotp"
+      >
+      <div
+          class="ocra-mode-toggle"
+          data-testid="hotp-panel-tabs"
+          role="tablist"
+          aria-label="HOTP interaction modes"
+        >
+        <button
+            type="button"
+            class="mode-pill mode-pill--active"
+            data-testid="hotp-panel-tab-evaluate"
+            role="tab"
+            aria-selected="true"
+          >
+          Evaluate
+        </button>
+        <button
+            type="button"
+            class="mode-pill"
+            data-testid="hotp-panel-tab-replay"
+            role="tab"
+            aria-selected="false"
+          >
+          Replay
+        </button>
+      </div>
+
+      <section class="card-shell" data-testid="hotp-evaluate-panel">
+        <div class="card-shell__body stack-lg">
+          <div class="section-columns">
+            <div>
+              <h2 id="hotp-evaluate-heading" class="section-title">Evaluate an HOTP code</h2>
+
+              <fieldset
+                  class="mode-toggle"
+                  data-testid="hotp-mode-toggle"
+                  data-mode="stored"
+                >
+                <legend>Choose evaluation mode</legend>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="hotpModeStored"
+                    name="hotpMode"
+                    value="stored"
+                    data-testid="hotp-mode-select-stored"
+                    aria-describedby="hotpModeStoredHint"
+                    checked="checked"
+                  />
+                  <label for="hotpModeStored">Stored credential</label>
+                  <p id="hotpModeStoredHint" class="hint">
+                    Select a persisted HOTP credential and submit the observed OTP. Successful validation
+                    advances the counter in the shared MapDB store.
+                  </p>
+                </div>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="hotpModeInline"
+                    name="hotpMode"
+                    value="inline"
+                    data-testid="hotp-mode-select-inline"
+                    aria-describedby="hotpModeInlineHint"
+                  />
+                  <label for="hotpModeInline">Inline parameters</label>
+                  <p id="hotpModeInlineHint" class="hint">
+                    Provide HOTP parameters without touching stored credentials. Inline verification is useful
+                    for ad-hoc troubleshooting or client-supplied payloads.
+                  </p>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+
+          <section
+              class="stack-md"
+              data-testid="hotp-stored-evaluation-panel"
+              aria-labelledby="hotp-stored-heading"
+              data-mode-section="stored"
+            >
+            <h2 id="hotp-stored-heading">Stored credential evaluation</h2>
+            <p class="hint">
+              Select a persisted HOTP credential and submit the observed OTP. Successful validation will
+              advance the counter in the shared MapDB store.
+            </p>
+            <form
+                data-testid="hotp-stored-form"
+                class="evaluation-form"
+                th:attr="data-evaluate-endpoint=${hotpStoredEvaluateEndpoint},data-credentials-endpoint=${hotpCredentialsEndpoint}"
+              >
+              <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+              <div class="field-grid">
+                <div>
+                  <label for="hotpStoredCredentialId">Credential</label>
+                  <select
+                    id="hotpStoredCredentialId"
+                    name="credentialId"
+                    required="required"
+                    aria-describedby="hotp-stored-status"
+                    data-testid="hotp-stored-credential-select"
+                  >
+                    <option value="">Loading credentials…</option>
+                  </select>
+                  <p
+                    id="hotp-stored-status"
+                    class="hint"
+                    data-testid="hotp-stored-status"
+                    aria-live="polite"
+                  >
+                    HOTP credentials will appear once loaded.
+                  </p>
+                </div>
+                <div>
+                  <label for="hotpStoredOtp">One-time password</label>
+                  <input
+                    id="hotpStoredOtp"
+                    name="otp"
+                    type="text"
+                    inputmode="numeric"
+                    autocapitalize="none"
+                    autocomplete="one-time-code"
+                    required="required"
+                    minlength="6"
+                    maxlength="8"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                class="button-primary"
+                data-testid="hotp-stored-evaluate-button"
+              >
+                Evaluate stored credential
+              </button>
+            </form>
+            <section
+                data-testid="hotp-stored-result-panel"
+                class="result-panel"
+                aria-live="polite"
+                aria-labelledby="hotp-stored-result-heading"
+                hidden="hidden"
+              >
+              <h3 id="hotp-stored-result-heading">Stored evaluation result</h3>
+              <p>
+                Status:
+                <strong data-testid="hotp-result-status"></strong>
+              </p>
+              <p data-testid="hotp-result-metadata" class="hint"></p>
+            </section>
+            <section
+                data-testid="hotp-stored-error-panel"
+                class="error-panel"
+                role="alert"
+                aria-live="assertive"
+                hidden="hidden"
+              >
+              <h3>Stored evaluation failed</h3>
+              <p data-testid="hotp-stored-error"></p>
+            </section>
+          </section>
+
+          <section
+              class="stack-md"
+              data-testid="hotp-inline-evaluation-panel"
+              aria-labelledby="hotp-inline-heading"
+              data-mode-section="inline"
+              hidden="hidden"
+              aria-hidden="true"
+            >
+            <h2 id="hotp-inline-heading">Inline evaluation</h2>
+            <p class="hint">
+              Provide HOTP parameters without touching stored credentials. Inline verification is useful for
+              ad-hoc troubleshooting or client-supplied payloads.
+            </p>
+            <form
+                data-testid="hotp-inline-form"
+                class="evaluation-form"
+                th:attr="data-evaluate-endpoint=${hotpInlineEvaluateEndpoint}"
+              >
+              <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+              <div class="field-grid">
+                <div class="field-group">
+                  <label for="hotpInlineIdentifier">Identifier</label>
+                  <input
+                    id="hotpInlineIdentifier"
+                    name="identifier"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="Device or credential reference"
+                  />
+                </div>
+                <div class="field-group">
+                  <label for="hotpInlineSecretHex">Shared secret (hex)</label>
+                  <textarea
+                    id="hotpInlineSecretHex"
+                    name="sharedSecretHex"
+                    rows="3"
+                    required="required"
+                    spellcheck="false"
+                    autocapitalize="none"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div class="field-grid">
+                <div class="field-group">
+                  <label for="hotpInlineAlgorithm">Hash algorithm</label>
+                  <select id="hotpInlineAlgorithm" name="algorithm" required="required">
+                    <option value="SHA1" selected>SHA-1</option>
+                    <option value="SHA256">SHA-256</option>
+                    <option value="SHA512">SHA-512</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label for="hotpInlineDigits">Digits</label>
+                  <input
+                    id="hotpInlineDigits"
+                    name="digits"
+                    type="number"
+                    min="6"
+                    max="8"
+                    step="1"
+                    value="6"
+                    required="required"
+                  />
+                </div>
+                <div class="field-group">
+                  <label for="hotpInlineCounter">Counter</label>
+                  <input
+                    id="hotpInlineCounter"
+                    name="counter"
+                    type="number"
+                    min="0"
+                    value="0"
+                    required="required"
+                  />
+                </div>
+                <div class="field-group">
+                  <label for="hotpInlineOtp">One-time password</label>
+                  <input
+                    id="hotpInlineOtp"
+                    name="otp"
+                    type="text"
+                    inputmode="numeric"
+                    required="required"
+                    minlength="6"
+                    maxlength="8"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="button-primary"
+                data-testid="hotp-inline-evaluate-button"
+              >
+                Evaluate inline parameters
+              </button>
+            </form>
+            <section
+                data-testid="hotp-inline-result-panel"
+                class="result-panel"
+                aria-live="polite"
+                aria-labelledby="hotp-inline-result-heading"
+                hidden="hidden"
+              >
+              <h3 id="hotp-inline-result-heading">Inline evaluation result</h3>
+              <p>
+                Status:
+                <strong data-testid="hotp-result-status"></strong>
+              </p>
+              <p data-testid="hotp-result-metadata" class="hint"></p>
+            </section>
+            <section
+                data-testid="hotp-inline-error-panel"
+                class="error-panel"
+                role="alert"
+                aria-live="assertive"
+                hidden="hidden"
+              >
+              <h3>Inline evaluation failed</h3>
+              <p data-testid="hotp-inline-error"></p>
+            </section>
+          </section>
+        </div>
+      </section>
+    </section>
+  </body>
+</html>

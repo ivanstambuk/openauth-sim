@@ -187,4 +187,28 @@ class HotpEvaluationControllerTest {
         .andExpect(jsonPath("$.details.telemetryId").value("rest-hotp-5"))
         .andExpect(jsonPath("$.details.sanitized").value("false"));
   }
+
+  @Test
+  @DisplayName("Validation handler preserves sanitized flag when false")
+  void inlineEvaluationHandlesUnsanitizedValidation() throws Exception {
+    HotpEvaluationValidationException exception =
+        new HotpEvaluationValidationException(
+            "rest-hotp-6", "inline", "  ", null, false, Map.of("field", "otp"), "otp required");
+    when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenThrow(exception);
+
+    HotpInlineEvaluationRequest request =
+        new HotpInlineEvaluationRequest(
+            "device-99", "3132333435363738393031323334353637383930", "SHA1", 6, 0L, "", Map.of());
+
+    mockMvc
+        .perform(
+            post("/api/v1/hotp/evaluate/inline")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.details.telemetryId").value("rest-hotp-6"))
+        .andExpect(jsonPath("$.details.sanitized").value("false"))
+        .andExpect(jsonPath("$.details.field").value("otp"))
+        .andExpect(jsonPath("$.details.identifier").doesNotExist());
+  }
 }

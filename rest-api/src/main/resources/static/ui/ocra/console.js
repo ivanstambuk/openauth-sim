@@ -95,6 +95,17 @@
         notifyHost: false,
       });
     }
+
+    try {
+      var protocolEvent = new global.CustomEvent('operator:protocol-activated', {
+        detail: { protocol: protocol },
+      });
+      documentRef.dispatchEvent(protocolEvent);
+    } catch (error) {
+      if (global.console && typeof global.console.error === 'function') {
+        global.console.error('Failed to dispatch protocol activation event', error);
+      }
+    }
   }
 
   function normalizeState(state) {

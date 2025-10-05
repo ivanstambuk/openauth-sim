@@ -15,5 +15,10 @@ _Last updated: 2025-10-05_
 - ☑ T2209 – Add failing REST MockMvc tests + OpenAPI snapshot expectations for HOTP evaluation endpoints.
 - ☑ T2210 – Implement REST HOTP endpoints, update OpenAPI artifacts, and satisfy T2209.
 - ☑ T2211 – Update how-to docs, roadmap highlights, knowledge map, and rerun `./gradlew spotlessApply check` (2025-10-05 run reached Jacoco branch coverage 0.9002 / line 0.9706 after HOTP REST coverage additions).
+- ☑ T2212 – Add failing operator console integration/system tests for HOTP stored credential evaluation flows.
+- ☑ T2213 – Implement HOTP stored credential evaluation in the operator console and ensure T2212 passes.
+- ☑ T2214 – Add failing operator console integration/system tests for HOTP inline evaluation flows plus accessibility assertions.
+- ☑ T2215 – Implement HOTP inline evaluation in the operator console and ensure T2214 passes.
+- ☑ T2216 – Update operator how-to docs, roadmap notes, knowledge map, and rerun `./gradlew spotlessApply check` after HOTP UI work.
 
 Mark tasks as work completes and record tooling outcomes within the feature plan.

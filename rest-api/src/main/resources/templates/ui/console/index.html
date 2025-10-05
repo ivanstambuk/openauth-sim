@@ -152,20 +152,7 @@
         <th:block th:replace="~{ui/ocra/replay :: ocraReplayPanel(visible=${false})}"></th:block>
         <th:block th:replace="~{ui/ocra/replay :: ocraReplayPresetData}"></th:block>
       </section>
-      <section
-          id="protocol-panel-hotp"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="hotp"
-          aria-labelledby="protocol-tab-hotp"
-          hidden="hidden"
-          aria-hidden="true"
-        >
-        <h2>HOTP</h2>
-        <p>
-          HOTP operator tooling is planned. This panel will activate once HOTP credential issuance and
-          verification flows reach the simulator.
-        </p>
-      </section>
+      <th:block th:replace="~{ui/hotp/panel :: hotpPanel(${false})}"></th:block>
 
       <section
           id="protocol-panel-totp"
@@ -718,5 +705,6 @@
     <th:block th:replace="~{ui/ocra/replay :: ocraReplayScripts}"></th:block>
     <script th:src="@{/ui/protocol-info.js}"></script>
     <script th:src="@{/ui/ocra/console.js}"></script>
+    <script th:src="@{/ui/hotp/console.js}"></script>
   </body>
 </html>

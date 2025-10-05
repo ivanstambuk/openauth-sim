@@ -849,6 +849,22 @@ a:focus {
   box-shadow: 0 0 0.75rem rgba(22, 211, 243, 0.2);
 }
 
+.mode-pill--disabled,
+.mode-pill[disabled],
+.mode-pill[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  color: var(--ocra-color-text-muted);
+}
+
+.mode-pill__status {
+  margin-left: var(--ocra-spacing-xs);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .placeholder-links {
   display: flex;
   flex-wrap: wrap;
