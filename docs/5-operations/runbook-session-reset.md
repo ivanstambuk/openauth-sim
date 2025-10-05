@@ -33,3 +33,4 @@ Owner/On-call escalation:
 Post-incident notes:
 - Update feature plans, roadmap, and open-questions log to reflect decisions made during the new session kickoff.
 - Validate local tooling: ensure the shared pre-commit hook is installed (`git config core.hooksPath githooks`) because it now runs Gradle formatting, targeted module tests, secret scanning (gitleaks), and a binary/size guard on every staged change. Confirm the companion `commit-msg` hook is present and that gitlint picks up the repo `.gitlint` conventional-commit policy.
+- Reconfirm the commit/push protocol: after each passing increment, proactively stage the entire repository with `git add -A`, craft a conventional message summarising the full diff, run the managed hooks, and push immediately; follow the exact same steps when the user explicitly requests a commit.

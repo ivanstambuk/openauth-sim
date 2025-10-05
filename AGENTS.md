@@ -32,7 +32,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - **Tests are compulsory.** Always run `./gradlew spotlessApply check`. If a test remains red, disable it with a TODO, note the reason, and capture the follow-up in the relevant plan. Commit messages must satisfy the repository `.gitlint` conventional-commit rules.
 - **Maintain the knowledge map.** Add, adjust, or prune entries in `docs/4-architecture/knowledge-map.md` whenever new modules, dependencies, or contracts appear.
 - **RCI self-review.** Before hand-off, review your own changes, rerun checks, and ensure documentation/test coverage matches the behaviour.
-- **Commit + push immediately.** Once an increment passes `./gradlew spotlessApply check`, create a conventional commit for the scoped change and push to the tracked remote before taking on the next task, unless the user explicitly requests otherwise.
+- **Commit & push protocol.** Once an increment passes `./gradlew spotlessApply check`, proactively commit and push unless the user has asked you to pause. Stage the entire repository (`git add -A`), craft a conventional message that summarises every staged change, run the managed hooks, and push to the tracked remote immediately. When the user explicitly requests a commit, follow the same procedure.
 - **Dependencies.** **Never add or upgrade libraries without explicit user approval.** When granted, document the rationale in the feature plan. Dependabot opens weekly update PRs—treat them as scoped requests that still require owner approval before merging.
 - **No surprises.** Avoid destructive commands (e.g., `rm -rf`, `git reset --hard`) unless the user requests them. Stay within the repository sandbox.
 - **No reflection.** Do not introduce Java reflection in production or test sources. When existing code requires access to collaborators, expose package-private seams or dedicated test fixtures instead. Guardrails live under Feature 011 (`docs/4-architecture/specs/feature-011-reflection-policy-hardening.md`) and every increment must keep `./gradlew reflectionScan` and the ArchUnit suite green.
@@ -57,7 +57,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - Remove or mark feature plans as complete when the work ships.
 - Summarise any lasting decisions in the appropriate ADR (if applicable).
 - Publish prompt and tool usage notes alongside the feature plan update so future agents understand how the iteration unfolded.
-- Push the just-created commit to the tracked remote immediately after each increment (e.g., `git push origin main`) so local and GitHub history stay in sync before starting the next task.
+- Every proactively triggered or user-requested commit must stage the entire repository, describe all deltas in the message, and push before starting the next task.
 
 ## Security & Secrets
 - Keep credential data synthetic; hard-coded secrets are acceptable for tests only. Do not leak user data or modify files outside the repository.
