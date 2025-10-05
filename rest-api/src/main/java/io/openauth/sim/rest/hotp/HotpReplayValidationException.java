@@ -5,6 +5,8 @@ import java.util.Map;
 /** Signals HOTP replay validation failures. */
 class HotpReplayValidationException extends RuntimeException {
 
+  private static final long serialVersionUID = 1L;
+
   private final String telemetryId;
   private final String credentialSource;
   private final String credentialId;

@@ -369,6 +369,8 @@ class OcraEvaluationService {
   }
 
   static final class ValidationError extends IllegalArgumentException {
+    private static final long serialVersionUID = 1L;
+
     private final String field;
     private final String reasonCode;
 

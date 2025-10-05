@@ -276,9 +276,7 @@ final class HotpCliTest {
     assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
     assertTrue(harness.stdout().contains("event=cli.hotp.list"));
 
-    var databasePath = HotpCli.class.getDeclaredMethod("databasePath");
-    databasePath.setAccessible(true);
-    Path resolved = (Path) databasePath.invoke(harness.cli());
+    Path resolved = harness.cli().databasePath();
     assertEquals(custom.toAbsolutePath(), resolved);
   }
 

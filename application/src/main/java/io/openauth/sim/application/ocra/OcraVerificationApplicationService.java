@@ -244,6 +244,8 @@ public final class OcraVerificationApplicationService {
   }
 
   public static final class VerificationValidationException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
     private final String field;
     private final String reasonCode;
     private final boolean sanitized;

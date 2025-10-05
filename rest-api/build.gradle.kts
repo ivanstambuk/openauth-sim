@@ -17,6 +17,8 @@ dependencies {
         libsCatalog.findLibrary("springdoc-openapi-starter-webmvc-ui").get()
     val seleniumHtmlUnitDriver =
         libsCatalog.findLibrary("selenium-htmlunit-driver").get()
+    val spotbugsAnnotations =
+        libsCatalog.findLibrary("spotbugs-annotations").get()
 
     implementation(enforcedPlatform(springBootBom))
     implementation(projects.core)
@@ -30,6 +32,9 @@ dependencies {
     testImplementation(enforcedPlatform(springBootBom))
     testImplementation(springBootStarterTest)
     testImplementation(seleniumHtmlUnitDriver)
+    testImplementation(spotbugsAnnotations) {
+        because("HtmlUnit classes are compiled with @SuppressFBWarnings and need the annotation on the classpath")
+    }
 
     constraints {
         implementation("com.github.spotbugs:spotbugs-annotations:4.8.3")

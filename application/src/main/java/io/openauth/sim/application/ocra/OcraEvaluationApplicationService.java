@@ -289,6 +289,8 @@ public final class OcraEvaluationApplicationService {
   }
 
   public static final class EvaluationValidationException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
     private final String field;
     private final String reasonCode;
     private final boolean sanitized;

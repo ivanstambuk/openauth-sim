@@ -2,6 +2,8 @@ package io.openauth.sim.rest.ocra;
 
 class OcraVerificationValidationException extends RuntimeException {
 
+  private static final long serialVersionUID = 1L;
+
   private final String telemetryId;
   private final String suite;
   private final String field;

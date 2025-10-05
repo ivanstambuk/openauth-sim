@@ -349,11 +349,11 @@ class HotpReplayService {
     return "rest-hotp-" + UUID.randomUUID();
   }
 
-  private static boolean hasText(String value) {
+  static boolean hasText(String value) {
     return value != null && !value.trim().isEmpty();
   }
 
-  private static String safeMessage(String message) {
+  static String safeMessage(String message) {
     if (message == null) {
       return "";
     }

@@ -360,15 +360,11 @@ class HotpReplayServiceTest {
   @Test
   @DisplayName("Replay helpers handle null-safe utilities")
   void replayUtilityMethodsHandleNulls() throws Exception {
-    var hasText = HotpReplayService.class.getDeclaredMethod("hasText", String.class);
-    hasText.setAccessible(true);
-    assertFalse((boolean) hasText.invoke(null, "  "));
-    assertTrue((boolean) hasText.invoke(null, "demo"));
+    assertFalse(HotpReplayService.hasText("  "));
+    assertTrue(HotpReplayService.hasText("demo"));
 
-    var safeMessage = HotpReplayService.class.getDeclaredMethod("safeMessage", String.class);
-    safeMessage.setAccessible(true);
-    assertEquals("", safeMessage.invoke(null, (Object) null));
-    assertEquals("boom", safeMessage.invoke(null, "  boom  \n"));
+    assertEquals("", HotpReplayService.safeMessage(null));
+    assertEquals("boom", HotpReplayService.safeMessage("  boom  \n"));
   }
 
   @Test

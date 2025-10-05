@@ -76,7 +76,7 @@ public final class HotpCli implements Callable<Integer> {
     return spec.commandLine().getErr();
   }
 
-  private Path databasePath() {
+  Path databasePath() {
     if (database != null) {
       return database.toAbsolutePath();
     }
