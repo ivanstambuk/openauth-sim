@@ -22,7 +22,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-05 – HOTP operator replay UI will mirror the OCRA replay experience with stored and inline modes, sample data affordances, and advanced context toggles (option A confirmed).
 - 2025-10-05 – HOTP replay interactions emit dedicated `hotp.replay` telemetry frames (REST and UI), keeping evaluation metrics separate (option A confirmed).
 - 2025-10-05 – Operator console deep links must mirror OCRA conventions by writing `protocol=hotp` and `tab=evaluate|replay` query parameters so HOTP views restore correctly on refresh (user confirmation).
-- 2025-10-05 – HOTP evaluation hints read “Select a stored HOTP credential and submit the OTP.” and “Enter HOTP parameters without using stored credentials.” to keep copy concise while preserving intent (user directive).
+- 2025-10-05 – HOTP evaluation panels remove the stored/inline headings and hint copy so operators see the input fields immediately after selecting a mode (user directive).
 - 2025-10-05 – HOTP mode selection mirrors OCRA ordering with Inline parameters listed before Stored credential for consistent operator workflows (user directive).
 - 2025-10-05 – HOTP replay hints read “Select a persisted credential, and replay the OTP without advancing counters.” and “Provide HOTP parameters directly for ad-hoc verification.” to align copy with operator guidance (user directive).
 

@@ -18,7 +18,7 @@ The operator console embedded in the REST API now provides HOTP evaluation and r
 5. Validation errors (missing OTP, counter drift, credential not found) appear in the error panel with sanitized messaging; counters are not mutated when evaluation fails.
 
 ## Run Inline HOTP Checks
-1. In the **Inline evaluation** card, provide the identifier (optional), shared secret (hex), hash algorithm, digit length, counter, and OTP.
+1. Switch the evaluation mode toggle to **Inline parameters**; the inline form appears immediately. Provide the identifier (optional), shared secret (hex), hash algorithm, digit length, counter, and OTP.
 2. Choose **Evaluate inline parameters** to call `/api/v1/hotp/evaluate/inline` without mutating stored credentials.
 3. Result metadata indicates the credential source (`inline`) and echoes counter bounds so you can confirm drift handling before persisting the credential.
 

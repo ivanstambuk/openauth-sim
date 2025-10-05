@@ -27,5 +27,7 @@ _Last updated: 2025-10-05_
 - ☑ T2221 – Update operator docs, roadmap, knowledge map, and telemetry references for HOTP replay; rerun `./gradlew spotlessApply check`.
 - ☑ T2222 – Add failing operator console integration/system test asserting HOTP evaluate/replay tab selection writes `protocol=hotp` and `tab=<active>` query params for deep-link restoration. (`./gradlew :rest-api:test --tests "…hotpTabsPersistQueryParameters"` initially red.)
 - ☑ T2223 – Implement HOTP operator console query-param updates and ensure T2222 passes. (`./gradlew spotlessApply check` green 2025-10-05; Selenium `hotpReplayDeepLinkSurvivesRefresh` confirms refresh persistence.)
+- ☑ T2224 – Update operator console Selenium tests to fail when inline/stored evaluation panels still render headings or hint copy after mode selection (`./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleUnificationSeleniumTest"` red as expected).
+- ☑ T2225 – Remove the HOTP evaluation headings/hints from the UI template/JS, adjust accessibility attributes, and make T2224 pass with targeted UI suites plus `./gradlew spotlessApply check` (green 2025-10-05).
 
 Mark tasks as work completes and record tooling outcomes within the feature plan.

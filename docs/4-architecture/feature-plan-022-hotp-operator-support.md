@@ -36,6 +36,8 @@ Reference specification: `docs/4-architecture/specs/feature-022-hotp-operator-su
 - ☑ R2217 – Sync documentation/knowledge map/roadmap with HOTP replay, capture telemetry guidance, and rerun `./gradlew spotlessApply check`.
 - ☑ R2218 – Add failing operator console integration coverage asserting HOTP evaluate/replay actions update the browser URL with `protocol=hotp` and the active tab before refresh. (2025-10-05: `./gradlew :rest-api:test --tests "…hotpTabsPersistQueryParameters"` failed as expected.)
 - ☑ R2219 – Implement HOTP console deep-link handling so evaluate/replay tabs push the appropriate query parameters and make R2218 pass. (2025-10-05: tests green after JS updates; full `./gradlew spotlessApply check` executed; `hotpReplayDeepLinkSurvivesRefresh` Selenium coverage added.)
+- ☑ R2220 – Update HOTP operator console Selenium coverage to require inline/stored evaluation panels render without headings or hint copy once a mode is active (expected failure; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleUnificationSeleniumTest"` red with legacy headings still present).
+- ☑ R2221 – Remove HOTP evaluation headings/hints from the UI template/JS, adjust accessibility attributes, and make R2220 pass via targeted UI tests (`OperatorConsoleUnificationSeleniumTest`, `HotpOperatorUiSeleniumTest`) followed by full `./gradlew spotlessApply check` (green 2025-10-05).
 
 Each increment must complete within ≤10 minutes, lead with tests where practicable, and record tooling outcomes below.
 

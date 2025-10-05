@@ -194,7 +194,9 @@ final class OperatorConsoleUnificationSeleniumTest {
 
     WebElement storedCard = hotpPanel.findElement(storedPanelLocator);
     assertThat(storedCard.isDisplayed()).isTrue();
-    assertThat(storedCard.findElement(By.tagName("h2")).getText()).contains("Stored credential");
+    assertThat(storedCard.findElements(By.tagName("h2")))
+        .as("Stored HOTP form should not render redundant headings")
+        .isEmpty();
     WebElement inlineCard = driver.findElement(inlinePanelLocator);
     assertThat(inlineCard.isDisplayed()).isFalse();
 
@@ -209,7 +211,9 @@ final class OperatorConsoleUnificationSeleniumTest {
     inlineCard = driver.findElement(inlinePanelLocator);
     assertThat(storedCard.isDisplayed()).isFalse();
     assertThat(inlineCard.isDisplayed()).isTrue();
-    assertThat(inlineCard.findElement(By.tagName("h2")).getText()).contains("Inline evaluation");
+    assertThat(inlineCard.findElements(By.tagName("h2")))
+        .as("Inline HOTP form should not render redundant headings")
+        .isEmpty();
 
     totpTab.click();
     WebElement totpPanel = driver.findElement(By.cssSelector("[data-protocol-panel='totp']"));

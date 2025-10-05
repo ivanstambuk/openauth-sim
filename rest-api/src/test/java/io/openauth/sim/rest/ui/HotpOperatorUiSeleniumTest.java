@@ -92,9 +92,13 @@ final class HotpOperatorUiSeleniumTest {
                 ExpectedConditions.visibilityOfElementLocated(
                     By.cssSelector("[data-testid='hotp-stored-evaluation-panel']")));
 
-    String storedAriaLabelledBy = storedPanel.getAttribute("aria-labelledby");
-    if (storedAriaLabelledBy == null || storedAriaLabelledBy.isBlank()) {
-      throw new AssertionError("Expected HOTP stored panel to expose aria-labelledby metadata");
+    String storedAriaLabel = storedPanel.getAttribute("aria-label");
+    if (storedAriaLabel == null || storedAriaLabel.isBlank()) {
+      throw new AssertionError("Expected HOTP stored panel to expose aria-label metadata");
+    }
+
+    if (!storedPanel.findElements(By.tagName("h2")).isEmpty()) {
+      throw new AssertionError("HOTP stored panel should not render redundant headings");
     }
 
     new WebDriverWait(driver, Duration.ofSeconds(5))
@@ -142,9 +146,13 @@ final class HotpOperatorUiSeleniumTest {
                 ExpectedConditions.visibilityOfElementLocated(
                     By.cssSelector("[data-testid='hotp-inline-evaluation-panel']")));
 
-    String inlineAriaLabelledBy = inlinePanel.getAttribute("aria-labelledby");
-    if (inlineAriaLabelledBy == null || inlineAriaLabelledBy.isBlank()) {
-      throw new AssertionError("Expected HOTP inline panel to expose aria-labelledby metadata");
+    String inlineAriaLabel = inlinePanel.getAttribute("aria-label");
+    if (inlineAriaLabel == null || inlineAriaLabel.isBlank()) {
+      throw new AssertionError("Expected HOTP inline panel to expose aria-label metadata");
+    }
+
+    if (!inlinePanel.findElements(By.tagName("h2")).isEmpty()) {
+      throw new AssertionError("HOTP inline panel should not render redundant headings");
     }
 
     driver.findElement(By.id("hotpInlineIdentifier")).sendKeys("device-456");
