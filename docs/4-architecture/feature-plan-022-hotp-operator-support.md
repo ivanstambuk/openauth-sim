@@ -34,6 +34,8 @@ Reference specification: `docs/4-architecture/specs/feature-022-hotp-operator-su
 - ☑ R2215 – Add failing Selenium tests for HOTP replay UI (stored + inline) including sample data and advanced context toggles mirroring OCRA, asserting telemetry identifiers surface.
 - ☑ R2216 – Implement HOTP replay UI wiring (Thymeleaf templates + static JS), integrate with REST replay endpoint, and make R2215 pass.
 - ☑ R2217 – Sync documentation/knowledge map/roadmap with HOTP replay, capture telemetry guidance, and rerun `./gradlew spotlessApply check`.
+- ☑ R2218 – Add failing operator console integration coverage asserting HOTP evaluate/replay actions update the browser URL with `protocol=hotp` and the active tab before refresh. (2025-10-05: `./gradlew :rest-api:test --tests "…hotpTabsPersistQueryParameters"` failed as expected.)
+- ☑ R2219 – Implement HOTP console deep-link handling so evaluate/replay tabs push the appropriate query parameters and make R2218 pass. (2025-10-05: tests green after JS updates; full `./gradlew spotlessApply check` executed; `hotpReplayDeepLinkSurvivesRefresh` Selenium coverage added.)
 
 Each increment must complete within ≤10 minutes, lead with tests where practicable, and record tooling outcomes below.
 

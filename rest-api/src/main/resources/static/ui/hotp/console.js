@@ -158,6 +158,7 @@
   var evaluationInitialized = false;
   var replayInitialized = false;
   var activePanel = 'evaluate';
+  var HOTP_ALLOWED_TABS = ['evaluate', 'replay'];
 
   var HOTP_SAMPLE_SECRET_HEX = '3132333435363738393031323334353637383930';
   var STORED_SAMPLE_DATA = {
@@ -435,6 +436,55 @@
     }
   }
 
+  function normalizeHotpTab(value) {
+    return HOTP_ALLOWED_TABS.indexOf(value) >= 0 ? value : 'evaluate';
+  }
+
+  function parseHotpTabFromSearch(search) {
+    try {
+      var params = new global.URLSearchParams(search || global.location.search || '');
+      return normalizeHotpTab(params.get('tab'));
+    } catch (error) {
+      if (global.console && typeof global.console.warn === 'function') {
+        global.console.warn('Unable to parse HOTP tab from URL parameters', error);
+      }
+      return 'evaluate';
+    }
+  }
+
+  function hotpHistoryState(tab) {
+    return { protocol: 'hotp', tab: normalizeHotpTab(tab) };
+  }
+
+  function syncHotpUrl(tab, options) {
+    if (!global.history || typeof global.history.pushState !== 'function') {
+      return;
+    }
+    var desiredTab = normalizeHotpTab(tab);
+    var params = new global.URLSearchParams(global.location.search);
+    params.set('protocol', 'hotp');
+    params.set('tab', desiredTab);
+    var search = '?' + params.toString();
+    var url = global.location.pathname + search;
+    var state = hotpHistoryState(desiredTab);
+
+    if (options && options.replace) {
+      global.history.replaceState(state, '', url);
+      return;
+    }
+
+    var currentState = global.history.state || {};
+    if (
+      global.location.search === search &&
+      currentState.protocol === state.protocol &&
+      currentState.tab === state.tab
+    ) {
+      return;
+    }
+
+    global.history.pushState(state, '', url);
+  }
+
   function toggleTabState(button, active) {
     if (!button) {
       return;
@@ -443,24 +493,28 @@
     button.setAttribute('aria-selected', active ? 'true' : 'false');
   }
 
-  function setActivePanel(panel) {
+  function setActivePanel(panel, options) {
     if (!hotpPanel) {
       return;
     }
-    var desired = panel === 'replay' ? 'replay' : 'evaluate';
-    if (activePanel === desired) {
-      if (desired === 'replay') {
-        initializeReplay();
-      } else {
-        initializeEvaluation();
-      }
-      return;
+    var desired = normalizeHotpTab(panel);
+    var nextOptions = options || {};
+    var samePanel = activePanel === desired;
+
+    if (!samePanel) {
+      activePanel = desired;
+      toggleTabState(evaluateTabButton, desired === 'evaluate');
+      toggleTabState(replayTabButton, desired === 'replay');
+      setHidden(evaluatePanelContainer, desired !== 'evaluate');
+      setHidden(replayPanelContainer, desired !== 'replay');
     }
-    activePanel = desired;
-    toggleTabState(evaluateTabButton, desired === 'evaluate');
-    toggleTabState(replayTabButton, desired === 'replay');
-    setHidden(evaluatePanelContainer, desired !== 'evaluate');
-    setHidden(replayPanelContainer, desired !== 'replay');
+
+    if (nextOptions.skipUrlSync !== true) {
+      syncHotpUrl(desired, {
+        replace: nextOptions.replaceHistory === true || samePanel,
+      });
+    }
+
     if (desired === 'replay') {
       initializeReplay();
     } else {
@@ -1109,17 +1163,23 @@
       return;
     }
     if (event.detail.protocol === 'hotp') {
-      setActivePanel(activePanel);
+      setActivePanel(parseHotpTabFromSearch(), { replaceHistory: true });
     }
   });
 
   global.addEventListener('popstate', function () {
     if (isHotpActive()) {
-      setActivePanel(activePanel);
+      var tab = 'evaluate';
+      if (global.history && global.history.state && global.history.state.protocol === 'hotp') {
+        tab = normalizeHotpTab(global.history.state.tab);
+      } else {
+        tab = parseHotpTabFromSearch();
+      }
+      setActivePanel(tab, { skipUrlSync: true });
     }
   });
 
-  if (isHotpActive()) {
-    setActivePanel('evaluate');
+  if (hotpPanel && isHotpActive()) {
+    setActivePanel(parseHotpTabFromSearch(), { replaceHistory: true });
   }
 })(window);

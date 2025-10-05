@@ -25,7 +25,7 @@
   var allowedTabs = new Set(['evaluate', 'replay']);
 
   var currentProtocol = 'ocra';
-  var lastOcraTab = 'evaluate';
+  var lastProtocolTabs = { ocra: 'evaluate', hotp: 'evaluate' };
 
   function setPanelVisibility(panel, hidden) {
     if (!panel) {
@@ -58,7 +58,7 @@
     toggleButtonState(replayButton, !isEvaluate);
     setPanelVisibility(evaluatePanel, !isEvaluate);
     setPanelVisibility(replayPanel, isEvaluate);
-    lastOcraTab = mode;
+    rememberTab('ocra', mode);
   }
 
   function setActiveProtocol(protocol, ocraMode, options) {
@@ -83,9 +83,13 @@
 
     if (protocol === 'ocra') {
       setPanelVisibility(modeToggle, false);
-      setActiveMode(ocraMode || lastOcraTab || 'evaluate');
+      setActiveMode(ocraMode || getLastTab('ocra') || 'evaluate');
     } else {
       setPanelVisibility(modeToggle, true);
+    }
+
+    if ((protocol === 'ocra' || protocol === 'hotp') && allowedTabs.has(ocraMode)) {
+      rememberTab(protocol, ocraMode);
     }
 
     if (options.syncProtocolInfo !== false && global.ProtocolInfo) {
@@ -110,8 +114,8 @@
 
   function normalizeState(state) {
     var protocol = allowedProtocols.has(state && state.protocol) ? state.protocol : 'ocra';
-    if (protocol === 'ocra') {
-      var tab = allowedTabs.has(state && state.tab) ? state.tab : 'evaluate';
+    if (protocol === 'ocra' || protocol === 'hotp') {
+      var tab = allowedTabs.has(state && state.tab) ? state.tab : getLastTab(protocol);
       return { protocol: protocol, tab: tab };
     }
     return { protocol: protocol };
@@ -120,7 +124,7 @@
   function buildSearch(state) {
     var params = new global.URLSearchParams();
     params.set('protocol', state.protocol);
-    if (state.protocol === 'ocra') {
+    if (state.protocol === 'ocra' || state.protocol === 'hotp') {
       params.set('tab', state.tab);
     }
     var rendered = params.toString();
@@ -130,7 +134,7 @@
   function pushUrlState(state, options) {
     var search = buildSearch(state);
     var url = global.location.pathname + search;
-    var historyState = state.protocol === 'ocra'
+    var historyState = state.protocol === 'ocra' || state.protocol === 'hotp'
       ? { protocol: state.protocol, tab: state.tab }
       : { protocol: state.protocol };
 
@@ -150,23 +154,35 @@
     options = options || {};
     var normalized = normalizeState(nextState);
     var desiredProtocol = normalized.protocol;
-    var desiredTab = desiredProtocol === 'ocra' ? normalized.tab : lastOcraTab;
+    var desiredTab = normalized.tab;
+    var previousTab = getLastTab(desiredProtocol);
 
-    var isSameProtocol = desiredProtocol === currentProtocol;
-    var isSameOcraTab = desiredProtocol !== 'ocra' || desiredTab === lastOcraTab;
-
-    if (!isSameProtocol || !isSameOcraTab) {
-      setActiveProtocol(desiredProtocol, desiredProtocol === 'ocra' ? normalized.tab : undefined, {
-        allowAutoOpen: options.allowAutoOpen,
-        resetSection: options.resetSection,
-        syncProtocolInfo: options.syncProtocolInfo,
-      });
-    } else if (desiredProtocol === 'ocra') {
-      setActiveMode(normalized.tab);
+    if ((desiredProtocol === 'ocra' || desiredProtocol === 'hotp') && !allowedTabs.has(desiredTab)) {
+      desiredTab = previousTab;
+      normalized.tab = desiredTab;
     }
 
-    if (desiredProtocol === 'ocra') {
-      lastOcraTab = normalized.tab;
+    var isSameProtocol = desiredProtocol === currentProtocol;
+    var isSameTab = true;
+    if (desiredProtocol === 'ocra' || desiredProtocol === 'hotp') {
+      isSameTab = desiredTab === previousTab;
+    }
+
+    if (!isSameProtocol || !isSameTab) {
+      setActiveProtocol(
+          desiredProtocol,
+          desiredProtocol === 'ocra' || desiredProtocol === 'hotp' ? desiredTab : undefined,
+          {
+            allowAutoOpen: options.allowAutoOpen,
+            resetSection: options.resetSection,
+            syncProtocolInfo: options.syncProtocolInfo,
+          });
+    } else if (desiredProtocol === 'ocra') {
+      setActiveMode(desiredTab);
+    }
+
+    if (desiredProtocol === 'ocra' || desiredProtocol === 'hotp') {
+      rememberTab(desiredProtocol, desiredTab);
     }
 
     if (options.updateUrl) {
@@ -182,7 +198,7 @@
   }
 
   function handleProtocolActivated(protocol) {
-    var normalized = normalizeState({ protocol: protocol, tab: lastOcraTab });
+    var normalized = normalizeState({ protocol: protocol, tab: getLastTab(protocol) });
     applyConsoleState(normalized, {
       updateUrl: true,
       syncProtocolInfo: false,
@@ -205,9 +221,14 @@
       if (!protocol || !allowedProtocols.has(protocol)) {
         return;
       }
-      var nextState = protocol === 'ocra'
-        ? { protocol: 'ocra', tab: lastOcraTab }
-        : { protocol: protocol };
+      var nextState;
+      if (protocol === 'ocra') {
+        nextState = { protocol: 'ocra', tab: getLastTab('ocra') };
+      } else if (protocol === 'hotp') {
+        nextState = { protocol: 'hotp', tab: getLastTab('hotp') };
+      } else {
+        nextState = { protocol: protocol };
+      }
       applyConsoleState(nextState, { updateUrl: true, allowAutoOpen: true });
     });
   });
@@ -236,4 +257,17 @@
     replace: true,
     allowAutoOpen: true,
   });
+
+  function getLastTab(protocol) {
+    if (protocol === 'ocra' || protocol === 'hotp') {
+      return lastProtocolTabs[protocol] || 'evaluate';
+    }
+    return undefined;
+  }
+
+  function rememberTab(protocol, tab) {
+    if ((protocol === 'ocra' || protocol === 'hotp') && allowedTabs.has(tab)) {
+      lastProtocolTabs[protocol] = tab;
+    }
+  }
 })(window);

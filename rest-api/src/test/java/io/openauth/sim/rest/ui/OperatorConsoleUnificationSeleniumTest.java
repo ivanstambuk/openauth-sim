@@ -435,6 +435,89 @@ final class OperatorConsoleUnificationSeleniumTest {
   }
 
   @Test
+  @DisplayName("HOTP evaluate and replay tabs persist URL query parameters")
+  void hotpTabsPersistQueryParameters() {
+    driver.get(baseUrl("/ui/console?protocol=hotp"));
+
+    By hotpPanelLocator = By.cssSelector("[data-protocol-panel='hotp']");
+    WebElement hotpPanel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(ExpectedConditions.presenceOfElementLocated(hotpPanelLocator));
+    setPanelVisibilityExpectation(hotpPanel, false);
+
+    By evaluateTabLocator = By.cssSelector("[data-testid='hotp-panel-tab-evaluate']");
+    By replayTabLocator = By.cssSelector("[data-testid='hotp-panel-tab-replay']");
+
+    WebElement evaluateTabButton =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(ExpectedConditions.presenceOfElementLocated(evaluateTabLocator));
+    WebElement replayTabButton = driver.findElement(replayTabLocator);
+
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.getCurrentUrl().contains("protocol=hotp"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.getCurrentUrl().contains("tab=evaluate"));
+
+    replayTabButton.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.getCurrentUrl().contains("tab=replay"));
+    setPanelVisibilityExpectation(
+        driver.findElement(By.cssSelector("[data-hotp-panel='replay']")), false);
+
+    driver.navigate().refresh();
+
+    replayTabButton =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(ExpectedConditions.presenceOfElementLocated(replayTabLocator));
+    evaluateTabButton = driver.findElement(evaluateTabLocator);
+
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(ExpectedConditions.attributeToBe(replayTabButton, "aria-selected", "true"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.getCurrentUrl().contains("protocol=hotp"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.getCurrentUrl().contains("tab=replay"));
+
+    evaluateTabButton.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.getCurrentUrl().contains("tab=evaluate"));
+    setPanelVisibilityExpectation(
+        driver.findElement(By.cssSelector("[data-hotp-panel='evaluate']")), false);
+  }
+
+  @Test
+  @DisplayName("HOTP deep link to replay survives refresh")
+  void hotpReplayDeepLinkSurvivesRefresh() {
+    driver.get(baseUrl("/ui/console?protocol=hotp&tab=replay"));
+
+    By hotpReplayTabLocator = By.cssSelector("[data-testid='hotp-panel-tab-replay']");
+
+    WebElement replayTab =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(ExpectedConditions.presenceOfElementLocated(hotpReplayTabLocator));
+
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.getCurrentUrl().contains("protocol=hotp"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.getCurrentUrl().contains("tab=replay"));
+    assertThat(replayTab.getAttribute("aria-selected")).isEqualTo("true");
+
+    driver.navigate().refresh();
+
+    replayTab =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(ExpectedConditions.presenceOfElementLocated(hotpReplayTabLocator));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.getCurrentUrl().contains("protocol=hotp"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.getCurrentUrl().contains("tab=replay"));
+    assertThat(replayTab.getAttribute("aria-selected")).isEqualTo("true");
+
+    WebElement replayPanel = driver.findElement(By.cssSelector("[data-hotp-panel='replay']"));
+    setPanelVisibilityExpectation(replayPanel, false);
+  }
+
+  @Test
   @DisplayName("Protocol info trigger tracks active protocol state")
   void protocolInfoTriggerTracksActiveProtocolState() {
     driver.get(baseUrl("/ui/console"));
@@ -645,5 +728,13 @@ final class OperatorConsoleUnificationSeleniumTest {
 
   private String protocolHeadingText(WebElement surface) {
     return surface.findElement(By.cssSelector("[data-testid='protocol-info-title']")).getText();
+  }
+
+  private void setPanelVisibilityExpectation(WebElement panel, boolean hidden) {
+    if (hidden) {
+      assertThat(panel.getAttribute("hidden")).as("Expected panel to be hidden").isNotNull();
+    } else {
+      assertThat(panel.getAttribute("hidden")).as("Expected panel to be visible").isNull();
+    }
   }
 }

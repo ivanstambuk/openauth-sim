@@ -25,5 +25,7 @@ _Last updated: 2025-10-05_
 - ☑ T2219 – Add failing Selenium coverage for HOTP replay UI (stored + inline) mirroring OCRA behaviour (sample data, advanced toggles, telemetry identifier surfacing).
 - ☑ T2220 – Implement HOTP replay UI template/JS wiring and make T2219 pass.
 - ☑ T2221 – Update operator docs, roadmap, knowledge map, and telemetry references for HOTP replay; rerun `./gradlew spotlessApply check`.
+- ☑ T2222 – Add failing operator console integration/system test asserting HOTP evaluate/replay tab selection writes `protocol=hotp` and `tab=<active>` query params for deep-link restoration. (`./gradlew :rest-api:test --tests "…hotpTabsPersistQueryParameters"` initially red.)
+- ☑ T2223 – Implement HOTP operator console query-param updates and ensure T2222 passes. (`./gradlew spotlessApply check` green 2025-10-05; Selenium `hotpReplayDeepLinkSurvivesRefresh` confirms refresh persistence.)
 
 Mark tasks as work completes and record tooling outcomes within the feature plan.

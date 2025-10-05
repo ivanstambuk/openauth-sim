@@ -21,6 +21,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-05 – HOTP replay will ship a dedicated non-mutating REST endpoint (`POST /api/v1/hotp/replay`) handling stored and inline submissions without advancing counters (option A confirmed).
 - 2025-10-05 – HOTP operator replay UI will mirror the OCRA replay experience with stored and inline modes, sample data affordances, and advanced context toggles (option A confirmed).
 - 2025-10-05 – HOTP replay interactions emit dedicated `hotp.replay` telemetry frames (REST and UI), keeping evaluation metrics separate (option A confirmed).
+- 2025-10-05 – Operator console deep links must mirror OCRA conventions by writing `protocol=hotp` and `tab=evaluate|replay` query parameters so HOTP views restore correctly on refresh (user confirmation).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
