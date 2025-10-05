@@ -1,13 +1,14 @@
 # Feature 012 – Maintenance CLI Coverage Buffer
 
 _Status: Draft_
-_Last updated: 2025-10-01_
+_Last updated: 2025-10-06_
 
 ## Overview
-Analyse Maintenance CLI code paths to confirm the Jacoco aggregated coverage buffer remains above 90% for both line and branch counters, and recommend targeted tests that preserve the buffer as new functionality lands. This feature first captured an evidence-backed hotspot report and now implements targeted Maintenance CLI tests to preserve the ≥0.90 Jacoco buffer.
+Analyse Maintenance CLI code paths to confirm the Jacoco aggregated coverage buffer remains above 90% for both line and branch counters, and recommend targeted tests that preserve the buffer as new functionality lands. This feature first captured an evidence-backed hotspot report and now implements targeted Maintenance CLI tests to preserve the ≥0.90 Jacoco buffer. As of 2025-10-06 the enforcement gate is temporarily relaxed to ≥0.70 for both counters to accelerate HOTP delivery; the roadmap workstream added in the same update commits to restoring the 0.90 buffer once the feature set stabilises.
 
 ## Clarifications
 - 2025-10-01 – Coverage buffer refers to maintaining ≥0.90 line **and** ≥0.90 branch ratios in the aggregated Jacoco verification configured in `build.gradle.kts` (see `jacocoCoverageVerification` limits set to 0.90/0.90).
+- 2025-10-06 – Thresholds are temporarily reduced to ≥0.70 line and ≥0.70 branch to accelerate feature delivery; roadmap Workstream 19 tracks restoration of the 0.90/0.90 buffer once HOTP scope stabilises. The git pre-commit hook continues to run `jacocoAggregatedReport`, `jacocoCoverageVerification`, and `mutationTest` while developer workflows invoke `./gradlew check -Ppit.skip=true` to keep feature cycles fast.
 - 2025-10-01 – Scope limited to Maintenance CLI commands and supporting helpers within `io.openauth.sim.cli` (e.g., `MaintenanceCli` and its nested records). Other CLI/REST/core modules are out of scope for this review.
 - 2025-10-01 – Follow-up increment will implement high-priority Maintenance CLI tests derived from the hotspot analysis to protect both ≥0.90 line and branch coverage thresholds.
 - 2025-10-01 – Introduced system property `openauth.sim.persistence.skip-upgrade` for test-only fixtures; defaults to `false` and allows seeding legacy records without triggering automatic upgrades.

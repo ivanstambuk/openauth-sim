@@ -156,7 +156,16 @@ run_gradle_pipeline() {
     log "No staged production code changes detected; skipping targeted tests."
   fi
 
-  run_gradle_with_retry "Running Gradle check (excluding test task)" check -x test
+  run_gradle_with_retry "Generating aggregated JaCoCo report" jacocoAggregatedReport
+  run_gradle_with_retry "Verifying JaCoCo thresholds" jacocoCoverageVerification
+
+  run_gradle_with_retry \
+    "Running Gradle check (skipping heavy coverage tasks)" \
+    check -Ppit.skip=true -x test -x jacocoAggregatedReport -x jacocoCoverageVerification
+}
+
+run_mutation_suite() {
+  run_gradle_with_retry "Running mutation test suite" mutationTest
 }
 
 run_external_scanners() {
@@ -171,6 +180,7 @@ main() {
   validate_environment
   enforce_staged_file_guards
   run_gradle_pipeline
+  run_mutation_suite
   run_external_scanners
   log "All pre-commit checks passed."
 }

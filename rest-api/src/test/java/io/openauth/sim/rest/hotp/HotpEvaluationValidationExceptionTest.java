@@ -15,13 +15,19 @@ final class HotpEvaluationValidationExceptionTest {
   void detailsDefaultToEmptyMap() {
     HotpEvaluationValidationException exception =
         new HotpEvaluationValidationException(
-            "telemetry-1", "stored", "demo", "otp_missing", true, null, "otp missing");
+            "telemetry-1",
+            "stored",
+            "demo",
+            "credentialId_required",
+            true,
+            null,
+            "credentialId missing");
 
     assertTrue(exception.details().isEmpty());
     assertEquals("telemetry-1", exception.telemetryId());
     assertEquals("stored", exception.credentialSource());
     assertEquals("demo", exception.credentialId());
-    assertEquals("otp_missing", exception.reasonCode());
+    assertEquals("credentialId_required", exception.reasonCode());
     assertTrue(exception.sanitized());
   }
 
@@ -32,7 +38,7 @@ final class HotpEvaluationValidationExceptionTest {
         new HotpEvaluationValidationException(
             "telemetry-2",
             "inline",
-            "identifier",
+            null,
             "algorithm_invalid",
             true,
             Map.of("field", "algorithm"),

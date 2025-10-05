@@ -1,6 +1,7 @@
 package io.openauth.sim.application.hotp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.EvaluationCommand;
@@ -12,8 +13,6 @@ import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
-import io.openauth.sim.core.otp.hotp.HotpDescriptor;
-import io.openauth.sim.core.otp.hotp.HotpGenerator;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import java.util.ArrayList;
@@ -42,22 +41,21 @@ final class HotpEvaluationApplicationServiceTest {
   }
 
   @Test
-  void evaluateStoredCredentialAdvancesCounterAndBuildsTelemetry() {
+  void evaluateStoredCredentialGeneratesOtpAndAdvancesCounter() {
     Credential credential =
         Credential.create(CREDENTIAL_ID, CredentialType.OATH_HOTP, SECRET, attributes(0L));
     store.save(credential);
 
-    HotpDescriptor descriptor = HotpDescriptor.create(CREDENTIAL_ID, SECRET, ALGORITHM, DIGITS);
-    String otp = HotpGenerator.generate(descriptor, 0L);
-
-    EvaluationResult result = service.evaluate(new EvaluationCommand.Stored(CREDENTIAL_ID, otp));
+    EvaluationResult result = service.evaluate(new EvaluationCommand.Stored(CREDENTIAL_ID));
 
     assertEquals(TelemetryStatus.SUCCESS, result.telemetry().status());
-    assertEquals("match", result.telemetry().reasonCode());
+    assertEquals("generated", result.telemetry().reasonCode());
     assertTrue(result.telemetry().sanitized());
     assertEquals(1L, result.nextCounter());
     assertEquals(0L, result.previousCounter());
     assertTrue(result.credentialReference());
+    assertEquals(CREDENTIAL_ID, result.credentialId());
+    assertNotNull(result.otp());
 
     Credential persisted = store.findByName(CREDENTIAL_ID).orElseThrow();
     assertEquals("1", persisted.attributes().get("hotp.counter"));
@@ -72,78 +70,94 @@ final class HotpEvaluationApplicationServiceTest {
   }
 
   @Test
-  void evaluateMismatchedOtpKeepsCounterAndFlagsInvalidTelemetry() {
-    Credential credential =
-        Credential.create(CREDENTIAL_ID, CredentialType.OATH_HOTP, SECRET, attributes(0L));
-    store.save(credential);
-
-    EvaluationResult result =
-        service.evaluate(new EvaluationCommand.Stored(CREDENTIAL_ID, "000000"));
-
-    assertEquals(TelemetryStatus.INVALID, result.telemetry().status());
-    assertEquals("otp_mismatch", result.telemetry().reasonCode());
-    assertTrue(result.telemetry().sanitized());
-    assertEquals(0L, result.nextCounter());
-    assertEquals(0L, result.previousCounter());
-
-    Credential persisted = store.findByName(CREDENTIAL_ID).orElseThrow();
-    assertEquals("0", persisted.attributes().get("hotp.counter"));
-
-    TelemetryFrame frame =
-        result
-            .telemetry()
-            .emit(
-                TelemetryContracts.hotpEvaluationAdapter(),
-                TelemetryContractTestSupport.telemetryId());
-    TelemetryContractTestSupport.assertHotpEvaluationValidationFrame(frame, true);
-  }
-
-  @Test
   void evaluateStoredCredentialNotFoundProducesInvalidTelemetry() {
-    EvaluationResult result =
-        service.evaluate(new EvaluationCommand.Stored(CREDENTIAL_ID, "123456"));
+    EvaluationResult result = service.evaluate(new EvaluationCommand.Stored("missing"));
 
     assertEquals(TelemetryStatus.INVALID, result.telemetry().status());
     assertEquals("credential_not_found", result.telemetry().reasonCode());
     assertTrue(result.telemetry().sanitized());
     assertEquals(0L, result.previousCounter());
     assertEquals(0L, result.nextCounter());
+    assertEquals(null, result.otp());
   }
 
   @Test
-  void evaluateInlineCredentialSucceedsWithoutPersistingCounter() {
+  void evaluateStoredCounterOverflowReturnsValidationFailure() {
+    Credential credential =
+        Credential.create(
+            CREDENTIAL_ID, CredentialType.OATH_HOTP, SECRET, attributes(Long.MAX_VALUE));
+    store.save(credential);
+
+    EvaluationResult result = service.evaluate(new EvaluationCommand.Stored(CREDENTIAL_ID));
+
+    assertEquals(TelemetryStatus.INVALID, result.telemetry().status());
+    assertEquals("counter_overflow", result.telemetry().reasonCode());
+    assertEquals(Long.MAX_VALUE, result.previousCounter());
+    assertEquals(Long.MAX_VALUE, result.nextCounter());
+    assertEquals(null, result.otp());
+
+    Credential persisted = store.findByName(CREDENTIAL_ID).orElseThrow();
+    assertEquals(Long.toString(Long.MAX_VALUE), persisted.attributes().get("hotp.counter"));
+  }
+
+  @Test
+  void evaluateInlineCredentialGeneratesOtpWithoutPersisting() {
     EvaluationCommand.Inline command =
         new EvaluationCommand.Inline(
-            SECRET.asHex(),
-            ALGORITHM,
-            DIGITS,
-            5L,
-            HotpGenerator.generate(
-                HotpDescriptor.create(CREDENTIAL_ID, SECRET, ALGORITHM, DIGITS), 5L),
-            Map.of("source", "test"));
+            SECRET.asHex(), ALGORITHM, DIGITS, 5L, Map.of("source", "test"));
 
     EvaluationResult result = service.evaluate(command);
 
     assertEquals(TelemetryStatus.SUCCESS, result.telemetry().status());
+    assertEquals("generated", result.telemetry().reasonCode());
     assertTrue(result.telemetry().sanitized());
     assertEquals(6L, result.nextCounter());
     assertEquals(5L, result.previousCounter());
     assertTrue(!result.credentialReference());
     assertEquals(null, result.credentialId());
     assertTrue(store.findAll().isEmpty());
+    assertNotNull(result.otp());
   }
 
   @Test
-  void evaluateInlineRejectsNonNumericOtp() {
+  void evaluateInlineRequiresCounter() {
     EvaluationCommand.Inline command =
-        new EvaluationCommand.Inline(SECRET.asHex(), ALGORITHM, DIGITS, 5L, "ABCDEF", Map.of());
+        new EvaluationCommand.Inline(SECRET.asHex(), ALGORITHM, DIGITS, null, Map.of());
 
     EvaluationResult result = service.evaluate(command);
 
     assertEquals(TelemetryStatus.INVALID, result.telemetry().status());
-    assertEquals("otp_mismatch", result.telemetry().reasonCode());
-    assertEquals(5L, result.previousCounter());
-    assertEquals(5L, result.nextCounter());
+    assertEquals("counter_required", result.telemetry().reasonCode());
+    assertEquals(0L, result.previousCounter());
+    assertEquals(0L, result.nextCounter());
+  }
+
+  @Test
+  void evaluateInlineRequiresSecret() {
+    EvaluationCommand.Inline command =
+        new EvaluationCommand.Inline("   ", ALGORITHM, DIGITS, 0L, Map.of());
+
+    EvaluationResult result = service.evaluate(command);
+
+    assertEquals(TelemetryStatus.INVALID, result.telemetry().status());
+    assertEquals("sharedSecretHex_required", result.telemetry().reasonCode());
+    assertTrue(result.telemetry().sanitized());
+    assertEquals(0L, result.previousCounter());
+    assertEquals(0L, result.nextCounter());
+  }
+
+  @Test
+  void evaluateInlineCounterOverflowReturnsValidationFailure() {
+    EvaluationCommand.Inline command =
+        new EvaluationCommand.Inline(SECRET.asHex(), ALGORITHM, DIGITS, Long.MAX_VALUE, Map.of());
+
+    EvaluationResult result = service.evaluate(command);
+
+    assertEquals(TelemetryStatus.INVALID, result.telemetry().status());
+    assertEquals("counter_overflow", result.telemetry().reasonCode());
+    assertEquals(Long.MAX_VALUE, result.previousCounter());
+    assertEquals(Long.MAX_VALUE, result.nextCounter());
+    assertEquals(null, result.otp());
   }
 
   private static Map<String, String> attributes(long counter) {

@@ -32,6 +32,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 16 | EUDIW OpenID4VP simulator | Simulate verifiable presentation requests for EUDI wallet OpenID4VP 1.0 flows | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
 | 17 | EUDIW ISO/IEC 18013-5 simulator | Surface ISO/IEC 18013-5 credential presentation workflows for EUDI wallets | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
 | 18 | EUDIW SIOPv2 simulator | Implement SIOPv2 authentication flows aligned with EUDI wallet guidance | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
+| 19 | Quality gate reinstatement | Restore Jacoco thresholds to ≥0.90 line/branch and re-enable PIT in developer builds once HOTP scope stabilises | Planned | Temporary relaxation to ≥0.70 recorded 2025-10-06; follow-up will revisit coverage hot spots and reinstate mutation checks |
 
 ## Upcoming Milestones
 

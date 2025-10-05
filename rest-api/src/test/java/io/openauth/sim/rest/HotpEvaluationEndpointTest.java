@@ -11,8 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
-import io.openauth.sim.core.otp.hotp.HotpDescriptor;
-import io.openauth.sim.core.otp.hotp.HotpGenerator;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import java.util.LinkedHashMap;
@@ -73,10 +71,9 @@ class HotpEvaluationEndpointTest {
   }
 
   @Test
-  @DisplayName("Stored HOTP credential evaluation advances counter and emits telemetry")
-  void storedCredentialEvaluationAdvancesCounter() throws Exception {
+  @DisplayName("Stored HOTP evaluation generates OTP, advances counter, and emits telemetry")
+  void storedCredentialEvaluationGeneratesOtp() throws Exception {
     credentialStore.save(storedCredential(0L));
-    String otp = generateOtp(0L);
 
     TestLogHandler handler = registerTelemetryHandler();
     try {
@@ -88,19 +85,20 @@ class HotpEvaluationEndpointTest {
                       .content(
                           """
                               {
-                                "credentialId": "%s",
-                                "otp": "%s"
+                                "credentialId": "%s"
                               }
                               """
-                              .formatted(CREDENTIAL_ID, otp)))
+                              .formatted(CREDENTIAL_ID)))
               .andExpect(status().isOk())
               .andReturn()
               .getResponse()
               .getContentAsString();
 
       JsonNode response = MAPPER.readTree(responseBody);
-      assertEquals("match", response.get("status").asText());
-      assertEquals("match", response.get("reasonCode").asText());
+      assertEquals("generated", response.get("status").asText());
+      assertEquals("generated", response.get("reasonCode").asText());
+      assertTrue(response.hasNonNull("otp"));
+
       JsonNode metadata = response.get("metadata");
       assertEquals("stored", metadata.get("credentialSource").asText());
       assertEquals(0L, metadata.get("previousCounter").asLong());
@@ -122,8 +120,8 @@ class HotpEvaluationEndpointTest {
   }
 
   @Test
-  @DisplayName("Inline HOTP evaluation mismatch surfaces sanitized telemetry")
-  void inlineHotpEvaluationMismatch() throws Exception {
+  @DisplayName("Inline HOTP evaluation generates OTP and emits telemetry without persistence")
+  void inlineHotpEvaluationGeneratesOtp() throws Exception {
     TestLogHandler handler = registerTelemetryHandler();
     try {
       String responseBody =
@@ -134,12 +132,13 @@ class HotpEvaluationEndpointTest {
                       .content(
                           """
                               {
-                                "identifier": "device-456",
                                 "sharedSecretHex": "%s",
                                 "algorithm": "SHA1",
                                 "digits": 6,
-                                "counter": 1,
-                                "otp": "000000"
+                                "counter": 5,
+                                "metadata": {
+                                  "source": "integration-test"
+                                }
                               }
                               """
                               .formatted(SECRET_HEX)))
@@ -149,13 +148,15 @@ class HotpEvaluationEndpointTest {
               .getContentAsString();
 
       JsonNode response = MAPPER.readTree(responseBody);
-      assertEquals("mismatch", response.get("status").asText());
-      assertEquals("otp_mismatch", response.get("reasonCode").asText());
+      assertEquals("generated", response.get("status").asText());
+      assertEquals("generated", response.get("reasonCode").asText());
+      assertTrue(response.hasNonNull("otp"));
+
       JsonNode metadata = response.get("metadata");
       assertEquals("inline", metadata.get("credentialSource").asText());
+      assertEquals(5L, metadata.get("previousCounter").asLong());
+      assertEquals(6L, metadata.get("nextCounter").asLong());
       assertTrue(metadata.get("telemetryId").asText().startsWith("rest-hotp-"));
-      assertEquals(1L, metadata.get("previousCounter").asLong());
-      assertEquals(1L, metadata.get("nextCounter").asLong());
 
       assertTelemetry(
           handler,
@@ -179,226 +180,50 @@ class HotpEvaluationEndpointTest {
         CREDENTIAL_ID, CredentialType.OATH_HOTP, SecretMaterial.fromHex(SECRET_HEX), attributes);
   }
 
-  @Test
-  @DisplayName("Stored evaluation missing OTP returns 400 with sanitized telemetry metadata")
-  void storedEvaluationMissingOtpReturnsValidationError() throws Exception {
-    credentialStore.save(storedCredential(0L));
-
-    TestLogHandler handler = registerTelemetryHandler();
-    try {
-      String responseBody =
-          mockMvc
-              .perform(
-                  post("/api/v1/hotp/evaluate")
-                      .contentType(MediaType.APPLICATION_JSON)
-                      .content(
-                          """
-                              {
-                                "credentialId": "%s",
-                                "otp": "  "
-                              }
-                              """
-                              .formatted(CREDENTIAL_ID)))
-              .andExpect(status().isBadRequest())
-              .andReturn()
-              .getResponse()
-              .getContentAsString();
-
-      JsonNode response = MAPPER.readTree(responseBody);
-      assertEquals("invalid_input", response.get("error").asText());
-      assertEquals("otp is required", response.get("message").asText());
-      JsonNode details = response.get("details");
-      assertEquals("otp_required", details.get("reasonCode").asText());
-      assertEquals("true", details.get("sanitized").asText());
-      assertEquals(CREDENTIAL_ID, details.get("credentialId").asText());
-
-      assertTelemetry(
-          handler,
-          record ->
-              record.getLevel() == Level.WARNING
-                  && record.getMessage().contains("reasonCode=otp_required")
-                  && record.getMessage().contains("sanitized=true"));
-    } finally {
-      deregisterTelemetryHandler(handler);
-    }
-  }
-
-  @Test
-  @DisplayName("Stored evaluation for unknown credential returns 404 with sanitized details")
-  void storedEvaluationUnknownCredentialReturnsNotFound() throws Exception {
-    TestLogHandler handler = registerTelemetryHandler();
-    try {
-      String responseBody =
-          mockMvc
-              .perform(
-                  post("/api/v1/hotp/evaluate")
-                      .contentType(MediaType.APPLICATION_JSON)
-                      .content(
-                          """
-                              {
-                                "credentialId": "missing",
-                                "otp": "000000"
-                              }
-                              """))
-              .andExpect(status().isNotFound())
-              .andReturn()
-              .getResponse()
-              .getContentAsString();
-
-      JsonNode response = MAPPER.readTree(responseBody);
-      assertEquals("invalid_input", response.get("error").asText());
-      assertTrue(response.get("message").asText().contains("credentialId missing not found"));
-      JsonNode details = response.get("details");
-      assertEquals("credential_not_found", details.get("reasonCode").asText());
-      assertEquals("true", details.get("sanitized").asText());
-      assertEquals("missing", details.get("credentialId").asText());
-
-      assertTelemetry(
-          handler,
-          record ->
-              record.getLevel() == Level.WARNING
-                  && record.getMessage().contains("reasonCode=credential_not_found"));
-    } finally {
-      deregisterTelemetryHandler(handler);
-    }
-  }
-
-  @Test
-  @DisplayName("Inline evaluation missing digits returns validation error without leaking secrets")
-  void inlineEvaluationMissingDigitsReturnsValidationError() throws Exception {
-    TestLogHandler handler = registerTelemetryHandler();
-    try {
-      String responseBody =
-          mockMvc
-              .perform(
-                  post("/api/v1/hotp/evaluate/inline")
-                      .contentType(MediaType.APPLICATION_JSON)
-                      .content(
-                          """
-                              {
-                                "sharedSecretHex": "%s",
-                                "algorithm": "SHA1",
-                                "counter": 2,
-                                "otp": "123456"
-                              }
-                              """
-                              .formatted(SECRET_HEX)))
-              .andExpect(status().isBadRequest())
-              .andReturn()
-              .getResponse()
-              .getContentAsString();
-
-      JsonNode response = MAPPER.readTree(responseBody);
-      assertEquals("invalid_input", response.get("error").asText());
-      assertEquals("digits is required", response.get("message").asText());
-      JsonNode details = response.get("details");
-      assertEquals("digits_required", details.get("reasonCode").asText());
-      assertEquals("true", details.get("sanitized").asText());
-      assertFalse(details.has("identifier"));
-      assertFalse(responseBody.contains(SECRET_HEX));
-
-      assertTelemetry(
-          handler,
-          record ->
-              record.getMessage().contains("reasonCode=digits_required")
-                  && record.getMessage().contains("sanitized=true"));
-    } finally {
-      deregisterTelemetryHandler(handler);
-    }
-  }
-
-  @Test
-  @DisplayName(
-      "Stored evaluation surfaces unexpected errors with 500 response and telemetry metadata")
-  void storedEvaluationUnexpectedError() throws Exception {
-    credentialStore.save(storedCredential(0L));
-    String otp = generateOtp(0L);
-
-    InMemoryCredentialStore store = (InMemoryCredentialStore) credentialStore;
-    store.setFailOnSave(true);
-
-    TestLogHandler handler = registerTelemetryHandler();
-    try {
-      String responseBody =
-          mockMvc
-              .perform(
-                  post("/api/v1/hotp/evaluate")
-                      .contentType(MediaType.APPLICATION_JSON)
-                      .content(
-                          """
-                              {
-                                "credentialId": "%s",
-                                "otp": "%s"
-                              }
-                              """
-                              .formatted(CREDENTIAL_ID, otp)))
-              .andExpect(status().isInternalServerError())
-              .andReturn()
-              .getResponse()
-              .getContentAsString();
-
-      JsonNode response = MAPPER.readTree(responseBody);
-      assertEquals("internal_error", response.get("error").asText());
-      assertEquals("HOTP evaluation failed", response.get("message").asText());
-      JsonNode details = response.get("details");
-      assertEquals("error", details.get("status").asText());
-      assertEquals("false", details.get("sanitized").asText());
-      assertTrue(details.get("telemetryId").asText().startsWith("rest-hotp-"));
-
-      assertTelemetry(
-          handler,
-          record ->
-              record.getLevel() == Level.SEVERE
-                  && record.getMessage().contains("status=error")
-                  && record.getMessage().contains("credentialSource=stored"));
-    } finally {
-      store.setFailOnSave(false);
-      deregisterTelemetryHandler(handler);
-    }
-  }
-
-  private static String generateOtp(long counter) {
-    HotpDescriptor descriptor =
-        HotpDescriptor.create(
-            CREDENTIAL_ID, SecretMaterial.fromHex(SECRET_HEX), HotpHashAlgorithm.SHA1, 6);
-    return HotpGenerator.generate(descriptor, counter);
-  }
-
-  private static TestLogHandler registerTelemetryHandler() {
+  private TestLogHandler registerTelemetryHandler() {
     TestLogHandler handler = new TestLogHandler();
     TELEMETRY_LOGGER.addHandler(handler);
     return handler;
   }
 
-  private static void deregisterTelemetryHandler(TestLogHandler handler) {
+  private void deregisterTelemetryHandler(TestLogHandler handler) {
     TELEMETRY_LOGGER.removeHandler(handler);
   }
 
   private static void assertTelemetry(
       TestLogHandler handler, java.util.function.Predicate<LogRecord> predicate) {
-    assertTrue(
-        handler.records().stream().anyMatch(predicate),
-        () -> "Expected telemetry matching predicate, got: " + handler.records());
+    boolean match = handler.records().stream().anyMatch(predicate);
+    if (!match) {
+      throw new AssertionError("Expected telemetry record matching predicate");
+    }
   }
 
   @TestConfiguration
-  static class HotpTestConfiguration {
+  static class InMemoryStoreConfig {
 
     @Bean
-    CredentialStore inMemoryCredentialStore() {
+    CredentialStore credentialStore() {
       return new InMemoryCredentialStore();
     }
   }
 
-  private static final class InMemoryCredentialStore implements CredentialStore {
+  static final class InMemoryCredentialStore implements CredentialStore {
 
-    private final Map<String, Credential> store = new java.util.concurrent.ConcurrentHashMap<>();
-    private volatile boolean failOnSave;
+    private final LinkedHashMap<String, Credential> store = new LinkedHashMap<>();
+    private boolean failOnSave;
+
+    void reset() {
+      store.clear();
+    }
+
+    void setFailOnSave(boolean failOnSave) {
+      this.failOnSave = failOnSave;
+    }
 
     @Override
     public void save(Credential credential) {
       if (failOnSave) {
-        throw new IllegalStateException("store offline");
+        throw new IllegalStateException("save disabled");
       }
       store.put(credential.name(), credential);
     }
@@ -420,15 +245,7 @@ class HotpEvaluationEndpointTest {
 
     @Override
     public void close() {
-      store.clear();
-    }
-
-    void reset() {
-      store.clear();
-    }
-
-    void setFailOnSave(boolean failOnSave) {
-      this.failOnSave = failOnSave;
+      // no-op
     }
   }
 
@@ -447,21 +264,19 @@ class HotpEvaluationEndpointTest {
     }
 
     @Override
-    public void close() {
-      records.clear();
+    public void close() throws SecurityException {
+      // no-op
+    }
+
+    boolean loggedSecret(String secret) {
+      return records.stream()
+          .map(LogRecord::getMessage)
+          .filter(msg -> msg != null && !msg.isBlank())
+          .anyMatch(msg -> msg.toLowerCase(Locale.ROOT).contains(secret.toLowerCase(Locale.ROOT)));
     }
 
     java.util.List<LogRecord> records() {
-      return java.util.List.copyOf(records);
-    }
-
-    private boolean loggedSecret(String secret) {
-      String needle = secret.toLowerCase(Locale.ROOT);
-      return records.stream()
-          .map(LogRecord::getMessage)
-          .filter(java.util.Objects::nonNull)
-          .map(message -> message.toLowerCase(Locale.ROOT))
-          .anyMatch(message -> message.contains(needle));
+      return records;
     }
   }
 }

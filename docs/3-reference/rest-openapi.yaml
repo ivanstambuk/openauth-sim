@@ -22,14 +22,29 @@ paths:
               $ref: "#/components/schemas/OcraVerificationRequest"
         required: true
       responses:
-        "500":
-          description: "Unexpected error"
+        "200":
+          description: "Verification completed"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
-        "404":
-          description: "Credential not found"
+                $ref: "#/components/schemas/OcraVerificationResponse"
+              examples:
+                Match:
+                  summary: "Successful verification"
+                  description: "Match"
+                  value:
+                    status: "match"
+                    reasonCode: "match"
+                    metadata:
+                      credentialSource: "stored"
+                      suite: "OCRA-1:HOTP-SHA256-8:QA08-S064"
+                      otpLength: 8
+                      durationMillis: 11
+                      contextFingerprint: "Base64URL-Hash"
+                      telemetryId: "rest-ocra-verify-<uuid>"
+                      outcome: "match"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -54,27 +69,12 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "200":
-          description: "Verification completed"
+        "404":
+          description: "Credential not found"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/OcraVerificationResponse"
-              examples:
-                Match:
-                  summary: "Successful verification"
-                  description: "Match"
-                  value:
-                    status: "match"
-                    reasonCode: "match"
-                    metadata:
-                      credentialSource: "stored"
-                      suite: "OCRA-1:HOTP-SHA256-8:QA08-S064"
-                      otpLength: 8
-                      durationMillis: 11
-                      contextFingerprint: "Base64URL-Hash"
-                      telemetryId: "rest-ocra-verify-<uuid>"
-                      outcome: "match"
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
   /api/v1/ocra/evaluate:
     post:
       tags:
@@ -89,6 +89,12 @@ paths:
               $ref: "#/components/schemas/OcraEvaluationRequest"
         required: true
       responses:
+        "500":
+          description: "Unexpected server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
         "400":
           description: "Invalid request payload"
           content:
@@ -109,12 +115,6 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "500":
-          description: "Unexpected server error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
         "200":
           description: "Evaluation successful"
           content:
@@ -148,12 +148,6 @@ paths:
               $ref: "#/components/schemas/HotpReplayRequest"
         required: true
       responses:
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
         "404":
           description: "Credential not found"
           content:
@@ -168,6 +162,12 @@ paths:
                 $ref: "#/components/schemas/HotpReplayResponse"
         "400":
           description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -187,14 +187,20 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
+        "404":
+          description: "Credential not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "404":
-          description: "Credential not found"
+        "400":
+          description: "Validation error"
           content:
             application/json:
               schema:
@@ -205,12 +211,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "400":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
   /api/v1/hotp/evaluate/inline:
     post:
       tags:
@@ -232,18 +232,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "200":
-          description: "Evaluation completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationResponse"
         "400":
           description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
+        "200":
+          description: "Evaluation completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationResponse"
   /api/v1/ocra/credentials:
     get:
       tags:
@@ -328,17 +328,6 @@ components:
           $ref: "#/components/schemas/OcraVerificationInlineCredential"
         context:
           $ref: "#/components/schemas/OcraVerificationContext"
-    OcraVerificationErrorResponse:
-      type: "object"
-      properties:
-        error:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
     OcraVerificationMetadata:
       type: "object"
       properties:
@@ -369,6 +358,17 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/OcraVerificationMetadata"
+    OcraVerificationErrorResponse:
+      type: "object"
+      properties:
+        error:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
     OcraEvaluationRequest:
       type: "object"
       properties:
@@ -496,8 +496,6 @@ components:
       properties:
         credentialId:
           type: "string"
-        otp:
-          type: "string"
     HotpEvaluationErrorResponse:
       type: "object"
       properties:
@@ -538,6 +536,8 @@ components:
           type: "string"
         reasonCode:
           type: "string"
+        otp:
+          type: "string"
         metadata:
           $ref: "#/components/schemas/HotpEvaluationMetadata"
     HotpInlineEvaluationRequest:
@@ -553,8 +553,6 @@ components:
         counter:
           type: "integer"
           format: "int64"
-        otp:
-          type: "string"
         metadata:
           type: "object"
           additionalProperties:

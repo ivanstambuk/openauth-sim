@@ -75,7 +75,7 @@
                   />
                   <label for="hotpModeInline">Inline parameters</label>
                   <p id="hotpModeInlineHint" class="hint">
-                    Enter HOTP parameters without using stored credentials.
+                    Enter HOTP parameters to generate the next OTP without stored credentials.
                   </p>
                 </div>
                 <div class="mode-option">
@@ -90,7 +90,7 @@
                   />
                   <label for="hotpModeStored">Stored credential</label>
                   <p id="hotpModeStoredHint" class="hint">
-                    Select a stored HOTP credential and submit the OTP.
+                    Select a stored HOTP credential to generate the next OTP.
                   </p>
                 </div>
               </fieldset>
@@ -158,18 +158,6 @@
                     required="required"
                   />
                 </div>
-                <div class="field-group">
-                  <label for="hotpInlineOtp">One-time password</label>
-                  <input
-                    id="hotpInlineOtp"
-                    name="otp"
-                    type="text"
-                    inputmode="numeric"
-                    required="required"
-                    minlength="6"
-                    maxlength="8"
-                  />
-                </div>
               </div>
 
               <button
@@ -188,6 +176,10 @@
                 hidden="hidden"
               >
               <h3 id="hotp-inline-result-heading">Inline evaluation result</h3>
+              <p>
+                Generated OTP:
+                <strong data-testid="hotp-result-otp">—</strong>
+              </p>
               <p>
                 Status:
                 <strong data-testid="hotp-result-status"></strong>
@@ -239,20 +231,6 @@
                     HOTP credentials will appear once loaded.
                   </p>
                 </div>
-                <div>
-                  <label for="hotpStoredOtp">One-time password</label>
-                  <input
-                    id="hotpStoredOtp"
-                    name="otp"
-                    type="text"
-                    inputmode="numeric"
-                    autocapitalize="none"
-                    autocomplete="one-time-code"
-                    required="required"
-                    minlength="6"
-                    maxlength="8"
-                  />
-                </div>
               </div>
               <button
                 type="button"
@@ -270,6 +248,10 @@
                 hidden="hidden"
               >
               <h3 id="hotp-stored-result-heading">Stored evaluation result</h3>
+              <p>
+                Generated OTP:
+                <strong data-testid="hotp-result-otp">—</strong>
+              </p>
               <p>
                 Status:
                 <strong data-testid="hotp-result-status"></strong>

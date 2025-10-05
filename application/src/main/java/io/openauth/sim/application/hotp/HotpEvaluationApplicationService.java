@@ -6,9 +6,8 @@ import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.otp.hotp.HotpDescriptor;
+import io.openauth.sim.core.otp.hotp.HotpGenerator;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
-import io.openauth.sim.core.otp.hotp.HotpValidator;
-import io.openauth.sim.core.otp.hotp.HotpVerificationResult;
 import io.openauth.sim.core.store.CredentialStore;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -44,13 +43,11 @@ public final class HotpEvaluationApplicationService {
 
   public sealed interface EvaluationCommand
       permits EvaluationCommand.Stored, EvaluationCommand.Inline {
-    String otp();
 
-    record Stored(String credentialId, String otp) implements EvaluationCommand {
+    record Stored(String credentialId) implements EvaluationCommand {
 
       public Stored {
         credentialId = Objects.requireNonNull(credentialId, "credentialId").trim();
-        otp = Objects.requireNonNull(otp, "otp").trim();
       }
     }
 
@@ -58,8 +55,7 @@ public final class HotpEvaluationApplicationService {
         String sharedSecretHex,
         HotpHashAlgorithm algorithm,
         int digits,
-        long counter,
-        String otp,
+        Long counter,
         Map<String, String> metadata)
         implements EvaluationCommand {
 
@@ -67,7 +63,6 @@ public final class HotpEvaluationApplicationService {
         sharedSecretHex = Objects.requireNonNull(sharedSecretHex, "sharedSecretHex").trim();
         algorithm = Objects.requireNonNull(algorithm, "algorithm");
         metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
-        otp = Objects.requireNonNull(otp, "otp").trim();
       }
     }
   }
@@ -79,7 +74,8 @@ public final class HotpEvaluationApplicationService {
       long previousCounter,
       long nextCounter,
       HotpHashAlgorithm algorithm,
-      Integer digits) {
+      Integer digits,
+      String otp) {
 
     public EvaluationFrame evaluationFrame(HotpTelemetryAdapter adapter, String telemetryId) {
       return new EvaluationFrame(telemetry.emit(adapter, telemetryId));
@@ -129,14 +125,34 @@ public final class HotpEvaluationApplicationService {
         return notFoundResult(command.credentialId());
       }
 
-      return evaluateDescriptor(
-          storedCredential.descriptor(),
-          command.otp(),
-          storedCredential.counter(),
+      long previousCounter = storedCredential.counter();
+      String otp = HotpGenerator.generate(storedCredential.descriptor(), previousCounter);
+      long nextCounter;
+      try {
+        nextCounter = Math.addExact(previousCounter, 1L);
+      } catch (ArithmeticException ex) {
+        return validationFailure(
+            command.credentialId(),
+            true,
+            "stored",
+            storedCredential.descriptor().algorithm(),
+            storedCredential.descriptor().digits(),
+            previousCounter,
+            previousCounter,
+            "counter_overflow",
+            ex.getMessage());
+      }
+
+      persistCounter(storedCredential.credential(), nextCounter);
+      return successResult(
           true,
           storedCredential.descriptor().name(),
           "stored",
-          nextCounter -> persistCounter(storedCredential.credential(), nextCounter));
+          storedCredential.descriptor().algorithm(),
+          storedCredential.descriptor().digits(),
+          previousCounter,
+          nextCounter,
+          otp);
     } catch (IllegalArgumentException ex) {
       return invalidMetadataResult(command.credentialId(), ex.getMessage());
     } catch (RuntimeException ex) {
@@ -146,6 +162,31 @@ public final class HotpEvaluationApplicationService {
 
   private EvaluationResult evaluateInline(EvaluationCommand.Inline command) {
     try {
+      Long counterValue = command.counter();
+      if (counterValue == null) {
+        return validationFailure(
+            null,
+            false,
+            "inline",
+            command.algorithm(),
+            command.digits(),
+            0L,
+            0L,
+            "counter_required",
+            "counter is required");
+      }
+      if (!hasText(command.sharedSecretHex())) {
+        return validationFailure(
+            null,
+            false,
+            "inline",
+            command.algorithm(),
+            command.digits(),
+            0L,
+            0L,
+            "sharedSecretHex_required",
+            "sharedSecretHex is required");
+      }
       HotpDescriptor descriptor =
           HotpDescriptor.create(
               INLINE_DESCRIPTOR_NAME,
@@ -153,16 +194,33 @@ public final class HotpEvaluationApplicationService {
               command.algorithm(),
               command.digits());
 
-      return evaluateDescriptor(
-          descriptor,
-          command.otp(),
-          command.counter(),
+      long previousCounter = counterValue;
+      String otp = HotpGenerator.generate(descriptor, previousCounter);
+      long nextCounter;
+      try {
+        nextCounter = Math.addExact(previousCounter, 1L);
+      } catch (ArithmeticException ex) {
+        return validationFailure(
+            null,
+            false,
+            "inline",
+            descriptor.algorithm(),
+            descriptor.digits(),
+            previousCounter,
+            previousCounter,
+            "counter_overflow",
+            ex.getMessage());
+      }
+
+      return successResult(
           false,
           null,
           "inline",
-          nextCounter -> {
-            // inline evaluations do not mutate shared state
-          });
+          descriptor.algorithm(),
+          descriptor.digits(),
+          previousCounter,
+          nextCounter,
+          otp);
     } catch (IllegalArgumentException ex) {
       return validationFailure(
           null,
@@ -170,67 +228,13 @@ public final class HotpEvaluationApplicationService {
           "inline",
           command.algorithm(),
           command.digits(),
-          command.counter(),
-          command.counter(),
+          command.counter() != null ? command.counter() : 0L,
+          command.counter() != null ? command.counter() : 0L,
           "validation_error",
           ex.getMessage());
     } catch (RuntimeException ex) {
       return unexpectedErrorResult(
           null, false, "inline", command.algorithm(), command.digits(), command.counter(), ex);
-    }
-  }
-
-  private EvaluationResult evaluateDescriptor(
-      HotpDescriptor descriptor,
-      String otp,
-      long counter,
-      boolean credentialReference,
-      String credentialId,
-      String credentialSource,
-      CounterPersistor persistor) {
-
-    try {
-      HotpVerificationResult verification = HotpValidator.verify(descriptor, counter, otp);
-      if (verification.valid()) {
-        long nextCounter = verification.nextCounter();
-        persistor.persist(nextCounter);
-        return successResult(
-            credentialReference,
-            credentialId,
-            credentialSource,
-            descriptor.algorithm(),
-            descriptor.digits(),
-            counter,
-            nextCounter);
-      }
-
-      return mismatchResult(
-          credentialReference,
-          credentialId,
-          credentialSource,
-          descriptor.algorithm(),
-          descriptor.digits(),
-          counter);
-    } catch (IllegalArgumentException ex) {
-      return validationFailure(
-          credentialId,
-          credentialReference,
-          credentialSource,
-          descriptor.algorithm(),
-          descriptor.digits(),
-          counter,
-          counter,
-          "validation_error",
-          ex.getMessage());
-    } catch (RuntimeException ex) {
-      return unexpectedErrorResult(
-          credentialId,
-          credentialReference,
-          credentialSource,
-          descriptor.algorithm(),
-          descriptor.digits(),
-          counter,
-          ex);
     }
   }
 
@@ -275,32 +279,23 @@ public final class HotpEvaluationApplicationService {
       HotpHashAlgorithm algorithm,
       int digits,
       long previousCounter,
-      long nextCounter) {
+      long nextCounter,
+      String otp) {
 
     Map<String, Object> fields =
         evaluationFields(
             credentialSource, credentialId, algorithm, digits, previousCounter, nextCounter);
     TelemetrySignal signal =
-        new TelemetrySignal(TelemetryStatus.SUCCESS, "match", null, true, fields, null);
+        new TelemetrySignal(TelemetryStatus.SUCCESS, "generated", null, true, fields, null);
     return new EvaluationResult(
-        signal, credentialReference, credentialId, previousCounter, nextCounter, algorithm, digits);
-  }
-
-  private EvaluationResult mismatchResult(
-      boolean credentialReference,
-      String credentialId,
-      String credentialSource,
-      HotpHashAlgorithm algorithm,
-      int digits,
-      long counter) {
-
-    Map<String, Object> fields =
-        evaluationFields(credentialSource, credentialId, algorithm, digits, counter, counter);
-    TelemetrySignal signal =
-        new TelemetrySignal(
-            TelemetryStatus.INVALID, "otp_mismatch", "OTP mismatch", true, fields, null);
-    return new EvaluationResult(
-        signal, credentialReference, credentialId, counter, counter, algorithm, digits);
+        signal,
+        credentialReference,
+        credentialId,
+        previousCounter,
+        nextCounter,
+        algorithm,
+        digits,
+        otp);
   }
 
   private EvaluationResult validationFailure(
@@ -321,7 +316,14 @@ public final class HotpEvaluationApplicationService {
         new TelemetrySignal(
             TelemetryStatus.INVALID, reasonCode, safeMessage(reason), true, fields, null);
     return new EvaluationResult(
-        signal, credentialReference, credentialId, previousCounter, nextCounter, algorithm, digits);
+        signal,
+        credentialReference,
+        credentialId,
+        previousCounter,
+        nextCounter,
+        algorithm,
+        digits,
+        null);
   }
 
   private EvaluationResult notFoundResult(String credentialId) {
@@ -334,7 +336,7 @@ public final class HotpEvaluationApplicationService {
             true,
             fields,
             null);
-    return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null);
+    return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null);
   }
 
   private EvaluationResult invalidMetadataResult(String credentialId, String reason) {
@@ -347,7 +349,7 @@ public final class HotpEvaluationApplicationService {
             true,
             fields,
             null);
-    return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null);
+    return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null);
   }
 
   private EvaluationResult unexpectedErrorResult(
@@ -375,7 +377,8 @@ public final class HotpEvaluationApplicationService {
         previousCounter,
         previousCounter,
         algorithm,
-        digits);
+        digits,
+        null);
   }
 
   private void persistCounter(Credential credential, long nextCounter) {
@@ -426,10 +429,5 @@ public final class HotpEvaluationApplicationService {
 
   private record StoredCredential(Credential credential, HotpDescriptor descriptor, long counter) {
     // Simple tuple carrying resolved state.
-  }
-
-  @FunctionalInterface
-  private interface CounterPersistor {
-    void persist(long nextCounter);
   }
 }

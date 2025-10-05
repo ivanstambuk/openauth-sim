@@ -49,11 +49,9 @@
     ? hotpPanel.querySelector('[data-testid="hotp-stored-status"]')
     : null;
   var storedSelect = hotpPanel ? hotpPanel.querySelector('#hotpStoredCredentialId') : null;
-  var storedOtpInput = hotpPanel ? hotpPanel.querySelector('#hotpStoredOtp') : null;
   var inlineSecretInput = hotpPanel ? hotpPanel.querySelector('#hotpInlineSecretHex') : null;
   var inlineDigitsInput = hotpPanel ? hotpPanel.querySelector('#hotpInlineDigits') : null;
   var inlineCounterInput = hotpPanel ? hotpPanel.querySelector('#hotpInlineCounter') : null;
-  var inlineOtpInput = hotpPanel ? hotpPanel.querySelector('#hotpInlineOtp') : null;
   var storedButton = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-stored-evaluate-button"]')
     : null;
@@ -418,14 +416,21 @@
     }
   }
 
-  function renderResult(panel, status, metadata) {
+  function renderResult(panel, payload) {
     if (!panel) {
       return;
     }
     setHidden(panel, false);
+    var status = payload && payload.status ? payload.status : 'unknown';
+    var metadata = payload && payload.metadata ? payload.metadata : null;
+    var otp = payload && payload.otp ? payload.otp : null;
     var statusNode = panel.querySelector('[data-testid="hotp-result-status"]');
     if (statusNode) {
       statusNode.textContent = status || 'unknown';
+    }
+    var otpNode = panel.querySelector('[data-testid="hotp-result-otp"]');
+    if (otpNode) {
+      otpNode.textContent = otp && otp.trim().length > 0 ? otp.trim() : '—';
     }
     var metadataNode = panel.querySelector('[data-testid="hotp-result-metadata"]');
     if (metadataNode) {
@@ -897,13 +902,8 @@
       return;
     }
     var credentialId = storedSelect ? storedSelect.value : '';
-    var otp = storedOtpInput ? storedOtpInput.value : '';
     if (!credentialId) {
       showStoredError('Select a HOTP credential before evaluating.');
-      return;
-    }
-    if (!otp || otp.trim().length < 6) {
-      showStoredError('Provide the observed HOTP value to evaluate.');
       return;
     }
 
@@ -919,7 +919,7 @@
         'X-CSRF-TOKEN': csrfTokenFor(storedForm) || '',
       },
       credentials: 'same-origin',
-      body: JSON.stringify({ credentialId: credentialId, otp: otp.trim() }),
+      body: JSON.stringify({ credentialId: credentialId }),
     })
       .then(function (response) {
         return response.text().then(function (bodyText) {
@@ -936,7 +936,7 @@
           throw new Error(message);
         }
         var parsedBody = parseJson(payload.body) || {};
-        renderResult(storedResultPanel, parsedBody.status, parsedBody.metadata);
+        renderResult(storedResultPanel, parsedBody);
         ensureCredentials(true);
       })
       .catch(function (error) {
@@ -954,14 +954,9 @@
     var secret = inlineSecretInput ? inlineSecretInput.value : '';
     var digits = inlineDigitsInput ? parseInt(inlineDigitsInput.value, 10) : NaN;
     var counter = inlineCounterInput ? parseInt(inlineCounterInput.value, 10) : NaN;
-    var otp = inlineOtpInput ? inlineOtpInput.value : '';
 
     if (!secret || secret.trim().length === 0) {
       showInlineError('Provide the HOTP shared secret (hex encoded).');
-      return;
-    }
-    if (!otp || otp.trim().length < 6) {
-      showInlineError('Provide the HOTP value to evaluate.');
       return;
     }
     if (Number.isNaN(digits)) {
@@ -982,7 +977,6 @@
       algorithm: inlineAlgorithmSelect ? inlineAlgorithmSelect.value : 'SHA1',
       digits: digits,
       counter: counter,
-      otp: otp.trim(),
     };
 
     fetchDelegate(inlineForm.getAttribute('data-evaluate-endpoint') || '/api/v1/hotp/evaluate/inline', {
@@ -1010,7 +1004,7 @@
           throw new Error(message);
         }
         var parsedBody = parseJson(payload.body) || {};
-        renderResult(inlineResultPanel, parsedBody.status, parsedBody.metadata);
+        renderResult(inlineResultPanel, parsedBody);
       })
       .catch(function (error) {
         showInlineError(error && error.message ? error.message : 'Unable to evaluate inline parameters.');

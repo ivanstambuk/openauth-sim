@@ -45,39 +45,18 @@ final class HotpCliTest {
     assertTrue(listOutput.toLowerCase(Locale.ROOT).contains("sha1"));
 
     CommandHarness evaluateHarness = harness(databasePath);
-    int evaluateExit =
-        evaluateHarness.execute(
-            "evaluate", "--credential-id", CREDENTIAL_ID, "--otp", otpForCounter(0));
+    int evaluateExit = evaluateHarness.execute("evaluate", "--credential-id", CREDENTIAL_ID);
     assertEquals(CommandLine.ExitCode.OK, evaluateExit, evaluateHarness.stderr());
     String evaluateOutput = evaluateHarness.stdout();
     assertTrue(evaluateOutput.contains("event=cli.hotp.evaluate"));
     assertTrue(evaluateOutput.contains("previousCounter=0"));
     assertTrue(evaluateOutput.contains("nextCounter=1"));
+    assertTrue(evaluateOutput.contains("generatedOtp=" + otpForCounter(0)));
 
     try (CredentialStore store = CredentialStoreFactory.openFileStore(databasePath)) {
       Credential credential = store.findByName(CREDENTIAL_ID).orElseThrow();
       assertEquals(CredentialType.OATH_HOTP, credential.type());
       assertEquals("1", credential.attributes().get("hotp.counter"));
-    }
-  }
-
-  @Test
-  void evaluateInvalidOtpDoesNotAdvanceCounter() throws Exception {
-    Path databasePath = databasePath();
-    importCredential(databasePath);
-
-    CommandHarness evaluateHarness = harness(databasePath);
-    int exitCode =
-        evaluateHarness.execute("evaluate", "--credential-id", CREDENTIAL_ID, "--otp", "000000");
-
-    assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    String stderr = evaluateHarness.stderr();
-    assertTrue(stderr.contains("event=cli.hotp.evaluate"));
-    assertTrue(stderr.contains("reasonCode=otp_mismatch"));
-
-    try (CredentialStore store = CredentialStoreFactory.openFileStore(databasePath)) {
-      Credential credential = store.findByName(CREDENTIAL_ID).orElseThrow();
-      assertEquals("0", credential.attributes().get("hotp.counter"));
     }
   }
 
@@ -127,7 +106,7 @@ final class HotpCliTest {
     Path databasePath = databasePath();
     CommandHarness harness = harness(databasePath);
 
-    int exitCode = harness.execute("evaluate", "--credential-id", CREDENTIAL_ID, "--otp", "000000");
+    int exitCode = harness.execute("evaluate", "--credential-id", CREDENTIAL_ID);
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode);
     String stderr = harness.stderr();
@@ -158,7 +137,7 @@ final class HotpCliTest {
     CommandHarness harness = CommandHarness.create();
     harness.cli().overrideDatabase(failing);
 
-    int exitCode = harness.execute("evaluate", "--credential-id", CREDENTIAL_ID, "--otp", "123456");
+    int exitCode = harness.execute("evaluate", "--credential-id", CREDENTIAL_ID);
 
     assertEquals(CommandLine.ExitCode.SOFTWARE, exitCode);
     String stderr = harness.stderr();
@@ -300,19 +279,13 @@ final class HotpCliTest {
             "SHA1");
     assertEquals(CommandLine.ExitCode.OK, importExit, importHarness.stderr());
 
-    HotpDescriptor descriptor =
-        HotpDescriptor.create(
-            CREDENTIAL_ID, SecretMaterial.fromHex(SECRET_HEX), HotpHashAlgorithm.SHA1, 6);
-    String otp = HotpGenerator.generate(descriptor, Long.MAX_VALUE);
-
     CommandHarness evaluateHarness = harness(databasePath);
-    int exitCode =
-        evaluateHarness.execute("evaluate", "--credential-id", CREDENTIAL_ID, "--otp", otp);
+    int exitCode = evaluateHarness.execute("evaluate", "--credential-id", CREDENTIAL_ID);
 
-    assertEquals(CommandLine.ExitCode.SOFTWARE, exitCode);
+    assertEquals(CommandLine.ExitCode.USAGE, exitCode);
     String stderr = evaluateHarness.stderr();
-    assertTrue(stderr.contains("status=error"));
-    assertTrue(stderr.contains("reasonCode=unexpected_error"));
+    assertTrue(stderr.contains("status=invalid"));
+    assertTrue(stderr.contains("reasonCode=counter_overflow"));
   }
 
   private CommandHarness harness(Path databasePath) {

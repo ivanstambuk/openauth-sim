@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 record HotpEvaluationResponse(
     @JsonProperty("status") String status,
     @JsonProperty("reasonCode") String reasonCode,
+    @JsonProperty("otp") String otp,
     @JsonProperty("metadata") HotpEvaluationMetadata metadata) {
 
   // Canonical record; no additional behaviour.

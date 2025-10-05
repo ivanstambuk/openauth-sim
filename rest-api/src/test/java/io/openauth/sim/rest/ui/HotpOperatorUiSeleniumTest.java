@@ -107,9 +107,9 @@ final class HotpOperatorUiSeleniumTest {
     Select credentialSelect = new Select(driver.findElement(By.id("hotpStoredCredentialId")));
     credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
 
-    WebElement otpInput = driver.findElement(By.id("hotpStoredOtp"));
-    otpInput.clear();
-    otpInput.sendKeys(EXPECTED_STORED_OTP);
+    if (!driver.findElements(By.id("hotpStoredOtp")).isEmpty()) {
+      throw new AssertionError("Stored HOTP evaluation should not render an OTP input");
+    }
 
     driver.findElement(By.cssSelector("button[data-testid='hotp-stored-evaluate-button']")).click();
 
@@ -118,15 +118,19 @@ final class HotpOperatorUiSeleniumTest {
             .until(
                 ExpectedConditions.visibilityOfElementLocated(
                     By.cssSelector("[data-testid='hotp-stored-result-panel']")));
-    // Expect result panel to surface the OTP match outcome.
+    // Expect result panel to surface the generated OTP and metadata.
+    WebElement otpValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-otp']"));
     WebElement statusValue =
         resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-status']"));
     WebElement metadataValue =
         resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-metadata']"));
 
-    // When implemented, the UI should display match status and next counter metadata.
-    if (!"match".equalsIgnoreCase(statusValue.getText())) {
-      throw new AssertionError("Expected HOTP match status in result panel");
+    if (!EXPECTED_STORED_OTP.equals(otpValue.getText())) {
+      throw new AssertionError("Expected generated HOTP OTP to be displayed");
+    }
+    if (!"generated".equalsIgnoreCase(statusValue.getText())) {
+      throw new AssertionError("Expected HOTP generated status in result panel");
     }
     if (!metadataValue.getText().contains("nextCounter=1")) {
       throw new AssertionError("Expected HOTP metadata to include nextCounter=1");
@@ -163,8 +167,10 @@ final class HotpOperatorUiSeleniumTest {
     driver.findElement(By.id("hotpInlineDigits")).sendKeys(Integer.toString(DIGITS));
     driver.findElement(By.id("hotpInlineCounter")).clear();
     driver.findElement(By.id("hotpInlineCounter")).sendKeys(Long.toString(INITIAL_COUNTER));
-    driver.findElement(By.id("hotpInlineOtp")).sendKeys(EXPECTED_STORED_OTP);
 
+    if (!driver.findElements(By.id("hotpInlineOtp")).isEmpty()) {
+      throw new AssertionError("HOTP inline evaluation should not render an OTP input");
+    }
     driver.findElement(By.cssSelector("button[data-testid='hotp-inline-evaluate-button']")).click();
 
     WebElement resultPanel =
@@ -173,10 +179,15 @@ final class HotpOperatorUiSeleniumTest {
                 ExpectedConditions.visibilityOfElementLocated(
                     By.cssSelector("[data-testid='hotp-inline-result-panel']")));
 
+    WebElement otpValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-otp']"));
     WebElement statusValue =
         resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-status']"));
-    if (!"match".equalsIgnoreCase(statusValue.getText())) {
-      throw new AssertionError("Expected HOTP match status for inline evaluation");
+    if (!"generated".equalsIgnoreCase(statusValue.getText())) {
+      throw new AssertionError("Expected HOTP generated status for inline evaluation");
+    }
+    if (otpValue.getText() == null || otpValue.getText().isBlank()) {
+      throw new AssertionError("Expected inline evaluation to display generated OTP");
     }
   }
 

@@ -44,11 +44,7 @@ class HotpEvaluationService {
 
     String credentialId =
         requireText(request.credentialId(), "credentialId", telemetryId, Mode.STORED, null);
-    String otp =
-        requireText(
-            request.otp(), "otp", telemetryId, Mode.STORED, Map.of("credentialId", credentialId));
-
-    EvaluationCommand command = new EvaluationCommand.Stored(credentialId, otp);
+    EvaluationCommand command = new EvaluationCommand.Stored(credentialId);
     return handleResult(
         command, Mode.STORED, telemetryId, credentialId, Map.of("credentialId", credentialId));
   }
@@ -67,13 +63,11 @@ class HotpEvaluationService {
     HotpHashAlgorithm algorithm = parseAlgorithm(request.algorithm(), telemetryId);
     int digits = requireDigits(request.digits(), telemetryId);
     long counter = requireCounter(request.counter(), telemetryId);
-    String otp =
-        requireText(request.otp(), "otp", telemetryId, Mode.INLINE, Map.of("field", "otp"));
     Map<String, String> metadata =
         request.metadata() == null ? Map.of() : Map.copyOf(request.metadata());
 
     EvaluationCommand command =
-        new EvaluationCommand.Inline(secretHex, algorithm, digits, counter, otp, metadata);
+        new EvaluationCommand.Inline(secretHex, algorithm, digits, counter, metadata);
     return handleResult(command, Mode.INLINE, telemetryId, null, Map.of());
   }
 
@@ -102,7 +96,8 @@ class HotpEvaluationService {
             telemetryId);
 
     return switch (signal.status()) {
-      case SUCCESS -> new HotpEvaluationResponse("match", signal.reasonCode(), metadata);
+      case SUCCESS ->
+          new HotpEvaluationResponse("generated", signal.reasonCode(), result.otp(), metadata);
       case INVALID ->
           handleInvalid(
               signal, metadata, telemetryId, mode, identifier, frame.fields(), contextDetails);
@@ -119,11 +114,6 @@ class HotpEvaluationService {
       Map<String, Object> fields,
       Map<String, String> contextDetails) {
 
-    String reasonCode = signal.reasonCode();
-    if ("otp_mismatch".equals(reasonCode)) {
-      return new HotpEvaluationResponse("mismatch", reasonCode, metadata);
-    }
-
     Map<String, String> details =
         sanitizedDetails(fields, contextDetails, signal.sanitized(), telemetryId, mode.source);
 
@@ -131,7 +121,7 @@ class HotpEvaluationService {
         telemetryId,
         mode.source,
         identifier,
-        reasonCode,
+        signal.reasonCode(),
         signal.sanitized(),
         details,
         safeMessage(signal.reason()));

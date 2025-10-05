@@ -26,14 +26,15 @@ class HotpEvaluationControllerTest {
   @MockBean private HotpEvaluationService service;
 
   @Test
-  @DisplayName("Stored evaluation returns response payload with metadata")
+  @DisplayName("Stored evaluation returns generated OTP payload with metadata")
   void storedEvaluationReturnsResponse() throws Exception {
     HotpEvaluationMetadata metadata =
         new HotpEvaluationMetadata("stored", "demo", true, "SHA1", 6, 0L, 1L, "rest-hotp-1");
-    HotpEvaluationResponse response = new HotpEvaluationResponse("match", "match", metadata);
+    HotpEvaluationResponse response =
+        new HotpEvaluationResponse("generated", "generated", "755224", metadata);
     when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenReturn(response);
 
-    HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo", "755224");
+    HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo");
 
     mockMvc
         .perform(
@@ -41,28 +42,24 @@ class HotpEvaluationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").value("match"))
-        .andExpect(jsonPath("$.reasonCode").value("match"))
+        .andExpect(jsonPath("$.status").value("generated"))
+        .andExpect(jsonPath("$.otp").value("755224"))
         .andExpect(jsonPath("$.metadata.credentialSource").value("stored"))
         .andExpect(jsonPath("$.metadata.telemetryId").value("rest-hotp-1"));
   }
 
   @Test
-  @DisplayName("Inline evaluation returns response payload with metadata")
+  @DisplayName("Inline evaluation returns generated OTP payload with metadata")
   void inlineEvaluationReturnsResponse() throws Exception {
     HotpEvaluationMetadata metadata =
-        new HotpEvaluationMetadata("inline", null, false, "SHA1", 6, 7L, 7L, "rest-hotp-2");
-    HotpEvaluationResponse response = new HotpEvaluationResponse("match", "match", metadata);
+        new HotpEvaluationMetadata("inline", null, false, "SHA1", 6, 7L, 8L, "rest-hotp-2");
+    HotpEvaluationResponse response =
+        new HotpEvaluationResponse("generated", "generated", "254676", metadata);
     when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenReturn(response);
 
     HotpInlineEvaluationRequest request =
         new HotpInlineEvaluationRequest(
-            "3132333435363738393031323334353637383930",
-            "SHA1",
-            6,
-            7L,
-            "123456",
-            Map.of("source", "test"));
+            "3132333435363738393031323334353637383930", "SHA1", 6, 7L, Map.of("source", "test"));
 
     mockMvc
         .perform(
@@ -70,9 +67,9 @@ class HotpEvaluationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").value("match"))
+        .andExpect(jsonPath("$.status").value("generated"))
+        .andExpect(jsonPath("$.otp").value("254676"))
         .andExpect(jsonPath("$.metadata.credentialSource").value("inline"))
-        .andExpect(jsonPath("$.metadata.telemetryId").value("rest-hotp-2"))
         .andExpect(jsonPath("$.metadata.credentialId").doesNotExist());
   }
 
@@ -90,7 +87,7 @@ class HotpEvaluationControllerTest {
             "credential missing");
     when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenThrow(exception);
 
-    HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("missing", "000000");
+    HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("missing");
 
     mockMvc
         .perform(
@@ -102,6 +99,33 @@ class HotpEvaluationControllerTest {
         .andExpect(jsonPath("$.details.telemetryId").value("rest-hotp-3"))
         .andExpect(jsonPath("$.details.reasonCode").value("credential_not_found"))
         .andExpect(jsonPath("$.details.credentialId").value("missing"));
+  }
+
+  @Test
+  @DisplayName("Stored evaluation propagates counter overflow as HTTP 400")
+  void storedEvaluationHandlesCounterOverflow() throws Exception {
+    HotpEvaluationValidationException exception =
+        new HotpEvaluationValidationException(
+            "rest-hotp-7",
+            "stored",
+            "demo",
+            "counter_overflow",
+            true,
+            Map.of("credentialId", "demo"),
+            "counter overflow");
+    when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenThrow(exception);
+
+    HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo");
+
+    mockMvc
+        .perform(
+            post("/api/v1/hotp/evaluate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error").value("invalid_input"))
+        .andExpect(jsonPath("$.details.reasonCode").value("counter_overflow"))
+        .andExpect(jsonPath("$.details.telemetryId").value("rest-hotp-7"));
   }
 
   @Test
@@ -120,7 +144,7 @@ class HotpEvaluationControllerTest {
 
     HotpInlineEvaluationRequest request =
         new HotpInlineEvaluationRequest(
-            "3132333435363738393031323334353637383930", "SHA1", 6, 0L, "000000", Map.of());
+            "3132333435363738393031323334353637383930", "SHA1", 6, null, Map.of());
 
     mockMvc
         .perform(
@@ -142,7 +166,7 @@ class HotpEvaluationControllerTest {
 
     HotpInlineEvaluationRequest request =
         new HotpInlineEvaluationRequest(
-            "3132333435363738393031323334353637383930", "SHA1", 6, 0L, "123456", Map.of());
+            "3132333435363738393031323334353637383930", "SHA1", 6, 0L, Map.of());
 
     mockMvc
         .perform(
@@ -162,7 +186,7 @@ class HotpEvaluationControllerTest {
             "rest-hotp-5", "stored", "boom", Map.of("status", "error"));
     when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenThrow(exception);
 
-    HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo", "123456");
+    HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo");
 
     mockMvc
         .perform(
@@ -181,12 +205,18 @@ class HotpEvaluationControllerTest {
   void inlineEvaluationHandlesUnsanitizedValidation() throws Exception {
     HotpEvaluationValidationException exception =
         new HotpEvaluationValidationException(
-            "rest-hotp-6", "inline", "  ", null, false, Map.of("field", "otp"), "otp required");
+            "rest-hotp-6",
+            "inline",
+            "  ",
+            null,
+            false,
+            Map.of("field", "counter"),
+            "counter required");
     when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenThrow(exception);
 
     HotpInlineEvaluationRequest request =
         new HotpInlineEvaluationRequest(
-            "3132333435363738393031323334353637383930", "SHA1", 6, 0L, "", Map.of());
+            "3132333435363738393031323334353637383930", "SHA1", 6, null, Map.of());
 
     mockMvc
         .perform(
@@ -196,7 +226,7 @@ class HotpEvaluationControllerTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.details.telemetryId").value("rest-hotp-6"))
         .andExpect(jsonPath("$.details.sanitized").value("false"))
-        .andExpect(jsonPath("$.details.field").value("otp"))
+        .andExpect(jsonPath("$.details.field").value("counter"))
         .andExpect(jsonPath("$.details.identifier").doesNotExist());
   }
 }

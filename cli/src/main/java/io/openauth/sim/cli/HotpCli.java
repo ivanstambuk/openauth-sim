@@ -291,25 +291,21 @@ public final class HotpCli implements Callable<Integer> {
         description = "Identifier for the stored credential")
     String credentialId;
 
-    @CommandLine.Option(
-        names = "--otp",
-        paramLabel = "<otp>",
-        required = true,
-        description = "OTP value to verify")
-    String otp;
-
     @Override
     public Integer call() {
       String event = event("evaluate");
       try (CredentialStore store = openStore()) {
         HotpEvaluationApplicationService service = new HotpEvaluationApplicationService(store);
-        EvaluationCommand command = new EvaluationCommand.Stored(credentialId.trim(), otp.trim());
+        EvaluationCommand command = new EvaluationCommand.Stored(credentialId.trim());
         EvaluationResult result = service.evaluate(command);
         TelemetryFrame frame = result.telemetry().emit(EVALUATION_TELEMETRY, nextTelemetryId());
         HotpEvaluationApplicationService.TelemetryStatus status = result.telemetry().status();
         PrintWriter writer =
             status == HotpEvaluationApplicationService.TelemetryStatus.SUCCESS ? out() : err();
         writeFrame(writer, event, frame);
+        if (status == HotpEvaluationApplicationService.TelemetryStatus.SUCCESS) {
+          writer.printf(Locale.ROOT, "generatedOtp=%s%n", result.otp());
+        }
         return switch (status) {
           case SUCCESS -> CommandLine.ExitCode.OK;
           case INVALID -> CommandLine.ExitCode.USAGE;
