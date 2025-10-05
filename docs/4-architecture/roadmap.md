@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-_Last updated: 2025-10-04_
+_Last updated: 2025-10-05_
 
 This roadmap tracks the major workstreams required to reach a feature-complete OpenAuth Simulator. Update this file whenever scope or status changes so future sessions can pick up without replaying prior conversations.
 
@@ -27,7 +27,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 11 | Java 17 language enhancements | Adopt sealed hierarchies and text blocks across OCRA CLI/REST internals | Complete | Spec: [Feature 013](specs/feature-013-java17-enhancements.md), Plan: [Feature Plan 013](feature-plan-013-java17-enhancements.md), Tasks: [Feature 013 Tasks](tasks/feature-013-java17-enhancements.md); Closed 2025-10-01 with `qualityGate` validation |
 | 12 | Architecture harmonization | Share OCRA orchestration, persistence provisioning, telemetry, and DTO seams across facades while preparing protocol-specific modules | Complete | Spec: [Feature 014](specs/feature-014-architecture-harmonization.md), Plan: [Feature Plan 014](feature-plan-014-architecture-harmonization.md), Tasks: [Feature 014 Tasks](tasks/feature-014-architecture-harmonization.md); Closed 2025-10-02 after R1408 documentation sync + quality gate rerun |
 | 13 | SpotBugs dead-state enforcement | Fail builds on unread/unwritten field detectors across JVM modules | Complete | Spec: [Feature 015](specs/feature-015-spotbugs-dead-state-enforcement.md), Plan: [Feature Plan 015](feature-plan-015-spotbugs-dead-state-enforcement.md), Tasks: [Feature 015 Tasks](tasks/feature-015-spotbugs-dead-state-enforcement.md); Closed 2025-10-03 after SpotBugs+PMD guardrails verified via `./gradlew :rest-api:pmdTest` and root `check` |
-| 14 | HOTP operator support | Deliver HOTP credential flows (issuance, validation, operator tooling) across core/application/UI channels | Not started | Spec: TBA; placeholder tab shipped via Feature 020 – will draft dedicated spec/plan before implementation |
+| 14 | HOTP operator support | Deliver HOTP credential flows (issuance, validation, operator tooling) across core/application/UI channels | In progress | Spec: [Feature 022](specs/feature-022-hotp-operator-support.md), Plan: [Feature Plan 022](feature-plan-022-hotp-operator-support.md), Tasks: [Feature 022 Tasks](tasks/feature-022-hotp-operator-support.md); R2205 (CLI) and R2206 (REST) delivered stored/inline evaluation with telemetry; branch coverage currently 0.87 (target ≥0.90) pending follow-up tests |
 | 15 | TOTP operator support | Provide TOTP credential lifecycle and operator console integrations | Not started | Spec: TBA; placeholder tab shipped via Feature 020 – plan/tasks pending |
 | 16 | EUDIW OpenID4VP simulator | Simulate verifiable presentation requests for EUDI wallet OpenID4VP 1.0 flows | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
 | 17 | EUDIW ISO/IEC 18013-5 simulator | Surface ISO/IEC 18013-5 credential presentation workflows for EUDI wallets | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
@@ -51,7 +51,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 - [x] Produce Maintenance CLI coverage hotspot analysis (Feature 012) to safeguard the ≥0.90 Jacoco buffer for Maintenance CLI. Completed 2025-10-01.
 - [x] Bootstrap architecture knowledge map in `docs/4-architecture/knowledge-map.md`.
 - [x] Publish OCRA capability matrix and telemetry contract in `docs/1-concepts` (T014).
-- [ ] Retire legacy OCRA MapDB migration path and document schema-v1 baseline (Feature 018). In progress 2025-10-03.
+- [x] Retire legacy OCRA MapDB migration path and document schema-v1 baseline (Feature 018). Completed 2025-10-03.
 - [x] Relocate commit message linting to commit-msg hook (Feature 019). Completed 2025-10-04.
 
 Keep this roadmap synced with each significant decision or completion event.

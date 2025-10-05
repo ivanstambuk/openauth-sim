@@ -123,6 +123,16 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "description" : "Evaluation successful",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                }
+              }
+            }
+          },
           "400" : {
             "description" : "Invalid request payload",
             "content" : {
@@ -151,16 +161,6 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation successful",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
-                }
-              }
-            }
-          },
           "500" : {
             "description" : "Unexpected server error",
             "content" : {
@@ -185,6 +185,116 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SeedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hotp/evaluate" : {
+      "post" : {
+        "tags" : [ "hotp-evaluation-controller" ],
+        "summary" : "Evaluate a stored HOTP credential",
+        "description" : "Validates a submitted OTP against a persisted HOTP credential and advances the counter on success.",
+        "operationId" : "evaluateStored",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/HotpStoredEvaluationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hotp/evaluate/inline" : {
+      "post" : {
+        "tags" : [ "hotp-evaluation-controller" ],
+        "summary" : "Evaluate HOTP parameters inline",
+        "description" : "Validates an OTP using inline HOTP parameters without mutating stored credentials.",
+        "operationId" : "evaluateInline",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/HotpInlineEvaluationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -395,6 +505,20 @@
           }
         }
       },
+      "OcraEvaluationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "suite" : {
+            "type" : "string"
+          },
+          "otp" : {
+            "type" : "string"
+          },
+          "telemetryId" : {
+            "type" : "string"
+          }
+        }
+      },
       "OcraEvaluationErrorResponse" : {
         "type" : "object",
         "properties" : {
@@ -412,20 +536,6 @@
           }
         }
       },
-      "OcraEvaluationResponse" : {
-        "type" : "object",
-        "properties" : {
-          "suite" : {
-            "type" : "string"
-          },
-          "otp" : {
-            "type" : "string"
-          },
-          "telemetryId" : {
-            "type" : "string"
-          }
-        }
-      },
       "SeedResponse" : {
         "type" : "object",
         "properties" : {
@@ -440,6 +550,111 @@
           "addedCredentialIds" : {
             "type" : "array",
             "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "HotpStoredEvaluationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "credentialId" : {
+            "type" : "string"
+          },
+          "otp" : {
+            "type" : "string"
+          }
+        }
+      },
+      "HotpEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "HotpEvaluationMetadata" : {
+        "type" : "object",
+        "properties" : {
+          "credentialSource" : {
+            "type" : "string"
+          },
+          "credentialId" : {
+            "type" : "string"
+          },
+          "credentialReference" : {
+            "type" : "boolean"
+          },
+          "hashAlgorithm" : {
+            "type" : "string"
+          },
+          "digits" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "previousCounter" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "nextCounter" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "telemetryId" : {
+            "type" : "string"
+          }
+        }
+      },
+      "HotpEvaluationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "metadata" : {
+            "$ref" : "#/components/schemas/HotpEvaluationMetadata"
+          }
+        }
+      },
+      "HotpInlineEvaluationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "identifier" : {
+            "type" : "string"
+          },
+          "sharedSecretHex" : {
+            "type" : "string"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
+          "digits" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "counter" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "otp" : {
+            "type" : "string"
+          },
+          "metadata" : {
+            "type" : "object",
+            "additionalProperties" : {
               "type" : "string"
             }
           }

@@ -12,6 +12,12 @@ public final class TelemetryContracts {
   private static final OcraTelemetryAdapter OCRA_SEEDING_ADAPTER =
       new OcraTelemetryAdapter("ocra.seed");
 
+  private static final HotpTelemetryAdapter HOTP_EVALUATION_ADAPTER =
+      new HotpTelemetryAdapter("hotp.evaluate");
+
+  private static final HotpTelemetryAdapter HOTP_ISSUANCE_ADAPTER =
+      new HotpTelemetryAdapter("hotp.issue");
+
   private TelemetryContracts() {
     throw new AssertionError("No instances");
   }
@@ -29,5 +35,15 @@ public final class TelemetryContracts {
   /** Returns the shared adapter for OCRA credential seeding telemetry. */
   public static OcraTelemetryAdapter ocraSeedingAdapter() {
     return OCRA_SEEDING_ADAPTER;
+  }
+
+  /** Returns the shared adapter for HOTP evaluation telemetry. */
+  public static HotpTelemetryAdapter hotpEvaluationAdapter() {
+    return HOTP_EVALUATION_ADAPTER;
+  }
+
+  /** Returns the shared adapter for HOTP issuance telemetry. */
+  public static HotpTelemetryAdapter hotpIssuanceAdapter() {
+    return HOTP_ISSUANCE_ADAPTER;
   }
 }

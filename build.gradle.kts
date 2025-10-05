@@ -19,6 +19,7 @@ import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
 import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
 import org.gradle.testing.jacoco.tasks.JacocoReport
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 
 plugins {
     base
@@ -116,6 +117,16 @@ subprojects {
         isConsoleOutput = true
         ruleSets = emptyList()
         ruleSetFiles = files(rootProject.file("config/pmd/ruleset.xml"))
+    }
+
+    tasks.withType<Test>().configureEach {
+        extensions.configure(JacocoTaskExtension::class) {
+            val updated = (excludes ?: mutableListOf()).toMutableList()
+            if ("com/gargoylesoftware/**" !in updated) {
+                updated += "com/gargoylesoftware/**"
+            }
+            excludes = updated
+        }
     }
 
     tasks.withType<Pmd>().configureEach {

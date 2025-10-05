@@ -4,7 +4,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.openauth.sim.core.model.Credential;
+import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
+import io.openauth.sim.core.otp.hotp.HotpPersistenceDefaults;
 import io.openauth.sim.core.store.encryption.PersistenceEncryption;
 import io.openauth.sim.core.store.encryption.PersistenceEncryption.EncryptedSecret;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
@@ -78,12 +80,13 @@ public final class MapDbCredentialStore implements CredentialStore {
   public void save(Credential credential) {
     Objects.requireNonNull(credential, "credential");
     long start = System.nanoTime();
-    VersionedCredentialRecord record = VersionedCredentialRecordMapper.toRecord(credential);
+    Credential normalized = ensureHotpDefaults(credential);
+    VersionedCredentialRecord record = VersionedCredentialRecordMapper.toRecord(normalized);
     VersionedCredentialRecord persisted = encryptIfNeeded(record);
-    backing.put(credential.name(), persisted);
+    backing.put(normalized.name(), persisted);
     db.commit();
-    cache.put(credential.name(), credential);
-    logMutationEvent(credential.name(), MutationOperation.SAVE, System.nanoTime() - start);
+    cache.put(normalized.name(), normalized);
+    logMutationEvent(normalized.name(), MutationOperation.SAVE, System.nanoTime() - start);
   }
 
   @Override
@@ -99,7 +102,8 @@ public final class MapDbCredentialStore implements CredentialStore {
     if (record != null) {
       VersionedCredentialRecord upgraded = ensureLatest(name, record);
       VersionedCredentialRecord decrypted = decryptIfNeeded(upgraded);
-      Credential credential = VersionedCredentialRecordMapper.toCredential(decrypted);
+      Credential credential =
+          normalizeAfterLoad(VersionedCredentialRecordMapper.toCredential(decrypted));
       cache.put(name, credential);
       logLookupEvent(name, false, LookupSource.MAPDB, System.nanoTime() - start);
       return Optional.of(credential);
@@ -114,7 +118,8 @@ public final class MapDbCredentialStore implements CredentialStore {
         .map(
             entry -> {
               VersionedCredentialRecord latest = ensureLatest(entry.getKey(), entry.getValue());
-              return VersionedCredentialRecordMapper.toCredential(decryptIfNeeded(latest));
+              return normalizeAfterLoad(
+                  VersionedCredentialRecordMapper.toCredential(decryptIfNeeded(latest)));
             })
         .toList();
   }
@@ -141,6 +146,28 @@ public final class MapDbCredentialStore implements CredentialStore {
 
   Cache<String, Credential> cacheView() {
     return cache;
+  }
+
+  private static Credential ensureHotpDefaults(Credential credential) {
+    if (credential.type() != CredentialType.OATH_HOTP) {
+      return credential;
+    }
+    Map<String, String> normalizedAttributes =
+        HotpPersistenceDefaults.ensureDefaults(credential.attributes());
+    if (normalizedAttributes.equals(credential.attributes())) {
+      return credential;
+    }
+    return new Credential(
+        credential.name(),
+        credential.type(),
+        credential.secret(),
+        normalizedAttributes,
+        credential.createdAt(),
+        credential.updatedAt());
+  }
+
+  private static Credential normalizeAfterLoad(Credential credential) {
+    return ensureHotpDefaults(credential);
   }
 
   public static final class Builder {
