@@ -43,12 +43,6 @@ paths:
                       contextFingerprint: "Base64URL-Hash"
                       telemetryId: "rest-ocra-verify-<uuid>"
                       outcome: "match"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "422":
           description: "Verification payload failed validation"
           content:
@@ -75,6 +69,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OcraVerificationErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
   /api/v1/ocra/evaluate:
     post:
       tags:
@@ -95,6 +95,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OcraEvaluationErrorResponse"
+        "200":
+          description: "Evaluation successful"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationResponse"
         "400":
           description: "Invalid request payload"
           content:
@@ -115,12 +121,6 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "200":
-          description: "Evaluation successful"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationResponse"
   /api/v1/ocra/credentials/seed:
     post:
       tags:
@@ -148,12 +148,6 @@ paths:
               $ref: "#/components/schemas/HotpReplayRequest"
         required: true
       responses:
-        "404":
-          description: "Credential not found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
         "200":
           description: "Replay completed"
           content:
@@ -162,6 +156,12 @@ paths:
                 $ref: "#/components/schemas/HotpReplayResponse"
         "400":
           description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "404":
+          description: "Credential not found"
           content:
             application/json:
               schema:
@@ -187,8 +187,14 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
-        "404":
-          description: "Credential not found"
+        "200":
+          description: "Evaluation completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationResponse"
+        "400":
+          description: "Validation error"
           content:
             application/json:
               schema:
@@ -199,18 +205,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "400":
-          description: "Validation error"
+        "404":
+          description: "Credential not found"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "200":
-          description: "Evaluation completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationResponse"
   /api/v1/hotp/evaluate/inline:
     post:
       tags:
@@ -226,24 +226,24 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "400":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "200":
           description: "Evaluation completed"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
+        "400":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
   /api/v1/ocra/credentials:
     get:
       tags:
@@ -449,17 +449,6 @@ components:
           type: "object"
           additionalProperties:
             type: "string"
-    HotpReplayErrorResponse:
-      type: "object"
-      properties:
-        error:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "string"
     HotpReplayMetadata:
       type: "object"
       properties:
@@ -491,12 +480,7 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/HotpReplayMetadata"
-    HotpStoredEvaluationRequest:
-      type: "object"
-      properties:
-        credentialId:
-          type: "string"
-    HotpEvaluationErrorResponse:
+    HotpReplayErrorResponse:
       type: "object"
       properties:
         error:
@@ -507,6 +491,11 @@ components:
           type: "object"
           additionalProperties:
             type: "string"
+    HotpStoredEvaluationRequest:
+      type: "object"
+      properties:
+        credentialId:
+          type: "string"
     HotpEvaluationMetadata:
       type: "object"
       properties:
@@ -527,6 +516,10 @@ components:
         nextCounter:
           type: "integer"
           format: "int64"
+        samplePresetKey:
+          type: "string"
+        samplePresetLabel:
+          type: "string"
         telemetryId:
           type: "string"
     HotpEvaluationResponse:
@@ -540,6 +533,17 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/HotpEvaluationMetadata"
+    HotpEvaluationErrorResponse:
+      type: "object"
+      properties:
+        error:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "string"
     HotpInlineEvaluationRequest:
       type: "object"
       properties:

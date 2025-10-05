@@ -13,14 +13,13 @@ The operator console embedded in the REST API now provides HOTP evaluation and r
 ## Evaluate a Stored HOTP Credential
 1. Open `http://localhost:8080/ui/console?protocol=hotp` and select the **HOTP** tab if it is not already active.
 2. The console fetches stored HOTP credentials from `/api/v1/hotp/credentials`. Choose an entry from the **Credential** dropdown; labels include hash algorithm and digit length for quick reference.
-3. Enter the observed OTP in the **One-time password** field and select **Evaluate stored credential**.
-4. Successful evaluations display a **match** status along with metadata (hash algorithm, digit length, previous/next counter, telemetry identifier). The MapDB counter advances automatically.
-5. Validation errors (missing OTP, counter drift, credential not found) appear in the error panel with sanitized messaging; counters are not mutated when evaluation fails.
+3. Select **Evaluate stored credential** to generate the next OTP without providing any additional input. The UI renders the generated OTP, counter progression, algorithm, and telemetry identifier in the result panel.
+4. Validation errors (counter overflow, missing credential) appear in the error panel with sanitized messaging; counters are not mutated when evaluation fails.
 
 ## Run Inline HOTP Checks
-1. Switch the evaluation mode toggle to **Inline parameters**; the inline form appears immediately. Provide the shared secret (hex), hash algorithm, digit length, counter, and OTP.
-2. Choose **Evaluate inline parameters** to call `/api/v1/hotp/evaluate/inline` without mutating stored credentials.
-3. Result metadata indicates the credential source (`inline`) and echoes counter bounds so you can confirm drift handling before persisting the credential.
+1. Switch the evaluation mode toggle to **Inline parameters**; the inline form appears immediately. Use **Load a sample vector** to populate known demo values—`Inline demo vector (SHA-1)` mirrors RFC 4226 while `Inline demo vector (SHA-256)` highlights the 8-digit SHA-256 flow. You can still provide your own secret, algorithm, digit length, and counter manually.
+2. Choose **Evaluate inline parameters** to call `/api/v1/hotp/evaluate/inline` without mutating stored credentials. The response contains the generated OTP, the previous/next counter values, and telemetry metadata.
+3. Inline evaluation metadata now includes the selected preset key/label when you launch the request from a sample vector, making it easier to trace automated drills in downstream logs.
 
 ## Replay Observed HOTP OTPs
 1. Activate the **Replay** pill within the HOTP tab to load the replay form. The console defaults to **Stored** mode and surfaces a CSRF-aware form bound to `/api/v1/hotp/replay`.

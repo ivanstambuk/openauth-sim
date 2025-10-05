@@ -28,6 +28,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-05 – HOTP inline evaluation no longer collects an operator-provided identifier; the REST/API surface accepts only secret, algorithm, digits, counter, and OTP for inline requests (user directive).
 - 2025-10-05 – HOTP Evaluate tab (stored and inline modes) must generate the OTP and display it without requiring operator input; OTP entry remains exclusive to the Replay tab (user directive; Option A selected).
 - 2025-10-05 – HtmlUnit `@SuppressFBWarnings` annotation dependency is added to the REST API test configuration (via `com.github.spotbugs:spotbugs-annotations` on the test classpath) so compilation warnings are suppressed without disabling linting (user directive; Option A selected).
+- 2025-10-05 – HOTP inline evaluate "Load a sample vector" control must offer multiple presets (e.g., RFC 4226 SHA-1 and an additional SHA-256 demo vector) so operators can exercise different hash digests during generation flows (user directive; Option B selected).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

@@ -147,6 +147,27 @@ final class HotpEvaluationApplicationServiceTest {
   }
 
   @Test
+  void evaluateInlinePresetMetadataPropagatesToTelemetry() {
+    Map<String, String> metadata =
+        Map.of(
+            "presetKey", "inline-demo-sha256",
+            "presetLabel", "Inline demo vector (SHA-256)");
+    EvaluationCommand.Inline command =
+        new EvaluationCommand.Inline(SECRET.asHex(), HotpHashAlgorithm.SHA256, 8, 5L, metadata);
+
+    EvaluationResult result = service.evaluate(command);
+
+    assertEquals(TelemetryStatus.SUCCESS, result.telemetry().status());
+    assertEquals("inline-demo-sha256", result.samplePresetKey());
+    assertEquals("Inline demo vector (SHA-256)", result.samplePresetLabel());
+    assertEquals("inline-demo-sha256", result.telemetry().fields().get("inlinePresetKey"));
+    assertEquals(
+        "Inline demo vector (SHA-256)", result.telemetry().fields().get("inlinePresetLabel"));
+    assertEquals("SHA256", result.telemetry().fields().get("hashAlgorithm"));
+    assertEquals(8, result.telemetry().fields().get("digits"));
+  }
+
+  @Test
   void evaluateInlineCounterOverflowReturnsValidationFailure() {
     EvaluationCommand.Inline command =
         new EvaluationCommand.Inline(SECRET.asHex(), ALGORITHM, DIGITS, Long.MAX_VALUE, Map.of());

@@ -111,6 +111,19 @@
                 th:attr="data-evaluate-endpoint=${hotpInlineEvaluateEndpoint}"
               >
               <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+              <div class="inline-preset" data-testid="hotp-inline-preset">
+                <label for="hotpInlinePreset">Load a sample vector</label>
+                <select
+                  id="hotpInlinePreset"
+                  name="hotpInlinePreset"
+                  data-testid="hotp-inline-preset-select"
+                >
+                  <option value="">Select a sample</option>
+                </select>
+                <p class="hint">
+                  Selecting a preset fills the inline HOTP fields with illustrative data.
+                </p>
+              </div>
               <div class="field-grid">
                 <div class="field-group">
                   <label for="hotpInlineSecretHex">Shared secret (hex)</label>

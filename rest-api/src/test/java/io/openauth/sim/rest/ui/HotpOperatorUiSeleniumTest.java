@@ -38,11 +38,23 @@ final class HotpOperatorUiSeleniumTest {
   private static final String SECRET_HEX = "3132333435363738393031323334353637383930";
   private static final int DIGITS = 6;
   private static final long INITIAL_COUNTER = 0L;
+  private static final String INLINE_SHA256_PRESET_KEY = "inline-demo-sha256";
+  private static final String INLINE_SHA256_PRESET_LABEL = "Inline demo vector (SHA-256)";
+  private static final int INLINE_SHA256_DIGITS = 8;
+  private static final long INLINE_SHA256_COUNTER = 5L;
   private static final HotpDescriptor DESCRIPTOR =
       HotpDescriptor.create(
           STORED_CREDENTIAL_ID, SecretMaterial.fromHex(SECRET_HEX), HotpHashAlgorithm.SHA1, DIGITS);
   private static final String EXPECTED_STORED_OTP =
       HotpGenerator.generate(DESCRIPTOR, INITIAL_COUNTER);
+  private static final HotpDescriptor INLINE_SHA256_DESCRIPTOR =
+      HotpDescriptor.create(
+          INLINE_SHA256_PRESET_KEY,
+          SecretMaterial.fromHex(SECRET_HEX),
+          HotpHashAlgorithm.SHA256,
+          INLINE_SHA256_DIGITS);
+  private static final String EXPECTED_INLINE_SHA256_OTP =
+      HotpGenerator.generate(INLINE_SHA256_DESCRIPTOR, INLINE_SHA256_COUNTER);
 
   @TempDir static Path tempDir;
   private static Path databasePath;
@@ -138,7 +150,7 @@ final class HotpOperatorUiSeleniumTest {
   }
 
   @Test
-  @DisplayName("Inline HOTP evaluation succeeds via operator console")
+  @DisplayName("Inline HOTP evaluation succeeds via operator console presets")
   void inlineHotpEvaluationSucceeds() {
     navigateToHotpPanel();
 
@@ -162,11 +174,57 @@ final class HotpOperatorUiSeleniumTest {
     if (!driver.findElements(By.id("hotpInlineIdentifier")).isEmpty()) {
       throw new AssertionError("HOTP inline identifier field should not be rendered");
     }
-    driver.findElement(By.id("hotpInlineSecretHex")).sendKeys(SECRET_HEX);
-    driver.findElement(By.id("hotpInlineDigits")).clear();
-    driver.findElement(By.id("hotpInlineDigits")).sendKeys(Integer.toString(DIGITS));
-    driver.findElement(By.id("hotpInlineCounter")).clear();
-    driver.findElement(By.id("hotpInlineCounter")).sendKeys(Long.toString(INITIAL_COUNTER));
+
+    WebElement presetContainer =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-inline-preset']")));
+
+    WebElement presetLabel = presetContainer.findElement(By.tagName("label"));
+    if (!presetLabel.getText().contains("Load a sample vector")) {
+      throw new AssertionError("Expected inline preset label to mention sample vectors");
+    }
+
+    Select inlinePresetSelect =
+        new Select(driver.findElement(By.cssSelector("[data-testid='hotp-inline-preset-select']")));
+    if (inlinePresetSelect.getOptions().size() < 3) {
+      throw new AssertionError("HOTP inline presets should expose at least two sample options");
+    }
+    boolean sha1Present =
+        inlinePresetSelect.getOptions().stream()
+            .anyMatch(option -> "demo-inline".equals(option.getAttribute("value")));
+    boolean sha256Present =
+        inlinePresetSelect.getOptions().stream()
+            .anyMatch(option -> INLINE_SHA256_PRESET_KEY.equals(option.getAttribute("value")));
+    if (!sha1Present || !sha256Present) {
+      throw new AssertionError("Expected inline presets to expose SHA-1 and SHA-256 demo vectors");
+    }
+
+    inlinePresetSelect.selectByValue(INLINE_SHA256_PRESET_KEY);
+
+    WebElement secretField = driver.findElement(By.id("hotpInlineSecretHex"));
+    WebElement algorithmField = driver.findElement(By.id("hotpInlineAlgorithm"));
+    WebElement digitsField = driver.findElement(By.id("hotpInlineDigits"));
+    WebElement counterField = driver.findElement(By.id("hotpInlineCounter"));
+
+    if (!SECRET_HEX.equals(secretField.getAttribute("value"))) {
+      throw new AssertionError("Inline preset should populate shared secret material");
+    }
+    Select algorithmSelect = new Select(algorithmField);
+    String algorithmValue =
+        algorithmSelect.getFirstSelectedOption() != null
+            ? algorithmSelect.getFirstSelectedOption().getAttribute("value")
+            : null;
+    if (!"SHA256".equals(algorithmValue)) {
+      throw new AssertionError("Inline preset should select SHA-256 algorithm");
+    }
+    if (!Integer.toString(INLINE_SHA256_DIGITS).equals(digitsField.getAttribute("value"))) {
+      throw new AssertionError("Inline preset should populate digit count");
+    }
+    if (!Long.toString(INLINE_SHA256_COUNTER).equals(counterField.getAttribute("value"))) {
+      throw new AssertionError("Inline preset should populate counter value");
+    }
 
     if (!driver.findElements(By.id("hotpInlineOtp")).isEmpty()) {
       throw new AssertionError("HOTP inline evaluation should not render an OTP input");
@@ -183,11 +241,26 @@ final class HotpOperatorUiSeleniumTest {
         resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-otp']"));
     WebElement statusValue =
         resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-status']"));
+    WebElement metadataValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-metadata']"));
     if (!"generated".equalsIgnoreCase(statusValue.getText())) {
       throw new AssertionError("Expected HOTP generated status for inline evaluation");
     }
-    if (otpValue.getText() == null || otpValue.getText().isBlank()) {
-      throw new AssertionError("Expected inline evaluation to display generated OTP");
+    if (!EXPECTED_INLINE_SHA256_OTP.equals(otpValue.getText())) {
+      throw new AssertionError("Expected inline evaluation to surface SHA-256 preset OTP");
+    }
+    String metadataText = metadataValue.getText();
+    if (!metadataText.contains("hashAlgorithm=SHA256")) {
+      throw new AssertionError("Inline metadata should note SHA-256 algorithm");
+    }
+    if (!metadataText.contains("digits=" + INLINE_SHA256_DIGITS)) {
+      throw new AssertionError("Inline metadata should note digit count");
+    }
+    if (!metadataText.contains("samplePresetKey=" + INLINE_SHA256_PRESET_KEY)) {
+      throw new AssertionError("Inline metadata should expose preset key");
+    }
+    if (!metadataText.contains("samplePresetLabel=" + INLINE_SHA256_PRESET_LABEL)) {
+      throw new AssertionError("Inline metadata should expose preset label");
     }
   }
 

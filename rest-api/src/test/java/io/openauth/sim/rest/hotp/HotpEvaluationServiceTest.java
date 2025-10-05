@@ -46,7 +46,8 @@ final class HotpEvaluationServiceTest {
             Map.of("credentialSource", "stored"),
             null);
     EvaluationResult result =
-        new EvaluationResult(signal, true, "demo", 0L, 1L, HotpHashAlgorithm.SHA1, 6, OTP);
+        new EvaluationResult(
+            signal, true, "demo", 0L, 1L, HotpHashAlgorithm.SHA1, 6, OTP, null, null);
     when(applicationService.evaluate(any(EvaluationCommand.Stored.class))).thenReturn(result);
 
     HotpEvaluationResponse response =
@@ -67,7 +68,8 @@ final class HotpEvaluationServiceTest {
     TelemetrySignal signal =
         new TelemetrySignal(TelemetryStatus.SUCCESS, "generated", null, true, fields, null);
     EvaluationResult result =
-        new EvaluationResult(signal, false, null, 10L, 11L, HotpHashAlgorithm.SHA1, 6, OTP);
+        new EvaluationResult(
+            signal, false, null, 10L, 11L, HotpHashAlgorithm.SHA1, 6, OTP, null, null);
     when(applicationService.evaluate(any(EvaluationCommand.Inline.class))).thenReturn(result);
 
     HotpEvaluationResponse response =
@@ -151,7 +153,16 @@ final class HotpEvaluationServiceTest {
             null);
     EvaluationResult result =
         new EvaluationResult(
-            signal, true, "demo", Long.MAX_VALUE, Long.MAX_VALUE, HotpHashAlgorithm.SHA1, 6, null);
+            signal,
+            true,
+            "demo",
+            Long.MAX_VALUE,
+            Long.MAX_VALUE,
+            HotpHashAlgorithm.SHA1,
+            6,
+            null,
+            null,
+            null);
     when(applicationService.evaluate(any(EvaluationCommand.Stored.class))).thenReturn(result);
 
     HotpEvaluationValidationException exception =
@@ -175,7 +186,8 @@ final class HotpEvaluationServiceTest {
             Map.of("credentialSource", "inline"),
             null);
     EvaluationResult result =
-        new EvaluationResult(signal, false, null, 5L, 5L, HotpHashAlgorithm.SHA1, 6, null);
+        new EvaluationResult(
+            signal, false, null, 5L, 5L, HotpHashAlgorithm.SHA1, 6, null, null, null);
     when(applicationService.evaluate(any(EvaluationCommand.Inline.class))).thenReturn(result);
 
     HotpEvaluationUnexpectedException exception =

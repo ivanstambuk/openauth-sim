@@ -93,6 +93,8 @@ class HotpEvaluationService {
             result.digits(),
             result.previousCounter(),
             result.nextCounter(),
+            result.samplePresetKey(),
+            result.samplePresetLabel(),
             telemetryId);
 
     return switch (signal.status()) {

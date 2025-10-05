@@ -33,6 +33,12 @@
   var inlineForm = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-inline-form"]')
     : null;
+  var inlinePresetContainer = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-inline-preset"]')
+    : null;
+  var inlinePresetSelect = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-inline-preset-select"]')
+    : null;
   var storedResultPanel = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-stored-result-panel"]')
     : null;
@@ -167,6 +173,7 @@
   };
   var INLINE_SAMPLE_DATA = {
     'demo-inline': {
+      label: 'Inline demo vector (SHA-1)',
       identifier: 'inline-sample',
       sharedSecretHex: HOTP_SAMPLE_SECRET_HEX,
       algorithm: 'SHA1',
@@ -178,10 +185,25 @@
         notes: 'Inline HOTP replay demo vector derived from RFC 4226 sample.',
       },
     },
+    'inline-demo-sha256': {
+      label: 'Inline demo vector (SHA-256)',
+      identifier: 'inline-sample-sha256',
+      sharedSecretHex: HOTP_SAMPLE_SECRET_HEX,
+      algorithm: 'SHA256',
+      digits: 8,
+      counter: 5,
+      otp: '89697997',
+      metadata: {
+        label: 'inline-demo-sha256',
+        notes: 'Inline HOTP demo vector using SHA-256 with an 8-digit response.',
+      },
+    },
   };
 
   var credentialCache = null;
   var credentialPromise = null;
+  var inlinePresetActiveKey = '';
+  var inlinePresetActiveLabel = '';
 
   function setHidden(element, hidden) {
     if (!element) {
@@ -395,6 +417,12 @@
     }
     if (typeof metadata.nextCounter === 'number') {
       parts.push('nextCounter=' + metadata.nextCounter);
+    }
+    if (metadata.samplePresetKey) {
+      parts.push('samplePresetKey=' + metadata.samplePresetKey);
+    }
+    if (metadata.samplePresetLabel) {
+      parts.push('samplePresetLabel=' + metadata.samplePresetLabel);
     }
     if (metadata.telemetryId) {
       parts.push('telemetryId=' + metadata.telemetryId);
@@ -615,6 +643,73 @@
     if (replaySampleMessage) {
       replaySampleMessage.textContent = 'Sample data applied';
     }
+  }
+
+  function setInlinePresetTracking(key, label) {
+    inlinePresetActiveKey = key || '';
+    inlinePresetActiveLabel = label ? label.trim() : '';
+  }
+
+  function clearInlinePresetTracking() {
+    inlinePresetActiveKey = '';
+    inlinePresetActiveLabel = '';
+    if (inlinePresetContainer) {
+      inlinePresetContainer.removeAttribute('data-preset-applied');
+    }
+    if (inlinePresetSelect && inlinePresetSelect.value) {
+      inlinePresetSelect.value = '';
+    }
+  }
+
+  function applyInlineEvaluationPreset(presetKey) {
+    var preset = INLINE_SAMPLE_DATA[presetKey];
+    if (!preset) {
+      return;
+    }
+    if (inlineSecretInput && typeof preset.sharedSecretHex === 'string') {
+      inlineSecretInput.value = preset.sharedSecretHex;
+    }
+    if (inlineAlgorithmSelect && preset.algorithm) {
+      inlineAlgorithmSelect.value = preset.algorithm;
+    }
+    if (inlineDigitsInput && typeof preset.digits === 'number') {
+      inlineDigitsInput.value = String(preset.digits);
+    }
+    if (inlineCounterInput && typeof preset.counter === 'number') {
+      inlineCounterInput.value = String(preset.counter);
+    }
+    if (inlinePresetContainer) {
+      inlinePresetContainer.setAttribute('data-preset-applied', presetKey);
+    }
+    setHidden(inlineResultPanel, true);
+    hideInlineError();
+  }
+
+  function renderInlinePresetOptions() {
+    if (!inlinePresetSelect) {
+      return;
+    }
+    while (inlinePresetSelect.firstChild) {
+      inlinePresetSelect.removeChild(inlinePresetSelect.firstChild);
+    }
+    var placeholder = documentRef.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Select a sample';
+    inlinePresetSelect.appendChild(placeholder);
+    Object.keys(INLINE_SAMPLE_DATA)
+      .sort(function (a, b) {
+        return a.localeCompare(b, undefined, { sensitivity: 'base' });
+      })
+      .forEach(function (key) {
+        var preset = INLINE_SAMPLE_DATA[key];
+        if (!preset) {
+          return;
+        }
+        var option = documentRef.createElement('option');
+        option.value = key;
+        option.textContent = preset.label || key;
+        inlinePresetSelect.appendChild(option);
+      });
   }
 
   function applyInlinePreset(presetKey) {
@@ -979,6 +1074,14 @@
       counter: counter,
     };
 
+    if (inlinePresetActiveKey) {
+      var metadataPayload = { presetKey: inlinePresetActiveKey };
+      if (inlinePresetActiveLabel) {
+        metadataPayload.presetLabel = inlinePresetActiveLabel;
+      }
+      payload.metadata = metadataPayload;
+    }
+
     fetchDelegate(inlineForm.getAttribute('data-evaluate-endpoint') || '/api/v1/hotp/evaluate/inline', {
       method: 'POST',
       headers: {
@@ -1040,6 +1143,33 @@
       inlineButton.addEventListener('click', function (event) {
         event.preventDefault();
         handleInlineEvaluate();
+      });
+    }
+    if (inlinePresetSelect) {
+      inlinePresetSelect.addEventListener('change', function (event) {
+        var target = event && event.target ? event.target : inlinePresetSelect;
+        var value = target.value || '';
+        if (value) {
+          applyInlineEvaluationPreset(value);
+          var option = target.options && target.options[target.selectedIndex];
+          var label = option && option.textContent ? option.textContent.trim() : '';
+          setInlinePresetTracking(value, label);
+        } else {
+          clearInlinePresetTracking();
+        }
+      });
+    }
+    var manualInputs = [inlineSecretInput, inlineDigitsInput, inlineCounterInput];
+    manualInputs.forEach(function (input) {
+      if (input) {
+        input.addEventListener('input', function () {
+          clearInlinePresetTracking();
+        });
+      }
+    });
+    if (inlineAlgorithmSelect) {
+      inlineAlgorithmSelect.addEventListener('change', function () {
+        clearInlinePresetTracking();
       });
     }
   }
@@ -1106,6 +1236,7 @@
       return;
     }
     attachEvaluationHandlers();
+    renderInlinePresetOptions();
     if (modeToggle) {
       setActiveMode(modeToggle.getAttribute('data-mode') || 'stored');
     } else {

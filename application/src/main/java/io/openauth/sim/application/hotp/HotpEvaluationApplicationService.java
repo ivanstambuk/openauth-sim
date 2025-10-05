@@ -75,7 +75,9 @@ public final class HotpEvaluationApplicationService {
       long nextCounter,
       HotpHashAlgorithm algorithm,
       Integer digits,
-      String otp) {
+      String otp,
+      String samplePresetKey,
+      String samplePresetLabel) {
 
     public EvaluationFrame evaluationFrame(HotpTelemetryAdapter adapter, String telemetryId) {
       return new EvaluationFrame(telemetry.emit(adapter, telemetryId));
@@ -140,7 +142,9 @@ public final class HotpEvaluationApplicationService {
             previousCounter,
             previousCounter,
             "counter_overflow",
-            ex.getMessage());
+            ex.getMessage(),
+            null,
+            null);
       }
 
       persistCounter(storedCredential.credential(), nextCounter);
@@ -152,15 +156,21 @@ public final class HotpEvaluationApplicationService {
           storedCredential.descriptor().digits(),
           previousCounter,
           nextCounter,
-          otp);
+          otp,
+          null,
+          null);
     } catch (IllegalArgumentException ex) {
       return invalidMetadataResult(command.credentialId(), ex.getMessage());
     } catch (RuntimeException ex) {
-      return unexpectedErrorResult(command.credentialId(), true, "stored", null, null, 0L, ex);
+      return unexpectedErrorResult(
+          command.credentialId(), true, "stored", null, null, 0L, null, null, ex);
     }
   }
 
   private EvaluationResult evaluateInline(EvaluationCommand.Inline command) {
+    Map<String, String> metadata = command.metadata();
+    String presetKey = normalize(metadata.get("presetKey"));
+    String presetLabel = normalize(metadata.get("presetLabel"));
     try {
       Long counterValue = command.counter();
       if (counterValue == null) {
@@ -173,7 +183,9 @@ public final class HotpEvaluationApplicationService {
             0L,
             0L,
             "counter_required",
-            "counter is required");
+            "counter is required",
+            presetKey,
+            presetLabel);
       }
       if (!hasText(command.sharedSecretHex())) {
         return validationFailure(
@@ -185,7 +197,9 @@ public final class HotpEvaluationApplicationService {
             0L,
             0L,
             "sharedSecretHex_required",
-            "sharedSecretHex is required");
+            "sharedSecretHex is required",
+            presetKey,
+            presetLabel);
       }
       HotpDescriptor descriptor =
           HotpDescriptor.create(
@@ -209,7 +223,9 @@ public final class HotpEvaluationApplicationService {
             previousCounter,
             previousCounter,
             "counter_overflow",
-            ex.getMessage());
+            ex.getMessage(),
+            presetKey,
+            presetLabel);
       }
 
       return successResult(
@@ -220,7 +236,9 @@ public final class HotpEvaluationApplicationService {
           descriptor.digits(),
           previousCounter,
           nextCounter,
-          otp);
+          otp,
+          presetKey,
+          presetLabel);
     } catch (IllegalArgumentException ex) {
       return validationFailure(
           null,
@@ -231,10 +249,20 @@ public final class HotpEvaluationApplicationService {
           command.counter() != null ? command.counter() : 0L,
           command.counter() != null ? command.counter() : 0L,
           "validation_error",
-          ex.getMessage());
+          ex.getMessage(),
+          presetKey,
+          presetLabel);
     } catch (RuntimeException ex) {
       return unexpectedErrorResult(
-          null, false, "inline", command.algorithm(), command.digits(), command.counter(), ex);
+          null,
+          false,
+          "inline",
+          command.algorithm(),
+          command.digits(),
+          command.counter(),
+          presetKey,
+          presetLabel,
+          ex);
     }
   }
 
@@ -280,11 +308,20 @@ public final class HotpEvaluationApplicationService {
       int digits,
       long previousCounter,
       long nextCounter,
-      String otp) {
+      String otp,
+      String samplePresetKey,
+      String samplePresetLabel) {
 
     Map<String, Object> fields =
         evaluationFields(
-            credentialSource, credentialId, algorithm, digits, previousCounter, nextCounter);
+            credentialSource,
+            credentialId,
+            algorithm,
+            digits,
+            previousCounter,
+            nextCounter,
+            samplePresetKey,
+            samplePresetLabel);
     TelemetrySignal signal =
         new TelemetrySignal(TelemetryStatus.SUCCESS, "generated", null, true, fields, null);
     return new EvaluationResult(
@@ -295,7 +332,9 @@ public final class HotpEvaluationApplicationService {
         nextCounter,
         algorithm,
         digits,
-        otp);
+        otp,
+        samplePresetKey,
+        samplePresetLabel);
   }
 
   private EvaluationResult validationFailure(
@@ -307,11 +346,20 @@ public final class HotpEvaluationApplicationService {
       long previousCounter,
       long nextCounter,
       String reasonCode,
-      String reason) {
+      String reason,
+      String samplePresetKey,
+      String samplePresetLabel) {
 
     Map<String, Object> fields =
         evaluationFields(
-            credentialSource, credentialId, algorithm, digits, previousCounter, nextCounter);
+            credentialSource,
+            credentialId,
+            algorithm,
+            digits,
+            previousCounter,
+            nextCounter,
+            samplePresetKey,
+            samplePresetLabel);
     TelemetrySignal signal =
         new TelemetrySignal(
             TelemetryStatus.INVALID, reasonCode, safeMessage(reason), true, fields, null);
@@ -323,11 +371,14 @@ public final class HotpEvaluationApplicationService {
         nextCounter,
         algorithm,
         digits,
-        null);
+        null,
+        samplePresetKey,
+        samplePresetLabel);
   }
 
   private EvaluationResult notFoundResult(String credentialId) {
-    Map<String, Object> fields = evaluationFields("stored", credentialId, null, null, 0L, 0L);
+    Map<String, Object> fields =
+        evaluationFields("stored", credentialId, null, null, 0L, 0L, null, null);
     TelemetrySignal signal =
         new TelemetrySignal(
             TelemetryStatus.INVALID,
@@ -336,11 +387,12 @@ public final class HotpEvaluationApplicationService {
             true,
             fields,
             null);
-    return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null);
+    return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null, null, null);
   }
 
   private EvaluationResult invalidMetadataResult(String credentialId, String reason) {
-    Map<String, Object> fields = evaluationFields("stored", credentialId, null, null, 0L, 0L);
+    Map<String, Object> fields =
+        evaluationFields("stored", credentialId, null, null, 0L, 0L, null, null);
     TelemetrySignal signal =
         new TelemetrySignal(
             TelemetryStatus.INVALID,
@@ -349,7 +401,7 @@ public final class HotpEvaluationApplicationService {
             true,
             fields,
             null);
-    return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null);
+    return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null, null, null);
   }
 
   private EvaluationResult unexpectedErrorResult(
@@ -359,11 +411,20 @@ public final class HotpEvaluationApplicationService {
       HotpHashAlgorithm algorithm,
       Integer digits,
       long previousCounter,
+      String samplePresetKey,
+      String samplePresetLabel,
       Throwable error) {
 
     Map<String, Object> fields =
         evaluationFields(
-            credentialSource, credentialId, algorithm, digits, previousCounter, previousCounter);
+            credentialSource,
+            credentialId,
+            algorithm,
+            digits,
+            previousCounter,
+            previousCounter,
+            samplePresetKey,
+            samplePresetLabel);
     if (error != null) {
       fields.put("exception", error.getClass().getName() + ": " + safeMessage(error));
     }
@@ -378,7 +439,9 @@ public final class HotpEvaluationApplicationService {
         previousCounter,
         algorithm,
         digits,
-        null);
+        null,
+        samplePresetKey,
+        samplePresetLabel);
   }
 
   private void persistCounter(Credential credential, long nextCounter) {
@@ -393,7 +456,9 @@ public final class HotpEvaluationApplicationService {
       HotpHashAlgorithm algorithm,
       Integer digits,
       long previousCounter,
-      long nextCounter) {
+      long nextCounter,
+      String samplePresetKey,
+      String samplePresetLabel) {
 
     Map<String, Object> fields = new LinkedHashMap<>();
     fields.put("credentialSource", credentialSource);
@@ -406,7 +471,21 @@ public final class HotpEvaluationApplicationService {
     }
     fields.put("previousCounter", previousCounter);
     fields.put("nextCounter", nextCounter);
+    if (hasText(samplePresetKey)) {
+      fields.put("inlinePresetKey", samplePresetKey);
+    }
+    if (hasText(samplePresetLabel)) {
+      fields.put("inlinePresetLabel", samplePresetLabel);
+    }
     return fields;
+  }
+
+  private static String normalize(String value) {
+    if (value == null) {
+      return null;
+    }
+    String trimmed = value.trim();
+    return trimmed.isEmpty() ? null : trimmed;
   }
 
   private static boolean hasText(String value) {

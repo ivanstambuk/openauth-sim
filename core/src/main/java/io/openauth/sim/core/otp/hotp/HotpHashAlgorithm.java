@@ -2,7 +2,9 @@ package io.openauth.sim.core.otp.hotp;
 
 /** Supported HMAC algorithms for HOTP operations. */
 public enum HotpHashAlgorithm {
-  SHA1("HmacSHA1", 10);
+  SHA1("HmacSHA1", 10),
+  SHA256("HmacSHA256", 16),
+  SHA512("HmacSHA512", 32);
 
   private final String macAlgorithm;
   private final int minimumSecretLengthBytes;

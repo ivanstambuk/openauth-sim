@@ -13,6 +13,8 @@ record HotpEvaluationMetadata(
     @JsonProperty("digits") Integer digits,
     @JsonProperty("previousCounter") Long previousCounter,
     @JsonProperty("nextCounter") Long nextCounter,
+    @JsonProperty("samplePresetKey") String samplePresetKey,
+    @JsonProperty("samplePresetLabel") String samplePresetLabel,
     @JsonProperty("telemetryId") String telemetryId) {
 
   // Canonical record; no additional behaviour.

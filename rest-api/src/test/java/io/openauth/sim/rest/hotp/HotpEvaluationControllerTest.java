@@ -29,7 +29,8 @@ class HotpEvaluationControllerTest {
   @DisplayName("Stored evaluation returns generated OTP payload with metadata")
   void storedEvaluationReturnsResponse() throws Exception {
     HotpEvaluationMetadata metadata =
-        new HotpEvaluationMetadata("stored", "demo", true, "SHA1", 6, 0L, 1L, "rest-hotp-1");
+        new HotpEvaluationMetadata(
+            "stored", "demo", true, "SHA1", 6, 0L, 1L, null, null, "rest-hotp-1");
     HotpEvaluationResponse response =
         new HotpEvaluationResponse("generated", "generated", "755224", metadata);
     when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenReturn(response);
@@ -52,7 +53,8 @@ class HotpEvaluationControllerTest {
   @DisplayName("Inline evaluation returns generated OTP payload with metadata")
   void inlineEvaluationReturnsResponse() throws Exception {
     HotpEvaluationMetadata metadata =
-        new HotpEvaluationMetadata("inline", null, false, "SHA1", 6, 7L, 8L, "rest-hotp-2");
+        new HotpEvaluationMetadata(
+            "inline", null, false, "SHA1", 6, 7L, 8L, null, null, "rest-hotp-2");
     HotpEvaluationResponse response =
         new HotpEvaluationResponse("generated", "generated", "254676", metadata);
     when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenReturn(response);

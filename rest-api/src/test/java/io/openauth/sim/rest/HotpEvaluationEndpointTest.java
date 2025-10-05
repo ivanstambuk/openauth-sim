@@ -48,6 +48,10 @@ class HotpEvaluationEndpointTest {
       Logger.getLogger("io.openauth.sim.rest.hotp.telemetry");
   private static final String SECRET_HEX = "3132333435363738393031323334353637383930";
   private static final String CREDENTIAL_ID = "rest-hotp-demo";
+  private static final String INLINE_SHA256_PRESET_KEY = "inline-demo-sha256";
+  private static final String INLINE_SHA256_PRESET_LABEL = "Inline demo vector (SHA-256)";
+  private static final String INLINE_SHA256_OTP = "89697997";
+  private static final long INLINE_SHA256_COUNTER = 5L;
 
   static {
     TELEMETRY_LOGGER.setLevel(Level.ALL);
@@ -169,6 +173,54 @@ class HotpEvaluationEndpointTest {
     } finally {
       deregisterTelemetryHandler(handler);
     }
+  }
+
+  @Test
+  @DisplayName("Inline HOTP evaluation using SHA-256 preset surfaces preset metadata")
+  void inlineHotpEvaluationPresetMetadata() throws Exception {
+    String responseBody =
+        mockMvc
+            .perform(
+                post("/api/v1/hotp/evaluate/inline")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                            {
+                              "sharedSecretHex": "%s",
+                              "algorithm": "SHA256",
+                              "digits": 8,
+                              "counter": %d,
+                              "metadata": {
+                                "presetKey": "%s",
+                                "presetLabel": "%s"
+                              }
+                            }
+                            """
+                            .formatted(
+                                SECRET_HEX,
+                                INLINE_SHA256_COUNTER,
+                                INLINE_SHA256_PRESET_KEY,
+                                INLINE_SHA256_PRESET_LABEL)))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode response = MAPPER.readTree(responseBody);
+    assertEquals("generated", response.get("status").asText());
+    assertEquals("generated", response.get("reasonCode").asText());
+    assertEquals(INLINE_SHA256_OTP, response.get("otp").asText());
+
+    JsonNode metadata = response.get("metadata");
+    assertTrue(metadata.has("samplePresetKey"), "Expected samplePresetKey to be exposed");
+    assertEquals(INLINE_SHA256_PRESET_KEY, metadata.get("samplePresetKey").asText());
+    assertTrue(metadata.has("samplePresetLabel"), "Expected samplePresetLabel to be exposed");
+    assertEquals(INLINE_SHA256_PRESET_LABEL, metadata.get("samplePresetLabel").asText());
+    assertEquals("inline", metadata.get("credentialSource").asText());
+    assertEquals("SHA256", metadata.get("hashAlgorithm").asText());
+    assertEquals(8, metadata.get("digits").asInt());
+    assertEquals(INLINE_SHA256_COUNTER, metadata.get("previousCounter").asLong());
+    assertEquals(INLINE_SHA256_COUNTER + 1, metadata.get("nextCounter").asLong());
   }
 
   private Credential storedCredential(long counter) {
