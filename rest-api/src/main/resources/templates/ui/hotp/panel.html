@@ -67,6 +67,20 @@
                 <div class="mode-option">
                   <input
                     type="radio"
+                    id="hotpModeInline"
+                    name="hotpMode"
+                    value="inline"
+                    data-testid="hotp-mode-select-inline"
+                    aria-describedby="hotpModeInlineHint"
+                  />
+                  <label for="hotpModeInline">Inline parameters</label>
+                  <p id="hotpModeInlineHint" class="hint">
+                    Enter HOTP parameters without using stored credentials.
+                  </p>
+                </div>
+                <div class="mode-option">
+                  <input
+                    type="radio"
                     id="hotpModeStored"
                     name="hotpMode"
                     value="stored"
@@ -76,115 +90,12 @@
                   />
                   <label for="hotpModeStored">Stored credential</label>
                   <p id="hotpModeStoredHint" class="hint">
-                    Select a persisted HOTP credential and submit the observed OTP. Successful validation
-                    advances the counter in the shared MapDB store.
-                  </p>
-                </div>
-                <div class="mode-option">
-                  <input
-                    type="radio"
-                    id="hotpModeInline"
-                    name="hotpMode"
-                    value="inline"
-                    data-testid="hotp-mode-select-inline"
-                    aria-describedby="hotpModeInlineHint"
-                  />
-                  <label for="hotpModeInline">Inline parameters</label>
-                  <p id="hotpModeInlineHint" class="hint">
-                    Provide HOTP parameters without touching stored credentials. Inline verification is useful
-                    for ad-hoc troubleshooting or client-supplied payloads.
+                    Select a stored HOTP credential and submit the OTP.
                   </p>
                 </div>
               </fieldset>
             </div>
           </div>
-
-          <section
-              class="stack-md"
-              data-testid="hotp-stored-evaluation-panel"
-              aria-labelledby="hotp-stored-heading"
-              data-mode-section="stored"
-            >
-            <h2 id="hotp-stored-heading">Stored credential evaluation</h2>
-            <p class="hint">
-              Select a persisted HOTP credential and submit the observed OTP. Successful validation will
-              advance the counter in the shared MapDB store.
-            </p>
-            <form
-                data-testid="hotp-stored-form"
-                class="evaluation-form"
-                th:attr="data-evaluate-endpoint=${hotpStoredEvaluateEndpoint},data-credentials-endpoint=${hotpCredentialsEndpoint}"
-              >
-              <input type="hidden" name="_csrf" th:value="${csrfToken}" />
-              <div class="field-grid">
-                <div>
-                  <label for="hotpStoredCredentialId">Credential</label>
-                  <select
-                    id="hotpStoredCredentialId"
-                    name="credentialId"
-                    required="required"
-                    aria-describedby="hotp-stored-status"
-                    data-testid="hotp-stored-credential-select"
-                  >
-                    <option value="">Loading credentials…</option>
-                  </select>
-                  <p
-                    id="hotp-stored-status"
-                    class="hint"
-                    data-testid="hotp-stored-status"
-                    aria-live="polite"
-                  >
-                    HOTP credentials will appear once loaded.
-                  </p>
-                </div>
-                <div>
-                  <label for="hotpStoredOtp">One-time password</label>
-                  <input
-                    id="hotpStoredOtp"
-                    name="otp"
-                    type="text"
-                    inputmode="numeric"
-                    autocapitalize="none"
-                    autocomplete="one-time-code"
-                    required="required"
-                    minlength="6"
-                    maxlength="8"
-                  />
-                </div>
-              </div>
-              <button
-                type="button"
-                class="button-primary"
-                data-testid="hotp-stored-evaluate-button"
-              >
-                Evaluate stored credential
-              </button>
-            </form>
-            <section
-                data-testid="hotp-stored-result-panel"
-                class="result-panel"
-                aria-live="polite"
-                aria-labelledby="hotp-stored-result-heading"
-                hidden="hidden"
-              >
-              <h3 id="hotp-stored-result-heading">Stored evaluation result</h3>
-              <p>
-                Status:
-                <strong data-testid="hotp-result-status"></strong>
-              </p>
-              <p data-testid="hotp-result-metadata" class="hint"></p>
-            </section>
-            <section
-                data-testid="hotp-stored-error-panel"
-                class="error-panel"
-                role="alert"
-                aria-live="assertive"
-                hidden="hidden"
-              >
-              <h3>Stored evaluation failed</h3>
-              <p data-testid="hotp-stored-error"></p>
-            </section>
-          </section>
 
           <section
               class="stack-md"
@@ -196,8 +107,7 @@
             >
             <h2 id="hotp-inline-heading">Inline evaluation</h2>
             <p class="hint">
-              Provide HOTP parameters without touching stored credentials. Inline verification is useful for
-              ad-hoc troubleshooting or client-supplied payloads.
+              Enter HOTP parameters without using stored credentials.
             </p>
             <form
                 data-testid="hotp-inline-form"
@@ -309,6 +219,92 @@
               <p data-testid="hotp-inline-error"></p>
             </section>
           </section>
+
+          <section
+              class="stack-md"
+              data-testid="hotp-stored-evaluation-panel"
+              aria-labelledby="hotp-stored-heading"
+              data-mode-section="stored"
+            >
+            <h2 id="hotp-stored-heading">Stored credential evaluation</h2>
+            <p class="hint">
+              Select a stored HOTP credential and submit the OTP.
+            </p>
+            <form
+                data-testid="hotp-stored-form"
+                class="evaluation-form"
+                th:attr="data-evaluate-endpoint=${hotpStoredEvaluateEndpoint},data-credentials-endpoint=${hotpCredentialsEndpoint}"
+              >
+              <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+              <div class="field-grid">
+                <div>
+                  <label for="hotpStoredCredentialId">Credential</label>
+                  <select
+                    id="hotpStoredCredentialId"
+                    name="credentialId"
+                    required="required"
+                    aria-describedby="hotp-stored-status"
+                    data-testid="hotp-stored-credential-select"
+                  >
+                    <option value="">Loading credentials…</option>
+                  </select>
+                  <p
+                    id="hotp-stored-status"
+                    class="hint"
+                    data-testid="hotp-stored-status"
+                    aria-live="polite"
+                  >
+                    HOTP credentials will appear once loaded.
+                  </p>
+                </div>
+                <div>
+                  <label for="hotpStoredOtp">One-time password</label>
+                  <input
+                    id="hotpStoredOtp"
+                    name="otp"
+                    type="text"
+                    inputmode="numeric"
+                    autocapitalize="none"
+                    autocomplete="one-time-code"
+                    required="required"
+                    minlength="6"
+                    maxlength="8"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                class="button-primary"
+                data-testid="hotp-stored-evaluate-button"
+              >
+                Evaluate stored credential
+              </button>
+            </form>
+            <section
+                data-testid="hotp-stored-result-panel"
+                class="result-panel"
+                aria-live="polite"
+                aria-labelledby="hotp-stored-result-heading"
+                hidden="hidden"
+              >
+              <h3 id="hotp-stored-result-heading">Stored evaluation result</h3>
+              <p>
+                Status:
+                <strong data-testid="hotp-result-status"></strong>
+              </p>
+              <p data-testid="hotp-result-metadata" class="hint"></p>
+            </section>
+            <section
+                data-testid="hotp-stored-error-panel"
+                class="error-panel"
+                role="alert"
+                aria-live="assertive"
+                hidden="hidden"
+              >
+              <h3>Stored evaluation failed</h3>
+              <p data-testid="hotp-stored-error"></p>
+            </section>
+          </section>
         </div>
       </section>
 
@@ -326,10 +322,6 @@
           <div class="section-columns">
             <div>
               <h2 id="hotp-replay-heading" class="section-title">Replay an HOTP code</h2>
-              <p class="hint">
-                Submit stored or inline parameters to verify historical HOTP traffic without mutating the
-                credential counter. Responses surface telemetry identifiers for audit trails.
-              </p>
               <form
                   data-testid="hotp-replay-form"
                   class="evaluation-form"
@@ -355,8 +347,7 @@
                     />
                     <label for="hotpReplayModeStored">Stored credential</label>
                     <p id="hotpReplayModeStoredHint" class="hint">
-                      Select a persisted credential, apply curated sample data, and replay the OTP without
-                      advancing counters.
+                      Select a persisted credential, and replay the OTP without advancing counters.
                     </p>
                   </div>
                   <div class="mode-option">
@@ -370,8 +361,7 @@
                     />
                     <label for="hotpReplayModeInline">Inline parameters</label>
                     <p id="hotpReplayModeInlineHint" class="hint">
-                      Provide HOTP parameters directly for ad-hoc troubleshooting while keeping stored
-                      credentials untouched.
+                      Provide HOTP parameters directly for ad-hoc verification.
                     </p>
                   </div>
                 </fieldset>
