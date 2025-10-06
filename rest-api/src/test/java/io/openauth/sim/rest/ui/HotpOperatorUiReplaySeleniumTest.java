@@ -31,9 +31,8 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * Failing Selenium coverage for the upcoming HOTP replay operator UI. These scenarios exercise
- * stored and inline replay flows, sample data affordances, advanced toggles, and telemetry
- * surfacing. They are expected to fail until R2216 wires the templates and JavaScript.
+ * Selenium coverage for the HOTP replay operator UI. These scenarios exercise stored and inline
+ * replay flows, sample data affordances, and telemetry surfacing.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 final class HotpOperatorUiReplaySeleniumTest {
@@ -147,17 +146,6 @@ final class HotpOperatorUiReplaySeleniumTest {
         EXPECTED_STORED_OTP,
         "Stored replay OTP should auto-fill from curated sample data");
 
-    WebElement advancedToggle =
-        waitForVisible(By.cssSelector("button[data-testid='hotp-replay-advanced-toggle']"));
-    if ("false".equals(advancedToggle.getAttribute("aria-expanded"))) {
-      advancedToggle.click();
-    }
-
-    WebElement advancedPanel =
-        waitForVisible(By.cssSelector("[data-testid='hotp-replay-advanced-panel']"));
-    assertThat(advancedPanel.getAttribute("hidden")).isNull();
-    assertThat(advancedPanel.getAttribute("data-open")).isEqualTo("true");
-
     waitForClickable(By.cssSelector("button[data-testid='hotp-replay-submit']")).click();
 
     WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='hotp-replay-result']"));
@@ -228,15 +216,6 @@ final class HotpOperatorUiReplaySeleniumTest {
         EXPECTED_INLINE_OTP,
         "Inline OTP should auto-fill from preset data");
 
-    WebElement advancedToggle =
-        waitForVisible(By.cssSelector("button[data-testid='hotp-replay-advanced-toggle']"));
-    if ("false".equals(advancedToggle.getAttribute("aria-expanded"))) {
-      advancedToggle.click();
-    }
-    WebElement advancedPanel =
-        waitForVisible(By.cssSelector("[data-testid='hotp-replay-advanced-panel']"));
-    assertThat(advancedPanel.getAttribute("hidden")).isNull();
-
     waitForClickable(By.cssSelector("button[data-testid='hotp-replay-submit']")).click();
 
     WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='hotp-replay-result']"));
@@ -260,6 +239,24 @@ final class HotpOperatorUiReplaySeleniumTest {
         .as("Inline replay should expose telemetry identifier for audit trail")
         .isNotBlank()
         .startsWith("ui-hotp-");
+  }
+
+  @Test
+  @DisplayName("HOTP replay panel omits advanced context toggle and metadata inputs")
+  void hotpReplayOmitsAdvancedContextControls() {
+    navigateToReplayPanel();
+
+    assertThat(
+            driver.findElements(
+                By.cssSelector("button[data-testid='hotp-replay-advanced-toggle']")))
+        .as("Advanced context toggle should be removed from HOTP replay")
+        .isEmpty();
+    assertThat(driver.findElements(By.id("hotpReplayAdvancedLabel")))
+        .as("Advanced label input should not render")
+        .isEmpty();
+    assertThat(driver.findElements(By.id("hotpReplayAdvancedNotes")))
+        .as("Advanced notes textarea should not render")
+        .isEmpty();
   }
 
   private void navigateToReplayPanel() {

@@ -58,6 +58,33 @@ class HotpReplayServiceTest {
   }
 
   @Test
+  @DisplayName("Stored replay rejects metadata payloads")
+  void storedReplayRejectsMetadata() {
+    HotpReplayApplicationService applicationService =
+        Mockito.mock(HotpReplayApplicationService.class);
+    HotpReplayService service = new HotpReplayService(applicationService);
+
+    HotpReplayValidationException exception =
+        assertThrows(
+            HotpReplayValidationException.class,
+            () ->
+                service.replay(
+                    new HotpReplayRequest(
+                        "cred-123",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        "755224",
+                        Map.of("notes", "not-supported"))));
+
+    assertEquals("metadata_not_supported", exception.reasonCode());
+    assertEquals("stored", exception.credentialSource());
+    Mockito.verifyNoInteractions(applicationService);
+  }
+
+  @Test
   @DisplayName("Inline replay returning otp_mismatch yields mismatch status")
   void inlineReplayReturnsMismatch() {
     HotpReplayApplicationService applicationService =
@@ -84,7 +111,7 @@ class HotpReplayServiceTest {
                 6,
                 5L,
                 "254676",
-                Map.of("label", "demo")));
+                null));
 
     assertEquals("mismatch", response.status());
     assertEquals("otp_mismatch", response.reasonCode());
@@ -102,7 +129,7 @@ class HotpReplayServiceTest {
     assertEquals(6, command.digits());
     assertEquals(5L, command.counter());
     assertEquals("254676", command.otp());
-    assertThat(command.metadata()).containsEntry("label", "demo");
+    assertThat(command.metadata()).isEmpty();
   }
 
   @Test
@@ -128,6 +155,33 @@ class HotpReplayServiceTest {
                         null)));
 
     assertEquals("otp_required", exception.reasonCode());
+    Mockito.verifyNoInteractions(applicationService);
+  }
+
+  @Test
+  @DisplayName("Inline replay rejects metadata payloads")
+  void inlineReplayRejectsMetadata() {
+    HotpReplayApplicationService applicationService =
+        Mockito.mock(HotpReplayApplicationService.class);
+    HotpReplayService service = new HotpReplayService(applicationService);
+
+    HotpReplayValidationException exception =
+        assertThrows(
+            HotpReplayValidationException.class,
+            () ->
+                service.replay(
+                    new HotpReplayRequest(
+                        null,
+                        "device-inline",
+                        "3132333435363738393031323334353637383930",
+                        "SHA1",
+                        6,
+                        1L,
+                        "123456",
+                        Map.of("label", "audit"))));
+
+    assertEquals("metadata_not_supported", exception.reasonCode());
+    assertEquals("inline", exception.credentialSource());
     Mockito.verifyNoInteractions(applicationService);
   }
 

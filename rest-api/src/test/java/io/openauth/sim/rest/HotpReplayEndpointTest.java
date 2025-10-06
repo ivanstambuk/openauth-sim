@@ -177,6 +177,45 @@ class HotpReplayEndpointTest {
     }
   }
 
+  @Test
+  @DisplayName(
+      "Inline HOTP replay rejects metadata payload to encourage metadata-free UI submissions")
+  void inlineReplayRejectsMetadataPayload() throws Exception {
+    long counter = 2L;
+    String otp = generateOtp(counter);
+
+    String responseBody =
+        mockMvc
+            .perform(
+                post("/api/v1/hotp/replay")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                            {
+                              "identifier": "device-inline",
+                              "sharedSecretHex": "%s",
+                              "algorithm": "SHA1",
+                              "digits": 6,
+                              "counter": %d,
+                              "otp": "%s",
+                              "metadata": {
+                                "label": "audit",
+                                "notes": "should-not-be-accepted"
+                              }
+                            }
+                            """
+                            .formatted(SECRET_HEX, counter, otp)))
+            .andExpect(status().isBadRequest())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode response = JSON.readTree(responseBody);
+    assertThat(response.path("error").asText()).isEqualTo("invalid_input");
+    assertThat(response.path("details").path("reasonCode").asText())
+        .isEqualTo("metadata_not_supported");
+  }
+
   private Credential storedCredential(long counter) {
     Map<String, String> attributes = new LinkedHashMap<>();
     attributes.put("hotp.algorithm", HotpHashAlgorithm.SHA1.name());

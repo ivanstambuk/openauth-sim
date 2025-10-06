@@ -131,18 +131,6 @@
   var replayInlineOtpInput = replayForm
     ? replayForm.querySelector('#hotpReplayInlineOtp')
     : null;
-  var replayAdvancedToggle = replayForm
-    ? replayForm.querySelector('[data-testid="hotp-replay-advanced-toggle"]')
-    : null;
-  var replayAdvancedPanel = replayForm
-    ? replayForm.querySelector('[data-testid="hotp-replay-advanced-panel"]')
-    : null;
-  var replayAdvancedLabelInput = replayForm
-    ? replayForm.querySelector('#hotpReplayAdvancedLabel')
-    : null;
-  var replayAdvancedNotesInput = replayForm
-    ? replayForm.querySelector('#hotpReplayAdvancedNotes')
-    : null;
   var replayResultPanel = replayForm
     ? replayForm.querySelector('[data-testid="hotp-replay-result"]')
     : null;
@@ -726,29 +714,6 @@
     }
   }
 
-  function openReplayAdvanced(open) {
-    if (!replayAdvancedPanel || !replayAdvancedToggle) {
-      return;
-    }
-    var shouldOpen = Boolean(open);
-    setHidden(replayAdvancedPanel, !shouldOpen);
-    replayAdvancedPanel.setAttribute('data-open', shouldOpen ? 'true' : 'false');
-    replayAdvancedToggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
-    replayAdvancedToggle.textContent = shouldOpen
-      ? 'Hide advanced context'
-      : 'Show advanced context';
-  }
-
-  function clearReplayAdvancedFields() {
-    if (replayAdvancedLabelInput) {
-      replayAdvancedLabelInput.value = '';
-    }
-    if (replayAdvancedNotesInput) {
-      replayAdvancedNotesInput.value = '';
-    }
-    openReplayAdvanced(false);
-  }
-
   function updateStoredSampleHints() {
     if (!replayStoredSelect) {
       return;
@@ -761,7 +726,6 @@
         replaySampleButton.setAttribute('disabled', 'disabled');
         replaySampleButton.setAttribute('aria-disabled', 'true');
       }
-      clearReplayAdvancedFields();
       return;
     }
 
@@ -783,7 +747,6 @@
       if (replaySampleMessage) {
         replaySampleMessage.textContent = '';
       }
-      clearReplayAdvancedFields();
     }
 
   }
@@ -800,15 +763,6 @@
     if (replayStoredOtpInput) {
       replayStoredOtpInput.value = sample.otp || '';
     }
-    if (sample.metadata) {
-      if (replayAdvancedLabelInput) {
-        replayAdvancedLabelInput.value = sample.metadata.label || '';
-      }
-      if (replayAdvancedNotesInput) {
-        replayAdvancedNotesInput.value = sample.metadata.notes || '';
-      }
-    }
-    openReplayAdvanced(true);
     if (replaySampleMessage) {
       replaySampleMessage.textContent = 'Sample data applied';
     }
@@ -908,15 +862,6 @@
     if (replayInlineOtpInput) {
       replayInlineOtpInput.value = preset.otp || '';
     }
-    if (preset.metadata) {
-      if (replayAdvancedLabelInput) {
-        replayAdvancedLabelInput.value = preset.metadata.label || '';
-      }
-      if (replayAdvancedNotesInput) {
-        replayAdvancedNotesInput.value = preset.metadata.notes || '';
-      }
-    }
-    openReplayAdvanced(true);
   }
 
   function hideReplayError() {
@@ -937,17 +882,6 @@
     }
     setHidden(replayResultPanel, true);
     setHidden(replayErrorPanel, false);
-  }
-
-  function collectAdvancedMetadata() {
-    var metadata = {};
-    if (replayAdvancedLabelInput && replayAdvancedLabelInput.value.trim().length) {
-      metadata.label = replayAdvancedLabelInput.value.trim();
-    }
-    if (replayAdvancedNotesInput && replayAdvancedNotesInput.value.trim().length) {
-      metadata.notes = replayAdvancedNotesInput.value.trim();
-    }
-    return Object.keys(metadata).length ? metadata : null;
   }
 
   function renderReplayResult(payload) {
@@ -1023,12 +957,9 @@
     setHidden(replayInlinePresetContainer, normalized !== 'inline');
     if (normalized === 'stored') {
       updateStoredSampleHints();
-    } else {
-      clearReplayAdvancedFields();
     }
     setHidden(replayResultPanel, true);
     hideReplayError();
-    openReplayAdvanced(false);
   }
 
   function currentReplayMode() {
@@ -1081,11 +1012,6 @@
         return;
       }
       payload = { credentialId: credentialId, otp: storedOtp };
-    }
-
-    var advancedMetadata = collectAdvancedMetadata();
-    if (advancedMetadata) {
-      payload.metadata = advancedMetadata;
     }
 
     replaySubmitButton.setAttribute('disabled', 'disabled');
@@ -1452,15 +1378,8 @@
         if (value) {
           applyInlinePreset(value);
         } else {
-          clearReplayAdvancedFields();
+          clearInlinePresetTracking();
         }
-      });
-    }
-    if (replayAdvancedToggle) {
-      replayAdvancedToggle.addEventListener('click', function (event) {
-        event.preventDefault();
-        var shouldOpen = replayAdvancedPanel && replayAdvancedPanel.getAttribute('data-open') !== 'true';
-        openReplayAdvanced(shouldOpen);
       });
     }
     if (replaySubmitButton) {
