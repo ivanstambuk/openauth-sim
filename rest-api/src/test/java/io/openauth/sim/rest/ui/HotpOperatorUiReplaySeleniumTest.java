@@ -45,6 +45,9 @@ final class HotpOperatorUiReplaySeleniumTest {
   private static final long STORED_COUNTER = 0L;
   private static final long INLINE_COUNTER = 5L;
   private static final String INLINE_SAMPLE_KEY = "demo-inline";
+  private static final String INLINE_SHA1_PRESET_LABEL = "Inline demo vector (SHA-1)";
+  private static final String INLINE_SHA256_PRESET_KEY = "inline-demo-sha256";
+  private static final String INLINE_SHA256_PRESET_LABEL = "Inline demo vector (SHA-256)";
   private static final HotpDescriptor DESCRIPTOR =
       HotpDescriptor.create(
           STORED_CREDENTIAL_ID, SecretMaterial.fromHex(SECRET_HEX), HotpHashAlgorithm.SHA1, DIGITS);
@@ -187,6 +190,40 @@ final class HotpOperatorUiReplaySeleniumTest {
     assertThat(parameterGrid.findElements(By.id("hotpReplayInlineOtp")))
         .as("OTP input should live outside the single-row parameter grid")
         .isEmpty();
+  }
+
+  @Test
+  @DisplayName("HOTP replay inline sample options mirror evaluate presets")
+  void inlineReplaySampleOptionsMirrorEvaluate() {
+    navigateToReplayPanel();
+
+    WebElement inlineMode = waitForVisible(By.id("hotpReplayModeInline"));
+    if (!inlineMode.isSelected()) {
+      inlineMode.click();
+      new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> inlineMode.isSelected());
+    }
+
+    Select presetSelect =
+        new Select(
+            waitForVisible(
+                By.cssSelector("select[data-testid='hotp-replay-inline-sample-select']")));
+
+    java.util.List<WebElement> options = presetSelect.getOptions();
+    assertThat(options)
+        .as("Replay inline preset dropdown should expose placeholder plus two demo vectors")
+        .hasSize(3);
+
+    WebElement placeholder = options.get(0);
+    assertThat(placeholder.getAttribute("value")).isEqualTo("");
+    assertThat(placeholder.getText().trim()).isEqualTo("Select a sample");
+
+    WebElement sha1Option = options.get(1);
+    assertThat(sha1Option.getAttribute("value")).isEqualTo(INLINE_SAMPLE_KEY);
+    assertThat(sha1Option.getText().trim()).isEqualTo(INLINE_SHA1_PRESET_LABEL);
+
+    WebElement sha256Option = options.get(2);
+    assertThat(sha256Option.getAttribute("value")).isEqualTo(INLINE_SHA256_PRESET_KEY);
+    assertThat(sha256Option.getText().trim()).isEqualTo(INLINE_SHA256_PRESET_LABEL);
   }
 
   @Test

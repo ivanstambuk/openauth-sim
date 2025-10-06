@@ -803,17 +803,17 @@
     hideInlineError();
   }
 
-  function renderInlinePresetOptions() {
-    if (!inlinePresetSelect) {
+  function renderPresetOptions(selectNode) {
+    if (!selectNode) {
       return;
     }
-    while (inlinePresetSelect.firstChild) {
-      inlinePresetSelect.removeChild(inlinePresetSelect.firstChild);
+    while (selectNode.firstChild) {
+      selectNode.removeChild(selectNode.firstChild);
     }
     var placeholder = documentRef.createElement('option');
     placeholder.value = '';
     placeholder.textContent = 'Select a sample';
-    inlinePresetSelect.appendChild(placeholder);
+    selectNode.appendChild(placeholder);
     Object.keys(INLINE_SAMPLE_DATA)
       .sort(function (a, b) {
         return a.localeCompare(b, undefined, { sensitivity: 'base' });
@@ -826,8 +826,13 @@
         var option = documentRef.createElement('option');
         option.value = key;
         option.textContent = preset.label || key;
-        inlinePresetSelect.appendChild(option);
+        selectNode.appendChild(option);
       });
+  }
+
+  function renderInlinePresetOptions() {
+    renderPresetOptions(inlinePresetSelect);
+    renderPresetOptions(replayInlinePresetSelect);
   }
 
   function applyInlinePreset(presetKey) {
