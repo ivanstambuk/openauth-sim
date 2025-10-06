@@ -152,7 +152,7 @@ subprojects {
             "com.google.guava:guava:33.4.0-jre",
             "com.google.errorprone:error_prone_annotations:${libsCatalog.version("errorprone")}",
             "org.checkerframework:checker-qual:3.43.0",
-            "org.codehaus.plexus:plexus-utils:3.5.1",
+            "org.codehaus.plexus:plexus-utils:4.0.2",
             "org.apache.commons:commons-lang3:3.19.0",
             "org.apache.httpcomponents:httpcore:4.4.16",
             "org.slf4j:slf4j-api:2.0.13",
