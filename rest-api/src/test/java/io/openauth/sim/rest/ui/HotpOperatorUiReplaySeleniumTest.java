@@ -157,6 +157,39 @@ final class HotpOperatorUiReplaySeleniumTest {
   }
 
   @Test
+  @DisplayName("Inline HOTP replay aligns parameters on a single row")
+  void inlineHotpReplayParametersRenderOnSingleRow() {
+    navigateToReplayPanel();
+
+    WebElement inlineMode = waitForVisible(By.id("hotpReplayModeInline"));
+    if (!inlineMode.isSelected()) {
+      inlineMode.click();
+      new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> inlineMode.isSelected());
+    }
+
+    WebElement inlinePanel =
+        waitForVisible(By.cssSelector("[data-testid='hotp-replay-inline-panel']"));
+    assertThat(inlinePanel.getAttribute("hidden")).isNull();
+
+    WebElement parameterGrid =
+        waitForVisible(By.cssSelector("[data-testid='hotp-replay-inline-parameter-grid']"));
+    assertThat(parameterGrid.getAttribute("class"))
+        .as("Parameter grid should reuse hotp-inline-parameter-grid styling")
+        .contains("hotp-inline-parameter-grid");
+
+    java.util.List<String> parameterLabels =
+        parameterGrid.findElements(By.cssSelector("label")).stream()
+            .map(WebElement::getText)
+            .map(String::trim)
+            .toList();
+    assertThat(parameterLabels).containsExactly("Hash algorithm", "Digits", "Counter");
+
+    assertThat(parameterGrid.findElements(By.id("hotpReplayInlineOtp")))
+        .as("OTP input should live outside the single-row parameter grid")
+        .isEmpty();
+  }
+
+  @Test
   @DisplayName("Stored HOTP replay heading removed so label leads section")
   void storedHotpReplayHeadingRemoved() {
     navigateToReplayPanel();

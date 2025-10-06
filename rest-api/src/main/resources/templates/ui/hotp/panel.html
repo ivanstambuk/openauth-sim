@@ -479,7 +479,7 @@
                   >
                   <h3 id="hotpReplayInlineHeading">Inline replay</h3>
                   <div class="field-grid">
-                    <div>
+                    <div class="field-group">
                       <label for="hotpReplayInlineSecretHex">Shared secret (hex)</label>
                       <textarea
                         id="hotpReplayInlineSecretHex"
@@ -491,8 +491,11 @@
                       ></textarea>
                     </div>
                   </div>
-                  <div class="field-grid">
-                    <div>
+                  <div
+                    class="field-grid hotp-inline-parameter-grid"
+                    data-testid="hotp-replay-inline-parameter-grid"
+                  >
+                    <div class="field-group">
                       <label for="hotpReplayInlineAlgorithm">Hash algorithm</label>
                       <select
                         id="hotpReplayInlineAlgorithm"
@@ -504,7 +507,7 @@
                         <option value="SHA512">SHA-512</option>
                       </select>
                     </div>
-                    <div>
+                    <div class="field-group">
                       <label for="hotpReplayInlineDigits">Digits</label>
                       <input
                         id="hotpReplayInlineDigits"
@@ -517,7 +520,7 @@
                         data-inline-required="true"
                       />
                     </div>
-                    <div>
+                    <div class="field-group">
                       <label for="hotpReplayInlineCounter">Counter</label>
                       <input
                         id="hotpReplayInlineCounter"
@@ -529,7 +532,9 @@
                         data-inline-required="true"
                       />
                     </div>
-                    <div>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field-group">
                       <label for="hotpReplayInlineOtp">One-time password</label>
                       <input
                         id="hotpReplayInlineOtp"

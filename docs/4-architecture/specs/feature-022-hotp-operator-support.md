@@ -34,6 +34,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-06 – HOTP replay observed OTP field label must read “One-time password” to reflect operator terminology alignment (user directive).
 - 2025-10-06 – HOTP replay result card must render in the right-hand status column with the same layout as the OCRA replay panel (status badge, Reason Code row, Outcome row) instead of stacking beneath the form (user directive).
 - 2025-10-06 – HOTP replay UI must hide raw metadata/telemetry strings; only Reason Code and Outcome appear alongside the status badge (user directive).
+- 2025-10-06 – HOTP replay inline parameters (hash algorithm, digits, counter) must render in a single row matching the HOTP evaluate tab layout (user directive).
 - 2025-10-06 – HOTP inline replay requests omit operator-provided identifiers so REST and UI flows mirror the OCRA inline replay contract (user directive).
 - 2025-10-05 – HOTP inline evaluation no longer collects an operator-provided identifier; the REST/API surface accepts only secret, algorithm, digits, counter, and OTP for inline requests (user directive).
 - 2025-10-05 – HOTP Evaluate tab (stored and inline modes) must generate the OTP and display it without requiring operator input; OTP entry remains exclusive to the Replay tab (user directive; Option A selected).
