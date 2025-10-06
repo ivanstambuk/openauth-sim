@@ -444,6 +444,69 @@
     }
   }
 
+  function normalizeStatusLabel(status) {
+    if (!status && status !== 0) {
+      return 'Unknown';
+    }
+    var raw = String(status).trim();
+    if (!raw) {
+      return 'Unknown';
+    }
+    var lowered = raw.toLowerCase();
+    if (lowered === 'generated' || lowered === 'success' || lowered === 'ok') {
+      return 'Success';
+    }
+    if (lowered === 'failed' || lowered === 'failure') {
+      return 'Failed';
+    }
+    if (lowered === 'error') {
+      return 'Error';
+    }
+    if (lowered === 'invalid') {
+      return 'Invalid';
+    }
+    var parts = raw
+      .split(/[^A-Za-z0-9]+/)
+      .filter(function (part) {
+        return part && part.length > 0;
+      })
+      .map(function (part) {
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+      });
+    return parts.length > 0 ? parts.join(' ') : 'Unknown';
+  }
+
+  function resolveStatusVariant(status) {
+    var lowered = !status && status !== 0 ? '' : String(status).trim().toLowerCase();
+    if (!lowered) {
+      return 'info';
+    }
+    if (['generated', 'success', 'ok', 'valid', 'completed'].indexOf(lowered) >= 0) {
+      return 'success';
+    }
+    if (['failed', 'failure', 'error', 'invalid', 'denied', 'rejected'].indexOf(lowered) >= 0) {
+      return 'error';
+    }
+    return 'info';
+  }
+
+  function applyStatusBadge(statusNode, status) {
+    if (!statusNode) {
+      return;
+    }
+    var variant = resolveStatusVariant(status);
+    var label = normalizeStatusLabel(status);
+    statusNode.className = 'status-badge';
+    if (variant === 'success') {
+      statusNode.classList.add('status-badge--success');
+    } else if (variant === 'error') {
+      statusNode.classList.add('status-badge--error');
+    } else {
+      statusNode.classList.add('status-badge--info');
+    }
+    statusNode.textContent = label;
+  }
+
   function renderResult(panel, payload) {
     if (!panel) {
       return;
@@ -452,10 +515,7 @@
     var status = payload && payload.status ? payload.status : 'unknown';
     var metadata = payload && payload.metadata ? payload.metadata : null;
     var otp = payload && payload.otp ? payload.otp : null;
-    var statusNode = panel.querySelector('[data-testid="hotp-result-status"]');
-    if (statusNode) {
-      statusNode.textContent = status || 'unknown';
-    }
+    applyStatusBadge(panel.querySelector('[data-testid="hotp-result-status"]'), status);
     var otpNode = panel.querySelector('[data-testid="hotp-result-otp"]');
     if (otpNode) {
       otpNode.textContent = otp && otp.trim().length > 0 ? otp.trim() : '—';

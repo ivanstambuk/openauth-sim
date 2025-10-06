@@ -452,14 +452,16 @@
               class="result-panel"
             >
               <h2 id="result-heading">Evaluation result</h2>
-              <p data-testid="ocra-otp">
+              <p class="result-inline" data-testid="ocra-otp">
                 OTP:
                 <strong data-testid="ocra-otp-value"></strong>
               </p>
               <dl data-testid="ocra-telemetry-summary" class="result-metadata">
                 <div class="result-row">
                   <dt>Status</dt>
-                  <dd data-testid="ocra-status-value"></dd>
+                  <dd>
+                    <span data-testid="ocra-status-value" class="status-badge"></span>
+                  </dd>
                 </div>
               </dl>
             </section>
@@ -1324,6 +1326,27 @@
           node.textContent = value || '';
         }
 
+        function applyStatusBadge(node, status) {
+          if (!node) {
+            return;
+          }
+          const label = typeof status === 'string' ? status.trim() : '';
+          const lowered = label.toLowerCase();
+          node.classList.remove('status-badge--success', 'status-badge--error', 'status-badge--info');
+          if (lowered === 'success' || lowered === 'generated' || lowered === 'ok') {
+            node.classList.add('status-badge--success');
+            node.textContent = 'Success';
+            return;
+          }
+          if (lowered === 'error' || lowered === 'failed' || lowered === 'failure') {
+            node.classList.add('status-badge--error');
+            node.textContent = 'Error';
+            return;
+          }
+          node.classList.add('status-badge--info');
+          node.textContent = label || 'Unknown';
+        }
+
         function hidePanel(panel) {
           if (!panel) {
             return;
@@ -1649,7 +1672,7 @@
         }
 
         function renderSuccess(body, payload) {
-          setTextContent(statusValue, 'Success');
+          applyStatusBadge(statusValue, 'Success');
           setTextContent(otpValue, body && body.otp ? body.otp : '');
           showPanel(resultPanel);
           hidePanel(errorPanel);

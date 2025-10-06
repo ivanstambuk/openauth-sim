@@ -162,9 +162,9 @@ final class OcraOperatorUiSeleniumTest {
 
     WebElement otpElement = resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp']"));
     assertThat(otpElement.getText()).contains(scenario.expectedOtp());
-    WebElement statusValue =
+    WebElement statusBadge =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-status-value']"));
-    assertThat(statusValue.getText()).isEqualTo("Success");
+    assertStatusBadge(statusBadge);
     assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-sanitized-flag']")))
         .as("Sanitized row should be removed from evaluation results")
         .isEmpty();
@@ -371,7 +371,9 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(otpElement.getText()).contains(QA_EXPECTED_OTP);
     WebElement metadata =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-telemetry-summary']"));
-    assertThat(metadata.getText()).contains("Success");
+    WebElement statusBadge =
+        metadata.findElement(By.cssSelector("[data-testid='ocra-status-value']"));
+    assertStatusBadge(statusBadge);
     assertThat(metadata.findElements(By.cssSelector(".result-row")))
         .as("Evaluation metadata should render one row per entry")
         .hasSize(1)
@@ -384,6 +386,13 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(metadata.getText()).doesNotContain("Suite");
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
+  }
+
+  private void assertStatusBadge(WebElement badge) {
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(d -> "success".equalsIgnoreCase(badge.getText().trim()));
+    assertThat(badge.getText().trim()).isEqualToIgnoringCase("Success");
+    assertThat(badge.getAttribute("class")).contains("status-badge--success");
   }
 
   @Test

@@ -55,7 +55,7 @@
         >
         <div class="card-shell__body stack-lg">
           <div class="section-columns">
-            <div>
+            <div class="stack-lg">
               <h2 id="hotp-evaluate-heading" class="section-title">Evaluate an HOTP code</h2>
 
               <fieldset
@@ -94,194 +94,204 @@
                   </p>
                 </div>
               </fieldset>
+
+              <section
+                  class="stack-md"
+                  data-testid="hotp-inline-evaluation-panel"
+                  aria-label="Inline HOTP evaluation form"
+                  data-mode-section="inline"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
+                <form
+                    data-testid="hotp-inline-form"
+                    class="evaluation-form"
+                    th:attr="data-evaluate-endpoint=${hotpInlineEvaluateEndpoint}"
+                  >
+                  <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                  <div class="inline-preset" data-testid="hotp-inline-preset">
+                    <label for="hotpInlinePreset">Load a sample vector</label>
+                    <select
+                      id="hotpInlinePreset"
+                      name="hotpInlinePreset"
+                      data-testid="hotp-inline-preset-select"
+                    >
+                      <option value="">Select a sample</option>
+                    </select>
+                    <p class="hint">
+                      Selecting a preset fills the inline HOTP fields with illustrative data.
+                    </p>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="hotpInlineSecretHex">Shared secret (hex)</label>
+                      <textarea
+                        id="hotpInlineSecretHex"
+                        name="sharedSecretHex"
+                        rows="3"
+                        required="required"
+                        spellcheck="false"
+                        autocapitalize="none"
+                      ></textarea>
+                    </div>
+                  </div>
+
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="hotpInlineAlgorithm">Hash algorithm</label>
+                      <select id="hotpInlineAlgorithm" name="algorithm" required="required">
+                        <option value="SHA1" selected>SHA-1</option>
+                        <option value="SHA256">SHA-256</option>
+                        <option value="SHA512">SHA-512</option>
+                      </select>
+                    </div>
+                    <div class="field-group">
+                      <label for="hotpInlineDigits">Digits</label>
+                      <input
+                        id="hotpInlineDigits"
+                        name="digits"
+                        type="number"
+                        min="6"
+                        max="8"
+                        step="1"
+                        value="6"
+                        required="required"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="hotpInlineCounter">Counter</label>
+                      <input
+                        id="hotpInlineCounter"
+                        name="counter"
+                        type="number"
+                        min="0"
+                        value="0"
+                        required="required"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="button-primary"
+                    data-testid="hotp-inline-evaluate-button"
+                  >
+                    Evaluate inline parameters
+                  </button>
+                </form>
+              </section>
+
+              <section
+                  class="stack-md"
+                  data-testid="hotp-stored-evaluation-panel"
+                  aria-label="Stored HOTP credential evaluation form"
+                  data-mode-section="stored"
+                >
+                <form
+                    data-testid="hotp-stored-form"
+                    class="evaluation-form"
+                    th:attr="data-evaluate-endpoint=${hotpStoredEvaluateEndpoint},data-credentials-endpoint=${hotpCredentialsEndpoint}"
+                  >
+                  <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                  <div class="field-grid">
+                    <div>
+                      <label for="hotpStoredCredentialId">Credential</label>
+                      <select
+                        id="hotpStoredCredentialId"
+                        name="credentialId"
+                        required="required"
+                        aria-describedby="hotp-stored-status"
+                        data-testid="hotp-stored-credential-select"
+                      >
+                        <option value="">Loading credentials…</option>
+                      </select>
+                      <p
+                        id="hotp-stored-status"
+                        class="hint"
+                        data-testid="hotp-stored-status"
+                        aria-live="polite"
+                      >
+                        HOTP credentials will appear once loaded.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="button-primary"
+                    data-testid="hotp-stored-evaluate-button"
+                  >
+                    Evaluate stored credential
+                  </button>
+                </form>
+              </section>
+            </div>
+            <div class="status-column">
+              <section
+                  data-testid="hotp-inline-result-panel"
+                  class="result-panel"
+                  aria-live="polite"
+                  aria-labelledby="hotp-inline-result-heading"
+                  hidden="hidden"
+                >
+                <h3 id="hotp-inline-result-heading" data-testid="hotp-result-heading">
+                  Evaluation result
+                </h3>
+                <p class="result-inline" data-testid="hotp-inline-otp-row">
+                  OTP:
+                  <strong data-testid="hotp-result-otp">—</strong>
+                </p>
+                <dl class="result-metadata">
+                  <div class="result-row">
+                    <dt>Status</dt>
+                    <dd>
+                      <span data-testid="hotp-result-status" class="status-badge"></span>
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+              <section
+                  data-testid="hotp-stored-result-panel"
+                  class="result-panel"
+                  aria-live="polite"
+                  aria-labelledby="hotp-stored-result-heading"
+                  hidden="hidden"
+                >
+                <h3 id="hotp-stored-result-heading">Evaluation result</h3>
+                <p class="result-inline" data-testid="hotp-stored-otp-row">
+                  OTP:
+                  <strong data-testid="hotp-result-otp">—</strong>
+                </p>
+                <dl class="result-metadata">
+                  <div class="result-row">
+                    <dt>Status</dt>
+                    <dd>
+                      <span data-testid="hotp-result-status" class="status-badge"></span>
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+              <section
+                  data-testid="hotp-inline-error-panel"
+                  class="error-panel"
+                  role="alert"
+                  aria-live="assertive"
+                  hidden="hidden"
+                >
+                <h3>Inline evaluation failed</h3>
+                <p data-testid="hotp-inline-error"></p>
+              </section>
+              <section
+                  data-testid="hotp-stored-error-panel"
+                  class="error-panel"
+                  role="alert"
+                  aria-live="assertive"
+                  hidden="hidden"
+                >
+                <h3>Stored evaluation failed</h3>
+                <p data-testid="hotp-stored-error"></p>
+              </section>
             </div>
           </div>
-
-          <section
-              class="stack-md"
-              data-testid="hotp-inline-evaluation-panel"
-              aria-label="Inline HOTP evaluation form"
-              data-mode-section="inline"
-              hidden="hidden"
-              aria-hidden="true"
-            >
-            <form
-                data-testid="hotp-inline-form"
-                class="evaluation-form"
-                th:attr="data-evaluate-endpoint=${hotpInlineEvaluateEndpoint}"
-              >
-              <input type="hidden" name="_csrf" th:value="${csrfToken}" />
-              <div class="inline-preset" data-testid="hotp-inline-preset">
-                <label for="hotpInlinePreset">Load a sample vector</label>
-                <select
-                  id="hotpInlinePreset"
-                  name="hotpInlinePreset"
-                  data-testid="hotp-inline-preset-select"
-                >
-                  <option value="">Select a sample</option>
-                </select>
-                <p class="hint">
-                  Selecting a preset fills the inline HOTP fields with illustrative data.
-                </p>
-              </div>
-              <div class="field-grid">
-                <div class="field-group">
-                  <label for="hotpInlineSecretHex">Shared secret (hex)</label>
-                  <textarea
-                    id="hotpInlineSecretHex"
-                    name="sharedSecretHex"
-                    rows="3"
-                    required="required"
-                    spellcheck="false"
-                    autocapitalize="none"
-                  ></textarea>
-                </div>
-              </div>
-
-              <div class="field-grid">
-                <div class="field-group">
-                  <label for="hotpInlineAlgorithm">Hash algorithm</label>
-                  <select id="hotpInlineAlgorithm" name="algorithm" required="required">
-                    <option value="SHA1" selected>SHA-1</option>
-                    <option value="SHA256">SHA-256</option>
-                    <option value="SHA512">SHA-512</option>
-                  </select>
-                </div>
-                <div class="field-group">
-                  <label for="hotpInlineDigits">Digits</label>
-                  <input
-                    id="hotpInlineDigits"
-                    name="digits"
-                    type="number"
-                    min="6"
-                    max="8"
-                    step="1"
-                    value="6"
-                    required="required"
-                  />
-                </div>
-                <div class="field-group">
-                  <label for="hotpInlineCounter">Counter</label>
-                  <input
-                    id="hotpInlineCounter"
-                    name="counter"
-                    type="number"
-                    min="0"
-                    value="0"
-                    required="required"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="button"
-                class="button-primary"
-                data-testid="hotp-inline-evaluate-button"
-              >
-                Evaluate inline parameters
-              </button>
-            </form>
-            <section
-                data-testid="hotp-inline-result-panel"
-                class="result-panel"
-                aria-live="polite"
-                aria-labelledby="hotp-inline-result-heading"
-                hidden="hidden"
-              >
-              <h3 id="hotp-inline-result-heading">Inline evaluation result</h3>
-              <p>
-                Generated OTP:
-                <strong data-testid="hotp-result-otp">—</strong>
-              </p>
-              <p>
-                Status:
-                <strong data-testid="hotp-result-status"></strong>
-              </p>
-              <p data-testid="hotp-result-metadata" class="hint"></p>
-            </section>
-            <section
-                data-testid="hotp-inline-error-panel"
-                class="error-panel"
-                role="alert"
-                aria-live="assertive"
-                hidden="hidden"
-              >
-              <h3>Inline evaluation failed</h3>
-              <p data-testid="hotp-inline-error"></p>
-            </section>
-          </section>
-
-          <section
-              class="stack-md"
-              data-testid="hotp-stored-evaluation-panel"
-              aria-label="Stored HOTP credential evaluation form"
-              data-mode-section="stored"
-            >
-            <form
-                data-testid="hotp-stored-form"
-                class="evaluation-form"
-                th:attr="data-evaluate-endpoint=${hotpStoredEvaluateEndpoint},data-credentials-endpoint=${hotpCredentialsEndpoint}"
-              >
-              <input type="hidden" name="_csrf" th:value="${csrfToken}" />
-              <div class="field-grid">
-                <div>
-                  <label for="hotpStoredCredentialId">Credential</label>
-                  <select
-                    id="hotpStoredCredentialId"
-                    name="credentialId"
-                    required="required"
-                    aria-describedby="hotp-stored-status"
-                    data-testid="hotp-stored-credential-select"
-                  >
-                    <option value="">Loading credentials…</option>
-                  </select>
-                  <p
-                    id="hotp-stored-status"
-                    class="hint"
-                    data-testid="hotp-stored-status"
-                    aria-live="polite"
-                  >
-                    HOTP credentials will appear once loaded.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                class="button-primary"
-                data-testid="hotp-stored-evaluate-button"
-              >
-                Evaluate stored credential
-              </button>
-            </form>
-            <section
-                data-testid="hotp-stored-result-panel"
-                class="result-panel"
-                aria-live="polite"
-                aria-labelledby="hotp-stored-result-heading"
-                hidden="hidden"
-              >
-              <h3 id="hotp-stored-result-heading">Stored evaluation result</h3>
-              <p>
-                Generated OTP:
-                <strong data-testid="hotp-result-otp">—</strong>
-              </p>
-              <p>
-                Status:
-                <strong data-testid="hotp-result-status"></strong>
-              </p>
-              <p data-testid="hotp-result-metadata" class="hint"></p>
-            </section>
-            <section
-                data-testid="hotp-stored-error-panel"
-                class="error-panel"
-                role="alert"
-                aria-live="assertive"
-                hidden="hidden"
-              >
-              <h3>Stored evaluation failed</h3>
-              <p data-testid="hotp-stored-error"></p>
-            </section>
-          </section>
         </div>
       </section>
 

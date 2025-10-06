@@ -9,6 +9,7 @@ import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -130,23 +131,13 @@ final class HotpOperatorUiSeleniumTest {
             .until(
                 ExpectedConditions.visibilityOfElementLocated(
                     By.cssSelector("[data-testid='hotp-stored-result-panel']")));
-    // Expect result panel to surface the generated OTP and metadata.
-    WebElement otpValue =
-        resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-otp']"));
-    WebElement statusValue =
-        resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-status']"));
-    WebElement metadataValue =
-        resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-metadata']"));
-
-    if (!EXPECTED_STORED_OTP.equals(otpValue.getText())) {
-      throw new AssertionError("Expected generated HOTP OTP to be displayed");
+    WebElement statusColumn = locateStatusColumn();
+    WebElement firstVisible = firstVisibleChild(statusColumn);
+    if (!"hotp-stored-result-panel".equals(firstVisible.getAttribute("data-testid"))) {
+      throw new AssertionError(
+          "Expected HOTP stored result panel to be the first visible child of the status column");
     }
-    if (!"generated".equalsIgnoreCase(statusValue.getText())) {
-      throw new AssertionError("Expected HOTP generated status in result panel");
-    }
-    if (!metadataValue.getText().contains("nextCounter=1")) {
-      throw new AssertionError("Expected HOTP metadata to include nextCounter=1");
-    }
+    assertResultRowsMatchExpectations(resultPanel, EXPECTED_STORED_OTP);
   }
 
   @Test
@@ -237,37 +228,101 @@ final class HotpOperatorUiSeleniumTest {
                 ExpectedConditions.visibilityOfElementLocated(
                     By.cssSelector("[data-testid='hotp-inline-result-panel']")));
 
-    WebElement otpValue =
-        resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-otp']"));
-    WebElement statusValue =
-        resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-status']"));
-    WebElement metadataValue =
-        resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-metadata']"));
-    if (!"generated".equalsIgnoreCase(statusValue.getText())) {
-      throw new AssertionError("Expected HOTP generated status for inline evaluation");
+    WebElement heading =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-result-heading']"));
+    if (!"Evaluation result".equals(heading.getText().trim())) {
+      throw new AssertionError("Expected HOTP inline result heading to read 'Evaluation result'");
     }
-    if (!EXPECTED_INLINE_SHA256_OTP.equals(otpValue.getText())) {
-      throw new AssertionError("Expected inline evaluation to surface SHA-256 preset OTP");
+
+    WebElement statusColumn = locateStatusColumn();
+    WebElement firstVisible = firstVisibleChild(statusColumn);
+    if (!"hotp-inline-result-panel".equals(firstVisible.getAttribute("data-testid"))) {
+      throw new AssertionError(
+          "Expected HOTP inline result panel to be the first visible child of the status column");
     }
-    String metadataText = metadataValue.getText();
-    if (!metadataText.contains("hashAlgorithm=SHA256")) {
-      throw new AssertionError("Inline metadata should note SHA-256 algorithm");
-    }
-    if (!metadataText.contains("digits=" + INLINE_SHA256_DIGITS)) {
-      throw new AssertionError("Inline metadata should note digit count");
-    }
-    if (!metadataText.contains("samplePresetKey=" + INLINE_SHA256_PRESET_KEY)) {
-      throw new AssertionError("Inline metadata should expose preset key");
-    }
-    if (!metadataText.contains("samplePresetLabel=" + INLINE_SHA256_PRESET_LABEL)) {
-      throw new AssertionError("Inline metadata should expose preset label");
-    }
+
+    assertResultRowsMatchExpectations(resultPanel, EXPECTED_INLINE_SHA256_OTP);
   }
 
   private void navigateToHotpPanel() {
     driver.get("http://localhost:" + port + "/ui/console?protocol=hotp");
     WebElement tab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-hotp']"));
     tab.click();
+  }
+
+  private WebElement locateStatusColumn() {
+    WebElement cardBody =
+        driver.findElement(By.cssSelector("[data-testid='hotp-evaluate-panel'] .card-shell__body"));
+    List<WebElement> columnContainers =
+        cardBody.findElements(
+            By.xpath(
+                "./*[contains(concat(' ', normalize-space(@class), ' '), ' section-columns ')]"));
+    if (columnContainers.size() != 1) {
+      throw new AssertionError(
+          "Expected HOTP evaluate panel to expose a single section-columns container");
+    }
+    List<WebElement> statusColumns =
+        columnContainers
+            .get(0)
+            .findElements(
+                By.xpath(
+                    "./div[contains(concat(' ', normalize-space(@class), ' '), ' status-column ')]"));
+    if (statusColumns.size() != 1) {
+      throw new AssertionError(
+          "Expected HOTP evaluate panel to expose a single status column alongside the form");
+    }
+    return statusColumns.get(0);
+  }
+
+  private WebElement firstVisibleChild(WebElement statusColumn) {
+    List<WebElement> children = statusColumn.findElements(By.xpath("./*"));
+    for (WebElement child : children) {
+      if (child.getAttribute("hidden") == null) {
+        return child;
+      }
+    }
+    throw new AssertionError("Status column should expose at least one visible child panel");
+  }
+
+  private void assertResultRowsMatchExpectations(WebElement resultPanel, String expectedOtp) {
+    WebElement otpRow = resultPanel.findElement(By.cssSelector(".result-inline"));
+    String otpRowText = otpRow.getText().trim().replaceAll("\\s+", " ");
+    if (!otpRowText.startsWith("OTP:")) {
+      throw new AssertionError("Expected OTP row to start with 'OTP:'");
+    }
+    WebElement otpValueNode = otpRow.findElement(By.tagName("strong"));
+    if (!expectedOtp.equals(otpValueNode.getText().trim())) {
+      throw new AssertionError("Expected OTP row value to match generated OTP");
+    }
+
+    List<WebElement> rows =
+        resultPanel.findElements(By.cssSelector(".result-metadata .result-row"));
+    if (rows.size() != 1) {
+      throw new AssertionError("Expected a single status row in result metadata");
+    }
+
+    WebElement statusRow = rows.get(0);
+    String statusLabel =
+        statusRow.findElement(By.tagName("dt")).getText().trim().replace(":", "").trim();
+    if (!"Status".equalsIgnoreCase(statusLabel)) {
+      throw new AssertionError("Expected Status row label to read 'Status'");
+    }
+    WebElement statusValueNode =
+        statusRow.findElement(By.cssSelector("dd [data-testid='hotp-result-status']"));
+    String statusValue = statusValueNode.getText().trim();
+    if (!"Success".equalsIgnoreCase(statusValue)) {
+      throw new AssertionError("Expected Status row value to read 'Success'");
+    }
+    String statusClass = statusValueNode.getAttribute("class");
+    if (statusClass == null || !statusClass.contains("status-badge--success")) {
+      throw new AssertionError("Expected Status badge to carry success styling");
+    }
+
+    if (!resultPanel
+        .findElements(By.cssSelector("[data-testid='hotp-result-metadata']"))
+        .isEmpty()) {
+      throw new AssertionError("HOTP result panel should not render additional metadata copy");
+    }
   }
 
   private Credential storedCredential() {
