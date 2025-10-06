@@ -131,23 +131,23 @@
   var replayInlineOtpInput = replayForm
     ? replayForm.querySelector('#hotpReplayInlineOtp')
     : null;
-  var replayResultPanel = replayForm
-    ? replayForm.querySelector('[data-testid="hotp-replay-result"]')
+  var replayResultPanel = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-replay-result"]')
     : null;
-  var replayStatusNode = replayForm
-    ? replayForm.querySelector('[data-testid="hotp-replay-status"]')
+  var replayStatusBadge = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-replay-status"]')
     : null;
-  var replayMetadataNode = replayForm
-    ? replayForm.querySelector('[data-testid="hotp-replay-metadata"]')
+  var replayReasonNode = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-replay-reason-code"]')
     : null;
-  var replayTelemetryNode = replayForm
-    ? replayForm.querySelector('[data-testid="hotp-replay-telemetry-id"]')
+  var replayOutcomeNode = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-replay-outcome"]')
     : null;
-  var replayErrorPanel = replayForm
-    ? replayForm.querySelector('[data-testid="hotp-replay-error"]')
+  var replayErrorPanel = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-replay-error"]')
     : null;
-  var replayErrorMessage = replayForm
-    ? replayForm.querySelector('[data-testid="hotp-replay-error-message"]')
+  var replayErrorMessage = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-replay-error-message"]')
     : null;
   var replaySubmitButton = replayForm
     ? replayForm.querySelector('[data-testid="hotp-replay-submit"]')
@@ -890,20 +890,22 @@
       return;
     }
     hideReplayError();
-    if (replayStatusNode) {
-      replayStatusNode.textContent = payload.status || 'unknown';
+    var status = payload && payload.status ? String(payload.status).trim() : 'unknown';
+    if (!status) {
+      status = 'unknown';
     }
-    var metadata = payload.metadata || {};
-    if (metadata && typeof metadata.telemetryId === 'string') {
-      if (metadata.telemetryId.startsWith('rest-hotp-')) {
-        metadata.telemetryId = 'ui-hotp-' + metadata.telemetryId.substring('rest-hotp-'.length);
-      }
+    if (replayStatusBadge) {
+      applyStatusBadge(replayStatusBadge, status);
     }
-    if (replayMetadataNode) {
-      replayMetadataNode.textContent = formatMetadata(metadata);
+    var reason =
+      payload && payload.reasonCode && String(payload.reasonCode).trim().length > 0
+        ? String(payload.reasonCode).trim()
+        : 'unknown';
+    if (replayReasonNode) {
+      replayReasonNode.textContent = reason;
     }
-    if (replayTelemetryNode) {
-      replayTelemetryNode.textContent = metadata.telemetryId || '—';
+    if (replayOutcomeNode) {
+      replayOutcomeNode.textContent = status;
     }
     setHidden(replayResultPanel, false);
   }

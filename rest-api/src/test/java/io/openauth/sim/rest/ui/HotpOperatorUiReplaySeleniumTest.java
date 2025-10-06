@@ -100,6 +100,28 @@ final class HotpOperatorUiReplaySeleniumTest {
   }
 
   @Test
+  @DisplayName("HOTP replay submit button copy matches verification directive")
+  void hotpReplaySubmitButtonCopy() {
+    navigateToReplayPanel();
+
+    WebElement submit = waitForVisible(By.cssSelector("button[data-testid='hotp-replay-submit']"));
+    assertThat(submit.getText().trim()).isEqualTo("Verify OTP");
+  }
+
+  @Test
+  @DisplayName("HOTP replay observed OTP labels read One-time password")
+  void hotpReplayObservedOtpLabel() {
+    navigateToReplayPanel();
+
+    WebElement storedLabel = waitForVisible(By.cssSelector("label[for='hotpReplayStoredOtp']"));
+    assertThat(storedLabel.getText().trim()).isEqualTo("One-time password");
+
+    waitForClickable(By.id("hotpReplayModeInline")).click();
+    WebElement inlineLabel = waitForVisible(By.cssSelector("label[for='hotpReplayInlineOtp']"));
+    assertThat(inlineLabel.getText().trim()).isEqualTo("One-time password");
+  }
+
+  @Test
   @DisplayName("Stored HOTP replay heading removed so label leads section")
   void storedHotpReplayHeadingRemoved() {
     navigateToReplayPanel();
@@ -123,8 +145,8 @@ final class HotpOperatorUiReplaySeleniumTest {
   }
 
   @Test
-  @DisplayName("Stored HOTP replay surfaces telemetry and counter metadata")
-  void storedHotpReplaySurfacesTelemetryAndMetadata() {
+  @DisplayName("HOTP replay result column mirrors OCRA layout")
+  void hotpReplayResultLayoutMatchesOcra() {
     navigateToReplayPanel();
 
     waitForVisible(By.cssSelector("[data-testid='hotp-replay-panel']"));
@@ -151,30 +173,39 @@ final class HotpOperatorUiReplaySeleniumTest {
     WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='hotp-replay-result']"));
     assertThat(resultPanel.getAttribute("hidden")).isNull();
 
-    assertThat(
-            resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-status']")).getText())
-        .isEqualToIgnoringCase("match");
-    assertThat(
-            resultPanel
-                .findElement(By.cssSelector("[data-testid='hotp-replay-metadata']"))
-                .getText())
-        .contains("previousCounter=0")
-        .contains("nextCounter=0")
-        .contains("credentialSource=stored");
+    WebElement statusColumn =
+        resultPanel.findElement(By.xpath("ancestor::div[contains(@class,'status-column')]"));
+    assertThat(statusColumn).as("Replay result should render inside the status column").isNotNull();
 
-    String telemetryId =
-        resultPanel
-            .findElement(By.cssSelector("[data-testid='hotp-replay-telemetry-id']"))
-            .getText();
-    assertThat(telemetryId)
-        .as("Telemetry identifier should surface in the replay result")
-        .isNotBlank()
-        .startsWith("ui-hotp-");
+    WebElement statusBadge =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-status']"));
+    assertThat(statusBadge.getText()).isEqualTo("Match");
+
+    WebElement reasonLabel =
+        resultPanel.findElement(By.xpath(".//dt[normalize-space() = 'Reason Code']"));
+    assertThat(reasonLabel).withFailMessage("Reason Code label should be present").isNotNull();
+    WebElement reasonValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-reason-code']"));
+    assertThat(reasonValue.getText()).isEqualTo("match");
+
+    WebElement outcomeLabel =
+        resultPanel.findElement(By.xpath(".//dt[normalize-space() = 'Outcome']"));
+    assertThat(outcomeLabel).withFailMessage("Outcome label should be present").isNotNull();
+    WebElement outcomeValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-outcome']"));
+    assertThat(outcomeValue.getText()).isEqualTo("match");
+
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='hotp-replay-metadata']")))
+        .as("Replay metadata list should be hidden from operators")
+        .isEmpty();
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='hotp-replay-telemetry-id']")))
+        .as("Telemetry identifier should not render in the replay result")
+        .isEmpty();
   }
 
   @Test
-  @DisplayName("Inline HOTP replay auto-fills sample vector and emits telemetry")
-  void inlineHotpReplayAutoFillsSampleAndEmitsTelemetry() {
+  @DisplayName("Inline HOTP replay reports reason code and outcome")
+  void inlineHotpReplayDisplaysReasonAndOutcome() {
     navigateToReplayPanel();
 
     waitForClickable(By.id("hotpReplayModeInline")).click();
@@ -221,24 +252,22 @@ final class HotpOperatorUiReplaySeleniumTest {
     WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='hotp-replay-result']"));
     assertThat(resultPanel.getAttribute("hidden")).isNull();
 
-    assertThat(
-            resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-status']")).getText())
-        .isEqualToIgnoringCase("match");
-    assertThat(
-            resultPanel
-                .findElement(By.cssSelector("[data-testid='hotp-replay-metadata']"))
-                .getText())
-        .contains("previousCounter=5")
-        .contains("nextCounter=5")
-        .contains("credentialSource=inline");
-    String telemetryId =
-        resultPanel
-            .findElement(By.cssSelector("[data-testid='hotp-replay-telemetry-id']"))
-            .getText();
-    assertThat(telemetryId)
-        .as("Inline replay should expose telemetry identifier for audit trail")
-        .isNotBlank()
-        .startsWith("ui-hotp-");
+    WebElement statusBadge =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-status']"));
+    assertThat(statusBadge.getText()).isEqualTo("Match");
+
+    WebElement reasonValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-reason-code']"));
+    assertThat(reasonValue.getText()).isEqualTo("match");
+
+    WebElement outcomeValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-outcome']"));
+    assertThat(outcomeValue.getText()).isEqualTo("match");
+
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='hotp-replay-metadata']")))
+        .isEmpty();
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='hotp-replay-telemetry-id']")))
+        .isEmpty();
   }
 
   @Test

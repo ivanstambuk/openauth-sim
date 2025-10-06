@@ -415,7 +415,7 @@
                       </select>
                     </div>
                     <div>
-                      <label for="hotpReplayStoredOtp">Observed OTP</label>
+                      <label for="hotpReplayStoredOtp">One-time password</label>
                       <input
                         id="hotpReplayStoredOtp"
                         name="otp"
@@ -539,7 +539,7 @@
                       />
                     </div>
                     <div>
-                      <label for="hotpReplayInlineOtp">Observed OTP</label>
+                      <label for="hotpReplayInlineOtp">One-time password</label>
                       <input
                         id="hotpReplayInlineOtp"
                         name="otp"
@@ -560,41 +560,44 @@
                     class="button-primary"
                     data-testid="hotp-replay-submit"
                   >
-                    Submit replay request
+                    Verify OTP
                   </button>
                 </div>
-
-                <section
-                    data-testid="hotp-replay-result"
-                    class="result-panel"
-                    aria-live="polite"
-                    hidden="hidden"
-                  >
-                  <h3>Replay result</h3>
-                  <p>
-                    Status:
-                    <strong data-testid="hotp-replay-status">—</strong>
-                  </p>
-                  <p data-testid="hotp-replay-metadata" class="hint"></p>
-                  <dl class="result-metadata">
-                    <div class="result-row">
-                      <dt>Telemetry</dt>
-                      <dd data-testid="hotp-replay-telemetry-id">—</dd>
-                    </div>
-                  </dl>
-                </section>
-
-                <section
-                    data-testid="hotp-replay-error"
-                    class="error-panel"
-                    role="alert"
-                    aria-live="assertive"
-                    hidden="hidden"
-                  >
-                  <h3>Replay failed</h3>
-                  <p data-testid="hotp-replay-error-message"></p>
-                </section>
               </form>
+            </div>
+            <div class="status-column">
+              <section
+                  class="result-panel"
+                  data-testid="hotp-replay-result"
+                  hidden="hidden"
+                  aria-hidden="true"
+                  aria-labelledby="hotpReplayResultHeading"
+                >
+                <div class="result-header">
+                  <h3 id="hotpReplayResultHeading">Replay result</h3>
+                  <span class="status-badge" data-testid="hotp-replay-status">—</span>
+                </div>
+                <dl class="result-metadata">
+                  <div class="result-row">
+                    <dt>Reason Code</dt>
+                    <dd data-testid="hotp-replay-reason-code">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Outcome</dt>
+                    <dd data-testid="hotp-replay-outcome">—</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <div
+                  class="error-card"
+                  data-testid="hotp-replay-error"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
+                <h3>Replay failed</h3>
+                <p data-testid="hotp-replay-error-message"></p>
+              </div>
             </div>
           </div>
         </div>

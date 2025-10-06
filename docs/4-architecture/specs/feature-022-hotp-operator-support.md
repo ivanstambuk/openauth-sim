@@ -30,6 +30,10 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-05 – HOTP replay hints read “Select a persisted credential, and replay the OTP without advancing counters.” and “Provide HOTP parameters directly for ad-hoc verification.” to align copy with operator guidance (user directive).
 - 2025-10-06 – HOTP replay stored credential selector label must read “Stored credential” to align the replay screen with the OCRA equivalent (user directive).
 - 2025-10-06 – HOTP replay stored credential panel omits the heading before the selector so the label is the first element, matching the OCRA replay layout (user directive).
+- 2025-10-06 – HOTP replay submit action button must display “Verify OTP” to align operator copy with credential verification intent (user directive).
+- 2025-10-06 – HOTP replay observed OTP field label must read “One-time password” to reflect operator terminology alignment (user directive).
+- 2025-10-06 – HOTP replay result card must render in the right-hand status column with the same layout as the OCRA replay panel (status badge, Reason Code row, Outcome row) instead of stacking beneath the form (user directive).
+- 2025-10-06 – HOTP replay UI must hide raw metadata/telemetry strings; only Reason Code and Outcome appear alongside the status badge (user directive).
 - 2025-10-05 – HOTP inline evaluation no longer collects an operator-provided identifier; the REST/API surface accepts only secret, algorithm, digits, counter, and OTP for inline requests (user directive).
 - 2025-10-05 – HOTP Evaluate tab (stored and inline modes) must generate the OTP and display it without requiring operator input; OTP entry remains exclusive to the Replay tab (user directive; Option A selected).
 - 2025-10-05 – HtmlUnit `@SuppressFBWarnings` annotation dependency is added to the REST API test configuration (via `com.github.spotbugs:spotbugs-annotations` on the test classpath) so compilation warnings are suppressed without disabling linting (user directive; Option A selected).
