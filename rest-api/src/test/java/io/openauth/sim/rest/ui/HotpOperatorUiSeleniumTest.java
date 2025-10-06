@@ -189,6 +189,37 @@ final class HotpOperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Inline HOTP form preserves spacing between stored toggle and sample preset")
+  void hotpInlineSpacingMatchesOcra() {
+    navigateToHotpPanel();
+    assertHotpInlineDefaultState();
+
+    WebElement inlinePanel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-inline-evaluation-panel']")));
+
+    WebElement inlineForm =
+        inlinePanel.findElement(By.cssSelector("[data-testid='hotp-inline-form']"));
+    String formClasses = inlineForm.getAttribute("class");
+    if (formClasses == null || !formClasses.contains("evaluation-form--spaced")) {
+      throw new AssertionError(
+          "Expected inline HOTP form to declare evaluation-form--spaced class but found: "
+              + formClasses);
+    }
+
+    String paddingTop = inlineForm.getCssValue("padding-top");
+    double paddingPixels = parsePixels(paddingTop);
+    if (paddingPixels < 8.0 || paddingPixels > 14.0) {
+      throw new AssertionError(
+          "Expected inline HOTP form padding-top between 8px and 14px; found "
+              + paddingPixels
+              + "px");
+    }
+  }
+
+  @Test
   @DisplayName("Inline HOTP evaluation succeeds via operator console presets")
   void inlineHotpEvaluationSucceeds() {
     navigateToHotpPanel();
@@ -430,5 +461,20 @@ final class HotpOperatorUiSeleniumTest {
             Integer.toString(DIGITS),
             "hotp.counter",
             Long.toString(INITIAL_COUNTER)));
+  }
+
+  private static double parsePixels(String value) {
+    if (value == null || value.isBlank()) {
+      return 0.0;
+    }
+    String trimmed = value.trim();
+    if (!trimmed.endsWith("px")) {
+      throw new AssertionError("Expected pixel value but received: " + value);
+    }
+    try {
+      return Double.parseDouble(trimmed.substring(0, trimmed.length() - 2));
+    } catch (NumberFormatException ex) {
+      throw new AssertionError("Unable to parse pixel value: " + value, ex);
+    }
   }
 }

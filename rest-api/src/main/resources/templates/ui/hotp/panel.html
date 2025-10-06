@@ -96,14 +96,14 @@
               </fieldset>
 
               <section
-                  class="stack-md"
+                  class="stack-md stack-offset-top-lg"
                   data-testid="hotp-inline-evaluation-panel"
                   aria-label="Inline HOTP evaluation form"
                   data-mode-section="inline"
                 >
                 <form
                     data-testid="hotp-inline-form"
-                    class="evaluation-form"
+                    class="evaluation-form evaluation-form--spaced"
                     th:attr="data-evaluate-endpoint=${hotpInlineEvaluateEndpoint}"
                   >
                   <input type="hidden" name="_csrf" th:value="${csrfToken}" />
