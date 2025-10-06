@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,6 +17,7 @@ public final class TelemetryContractTestSupport {
   private static final String HOTP_EVALUATION_EVENT = "hotp.evaluate";
   private static final String HOTP_ISSUANCE_EVENT = "hotp.issue";
   private static final String HOTP_REPLAY_EVENT = "hotp.replay";
+  private static final String HOTP_SEED_EVENT = "hotp.seed";
 
   private TelemetryContractTestSupport() {
     throw new AssertionError("No instances");
@@ -184,6 +186,20 @@ public final class TelemetryContractTestSupport {
         "unexpected_error",
         false,
         hotpReplayFields(credentialSource, counter, "java.lang.IllegalStateException: boom"));
+  }
+
+  public static Map<String, Object> hotpSeedFields() {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("addedCount", 2);
+    fields.put("canonicalCount", 2);
+    fields.put("existingCount", 0);
+    fields.put("trigger", "ui");
+    fields.put("addedCredentialIds", List.of("ui-hotp-demo", "ui-hotp-demo-sha256"));
+    return fields;
+  }
+
+  public static void assertHotpSeedFrame(TelemetryFrame frame) {
+    assertFrame(frame, HOTP_SEED_EVENT, "seeded", "seeded", true, hotpSeedFields());
   }
 
   private static Map<String, Object> hotpReplayFields(

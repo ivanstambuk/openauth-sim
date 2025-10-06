@@ -34,8 +34,13 @@ class OcraOperatorUiControllerTest {
     assertEquals("/api/v1/ocra/evaluate", model.getAttribute("evaluationEndpoint"));
     assertEquals("/api/v1/ocra/verify", model.getAttribute("verificationEndpoint"));
     assertEquals("/api/v1/ocra/credentials", model.getAttribute("credentialsEndpoint"));
+    assertEquals("/api/v1/hotp/credentials/seed", model.getAttribute("hotpSeedEndpoint"));
     assertEquals("/ui/ocra/replay/telemetry", model.getAttribute("telemetryEndpoint"));
     assertEquals("ocra", model.getAttribute("activeProtocol"));
+    assertTrue(model.containsAttribute("hotpSeedDefinitionsJson"));
+    String hotpSeedJson = (String) model.getAttribute("hotpSeedDefinitionsJson");
+    assertNotNull(hotpSeedJson);
+    assertTrue(hotpSeedJson.contains("ui-hotp-demo"));
 
     String csrf = (String) model.getAttribute("csrfToken");
     assertNotNull(csrf);
@@ -96,7 +101,10 @@ class OcraOperatorUiControllerTest {
             IllegalStateException.class,
             () -> failingController.unifiedConsole(form, request, new ConcurrentModel()));
 
-    assertTrue(exception.getMessage().contains("Unable to render policy presets"));
+    String message = exception.getMessage();
+    assertTrue(
+        message.contains("Unable to render HOTP seed definitions")
+            || message.contains("Unable to render policy presets"));
   }
 
   @Test

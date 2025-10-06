@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,9 +27,13 @@ final class HotpCredentialDirectoryController {
   private static final String ATTR_ALGORITHM = "hotp.algorithm";
 
   private final CredentialStore credentialStore;
+  private final HotpCredentialSeedService seedService;
 
-  HotpCredentialDirectoryController(ObjectProvider<CredentialStore> credentialStoreProvider) {
+  HotpCredentialDirectoryController(
+      ObjectProvider<CredentialStore> credentialStoreProvider,
+      HotpCredentialSeedService seedService) {
     this.credentialStore = credentialStoreProvider.getIfAvailable();
+    this.seedService = Objects.requireNonNull(seedService, "seedService");
   }
 
   @GetMapping("/credentials")
@@ -41,6 +46,13 @@ final class HotpCredentialDirectoryController {
         .map(HotpCredentialDirectoryController::toSummary)
         .sorted(SUMMARY_COMPARATOR)
         .collect(Collectors.toUnmodifiableList());
+  }
+
+  @PostMapping(value = "/credentials/seed", produces = MediaType.APPLICATION_JSON_VALUE)
+  SeedResponse seedCredentials() {
+    HotpCredentialSeedService.SeedResult result = seedService.seedCanonicalCredentials();
+    return new SeedResponse(
+        result.addedCount(), result.canonicalCount(), result.addedCredentialIds());
   }
 
   private static HotpCredentialSummary toSummary(Credential credential) {
@@ -102,6 +114,30 @@ final class HotpCredentialDirectoryController {
   record HotpCredentialSummary(String id, String label, Integer digits, Long counter) {
     HotpCredentialSummary {
       Objects.requireNonNull(id, "id");
+    }
+  }
+
+  static final class SeedResponse {
+    private final int addedCount;
+    private final int canonicalCount;
+    private final List<String> addedCredentialIds;
+
+    SeedResponse(int addedCount, int canonicalCount, List<String> addedCredentialIds) {
+      this.addedCount = addedCount;
+      this.canonicalCount = canonicalCount;
+      this.addedCredentialIds = List.copyOf(addedCredentialIds);
+    }
+
+    public int getAddedCount() {
+      return addedCount;
+    }
+
+    public int getCanonicalCount() {
+      return canonicalCount;
+    }
+
+    public List<String> getAddedCredentialIds() {
+      return addedCredentialIds;
     }
   }
 }

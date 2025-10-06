@@ -3,6 +3,7 @@ package io.openauth.sim.rest.hotp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.application.hotp.HotpSeedApplicationService;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
@@ -19,8 +20,7 @@ class HotpCredentialDirectoryControllerTest {
   @Test
   @DisplayName("returns empty list when credential store unavailable")
   void listCredentialsWithoutStore() {
-    HotpCredentialDirectoryController controller =
-        new HotpCredentialDirectoryController(provider(null));
+    HotpCredentialDirectoryController controller = controller(provider(null));
 
     assertTrue(controller.listCredentials().isEmpty());
   }
@@ -42,8 +42,7 @@ class HotpCredentialDirectoryControllerTest {
         credential("alpha-device", Map.of("hotp.digits", "8", "hotp.algorithm", "SHA256"));
 
     FixedCredentialStore store = new FixedCredentialStore(List.of(hotpA, other, hotpB));
-    HotpCredentialDirectoryController controller =
-        new HotpCredentialDirectoryController(provider(store));
+    HotpCredentialDirectoryController controller = controller(provider(store));
 
     List<HotpCredentialDirectoryController.HotpCredentialSummary> summaries =
         controller.listCredentials();
@@ -68,8 +67,7 @@ class HotpCredentialDirectoryControllerTest {
             Map.of("hotp.digits", "6", "hotp.counter", "42", "hotp.algorithm", "SHA512"));
 
     FixedCredentialStore store = new FixedCredentialStore(List.of(hotp));
-    HotpCredentialDirectoryController controller =
-        new HotpCredentialDirectoryController(provider(store));
+    HotpCredentialDirectoryController controller = controller(provider(store));
 
     List<HotpCredentialDirectoryController.HotpCredentialSummary> summaries =
         controller.listCredentials();
@@ -89,8 +87,7 @@ class HotpCredentialDirectoryControllerTest {
             Map.of("hotp.digits", "not-a-number", "hotp.counter", "NaN", "hotp.algorithm", " "));
 
     FixedCredentialStore store = new FixedCredentialStore(List.of(hotp));
-    HotpCredentialDirectoryController controller =
-        new HotpCredentialDirectoryController(provider(store));
+    HotpCredentialDirectoryController controller = controller(provider(store));
 
     List<HotpCredentialDirectoryController.HotpCredentialSummary> summaries =
         controller.listCredentials();
@@ -111,8 +108,7 @@ class HotpCredentialDirectoryControllerTest {
     Credential digitsOnly = credential("digits-only", Map.of("hotp.digits", "7"));
 
     FixedCredentialStore store = new FixedCredentialStore(List.of(algorithmOnly, digitsOnly));
-    HotpCredentialDirectoryController controller =
-        new HotpCredentialDirectoryController(provider(store));
+    HotpCredentialDirectoryController controller = controller(provider(store));
 
     List<HotpCredentialDirectoryController.HotpCredentialSummary> summaries =
         controller.listCredentials();
@@ -127,6 +123,13 @@ class HotpCredentialDirectoryControllerTest {
     assertEquals("digits-only", second.id());
     assertEquals("digits-only (7 digits)", second.label());
     assertEquals(7, second.digits());
+  }
+
+  private HotpCredentialDirectoryController controller(ObjectProvider<CredentialStore> provider) {
+    HotpSeedApplicationService applicationService = new HotpSeedApplicationService();
+    HotpCredentialSeedService seedService =
+        new HotpCredentialSeedService(provider, applicationService);
+    return new HotpCredentialDirectoryController(provider, seedService);
   }
 
   private Credential credential(String name, Map<String, String> attributes) {

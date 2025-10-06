@@ -64,4 +64,20 @@ final class HotpTelemetryContractTest {
 
     TelemetryContractTestSupport.assertHotpIssuanceSuccessFrame(frame);
   }
+
+  @Test
+  void hotpSeedingAdapterProducesSeedFrame() {
+    HotpTelemetryAdapter adapter = TelemetryContracts.hotpSeedingAdapter();
+
+    TelemetryFrame frame =
+        adapter.status(
+            "seeded",
+            TelemetryContractTestSupport.telemetryId(),
+            "seeded",
+            true,
+            null,
+            TelemetryContractTestSupport.hotpSeedFields());
+
+    TelemetryContractTestSupport.assertHotpSeedFrame(frame);
+  }
 }

@@ -190,9 +190,40 @@
                 <form
                     data-testid="hotp-stored-form"
                     class="evaluation-form"
-                    th:attr="data-evaluate-endpoint=${hotpStoredEvaluateEndpoint},data-credentials-endpoint=${hotpCredentialsEndpoint}"
+                    th:attr="data-evaluate-endpoint=${hotpStoredEvaluateEndpoint},data-credentials-endpoint=${hotpCredentialsEndpoint},data-seed-endpoint=${hotpSeedEndpoint}"
                   >
                   <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                  <script
+                    type="application/json"
+                    id="hotp-seed-definitions"
+                    th:utext="${hotpSeedDefinitionsJson}"
+                  ></script>
+                  <div
+                    class="seed-actions"
+                    data-testid="hotp-seed-actions"
+                    hidden="hidden"
+                    aria-hidden="true"
+                    style="margin-top: 1.5rem;"
+                  >
+                    <button
+                      type="button"
+                      class="button-secondary"
+                      data-testid="hotp-seed-credentials"
+                    >
+                      Seed sample credentials
+                    </button>
+                    <p class="hint" data-testid="hotp-seed-hint">
+                      Seed sample credentials when the registry is empty or missing canonical
+                      presets.
+                    </p>
+                    <p
+                      class="credential-status"
+                      data-testid="hotp-seed-status"
+                      aria-live="polite"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    ></p>
+                  </div>
                   <div class="field-grid">
                     <div>
                       <label for="hotpStoredCredentialId">Credential</label>

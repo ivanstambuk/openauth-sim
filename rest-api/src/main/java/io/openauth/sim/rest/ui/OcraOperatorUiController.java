@@ -56,11 +56,21 @@ final class OcraOperatorUiController {
     model.addAttribute("hotpStoredEvaluateEndpoint", "/api/v1/hotp/evaluate");
     model.addAttribute("hotpInlineEvaluateEndpoint", "/api/v1/hotp/evaluate/inline");
     model.addAttribute("hotpCredentialsEndpoint", "/api/v1/hotp/credentials");
+    model.addAttribute("hotpSeedEndpoint", "/api/v1/hotp/credentials/seed");
+    model.addAttribute("hotpSeedDefinitionsJson", serializeHotpSeedDefinitions());
     model.addAttribute("hotpReplayEndpoint", "/api/v1/hotp/replay");
     model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
     model.addAttribute("activeProtocol", "ocra");
     populatePolicyPresets(model);
     return "ui/console/index";
+  }
+
+  private String serializeHotpSeedDefinitions() {
+    try {
+      return objectMapper.writeValueAsString(HotpOperatorSampleData.seedDefinitions());
+    } catch (JsonProcessingException ex) {
+      throw new IllegalStateException("Unable to render HOTP seed definitions", ex);
+    }
   }
 
   @PostMapping(value = "/ocra/replay/telemetry", consumes = "application/json")

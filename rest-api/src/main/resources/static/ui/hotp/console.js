@@ -67,6 +67,18 @@
   var inlineAlgorithmSelect = hotpPanel
     ? hotpPanel.querySelector('#hotpInlineAlgorithm')
     : null;
+  var seedActions = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-seed-actions"]')
+    : null;
+  var seedButton = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-seed-credentials"]')
+    : null;
+  var seedStatus = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-seed-status"]')
+    : null;
+  var seedDefinitionNode = hotpPanel
+    ? hotpPanel.querySelector('#hotp-seed-definitions')
+    : null;
 
   var replayForm = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-replay-form"]')
@@ -161,8 +173,38 @@
   var activePanel = 'evaluate';
   var HOTP_ALLOWED_TABS = ['evaluate', 'replay'];
 
+  var seedDefinitionsPayload = [];
+  if (seedDefinitionNode && seedDefinitionNode.textContent) {
+    var payloadText = seedDefinitionNode.textContent.trim();
+    if (payloadText.length) {
+      try {
+        seedDefinitionsPayload = JSON.parse(payloadText);
+      } catch (error) {
+        if (global.console && typeof global.console.error === 'function') {
+          global.console.error('Failed to parse HOTP seed definitions', error);
+        }
+        seedDefinitionsPayload = [];
+      }
+    }
+  }
+
+  var seedMetadataByCredential = {};
+  seedDefinitionsPayload.forEach(function (definition) {
+    if (!definition || typeof definition.credentialId !== 'string') {
+      return;
+    }
+    var metadata = definition.metadata && typeof definition.metadata === 'object'
+      ? definition.metadata
+      : {};
+    seedMetadataByCredential[definition.credentialId] = metadata;
+  });
+
+  if (seedDefinitionNode && seedDefinitionNode.parentNode) {
+    seedDefinitionNode.parentNode.removeChild(seedDefinitionNode);
+  }
+
   var HOTP_SAMPLE_SECRET_HEX = '3132333435363738393031323334353637383930';
-  var STORED_SAMPLE_DATA = {
+  var STORED_SAMPLE_PRESETS = {
     'ui-hotp-demo': {
       otp: '755224',
       metadata: {
@@ -170,7 +212,15 @@
         notes: 'Replay sample generated from seeded HOTP credential.',
       },
     },
+    'ui-hotp-demo-sha256': {
+      otp: '89697997',
+      metadata: {
+        label: 'stored-demo-sha256',
+        notes: 'Seeded HOTP SHA-256 demo credential.',
+      },
+    },
   };
+  var STORED_SAMPLE_DATA = createStoredSampleData();
   var INLINE_SAMPLE_DATA = {
     'demo-inline': {
       label: 'Inline demo vector (SHA-1)',
@@ -204,6 +254,7 @@
   var credentialPromise = null;
   var inlinePresetActiveKey = '';
   var inlinePresetActiveLabel = '';
+  var seedInProgress = false;
 
   function setHidden(element, hidden) {
     if (!element) {
@@ -215,6 +266,41 @@
     } else {
       element.removeAttribute('hidden');
       element.removeAttribute('aria-hidden');
+    }
+  }
+
+  function setSeedStatus(message, severity) {
+    if (!seedStatus) {
+      return;
+    }
+    var text = typeof message === 'string' ? message.trim() : '';
+    seedStatus.classList.remove('credential-status--error', 'credential-status--warning');
+    if (!text) {
+      seedStatus.textContent = '';
+      setHidden(seedStatus, true);
+      return;
+    }
+    seedStatus.textContent = text;
+    if (severity === 'error') {
+      seedStatus.classList.add('credential-status--error');
+    } else if (severity === 'warning') {
+      seedStatus.classList.add('credential-status--warning');
+    }
+    setHidden(seedStatus, false);
+  }
+
+  function syncSeedControls(storedActive) {
+    if (!seedActions) {
+      return;
+    }
+    setHidden(seedActions, !storedActive);
+    if (!seedButton) {
+      return;
+    }
+    if (storedActive && !seedInProgress) {
+      seedButton.removeAttribute('disabled');
+    } else {
+      seedButton.setAttribute('disabled', 'disabled');
     }
   }
 
@@ -259,6 +345,37 @@
         reject(error);
       }
     });
+  }
+
+  function createStoredSampleData() {
+    var result = {};
+    Object.keys(STORED_SAMPLE_PRESETS).forEach(function (credentialId) {
+      var preset = STORED_SAMPLE_PRESETS[credentialId];
+      if (!preset) {
+        return;
+      }
+      var metadataSource = seedMetadataByCredential[credentialId];
+      var mergedMetadata = {};
+      if (metadataSource && typeof metadataSource === 'object') {
+        Object.keys(metadataSource).forEach(function (key) {
+          if (Object.prototype.hasOwnProperty.call(metadataSource, key)) {
+            mergedMetadata[key] = metadataSource[key];
+          }
+        });
+      }
+      var fallbackMetadata = preset.metadata || {};
+      if (!mergedMetadata.label && fallbackMetadata.label) {
+        mergedMetadata.label = fallbackMetadata.label;
+      }
+      if (!mergedMetadata.notes && fallbackMetadata.notes) {
+        mergedMetadata.notes = fallbackMetadata.notes;
+      }
+      result[credentialId] = {
+        otp: preset.otp,
+        metadata: mergedMetadata,
+      };
+    });
+    return result;
   }
 
   function ensureCredentials(forceRefresh) {
@@ -1035,6 +1152,8 @@
       inlineRadio.checked = !storedActive;
     }
 
+    syncSeedControls(storedActive);
+
     if (storedEvaluationSection) {
       setHidden(storedEvaluationSection, !storedActive);
     }
@@ -1050,6 +1169,72 @@
       hideStoredError();
       setHidden(storedResultPanel, true);
     }
+  }
+
+  function handleSeedRequest() {
+    if (seedInProgress) {
+      return;
+    }
+    if (!storedForm) {
+      setSeedStatus('Seeding endpoint unavailable.', 'error');
+      return;
+    }
+    var endpoint = storedForm.getAttribute('data-seed-endpoint');
+    if (!endpoint) {
+      setSeedStatus('Seeding endpoint unavailable.', 'error');
+      return;
+    }
+
+    seedInProgress = true;
+    syncSeedControls(true);
+    setSeedStatus('Seeding sample credentials…', null);
+
+    fetchDelegate(endpoint, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfTokenFor(storedForm) || '',
+      },
+      credentials: 'same-origin',
+    })
+      .then(function (response) {
+        return response.text().then(function (bodyText) {
+          return { ok: response.ok, body: bodyText };
+        });
+      })
+      .then(function (payload) {
+        if (!payload.ok) {
+          throw new Error('Seed request failed.');
+        }
+        var parsed = parseJson(payload.body) || {};
+        var addedCount = 0;
+        if (typeof parsed.addedCount === 'number') {
+          addedCount = parsed.addedCount;
+        } else if (Array.isArray(parsed.addedCredentialIds)) {
+          addedCount = parsed.addedCredentialIds.length;
+        }
+        var message =
+          'Seeded ' + addedCount + ' sample credential' + (addedCount === 1 ? '' : 's') + '.';
+        if (addedCount === 0) {
+          message += ' All sample credentials are already present.';
+        }
+        var severity = addedCount === 0 ? 'warning' : null;
+        setSeedStatus(message, severity);
+        credentialCache = null;
+        credentialPromise = null;
+        return ensureCredentials(true).then(function () {
+          updateStoredSampleHints();
+        });
+      })
+      .catch(function () {
+        setSeedStatus('Unable to seed sample credentials.', 'error');
+      })
+      .finally(function () {
+        seedInProgress = false;
+        var storedActive = modeToggle ? modeToggle.getAttribute('data-mode') === 'stored' : true;
+        syncSeedControls(storedActive);
+      });
   }
 
   function handleStoredEvaluate() {
@@ -1197,6 +1382,12 @@
       storedButton.addEventListener('click', function (event) {
         event.preventDefault();
         handleStoredEvaluate();
+      });
+    }
+    if (seedButton) {
+      seedButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        handleSeedRequest();
       });
     }
     if (inlineButton) {

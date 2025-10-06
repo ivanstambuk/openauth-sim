@@ -1,7 +1,7 @@
 # Feature 022 – Task Checklist
 
 _Status: Draft_
-_Last updated: 2025-10-05_
+_Last updated: 2025-10-06_
 
 ## Tasks (≤10 min each)
 - ☑ T2201 – Add failing HOTP generator/validator unit tests covering counter rollover, digit length variants, and secret bounds.
@@ -47,3 +47,12 @@ _Last updated: 2025-10-05_
 - ☑ T2241 – Update OCRA evaluation result markup/styles to reuse the success badge, rerun targeted OCRA + HOTP suites and `./gradlew spotlessApply check` (2025-10-06: inline script applies badge variants; targeted suites and full build green).
 
 Mark tasks as work completes and record tooling outcomes within the feature plan.
+- ☑ T2242 – Add failing REST + Selenium coverage for the HOTP stored credential seeding button (empty-store scenario, telemetry assertions, idempotency guards).
+    (2025-10-06: initial coverage drafted; REST seeding test now passes after endpoint implementation, Selenium seeding test remains red pending UI wiring.)
+- ☑ T2243 – Implement HOTP seeding service/REST endpoint mirroring the OCRA flow, append `ui-hotp-demo` and `ui-hotp-demo-sha256` when missing, and satisfy T2242. (2025-10-06: added application + REST seeding services; `./gradlew :application:test --tests "io.openauth.sim.application.telemetry.HotpTelemetryContractTest"` and `./gradlew :rest-api:test --tests "io.openauth.sim.rest.HotpCredentialSeedingEndpointTest"` executed successfully.)
+- ☑ T2244 – Wire the operator UI seeding button (stored-mode only) with status messaging, reuse preset metadata, and rerun targeted UI suites to satisfy T2242/T2243. (2025-10-06: added Thymeleaf seed controls + JSON definitions, updated HOTP console JS to call the seeding endpoint and refresh stored credentials/sample hints, then executed `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeedingSeleniumTest"`.)
+- ☑ T2245 – Sync docs/roadmap/knowledge map and rerun `./gradlew spotlessApply check` after HOTP seeding lands. (2025-10-06: updated the HOTP operator UI how-to with the seeding control, refreshed roadmap/knowledge map, and re-executed the formatting/verification task.)
+- ☑ T2246 – Add failing Selenium assertions that the HOTP stored-mode “Seed sample credentials” button precedes the stored credential selector (matching OCRA layout) via `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeedingSeleniumTest"`. (2025-10-06: assertion fails against current layout, confirming precondition.)
+- ☑ T2247 – Rework the HOTP evaluate template/JS so the seeding button renders above the selector without altering spacing/copy, then rerun the targeted UI suite and `./gradlew spotlessApply check` to satisfy T2246. (2025-10-06: moved seed-actions block before the credential field grid, added wait guard in Selenium test, reran targeted suite with `--rerun-tasks`, and full build passed.)
+- ☑ T2248 – Add failing Selenium assertions requiring a minimum spacing between the HOTP mode selector and the seeding button, mirroring the OCRA layout (`./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeedingSeleniumTest"`). (2025-10-06: assertion red with 0 px margin, confirming precondition.)
+- ☑ T2249 – Update shared console styling so the HOTP seeding control inherits the required spacing, satisfy the new Selenium checks, and rerun `./gradlew spotlessApply check`. (2025-10-06: applied inline spacing, refreshed Selenium helpers to avoid stale elements, targeted suite + full spotless/check both green.)

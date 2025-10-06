@@ -2,6 +2,7 @@ package io.openauth.sim.rest.hotp;
 
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService;
 import io.openauth.sim.application.hotp.HotpReplayApplicationService;
+import io.openauth.sim.application.hotp.HotpSeedApplicationService;
 import io.openauth.sim.core.store.CredentialStore;
 import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
@@ -31,5 +32,10 @@ class HotpApplicationConfiguration {
           "CredentialStore bean is required for HOTP replay to operate");
     }
     return new HotpReplayApplicationService(store);
+  }
+
+  @Bean
+  HotpSeedApplicationService hotpSeedApplicationService() {
+    return new HotpSeedApplicationService();
   }
 }

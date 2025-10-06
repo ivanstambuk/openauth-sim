@@ -1,10 +1,11 @@
 # Feature 022 – HOTP Operator Support
 
 _Status: Draft_
-_Last updated: 2025-10-05_
+_Last updated: 2025-10-06_
 
 ## Overview
 Deliver RFC 4226 HOTP capabilities across the simulator so operators can register and validate HOTP credentials alongside the existing OCRA flows. This feature introduces a dedicated HOTP domain model, persistence wiring, telemetry events, façade endpoints (CLI + REST), and operator console UI evaluation flows (stored + inline) while keeping issuance out of scope.
+
 
 ## Clarifications
 - 2025-10-04 – Initial delivery must ship an end-to-end slice (core domain, application adapters, CLI commands, and REST endpoints) instead of a core-only milestone (user directive; Option B selected).
@@ -30,7 +31,10 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-05 – HtmlUnit `@SuppressFBWarnings` annotation dependency is added to the REST API test configuration (via `com.github.spotbugs:spotbugs-annotations` on the test classpath) so compilation warnings are suppressed without disabling linting (user directive; Option A selected).
 - 2025-10-05 – HOTP inline evaluate "Load a sample vector" control must offer multiple presets (e.g., RFC 4226 SHA-1 and an additional SHA-256 demo vector) so operators can exercise different hash digests during generation flows (user directive; Option B selected).
 - 2025-10-05 – HOTP inline evaluation result panel matches the OCRA layout: headline “Evaluation result,” OTP row rendered as “OTP: <value>,” status row rendered inline with “Status” label and value, the container width and padding align with the OCRA result panel, success badges use the green style adopted from HOTP across protocols, no ancillary metadata row, and the panel positioned at the top-right of the input form (user directive).
+- 2025-10-06 – HOTP stored evaluation view positions the “Seed sample credentials” button above the stored credential selector to mirror the OCRA tab layout (user directive).
+- 2025-10-06 – HOTP stored evaluation seeding control maintains the same vertical spacing from the evaluation mode selector as the OCRA tab so the layout remains visually consistent (user directive).
 
+- 2025-10-06 – HOTP operator console seeding button must provision both canonical stored credentials (`ui-hotp-demo` SHA-1/6 and `ui-hotp-demo-sha256` SHA-256/8) mirroring inline presets; reseeding appends missing entries without overwriting existing records (user directive; Option B selected).
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
 |----|-------------|-------------------|
@@ -40,6 +44,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 | HOS-004 | Expose REST endpoints for HOTP evaluation (stored credential and inline secret modes) with OpenAPI updates and consistent telemetry; inline mode omits operator-provided identifiers. | Spring MVC tests confirm endpoint contracts; OpenAPI snapshots show HOTP sections; telemetry adapters emit `hotp.rest.*` frames and REST telemetry logs redact OTP material. |
 | HOS-005 | Document HOTP usage (how-to guides, roadmap, knowledge map) and highlight CLI/REST entry points plus schema reuse. | Docs updated under `docs/2-how-to/`, roadmap milestone notes mention HOTP delivery, knowledge map links HOTP modules to shared persistence/telemetry. |
 | HOS-006 | Surface HOTP evaluation in the operator UI by extending the existing console with stored credential selection and inline secret evaluation flows that call the REST API. Issuance remains out of scope. | UI integration tests (e.g., Spring/Selenium) cover stored + inline evaluation; UI links reuse REST telemetry without new event types; UX reflects documentation requirements. |
+| HOS-007 | Provide a HOTP operator console seeding control that appends canonical SHA-1/6 and SHA-256/8 demo credentials without overwriting existing records, and align REST/UI telemetry with the operation. | UI + REST tests confirm the button appears only in stored mode, seeds missing credentials idempotently, and telemetry/events mirror OCRA seeding behaviour. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |

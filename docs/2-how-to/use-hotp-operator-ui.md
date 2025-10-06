@@ -1,14 +1,20 @@
 # Use the HOTP Operator UI
 
 _Status: Draft_
-_Last updated: 2025-10-05_
+_Last updated: 2025-10-06_
 
 The operator console embedded in the REST API now provides HOTP evaluation and replay tooling alongside the existing OCRA flows. This guide walks through evaluating stored credentials, running inline checks, replaying observed OTPs without mutating counters, and interpreting telemetry identifiers.
 
 ## Prerequisites
 - Run the REST API (`./gradlew :rest-api:bootRun`) so the operator console is reachable at `http://localhost:8080/ui/console`.
 - Ensure the simulator can access a MapDB credential store (defaults to `data/credentials.db`). Use the CLI to import HOTP credentials if none exist.
-- Keep the CLI or REST endpoints available for seeding new credentials or clearing counters when needed.
+- The operator console now exposes a **Seed sample credentials** button in stored mode; use it to add the canonical SHA-1/6 and SHA-256/8 demo records before running drills. The CLI and REST endpoints remain available for bulk imports or cleanup.
+
+## Seed Canonical HOTP Credentials
+1. Navigate to `http://localhost:8080/ui/console?protocol=hotp` and confirm the **Stored credential** mode is active.
+2. Locate the **Seed sample credentials** button beneath the credential dropdown. The control appears only in stored mode.
+3. Choose **Seed sample credentials** to call `/api/v1/hotp/credentials/seed`. The UI surfaces a status message indicating how many canonical records were added (or whether they already exist) and refreshes the credential dropdown automatically.
+4. Reseeding is idempotent; the console reports when no new credentials were added so repeated drills stay predictable.
 
 ## Evaluate a Stored HOTP Credential
 1. Open `http://localhost:8080/ui/console?protocol=hotp` and select the **HOTP** tab if it is not already active.
