@@ -135,7 +135,16 @@ enforce_staged_file_guards() {
   fi
 }
 
+clear_configuration_cache() {
+  local cache_dir="$ROOT_DIR/.gradle/configuration-cache"
+  if [[ -d $cache_dir ]]; then
+    log "Clearing Gradle configuration cache before quality pipeline."
+    rm -rf "$cache_dir"
+  fi
+}
+
 run_gradle_pipeline() {
+  clear_configuration_cache
   run_gradle_with_retry "Warming Gradle configuration cache" help --configuration-cache
 
   run_gradle_with_retry "Running Gradle spotlessApply" spotlessApply
