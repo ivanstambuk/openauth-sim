@@ -134,10 +134,18 @@
                     </div>
                   </div>
 
-                  <div class="field-grid">
+                  <div
+                    class="field-grid hotp-inline-parameter-grid"
+                    data-testid="hotp-inline-parameter-grid"
+                  >
                     <div class="field-group">
                       <label for="hotpInlineAlgorithm">Hash algorithm</label>
-                      <select id="hotpInlineAlgorithm" name="algorithm" required="required">
+                      <select
+                        id="hotpInlineAlgorithm"
+                        name="algorithm"
+                        class="select-compact"
+                        required="required"
+                      >
                         <option value="SHA1" selected>SHA-1</option>
                         <option value="SHA256">SHA-256</option>
                         <option value="SHA512">SHA-512</option>
@@ -154,6 +162,7 @@
                         step="1"
                         value="6"
                         required="required"
+                        class="input-compact"
                       />
                     </div>
                     <div class="field-group">
@@ -165,6 +174,7 @@
                         min="0"
                         value="0"
                         required="required"
+                        class="input-compact"
                       />
                     </div>
                   </div>

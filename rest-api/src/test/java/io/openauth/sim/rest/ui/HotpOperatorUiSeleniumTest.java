@@ -220,6 +220,65 @@ final class HotpOperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Inline HOTP parameter controls render in compact row")
+  void inlineHotpParametersRenderInCompactRow() {
+    navigateToHotpPanel();
+    assertHotpInlineDefaultState();
+
+    WebElement parameterGrid =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-inline-parameter-grid']")));
+
+    String columnTemplate = parameterGrid.getCssValue("grid-template-columns");
+    if (columnTemplate == null || columnTemplate.isBlank()) {
+      throw new AssertionError("Expected inline HOTP parameter grid to define column tracks");
+    }
+
+    String[] columnDefinitions = columnTemplate.trim().split("\\s+");
+    if (columnDefinitions.length < 3) {
+      throw new AssertionError(
+          "Expected inline HOTP parameter grid to expose three columns but found: "
+              + columnTemplate);
+    }
+
+    WebElement algorithmSelect = parameterGrid.findElement(By.id("hotpInlineAlgorithm"));
+    WebElement digitsInput = parameterGrid.findElement(By.id("hotpInlineDigits"));
+    WebElement counterInput = parameterGrid.findElement(By.id("hotpInlineCounter"));
+
+    if (columnDefinitions[0].contains("5.5rem")) {
+      throw new AssertionError(
+          "Expected inline HOTP parameter grid to dedicate the widest track to the algorithm select but found: "
+              + columnTemplate);
+    }
+
+    long compactTrackCount =
+        java.util.Arrays.stream(columnDefinitions).filter(def -> def.contains("5.5rem")).count();
+    if (compactTrackCount < 2) {
+      throw new AssertionError(
+          "Expected inline HOTP parameter grid to expose compact tracks for digits and counter but found: "
+              + columnTemplate);
+    }
+
+    String algorithmClass = algorithmSelect.getAttribute("class");
+    if (algorithmClass == null || !algorithmClass.contains("select-compact")) {
+      throw new AssertionError(
+          "Expected inline HOTP algorithm select to apply compact styling class");
+    }
+
+    String digitsClass = digitsInput.getAttribute("class");
+    if (digitsClass == null || !digitsClass.contains("input-compact")) {
+      throw new AssertionError("Expected inline HOTP digits input to apply compact styling class");
+    }
+
+    String counterClass = counterInput.getAttribute("class");
+    if (counterClass == null || !counterClass.contains("input-compact")) {
+      throw new AssertionError("Expected inline HOTP counter input to apply compact styling class");
+    }
+  }
+
+  @Test
   @DisplayName("Inline HOTP evaluation succeeds via operator console presets")
   void inlineHotpEvaluationSucceeds() {
     navigateToHotpPanel();
