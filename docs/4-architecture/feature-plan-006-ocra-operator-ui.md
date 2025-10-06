@@ -132,6 +132,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-29 – R074 delivery: Styled disabled request parameter inputs with muted backgrounds/borders, added Selenium assertions for cursor/background checks, and reran `./gradlew spotlessApply check`.
 - 2025-09-30 – R075 validation: Ran `./gradlew rest-api:test` and `./gradlew spotlessApply check` to confirm end-to-end coverage before closing Feature 006 and updating the roadmap.
 - 2025-10-04 – Logged follow-up to add an explicit replay "Load sample data" button for curated stored credentials; operators must opt-in to filling preset context rather than triggering it on selection.
+- ☑ R076 – Add failing Selenium coverage that enforces inline-first ordering and default selection across OCRA replay tabs before updating templates/scripts. (2025-10-06: extended `OcraOperatorUiReplaySeleniumTest` with inline-first default/order checks and observed `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiReplaySeleniumTest"` fail ahead of UI fixes.)
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 
 ## Analysis Gate Notes

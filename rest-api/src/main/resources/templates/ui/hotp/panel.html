@@ -61,7 +61,7 @@
               <fieldset
                   class="mode-toggle"
                   data-testid="hotp-mode-toggle"
-                  data-mode="stored"
+                  data-mode="inline"
                 >
                 <legend>Choose evaluation mode</legend>
                 <div class="mode-option">
@@ -72,6 +72,7 @@
                     value="inline"
                     data-testid="hotp-mode-select-inline"
                     aria-describedby="hotpModeInlineHint"
+                    checked="checked"
                   />
                   <label for="hotpModeInline">Inline parameters</label>
                   <p id="hotpModeInlineHint" class="hint">
@@ -86,7 +87,6 @@
                     value="stored"
                     data-testid="hotp-mode-select-stored"
                     aria-describedby="hotpModeStoredHint"
-                    checked="checked"
                   />
                   <label for="hotpModeStored">Stored credential</label>
                   <p id="hotpModeStoredHint" class="hint">
@@ -96,16 +96,14 @@
               </fieldset>
 
               <section
-                  class="stack-md"
+                  class="stack-md stack-offset-top-lg"
                   data-testid="hotp-inline-evaluation-panel"
                   aria-label="Inline HOTP evaluation form"
                   data-mode-section="inline"
-                  hidden="hidden"
-                  aria-hidden="true"
                 >
                 <form
                     data-testid="hotp-inline-form"
-                    class="evaluation-form"
+                    class="evaluation-form evaluation-form--spaced"
                     th:attr="data-evaluate-endpoint=${hotpInlineEvaluateEndpoint}"
                   >
                   <input type="hidden" name="_csrf" th:value="${csrfToken}" />
@@ -136,10 +134,18 @@
                     </div>
                   </div>
 
-                  <div class="field-grid">
+                  <div
+                    class="field-grid hotp-inline-parameter-grid"
+                    data-testid="hotp-inline-parameter-grid"
+                  >
                     <div class="field-group">
                       <label for="hotpInlineAlgorithm">Hash algorithm</label>
-                      <select id="hotpInlineAlgorithm" name="algorithm" required="required">
+                      <select
+                        id="hotpInlineAlgorithm"
+                        name="algorithm"
+                        class="select-compact"
+                        required="required"
+                      >
                         <option value="SHA1" selected>SHA-1</option>
                         <option value="SHA256">SHA-256</option>
                         <option value="SHA512">SHA-512</option>
@@ -156,6 +162,7 @@
                         step="1"
                         value="6"
                         required="required"
+                        class="input-compact"
                       />
                     </div>
                     <div class="field-group">
@@ -167,6 +174,7 @@
                         min="0"
                         value="0"
                         required="required"
+                        class="input-compact"
                       />
                     </div>
                   </div>
@@ -186,6 +194,8 @@
                   data-testid="hotp-stored-evaluation-panel"
                   aria-label="Stored HOTP credential evaluation form"
                   data-mode-section="stored"
+                  hidden="hidden"
+                  aria-hidden="true"
                 >
                 <form
                     data-testid="hotp-stored-form"
@@ -350,24 +360,9 @@
                 <fieldset
                     class="mode-toggle"
                     data-testid="hotp-replay-mode-toggle"
-                    data-mode="stored"
+                    data-mode="inline"
                   >
                   <legend>Choose replay mode</legend>
-                  <div class="mode-option">
-                    <input
-                      type="radio"
-                      id="hotpReplayModeStored"
-                      name="hotpReplayMode"
-                      value="stored"
-                      data-testid="hotp-replay-mode-select-stored"
-                      aria-describedby="hotpReplayModeStoredHint"
-                      checked="checked"
-                    />
-                    <label for="hotpReplayModeStored">Stored credential</label>
-                    <p id="hotpReplayModeStoredHint" class="hint">
-                      Select a persisted credential, and replay the OTP without advancing counters.
-                    </p>
-                  </div>
                   <div class="mode-option">
                     <input
                       type="radio"
@@ -376,10 +371,25 @@
                       value="inline"
                       data-testid="hotp-replay-mode-select-inline"
                       aria-describedby="hotpReplayModeInlineHint"
+                      checked="checked"
                     />
                     <label for="hotpReplayModeInline">Inline parameters</label>
                     <p id="hotpReplayModeInlineHint" class="hint">
                       Provide HOTP parameters directly for ad-hoc verification.
+                    </p>
+                  </div>
+                  <div class="mode-option">
+                    <input
+                      type="radio"
+                      id="hotpReplayModeStored"
+                      name="hotpReplayMode"
+                      value="stored"
+                      data-testid="hotp-replay-mode-select-stored"
+                      aria-describedby="hotpReplayModeStoredHint"
+                    />
+                    <label for="hotpReplayModeStored">Stored credential</label>
+                    <p id="hotpReplayModeStoredHint" class="hint">
+                      Select a persisted credential, and replay the OTP without advancing counters.
                     </p>
                   </div>
                 </fieldset>
@@ -388,31 +398,24 @@
                     class="stack-md"
                     data-testid="hotp-replay-stored-panel"
                     data-replay-section="stored"
-                    aria-labelledby="hotpReplayStoredHeading"
+                    aria-labelledby="hotpReplayStoredLabel"
                   >
-                  <h3 id="hotpReplayStoredHeading">Stored credential replay</h3>
                   <div class="field-grid">
                     <div>
-                      <label for="hotpReplayStoredCredentialId">Credential</label>
+                      <label id="hotpReplayStoredLabel" for="hotpReplayStoredCredentialId"
+                        >Stored credential</label
+                      >
                       <select
                         id="hotpReplayStoredCredentialId"
                         name="credentialId"
                         data-stored-required="true"
-                        aria-describedby="hotpReplayStoredStatus"
                         disabled="disabled"
                       >
                         <option value="">Loading credentials…</option>
                       </select>
-                      <p
-                        id="hotpReplayStoredStatus"
-                        class="hint"
-                        data-testid="hotp-replay-sample-status"
-                        hidden="hidden"
-                        aria-hidden="true"
-                      ></p>
                     </div>
                     <div>
-                      <label for="hotpReplayStoredOtp">Observed OTP</label>
+                      <label for="hotpReplayStoredOtp">One-time password</label>
                       <input
                         id="hotpReplayStoredOtp"
                         name="otp"
@@ -536,7 +539,7 @@
                       />
                     </div>
                     <div>
-                      <label for="hotpReplayInlineOtp">Observed OTP</label>
+                      <label for="hotpReplayInlineOtp">One-time password</label>
                       <input
                         id="hotpReplayInlineOtp"
                         name="otp"
@@ -551,89 +554,50 @@
                   </div>
                 </section>
 
-                <div class="advanced-actions">
-                  <button
-                    type="button"
-                    class="button-link"
-                    data-testid="hotp-replay-advanced-toggle"
-                    aria-expanded="false"
-                    aria-controls="hotpReplayAdvancedPanel"
-                  >
-                    Show advanced context
-                  </button>
-                </div>
-
-                <section
-                    id="hotpReplayAdvancedPanel"
-                    class="advanced-panel"
-                    data-testid="hotp-replay-advanced-panel"
-                    data-open="false"
-                    hidden="hidden"
-                    aria-hidden="true"
-                  >
-                  <div class="field-grid">
-                    <div>
-                      <label for="hotpReplayAdvancedLabel">Label</label>
-                      <input
-                        id="hotpReplayAdvancedLabel"
-                        name="metadata[label]"
-                        type="text"
-                        placeholder="Optional label for audit logs"
-                      />
-                    </div>
-                    <div>
-                      <label for="hotpReplayAdvancedNotes">Notes</label>
-                      <textarea
-                        id="hotpReplayAdvancedNotes"
-                        name="metadata[notes]"
-                        rows="2"
-                        placeholder="Optional replay notes"
-                      ></textarea>
-                    </div>
-                  </div>
-                </section>
-
                 <div class="button-row">
                   <button
                     type="button"
                     class="button-primary"
                     data-testid="hotp-replay-submit"
                   >
-                    Submit replay request
+                    Verify OTP
                   </button>
                 </div>
-
-                <section
-                    data-testid="hotp-replay-result"
-                    class="result-panel"
-                    aria-live="polite"
-                    hidden="hidden"
-                  >
-                  <h3>Replay result</h3>
-                  <p>
-                    Status:
-                    <strong data-testid="hotp-replay-status">—</strong>
-                  </p>
-                  <p data-testid="hotp-replay-metadata" class="hint"></p>
-                  <dl class="result-metadata">
-                    <div class="result-row">
-                      <dt>Telemetry</dt>
-                      <dd data-testid="hotp-replay-telemetry-id">—</dd>
-                    </div>
-                  </dl>
-                </section>
-
-                <section
-                    data-testid="hotp-replay-error"
-                    class="error-panel"
-                    role="alert"
-                    aria-live="assertive"
-                    hidden="hidden"
-                  >
-                  <h3>Replay failed</h3>
-                  <p data-testid="hotp-replay-error-message"></p>
-                </section>
               </form>
+            </div>
+            <div class="status-column">
+              <section
+                  class="result-panel"
+                  data-testid="hotp-replay-result"
+                  hidden="hidden"
+                  aria-hidden="true"
+                  aria-labelledby="hotpReplayResultHeading"
+                >
+                <div class="result-header">
+                  <h3 id="hotpReplayResultHeading">Replay result</h3>
+                  <span class="status-badge" data-testid="hotp-replay-status">—</span>
+                </div>
+                <dl class="result-metadata">
+                  <div class="result-row">
+                    <dt>Reason Code</dt>
+                    <dd data-testid="hotp-replay-reason-code">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Outcome</dt>
+                    <dd data-testid="hotp-replay-outcome">—</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <div
+                  class="error-card"
+                  data-testid="hotp-replay-error"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
+                <h3>Replay failed</h3>
+                <p data-testid="hotp-replay-error-message"></p>
+              </div>
             </div>
           </div>
         </div>

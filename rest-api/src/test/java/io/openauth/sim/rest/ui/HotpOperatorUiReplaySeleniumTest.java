@@ -11,6 +11,7 @@ import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,9 +31,8 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * Failing Selenium coverage for the upcoming HOTP replay operator UI. These scenarios exercise
- * stored and inline replay flows, sample data affordances, advanced toggles, and telemetry
- * surfacing. They are expected to fail until R2216 wires the templates and JavaScript.
+ * Selenium coverage for the HOTP replay operator UI. These scenarios exercise stored and inline
+ * replay flows, sample data affordances, and telemetry surfacing.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 final class HotpOperatorUiReplaySeleniumTest {
@@ -91,21 +91,116 @@ final class HotpOperatorUiReplaySeleniumTest {
   }
 
   @Test
-  @DisplayName("Stored HOTP replay surfaces telemetry and counter metadata")
-  void storedHotpReplaySurfacesTelemetryAndMetadata() {
+  @DisplayName("Stored HOTP replay selector label matches OCRA copy")
+  void storedHotpReplayLabelMatchesOcraCopy() {
+    navigateToReplayPanel();
+
+    WebElement storedMode = waitForVisible(By.id("hotpReplayModeStored"));
+    if (!storedMode.isSelected()) {
+      storedMode.click();
+      new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> storedMode.isSelected());
+    }
+
+    WebElement label = waitForVisible(By.cssSelector("label[for='hotpReplayStoredCredentialId']"));
+    assertThat(label.getText().trim()).isEqualTo("Stored credential");
+  }
+
+  @Test
+  @DisplayName("HOTP replay submit button copy matches verification directive")
+  void hotpReplaySubmitButtonCopy() {
+    navigateToReplayPanel();
+
+    WebElement submit = waitForVisible(By.cssSelector("button[data-testid='hotp-replay-submit']"));
+    assertThat(submit.getText().trim()).isEqualTo("Verify OTP");
+  }
+
+  @Test
+  @DisplayName("HOTP replay observed OTP labels read One-time password")
+  void hotpReplayObservedOtpLabel() {
+    navigateToReplayPanel();
+
+    WebElement storedMode = waitForVisible(By.id("hotpReplayModeStored"));
+    if (!storedMode.isSelected()) {
+      storedMode.click();
+      new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> storedMode.isSelected());
+    }
+
+    WebElement storedLabel = waitForVisible(By.cssSelector("label[for='hotpReplayStoredOtp']"));
+    assertThat(storedLabel.getText().trim()).isEqualTo("One-time password");
+
+    waitForClickable(By.id("hotpReplayModeInline")).click();
+    WebElement inlineLabel = waitForVisible(By.cssSelector("label[for='hotpReplayInlineOtp']"));
+    assertThat(inlineLabel.getText().trim()).isEqualTo("One-time password");
+  }
+
+  @Test
+  @DisplayName("HOTP replay defaults to inline parameters listed before stored credential")
+  void hotpReplayDefaultsToInlineMode() {
+    navigateToReplayPanel();
+
+    WebElement inlineMode = waitForVisible(By.id("hotpReplayModeInline"));
+    WebElement storedMode = waitForVisible(By.id("hotpReplayModeStored"));
+
+    assertThat(inlineMode.isSelected()).as("Inline mode should be selected by default").isTrue();
+    assertThat(storedMode.isSelected()).isFalse();
+
+    java.util.List<String> labels =
+        driver
+            .findElements(
+                By.cssSelector("[data-testid='hotp-replay-mode-toggle'] .mode-option label"))
+            .stream()
+            .map(WebElement::getText)
+            .map(String::trim)
+            .toList();
+
+    assertThat(labels).containsExactly("Inline parameters", "Stored credential");
+  }
+
+  @Test
+  @DisplayName("Stored HOTP replay heading removed so label leads section")
+  void storedHotpReplayHeadingRemoved() {
+    navigateToReplayPanel();
+
+    List<WebElement> heading = driver.findElements(By.id("hotpReplayStoredHeading"));
+    assertThat(heading)
+        .as("Stored replay panel should omit the heading before the selector label")
+        .isEmpty();
+  }
+
+  @Test
+  @DisplayName("Stored HOTP replay sample status message removed")
+  void storedHotpReplaySampleStatusRemoved() {
+    navigateToReplayPanel();
+
+    List<WebElement> statusNodes =
+        driver.findElements(By.cssSelector("[data-testid='hotp-replay-sample-status']"));
+    assertThat(statusNodes)
+        .as("Stored replay panel should not render the sample status message")
+        .isEmpty();
+  }
+
+  @Test
+  @DisplayName("HOTP replay result column mirrors OCRA layout")
+  void hotpReplayResultLayoutMatchesOcra() {
     navigateToReplayPanel();
 
     waitForVisible(By.cssSelector("[data-testid='hotp-replay-panel']"));
 
+    WebElement inlineMode = waitForVisible(By.id("hotpReplayModeInline"));
     WebElement storedMode = waitForVisible(By.id("hotpReplayModeStored"));
-    assertThat(storedMode.isSelected()).as("Stored mode should be selected by default").isTrue();
+
+    assertThat(inlineMode.isSelected()).as("Inline mode should be selected by default").isTrue();
+    assertThat(storedMode.isSelected()).isFalse();
+
+    if (!storedMode.isSelected()) {
+      storedMode.click();
+      new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> storedMode.isSelected());
+    }
 
     Select credentialSelect = new Select(waitForVisible(By.id("hotpReplayStoredCredentialId")));
     waitForCredentialOption(credentialSelect, STORED_CREDENTIAL_ID);
     credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
 
-    waitForTextContains(
-        By.cssSelector("[data-testid='hotp-replay-sample-status']"), "Sample data ready");
     WebElement sampleButton =
         waitForClickable(By.cssSelector("button[data-testid='hotp-replay-sample-load']"));
     sampleButton.click();
@@ -116,46 +211,44 @@ final class HotpOperatorUiReplaySeleniumTest {
         EXPECTED_STORED_OTP,
         "Stored replay OTP should auto-fill from curated sample data");
 
-    WebElement advancedToggle =
-        waitForVisible(By.cssSelector("button[data-testid='hotp-replay-advanced-toggle']"));
-    if ("false".equals(advancedToggle.getAttribute("aria-expanded"))) {
-      advancedToggle.click();
-    }
-
-    WebElement advancedPanel =
-        waitForVisible(By.cssSelector("[data-testid='hotp-replay-advanced-panel']"));
-    assertThat(advancedPanel.getAttribute("hidden")).isNull();
-    assertThat(advancedPanel.getAttribute("data-open")).isEqualTo("true");
-
     waitForClickable(By.cssSelector("button[data-testid='hotp-replay-submit']")).click();
 
     WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='hotp-replay-result']"));
     assertThat(resultPanel.getAttribute("hidden")).isNull();
 
-    assertThat(
-            resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-status']")).getText())
-        .isEqualToIgnoringCase("match");
-    assertThat(
-            resultPanel
-                .findElement(By.cssSelector("[data-testid='hotp-replay-metadata']"))
-                .getText())
-        .contains("previousCounter=0")
-        .contains("nextCounter=0")
-        .contains("credentialSource=stored");
+    WebElement statusColumn =
+        resultPanel.findElement(By.xpath("ancestor::div[contains(@class,'status-column')]"));
+    assertThat(statusColumn).as("Replay result should render inside the status column").isNotNull();
 
-    String telemetryId =
-        resultPanel
-            .findElement(By.cssSelector("[data-testid='hotp-replay-telemetry-id']"))
-            .getText();
-    assertThat(telemetryId)
-        .as("Telemetry identifier should surface in the replay result")
-        .isNotBlank()
-        .startsWith("ui-hotp-");
+    WebElement statusBadge =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-status']"));
+    assertThat(statusBadge.getText()).isEqualTo("Match");
+
+    WebElement reasonLabel =
+        resultPanel.findElement(By.xpath(".//dt[normalize-space() = 'Reason Code']"));
+    assertThat(reasonLabel).withFailMessage("Reason Code label should be present").isNotNull();
+    WebElement reasonValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-reason-code']"));
+    assertThat(reasonValue.getText()).isEqualTo("match");
+
+    WebElement outcomeLabel =
+        resultPanel.findElement(By.xpath(".//dt[normalize-space() = 'Outcome']"));
+    assertThat(outcomeLabel).withFailMessage("Outcome label should be present").isNotNull();
+    WebElement outcomeValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-outcome']"));
+    assertThat(outcomeValue.getText()).isEqualTo("match");
+
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='hotp-replay-metadata']")))
+        .as("Replay metadata list should be hidden from operators")
+        .isEmpty();
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='hotp-replay-telemetry-id']")))
+        .as("Telemetry identifier should not render in the replay result")
+        .isEmpty();
   }
 
   @Test
-  @DisplayName("Inline HOTP replay auto-fills sample vector and emits telemetry")
-  void inlineHotpReplayAutoFillsSampleAndEmitsTelemetry() {
+  @DisplayName("Inline HOTP replay reports reason code and outcome")
+  void inlineHotpReplayDisplaysReasonAndOutcome() {
     navigateToReplayPanel();
 
     waitForClickable(By.id("hotpReplayModeInline")).click();
@@ -197,38 +290,45 @@ final class HotpOperatorUiReplaySeleniumTest {
         EXPECTED_INLINE_OTP,
         "Inline OTP should auto-fill from preset data");
 
-    WebElement advancedToggle =
-        waitForVisible(By.cssSelector("button[data-testid='hotp-replay-advanced-toggle']"));
-    if ("false".equals(advancedToggle.getAttribute("aria-expanded"))) {
-      advancedToggle.click();
-    }
-    WebElement advancedPanel =
-        waitForVisible(By.cssSelector("[data-testid='hotp-replay-advanced-panel']"));
-    assertThat(advancedPanel.getAttribute("hidden")).isNull();
-
     waitForClickable(By.cssSelector("button[data-testid='hotp-replay-submit']")).click();
 
     WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='hotp-replay-result']"));
     assertThat(resultPanel.getAttribute("hidden")).isNull();
 
+    WebElement statusBadge =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-status']"));
+    assertThat(statusBadge.getText()).isEqualTo("Match");
+
+    WebElement reasonValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-reason-code']"));
+    assertThat(reasonValue.getText()).isEqualTo("match");
+
+    WebElement outcomeValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-outcome']"));
+    assertThat(outcomeValue.getText()).isEqualTo("match");
+
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='hotp-replay-metadata']")))
+        .isEmpty();
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='hotp-replay-telemetry-id']")))
+        .isEmpty();
+  }
+
+  @Test
+  @DisplayName("HOTP replay panel omits advanced context toggle and metadata inputs")
+  void hotpReplayOmitsAdvancedContextControls() {
+    navigateToReplayPanel();
+
     assertThat(
-            resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-status']")).getText())
-        .isEqualToIgnoringCase("match");
-    assertThat(
-            resultPanel
-                .findElement(By.cssSelector("[data-testid='hotp-replay-metadata']"))
-                .getText())
-        .contains("previousCounter=5")
-        .contains("nextCounter=5")
-        .contains("credentialSource=inline");
-    String telemetryId =
-        resultPanel
-            .findElement(By.cssSelector("[data-testid='hotp-replay-telemetry-id']"))
-            .getText();
-    assertThat(telemetryId)
-        .as("Inline replay should expose telemetry identifier for audit trail")
-        .isNotBlank()
-        .startsWith("ui-hotp-");
+            driver.findElements(
+                By.cssSelector("button[data-testid='hotp-replay-advanced-toggle']")))
+        .as("Advanced context toggle should be removed from HOTP replay")
+        .isEmpty();
+    assertThat(driver.findElements(By.id("hotpReplayAdvancedLabel")))
+        .as("Advanced label input should not render")
+        .isEmpty();
+    assertThat(driver.findElements(By.id("hotpReplayAdvancedNotes")))
+        .as("Advanced notes textarea should not render")
+        .isEmpty();
   }
 
   private void navigateToReplayPanel() {
@@ -277,11 +377,6 @@ final class HotpOperatorUiReplaySeleniumTest {
             d ->
                 select.getOptions().stream()
                     .anyMatch(option -> value.equals(option.getAttribute("value"))));
-  }
-
-  private void waitForTextContains(By locator, String substring) {
-    new WebDriverWait(driver, WAIT_TIMEOUT)
-        .until(ExpectedConditions.textToBePresentInElementLocated(locator, substring));
   }
 
   private void waitForAttribute(By locator, String attribute, String expected, String message) {

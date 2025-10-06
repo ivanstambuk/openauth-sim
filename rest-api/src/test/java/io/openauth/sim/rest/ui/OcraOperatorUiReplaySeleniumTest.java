@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -106,6 +107,11 @@ final class OcraOperatorUiReplaySeleniumTest {
         .as("Stored replay credential should exist after fallback seeding")
         .isTrue();
 
+    WebElement inlineMode = driver.findElement(By.id("replayModeInline"));
+    WebElement storedMode = driver.findElement(By.id("replayModeStored"));
+    assertThat(inlineMode.isSelected()).as("Inline mode should be selected by default").isTrue();
+    assertThat(storedMode.isSelected()).isFalse();
+
     WebElement otpFieldBefore = driver.findElement(By.id("replayOtp"));
     assertThat(otpFieldBefore.getAttribute("value")).isEmpty();
 
@@ -117,16 +123,22 @@ final class OcraOperatorUiReplaySeleniumTest {
             + "var displayNone = el.offsetParent === null;"
             + "return !hidden && !ariaHidden && !displayNone;";
 
-    Boolean presetVisible =
+    Boolean presetVisibleInline =
         (Boolean) ((JavascriptExecutor) driver).executeScript(presetVisibilityScript);
-    assertThat(presetVisible)
-        .as("inline preset selector should be hidden when stored mode active")
-        .isFalse();
-    WebElement storedMode = driver.findElement(By.id("replayModeStored"));
+    assertThat(presetVisibleInline)
+        .as("inline preset selector should render when inline mode is active")
+        .isTrue();
+
     if (!storedMode.isSelected()) {
       storedMode.click();
       waitForBackgroundJavaScript();
     }
+
+    Boolean presetVisibleStored =
+        (Boolean) ((JavascriptExecutor) driver).executeScript(presetVisibilityScript);
+    assertThat(presetVisibleStored)
+        .as("inline preset selector should be hidden when stored mode is active")
+        .isFalse();
 
     waitForElementEnabled(By.id("replayCredentialId"));
     waitForStoredCredentialOptions();
@@ -196,6 +208,11 @@ final class OcraOperatorUiReplaySeleniumTest {
   void storedSampleLoaderAppliesContext() {
     navigateToReplayConsole();
     waitForReplayBootstrap();
+    WebElement storedMode = driver.findElement(By.id("replayModeStored"));
+    if (!storedMode.isSelected()) {
+      storedMode.click();
+      waitForBackgroundJavaScript();
+    }
     waitForStoredCredentialOptions();
 
     Select credentialSelect = new Select(driver.findElement(By.id("replayCredentialId")));
@@ -227,6 +244,11 @@ final class OcraOperatorUiReplaySeleniumTest {
   void sampleLoaderDisabledForUnknownCredential() {
     navigateToReplayConsole();
     waitForReplayBootstrap();
+    WebElement storedMode = driver.findElement(By.id("replayModeStored"));
+    if (!storedMode.isSelected()) {
+      storedMode.click();
+      waitForBackgroundJavaScript();
+    }
     waitForStoredCredentialOptions();
 
     Select credentialSelect = new Select(driver.findElement(By.id("replayCredentialId")));
@@ -397,6 +419,30 @@ final class OcraOperatorUiReplaySeleniumTest {
     WebElement resultPanel =
         driver.findElement(By.cssSelector("[data-testid='ocra-replay-result']"));
     assertThat(resultPanel.getAttribute("hidden")).isNotNull();
+  }
+
+  @Test
+  @DisplayName("OCRA replay defaults to inline parameters listed before stored credential")
+  void ocraReplayDefaultsToInlineMode() {
+    navigateToReplayConsole();
+    waitForReplayBootstrap();
+
+    WebElement inlineMode = driver.findElement(By.id("replayModeInline"));
+    WebElement storedMode = driver.findElement(By.id("replayModeStored"));
+
+    assertThat(inlineMode.isSelected()).isTrue();
+    assertThat(storedMode.isSelected()).isFalse();
+
+    List<String> labels =
+        driver.findElements(By.cssSelector("fieldset.mode-toggle .mode-option label")).stream()
+            .map(WebElement::getText)
+            .map(String::trim)
+            .filter(text -> !text.isEmpty())
+            .toList();
+
+    assertThat(labels).as("Replay mode labels: %s", labels).hasSize(2);
+    assertThat(labels.get(0)).startsWith("Inline");
+    assertThat(labels.get(1)).isEqualTo("Stored credential");
   }
 
   private void waitForReplayBootstrap() {

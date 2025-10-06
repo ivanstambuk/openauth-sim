@@ -38,26 +38,26 @@
                 <div class="mode-option">
                   <input
                     type="radio"
-                    id="replayModeStored"
+                    id="replayModeInline"
                     name="replayMode"
-                    value="stored"
+                    value="inline"
                     checked
                   />
-                  <label for="replayModeStored">Stored credential</label>
-                  <p id="stored-mode-hint" class="hint">
-                    Select an existing credential and supply the original OTP context. Secrets remain hidden.
+                  <label for="replayModeInline">Inline parameters</label>
+                  <p id="inline-mode-hint" class="hint">
+                    Provide the suite, shared secret, and OTP context directly for ad-hoc verification.
                   </p>
                 </div>
                 <div class="mode-option">
                   <input
                     type="radio"
-                    id="replayModeInline"
+                    id="replayModeStored"
                     name="replayMode"
-                    value="inline"
+                    value="stored"
                   />
-                  <label for="replayModeInline">Inline credential</label>
-                  <p id="inline-mode-hint" class="hint">
-                    Provide the suite, shared secret, and OTP context directly for ad-hoc verification.
+                  <label for="replayModeStored">Stored credential</label>
+                  <p id="stored-mode-hint" class="hint">
+                    Select an existing credential and supply the original OTP context. Secrets remain hidden.
                   </p>
                 </div>
               </fieldset>
@@ -66,6 +66,8 @@
                 id="replay-stored-section"
                 data-replay-section="stored"
                 aria-labelledby="stored-mode-hint"
+                hidden="hidden"
+                aria-hidden="true"
               >
                 <div class="field-grid">
                   <div>
@@ -105,8 +107,6 @@
               <div
                 class="inline-preset"
                 data-replay-inline-preset
-                hidden="hidden"
-                aria-hidden="true"
               >
                 <label for="replayPolicyPreset">Load a sample vector</label>
                 <select
@@ -148,8 +148,6 @@
                 id="replay-inline-section"
                 data-replay-section="inline"
                 aria-labelledby="inline-mode-hint"
-                hidden
-                aria-hidden="true"
               >
                 <div class="field-grid">
                   <div>
@@ -413,7 +411,7 @@
 
         function currentMode() {
           var selected = form && form.querySelector('input[name="replayMode"]:checked');
-          return selected ? selected.value : 'stored';
+          return selected ? selected.value : 'inline';
         }
 
         function sampleEndpointFor(credentialId) {
@@ -602,7 +600,7 @@
 
         function syncMode() {
           var selected = form.querySelector('input[name="replayMode"]:checked');
-          var mode = selected ? selected.value : 'stored';
+          var mode = selected ? selected.value : 'inline';
           if (mode === 'stored') {
             show(storedSection);
             hide(inlineSection);
@@ -1218,6 +1216,7 @@
         }
 
         syncMode();
+        fetchStoredCredentials();
         window.__ocraReplayReady = true;
       })();
     </script>

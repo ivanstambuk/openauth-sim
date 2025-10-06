@@ -135,6 +135,10 @@ button {
   gap: var(--ocra-spacing-lg);
 }
 
+.evaluation-form--spaced {
+  padding-top: 0.75rem;
+}
+
 .evaluation-form > .seed-actions {
   margin-top: calc(var(--ocra-spacing-lg) * 0.5);
 }
@@ -376,6 +380,11 @@ button {
   margin-bottom: var(--ocra-spacing-md);
 }
 
+.stack-offset-top-lg {
+  padding-top: var(--ocra-spacing-lg);
+}
+
+
 .inline-preset select {
   width: 100%;
   box-sizing: border-box;
@@ -484,6 +493,13 @@ fieldset {
 }
 
 .field-grid .select-compact {
+  padding: calc(var(--ocra-spacing-xs) + 0.05rem) var(--ocra-spacing-md);
+  min-height: 2.25rem;
+  height: 2.6rem;
+  line-height: 1.2;
+}
+
+.field-grid .input-compact {
   padding: calc(var(--ocra-spacing-xs) + 0.05rem) var(--ocra-spacing-md);
   min-height: 2.25rem;
   height: 2.6rem;
@@ -639,6 +655,11 @@ fieldset {
   margin-top: var(--ocra-spacing-md);
 }
 
+.hotp-inline-parameter-grid {
+  grid-template-columns: minmax(11rem, 1.6fr) minmax(5.5rem, 1fr) minmax(5.5rem, 1fr);
+  align-items: end;
+}
+
 .result-row {
   display: flex;
   justify-content: space-between;
@@ -708,6 +729,11 @@ fieldset {
 
   .card-shell {
     padding: var(--ocra-spacing-md);
+  }
+
+  .hotp-inline-parameter-grid {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 }
 

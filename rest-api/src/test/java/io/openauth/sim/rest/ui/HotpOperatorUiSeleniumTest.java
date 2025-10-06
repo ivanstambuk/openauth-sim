@@ -99,11 +99,37 @@ final class HotpOperatorUiSeleniumTest {
   void storedCredentialEvaluationSucceeds() {
     navigateToHotpPanel();
 
+    WebElement modeToggle = assertHotpInlineDefaultState();
+    By storedPanelLocator = By.cssSelector("[data-testid='hotp-stored-evaluation-panel']");
+    By inlinePanelLocator = By.cssSelector("[data-testid='hotp-inline-evaluation-panel']");
+
+    WebElement storedToggle =
+        modeToggle.findElement(By.cssSelector("[data-testid='hotp-mode-select-stored']"));
+    WebElement inlineToggle =
+        modeToggle.findElement(By.cssSelector("[data-testid='hotp-mode-select-inline']"));
+
+    storedToggle.click();
+
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(d -> "stored".equals(modeToggle.getAttribute("data-mode")));
+
+    if (!storedToggle.isSelected()) {
+      throw new AssertionError("Stored HOTP mode toggle should become selected after activation");
+    }
+    if (inlineToggle.isSelected()) {
+      throw new AssertionError(
+          "Inline HOTP mode toggle should be deselected after stored activation");
+    }
+
     WebElement storedPanel =
         new WebDriverWait(driver, Duration.ofSeconds(5))
-            .until(
-                ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector("[data-testid='hotp-stored-evaluation-panel']")));
+            .until(ExpectedConditions.visibilityOfElementLocated(storedPanelLocator));
+    WebElement inlinePanel = driver.findElement(inlinePanelLocator);
+
+    if (inlinePanel.isDisplayed()) {
+      throw new AssertionError(
+          "Inline HOTP evaluation panel should hide once stored mode is active");
+    }
 
     String storedAriaLabel = storedPanel.getAttribute("aria-label");
     if (storedAriaLabel == null || storedAriaLabel.isBlank()) {
@@ -138,6 +164,118 @@ final class HotpOperatorUiSeleniumTest {
           "Expected HOTP stored result panel to be the first visible child of the status column");
     }
     assertResultRowsMatchExpectations(resultPanel, EXPECTED_STORED_OTP);
+  }
+
+  @Test
+  @DisplayName("HOTP evaluate defaults to inline mode and persists after refresh")
+  void hotpEvaluateDefaultsToInlineModeAfterRefresh() {
+    navigateToHotpPanel();
+    assertHotpInlineDefaultState();
+
+    driver.navigate().refresh();
+
+    WebElement hotpTab =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-testid='protocol-tab-hotp']")));
+    if (!"true".equals(hotpTab.getAttribute("aria-selected"))) {
+      hotpTab.click();
+      new WebDriverWait(driver, Duration.ofSeconds(5))
+          .until(d -> "true".equals(hotpTab.getAttribute("aria-selected")));
+    }
+
+    assertHotpInlineDefaultState();
+  }
+
+  @Test
+  @DisplayName("Inline HOTP form preserves spacing between stored toggle and sample preset")
+  void hotpInlineSpacingMatchesOcra() {
+    navigateToHotpPanel();
+    assertHotpInlineDefaultState();
+
+    WebElement inlinePanel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-inline-evaluation-panel']")));
+
+    WebElement inlineForm =
+        inlinePanel.findElement(By.cssSelector("[data-testid='hotp-inline-form']"));
+    String formClasses = inlineForm.getAttribute("class");
+    if (formClasses == null || !formClasses.contains("evaluation-form--spaced")) {
+      throw new AssertionError(
+          "Expected inline HOTP form to declare evaluation-form--spaced class but found: "
+              + formClasses);
+    }
+
+    String paddingTop = inlineForm.getCssValue("padding-top");
+    double paddingPixels = parsePixels(paddingTop);
+    if (paddingPixels < 8.0 || paddingPixels > 14.0) {
+      throw new AssertionError(
+          "Expected inline HOTP form padding-top between 8px and 14px; found "
+              + paddingPixels
+              + "px");
+    }
+  }
+
+  @Test
+  @DisplayName("Inline HOTP parameter controls render in compact row")
+  void inlineHotpParametersRenderInCompactRow() {
+    navigateToHotpPanel();
+    assertHotpInlineDefaultState();
+
+    WebElement parameterGrid =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-inline-parameter-grid']")));
+
+    String columnTemplate = parameterGrid.getCssValue("grid-template-columns");
+    if (columnTemplate == null || columnTemplate.isBlank()) {
+      throw new AssertionError("Expected inline HOTP parameter grid to define column tracks");
+    }
+
+    String[] columnDefinitions = columnTemplate.trim().split("\\s+");
+    if (columnDefinitions.length < 3) {
+      throw new AssertionError(
+          "Expected inline HOTP parameter grid to expose three columns but found: "
+              + columnTemplate);
+    }
+
+    WebElement algorithmSelect = parameterGrid.findElement(By.id("hotpInlineAlgorithm"));
+    WebElement digitsInput = parameterGrid.findElement(By.id("hotpInlineDigits"));
+    WebElement counterInput = parameterGrid.findElement(By.id("hotpInlineCounter"));
+
+    if (columnDefinitions[0].contains("5.5rem")) {
+      throw new AssertionError(
+          "Expected inline HOTP parameter grid to dedicate the widest track to the algorithm select but found: "
+              + columnTemplate);
+    }
+
+    long compactTrackCount =
+        java.util.Arrays.stream(columnDefinitions).filter(def -> def.contains("5.5rem")).count();
+    if (compactTrackCount < 2) {
+      throw new AssertionError(
+          "Expected inline HOTP parameter grid to expose compact tracks for digits and counter but found: "
+              + columnTemplate);
+    }
+
+    String algorithmClass = algorithmSelect.getAttribute("class");
+    if (algorithmClass == null || !algorithmClass.contains("select-compact")) {
+      throw new AssertionError(
+          "Expected inline HOTP algorithm select to apply compact styling class");
+    }
+
+    String digitsClass = digitsInput.getAttribute("class");
+    if (digitsClass == null || !digitsClass.contains("input-compact")) {
+      throw new AssertionError("Expected inline HOTP digits input to apply compact styling class");
+    }
+
+    String counterClass = counterInput.getAttribute("class");
+    if (counterClass == null || !counterClass.contains("input-compact")) {
+      throw new AssertionError("Expected inline HOTP counter input to apply compact styling class");
+    }
   }
 
   @Test
@@ -244,6 +382,51 @@ final class HotpOperatorUiSeleniumTest {
     assertResultRowsMatchExpectations(resultPanel, EXPECTED_INLINE_SHA256_OTP);
   }
 
+  private WebElement assertHotpInlineDefaultState() {
+    By modeToggleLocator = By.cssSelector("[data-testid='hotp-mode-toggle']");
+    WebElement modeToggle =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(ExpectedConditions.presenceOfElementLocated(modeToggleLocator));
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            d -> {
+              String mode = modeToggle.getAttribute("data-mode");
+              return mode != null && !mode.isBlank();
+            });
+
+    if (!"inline".equals(modeToggle.getAttribute("data-mode"))) {
+      throw new AssertionError("Expected HOTP evaluate mode to default to inline parameters");
+    }
+
+    WebElement inlineToggle =
+        modeToggle.findElement(By.cssSelector("[data-testid='hotp-mode-select-inline']"));
+    WebElement storedToggle =
+        modeToggle.findElement(By.cssSelector("[data-testid='hotp-mode-select-stored']"));
+
+    if (!inlineToggle.isSelected()) {
+      throw new AssertionError("Inline HOTP mode toggle should be selected by default");
+    }
+    if (storedToggle.isSelected()) {
+      throw new AssertionError("Stored HOTP mode toggle should be deselected by default");
+    }
+
+    By inlinePanelLocator = By.cssSelector("[data-testid='hotp-inline-evaluation-panel']");
+    By storedPanelLocator = By.cssSelector("[data-testid='hotp-stored-evaluation-panel']");
+    WebElement inlinePanel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(ExpectedConditions.visibilityOfElementLocated(inlinePanelLocator));
+    WebElement storedPanel = driver.findElement(storedPanelLocator);
+
+    if (!inlinePanel.isDisplayed()) {
+      throw new AssertionError("Inline HOTP evaluation panel should be visible by default");
+    }
+    if (storedPanel.isDisplayed()) {
+      throw new AssertionError("Stored HOTP evaluation panel should remain hidden until selected");
+    }
+
+    return modeToggle;
+  }
+
   private void navigateToHotpPanel() {
     driver.get("http://localhost:" + port + "/ui/console?protocol=hotp");
     WebElement tab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-hotp']"));
@@ -337,5 +520,20 @@ final class HotpOperatorUiSeleniumTest {
             Integer.toString(DIGITS),
             "hotp.counter",
             Long.toString(INITIAL_COUNTER)));
+  }
+
+  private static double parsePixels(String value) {
+    if (value == null || value.isBlank()) {
+      return 0.0;
+    }
+    String trimmed = value.trim();
+    if (!trimmed.endsWith("px")) {
+      throw new AssertionError("Expected pixel value but received: " + value);
+    }
+    try {
+      return Double.parseDouble(trimmed.substring(0, trimmed.length() - 2));
+    } catch (NumberFormatException ex) {
+      throw new AssertionError("Unable to parse pixel value: " + value, ex);
+    }
   }
 }

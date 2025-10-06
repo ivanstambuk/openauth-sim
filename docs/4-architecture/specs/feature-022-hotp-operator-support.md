@@ -8,6 +8,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 
 
 ## Clarifications
+- 2025-10-06 – HOTP evaluate screen selects Inline parameters by default on initial load or refresh to mirror OCRA behaviour (user directive).
 - 2025-10-04 – Initial delivery must ship an end-to-end slice (core domain, application adapters, CLI commands, and REST endpoints) instead of a core-only milestone (user directive; Option B selected).
 - 2025-10-04 – HOTP credentials reuse the existing MapDB credential store/schema-v1 baseline alongside OCRA descriptors; no dedicated HOTP store is created (user directive; Option A selected).
 - 2025-10-04 – Telemetry coverage must match the OCRA parity level (issuance, evaluation, failure reasons) using the shared `TelemetryContracts` adapters (user directive; Option A selected).
@@ -20,17 +21,26 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-05 – HOTP operator UI acquires stored credentials via `/api/v1/hotp/credentials`, using the shared console CSRF token when invoking `/api/v1/hotp/evaluate` and `/api/v1/hotp/evaluate/inline` (implementation note).
 - 2025-10-05 – HOTP operator console reuses the evaluate/replay pill header with Evaluate active and a Replay tab present (currently without behaviour) to mirror OCRA styling while signalling future scope (option B confirmed).
 - 2025-10-05 – HOTP replay will ship a dedicated non-mutating REST endpoint (`POST /api/v1/hotp/replay`) handling stored and inline submissions without advancing counters (option A confirmed).
-- 2025-10-05 – HOTP operator replay UI will mirror the OCRA replay experience with stored and inline modes, sample data affordances, and advanced context toggles (option A confirmed).
+- 2025-10-05 – HOTP operator replay UI will mirror the OCRA replay experience with stored and inline modes and sample data affordances (option A confirmed).
+- 2025-10-06 – HOTP operator replay UI removes the advanced context toggle/fields (label, notes) so replay submissions focus solely on credential inputs (user directive).
 - 2025-10-05 – HOTP replay interactions emit dedicated `hotp.replay` telemetry frames (REST and UI), keeping evaluation metrics separate (option A confirmed).
 - 2025-10-05 – Operator console deep links must mirror OCRA conventions by writing `protocol=hotp` and `tab=evaluate|replay` query parameters so HOTP views restore correctly on refresh (user confirmation).
 - 2025-10-05 – HOTP evaluation panels remove the stored/inline headings and hint copy so operators see the input fields immediately after selecting a mode (user directive).
 - 2025-10-05 – HOTP mode selection mirrors OCRA ordering with Inline parameters listed before Stored credential for consistent operator workflows (user directive).
 - 2025-10-05 – HOTP replay hints read “Select a persisted credential, and replay the OTP without advancing counters.” and “Provide HOTP parameters directly for ad-hoc verification.” to align copy with operator guidance (user directive).
+- 2025-10-06 – HOTP replay stored credential selector label must read “Stored credential” to align the replay screen with the OCRA equivalent (user directive).
+- 2025-10-06 – HOTP replay stored credential panel omits the heading before the selector so the label is the first element, matching the OCRA replay layout (user directive).
+- 2025-10-06 – HOTP replay submit action button must display “Verify OTP” to align operator copy with credential verification intent (user directive).
+- 2025-10-06 – HOTP replay observed OTP field label must read “One-time password” to reflect operator terminology alignment (user directive).
+- 2025-10-06 – HOTP replay result card must render in the right-hand status column with the same layout as the OCRA replay panel (status badge, Reason Code row, Outcome row) instead of stacking beneath the form (user directive).
+- 2025-10-06 – HOTP replay UI must hide raw metadata/telemetry strings; only Reason Code and Outcome appear alongside the status badge (user directive).
 - 2025-10-05 – HOTP inline evaluation no longer collects an operator-provided identifier; the REST/API surface accepts only secret, algorithm, digits, counter, and OTP for inline requests (user directive).
 - 2025-10-05 – HOTP Evaluate tab (stored and inline modes) must generate the OTP and display it without requiring operator input; OTP entry remains exclusive to the Replay tab (user directive; Option A selected).
 - 2025-10-05 – HtmlUnit `@SuppressFBWarnings` annotation dependency is added to the REST API test configuration (via `com.github.spotbugs:spotbugs-annotations` on the test classpath) so compilation warnings are suppressed without disabling linting (user directive; Option A selected).
 - 2025-10-05 – HOTP inline evaluate "Load a sample vector" control must offer multiple presets (e.g., RFC 4226 SHA-1 and an additional SHA-256 demo vector) so operators can exercise different hash digests during generation flows (user directive; Option B selected).
 - 2025-10-05 – HOTP inline evaluation result panel matches the OCRA layout: headline “Evaluation result,” OTP row rendered as “OTP: <value>,” status row rendered inline with “Status” label and value, the container width and padding align with the OCRA result panel, success badges use the green style adopted from HOTP across protocols, no ancillary metadata row, and the panel positioned at the top-right of the input form (user directive).
+- 2025-10-06 – HOTP inline evaluation form renders Hash algorithm, Digits, and Counter controls in a single compact row matching the OCRA policy builder layout so related inputs remain visible without consuming extra vertical space (user directive).
+- 2025-10-06 – HOTP evaluate UI must retain a vertical gap between the "Stored credential" selector and the "Load a sample vector" controls so the inline mode matches the OCRA evaluate layout (user directive).
 - 2025-10-06 – HOTP stored evaluation view positions the “Seed sample credentials” button above the stored credential selector to mirror the OCRA tab layout (user directive).
 - 2025-10-06 – HOTP stored evaluation seeding control maintains the same vertical spacing from the evaluation mode selector as the OCRA tab so the layout remains visually consistent (user directive).
 

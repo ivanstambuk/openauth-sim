@@ -57,6 +57,9 @@ class HotpReplayService {
     String otp =
         requireText(request.otp(), "otp", telemetryId, mode, Map.of("credentialId", credentialId));
 
+    ensureMetadataAbsent(
+        request.metadata(), telemetryId, mode, credentialId, Map.of("credentialId", credentialId));
+
     ReplayCommand command = new ReplayCommand.Stored(credentialId, otp);
     Map<String, String> contextDetails = Map.of("credentialId", credentialId);
     return handleResult(command, mode, telemetryId, credentialId, contextDetails);
@@ -78,11 +81,11 @@ class HotpReplayService {
     long counter = requireCounter(request.counter(), telemetryId, identifier, mode);
     String otp =
         requireText(request.otp(), "otp", telemetryId, mode, Map.of("identifier", identifier));
-    Map<String, String> metadata =
-        request.metadata() == null ? Map.of() : Map.copyOf(request.metadata());
+    ensureMetadataAbsent(
+        request.metadata(), telemetryId, mode, identifier, Map.of("identifier", identifier));
 
     ReplayCommand command =
-        new ReplayCommand.Inline(identifier, secretHex, algorithm, digits, counter, otp, metadata);
+        new ReplayCommand.Inline(identifier, secretHex, algorithm, digits, counter, otp, Map.of());
     Map<String, String> contextDetails = Map.of("identifier", identifier);
     return handleResult(command, mode, telemetryId, identifier, contextDetails);
   }
@@ -152,6 +155,30 @@ class HotpReplayService {
         sanitizedDetails(fields, Map.of(), false, telemetryId, mode.source);
     return new HotpReplayUnexpectedException(
         telemetryId, mode.source, safeMessage(signal.reason()), details);
+  }
+
+  private void ensureMetadataAbsent(
+      Map<String, String> metadata,
+      String telemetryId,
+      Mode mode,
+      String identifier,
+      Map<String, String> contextDetails) {
+
+    if (metadata == null || metadata.isEmpty()) {
+      return;
+    }
+
+    Map<String, String> details = new LinkedHashMap<>();
+    details.putAll(contextDetails);
+
+    throw new HotpReplayValidationException(
+        telemetryId,
+        mode.source,
+        identifier,
+        "metadata_not_supported",
+        true,
+        details,
+        "Replay metadata is not supported for HOTP.");
   }
 
   private Mode determineMode(HotpReplayRequest request, String telemetryId) {
