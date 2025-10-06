@@ -118,13 +118,7 @@ final class HotpReplayApplicationServiceTest {
 
     ReplayCommand.Inline command =
         new ReplayCommand.Inline(
-            CREDENTIAL_ID,
-            SECRET.asHex(),
-            ALGORITHM,
-            DIGITS,
-            counter,
-            otp,
-            Map.of("source", "test"));
+            SECRET.asHex(), ALGORITHM, DIGITS, counter, otp, Map.of("source", "test"));
 
     ReplayResult result = service.replay(command);
 
@@ -145,8 +139,7 @@ final class HotpReplayApplicationServiceTest {
   @Test
   void inlineReplayMismatchEmitsValidationTelemetry() {
     ReplayCommand.Inline command =
-        new ReplayCommand.Inline(
-            CREDENTIAL_ID, SECRET.asHex(), ALGORITHM, DIGITS, 5L, "000000", Map.of());
+        new ReplayCommand.Inline(SECRET.asHex(), ALGORITHM, DIGITS, 5L, "000000", Map.of());
 
     ReplayResult result = service.replay(command);
 

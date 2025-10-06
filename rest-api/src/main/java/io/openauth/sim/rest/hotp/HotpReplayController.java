@@ -76,8 +76,7 @@ class HotpReplayController {
     details.putIfAbsent("telemetryId", exception.telemetryId());
     details.putIfAbsent("credentialSource", exception.credentialSource());
     if (exception.credentialId() != null && !exception.credentialId().isBlank()) {
-      String key = "stored".equals(exception.credentialSource()) ? "credentialId" : "identifier";
-      details.putIfAbsent(key, exception.credentialId());
+      details.putIfAbsent("credentialId", exception.credentialId());
     }
     if (exception.reasonCode() != null) {
       details.putIfAbsent("reasonCode", exception.reasonCode());

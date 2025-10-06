@@ -8,7 +8,6 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpReplayRequest(
     @JsonProperty("credentialId") String credentialId,
-    @JsonProperty("identifier") String identifier,
     @JsonProperty("sharedSecretHex") String sharedSecretHex,
     @JsonProperty("algorithm") String algorithm,
     @JsonProperty("digits") Integer digits,

@@ -141,7 +141,6 @@ class HotpReplayEndpointTest {
                       .content(
                           """
                               {
-                                "identifier": "device-inline",
                                 "sharedSecretHex": "%s",
                                 "algorithm": "SHA1",
                                 "digits": 6,
@@ -178,6 +177,35 @@ class HotpReplayEndpointTest {
   }
 
   @Test
+  @DisplayName("Inline HOTP replay accepts payload without identifier")
+  void inlineReplayOmittingIdentifierSucceeds() throws Exception {
+    long counter = 4L;
+    String otp = generateOtp(counter);
+
+    TestLogHandler handler = registerTelemetryHandler();
+    try {
+      mockMvc
+          .perform(
+              post("/api/v1/hotp/replay")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(
+                      """
+                          {
+                            "sharedSecretHex": "%s",
+                            "algorithm": "SHA1",
+                            "digits": 6,
+                            "counter": %d,
+                            "otp": "%s"
+                          }
+                          """
+                          .formatted(SECRET_HEX, counter, otp)))
+          .andExpect(status().isOk());
+    } finally {
+      deregisterTelemetryHandler(handler);
+    }
+  }
+
+  @Test
   @DisplayName(
       "Inline HOTP replay rejects metadata payload to encourage metadata-free UI submissions")
   void inlineReplayRejectsMetadataPayload() throws Exception {
@@ -191,8 +219,7 @@ class HotpReplayEndpointTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
-                            {
-                              "identifier": "device-inline",
+                              {
                               "sharedSecretHex": "%s",
                               "algorithm": "SHA1",
                               "digits": 6,

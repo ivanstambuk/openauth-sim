@@ -26,6 +26,7 @@ class HotpReplayService {
 
   private static final Logger TELEMETRY_LOGGER =
       Logger.getLogger("io.openauth.sim.rest.hotp.telemetry");
+  private static final String INLINE_REPLAY_ID = "hotp-inline-replay";
 
   static {
     TELEMETRY_LOGGER.setLevel(Level.ALL);
@@ -67,27 +68,19 @@ class HotpReplayService {
 
   private HotpReplayResponse handleInline(
       HotpReplayRequest request, String telemetryId, Mode mode) {
-    String identifier = requireText(request.identifier(), "identifier", telemetryId, mode, null);
+    Map<String, String> details = Map.of("credentialId", INLINE_REPLAY_ID);
     String secretHex =
-        requireText(
-            request.sharedSecretHex(),
-            "sharedSecretHex",
-            telemetryId,
-            mode,
-            Map.of("identifier", identifier));
+        requireText(request.sharedSecretHex(), "sharedSecretHex", telemetryId, mode, details);
     HotpHashAlgorithm algorithm =
-        parseAlgorithm(request.algorithm(), telemetryId, identifier, mode);
-    int digits = requireDigits(request.digits(), telemetryId, identifier, mode);
-    long counter = requireCounter(request.counter(), telemetryId, identifier, mode);
-    String otp =
-        requireText(request.otp(), "otp", telemetryId, mode, Map.of("identifier", identifier));
-    ensureMetadataAbsent(
-        request.metadata(), telemetryId, mode, identifier, Map.of("identifier", identifier));
+        parseAlgorithm(request.algorithm(), telemetryId, INLINE_REPLAY_ID, mode);
+    int digits = requireDigits(request.digits(), telemetryId, INLINE_REPLAY_ID, mode);
+    long counter = requireCounter(request.counter(), telemetryId, INLINE_REPLAY_ID, mode);
+    String otp = requireText(request.otp(), "otp", telemetryId, mode, details);
+    ensureMetadataAbsent(request.metadata(), telemetryId, mode, INLINE_REPLAY_ID, details);
 
     ReplayCommand command =
-        new ReplayCommand.Inline(identifier, secretHex, algorithm, digits, counter, otp, Map.of());
-    Map<String, String> contextDetails = Map.of("identifier", identifier);
-    return handleResult(command, mode, telemetryId, identifier, contextDetails);
+        new ReplayCommand.Inline(secretHex, algorithm, digits, counter, otp, Map.of());
+    return handleResult(command, mode, telemetryId, INLINE_REPLAY_ID, details);
   }
 
   private HotpReplayResponse handleResult(
@@ -168,8 +161,7 @@ class HotpReplayService {
       return;
     }
 
-    Map<String, String> details = new LinkedHashMap<>();
-    details.putAll(contextDetails);
+    Map<String, String> details = new LinkedHashMap<>(contextDetails);
 
     throw new HotpReplayValidationException(
         telemetryId,
@@ -184,15 +176,18 @@ class HotpReplayService {
   private Mode determineMode(HotpReplayRequest request, String telemetryId) {
     boolean hasCredentialId = hasText(request.credentialId());
     boolean hasSecret = hasText(request.sharedSecretHex());
-    boolean hasIdentifier = hasText(request.identifier());
+    boolean hasAlgorithm = hasText(request.algorithm());
+    boolean hasDigits = request.digits() != null;
+    boolean hasCounter = request.counter() != null;
+    boolean hasInlineFields = hasSecret || hasAlgorithm || hasDigits || hasCounter;
 
-    if (hasCredentialId && !hasSecret && !hasIdentifier) {
+    if (hasCredentialId && !hasInlineFields) {
       return Mode.STORED;
     }
-    if (hasSecret && hasIdentifier) {
+    if (!hasCredentialId && hasInlineFields) {
       return Mode.INLINE;
     }
-    if (hasCredentialId && hasSecret) {
+    if (hasCredentialId && hasInlineFields) {
       throw validationFailure(
           telemetryId,
           "mixed",
@@ -221,11 +216,7 @@ class HotpReplayService {
     Map<String, Object> telemetryFields = new LinkedHashMap<>();
     telemetryFields.put("credentialSource", credentialSource);
     if (identifier != null && !identifier.isBlank()) {
-      if ("stored".equals(credentialSource)) {
-        telemetryFields.put("credentialId", identifier);
-      } else if ("inline".equals(credentialSource)) {
-        telemetryFields.put("identifier", identifier);
-      }
+      telemetryFields.put("credentialId", identifier);
     }
     baseDetails.forEach(telemetryFields::putIfAbsent);
 
@@ -287,7 +278,7 @@ class HotpReplayService {
       throw validationFailure(
           telemetryId,
           mode.source,
-          details.getOrDefault("credentialId", details.get("identifier")),
+          details.get("credentialId"),
           field + " is required",
           field + "_required",
           details);
@@ -303,11 +294,7 @@ class HotpReplayService {
           identifier,
           "digits is required",
           "digits_required",
-          Map.of(
-              "field",
-              "digits",
-              "stored".equals(mode.source) ? "credentialId" : "identifier",
-              identifier));
+          Map.of("field", "digits", "credentialId", identifier));
     }
     return digits;
   }
@@ -320,11 +307,7 @@ class HotpReplayService {
           identifier,
           "counter is required",
           "counter_required",
-          Map.of(
-              "field",
-              "counter",
-              "stored".equals(mode.source) ? "credentialId" : "identifier",
-              identifier));
+          Map.of("field", "counter", "credentialId", identifier));
     }
     return counter;
   }
@@ -332,7 +315,7 @@ class HotpReplayService {
   private HotpHashAlgorithm parseAlgorithm(
       String algorithm, String telemetryId, String identifier, Mode mode) {
     String normalized =
-        requireText(algorithm, "algorithm", telemetryId, mode, Map.of("identifier", identifier))
+        requireText(algorithm, "algorithm", telemetryId, mode, Map.of("credentialId", identifier))
             .toUpperCase(Locale.ROOT);
     try {
       return HotpHashAlgorithm.valueOf(normalized);
@@ -343,7 +326,7 @@ class HotpReplayService {
           identifier,
           "Unsupported HOTP algorithm: " + normalized,
           "algorithm_invalid",
-          Map.of("field", "algorithm", "identifier", identifier));
+          Map.of("field", "algorithm", "credentialId", identifier));
     }
   }
 

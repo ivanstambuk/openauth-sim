@@ -16,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 
 class HotpReplayControllerTest {
 
+  private static final String INLINE_REPLAY_ID = "hotp-inline-replay";
+
   private HotpReplayService service;
   private HotpReplayController controller;
 
@@ -29,7 +31,7 @@ class HotpReplayControllerTest {
   @DisplayName("Replay delegates to service and returns the response body")
   void replayDelegatesToService() {
     HotpReplayRequest request =
-        new HotpReplayRequest("cred-1", null, null, null, null, null, "123456", null);
+        new HotpReplayRequest("cred-1", null, null, null, null, "123456", null);
     HotpReplayResponse expected =
         new HotpReplayResponse(
             "match",
@@ -74,13 +76,13 @@ class HotpReplayControllerTest {
   }
 
   @Test
-  @DisplayName("Inline validation failures return 400 and surface identifier details")
+  @DisplayName("Inline validation failures return 400 and surface credential metadata")
   void validationInlineReturns400() {
     HotpReplayValidationException exception =
         new HotpReplayValidationException(
             "rest-hotp-inline",
             "inline",
-            "device-inline",
+            INLINE_REPLAY_ID,
             "otp_required",
             false,
             Map.of("field", "otp"),
@@ -96,7 +98,7 @@ class HotpReplayControllerTest {
     assertThat(body.details())
         .containsEntry("telemetryId", "rest-hotp-inline")
         .containsEntry("credentialSource", "inline")
-        .containsEntry("identifier", "device-inline")
+        .containsEntry("credentialId", INLINE_REPLAY_ID)
         .containsEntry("reasonCode", "otp_required")
         .containsEntry("sanitized", "false");
   }
@@ -138,8 +140,8 @@ class HotpReplayControllerTest {
   }
 
   @Test
-  @DisplayName("Validation handler omits identifier and reason when payload is blank")
-  void validationHandlesBlankIdentifier() {
+  @DisplayName("Validation handler omits credential reference and reason when payload is blank")
+  void validationHandlesBlankCredentialId() {
     Map<String, String> baseDetails = new LinkedHashMap<>();
     HotpReplayValidationException exception =
         new HotpReplayValidationException(
@@ -155,7 +157,7 @@ class HotpReplayControllerTest {
         .containsEntry("telemetryId", "rest-hotp-blank")
         .containsEntry("credentialSource", "inline")
         .containsEntry("sanitized", "true")
-        .doesNotContainKey("identifier")
+        .doesNotContainKey("credentialId")
         .doesNotContainKey("reasonCode");
   }
 }

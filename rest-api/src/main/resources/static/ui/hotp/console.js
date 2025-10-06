@@ -113,9 +113,6 @@
   var replaySampleMessage = replayForm
     ? replayForm.querySelector('[data-testid="hotp-replay-sample-message"]')
     : null;
-  var replayInlineIdentifierInput = replayForm
-    ? replayForm.querySelector('#hotpReplayInlineIdentifier')
-    : null;
   var replayInlineSecretInput = replayForm
     ? replayForm.querySelector('#hotpReplayInlineSecretHex')
     : null;
@@ -209,7 +206,6 @@
   var INLINE_SAMPLE_DATA = {
     'demo-inline': {
       label: 'Inline demo vector (SHA-1)',
-      identifier: 'inline-sample',
       sharedSecretHex: HOTP_SAMPLE_SECRET_HEX,
       algorithm: 'SHA1',
       digits: 6,
@@ -222,7 +218,6 @@
     },
     'inline-demo-sha256': {
       label: 'Inline demo vector (SHA-256)',
-      identifier: 'inline-sample-sha256',
       sharedSecretHex: HOTP_SAMPLE_SECRET_HEX,
       algorithm: 'SHA256',
       digits: 8,
@@ -840,9 +835,6 @@
     if (!preset) {
       return;
     }
-    if (replayInlineIdentifierInput) {
-      replayInlineIdentifierInput.value = preset.identifier || '';
-    }
     if (replayInlineSecretInput) {
       replayInlineSecretInput.value = preset.sharedSecretHex || '';
     }
@@ -982,20 +974,18 @@
     var payload;
 
     if (mode === 'inline') {
-      var identifier = replayInlineIdentifierInput ? replayInlineIdentifierInput.value.trim() : '';
       var secret = replayInlineSecretInput ? replayInlineSecretInput.value.trim() : '';
       var algorithm = replayInlineAlgorithmSelect ? replayInlineAlgorithmSelect.value : 'SHA1';
       var digits = replayInlineDigitsInput ? parseInt(replayInlineDigitsInput.value, 10) : NaN;
       var counter = replayInlineCounterInput ? parseInt(replayInlineCounterInput.value, 10) : NaN;
       var otp = replayInlineOtpInput ? replayInlineOtpInput.value.trim() : '';
 
-      if (!identifier || !secret || !otp || Number.isNaN(digits) || Number.isNaN(counter)) {
-        showReplayError('Inline replay requires identifier, secret, digits, counter, and OTP values.');
+      if (!secret || !otp || Number.isNaN(digits) || Number.isNaN(counter)) {
+        showReplayError('Inline replay requires secret, digits, counter, and OTP values.');
         return;
       }
 
       payload = {
-        identifier: identifier,
         sharedSecretHex: secret,
         algorithm: algorithm || 'SHA1',
         digits: digits,

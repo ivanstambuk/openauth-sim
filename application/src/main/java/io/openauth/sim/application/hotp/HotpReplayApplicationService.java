@@ -21,6 +21,7 @@ public final class HotpReplayApplicationService {
   private static final String ATTR_ALGORITHM = "hotp.algorithm";
   private static final String ATTR_DIGITS = "hotp.digits";
   private static final String ATTR_COUNTER = "hotp.counter";
+  private static final String INLINE_DESCRIPTOR_NAME = "hotp-inline-replay";
 
   private final CredentialStore credentialStore;
 
@@ -52,7 +53,6 @@ public final class HotpReplayApplicationService {
     }
 
     record Inline(
-        String identifier,
         String sharedSecretHex,
         HotpHashAlgorithm algorithm,
         int digits,
@@ -62,7 +62,6 @@ public final class HotpReplayApplicationService {
         implements ReplayCommand {
 
       public Inline {
-        identifier = Objects.requireNonNull(identifier, "identifier").trim();
         sharedSecretHex = Objects.requireNonNull(sharedSecretHex, "sharedSecretHex").trim();
         algorithm = Objects.requireNonNull(algorithm, "algorithm");
         metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
@@ -152,16 +151,16 @@ public final class HotpReplayApplicationService {
     try {
       HotpDescriptor descriptor =
           HotpDescriptor.create(
-              command.identifier(),
+              INLINE_DESCRIPTOR_NAME,
               SecretMaterial.fromHex(command.sharedSecretHex()),
               command.algorithm(),
               command.digits());
 
       return replayDescriptor(
-          descriptor, command.otp(), command.counter(), false, command.identifier(), "inline");
+          descriptor, command.otp(), command.counter(), false, INLINE_DESCRIPTOR_NAME, "inline");
     } catch (IllegalArgumentException ex) {
       return validationFailure(
-          command.identifier(),
+          INLINE_DESCRIPTOR_NAME,
           false,
           "inline",
           command.algorithm(),
@@ -171,7 +170,7 @@ public final class HotpReplayApplicationService {
           ex.getMessage());
     } catch (RuntimeException ex) {
       return unexpectedErrorResult(
-          command.identifier(),
+          INLINE_DESCRIPTOR_NAME,
           false,
           "inline",
           command.algorithm(),

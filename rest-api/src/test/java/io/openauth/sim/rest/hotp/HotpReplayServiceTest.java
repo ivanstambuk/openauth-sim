@@ -21,6 +21,9 @@ import org.mockito.Mockito;
 
 class HotpReplayServiceTest {
 
+  private static final String SECRET_HEX = "3132333435363738393031323334353637383930";
+  private static final String INLINE_REPLAY_ID = "hotp-inline-replay";
+
   @Test
   @DisplayName("Stored replay delegates to application service and returns match response")
   void storedReplayReturnsMatch() {
@@ -41,8 +44,7 @@ class HotpReplayServiceTest {
 
     HotpReplayService service = new HotpReplayService(applicationService);
     HotpReplayResponse response =
-        service.replay(
-            new HotpReplayRequest("cred-123", null, null, null, null, null, "755224", null));
+        service.replay(new HotpReplayRequest("cred-123", null, null, null, null, "755224", null));
 
     assertEquals("match", response.status());
     assertEquals("match", response.reasonCode());
@@ -75,7 +77,6 @@ class HotpReplayServiceTest {
                         null,
                         null,
                         null,
-                        null,
                         "755224",
                         Map.of("notes", "not-supported"))));
 
@@ -96,22 +97,13 @@ class HotpReplayServiceTest {
         new TelemetrySignal(
             TelemetryStatus.INVALID, "otp_mismatch", "otp mismatch", true, mismatchFields, null);
     ReplayResult result =
-        new ReplayResult(signal, false, "inline-device", 5L, 5L, HotpHashAlgorithm.SHA1, 6);
+        new ReplayResult(signal, false, INLINE_REPLAY_ID, 5L, 5L, HotpHashAlgorithm.SHA1, 6);
     Mockito.when(applicationService.replay(Mockito.any(ReplayCommand.Inline.class)))
         .thenReturn(result);
 
     HotpReplayService service = new HotpReplayService(applicationService);
     HotpReplayResponse response =
-        service.replay(
-            new HotpReplayRequest(
-                null,
-                "device-inline",
-                "3132333435363738393031323334353637383930",
-                "SHA1",
-                6,
-                5L,
-                "254676",
-                null));
+        service.replay(new HotpReplayRequest(null, SECRET_HEX, "SHA1", 6, 5L, "254676", null));
 
     assertEquals("mismatch", response.status());
     assertEquals("otp_mismatch", response.reasonCode());
@@ -124,7 +116,7 @@ class HotpReplayServiceTest {
         ArgumentCaptor.forClass(ReplayCommand.Inline.class);
     Mockito.verify(applicationService).replay(captor.capture());
     ReplayCommand.Inline command = captor.getValue();
-    assertEquals("device-inline", command.identifier());
+    assertEquals(SECRET_HEX, command.sharedSecretHex());
     assertEquals(HotpHashAlgorithm.SHA1, command.algorithm());
     assertEquals(6, command.digits());
     assertEquals(5L, command.counter());
@@ -143,16 +135,7 @@ class HotpReplayServiceTest {
         assertThrows(
             HotpReplayValidationException.class,
             () ->
-                service.replay(
-                    new HotpReplayRequest(
-                        null,
-                        "device-inline",
-                        "3132333435363738393031323334353637383930",
-                        "SHA1",
-                        6,
-                        5L,
-                        "  ",
-                        null)));
+                service.replay(new HotpReplayRequest(null, SECRET_HEX, "SHA1", 6, 5L, "  ", null)));
 
     assertEquals("otp_required", exception.reasonCode());
     Mockito.verifyNoInteractions(applicationService);
@@ -171,14 +154,7 @@ class HotpReplayServiceTest {
             () ->
                 service.replay(
                     new HotpReplayRequest(
-                        null,
-                        "device-inline",
-                        "3132333435363738393031323334353637383930",
-                        "SHA1",
-                        6,
-                        1L,
-                        "123456",
-                        Map.of("label", "audit"))));
+                        null, SECRET_HEX, "SHA1", 6, 1L, "123456", Map.of("label", "audit"))));
 
     assertEquals("metadata_not_supported", exception.reasonCode());
     assertEquals("inline", exception.credentialSource());
@@ -209,8 +185,7 @@ class HotpReplayServiceTest {
             HotpReplayValidationException.class,
             () ->
                 service.replay(
-                    new HotpReplayRequest(
-                        "cred-404", null, null, null, null, null, "123456", null)));
+                    new HotpReplayRequest("cred-404", null, null, null, null, "123456", null)));
 
     assertEquals("credential_not_found", exception.reasonCode());
     assertEquals("stored", exception.credentialSource());
@@ -242,8 +217,7 @@ class HotpReplayServiceTest {
             HotpReplayUnexpectedException.class,
             () ->
                 service.replay(
-                    new HotpReplayRequest(
-                        "cred-500", null, null, null, null, null, "987654", null)));
+                    new HotpReplayRequest("cred-500", null, null, null, null, "987654", null)));
 
     assertEquals("stored", exception.credentialSource());
     assertThat(exception.details()).containsEntry("telemetryId", exception.telemetryId());
@@ -261,7 +235,7 @@ class HotpReplayServiceTest {
             HotpReplayValidationException.class,
             () ->
                 service.replay(
-                    new HotpReplayRequest("cred-100", null, null, null, null, null, null, null)));
+                    new HotpReplayRequest("cred-100", null, null, null, null, null, null)));
 
     assertEquals("otp_required", exception.reasonCode());
     assertEquals("stored", exception.credentialSource());
@@ -269,8 +243,8 @@ class HotpReplayServiceTest {
   }
 
   @Test
-  @DisplayName("Replay requires secret material when inline identifier is provided")
-  void replayRequiresSecretWhenIdentifierProvided() {
+  @DisplayName("Replay requires shared secret when inline parameters are supplied")
+  void replayRequiresSharedSecretForInlineRequests() {
     HotpReplayApplicationService applicationService =
         Mockito.mock(HotpReplayApplicationService.class);
     HotpReplayService service = new HotpReplayService(applicationService);
@@ -278,18 +252,16 @@ class HotpReplayServiceTest {
     HotpReplayValidationException exception =
         assertThrows(
             HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest(
-                        null, "device-inline", null, null, null, null, "987654", null)));
+            () -> service.replay(new HotpReplayRequest(null, null, "SHA1", 6, 1L, "987654", null)));
 
-    assertEquals("mode_required", exception.reasonCode());
+    assertEquals("sharedSecretHex_required", exception.reasonCode());
+    assertEquals("inline", exception.credentialSource());
     Mockito.verifyNoInteractions(applicationService);
   }
 
   @Test
-  @DisplayName("Replay requires identifier when shared secret is supplied")
-  void replayRequiresIdentifierWhenSecretProvided() {
+  @DisplayName("Replay requires algorithm when shared secret is supplied")
+  void replayRequiresAlgorithmForInlineRequests() {
     HotpReplayApplicationService applicationService =
         Mockito.mock(HotpReplayApplicationService.class);
     HotpReplayService service = new HotpReplayService(applicationService);
@@ -299,24 +271,17 @@ class HotpReplayServiceTest {
             HotpReplayValidationException.class,
             () ->
                 service.replay(
-                    new HotpReplayRequest(
-                        null,
-                        null,
-                        "3132333435363738393031323334353637383930",
-                        null,
-                        null,
-                        null,
-                        "111111",
-                        null)));
+                    new HotpReplayRequest(null, SECRET_HEX, null, 6, 1L, "111111", null)));
 
-    assertEquals("mode_required", exception.reasonCode());
+    assertEquals("algorithm_required", exception.reasonCode());
+    assertEquals("inline", exception.credentialSource());
     Mockito.verifyNoInteractions(applicationService);
   }
 
   @Test
   @DisplayName(
-      "Replay rejects requests that supply credential and identifier without inline secret")
-  void replayRejectsIdentifierWithoutSecret() {
+      "Replay rejects requests that mix stored credential references with inline parameters")
+  void replayRejectsMixedModesIncludingInlineFields() {
     HotpReplayApplicationService applicationService =
         Mockito.mock(HotpReplayApplicationService.class);
     HotpReplayService service = new HotpReplayService(applicationService);
@@ -327,16 +292,9 @@ class HotpReplayServiceTest {
             () ->
                 service.replay(
                     new HotpReplayRequest(
-                        "cred-identifier-only",
-                        "device-inline",
-                        null,
-                        null,
-                        null,
-                        null,
-                        "222222",
-                        null)));
+                        "cred-identifier-only", SECRET_HEX, "SHA1", 6, 1L, "222222", null)));
 
-    assertEquals("mode_required", exception.reasonCode());
+    assertEquals("mode_ambiguous", exception.reasonCode());
     Mockito.verifyNoInteractions(applicationService);
   }
 
@@ -353,14 +311,7 @@ class HotpReplayServiceTest {
             () ->
                 service.replay(
                     new HotpReplayRequest(
-                        "cred-ambiguous",
-                        null,
-                        "3132333435363738393031323334353637383930",
-                        "SHA1",
-                        6,
-                        5L,
-                        "123456",
-                        null)));
+                        "cred-ambiguous", SECRET_HEX, "SHA1", 6, 5L, "123456", null)));
 
     assertEquals("mode_ambiguous", exception.reasonCode());
     Mockito.verifyNoInteractions(applicationService);
@@ -378,7 +329,7 @@ class HotpReplayServiceTest {
             HotpReplayValidationException.class,
             () ->
                 service.replay(
-                    new HotpReplayRequest(null, null, null, null, null, null, "123456", null)));
+                    new HotpReplayRequest(null, null, null, null, null, "123456", null)));
 
     assertEquals("mode_required", exception.reasonCode());
     Mockito.verifyNoInteractions(applicationService);
@@ -396,15 +347,7 @@ class HotpReplayServiceTest {
             HotpReplayValidationException.class,
             () ->
                 service.replay(
-                    new HotpReplayRequest(
-                        null,
-                        "device-inline",
-                        "3132333435363738393031323334353637383930",
-                        "SHA1",
-                        null,
-                        4L,
-                        "987654",
-                        null)));
+                    new HotpReplayRequest(null, SECRET_HEX, "SHA1", null, 4L, "987654", null)));
 
     assertEquals("digits_required", exception.reasonCode());
     assertEquals("inline", exception.credentialSource());
@@ -433,15 +376,7 @@ class HotpReplayServiceTest {
             HotpReplayValidationException.class,
             () ->
                 service.replay(
-                    new HotpReplayRequest(
-                        null,
-                        "device-inline",
-                        "3132333435363738393031323334353637383930",
-                        "SHA256X",
-                        6,
-                        5L,
-                        "254676",
-                        null)));
+                    new HotpReplayRequest(null, SECRET_HEX, "SHA256X", 6, 5L, "254676", null)));
 
     assertEquals("algorithm_invalid", exception.reasonCode());
     Mockito.verifyNoInteractions(applicationService);
@@ -459,15 +394,7 @@ class HotpReplayServiceTest {
             HotpReplayValidationException.class,
             () ->
                 service.replay(
-                    new HotpReplayRequest(
-                        null,
-                        "device-inline",
-                        "3132333435363738393031323334353637383930",
-                        "SHA1",
-                        null,
-                        5L,
-                        "254676",
-                        null)));
+                    new HotpReplayRequest(null, SECRET_HEX, "SHA1", null, 5L, "254676", null)));
     assertEquals("digits_required", missingDigits.reasonCode());
 
     HotpReplayValidationException missingCounter =
@@ -475,15 +402,7 @@ class HotpReplayServiceTest {
             HotpReplayValidationException.class,
             () ->
                 service.replay(
-                    new HotpReplayRequest(
-                        null,
-                        "device-inline",
-                        "3132333435363738393031323334353637383930",
-                        "SHA1",
-                        6,
-                        null,
-                        "254676",
-                        null)));
+                    new HotpReplayRequest(null, SECRET_HEX, "SHA1", 6, null, "254676", null)));
     assertEquals("counter_required", missingCounter.reasonCode());
     Mockito.verifyNoInteractions(applicationService);
   }

@@ -18,6 +18,7 @@ public final class TelemetryContractTestSupport {
   private static final String HOTP_ISSUANCE_EVENT = "hotp.issue";
   private static final String HOTP_REPLAY_EVENT = "hotp.replay";
   private static final String HOTP_SEED_EVENT = "hotp.seed";
+  private static final String HOTP_INLINE_REPLAY_ID = "hotp-inline-replay";
 
   private TelemetryContractTestSupport() {
     throw new AssertionError("No instances");
@@ -206,7 +207,9 @@ public final class TelemetryContractTestSupport {
       String credentialSource, long counter, String reason) {
     Map<String, Object> fields = new LinkedHashMap<>();
     fields.put("credentialSource", credentialSource);
-    fields.put("credentialId", "hotp-credential");
+    fields.put(
+        "credentialId",
+        "inline".equals(credentialSource) ? HOTP_INLINE_REPLAY_ID : "hotp-credential");
     fields.put("hashAlgorithm", "SHA1");
     fields.put("digits", 6);
     fields.put("previousCounter", counter);

@@ -264,11 +264,9 @@ final class HotpOperatorUiReplaySeleniumTest {
     waitForOption(presetSelect, INLINE_SAMPLE_KEY);
     presetSelect.selectByValue(INLINE_SAMPLE_KEY);
 
-    waitForAttribute(
-        By.id("hotpReplayInlineIdentifier"),
-        "value",
-        "inline-sample",
-        "Inline identifier should auto-fill from the selected preset");
+    assertThat(driver.findElements(By.id("hotpReplayInlineIdentifier")))
+        .as("Inline replay form should not render an identifier input")
+        .isEmpty();
     waitForAttribute(
         By.id("hotpReplayInlineSecretHex"),
         "value",
