@@ -72,5 +72,6 @@ _Last updated: 2025-09-30_
 | R077 | Add `/api/v1/ocra/credentials/{id}/sample` endpoint + tests covering curated and missing samples | UI-OCRA-010 | ✅ |
 | R078 | Implement replay “Load sample data” UI button + fetch handler with MockMvc/JS unit coverage | UI-OCRA-010 | ✅ |
 | R079 | Extend Selenium replay test to assert sample auto-fill success and graceful fallback | UI-OCRA-010 | ✅ |
+| R080 | Add failing Selenium regression enforcing inline-first replay mode ordering and default selection before adjusting templates/scripts | UI-OCRA-002, UI-OCRA-010 | ✅ |
 
 Update this checklist as work progresses.

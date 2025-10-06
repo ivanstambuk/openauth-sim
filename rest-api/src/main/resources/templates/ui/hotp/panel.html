@@ -360,24 +360,9 @@
                 <fieldset
                     class="mode-toggle"
                     data-testid="hotp-replay-mode-toggle"
-                    data-mode="stored"
+                    data-mode="inline"
                   >
                   <legend>Choose replay mode</legend>
-                  <div class="mode-option">
-                    <input
-                      type="radio"
-                      id="hotpReplayModeStored"
-                      name="hotpReplayMode"
-                      value="stored"
-                      data-testid="hotp-replay-mode-select-stored"
-                      aria-describedby="hotpReplayModeStoredHint"
-                      checked="checked"
-                    />
-                    <label for="hotpReplayModeStored">Stored credential</label>
-                    <p id="hotpReplayModeStoredHint" class="hint">
-                      Select a persisted credential, and replay the OTP without advancing counters.
-                    </p>
-                  </div>
                   <div class="mode-option">
                     <input
                       type="radio"
@@ -386,10 +371,25 @@
                       value="inline"
                       data-testid="hotp-replay-mode-select-inline"
                       aria-describedby="hotpReplayModeInlineHint"
+                      checked="checked"
                     />
                     <label for="hotpReplayModeInline">Inline parameters</label>
                     <p id="hotpReplayModeInlineHint" class="hint">
                       Provide HOTP parameters directly for ad-hoc verification.
+                    </p>
+                  </div>
+                  <div class="mode-option">
+                    <input
+                      type="radio"
+                      id="hotpReplayModeStored"
+                      name="hotpReplayMode"
+                      value="stored"
+                      data-testid="hotp-replay-mode-select-stored"
+                      aria-describedby="hotpReplayModeStoredHint"
+                    />
+                    <label for="hotpReplayModeStored">Stored credential</label>
+                    <p id="hotpReplayModeStoredHint" class="hint">
+                      Select a persisted credential, and replay the OTP without advancing counters.
                     </p>
                   </div>
                 </fieldset>

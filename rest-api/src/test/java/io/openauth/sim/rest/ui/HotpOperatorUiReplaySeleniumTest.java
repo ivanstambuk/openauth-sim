@@ -95,6 +95,12 @@ final class HotpOperatorUiReplaySeleniumTest {
   void storedHotpReplayLabelMatchesOcraCopy() {
     navigateToReplayPanel();
 
+    WebElement storedMode = waitForVisible(By.id("hotpReplayModeStored"));
+    if (!storedMode.isSelected()) {
+      storedMode.click();
+      new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> storedMode.isSelected());
+    }
+
     WebElement label = waitForVisible(By.cssSelector("label[for='hotpReplayStoredCredentialId']"));
     assertThat(label.getText().trim()).isEqualTo("Stored credential");
   }
@@ -113,12 +119,41 @@ final class HotpOperatorUiReplaySeleniumTest {
   void hotpReplayObservedOtpLabel() {
     navigateToReplayPanel();
 
+    WebElement storedMode = waitForVisible(By.id("hotpReplayModeStored"));
+    if (!storedMode.isSelected()) {
+      storedMode.click();
+      new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> storedMode.isSelected());
+    }
+
     WebElement storedLabel = waitForVisible(By.cssSelector("label[for='hotpReplayStoredOtp']"));
     assertThat(storedLabel.getText().trim()).isEqualTo("One-time password");
 
     waitForClickable(By.id("hotpReplayModeInline")).click();
     WebElement inlineLabel = waitForVisible(By.cssSelector("label[for='hotpReplayInlineOtp']"));
     assertThat(inlineLabel.getText().trim()).isEqualTo("One-time password");
+  }
+
+  @Test
+  @DisplayName("HOTP replay defaults to inline parameters listed before stored credential")
+  void hotpReplayDefaultsToInlineMode() {
+    navigateToReplayPanel();
+
+    WebElement inlineMode = waitForVisible(By.id("hotpReplayModeInline"));
+    WebElement storedMode = waitForVisible(By.id("hotpReplayModeStored"));
+
+    assertThat(inlineMode.isSelected()).as("Inline mode should be selected by default").isTrue();
+    assertThat(storedMode.isSelected()).isFalse();
+
+    java.util.List<String> labels =
+        driver
+            .findElements(
+                By.cssSelector("[data-testid='hotp-replay-mode-toggle'] .mode-option label"))
+            .stream()
+            .map(WebElement::getText)
+            .map(String::trim)
+            .toList();
+
+    assertThat(labels).containsExactly("Inline parameters", "Stored credential");
   }
 
   @Test
@@ -151,8 +186,16 @@ final class HotpOperatorUiReplaySeleniumTest {
 
     waitForVisible(By.cssSelector("[data-testid='hotp-replay-panel']"));
 
+    WebElement inlineMode = waitForVisible(By.id("hotpReplayModeInline"));
     WebElement storedMode = waitForVisible(By.id("hotpReplayModeStored"));
-    assertThat(storedMode.isSelected()).as("Stored mode should be selected by default").isTrue();
+
+    assertThat(inlineMode.isSelected()).as("Inline mode should be selected by default").isTrue();
+    assertThat(storedMode.isSelected()).isFalse();
+
+    if (!storedMode.isSelected()) {
+      storedMode.click();
+      new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> storedMode.isSelected());
+    }
 
     Select credentialSelect = new Select(waitForVisible(By.id("hotpReplayStoredCredentialId")));
     waitForCredentialOption(credentialSelect, STORED_CREDENTIAL_ID);

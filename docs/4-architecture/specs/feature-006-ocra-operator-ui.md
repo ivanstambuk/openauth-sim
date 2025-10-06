@@ -36,6 +36,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-29 – Appendix A/B OCRA reference code from the draft is embedded directly in the generator how-to so agents work offline while preserving the canonical URL reference.
 - 2025-09-29 – When an operator selects a stored credential, the UI immediately disables and clears request parameter inputs not supported by that credential’s OCRA suite (user chose option A).
 - 2025-09-29 – Disabled request parameter inputs must present a muted/disabled visual state (e.g., grey background, not-allowed cursor) so operators can tell they are non-editable (user request).
+- 2025-10-06 – Evaluate and replay tabs list Inline parameters before Stored credential so the inline option remains the default across protocols (user directive).
 
 ## Objectives & Success Criteria
 - Provide browser-accessible pages that let operators evaluate OCRA responses using stored credentials or inline parameters, mirroring REST validation semantics.

@@ -966,10 +966,10 @@
 
   function currentReplayMode() {
     if (!replayModeToggle) {
-      return 'stored';
+      return 'inline';
     }
     var datasetMode = replayModeToggle.getAttribute('data-mode');
-    return datasetMode === 'inline' ? 'inline' : 'stored';
+    return datasetMode === 'stored' ? 'stored' : 'inline';
   }
 
   function handleReplaySubmit() {
@@ -1416,7 +1416,7 @@
     initializeEvaluation();
     if (!replayInitialized) {
       attachReplayHandlers();
-      setReplayMode('stored');
+      setReplayMode('inline');
       replayInitialized = true;
     } else {
       updateStoredSampleHints();
