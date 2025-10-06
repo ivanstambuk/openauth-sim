@@ -24,6 +24,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-05 – HOTP operator replay UI will mirror the OCRA replay experience with stored and inline modes and sample data affordances (option A confirmed).
 - 2025-10-06 – HOTP operator replay UI removes the advanced context toggle/fields (label, notes) so replay submissions focus solely on credential inputs (user directive).
 - 2025-10-06 – HOTP replay inline sample loader must surface separate SHA-1 and SHA-256 presets using the same labels as the evaluate tab for consistency (user directive).
+- 2025-10-06 – HOTP replay panel must share the same vertical alignment baseline as the HOTP evaluate panel so toggling tabs does not shift the card position (user directive).
 - 2025-10-05 – HOTP replay interactions emit dedicated `hotp.replay` telemetry frames (REST and UI), keeping evaluation metrics separate (option A confirmed).
 - 2025-10-05 – Operator console deep links must mirror OCRA conventions by writing `protocol=hotp` and `tab=evaluate|replay` query parameters so HOTP views restore correctly on refresh (user confirmation).
 - 2025-10-05 – HOTP evaluation panels remove the stored/inline headings and hint copy so operators see the input fields immediately after selecting a mode (user directive).

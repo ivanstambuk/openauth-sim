@@ -115,7 +115,7 @@ button {
   border: 1px solid rgba(22, 211, 243, 0.08);
 }
 
-.card-shell + .card-shell {
+.card-shell:not([hidden]) + .card-shell {
   margin-top: var(--ocra-spacing-lg);
 }
 

@@ -1,6 +1,7 @@
 package io.openauth.sim.rest.ui;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
@@ -9,6 +10,10 @@ import io.openauth.sim.core.otp.hotp.HotpDescriptor;
 import io.openauth.sim.core.otp.hotp.HotpGenerator;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
@@ -115,6 +120,17 @@ final class HotpOperatorUiReplaySeleniumTest {
 
     WebElement submit = waitForVisible(By.cssSelector("button[data-testid='hotp-replay-submit']"));
     assertThat(submit.getText().trim()).isEqualTo("Verify OTP");
+  }
+
+  @Test
+  @DisplayName("HOTP replay panel aligns with evaluate panel baseline")
+  void hotpReplayPanelAlignsWithEvaluate() {
+    driver.get("http://localhost:" + port + "/ui/console?protocol=hotp");
+
+    String consoleStylesheet = fetchConsoleStylesheet();
+    assertThat(consoleStylesheet)
+        .as("Operator console CSS should guard card-shell spacing behind :not([hidden])")
+        .contains(".card-shell:not([hidden]) + .card-shell");
   }
 
   @Test
@@ -452,5 +468,17 @@ final class HotpOperatorUiReplaySeleniumTest {
         .until(ExpectedConditions.attributeToBe(locator, attribute, expected));
     String actual = driver.findElement(locator).getAttribute(attribute);
     assertThat(actual).as(message).isEqualTo(expected);
+  }
+
+  private String fetchConsoleStylesheet() {
+    try {
+      URL url = new URL("http://localhost:" + port + "/ui/ocra/console.css");
+      try (InputStream inputStream = url.openStream()) {
+        return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+      }
+    } catch (IOException exception) {
+      fail("Failed to fetch operator console stylesheet", exception);
+      return "";
+    }
   }
 }
