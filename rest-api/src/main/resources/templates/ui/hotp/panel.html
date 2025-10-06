@@ -61,7 +61,7 @@
               <fieldset
                   class="mode-toggle"
                   data-testid="hotp-mode-toggle"
-                  data-mode="stored"
+                  data-mode="inline"
                 >
                 <legend>Choose evaluation mode</legend>
                 <div class="mode-option">
@@ -72,6 +72,7 @@
                     value="inline"
                     data-testid="hotp-mode-select-inline"
                     aria-describedby="hotpModeInlineHint"
+                    checked="checked"
                   />
                   <label for="hotpModeInline">Inline parameters</label>
                   <p id="hotpModeInlineHint" class="hint">
@@ -86,7 +87,6 @@
                     value="stored"
                     data-testid="hotp-mode-select-stored"
                     aria-describedby="hotpModeStoredHint"
-                    checked="checked"
                   />
                   <label for="hotpModeStored">Stored credential</label>
                   <p id="hotpModeStoredHint" class="hint">
@@ -100,8 +100,6 @@
                   data-testid="hotp-inline-evaluation-panel"
                   aria-label="Inline HOTP evaluation form"
                   data-mode-section="inline"
-                  hidden="hidden"
-                  aria-hidden="true"
                 >
                 <form
                     data-testid="hotp-inline-form"
@@ -186,6 +184,8 @@
                   data-testid="hotp-stored-evaluation-panel"
                   aria-label="Stored HOTP credential evaluation form"
                   data-mode-section="stored"
+                  hidden="hidden"
+                  aria-hidden="true"
                 >
                 <form
                     data-testid="hotp-stored-form"

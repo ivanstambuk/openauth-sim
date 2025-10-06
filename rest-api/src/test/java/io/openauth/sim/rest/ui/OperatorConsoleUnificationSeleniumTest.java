@@ -178,26 +178,46 @@ final class OperatorConsoleUnificationSeleniumTest {
 
     WebElement hotpModeToggle =
         hotpPanel.findElement(By.cssSelector("[data-testid='hotp-mode-toggle']"));
-    assertThat(hotpModeToggle.getAttribute("data-mode")).isEqualTo("stored");
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(
+            d -> {
+              String mode = hotpModeToggle.getAttribute("data-mode");
+              return mode != null && !mode.isBlank();
+            });
+    assertThat(hotpModeToggle.getAttribute("data-mode")).isEqualTo("inline");
     WebElement storedToggle =
         hotpModeToggle.findElement(By.cssSelector("[data-testid='hotp-mode-select-stored']"));
     WebElement inlineToggle =
         hotpModeToggle.findElement(By.cssSelector("[data-testid='hotp-mode-select-inline']"));
+    assertThat(storedToggle.isSelected()).isFalse();
+    assertThat(inlineToggle.isSelected()).isTrue();
+
+    By storedPanelLocator = By.cssSelector("[data-testid='hotp-stored-evaluation-panel']");
+    By inlinePanelLocator = By.cssSelector("[data-testid='hotp-inline-evaluation-panel']");
+
+    WebElement inlineCard =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(ExpectedConditions.visibilityOfElementLocated(inlinePanelLocator));
+    WebElement storedCard = hotpPanel.findElement(storedPanelLocator);
+    assertThat(inlineCard.findElements(By.tagName("h2")))
+        .as("Inline HOTP form should not render redundant headings")
+        .isEmpty();
+    assertThat(storedCard.isDisplayed()).isFalse();
+
     storedToggle.click();
     new WebDriverWait(driver, Duration.ofSeconds(3))
         .until(d -> "stored".equals(hotpModeToggle.getAttribute("data-mode")));
     assertThat(storedToggle.isSelected()).isTrue();
     assertThat(inlineToggle.isSelected()).isFalse();
 
-    By storedPanelLocator = By.cssSelector("[data-testid='hotp-stored-evaluation-panel']");
-    By inlinePanelLocator = By.cssSelector("[data-testid='hotp-inline-evaluation-panel']");
-
-    WebElement storedCard = hotpPanel.findElement(storedPanelLocator);
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.findElement(storedPanelLocator).isDisplayed());
+    inlineCard = driver.findElement(inlinePanelLocator);
+    storedCard = driver.findElement(storedPanelLocator);
     assertThat(storedCard.isDisplayed()).isTrue();
     assertThat(storedCard.findElements(By.tagName("h2")))
         .as("Stored HOTP form should not render redundant headings")
         .isEmpty();
-    WebElement inlineCard = driver.findElement(inlinePanelLocator);
     assertThat(inlineCard.isDisplayed()).isFalse();
 
     inlineToggle.click();

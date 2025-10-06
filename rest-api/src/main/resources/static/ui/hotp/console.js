@@ -1489,7 +1489,7 @@
     attachEvaluationHandlers();
     renderInlinePresetOptions();
     if (modeToggle) {
-      setActiveMode(modeToggle.getAttribute('data-mode') || 'stored');
+      setActiveMode(modeToggle.getAttribute('data-mode') || 'inline');
     } else {
       ensureCredentials(false);
     }

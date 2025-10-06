@@ -99,11 +99,37 @@ final class HotpOperatorUiSeleniumTest {
   void storedCredentialEvaluationSucceeds() {
     navigateToHotpPanel();
 
+    WebElement modeToggle = assertHotpInlineDefaultState();
+    By storedPanelLocator = By.cssSelector("[data-testid='hotp-stored-evaluation-panel']");
+    By inlinePanelLocator = By.cssSelector("[data-testid='hotp-inline-evaluation-panel']");
+
+    WebElement storedToggle =
+        modeToggle.findElement(By.cssSelector("[data-testid='hotp-mode-select-stored']"));
+    WebElement inlineToggle =
+        modeToggle.findElement(By.cssSelector("[data-testid='hotp-mode-select-inline']"));
+
+    storedToggle.click();
+
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(d -> "stored".equals(modeToggle.getAttribute("data-mode")));
+
+    if (!storedToggle.isSelected()) {
+      throw new AssertionError("Stored HOTP mode toggle should become selected after activation");
+    }
+    if (inlineToggle.isSelected()) {
+      throw new AssertionError(
+          "Inline HOTP mode toggle should be deselected after stored activation");
+    }
+
     WebElement storedPanel =
         new WebDriverWait(driver, Duration.ofSeconds(5))
-            .until(
-                ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector("[data-testid='hotp-stored-evaluation-panel']")));
+            .until(ExpectedConditions.visibilityOfElementLocated(storedPanelLocator));
+    WebElement inlinePanel = driver.findElement(inlinePanelLocator);
+
+    if (inlinePanel.isDisplayed()) {
+      throw new AssertionError(
+          "Inline HOTP evaluation panel should hide once stored mode is active");
+    }
 
     String storedAriaLabel = storedPanel.getAttribute("aria-label");
     if (storedAriaLabel == null || storedAriaLabel.isBlank()) {
@@ -138,6 +164,28 @@ final class HotpOperatorUiSeleniumTest {
           "Expected HOTP stored result panel to be the first visible child of the status column");
     }
     assertResultRowsMatchExpectations(resultPanel, EXPECTED_STORED_OTP);
+  }
+
+  @Test
+  @DisplayName("HOTP evaluate defaults to inline mode and persists after refresh")
+  void hotpEvaluateDefaultsToInlineModeAfterRefresh() {
+    navigateToHotpPanel();
+    assertHotpInlineDefaultState();
+
+    driver.navigate().refresh();
+
+    WebElement hotpTab =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-testid='protocol-tab-hotp']")));
+    if (!"true".equals(hotpTab.getAttribute("aria-selected"))) {
+      hotpTab.click();
+      new WebDriverWait(driver, Duration.ofSeconds(5))
+          .until(d -> "true".equals(hotpTab.getAttribute("aria-selected")));
+    }
+
+    assertHotpInlineDefaultState();
   }
 
   @Test
@@ -242,6 +290,51 @@ final class HotpOperatorUiSeleniumTest {
     }
 
     assertResultRowsMatchExpectations(resultPanel, EXPECTED_INLINE_SHA256_OTP);
+  }
+
+  private WebElement assertHotpInlineDefaultState() {
+    By modeToggleLocator = By.cssSelector("[data-testid='hotp-mode-toggle']");
+    WebElement modeToggle =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(ExpectedConditions.presenceOfElementLocated(modeToggleLocator));
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            d -> {
+              String mode = modeToggle.getAttribute("data-mode");
+              return mode != null && !mode.isBlank();
+            });
+
+    if (!"inline".equals(modeToggle.getAttribute("data-mode"))) {
+      throw new AssertionError("Expected HOTP evaluate mode to default to inline parameters");
+    }
+
+    WebElement inlineToggle =
+        modeToggle.findElement(By.cssSelector("[data-testid='hotp-mode-select-inline']"));
+    WebElement storedToggle =
+        modeToggle.findElement(By.cssSelector("[data-testid='hotp-mode-select-stored']"));
+
+    if (!inlineToggle.isSelected()) {
+      throw new AssertionError("Inline HOTP mode toggle should be selected by default");
+    }
+    if (storedToggle.isSelected()) {
+      throw new AssertionError("Stored HOTP mode toggle should be deselected by default");
+    }
+
+    By inlinePanelLocator = By.cssSelector("[data-testid='hotp-inline-evaluation-panel']");
+    By storedPanelLocator = By.cssSelector("[data-testid='hotp-stored-evaluation-panel']");
+    WebElement inlinePanel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(ExpectedConditions.visibilityOfElementLocated(inlinePanelLocator));
+    WebElement storedPanel = driver.findElement(storedPanelLocator);
+
+    if (!inlinePanel.isDisplayed()) {
+      throw new AssertionError("Inline HOTP evaluation panel should be visible by default");
+    }
+    if (storedPanel.isDisplayed()) {
+      throw new AssertionError("Stored HOTP evaluation panel should remain hidden until selected");
+    }
+
+    return modeToggle;
   }
 
   private void navigateToHotpPanel() {

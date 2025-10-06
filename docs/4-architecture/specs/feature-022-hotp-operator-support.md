@@ -8,6 +8,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 
 
 ## Clarifications
+- 2025-10-06 – HOTP evaluate screen selects Inline parameters by default on initial load or refresh to mirror OCRA behaviour (user directive).
 - 2025-10-04 – Initial delivery must ship an end-to-end slice (core domain, application adapters, CLI commands, and REST endpoints) instead of a core-only milestone (user directive; Option B selected).
 - 2025-10-04 – HOTP credentials reuse the existing MapDB credential store/schema-v1 baseline alongside OCRA descriptors; no dedicated HOTP store is created (user directive; Option A selected).
 - 2025-10-04 – Telemetry coverage must match the OCRA parity level (issuance, evaluation, failure reasons) using the shared `TelemetryContracts` adapters (user directive; Option A selected).
