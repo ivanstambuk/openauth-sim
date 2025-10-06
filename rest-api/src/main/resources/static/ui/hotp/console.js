@@ -104,9 +104,6 @@
   var replayStoredOtpInput = replayForm
     ? replayForm.querySelector('#hotpReplayStoredOtp')
     : null;
-  var replaySampleStatus = replayForm
-    ? replayForm.querySelector('[data-testid="hotp-replay-sample-status"]')
-    : null;
   var replaySampleActions = replayForm
     ? replayForm.querySelector('[data-testid="hotp-replay-sample-actions"]')
     : null;
@@ -753,14 +750,12 @@
   }
 
   function updateStoredSampleHints() {
-    if (!replayStoredSelect || !replaySampleStatus) {
+    if (!replayStoredSelect) {
       return;
     }
     var credentialId = replayStoredSelect.value || '';
     var sample = STORED_SAMPLE_DATA[credentialId];
     if (!credentialId) {
-      replaySampleStatus.textContent = 'Select a credential to check for sample data availability.';
-      setHidden(replaySampleStatus, false);
       setHidden(replaySampleActions, true);
       if (replaySampleButton) {
         replaySampleButton.setAttribute('disabled', 'disabled');
@@ -771,7 +766,6 @@
     }
 
     if (sample) {
-      replaySampleStatus.textContent = 'Sample data ready';
       setHidden(replaySampleActions, false);
       if (replaySampleButton) {
         replaySampleButton.removeAttribute('disabled');
@@ -781,7 +775,6 @@
         replaySampleMessage.textContent = 'Apply curated values for this credential.';
       }
     } else {
-      replaySampleStatus.textContent = 'No curated sample data available for this credential.';
       setHidden(replaySampleActions, true);
       if (replaySampleButton) {
         replaySampleButton.setAttribute('disabled', 'disabled');
@@ -793,7 +786,6 @@
       clearReplayAdvancedFields();
     }
 
-    setHidden(replaySampleStatus, false);
   }
 
   function applyStoredSample() {

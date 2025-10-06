@@ -398,28 +398,21 @@
                     class="stack-md"
                     data-testid="hotp-replay-stored-panel"
                     data-replay-section="stored"
-                    aria-labelledby="hotpReplayStoredHeading"
+                    aria-labelledby="hotpReplayStoredLabel"
                   >
-                  <h3 id="hotpReplayStoredHeading">Stored credential replay</h3>
                   <div class="field-grid">
                     <div>
-                      <label for="hotpReplayStoredCredentialId">Credential</label>
+                      <label id="hotpReplayStoredLabel" for="hotpReplayStoredCredentialId"
+                        >Stored credential</label
+                      >
                       <select
                         id="hotpReplayStoredCredentialId"
                         name="credentialId"
                         data-stored-required="true"
-                        aria-describedby="hotpReplayStoredStatus"
                         disabled="disabled"
                       >
                         <option value="">Loading credentials…</option>
                       </select>
-                      <p
-                        id="hotpReplayStoredStatus"
-                        class="hint"
-                        data-testid="hotp-replay-sample-status"
-                        hidden="hidden"
-                        aria-hidden="true"
-                      ></p>
                     </div>
                     <div>
                       <label for="hotpReplayStoredOtp">Observed OTP</label>

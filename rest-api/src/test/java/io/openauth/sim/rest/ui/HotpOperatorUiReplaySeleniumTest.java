@@ -11,6 +11,7 @@ import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -91,6 +92,38 @@ final class HotpOperatorUiReplaySeleniumTest {
   }
 
   @Test
+  @DisplayName("Stored HOTP replay selector label matches OCRA copy")
+  void storedHotpReplayLabelMatchesOcraCopy() {
+    navigateToReplayPanel();
+
+    WebElement label = waitForVisible(By.cssSelector("label[for='hotpReplayStoredCredentialId']"));
+    assertThat(label.getText().trim()).isEqualTo("Stored credential");
+  }
+
+  @Test
+  @DisplayName("Stored HOTP replay heading removed so label leads section")
+  void storedHotpReplayHeadingRemoved() {
+    navigateToReplayPanel();
+
+    List<WebElement> heading = driver.findElements(By.id("hotpReplayStoredHeading"));
+    assertThat(heading)
+        .as("Stored replay panel should omit the heading before the selector label")
+        .isEmpty();
+  }
+
+  @Test
+  @DisplayName("Stored HOTP replay sample status message removed")
+  void storedHotpReplaySampleStatusRemoved() {
+    navigateToReplayPanel();
+
+    List<WebElement> statusNodes =
+        driver.findElements(By.cssSelector("[data-testid='hotp-replay-sample-status']"));
+    assertThat(statusNodes)
+        .as("Stored replay panel should not render the sample status message")
+        .isEmpty();
+  }
+
+  @Test
   @DisplayName("Stored HOTP replay surfaces telemetry and counter metadata")
   void storedHotpReplaySurfacesTelemetryAndMetadata() {
     navigateToReplayPanel();
@@ -104,8 +137,6 @@ final class HotpOperatorUiReplaySeleniumTest {
     waitForCredentialOption(credentialSelect, STORED_CREDENTIAL_ID);
     credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
 
-    waitForTextContains(
-        By.cssSelector("[data-testid='hotp-replay-sample-status']"), "Sample data ready");
     WebElement sampleButton =
         waitForClickable(By.cssSelector("button[data-testid='hotp-replay-sample-load']"));
     sampleButton.click();
@@ -277,11 +308,6 @@ final class HotpOperatorUiReplaySeleniumTest {
             d ->
                 select.getOptions().stream()
                     .anyMatch(option -> value.equals(option.getAttribute("value"))));
-  }
-
-  private void waitForTextContains(By locator, String substring) {
-    new WebDriverWait(driver, WAIT_TIMEOUT)
-        .until(ExpectedConditions.textToBePresentInElementLocated(locator, substring));
   }
 
   private void waitForAttribute(By locator, String attribute, String expected, String message) {

@@ -27,6 +27,8 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-05 – HOTP evaluation panels remove the stored/inline headings and hint copy so operators see the input fields immediately after selecting a mode (user directive).
 - 2025-10-05 – HOTP mode selection mirrors OCRA ordering with Inline parameters listed before Stored credential for consistent operator workflows (user directive).
 - 2025-10-05 – HOTP replay hints read “Select a persisted credential, and replay the OTP without advancing counters.” and “Provide HOTP parameters directly for ad-hoc verification.” to align copy with operator guidance (user directive).
+- 2025-10-06 – HOTP replay stored credential selector label must read “Stored credential” to align the replay screen with the OCRA equivalent (user directive).
+- 2025-10-06 – HOTP replay stored credential panel omits the heading before the selector so the label is the first element, matching the OCRA replay layout (user directive).
 - 2025-10-05 – HOTP inline evaluation no longer collects an operator-provided identifier; the REST/API surface accepts only secret, algorithm, digits, counter, and OTP for inline requests (user directive).
 - 2025-10-05 – HOTP Evaluate tab (stored and inline modes) must generate the OTP and display it without requiring operator input; OTP entry remains exclusive to the Replay tab (user directive; Option A selected).
 - 2025-10-05 – HtmlUnit `@SuppressFBWarnings` annotation dependency is added to the REST API test configuration (via `com.github.spotbugs:spotbugs-annotations` on the test classpath) so compilation warnings are suppressed without disabling linting (user directive; Option A selected).
