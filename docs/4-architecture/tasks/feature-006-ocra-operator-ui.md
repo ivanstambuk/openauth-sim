@@ -1,7 +1,7 @@
 # Feature 006 – OCRA Operator UI Tasks
 
-_Status: Complete_
-_Last updated: 2025-09-30_
+_Status: In progress_
+_Last updated: 2025-10-07_
 
 ## Execution Notes
 - Specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui.md`.
@@ -73,5 +73,7 @@ _Last updated: 2025-09-30_
 | R078 | Implement replay “Load sample data” UI button + fetch handler with MockMvc/JS unit coverage | UI-OCRA-010 | ✅ |
 | R079 | Extend Selenium replay test to assert sample auto-fill success and graceful fallback | UI-OCRA-010 | ✅ |
 | R080 | Add failing Selenium regression enforcing inline-first replay mode ordering and default selection before adjusting templates/scripts | UI-OCRA-002, UI-OCRA-010 | ✅ |
+| R081 | Add failing Selenium coverage asserting Evaluate tab sample loader spacing matches Replay baseline | UI-OCRA-002, UI-OCRA-005 | ✅ |
+| R082 | Adjust templates/CSS to satisfy spacing test, rerun targeted + full build checks | UI-OCRA-002, UI-OCRA-005 | ✅ |
 
 Update this checklist as work progresses.

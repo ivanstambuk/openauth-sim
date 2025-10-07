@@ -565,6 +565,81 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(checkboxHeight.doubleValue()).isGreaterThanOrEqualTo(18.0d);
   }
 
+  @Test
+  @DisplayName("OCRA evaluate sample vector baseline matches replay tab")
+  void sampleVectorSpacingMatchesReplay() {
+    navigateToEvaluationConsole();
+
+    WebElement evaluateLabel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector(
+                        "[data-testid='ocra-evaluate-panel'] label[for='policyPreset']")));
+    WebElement evaluateSelect =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='ocra-evaluate-panel'] select#policyPreset")));
+    double evaluateHeadingOffset =
+        topOf(evaluateLabel)
+            - topOf(
+                new WebDriverWait(driver, Duration.ofSeconds(5))
+                    .until(
+                        ExpectedConditions.visibilityOfElementLocated(
+                            By.cssSelector("[data-testid='ocra-evaluate-panel'] .section-title"))));
+    WebElement replayToggle =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("[data-testid='ocra-mode-select-replay']")));
+    replayToggle.click();
+    waitForBackgroundJavaScript();
+    waitForPanelVisibility(
+        By.cssSelector("[data-testid='ocra-evaluate-panel']"), PanelVisibility.HIDDEN);
+    waitForPanelVisibility(
+        By.cssSelector("[data-testid='ocra-replay-panel']"), PanelVisibility.VISIBLE);
+
+    WebElement replayLabel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector(
+                        "[data-testid='ocra-replay-panel'] label[for='replayPolicyPreset']")));
+    WebElement replaySelect =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='ocra-replay-panel'] select#replayPolicyPreset")));
+    WebElement replayHeading =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='ocra-replay-panel'] .section-title")));
+    double replayHeadingOffset = topOf(replayLabel) - topOf(replayHeading);
+
+    if (evaluateHeadingOffset <= 0.0d) {
+      throw new AssertionError(
+          "Expected OCRA evaluate sample preset label to appear below the section heading, but offset was "
+              + evaluateHeadingOffset
+              + "px");
+    }
+    if (replayHeadingOffset <= 0.0d) {
+      throw new AssertionError(
+          "Expected OCRA replay sample preset label to appear below the section heading, but offset was "
+              + replayHeadingOffset
+              + "px");
+    }
+
+    double delta = Math.abs(evaluateHeadingOffset - replayHeadingOffset);
+    if (delta > 1.0d) {
+      throw new AssertionError(
+          "Expected OCRA evaluate sample vector spacing to align with replay baseline within 1px but delta was "
+              + delta
+              + "px");
+    }
+  }
+
   private static Stream<InlinePresetScenario> inlinePresetScenarios() {
     return Stream.of(
         new InlinePresetScenario(
@@ -799,6 +874,16 @@ final class OcraOperatorUiSeleniumTest {
   private void waitForDisabledState(String elementId, boolean expectedDisabled) {
     new WebDriverWait(driver, Duration.ofSeconds(5))
         .until(d -> isDisabled(elementId) == expectedDisabled);
+  }
+
+  private double topOf(WebElement element) {
+    Object result =
+        ((JavascriptExecutor) driver)
+            .executeScript("return arguments[0].getBoundingClientRect().top;", element);
+    if (result instanceof Number number) {
+      return number.doubleValue();
+    }
+    throw new AssertionError("Expected numeric bounding top but received: " + result);
   }
 
   private enum PanelVisibility {

@@ -92,7 +92,7 @@
               th:attr="hidden=${form.mode == 'credential'} ? 'hidden' : null, aria-hidden=${form.mode == 'credential'}"
               class="field-grid"
             >
-            <div>
+            <div class="inline-preset" data-testid="ocra-inline-preset">
               <label for="policyPreset">Load a sample vector</label>
               <select
                 id="policyPreset"

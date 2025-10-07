@@ -1,7 +1,7 @@
 # Feature Plan 006 – OCRA Operator UI
 
-_Status: Complete_
-_Last updated: 2025-09-30_
+_Status: In progress_
+_Last updated: 2025-10-07_
 
 ## Objective
 Ship a server-rendered operator UI (hosted inside the Spring Boot `rest-api` module) that lets humans execute OCRA evaluations by calling the existing REST endpoints. The UI must respect sanitized telemetry practices, mirror REST validation semantics, and provide an accessible form-driven experience focused on evaluation scenarios.
@@ -134,6 +134,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-10-04 – Logged follow-up to add an explicit replay "Load sample data" button for curated stored credentials; operators must opt-in to filling preset context rather than triggering it on selection.
 - ☑ R076 – Add failing Selenium coverage that enforces inline-first ordering and default selection across OCRA replay tabs before updating templates/scripts. (2025-10-06: extended `OcraOperatorUiReplaySeleniumTest` with inline-first default/order checks and observed `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiReplaySeleniumTest"` fail ahead of UI fixes.)
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
+- ☑ R078 – Add failing Selenium regression asserting the OCRA Evaluate “Load a sample vector” label/select spacing matches the Replay tab baseline, running `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest.sampleVectorSpacingMatchesReplay"` beforehand. (2025-10-07: test failed as expected, gaps differed by 18px.)
+- ☑ R079 – Apply template/CSS spacing adjustments to satisfy R078 and rerun the targeted Selenium test plus `./gradlew spotlessApply check`. (2025-10-07: evaluate panel now uses shared preset container styling with explicit spacing; targeted test and full `./gradlew spotlessApply check` pass.)
 
 ## Analysis Gate Notes
 - 2025-09-28 – Checklist complete prior to implementation:
