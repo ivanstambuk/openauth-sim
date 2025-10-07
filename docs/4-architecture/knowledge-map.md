@@ -31,6 +31,7 @@ This living map captures the explicit relationships between modules, data flows,
 - HOTP inline evaluation now omits operator-supplied identifiers; REST/application services emit telemetry without credential references while preserving algorithm/digit metadata.
 - HOTP evaluate flows surface SHA-1 and SHA-256 inline presets that auto-populate form inputs, emit preset key/label metadata through REST responses, and display the generated OTP without manual entry.
 - HOTP operator stored-mode panel now exposes a seeding control that drives `/api/v1/hotp/credentials/seed`, refreshes the credential directory, and reuses the seeded metadata for replay/sample presets.
+- REST HOTP module serves `/api/v1/hotp/credentials/{credentialId}/sample`, deriving the current counter + OTP via `HotpSampleApplicationService` so UI replay flows fetch deterministic samples without advancing counters.
 - Operator console replay flows call the same HOTP replay service, surface sample payload loaders, and normalise telemetry identifiers from `rest-hotp-*` to `ui-hotp-*` prefixes so operators can distinguish UI traffic while preserving the original telemetry payload for log correlation.
 - `infra-persistence` module centralises `CredentialStoreFactory` wiring so CLI, REST, and tests acquire MapDB-backed stores through a shared configuration seam while keeping encryption profiles and future migrations/overrides injectable.
 - CLI module now exposes `maintenance <compact|verify>` commands that orchestrate the helper for operators working on local MapDB stores.

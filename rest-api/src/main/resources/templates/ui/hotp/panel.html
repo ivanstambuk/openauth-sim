@@ -354,7 +354,7 @@
                   data-testid="hotp-replay-form"
                   class="evaluation-form"
                   novalidate="novalidate"
-                  th:attr="data-replay-endpoint=${hotpReplayEndpoint},data-credentials-endpoint=${hotpCredentialsEndpoint}"
+                  th:attr="data-replay-endpoint=${hotpReplayEndpoint},data-credentials-endpoint=${hotpCredentialsEndpoint},data-sample-endpoint=${hotpCredentialSampleEndpoint}"
                 >
                 <input type="hidden" name="_csrf" th:value="${csrfToken}" />
                 <fieldset
@@ -426,6 +426,21 @@
                         autocomplete="one-time-code"
                         required="required"
                       />
+                    </div>
+                    <div>
+                      <label for="hotpReplayStoredCounter">Counter</label>
+                      <input
+                        id="hotpReplayStoredCounter"
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        aria-describedby="hotpReplayStoredCounterHint"
+                      />
+                      <p id="hotpReplayStoredCounterHint" class="visually-hidden">
+                        Counter value reflects the credential's current moving factor.
+                      </p>
                     </div>
                   </div>
                   <div

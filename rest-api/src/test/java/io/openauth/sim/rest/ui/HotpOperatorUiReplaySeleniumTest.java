@@ -114,6 +114,53 @@ final class HotpOperatorUiReplaySeleniumTest {
   }
 
   @Test
+  @DisplayName("Stored HOTP replay sample pre-fills counter and OTP for a successful match")
+  void storedHotpReplaySamplePrefillsCounterAndOtp() {
+    navigateToReplayPanel();
+
+    WebElement storedMode = waitForVisible(By.id("hotpReplayModeStored"));
+    if (!storedMode.isSelected()) {
+      storedMode.click();
+      new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> storedMode.isSelected());
+    }
+
+    Select storedSelect = new Select(waitForVisible(By.id("hotpReplayStoredCredentialId")));
+    waitForCredentialOption(storedSelect, STORED_CREDENTIAL_ID);
+
+    WebElement counterInput = waitForVisible(By.id("hotpReplayStoredCounter"));
+    assertThat(counterInput.isDisplayed()).isTrue();
+
+    WebElement sampleButton =
+        waitForVisible(By.cssSelector("button[data-testid='hotp-replay-sample-load']"));
+    assertThat(sampleButton.isEnabled()).isTrue();
+
+    sampleButton.click();
+
+    waitForAttribute(
+        By.id("hotpReplayStoredOtp"),
+        "value",
+        EXPECTED_STORED_OTP,
+        "Stored OTP should pre-fill from sample data");
+    waitForAttribute(
+        By.id("hotpReplayStoredCounter"),
+        "value",
+        Long.toString(STORED_COUNTER),
+        "Stored counter input should reflect the credential's current counter");
+
+    waitForClickable(By.cssSelector("button[data-testid='hotp-replay-submit']")).click();
+
+    WebElement statusBadge =
+        waitForVisible(
+            By.cssSelector(
+                "[data-testid='hotp-replay-result'] [data-testid='hotp-replay-status']"));
+    assertThat(statusBadge.getText()).isEqualTo("Match");
+
+    WebElement reasonValue =
+        waitForVisible(By.cssSelector("[data-testid='hotp-replay-reason-code']"));
+    assertThat(reasonValue.getText()).isEqualTo("match");
+  }
+
+  @Test
   @DisplayName("HOTP replay submit button copy matches verification directive")
   void hotpReplaySubmitButtonCopy() {
     navigateToReplayPanel();

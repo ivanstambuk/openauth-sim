@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.hotp;
 
+import io.openauth.sim.application.hotp.HotpSampleApplicationService;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.store.CredentialStore;
@@ -10,7 +11,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,12 +32,15 @@ final class HotpCredentialDirectoryController {
 
   private final CredentialStore credentialStore;
   private final HotpCredentialSeedService seedService;
+  private final HotpSampleApplicationService sampleService;
 
   HotpCredentialDirectoryController(
       ObjectProvider<CredentialStore> credentialStoreProvider,
-      HotpCredentialSeedService seedService) {
+      HotpCredentialSeedService seedService,
+      HotpSampleApplicationService sampleService) {
     this.credentialStore = credentialStoreProvider.getIfAvailable();
     this.seedService = Objects.requireNonNull(seedService, "seedService");
+    this.sampleService = Objects.requireNonNull(sampleService, "sampleService");
   }
 
   @GetMapping("/credentials")
@@ -53,6 +60,30 @@ final class HotpCredentialDirectoryController {
     HotpCredentialSeedService.SeedResult result = seedService.seedCanonicalCredentials();
     return new SeedResponse(
         result.addedCount(), result.canonicalCount(), result.addedCredentialIds());
+  }
+
+  @GetMapping("/credentials/{credentialId}/sample")
+  ResponseEntity<HotpStoredSampleResponse> storedSample(
+      @PathVariable("credentialId") String credentialId) {
+    if (!StringUtils.hasText(credentialId)) {
+      return ResponseEntity.notFound().build();
+    }
+
+    return sampleService
+        .storedSample(credentialId)
+        .map(this::toResponse)
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.notFound().build());
+  }
+
+  private HotpStoredSampleResponse toResponse(HotpSampleApplicationService.StoredSample sample) {
+    return new HotpStoredSampleResponse(
+        sample.credentialId(),
+        sample.otp(),
+        sample.counter(),
+        sample.algorithm().name(),
+        sample.digits(),
+        sample.metadata());
   }
 
   private static HotpCredentialSummary toSummary(Credential credential) {

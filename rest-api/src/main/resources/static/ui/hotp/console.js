@@ -83,6 +83,9 @@
   var replayForm = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-replay-form"]')
     : null;
+  var sampleEndpointBase = replayForm
+    ? replayForm.getAttribute('data-sample-endpoint')
+    : null;
   var replayModeToggle = replayForm
     ? replayForm.querySelector('[data-testid="hotp-replay-mode-toggle"]')
     : null;
@@ -103,6 +106,9 @@
     : null;
   var replayStoredOtpInput = replayForm
     ? replayForm.querySelector('#hotpReplayStoredOtp')
+    : null;
+  var replayStoredCounterInput = replayForm
+    ? replayForm.querySelector('#hotpReplayStoredCounter')
     : null;
   var replaySampleActions = replayForm
     ? replayForm.querySelector('[data-testid="hotp-replay-sample-actions"]')
@@ -178,6 +184,12 @@
     var metadata = definition.metadata && typeof definition.metadata === 'object'
       ? definition.metadata
       : {};
+    if (metadata.label && !metadata.samplePresetLabel) {
+      metadata.samplePresetLabel = metadata.label;
+    }
+    if (metadata.presetKey && !metadata.samplePresetKey) {
+      metadata.samplePresetKey = metadata.presetKey;
+    }
     seedMetadataByCredential[definition.credentialId] = metadata;
   });
 
@@ -186,23 +198,6 @@
   }
 
   var HOTP_SAMPLE_SECRET_HEX = '3132333435363738393031323334353637383930';
-  var STORED_SAMPLE_PRESETS = {
-    'ui-hotp-demo': {
-      otp: '755224',
-      metadata: {
-        label: 'stored-demo',
-        notes: 'Replay sample generated from seeded HOTP credential.',
-      },
-    },
-    'ui-hotp-demo-sha256': {
-      otp: '89697997',
-      metadata: {
-        label: 'stored-demo-sha256',
-        notes: 'Seeded HOTP SHA-256 demo credential.',
-      },
-    },
-  };
-  var STORED_SAMPLE_DATA = createStoredSampleData();
   var INLINE_SAMPLE_DATA = {
     'demo-inline': {
       label: 'Inline demo vector (SHA-1)',
@@ -269,6 +264,24 @@
     setHidden(seedStatus, false);
   }
 
+  function setReplaySampleStatus(message, severity) {
+    if (!replaySampleMessage) {
+      return;
+    }
+    var text = typeof message === 'string' ? message.trim() : '';
+    replaySampleMessage.classList.remove('credential-status--error', 'credential-status--warning');
+    if (!text) {
+      replaySampleMessage.textContent = '';
+      return;
+    }
+    replaySampleMessage.textContent = text;
+    if (severity === 'error') {
+      replaySampleMessage.classList.add('credential-status--error');
+    } else if (severity === 'warning') {
+      replaySampleMessage.classList.add('credential-status--warning');
+    }
+  }
+
   function syncSeedControls(storedActive) {
     if (!seedActions) {
       return;
@@ -327,35 +340,31 @@
     });
   }
 
-  function createStoredSampleData() {
-    var result = {};
-    Object.keys(STORED_SAMPLE_PRESETS).forEach(function (credentialId) {
-      var preset = STORED_SAMPLE_PRESETS[credentialId];
-      if (!preset) {
-        return;
+  function storedSampleEndpoint(credentialId) {
+    if (!sampleEndpointBase) {
+      return null;
+    }
+    var base = sampleEndpointBase;
+    if (!base) {
+      return null;
+    }
+    if (base.endsWith('/')) {
+      base = base.slice(0, -1);
+    }
+    return base + '/' + encodeURIComponent(credentialId) + '/sample';
+  }
+
+  function findCredentialSummary(credentialId) {
+    if (!credentialCache || !credentialId) {
+      return null;
+    }
+    for (var index = 0; index < credentialCache.length; index += 1) {
+      var summary = credentialCache[index];
+      if (summary && summary.id === credentialId) {
+        return summary;
       }
-      var metadataSource = seedMetadataByCredential[credentialId];
-      var mergedMetadata = {};
-      if (metadataSource && typeof metadataSource === 'object') {
-        Object.keys(metadataSource).forEach(function (key) {
-          if (Object.prototype.hasOwnProperty.call(metadataSource, key)) {
-            mergedMetadata[key] = metadataSource[key];
-          }
-        });
-      }
-      var fallbackMetadata = preset.metadata || {};
-      if (!mergedMetadata.label && fallbackMetadata.label) {
-        mergedMetadata.label = fallbackMetadata.label;
-      }
-      if (!mergedMetadata.notes && fallbackMetadata.notes) {
-        mergedMetadata.notes = fallbackMetadata.notes;
-      }
-      result[credentialId] = {
-        otp: preset.otp,
-        metadata: mergedMetadata,
-      };
-    });
-    return result;
+    }
+    return null;
   }
 
   function ensureCredentials(forceRefresh) {
@@ -714,53 +723,127 @@
       return;
     }
     var credentialId = replayStoredSelect.value || '';
-    var sample = STORED_SAMPLE_DATA[credentialId];
+    var summary = findCredentialSummary(credentialId);
+    if (replayStoredCounterInput) {
+      if (summary && typeof summary.counter === 'number') {
+        replayStoredCounterInput.value = String(summary.counter);
+      } else if (summary && typeof summary.counter === 'string' && summary.counter.trim()) {
+        replayStoredCounterInput.value = summary.counter.trim();
+      } else {
+        replayStoredCounterInput.value = '';
+      }
+    }
     if (!credentialId) {
       setHidden(replaySampleActions, true);
       if (replaySampleButton) {
         replaySampleButton.setAttribute('disabled', 'disabled');
         replaySampleButton.setAttribute('aria-disabled', 'true');
       }
+      setReplaySampleStatus('', null);
       return;
     }
 
-    if (sample) {
-      setHidden(replaySampleActions, false);
-      if (replaySampleButton) {
-        replaySampleButton.removeAttribute('disabled');
-        replaySampleButton.removeAttribute('aria-disabled');
-      }
-      if (replaySampleMessage) {
-        replaySampleMessage.textContent = 'Apply curated values for this credential.';
-      }
-    } else {
-      setHidden(replaySampleActions, true);
-      if (replaySampleButton) {
-        replaySampleButton.setAttribute('disabled', 'disabled');
-        replaySampleButton.setAttribute('aria-disabled', 'true');
-      }
-      if (replaySampleMessage) {
-        replaySampleMessage.textContent = '';
-      }
+    setHidden(replaySampleActions, false);
+    if (replaySampleButton) {
+      replaySampleButton.removeAttribute('disabled');
+      replaySampleButton.removeAttribute('aria-disabled');
     }
-
+    var metadata = seedMetadataByCredential[credentialId] || {};
+    var notes = metadata && typeof metadata.notes === 'string' ? metadata.notes.trim() : '';
+    var labelCandidate = metadata.samplePresetLabel || metadata.label;
+    var label = typeof labelCandidate === 'string' ? labelCandidate.trim() : '';
+    if (notes) {
+      setReplaySampleStatus(notes, null);
+    } else if (label) {
+      setReplaySampleStatus('Load sample data for ' + label + '.', null);
+    } else {
+      setReplaySampleStatus('Apply sample data for this credential.', null);
+    }
   }
 
   function applyStoredSample() {
     if (!replayStoredSelect) {
       return;
     }
-    var credentialId = replayStoredSelect.value || '';
-    var sample = STORED_SAMPLE_DATA[credentialId];
-    if (!sample) {
+    var credentialId = (replayStoredSelect.value || '').trim();
+    if (!credentialId) {
       return;
     }
-    if (replayStoredOtpInput) {
-      replayStoredOtpInput.value = sample.otp || '';
+    var endpoint = storedSampleEndpoint(credentialId);
+    if (!endpoint) {
+      return;
     }
-    if (replaySampleMessage) {
-      replaySampleMessage.textContent = 'Sample data applied';
+    if (replaySampleButton) {
+      replaySampleButton.setAttribute('disabled', 'disabled');
+      replaySampleButton.setAttribute('aria-disabled', 'true');
     }
+    setReplaySampleStatus('Loading sample data…', null);
+
+    fetchDelegate(endpoint, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+    })
+      .then(function (response) {
+        return response.text().then(function (bodyText) {
+          return { ok: response.ok, status: response.status, body: bodyText };
+        });
+      })
+      .then(function (payload) {
+        if (!payload.ok) {
+          if (payload.status === 404) {
+            setReplaySampleStatus('Sample data is not available for this credential.', 'warning');
+          } else {
+            setReplaySampleStatus('Unable to load sample data.', 'error');
+          }
+          return;
+        }
+
+        var data = parseJson(payload.body) || {};
+        if (replayStoredOtpInput) {
+          replayStoredOtpInput.value = typeof data.otp === 'string' ? data.otp : '';
+        }
+        if (replayStoredCounterInput) {
+          if (typeof data.counter === 'number') {
+            replayStoredCounterInput.value = String(data.counter);
+          } else if (
+            typeof data.counter === 'string' && data.counter.trim().length > 0
+          ) {
+            replayStoredCounterInput.value = data.counter.trim();
+          }
+        }
+
+        var metadata = data.metadata && typeof data.metadata === 'object' ? data.metadata : {};
+        var notes = metadata.notes && typeof metadata.notes === 'string' ? metadata.notes.trim() : '';
+        var presetLabel =
+          metadata.samplePresetLabel && typeof metadata.samplePresetLabel === 'string'
+            ? metadata.samplePresetLabel.trim()
+            : '';
+        if (notes) {
+          setReplaySampleStatus(notes, null);
+        } else if (presetLabel) {
+          setReplaySampleStatus('Sample "' + presetLabel + '" applied.', null);
+        } else {
+          setReplaySampleStatus('Sample data applied.', null);
+        }
+
+        var summary = findCredentialSummary(credentialId);
+        if (summary && typeof data.counter === 'number') {
+          summary.counter = data.counter;
+        }
+      })
+      .catch(function (error) {
+        if (global.console && typeof global.console.error === 'function') {
+          global.console.error('Failed to load HOTP sample data', error);
+        }
+        setReplaySampleStatus('Unable to load sample data.', 'error');
+      })
+      .finally(function () {
+        if (replaySampleButton) {
+          replaySampleButton.removeAttribute('disabled');
+          replaySampleButton.removeAttribute('aria-disabled');
+        }
+      });
   }
 
   function setInlinePresetTracking(key, label) {

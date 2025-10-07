@@ -3,6 +3,7 @@ package io.openauth.sim.rest.hotp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.application.hotp.HotpSampleApplicationService;
 import io.openauth.sim.application.hotp.HotpSeedApplicationService;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
@@ -129,7 +130,11 @@ class HotpCredentialDirectoryControllerTest {
     HotpSeedApplicationService applicationService = new HotpSeedApplicationService();
     HotpCredentialSeedService seedService =
         new HotpCredentialSeedService(provider, applicationService);
-    return new HotpCredentialDirectoryController(provider, seedService);
+    CredentialStore store = provider.getIfAvailable();
+    HotpSampleApplicationService sampleService =
+        new HotpSampleApplicationService(
+            store != null ? store : new FixedCredentialStore(List.of()));
+    return new HotpCredentialDirectoryController(provider, seedService, sampleService);
   }
 
   private Credential credential(String name, Map<String, String> attributes) {
