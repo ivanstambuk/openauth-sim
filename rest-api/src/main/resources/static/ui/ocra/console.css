@@ -466,6 +466,11 @@ fieldset {
   font-weight: 600;
 }
 
+.field-grid .inline-preset label {
+  /* Align evaluate inline preset typography with replay/HOTP panels */
+  font-weight: 400;
+}
+
 .field-grid input,
 .field-grid select,
 .field-grid textarea {

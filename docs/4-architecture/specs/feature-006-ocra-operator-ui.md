@@ -29,6 +29,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-29 – Stored credential mode will surface a dropdown that lists available credential IDs fetched from the REST API; operators no longer type identifiers manually and selections hydrate the evaluation request.
 - 2025-09-29 – Stored credential mode will surface a dropdown that lists available credential IDs fetched from the REST API; operators no longer type identifiers manually and selections hydrate the evaluation request.
 - 2025-10-07 – OCRA Evaluate tab must keep the same vertical spacing between the “Load a sample vector” label and selector as the Replay tab baseline so inline sample affordances align (user directive).
+- 2025-10-07 – The “Load a sample vector” label on the OCRA Evaluate tab must use the same typography weight token as the Replay tab and HOTP tabs to preserve cross-protocol consistency (user chose option A).
 - 2025-10-07 – Inline preset hint copy must read “Selecting a preset auto-fills the inline fields with illustrative data.” so the UI matches HOTP guidance (user directive).
 - 2025-09-29 – Default credential database lives at `data/ocra-credentials.db` in the repo root so CLI and REST/Operator UI share the same persistence by default; environment/property overrides remain supported.
 - 2025-09-29 – Builder must surface inline validation and disable Apply when configuration is incomplete (e.g., invalid session length or missing challenge) while keeping assistive messaging accessible (agreed during UX polish).

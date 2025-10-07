@@ -136,6 +136,10 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - Tooling: Codex CLI, shell commands (sed/apply_patch) logged in terminal history for reproducibility.
 - ☑ R078 – Add failing Selenium regression asserting the OCRA Evaluate “Load a sample vector” label/select spacing matches the Replay tab baseline, running `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest.sampleVectorSpacingMatchesReplay"` beforehand. (2025-10-07: test failed as expected, gaps differed by 18px.)
 - ☑ R079 – Apply template/CSS spacing adjustments to satisfy R078 and rerun the targeted Selenium test plus `./gradlew spotlessApply check`. (2025-10-07: evaluate panel now uses shared preset container styling with explicit spacing; targeted test and full `./gradlew spotlessApply check` pass.)
+- 2025-10-07 – R083: Added `inlinePresetLabelTypographyMatchesAcrossTabs` Selenium regression to enforce font-weight parity across Evaluate, Replay, and HOTP tabs; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest.inlinePresetLabelTypographyMatchesAcrossTabs"` failed as expected pre-fix.
+- 2025-10-07 – R084: Introduced CSS override (`.field-grid .inline-preset label { font-weight: 400; }`) to align typography, reran the targeted Selenium test and full `./gradlew spotlessApply check` to confirm green build.
+- ✅ R083 – Add failing Selenium regression asserting the OCRA Evaluate inline preset label font weight matches the Replay tab and HOTP inline preset baseline before adjusting CSS. (2025-10-07: introduced `inlinePresetLabelTypographyMatchesAcrossTabs` test and confirmed it fails on existing styling.)
+- ✅ R084 – Update templates/CSS to align the Evaluate inline preset label typography with Replay/HOTP, rerun the targeted Selenium test and `./gradlew spotlessApply check`. (2025-10-07: added field-grid override to normalize font weight, targeted Selenium + full build now green.)
 
 ## Analysis Gate Notes
 - 2025-09-28 – Checklist complete prior to implementation:

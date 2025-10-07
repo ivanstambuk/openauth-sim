@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -566,6 +567,63 @@ final class OcraOperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Inline preset labels share typography across OCRA and HOTP tabs")
+  void inlinePresetLabelTypographyMatchesAcrossTabs() {
+    navigateToEvaluationConsole();
+
+    WebElement evaluateLabel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector(
+                        "[data-testid='ocra-evaluate-panel'] label[for='policyPreset']")));
+    int evaluateFontWeight = normalizeFontWeight(evaluateLabel.getCssValue("font-weight"));
+
+    WebElement replayToggle =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("[data-testid='ocra-mode-select-replay']")));
+    replayToggle.click();
+    waitForBackgroundJavaScript();
+    waitForPanelVisibility(
+        By.cssSelector("[data-testid='ocra-evaluate-panel']"), PanelVisibility.HIDDEN);
+    waitForPanelVisibility(
+        By.cssSelector("[data-testid='ocra-replay-panel']"), PanelVisibility.VISIBLE);
+
+    WebElement replayLabel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector(
+                        "[data-testid='ocra-replay-panel'] label[for='replayPolicyPreset']")));
+    int replayFontWeight = normalizeFontWeight(replayLabel.getCssValue("font-weight"));
+    assertThat(evaluateFontWeight)
+        .as("Expected OCRA evaluate inline preset label weight to match replay tab")
+        .isEqualTo(replayFontWeight);
+
+    driver.get(baseUrl("/ui/console?protocol=hotp"));
+    WebElement hotpTab =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("[data-testid='protocol-tab-hotp']")));
+    hotpTab.click();
+    waitForBackgroundJavaScript();
+
+    WebElement hotpInlineLabel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector(
+                        "[data-testid='hotp-inline-preset'] label[for='hotpInlinePreset']")));
+    int hotpFontWeight = normalizeFontWeight(hotpInlineLabel.getCssValue("font-weight"));
+    assertThat(evaluateFontWeight)
+        .as("Expected OCRA evaluate inline preset label weight to match HOTP inline preset label")
+        .isEqualTo(hotpFontWeight);
+  }
+
+  @Test
   @DisplayName("OCRA evaluate sample vector baseline matches replay tab")
   void sampleVectorSpacingMatchesReplay() {
     navigateToEvaluationConsole();
@@ -869,6 +927,24 @@ final class OcraOperatorUiSeleniumTest {
       return String.format("rgb(%d,%d,%d)", r, g, b);
     }
     return trimmed.replaceAll("\\s+", "");
+  }
+
+  private int normalizeFontWeight(String fontWeight) {
+    if (fontWeight == null || fontWeight.isBlank()) {
+      return 0;
+    }
+    String normalized = fontWeight.trim().toLowerCase(Locale.ROOT);
+    return switch (normalized) {
+      case "normal" -> 400;
+      case "bold" -> 700;
+      default -> {
+        String digits = normalized.replaceAll("[^0-9]", "");
+        if (digits.isEmpty()) {
+          yield 0;
+        }
+        yield Integer.parseInt(digits);
+      }
+    };
   }
 
   private void waitForDisabledState(String elementId, boolean expectedDisabled) {

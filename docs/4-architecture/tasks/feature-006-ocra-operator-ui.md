@@ -75,5 +75,7 @@ _Last updated: 2025-10-07_
 | R080 | Add failing Selenium regression enforcing inline-first replay mode ordering and default selection before adjusting templates/scripts | UI-OCRA-002, UI-OCRA-010 | ✅ |
 | R081 | Add failing Selenium coverage asserting Evaluate tab sample loader spacing matches Replay baseline | UI-OCRA-002, UI-OCRA-005 | ✅ |
 | R082 | Adjust templates/CSS to satisfy spacing test, rerun targeted + full build checks | UI-OCRA-002, UI-OCRA-005 | ✅ |
+| R083 | Add failing Selenium regression verifying inline preset label font weight parity across Evaluate, Replay, and HOTP tabs | UI-OCRA-002, UI-OCRA-005 | ✅ |
+| R084 | Align Evaluate inline preset label typography weight with Replay/HOTP and rerun targeted Selenium + `./gradlew spotlessApply check` | UI-OCRA-002, UI-OCRA-005 | ✅ |
 
 Update this checklist as work progresses.
