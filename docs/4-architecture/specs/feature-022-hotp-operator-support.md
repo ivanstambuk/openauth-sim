@@ -1,7 +1,7 @@
 # Feature 022 – HOTP Operator Support
 
 _Status: Draft_
-_Last updated: 2025-10-06_
+_Last updated: 2025-10-07_
 
 ## Overview
 Deliver RFC 4226 HOTP capabilities across the simulator so operators can register and validate HOTP credentials alongside the existing OCRA flows. This feature introduces a dedicated HOTP domain model, persistence wiring, telemetry events, façade endpoints (CLI + REST), and operator console UI evaluation flows (stored + inline) while keeping issuance out of scope.
@@ -27,6 +27,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-06 – HOTP replay panel must share the same vertical alignment baseline as the HOTP evaluate panel so toggling tabs does not shift the card position (user directive).
 - 2025-10-07 – Treat the Replay tab layout as the baseline and adjust HOTP Evaluate spacing to match its vertical offsets (user directive).
 - 2025-10-07 – HOTP inline preset hints (evaluate and replay) must use the sentence “Selecting a preset auto-fills the inline fields with illustrative data.” to stay consistent with OCRA copy (user directive; Option A confirmed).
+- 2025-10-07 – HOTP replay inline panel must omit the redundant “Inline replay” heading; the mode selector already signals the active view (user directive).
 - 2025-10-05 – HOTP replay interactions emit dedicated `hotp.replay` telemetry frames (REST and UI), keeping evaluation metrics separate (option A confirmed).
 - 2025-10-05 – Operator console deep links must mirror OCRA conventions by writing `protocol=hotp` and `tab=evaluate|replay` query parameters so HOTP views restore correctly on refresh (user confirmation).
 - 2025-10-05 – HOTP evaluation panels remove the stored/inline headings and hint copy so operators see the input fields immediately after selecting a mode (user directive).

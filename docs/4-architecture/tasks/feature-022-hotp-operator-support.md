@@ -1,7 +1,7 @@
 # Feature 022 – Task Checklist
 
 _Status: Draft_
-_Last updated: 2025-10-06_
+_Last updated: 2025-10-07_
 
 ## Tasks (≤10 min each)
 - ☑ T2201 – Add failing HOTP generator/validator unit tests covering counter rollover, digit length variants, and secret bounds.
@@ -89,3 +89,5 @@ Mark tasks as work completes and record tooling outcomes within the feature plan
 - ☑ T2282 – Add failing Selenium assertions covering HOTP and OCRA inline preset hints, expecting the exact copy “Selecting a preset auto-fills the inline fields with illustrative data.” via targeted UI suites. (`./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeleniumTest.hotpPresetHintMatchesRequirement"` failed prior to implementation.)
 - ☑ T2283 – Update HOTP and OCRA templates (and any related docs) to satisfy the unified preset hint copy, rerun targeted Selenium coverage, and finish with `./gradlew spotlessApply check`. (Targeted Selenium runs now green and `./gradlew spotlessApply check` succeeded on 2025-10-07.)
 - ☑ T2280 – Adjusted HOTP Evaluate template/CSS spacing, refreshed Selenium coverage (`./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeleniumTest"`), and finished with `./gradlew spotlessApply check` (green 2025-10-07).
+- ☑ T2284 – Added failing Selenium coverage asserting the HOTP inline replay panel renders without a redundant heading (`./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiReplaySeleniumTest.hotpInlineReplayOmitsHeading"` red prior to UI update).
+- ☑ T2285 – Updated HOTP replay templates/JS to remove the heading, preserved accessibility with `aria-label`, reran the targeted Selenium test, and completed `./gradlew spotlessApply check`.

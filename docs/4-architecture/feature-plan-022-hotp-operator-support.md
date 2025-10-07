@@ -1,7 +1,7 @@
 # Feature Plan 022 – HOTP Operator Support
 
 _Status: Draft_
-_Last updated: 2025-10-06_
+_Last updated: 2025-10-07_
 
 ## Objective
 Implement end-to-end HOTP flows (core domain, shared persistence, telemetry, CLI, REST) so operators can manage HOTP credentials alongside OCRA while reusing the existing schema-v1 storage baseline.
@@ -139,6 +139,8 @@ Each increment must complete within ≤10 minutes, lead with tests where practic
 - ☑ R2279 – Added failing Selenium regression capturing the HOTP Evaluate tab "Load a sample vector" label/select Y-offset and asserting it matches the Replay baseline (`./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeleniumTest.sampleVectorLabelAlignsWithReplay"` logged a 12px delta on 2025-10-07).
 - ☑ R2280 – Added failing Selenium assertions that HOTP and OCRA inline preset hints match the mandated copy “Selecting a preset auto-fills the inline fields with illustrative data.” via `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeleniumTest.hotpPresetHintMatchesRequirement"` (failed at HotpOperatorUiSeleniumTest.java:284 before implementation).
 - ☑ R2281 – Updated HOTP and OCRA templates to use the unified preset hint, reran targeted Selenium coverage plus full `./gradlew spotlessApply check`, and confirmed all tests passed on 2025-10-07.
+- ☑ R2282 – Added failing Selenium regression ensuring the HOTP inline replay panel omits the redundant heading (2025-10-07: `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiReplaySeleniumTest.hotpInlineReplayOmitsHeading"` failed against existing markup).
+- ☑ R2283 – Removed the HOTP inline replay heading from templates/JS, added an `aria-label` to preserve accessibility, reran the targeted Selenium test, and finished with `./gradlew spotlessApply check` (both green 2025-10-07).
 
 ## Analysis Gate (2025-10-04)
 - [x] Specification completeness – HOS requirements and clarifications recorded (telemetry parity, shared schema, CLI/REST scope).

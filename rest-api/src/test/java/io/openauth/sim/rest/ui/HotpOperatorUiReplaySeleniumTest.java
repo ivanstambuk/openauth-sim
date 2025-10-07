@@ -415,6 +415,22 @@ final class HotpOperatorUiReplaySeleniumTest {
         .isEmpty();
   }
 
+  @Test
+  @DisplayName("HOTP inline replay panel omits redundant heading")
+  void hotpInlineReplayOmitsHeading() {
+    navigateToReplayPanel();
+
+    waitForClickable(By.id("hotpReplayModeInline")).click();
+
+    WebElement inlinePanel =
+        waitForVisible(By.cssSelector("[data-testid='hotp-replay-inline-panel']"));
+    assertThat(inlinePanel.getAttribute("hidden")).isNull();
+
+    assertThat(inlinePanel.findElements(By.id("hotpReplayInlineHeading")))
+        .as("Inline replay heading should be removed; mode selector conveys active state")
+        .isEmpty();
+  }
+
   private void navigateToReplayPanel() {
     driver.get("http://localhost:" + port + "/ui/console?protocol=hotp");
     WebElement tab = driver.findElement(By.cssSelector("[data-testid='hotp-panel-tab-replay']"));
