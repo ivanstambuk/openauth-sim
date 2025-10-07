@@ -459,6 +459,41 @@ final class OperatorConsoleUnificationSeleniumTest {
   }
 
   @Test
+  @DisplayName("OCRA inline preset hints use shared illustrative data copy")
+  void ocraPresetHintMatchesRequirement() {
+    driver.get(baseUrl("/ui/console"));
+
+    String expectedHint = "Selecting a preset auto-fills the inline fields with illustrative data.";
+
+    WebElement inlineToggle =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(ExpectedConditions.elementToBeClickable(By.id("mode-inline")));
+    if (!inlineToggle.isSelected()) {
+      inlineToggle.click();
+    }
+    WebElement inlineParameters = driver.findElement(By.cssSelector("#inline-parameters"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> inlineParameters.getAttribute("hidden") == null);
+
+    WebElement evaluateHint = inlineParameters.findElement(By.cssSelector("div > p.hint"));
+    assertThat(evaluateHint.getText().trim()).isEqualTo(expectedHint);
+
+    WebElement replayToggle =
+        driver.findElement(By.cssSelector("[data-testid='ocra-mode-select-replay']"));
+    WebElement modeToggle = driver.findElement(By.cssSelector("[data-testid='ocra-mode-toggle']"));
+    replayToggle.click();
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> "replay".equals(modeToggle.getAttribute("data-mode")));
+
+    WebElement replayHint =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-replay-inline-preset] .hint")));
+    assertThat(replayHint.getText().trim()).isEqualTo(expectedHint);
+  }
+
+  @Test
   @DisplayName("HOTP evaluate and replay tabs persist URL query parameters")
   void hotpTabsPersistQueryParameters() {
     driver.get(baseUrl("/ui/console?protocol=hotp"));

@@ -267,6 +267,52 @@ final class HotpOperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("HOTP inline preset hints use shared illustrative data copy")
+  void hotpPresetHintMatchesRequirement() {
+    navigateToHotpPanel();
+    assertHotpInlineDefaultState();
+
+    String expectedHint = "Selecting a preset auto-fills the inline fields with illustrative data.";
+
+    WebElement evaluateHint =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-inline-preset'] .hint")));
+    String evaluateHintCopy = evaluateHint.getText().trim();
+    if (!expectedHint.equals(evaluateHintCopy)) {
+      throw new AssertionError(
+          "Expected HOTP inline evaluation hint to read \""
+              + expectedHint
+              + "\" but found \""
+              + evaluateHintCopy
+              + "\"");
+    }
+
+    WebElement replayTab =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("[data-testid='hotp-panel-tab-replay']")));
+    replayTab.click();
+
+    WebElement replayHint =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-replay-inline-preset'] .hint")));
+    String replayHintCopy = replayHint.getText().trim();
+    if (!expectedHint.equals(replayHintCopy)) {
+      throw new AssertionError(
+          "Expected HOTP inline replay hint to read \""
+              + expectedHint
+              + "\" but found \""
+              + replayHintCopy
+              + "\"");
+    }
+  }
+
+  @Test
   @DisplayName("Inline HOTP parameter controls render in compact row")
   void inlineHotpParametersRenderInCompactRow() {
     navigateToHotpPanel();
