@@ -141,6 +141,8 @@ Each increment must complete within ≤10 minutes, lead with tests where practic
 - ☑ R2281 – Updated HOTP and OCRA templates to use the unified preset hint, reran targeted Selenium coverage plus full `./gradlew spotlessApply check`, and confirmed all tests passed on 2025-10-07.
 - ☑ R2282 – Added failing Selenium regression ensuring the HOTP inline replay panel omits the redundant heading (2025-10-07: `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiReplaySeleniumTest.hotpInlineReplayOmitsHeading"` failed against existing markup).
 - ☑ R2283 – Removed the HOTP inline replay heading from templates/JS, added an `aria-label` to preserve accessibility, reran the targeted Selenium test, and finished with `./gradlew spotlessApply check` (both green 2025-10-07).
+- ☑ R2284 – Add failing Selenium regression asserting the OCRA and HOTP evaluation result headings share the HOTP font size by extending `OperatorConsoleUnificationSeleniumTest`, observed via `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleUnificationSeleniumTest.evaluationResultHeadingTypographyMatches"` (red on 2025-10-07 with OCRA still using the larger h2 styling).
+- ☑ R2285 – Update shared operator console styles/templates so both evaluation result cards adopt the HOTP heading typography, adjust snapshots/tests, and rerun targeted suites plus `./gradlew spotlessApply check` (2025-10-07: constrained OCRA `#result-heading` font-size to HOTP value in `console.css`, reran targeted Selenium regression and full `./gradlew spotlessApply check`, all green).
 
 ## Analysis Gate (2025-10-04)
 - [x] Specification completeness – HOS requirements and clarifications recorded (telemetry parity, shared schema, CLI/REST scope).

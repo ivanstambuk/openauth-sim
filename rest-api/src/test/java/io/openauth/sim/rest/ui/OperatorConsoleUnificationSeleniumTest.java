@@ -293,6 +293,45 @@ final class OperatorConsoleUnificationSeleniumTest {
   }
 
   @Test
+  @DisplayName("OCRA and HOTP evaluation result headings share HOTP typography")
+  void evaluationResultHeadingTypographyMatches() {
+    driver.get(baseUrl("/ui/console"));
+
+    WebElement ocraHeading =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-testid='ocra-result-panel'] #result-heading")));
+    String ocraFontSize = computeFontSize(ocraHeading);
+
+    WebElement hotpTab =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(
+                ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("[data-testid='protocol-tab-hotp']")));
+    hotpTab.click();
+
+    WebElement hotpPanel =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-protocol-panel='hotp']")));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> hotpPanel.getAttribute("hidden") == null);
+
+    WebElement hotpHeading =
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-result-heading']")));
+    String hotpFontSize = computeFontSize(hotpHeading);
+
+    assertThat(ocraFontSize)
+        .as("Expected evaluation result headings to share HOTP typography")
+        .isEqualTo(hotpFontSize);
+  }
+
+  @Test
   @DisplayName("Query parameters restore protocol and tab selection on load")
   void queryParametersRestoreConsoleState() {
     driver.get(baseUrl("/ui/console?protocol=ocra&tab=replay"));
@@ -795,5 +834,15 @@ final class OperatorConsoleUnificationSeleniumTest {
     } else {
       assertThat(panel.getAttribute("hidden")).as("Expected panel to be visible").isNull();
     }
+  }
+
+  private String computeFontSize(WebElement element) {
+    Object value =
+        ((JavascriptExecutor) driver)
+            .executeScript("return window.getComputedStyle(arguments[0]).fontSize;", element);
+    if (value instanceof String stringValue && !stringValue.isBlank()) {
+      return stringValue.trim();
+    }
+    throw new AssertionError("Expected font-size string but received: " + value);
   }
 }
