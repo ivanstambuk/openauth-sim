@@ -578,7 +578,7 @@
     if (!lowered) {
       return 'info';
     }
-    if (['generated', 'success', 'ok', 'valid', 'completed'].indexOf(lowered) >= 0) {
+    if (['generated', 'success', 'ok', 'valid', 'completed', 'match'].indexOf(lowered) >= 0) {
       return 'success';
     }
     if (['failed', 'failure', 'error', 'invalid', 'denied', 'rejected'].indexOf(lowered) >= 0) {

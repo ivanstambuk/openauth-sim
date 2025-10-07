@@ -398,6 +398,35 @@ final class HotpOperatorUiReplaySeleniumTest {
   }
 
   @Test
+  @DisplayName("HOTP replay success badge uses the success styling")
+  void hotpReplayMatchUsesSuccessBadge() {
+    navigateToReplayPanel();
+
+    waitForClickable(By.id("hotpReplayModeInline")).click();
+
+    Select presetSelect =
+        new Select(
+            waitForVisible(
+                By.cssSelector("select[data-testid='hotp-replay-inline-sample-select']")));
+    waitForOption(presetSelect, INLINE_SAMPLE_KEY);
+    presetSelect.selectByValue(INLINE_SAMPLE_KEY);
+
+    waitForClickable(By.cssSelector("button[data-testid='hotp-replay-submit']")).click();
+
+    WebElement statusBadge =
+        waitForVisible(
+            By.cssSelector(
+                "[data-testid='hotp-replay-result'] [data-testid='hotp-replay-status']"));
+    String classes = statusBadge.getAttribute("class");
+    assertThat(classes)
+        .as("Replay success badges should apply the shared success styling")
+        .contains("status-badge--success");
+    assertThat(classes)
+        .as("Replay success badges should not fall back to the info styling")
+        .doesNotContain("status-badge--info");
+  }
+
+  @Test
   @DisplayName("HOTP replay panel omits advanced context toggle and metadata inputs")
   void hotpReplayOmitsAdvancedContextControls() {
     navigateToReplayPanel();
