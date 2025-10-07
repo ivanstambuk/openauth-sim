@@ -135,10 +135,6 @@ button {
   gap: var(--ocra-spacing-lg);
 }
 
-.evaluation-form--spaced {
-  padding-top: 0.75rem;
-}
-
 .evaluation-form > .seed-actions {
   margin-top: calc(var(--ocra-spacing-lg) * 0.5);
 }

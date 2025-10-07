@@ -16,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
@@ -194,27 +195,73 @@ final class HotpOperatorUiSeleniumTest {
     navigateToHotpPanel();
     assertHotpInlineDefaultState();
 
-    WebElement inlinePanel =
+    WebElement modeToggle =
         new WebDriverWait(driver, Duration.ofSeconds(5))
             .until(
                 ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector("[data-testid='hotp-inline-evaluation-panel']")));
+                    By.cssSelector("[data-testid='hotp-mode-toggle']")));
 
-    WebElement inlineForm =
-        inlinePanel.findElement(By.cssSelector("[data-testid='hotp-inline-form']"));
-    String formClasses = inlineForm.getAttribute("class");
-    if (formClasses == null || !formClasses.contains("evaluation-form--spaced")) {
+    WebElement presetLabel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-inline-preset'] label")));
+
+    double gap = topOf(presetLabel) - bottomOf(modeToggle);
+    if (gap < 0.0 || gap > 20.0) {
       throw new AssertionError(
-          "Expected inline HOTP form to declare evaluation-form--spaced class but found: "
-              + formClasses);
+          "Expected non-negative spacing between HOTP mode toggle and sample preset up to 20px; found "
+              + gap
+              + "px");
     }
+  }
 
-    String paddingTop = inlineForm.getCssValue("padding-top");
-    double paddingPixels = parsePixels(paddingTop);
-    if (paddingPixels < 8.0 || paddingPixels > 14.0) {
+  @Test
+  @DisplayName("HOTP evaluate sample vector baseline matches replay tab")
+  void sampleVectorLabelAlignsWithReplay() {
+    navigateToHotpPanel();
+    assertHotpInlineDefaultState();
+
+    WebElement evaluateHeading =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-evaluate-panel'] .section-title")));
+    double evaluateHeadingTop = topOf(evaluateHeading);
+    WebElement evaluateLabel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-inline-preset'] label")));
+    double evaluateLabelTop = topOf(evaluateLabel);
+    double evaluateOffset = evaluateLabelTop - evaluateHeadingTop;
+
+    WebElement replayTab =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("[data-testid='hotp-panel-tab-replay']")));
+    replayTab.click();
+
+    WebElement replayHeading =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-replay-panel'] .section-title")));
+    double replayHeadingTop = topOf(replayHeading);
+    WebElement replayLabel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.visibilityOfElementLocated(
+                    By.cssSelector("[data-testid='hotp-replay-inline-preset'] label")));
+    double replayLabelTop = topOf(replayLabel);
+    double replayOffset = replayLabelTop - replayHeadingTop;
+
+    double delta = Math.abs(evaluateOffset - replayOffset);
+    if (delta > 1.0d) {
       throw new AssertionError(
-          "Expected inline HOTP form padding-top between 8px and 14px; found "
-              + paddingPixels
+          "Expected HOTP evaluate sample vector label to align with replay baseline within 1px but delta was "
+              + delta
               + "px");
     }
   }
@@ -522,18 +569,23 @@ final class HotpOperatorUiSeleniumTest {
             Long.toString(INITIAL_COUNTER)));
   }
 
-  private static double parsePixels(String value) {
-    if (value == null || value.isBlank()) {
-      return 0.0;
+  private double topOf(WebElement element) {
+    Object result =
+        ((JavascriptExecutor) driver)
+            .executeScript("return arguments[0].getBoundingClientRect().top;", element);
+    if (result instanceof Number number) {
+      return number.doubleValue();
     }
-    String trimmed = value.trim();
-    if (!trimmed.endsWith("px")) {
-      throw new AssertionError("Expected pixel value but received: " + value);
+    throw new AssertionError("Expected numeric bounding top but received: " + result);
+  }
+
+  private double bottomOf(WebElement element) {
+    Object result =
+        ((JavascriptExecutor) driver)
+            .executeScript("return arguments[0].getBoundingClientRect().bottom;", element);
+    if (result instanceof Number number) {
+      return number.doubleValue();
     }
-    try {
-      return Double.parseDouble(trimmed.substring(0, trimmed.length() - 2));
-    } catch (NumberFormatException ex) {
-      throw new AssertionError("Unable to parse pixel value: " + value, ex);
-    }
+    throw new AssertionError("Expected numeric bounding bottom but received: " + result);
   }
 }
