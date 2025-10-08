@@ -24,6 +24,9 @@ public final class TelemetryContracts {
   private static final HotpTelemetryAdapter HOTP_SEEDING_ADAPTER =
       new HotpTelemetryAdapter("hotp.seed");
 
+  private static final TotpTelemetryAdapter TOTP_EVALUATION_ADAPTER =
+      new TotpTelemetryAdapter("totp.evaluate");
+
   private TelemetryContracts() {
     throw new AssertionError("No instances");
   }
@@ -61,5 +64,10 @@ public final class TelemetryContracts {
   /** Returns the shared adapter for HOTP seeding telemetry. */
   public static HotpTelemetryAdapter hotpSeedingAdapter() {
     return HOTP_SEEDING_ADAPTER;
+  }
+
+  /** Returns the shared adapter for TOTP evaluation telemetry. */
+  public static TotpTelemetryAdapter totpEvaluationAdapter() {
+    return TOTP_EVALUATION_ADAPTER;
   }
 }

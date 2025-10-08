@@ -23,9 +23,11 @@
     'emv',
   ]);
   var allowedTabs = new Set(['evaluate', 'replay']);
+  var allowedTotpModes = new Set(['stored', 'inline']);
 
   var currentProtocol = 'ocra';
   var lastProtocolTabs = { ocra: 'evaluate', hotp: 'evaluate' };
+  var lastTotpMode = 'stored';
 
   function setPanelVisibility(panel, hidden) {
     if (!panel) {
@@ -92,6 +94,13 @@
       rememberTab(protocol, ocraMode);
     }
 
+    if (protocol === 'totp') {
+      var desiredMode = options && options.totpMode ? options.totpMode : getLastTotpMode();
+      if (global.TotpConsole && typeof global.TotpConsole.setMode === 'function') {
+        global.TotpConsole.setMode(desiredMode, { broadcast: false, force: true });
+      }
+    }
+
     if (options.syncProtocolInfo !== false && global.ProtocolInfo) {
       global.ProtocolInfo.setProtocol(protocol, {
         autoOpen: Boolean(options.allowAutoOpen),
@@ -101,8 +110,12 @@
     }
 
     try {
+      var protocolEventDetail = { protocol: protocol };
+      if (protocol === 'totp') {
+        protocolEventDetail.totpMode = options && options.totpMode ? options.totpMode : getLastTotpMode();
+      }
       var protocolEvent = new global.CustomEvent('operator:protocol-activated', {
-        detail: { protocol: protocol },
+        detail: protocolEventDetail,
       });
       documentRef.dispatchEvent(protocolEvent);
     } catch (error) {
@@ -118,6 +131,10 @@
       var tab = allowedTabs.has(state && state.tab) ? state.tab : getLastTab(protocol);
       return { protocol: protocol, tab: tab };
     }
+    if (protocol === 'totp') {
+      var mode = allowedTotpModes.has(state && state.totpMode) ? state.totpMode : getLastTotpMode();
+      return { protocol: protocol, totpMode: mode };
+    }
     return { protocol: protocol };
   }
 
@@ -127,16 +144,26 @@
     if (state.protocol === 'ocra' || state.protocol === 'hotp') {
       params.set('tab', state.tab);
     }
+    if (state.protocol === 'totp') {
+      var mode = allowedTotpModes.has(state.totpMode) ? state.totpMode : getLastTotpMode();
+      params.set('totpMode', mode);
+    }
     var rendered = params.toString();
     return rendered ? '?' + rendered : global.location.search;
   }
 
   function pushUrlState(state, options) {
-    var search = buildSearch(state);
+    var normalized = normalizeState(state);
+    var search = buildSearch(normalized);
     var url = global.location.pathname + search;
-    var historyState = state.protocol === 'ocra' || state.protocol === 'hotp'
-      ? { protocol: state.protocol, tab: state.tab }
-      : { protocol: state.protocol };
+    var historyState;
+    if (normalized.protocol === 'ocra' || normalized.protocol === 'hotp') {
+      historyState = { protocol: normalized.protocol, tab: normalized.tab };
+    } else if (normalized.protocol === 'totp') {
+      historyState = { protocol: normalized.protocol, totpMode: normalized.totpMode };
+    } else {
+      historyState = { protocol: normalized.protocol };
+    }
 
     if (options && options.replace) {
       global.history.replaceState(historyState, '', url);
@@ -176,6 +203,7 @@
             allowAutoOpen: options.allowAutoOpen,
             resetSection: options.resetSection,
             syncProtocolInfo: options.syncProtocolInfo,
+            totpMode: desiredProtocol === 'totp' ? normalized.totpMode : undefined,
           });
     } else if (desiredProtocol === 'ocra') {
       setActiveMode(desiredTab);
@@ -183,6 +211,16 @@
 
     if (desiredProtocol === 'ocra' || desiredProtocol === 'hotp') {
       rememberTab(desiredProtocol, desiredTab);
+    }
+
+    if (desiredProtocol === 'totp') {
+      var desiredMode = allowedTotpModes.has(normalized.totpMode)
+        ? normalized.totpMode
+        : getLastTotpMode();
+      rememberTotpMode(desiredMode);
+      if (global.TotpConsole && typeof global.TotpConsole.setMode === 'function') {
+        global.TotpConsole.setMode(desiredMode, { broadcast: false, force: true });
+      }
     }
 
     if (options.updateUrl) {
@@ -194,11 +232,18 @@
     var params = new global.URLSearchParams(global.location.search);
     var protocol = params.get('protocol');
     var tab = params.get('tab');
-    return normalizeState({ protocol: protocol, tab: tab });
+    var totpMode = params.get('totpMode');
+    return normalizeState({ protocol: protocol, tab: tab, totpMode: totpMode });
   }
 
   function handleProtocolActivated(protocol) {
-    var normalized = normalizeState({ protocol: protocol, tab: getLastTab(protocol) });
+    var initialState = { protocol: protocol };
+    if (protocol === 'ocra' || protocol === 'hotp') {
+      initialState.tab = getLastTab(protocol);
+    } else if (protocol === 'totp') {
+      initialState.totpMode = getLastTotpMode();
+    }
+    var normalized = normalizeState(initialState);
     applyConsoleState(normalized, {
       updateUrl: true,
       syncProtocolInfo: false,
@@ -226,6 +271,8 @@
         nextState = { protocol: 'ocra', tab: getLastTab('ocra') };
       } else if (protocol === 'hotp') {
         nextState = { protocol: 'hotp', tab: getLastTab('hotp') };
+      } else if (protocol === 'totp') {
+        nextState = { protocol: 'totp', totpMode: getLastTotpMode() };
       } else {
         nextState = { protocol: protocol };
       }
@@ -246,6 +293,20 @@
       applyConsoleState({ protocol: 'ocra', tab: 'replay' }, { updateUrl: true, allowAutoOpen: true });
     });
   }
+
+  global.addEventListener('operator:totp-mode-changed', function (event) {
+    var mode = event && event.detail ? event.detail.mode : null;
+    if (!allowedTotpModes.has(mode)) {
+      return;
+    }
+    rememberTotpMode(mode);
+    if (currentProtocol !== 'totp') {
+      return;
+    }
+    pushUrlState(
+        { protocol: 'totp', totpMode: mode },
+        { replace: Boolean(event.detail && event.detail.replace) });
+  });
 
   global.addEventListener('popstate', function (event) {
     var state = event.state ? normalizeState(event.state) : parseStateFromLocation();
@@ -268,6 +329,16 @@
   function rememberTab(protocol, tab) {
     if ((protocol === 'ocra' || protocol === 'hotp') && allowedTabs.has(tab)) {
       lastProtocolTabs[protocol] = tab;
+    }
+  }
+
+  function getLastTotpMode() {
+    return allowedTotpModes.has(lastTotpMode) ? lastTotpMode : 'stored';
+  }
+
+  function rememberTotpMode(mode) {
+    if (allowedTotpModes.has(mode)) {
+      lastTotpMode = mode;
     }
   }
 })(window);

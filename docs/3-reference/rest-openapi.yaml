@@ -7,6 +7,68 @@ servers:
 - url: "http://localhost"
   description: "Generated server url"
 paths:
+  /api/v1/totp/evaluate:
+    post:
+      tags:
+      - "totp-evaluation-controller"
+      summary: "Validate a stored TOTP credential"
+      operationId: "evaluateStoredTotp"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TotpStoredEvaluationRequest"
+        required: true
+      responses:
+        "200":
+          description: "OTP accepted"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TotpEvaluationResponse"
+        "422":
+          description: "OTP rejected or validation failed"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TotpEvaluationErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TotpEvaluationErrorResponse"
+  /api/v1/totp/evaluate/inline:
+    post:
+      tags:
+      - "totp-evaluation-controller"
+      summary: "Validate a TOTP submission without referencing stored credentials"
+      operationId: "evaluateInlineTotp"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TotpInlineEvaluationRequest"
+        required: true
+      responses:
+        "200":
+          description: "OTP accepted"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TotpEvaluationResponse"
+        "422":
+          description: "OTP rejected or validation failed"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TotpEvaluationErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TotpEvaluationErrorResponse"
   /api/v1/ocra/verify:
     post:
       tags:
@@ -22,6 +84,18 @@ paths:
               $ref: "#/components/schemas/OcraVerificationRequest"
         required: true
       responses:
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
+        "404":
+          description: "Credential not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "422":
           description: "Verification payload failed validation"
           content:
@@ -42,18 +116,6 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
-        "404":
-          description: "Credential not found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "200":
           description: "Verification completed"
           content:
@@ -95,12 +157,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OcraEvaluationResponse"
-        "500":
-          description: "Unexpected server error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
         "400":
           description: "Invalid request payload"
           content:
@@ -121,6 +177,12 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
+        "500":
+          description: "Unexpected server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
   /api/v1/ocra/credentials/seed:
     post:
       tags:
@@ -148,12 +210,6 @@ paths:
               $ref: "#/components/schemas/HotpReplayRequest"
         required: true
       responses:
-        "200":
-          description: "Replay completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -172,6 +228,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "200":
+          description: "Replay completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayResponse"
   /api/v1/hotp/evaluate:
     post:
       tags:
@@ -187,12 +249,6 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
-        "400":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -205,6 +261,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
+        "400":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "404":
           description: "Credential not found"
           content:
@@ -226,12 +288,6 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
-        "400":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -244,6 +300,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
+        "400":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
   /api/v1/hotp/credentials/seed:
     post:
       tags:
@@ -322,6 +384,106 @@ paths:
                 $ref: "#/components/schemas/HotpStoredSampleResponse"
 components:
   schemas:
+    TotpEvaluationMetadata:
+      type: "object"
+      properties:
+        credentialSource:
+          type: "string"
+        matchedSkewSteps:
+          type: "integer"
+          format: "int32"
+        algorithm:
+          type: "string"
+        digits:
+          type: "integer"
+          format: "int32"
+        stepSeconds:
+          type: "integer"
+          format: "int64"
+        driftBackwardSteps:
+          type: "integer"
+          format: "int32"
+        driftForwardSteps:
+          type: "integer"
+          format: "int32"
+        timestampOverrideProvided:
+          type: "boolean"
+        telemetryId:
+          type: "string"
+    TotpEvaluationResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        valid:
+          type: "boolean"
+        metadata:
+          $ref: "#/components/schemas/TotpEvaluationMetadata"
+    TotpEvaluationErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+    TotpStoredEvaluationRequest:
+      type: "object"
+      properties:
+        credentialId:
+          type: "string"
+        otp:
+          type: "string"
+        timestamp:
+          type: "integer"
+          format: "int64"
+        driftBackward:
+          type: "integer"
+          format: "int32"
+        driftForward:
+          type: "integer"
+          format: "int32"
+        timestampOverride:
+          type: "integer"
+          format: "int64"
+    TotpInlineEvaluationRequest:
+      type: "object"
+      properties:
+        sharedSecretHex:
+          type: "string"
+        algorithm:
+          type: "string"
+        digits:
+          type: "integer"
+          format: "int32"
+        stepSeconds:
+          type: "integer"
+          format: "int64"
+        driftBackward:
+          type: "integer"
+          format: "int32"
+        driftForward:
+          type: "integer"
+          format: "int32"
+        timestamp:
+          type: "integer"
+          format: "int64"
+        timestampOverride:
+          type: "integer"
+          format: "int64"
+        otp:
+          type: "string"
+        metadata:
+          type: "object"
+          additionalProperties:
+            type: "string"
     OcraVerificationContext:
       type: "object"
       properties:
@@ -477,6 +639,17 @@ components:
           type: "object"
           additionalProperties:
             type: "string"
+    HotpReplayErrorResponse:
+      type: "object"
+      properties:
+        error:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "string"
     HotpReplayMetadata:
       type: "object"
       properties:
@@ -508,17 +681,6 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/HotpReplayMetadata"
-    HotpReplayErrorResponse:
-      type: "object"
-      properties:
-        error:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "string"
     HotpStoredEvaluationRequest:
       type: "object"
       properties:

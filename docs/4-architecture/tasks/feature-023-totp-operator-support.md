@@ -1,0 +1,20 @@
+# Feature 023 – Task Checklist
+
+_Status: Draft_
+_Last updated: 2025-10-08_
+
+## Tasks (≤10 min each)
+- ☑ T2301 – Add failing core unit tests for TOTP generator/validator covering SHA-1/SHA-256/SHA-512, 6/8 digits, time-step conversion, and drift window limits. (_2025-10-08 – RFC 6238 vectors + drift scenarios added; `./gradlew :core:test` red as expected._)
+- ☑ T2302 – Implement core TOTP domain logic to satisfy T2301 and extend ArchUnit/mutation coverage if needed. (_2025-10-08 – Implemented descriptor/hash enum/generator/validator/drift window/result; `./gradlew :core:test` green._)
+- ☑ T2303 – Add failing persistence integration tests ensuring TOTP descriptors coexist with HOTP/OCRA entries via `CredentialStoreFactory`. (_2025-10-08 – `CredentialStoreFactoryTotpIntegrationTest` added; `./gradlew :infra-persistence:test --tests \"...TotpIntegrationTest\"` failed before persistence updates._)
+- ☑ T2304 – Implement persistence descriptor updates (schema v1) to satisfy T2303 without migrations. (_2025-10-08 – Introduced `OATH_TOTP` credential type and TOTP persistence defaults; same targeted Gradle task now green._)
+- ☑ T2305 – Add failing application-layer tests for stored/inline evaluation with drift/timestamp overrides plus telemetry expectations. (_2025-10-08 – `TotpEvaluationApplicationServiceTest` staged; `./gradlew :application:test --tests \"...TotpEvaluationApplicationServiceTest\"` initially red awaiting service implementation._)
+- ☑ T2306 – Implement application services and telemetry adapters to satisfy T2305, redacting secrets in emitted frames. (_2025-10-08 – Added `TotpEvaluationApplicationService` and `TotpTelemetryAdapter`; `./gradlew :application:test --tests \"...TotpEvaluationApplicationServiceTest\"` now green._)
+- ☑ T2307 – Add failing CLI integration tests for import/list/evaluate/replay commands covering drift controls and error messaging. (_2025-10-08 – `TotpCliTest` added; `./gradlew :cli:test --tests "io.openauth.sim.cli.TotpCliTest"` red via placeholder harness throwing `UnsupportedOperationException`._)
+- ☑ T2308 – Implement CLI commands/wiring to satisfy T2307; rerun targeted CLI suites. (_2025-10-08 – Added `TotpCli` with list/evaluate/evaluate-inline commands; `./gradlew :cli:test` now green._)
+- ☑ T2309 – Add failing REST MockMvc/OpenAPI tests for evaluation/replay endpoints (drift/timestamp overrides, non-mutating replay). (_2025-10-08 – `TotpEvaluationEndpointTest` added with intentional failure; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.TotpEvaluationEndpointTest"` currently red._)
+- ☑ T2310 – Implement REST controllers/services to satisfy T2309; regenerate OpenAPI snapshots and rerun `./gradlew :rest-api:test`. (_2025-10-08 – Introduced TOTP REST configuration/controller/service + DTOs; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test` regenerates specs._)
+- ☑ T2311 – Add failing Selenium/system tests for operator console TOTP evaluate/replay panels (presets, drift/timestamp inputs, query-parameter persistence). (_2025-10-08 – Added `TotpOperatorUiSeleniumTest` covering stored/inline evaluation and URL persistence; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest"` currently red until UI wiring lands._)
+- ☑ T2312 – Implement operator console templates/JS to satisfy T2311; rerun UI suites. (_2025-10-08 – Implemented TOTP evaluate inline/stored forms with telemetry metadata, added query-param persistence, and confirmed Selenium via `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest"`._)
+- ☑ T2313 – Update operator documentation, roadmap references, and knowledge map; run `./gradlew spotlessApply check`. (_2025-10-08 – Published `docs/2-how-to/use-totp-operator-ui.md`, refreshed the how-to index, roadmap Workstream 15 status, and knowledge map bullets; formatting enforced with `./gradlew spotlessApply`._)
+- ☑ T2314 – Execute `./gradlew qualityGate`, capture coverage/mutation deltas, and close out remaining documentation notes. (_2025-10-08 – `./gradlew qualityGate` succeeded, confirming Jacoco/PIT thresholds remain above the project gate._)

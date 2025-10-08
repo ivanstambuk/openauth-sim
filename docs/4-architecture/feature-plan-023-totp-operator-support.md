@@ -1,0 +1,60 @@
+# Feature Plan 023 – TOTP Operator Support
+
+_Status: Draft_
+_Last updated: 2025-10-08_
+
+## Objective
+Deliver RFC 6238-compliant TOTP evaluation and replay flows across core, shared persistence, application services, CLI, REST, and operator console UI so operators can validate time-based OTPs alongside HOTP and OCRA.
+
+Reference specification: `docs/4-architecture/specs/feature-023-totp-operator-support.md`.
+
+## Success Criteria
+- TOS-001 – Core TOTP generators/validators cover SHA-1/SHA-256/SHA-512, 6/8 digits, and configurable step durations with comprehensive tests.
+- TOS-002 – MapDB schema v1 stores TOTP descriptors without migrations and coexists with HOTP/OCRA records.
+- TOS-003 & TOS-004 – Application services evaluate stored/inline submissions with drift controls, emit `totp.evaluate`/`totp.replay` telemetry, and redact secrets.
+- TOS-005 – CLI imports/lists/evaluates TOTP credentials with drift/timestamp controls and telemetry parity.
+- TOS-006 – REST endpoints (`/api/v1/totp/evaluate`, `/inline`, `/replay`) satisfy MockMvc + OpenAPI coverage and keep replay non-mutating.
+- TOS-007 – Operator console surfaces TOTP evaluate/replay panels with presets, drift/timestamp overrides, and query-parameter deep links.
+- TOS-008 – Documentation (operator how-to, roadmap, knowledge map) reflects live TOTP capabilities.
+- TOS-NFR-001..004 – Coverage, SpotBugs, accessibility, and telemetry sanitisation guardrails remain green via `./gradlew qualityGate` and `./gradlew spotlessApply check`.
+
+## Proposed Increments
+- ☑ R2301 – Add failing core unit tests for TOTP generator/validator covering algorithm/digit permutations, time-step conversion, and drift window boundaries. (_2025-10-08 – Introduced RFC 6238 vectors and drift scenarios; `./gradlew :core:test` failed on missing TOTP domain classes._)
+- ☑ R2302 – Implement core TOTP domain logic to satisfy R2301; extend ArchUnit/mutation coverage if required. (_2025-10-08 – Added descriptors, hash enum, generator, validator, drift window, and verification result types; `./gradlew :core:test` now green._)
+- ☑ R2303 – Add failing persistence integration tests exercising mixed HOTP/OCRA/TOTP records via `CredentialStoreFactory`. (_2025-10-08 – `CredentialStoreFactoryTotpIntegrationTest` asserts TOTP coexistence; `./gradlew :infra-persistence:test --tests \"...TotpIntegrationTest\"` initially red on missing `OATH_TOTP` support._)
+- ☑ R2304 – Implement persistence descriptor updates and schema adjustments to make R2303 pass without migrations. (_2025-10-08 – Added `OATH_TOTP` credential type plus TOTP persistence defaults in `MapDbCredentialStore`; targeted test now green via `./gradlew :infra-persistence:test --tests \"...TotpIntegrationTest\"`._)
+- ☑ R2305 – Add failing application-layer tests for stored/inline evaluation with drift/timestamp overrides plus telemetry assertions. (_2025-10-08 – `TotpEvaluationApplicationServiceTest` added; `./gradlew :application:test --tests \"...TotpEvaluationApplicationServiceTest\"` initially red pending service/telemetry implementation._)
+- ☑ R2306 – Implement application services and telemetry adapters to satisfy R2305; ensure secrets remain redacted. (_2025-10-08 – Introduced `TotpEvaluationApplicationService` + telemetry adapter, updated TelemetryContracts; targeted test now green via `./gradlew :application:test --tests \"...TotpEvaluationApplicationServiceTest\"`._)
+- ☑ R2307 – Add failing CLI command tests (import/list/evaluate/replay) covering drift controls, error handling, and telemetry. (_2025-10-08 – `TotpCliTest` staged harness + assertions; `./gradlew :cli:test --tests "io.openauth.sim.cli.TotpCliTest"` initially red via placeholder harness._)
+- ☑ R2308 – Implement CLI commands/wiring to satisfy R2307; rerun targeted CLI test suites. (_2025-10-08 – Implemented `TotpCli` list/evaluate/evaluate-inline commands; `./gradlew :cli:test --tests "io.openauth.sim.cli.TotpCliTest"` now passes._)
+- ☑ R2309 – Add failing REST MockMvc/OpenAPI tests for evaluation and replay endpoints, including timestamp override and non-mutating replay cases. (_2025-10-08 – `TotpEvaluationEndpointTest` added with `fail(...)`; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.TotpEvaluationEndpointTest"` initially red pending implementation._)
+- ☑ R2310 – Implement REST controllers/services to satisfy R2309; regenerate OpenAPI snapshots and run `./gradlew :rest-api:test`. (_2025-10-08 – Added TOTP REST configuration/service/controller and regenerated OpenAPI snapshots via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test`._)
+- ☑ R2311 – Add failing Selenium/UI integration tests for operator console TOTP evaluate/replay panels (presets, drift/timestamp inputs, query-parameter persistence). (_2025-10-08 – Introduced `TotpOperatorUiSeleniumTest` asserting stored success, inline validation errors, and query-parameter persistence; suite red pending UI wiring._)
+- ☑ R2312 – Implement operator console templates/JS to satisfy R2311; rerun `./gradlew :rest-api:test`. (_2025-10-08 – Replaced TOTP placeholder with live Thymeleaf/JS wiring, added `/ui/totp/console.js` fallback for HtmlUnit, and verified via `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest"`._)
+- ☑ R2313 – Update documentation (operator how-to, roadmap, knowledge map) and ensure `./gradlew spotlessApply check` passes. (_2025-10-08 – Added `docs/2-how-to/use-totp-operator-ui.md`, updated the how-to index, roadmap workstream 15 status, and knowledge map bullets; formatting normalised via `./gradlew spotlessApply` before running the gate._)
+- ☑ R2314 – Execute `./gradlew qualityGate` (Jacoco + PIT + lint) and capture results; close out remaining tasks. (_2025-10-08 – `./gradlew qualityGate` completed successfully after docs update, confirming coverage and lint thresholds remain ≥ project targets._)
+
+Each increment must complete within ≤10 minutes and finish with a green build for affected modules.
+
+## Checklist Before Implementation
+- [x] Specification drafted with clarifications recorded.
+- [x] Open questions cleared (ensure `docs/4-architecture/open-questions.md` has no TOTP entries).
+- [x] Feature tasks drafted with test-first ordering.
+- [x] Analysis gate executed and documented once plan/tasks align.
+
+## Tooling Readiness
+- `./gradlew spotlessApply check` – formatting, SpotBugs, ArchUnit guardrails.
+- `./gradlew :core:test`, `:infra-persistence:test`, `:application:test`, `:cli:test`, `:rest-api:test` – targeted suites per increment.
+- `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test` – regenerate OpenAPI snapshots when endpoint contracts change.
+- `./gradlew qualityGate` – final verification (coverage + mutation).
+
+## Intent Log
+- 2025-10-08 – User selected Option A for end-to-end delivery, parameter coverage, persistence reuse, and drift controls, Option B for deferring issuance, and confirmed CLI + Java facades must ship with REST/UI parity.
+
+## Analysis Gate
+- 2025-10-08 – Completed pre-implementation review. Outcomes:
+  - Specification covers objectives, functional/non-functional requirements, and clarified decisions (Checklist 1 ✅).
+  - `docs/4-architecture/open-questions.md` has no TOTP entries (Checklist 2 ✅).
+  - Plan references the new spec/tasks and mirrors requirement wording; task list maps TOS-001..008 with test-first ordering (Checklist 3–4 ✅).
+  - Planned increments comply with constitutional guardrails and lean helpers; tooling section calls out Gradle commands plus SpotBugs guard (Checklist 5–6 ✅).
+  - No remediation actions required before implementation.

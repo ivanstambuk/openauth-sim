@@ -7,6 +7,7 @@ import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.otp.hotp.HotpPersistenceDefaults;
+import io.openauth.sim.core.otp.totp.TotpPersistenceDefaults;
 import io.openauth.sim.core.store.encryption.PersistenceEncryption;
 import io.openauth.sim.core.store.encryption.PersistenceEncryption.EncryptedSecret;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
@@ -80,7 +81,7 @@ public final class MapDbCredentialStore implements CredentialStore {
   public void save(Credential credential) {
     Objects.requireNonNull(credential, "credential");
     long start = System.nanoTime();
-    Credential normalized = ensureHotpDefaults(credential);
+    Credential normalized = ensureProtocolDefaults(credential);
     VersionedCredentialRecord record = VersionedCredentialRecordMapper.toRecord(normalized);
     VersionedCredentialRecord persisted = encryptIfNeeded(record);
     backing.put(normalized.name(), persisted);
@@ -148,12 +149,15 @@ public final class MapDbCredentialStore implements CredentialStore {
     return cache;
   }
 
-  private static Credential ensureHotpDefaults(Credential credential) {
-    if (credential.type() != CredentialType.OATH_HOTP) {
-      return credential;
+  private static Credential ensureProtocolDefaults(Credential credential) {
+    Map<String, String> normalizedAttributes;
+    if (credential.type() == CredentialType.OATH_HOTP) {
+      normalizedAttributes = HotpPersistenceDefaults.ensureDefaults(credential.attributes());
+    } else if (credential.type() == CredentialType.OATH_TOTP) {
+      normalizedAttributes = TotpPersistenceDefaults.ensureDefaults(credential.attributes());
+    } else {
+      normalizedAttributes = credential.attributes();
     }
-    Map<String, String> normalizedAttributes =
-        HotpPersistenceDefaults.ensureDefaults(credential.attributes());
     if (normalizedAttributes.equals(credential.attributes())) {
       return credential;
     }
@@ -167,7 +171,7 @@ public final class MapDbCredentialStore implements CredentialStore {
   }
 
   private static Credential normalizeAfterLoad(Credential credential) {
-    return ensureHotpDefaults(credential);
+    return ensureProtocolDefaults(credential);
   }
 
   public static final class Builder {

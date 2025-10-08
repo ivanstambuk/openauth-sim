@@ -1,0 +1,18 @@
+package io.openauth.sim.rest.totp;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
+
+record TotpInlineEvaluationRequest(
+    @JsonProperty("sharedSecretHex") String sharedSecretHex,
+    @JsonProperty("algorithm") String algorithm,
+    @JsonProperty("digits") Integer digits,
+    @JsonProperty("stepSeconds") Long stepSeconds,
+    @JsonProperty("driftBackward") Integer driftBackward,
+    @JsonProperty("driftForward") Integer driftForward,
+    @JsonProperty("timestamp") Long timestamp,
+    @JsonProperty("timestampOverride") Long timestampOverride,
+    @JsonProperty("otp") String otp,
+    @JsonProperty("metadata") Map<String, String> metadata) {
+  // no members
+}

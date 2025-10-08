@@ -154,20 +154,7 @@
       </section>
       <th:block th:replace="~{ui/hotp/panel :: hotpPanel(${false})}"></th:block>
 
-      <section
-          id="protocol-panel-totp"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="totp"
-          aria-labelledby="protocol-tab-totp"
-          hidden="hidden"
-          aria-hidden="true"
-        >
-        <h2>TOTP</h2>
-        <p>
-          TOTP support is on the roadmap. Tabs will activate once core, REST, and UI pathways are wired for
-          time-based OTP credentials.
-        </p>
-      </section>
+      <th:block th:replace="~{ui/totp/panel :: totpPanel(${false})}"></th:block>
 
       <section
           id="protocol-panel-emv"
@@ -706,5 +693,6 @@
     <script th:src="@{/ui/protocol-info.js}"></script>
     <script th:src="@{/ui/ocra/console.js}"></script>
     <script th:src="@{/ui/hotp/console.js}"></script>
+    <script th:src="@{/ui/totp/console.js}"></script>
   </body>
 </html>

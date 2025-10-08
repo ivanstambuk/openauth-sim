@@ -1,7 +1,7 @@
 # Architecture Knowledge Map
 
 _Status: Draft_
-_Last updated: 2025-10-05_
+_Last updated: 2025-10-08_
 
 This living map captures the explicit relationships between modules, data flows, and external interfaces so future agents can reason about change impact quickly. Update it after every iteration that introduces or modifies a component, dependency, or contract.
 
@@ -18,7 +18,13 @@ This living map captures the explicit relationships between modules, data flows,
 - Core persistence serialization contracts convert protocol descriptors into versioned credential records, now stored by `MapDbCredentialStore` with optional schema migrations when configured.
 - OCRA validation telemetry emits structured debug events that future observability modules can ingest without exposing secret material.
 - `docs/1-concepts/README.md` documents the OCRA capability matrix and telemetry contract operators should consult when integrating facades.
-- HOTP evaluation and replay now run within the operator console (stored credential counters, inline submissions, and read-only replay diagnostics), while TOTP, FIDO2/WebAuthn, EMV/CAP, and EUDI wallet packages (OpenID4VP 1.0, ISO/IEC 18013-5, SIOPv2) remain pending as placeholder tabs until their specs and facades land.
+- Core TOTP package implements RFC 6238 descriptors, generators, validators, and drift window helpers that will feed shared persistence and facade services in Feature 023.
+- Application module now exposes `TotpEvaluationApplicationService`, validating stored and inline submissions through the shared `CredentialStore`, emitting `totp.evaluate` telemetry via `TelemetryContracts`.
+- MapDB persistence now normalises TOTP credential attributes (algorithm, digits, step, drift windows) under schema v1 alongside existing HOTP defaults so shared stores can serve mixed protocol records.
+- CLI module now includes `TotpCli` list/evaluate commands that wrap the TOTP application service and emit `cli.totp.evaluate` telemetry without persisting secrets.
+- REST API module now exposes `/api/v1/totp/evaluate` endpoints for stored and inline validation, logging `rest.totp.evaluate` telemetry while leaving secrets redacted.
+- HOTP evaluation and replay now run within the operator console (stored credential counters, inline submissions, and read-only replay diagnostics), while FIDO2/WebAuthn, EMV/CAP, and EUDI wallet packages (OpenID4VP 1.0, ISO/IEC 18013-5, SIOPv2) remain placeholder panels until their specs and facades land.
+- Operator console UI now exposes dedicated TOTP stored/inline evaluation panels backed by `/api/v1/totp/evaluate` endpoints, with drift window controls, timestamp overrides, and URL mode persistence coordinated through `ui/totp/console.js`.
 - MapDB-backed persistence layer (planned) will expose repositories consumed by CLI, REST API, and UI facades.
 - MapDB-backed persistence now emits Level.FINE telemetry events (`persistence.credential.lookup` / `persistence.credential.mutation`) capturing cache hit/miss and latency metrics without leaking secret material.
 - MapDB maintenance helper (T205) provides synchronous compaction and integrity checks with structured `MaintenanceResult` outputs and telemetry so admin facades can surface maintenance outcomes.
@@ -35,7 +41,7 @@ This living map captures the explicit relationships between modules, data flows,
 - Operator console replay flows call the same HOTP replay service, surface sample payload loaders, and normalise telemetry identifiers from `rest-hotp-*` to `ui-hotp-*` prefixes so operators can distinguish UI traffic while preserving the original telemetry payload for log correlation.
 - `infra-persistence` module centralises `CredentialStoreFactory` wiring so CLI, REST, and tests acquire MapDB-backed stores through a shared configuration seam while keeping encryption profiles and future migrations/overrides injectable.
 - CLI module now exposes `maintenance <compact|verify>` commands that orchestrate the helper for operators working on local MapDB stores.
-- Unified operator console at `/ui/console` now embeds OCRA evaluation/replay flows alongside HOTP evaluation and replay cards, with placeholder tabs remaining for TOTP, EMV/CAP, FIDO2/WebAuthn, and the EUDI wallet protocols; legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` views now redirect/not-found so the console remains the single entry point.
+- Unified operator console at `/ui/console` now embeds OCRA evaluation/replay flows alongside HOTP evaluation/replay and the live TOTP evaluation cards, with placeholder tabs remaining for EMV/CAP, FIDO2/WebAuthn, and the EUDI wallet protocols; legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` views now redirect/not-found so the console remains the single entry point.
 - Operator console encodes HOTP evaluate/replay tab selection into the `protocol`/`tab` query parameters so refreshes and deep links land on the correct HOTP panel; the shared console router now remembers per-protocol tabs for both OCRA and HOTP to keep history/refresh flows aligned.
 - Operator console panels standardise on the evaluate/replay pill header, shared summary messaging, and hint styling so HOTP, OCRA, and forthcoming credential tabs retain a uniform UX while protocol-specific forms capture their unique inputs/outputs.
 - Operator console now exposes a JSON-driven protocol info drawer/modal that syncs with tab selection, persists seen/surface/panel state in localStorage, auto-opens once per protocol on wide viewports, honours reduced-motion preferences, toggles aria-hidden on the console when the modal is active, dispatches CustomEvents for open/close/spec interactions, and is triggered by a single global info button aligned beside the tablist.
