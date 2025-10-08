@@ -203,6 +203,158 @@ final class TotpOperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Stored TOTP replay returns match without mutating state")
+  void storedTotpReplayReturnsMatch() {
+    navigateToTotpPanel();
+    switchToReplayTab();
+    waitUntilUrlContains("totpTab=replay");
+
+    WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
+    waitUntilAttribute(replayToggle, "data-mode", "stored");
+
+    WebElement credentialInput = driver.findElement(By.id("totpReplayStoredCredentialId"));
+    credentialInput.clear();
+    credentialInput.sendKeys(STORED_CREDENTIAL_ID);
+
+    WebElement otpInput = driver.findElement(By.id("totpReplayStoredOtp"));
+    otpInput.clear();
+    otpInput.sendKeys(EXPECTED_STORED_OTP);
+
+    WebElement timestampInput = driver.findElement(By.id("totpReplayStoredTimestamp"));
+    timestampInput.clear();
+    timestampInput.sendKeys(Long.toString(STORED_TIMESTAMP.getEpochSecond()));
+
+    WebElement driftBackward = driver.findElement(By.id("totpReplayStoredDriftBackward"));
+    driftBackward.clear();
+    driftBackward.sendKeys("1");
+
+    WebElement driftForward = driver.findElement(By.id("totpReplayStoredDriftForward"));
+    driftForward.clear();
+    driftForward.sendKeys("1");
+
+    WebElement replayButton =
+        driver.findElement(By.cssSelector("[data-testid='totp-replay-stored-submit']"));
+    replayButton.click();
+
+    WebElement resultPanel =
+        waitForVisible(By.cssSelector("[data-testid='totp-replay-result-panel']"));
+    String statusText =
+        resultPanel
+            .findElement(By.cssSelector("[data-testid='totp-replay-status']"))
+            .getText()
+            .trim();
+    assertEquals("match", statusText.toLowerCase());
+    String reasonCode =
+        resultPanel
+            .findElement(By.cssSelector("[data-testid='totp-replay-reason-code']"))
+            .getText()
+            .trim();
+    assertEquals("match", reasonCode.toLowerCase());
+    assertEquals(
+        "0",
+        resultPanel
+            .findElement(By.cssSelector("[data-testid='totp-replay-matched-skew']"))
+            .getText()
+            .trim());
+    assertEquals(
+        "stored",
+        resultPanel
+            .findElement(By.cssSelector("[data-testid='totp-replay-credential-source']"))
+            .getText()
+            .trim());
+    String telemetryId =
+        resultPanel
+            .findElement(By.cssSelector("[data-testid='totp-replay-telemetry']"))
+            .getText()
+            .trim();
+    assertTrue(telemetryId.startsWith("rest-totp-"));
+  }
+
+  @Test
+  @DisplayName("Inline TOTP replay outside drift returns mismatch")
+  void inlineTotpReplayReportsMismatch() {
+    navigateToTotpPanel();
+    switchToReplayTab();
+    waitUntilUrlContains("totpTab=replay");
+
+    WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
+    WebElement inlineToggle =
+        driver.findElement(By.cssSelector("[data-testid='totp-replay-mode-select-inline']"));
+    inlineToggle.click();
+    waitUntilAttribute(replayToggle, "data-mode", "inline");
+
+    WebElement secretInput = driver.findElement(By.id("totpReplayInlineSecretHex"));
+    secretInput.clear();
+    secretInput.sendKeys(INLINE_SECRET.asHex());
+
+    selectOption("totpReplayInlineAlgorithm", "SHA512");
+
+    WebElement digitsInput = driver.findElement(By.id("totpReplayInlineDigits"));
+    digitsInput.clear();
+    digitsInput.sendKeys("8");
+
+    WebElement stepSecondsInput = driver.findElement(By.id("totpReplayInlineStepSeconds"));
+    stepSecondsInput.clear();
+    stepSecondsInput.sendKeys("60");
+
+    WebElement driftBackward = driver.findElement(By.id("totpReplayInlineDriftBackward"));
+    driftBackward.clear();
+    driftBackward.sendKeys("0");
+
+    WebElement driftForward = driver.findElement(By.id("totpReplayInlineDriftForward"));
+    driftForward.clear();
+    driftForward.sendKeys("0");
+
+    WebElement timestampInputReplay = driver.findElement(By.id("totpReplayInlineTimestamp"));
+    timestampInputReplay.clear();
+    timestampInputReplay.sendKeys(
+        Long.toString(INLINE_TIMESTAMP.plusSeconds(180).getEpochSecond()));
+
+    WebElement timestampOverrideInput =
+        driver.findElement(By.id("totpReplayInlineTimestampOverride"));
+    timestampOverrideInput.clear();
+    timestampOverrideInput.sendKeys(
+        Long.toString(INLINE_TIMESTAMP.minusSeconds(120).getEpochSecond()));
+
+    WebElement otpInput = driver.findElement(By.id("totpReplayInlineOtp"));
+    otpInput.clear();
+    otpInput.sendKeys(INLINE_EXPECTED_OTP);
+
+    WebElement replayButton =
+        driver.findElement(By.cssSelector("[data-testid='totp-replay-inline-submit']"));
+    replayButton.click();
+
+    waitUntilUrlContains("totpReplayMode=inline");
+
+    WebElement resultPanel =
+        waitForVisible(By.cssSelector("[data-testid='totp-replay-result-panel']"));
+    String statusText =
+        resultPanel
+            .findElement(By.cssSelector("[data-testid='totp-replay-status']"))
+            .getText()
+            .trim();
+    assertEquals("mismatch", statusText.toLowerCase());
+    String reasonCode =
+        resultPanel
+            .findElement(By.cssSelector("[data-testid='totp-replay-reason-code']"))
+            .getText()
+            .trim();
+    assertEquals("otp_out_of_window", reasonCode.toLowerCase());
+    assertEquals(
+        "inline",
+        resultPanel
+            .findElement(By.cssSelector("[data-testid='totp-replay-credential-source']"))
+            .getText()
+            .trim());
+    String telemetryId =
+        resultPanel
+            .findElement(By.cssSelector("[data-testid='totp-replay-telemetry']"))
+            .getText()
+            .trim();
+    assertTrue(telemetryId.startsWith("rest-totp-"));
+  }
+
+  @Test
   @DisplayName("TOTP inline mode persists across refresh via query parameters")
   void totpInlineModePersistsAcrossRefresh() {
     navigateToTotpPanel();
@@ -214,17 +366,33 @@ final class TotpOperatorUiSeleniumTest {
     waitUntilAttribute(modeToggle, "data-mode", "inline");
 
     waitUntilUrlContains("protocol=totp");
+    waitUntilUrlContains("totpTab=evaluate");
     waitUntilUrlContains("totpMode=inline");
 
     driver.navigate().refresh();
 
     WebElement refreshedToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
     waitUntilAttribute(refreshedToggle, "data-mode", "inline");
+    WebElement evaluateTab = waitFor(By.cssSelector("[data-testid='totp-panel-tab-evaluate']"));
+    waitUntilAttribute(evaluateTab, "aria-selected", "true");
   }
 
   private void navigateToTotpPanel() {
     driver.get("http://localhost:" + port + "/ui/console?protocol=totp");
     waitFor(By.cssSelector("[data-testid='protocol-tab-totp']"));
+    WebElement evaluateTab = waitFor(By.cssSelector("[data-testid='totp-panel-tab-evaluate']"));
+    if (!"true".equals(evaluateTab.getAttribute("aria-selected"))) {
+      evaluateTab.click();
+      waitUntilAttribute(evaluateTab, "aria-selected", "true");
+    }
+  }
+
+  private void switchToReplayTab() {
+    WebElement replayTab = waitFor(By.cssSelector("[data-testid='totp-panel-tab-replay']"));
+    if (!"true".equals(replayTab.getAttribute("aria-selected"))) {
+      replayTab.click();
+      waitUntilAttribute(replayTab, "aria-selected", "true");
+    }
   }
 
   private WebElement waitFor(By locator) {

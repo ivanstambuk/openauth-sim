@@ -9,6 +9,55 @@
     "description" : "Generated server url"
   } ],
   "paths" : {
+    "/api/v1/totp/replay" : {
+      "post" : {
+        "tags" : [ "totp-replay-controller" ],
+        "summary" : "Replay a TOTP credential without mutating simulator state",
+        "operationId" : "replayTotp",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TotpReplayRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Replay completed",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TotpReplayResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Replay validation failed",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TotpReplayErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TotpReplayErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/totp/evaluate" : {
       "post" : {
         "tags" : [ "totp-evaluation-controller" ],
@@ -124,26 +173,6 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Verification payload failed validation",
             "content" : {
@@ -168,6 +197,26 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
                 }
               }
             }
@@ -307,28 +356,18 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
-          "400" : {
-            "description" : "Validation error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
           "404" : {
             "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -343,6 +382,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpReplayResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
                 }
               }
             }
@@ -367,8 +416,8 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected error",
+          "404" : {
+            "description" : "Credential not found",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -377,12 +426,12 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation completed",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -397,12 +446,12 @@
               }
             }
           },
-          "404" : {
-            "description" : "Credential not found",
+          "200" : {
+            "description" : "Evaluation completed",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -437,22 +486,22 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "400" : {
             "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -575,6 +624,124 @@
   },
   "components" : {
     "schemas" : {
+      "TotpReplayMetadata" : {
+        "type" : "object",
+        "properties" : {
+          "credentialSource" : {
+            "type" : "string"
+          },
+          "credentialId" : {
+            "type" : "string"
+          },
+          "credentialReference" : {
+            "type" : "boolean"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
+          "digits" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stepSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "driftBackwardSteps" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "driftForwardSteps" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "matchedSkewSteps" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "timestampOverrideProvided" : {
+            "type" : "boolean"
+          },
+          "telemetryId" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TotpReplayResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "metadata" : {
+            "$ref" : "#/components/schemas/TotpReplayMetadata"
+          }
+        }
+      },
+      "TotpReplayErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
+      "TotpReplayRequest" : {
+        "type" : "object",
+        "properties" : {
+          "credentialId" : {
+            "type" : "string"
+          },
+          "otp" : {
+            "type" : "string"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "timestampOverride" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "driftBackward" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "driftForward" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sharedSecretHex" : {
+            "type" : "string"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
+          "digits" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stepSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
       "TotpEvaluationMetadata" : {
         "type" : "object",
         "properties" : {

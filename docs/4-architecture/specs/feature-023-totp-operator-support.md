@@ -16,6 +16,7 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 - 2025-10-08 – TOTP evaluation telemetry emits through the shared `totp.evaluate` adapter, mirroring HOTP/OCRA telemetry patterns (worklog note).
 - 2025-10-08 – Facade integration will stage failing tests for CLI and REST in parallel increments before implementing the shared wiring (user confirmed Option B).
 - 2025-10-08 – Operator console documentation lives in `docs/2-how-to/use-totp-operator-ui.md`; roadmap and knowledge map now flag the TOTP panels as live (worklog note).
+- 2025-10-08 – TOTP replay tab must mirror HOTP/OCRA replay semantics via a dedicated `/api/v1/totp/replay` flow that performs non-mutating diagnostics while reusing evaluation logic where practical (user directive; Option A selected).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -28,6 +29,7 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 | TOS-006 | Expose REST endpoints for stored (`POST /api/v1/totp/evaluate`) and inline (`POST /api/v1/totp/evaluate/inline`) evaluation plus replay (`POST /api/v1/totp/replay`), supporting drift and timestamp overrides. | MockMvc tests validate status codes, payload contracts, OpenAPI snapshots, and non-mutating replay behaviour. |
 | TOS-007 | Update operator console UI with TOTP evaluation and replay panels (stored + inline) that integrate with REST endpoints, presets, and drift controls. | Selenium/system tests confirm panel rendering, preset behaviours, drift/timestamp inputs, and query-parameter deep links (`protocol=totp`). |
 | TOS-008 | Document TOTP usage (operator how-to, roadmap, knowledge map) and align placeholder messaging with live functionality. | Documentation diffs show updated instructions; lint (`./gradlew spotlessApply check`) passes after doc updates. |
+| TOS-009 | Provide a dedicated TOTP replay application/REST flow that mirrors HOTP/OCRA replay semantics, returning diagnostic metadata without mutating credential state. | Application + MockMvc tests assert telemetry, non-mutating behaviour, stored/inline replay handling, and error signalling. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -69,8 +71,9 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 3. Extend application-layer tests to cover success, invalid secret, expired OTP, and drift-window rejection scenarios; add telemetry assertions.
 4. Create failing CLI integration tests for evaluation/replay commands (stored + inline) including drift controls.
 5. Add failing REST MockMvc/OpenAPI tests for evaluation and replay endpoints with timestamp override inputs.
-6. Stage failing Selenium/system tests for operator console TOTP panels, presets, drift controls, and query-parameter persistence.
-7. Run `./gradlew spotlessApply check` after each increment; execute `./gradlew qualityGate` before closure.
+6. Stage failing application and REST tests for the replay flow, ensuring stored/inline requests remain non-mutating and telemetry matches HOTP/OCRA patterns.
+7. Stage failing Selenium/system tests for operator console TOTP replay panels and parity interactions.
+8. Run `./gradlew spotlessApply check` after each increment; execute `./gradlew qualityGate` before closure.
 
 ## Follow-up Considerations
 - Future feature should define issuance/enrollment flows (shared secrets, provisioning URIs, QR codes).

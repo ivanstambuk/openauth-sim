@@ -23,8 +23,9 @@ This living map captures the explicit relationships between modules, data flows,
 - MapDB persistence now normalises TOTP credential attributes (algorithm, digits, step, drift windows) under schema v1 alongside existing HOTP defaults so shared stores can serve mixed protocol records.
 - CLI module now includes `TotpCli` list/evaluate commands that wrap the TOTP application service and emit `cli.totp.evaluate` telemetry without persisting secrets.
 - REST API module now exposes `/api/v1/totp/evaluate` endpoints for stored and inline validation, logging `rest.totp.evaluate` telemetry while leaving secrets redacted.
+- REST API module now exposes `/api/v1/totp/replay`, delegating to `TotpReplayApplicationService`, returning non-mutating diagnostics, and emitting `rest.totp.replay` telemetry with matched skew metadata.
 - HOTP evaluation and replay now run within the operator console (stored credential counters, inline submissions, and read-only replay diagnostics), while FIDO2/WebAuthn, EMV/CAP, and EUDI wallet packages (OpenID4VP 1.0, ISO/IEC 18013-5, SIOPv2) remain placeholder panels until their specs and facades land.
-- Operator console UI now exposes dedicated TOTP stored/inline evaluation panels backed by `/api/v1/totp/evaluate` endpoints, with drift window controls, timestamp overrides, and URL mode persistence coordinated through `ui/totp/console.js`.
+- Operator console UI now exposes TOTP evaluation and replay panels backed by `/api/v1/totp/evaluate` and `/api/v1/totp/replay`, with drift/timestamp controls, telemetry surfacing, and tab/mode persistence coordinated through `ui/totp/console.js`.
 - MapDB-backed persistence layer (planned) will expose repositories consumed by CLI, REST API, and UI facades.
 - MapDB-backed persistence now emits Level.FINE telemetry events (`persistence.credential.lookup` / `persistence.credential.mutation`) capturing cache hit/miss and latency metrics without leaking secret material.
 - MapDB maintenance helper (T205) provides synchronous compaction and integrity checks with structured `MaintenanceResult` outputs and telemetry so admin facades can surface maintenance outcomes.

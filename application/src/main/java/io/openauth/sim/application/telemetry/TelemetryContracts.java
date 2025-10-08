@@ -26,6 +26,8 @@ public final class TelemetryContracts {
 
   private static final TotpTelemetryAdapter TOTP_EVALUATION_ADAPTER =
       new TotpTelemetryAdapter("totp.evaluate");
+  private static final TotpTelemetryAdapter TOTP_REPLAY_ADAPTER =
+      new TotpTelemetryAdapter("totp.replay");
 
   private TelemetryContracts() {
     throw new AssertionError("No instances");
@@ -69,5 +71,10 @@ public final class TelemetryContracts {
   /** Returns the shared adapter for TOTP evaluation telemetry. */
   public static TotpTelemetryAdapter totpEvaluationAdapter() {
     return TOTP_EVALUATION_ADAPTER;
+  }
+
+  /** Returns the shared adapter for TOTP replay telemetry. */
+  public static TotpTelemetryAdapter totpReplayAdapter() {
+    return TOTP_REPLAY_ADAPTER;
   }
 }

@@ -23,11 +23,14 @@
     'emv',
   ]);
   var allowedTabs = new Set(['evaluate', 'replay']);
+  var allowedTotpTabs = new Set(['evaluate', 'replay']);
   var allowedTotpModes = new Set(['stored', 'inline']);
 
   var currentProtocol = 'ocra';
   var lastProtocolTabs = { ocra: 'evaluate', hotp: 'evaluate' };
+  var lastTotpTab = 'evaluate';
   var lastTotpMode = 'stored';
+  var lastTotpReplayMode = 'stored';
 
   function setPanelVisibility(panel, hidden) {
     if (!panel) {
@@ -95,9 +98,18 @@
     }
 
     if (protocol === 'totp') {
+      var desiredTab = options && options.totpTab ? options.totpTab : getLastTotpTab();
       var desiredMode = options && options.totpMode ? options.totpMode : getLastTotpMode();
-      if (global.TotpConsole && typeof global.TotpConsole.setMode === 'function') {
-        global.TotpConsole.setMode(desiredMode, { broadcast: false, force: true });
+      var desiredReplayMode =
+          options && options.totpReplayMode ? options.totpReplayMode : getLastTotpReplayMode();
+      if (global.TotpConsole && typeof global.TotpConsole.setTab === 'function') {
+        global.TotpConsole.setTab(desiredTab, { broadcast: false, force: true });
+        if (typeof global.TotpConsole.setMode === 'function') {
+          global.TotpConsole.setMode(desiredMode, { broadcast: false, force: true });
+        }
+        if (typeof global.TotpConsole.setReplayMode === 'function') {
+          global.TotpConsole.setReplayMode(desiredReplayMode, { broadcast: false, force: true });
+        }
       }
     }
 
@@ -112,7 +124,12 @@
     try {
       var protocolEventDetail = { protocol: protocol };
       if (protocol === 'totp') {
-        protocolEventDetail.totpMode = options && options.totpMode ? options.totpMode : getLastTotpMode();
+        protocolEventDetail.totpTab =
+            options && options.totpTab ? options.totpTab : getLastTotpTab();
+        protocolEventDetail.totpMode =
+            options && options.totpMode ? options.totpMode : getLastTotpMode();
+        protocolEventDetail.totpReplayMode =
+            options && options.totpReplayMode ? options.totpReplayMode : getLastTotpReplayMode();
       }
       var protocolEvent = new global.CustomEvent('operator:protocol-activated', {
         detail: protocolEventDetail,
@@ -132,8 +149,12 @@
       return { protocol: protocol, tab: tab };
     }
     if (protocol === 'totp') {
+      var tab = allowedTotpTabs.has(state && state.totpTab) ? state.totpTab : getLastTotpTab();
       var mode = allowedTotpModes.has(state && state.totpMode) ? state.totpMode : getLastTotpMode();
-      return { protocol: protocol, totpMode: mode };
+      var replayMode = allowedTotpModes.has(state && state.totpReplayMode)
+          ? state.totpReplayMode
+          : getLastTotpReplayMode();
+      return { protocol: protocol, totpTab: tab, totpMode: mode, totpReplayMode: replayMode };
     }
     return { protocol: protocol };
   }
@@ -145,8 +166,14 @@
       params.set('tab', state.tab);
     }
     if (state.protocol === 'totp') {
+      var tab = allowedTotpTabs.has(state.totpTab) ? state.totpTab : getLastTotpTab();
+      params.set('totpTab', tab);
       var mode = allowedTotpModes.has(state.totpMode) ? state.totpMode : getLastTotpMode();
       params.set('totpMode', mode);
+      var replayMode = allowedTotpModes.has(state.totpReplayMode)
+          ? state.totpReplayMode
+          : getLastTotpReplayMode();
+      params.set('totpReplayMode', replayMode);
     }
     var rendered = params.toString();
     return rendered ? '?' + rendered : global.location.search;
@@ -160,7 +187,12 @@
     if (normalized.protocol === 'ocra' || normalized.protocol === 'hotp') {
       historyState = { protocol: normalized.protocol, tab: normalized.tab };
     } else if (normalized.protocol === 'totp') {
-      historyState = { protocol: normalized.protocol, totpMode: normalized.totpMode };
+      historyState = {
+        protocol: normalized.protocol,
+        totpTab: normalized.totpTab,
+        totpMode: normalized.totpMode,
+        totpReplayMode: normalized.totpReplayMode,
+      };
     } else {
       historyState = { protocol: normalized.protocol };
     }
@@ -214,12 +246,26 @@
     }
 
     if (desiredProtocol === 'totp') {
+      var desiredTab = allowedTotpTabs.has(normalized.totpTab)
+        ? normalized.totpTab
+        : getLastTotpTab();
       var desiredMode = allowedTotpModes.has(normalized.totpMode)
         ? normalized.totpMode
         : getLastTotpMode();
+      var desiredReplayMode = allowedTotpModes.has(normalized.totpReplayMode)
+        ? normalized.totpReplayMode
+        : getLastTotpReplayMode();
+      rememberTotpTab(desiredTab);
       rememberTotpMode(desiredMode);
-      if (global.TotpConsole && typeof global.TotpConsole.setMode === 'function') {
-        global.TotpConsole.setMode(desiredMode, { broadcast: false, force: true });
+      rememberTotpReplayMode(desiredReplayMode);
+      if (global.TotpConsole && typeof global.TotpConsole.setTab === 'function') {
+        global.TotpConsole.setTab(desiredTab, { broadcast: false, force: true });
+        if (typeof global.TotpConsole.setMode === 'function') {
+          global.TotpConsole.setMode(desiredMode, { broadcast: false, force: true });
+        }
+        if (typeof global.TotpConsole.setReplayMode === 'function') {
+          global.TotpConsole.setReplayMode(desiredReplayMode, { broadcast: false, force: true });
+        }
       }
     }
 
@@ -232,8 +278,16 @@
     var params = new global.URLSearchParams(global.location.search);
     var protocol = params.get('protocol');
     var tab = params.get('tab');
+    var totpTab = params.get('totpTab');
     var totpMode = params.get('totpMode');
-    return normalizeState({ protocol: protocol, tab: tab, totpMode: totpMode });
+    var totpReplayMode = params.get('totpReplayMode');
+    return normalizeState({
+      protocol: protocol,
+      tab: tab,
+      totpTab: totpTab,
+      totpMode: totpMode,
+      totpReplayMode: totpReplayMode,
+    });
   }
 
   function handleProtocolActivated(protocol) {
@@ -241,7 +295,9 @@
     if (protocol === 'ocra' || protocol === 'hotp') {
       initialState.tab = getLastTab(protocol);
     } else if (protocol === 'totp') {
+      initialState.totpTab = getLastTotpTab();
       initialState.totpMode = getLastTotpMode();
+      initialState.totpReplayMode = getLastTotpReplayMode();
     }
     var normalized = normalizeState(initialState);
     applyConsoleState(normalized, {
@@ -272,7 +328,12 @@
       } else if (protocol === 'hotp') {
         nextState = { protocol: 'hotp', tab: getLastTab('hotp') };
       } else if (protocol === 'totp') {
-        nextState = { protocol: 'totp', totpMode: getLastTotpMode() };
+        nextState = {
+          protocol: 'totp',
+          totpTab: getLastTotpTab(),
+          totpMode: getLastTotpMode(),
+          totpReplayMode: getLastTotpReplayMode(),
+        };
       } else {
         nextState = { protocol: protocol };
       }
@@ -308,6 +369,44 @@
         { replace: Boolean(event.detail && event.detail.replace) });
   });
 
+  global.addEventListener('operator:totp-tab-changed', function (event) {
+    var tab = event && event.detail ? event.detail.tab : null;
+    if (!allowedTotpTabs.has(tab)) {
+      return;
+    }
+    rememberTotpTab(tab);
+    if (currentProtocol !== 'totp') {
+      return;
+    }
+    pushUrlState(
+        {
+          protocol: 'totp',
+          totpTab: tab,
+          totpMode: getLastTotpMode(),
+          totpReplayMode: getLastTotpReplayMode(),
+        },
+        { replace: Boolean(event.detail && event.detail.replace) });
+  });
+
+  global.addEventListener('operator:totp-replay-mode-changed', function (event) {
+    var mode = event && event.detail ? event.detail.mode : null;
+    if (!allowedTotpModes.has(mode)) {
+      return;
+    }
+    rememberTotpReplayMode(mode);
+    if (currentProtocol !== 'totp') {
+      return;
+    }
+    pushUrlState(
+        {
+          protocol: 'totp',
+          totpTab: getLastTotpTab(),
+          totpMode: getLastTotpMode(),
+          totpReplayMode: mode,
+        },
+        { replace: Boolean(event.detail && event.detail.replace) });
+  });
+
   global.addEventListener('popstate', function (event) {
     var state = event.state ? normalizeState(event.state) : parseStateFromLocation();
     applyConsoleState(state, { updateUrl: false, syncProtocolInfo: true });
@@ -332,6 +431,16 @@
     }
   }
 
+  function getLastTotpTab() {
+    return allowedTotpTabs.has(lastTotpTab) ? lastTotpTab : 'evaluate';
+  }
+
+  function rememberTotpTab(tab) {
+    if (allowedTotpTabs.has(tab)) {
+      lastTotpTab = tab;
+    }
+  }
+
   function getLastTotpMode() {
     return allowedTotpModes.has(lastTotpMode) ? lastTotpMode : 'stored';
   }
@@ -339,6 +448,16 @@
   function rememberTotpMode(mode) {
     if (allowedTotpModes.has(mode)) {
       lastTotpMode = mode;
+    }
+  }
+
+  function getLastTotpReplayMode() {
+    return allowedTotpModes.has(lastTotpReplayMode) ? lastTotpReplayMode : 'stored';
+  }
+
+  function rememberTotpReplayMode(mode) {
+    if (allowedTotpModes.has(mode)) {
+      lastTotpReplayMode = mode;
     }
   }
 })(window);

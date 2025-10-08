@@ -19,6 +19,7 @@ public final class TelemetryContractTestSupport {
   private static final String HOTP_REPLAY_EVENT = "hotp.replay";
   private static final String HOTP_SEED_EVENT = "hotp.seed";
   private static final String HOTP_INLINE_REPLAY_ID = "hotp-inline-replay";
+  private static final String TOTP_REPLAY_EVENT = "totp.replay";
 
   private TelemetryContractTestSupport() {
     throw new AssertionError("No instances");
@@ -189,6 +190,28 @@ public final class TelemetryContractTestSupport {
         hotpReplayFields(credentialSource, counter, "java.lang.IllegalStateException: boom"));
   }
 
+  public static void assertTotpReplaySuccessFrame(
+      TelemetryFrame frame, String credentialSource, int matchedSkewSteps) {
+    assertFrame(
+        frame,
+        TOTP_REPLAY_EVENT,
+        "success",
+        "match",
+        true,
+        totpReplaySuccessFields(credentialSource, matchedSkewSteps));
+  }
+
+  public static void assertTotpReplayValidationFrame(
+      TelemetryFrame frame, String credentialSource) {
+    assertFrame(
+        frame,
+        TOTP_REPLAY_EVENT,
+        "invalid",
+        "otp_out_of_window",
+        true,
+        totpReplayValidationFields(credentialSource));
+  }
+
   public static Map<String, Object> hotpSeedFields() {
     Map<String, Object> fields = new LinkedHashMap<>();
     fields.put("addedCount", 2);
@@ -217,6 +240,36 @@ public final class TelemetryContractTestSupport {
     if (reason != null) {
       fields.put("reason", reason);
     }
+    return fields;
+  }
+
+  private static Map<String, Object> totpReplaySuccessFields(
+      String credentialSource, int matchedSkewSteps) {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("credentialSource", credentialSource);
+    fields.put("credentialReference", true);
+    fields.put("credentialId", "totp-replay-credential");
+    fields.put("algorithm", "SHA1");
+    fields.put("digits", 6);
+    fields.put("stepSeconds", 30L);
+    fields.put("driftBackwardSteps", 1);
+    fields.put("driftForwardSteps", 1);
+    fields.put("timestampOverrideProvided", false);
+    fields.put("matchedSkewSteps", matchedSkewSteps);
+    return fields;
+  }
+
+  private static Map<String, Object> totpReplayValidationFields(String credentialSource) {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("credentialSource", credentialSource);
+    fields.put("credentialReference", false);
+    fields.put("algorithm", "SHA512");
+    fields.put("digits", 8);
+    fields.put("stepSeconds", 60L);
+    fields.put("driftBackwardSteps", 0);
+    fields.put("driftForwardSteps", 0);
+    fields.put("timestampOverrideProvided", true);
+    fields.put("matchedSkewSteps", Integer.MIN_VALUE);
     return fields;
   }
 

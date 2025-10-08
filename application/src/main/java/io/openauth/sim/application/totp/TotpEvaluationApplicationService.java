@@ -431,12 +431,13 @@ public final class TotpEvaluationApplicationService {
         io.openauth.sim.application.telemetry.TotpTelemetryAdapter adapter, String telemetryId) {
       Objects.requireNonNull(adapter, "adapter");
       Objects.requireNonNull(telemetryId, "telemetryId");
-      return switch (status) {
-        case SUCCESS -> adapter.success(telemetryId, fields);
-        case INVALID ->
-            adapter.validationFailure(telemetryId, reasonCode, reason, sanitized, fields);
-        case ERROR -> adapter.error(telemetryId, reasonCode, reason, sanitized, fields);
-      };
+      String statusKey =
+          switch (status) {
+            case SUCCESS -> "success";
+            case INVALID -> "invalid";
+            case ERROR -> "error";
+          };
+      return adapter.status(statusKey, telemetryId, reasonCode, sanitized, reason, fields);
     }
   }
 

@@ -62,6 +62,7 @@ final class OcraOperatorUiController {
     model.addAttribute("hotpReplayEndpoint", "/api/v1/hotp/replay");
     model.addAttribute("totpStoredEvaluateEndpoint", "/api/v1/totp/evaluate");
     model.addAttribute("totpInlineEvaluateEndpoint", "/api/v1/totp/evaluate/inline");
+    model.addAttribute("totpReplayEndpoint", "/api/v1/totp/replay");
     model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
     model.addAttribute("activeProtocol", "ocra");
     populatePolicyPresets(model);

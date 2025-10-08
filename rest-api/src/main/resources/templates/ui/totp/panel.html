@@ -13,413 +13,797 @@
         aria-labelledby="protocol-tab-totp"
         th:attr="hidden=${visible == null || !visible} ? 'hidden' : null, aria-hidden=${visible == null || !visible} ? 'true' : null"
       >
-      <div class="card-shell">
-        <div class="card-shell__body section-columns">
-          <div class="stack-lg">
-            <h2 class="section-title" id="totp-panel-heading">Evaluate a TOTP code</h2>
-            <p class="summary">
-              Validate stored credentials or inline parameters against the TOTP evaluation service. All
-              values remain local to the simulator and telemetry redacts shared secrets automatically.
-            </p>
-            <fieldset
-                class="mode-toggle"
-                data-testid="totp-mode-toggle"
-                data-mode="stored"
-              >
-              <legend>Choose evaluation mode</legend>
-              <div class="mode-option">
-                <input
-                  type="radio"
-                  id="totpModeStored"
-                  name="totpMode"
-                  value="stored"
-                  data-testid="totp-mode-select-stored"
-                  aria-describedby="totpModeStoredHint"
-                  checked="checked"
-                />
-                <label for="totpModeStored">Stored credential</label>
-                <p id="totpModeStoredHint" class="hint">
-                  Submit an OTP for a credential saved in the shared simulator store. Timestamps use epoch
-                  seconds.
-                </p>
-              </div>
-              <div class="mode-option">
-                <input
-                  type="radio"
-                  id="totpModeInline"
-                  name="totpMode"
-                  value="inline"
-                  data-testid="totp-mode-select-inline"
-                  aria-describedby="totpModeInlineHint"
-                />
-                <label for="totpModeInline">Inline parameters</label>
-                <p id="totpModeInlineHint" class="hint">
-                  Provide the shared secret, algorithm, digits, step duration, and drift window manually.
-                </p>
-              </div>
-            </fieldset>
-
-            <section
-                class="stack-md"
-                data-mode-section="stored"
-                data-testid="totp-stored-panel"
-                aria-label="Stored TOTP evaluation form"
-              >
-              <form
-                  data-testid="totp-stored-form"
-                  class="evaluation-form"
-                  th:attr="data-evaluate-endpoint=${totpStoredEvaluateEndpoint}"
-                >
-                <input type="hidden" name="_csrf" th:value="${csrfToken}" />
-                <div class="field-grid">
-                  <div class="field-group">
-                    <label for="totpStoredCredentialId">Credential ID</label>
-                    <input
-                      id="totpStoredCredentialId"
-                      name="credentialId"
-                      type="text"
-                      required="required"
-                      autocomplete="off"
-                      spellcheck="false"
-                    />
-                  </div>
-                  <div class="field-group">
-                    <label for="totpStoredOtp">One-time password</label>
-                    <input
-                      id="totpStoredOtp"
-                      name="otp"
-                      type="text"
-                      inputmode="numeric"
-                      required="required"
-                      autocomplete="off"
-                      spellcheck="false"
-                    />
-                  </div>
-                </div>
-                <div class="field-grid">
-                  <div class="field-group">
-                    <label for="totpStoredTimestamp">Timestamp (epoch seconds)</label>
-                    <input
-                      id="totpStoredTimestamp"
-                      name="timestamp"
-                      type="number"
-                      inputmode="numeric"
-                      min="0"
-                      step="1"
-                    />
-                  </div>
-                  <div class="field-group">
-                    <label for="totpStoredDriftBackward">Drift backward (steps)</label>
-                    <input
-                      id="totpStoredDriftBackward"
-                      name="driftBackward"
-                      type="number"
-                      inputmode="numeric"
-                      min="0"
-                      step="1"
-                      value="1"
-                    />
-                  </div>
-                  <div class="field-group">
-                    <label for="totpStoredDriftForward">Drift forward (steps)</label>
-                    <input
-                      id="totpStoredDriftForward"
-                      name="driftForward"
-                      type="number"
-                      inputmode="numeric"
-                      min="0"
-                      step="1"
-                      value="1"
-                    />
-                  </div>
-                </div>
-                <div class="field-grid">
-                  <div class="field-group">
-                    <label for="totpStoredTimestampOverride">Timestamp override (epoch seconds)</label>
-                    <input
-                      id="totpStoredTimestampOverride"
-                      name="timestampOverride"
-                      type="number"
-                      inputmode="numeric"
-                      min="0"
-                      step="1"
-                    />
-                    <p class="hint">
-                      Optional override to simulate the verifier clock. When omitted, the submission
-                      timestamp is used for evaluation.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  class="button-primary"
-                  data-testid="totp-stored-evaluate-button"
-                >
-                  Evaluate stored credential
-                </button>
-              </form>
-            </section>
-
-            <section
-                class="stack-md"
-                data-mode-section="inline"
-                data-testid="totp-inline-panel"
-                aria-label="Inline TOTP evaluation form"
-                hidden="hidden"
-                aria-hidden="true"
-              >
-              <form
-                  data-testid="totp-inline-form"
-                  class="evaluation-form"
-                  th:attr="data-evaluate-endpoint=${totpInlineEvaluateEndpoint}"
-                >
-                <input type="hidden" name="_csrf" th:value="${csrfToken}" />
-                <div class="field-grid">
-                  <div class="field-group">
-                    <label for="totpInlineSecretHex">Shared secret (hex)</label>
-                    <textarea
-                      id="totpInlineSecretHex"
-                      name="sharedSecretHex"
-                      rows="3"
-                      required="required"
-                      spellcheck="false"
-                      autocapitalize="none"
-                    ></textarea>
-                  </div>
-                </div>
-
-                <div class="field-grid">
-                  <div class="field-group">
-                    <label for="totpInlineAlgorithm">Hash algorithm</label>
-                    <select
-                      id="totpInlineAlgorithm"
-                      name="algorithm"
-                      class="select-compact"
-                      required="required"
-                    >
-                      <option value="SHA1" selected>SHA-1</option>
-                      <option value="SHA256">SHA-256</option>
-                      <option value="SHA512">SHA-512</option>
-                    </select>
-                  </div>
-                  <div class="field-group">
-                    <label for="totpInlineDigits">Digits</label>
-                    <input
-                      id="totpInlineDigits"
-                      name="digits"
-                      type="number"
-                      min="6"
-                      max="8"
-                      step="1"
-                      value="6"
-                      required="required"
-                      class="input-compact"
-                    />
-                  </div>
-                  <div class="field-group">
-                    <label for="totpInlineStepSeconds">Step (seconds)</label>
-                    <input
-                      id="totpInlineStepSeconds"
-                      name="stepSeconds"
-                      type="number"
-                      min="1"
-                      step="1"
-                      value="30"
-                      required="required"
-                      class="input-compact"
-                    />
-                  </div>
-                </div>
-
-                <div class="field-grid">
-                  <div class="field-group">
-                    <label for="totpInlineDriftBackward">Drift backward (steps)</label>
-                    <input
-                      id="totpInlineDriftBackward"
-                      name="driftBackward"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value="1"
-                      class="input-compact"
-                    />
-                  </div>
-                  <div class="field-group">
-                    <label for="totpInlineDriftForward">Drift forward (steps)</label>
-                    <input
-                      id="totpInlineDriftForward"
-                      name="driftForward"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value="1"
-                      class="input-compact"
-                    />
-                  </div>
-                  <div class="field-group">
-                    <label for="totpInlineTimestamp">Timestamp (epoch seconds)</label>
-                    <input
-                      id="totpInlineTimestamp"
-                      name="timestamp"
-                      type="number"
-                      min="0"
-                      step="1"
-                      class="input-compact"
-                    />
-                  </div>
-                </div>
-
-                <div class="field-grid">
-                  <div class="field-group">
-                    <label for="totpInlineTimestampOverride">Timestamp override (epoch seconds)</label>
-                    <input
-                      id="totpInlineTimestampOverride"
-                      name="timestampOverride"
-                      type="number"
-                      min="0"
-                      step="1"
-                      class="input-compact"
-                    />
-                    <p class="hint">
-                      Optional alternate verification timestamp. Ideal for simulating skewed server
-                      clocks.
-                    </p>
-                  </div>
-                  <div class="field-group">
-                    <label for="totpInlineOtp">One-time password</label>
-                    <input
-                      id="totpInlineOtp"
-                      name="otp"
-                      type="text"
-                      required="required"
-                      inputmode="numeric"
-                      autocomplete="off"
-                      spellcheck="false"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  class="button-primary"
-                  data-testid="totp-inline-evaluate-button"
-                >
-                  Evaluate inline parameters
-                </button>
-              </form>
-            </section>
-          </div>
-
-          <div class="status-column stack-md">
-            <section
-                data-testid="totp-stored-result-panel"
-                class="result-panel"
-                aria-live="polite"
-                aria-labelledby="totp-stored-result-heading"
-                hidden="hidden"
-              >
-              <h3 id="totp-stored-result-heading">Stored credential result</h3>
-              <dl class="result-metadata">
-                <div class="result-row">
-                  <dt>Status</dt>
-                  <dd>
-                    <span class="status-badge" data-testid="totp-result-status">—</span>
-                  </dd>
-                </div>
-                <div class="result-row">
-                  <dt>Reason code</dt>
-                  <dd>
-                    <span data-testid="totp-result-reason-code">—</span>
-                  </dd>
-                </div>
-                <div class="result-row">
-                  <dt>Matched skew steps</dt>
-                  <dd data-testid="totp-result-skew">—</dd>
-                </div>
-                <div class="result-row">
-                  <dt>Algorithm</dt>
-                  <dd data-testid="totp-result-algorithm">—</dd>
-                </div>
-                <div class="result-row">
-                  <dt>Digits</dt>
-                  <dd data-testid="totp-result-digits">—</dd>
-                </div>
-                <div class="result-row">
-                  <dt>Step seconds</dt>
-                  <dd data-testid="totp-result-step">—</dd>
-                </div>
-                <div class="result-row">
-                  <dt>Drift window</dt>
-                  <dd>
-                    <span data-testid="totp-result-drift-backward">—</span> backward /
-                    <span data-testid="totp-result-drift-forward">—</span> forward
-                  </dd>
-                </div>
-                <div class="result-row">
-                  <dt>Telemetry ID</dt>
-                  <dd data-testid="totp-result-telemetry">—</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section
-                data-testid="totp-inline-result-panel"
-                class="result-panel"
-                aria-live="polite"
-                aria-labelledby="totp-inline-result-heading"
-                hidden="hidden"
-              >
-              <h3 id="totp-inline-result-heading">Inline evaluation result</h3>
-              <dl class="result-metadata">
-                <div class="result-row">
-                  <dt>Status</dt>
-                  <dd>
-                    <span class="status-badge" data-testid="totp-inline-result-status">—</span>
-                  </dd>
-                </div>
-                <div class="result-row">
-                  <dt>Reason code</dt>
-                  <dd>
-                    <span data-testid="totp-inline-result-reason-code">—</span>
-                  </dd>
-                </div>
-                <div class="result-row">
-                  <dt>Telemetry ID</dt>
-                  <dd data-testid="totp-inline-result-telemetry">—</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section
-                data-testid="totp-stored-error-panel"
-                class="error-panel"
-                role="alert"
-                aria-live="assertive"
-                hidden="hidden"
-              >
-              <h3>Stored evaluation failed</h3>
-              <p>
-                <strong data-testid="totp-stored-error-reason">—</strong>
-                <span data-testid="totp-stored-error-message"></span>
-              </p>
-            </section>
-
-            <section
-                data-testid="totp-inline-error-panel"
-                class="error-panel"
-                role="alert"
-                aria-live="assertive"
-                hidden="hidden"
-              >
-              <h3>Inline evaluation failed</h3>
-              <p>
-                <strong data-testid="totp-inline-error-reason">—</strong>
-                <span data-testid="totp-inline-error-message"></span>
-              </p>
-            </section>
-          </div>
+      <div class="stack-lg">
+        <div
+            class="ocra-mode-toggle"
+            data-testid="totp-panel-tabs"
+            role="tablist"
+            aria-label="TOTP interaction modes"
+          >
+          <button
+              type="button"
+              class="mode-pill mode-pill--active"
+              id="totp-panel-tab-evaluate"
+              data-testid="totp-panel-tab-evaluate"
+              data-totp-panel-target="evaluate"
+              role="tab"
+              aria-selected="true"
+              aria-controls="totp-evaluate-panel"
+            >
+            Evaluate
+          </button>
+          <button
+              type="button"
+              class="mode-pill"
+              id="totp-panel-tab-replay"
+              data-testid="totp-panel-tab-replay"
+              data-totp-panel-target="replay"
+              role="tab"
+              aria-selected="false"
+              aria-controls="totp-replay-panel"
+            >
+            Replay
+          </button>
         </div>
+
+        <section
+            id="totp-evaluate-panel"
+            class="card-shell"
+            data-testid="totp-evaluate-panel"
+            data-totp-panel="evaluate"
+            role="tabpanel"
+            aria-labelledby="totp-panel-tab-evaluate"
+          >
+          <div class="card-shell__body section-columns">
+            <div class="stack-lg">
+              <h2 class="section-title" id="totp-panel-heading">Evaluate a TOTP code</h2>
+              <p class="summary">
+                Validate stored credentials or inline parameters against the TOTP evaluation service.
+                All values remain local to the simulator and telemetry redacts shared secrets
+                automatically.
+              </p>
+              <fieldset
+                  class="mode-toggle"
+                  data-testid="totp-mode-toggle"
+                  data-mode="stored"
+                >
+                <legend>Choose evaluation mode</legend>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="totpModeStored"
+                    name="totpMode"
+                    value="stored"
+                    data-testid="totp-mode-select-stored"
+                    aria-describedby="totpModeStoredHint"
+                    checked="checked"
+                  />
+                  <label for="totpModeStored">Stored credential</label>
+                  <p id="totpModeStoredHint" class="hint">
+                    Submit an OTP for a credential saved in the shared simulator store. Timestamps use
+                    epoch seconds.
+                  </p>
+                </div>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="totpModeInline"
+                    name="totpMode"
+                    value="inline"
+                    data-testid="totp-mode-select-inline"
+                    aria-describedby="totpModeInlineHint"
+                  />
+                  <label for="totpModeInline">Inline parameters</label>
+                  <p id="totpModeInlineHint" class="hint">
+                    Provide the shared secret, algorithm, digits, step duration, and drift window
+                    manually.
+                  </p>
+                </div>
+              </fieldset>
+
+              <section
+                  class="stack-md"
+                  data-mode-section="stored"
+                  data-testid="totp-stored-panel"
+                  aria-label="Stored TOTP evaluation form"
+                >
+                <form
+                    data-testid="totp-stored-form"
+                    class="evaluation-form"
+                    th:attr="data-evaluate-endpoint=${totpStoredEvaluateEndpoint}"
+                  >
+                  <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="totpStoredCredentialId">Credential ID</label>
+                      <input
+                        id="totpStoredCredentialId"
+                        name="credentialId"
+                        type="text"
+                        required="required"
+                        autocomplete="off"
+                        spellcheck="false"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpStoredOtp">One-time password</label>
+                      <input
+                        id="totpStoredOtp"
+                        name="otp"
+                        type="text"
+                        inputmode="numeric"
+                        required="required"
+                        autocomplete="off"
+                        spellcheck="false"
+                      />
+                    </div>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="totpStoredTimestamp">Timestamp (epoch seconds)</label>
+                      <input
+                        id="totpStoredTimestamp"
+                        name="timestamp"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpStoredTimestampOverride">Timestamp override</label>
+                      <input
+                        id="totpStoredTimestampOverride"
+                        name="timestampOverride"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                      />
+                    </div>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="totpStoredDriftBackward">Drift backward (steps)</label>
+                      <input
+                        id="totpStoredDriftBackward"
+                        name="driftBackward"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="1"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpStoredDriftForward">Drift forward (steps)</label>
+                      <input
+                        id="totpStoredDriftForward"
+                        name="driftForward"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="1"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="button-primary"
+                    data-testid="totp-stored-evaluate-button"
+                  >
+                    Evaluate stored credential
+                  </button>
+                </form>
+              </section>
+
+              <section
+                  class="stack-md"
+                  data-mode-section="inline"
+                  data-testid="totp-inline-panel"
+                  aria-label="Inline TOTP evaluation form"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
+                <form
+                    data-testid="totp-inline-form"
+                    class="evaluation-form"
+                    th:attr="data-evaluate-endpoint=${totpInlineEvaluateEndpoint}"
+                  >
+                  <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="totpInlineSecretHex">Shared secret (hex)</label>
+                      <textarea
+                        id="totpInlineSecretHex"
+                        name="sharedSecretHex"
+                        rows="3"
+                        required="required"
+                      ></textarea>
+                    </div>
+                    <div class="field-group">
+                      <label for="totpInlineAlgorithm">Algorithm</label>
+                      <select id="totpInlineAlgorithm" name="algorithm">
+                        <option value="SHA1">SHA-1</option>
+                        <option value="SHA256">SHA-256</option>
+                        <option value="SHA512">SHA-512</option>
+                      </select>
+                    </div>
+                    <div class="field-group">
+                      <label for="totpInlineDigits">Digits</label>
+                      <input
+                        id="totpInlineDigits"
+                        name="digits"
+                        type="number"
+                        inputmode="numeric"
+                        min="6"
+                        max="8"
+                        step="2"
+                        value="6"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpInlineStepSeconds">Step seconds</label>
+                      <input
+                        id="totpInlineStepSeconds"
+                        name="stepSeconds"
+                        type="number"
+                        inputmode="numeric"
+                        min="15"
+                        step="1"
+                        value="30"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="totpInlineOtp">One-time password</label>
+                      <input
+                        id="totpInlineOtp"
+                        name="otp"
+                        type="text"
+                        inputmode="numeric"
+                        required="required"
+                        autocomplete="off"
+                        spellcheck="false"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpInlineTimestamp">Timestamp (epoch seconds)</label>
+                      <input
+                        id="totpInlineTimestamp"
+                        name="timestamp"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpInlineTimestampOverride">Timestamp override</label>
+                      <input
+                        id="totpInlineTimestampOverride"
+                        name="timestampOverride"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpInlineDriftBackward">Drift backward (steps)</label>
+                      <input
+                        id="totpInlineDriftBackward"
+                        name="driftBackward"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="1"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpInlineDriftForward">Drift forward (steps)</label>
+                      <input
+                        id="totpInlineDriftForward"
+                        name="driftForward"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="1"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="button-primary"
+                    data-testid="totp-inline-evaluate-button"
+                  >
+                    Evaluate inline parameters
+                  </button>
+                </form>
+              </section>
+            </div>
+
+            <div class="status-column stack-md">
+              <section
+                  data-testid="totp-stored-result-panel"
+                  class="result-panel"
+                  aria-live="polite"
+                  aria-labelledby="totp-stored-result-heading"
+                  hidden="hidden"
+                >
+                <h3 id="totp-stored-result-heading">Stored credential result</h3>
+                <dl class="result-metadata">
+                  <div class="result-row">
+                    <dt>Status</dt>
+                    <dd>
+                      <span class="status-badge" data-testid="totp-result-status">—</span>
+                    </dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Reason code</dt>
+                    <dd>
+                      <span data-testid="totp-result-reason-code">—</span>
+                    </dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Matched skew steps</dt>
+                    <dd data-testid="totp-result-skew">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Algorithm</dt>
+                    <dd data-testid="totp-result-algorithm">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Digits</dt>
+                    <dd data-testid="totp-result-digits">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Step seconds</dt>
+                    <dd data-testid="totp-result-step">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Drift window</dt>
+                    <dd>
+                      <span data-testid="totp-result-drift-backward">—</span> backward /
+                      <span data-testid="totp-result-drift-forward">—</span> forward
+                    </dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Telemetry ID</dt>
+                    <dd data-testid="totp-result-telemetry">—</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section
+                  data-testid="totp-inline-result-panel"
+                  class="result-panel"
+                  aria-live="polite"
+                  aria-labelledby="totp-inline-result-heading"
+                  hidden="hidden"
+                >
+                <h3 id="totp-inline-result-heading">Inline evaluation result</h3>
+                <dl class="result-metadata">
+                  <div class="result-row">
+                    <dt>Status</dt>
+                    <dd>
+                      <span class="status-badge" data-testid="totp-inline-result-status">—</span>
+                    </dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Reason code</dt>
+                    <dd>
+                      <span data-testid="totp-inline-result-reason-code">—</span>
+                    </dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Telemetry ID</dt>
+                    <dd data-testid="totp-inline-result-telemetry">—</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section
+                  data-testid="totp-stored-error-panel"
+                  class="error-panel"
+                  role="alert"
+                  aria-live="assertive"
+                  hidden="hidden"
+                >
+                <h3>Stored evaluation failed</h3>
+                <p>
+                  <strong data-testid="totp-stored-error-reason">—</strong>
+                  <span data-testid="totp-stored-error-message"></span>
+                </p>
+              </section>
+
+              <section
+                  data-testid="totp-inline-error-panel"
+                  class="error-panel"
+                  role="alert"
+                  aria-live="assertive"
+                  hidden="hidden"
+                >
+                <h3>Inline evaluation failed</h3>
+                <p>
+                  <strong data-testid="totp-inline-error-reason">—</strong>
+                  <span data-testid="totp-inline-error-message"></span>
+                </p>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section
+            id="totp-replay-panel"
+            class="card-shell"
+            data-testid="totp-replay-panel"
+            data-totp-panel="replay"
+            role="tabpanel"
+            aria-labelledby="totp-panel-tab-replay"
+            hidden="hidden"
+            aria-hidden="true"
+          >
+          <div class="card-shell__body section-columns">
+            <div class="stack-lg">
+              <h2 class="section-title" id="totp-replay-heading">Replay a TOTP code</h2>
+              <p class="summary">
+                Submit stored or ad-hoc parameters to inspect replay outcomes without mutating
+                credential state. Responses include matched skew metadata and telemetry identifiers for
+                downstream correlation.
+              </p>
+
+              <fieldset
+                  class="mode-toggle"
+                  data-testid="totp-replay-mode-toggle"
+                  data-mode="stored"
+                >
+                <legend>Choose replay mode</legend>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="totpReplayModeStored"
+                    name="totpReplayMode"
+                    value="stored"
+                    data-testid="totp-replay-mode-select-stored"
+                    aria-describedby="totpReplayModeStoredHint"
+                    checked="checked"
+                  />
+                  <label for="totpReplayModeStored">Stored credential</label>
+                  <p id="totpReplayModeStoredHint" class="hint">
+                    Provide a credential ID and OTP to validate against the existing simulator store.
+                  </p>
+                </div>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="totpReplayModeInline"
+                    name="totpReplayMode"
+                    value="inline"
+                    data-testid="totp-replay-mode-select-inline"
+                    aria-describedby="totpReplayModeInlineHint"
+                  />
+                  <label for="totpReplayModeInline">Inline parameters</label>
+                  <p id="totpReplayModeInlineHint" class="hint">
+                    Supply a shared secret, algorithm, and drift controls to simulate replay
+                    diagnostics.
+                  </p>
+                </div>
+              </fieldset>
+
+              <section
+                  class="stack-md"
+                  data-replay-section="stored"
+                  data-testid="totp-replay-stored-section"
+                  aria-label="Stored TOTP replay form"
+                >
+                <form
+                    data-testid="totp-replay-stored-form"
+                    class="evaluation-form"
+                    th:attr="data-replay-endpoint=${totpReplayEndpoint}"
+                  >
+                  <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="totpReplayStoredCredentialId">Credential ID</label>
+                      <input
+                        id="totpReplayStoredCredentialId"
+                        name="credentialId"
+                        type="text"
+                        required="required"
+                        autocomplete="off"
+                        spellcheck="false"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpReplayStoredOtp">One-time password</label>
+                      <input
+                        id="totpReplayStoredOtp"
+                        name="otp"
+                        type="text"
+                        inputmode="numeric"
+                        required="required"
+                        autocomplete="off"
+                        spellcheck="false"
+                      />
+                    </div>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="totpReplayStoredTimestamp">Timestamp (epoch seconds)</label>
+                      <input
+                        id="totpReplayStoredTimestamp"
+                        name="timestamp"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpReplayStoredTimestampOverride">Timestamp override</label>
+                      <input
+                        id="totpReplayStoredTimestampOverride"
+                        name="timestampOverride"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                      />
+                    </div>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="totpReplayStoredDriftBackward">Drift backward (steps)</label>
+                      <input
+                        id="totpReplayStoredDriftBackward"
+                        name="driftBackward"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="1"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpReplayStoredDriftForward">Drift forward (steps)</label>
+                      <input
+                        id="totpReplayStoredDriftForward"
+                        name="driftForward"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="1"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="button-secondary"
+                    data-testid="totp-replay-stored-submit"
+                  >
+                    Replay stored credential
+                  </button>
+                </form>
+              </section>
+
+              <section
+                  class="stack-md"
+                  data-replay-section="inline"
+                  data-testid="totp-replay-inline-section"
+                  aria-label="Inline TOTP replay form"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
+                <form
+                    data-testid="totp-replay-inline-form"
+                    class="evaluation-form"
+                    th:attr="data-replay-endpoint=${totpReplayEndpoint}"
+                  >
+                  <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="totpReplayInlineSecretHex">Shared secret (hex)</label>
+                      <textarea
+                        id="totpReplayInlineSecretHex"
+                        name="sharedSecretHex"
+                        rows="3"
+                        required="required"
+                      ></textarea>
+                    </div>
+                    <div class="field-group">
+                      <label for="totpReplayInlineAlgorithm">Algorithm</label>
+                      <select id="totpReplayInlineAlgorithm" name="algorithm">
+                        <option value="SHA1">SHA-1</option>
+                        <option value="SHA256">SHA-256</option>
+                        <option value="SHA512">SHA-512</option>
+                      </select>
+                    </div>
+                    <div class="field-group">
+                      <label for="totpReplayInlineDigits">Digits</label>
+                      <input
+                        id="totpReplayInlineDigits"
+                        name="digits"
+                        type="number"
+                        inputmode="numeric"
+                        min="6"
+                        max="8"
+                        step="2"
+                        value="6"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpReplayInlineStepSeconds">Step seconds</label>
+                      <input
+                        id="totpReplayInlineStepSeconds"
+                        name="stepSeconds"
+                        type="number"
+                        inputmode="numeric"
+                        min="15"
+                        step="1"
+                        value="30"
+                      />
+                    </div>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="totpReplayInlineOtp">One-time password</label>
+                      <input
+                        id="totpReplayInlineOtp"
+                        name="otp"
+                        type="text"
+                        inputmode="numeric"
+                        required="required"
+                        autocomplete="off"
+                        spellcheck="false"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpReplayInlineTimestamp">Timestamp (epoch seconds)</label>
+                      <input
+                        id="totpReplayInlineTimestamp"
+                        name="timestamp"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpReplayInlineTimestampOverride">Timestamp override</label>
+                      <input
+                        id="totpReplayInlineTimestampOverride"
+                        name="timestampOverride"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpReplayInlineDriftBackward">Drift backward (steps)</label>
+                      <input
+                        id="totpReplayInlineDriftBackward"
+                        name="driftBackward"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="1"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="totpReplayInlineDriftForward">Drift forward (steps)</label>
+                      <input
+                        id="totpReplayInlineDriftForward"
+                        name="driftForward"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="1"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="button-secondary"
+                    data-testid="totp-replay-inline-submit"
+                  >
+                    Replay inline parameters
+                  </button>
+                </form>
+              </section>
+            </div>
+
+            <div class="status-column stack-md">
+              <section
+                  data-testid="totp-replay-result-panel"
+                  class="result-panel"
+                  aria-live="polite"
+                  aria-labelledby="totp-replay-result-heading"
+                  hidden="hidden"
+                >
+                <h3 id="totp-replay-result-heading">Replay result</h3>
+                <dl class="result-metadata">
+                  <div class="result-row">
+                    <dt>Status</dt>
+                    <dd>
+                      <span class="status-badge" data-testid="totp-replay-status">—</span>
+                    </dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Reason code</dt>
+                    <dd>
+                      <span data-testid="totp-replay-reason-code">—</span>
+                    </dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Credential source</dt>
+                    <dd data-testid="totp-replay-credential-source">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Credential ID</dt>
+                    <dd data-testid="totp-replay-credential-id">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Matched skew steps</dt>
+                    <dd data-testid="totp-replay-matched-skew">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Algorithm</dt>
+                    <dd data-testid="totp-replay-algorithm">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Digits</dt>
+                    <dd data-testid="totp-replay-digits">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Step seconds</dt>
+                    <dd data-testid="totp-replay-step">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Drift window</dt>
+                    <dd>
+                      <span data-testid="totp-replay-drift-backward">—</span> backward /
+                      <span data-testid="totp-replay-drift-forward">—</span> forward
+                    </dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Timestamp override provided</dt>
+                    <dd data-testid="totp-replay-timestamp-override">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Telemetry ID</dt>
+                    <dd data-testid="totp-replay-telemetry">—</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section
+                  data-testid="totp-replay-error-panel"
+                  class="error-panel"
+                  role="alert"
+                  aria-live="assertive"
+                  hidden="hidden"
+                >
+                <h3>TOTP replay failed</h3>
+                <p>
+                  <strong data-testid="totp-replay-error-reason">—</strong>
+                  <span data-testid="totp-replay-error-message"></span>
+                </p>
+              </section>
+            </div>
+          </div>
+        </section>
       </div>
     </section>
   </body>

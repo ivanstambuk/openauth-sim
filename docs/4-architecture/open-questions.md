@@ -12,3 +12,4 @@ When communicating options to the user—whether resolving an open question or p
 
 | Date | Context | Question | Status | Resolution |
 | 2025-10-08 | Workstream 15 – TOTP operator support | Please confirm target wiring order/apis for introducing TOTP evaluation commands/endpoints (CLI + REST) now that the application service exists. Should we mirror HOTP flows directly or stage separate failing tests first? | Resolved | docs/4-architecture/specs/feature-023-totp-operator-support.md |
+| 2025-10-08 | Feature 023 – TOTP operator UI parity | What behaviour should the new TOTP “Replay” tab provide so it “works like HOTP and OCRA”: (A) reuse the existing evaluation flow as a read-only replay endpoint, (B) compute and display expected OTP codes for diagnostics, or (C) another interaction model? | Resolved | docs/4-architecture/specs/feature-023-totp-operator-support.md |

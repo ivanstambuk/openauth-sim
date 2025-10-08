@@ -35,6 +35,16 @@ public final class TotpTelemetryAdapter {
     return frame("error", telemetryId, reasonCode, sanitized, reason, fields);
   }
 
+  public TelemetryFrame status(
+      String status,
+      String telemetryId,
+      String reasonCode,
+      boolean sanitized,
+      String reason,
+      Map<String, Object> fields) {
+    return frame(status, telemetryId, reasonCode, sanitized, reason, fields);
+  }
+
   private TelemetryFrame frame(
       String status,
       String telemetryId,
