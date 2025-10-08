@@ -1,10 +1,10 @@
 # Feature 022 – HOTP Operator Support
 
-_Status: Draft_
-_Last updated: 2025-10-07_
+_Status: Complete_
+_Last updated: 2025-10-08_
 
 ## Overview
-Deliver RFC 4226 HOTP capabilities across the simulator so operators can register and validate HOTP credentials alongside the existing OCRA flows. This feature introduces a dedicated HOTP domain model, persistence wiring, telemetry events, façade endpoints (CLI + REST), and operator console UI evaluation flows (stored + inline) while keeping issuance out of scope.
+Deliver RFC 4226 HOTP capabilities across the simulator so operators can register and validate HOTP credentials alongside the existing OCRA flows. This feature introduces a dedicated HOTP domain model, persistence wiring, telemetry events, façade endpoints (CLI + REST), and operator console UI evaluation flows (stored + inline) while keeping issuance out of scope. All success criteria were satisfied on 2025-10-08 following stored-mode seeding coverage verification.
 
 
 ## Clarifications

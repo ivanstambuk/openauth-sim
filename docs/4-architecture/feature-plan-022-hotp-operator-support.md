@@ -1,12 +1,15 @@
 # Feature Plan 022 – HOTP Operator Support
 
-_Status: Draft_
-_Last updated: 2025-10-07_
+_Status: Complete_
+_Last updated: 2025-10-08_
 
 ## Objective
 Implement end-to-end HOTP flows (core domain, shared persistence, telemetry, CLI, REST) so operators can manage HOTP credentials alongside OCRA while reusing the existing schema-v1 storage baseline.
 
 Reference specification: `docs/4-architecture/specs/feature-022-hotp-operator-support.md`.
+
+## Completion Summary
+- 2025-10-08 – Verified stored-mode seeding coverage (R2242) via targeted REST + Selenium runs, reran `./gradlew spotlessApply check`, and confirmed all increments/tasks closed.
 
 ## Success Criteria
 - HOTP credential descriptors and generators comply with RFC 4226 (`HOS-001`).
@@ -118,7 +121,7 @@ Each increment must complete within ≤10 minutes, lead with tests where practic
 - 2025-10-06 – R2239 complete: HOTP result panel markup adopts the OCRA card structure (inline OTP paragraph, status `<dl>`), status badge rendering preserved, and metadata rows removed; targeted UI suite plus full `./gradlew spotlessApply check` both green.
 - 2025-10-06 – R2240 complete: Selenium assertions now require the OCRA evaluation result to surface the shared success badge (`status-badge--success`); targeted run `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest"` failed prior to markup updates.
 - 2025-10-06 – R2241 complete: OCRA result panel markup/scripts adopt the HOTP badge styling and mixed inline row, shrinking the card to match HOTP dimensions; targeted OCRA/HOTP suites and full `./gradlew spotlessApply check` pass.
-- ☐ R2242 – Add failing REST + Selenium coverage for the HOTP stored credential seeding button (empty-store scenario, telemetry assertions, idempotency) via targeted `:rest-api:test` runs.
+- ☑ R2242 – Add failing REST + Selenium coverage for the HOTP stored credential seeding button (empty-store scenario, telemetry assertions, idempotency) via targeted `:rest-api:test` runs. (2025-10-08: Confirmed both suites exist and pass after executing `./gradlew :rest-api:test --tests "io.openauth.sim.rest.HotpCredentialSeedingEndpointTest"` and `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeedingSeleniumTest"`.)
 - ☑ R2243 – Implement HOTP seeding service and REST endpoint mirroring the OCRA flow, append canonical SHA-1/6 and SHA-256/8 credentials without overwriting existing entries, and satisfy R2242. (2025-10-06: hotp seed service + controller endpoint added; `./gradlew :application:test --tests "io.openauth.sim.application.telemetry.HotpTelemetryContractTest"` and `./gradlew :rest-api:test --tests "io.openauth.sim.rest.HotpCredentialSeedingEndpointTest"` now pass.)
 - ☑ R2244 – Wire the operator UI seeding button to the HOTP endpoint (stored-mode only), surface status messaging, reuse preset metadata, and rerun targeted UI suites. (2025-10-06: added stored-mode seed controls to the HOTP panel, parsed canonical seed metadata from `HotpOperatorSampleData` for replay hints, and refreshed `console.js` to call `/api/v1/hotp/credentials/seed`; targeted run `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeedingSeleniumTest"` now passes.)
 - ☑ R2245 – Sync documentation (how-to, roadmap, knowledge map) and rerun `./gradlew spotlessApply check` after HOTP seeding lands. (2025-10-06: refreshed HOTP operator UI how-to with the stored-mode seeding workflow, updated the roadmap and knowledge map entries, and prepared to rerun the formatting/verification task.)

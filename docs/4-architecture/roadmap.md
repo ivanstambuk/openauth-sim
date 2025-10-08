@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-_Last updated: 2025-10-06_
+_Last updated: 2025-10-08_
 
 This roadmap tracks the major workstreams required to reach a feature-complete OpenAuth Simulator. Update this file whenever scope or status changes so future sessions can pick up without replaying prior conversations.
 
@@ -27,7 +27,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 11 | Java 17 language enhancements | Adopt sealed hierarchies and text blocks across OCRA CLI/REST internals | Complete | Spec: [Feature 013](specs/feature-013-java17-enhancements.md), Plan: [Feature Plan 013](feature-plan-013-java17-enhancements.md), Tasks: [Feature 013 Tasks](tasks/feature-013-java17-enhancements.md); Closed 2025-10-01 with `qualityGate` validation |
 | 12 | Architecture harmonization | Share OCRA orchestration, persistence provisioning, telemetry, and DTO seams across facades while preparing protocol-specific modules | Complete | Spec: [Feature 014](specs/feature-014-architecture-harmonization.md), Plan: [Feature Plan 014](feature-plan-014-architecture-harmonization.md), Tasks: [Feature 014 Tasks](tasks/feature-014-architecture-harmonization.md); Closed 2025-10-02 after R1408 documentation sync + quality gate rerun |
 | 13 | SpotBugs dead-state enforcement | Fail builds on unread/unwritten field detectors across JVM modules | Complete | Spec: [Feature 015](specs/feature-015-spotbugs-dead-state-enforcement.md), Plan: [Feature Plan 015](feature-plan-015-spotbugs-dead-state-enforcement.md), Tasks: [Feature 015 Tasks](tasks/feature-015-spotbugs-dead-state-enforcement.md); Closed 2025-10-03 after SpotBugs+PMD guardrails verified via `./gradlew :rest-api:pmdTest` and root `check` |
-| 14 | HOTP operator support | Deliver HOTP credential flows (issuance, validation, operator tooling) across core/application/UI channels | In progress | Spec: [Feature 022](specs/feature-022-hotp-operator-support.md), Plan: [Feature Plan 022](feature-plan-022-hotp-operator-support.md), Tasks: [Feature 022 Tasks](tasks/feature-022-hotp-operator-support.md); R2209 + R2211 brought HOTP stored/inline evaluation into the operator console with Selenium coverage; R2213–R2216 layered HOTP replay REST services + UI flows with dedicated telemetry; R2217 syncs roadmap/docs/knowledge map updates and reruns spotless to close out operator UI scope; R2244 exposes the stored-mode seeding control that drives `/api/v1/hotp/credentials/seed` with canonical metadata |
+| 14 | HOTP operator support | Deliver HOTP credential flows (issuance, validation, operator tooling) across core/application/UI channels | Complete | Spec: [Feature 022](specs/feature-022-hotp-operator-support.md), Plan: [Feature Plan 022](feature-plan-022-hotp-operator-support.md), Tasks: [Feature 022 Tasks](tasks/feature-022-hotp-operator-support.md); R2293 completed replay sample integration, and 2025-10-08 sealed the workstream after R2242 stored-mode seeding coverage verification + `./gradlew spotlessApply check` |
 | 15 | TOTP operator support | Provide TOTP credential lifecycle and operator console integrations | Not started | Spec: TBA; placeholder tab shipped via Feature 020 – plan/tasks pending |
 | 16 | EUDIW OpenID4VP simulator | Simulate verifiable presentation requests for EUDI wallet OpenID4VP 1.0 flows | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
 | 17 | EUDIW ISO/IEC 18013-5 simulator | Surface ISO/IEC 18013-5 credential presentation workflows for EUDI wallets | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
@@ -36,7 +36,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 
 ## Upcoming Milestones
 
-1. Prepare specifications and feature plans for Workstreams 14–18 before initiating implementation; capture clarifications in `docs/4-architecture/open-questions.md`.
+1. Prepare specifications and feature plans for Workstreams 15–18 before initiating implementation; capture clarifications in `docs/4-architecture/open-questions.md`.
 2. Confirm the next high-priority facade effort (Workstream 9 vs HOTP/TOTP/EUDIW) through the clarification gate and update roadmap/scope documents.
 3. Monitor SpotBugs/PMD runtime impact post-Feature 015 rollout and capture build timing metrics in `docs/5-operations/analysis-gate-checklist.md` by 2025-10-07.
 4. Prototype educational simulator UI flows (Workstream 9) to complement human operators.

@@ -1,7 +1,7 @@
 # Feature 022 – Task Checklist
 
-_Status: Draft_
-_Last updated: 2025-10-07_
+_Status: Complete_
+_Last updated: 2025-10-08_
 
 ## Tasks (≤10 min each)
 - ☑ T2201 – Add failing HOTP generator/validator unit tests covering counter rollover, digit length variants, and secret bounds.

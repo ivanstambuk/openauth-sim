@@ -1,7 +1,7 @@
 # Feature 006 – OCRA Operator UI Specification
 
 _Status: Draft_
-_Last updated: 2025-09-29_
+_Last updated: 2025-10-07_
 
 ## Overview
 Deliver an operator-facing UI that allows manual OCRA evaluation without relying on the CLI. The experience will be hosted within the existing Spring Boot `rest-api` module as server-rendered pages, consume the published REST endpoints, and surface sanitized telemetry so operators can troubleshoot requests quickly. This first increment focuses on evaluation flows; credential lifecycle management remains CLI-only until future workstreams extend the REST surface.
@@ -31,6 +31,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-10-07 – OCRA Evaluate tab must keep the same vertical spacing between the “Load a sample vector” label and selector as the Replay tab baseline so inline sample affordances align (user directive).
 - 2025-10-07 – The “Load a sample vector” label on the OCRA Evaluate tab must use the same typography weight token as the Replay tab and HOTP tabs to preserve cross-protocol consistency (user chose option A).
 - 2025-10-07 – Inline preset hint copy must read “Selecting a preset auto-fills the inline fields with illustrative data.” so the UI matches HOTP guidance (user directive).
+- 2025-10-07 – Guided inline policy builder remains exclusive to the Evaluate tab; Replay continues to rely on manual context entry so historical OTP payloads stay immutable (user chose option A).
 - 2025-09-29 – Default credential database lives at `data/ocra-credentials.db` in the repo root so CLI and REST/Operator UI share the same persistence by default; environment/property overrides remain supported.
 - 2025-09-29 – Builder must surface inline validation and disable Apply when configuration is incomplete (e.g., invalid session length or missing challenge) while keeping assistive messaging accessible (agreed during UX polish).
 - 2025-09-29 – Stored credential auto-populate button will fill every suite-required field (challenge, counter, session, timestamp, PIN) and clear disallowed inputs to prevent validation conflicts; logic executes entirely in the client.
