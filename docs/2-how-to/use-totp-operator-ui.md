@@ -26,8 +26,8 @@ The operator console embedded in the REST API now exposes TOTP evaluation and re
 
 ## Replay Stored or Inline TOTP Submissions
 1. Select the **Replay** tab. The console exposes a replay mode toggle that defaults to **Stored credential** and never mutates simulator state.
-2. For stored replays, enter the credential ID, OTP, timestamp, and optional timestamp override. Adjust the drift window if you want to test looser or stricter tolerance. Click **Replay stored credential** to receive a `match` or `mismatch` outcome along with matched skew metadata, the credential source, and a telemetry identifier.
-3. For inline replays, choose **Inline parameters**, provide the shared secret and configuration (algorithm, digits, step seconds, drift window), set the timestamp and optional override, then submit **Replay inline parameters**. The UI reports whether the OTP would have matched under the supplied conditions.
+2. For stored replays, enter the credential ID, OTP, timestamp, and optional timestamp override. Adjust the drift window if you want to test looser or stricter tolerance. Click **Verify OTP** to receive a `match` or `mismatch` outcome along with matched skew metadata, the credential source, and a telemetry identifier.
+3. For inline replays, choose **Inline parameters**, provide the shared secret and configuration (algorithm, digits, step seconds, drift window), set the timestamp and optional override, then press **Verify OTP**. The UI reports whether the OTP would have matched under the supplied conditions.
 4. Replay requests emit `rest.totp.replay` telemetry with the same sanitisation guarantees as evaluation—secrets and OTP values are never echoed in the payload.
 
 ## Persist Tabs and Modes with Query Parameters

@@ -57,11 +57,6 @@
           <div class="card-shell__body section-columns">
             <div class="stack-lg">
               <h2 class="section-title" id="totp-panel-heading">Evaluate a TOTP code</h2>
-              <p class="summary">
-                Validate stored credentials or inline parameters against the TOTP evaluation service.
-                All values remain local to the simulator and telemetry redacts shared secrets
-                automatically.
-              </p>
               <fieldset
                   class="mode-toggle"
                   data-testid="totp-mode-toggle"
@@ -80,8 +75,7 @@
                   />
                   <label for="totpModeStored">Stored credential</label>
                   <p id="totpModeStoredHint" class="hint">
-                    Submit an OTP for a credential saved in the shared simulator store. Timestamps use
-                    epoch seconds.
+                    Validate a stored simulator credential (epoch-second timestamps).
                   </p>
                 </div>
                 <div class="mode-option">
@@ -454,11 +448,6 @@
           <div class="card-shell__body section-columns">
             <div class="stack-lg">
               <h2 class="section-title" id="totp-replay-heading">Replay a TOTP code</h2>
-              <p class="summary">
-                Submit stored or ad-hoc parameters to inspect replay outcomes without mutating
-                credential state. Responses include matched skew metadata and telemetry identifiers for
-                downstream correlation.
-              </p>
 
               <fieldset
                   class="mode-toggle"
@@ -585,13 +574,15 @@
                       />
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    class="button-secondary"
-                    data-testid="totp-replay-stored-submit"
-                  >
-                    Replay stored credential
-                  </button>
+                  <div class="button-row">
+                    <button
+                      type="button"
+                      class="button-primary"
+                      data-testid="totp-replay-stored-submit"
+                    >
+                      Verify OTP
+                    </button>
+                  </div>
                 </form>
               </section>
 
@@ -713,13 +704,15 @@
                       />
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    class="button-secondary"
-                    data-testid="totp-replay-inline-submit"
-                  >
-                    Replay inline parameters
-                  </button>
+                  <div class="button-row">
+                    <button
+                      type="button"
+                      class="button-primary"
+                      data-testid="totp-replay-inline-submit"
+                    >
+                      Verify OTP
+                    </button>
+                  </div>
                 </form>
               </section>
             </div>

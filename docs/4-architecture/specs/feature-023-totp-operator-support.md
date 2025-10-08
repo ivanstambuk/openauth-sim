@@ -17,6 +17,8 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 - 2025-10-08 – Facade integration will stage failing tests for CLI and REST in parallel increments before implementing the shared wiring (user confirmed Option B).
 - 2025-10-08 – Operator console documentation lives in `docs/2-how-to/use-totp-operator-ui.md`; roadmap and knowledge map now flag the TOTP panels as live (worklog note).
 - 2025-10-08 – TOTP replay tab must mirror HOTP/OCRA replay semantics via a dedicated `/api/v1/totp/replay` flow that performs non-mutating diagnostics while reusing evaluation logic where practical (user directive; Option A selected).
+- 2025-10-08 – Stored-mode hint copy shortens to “Validate a stored simulator credential (epoch-second timestamps).” (user selected Option A).
+- 2025-10-08 – Replay actions reuse the “Verify OTP” label + primary button styling to match HOTP/OCRA consoles (user directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
