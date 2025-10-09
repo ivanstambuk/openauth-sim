@@ -35,7 +35,7 @@ public final class TotpOperatorSampleData {
           sample(
               "ui-totp-demo-sha512",
               "ui-totp-demo-sha512 (SHA512, 8 digits, 60s step)",
-              "31323334353637383930313233343536373839303132",
+              "3132333435363738393031323334353637383930313233343536373839303132",
               TotpHashAlgorithm.SHA512,
               8,
               60,

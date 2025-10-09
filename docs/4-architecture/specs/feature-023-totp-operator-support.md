@@ -27,6 +27,7 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 - 2025-10-09 – TOTP stored replay flows use a stored credential dropdown (labelled “Stored credential”) instead of a free-text identifier, matching HOTP/OCRA parity across evaluate/replay panels (user directive; Option A selected).
 - 2025-10-09 – Stored TOTP replay panels must include a “Load sample data” control fed by a backend sampler endpoint (`/api/v1/totp/credentials/{credentialId}/sample`) so the payload reflects canonical demo vectors (user directive; Option A selected).
 - 2025-10-09 – Position the stored replay “Load sample data” control directly below the “Stored credential” selector, matching the vertical spacing used by the OCRA panel (user directive).
+- 2025-10-09 – Canonical seeded TOTP credentials must satisfy algorithm-specific minimum secret lengths so `/api/v1/totp/credentials/{credentialId}/sample` succeeds for SHA-512 alongside SHA-1/SHA-256 presets (defect report; Option A selected).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -41,6 +42,7 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 | TOS-008 | Document TOTP usage (operator how-to, roadmap, knowledge map) and align placeholder messaging with live functionality. | Documentation diffs show updated instructions; lint (`./gradlew spotlessApply check`) passes after doc updates. |
 | TOS-009 | Provide a dedicated TOTP replay application/REST flow that mirrors HOTP/OCRA replay semantics, returning diagnostic metadata without mutating credential state. | Application + MockMvc tests assert telemetry, non-mutating behaviour, stored/inline replay handling, and error signalling. |
 | TOS-010 | Surface stored replay "Load sample data" controls backed by `/api/v1/totp/credentials/{credentialId}/sample`, emitting `totp.sample` telemetry and populating deterministic OTP/timestamp/drift inputs. | Application tests cover sampler output, MockMvc tests exercise the new endpoint, and Selenium coverage asserts UI form population plus status messaging. |
+| TOS-011 | Ensure canonical TOTP seed definitions honour algorithm-specific constraints (secret length, drift defaults) so stored sample payloads resolve for SHA-512 as well as SHA-1/SHA-256. | Regression tests (application + REST) invoke seeded SHA-512 credentials and receive deterministic sample responses without errors. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Acceptance Signal |

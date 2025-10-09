@@ -17,6 +17,8 @@ import io.openauth.sim.core.otp.totp.TotpGenerator;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.rest.ui.TotpOperatorSampleData;
+import io.openauth.sim.rest.ui.TotpOperatorSampleData.SampleDefinition;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -125,6 +127,53 @@ class TotpStoredSampleEndpointTest {
         .andExpect(status().isNotFound());
   }
 
+  @Test
+  @DisplayName("Stored SHA-512 seed sample returns deterministic payload")
+  void storedSha512SeedSampleReturnsPayload() throws Exception {
+    SampleDefinition definition =
+        TotpOperatorSampleData.seedDefinitions().stream()
+            .filter(sample -> sample.credentialId().equals("ui-totp-demo-sha512"))
+            .findFirst()
+            .orElseThrow();
+
+    credentialStore.save(storedCredential(definition));
+
+    String responseBody =
+        mockMvc
+            .perform(
+                get("/api/v1/totp/credentials/{credentialId}/sample", definition.credentialId())
+                    .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode response = JSON.readTree(responseBody);
+    assertEquals(definition.credentialId(), response.path("credentialId").asText());
+    assertEquals(definition.algorithm().name(), response.path("algorithm").asText());
+    assertEquals(definition.digits(), response.path("digits").asInt());
+    assertEquals(definition.stepSeconds(), response.path("stepSeconds").asLong());
+    assertEquals(definition.driftBackwardSteps(), response.path("driftBackward").asInt());
+    assertEquals(definition.driftForwardSteps(), response.path("driftForward").asInt());
+
+    long timestamp = response.path("timestamp").asLong();
+    TotpDescriptor descriptor =
+        TotpDescriptor.create(
+            definition.credentialId(),
+            SecretMaterial.fromHex(definition.sharedSecretHex()),
+            definition.algorithm(),
+            definition.digits(),
+            Duration.ofSeconds(definition.stepSeconds()),
+            TotpDriftWindow.of(definition.driftBackwardSteps(), definition.driftForwardSteps()));
+    String expectedOtp = TotpGenerator.generate(descriptor, Instant.ofEpochSecond(timestamp));
+    assertEquals(expectedOtp, response.path("otp").asText());
+
+    JsonNode metadata = response.path("metadata");
+    assertEquals(definition.metadata().get("presetKey"), metadata.path("samplePresetKey").asText());
+    assertEquals(definition.metadata().get("label"), metadata.path("label").asText());
+    assertEquals(definition.metadata().get("notes"), metadata.path("notes").asText());
+  }
+
   private Credential storedCredential(Map<String, String> metadata) {
     TotpDescriptor descriptor =
         TotpDescriptor.create(
@@ -137,6 +186,29 @@ class TotpStoredSampleEndpointTest {
     return new Credential(
         credential.name(),
         CredentialType.OATH_TOTP,
+        credential.secret(),
+        attributes,
+        credential.createdAt(),
+        credential.updatedAt());
+  }
+
+  private Credential storedCredential(SampleDefinition definition) {
+    TotpDescriptor descriptor =
+        TotpDescriptor.create(
+            definition.credentialId(),
+            SecretMaterial.fromHex(definition.sharedSecretHex()),
+            definition.algorithm(),
+            definition.digits(),
+            Duration.ofSeconds(definition.stepSeconds()),
+            TotpDriftWindow.of(definition.driftBackwardSteps(), definition.driftForwardSteps()));
+    Credential credential =
+        VersionedCredentialRecordMapper.toCredential(adapter.serialize(descriptor));
+    Map<String, String> attributes = new LinkedHashMap<>(credential.attributes());
+    definition.metadata().forEach((key, value) -> attributes.put("totp.metadata." + key, value));
+
+    return new Credential(
+        credential.name(),
+        credential.type(),
         credential.secret(),
         attributes,
         credential.createdAt(),
