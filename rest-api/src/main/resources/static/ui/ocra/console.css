@@ -139,7 +139,7 @@ button {
   gap: var(--ocra-spacing-lg);
 }
 
-.evaluation-form > .seed-actions {
+.evaluation-form .seed-actions {
   margin-top: calc(var(--ocra-spacing-lg) * 0.5);
 }
 

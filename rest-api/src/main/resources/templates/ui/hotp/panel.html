@@ -413,6 +413,27 @@
                       >
                         <option value="">Loading credentials…</option>
                       </select>
+                      <div
+                        class="seed-actions"
+                        data-testid="hotp-replay-sample-actions"
+                        hidden="hidden"
+                        aria-hidden="true"
+                      >
+                        <button
+                          type="button"
+                          class="button-secondary"
+                          data-testid="hotp-replay-sample-load"
+                          disabled="disabled"
+                          aria-disabled="true"
+                        >
+                          Load sample data
+                        </button>
+                        <p
+                          class="hint credential-status"
+                          data-testid="hotp-replay-sample-message"
+                          aria-live="polite"
+                        ></p>
+                      </div>
                     </div>
                     <div>
                       <label for="hotpReplayStoredOtp">One-time password</label>
@@ -442,27 +463,6 @@
                         Counter value reflects the credential's current moving factor.
                       </p>
                     </div>
-                  </div>
-                  <div
-                    class="seed-actions"
-                    data-testid="hotp-replay-sample-actions"
-                    hidden="hidden"
-                    aria-hidden="true"
-                  >
-                    <button
-                      type="button"
-                      class="button-secondary"
-                      data-testid="hotp-replay-sample-load"
-                      disabled="disabled"
-                      aria-disabled="true"
-                    >
-                      Load sample data
-                    </button>
-                    <p
-                      class="hint credential-status"
-                      data-testid="hotp-replay-sample-message"
-                      aria-live="polite"
-                    ></p>
                   </div>
                 </section>
 

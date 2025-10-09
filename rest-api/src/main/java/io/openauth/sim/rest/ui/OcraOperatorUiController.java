@@ -62,6 +62,11 @@ final class OcraOperatorUiController {
     model.addAttribute("hotpReplayEndpoint", "/api/v1/hotp/replay");
     model.addAttribute("totpStoredEvaluateEndpoint", "/api/v1/totp/evaluate");
     model.addAttribute("totpInlineEvaluateEndpoint", "/api/v1/totp/evaluate/inline");
+    model.addAttribute("totpCredentialsEndpoint", "/api/v1/totp/credentials");
+    model.addAttribute("totpSeedEndpoint", "/api/v1/totp/credentials/seed");
+    model.addAttribute("totpSeedDefinitionsJson", serializeTotpSeedDefinitions());
+    model.addAttribute("totpCredentialSampleEndpoint", "/api/v1/totp/credentials");
+    model.addAttribute("totpInlinePresetsJson", serializeTotpInlinePresets());
     model.addAttribute("totpReplayEndpoint", "/api/v1/totp/replay");
     model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
     model.addAttribute("activeProtocol", "ocra");
@@ -74,6 +79,22 @@ final class OcraOperatorUiController {
       return objectMapper.writeValueAsString(HotpOperatorSampleData.seedDefinitions());
     } catch (JsonProcessingException ex) {
       throw new IllegalStateException("Unable to render HOTP seed definitions", ex);
+    }
+  }
+
+  private String serializeTotpSeedDefinitions() {
+    try {
+      return objectMapper.writeValueAsString(TotpOperatorSampleData.seedDefinitions());
+    } catch (JsonProcessingException ex) {
+      throw new IllegalStateException("Unable to render TOTP seed definitions", ex);
+    }
+  }
+
+  private String serializeTotpInlinePresets() {
+    try {
+      return objectMapper.writeValueAsString(TotpOperatorSampleData.inlinePresets());
+    } catch (JsonProcessingException ex) {
+      throw new IllegalStateException("Unable to render TOTP inline presets", ex);
     }
   }
 

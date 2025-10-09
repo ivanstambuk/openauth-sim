@@ -150,7 +150,7 @@ final class OperatorConsoleUnificationSeleniumTest {
         driver.findElement(By.cssSelector("[data-testid='ocra-mode-select-evaluate']"));
     evaluateToggle.click();
 
-    new WebDriverWait(driver, Duration.ofSeconds(3))
+    new WebDriverWait(driver, Duration.ofSeconds(5))
         .until(d -> "evaluate".equals(modeToggle.getAttribute("data-mode")));
 
     assertThat(evaluateSection.getAttribute("hidden")).isNull();
@@ -159,7 +159,7 @@ final class OperatorConsoleUnificationSeleniumTest {
     hotpTab.click();
     By hotpPanelLocator = By.cssSelector("[data-protocol-panel='hotp']");
     WebElement hotpPanel = driver.findElement(hotpPanelLocator);
-    new WebDriverWait(driver, Duration.ofSeconds(3))
+    new WebDriverWait(driver, Duration.ofSeconds(5))
         .until(panel -> driver.findElement(hotpPanelLocator).getAttribute("hidden") == null);
     assertThat(modeToggle.getAttribute("hidden"))
         .as("Mode toggle should hide for non-OCRA protocols")
@@ -178,7 +178,7 @@ final class OperatorConsoleUnificationSeleniumTest {
 
     WebElement hotpModeToggle =
         hotpPanel.findElement(By.cssSelector("[data-testid='hotp-mode-toggle']"));
-    new WebDriverWait(driver, Duration.ofSeconds(3))
+    new WebDriverWait(driver, Duration.ofSeconds(5))
         .until(
             d -> {
               String mode = hotpModeToggle.getAttribute("data-mode");

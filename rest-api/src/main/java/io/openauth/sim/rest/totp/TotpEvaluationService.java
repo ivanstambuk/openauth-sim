@@ -73,6 +73,7 @@ class TotpEvaluationService {
             .map(String::trim)
             .filter(value -> !value.isEmpty())
             .orElseThrow(() -> validation("otp_required", "OTP is required"));
+    Map<String, String> metadata = sanitizeMetadata(request.metadata());
 
     TotpHashAlgorithm algorithm =
         Optional.ofNullable(request.algorithm())
@@ -103,6 +104,9 @@ class TotpEvaluationService {
                 drift,
                 evaluationInstant,
                 timestampOverride));
+    if (!metadata.isEmpty()) {
+      applyPresetMetadata(metadata, result.telemetry());
+    }
     return handleResult(result, "inline");
   }
 
@@ -194,6 +198,43 @@ class TotpEvaluationService {
               }
             });
     TELEMETRY_LOGGER.fine(builder.toString());
+  }
+
+  private Map<String, String> sanitizeMetadata(Map<String, String> metadata) {
+    if (metadata == null || metadata.isEmpty()) {
+      return Map.of();
+    }
+    Map<String, String> sanitized = new LinkedHashMap<>();
+    metadata.forEach(
+        (key, value) -> {
+          if (key == null || value == null) {
+            return;
+          }
+          String trimmedKey = key.trim();
+          String trimmedValue = value.trim();
+          if (!trimmedKey.isEmpty() && !trimmedValue.isEmpty()) {
+            sanitized.put(trimmedKey, trimmedValue);
+          }
+        });
+    return sanitized.isEmpty() ? Map.of() : sanitized;
+  }
+
+  private void applyPresetMetadata(Map<String, String> metadata, TelemetrySignal signal) {
+    if (metadata.isEmpty() || signal == null) {
+      return;
+    }
+    Map<String, Object> fields = signal.fields();
+    if (fields == null) {
+      return;
+    }
+    String presetKey = metadata.get("presetKey");
+    if (presetKey != null && !presetKey.isBlank()) {
+      fields.putIfAbsent("samplePresetKey", presetKey);
+    }
+    String presetLabel = metadata.get("presetLabel");
+    if (presetLabel != null && !presetLabel.isBlank()) {
+      fields.putIfAbsent("samplePresetLabel", presetLabel);
+    }
   }
 
   private TotpEvaluationValidationException validation(String reasonCode, String message) {

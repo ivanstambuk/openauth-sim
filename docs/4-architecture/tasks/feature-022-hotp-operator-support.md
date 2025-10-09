@@ -1,7 +1,7 @@
 # Feature 022 – Task Checklist
 
 _Status: Complete_
-_Last updated: 2025-10-08_
+_Last updated: 2025-10-09_
 
 ## Tasks (≤10 min each)
 - ☑ T2201 – Add failing HOTP generator/validator unit tests covering counter rollover, digit length variants, and secret bounds.
@@ -99,3 +99,4 @@ Mark tasks as work completes and record tooling outcomes within the feature plan
 - ☑ T2291 – Implement the HOTP stored sample endpoint/service and supporting application tests, ensuring counters stay read-only and T2290 passes. (2025-10-07: shipped `HotpSampleApplicationService`, new controller response record, OpenAPI snapshot refresh, `./gradlew :application:test --tests "…HotpSampleApplicationServiceTest"` + `./gradlew :rest-api:test --tests "io.openauth.sim.rest.HotpStoredSampleEndpointTest"`.)
 - ☑ T2292 – Add failing Selenium regression asserting the HOTP replay stored panel exposes an editable counter input and that "Load sample data" pre-fills both counter and OTP before producing a successful verification. (2025-10-07: expanded `HotpOperatorUiReplaySeleniumTest` and captured failing targeted Selenium run.)
 - ☑ T2293 – Update HOTP replay templates/JS to provide the counter input, call the new sample endpoint, satisfy T2292, and finish with `./gradlew spotlessApply check`. (2025-10-07: UI + JS updates landed, targeted Selenium/REST tests rerun, full `./gradlew spotlessApply check` green.)
+- ☑ T2294 – Reposition the HOTP stored replay “Load sample data” control directly beneath the “Stored credential” selector, update templates/CSS/JS, refresh Selenium assertions, and rerun `./gradlew :rest-api:test` plus `./gradlew spotlessApply check`. (_2025-10-09 – Embedded the sample actions within the stored credential column, shared the spacing CSS with other panels, and reconfirmed via `./gradlew :rest-api:test` and `./gradlew spotlessApply check`._)

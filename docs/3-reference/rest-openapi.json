@@ -156,6 +156,24 @@
         }
       }
     },
+    "/api/v1/totp/credentials/seed" : {
+      "post" : {
+        "tags" : [ "totp-credential-seed-controller" ],
+        "operationId" : "seedCredentials",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SeedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ocra/verify" : {
       "post" : {
         "tags" : [ "ocra-verification-controller" ],
@@ -173,44 +191,6 @@
           "required" : true
         },
         "responses" : {
-          "422" : {
-            "description" : "Verification payload failed validation",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                },
-                "examples" : {
-                  "Missing context" : {
-                    "summary" : "Validation failure",
-                    "description" : "Missing context",
-                    "value" : {
-                      "error" : "invalid_input",
-                      "message" : "sessionHex is required",
-                      "details" : {
-                        "telemetryId" : "rest-ocra-verify-<uuid>",
-                        "status" : "invalid",
-                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
-                        "field" : "sessionHex",
-                        "reasonCode" : "session_required",
-                        "sanitized" : "true"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
           "404" : {
             "description" : "Credential not found",
             "content" : {
@@ -249,6 +229,44 @@
                 }
               }
             }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Verification payload failed validation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                },
+                "examples" : {
+                  "Missing context" : {
+                    "summary" : "Validation failure",
+                    "description" : "Missing context",
+                    "value" : {
+                      "error" : "invalid_input",
+                      "message" : "sessionHex is required",
+                      "details" : {
+                        "telemetryId" : "rest-ocra-verify-<uuid>",
+                        "status" : "invalid",
+                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
+                        "field" : "sessionHex",
+                        "reasonCode" : "session_required",
+                        "sanitized" : "true"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -270,12 +288,12 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation successful",
+          "500" : {
+            "description" : "Unexpected server error",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
                 }
               }
             }
@@ -308,12 +326,12 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected server error",
+          "200" : {
+            "description" : "Evaluation successful",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
                 }
               }
             }
@@ -324,7 +342,7 @@
     "/api/v1/ocra/credentials/seed" : {
       "post" : {
         "tags" : [ "ocra-credential-directory-controller" ],
-        "operationId" : "seedCredentials",
+        "operationId" : "seedCredentials_1",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -356,18 +374,8 @@
           "required" : true
         },
         "responses" : {
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
+          "400" : {
+            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -386,8 +394,18 @@
               }
             }
           },
-          "400" : {
-            "description" : "Validation error",
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Credential not found",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -426,12 +444,12 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
+          "200" : {
+            "description" : "Evaluation completed",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -446,12 +464,12 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation completed",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -476,12 +494,12 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected error",
+          "200" : {
+            "description" : "Evaluation completed",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -496,12 +514,12 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation completed",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -512,7 +530,7 @@
     "/api/v1/hotp/credentials/seed" : {
       "post" : {
         "tags" : [ "hotp-credential-directory-controller" ],
-        "operationId" : "seedCredentials_1",
+        "operationId" : "seedCredentials_2",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -527,10 +545,57 @@
         }
       }
     },
+    "/api/v1/totp/credentials" : {
+      "get" : {
+        "tags" : [ "totp-credential-directory-controller" ],
+        "operationId" : "listCredentials",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TotpCredentialSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/totp/credentials/{credentialId}/sample" : {
+      "get" : {
+        "tags" : [ "totp-credential-directory-controller" ],
+        "operationId" : "storedSample",
+        "parameters" : [ {
+          "name" : "credentialId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TotpStoredSampleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ocra/credentials" : {
       "get" : {
         "tags" : [ "ocra-credential-directory-controller" ],
-        "operationId" : "listCredentials",
+        "operationId" : "listCredentials_1",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -577,7 +642,7 @@
     "/api/v1/hotp/credentials" : {
       "get" : {
         "tags" : [ "hotp-credential-directory-controller" ],
-        "operationId" : "listCredentials_1",
+        "operationId" : "listCredentials_2",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -598,7 +663,7 @@
     "/api/v1/hotp/credentials/{credentialId}/sample" : {
       "get" : {
         "tags" : [ "hotp-credential-directory-controller" ],
-        "operationId" : "storedSample",
+        "operationId" : "storedSample_1",
         "parameters" : [ {
           "name" : "credentialId",
           "in" : "path",
@@ -887,6 +952,25 @@
           }
         }
       },
+      "SeedResponse" : {
+        "type" : "object",
+        "properties" : {
+          "addedCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "canonicalCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "addedCredentialIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
       "OcraVerificationContext" : {
         "type" : "object",
         "properties" : {
@@ -1040,20 +1124,6 @@
           }
         }
       },
-      "OcraEvaluationResponse" : {
-        "type" : "object",
-        "properties" : {
-          "suite" : {
-            "type" : "string"
-          },
-          "otp" : {
-            "type" : "string"
-          },
-          "telemetryId" : {
-            "type" : "string"
-          }
-        }
-      },
       "OcraEvaluationErrorResponse" : {
         "type" : "object",
         "properties" : {
@@ -1071,22 +1141,17 @@
           }
         }
       },
-      "SeedResponse" : {
+      "OcraEvaluationResponse" : {
         "type" : "object",
         "properties" : {
-          "addedCount" : {
-            "type" : "integer",
-            "format" : "int32"
+          "suite" : {
+            "type" : "string"
           },
-          "canonicalCount" : {
-            "type" : "integer",
-            "format" : "int32"
+          "otp" : {
+            "type" : "string"
           },
-          "addedCredentialIds" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
+          "telemetryId" : {
+            "type" : "string"
           }
         }
       },
@@ -1280,6 +1345,76 @@
           "counter" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "metadata" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "TotpCredentialSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
+          "digits" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stepSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "driftBackward" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "driftForward" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "TotpStoredSampleResponse" : {
+        "type" : "object",
+        "properties" : {
+          "credentialId" : {
+            "type" : "string"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
+          "digits" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stepSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "driftBackward" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "driftForward" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "otp" : {
+            "type" : "string"
           },
           "metadata" : {
             "type" : "object",

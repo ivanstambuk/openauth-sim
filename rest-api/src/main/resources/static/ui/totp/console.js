@@ -31,6 +31,31 @@
 
   var storedForm = totpPanel.querySelector('[data-testid="totp-stored-form"]');
   var storedButton = totpPanel.querySelector('[data-testid="totp-stored-evaluate-button"]');
+  var storedSelect = totpPanel.querySelector('#totpStoredCredentialId');
+  var storedStatusHint = totpPanel.querySelector('[data-testid="totp-stored-status"]');
+  var replayStoredSelect = totpPanel.querySelector('#totpReplayStoredCredentialId');
+  var replayStoredStatusHint =
+      totpPanel.querySelector('[data-testid="totp-replay-stored-status"]');
+  var replayStoredSampleActions =
+      totpPanel.querySelector('[data-testid="totp-replay-sample-actions"]');
+  var replayStoredSampleButton = replayStoredSampleActions
+    ? replayStoredSampleActions.querySelector('[data-testid="totp-replay-sample-load"]')
+    : null;
+  var replayStoredSampleStatus = replayStoredSampleActions
+    ? replayStoredSampleActions.querySelector('[data-testid="totp-replay-sample-status"]')
+    : null;
+  var credentialsEndpoint = storedForm
+    ? storedForm.getAttribute('data-credentials-endpoint')
+    : null;
+  var seedEndpoint = storedForm ? storedForm.getAttribute('data-seed-endpoint') : null;
+  var seedActions = totpPanel.querySelector('[data-testid="totp-seed-actions"]');
+  var seedButton = seedActions
+    ? seedActions.querySelector('[data-testid="totp-seed-credentials"]')
+    : null;
+  var seedStatus = seedActions
+    ? seedActions.querySelector('[data-testid="totp-seed-status"]')
+    : null;
+  var seedDefinitionNode = totpPanel.querySelector('#totp-seed-definitions');
   var storedResultPanel = totpPanel.querySelector('[data-testid="totp-stored-result-panel"]');
   var storedStatusBadge = storedResultPanel
     ? storedResultPanel.querySelector('[data-testid="totp-result-status"]')
@@ -67,6 +92,29 @@
     ? storedErrorPanel.querySelector('[data-testid="totp-stored-error-message"]')
     : null;
 
+  var seedDefinitionsPayload = [];
+  if (seedDefinitionNode && seedDefinitionNode.textContent) {
+    var seedPayloadText = seedDefinitionNode.textContent.trim();
+    if (seedPayloadText.length) {
+      try {
+        seedDefinitionsPayload = JSON.parse(seedPayloadText);
+      } catch (error) {
+        if (global.console && typeof global.console.error === 'function') {
+          global.console.error('Failed to parse TOTP seed definitions', error);
+        }
+        seedDefinitionsPayload = [];
+      }
+    }
+  }
+
+  if (seedDefinitionNode && seedDefinitionNode.parentNode) {
+    seedDefinitionNode.parentNode.removeChild(seedDefinitionNode);
+  }
+
+  var seedInProgress = false;
+  var credentialCache = null;
+  var credentialPromise = null;
+
   var inlineForm = totpPanel.querySelector('[data-testid="totp-inline-form"]');
   var inlineButton = totpPanel.querySelector('[data-testid="totp-inline-evaluate-button"]');
   var inlineResultPanel = totpPanel.querySelector('[data-testid="totp-inline-result-panel"]');
@@ -87,6 +135,49 @@
     ? inlineErrorPanel.querySelector('[data-testid="totp-inline-error-message"]')
     : null;
 
+  var inlinePresetContainer = totpPanel.querySelector('[data-testid="totp-inline-preset"]');
+  var inlinePresetSelect = inlinePresetContainer
+    ? inlinePresetContainer.querySelector('[data-testid="totp-inline-preset-select"]')
+    : null;
+  var inlinePresetDefinitionNode = totpPanel.querySelector('#totp-inline-presets');
+  var inlinePresetPayload = [];
+  if (inlinePresetDefinitionNode && inlinePresetDefinitionNode.textContent) {
+    var presetText = inlinePresetDefinitionNode.textContent.trim();
+    if (presetText.length) {
+      try {
+        inlinePresetPayload = JSON.parse(presetText);
+      } catch (error) {
+        if (global.console && typeof global.console.error === 'function') {
+          global.console.error('Failed to parse TOTP inline presets', error);
+        }
+        inlinePresetPayload = [];
+      }
+    }
+  }
+  if (inlinePresetDefinitionNode && inlinePresetDefinitionNode.parentNode) {
+    inlinePresetDefinitionNode.parentNode.removeChild(inlinePresetDefinitionNode);
+  }
+  var inlinePresetData = Object.create(null);
+  if (Array.isArray(inlinePresetPayload)) {
+    inlinePresetPayload.forEach(function (preset) {
+      if (!preset || typeof preset.key !== 'string') {
+        return;
+      }
+      inlinePresetData[preset.key] = preset;
+    });
+  }
+  var inlinePresetActiveKey = '';
+  var inlinePresetActiveLabel = '';
+  var inlineSecretInput = totpPanel.querySelector('#totpInlineSecretHex');
+  var inlineAlgorithmSelect = totpPanel.querySelector('#totpInlineAlgorithm');
+  var inlineDigitsInput = totpPanel.querySelector('#totpInlineDigits');
+  var inlineStepInput = totpPanel.querySelector('#totpInlineStepSeconds');
+  var inlineOtpInput = totpPanel.querySelector('#totpInlineOtp');
+  var inlineTimestampInput = totpPanel.querySelector('#totpInlineTimestamp');
+  var inlineTimestampOverrideInput = totpPanel.querySelector('#totpInlineTimestampOverride');
+  var inlineDriftBackwardInput = totpPanel.querySelector('#totpInlineDriftBackward');
+  var inlineDriftForwardInput = totpPanel.querySelector('#totpInlineDriftForward');
+
   var replayModeToggle = totpPanel.querySelector('[data-testid="totp-replay-mode-toggle"]');
   var replayStoredRadio = totpPanel.querySelector('[data-testid="totp-replay-mode-select-stored"]');
   var replayInlineRadio = totpPanel.querySelector('[data-testid="totp-replay-mode-select-inline"]');
@@ -97,6 +188,14 @@
   var replayInlineForm = totpPanel.querySelector('[data-testid="totp-replay-inline-form"]');
   var replayStoredButton = totpPanel.querySelector('[data-testid="totp-replay-stored-submit"]');
   var replayInlineButton = totpPanel.querySelector('[data-testid="totp-replay-inline-submit"]');
+  var replayStoredOtpInput = totpPanel.querySelector('#totpReplayStoredOtp');
+  var replayStoredTimestampInput = totpPanel.querySelector('#totpReplayStoredTimestamp');
+  var replayStoredTimestampOverrideInput =
+      totpPanel.querySelector('#totpReplayStoredTimestampOverride');
+  var replayStoredDriftBackwardInput =
+      totpPanel.querySelector('#totpReplayStoredDriftBackward');
+  var replayStoredDriftForwardInput =
+      totpPanel.querySelector('#totpReplayStoredDriftForward');
   var replayResultPanel = totpPanel.querySelector('[data-testid="totp-replay-result-panel"]');
   var replayStatusBadge = replayResultPanel
     ? replayResultPanel.querySelector('[data-testid="totp-replay-status"]')
@@ -104,35 +203,8 @@
   var replayReasonCode = replayResultPanel
     ? replayResultPanel.querySelector('[data-testid="totp-replay-reason-code"]')
     : null;
-  var replayCredentialSource = replayResultPanel
-    ? replayResultPanel.querySelector('[data-testid="totp-replay-credential-source"]')
-    : null;
-  var replayCredentialId = replayResultPanel
-    ? replayResultPanel.querySelector('[data-testid="totp-replay-credential-id"]')
-    : null;
-  var replayMatchedSkew = replayResultPanel
-    ? replayResultPanel.querySelector('[data-testid="totp-replay-matched-skew"]')
-    : null;
-  var replayAlgorithm = replayResultPanel
-    ? replayResultPanel.querySelector('[data-testid="totp-replay-algorithm"]')
-    : null;
-  var replayDigits = replayResultPanel
-    ? replayResultPanel.querySelector('[data-testid="totp-replay-digits"]')
-    : null;
-  var replayStep = replayResultPanel
-    ? replayResultPanel.querySelector('[data-testid="totp-replay-step"]')
-    : null;
-  var replayDriftBackward = replayResultPanel
-    ? replayResultPanel.querySelector('[data-testid="totp-replay-drift-backward"]')
-    : null;
-  var replayDriftForward = replayResultPanel
-    ? replayResultPanel.querySelector('[data-testid="totp-replay-drift-forward"]')
-    : null;
-  var replayTimestampOverride = replayResultPanel
-    ? replayResultPanel.querySelector('[data-testid="totp-replay-timestamp-override"]')
-    : null;
-  var replayTelemetry = replayResultPanel
-    ? replayResultPanel.querySelector('[data-testid="totp-replay-telemetry"]')
+  var replayOutcome = replayResultPanel
+    ? replayResultPanel.querySelector('[data-testid="totp-replay-outcome"]')
     : null;
   var replayErrorPanel = totpPanel.querySelector('[data-testid="totp-replay-error-panel"]');
   var replayErrorReason = replayErrorPanel
@@ -141,6 +213,24 @@
   var replayErrorMessage = replayErrorPanel
     ? replayErrorPanel.querySelector('[data-testid="totp-replay-error-message"]')
     : null;
+  var replayInlinePresetContainer =
+      totpPanel.querySelector('[data-testid="totp-replay-inline-preset"]');
+  var replayInlinePresetSelect = replayInlinePresetContainer
+    ? replayInlinePresetContainer.querySelector('[data-testid="totp-replay-inline-preset-select"]')
+    : null;
+  var sampleEndpointBase = replayStoredForm
+    ? replayStoredForm.getAttribute('data-sample-endpoint')
+    : null;
+  var replayInlineSecretInput = totpPanel.querySelector('#totpReplayInlineSecretHex');
+  var replayInlineAlgorithmSelect = totpPanel.querySelector('#totpReplayInlineAlgorithm');
+  var replayInlineDigitsInput = totpPanel.querySelector('#totpReplayInlineDigits');
+  var replayInlineStepInput = totpPanel.querySelector('#totpReplayInlineStepSeconds');
+  var replayInlineOtpInput = totpPanel.querySelector('#totpReplayInlineOtp');
+  var replayInlineTimestampInput = totpPanel.querySelector('#totpReplayInlineTimestamp');
+  var replayInlineTimestampOverrideInput =
+      totpPanel.querySelector('#totpReplayInlineTimestampOverride');
+  var replayInlineDriftBackwardInput = totpPanel.querySelector('#totpReplayInlineDriftBackward');
+  var replayInlineDriftForwardInput = totpPanel.querySelector('#totpReplayInlineDriftForward');
 
   function setHidden(node, hidden) {
     if (!node) {
@@ -162,15 +252,534 @@
     node.textContent = value == null ? '—' : String(value);
   }
 
-  function writeBoolean(node, value) {
-    if (!node) {
+  function setPresetApplied(container, key) {
+    if (!container) {
       return;
     }
-    if (value == null) {
-      node.textContent = '—';
+    if (key) {
+      container.setAttribute('data-preset-applied', key);
+    } else {
+      container.removeAttribute('data-preset-applied');
+    }
+  }
+
+  function setInlinePresetTracking(key, label) {
+    inlinePresetActiveKey = key || '';
+    inlinePresetActiveLabel = label ? label.trim() : '';
+    setPresetApplied(inlinePresetContainer, inlinePresetActiveKey);
+  }
+
+  function clearInlinePresetTracking() {
+    setInlinePresetTracking('', '');
+    if (inlinePresetSelect && inlinePresetSelect.value) {
+      inlinePresetSelect.value = '';
+    }
+  }
+
+  function applyInlineEvaluationPreset(presetKey) {
+    var preset = inlinePresetData[presetKey];
+    if (!preset) {
+      clearInlinePresetTracking();
       return;
     }
-    node.textContent = value ? 'Yes' : 'No';
+    if (inlinePresetSelect && inlinePresetSelect.value !== presetKey) {
+      inlinePresetSelect.value = presetKey;
+    }
+    if (inlineSecretInput) {
+      inlineSecretInput.value = preset.sharedSecretHex || '';
+    }
+    if (inlineAlgorithmSelect && preset.algorithm) {
+      inlineAlgorithmSelect.value = preset.algorithm;
+    }
+    if (inlineDigitsInput) {
+      inlineDigitsInput.value =
+          typeof preset.digits === 'number' ? String(preset.digits) : '';
+    }
+    if (inlineStepInput) {
+      inlineStepInput.value =
+          typeof preset.stepSeconds === 'number' ? String(preset.stepSeconds) : '';
+    }
+    if (inlineOtpInput) {
+      inlineOtpInput.value = preset.otp || '';
+    }
+    if (inlineTimestampInput) {
+      inlineTimestampInput.value =
+          typeof preset.timestamp === 'number' ? String(preset.timestamp) : '';
+    }
+    if (inlineTimestampOverrideInput) {
+      inlineTimestampOverrideInput.value = '';
+    }
+    if (inlineDriftBackwardInput) {
+      inlineDriftBackwardInput.value =
+          typeof preset.driftBackwardSteps === 'number'
+              ? String(preset.driftBackwardSteps)
+              : '';
+    }
+    if (inlineDriftForwardInput) {
+      inlineDriftForwardInput.value =
+          typeof preset.driftForwardSteps === 'number'
+              ? String(preset.driftForwardSteps)
+              : '';
+    }
+    setInlinePresetTracking(presetKey, preset.label || preset.key || presetKey);
+    clearInlinePanels();
+  }
+
+  function applyReplayInlinePreset(presetKey) {
+    var preset = inlinePresetData[presetKey];
+    if (!preset) {
+      setPresetApplied(replayInlinePresetContainer, '');
+      return;
+    }
+    if (replayInlinePresetSelect && replayInlinePresetSelect.value !== presetKey) {
+      replayInlinePresetSelect.value = presetKey;
+    }
+    if (replayInlineSecretInput) {
+      replayInlineSecretInput.value = preset.sharedSecretHex || '';
+    }
+    if (replayInlineAlgorithmSelect && preset.algorithm) {
+      replayInlineAlgorithmSelect.value = preset.algorithm;
+    }
+    if (replayInlineDigitsInput) {
+      replayInlineDigitsInput.value =
+          typeof preset.digits === 'number' ? String(preset.digits) : '';
+    }
+    if (replayInlineStepInput) {
+      replayInlineStepInput.value =
+          typeof preset.stepSeconds === 'number' ? String(preset.stepSeconds) : '';
+    }
+    if (replayInlineOtpInput) {
+      replayInlineOtpInput.value = preset.otp || '';
+    }
+    if (replayInlineTimestampInput) {
+      replayInlineTimestampInput.value =
+          typeof preset.timestamp === 'number' ? String(preset.timestamp) : '';
+    }
+    if (replayInlineTimestampOverrideInput) {
+      replayInlineTimestampOverrideInput.value = '';
+    }
+    if (replayInlineDriftBackwardInput) {
+      replayInlineDriftBackwardInput.value =
+          typeof preset.driftBackwardSteps === 'number'
+              ? String(preset.driftBackwardSteps)
+              : '';
+    }
+    if (replayInlineDriftForwardInput) {
+      replayInlineDriftForwardInput.value =
+          typeof preset.driftForwardSteps === 'number'
+              ? String(preset.driftForwardSteps)
+              : '';
+    }
+    setPresetApplied(replayInlinePresetContainer, presetKey);
+    clearReplayPanels();
+  }
+
+  function renderInlinePresetOptions() {
+    var keys = Object.keys(inlinePresetData);
+    keys.sort(function (a, b) {
+      var presetA = inlinePresetData[a] || {};
+      var presetB = inlinePresetData[b] || {};
+      var labelA = presetA.label || a;
+      var labelB = presetB.label || b;
+      return labelA.localeCompare(labelB, undefined, { sensitivity: 'base' });
+    });
+
+    function populate(selectNode) {
+      if (!selectNode) {
+        return;
+      }
+      while (selectNode.firstChild) {
+        selectNode.removeChild(selectNode.firstChild);
+      }
+      var placeholder = documentRef.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Select a sample';
+      selectNode.appendChild(placeholder);
+      keys.forEach(function (key) {
+        var preset = inlinePresetData[key];
+        if (!preset) {
+          return;
+        }
+        var option = documentRef.createElement('option');
+        option.value = key;
+        option.textContent = preset.label || key;
+        selectNode.appendChild(option);
+      });
+    }
+
+    populate(inlinePresetSelect);
+    populate(replayInlinePresetSelect);
+    if (inlinePresetContainer) {
+      setHidden(inlinePresetContainer, keys.length === 0);
+    }
+    if (replayInlinePresetContainer) {
+      setHidden(replayInlinePresetContainer, keys.length === 0);
+    }
+  }
+
+  renderInlinePresetOptions();
+
+  function setSeedStatus(message, severity) {
+    if (!seedStatus) {
+      return;
+    }
+    seedStatus.classList.remove('credential-status--warning', 'credential-status--error');
+    if (!message) {
+      seedStatus.textContent = '';
+      setHidden(seedStatus, true);
+      return;
+    }
+    seedStatus.textContent = message;
+    if (severity === 'error') {
+      seedStatus.classList.add('credential-status--error');
+    } else if (severity === 'warning') {
+      seedStatus.classList.add('credential-status--warning');
+    }
+    setHidden(seedStatus, false);
+  }
+
+  function syncSeedActions(storedActive) {
+    if (!seedActions) {
+      return;
+    }
+    var shouldShow = storedActive && !seedInProgress;
+    setHidden(seedActions, !shouldShow);
+    if (seedButton) {
+      if (seedInProgress) {
+        seedButton.setAttribute('disabled', 'disabled');
+      } else {
+        seedButton.removeAttribute('disabled');
+      }
+    }
+    if (!storedActive) {
+      setSeedStatus('', null);
+    }
+  }
+
+  function updateStoredStatusMessage(count) {
+    if (storedStatusHint) {
+      storedStatusHint.textContent = count
+          ? 'Select a stored credential before evaluating.'
+          : 'No stored credentials available.';
+    }
+    if (replayStoredStatusHint) {
+      replayStoredStatusHint.textContent = count
+          ? 'Select a stored credential before replaying.'
+          : 'No stored credentials available.';
+    }
+  }
+
+  function setReplaySampleStatus(message, severity) {
+    if (!replayStoredSampleStatus) {
+      return;
+    }
+    replayStoredSampleStatus.classList.remove(
+        'credential-status--warning', 'credential-status--error');
+    if (!message) {
+      replayStoredSampleStatus.textContent = '';
+      setHidden(replayStoredSampleStatus, true);
+      return;
+    }
+    replayStoredSampleStatus.textContent = message;
+    if (severity === 'error') {
+      replayStoredSampleStatus.classList.add('credential-status--error');
+    } else if (severity === 'warning') {
+      replayStoredSampleStatus.classList.add('credential-status--warning');
+    }
+    setHidden(replayStoredSampleStatus, false);
+  }
+
+  function storedReplayModeActive() {
+    return !replayModeToggle || replayModeToggle.getAttribute('data-mode') === 'stored';
+  }
+
+  function syncReplaySampleActions() {
+    if (!replayStoredSampleActions) {
+      return;
+    }
+    var hasCredential =
+        replayStoredSelect && typeof replayStoredSelect.value === 'string'
+            ? replayStoredSelect.value.trim().length > 0
+            : false;
+    var shouldShow = hasCredential && storedReplayModeActive();
+    setHidden(replayStoredSampleActions, !shouldShow);
+    if (replayStoredSampleButton) {
+      if (shouldShow) {
+        replayStoredSampleButton.removeAttribute('disabled');
+        replayStoredSampleButton.removeAttribute('aria-disabled');
+      } else {
+        replayStoredSampleButton.setAttribute('disabled', 'disabled');
+        replayStoredSampleButton.setAttribute('aria-disabled', 'true');
+      }
+    }
+    if (!shouldShow) {
+      setReplaySampleStatus('', null);
+    } else if (
+      replayStoredSampleStatus &&
+      (!replayStoredSampleStatus.textContent ||
+        replayStoredSampleStatus.textContent.trim().length === 0)
+    ) {
+      setReplaySampleStatus('Apply sample data for this credential.', null);
+    }
+  }
+
+  function storedSampleEndpoint(credentialId) {
+    if (!sampleEndpointBase || !credentialId) {
+      return null;
+    }
+    var base = sampleEndpointBase;
+    if (base.endsWith('/')) {
+      base = base.slice(0, -1);
+    }
+    return base + '/' + encodeURIComponent(credentialId) + '/sample';
+  }
+
+  function renderStoredOptions(select, credentials) {
+    if (!select) {
+      return;
+    }
+    var previousValue = select.value || '';
+    while (select.firstChild) {
+      select.removeChild(select.firstChild);
+    }
+
+    var placeholder = documentRef.createElement('option');
+    placeholder.value = '';
+    if (!credentials || credentials.length === 0) {
+      placeholder.textContent = 'No stored credentials available';
+      select.appendChild(placeholder);
+      select.value = '';
+      select.setAttribute('disabled', 'disabled');
+      return;
+    }
+
+    placeholder.textContent = 'Select a credential';
+    select.appendChild(placeholder);
+    select.removeAttribute('disabled');
+
+    credentials.forEach(function (summary) {
+      if (!summary || typeof summary.id !== 'string' || !summary.id) {
+        return;
+      }
+      var option = documentRef.createElement('option');
+      option.value = summary.id;
+      option.textContent = summary.label || summary.id;
+      if (summary.algorithm) {
+        option.setAttribute('data-algorithm', summary.algorithm);
+      }
+      if (typeof summary.digits === 'number') {
+        option.setAttribute('data-digits', String(summary.digits));
+      }
+      if (typeof summary.stepSeconds === 'number') {
+        option.setAttribute('data-step-seconds', String(summary.stepSeconds));
+      }
+      select.appendChild(option);
+    });
+
+    if (previousValue && credentials.some(function (summary) {
+      return summary && summary.id === previousValue;
+    })) {
+      select.value = previousValue;
+    } else {
+      select.value = '';
+    }
+    if (select === replayStoredSelect) {
+      syncReplaySampleActions();
+    }
+  }
+
+  function populateStoredSelect(credentials) {
+    renderStoredOptions(storedSelect, credentials);
+    renderStoredOptions(replayStoredSelect, credentials);
+    updateStoredStatusMessage(Array.isArray(credentials) ? credentials.length : 0);
+  }
+
+  function fetchStoredCredentials() {
+    if (!credentialsEndpoint) {
+      return Promise.resolve([]);
+    }
+    return getJson(credentialsEndpoint)
+      .then(function (payload) {
+        if (!Array.isArray(payload)) {
+          return [];
+        }
+        return payload
+          .map(function (summary) {
+            if (!summary || typeof summary.id !== 'string') {
+              return null;
+            }
+            return {
+              id: summary.id,
+              label: typeof summary.label === 'string' && summary.label.length
+                ? summary.label
+                : summary.id,
+              algorithm: typeof summary.algorithm === 'string' ? summary.algorithm : '',
+              digits: typeof summary.digits === 'number' ? summary.digits : null,
+              stepSeconds: typeof summary.stepSeconds === 'number'
+                ? summary.stepSeconds
+                : null,
+            };
+          })
+          .filter(function (entry) {
+            return entry && entry.id;
+          });
+      })
+      .catch(function (error) {
+        if (global.console && typeof global.console.warn === 'function') {
+          global.console.warn('Unable to load TOTP credentials', error);
+        }
+        throw error;
+      });
+  }
+
+  function ensureStoredCredentials(force) {
+    if (!storedSelect || !credentialsEndpoint) {
+      return Promise.resolve([]);
+    }
+    if (force === true) {
+      credentialCache = null;
+      credentialPromise = null;
+    }
+    if (credentialPromise) {
+      return credentialPromise;
+    }
+    if (credentialCache) {
+      populateStoredSelect(credentialCache);
+      return Promise.resolve(credentialCache);
+    }
+    credentialPromise = fetchStoredCredentials()
+      .then(function (list) {
+        credentialCache = list;
+        populateStoredSelect(list);
+        credentialPromise = null;
+        return list;
+      })
+      .catch(function (error) {
+        credentialCache = [];
+        populateStoredSelect(credentialCache);
+        credentialPromise = null;
+        return [];
+      });
+    return credentialPromise;
+  }
+
+  function applyReplayStoredSample() {
+    if (!replayStoredForm || !replayStoredSelect) {
+      return;
+    }
+    var credentialId = (replayStoredSelect.value || '').trim();
+    if (!credentialId) {
+      setReplaySampleStatus('', null);
+      return;
+    }
+    var endpoint = storedSampleEndpoint(credentialId);
+    if (!endpoint) {
+      return;
+    }
+    if (replayStoredSampleButton) {
+      replayStoredSampleButton.setAttribute('disabled', 'disabled');
+      replayStoredSampleButton.setAttribute('aria-disabled', 'true');
+    }
+    setReplaySampleStatus('Loading sample data…', null);
+    getJson(endpoint)
+      .then(function (payload) {
+        if (!payload || typeof payload !== 'object') {
+          setReplaySampleStatus('Sample data is not available.', 'warning');
+          return;
+        }
+        if (replayStoredOtpInput) {
+          replayStoredOtpInput.value =
+              typeof payload.otp === 'string' ? payload.otp : '';
+        }
+        if (replayStoredTimestampInput) {
+          if (typeof payload.timestamp === 'number') {
+            replayStoredTimestampInput.value = String(payload.timestamp);
+          } else if (typeof payload.timestamp === 'string') {
+            replayStoredTimestampInput.value = payload.timestamp.trim();
+          }
+        }
+        if (replayStoredTimestampOverrideInput) {
+          replayStoredTimestampOverrideInput.value = '';
+        }
+        if (replayStoredDriftBackwardInput) {
+          if (typeof payload.driftBackward === 'number') {
+            replayStoredDriftBackwardInput.value = String(payload.driftBackward);
+          }
+        }
+        if (replayStoredDriftForwardInput) {
+          if (typeof payload.driftForward === 'number') {
+            replayStoredDriftForwardInput.value = String(payload.driftForward);
+          }
+        }
+        var metadata = payload.metadata && typeof payload.metadata === 'object'
+          ? payload.metadata
+          : {};
+        var notes = metadata.notes && typeof metadata.notes === 'string'
+          ? metadata.notes.trim()
+          : '';
+        var presetLabel = metadata.samplePresetLabel && typeof metadata.samplePresetLabel === 'string'
+          ? metadata.samplePresetLabel.trim()
+          : '';
+        var message;
+        if (notes) {
+          message = 'Sample: ' + notes;
+        } else if (presetLabel) {
+          message = 'Sample "' + presetLabel + '" applied.';
+        } else {
+          message = 'Sample data applied.';
+        }
+        setReplaySampleStatus(message, null);
+      })
+      .catch(function (error) {
+        if (error && (error.status === 404 || error.status === 400)) {
+          setReplaySampleStatus('Sample data is not available for this credential.', 'warning');
+        } else {
+          setReplaySampleStatus('Unable to load sample data.', 'error');
+        }
+      })
+      .finally(function () {
+        if (replayStoredSampleButton) {
+          replayStoredSampleButton.removeAttribute('disabled');
+          replayStoredSampleButton.removeAttribute('aria-disabled');
+        }
+      });
+  }
+
+  function handleSeedRequest() {
+    if (seedInProgress || !seedEndpoint) {
+      return;
+    }
+    seedInProgress = true;
+    syncSeedActions(true);
+    setSeedStatus('Seeding sample credentials…', null);
+
+    postJson(seedEndpoint, {}, csrfToken(storedForm))
+      .then(function (response) {
+        var addedCount = 0;
+        if (response && typeof response.addedCount === 'number') {
+          addedCount = response.addedCount;
+        } else if (response && Array.isArray(response.addedCredentialIds)) {
+          addedCount = response.addedCredentialIds.length;
+        }
+        var message =
+          'Seeded ' + addedCount + ' sample credential' + (addedCount === 1 ? '' : 's') + '.';
+        var severity = addedCount === 0 ? 'warning' : null;
+        if (addedCount === 0) {
+          message += ' All sample credentials are already present.';
+        }
+        setSeedStatus(message, severity);
+        credentialCache = null;
+        credentialPromise = null;
+        return ensureStoredCredentials(true);
+      })
+      .catch(function () {
+        setSeedStatus('Unable to seed sample credentials.', 'error');
+      })
+      .finally(function () {
+        seedInProgress = false;
+        var storedActive = modeToggle ? modeToggle.getAttribute('data-mode') === 'stored' : true;
+        syncSeedActions(storedActive);
+      });
   }
 
   function toInteger(value) {
@@ -202,6 +811,69 @@
     } catch (error) {
       return null;
     }
+  }
+
+  function getJson(endpoint) {
+    if (!endpoint) {
+      return Promise.resolve(null);
+    }
+
+    if (typeof global.fetch === 'function') {
+      return global
+        .fetch(endpoint, {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: {
+            Accept: 'application/json',
+          },
+        })
+        .then(function (response) {
+          return response.text().then(function (bodyText) {
+            if (response.ok) {
+              return parseJson(bodyText);
+            }
+            var error = new Error('TOTP request failed');
+            error.status = response.status;
+            error.payload = parseJson(bodyText);
+            throw error;
+          });
+        });
+    }
+
+    return new Promise(function (resolve, reject) {
+      var XhrCtor = global.XMLHttpRequest;
+      if (typeof XhrCtor !== 'function') {
+        resolve(null);
+        return;
+      }
+      try {
+        var xhr = new XhrCtor();
+        xhr.open('GET', endpoint, true);
+        xhr.withCredentials = true;
+        xhr.setRequestHeader('Accept', 'application/json');
+        var DONE = typeof XhrCtor.DONE === 'number' ? XhrCtor.DONE : 4;
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState !== DONE) {
+            return;
+          }
+          var parsed = parseJson(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(parsed);
+            return;
+          }
+          var error = new Error('TOTP request failed');
+          error.status = xhr.status;
+          error.payload = parsed;
+          reject(error);
+        };
+        xhr.onerror = function () {
+          reject(new Error('Network error during TOTP request'));
+        };
+        xhr.send();
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   function postJson(endpoint, payload, csrf) {
@@ -408,6 +1080,12 @@
     }
     setHidden(storedSection, normalized !== 'stored');
     setHidden(inlineSection, normalized !== 'inline');
+    syncSeedActions(normalized === 'stored');
+    if (normalized === 'stored') {
+      ensureStoredCredentials(options && options.force === true).catch(function () {
+        // ignore load errors; status message already updated
+      });
+    }
     dispatchModeChange(normalized, options);
   }
 
@@ -429,6 +1107,12 @@
     }
     setHidden(replayStoredSection, normalized !== 'stored');
     setHidden(replayInlineSection, normalized !== 'inline');
+    syncReplaySampleActions();
+    if (normalized === 'stored') {
+      ensureStoredCredentials(options && options.force === true).catch(function () {
+        // ignore load errors; status message already updated
+      });
+    }
     dispatchReplayModeChange(normalized, options);
   }
 
@@ -547,19 +1231,9 @@
     if (!response || typeof response !== 'object') {
       return;
     }
-    var metadata = response.metadata || {};
     setStatusBadge(replayStatusBadge, response.status || response.reasonCode);
     writeText(replayReasonCode, response.reasonCode || response.status || '—');
-    writeText(replayCredentialSource, metadata.credentialSource);
-    writeText(replayCredentialId, metadata.credentialId);
-    writeText(replayMatchedSkew, metadata.matchedSkewSteps);
-    writeText(replayAlgorithm, metadata.algorithm);
-    writeText(replayDigits, metadata.digits);
-    writeText(replayStep, metadata.stepSeconds);
-    writeText(replayDriftBackward, metadata.driftBackwardSteps);
-    writeText(replayDriftForward, metadata.driftForwardSteps);
-    writeBoolean(replayTimestampOverride, metadata.timestampOverrideProvided);
-    writeText(replayTelemetry, metadata.telemetryId);
+    writeText(replayOutcome, response.status || '—');
     setHidden(replayResultPanel, false);
   }
 
@@ -653,6 +1327,13 @@
     }
     if (timestampOverride != null) {
       payload.timestampOverride = timestampOverride;
+    }
+    if (inlinePresetActiveKey) {
+      var metadata = { presetKey: inlinePresetActiveKey };
+      if (inlinePresetActiveLabel) {
+        metadata.presetLabel = inlinePresetActiveLabel;
+      }
+      payload.metadata = metadata;
     }
     inlineButton.setAttribute('disabled', 'disabled');
     clearInlinePanels();
@@ -820,6 +1501,23 @@
       evaluateStored();
     });
   }
+  if (seedButton) {
+    seedButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      handleSeedRequest();
+    });
+  }
+  if (inlinePresetSelect) {
+    inlinePresetSelect.addEventListener('change', function () {
+      var key = inlinePresetSelect.value;
+      if (!key) {
+        clearInlinePresetTracking();
+        clearInlinePanels();
+        return;
+      }
+      applyInlineEvaluationPreset(key);
+    });
+  }
   if (inlineButton) {
     inlineButton.addEventListener('click', function (event) {
       event.preventDefault();
@@ -841,10 +1539,32 @@
       }
     });
   }
+  if (replayStoredSelect) {
+    replayStoredSelect.addEventListener('change', function () {
+      syncReplaySampleActions();
+    });
+  }
   if (replayStoredButton) {
     replayStoredButton.addEventListener('click', function (event) {
       event.preventDefault();
       replayStored();
+    });
+  }
+  if (replayStoredSampleButton) {
+    replayStoredSampleButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      applyReplayStoredSample();
+    });
+  }
+  if (replayInlinePresetSelect) {
+    replayInlinePresetSelect.addEventListener('change', function () {
+      var key = replayInlinePresetSelect.value;
+      if (!key) {
+        setPresetApplied(replayInlinePresetContainer, '');
+        clearReplayPanels();
+        return;
+      }
+      applyReplayInlinePreset(key);
     });
   }
   if (replayInlineButton) {
@@ -878,6 +1598,7 @@
   setMode(initialMode, { broadcast: false, force: true, replace: true });
   var initialReplayMode = readReplayModeFromUrl(global.location.search);
   setReplayMode(initialReplayMode, { broadcast: false, force: true, replace: true });
+  syncReplaySampleActions();
 
   global.TotpConsole = {
     setTab: function (tab, options) {

@@ -28,6 +28,10 @@ public final class TelemetryContracts {
       new TotpTelemetryAdapter("totp.evaluate");
   private static final TotpTelemetryAdapter TOTP_REPLAY_ADAPTER =
       new TotpTelemetryAdapter("totp.replay");
+  private static final TotpTelemetryAdapter TOTP_SEEDING_ADAPTER =
+      new TotpTelemetryAdapter("totp.seed");
+  private static final TotpTelemetryAdapter TOTP_SAMPLE_ADAPTER =
+      new TotpTelemetryAdapter("totp.sample");
 
   private TelemetryContracts() {
     throw new AssertionError("No instances");
@@ -76,5 +80,15 @@ public final class TelemetryContracts {
   /** Returns the shared adapter for TOTP replay telemetry. */
   public static TotpTelemetryAdapter totpReplayAdapter() {
     return TOTP_REPLAY_ADAPTER;
+  }
+
+  /** Returns the shared adapter for TOTP seeding telemetry. */
+  public static TotpTelemetryAdapter totpSeedingAdapter() {
+    return TOTP_SEEDING_ADAPTER;
+  }
+
+  /** Returns the shared adapter for TOTP stored sample telemetry. */
+  public static TotpTelemetryAdapter totpSampleAdapter() {
+    return TOTP_SAMPLE_ADAPTER;
   }
 }

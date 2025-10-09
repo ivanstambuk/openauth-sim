@@ -1,7 +1,7 @@
 # Feature Plan 022 – HOTP Operator Support
 
 _Status: Complete_
-_Last updated: 2025-10-08_
+_Last updated: 2025-10-09_
 
 ## Objective
 Implement end-to-end HOTP flows (core domain, shared persistence, telemetry, CLI, REST) so operators can manage HOTP credentials alongside OCRA while reusing the existing schema-v1 storage baseline.
@@ -152,6 +152,7 @@ Each increment must complete within ≤10 minutes, lead with tests where practic
 - ☑ R2291 – Implement the HOTP stored replay sample endpoint/service, ensure application tests confirm the OTP aligns with the current counter while leaving counters unchanged, and refresh telemetry wiring as needed. (2025-10-07: added `HotpSampleApplicationService`, exposed Spring bean + `HotpStoredSampleResponse`, wired controller endpoint, refreshed OpenAPI snapshot via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, and validated with `./gradlew :application:test --tests "io.openauth.sim.application.hotp.HotpSampleApplicationServiceTest"` plus `./gradlew :rest-api:test --tests "io.openauth.sim.rest.HotpStoredSampleEndpointTest"`.)
 - ☑ R2292 – Add failing Selenium coverage asserting the HOTP replay stored panel exposes an editable counter field, pre-fills it along with the OTP when sample data loads, and that immediate verification yields a match. (2025-10-07: augmented `HotpOperatorUiReplaySeleniumTest.storedHotpReplaySamplePrefillsCounterAndOtp`, captured failure prior to UI updates via targeted `./gradlew :rest-api:test --tests "…storedHotpReplaySamplePrefillsCounterAndOtp"`.)
 - ☑ R2293 – Update HOTP replay UI/JS templates to surface the counter input, call the new REST sample endpoint, and satisfy the new Selenium/MockMvc coverage; rerun `./gradlew spotlessApply check`. (2025-10-07: added stored counter field to `panel.html`, introduced dynamic sample fetch in `console.js`, exported base endpoint via controller, synced seeding metadata, reran targeted Selenium + REST suites and finalized with `./gradlew spotlessApply check`.)
+- ☑ R2294 – Reposition the HOTP stored replay “Load sample data” control directly beneath the “Stored credential” selector (matching OCRA spacing), adjust Thymeleaf markup/JS/CSS plus Selenium assertions, and rerun `./gradlew :rest-api:test` followed by `./gradlew spotlessApply check`. (_2025-10-09 – Moved the stored replay sample block beside the credential dropdown, reused the shared console spacing rule, and revalidated via `./gradlew :rest-api:test` and `./gradlew spotlessApply check`._)
 
 ## Analysis Gate (2025-10-04)
 - [x] Specification completeness – HOS requirements and clarifications recorded (telemetry parity, shared schema, CLI/REST scope).

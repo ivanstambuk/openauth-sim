@@ -104,20 +104,61 @@
                 <form
                     data-testid="totp-stored-form"
                     class="evaluation-form"
-                    th:attr="data-evaluate-endpoint=${totpStoredEvaluateEndpoint}"
+                    th:attr="data-evaluate-endpoint=${totpStoredEvaluateEndpoint},data-credentials-endpoint=${totpCredentialsEndpoint},data-seed-endpoint=${totpSeedEndpoint}"
                   >
                   <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                  <script
+                    type="application/json"
+                    id="totp-seed-definitions"
+                    th:utext="${totpSeedDefinitionsJson}"
+                  ></script>
+                  <div
+                      class="seed-actions"
+                      data-testid="totp-seed-actions"
+                      hidden="hidden"
+                      aria-hidden="true"
+                      style="margin-top: 1.5rem;"
+                    >
+                    <button
+                      type="button"
+                      class="button-secondary"
+                      data-testid="totp-seed-credentials"
+                    >
+                      Seed sample credentials
+                    </button>
+                    <p class="hint" data-testid="totp-seed-hint">
+                      Seed sample credentials when the registry is empty or missing canonical
+                      presets.
+                    </p>
+                    <p
+                      class="credential-status"
+                      data-testid="totp-seed-status"
+                      aria-live="polite"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    ></p>
+                  </div>
                   <div class="field-grid">
                     <div class="field-group">
-                      <label for="totpStoredCredentialId">Credential ID</label>
-                      <input
+                      <label for="totpStoredCredentialId">Stored credential</label>
+                      <select
                         id="totpStoredCredentialId"
                         name="credentialId"
-                        type="text"
                         required="required"
-                        autocomplete="off"
-                        spellcheck="false"
-                      />
+                        aria-describedby="totp-stored-status"
+                        disabled="disabled"
+                        data-testid="totp-stored-credential-select"
+                      >
+                        <option value="">No stored credentials available</option>
+                      </select>
+                      <p
+                        id="totp-stored-status"
+                        class="hint"
+                        data-testid="totp-stored-status"
+                        aria-live="polite"
+                      >
+                        Stored credentials will appear once loaded.
+                      </p>
                     </div>
                     <div class="field-group">
                       <label for="totpStoredOtp">One-time password</label>
@@ -210,6 +251,24 @@
                     th:attr="data-evaluate-endpoint=${totpInlineEvaluateEndpoint}"
                   >
                   <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                  <script
+                    type="application/json"
+                    id="totp-inline-presets"
+                    th:utext="${totpInlinePresetsJson}"
+                  ></script>
+                  <div class="inline-preset" data-testid="totp-inline-preset">
+                    <label for="totpInlinePreset">Load a sample vector</label>
+                    <select
+                      id="totpInlinePreset"
+                      name="totpInlinePreset"
+                      data-testid="totp-inline-preset-select"
+                    >
+                      <option value="">Select a sample</option>
+                    </select>
+                    <p class="hint">
+                      Selecting a preset auto-fills inline parameters with illustrative data.
+                    </p>
+                  </div>
                   <div class="field-grid">
                     <div class="field-group">
                       <label for="totpInlineSecretHex">Shared secret (hex)</label>
@@ -509,20 +568,53 @@
                 <form
                     data-testid="totp-replay-stored-form"
                     class="evaluation-form"
-                    th:attr="data-replay-endpoint=${totpReplayEndpoint}"
+                    th:attr="data-replay-endpoint=${totpReplayEndpoint},data-sample-endpoint=${totpCredentialSampleEndpoint}"
                   >
                   <input type="hidden" name="_csrf" th:value="${csrfToken}" />
                   <div class="field-grid">
                     <div class="field-group">
-                      <label for="totpReplayStoredCredentialId">Credential ID</label>
-                      <input
+                      <label id="totpReplayStoredLabel" for="totpReplayStoredCredentialId"
+                        >Stored credential</label
+                      >
+                      <select
                         id="totpReplayStoredCredentialId"
                         name="credentialId"
-                        type="text"
                         required="required"
-                        autocomplete="off"
-                        spellcheck="false"
-                      />
+                        aria-describedby="totp-replay-stored-status"
+                        disabled="disabled"
+                        data-testid="totp-replay-stored-credential-select"
+                      >
+                        <option value="">No stored credentials available</option>
+                      </select>
+                      <p
+                        id="totp-replay-stored-status"
+                        class="hint"
+                        data-testid="totp-replay-stored-status"
+                        aria-live="polite"
+                      >
+                        Stored credentials will appear once loaded.
+                      </p>
+                      <div
+                          class="seed-actions"
+                          data-testid="totp-replay-sample-actions"
+                          hidden="hidden"
+                          aria-hidden="true"
+                        >
+                        <button
+                          type="button"
+                          class="button-secondary"
+                          data-testid="totp-replay-sample-load"
+                          disabled="disabled"
+                          aria-disabled="true"
+                        >
+                          Load sample data
+                        </button>
+                        <p
+                          class="hint credential-status"
+                          data-testid="totp-replay-sample-status"
+                          aria-live="polite"
+                        ></p>
+                      </div>
                     </div>
                     <div class="field-group">
                       <label for="totpReplayStoredOtp">One-time password</label>
@@ -616,6 +708,19 @@
                     th:attr="data-replay-endpoint=${totpReplayEndpoint}"
                   >
                   <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                  <div class="inline-preset" data-testid="totp-replay-inline-preset">
+                    <label for="totpReplayInlinePreset">Load a sample vector</label>
+                    <select
+                      id="totpReplayInlinePreset"
+                      name="totpReplayInlinePreset"
+                      data-testid="totp-replay-inline-preset-select"
+                    >
+                      <option value="">Select a sample</option>
+                    </select>
+                    <p class="hint">
+                      Presets auto-fill inline replay inputs with curated sample data.
+                    </p>
+                  </div>
                   <div class="field-grid">
                     <div class="field-group">
                       <label for="totpReplayInlineSecretHex">Shared secret (hex)</label>
@@ -751,58 +856,18 @@
                   aria-labelledby="totp-replay-result-heading"
                   hidden="hidden"
                 >
-                <h3 id="totp-replay-result-heading">Replay result</h3>
+                <div class="result-header">
+                  <h3 id="totp-replay-result-heading">Replay result</h3>
+                  <span class="status-badge" data-testid="totp-replay-status">—</span>
+                </div>
                 <dl class="result-metadata">
                   <div class="result-row">
-                    <dt>Status</dt>
-                    <dd>
-                      <span class="status-badge" data-testid="totp-replay-status">—</span>
-                    </dd>
+                    <dt>Reason Code</dt>
+                    <dd data-testid="totp-replay-reason-code">—</dd>
                   </div>
                   <div class="result-row">
-                    <dt>Reason code</dt>
-                    <dd>
-                      <span data-testid="totp-replay-reason-code">—</span>
-                    </dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Credential source</dt>
-                    <dd data-testid="totp-replay-credential-source">—</dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Credential ID</dt>
-                    <dd data-testid="totp-replay-credential-id">—</dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Matched skew steps</dt>
-                    <dd data-testid="totp-replay-matched-skew">—</dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Algorithm</dt>
-                    <dd data-testid="totp-replay-algorithm">—</dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Digits</dt>
-                    <dd data-testid="totp-replay-digits">—</dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Step seconds</dt>
-                    <dd data-testid="totp-replay-step">—</dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Drift window</dt>
-                    <dd>
-                      <span data-testid="totp-replay-drift-backward">—</span> backward /
-                      <span data-testid="totp-replay-drift-forward">—</span> forward
-                    </dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Timestamp override provided</dt>
-                    <dd data-testid="totp-replay-timestamp-override">—</dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Telemetry ID</dt>
-                    <dd data-testid="totp-replay-telemetry">—</dd>
+                    <dt>Outcome</dt>
+                    <dd data-testid="totp-replay-outcome">—</dd>
                   </div>
                 </dl>
               </section>

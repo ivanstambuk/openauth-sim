@@ -24,6 +24,9 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 - 2025-10-08 – Drift window inputs (backward/forward steps) display side-by-side across stored and inline evaluate/replay forms (user directive).
 - 2025-10-09 – Inline TOTP evaluate and replay panels must include a "Load a sample vector" preset control mirroring HOTP/OCRA; presets populate RFC 6238 sample secrets, timestamps, OTPs, and metadata (user directive; Option A selected).
 - 2025-10-09 – Stored-mode TOTP evaluations expose a `Seed sample credentials` control backed by a dedicated TOTP seeding endpoint; the button mirrors HOTP/OCRA behaviour and surfaces only within the evaluate tab’s stored mode (user directive; Option A selected).
+- 2025-10-09 – TOTP stored replay flows use a stored credential dropdown (labelled “Stored credential”) instead of a free-text identifier, matching HOTP/OCRA parity across evaluate/replay panels (user directive; Option A selected).
+- 2025-10-09 – Stored TOTP replay panels must include a “Load sample data” control fed by a backend sampler endpoint (`/api/v1/totp/credentials/{credentialId}/sample`) so the payload reflects canonical demo vectors (user directive; Option A selected).
+- 2025-10-09 – Position the stored replay “Load sample data” control directly below the “Stored credential” selector, matching the vertical spacing used by the OCRA panel (user directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -37,6 +40,7 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 | TOS-007 | Update operator console UI with TOTP evaluation and replay panels (stored + inline) that integrate with REST endpoints, presets, and drift controls. | Selenium/system tests confirm panel rendering, preset behaviours, drift/timestamp inputs, and query-parameter deep links (`protocol=totp`). |
 | TOS-008 | Document TOTP usage (operator how-to, roadmap, knowledge map) and align placeholder messaging with live functionality. | Documentation diffs show updated instructions; lint (`./gradlew spotlessApply check`) passes after doc updates. |
 | TOS-009 | Provide a dedicated TOTP replay application/REST flow that mirrors HOTP/OCRA replay semantics, returning diagnostic metadata without mutating credential state. | Application + MockMvc tests assert telemetry, non-mutating behaviour, stored/inline replay handling, and error signalling. |
+| TOS-010 | Surface stored replay "Load sample data" controls backed by `/api/v1/totp/credentials/{credentialId}/sample`, emitting `totp.sample` telemetry and populating deterministic OTP/timestamp/drift inputs. | Application tests cover sampler output, MockMvc tests exercise the new endpoint, and Selenium coverage asserts UI form population plus status messaging. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Acceptance Signal |

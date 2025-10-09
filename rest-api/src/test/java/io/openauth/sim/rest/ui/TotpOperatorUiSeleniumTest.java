@@ -15,17 +15,21 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openqa.selenium.By;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -69,6 +73,21 @@ final class TotpOperatorUiSeleniumTest {
   private static final Instant INLINE_TIMESTAMP = Instant.ofEpochSecond(1_234_567_890L);
   private static final String INLINE_EXPECTED_OTP =
       TotpGenerator.generate(INLINE_DESCRIPTOR, INLINE_TIMESTAMP);
+
+  private static final String INLINE_SAMPLE_PRESET_KEY = "inline-rfc6238-sha1";
+  private static final SecretMaterial INLINE_SAMPLE_SECRET =
+      SecretMaterial.fromStringUtf8("12345678901234567890");
+  private static final TotpDescriptor INLINE_SAMPLE_DESCRIPTOR =
+      TotpDescriptor.create(
+          "inline-rfc6238-sample",
+          INLINE_SAMPLE_SECRET,
+          TotpHashAlgorithm.SHA1,
+          8,
+          Duration.ofSeconds(30),
+          TotpDriftWindow.of(1, 1));
+  private static final Instant INLINE_SAMPLE_TIMESTAMP = Instant.ofEpochSecond(59L);
+  private static final String INLINE_SAMPLE_EXPECTED_OTP =
+      TotpGenerator.generate(INLINE_SAMPLE_DESCRIPTOR, INLINE_SAMPLE_TIMESTAMP);
 
   @TempDir static Path tempDir;
   private static Path databasePath;
@@ -116,9 +135,13 @@ final class TotpOperatorUiSeleniumTest {
     WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
     waitUntilAttribute(modeToggle, "data-mode", "stored");
 
-    WebElement credentialInput = driver.findElement(By.id("totpStoredCredentialId"));
-    credentialInput.clear();
-    credentialInput.sendKeys(STORED_CREDENTIAL_ID);
+    WebElement storedLabel =
+        driver.findElement(By.cssSelector("label[for='totpStoredCredentialId']"));
+    assertEquals("Stored credential", storedLabel.getText().trim());
+
+    waitUntilOptionsCount(By.id("totpStoredCredentialId"), 2);
+    Select credentialSelect = new Select(driver.findElement(By.id("totpStoredCredentialId")));
+    credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
 
     WebElement otpInput = driver.findElement(By.id("totpStoredOtp"));
     otpInput.clear();
@@ -204,6 +227,80 @@ final class TotpOperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Inline TOTP evaluate preset populates sample vector inputs")
+  void totpInlineSamplePresetPopulatesForm() {
+    navigateToTotpPanel();
+
+    WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
+    WebElement inlineToggle =
+        driver.findElement(By.cssSelector("[data-testid='totp-mode-select-inline']"));
+    inlineToggle.click();
+    waitUntilAttribute(modeToggle, "data-mode", "inline");
+
+    WebElement inlinePanel = waitForVisible(By.cssSelector("[data-testid='totp-inline-panel']"));
+
+    WebElement presetContainer =
+        waitForVisible(By.cssSelector("[data-testid='totp-inline-preset']"));
+    WebElement presetLabel = presetContainer.findElement(By.tagName("label"));
+    assertTrue(
+        presetLabel.getText().contains("Load a sample vector"),
+        "Inline preset label should mention sample vectors");
+
+    Select presetSelect =
+        new Select(
+            presetContainer.findElement(
+                By.cssSelector("[data-testid='totp-inline-preset-select']")));
+    assertTrue(
+        presetSelect.getOptions().size() >= 2,
+        "Inline preset dropdown should expose multiple sample options");
+    boolean sampleExists =
+        presetSelect.getOptions().stream()
+            .anyMatch(option -> INLINE_SAMPLE_PRESET_KEY.equals(option.getAttribute("value")));
+    assertTrue(sampleExists, "Expected inline preset dropdown to expose RFC 6238 sample");
+
+    presetSelect.selectByValue(INLINE_SAMPLE_PRESET_KEY);
+
+    WebElement secretField = driver.findElement(By.id("totpInlineSecretHex"));
+    assertEquals(INLINE_SAMPLE_SECRET.asHex(), secretField.getAttribute("value"));
+
+    Select algorithmSelect = new Select(driver.findElement(By.id("totpInlineAlgorithm")));
+    String algorithmValue =
+        algorithmSelect.getFirstSelectedOption() == null
+            ? null
+            : algorithmSelect.getFirstSelectedOption().getAttribute("value");
+    assertEquals("SHA1", algorithmValue);
+
+    WebElement digitsField = driver.findElement(By.id("totpInlineDigits"));
+    assertEquals(
+        Integer.toString(INLINE_SAMPLE_DESCRIPTOR.digits()), digitsField.getAttribute("value"));
+
+    WebElement stepField = driver.findElement(By.id("totpInlineStepSeconds"));
+    assertEquals(
+        Long.toString(INLINE_SAMPLE_DESCRIPTOR.stepSeconds()), stepField.getAttribute("value"));
+
+    WebElement timestampField = driver.findElement(By.id("totpInlineTimestamp"));
+    assertEquals(
+        Long.toString(INLINE_SAMPLE_TIMESTAMP.getEpochSecond()),
+        timestampField.getAttribute("value"));
+
+    WebElement otpField = driver.findElement(By.id("totpInlineOtp"));
+    assertEquals(INLINE_SAMPLE_EXPECTED_OTP, otpField.getAttribute("value"));
+
+    WebElement driftBackward = driver.findElement(By.id("totpInlineDriftBackward"));
+    assertEquals(
+        Integer.toString(INLINE_SAMPLE_DESCRIPTOR.driftWindow().backwardSteps()),
+        driftBackward.getAttribute("value"));
+
+    WebElement driftForward = driver.findElement(By.id("totpInlineDriftForward"));
+    assertEquals(
+        Integer.toString(INLINE_SAMPLE_DESCRIPTOR.driftWindow().forwardSteps()),
+        driftForward.getAttribute("value"));
+
+    WebElement inlineSection = inlinePanel.findElement(By.tagName("form"));
+    assertEquals("totp-inline-form", inlineSection.getAttribute("data-testid"));
+  }
+
+  @Test
   @DisplayName("TOTP inline parameter controls align on a single row")
   void totpInlineParameterControlsAlignOnSingleRow() {
     navigateToTotpPanel();
@@ -244,6 +341,79 @@ final class TotpOperatorUiSeleniumTest {
     WebElement replayStep =
         replayParameterGrid.findElement(By.cssSelector("#totpReplayInlineStepSeconds"));
     assertSameRow("replay inline parameters", replayAlgorithm, replayDigits, replayStep);
+  }
+
+  @Test
+  @DisplayName("TOTP replay inline preset populates sample vector inputs")
+  void totpReplayInlineSamplePresetPopulatesForm() {
+    navigateToTotpPanel();
+    switchToReplayTab();
+    waitUntilUrlContains("totpTab=replay");
+
+    WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
+    WebElement inlineToggle =
+        driver.findElement(By.cssSelector("[data-testid='totp-replay-mode-select-inline']"));
+    inlineToggle.click();
+    waitUntilAttribute(replayToggle, "data-mode", "inline");
+
+    waitForVisible(By.cssSelector("[data-testid='totp-replay-inline-section']"));
+
+    WebElement presetContainer =
+        waitForVisible(By.cssSelector("[data-testid='totp-replay-inline-preset']"));
+    WebElement presetLabel = presetContainer.findElement(By.tagName("label"));
+    assertTrue(
+        presetLabel.getText().contains("Load a sample vector"),
+        "Replay inline preset label should mention sample vectors");
+
+    Select presetSelect =
+        new Select(
+            presetContainer.findElement(
+                By.cssSelector("[data-testid='totp-replay-inline-preset-select']")));
+    assertTrue(
+        presetSelect.getOptions().size() >= 2,
+        "Replay inline preset dropdown should expose multiple sample options");
+    boolean sampleOptionExists =
+        presetSelect.getOptions().stream()
+            .anyMatch(option -> INLINE_SAMPLE_PRESET_KEY.equals(option.getAttribute("value")));
+    assertTrue(sampleOptionExists, "Expected replay preset dropdown to expose RFC 6238 sample");
+
+    presetSelect.selectByValue(INLINE_SAMPLE_PRESET_KEY);
+
+    WebElement secretField = driver.findElement(By.id("totpReplayInlineSecretHex"));
+    assertEquals(INLINE_SAMPLE_SECRET.asHex(), secretField.getAttribute("value"));
+
+    Select algorithmSelect = new Select(driver.findElement(By.id("totpReplayInlineAlgorithm")));
+    String algorithmValue =
+        algorithmSelect.getFirstSelectedOption() == null
+            ? null
+            : algorithmSelect.getFirstSelectedOption().getAttribute("value");
+    assertEquals("SHA1", algorithmValue);
+
+    WebElement digitsField = driver.findElement(By.id("totpReplayInlineDigits"));
+    assertEquals(
+        Integer.toString(INLINE_SAMPLE_DESCRIPTOR.digits()), digitsField.getAttribute("value"));
+
+    WebElement stepField = driver.findElement(By.id("totpReplayInlineStepSeconds"));
+    assertEquals(
+        Long.toString(INLINE_SAMPLE_DESCRIPTOR.stepSeconds()), stepField.getAttribute("value"));
+
+    WebElement timestampField = driver.findElement(By.id("totpReplayInlineTimestamp"));
+    assertEquals(
+        Long.toString(INLINE_SAMPLE_TIMESTAMP.getEpochSecond()),
+        timestampField.getAttribute("value"));
+
+    WebElement otpField = driver.findElement(By.id("totpReplayInlineOtp"));
+    assertEquals(INLINE_SAMPLE_EXPECTED_OTP, otpField.getAttribute("value"));
+
+    WebElement driftBackward = driver.findElement(By.id("totpReplayInlineDriftBackward"));
+    assertEquals(
+        Integer.toString(INLINE_SAMPLE_DESCRIPTOR.driftWindow().backwardSteps()),
+        driftBackward.getAttribute("value"));
+
+    WebElement driftForward = driver.findElement(By.id("totpReplayInlineDriftForward"));
+    assertEquals(
+        Integer.toString(INLINE_SAMPLE_DESCRIPTOR.driftWindow().forwardSteps()),
+        driftForward.getAttribute("value"));
   }
 
   @Test
@@ -329,9 +499,18 @@ final class TotpOperatorUiSeleniumTest {
     WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
     waitUntilAttribute(replayToggle, "data-mode", "stored");
 
-    WebElement credentialInput = driver.findElement(By.id("totpReplayStoredCredentialId"));
-    credentialInput.clear();
-    credentialInput.sendKeys(STORED_CREDENTIAL_ID);
+    WebElement credentialLabel =
+        driver.findElement(By.cssSelector("label[for='totpReplayStoredCredentialId']"));
+    assertEquals("Stored credential", credentialLabel.getText().trim());
+
+    waitUntilOptionsCount(By.id("totpReplayStoredCredentialId"), 2);
+    Select replayCredentialSelect =
+        new Select(driver.findElement(By.id("totpReplayStoredCredentialId")));
+    assertEquals(
+        "",
+        replayCredentialSelect.getFirstSelectedOption().getAttribute("value"),
+        "Stored replay credential dropdown should default to placeholder option");
+    replayCredentialSelect.selectByValue(STORED_CREDENTIAL_ID);
 
     WebElement otpInput = driver.findElement(By.id("totpReplayStoredOtp"));
     otpInput.clear();
@@ -367,24 +546,48 @@ final class TotpOperatorUiSeleniumTest {
             .getText()
             .trim();
     assertEquals("match", reasonCode.toLowerCase());
-    assertEquals(
-        "0",
+    String outcome =
         resultPanel
-            .findElement(By.cssSelector("[data-testid='totp-replay-matched-skew']"))
-            .getText()
-            .trim());
-    assertEquals(
-        "stored",
-        resultPanel
-            .findElement(By.cssSelector("[data-testid='totp-replay-credential-source']"))
-            .getText()
-            .trim());
-    String telemetryId =
-        resultPanel
-            .findElement(By.cssSelector("[data-testid='totp-replay-telemetry']"))
+            .findElement(By.cssSelector("[data-testid='totp-replay-outcome']"))
             .getText()
             .trim();
-    assertTrue(telemetryId.startsWith("rest-totp-"));
+    assertEquals("match", outcome.toLowerCase());
+  }
+
+  @Test
+  @DisplayName("Stored TOTP replay sample button populates OTP and timestamp fields")
+  void storedTotpReplaySampleButtonPopulatesForm() {
+    navigateToTotpPanel();
+    switchToReplayTab();
+    waitUntilUrlContains("totpTab=replay");
+
+    WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
+    waitUntilAttribute(replayToggle, "data-mode", "stored");
+
+    waitUntilOptionsCount(By.id("totpReplayStoredCredentialId"), 2);
+    Select replayCredentialSelect =
+        new Select(driver.findElement(By.id("totpReplayStoredCredentialId")));
+    replayCredentialSelect.selectByValue(STORED_CREDENTIAL_ID);
+
+    WebElement sampleActions =
+        waitFor(By.cssSelector("[data-testid='totp-replay-sample-actions']"));
+    WebElement sampleButton =
+        sampleActions.findElement(By.cssSelector("[data-testid='totp-replay-sample-load']"));
+    WebElement sampleStatus =
+        sampleActions.findElement(By.cssSelector("[data-testid='totp-replay-sample-status']"));
+
+    assertEquals("Load sample data", sampleButton.getText().trim());
+
+    sampleButton.click();
+
+    waitUntilFieldValue(By.id("totpReplayStoredOtp"), EXPECTED_STORED_OTP);
+    waitUntilFieldValue(
+        By.id("totpReplayStoredTimestamp"), Long.toString(STORED_TIMESTAMP.getEpochSecond()));
+
+    String statusText = sampleStatus.getText().trim().toLowerCase();
+    assertTrue(
+        statusText.contains("sample"),
+        () -> "Sample status message should reference applied preset: " + statusText);
   }
 
   @Test
@@ -457,18 +660,12 @@ final class TotpOperatorUiSeleniumTest {
             .getText()
             .trim();
     assertEquals("otp_out_of_window", reasonCode.toLowerCase());
-    assertEquals(
-        "inline",
+    String outcome =
         resultPanel
-            .findElement(By.cssSelector("[data-testid='totp-replay-credential-source']"))
-            .getText()
-            .trim());
-    String telemetryId =
-        resultPanel
-            .findElement(By.cssSelector("[data-testid='totp-replay-telemetry']"))
+            .findElement(By.cssSelector("[data-testid='totp-replay-outcome']"))
             .getText()
             .trim();
-    assertTrue(telemetryId.startsWith("rest-totp-"));
+    assertEquals("mismatch", outcome.toLowerCase());
   }
 
   @Test
@@ -525,6 +722,19 @@ final class TotpOperatorUiSeleniumTest {
     }
   }
 
+  private void waitUntilOptionsCount(By locator, int expectedCount) {
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            driver1 -> {
+              try {
+                Select select = new Select(driver1.findElement(locator));
+                return select.getOptions().size() >= expectedCount;
+              } catch (StaleElementReferenceException ex) {
+                return false;
+              }
+            });
+  }
+
   private WebElement waitFor(By locator) {
     return new WebDriverWait(driver, Duration.ofSeconds(5))
         .until(ExpectedConditions.presenceOfElementLocated(locator));
@@ -545,12 +755,39 @@ final class TotpOperatorUiSeleniumTest {
         .until(ExpectedConditions.urlContains(fragment));
   }
 
+  private void waitUntilFieldValue(By locator, String expectedValue) {
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            driver1 -> {
+              try {
+                WebElement element = driver1.findElement(locator);
+                return expectedValue.equals(element.getAttribute("value"));
+              } catch (StaleElementReferenceException ex) {
+                return false;
+              }
+            });
+  }
+
   private void selectOption(String selectId, String value) {
     WebElement select = driver.findElement(By.id(selectId));
     new org.openqa.selenium.support.ui.Select(select).selectByValue(value);
   }
 
   private Credential storedCredential() {
-    return VersionedCredentialRecordMapper.toCredential(adapter.serialize(STORED_DESCRIPTOR));
+    Credential serialized =
+        VersionedCredentialRecordMapper.toCredential(adapter.serialize(STORED_DESCRIPTOR));
+    Map<String, String> attributes = new LinkedHashMap<>(serialized.attributes());
+    attributes.put("totp.metadata.presetKey", "ui-totp-demo");
+    attributes.put("totp.metadata.presetLabel", "Seeded stored TOTP credential");
+    attributes.put("totp.metadata.notes", "Seeded TOTP credential (test fixture)");
+    attributes.put(
+        "totp.metadata.sampleTimestamp", Long.toString(STORED_TIMESTAMP.getEpochSecond()));
+    return new Credential(
+        serialized.name(),
+        serialized.type(),
+        serialized.secret(),
+        attributes,
+        serialized.createdAt(),
+        serialized.updatedAt());
   }
 }

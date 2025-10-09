@@ -20,6 +20,8 @@ public final class TelemetryContractTestSupport {
   private static final String HOTP_SEED_EVENT = "hotp.seed";
   private static final String HOTP_INLINE_REPLAY_ID = "hotp-inline-replay";
   private static final String TOTP_REPLAY_EVENT = "totp.replay";
+  private static final String TOTP_SEED_EVENT = "totp.seed";
+  private static final String TOTP_SAMPLE_EVENT = "totp.sample";
 
   private TelemetryContractTestSupport() {
     throw new AssertionError("No instances");
@@ -224,6 +226,39 @@ public final class TelemetryContractTestSupport {
 
   public static void assertHotpSeedFrame(TelemetryFrame frame) {
     assertFrame(frame, HOTP_SEED_EVENT, "seeded", "seeded", true, hotpSeedFields());
+  }
+
+  public static Map<String, Object> totpSeedFields() {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("addedCount", 2);
+    fields.put("canonicalCount", 2);
+    fields.put("existingCount", 0);
+    fields.put("trigger", "ui");
+    fields.put("addedCredentialIds", List.of("ui-totp-demo", "ui-totp-demo-sha512"));
+    fields.put("algorithms", List.of("SHA1", "SHA512"));
+    fields.put("stepSeconds", List.of(30L, 60L));
+    fields.put("digits", List.of(6, 8));
+    return fields;
+  }
+
+  public static void assertTotpSeedFrame(TelemetryFrame frame) {
+    assertFrame(frame, TOTP_SEED_EVENT, "seeded", "seeded", true, totpSeedFields());
+  }
+
+  public static Map<String, Object> totpSampleFields() {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("credentialId", "totp-sample-credential");
+    fields.put("algorithm", "SHA1");
+    fields.put("digits", 6);
+    fields.put("stepSeconds", 30L);
+    fields.put("driftBackwardSteps", 1);
+    fields.put("driftForwardSteps", 1);
+    fields.put("timestampEpochSeconds", 1_111_111_111L);
+    return fields;
+  }
+
+  public static void assertTotpSampleFrame(TelemetryFrame frame) {
+    assertFrame(frame, TOTP_SAMPLE_EVENT, "sampled", "sampled", true, totpSampleFields());
   }
 
   private static Map<String, Object> hotpReplayFields(
