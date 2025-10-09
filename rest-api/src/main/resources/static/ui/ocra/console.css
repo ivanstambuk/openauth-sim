@@ -667,8 +667,14 @@ fieldset {
   margin-top: var(--ocra-spacing-md);
 }
 
-.hotp-inline-parameter-grid {
+.hotp-inline-parameter-grid,
+.totp-inline-parameter-grid {
   grid-template-columns: minmax(11rem, 1.6fr) minmax(5.5rem, 1fr) minmax(5.5rem, 1fr);
+  align-items: end;
+}
+
+.totp-drift-grid {
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
   align-items: end;
 }
 

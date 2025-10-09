@@ -15,6 +15,7 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -200,6 +201,122 @@ final class TotpOperatorUiSeleniumTest {
     assertTrue(
         errorText.contains("otp_out_of_window"),
         "Inline TOTP validation error should expose otp_out_of_window reason code");
+  }
+
+  @Test
+  @DisplayName("TOTP inline parameter controls align on a single row")
+  void totpInlineParameterControlsAlignOnSingleRow() {
+    navigateToTotpPanel();
+
+    WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
+    WebElement inlineToggle =
+        driver.findElement(By.cssSelector("[data-testid='totp-mode-select-inline']"));
+    inlineToggle.click();
+    waitUntilAttribute(modeToggle, "data-mode", "inline");
+
+    waitForVisible(By.cssSelector("[data-testid='totp-inline-panel']"));
+
+    WebElement inlineParameterGrid =
+        waitFor(By.cssSelector("[data-testid='totp-inline-parameters-grid']"));
+    WebElement inlineAlgorithm =
+        inlineParameterGrid.findElement(By.cssSelector("#totpInlineAlgorithm"));
+    WebElement inlineDigits = inlineParameterGrid.findElement(By.cssSelector("#totpInlineDigits"));
+    WebElement inlineStep =
+        inlineParameterGrid.findElement(By.cssSelector("#totpInlineStepSeconds"));
+    assertSameRow("evaluate inline parameters", inlineAlgorithm, inlineDigits, inlineStep);
+
+    switchToReplayTab();
+
+    WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
+    WebElement replayInlineToggle =
+        driver.findElement(By.cssSelector("[data-testid='totp-replay-mode-select-inline']"));
+    replayInlineToggle.click();
+    waitUntilAttribute(replayToggle, "data-mode", "inline");
+
+    waitForVisible(By.cssSelector("[data-testid='totp-replay-inline-section']"));
+
+    WebElement replayParameterGrid =
+        waitFor(By.cssSelector("[data-testid='totp-replay-inline-parameters-grid']"));
+    WebElement replayAlgorithm =
+        replayParameterGrid.findElement(By.cssSelector("#totpReplayInlineAlgorithm"));
+    WebElement replayDigits =
+        replayParameterGrid.findElement(By.cssSelector("#totpReplayInlineDigits"));
+    WebElement replayStep =
+        replayParameterGrid.findElement(By.cssSelector("#totpReplayInlineStepSeconds"));
+    assertSameRow("replay inline parameters", replayAlgorithm, replayDigits, replayStep);
+  }
+
+  @Test
+  @DisplayName("TOTP drift controls align on a single row across modes")
+  void totpDriftControlsAlignOnSingleRowAcrossModes() {
+    navigateToTotpPanel();
+
+    WebElement storedDriftGrid = waitFor(By.cssSelector("[data-testid='totp-stored-drift-grid']"));
+    WebElement storedBackward =
+        storedDriftGrid.findElement(By.cssSelector("#totpStoredDriftBackward"));
+    WebElement storedForward =
+        storedDriftGrid.findElement(By.cssSelector("#totpStoredDriftForward"));
+    assertSameRow("evaluate stored drift controls", storedBackward, storedForward);
+
+    WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
+    WebElement inlineModeToggle =
+        driver.findElement(By.cssSelector("[data-testid='totp-mode-select-inline']"));
+    inlineModeToggle.click();
+    waitUntilAttribute(modeToggle, "data-mode", "inline");
+    waitForVisible(By.cssSelector("[data-testid='totp-inline-panel']"));
+
+    WebElement inlineDriftGrid = waitFor(By.cssSelector("[data-testid='totp-inline-drift-grid']"));
+    WebElement inlineBackward =
+        inlineDriftGrid.findElement(By.cssSelector("#totpInlineDriftBackward"));
+    WebElement inlineForward =
+        inlineDriftGrid.findElement(By.cssSelector("#totpInlineDriftForward"));
+    assertSameRow("evaluate inline drift controls", inlineBackward, inlineForward);
+
+    switchToReplayTab();
+
+    WebElement replayStoredDriftGrid =
+        waitFor(By.cssSelector("[data-testid='totp-replay-stored-drift-grid']"));
+    WebElement replayStoredBackward =
+        replayStoredDriftGrid.findElement(By.cssSelector("#totpReplayStoredDriftBackward"));
+    WebElement replayStoredForward =
+        replayStoredDriftGrid.findElement(By.cssSelector("#totpReplayStoredDriftForward"));
+    assertSameRow("replay stored drift controls", replayStoredBackward, replayStoredForward);
+
+    WebElement replayModeToggle =
+        waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
+    WebElement replayInlineToggle =
+        driver.findElement(By.cssSelector("[data-testid='totp-replay-mode-select-inline']"));
+    replayInlineToggle.click();
+    waitUntilAttribute(replayModeToggle, "data-mode", "inline");
+    waitForVisible(By.cssSelector("[data-testid='totp-replay-inline-section']"));
+
+    WebElement replayInlineDriftGrid =
+        waitFor(By.cssSelector("[data-testid='totp-replay-inline-drift-grid']"));
+    WebElement replayInlineBackward =
+        replayInlineDriftGrid.findElement(By.cssSelector("#totpReplayInlineDriftBackward"));
+    WebElement replayInlineForward =
+        replayInlineDriftGrid.findElement(By.cssSelector("#totpReplayInlineDriftForward"));
+    assertSameRow("replay inline drift controls", replayInlineBackward, replayInlineForward);
+  }
+
+  @Test
+  @DisplayName("TOTP mode selectors list inline before stored credentials")
+  void totpModeSelectorsListInlineBeforeStored() {
+    navigateToTotpPanel();
+
+    WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
+    List<WebElement> evaluateOptions =
+        modeToggle.findElements(By.cssSelector(".mode-option label"));
+    assertEquals("Inline parameters", evaluateOptions.get(0).getText().trim());
+    assertEquals("Stored credential", evaluateOptions.get(1).getText().trim());
+
+    switchToReplayTab();
+
+    WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
+    List<WebElement> replayOptions =
+        replayToggle.findElements(By.cssSelector(".mode-option label"));
+    assertEquals("Inline parameters", replayOptions.get(0).getText().trim());
+    assertEquals("Stored credential", replayOptions.get(1).getText().trim());
   }
 
   @Test
@@ -392,6 +509,19 @@ final class TotpOperatorUiSeleniumTest {
     if (!"true".equals(replayTab.getAttribute("aria-selected"))) {
       replayTab.click();
       waitUntilAttribute(replayTab, "aria-selected", "true");
+    }
+  }
+
+  private void assertSameRow(String context, WebElement anchor, WebElement... others) {
+    int anchorY = anchor.getRect().getY();
+    for (WebElement element : others) {
+      int difference = Math.abs(element.getRect().getY() - anchorY);
+      assertTrue(
+          difference <= 2,
+          () ->
+              String.format(
+                  "%s should align on single row: anchorY=%d, elementY=%d (difference=%d)",
+                  context, anchorY, element.getRect().getY(), difference));
     }
   }
 

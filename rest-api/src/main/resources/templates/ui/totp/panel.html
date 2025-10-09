@@ -66,21 +66,6 @@
                 <div class="mode-option">
                   <input
                     type="radio"
-                    id="totpModeStored"
-                    name="totpMode"
-                    value="stored"
-                    data-testid="totp-mode-select-stored"
-                    aria-describedby="totpModeStoredHint"
-                    checked="checked"
-                  />
-                  <label for="totpModeStored">Stored credential</label>
-                  <p id="totpModeStoredHint" class="hint">
-                    Validate a stored simulator credential (epoch-second timestamps).
-                  </p>
-                </div>
-                <div class="mode-option">
-                  <input
-                    type="radio"
                     id="totpModeInline"
                     name="totpMode"
                     value="inline"
@@ -91,6 +76,21 @@
                   <p id="totpModeInlineHint" class="hint">
                     Provide the shared secret, algorithm, digits, step duration, and drift window
                     manually.
+                  </p>
+                </div>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="totpModeStored"
+                    name="totpMode"
+                    value="stored"
+                    data-testid="totp-mode-select-stored"
+                    aria-describedby="totpModeStoredHint"
+                    checked="checked"
+                  />
+                  <label for="totpModeStored">Stored credential</label>
+                  <p id="totpModeStoredHint" class="hint">
+                    Validate a stored simulator credential (epoch-second timestamps).
                   </p>
                 </div>
               </fieldset>
@@ -156,7 +156,10 @@
                       />
                     </div>
                   </div>
-                  <div class="field-grid">
+                  <div
+                      class="field-grid totp-drift-grid"
+                      data-testid="totp-stored-drift-grid"
+                    >
                     <div class="field-group">
                       <label for="totpStoredDriftBackward">Drift backward (steps)</label>
                       <input
@@ -217,6 +220,11 @@
                         required="required"
                       ></textarea>
                     </div>
+                  </div>
+                  <div
+                      class="field-grid totp-inline-parameter-grid"
+                      data-testid="totp-inline-parameters-grid"
+                    >
                     <div class="field-group">
                       <label for="totpInlineAlgorithm">Algorithm</label>
                       <select id="totpInlineAlgorithm" name="algorithm">
@@ -287,6 +295,11 @@
                         step="1"
                       />
                     </div>
+                  </div>
+                  <div
+                      class="field-grid totp-drift-grid"
+                      data-testid="totp-inline-drift-grid"
+                    >
                     <div class="field-group">
                       <label for="totpInlineDriftBackward">Drift backward (steps)</label>
                       <input
@@ -458,21 +471,6 @@
                 <div class="mode-option">
                   <input
                     type="radio"
-                    id="totpReplayModeStored"
-                    name="totpReplayMode"
-                    value="stored"
-                    data-testid="totp-replay-mode-select-stored"
-                    aria-describedby="totpReplayModeStoredHint"
-                    checked="checked"
-                  />
-                  <label for="totpReplayModeStored">Stored credential</label>
-                  <p id="totpReplayModeStoredHint" class="hint">
-                    Provide a credential ID and OTP to validate against the existing simulator store.
-                  </p>
-                </div>
-                <div class="mode-option">
-                  <input
-                    type="radio"
                     id="totpReplayModeInline"
                     name="totpReplayMode"
                     value="inline"
@@ -483,6 +481,21 @@
                   <p id="totpReplayModeInlineHint" class="hint">
                     Supply a shared secret, algorithm, and drift controls to simulate replay
                     diagnostics.
+                  </p>
+                </div>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="totpReplayModeStored"
+                    name="totpReplayMode"
+                    value="stored"
+                    data-testid="totp-replay-mode-select-stored"
+                    aria-describedby="totpReplayModeStoredHint"
+                    checked="checked"
+                  />
+                  <label for="totpReplayModeStored">Stored credential</label>
+                  <p id="totpReplayModeStoredHint" class="hint">
+                    Provide a credential ID and OTP to validate against the existing simulator store.
                   </p>
                 </div>
               </fieldset>
@@ -548,7 +561,10 @@
                       />
                     </div>
                   </div>
-                  <div class="field-grid">
+                  <div
+                      class="field-grid totp-drift-grid"
+                      data-testid="totp-replay-stored-drift-grid"
+                    >
                     <div class="field-group">
                       <label for="totpReplayStoredDriftBackward">Drift backward (steps)</label>
                       <input
@@ -610,6 +626,11 @@
                         required="required"
                       ></textarea>
                     </div>
+                  </div>
+                  <div
+                      class="field-grid totp-inline-parameter-grid"
+                      data-testid="totp-replay-inline-parameters-grid"
+                    >
                     <div class="field-group">
                       <label for="totpReplayInlineAlgorithm">Algorithm</label>
                       <select id="totpReplayInlineAlgorithm" name="algorithm">
@@ -679,6 +700,11 @@
                         step="1"
                       />
                     </div>
+                  </div>
+                  <div
+                      class="field-grid totp-drift-grid"
+                      data-testid="totp-replay-inline-drift-grid"
+                    >
                     <div class="field-group">
                       <label for="totpReplayInlineDriftBackward">Drift backward (steps)</label>
                       <input

@@ -19,6 +19,9 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 - 2025-10-08 – TOTP replay tab must mirror HOTP/OCRA replay semantics via a dedicated `/api/v1/totp/replay` flow that performs non-mutating diagnostics while reusing evaluation logic where practical (user directive; Option A selected).
 - 2025-10-08 – Stored-mode hint copy shortens to “Validate a stored simulator credential (epoch-second timestamps).” (user selected Option A).
 - 2025-10-08 – Replay actions reuse the “Verify OTP” label + primary button styling to match HOTP/OCRA consoles (user directive).
+- 2025-10-08 – Operator console mode selectors present inline TOTP inputs before stored credential options to mirror HOTP/OCRA ordering (user directive; Option A selected).
+- 2025-10-08 – Inline TOTP parameter controls (algorithm, digits, step seconds) render on a single row for both evaluate and replay panels (user directive).
+- 2025-10-08 – Drift window inputs (backward/forward steps) display side-by-side across stored and inline evaluate/replay forms (user directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
