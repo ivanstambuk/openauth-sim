@@ -1,7 +1,7 @@
 # Feature 023 – TOTP Operator Support
 
 _Status: Draft_
-_Last updated: 2025-10-08_
+_Last updated: 2025-10-09_
 
 ## Overview
 Deliver RFC 6238 TOTP capabilities across the simulator so operators can validate time-based one-time passwords alongside existing HOTP and OCRA flows. This feature introduces a TOTP domain model, shared persistence descriptors, application-layer services, CLI commands, REST endpoints, and operator console evaluation/replay experiences while keeping issuance out of scope for the initial release.
@@ -22,6 +22,8 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 - 2025-10-08 – Operator console mode selectors present inline TOTP inputs before stored credential options to mirror HOTP/OCRA ordering (user directive; Option A selected).
 - 2025-10-08 – Inline TOTP parameter controls (algorithm, digits, step seconds) render on a single row for both evaluate and replay panels (user directive).
 - 2025-10-08 – Drift window inputs (backward/forward steps) display side-by-side across stored and inline evaluate/replay forms (user directive).
+- 2025-10-09 – Inline TOTP evaluate and replay panels must include a "Load a sample vector" preset control mirroring HOTP/OCRA; presets populate RFC 6238 sample secrets, timestamps, OTPs, and metadata (user directive; Option A selected).
+- 2025-10-09 – Stored-mode TOTP evaluations expose a `Seed sample credentials` control backed by a dedicated TOTP seeding endpoint; the button mirrors HOTP/OCRA behaviour and surfaces only within the evaluate tab’s stored mode (user directive; Option A selected).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

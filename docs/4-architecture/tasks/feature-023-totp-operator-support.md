@@ -1,7 +1,7 @@
 # Feature 023 – Task Checklist
 
 _Status: Draft_
-_Last updated: 2025-10-08_
+_Last updated: 2025-10-09_
 
 ## Tasks (≤10 min each)
 - ☑ T2301 – Add failing core unit tests for TOTP generator/validator covering SHA-1/SHA-256/SHA-512, 6/8 digits, time-step conversion, and drift window limits. (_2025-10-08 – RFC 6238 vectors + drift scenarios added; `./gradlew :core:test` red as expected._)
@@ -31,3 +31,8 @@ _Last updated: 2025-10-08_
 - ☑ T2325 – Update TOTP templates/CSS to satisfy T2324 and rerun targeted Selenium plus `./gradlew spotlessApply check`. (_2025-10-08 – Introduced grid wrappers with `totp-inline-parameter-grid`, updated shared CSS, reran Selenium suite and `./gradlew spotlessApply check`; all green._)
 - ☑ T2326 – Add failing Selenium assertions verifying drift backward/forward fields share a row across stored/inline evaluate and replay panels. (_2025-10-08 – Added `totpDriftControlsAlignOnSingleRowAcrossModes`; targeted Selenium run failed pending drift grid wrappers._)
 - ☑ T2327 – Update TOTP templates/CSS to satisfy T2326 and rerun Selenium plus `./gradlew spotlessApply check`. (_2025-10-08 – Added `totp-drift-grid` markup/CSS, reran Selenium suite and `./gradlew spotlessApply check`; green._)
+- ☐ T2328 – Stage failing application/REST/UI tests for the TOTP stored-mode `Seed sample credentials` button, covering empty-store prompts, telemetry, and visibility gating.
+- ☐ T2329 – Implement TOTP seeding domain/service/REST wiring plus operator console button handling and documentation updates; rerun `./gradlew spotlessApply check`.
+- ☐ T2330 – Add failing Selenium regression(s) ensuring TOTP inline evaluate and replay panels expose a "Load a sample vector" preset control and that selecting a preset populates secret, algorithm, digits, step seconds, timestamp, OTP, and drift fields. (Targeted run: `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest.totpInlineSamplePresetPopulatesForm"` and `...TotpReplaySamplePresetPopulatesForm`.)
+- ☐ T2331 – Implement the TOTP inline preset dropdowns and sample dataset in templates/`ui/totp/console.js`, including telemetry metadata for preset usage; rerun `./gradlew :rest-api:test` and `./gradlew spotlessApply check`.
+- ☐ T2332 – Refresh operator documentation and knowledge map to mention the new TOTP sample presets; rerun `./gradlew spotlessApply check`.
