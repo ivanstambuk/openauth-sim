@@ -33,6 +33,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 17 | EUDIW ISO/IEC 18013-5 simulator | Surface ISO/IEC 18013-5 credential presentation workflows for EUDI wallets | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
 | 18 | EUDIW SIOPv2 simulator | Implement SIOPv2 authentication flows aligned with EUDI wallet guidance | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
 | 19 | Quality gate reinstatement | Restore Jacoco thresholds to ≥0.90 line/branch and re-enable PIT in developer builds once HOTP scope stabilises | Planned | Temporary relaxation to ≥0.70 recorded 2025-10-06; follow-up will revisit coverage hot spots and reinstate mutation checks |
+| 20 | FIDO2/WebAuthn operator support | Launch WebAuthn assertion verification across core, persistence, CLI, REST, and operator UI with preset/seed utilities | Planned | Spec: [Feature 024](specs/feature-024-fido2-webauthn-operator-support.md), Plan: [Feature Plan 024](feature-plan-024-fido2-webauthn-operator-support.md), Tasks: [Feature 024 Tasks](tasks/feature-024-fido2-webauthn-operator-support.md); W3C vectors targeted first, JSONL bundle immediately after |
 
 ## Upcoming Milestones
 
@@ -42,6 +43,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 4. Prototype educational simulator UI flows (Workstream 9) to complement human operators.
 5. Complete Feature 011 increments (reflection removal + guardrails) and roll the policy into standard operating instructions.
 6. Evaluate enabling operator UI issuance flows across all credential types once facade telemetry stabilises; decision pending per 2025-10-05 directive.
+7. Kick off Feature 024 increments once W3C vector fixtures are staged and analysis gate checklist is satisfied.
 
 ## Action Items & Follow-ups
 
