@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>FIDO2 / WebAuthn Panel</title>
+  </head>
+  <body>
+    <section
+        th:fragment="fido2Panel(visible)"
+        id="protocol-panel-fido2"
+        class="protocol-panel"
+        data-protocol-panel="fido2"
+        aria-labelledby="protocol-tab-fido2"
+        th:attr="hidden=${visible == null || !visible} ? 'hidden' : null, aria-hidden=${visible == null || !visible} ? 'true' : null"
+      >
+      <div class="stack-lg">
+        <h2 class="section-title">FIDO2 / WebAuthn</h2>
+        <div
+            class="mode-toggle"
+            data-testid="fido2-mode-toggle"
+            data-mode="stored"
+            role="tablist"
+            aria-label="FIDO2 interaction modes"
+          >
+          <button
+              type="button"
+              class="mode-pill mode-pill--active"
+              data-testid="fido2-stored-mode-button"
+              role="tab"
+              aria-selected="true"
+            >
+            Stored
+          </button>
+          <button
+              type="button"
+              class="mode-pill"
+              data-testid="fido2-inline-mode-button"
+              role="tab"
+              aria-selected="false"
+            >
+            Inline
+          </button>
+          <button
+              type="button"
+              class="mode-pill"
+              data-testid="fido2-replay-mode-button"
+              role="tab"
+              aria-selected="false"
+            >
+            Replay
+          </button>
+        </div>
+
+        <section
+            class="card-shell"
+            data-fido2-section="stored"
+            aria-label="Stored WebAuthn assertion verification"
+          >
+          <div class="card-shell__body stack-lg">
+            <form
+                data-testid="fido2-stored-form"
+                class="stack-md"
+                th:attr="data-evaluate-endpoint=${fido2StoredEvaluateEndpoint},data-credentials-endpoint=${fido2CredentialsEndpoint},data-seed-endpoint=${fido2SeedEndpoint},data-sample-endpoint=${fido2StoredSampleEndpoint}"
+              >
+              <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+              <script
+                  type="application/json"
+                  id="fido2-seed-definitions"
+                  th:utext="${fido2SeedDefinitionsJson}"
+                ></script>
+              <div
+                  class="seed-actions stack-sm"
+                  data-testid="fido2-seed-actions"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
+                <button
+                    type="button"
+                    class="button-secondary"
+                    data-testid="fido2-seed-credentials"
+                  >
+                  Seed sample credential
+                </button>
+                <p class="hint">
+                  Populate the registry with demo WebAuthn credentials if no entries are available.
+                </p>
+                <p
+                    class="hint"
+                    hidden="hidden"
+                    aria-hidden="true"
+                    data-testid="fido2-seed-status"
+                  ></p>
+              </div>
+              <div class="field-grid">
+                <div class="field-group">
+                  <label for="fido2StoredCredentialId">Stored credential</label>
+                  <select
+                      id="fido2StoredCredentialId"
+                      name="credentialId"
+                      required="required"
+                      disabled="disabled"
+                      data-testid="fido2-stored-credential-select"
+                    >
+                    <option value="">Select a stored credential</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label for="fido2StoredRpId">Relying party ID</label>
+                  <input
+                      id="fido2StoredRpId"
+                      name="relyingPartyId"
+                      type="text"
+                      value="example.org"
+                      autocomplete="off"
+                    />
+                </div>
+                <div class="field-group">
+                  <label for="fido2StoredOrigin">Origin</label>
+                  <input
+                      id="fido2StoredOrigin"
+                      name="origin"
+                      type="text"
+                      value="https://example.org"
+                      autocomplete="off"
+                    />
+                </div>
+              </div>
+              <div class="field-grid">
+                <div class="field-group">
+                  <label for="fido2StoredType">Client data type</label>
+                  <input
+                      id="fido2StoredType"
+                      name="expectedType"
+                      type="text"
+                      value="webauthn.get"
+                      autocomplete="off"
+                    />
+                </div>
+              </div>
+              <textarea id="fido2StoredChallenge" name="expectedChallenge" hidden="hidden"></textarea>
+              <textarea id="fido2StoredClientData" name="clientData" hidden="hidden"></textarea>
+              <textarea id="fido2StoredAuthenticatorData" name="authenticatorData" hidden="hidden"></textarea>
+              <textarea id="fido2StoredSignature" name="signature" hidden="hidden"></textarea>
+              <div class="form-actions">
+                <button
+                    type="submit"
+                    class="button-primary"
+                    data-testid="fido2-stored-evaluate-submit"
+                  >
+                  Evaluate assertion
+                </button>
+              </div>
+            </form>
+
+            <section class="result-panel" data-testid="fido2-stored-result">
+              <h3 class="section-title">Evaluation result</h3>
+              <p>
+                Status:
+                <span data-testid="result-status">pending</span>
+                (<span data-testid="fido2-stored-reason">awaiting submission</span>)
+              </p>
+              <div
+                  class="telemetry"
+                  data-testid="fido2-stored-telemetry"
+                >
+                Telemetry pending (sanitized).
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section
+            class="card-shell"
+            data-fido2-section="inline"
+            aria-label="Inline WebAuthn assertion evaluation"
+            hidden="hidden"
+            aria-hidden="true"
+          >
+          <div class="card-shell__body stack-lg">
+            <form
+                data-testid="fido2-inline-form"
+                class="stack-md"
+                th:attr="data-evaluate-endpoint=${fido2InlineEvaluateEndpoint}"
+              >
+              <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+              <script
+                  type="application/json"
+                  id="fido2-inline-vectors"
+                  th:utext="${fido2InlineVectorsJson}"
+                ></script>
+              <div class="field-grid">
+                <div class="field-group">
+                  <label for="fido2InlineRpId">Relying party ID</label>
+                  <input
+                      id="fido2InlineRpId"
+                      name="relyingPartyId"
+                      type="text"
+                      value="example.org"
+                      autocomplete="off"
+                    />
+                </div>
+                <div class="field-group">
+                  <label for="fido2InlineOrigin">Origin</label>
+                  <input
+                      id="fido2InlineOrigin"
+                      name="origin"
+                      type="text"
+                      value="https://example.org"
+                      autocomplete="off"
+                    />
+                </div>
+                <div class="field-group">
+                  <label for="fido2InlineType">Client data type</label>
+                  <input
+                      id="fido2InlineType"
+                      name="expectedType"
+                      type="text"
+                      value="webauthn.get"
+                    />
+                </div>
+              </div>
+              <div class="field-grid">
+                <div class="field-group">
+                  <label for="fido2InlineCredentialId">Credential ID (Base64URL)</label>
+                  <textarea id="fido2InlineCredentialId" name="credentialId"></textarea>
+                </div>
+                <div class="field-group">
+                  <label for="fido2InlinePublicKey">COSE public key (Base64URL)</label>
+                  <textarea id="fido2InlinePublicKey" name="publicKey"></textarea>
+                </div>
+              </div>
+              <div class="field-grid">
+                <div class="field-group">
+                  <label for="fido2InlineAlgorithm">Algorithm</label>
+                  <input id="fido2InlineAlgorithm" name="algorithm" value="ES256" />
+                </div>
+                <div class="field-group">
+                  <label for="fido2InlineCounter">Signature counter</label>
+                  <input
+                      id="fido2InlineCounter"
+                      name="signatureCounter"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value="0"
+                    />
+                </div>
+                <div class="field-group">
+                  <label for="fido2InlineUvRequired">User verification required</label>
+                  <select id="fido2InlineUvRequired" name="userVerificationRequired">
+                    <option value="false" selected="selected">false</option>
+                    <option value="true">true</option>
+                  </select>
+                </div>
+              </div>
+              <textarea id="fido2InlineChallenge" name="expectedChallenge" hidden="hidden"></textarea>
+              <textarea id="fido2InlineClientData" name="clientData" hidden="hidden"></textarea>
+              <textarea id="fido2InlineAuthenticatorData" name="authenticatorData" hidden="hidden"></textarea>
+              <textarea id="fido2InlineSignature" name="signature" hidden="hidden"></textarea>
+              <div class="stack-sm">
+                <button
+                    type="button"
+                    class="button-secondary"
+                    data-testid="fido2-inline-load-sample"
+                  >
+                  Load sample vector
+                </button>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="button-primary">Evaluate assertion</button>
+              </div>
+            </form>
+            <section
+                class="result-panel"
+                aria-live="polite"
+                data-testid="fido2-inline-result"
+              >
+              <h3 class="section-title">Evaluation result</h3>
+              <p>
+                Status:
+                <span data-testid="fido2-inline-status">pending</span>
+              </p>
+              <div class="telemetry" data-testid="fido2-inline-telemetry">
+                Telemetry pending (sanitized).
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section
+            class="card-shell"
+            data-fido2-section="replay"
+            aria-label="Stored WebAuthn replay diagnostics"
+            hidden="hidden"
+            aria-hidden="true"
+          >
+          <div class="card-shell__body stack-lg">
+            <form
+                data-testid="fido2-replay-form"
+                class="stack-md"
+                th:attr="data-replay-endpoint=${fido2ReplayEndpoint},data-credentials-endpoint=${fido2CredentialsEndpoint},data-sample-endpoint=${fido2StoredSampleEndpoint}"
+              >
+              <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+              <div class="field-grid">
+                <div class="field-group">
+                  <label for="fido2ReplayCredentialId">Stored credential</label>
+                  <select
+                      id="fido2ReplayCredentialId"
+                      name="credentialId"
+                      disabled="disabled"
+                      data-testid="fido2-replay-credential-select"
+                    >
+                    <option value="">Select a stored credential</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label for="fido2ReplayOrigin">Origin</label>
+                  <input
+                      id="fido2ReplayOrigin"
+                      name="origin"
+                      type="text"
+                      value="https://example.org"
+                    />
+                </div>
+              </div>
+              <textarea id="fido2ReplayChallenge" name="expectedChallenge" hidden="hidden"></textarea>
+              <textarea id="fido2ReplayClientData" name="clientData" hidden="hidden"></textarea>
+              <textarea id="fido2ReplayAuthenticatorData" name="authenticatorData" hidden="hidden"></textarea>
+              <textarea id="fido2ReplaySignature" name="signature" hidden="hidden"></textarea>
+              <div class="form-actions">
+                <button
+                    type="submit"
+                    class="button-primary"
+                    data-testid="fido2-replay-submit"
+                  >
+                  Replay assertion
+                </button>
+              </div>
+            </form>
+            <section class="result-panel">
+              <h3 class="section-title">Replay result</h3>
+              <p>
+                Outcome:
+                <span data-testid="fido2-replay-status">pending</span>
+              </p>
+              <div class="telemetry" data-testid="fido2-replay-telemetry">
+                Telemetry pending (sanitized).
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </section>
+  </body>
+</html>

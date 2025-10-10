@@ -7,7 +7,10 @@
     <link rel="stylesheet" th:href="@{/ui/protocol-info.css}" />
   </head>
   <body>
-    <main class="operator-console" aria-labelledby="operator-console-heading">
+    <main
+        class="operator-console"
+        aria-labelledby="operator-console-heading"
+        th:attr="data-active-protocol=${activeProtocol}">
       <header class="console-header">
         <div class="console-header__title">
           <h1 id="operator-console-heading">Operator Console</h1>
@@ -19,82 +22,74 @@
             aria-label="Operator protocol selector"
           >
             <button
-                class="protocol-tab"
+                th:class="'protocol-tab' + (${activeProtocol}=='hotp' ? ' protocol-tab--active' : '')"
                 data-testid="protocol-tab-hotp"
                 data-protocol-tab="hotp"
                 role="tab"
-                aria-selected="false"
-                aria-controls="protocol-panel-hotp"
+                th:attr="aria-selected=${activeProtocol}=='hotp' ? 'true' : 'false', aria-controls='protocol-panel-hotp'"
               >
               HOTP
             </button>
             <button
-                class="protocol-tab"
+                th:class="'protocol-tab' + (${activeProtocol}=='totp' ? ' protocol-tab--active' : '')"
                 data-testid="protocol-tab-totp"
                 data-protocol-tab="totp"
                 role="tab"
-                aria-selected="false"
-                aria-controls="protocol-panel-totp"
+                th:attr="aria-selected=${activeProtocol}=='totp' ? 'true' : 'false', aria-controls='protocol-panel-totp'"
               >
               TOTP
             </button>
             <button
-                class="protocol-tab protocol-tab--active"
+                th:class="'protocol-tab' + (${activeProtocol}=='ocra' ? ' protocol-tab--active' : '')"
                 data-testid="protocol-tab-ocra"
                 data-protocol-tab="ocra"
                 role="tab"
-                aria-selected="true"
-                aria-controls="protocol-panel-ocra"
+                th:attr="aria-selected=${activeProtocol}=='ocra' ? 'true' : 'false', aria-controls='protocol-panel-ocra'"
               >
               OCRA
             </button>
             <button
-                class="protocol-tab"
+                th:class="'protocol-tab' + (${activeProtocol}=='emv' ? ' protocol-tab--active' : '')"
                 data-testid="protocol-tab-emv"
                 role="tab"
                 data-protocol-tab="emv"
-                aria-selected="false"
-                aria-controls="protocol-panel-emv"
+                th:attr="aria-selected=${activeProtocol}=='emv' ? 'true' : 'false', aria-controls='protocol-panel-emv'"
               >
               EMV / CAP
             </button>
             <button
-                class="protocol-tab"
+                th:class="'protocol-tab' + (${activeProtocol}=='fido2' ? ' protocol-tab--active' : '')"
                 data-testid="protocol-tab-fido2"
                 role="tab"
                 data-protocol-tab="fido2"
-                aria-selected="false"
-                aria-controls="protocol-panel-fido2"
+                th:attr="aria-selected=${activeProtocol}=='fido2' ? 'true' : 'false', aria-controls='protocol-panel-fido2'"
               >
               FIDO2 / WebAuthn
             </button>
             <button
-                class="protocol-tab"
+                th:class="'protocol-tab' + (${activeProtocol}=='eudi-openid4vp' ? ' protocol-tab--active' : '')"
                 data-testid="protocol-tab-eudi-openid4vp"
                 data-protocol-tab="eudi-openid4vp"
                 role="tab"
-                aria-selected="false"
-                aria-controls="protocol-panel-eudi-openid4vp"
+                th:attr="aria-selected=${activeProtocol}=='eudi-openid4vp' ? 'true' : 'false', aria-controls='protocol-panel-eudi-openid4vp'"
               >
               EUDIW OpenID4VP 1.0
             </button>
             <button
-                class="protocol-tab"
+                th:class="'protocol-tab' + (${activeProtocol}=='eudi-iso-18013-5' ? ' protocol-tab--active' : '')"
                 data-testid="protocol-tab-eudi-iso-18013-5"
                 data-protocol-tab="eudi-iso-18013-5"
                 role="tab"
-                aria-selected="false"
-                aria-controls="protocol-panel-eudi-iso-18013-5"
+                th:attr="aria-selected=${activeProtocol}=='eudi-iso-18013-5' ? 'true' : 'false', aria-controls='protocol-panel-eudi-iso-18013-5'"
               >
               EUDIW ISO/IEC 18013-5
             </button>
             <button
-                class="protocol-tab"
+                th:class="'protocol-tab' + (${activeProtocol}=='eudi-siopv2' ? ' protocol-tab--active' : '')"
                 data-testid="protocol-tab-eudi-siopv2"
                 data-protocol-tab="eudi-siopv2"
                 role="tab"
-                aria-selected="false"
-                aria-controls="protocol-panel-eudi-siopv2"
+                th:attr="aria-selected=${activeProtocol}=='eudi-siopv2' ? 'true' : 'false', aria-controls='protocol-panel-eudi-siopv2'"
               >
               EUDIW SIOPv2
             </button>
@@ -102,7 +97,7 @@
                 type="button"
                 class="protocol-info-trigger"
                 data-testid="protocol-info-trigger"
-                data-protocol="ocra"
+                th:attr="data-protocol=${activeProtocol}"
                 aria-label="Protocol info"
                 aria-haspopup="dialog"
                 aria-controls="protocol-info-surface"
@@ -118,6 +113,7 @@
           class="protocol-panel"
           data-protocol-panel="ocra"
           aria-labelledby="protocol-tab-ocra"
+          th:attr="hidden=${activeProtocol}!='ocra' ? 'hidden' : null, aria-hidden=${activeProtocol}!='ocra' ? 'true' : null"
         >
         <div
             class="ocra-mode-toggle"
@@ -125,6 +121,7 @@
             data-mode="evaluate"
             role="tablist"
             aria-label="OCRA interaction modes"
+            th:attr="hidden=${activeProtocol}!='ocra' ? 'hidden' : null, aria-hidden=${activeProtocol}!='ocra' ? 'true' : null"
           >
           <button
               type="button"
@@ -152,17 +149,17 @@
         <th:block th:replace="~{ui/ocra/replay :: ocraReplayPanel(visible=${false})}"></th:block>
         <th:block th:replace="~{ui/ocra/replay :: ocraReplayPresetData}"></th:block>
       </section>
-      <th:block th:replace="~{ui/hotp/panel :: hotpPanel(${false})}"></th:block>
+      <th:block th:replace="~{ui/hotp/panel :: hotpPanel(${activeProtocol}=='hotp')}"></th:block>
 
-      <th:block th:replace="~{ui/totp/panel :: totpPanel(${false})}"></th:block>
+      <th:block th:replace="~{ui/totp/panel :: totpPanel(${activeProtocol}=='totp')}"></th:block>
+      <th:block th:replace="~{ui/fido2/panel :: fido2Panel(${activeProtocol}=='fido2')}"></th:block>
 
       <section
           id="protocol-panel-emv"
           class="protocol-panel protocol-panel--placeholder"
           data-protocol-panel="emv"
           aria-labelledby="protocol-tab-emv"
-          hidden="hidden"
-          aria-hidden="true"
+          th:attr="hidden=${activeProtocol}!='emv' ? 'hidden' : null, aria-hidden=${activeProtocol}!='emv' ? 'true' : null"
         >
         <h2>EMV / CAP</h2>
         <p>
@@ -172,27 +169,11 @@
       </section>
 
       <section
-          id="protocol-panel-fido2"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="fido2"
-          aria-labelledby="protocol-tab-fido2"
-          hidden="hidden"
-          aria-hidden="true"
-        >
-        <h2>FIDO2 / WebAuthn</h2>
-        <p>
-          Operator tooling for FIDO2/WebAuthn is in design. Tabs will activate once the protocol facade
-          ships with REST + UI support.
-        </p>
-      </section>
-
-      <section
           id="protocol-panel-eudi-openid4vp"
           class="protocol-panel protocol-panel--placeholder"
           data-protocol-panel="eudi-openid4vp"
           aria-labelledby="protocol-tab-eudi-openid4vp"
-          hidden="hidden"
-          aria-hidden="true"
+          th:attr="hidden=${activeProtocol}!='eudi-openid4vp' ? 'hidden' : null, aria-hidden=${activeProtocol}!='eudi-openid4vp' ? 'true' : null"
         >
         <h2>EUDIW OpenID4VP 1.0</h2>
         <p>
@@ -206,8 +187,7 @@
           class="protocol-panel protocol-panel--placeholder"
           data-protocol-panel="eudi-iso-18013-5"
           aria-labelledby="protocol-tab-eudi-iso-18013-5"
-          hidden="hidden"
-          aria-hidden="true"
+          th:attr="hidden=${activeProtocol}!='eudi-iso-18013-5' ? 'hidden' : null, aria-hidden=${activeProtocol}!='eudi-iso-18013-5' ? 'true' : null"
         >
         <h2>EUDIW ISO/IEC 18013-5</h2>
         <p>
@@ -221,8 +201,7 @@
           class="protocol-panel protocol-panel--placeholder"
           data-protocol-panel="eudi-siopv2"
           aria-labelledby="protocol-tab-eudi-siopv2"
-          hidden="hidden"
-          aria-hidden="true"
+          th:attr="hidden=${activeProtocol}!='eudi-siopv2' ? 'hidden' : null, aria-hidden=${activeProtocol}!='eudi-siopv2' ? 'true' : null"
         >
         <h2>EUDIW SIOPv2</h2>
         <p>
@@ -694,5 +673,6 @@
     <script th:src="@{/ui/ocra/console.js}"></script>
     <script th:src="@{/ui/hotp/console.js}"></script>
     <script th:src="@{/ui/totp/console.js}"></script>
+    <script th:src="@{/ui/fido2/console.js}"></script>
   </body>
 </html>

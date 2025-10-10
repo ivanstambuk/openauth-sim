@@ -1,5 +1,6 @@
 package io.openauth.sim.core.store;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -8,15 +9,22 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
+import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
+import io.openauth.sim.core.fido2.WebAuthnFixtures;
+import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.encryption.AesGcmPersistenceEncryption;
 import io.openauth.sim.core.store.encryption.PersistenceEncryption;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
+import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,6 +106,60 @@ class MapDbCredentialStoreTest {
       assertNotEquals(
           initial.updatedAt(), resolved.updatedAt(), "save should refresh update timestamp");
     }
+  }
+
+  @Test
+  void persistsAndReloadsFido2CredentialWithMetadata() {
+    Path dbPath = tempDir.resolve("fido2.db");
+    WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
+    WebAuthnCredentialPersistenceAdapter adapter = new WebAuthnCredentialPersistenceAdapter();
+
+    WebAuthnCredentialDescriptor descriptor =
+        WebAuthnCredentialDescriptor.builder()
+            .name("fido2-packed-es256")
+            .relyingPartyId(fixture.storedCredential().relyingPartyId())
+            .credentialId(fixture.storedCredential().credentialId())
+            .publicKeyCose(fixture.storedCredential().publicKeyCose())
+            .signatureCounter(fixture.storedCredential().signatureCounter())
+            .userVerificationRequired(fixture.storedCredential().userVerificationRequired())
+            .algorithm(WebAuthnSignatureAlgorithm.ES256)
+            .build();
+
+    Credential credential =
+        VersionedCredentialRecordMapper.toCredential(adapter.serialize(descriptor));
+
+    try (var store = MapDbCredentialStore.file(dbPath).open()) {
+      store.save(credential);
+    }
+
+    Credential loaded;
+    try (var store = MapDbCredentialStore.file(dbPath).open()) {
+      loaded = store.findByName("fido2-packed-es256").orElseThrow();
+    }
+
+    assertEquals(CredentialType.FIDO2, loaded.type());
+    assertEquals(credential.secret(), loaded.secret());
+    assertEquals("example.org", loaded.attributes().get("fido2.rpId"));
+    assertEquals("ES256", loaded.attributes().get("fido2.algorithm"));
+    assertEquals("-7", loaded.attributes().get("fido2.algorithm.cose"));
+    assertEquals("0", loaded.attributes().get("fido2.signatureCounter"));
+    assertEquals("false", loaded.attributes().get("fido2.userVerificationRequired"));
+    assertEquals(
+        Base64.getUrlEncoder().withoutPadding().encodeToString(descriptor.credentialId()),
+        loaded.attributes().get("fido2.credentialId"));
+    assertEquals(
+        Base64.getUrlEncoder().withoutPadding().encodeToString(descriptor.publicKeyCose()),
+        loaded.attributes().get("fido2.publicKeyCose"));
+
+    WebAuthnCredentialDescriptor deserialized =
+        adapter.deserialize(VersionedCredentialRecordMapper.toRecord(loaded));
+
+    assertEquals(descriptor.relyingPartyId(), deserialized.relyingPartyId());
+    assertEquals(descriptor.algorithm(), deserialized.algorithm());
+    assertEquals(descriptor.signatureCounter(), deserialized.signatureCounter());
+    assertEquals(descriptor.userVerificationRequired(), deserialized.userVerificationRequired());
+    assertArrayEquals(descriptor.credentialId(), deserialized.credentialId());
+    assertArrayEquals(descriptor.publicKeyCose(), deserialized.publicKeyCose());
   }
 
   @Test

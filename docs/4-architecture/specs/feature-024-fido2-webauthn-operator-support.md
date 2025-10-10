@@ -1,6 +1,6 @@
 # Feature 024 – FIDO2/WebAuthn Operator Support
 
-_Status: Draft_  
+_Status: In Progress_  
 _Last updated: 2025-10-09_
 
 ## Overview
@@ -14,6 +14,7 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 - 2025-10-09 – “Load a sample vector” buttons on evaluate and replay panels should pull from entries in `docs/webauthn_assertion_vectors.json`, pre-populating request/response payloads (user selected Option A).
 - 2025-10-09 – When surfacing sample key material in the UI, prefer JWK representations over PEM/PKCS#8 to keep output compact (user instruction).
 - 2025-10-09 – The JSON vector bundle stores base64 payloads as 16-character segments so gitleaks remains green; ingestion helpers must join the segments before invoking verifiers (maintainer note).
+- 2025-10-09 – W3C §16.1.6 authentication fixtures live under `docs/webauthn_w3c_vectors/packed-es256.properties` with base64url payloads for attestation and assertion data (worklog note).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

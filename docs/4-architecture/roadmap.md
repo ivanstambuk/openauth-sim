@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-_Last updated: 2025-10-08_
+_Last updated: 2025-10-09_
 
 This roadmap tracks the major workstreams required to reach a feature-complete OpenAuth Simulator. Update this file whenever scope or status changes so future sessions can pick up without replaying prior conversations.
 
@@ -28,17 +28,17 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 12 | Architecture harmonization | Share OCRA orchestration, persistence provisioning, telemetry, and DTO seams across facades while preparing protocol-specific modules | Complete | Spec: [Feature 014](specs/feature-014-architecture-harmonization.md), Plan: [Feature Plan 014](feature-plan-014-architecture-harmonization.md), Tasks: [Feature 014 Tasks](tasks/feature-014-architecture-harmonization.md); Closed 2025-10-02 after R1408 documentation sync + quality gate rerun |
 | 13 | SpotBugs dead-state enforcement | Fail builds on unread/unwritten field detectors across JVM modules | Complete | Spec: [Feature 015](specs/feature-015-spotbugs-dead-state-enforcement.md), Plan: [Feature Plan 015](feature-plan-015-spotbugs-dead-state-enforcement.md), Tasks: [Feature 015 Tasks](tasks/feature-015-spotbugs-dead-state-enforcement.md); Closed 2025-10-03 after SpotBugs+PMD guardrails verified via `./gradlew :rest-api:pmdTest` and root `check` |
 | 14 | HOTP operator support | Deliver HOTP credential flows (issuance, validation, operator tooling) across core/application/UI channels | Complete | Spec: [Feature 022](specs/feature-022-hotp-operator-support.md), Plan: [Feature Plan 022](feature-plan-022-hotp-operator-support.md), Tasks: [Feature 022 Tasks](tasks/feature-022-hotp-operator-support.md); R2293 completed replay sample integration, and 2025-10-08 sealed the workstream after R2242 stored-mode seeding coverage verification + `./gradlew spotlessApply check` |
-| 15 | TOTP operator support | Provide TOTP credential lifecycle and operator console integrations | In progress | Spec: [Feature 023](specs/feature-023-totp-operator-support.md), Plan: [Feature Plan 023](feature-plan-023-totp-operator-support.md), Tasks: [Feature 023 Tasks](tasks/feature-023-totp-operator-support.md); Core, persistence, CLI, REST, and operator console evaluation flows landed in R2310–R2312 with Selenium coverage; documentation + quality gate wrap-up underway |
+| 15 | TOTP operator support | Provide TOTP credential lifecycle and operator console integrations | Complete | Spec: [Feature 023](specs/feature-023-totp-operator-support.md), Plan: [Feature Plan 023](feature-plan-023-totp-operator-support.md), Tasks: [Feature 023 Tasks](tasks/feature-023-totp-operator-support.md); R2330–R2341 delivered presets, seeding, stored sample diagnostics, and final `./gradlew spotlessApply check` verification on 2025-10-09 |
 | 16 | EUDIW OpenID4VP simulator | Simulate verifiable presentation requests for EUDI wallet OpenID4VP 1.0 flows | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
 | 17 | EUDIW ISO/IEC 18013-5 simulator | Surface ISO/IEC 18013-5 credential presentation workflows for EUDI wallets | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
 | 18 | EUDIW SIOPv2 simulator | Implement SIOPv2 authentication flows aligned with EUDI wallet guidance | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
 | 19 | Quality gate reinstatement | Restore Jacoco thresholds to ≥0.90 line/branch and re-enable PIT in developer builds once HOTP scope stabilises | Planned | Temporary relaxation to ≥0.70 recorded 2025-10-06; follow-up will revisit coverage hot spots and reinstate mutation checks |
-| 20 | FIDO2/WebAuthn operator support | Launch WebAuthn assertion verification across core, persistence, CLI, REST, and operator UI with preset/seed utilities | Planned | Spec: [Feature 024](specs/feature-024-fido2-webauthn-operator-support.md), Plan: [Feature Plan 024](feature-plan-024-fido2-webauthn-operator-support.md), Tasks: [Feature 024 Tasks](tasks/feature-024-fido2-webauthn-operator-support.md); W3C vectors targeted first, JSONL bundle immediately after |
+| 20 | FIDO2/WebAuthn operator support | Launch WebAuthn assertion verification across core, persistence, CLI, REST, and operator UI with preset/seed utilities | In progress | Spec: [Feature 024](specs/feature-024-fido2-webauthn-operator-support.md), Plan: [Feature Plan 024](feature-plan-024-fido2-webauthn-operator-support.md), Tasks: [Feature 024 Tasks](tasks/feature-024-fido2-webauthn-operator-support.md); Kickoff 2025-10-09 with W3C §16 fixture staging (T1); CLI façade (T5) verified 2025-10-10 under sandbox escalation |
 
 ## Upcoming Milestones
 
 1. Prepare specifications and feature plans for Workstreams 16–18 before initiating implementation; capture clarifications in `docs/4-architecture/open-questions.md`.
-2. Confirm the next high-priority facade effort (Workstream 9 vs HOTP/TOTP/EUDIW) through the clarification gate and update roadmap/scope documents.
+2. Confirm the next high-priority facade effort (Workstream 9 vs forthcoming EUDIW simulators or Feature 024) through the clarification gate and update roadmap/scope documents.
 3. Monitor SpotBugs/PMD runtime impact post-Feature 015 rollout and capture build timing metrics in `docs/5-operations/analysis-gate-checklist.md` by 2025-10-07.
 4. Prototype educational simulator UI flows (Workstream 9) to complement human operators.
 5. Complete Feature 011 increments (reflection removal + guardrails) and roll the policy into standard operating instructions.

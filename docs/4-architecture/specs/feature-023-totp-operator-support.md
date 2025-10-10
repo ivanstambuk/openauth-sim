@@ -1,6 +1,6 @@
 # Feature 023 – TOTP Operator Support
 
-_Status: Draft_
+_Status: Complete_
 _Last updated: 2025-10-09_
 
 ## Overview

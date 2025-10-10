@@ -54,20 +54,20 @@ spotless {
     format("misc") {
         target("*.md", "*.yml", "*.yaml", "*.json", "*.gitignore")
         trimTrailingWhitespace()
-        indentWithSpaces()
+        leadingTabsToSpaces()
         endWithNewline()
     }
     kotlinGradle {
         target("**/*.gradle.kts", "**/*.kts")
         trimTrailingWhitespace()
-        indentWithSpaces()
+        leadingTabsToSpaces()
         endWithNewline()
     }
     java {
         target("**/src/**/*.java")
         googleJavaFormat(libsCatalog.version("googleJavaFormat"))
         trimTrailingWhitespace()
-        indentWithSpaces()
+        leadingTabsToSpaces()
         endWithNewline()
     }
 }

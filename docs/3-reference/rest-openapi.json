@@ -9,6 +9,171 @@
     "description" : "Generated server url"
   } ],
   "paths" : {
+    "/api/v1/webauthn/replay" : {
+      "post" : {
+        "tags" : [ "web-authn-replay-controller" ],
+        "summary" : "Replay a stored WebAuthn assertion without mutating credential state",
+        "operationId" : "replayStoredWebAuthn",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebAuthnReplayRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Replay matched stored credential",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnReplayResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Replay rejected or request invalid",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnReplayErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnReplayErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webauthn/evaluate" : {
+      "post" : {
+        "tags" : [ "web-authn-evaluation-controller" ],
+        "summary" : "Validate a stored WebAuthn credential",
+        "operationId" : "evaluateStoredWebAuthn",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebAuthnStoredEvaluationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Assertion accepted",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnEvaluationResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Assertion rejected or request invalid",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnEvaluationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webauthn/evaluate/inline" : {
+      "post" : {
+        "tags" : [ "web-authn-evaluation-controller" ],
+        "summary" : "Validate an inline WebAuthn assertion without loading a stored credential",
+        "operationId" : "evaluateInlineWebAuthn",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebAuthnInlineEvaluationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Assertion accepted",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnEvaluationResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Assertion rejected or request invalid",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnEvaluationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webauthn/credentials/seed" : {
+      "post" : {
+        "tags" : [ "web-authn-credential-seed-controller" ],
+        "operationId" : "seedCredentials",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SeedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/totp/replay" : {
       "post" : {
         "tags" : [ "totp-replay-controller" ],
@@ -159,7 +324,7 @@
     "/api/v1/totp/credentials/seed" : {
       "post" : {
         "tags" : [ "totp-credential-seed-controller" ],
-        "operationId" : "seedCredentials",
+        "operationId" : "seedCredentials_1",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -201,35 +366,6 @@
               }
             }
           },
-          "200" : {
-            "description" : "Verification completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationResponse"
-                },
-                "examples" : {
-                  "Match" : {
-                    "summary" : "Successful verification",
-                    "description" : "Match",
-                    "value" : {
-                      "status" : "match",
-                      "reasonCode" : "match",
-                      "metadata" : {
-                        "credentialSource" : "stored",
-                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
-                        "otpLength" : 8,
-                        "durationMillis" : 11,
-                        "contextFingerprint" : "Base64URL-Hash",
-                        "telemetryId" : "rest-ocra-verify-<uuid>",
-                        "outcome" : "match"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
@@ -267,6 +403,35 @@
                 }
               }
             }
+          },
+          "200" : {
+            "description" : "Verification completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationResponse"
+                },
+                "examples" : {
+                  "Match" : {
+                    "summary" : "Successful verification",
+                    "description" : "Match",
+                    "value" : {
+                      "status" : "match",
+                      "reasonCode" : "match",
+                      "metadata" : {
+                        "credentialSource" : "stored",
+                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
+                        "otpLength" : 8,
+                        "durationMillis" : 11,
+                        "contextFingerprint" : "Base64URL-Hash",
+                        "telemetryId" : "rest-ocra-verify-<uuid>",
+                        "outcome" : "match"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -298,6 +463,16 @@
               }
             }
           },
+          "200" : {
+            "description" : "Evaluation successful",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                }
+              }
+            }
+          },
           "400" : {
             "description" : "Invalid request payload",
             "content" : {
@@ -325,16 +500,6 @@
                 }
               }
             }
-          },
-          "200" : {
-            "description" : "Evaluation successful",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
-                }
-              }
-            }
           }
         }
       }
@@ -342,7 +507,7 @@
     "/api/v1/ocra/credentials/seed" : {
       "post" : {
         "tags" : [ "ocra-credential-directory-controller" ],
-        "operationId" : "seedCredentials_1",
+        "operationId" : "seedCredentials_2",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -374,6 +539,26 @@
           "required" : true
         },
         "responses" : {
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
           "400" : {
             "description" : "Validation error",
             "content" : {
@@ -390,26 +575,6 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpReplayResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
                 }
               }
             }
@@ -454,8 +619,8 @@
               }
             }
           },
-          "400" : {
-            "description" : "Validation error",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -464,8 +629,8 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
+          "400" : {
+            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -504,8 +669,8 @@
               }
             }
           },
-          "400" : {
-            "description" : "Validation error",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -514,8 +679,8 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
+          "400" : {
+            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -530,7 +695,7 @@
     "/api/v1/hotp/credentials/seed" : {
       "post" : {
         "tags" : [ "hotp-credential-directory-controller" ],
-        "operationId" : "seedCredentials_2",
+        "operationId" : "seedCredentials_3",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -545,10 +710,57 @@
         }
       }
     },
+    "/api/v1/webauthn/credentials" : {
+      "get" : {
+        "tags" : [ "web-authn-credential-directory-controller" ],
+        "operationId" : "listCredentials",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/WebAuthnCredentialSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webauthn/credentials/{credentialId}/sample" : {
+      "get" : {
+        "tags" : [ "web-authn-credential-directory-controller" ],
+        "operationId" : "storedSample",
+        "parameters" : [ {
+          "name" : "credentialId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnStoredSampleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/totp/credentials" : {
       "get" : {
         "tags" : [ "totp-credential-directory-controller" ],
-        "operationId" : "listCredentials",
+        "operationId" : "listCredentials_1",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -569,7 +781,7 @@
     "/api/v1/totp/credentials/{credentialId}/sample" : {
       "get" : {
         "tags" : [ "totp-credential-directory-controller" ],
-        "operationId" : "storedSample",
+        "operationId" : "storedSample_1",
         "parameters" : [ {
           "name" : "credentialId",
           "in" : "path",
@@ -595,7 +807,7 @@
     "/api/v1/ocra/credentials" : {
       "get" : {
         "tags" : [ "ocra-credential-directory-controller" ],
-        "operationId" : "listCredentials_1",
+        "operationId" : "listCredentials_2",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -642,7 +854,7 @@
     "/api/v1/hotp/credentials" : {
       "get" : {
         "tags" : [ "hotp-credential-directory-controller" ],
-        "operationId" : "listCredentials_2",
+        "operationId" : "listCredentials_3",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -663,7 +875,7 @@
     "/api/v1/hotp/credentials/{credentialId}/sample" : {
       "get" : {
         "tags" : [ "hotp-credential-directory-controller" ],
-        "operationId" : "storedSample_1",
+        "operationId" : "storedSample_2",
         "parameters" : [ {
           "name" : "credentialId",
           "in" : "path",
@@ -689,6 +901,278 @@
   },
   "components" : {
     "schemas" : {
+      "WebAuthnReplayMetadata" : {
+        "type" : "object",
+        "properties" : {
+          "telemetryId" : {
+            "type" : "string"
+          },
+          "credentialSource" : {
+            "type" : "string"
+          },
+          "credentialReference" : {
+            "type" : "boolean"
+          },
+          "credentialId" : {
+            "type" : "string"
+          },
+          "relyingPartyId" : {
+            "type" : "string"
+          },
+          "origin" : {
+            "type" : "string"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
+          "userVerificationRequired" : {
+            "type" : "boolean"
+          },
+          "error" : {
+            "type" : "string"
+          }
+        }
+      },
+      "WebAuthnReplayResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "match" : {
+            "type" : "boolean"
+          },
+          "metadata" : {
+            "$ref" : "#/components/schemas/WebAuthnReplayMetadata"
+          }
+        }
+      },
+      "WebAuthnReplayErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "metadata" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
+      "WebAuthnReplayRequest" : {
+        "type" : "object",
+        "properties" : {
+          "credentialId" : {
+            "type" : "string"
+          },
+          "relyingPartyId" : {
+            "type" : "string"
+          },
+          "origin" : {
+            "type" : "string"
+          },
+          "expectedType" : {
+            "type" : "string"
+          },
+          "expectedChallenge" : {
+            "type" : "string"
+          },
+          "clientData" : {
+            "type" : "string"
+          },
+          "authenticatorData" : {
+            "type" : "string"
+          },
+          "signature" : {
+            "type" : "string"
+          }
+        }
+      },
+      "WebAuthnEvaluationMetadata" : {
+        "type" : "object",
+        "properties" : {
+          "telemetryId" : {
+            "type" : "string"
+          },
+          "credentialSource" : {
+            "type" : "string"
+          },
+          "credentialReference" : {
+            "type" : "boolean"
+          },
+          "credentialId" : {
+            "type" : "string"
+          },
+          "relyingPartyId" : {
+            "type" : "string"
+          },
+          "origin" : {
+            "type" : "string"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
+          "userVerificationRequired" : {
+            "type" : "boolean"
+          },
+          "error" : {
+            "type" : "string"
+          }
+        }
+      },
+      "WebAuthnEvaluationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "valid" : {
+            "type" : "boolean"
+          },
+          "metadata" : {
+            "$ref" : "#/components/schemas/WebAuthnEvaluationMetadata"
+          }
+        }
+      },
+      "WebAuthnEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "metadata" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
+      "WebAuthnStoredEvaluationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "credentialId" : {
+            "type" : "string"
+          },
+          "relyingPartyId" : {
+            "type" : "string"
+          },
+          "origin" : {
+            "type" : "string"
+          },
+          "expectedType" : {
+            "type" : "string"
+          },
+          "expectedChallenge" : {
+            "type" : "string"
+          },
+          "clientData" : {
+            "type" : "string"
+          },
+          "authenticatorData" : {
+            "type" : "string"
+          },
+          "signature" : {
+            "type" : "string"
+          }
+        }
+      },
+      "WebAuthnInlineEvaluationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "credentialName" : {
+            "type" : "string"
+          },
+          "relyingPartyId" : {
+            "type" : "string"
+          },
+          "origin" : {
+            "type" : "string"
+          },
+          "expectedType" : {
+            "type" : "string"
+          },
+          "credentialId" : {
+            "type" : "string"
+          },
+          "publicKey" : {
+            "type" : "string"
+          },
+          "signatureCounter" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "userVerificationRequired" : {
+            "type" : "boolean"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
+          "expectedChallenge" : {
+            "type" : "string"
+          },
+          "clientData" : {
+            "type" : "string"
+          },
+          "authenticatorData" : {
+            "type" : "string"
+          },
+          "signature" : {
+            "type" : "string"
+          }
+        }
+      },
+      "SeedResponse" : {
+        "type" : "object",
+        "properties" : {
+          "addedCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "canonicalCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "addedCredentialIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
       "TotpReplayMetadata" : {
         "type" : "object",
         "properties" : {
@@ -947,25 +1431,6 @@
           "metadata" : {
             "type" : "object",
             "additionalProperties" : {
-              "type" : "string"
-            }
-          }
-        }
-      },
-      "SeedResponse" : {
-        "type" : "object",
-        "properties" : {
-          "addedCount" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "canonicalCount" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "addedCredentialIds" : {
-            "type" : "array",
-            "items" : {
               "type" : "string"
             }
           }
@@ -1351,6 +1816,61 @@
             "additionalProperties" : {
               "type" : "string"
             }
+          }
+        }
+      },
+      "WebAuthnCredentialSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "relyingPartyId" : {
+            "type" : "string"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
+          "userVerification" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "WebAuthnStoredSampleResponse" : {
+        "type" : "object",
+        "properties" : {
+          "credentialId" : {
+            "type" : "string"
+          },
+          "relyingPartyId" : {
+            "type" : "string"
+          },
+          "origin" : {
+            "type" : "string"
+          },
+          "expectedType" : {
+            "type" : "string"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
+          "userVerificationRequired" : {
+            "type" : "boolean"
+          },
+          "expectedChallengeBase64Url" : {
+            "type" : "string"
+          },
+          "clientDataBase64Url" : {
+            "type" : "string"
+          },
+          "authenticatorDataBase64Url" : {
+            "type" : "string"
+          },
+          "signatureBase64Url" : {
+            "type" : "string"
           }
         }
       },

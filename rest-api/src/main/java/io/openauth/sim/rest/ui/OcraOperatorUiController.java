@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpSession;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,6 +25,17 @@ final class OcraOperatorUiController {
   private static final String REST_EVALUATION_PATH = "/api/v1/ocra/evaluate";
   private static final String CSRF_ATTRIBUTE = "ocra-ui-csrf-token";
   private static final String REST_VERIFICATION_PATH = "/api/v1/ocra/verify";
+  private static final Set<String> SUPPORTED_PROTOCOLS =
+      Set.of(
+          "ocra",
+          "hotp",
+          "totp",
+          "fido2",
+          "emv",
+          "eudi-openid4vp",
+          "eudi-iso-18013-5",
+          "eudi-siopv2");
+
   private final ObjectMapper objectMapper;
   private final OcraOperatorUiReplayLogger telemetry;
 
@@ -47,6 +59,7 @@ final class OcraOperatorUiController {
       @ModelAttribute("form") OcraEvaluationForm form, HttpServletRequest request, Model model) {
     HttpSession session = request.getSession(true);
     model.addAttribute("csrfToken", ensureCsrfToken(session));
+    model.addAttribute("activeProtocol", determineProtocol(request.getParameter("protocol")));
     model.addAttribute("evaluationEndpoint", REST_EVALUATION_PATH);
     model.addAttribute("verificationEndpoint", REST_VERIFICATION_PATH);
     model.addAttribute("credentialsEndpoint", "/api/v1/ocra/credentials");
@@ -68,10 +81,26 @@ final class OcraOperatorUiController {
     model.addAttribute("totpCredentialSampleEndpoint", "/api/v1/totp/credentials");
     model.addAttribute("totpInlinePresetsJson", serializeTotpInlinePresets());
     model.addAttribute("totpReplayEndpoint", "/api/v1/totp/replay");
+    model.addAttribute("fido2StoredEvaluateEndpoint", "/api/v1/webauthn/evaluate");
+    model.addAttribute("fido2InlineEvaluateEndpoint", "/api/v1/webauthn/evaluate/inline");
+    model.addAttribute("fido2ReplayEndpoint", "/api/v1/webauthn/replay");
+    model.addAttribute("fido2CredentialsEndpoint", "/api/v1/webauthn/credentials");
+    model.addAttribute(
+        "fido2StoredSampleEndpoint", "/api/v1/webauthn/credentials/{credentialId}/sample");
+    model.addAttribute("fido2SeedEndpoint", "/api/v1/webauthn/credentials/seed");
+    model.addAttribute("fido2SeedDefinitionsJson", serializeFido2SeedDefinitions());
+    model.addAttribute("fido2InlineVectorsJson", serializeFido2InlineVectors());
     model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
-    model.addAttribute("activeProtocol", "ocra");
     populatePolicyPresets(model);
     return "ui/console/index";
+  }
+
+  private String determineProtocol(String requested) {
+    if (!StringUtils.hasText(requested)) {
+      return "ocra";
+    }
+    String normalised = requested.trim().toLowerCase();
+    return SUPPORTED_PROTOCOLS.contains(normalised) ? normalised : "ocra";
   }
 
   private String serializeHotpSeedDefinitions() {
@@ -95,6 +124,22 @@ final class OcraOperatorUiController {
       return objectMapper.writeValueAsString(TotpOperatorSampleData.inlinePresets());
     } catch (JsonProcessingException ex) {
       throw new IllegalStateException("Unable to render TOTP inline presets", ex);
+    }
+  }
+
+  private String serializeFido2SeedDefinitions() {
+    try {
+      return objectMapper.writeValueAsString(Fido2OperatorSampleData.seedDefinitions());
+    } catch (JsonProcessingException ex) {
+      throw new IllegalStateException("Unable to render FIDO2 seed definitions", ex);
+    }
+  }
+
+  private String serializeFido2InlineVectors() {
+    try {
+      return objectMapper.writeValueAsString(Fido2OperatorSampleData.inlineVectors());
+    } catch (JsonProcessingException ex) {
+      throw new IllegalStateException("Unable to render FIDO2 inline vectors", ex);
     }
   }
 

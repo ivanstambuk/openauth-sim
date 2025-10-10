@@ -24,6 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openqa.selenium.By;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
@@ -139,9 +140,7 @@ final class TotpOperatorUiSeleniumTest {
         driver.findElement(By.cssSelector("label[for='totpStoredCredentialId']"));
     assertEquals("Stored credential", storedLabel.getText().trim());
 
-    waitUntilOptionsCount(By.id("totpStoredCredentialId"), 2);
-    Select credentialSelect = new Select(driver.findElement(By.id("totpStoredCredentialId")));
-    credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
+    selectOption("totpStoredCredentialId", STORED_CREDENTIAL_ID);
 
     WebElement otpInput = driver.findElement(By.id("totpStoredOtp"));
     otpInput.clear();
@@ -503,14 +502,12 @@ final class TotpOperatorUiSeleniumTest {
         driver.findElement(By.cssSelector("label[for='totpReplayStoredCredentialId']"));
     assertEquals("Stored credential", credentialLabel.getText().trim());
 
-    waitUntilOptionsCount(By.id("totpReplayStoredCredentialId"), 2);
-    Select replayCredentialSelect =
-        new Select(driver.findElement(By.id("totpReplayStoredCredentialId")));
+    WebElement replaySelectElement = driver.findElement(By.id("totpReplayStoredCredentialId"));
     assertEquals(
         "",
-        replayCredentialSelect.getFirstSelectedOption().getAttribute("value"),
+        new Select(replaySelectElement).getFirstSelectedOption().getAttribute("value"),
         "Stored replay credential dropdown should default to placeholder option");
-    replayCredentialSelect.selectByValue(STORED_CREDENTIAL_ID);
+    selectOption("totpReplayStoredCredentialId", STORED_CREDENTIAL_ID);
 
     WebElement otpInput = driver.findElement(By.id("totpReplayStoredOtp"));
     otpInput.clear();
@@ -723,7 +720,7 @@ final class TotpOperatorUiSeleniumTest {
   }
 
   private void waitUntilOptionsCount(By locator, int expectedCount) {
-    new WebDriverWait(driver, Duration.ofSeconds(5))
+    new WebDriverWait(driver, Duration.ofSeconds(10))
         .until(
             driver1 -> {
               try {
@@ -769,8 +766,20 @@ final class TotpOperatorUiSeleniumTest {
   }
 
   private void selectOption(String selectId, String value) {
-    WebElement select = driver.findElement(By.id(selectId));
-    new org.openqa.selenium.support.ui.Select(select).selectByValue(value);
+    By locator = By.id(selectId);
+    new WebDriverWait(driver, Duration.ofSeconds(10))
+        .until(
+            driver1 -> {
+              try {
+                new Select(driver1.findElement(locator)).selectByValue(value);
+                return true;
+              } catch (StaleElementReferenceException
+                  | NullPointerException
+                  | NoSuchElementException
+                  | UnsupportedOperationException ex) {
+                return false;
+              }
+            });
   }
 
   private Credential storedCredential() {

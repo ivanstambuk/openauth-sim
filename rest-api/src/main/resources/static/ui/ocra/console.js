@@ -25,12 +25,21 @@
   var allowedTabs = new Set(['evaluate', 'replay']);
   var allowedTotpTabs = new Set(['evaluate', 'replay']);
   var allowedTotpModes = new Set(['stored', 'inline']);
+  var allowedFido2Modes = new Set(['stored', 'inline', 'replay']);
 
   var currentProtocol = 'ocra';
   var lastProtocolTabs = { ocra: 'evaluate', hotp: 'evaluate' };
   var lastTotpTab = 'evaluate';
   var lastTotpMode = 'stored';
   var lastTotpReplayMode = 'stored';
+  var lastFido2Mode = 'stored';
+
+  if (operatorConsoleRoot) {
+    var activeProtocolAttr = operatorConsoleRoot.getAttribute('data-active-protocol');
+    if (activeProtocolAttr && allowedProtocols.has(activeProtocolAttr)) {
+      currentProtocol = activeProtocolAttr;
+    }
+  }
 
   function setPanelVisibility(panel, hidden) {
     if (!panel) {
@@ -113,6 +122,17 @@
       }
     }
 
+    if (protocol === 'fido2') {
+      var desiredFidoMode =
+          options && options.fido2Mode && allowedFido2Modes.has(options.fido2Mode)
+              ? options.fido2Mode
+              : getLastFido2Mode();
+      rememberFido2Mode(desiredFidoMode);
+      if (global.Fido2Console && typeof global.Fido2Console.setMode === 'function') {
+        global.Fido2Console.setMode(desiredFidoMode, { broadcast: false, force: true });
+      }
+    }
+
     if (options.syncProtocolInfo !== false && global.ProtocolInfo) {
       global.ProtocolInfo.setProtocol(protocol, {
         autoOpen: Boolean(options.allowAutoOpen),
@@ -156,6 +176,11 @@
           : getLastTotpReplayMode();
       return { protocol: protocol, totpTab: tab, totpMode: mode, totpReplayMode: replayMode };
     }
+    if (protocol === 'fido2') {
+      var fidoMode =
+          allowedFido2Modes.has(state && state.fido2Mode) ? state.fido2Mode : getLastFido2Mode();
+      return { protocol: protocol, fido2Mode: fidoMode };
+    }
     return { protocol: protocol };
   }
 
@@ -175,6 +200,11 @@
           : getLastTotpReplayMode();
       params.set('totpReplayMode', replayMode);
     }
+    if (state.protocol === 'fido2') {
+      var fidoMode =
+          allowedFido2Modes.has(state.fido2Mode) ? state.fido2Mode : getLastFido2Mode();
+      params.set('fido2Mode', fidoMode);
+    }
     var rendered = params.toString();
     return rendered ? '?' + rendered : global.location.search;
   }
@@ -193,6 +223,8 @@
         totpMode: normalized.totpMode,
         totpReplayMode: normalized.totpReplayMode,
       };
+    } else if (normalized.protocol === 'fido2') {
+      historyState = { protocol: normalized.protocol, fido2Mode: normalized.fido2Mode };
     } else {
       historyState = { protocol: normalized.protocol };
     }
@@ -236,6 +268,7 @@
             resetSection: options.resetSection,
             syncProtocolInfo: options.syncProtocolInfo,
             totpMode: desiredProtocol === 'totp' ? normalized.totpMode : undefined,
+            fido2Mode: desiredProtocol === 'fido2' ? normalized.fido2Mode : undefined,
           });
     } else if (desiredProtocol === 'ocra') {
       setActiveMode(desiredTab);
@@ -269,6 +302,16 @@
       }
     }
 
+    if (desiredProtocol === 'fido2') {
+      var desiredFidoMode = allowedFido2Modes.has(normalized.fido2Mode)
+        ? normalized.fido2Mode
+        : getLastFido2Mode();
+      rememberFido2Mode(desiredFidoMode);
+      if (global.Fido2Console && typeof global.Fido2Console.setMode === 'function') {
+        global.Fido2Console.setMode(desiredFidoMode, { broadcast: false, force: true });
+      }
+    }
+
     if (options.updateUrl) {
       pushUrlState(normalized, options);
     }
@@ -281,12 +324,20 @@
     var totpTab = params.get('totpTab');
     var totpMode = params.get('totpMode');
     var totpReplayMode = params.get('totpReplayMode');
+    var fido2Mode = params.get('fido2Mode');
+    if (!protocol && operatorConsoleRoot) {
+      var attr = operatorConsoleRoot.getAttribute('data-active-protocol');
+      if (attr && allowedProtocols.has(attr)) {
+        protocol = attr;
+      }
+    }
     return normalizeState({
       protocol: protocol,
       tab: tab,
       totpTab: totpTab,
       totpMode: totpMode,
       totpReplayMode: totpReplayMode,
+      fido2Mode: fido2Mode,
     });
   }
 
@@ -298,6 +349,8 @@
       initialState.totpTab = getLastTotpTab();
       initialState.totpMode = getLastTotpMode();
       initialState.totpReplayMode = getLastTotpReplayMode();
+    } else if (protocol === 'fido2') {
+      initialState.fido2Mode = getLastFido2Mode();
     }
     var normalized = normalizeState(initialState);
     applyConsoleState(normalized, {
@@ -334,6 +387,8 @@
           totpMode: getLastTotpMode(),
           totpReplayMode: getLastTotpReplayMode(),
         };
+      } else if (protocol === 'fido2') {
+        nextState = { protocol: 'fido2', fido2Mode: getLastFido2Mode() };
       } else {
         nextState = { protocol: protocol };
       }
@@ -407,6 +462,20 @@
         { replace: Boolean(event.detail && event.detail.replace) });
   });
 
+  global.addEventListener('operator:fido2-mode-changed', function (event) {
+    var mode = event && event.detail ? event.detail.mode : null;
+    if (!allowedFido2Modes.has(mode)) {
+      return;
+    }
+    rememberFido2Mode(mode);
+    if (currentProtocol !== 'fido2') {
+      return;
+    }
+    pushUrlState(
+        { protocol: 'fido2', fido2Mode: mode },
+        { replace: Boolean(event.detail && event.detail.replace) });
+  });
+
   global.addEventListener('popstate', function (event) {
     var state = event.state ? normalizeState(event.state) : parseStateFromLocation();
     applyConsoleState(state, { updateUrl: false, syncProtocolInfo: true });
@@ -458,6 +527,16 @@
   function rememberTotpReplayMode(mode) {
     if (allowedTotpModes.has(mode)) {
       lastTotpReplayMode = mode;
+    }
+  }
+
+  function getLastFido2Mode() {
+    return allowedFido2Modes.has(lastFido2Mode) ? lastFido2Mode : 'stored';
+  }
+
+  function rememberFido2Mode(mode) {
+    if (allowedFido2Modes.has(mode)) {
+      lastFido2Mode = mode;
     }
   }
 })(window);
