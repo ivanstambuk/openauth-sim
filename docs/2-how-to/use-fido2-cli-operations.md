@@ -44,6 +44,8 @@ Stored mode relies on a credential that already lives in MapDB and a private key
    }
    event=cli.fido2.evaluate status=success credentialSource=stored credentialReference=true algorithm=ES256 origin=https://example.org telemetryId=cli-fido2-64d6c5f9-…
    ```
+   The preset catalogue now covers every supported algorithm. Use `generator-es384`,
+   `generator-es512`, `generator-rs256`, `generator-ps256`, or `generator-eddsa` when you need RSA/PS or Ed25519 material; each preset ships with the matching private key JWK.
 3. To override any preset value, supply explicit options. For example:
    ```bash
    ./gradlew --quiet :cli:run --args=$'fido2 evaluate \
@@ -117,14 +119,14 @@ Use these `vectorId` values with `fido2 replay` (verification) and for advanced 
 Pair this guide with the REST and operator UI how-tos to mirror the same vectors across every facade.
 
 ## Inspect JWK Material
-Each vector in `docs/webauthn_assertion_vectors.json` carries a JWK payload alongside the COSE public key. Extract it for documentation or interoperability testing:
+Each vector in `docs/webauthn_assertion_vectors.json` carries a `keyPairJwk` payload (public + private components) alongside the COSE public key. Extract it for documentation or interoperability testing:
 ```bash
 python - <<'PYJ'
 import json
 from pathlib import Path
 vectors = json.loads(Path('docs/webauthn_assertion_vectors.json').read_text())
 vector = next(v for v in vectors if v['vector_id'] == 'ES256:uv0_up1')
-print(json.dumps(vector['key_material']['publicKeyJwk'], indent=2))
+print(json.dumps(vector['key_material']['keyPairJwk'], indent=2))
 PYJ
 ```
 This keeps examples compact while avoiding PEM/PKCS#8 material, matching the UI and REST presets that surface key data in COSE or JWK form only.

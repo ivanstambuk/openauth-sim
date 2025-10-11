@@ -57,7 +57,9 @@ final class Fido2OperatorSampleDataTest {
       String privateKey = definition.privateKeyJwk();
       assertNotNull(privateKey, "Private key JWK missing");
       assertTrue(
-          privateKey.contains("\"kty\":\"EC\"") || privateKey.contains("\"kty\":\"OKP\""),
+          privateKey.contains("\"kty\":\"EC\"")
+              || privateKey.contains("\"kty\":\"OKP\"")
+              || privateKey.contains("\"kty\":\"RSA\""),
           "Unsupported private key format: " + privateKey);
     }
   }

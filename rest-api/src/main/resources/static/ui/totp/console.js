@@ -11,7 +11,7 @@
   var ALLOWED_MODES = ['stored', 'inline'];
 
   var currentTab = 'evaluate';
-  var currentMode = 'stored';
+  var currentMode = 'inline';
   var currentReplayMode = 'stored';
   var lastBroadcastTab = null;
   var lastBroadcastMode = null;
@@ -967,7 +967,7 @@
     if (ALLOWED_MODES.indexOf(mode) >= 0) {
       return mode;
     }
-    return 'stored';
+    return 'inline';
   }
 
   function dispatchTabChange(tab, options) {
@@ -1447,13 +1447,13 @@
 
   function readModeFromUrl(search) {
     if (!search) {
-      return 'stored';
+      return 'inline';
     }
     try {
       var params = new global.URLSearchParams(search);
       return normalizeMode(params.get('totpMode'));
     } catch (error) {
-      return 'stored';
+      return 'inline';
     }
   }
 

@@ -24,6 +24,7 @@ class WebAuthnReplayService {
   private static final Logger TELEMETRY_LOGGER =
       Logger.getLogger("io.openauth.sim.rest.webauthn.telemetry");
   private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
+  private static final String CLIENT_DATA_TYPE_GET = "webauthn.get";
 
   private final WebAuthnReplayApplicationService applicationService;
 
@@ -47,9 +48,7 @@ class WebAuthnReplayService {
         requireText(
             request.relyingPartyId(), "relying_party_id_required", "Relying party ID is required");
     String origin = requireText(request.origin(), "origin_required", "Origin is required");
-    String expectedType =
-        requireText(
-            request.expectedType(), "type_required", "Expected client data type is required");
+    String expectedType = resolveClientDataType(request.expectedType());
 
     byte[] challenge = decode("expectedChallenge", request.expectedChallenge());
     byte[] clientData = decode("clientData", request.clientData());
@@ -113,9 +112,7 @@ class WebAuthnReplayService {
         requireText(
             request.relyingPartyId(), "relying_party_id_required", "Relying party ID is required");
     String origin = requireText(request.origin(), "origin_required", "Origin is required");
-    String expectedType =
-        requireText(
-            request.expectedType(), "type_required", "Expected client data type is required");
+    String expectedType = resolveClientDataType(request.expectedType());
 
     byte[] credentialId = decode("credentialId", request.credentialId());
     byte[] publicKey = decode("publicKey", request.publicKey());
@@ -319,6 +316,17 @@ class WebAuthnReplayService {
     } catch (IllegalArgumentException ex) {
       throw validation(label + "_invalid", label + " must be Base64URL encoded");
     }
+  }
+
+  private static String resolveClientDataType(String provided) {
+    if (provided == null || provided.isBlank()) {
+      return CLIENT_DATA_TYPE_GET;
+    }
+    String normalized = provided.trim();
+    if (!CLIENT_DATA_TYPE_GET.equals(normalized)) {
+      throw validation("type_invalid", "Client data type must be webauthn.get");
+    }
+    return normalized;
   }
 
   private static String nextTelemetryId() {

@@ -30,9 +30,9 @@
   var currentProtocol = 'ocra';
   var lastProtocolTabs = { ocra: 'evaluate', hotp: 'evaluate' };
   var lastTotpTab = 'evaluate';
-  var lastTotpMode = 'stored';
+  var lastTotpMode = 'inline';
   var lastTotpReplayMode = 'stored';
-  var lastFido2Mode = 'stored';
+var lastFido2Mode = 'inline';
 
   if (operatorConsoleRoot) {
     var activeProtocolAttr = operatorConsoleRoot.getAttribute('data-active-protocol');
@@ -511,7 +511,7 @@
   }
 
   function getLastTotpMode() {
-    return allowedTotpModes.has(lastTotpMode) ? lastTotpMode : 'stored';
+    return allowedTotpModes.has(lastTotpMode) ? lastTotpMode : 'inline';
   }
 
   function rememberTotpMode(mode) {
@@ -531,7 +531,7 @@
   }
 
   function getLastFido2Mode() {
-    return allowedFido2Modes.has(lastFido2Mode) ? lastFido2Mode : 'stored';
+    return allowedFido2Modes.has(lastFido2Mode) ? lastFido2Mode : 'inline';
   }
 
   function rememberFido2Mode(mode) {

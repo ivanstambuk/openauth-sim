@@ -18,6 +18,7 @@
   var MODE_STORED = 'stored';
   var MODE_INLINE = 'inline';
 
+  var CLIENT_DATA_TYPE = 'webauthn.get';
   var tabContainer = panel.querySelector('[data-testid="fido2-panel-tabs"]');
   var evaluateTabButton = panel.querySelector('[data-testid="fido2-panel-tab-evaluate"]');
   var replayTabButton = panel.querySelector('[data-testid="fido2-panel-tab-replay"]');
@@ -104,9 +105,9 @@
   var storedSeedActions = panel.querySelector('[data-testid="fido2-seed-actions"]');
   var storedSeedButton = panel.querySelector('[data-testid="fido2-seed-credentials"]');
   var storedSeedStatus = panel.querySelector('[data-testid="fido2-seed-status"]');
+  var shouldDisplaySeedActions = false;
   var storedRpInput = panel.querySelector('#fido2StoredRpId');
   var storedOriginInput = panel.querySelector('#fido2StoredOrigin');
-  var storedTypeInput = panel.querySelector('#fido2StoredType');
   var storedLoadSampleButton =
       panel.querySelector('[data-testid="fido2-stored-load-sample"]');
   var storedChallengeField = panel.querySelector('#fido2StoredChallenge');
@@ -117,23 +118,24 @@
   var inlineForm = panel.querySelector('[data-testid="fido2-inline-form"]');
   var inlineRpInput = panel.querySelector('#fido2InlineRpId');
   var inlineOriginInput = panel.querySelector('#fido2InlineOrigin');
-  var inlineTypeInput = panel.querySelector('#fido2InlineType');
-  var inlineCredentialNameInput = panel.querySelector('#fido2InlineCredentialName');
   var inlineCredentialIdField = panel.querySelector('#fido2InlineCredentialId');
   var inlineAlgorithmInput = panel.querySelector('#fido2InlineAlgorithm');
   var inlineCounterInput = panel.querySelector('#fido2InlineCounter');
+  var inlineCounterToggle =
+      panel.querySelector('[data-testid="fido2-inline-counter-toggle"]');
+  var inlineCounterHint =
+      panel.querySelector('[data-testid="fido2-inline-counter-hint"]');
+  var inlineCounterResetButton =
+      panel.querySelector('[data-testid="fido2-inline-counter-reset"]');
   var inlineUvRequiredSelect = panel.querySelector('#fido2InlineUvRequired');
   var inlineChallengeField = panel.querySelector('#fido2InlineChallenge');
   var inlinePrivateKeyField = panel.querySelector('#fido2InlinePrivateKey');
   var inlineSampleSelect = panel.querySelector('#fido2InlineSampleSelect');
-  var inlineLoadSampleButton =
-      panel.querySelector('[data-testid="fido2-inline-load-sample"]');
 
   var replayForm = panel.querySelector('[data-testid="fido2-replay-form"]');
   var replayCredentialSelect = panel.querySelector('#fido2ReplayCredentialId');
   var replayOriginInput = panel.querySelector('#fido2ReplayOrigin');
   var replayRpInput = panel.querySelector('#fido2ReplayRpId');
-  var replayTypeInput = panel.querySelector('#fido2ReplayType');
   var replayChallengeField = panel.querySelector('#fido2ReplayChallenge');
   var replayClientDataField = panel.querySelector('#fido2ReplayClientData');
   var replayAuthenticatorDataField =
@@ -141,15 +143,12 @@
   var replaySignatureField = panel.querySelector('#fido2ReplaySignature');
 
   var replayInlineForm = panel.querySelector('[data-testid="fido2-replay-inline-form"]');
-  var replayInlineCredentialNameInput =
-      panel.querySelector('#fido2ReplayInlineCredentialName');
   var replayInlineCredentialIdField =
       panel.querySelector('#fido2ReplayInlineCredentialId');
   var replayInlinePublicKeyField =
       panel.querySelector('#fido2ReplayInlinePublicKey');
   var replayInlineRpInput = panel.querySelector('#fido2ReplayInlineRpId');
   var replayInlineOriginInput = panel.querySelector('#fido2ReplayInlineOrigin');
-  var replayInlineTypeInput = panel.querySelector('#fido2ReplayInlineType');
   var replayInlineAlgorithmInput =
       panel.querySelector('#fido2ReplayInlineAlgorithm');
   var replayInlineCounterInput =
@@ -166,8 +165,6 @@
       panel.querySelector('#fido2ReplayInlineSignature');
   var replayInlineSampleSelect =
       panel.querySelector('#fido2ReplayInlineSampleSelect');
-  var replayInlineLoadSampleButton =
-      panel.querySelector('[data-testid="fido2-replay-inline-load-sample"]');
 
   var seedDefinitionsNode = panel.querySelector('#fido2-seed-definitions');
   var inlineVectorsNode = panel.querySelector('#fido2-inline-vectors');
@@ -175,12 +172,16 @@
   var seedDefinitions = parseJson(seedDefinitionsNode);
   var inlineVectors = parseJson(inlineVectorsNode);
   var inlineVectorIndex = createInlineVectorIndex(inlineVectors);
+  var activeInlineCredentialName = null;
+  var activeReplayInlineCredentialName = null;
+  var inlineCounterSnapshotSeconds = null;
 
   removeNode(seedDefinitionsNode);
   removeNode(inlineVectorsNode);
 
   populateInlineSampleOptions();
   refreshStoredCredentials();
+  initializeInlineCounter();
 
   var currentTab = TAB_EVALUATE;
   var currentEvaluateMode = MODE_INLINE;
@@ -260,19 +261,9 @@
       applyInlineSample(inlineSampleSelect.value);
     });
   }
-  if (inlineLoadSampleButton) {
-    inlineLoadSampleButton.addEventListener('click', function () {
-      applyInlineSample(inlineSampleSelect && inlineSampleSelect.value);
-    });
-  }
   if (replayInlineSampleSelect) {
     replayInlineSampleSelect.addEventListener('change', function () {
       applyReplayInlineSample(replayInlineSampleSelect.value);
-    });
-  }
-  if (replayInlineLoadSampleButton) {
-    replayInlineLoadSampleButton.addEventListener('click', function () {
-      applyReplayInlineSample(replayInlineSampleSelect && replayInlineSampleSelect.value);
     });
   }
 
@@ -343,7 +334,7 @@
       credentialId: credentialId,
       relyingPartyId: elementValue(storedRpInput),
       origin: elementValue(storedOriginInput),
-      expectedType: elementValue(storedTypeInput),
+      expectedType: CLIENT_DATA_TYPE,
       challenge: elementValue(storedChallengeField),
       privateKey: elementValue(storedPrivateKeyField),
       signatureCounter: signatureCounter,
@@ -372,10 +363,9 @@
     var signatureCounter = parseInteger(elementValue(inlineCounterInput));
     var uvRequired = checkboxValue(inlineUvRequiredSelect);
     var payload = {
-      credentialName: elementValue(inlineCredentialNameInput),
       relyingPartyId: elementValue(inlineRpInput),
       origin: elementValue(inlineOriginInput),
-      expectedType: elementValue(inlineTypeInput),
+      expectedType: CLIENT_DATA_TYPE,
       credentialId: elementValue(inlineCredentialIdField),
       signatureCounter: signatureCounter,
       userVerificationRequired: uvRequired,
@@ -383,6 +373,9 @@
       challenge: elementValue(inlineChallengeField),
       privateKey: elementValue(inlinePrivateKeyField),
     };
+    if (activeInlineCredentialName) {
+      payload.credentialName = activeInlineCredentialName;
+    }
     sendJsonRequest(endpoint, payload, csrfToken(inlineForm))
         .then(handleInlineEvaluationSuccess)
         .catch(handleInlineEvaluationError)
@@ -413,7 +406,7 @@
       credentialId: credentialId,
       relyingPartyId: elementValue(replayRpInput),
       origin: elementValue(replayOriginInput),
-      expectedType: elementValue(replayTypeInput),
+      expectedType: CLIENT_DATA_TYPE,
       expectedChallenge: elementValue(replayChallengeField),
       clientData: elementValue(replayClientDataField),
       authenticatorData: elementValue(replayAuthenticatorDataField),
@@ -442,12 +435,11 @@
     var signatureCounter = parseInteger(elementValue(replayInlineCounterInput));
     var uvRequired = checkboxValue(replayInlineUvRequiredSelect);
     var payload = {
-      credentialName: elementValue(replayInlineCredentialNameInput),
       credentialId: elementValue(replayInlineCredentialIdField),
       publicKey: elementValue(replayInlinePublicKeyField),
       relyingPartyId: elementValue(replayInlineRpInput),
       origin: elementValue(replayInlineOriginInput),
-      expectedType: elementValue(replayInlineTypeInput),
+      expectedType: CLIENT_DATA_TYPE,
       signatureCounter: signatureCounter,
       userVerificationRequired: uvRequired,
       algorithm: elementValue(replayInlineAlgorithmInput),
@@ -456,6 +448,9 @@
       authenticatorData: elementValue(replayInlineAuthenticatorDataField),
       signature: elementValue(replayInlineSignatureField),
     };
+    if (activeReplayInlineCredentialName) {
+      payload.credentialName = activeReplayInlineCredentialName;
+    }
     sendJsonRequest(endpoint, payload, csrfToken(replayInlineForm))
         .then(handleInlineReplaySuccess)
         .catch(handleInlineReplayError)
@@ -564,6 +559,10 @@
     toggleSection(evaluateInlineSection, mode === MODE_INLINE);
     toggleSection(storedResultPanel, mode === MODE_STORED);
     toggleSection(inlineResultPanel, mode === MODE_INLINE);
+    toggleSeedActions();
+    if (mode === MODE_INLINE) {
+      refreshInlineCounterAfterPreset();
+    }
     if (!options || options.broadcast !== false) {
       broadcastModeChange(computeLegacyMode(), Boolean(options && options.replace));
     }
@@ -619,7 +618,8 @@
     fetchCredentials(endpoint).then(function (credentials) {
       updateCredentialSelect(storedCredentialSelect, credentials);
       updateCredentialSelect(replayCredentialSelect, credentials);
-      toggleSeedActions(credentials.length === 0);
+      shouldDisplaySeedActions = credentials.length === 0;
+      toggleSeedActions();
       if (credentials.length > 0) {
         var firstId = credentials[0].id;
         if (storedCredentialSelect && !storedCredentialSelect.value) {
@@ -667,9 +667,6 @@
     setValue(
         storedOriginInput,
         vector && vector.origin ? vector.origin : 'https://example.org');
-    setValue(
-        storedTypeInput,
-        vector && vector.expectedType ? vector.expectedType : 'webauthn.get');
     setValue(storedChallengeField, vector ? vector.expectedChallengeBase64Url : '');
     setValue(storedPrivateKeyField, definition.privateKeyJwk || '');
     setValue(storedCounterInput, '');
@@ -696,7 +693,6 @@
             || metadataValue(definition.metadata, 'vectorId');
     var vector = resolveInlineVector(vectorKey);
     setValue(replayRpInput, definition.relyingPartyId || 'example.org');
-    setValue(replayTypeInput, vector && vector.expectedType ? vector.expectedType : 'webauthn.get');
     setValue(replayOriginInput, vector ? vector.origin || 'https://example.org' : 'https://example.org');
     setValue(replayChallengeField, vector ? vector.expectedChallengeBase64Url : '');
     setValue(replayClientDataField, vector ? vector.clientDataBase64Url : '');
@@ -712,17 +708,19 @@
     var vector = resolveInlineVector(selectedKey);
     if (!vector) {
       pendingInlineResult();
+      activeInlineCredentialName = null;
+      refreshInlineCounterAfterPreset();
       return;
     }
+    activeInlineCredentialName = vector.credentialName || null;
     setValue(inlineRpInput, vector.relyingPartyId || 'example.org');
     setValue(inlineOriginInput, vector.origin || 'https://example.org');
-    setValue(inlineTypeInput, vector.expectedType || 'webauthn.get');
-    setValue(inlineCredentialNameInput, vector.credentialName || 'fido2-inline');
     setValue(inlineCredentialIdField, vector.credentialIdBase64Url || '');
     setValue(inlineAlgorithmInput, vector.algorithm || 'ES256');
-    setValue(
-        inlineCounterInput,
-        vector.signatureCounter != null ? vector.signatureCounter : 0);
+    var presetCounter =
+        vector.signatureCounter != null ? vector.signatureCounter : 0;
+    setValue(inlineCounterInput, presetCounter);
+    refreshInlineCounterAfterPreset();
     if (inlineUvRequiredSelect) {
       inlineUvRequiredSelect.checked = Boolean(vector.userVerificationRequired);
     }
@@ -736,6 +734,100 @@
     updateInlineTelemetry('Sample vector loaded (sanitized).');
   }
 
+  function initializeInlineCounter() {
+    if (!inlineCounterInput) {
+      return;
+    }
+    setInlineCounterReadOnly(Boolean(inlineCounterToggle && inlineCounterToggle.checked));
+    if (inlineCounterToggle) {
+      inlineCounterToggle.addEventListener('change', function () {
+        setInlineCounterReadOnly(Boolean(inlineCounterToggle.checked));
+        if (inlineCounterToggle.checked) {
+          refreshInlineCounterSnapshot();
+        } else {
+          updateInlineCounterHintText();
+        }
+      });
+    }
+    if (inlineCounterResetButton) {
+      inlineCounterResetButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        refreshInlineCounterSnapshot();
+      });
+    }
+    if (inlineCounterToggle && inlineCounterToggle.checked) {
+      refreshInlineCounterSnapshot();
+    } else {
+      updateInlineCounterHintText();
+    }
+  }
+
+  function refreshInlineCounterAfterPreset() {
+    if (inlineCounterToggle && inlineCounterToggle.checked) {
+      refreshInlineCounterSnapshot();
+    } else {
+      updateInlineCounterHintText();
+    }
+  }
+
+  function refreshInlineCounterSnapshot() {
+    if (!inlineCounterInput) {
+      return null;
+    }
+    var nowSeconds = currentUnixSeconds();
+    inlineCounterSnapshotSeconds = nowSeconds;
+    setValue(inlineCounterInput, nowSeconds);
+    updateInlineCounterHintText();
+    return nowSeconds;
+  }
+
+  function updateInlineCounterHintText() {
+    if (!inlineCounterHint) {
+      return;
+    }
+    if (!inlineCounterToggle || inlineCounterToggle.checked) {
+      if (inlineCounterSnapshotSeconds != null) {
+        inlineCounterHint.textContent =
+            'Last autofill: ' + formatUnixSeconds(inlineCounterSnapshotSeconds);
+      } else {
+        inlineCounterHint.textContent = 'Last autofill: awaiting snapshot.';
+      }
+      return;
+    }
+    if (inlineCounterSnapshotSeconds != null) {
+      inlineCounterHint.textContent =
+          'Manual entry enabled (last autofill ' + formatUnixSeconds(inlineCounterSnapshotSeconds) + ').';
+    } else {
+      inlineCounterHint.textContent = 'Manual entry enabled.';
+    }
+  }
+
+  function setInlineCounterReadOnly(readOnly) {
+    if (!inlineCounterInput) {
+      return;
+    }
+    if (readOnly) {
+      inlineCounterInput.setAttribute('readonly', 'readonly');
+    } else {
+      inlineCounterInput.removeAttribute('readonly');
+    }
+  }
+
+  function formatUnixSeconds(epochSeconds) {
+    if (typeof epochSeconds !== 'number' || !isFinite(epochSeconds)) {
+      return 'unknown';
+    }
+    try {
+      return new Date(epochSeconds * 1000).toISOString();
+    } catch (error) {
+      return String(epochSeconds);
+    }
+  }
+
+  function currentUnixSeconds() {
+    return Math.floor(Date.now() / 1000);
+  }
+
   function applyReplayInlineSample(selectedKey) {
     if (!inlineVectors.length) {
       return;
@@ -743,14 +835,14 @@
     var vector = resolveInlineVector(selectedKey);
     if (!vector) {
       pendingReplayInlineResult();
+      activeReplayInlineCredentialName = null;
       return;
     }
-    setValue(replayInlineCredentialNameInput, vector.credentialName || 'fido2-inline');
+    activeReplayInlineCredentialName = vector.credentialName || null;
     setValue(replayInlineCredentialIdField, vector.credentialIdBase64Url || '');
     setValue(replayInlinePublicKeyField, vector.publicKeyCoseBase64Url || '');
     setValue(replayInlineRpInput, vector.relyingPartyId || 'example.org');
     setValue(replayInlineOriginInput, vector.origin || 'https://example.org');
-    setValue(replayInlineTypeInput, vector.expectedType || 'webauthn.get');
     setValue(replayInlineAlgorithmInput, vector.algorithm || 'ES256');
     setValue(
         replayInlineCounterInput,
@@ -1213,23 +1305,46 @@
   }
 
   function populateInlineSampleOptions() {
-    populateSelectWithVectors(inlineSampleSelect);
-    populateSelectWithVectors(replayInlineSampleSelect);
+    if (inlineSampleSelect) {
+      if (inlineSampleSelect.options.length <= 1) {
+        populateSelectWithVectors(inlineSampleSelect, 'Select a generator preset');
+      } else {
+        enableSelect(inlineSampleSelect);
+      }
+    }
+    populateSelectWithVectors(replayInlineSampleSelect, 'Select a sample vector');
   }
 
-  function populateSelectWithVectors(select) {
+  function populateSelectWithVectors(select, placeholderLabel) {
     if (!select) {
       return;
     }
     clearSelect(select);
-    addPlaceholderOption(select, 'Select a sample vector');
+    addPlaceholderOption(select, placeholderLabel || 'Select a sample vector');
+    var seenAlgorithms = Object.create(null);
     inlineVectors.forEach(function (vector) {
+      if (!vector || !vector.key) {
+        return;
+      }
+      var algorithm = vector.algorithm || '';
+      if (algorithm && seenAlgorithms[algorithm]) {
+        return;
+      }
+      if (algorithm) {
+        seenAlgorithms[algorithm] = true;
+      }
       var option = documentRef.createElement('option');
       option.value = vector.key;
       option.textContent = vector.label || vector.key;
+      if (vector.algorithm) {
+        option.setAttribute('data-algorithm', vector.algorithm);
+      }
+      if (vector.credentialName) {
+        option.setAttribute('data-credential-name', vector.credentialName);
+      }
       select.appendChild(option);
     });
-    select.disabled = select.options.length <= 1;
+    enableSelect(select);
   }
 
   function addPlaceholderOption(select, label) {
@@ -1245,6 +1360,19 @@
     }
     while (select.options.length > 0) {
       select.remove(0);
+    }
+  }
+
+  function enableSelect(select) {
+    if (!select) {
+      return;
+    }
+    if (select.options.length <= 1) {
+      select.disabled = true;
+      select.setAttribute('disabled', 'disabled');
+    } else {
+      select.disabled = false;
+      select.removeAttribute('disabled');
     }
   }
 
@@ -1372,12 +1500,26 @@
     if (!storedSeedActions) {
       return;
     }
-    if (shouldShow) {
+    if (typeof shouldShow === 'boolean') {
+      shouldDisplaySeedActions = shouldShow;
+    }
+    var visible = shouldDisplaySeedActions && currentEvaluateMode === MODE_STORED;
+    if (visible) {
       storedSeedActions.removeAttribute('hidden');
       storedSeedActions.setAttribute('aria-hidden', 'false');
+      if (storedSeedButton) {
+        storedSeedButton.removeAttribute('disabled');
+      }
     } else {
       storedSeedActions.setAttribute('hidden', 'hidden');
       storedSeedActions.setAttribute('aria-hidden', 'true');
+      if (storedSeedButton) {
+        storedSeedButton.setAttribute('disabled', 'disabled');
+      }
+      if (storedSeedStatus) {
+        storedSeedStatus.setAttribute('hidden', 'hidden');
+        storedSeedStatus.setAttribute('aria-hidden', 'true');
+      }
     }
   }
 

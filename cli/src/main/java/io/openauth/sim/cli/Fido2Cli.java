@@ -129,7 +129,8 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
               "packed-es256",
               WebAuthnSignatureAlgorithm.ES256,
               fallback.storedCredential(),
-              fallback.request());
+              fallback.request(),
+              null);
       loaded = new LinkedHashMap<>();
       loaded.put(vector.vectorId(), vector);
     }

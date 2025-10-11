@@ -1,7 +1,7 @@
 # Feature 023 – Task Checklist
 
 _Status: Complete_
-_Last updated: 2025-10-09_
+_Last updated: 2025-10-11_
 
 ## Tasks (≤10 min each)
 - ☑ T2301 – Add failing core unit tests for TOTP generator/validator covering SHA-1/SHA-256/SHA-512, 6/8 digits, time-step conversion, and drift window limits. (_2025-10-08 – RFC 6238 vectors + drift scenarios added; `./gradlew :core:test` red as expected._)
@@ -45,3 +45,7 @@ _Last updated: 2025-10-09_
 - ☑ T2339 – Reposition the TOTP stored replay “Load sample data” control directly beneath the “Stored credential” selector (matching OCRA), adjust Thymeleaf markup/JS/CSS, update Selenium assertions, and rerun `./gradlew :rest-api:test` followed by `./gradlew spotlessApply check`. (_2025-10-09 – Relocated the sample action block into the stored credential column, refreshed shared console CSS, and validated layout parity via `./gradlew :rest-api:test` plus `./gradlew spotlessApply check`._)
 - ☑ T2340 – Add failing application (`TotpSampleApplicationServiceTest`) and REST (`TotpStoredSampleEndpointTest`) cases covering the seeded SHA-512 credential to reproduce the stored replay sample error. (_2025-10-09 – Added `TotpOperatorSampleDataTest` + SHA-512 stored sample assertions; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.TotpStoredSampleEndpointTest.storedSha512SeedSampleReturnsPayload" --tests "io.openauth.sim.rest.ui.TotpOperatorSampleDataTest"` failed prior to the fix, confirming the regression._)
 - ☑ T2341 – Update TOTP seed/sample definitions for SHA-512 to use a compliant secret length, refresh deterministic OTP/timestamp metadata, and rerun `./gradlew spotlessApply check`. (_2025-10-09 – Extended the SHA-512 seed secret to 32 bytes, adjusted stored sample expectations, and re-ran the targeted tests above plus `./gradlew spotlessApply check` to validate the fix._)
+- ☑ T2342 – Add failing Selenium regression verifying the TOTP inline preset spacing matches the HOTP baseline; run `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest.totpInlinePresetSpacingMatchesHotpBaseline"` expecting failure. (_2025-10-11 – Test asserted the inline/replay sections expose `stack-offset-top-lg`; targeted run failed prior to template update as intended._)
+- ☑ T2343 – Apply the shared `stack-offset-top-lg` spacing token to the TOTP evaluate and replay inline sections, then rerun the targeted Selenium suite and `./gradlew spotlessApply check`. (_2025-10-11 – Added Thymeleaf spacing class + Selenium select wait helper, verified via targeted Selenium pass and `./gradlew spotlessApply check`.)_
+- ☑ T2344 – Add failing Selenium regression asserting the TOTP Evaluate tab defaults the mode selector to “Inline parameters,” mirroring HOTP/OCRA/FIDO2 behaviour; execute `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest.totpEvaluateDefaultsToInline"` to capture the red state. (_2025-10-11 – Test added and observed red with stored default in place._)
+- ☑ T2345 – Update TOTP operator console templates/JS so the Evaluate tab selects inline parameters by default; rerun the targeted Selenium suite and `./gradlew spotlessApply check`. (_2025-10-11 – Implemented inline-first default across markup/JS, updated Selenium callers, ran the full class and project checks to confirm green._)

@@ -1,0 +1,8 @@
+title = "OpenAuth Simulator gitleaks configuration"
+
+# Allow synthetic WebAuthn assertion fixtures; payloads are fake test vectors, not secrets.
+[allowlist]
+description = "Synthetic WebAuthn assertion bundles required for emulator fixtures"
+paths = [
+  '''docs/webauthn_assertion_vectors\.json'''
+]

@@ -24,6 +24,7 @@ class WebAuthnEvaluationService {
       Logger.getLogger("io.openauth.sim.rest.webauthn.telemetry");
   private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
   private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
+  private static final String CLIENT_DATA_TYPE_GET = "webauthn.get";
 
   private final WebAuthnAssertionGenerationApplicationService generator;
 
@@ -38,9 +39,7 @@ class WebAuthnEvaluationService {
         requireText(request.credentialId(), "credential_id_required", "Credential ID is required");
     String relyingPartyId = request.relyingPartyId() == null ? "" : request.relyingPartyId().trim();
     String origin = requireText(request.origin(), "origin_required", "Origin is required");
-    String expectedType =
-        requireText(
-            request.expectedType(), "type_required", "Expected client data type is required");
+    String expectedType = resolveClientDataType(request.expectedType());
     byte[] challenge = decode("challenge", request.challenge());
     String privateKey =
         requireText(request.privateKey(), "private_key_required", "Private key is required");
@@ -67,9 +66,7 @@ class WebAuthnEvaluationService {
         requireText(
             request.relyingPartyId(), "relying_party_id_required", "Relying party ID is required");
     String origin = requireText(request.origin(), "origin_required", "Origin is required");
-    String expectedType =
-        requireText(
-            request.expectedType(), "type_required", "Expected client data type is required");
+    String expectedType = resolveClientDataType(request.expectedType());
     WebAuthnSignatureAlgorithm algorithm = parseAlgorithm(request.algorithm());
     long signatureCounter =
         Optional.ofNullable(request.signatureCounter())
@@ -118,6 +115,13 @@ class WebAuthnEvaluationService {
     }
     String normalized = message.toLowerCase(Locale.ROOT);
     if (normalized.contains("private key")) {
+      return "private_key_invalid";
+    }
+    if (normalized.contains("jwk")
+        || normalized.contains("pem")
+        || normalized.contains("pkcs")
+        || normalized.contains("key material")
+        || normalized.contains("missing jwk field")) {
       return "private_key_invalid";
     }
     if (normalized.contains("credential not found")) {
@@ -197,6 +201,17 @@ class WebAuthnEvaluationService {
     } catch (IllegalArgumentException ex) {
       throw validation(field + "_invalid", field + " must be Base64URL encoded");
     }
+  }
+
+  private static String resolveClientDataType(String provided) {
+    if (provided == null || provided.isBlank()) {
+      return CLIENT_DATA_TYPE_GET;
+    }
+    String normalized = provided.trim();
+    if (!CLIENT_DATA_TYPE_GET.equals(normalized)) {
+      throw validation("type_invalid", "Client data type must be webauthn.get");
+    }
+    return normalized;
   }
 
   private static String requireText(String value, String reasonCode, String message) {

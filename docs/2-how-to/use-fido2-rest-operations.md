@@ -1,7 +1,7 @@
 # Operate the FIDO2/WebAuthn REST API
 
 _Status: Draft_  
-_Last updated: 2025-10-10_
+_Last updated: 2025-10-11_
 
 The REST API exposes stored and inline WebAuthn assertion verification plus replay diagnostics and sample data feeds for the operator console. This guide walks through seeding the canonical credentials, validating assertions, replaying submissions, and tapping into the JSON vector catalogue that powers every facade.
 
@@ -26,23 +26,38 @@ OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.res
 ```
 
 ## Seed Canonical Credentials (`POST /api/v1/webauthn/credentials/seed`)
-Seed a curated subset of JSON bundle vectors so stored-mode flows work immediately:
+Seed the curated generator presets (one credential per supported algorithm) so stored-mode flows work immediately:
 ```bash
 curl -s -X POST http://localhost:8080/api/v1/webauthn/credentials/seed | jq
 ```
 Example response:
 ```json
 {
-  "addedCount": 3,
-  "canonicalCount": 5,
+  "addedCount": 6,
+  "canonicalCount": 6,
   "addedCredentialIds": [
-    "packed-es256",
-    "resident-key-es256",
-    "rs256-hsm"
+    "generator-es256",
+    "generator-es384",
+    "generator-es512",
+    "generator-rs256",
+    "generator-ps256",
+    "generator-eddsa"
   ]
 }
 ```
-The action is idempotent—subsequent calls report `addedCount: 0` once every curated credential already exists.
+The action is idempotent—subsequent calls report `addedCount: 0` once every curated credential already exists. Each identifier matches the preset key surfaced by `WebAuthnGeneratorSamples`.
+
+### Generator preset catalogue
+| Preset key | Algorithm | Notes |
+|------------|-----------|-------|
+| `generator-es256` | ES256 | W3C §16 `packed` fixture with compact P-256 JWK private key |
+| `generator-es384` | ES384 | Synthetic JSON vector seeded from `docs/webauthn_assertion_vectors.json` |
+| `generator-es512` | ES512 | Synthetic JSON vector seeded from `docs/webauthn_assertion_vectors.json` |
+| `generator-rs256` | RS256 | Deterministic RSA-2048 JSON vector |
+| `generator-ps256` | PS256 | Deterministic RSA-PSS JSON vector |
+| `generator-eddsa` | Ed25519 | Deterministic Ed25519 JSON vector (`kty":"OKP"`) |
+
+The CLI, REST, and operator console all rely on this catalogue, so preset behaviour stays consistent across facades.
 
 ## Discover Stored Credentials (`GET /api/v1/webauthn/credentials`)
 Fetch sanitized summaries for UI dropdowns or tooling:
@@ -71,7 +86,7 @@ Sample response:
 If persistence is disabled (`openauth.sim.persistence.enable-store=false`) the endpoint returns an empty array.
 
 ## Retrieve Sample Assertion Inputs
-Stored-mode helper:
+Stored-mode helper (replace the preset key to target a different algorithm):
 ```bash
 curl -s http://localhost:8080/api/v1/webauthn/credentials/generator-es256/sample | jq
 ```
@@ -112,7 +127,7 @@ Inline requests provide every credential attribute explicitly. The example below
 curl -s -H "Content-Type: application/json"   -d '{"credentialName":"inline-generator","credentialId":"V2VhQXV0aFNpbUJhc2UuLi4=","relyingPartyId":"example.org","origin":"https://example.org","expectedType":"webauthn.get","algorithm":"ES256","signatureCounter":0,"userVerificationRequired":false,"challenge":"d2ViYXV0aG4taW5saW5lLWNobGctMTIz","privateKey":"<JWK JSON shortened>"}'   http://localhost:8080/api/v1/webauthn/evaluate/inline | jq
 ```
 > Replace `<JWK JSON shortened>` with the desired private key (for example the value returned by `/sample`).
-The response mirrors stored mode aside from `credentialSource`/`credentialReference` reflecting the inline request.
+The response mirrors stored mode aside from `credentialSource`/`credentialReference` reflecting the inline request. If you load preset data from the operator console, the UI now forwards a `credentialName` field that matches the generator preset label (for example `"ES256 generator preset"`).
 
 ### Quick inline payload helper
 Convert JSON vectors to inline request bodies while sourcing the accompanying private key from the generator presets:
@@ -162,6 +177,6 @@ Replay responses include `match` (`true`/`false`), `credentialSource` (`stored` 
 - Stored requests emit `event=rest.fido2.evaluate` with `status=generated`, the sanitized telemetry id, `credentialReference`, `relyingPartyId`, `algorithm`, and `userVerificationRequired`. Inline requests emit the same event but omit credential references.
 - Replay requests emit `event=rest.fido2.replay` and surface `match`, `credentialSource`, and `reason` fields (`mismatch`, `signature_invalid`, etc.).
 - HTTP 422 responses always include a `telemetryId` for correlation plus a `reasonCode` such as `credential_not_found`, `origin_mismatch`, `signature_counter_regressed`, or `invalid_payload`. HTTP 500 responses strip secret material and default to `reasonCode=webauthn_evaluation_failed` / `webauthn_replay_failed`.
-- Need fresh payloads? Call `/api/v1/webauthn/credentials/{credentialId}/sample` after seeding, or read from `docs/webauthn_assertion_vectors.json` if you want inline-only vectors that are not part of the curated seed set.
+- Need fresh payloads? Call `/api/v1/webauthn/credentials/{credentialId}/sample` after seeding (swap `{credentialId}` with any generator preset key), or read from `docs/webauthn_assertion_vectors.json` if you want inline-only vectors that are not part of the curated seed set.
 
 Tie this REST workflow with the CLI (`use-fido2-cli-operations.md`) and operator UI (`use-fido2-operator-ui.md`) guides to reproduce the same vectors across every facade.

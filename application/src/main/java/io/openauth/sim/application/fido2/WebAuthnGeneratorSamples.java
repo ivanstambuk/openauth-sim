@@ -2,9 +2,14 @@ package io.openauth.sim.application.fido2;
 
 import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationCommand;
 import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationResult;
+import io.openauth.sim.core.fido2.WebAuthnJsonVectorFixtures;
+import io.openauth.sim.core.fido2.WebAuthnJsonVectorFixtures.WebAuthnJsonVector;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -22,6 +27,15 @@ public final class WebAuthnGeneratorSamples {
   private static final String DEFAULT_ORIGIN = "https://example.org";
   private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
   private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
+
+  private static final List<WebAuthnSignatureAlgorithm> PRESET_ORDER =
+      List.of(
+          WebAuthnSignatureAlgorithm.ES256,
+          WebAuthnSignatureAlgorithm.ES384,
+          WebAuthnSignatureAlgorithm.ES512,
+          WebAuthnSignatureAlgorithm.RS256,
+          WebAuthnSignatureAlgorithm.PS256,
+          WebAuthnSignatureAlgorithm.EDDSA);
 
   private static final WebAuthnAssertionGenerationApplicationService GENERATOR =
       new WebAuthnAssertionGenerationApplicationService();
@@ -47,27 +61,103 @@ public final class WebAuthnGeneratorSamples {
   }
 
   private static List<Sample> buildSamples() {
-    return List.of(
-        createSample(
-            "generator-es256",
-            "ES256 generator preset",
-            WebAuthnSignatureAlgorithm.ES256,
-            "Z2VuZXJhdG9yLWVzMjU2LWNyZWRlbnRpYWw",
-            "c3RvcmVkLWNoYWxsZW5nZQ",
-            0L,
-            false,
-            """
-            {
-              "kty":"EC",
-              "crv":"P-256",
-              "x":"qdZggyTjMpAsFSTkjMWSwuBQuB3T-w6bDAphr8rHSVk",
-              "y":"cNVi6TQ6udwSbuwQ9JCt0dAxM5LgpenvK6jQPZ2_GTs",
-              "d":"GV7Q6vqPvJNmr1Lu2swyafBOzG9hvrtqs-vronAeZv8"
-            }
-            """));
+    EnumMap<WebAuthnSignatureAlgorithm, WebAuthnJsonVector> byAlgorithm =
+        new EnumMap<>(WebAuthnSignatureAlgorithm.class);
+
+    WebAuthnJsonVectorFixtures.loadAll()
+        .filter(vector -> hasText(vector.privateKeyJwk()))
+        .sorted(Comparator.comparing(WebAuthnJsonVector::vectorId, String.CASE_INSENSITIVE_ORDER))
+        .forEach(vector -> byAlgorithm.putIfAbsent(vector.algorithm(), vector));
+
+    List<Sample> samples = new ArrayList<>();
+    for (WebAuthnSignatureAlgorithm algorithm : PRESET_ORDER) {
+      WebAuthnJsonVector vector = byAlgorithm.get(algorithm);
+      if (vector != null) {
+        samples.add(createSampleFromVector(algorithm, vector));
+      }
+    }
+
+    if (samples.isEmpty()) {
+      samples.add(createLegacySample());
+    }
+
+    return List.copyOf(samples);
   }
 
-  private static Sample createSample(
+  private static Sample createSampleFromVector(
+      WebAuthnSignatureAlgorithm algorithm, WebAuthnJsonVector vector) {
+    String privateKeyJwk =
+        Objects.requireNonNull(vector.privateKeyJwk(), "privateKeyJwk must be present");
+    String presetKey = presetKeyFor(algorithm);
+    String label = algorithm.label() + " generator preset";
+    String relyingPartyId = DEFAULT_RELYING_PARTY;
+    String origin = DEFAULT_ORIGIN;
+    long signatureCounter = vector.storedCredential().signatureCounter();
+    boolean userVerificationRequired = vector.storedCredential().userVerificationRequired();
+
+    GenerationResult result =
+        GENERATOR.generate(
+            new GenerationCommand.Inline(
+                label,
+                vector.storedCredential().credentialId(),
+                algorithm,
+                relyingPartyId,
+                origin,
+                vector.assertionRequest().expectedType(),
+                signatureCounter,
+                userVerificationRequired,
+                vector.assertionRequest().expectedChallenge(),
+                privateKeyJwk));
+
+    Map<String, String> metadata =
+        Map.ofEntries(
+            Map.entry("presetKey", presetKey),
+            Map.entry("algorithm", algorithm.label()),
+            Map.entry("source", "generator-sample"),
+            Map.entry("vectorId", vector.vectorId()),
+            Map.entry("vectorRpId", vector.storedCredential().relyingPartyId()),
+            Map.entry("vectorOrigin", vector.assertionRequest().origin()));
+
+    return new Sample(
+        presetKey,
+        label,
+        algorithm,
+        relyingPartyId,
+        origin,
+        vector.assertionRequest().expectedType(),
+        result.credentialId(),
+        result.challenge(),
+        result.signatureCounter(),
+        result.userVerificationRequired(),
+        privateKeyJwk,
+        result.publicKeyCose(),
+        result.clientDataJson(),
+        result.authenticatorData(),
+        result.signature(),
+        metadata);
+  }
+
+  private static Sample createLegacySample() {
+    return createSampleFromInputs(
+        "generator-es256",
+        "ES256 generator preset",
+        WebAuthnSignatureAlgorithm.ES256,
+        "Z2VuZXJhdG9yLWVzMjU2LWNyZWRlbnRpYWw",
+        "c3RvcmVkLWNoYWxsZW5nZQ",
+        0L,
+        false,
+        """
+        {
+          "kty":"EC",
+          "crv":"P-256",
+          "x":"qdZggyTjMpAsFSTkjMWSwuBQuB3T-w6bDAphr8rHSVk",
+          "y":"cNVi6TQ6udwSbuwQ9JCt0dAxM5LgpenvK6jQPZ2_GTs",
+          "d":"GV7Q6vqPvJNmr1Lu2swyafBOzG9hvrtqs-vronAeZv8"
+        }
+        """);
+  }
+
+  private static Sample createSampleFromInputs(
       String key,
       String label,
       WebAuthnSignatureAlgorithm algorithm,
@@ -188,5 +278,13 @@ public final class WebAuthnGeneratorSamples {
 
   private static String encode(byte[] value) {
     return URL_ENCODER.encodeToString(value);
+  }
+
+  private static String presetKeyFor(WebAuthnSignatureAlgorithm algorithm) {
+    return "generator-" + algorithm.label().toLowerCase(Locale.US);
+  }
+
+  private static boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 }

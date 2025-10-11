@@ -3,12 +3,10 @@ package io.openauth.sim.rest.ui;
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples;
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples.Sample;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /** Shared sample data for the FIDO2/WebAuthn operator console. */
 public final class Fido2OperatorSampleData {
@@ -32,17 +30,13 @@ public final class Fido2OperatorSampleData {
   }
 
   private static List<InlineVector> buildInlineVectors(List<Sample> samples) {
-    return samples.stream()
-        .sorted(
-            Comparator.comparing((Sample sample) -> sample.algorithm().name())
-                .thenComparing(Sample::key))
-        .map(Fido2OperatorSampleData::toInlineVector)
-        .collect(Collectors.toUnmodifiableList());
+    return List.copyOf(samples.stream().map(Fido2OperatorSampleData::toInlineVector).toList());
   }
 
   private static InlineVector toInlineVector(Sample sample) {
     return new InlineVector(
         sample.key(),
+        sample.label(),
         sample.label(),
         sample.relyingPartyId(),
         sample.origin(),
@@ -65,7 +59,7 @@ public final class Fido2OperatorSampleData {
   }
 
   private static List<SeedDefinition> buildSeedDefinitions(List<Sample> samples) {
-    return samples.stream().map(Fido2OperatorSampleData::toSeedDefinition).toList();
+    return List.copyOf(samples.stream().map(Fido2OperatorSampleData::toSeedDefinition).toList());
   }
 
   private static SeedDefinition toSeedDefinition(Sample sample) {
@@ -93,6 +87,16 @@ public final class Fido2OperatorSampleData {
     result.put("label", Objects.requireNonNull(label, "label"));
     result.put("notes", Objects.requireNonNull(notes, "notes"));
     if (sample != null) {
+      Map<String, String> sampleMetadata = sample.metadata();
+      if (sampleMetadata != null && !sampleMetadata.isEmpty()) {
+        for (Map.Entry<String, String> entry : sampleMetadata.entrySet()) {
+          String metadataKey = entry.getKey();
+          String metadataValue = entry.getValue();
+          if (metadataKey != null && metadataValue != null && !metadataValue.isBlank()) {
+            result.put(metadataKey, metadataValue);
+          }
+        }
+      }
       result.put("algorithm", sample.algorithm().label());
       result.put("userVerificationRequired", Boolean.toString(sample.userVerificationRequired()));
       result.put("source", "generator-preset");
@@ -135,6 +139,7 @@ public final class Fido2OperatorSampleData {
   public record InlineVector(
       String key,
       String label,
+      String credentialName,
       String relyingPartyId,
       String origin,
       String expectedType,
@@ -153,6 +158,7 @@ public final class Fido2OperatorSampleData {
     public InlineVector {
       key = Objects.requireNonNull(key, "key");
       label = Objects.requireNonNull(label, "label");
+      credentialName = Objects.requireNonNull(credentialName, "credentialName");
       relyingPartyId = Objects.requireNonNull(relyingPartyId, "relyingPartyId");
       origin = Objects.requireNonNull(origin, "origin");
       expectedType = Objects.requireNonNull(expectedType, "expectedType");
@@ -174,7 +180,21 @@ public final class Fido2OperatorSampleData {
 
   static {
     List<Sample> samples = WebAuthnGeneratorSamples.samples();
-    INLINE_VECTORS = buildInlineVectors(samples);
-    SEED_DEFINITIONS = buildSeedDefinitions(samples);
+    List<Sample> curatedSamples = curateByAlgorithm(samples);
+    INLINE_VECTORS = buildInlineVectors(curatedSamples);
+    SEED_DEFINITIONS = buildSeedDefinitions(curatedSamples);
+  }
+
+  private static List<Sample> curateByAlgorithm(List<Sample> samples) {
+    if (samples.isEmpty()) {
+      return List.of();
+    }
+    Map<WebAuthnSignatureAlgorithm, Sample> byAlgorithm = new LinkedHashMap<>();
+    for (Sample sample : samples) {
+      if (sample != null) {
+        byAlgorithm.putIfAbsent(sample.algorithm(), sample);
+      }
+    }
+    return List.copyOf(byAlgorithm.values());
   }
 }

@@ -134,6 +134,11 @@ final class TotpOperatorUiSeleniumTest {
     navigateToTotpPanel();
 
     WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
+    waitUntilAttribute(modeToggle, "data-mode", "inline");
+
+    WebElement storedToggle =
+        driver.findElement(By.cssSelector("[data-testid='totp-mode-select-stored']"));
+    storedToggle.click();
     waitUntilAttribute(modeToggle, "data-mode", "stored");
 
     WebElement storedLabel =
@@ -172,6 +177,19 @@ final class TotpOperatorUiSeleniumTest {
     WebElement reasonCode =
         resultPanel.findElement(By.cssSelector("[data-testid='totp-result-reason-code']"));
     assertEquals("validated", reasonCode.getText().trim());
+  }
+
+  @Test
+  @DisplayName("TOTP evaluate tab defaults to inline parameters mode")
+  void totpEvaluateDefaultsToInline() {
+    navigateToTotpPanel();
+
+    WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
+    waitUntilAttribute(modeToggle, "data-mode", "inline");
+
+    WebElement inlineToggle =
+        driver.findElement(By.cssSelector("[data-testid='totp-mode-select-inline']"));
+    assertTrue(inlineToggle.isSelected(), "Inline mode toggle should be selected by default");
   }
 
   @Test
@@ -297,6 +315,25 @@ final class TotpOperatorUiSeleniumTest {
 
     WebElement inlineSection = inlinePanel.findElement(By.tagName("form"));
     assertEquals("totp-inline-form", inlineSection.getAttribute("data-testid"));
+  }
+
+  @Test
+  @DisplayName("TOTP inline preset spacing matches HOTP baseline")
+  void totpInlinePresetSpacingMatchesHotpBaseline() {
+    navigateToTotpPanel();
+
+    WebElement evaluateInlineSection = waitFor(By.cssSelector("[data-testid='totp-inline-panel']"));
+    assertTrue(
+        hasCssClass(evaluateInlineSection, "stack-offset-top-lg"),
+        "TOTP evaluate inline section should reuse the shared spacing token");
+
+    switchToReplayTab();
+
+    WebElement replayInlineSection =
+        waitFor(By.cssSelector("[data-testid='totp-replay-inline-section']"));
+    assertTrue(
+        hasCssClass(replayInlineSection, "stack-offset-top-lg"),
+        "TOTP replay inline section should reuse the shared spacing token");
   }
 
   @Test
@@ -502,10 +539,13 @@ final class TotpOperatorUiSeleniumTest {
         driver.findElement(By.cssSelector("label[for='totpReplayStoredCredentialId']"));
     assertEquals("Stored credential", credentialLabel.getText().trim());
 
-    WebElement replaySelectElement = driver.findElement(By.id("totpReplayStoredCredentialId"));
+    By replaySelectLocator = By.id("totpReplayStoredCredentialId");
+    waitUntilSelectValue(replaySelectLocator, "");
     assertEquals(
         "",
-        new Select(replaySelectElement).getFirstSelectedOption().getAttribute("value"),
+        new Select(driver.findElement(replaySelectLocator))
+            .getFirstSelectedOption()
+            .getAttribute("value"),
         "Stored replay credential dropdown should default to placeholder option");
     selectOption("totpReplayStoredCredentialId", STORED_CREDENTIAL_ID);
 
@@ -770,6 +810,33 @@ final class TotpOperatorUiSeleniumTest {
                 return false;
               }
             });
+  }
+
+  private void waitUntilSelectValue(By locator, String expectedValue) {
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            driver1 -> {
+              try {
+                Select select = new Select(driver1.findElement(locator));
+                WebElement option = select.getFirstSelectedOption();
+                return option != null && expectedValue.equals(option.getAttribute("value"));
+              } catch (StaleElementReferenceException ex) {
+                return false;
+              }
+            });
+  }
+
+  private boolean hasCssClass(WebElement element, String className) {
+    String classAttribute = element.getAttribute("class");
+    if (classAttribute == null || classAttribute.isBlank()) {
+      return false;
+    }
+    for (String candidate : classAttribute.split("\\s+")) {
+      if (className.equals(candidate)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void selectOption(String selectId, String value) {

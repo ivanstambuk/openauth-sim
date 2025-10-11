@@ -484,6 +484,10 @@ fieldset {
   gap: var(--ocra-spacing-md);
 }
 
+.field-grid--two-column {
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+
 .field-grid label {
   display: block;
   font-weight: 600;

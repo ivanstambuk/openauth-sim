@@ -1,7 +1,7 @@
 # Feature 024 – FIDO2/WebAuthn Operator Support
 
 _Status: In Progress_  
-_Last updated: 2025-10-10_
+_Last updated: 2025-10-11_
 
 ## Overview
 Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across the simulator. The feature introduces a core verification engine, persistence descriptors, application services, CLI commands, REST endpoints, and operator console panels that mirror the existing HOTP and OCRA evaluate/replay experiences. Work begins by validating canonical W3C WebAuthn Level 3 §16 authentication vectors, then expands immediately to cover the synthetic JSON assertion bundle committed under `docs/webauthn_assertion_vectors.json`.
@@ -11,9 +11,11 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 - 2025-10-09 – Support both stored-credential and inline assertion evaluations plus a replay-only diagnostics flow from day one (user selected Option A).
 - 2025-10-09 – Begin with W3C §16 authentication vectors as the authoritative baseline, then immediately follow with coverage for the synthetic JSONL bundle so both sources are exercised in CI (user direction “start with B then immediately A”).
 - 2025-10-09 – “Seed sample credentials” should load a curated subset of stored credentials—one representative entry per targeted algorithm/flag combination—rather than the entire catalog (user selected Option A).
+- 2025-10-11 – “Seed sample credentials” remains a stored-only affordance; hide or disable it whenever inline-only parameter panels are active to avoid confusing operators (bugfix directive).
 - 2025-10-09 – “Load a sample vector” buttons on evaluate and replay panels should pull from entries in `docs/webauthn_assertion_vectors.json`, pre-populating request/response payloads (user selected Option A).
 - 2025-10-09 – When surfacing sample key material in the UI, prefer JWK representations over PEM/PKCS#8 to keep output compact (user instruction).
-- 2025-10-09 – The JSON vector bundle stores base64 payloads as 16-character segments so gitleaks remains green; ingestion helpers must join the segments before invoking verifiers (maintainer note).
+- 2025-10-11 – JSON vector bundles now keep base64 payloads as single-line strings and rely on a repository-level `.gitleaks.toml` allowlist for the fixture files; the data is synthetic test-only material, not real secrets, so the exemption does not weaken leak detection (maintainer note).
+- 2025-10-11 – `key_material` entries expose a `keyPairJwk` object (renamed from `publicKeyJwk`) that carries both public and private JWK components (`d`/factor fields where applicable) so generator flows can surface algorithm-specific private material without relying on PEM fixtures (maintainer note).
 - 2025-10-09 – W3C §16.1.6 authentication fixtures live under `docs/webauthn_w3c_vectors/packed-es256.properties` with base64url payloads for attestation and assertion data (worklog note).
 - 2025-10-10 – CLI/REST/UI how-to guides live under `docs/2-how-to/use-fido2-*.md`, capturing the JSON vector workflow, JWK guidance, and curated operator preset behaviour chosen in Option A.
 - 2025-10-10 – Keep the full JSON vector catalogue exposed through CLI (`--vector-id`, `vectors`) and REST sample payloads for reproducibility, while trimming operator UI presets to a curated representative subset (user selected Option A).
@@ -23,6 +25,12 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 - 2025-10-10 – CLI `fido2 evaluate` stored/inline commands transition to assertion generation outputs (Option A); verification flows continue under Replay.
 - 2025-10-10 – Operator UI Evaluate result card presents a structured `PublicKeyCredential` JSON payload (with copy/download helpers) in place of the prior status-only telemetry block (Option A).
 - 2025-10-10 – `Fido2OperatorSampleData` presets surface ES256 JWK private keys exclusively when pre-filling generator forms (Option A); PEM/PKCS#8 conversions remain a manual step documented in how-to guides.
+- 2025-10-11 – Synthetic JSON vectors now include JWK private keys for every supported algorithm (ES256/384/512, RS256, PS256, Ed25519); generator presets across CLI/REST/UI must ingest these so operators can produce assertions without manual key entry.
+- 2025-10-11 – Inline signature counter field defaults to the current Unix seconds value, with a checked toggle labeled “Use current Unix seconds” that keeps the field read-only until operators uncheck it; a “Reset to now” helper button reapplies the latest epoch-second snapshot.
+- 2025-10-11 – Inline and stored generator panels render the relying party ID and origin inputs on the same row to reduce vertical scrolling while keeping individual labels visible.
+- 2025-10-11 – FIDO2 Evaluate tab must default to inline parameters mode (stored selectable afterward) so the authenticator generator aligns with HOTP/TOTP/OCRA defaults (defect report; Option A selected).
+- 2025-10-11 – Inline generator parse failures must surface the `private_key_invalid` reason so CLI/REST/UI error handling stays aligned across facades (bugfix directive).
+- 2025-10-11 – Inline Credential ID text areas must default to a single-line height while remaining resizable multi-line controls so long values can still expand without crowding the panel.
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -36,6 +44,7 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 | FWS-007 | Validate W3C §16 authentication vectors end-to-end (core, CLI, REST, UI presets) before enabling the synthetic JSONL bundle, ensuring the generator can reproduce known assertions when supplied with the canonical private keys. | Dedicated tests ingest converted W3C vectors (hex → Base64url) and assert generation + verification success/failure as documented. |
 | FWS-008 | Extend test coverage to include the JSONL bundle immediately after W3C vectors pass, ensuring every algorithm/flag combination verifies successfully. | CI suite iterates over JSONL entries, seeding/clearing MapDB as needed; failures identify specific vector IDs. |
 | FWS-009 | Surface sample key material in JWK form throughout UI presets and documentation, avoiding PEM displays. | UI and doc snapshots show JWK output; tests assert absence of PEM markers. |
+| FWS-010 | Display curated algorithm labels on the inline preset dropdown so operators can quickly spot the signature suite in use. | Selenium coverage asserts visible option text includes the algorithm label per curated preset order. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Acceptance Signal |

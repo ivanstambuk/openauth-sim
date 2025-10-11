@@ -7,11 +7,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -83,6 +83,7 @@ public final class WebAuthnJsonVectorFixtures {
         "required".equalsIgnoreCase(String.valueOf(request.get("userVerification")));
 
     WebAuthnSignatureAlgorithm algorithm = resolveAlgorithm(keyMaterial.get("algorithm"));
+    String privateKeyJwk = parsePrivateKeyJwk(keyMaterial.get("keyPairJwk"));
 
     WebAuthnStoredCredential storedCredential =
         new WebAuthnStoredCredential(
@@ -103,7 +104,8 @@ public final class WebAuthnJsonVectorFixtures {
             signature,
             expectedType);
 
-    return new WebAuthnJsonVector(vectorId, algorithm, storedCredential, assertionRequest);
+    return new WebAuthnJsonVector(
+        vectorId, algorithm, storedCredential, assertionRequest, privateKeyJwk);
   }
 
   private static WebAuthnSignatureAlgorithm resolveAlgorithm(Object value) {
@@ -181,15 +183,11 @@ public final class WebAuthnJsonVectorFixtures {
     if (value == null) {
       return new byte[0];
     }
-    String encoded;
     if (value instanceof String str) {
-      encoded = str;
-    } else if (value instanceof List<?> list) {
-      encoded = list.stream().map(Object::toString).collect(Collectors.joining());
-    } else {
-      throw new IllegalStateException(context + " must be a base64url string or string array");
+      return decodeBase64Url(str, context);
     }
-    return decodeBase64Url(encoded, context);
+    throw new IllegalStateException(
+        context + " must be a base64url string (see .gitleaks allowlist documentation)");
   }
 
   private static byte[] decodeBase64Url(String encoded, String context) {
@@ -201,6 +199,66 @@ public final class WebAuthnJsonVectorFixtures {
     } catch (IllegalArgumentException iae) {
       throw new IllegalStateException(context + " contains invalid base64url data", iae);
     }
+  }
+
+  private static String parsePrivateKeyJwk(Object value) {
+    if (value == null) {
+      return null;
+    }
+    Map<String, Object> jwkObject = asObject(value, "key_material.keyPairJwk");
+    return toCanonicalJson(jwkObject);
+  }
+
+  private static String toCanonicalJson(Map<String, Object> object) {
+    StringBuilder builder = new StringBuilder();
+    builder.append('{');
+    List<String> keys = new ArrayList<>(object.keySet());
+    Collections.sort(keys);
+    for (int index = 0; index < keys.size(); index++) {
+      if (index > 0) {
+        builder.append(',');
+      }
+      String key = keys.get(index);
+      builder.append('"').append(escapeJson(key)).append('"').append(':');
+      Object fieldValue = object.get(key);
+      if (fieldValue == null) {
+        builder.append("null");
+      } else if (fieldValue instanceof String str) {
+        builder.append('"').append(escapeJson(str)).append('"');
+      } else if (fieldValue instanceof Map<?, ?> nested) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> nestedMap = (Map<String, Object>) nested;
+        builder.append(toCanonicalJson(nestedMap));
+      } else {
+        builder.append('"').append(escapeJson(String.valueOf(fieldValue))).append('"');
+      }
+    }
+    builder.append('}');
+    return builder.toString();
+  }
+
+  private static String escapeJson(String input) {
+    StringBuilder builder = new StringBuilder(input.length() + 16);
+    for (int i = 0; i < input.length(); i++) {
+      char ch = input.charAt(i);
+      switch (ch) {
+        case '"' -> builder.append("\\\"");
+        case '\\' -> builder.append("\\\\");
+        case '\b' -> builder.append("\\b");
+        case '\f' -> builder.append("\\f");
+        case '\n' -> builder.append("\\n");
+        case '\r' -> builder.append("\\r");
+        case '\t' -> builder.append("\\t");
+        default -> {
+          if (ch < 0x20) {
+            builder.append(String.format("\\u%04x", (int) ch));
+          } else {
+            builder.append(ch);
+          }
+        }
+      }
+    }
+    return builder.toString();
   }
 
   private static String objectDescription(Map<String, Object> object, String key) {
@@ -429,7 +487,8 @@ public final class WebAuthnJsonVectorFixtures {
       String vectorId,
       WebAuthnSignatureAlgorithm algorithm,
       WebAuthnStoredCredential storedCredential,
-      WebAuthnAssertionRequest assertionRequest) {
+      WebAuthnAssertionRequest assertionRequest,
+      String privateKeyJwk) {
     // Marker type for parsed JSON vectors.
   }
 }

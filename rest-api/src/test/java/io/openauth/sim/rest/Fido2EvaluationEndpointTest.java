@@ -165,11 +165,9 @@ class Fido2EvaluationEndpointTest {
                     .content(
                         """
                         {
-                          \"credentialName\": \"inline-demo\",
                           \"credentialId\": \"%s\",
                           \"relyingPartyId\": \"%s\",
                           \"origin\": \"%s\",
-                          \"expectedType\": \"%s\",
                           \"algorithm\": \"ES256\",
                           \"signatureCounter\": 0,
                           \"userVerificationRequired\": false,
@@ -181,7 +179,6 @@ class Fido2EvaluationEndpointTest {
                                 encode(credentialId),
                                 RELYING_PARTY_ID,
                                 ORIGIN,
-                                EXPECTED_TYPE,
                                 encode(challenge),
                                 jsonEscape(PRIVATE_KEY_JWK))))
             .andExpect(status().isOk())

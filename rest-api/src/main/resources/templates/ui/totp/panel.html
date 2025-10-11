@@ -60,7 +60,7 @@
               <fieldset
                   class="mode-toggle"
                   data-testid="totp-mode-toggle"
-                  data-mode="stored"
+                  data-mode="inline"
                 >
                 <legend>Choose evaluation mode</legend>
                 <div class="mode-option">
@@ -71,6 +71,7 @@
                     value="inline"
                     data-testid="totp-mode-select-inline"
                     aria-describedby="totpModeInlineHint"
+                    checked="checked"
                   />
                   <label for="totpModeInline">Inline parameters</label>
                   <p id="totpModeInlineHint" class="hint">
@@ -86,7 +87,6 @@
                     value="stored"
                     data-testid="totp-mode-select-stored"
                     aria-describedby="totpModeStoredHint"
-                    checked="checked"
                   />
                   <label for="totpModeStored">Stored credential</label>
                   <p id="totpModeStoredHint" class="hint">
@@ -238,7 +238,7 @@
               </section>
 
               <section
-                  class="stack-md"
+                  class="stack-md stack-offset-top-lg"
                   data-mode-section="inline"
                   data-testid="totp-inline-panel"
                   aria-label="Inline TOTP evaluation form"
@@ -695,7 +695,7 @@
               </section>
 
               <section
-                  class="stack-md"
+                  class="stack-md stack-offset-top-lg"
                   data-replay-section="inline"
                   data-testid="totp-replay-inline-section"
                   aria-label="Inline TOTP replay form"

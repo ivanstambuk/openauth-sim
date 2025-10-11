@@ -114,7 +114,7 @@
                       id="fido2-inline-vectors"
                       th:utext="${fido2InlineVectorsJson}"
                     ></script>
-                  <div class="field-grid">
+                  <div class="field-grid field-grid--two-column">
                     <div class="field-group">
                       <label for="fido2InlineRpId">Relying party ID</label>
                       <input
@@ -135,33 +135,14 @@
                           autocomplete="off"
                         />
                     </div>
-                    <div class="field-group">
-                      <label for="fido2InlineType">Client data type</label>
-                      <input
-                          id="fido2InlineType"
-                          name="expectedType"
-                          type="text"
-                          value="webauthn.get"
-                        />
-                    </div>
                   </div>
                   <div class="field-grid">
-                    <div class="field-group">
-                      <label for="fido2InlineCredentialName">Credential name</label>
-                      <input
-                          id="fido2InlineCredentialName"
-                          name="credentialName"
-                          type="text"
-                          value="fido2-inline"
-                          autocomplete="off"
-                        />
-                    </div>
                     <div class="field-group">
                       <label for="fido2InlineCredentialId">Credential ID (Base64URL)</label>
                       <textarea
                           id="fido2InlineCredentialId"
                           name="credentialId"
-                          rows="3"
+                          rows="1"
                           spellcheck="false"
                         ></textarea>
                     </div>
@@ -182,7 +163,7 @@
                     </div>
                   </div>
                   <div class="field-grid">
-                    <div class="field-group">
+                    <div class="field-group" data-testid="fido2-inline-counter-group">
                       <label for="fido2InlineCounter">Signature counter</label>
                       <input
                           id="fido2InlineCounter"
@@ -190,8 +171,31 @@
                           type="number"
                           min="0"
                           step="1"
-                          value="0"
+                          value=""
+                          readonly="readonly"
+                          data-testid="fido2-inline-counter-input"
                         />
+                      <div class="field-group field-group--checkbox">
+                        <input
+                            type="checkbox"
+                            id="fido2InlineCounterAuto"
+                            checked="checked"
+                            data-testid="fido2-inline-counter-toggle"
+                          />
+                        <label for="fido2InlineCounterAuto">Use current Unix seconds</label>
+                      </div>
+                      <p class="hint" data-testid="fido2-inline-counter-hint">
+                        Last autofill: awaiting snapshot.
+                      </p>
+                      <div class="button-row">
+                        <button
+                            type="button"
+                            class="button-secondary"
+                            data-testid="fido2-inline-counter-reset"
+                          >
+                          Reset to now
+                        </button>
+                      </div>
                     </div>
                     <div class="field-group field-group--checkbox">
                       <input
@@ -224,24 +228,25 @@
                       Provide the authenticator's private key in JWK (recommended) or PEM/PKCS#8 form.
                     </p>
                   </div>
-                  <div class="stack-sm">
-                    <div class="field-group">
-                      <label for="fido2InlineSampleSelect">Sample vector</label>
-                      <select
-                          id="fido2InlineSampleSelect"
-                          data-testid="fido2-inline-sample-select"
-                          disabled="disabled"
-                        >
-                        <option value="">Select a sample vector</option>
-                      </select>
-                    </div>
-                    <button
-                        type="button"
-                        class="button-secondary"
-                        data-testid="fido2-inline-load-sample"
+                  <div class="inline-preset" data-testid="fido2-inline-preset">
+                    <label for="fido2InlineSampleSelect">Load a generator preset</label>
+                    <select
+                        id="fido2InlineSampleSelect"
+                        data-testid="fido2-inline-sample-select"
+                        disabled="disabled"
                       >
-                      Load sample vector
-                    </button>
+                      <option value="">Select a preset</option>
+                      <th:block th:each="vector : ${fido2InlineVectors}">
+                        <option
+                            th:value="${vector.key()}"
+                            th:text="${vector.label()}"
+                            th:attr="data-algorithm=${vector.algorithm()},data-credential-name=${vector.credentialName()}">
+                        </option>
+                      </th:block>
+                    </select>
+                    <p class="hint">
+                      Select an algorithm preset to auto-fill reproducible inline generator data.
+                    </p>
                   </div>
                   <div class="button-row">
                     <button
@@ -307,19 +312,19 @@
                       Prefill the challenge and authenticator private key for the selected credential.
                     </p>
                   </div>
-                  <div class="field-grid">
-                    <div class="field-group">
-                      <label for="fido2StoredCredentialId">Stored credential</label>
-                      <select
-                          id="fido2StoredCredentialId"
-                          name="credentialId"
-                          required="required"
-                          disabled="disabled"
-                          data-testid="fido2-stored-credential-select"
-                        >
-                        <option value="">Select a stored credential</option>
-                      </select>
-                    </div>
+                  <div class="field-group">
+                    <label for="fido2StoredCredentialId">Stored credential</label>
+                    <select
+                        id="fido2StoredCredentialId"
+                        name="credentialId"
+                        required="required"
+                        disabled="disabled"
+                        data-testid="fido2-stored-credential-select"
+                      >
+                      <option value="">Select a stored credential</option>
+                    </select>
+                  </div>
+                  <div class="field-grid field-grid--two-column">
                     <div class="field-group">
                       <label for="fido2StoredRpId">Relying party ID</label>
                       <input
@@ -342,15 +347,6 @@
                     </div>
                   </div>
                   <div class="field-grid">
-                    <div class="field-group">
-                      <label for="fido2StoredType">Client data type</label>
-                      <input
-                          id="fido2StoredType"
-                          name="expectedType"
-                          type="text"
-                          value="webauthn.get"
-                        />
-                    </div>
                     <div class="field-group">
                       <label for="fido2StoredChallenge">Challenge (Base64URL)</label>
                       <textarea
@@ -524,24 +520,13 @@
                   >
                   <input type="hidden" name="_csrf" th:value="${csrfToken}" />
                   <input id="fido2ReplayRpId" type="hidden" name="relyingPartyId" />
-                  <input id="fido2ReplayType" type="hidden" name="expectedType" value="webauthn.get" />
                   <div class="field-grid">
-                    <div class="field-group">
-                      <label for="fido2ReplayInlineCredentialName">Credential name</label>
-                      <input
-                          id="fido2ReplayInlineCredentialName"
-                          name="credentialName"
-                          type="text"
-                          value="fido2-inline-replay"
-                          autocomplete="off"
-                        />
-                    </div>
                     <div class="field-group">
                       <label for="fido2ReplayInlineCredentialId">Credential ID (Base64URL)</label>
                       <textarea
                           id="fido2ReplayInlineCredentialId"
                           name="credentialId"
-                          rows="3"
+                          rows="1"
                           spellcheck="false"
                         ></textarea>
                     </div>
@@ -555,7 +540,7 @@
                         ></textarea>
                     </div>
                   </div>
-                  <div class="field-grid">
+                  <div class="field-grid field-grid--two-column">
                     <div class="field-group">
                       <label for="fido2ReplayInlineRpId">Relying party ID</label>
                       <input
@@ -574,15 +559,6 @@
                           type="text"
                           value="https://example.org"
                           autocomplete="off"
-                        />
-                    </div>
-                    <div class="field-group">
-                      <label for="fido2ReplayInlineType">Client data type</label>
-                      <input
-                          id="fido2ReplayInlineType"
-                          name="expectedType"
-                          type="text"
-                          value="webauthn.get"
                         />
                     </div>
                   </div>
@@ -635,24 +611,18 @@
                       hidden="hidden"
                     ></textarea>
                   <textarea id="fido2ReplayInlineSignature" name="signature" hidden="hidden"></textarea>
-                  <div class="stack-sm">
-                    <div class="field-group">
-                      <label for="fido2ReplayInlineSampleSelect">Sample vector</label>
-                      <select
-                          id="fido2ReplayInlineSampleSelect"
-                          data-testid="fido2-replay-inline-sample-select"
-                          disabled="disabled"
-                        >
-                        <option value="">Select a sample vector</option>
-                      </select>
-                    </div>
-                    <button
-                        type="button"
-                        class="button-secondary"
-                        data-testid="fido2-replay-inline-load-sample"
+                  <div class="inline-preset" data-testid="fido2-replay-inline-preset">
+                    <label for="fido2ReplayInlineSampleSelect">Load a sample vector</label>
+                    <select
+                        id="fido2ReplayInlineSampleSelect"
+                        data-testid="fido2-replay-inline-sample-select"
+                        disabled="disabled"
                       >
-                      Load sample vector
-                    </button>
+                      <option value="">Select a sample</option>
+                    </select>
+                    <p class="hint">
+                      Presets auto-fill inline replay inputs with curated assertion payloads for diagnostics.
+                    </p>
                   </div>
                   <div class="button-row">
                     <button

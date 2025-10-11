@@ -1,7 +1,7 @@
 # Architecture Knowledge Map
 
 _Status: Draft_
-_Last updated: 2025-10-10_
+_Last updated: 2025-10-11_
 
 This living map captures the explicit relationships between modules, data flows, and external interfaces so future agents can reason about change impact quickly. Update it after every iteration that introduces or modifies a component, dependency, or contract.
 
@@ -30,7 +30,7 @@ This living map captures the explicit relationships between modules, data flows,
 - Application module now provides `WebAuthnGeneratorSamples`, delivering deterministic presets (challenge + authenticator private-key JWKs) that the CLI, REST API, and operator console share when generating WebAuthn assertions.
 - CLI module now provides `Fido2Cli` with stored/inline evaluate and replay commands that delegate to the new application services, reuse sanitized telemetry fields, and avoid printing challenges, client data, or signatures to the console.
 - REST API module now offers `/api/v1/webauthn/evaluate`, `/evaluate/inline`, and `/replay` endpoints via `WebAuthnEvaluationController`/`WebAuthnReplayController`, marshalling requests into the application services and returning sanitized metadata (telemetry IDs, relying-party info) without exposing raw challenges, client data, or signatures.
-- Operator console WebAuthn presets now load curated generator samples (one per supported algorithm) that pre-fill challenge and private-key inputs, while CLI and REST facades expose the full catalogue for QA reproducibility.
+- Operator console WebAuthn presets now load curated generator samples (one per supported algorithm) sourced from `WebAuthnGeneratorSamples`; `Fido2OperatorSampleData` deduplicates by algorithm, emits preset metadata (including vector ids), and supplies telemetry-friendly `credentialName` hints while CLI/REST facades still expose the full catalogue for QA reproducibility.
 - Docs under `docs/2-how-to/use-fido2-*.md` capture the CLI, REST, and operator UI workflows, including guidance on JWK key material and JSON vector handling.
 - REST API module now exposes `/api/v1/totp/evaluate` endpoints for stored and inline validation, logging `rest.totp.evaluate` telemetry while leaving secrets redacted.
 - REST API module now exposes `/api/v1/totp/replay`, delegating to `TotpReplayApplicationService`, returning non-mutating diagnostics, and emitting `rest.totp.replay` telemetry with matched skew metadata.

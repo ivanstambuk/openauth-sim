@@ -18,6 +18,8 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
+import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.interfaces.RSAPublicKey;
 import java.security.spec.ECField;
 import java.security.spec.ECFieldFp;
 import java.security.spec.ECGenParameterSpec;
@@ -27,7 +29,13 @@ import java.security.spec.ECPrivateKeySpec;
 import java.security.spec.ECPublicKeySpec;
 import java.security.spec.EllipticCurve;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.PSSParameterSpec;
+import java.security.spec.RSAPrivateCrtKeySpec;
+import java.security.spec.RSAPrivateKeySpec;
+import java.security.spec.RSAPublicKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -46,6 +54,9 @@ public final class WebAuthnAssertionGenerationApplicationService {
 
   private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
   private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
+  private static final byte[] ED25519_PRIVATE_KEY_PREFIX =
+      hexToBytes("302e020100300506032b657004220420");
+  private static final byte[] ED25519_PUBLIC_KEY_PREFIX = hexToBytes("302a300506032b6570032100");
 
   private final CredentialStore credentialStore;
   private final WebAuthnCredentialPersistenceAdapter persistenceAdapter;
@@ -223,6 +234,10 @@ public final class WebAuthnAssertionGenerationApplicationService {
 
     Signature signature = signatureFor(algorithm);
     signature.initSign(privateKey);
+    if (algorithm == WebAuthnSignatureAlgorithm.PS256) {
+      signature.setParameter(
+          new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1));
+    }
     signature.update(signedPayload);
     return signature.sign();
   }
@@ -276,8 +291,8 @@ public final class WebAuthnAssertionGenerationApplicationService {
 
     return switch (algorithm) {
       case ES256, ES384, ES512 -> parseEcJwk(kty, fields, algorithm);
-      case RS256, PS256 -> parseRsaJwk(kty, fields);
-      case EDDSA -> parseEdDsaJwk(kty, fields);
+      case RS256, PS256 -> parseRsaJwk(kty, fields, algorithm);
+      case EDDSA -> parseEdDsaJwk(kty, fields, algorithm);
     };
   }
 
@@ -336,21 +351,75 @@ public final class WebAuthnAssertionGenerationApplicationService {
         privateKey, publicKey, encodeEcPublicKey((ECPublicKey) publicKey, algorithm));
   }
 
-  private static KeyMaterial parseRsaJwk(String kty, Map<String, String> fields)
+  private static KeyMaterial parseRsaJwk(
+      String kty, Map<String, String> fields, WebAuthnSignatureAlgorithm algorithm)
       throws GeneralSecurityException {
-    throw new IllegalArgumentException("RSA JWK private keys are not supported yet");
+    if (!"RSA".equalsIgnoreCase(kty)) {
+      throw new IllegalArgumentException(
+          "Expected RSA key type for algorithm " + algorithm.label());
+    }
+
+    BigInteger modulus = decodeUnsignedBigInteger(fields, "n");
+    BigInteger publicExponent = decodeUnsignedBigInteger(fields, "e");
+    BigInteger privateExponent = decodeUnsignedBigInteger(fields, "d");
+
+    KeyFactory factory = KeyFactory.getInstance("RSA");
+
+    PrivateKey privateKey;
+    if (fields.containsKey("p")
+        && fields.containsKey("q")
+        && fields.containsKey("dp")
+        && fields.containsKey("dq")
+        && fields.containsKey("qi")) {
+      BigInteger p = decodeUnsignedBigInteger(fields, "p");
+      BigInteger q = decodeUnsignedBigInteger(fields, "q");
+      BigInteger dp = decodeUnsignedBigInteger(fields, "dp");
+      BigInteger dq = decodeUnsignedBigInteger(fields, "dq");
+      BigInteger qi = decodeUnsignedBigInteger(fields, "qi");
+      privateKey =
+          factory.generatePrivate(
+              new RSAPrivateCrtKeySpec(modulus, publicExponent, privateExponent, p, q, dp, dq, qi));
+    } else {
+      privateKey = factory.generatePrivate(new RSAPrivateKeySpec(modulus, privateExponent));
+    }
+
+    PublicKey publicKey = factory.generatePublic(new RSAPublicKeySpec(modulus, publicExponent));
+    byte[] cose = encodeRsaPublicKey((RSAPublicKey) publicKey, algorithm);
+    return new KeyMaterial(privateKey, publicKey, cose);
   }
 
-  private static KeyMaterial parseEdDsaJwk(String kty, Map<String, String> fields)
+  private static KeyMaterial parseEdDsaJwk(
+      String kty, Map<String, String> fields, WebAuthnSignatureAlgorithm algorithm)
       throws GeneralSecurityException {
-    throw new IllegalArgumentException("EdDSA JWK private keys are not supported yet");
+    if (!"OKP".equalsIgnoreCase(kty)) {
+      throw new IllegalArgumentException(
+          "Expected OKP key type for algorithm " + algorithm.label());
+    }
+    String curve = require(fields, "crv");
+    if (!"Ed25519".equalsIgnoreCase(curve)) {
+      throw new IllegalArgumentException("Unsupported OKP curve: " + curve);
+    }
+
+    byte[] publicKeyBytes = decodeUrl(fields, "x");
+    byte[] privateKeyBytes = decodeUrl(fields, "d");
+
+    byte[] pkcs8 = encodeEd25519PrivateKey(privateKeyBytes);
+    byte[] x509 = encodeEd25519PublicKey(publicKeyBytes);
+
+    KeyFactory factory = KeyFactory.getInstance("Ed25519");
+    PrivateKey privateKey = factory.generatePrivate(new PKCS8EncodedKeySpec(pkcs8));
+    PublicKey publicKey = factory.generatePublic(new X509EncodedKeySpec(x509));
+
+    byte[] cose = encodeOkpPublicKey(publicKeyBytes, algorithm);
+    return new KeyMaterial(privateKey, publicKey, cose);
   }
 
   private static PublicKey derivePublicKey(
       PrivateKey privateKey, WebAuthnSignatureAlgorithm algorithm) throws GeneralSecurityException {
     return switch (algorithm) {
       case ES256, ES384, ES512 -> deriveEcPublicKey(privateKey, algorithm);
-      case RS256, PS256, EDDSA ->
+      case RS256, PS256 -> deriveRsaPublicKey(privateKey);
+      case EDDSA ->
           throw new GeneralSecurityException(
               "Public key derivation not yet supported for algorithm: " + algorithm.label());
     };
@@ -369,13 +438,22 @@ public final class WebAuthnAssertionGenerationApplicationService {
     return factory.generatePublic(new ECPublicKeySpec(publicPoint, params));
   }
 
+  private static PublicKey deriveRsaPublicKey(PrivateKey privateKey)
+      throws GeneralSecurityException {
+    if (!(privateKey instanceof RSAPrivateCrtKey rsa)) {
+      throw new GeneralSecurityException("Expected RSA CRT private key");
+    }
+    KeyFactory factory = KeyFactory.getInstance("RSA");
+    return factory.generatePublic(new RSAPublicKeySpec(rsa.getModulus(), rsa.getPublicExponent()));
+  }
+
   private static byte[] encodePublicKey(PublicKey publicKey, WebAuthnSignatureAlgorithm algorithm)
       throws GeneralSecurityException {
     if (publicKey instanceof ECPublicKey ec) {
       return encodeEcPublicKey(ec, algorithm);
     }
-    if ("RSA".equalsIgnoreCase(publicKey.getAlgorithm())) {
-      return encodeRsaPublicKey(publicKey);
+    if (publicKey instanceof RSAPublicKey rsa) {
+      return encodeRsaPublicKey(rsa, algorithm);
     }
     throw new GeneralSecurityException(
         "Unsupported public key algorithm: " + publicKey.getAlgorithm());
@@ -404,15 +482,23 @@ public final class WebAuthnAssertionGenerationApplicationService {
     return writer.toByteArray();
   }
 
-  private static byte[] encodeRsaPublicKey(PublicKey publicKey) throws GeneralSecurityException {
-    java.security.interfaces.RSAPublicKey rsa = (java.security.interfaces.RSAPublicKey) publicKey;
+  private static byte[] encodeRsaPublicKey(
+      RSAPublicKey publicKey, WebAuthnSignatureAlgorithm algorithm)
+      throws GeneralSecurityException {
     CborWriter writer = new CborWriter();
     writer.startMap(3);
     writer.writeInt(1, 3); // kty: RSA
-    writer.writeInt(3, -257); // default to RS256; caller may override if PS256
-    writer.writeBytes(-1, toUnsigned(rsa.getModulus(), rsa.getModulus().toByteArray().length));
+    int coseAlg =
+        algorithm == WebAuthnSignatureAlgorithm.PS256
+            ? WebAuthnSignatureAlgorithm.PS256.coseIdentifier()
+            : WebAuthnSignatureAlgorithm.RS256.coseIdentifier();
+    writer.writeInt(3, coseAlg);
     writer.writeBytes(
-        -2, toUnsigned(rsa.getPublicExponent(), rsa.getPublicExponent().toByteArray().length));
+        -1, toUnsigned(publicKey.getModulus(), publicKey.getModulus().toByteArray().length));
+    writer.writeBytes(
+        -2,
+        toUnsigned(
+            publicKey.getPublicExponent(), publicKey.getPublicExponent().toByteArray().length));
     return writer.toByteArray();
   }
 
@@ -432,6 +518,55 @@ public final class WebAuthnAssertionGenerationApplicationService {
         Math.max(0, length - bytes.length),
         Math.min(bytes.length, length));
     return result;
+  }
+
+  private static byte[] encodeEd25519PrivateKey(byte[] privateKey) throws GeneralSecurityException {
+    if (privateKey.length != 32) {
+      throw new GeneralSecurityException("Ed25519 private key must be 32 bytes");
+    }
+    return concat(ED25519_PRIVATE_KEY_PREFIX, privateKey);
+  }
+
+  private static byte[] encodeEd25519PublicKey(byte[] publicKey) throws GeneralSecurityException {
+    if (publicKey.length != 32) {
+      throw new GeneralSecurityException("Ed25519 public key must be 32 bytes");
+    }
+    return concat(ED25519_PUBLIC_KEY_PREFIX, publicKey);
+  }
+
+  private static byte[] encodeOkpPublicKey(byte[] publicKey, WebAuthnSignatureAlgorithm algorithm)
+      throws GeneralSecurityException {
+    if (algorithm != WebAuthnSignatureAlgorithm.EDDSA) {
+      throw new GeneralSecurityException(
+          "Unsupported OKP algorithm for COSE encoding: " + algorithm.label());
+    }
+    CborWriter writer = new CborWriter();
+    writer.startMap(4);
+    writer.writeInt(1, 1); // kty: OKP
+    writer.writeInt(3, algorithm.coseIdentifier());
+    writer.writeInt(-1, 6); // crv: Ed25519
+    writer.writeBytes(-2, publicKey);
+    return writer.toByteArray();
+  }
+
+  private static byte[] concat(byte[] prefix, byte[] value) {
+    byte[] data = new byte[prefix.length + value.length];
+    System.arraycopy(prefix, 0, data, 0, prefix.length);
+    System.arraycopy(value, 0, data, prefix.length, value.length);
+    return data;
+  }
+
+  private static byte[] hexToBytes(String hex) {
+    int length = hex.length();
+    if (length % 2 != 0) {
+      throw new IllegalArgumentException("Hex string must have even length");
+    }
+    byte[] bytes = new byte[length / 2];
+    for (int i = 0; i < bytes.length; i++) {
+      int index = i * 2;
+      bytes[i] = (byte) Integer.parseInt(hex.substring(index, index + 2), 16);
+    }
+    return bytes;
   }
 
   private static int coordinateLength(WebAuthnSignatureAlgorithm algorithm) {
@@ -480,6 +615,10 @@ public final class WebAuthnAssertionGenerationApplicationService {
   private static byte[] decodeUrl(Map<String, String> fields, String key) {
     String value = require(fields, key);
     return URL_DECODER.decode(value);
+  }
+
+  private static BigInteger decodeUnsignedBigInteger(Map<String, String> fields, String key) {
+    return new BigInteger(1, decodeUrl(fields, key));
   }
 
   private static ECParameterSpec ecParametersFor(String curve) throws GeneralSecurityException {

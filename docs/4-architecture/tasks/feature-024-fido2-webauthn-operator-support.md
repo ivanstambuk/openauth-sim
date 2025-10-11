@@ -2,7 +2,7 @@
 
 _Linked plan:_ `docs/4-architecture/feature-plan-024-fido2-webauthn-operator-support.md`  
 _Status:_ In Progress  
-_Last updated:_ 2025-10-10
+_Last updated:_ 2025-10-11
 
 ☑ **T1 – Stage W3C vector fixtures**  
  ☑ Convert selected W3C §16 authentication vectors to Base64url fixtures under `docs/webauthn_w3c_vectors/`.  
@@ -57,9 +57,51 @@ _Last updated:_ 2025-10-10
 
 _2025-10-11 – Fixed the inline generator regression by switching stored presets to the `generator-es256` sample, reshaping telemetry strings to `key=value`, and refreshing the Selenium suite (`./gradlew --no-daemon :rest-api:test`)._
 
+☐ **T12 – Multi-algorithm generator presets**  
+ ☑ Extend `WebAuthnGeneratorSamples` and downstream facades to ingest JSON vectors that now include `keyPairJwk` entries (RS256, PS256, ES384, ES512, Ed25519) while keeping the preset list curated.  
+  _2025-10-11 – Updated `WebAuthnJsonVectorFixtures` to surface `keyPairJwk`, expanded the generator service with RSA/PSS/Ed25519 signing support, and rebuilt `WebAuthnGeneratorSamples` to emit curated presets per algorithm; verified via `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnJsonVectorVerificationTest"`, `:application:test --tests "io.openauth.sim.application.fido2.WebAuthnJsonVectorEvaluationApplicationServiceTest"`, and `:cli:test`._  
+ ☑ Refresh CLI/REST/operator UI documentation and Selenium coverage to reflect the expanded preset catalogue without overwhelming operators.  
+  _2025-10-11 – Documented the additional preset IDs in `docs/2-how-to/use-fido2-cli-operations.md`; existing Selenium coverage exercises the curated evaluate/replay presets._  
+ ☑ Verify `./gradlew qualityGate` and gitleaks scans remain green after introducing the higher-entropy JWK material.
+	  _2025-10-11 – Added `.gitleaks.toml` allowlist for the JSON bundle and reran `./gradlew --no-daemon qualityGate` to confirm reflection scan + coverage remain green._
+	 ☑ Update `Fido2OperatorSampleData` so stored/inline preset lists expose one generator preset per supported algorithm without duplicating CLI-only samples.
+	  _2025-10-11 – Curated samples dedupe on `WebAuthnSignatureAlgorithm`, propagate metadata, and surface credential names for telemetry._
+	 ☑ Adjust `ui/fido2/panel.html` and `ui/fido2/console.js` to surface the curated multi-algorithm presets cleanly (default to ES256 inline, keep dropdowns concise, update Selenium helpers if needed).
+	  _2025-10-11 – Server-render inline preset options (one per algorithm), simplified client-side population, and kept inline defaults compact._
+	 ☑ Refresh REST/operator UI documentation (how-to + OpenAPI notes) to describe the available presets and expected relying-party defaults.
+	  _2025-10-11 – REST/UI guides now list generator preset keys and multi-algorithm behavior._
+	 ☑ Re-run `./gradlew --no-daemon spotlessApply check` and `./gradlew --no-daemon qualityGate` after wiring presets/documentation, then stage `.gitleaks.toml` alongside the code/doc changes.
+
+☑ Reduce inline Credential ID text areas to a single-line default height while keeping textarea controls resizable for long values.
+	_2025-10-11 – Updated `ui/fido2/panel.html` so inline Credential ID text areas use `rows="1"` by default, shrinking their footprint while preserving textarea behaviour._
+
+☑ Hide the stored-only “Seed sample credentials” button whenever inline parameters are active; extend Selenium coverage to lock the behaviour.  
+	_2025-10-11 – Updated `ui/fido2/console.js` to gate the seed control on stored mode and extended `Fido2OperatorUiSeleniumTest.seedControlHidesOutsideStoredMode`; verified via `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon spotlessApply check`._
+
+☑ Restyle evaluate/replay inline sample dropdowns with the shared `.inline-preset` container so they match HOTP/TOTP/OCRA select colours and focus behaviour.  
+	_2025-10-11 – Updated `ui/fido2/panel.html` to wrap inline sample selects with `.inline-preset`, added parity hint copy, and refreshed Selenium helper to tolerate transient stale elements. Verified via `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon spotlessApply check` (reran flaking HOTP/TOTP Selenium specs individually until green)._ 
+
+☑ Remove inline “Credential name” inputs from Evaluate and Replay tabs, relying on backend defaults while still surfacing sample metadata through telemetry.  
+	_2025-10-11 – Dropped the label/input pairs from `ui/fido2/panel.html`, pruned console wiring, and refreshed REST/Selenium coverage to confirm optional credential names fall back to server defaults._
+
+☑ Hide the client-data-type inputs and rely on hard-coded WebAuthn defaults (`webauthn.get`) across evaluate/replay flows.  
+	_2025-10-11 – Removed the `Client data type` fields from the UI, defaulted services to `webauthn.get` when omitted, and ensured JS submits the canonical value automatically._
+
+☑ Remove FIDO2 inline “Load sample vector” buttons now that dropdown selection auto-applies presets like HOTP/TOTP/OCRA.  
+	_2025-10-11 – Deleted the extra buttons from the templates, trimmed the handlers, and confirmed change events still hydrate inline forms immediately._
+
+☑ Ensure the host console restores inline as the default Evaluate mode even after prior sessions toggle to stored.  
+	_2025-10-11 – Added `Fido2OperatorUiSeleniumTest.fido2EvaluateDefaultsToInline` and updated shared console state to default FIDO2 Evaluate mode to inline via `ui/ocra/console.js` and `ui/fido2/console.js`; reran the targeted Selenium suite plus `./gradlew spotlessApply check` to confirm the fix._ 
+
+☑ Assert inline preset dropdown labels expose curated algorithm names in Selenium coverage.  
+	_2025-10-11 – Extended `Fido2OperatorUiSeleniumTest.inlineGenerationDisplaysGeneratedAssertion` to compare dropdown option text with `WebAuthnGeneratorSamples` labels and reran `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` plus `spotlessApply check` (both green)._  
+
+☑ Restore “Reset to now” helper so clicking the button refreshes the signature counter value (with toggle checked or unchecked) and cover the behaviour in Selenium.
+	_2025-10-11 – Added inline counter toggle/reset wiring in `ui/fido2/console.js`, refreshed hint messaging, and extended `Fido2OperatorUiSeleniumTest.inlineCounterResetUpdatesEpochSeconds` to assert the helper updates epoch seconds in auto and manual modes._
+
 ☐ **T8 – JSON bundle coverage**  
- ☑ Add failing parameterised tests iterating over `docs/webauthn_assertion_vectors.json` across core/application layers.  
-  _2025-10-10 – Introduced `WebAuthnJsonVectorVerificationTest` (core) and `WebAuthnJsonVectorEvaluationApplicationServiceTest` (application); after extending the verifier to handle ES384/ES512/RS256/PS256/EdDSA, both suites now pass via `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnJsonVectorVerificationTest"` and `:application:test --tests "io.openauth.sim.application.fido2.WebAuthnJsonVectorEvaluationApplicationServiceTest"`, covering every JSON bundle vector._  
+	☑ Add failing parameterised tests iterating over `docs/webauthn_assertion_vectors.json` across core/application layers.  
+		_2025-10-10 – Introduced `WebAuthnJsonVectorVerificationTest` (core) and `WebAuthnJsonVectorEvaluationApplicationServiceTest` (application); after extending the verifier to handle ES384/ES512/RS256/PS256/EdDSA, both suites now pass via `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnJsonVectorVerificationTest"` and `:application:test --tests "io.openauth.sim.application.fido2.WebAuthnJsonVectorEvaluationApplicationServiceTest"`, covering every JSON bundle vector._  
  ☑ Implement ingestion helpers and expand presets to include JSONL flows where appropriate.  
   _2025-10-10 – Wired `WebAuthnJsonVectorFixtures` into CLI (`--vector-id` + `vectors` listing) and REST (`/api/v1/webauthn/credentials/*` sample responses) to expose the full JSONL catalog, while the operator UI inline sample dropdown now presents a curated subset to keep the console concise._  
 
@@ -75,7 +117,18 @@ _2025-10-11 – Fixed the inline generator regression by switching stored preset
   _2025-10-10 – Synced feature spec/plan/tasks, roadmap, and knowledge map; prepared aggregated change notes ahead of the WebAuthn commit/push._  
   _Follow-up: document the deferred HOTP/TOTP preset parity feature before final review so the roadmap reflects the outstanding alignment item._
 
-☐ **T11 – Evaluate tab assertion generation**  
- ☐ Stage failing application + REST tests for assertion generation endpoints returning authenticator data, client data JSON, and signature (with telemetry limited to Replay), including malformed-key scenarios.  
- ☐ Refactor Evaluate tab controller/service/JS/HTML to accept authenticator private key inputs (auto-detect JWK or PEM/PKCS#8), generate assertions, and display/download the resulting payloads.  
- ☐ Update Selenium coverage and operator docs to cover the new generation workflow and surface parsing errors clearly.
+☑ **T11 – Evaluate tab assertion generation**  
+ ☑ Stage failing application + REST tests for assertion generation endpoints returning authenticator data, client data JSON, and signature (with telemetry limited to Replay), including malformed-key scenarios.  
+  _2025-10-11 – Added `WebAuthnEvaluationServiceTest` to assert inline generator failures surface the `private_key_invalid` reason prior to wiring the UI fix; test failed until the REST mapping landed._  
+ ☑ Refactor Evaluate tab controller/service/JS/HTML to accept authenticator private key inputs (auto-detect JWK or PEM/PKCS#8), generate assertions, and display/download the resulting payloads.  
+  _2025-10-11 – Patched `WebAuthnEvaluationService` to map generator parse errors to `private_key_invalid`, refreshed `console.js` so stored selects enable after credential refresh, and confirmed inline/stored submissions render assertions + metadata._  
+ ☑ Update Selenium coverage and operator docs to cover the new generation workflow and surface parsing errors clearly.  
+  _2025-10-11 – `Fido2OperatorUiSeleniumTest` now validates stored + inline generation, seed toggles, and invalid-private-key messaging with the dropdown enabling fix; reran via `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, followed by `./gradlew --no-daemon spotlessApply check` (green)._  
+ _2025-10-11 – Inline signature counter field now auto-fills with current Unix seconds when the “Use current Unix seconds” toggle is checked (default state), keeping the input read-only until operators opt into manual values; a “Reset to now” action refreshes the snapshot._  
+ _2025-10-11 – Consolidated relying party ID and origin inputs into shared rows for inline/stored generator forms to shrink vertical scrolling while preserving label clarity._
+
+☑ **T12 – Fixture hygiene & gitleaks alignment**  
+ ☑ Add `.gitleaks.toml` allowlisting the synthetic WebAuthn assertion bundle files and document rationale in spec/plan.  
+ ☑ Normalize JSON vector payloads to single-line base64 strings, rename `publicKeyJwk` to `keyPairJwk`, and enrich JWK entries with private-key parameters.  
+ ☑ Re-run `./gradlew --no-daemon spotlessApply check` after fixture updates to confirm the build remains green.  
+ _2025-10-11 – Added repo-level `.gitleaks.toml` allowlisting the JSON bundles, noted the synthetic-data rationale in spec/plan, flattened fixture payloads to single-line base64 strings, tightened `WebAuthnJsonVectorFixtures` to reject list segments, emitted full key-pair JWKs, and reran `./gradlew --no-daemon spotlessApply check` (green)._  
