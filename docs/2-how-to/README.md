@@ -12,5 +12,8 @@ Document deterministic runbooks for common tasks. Published topics:
 8. [Configure MapDB persistence profiles](configure-persistence-profiles.md)
 9. [Benchmark OCRA verification latency](benchmark-ocra-verification.md)
 10. [Embed the Protocol Info surface](embed-protocol-info-surface.md)
+11. [Use the FIDO2/WebAuthn operator UI](use-fido2-operator-ui.md)
+12. [Operate the FIDO2/WebAuthn REST API](use-fido2-rest-operations.md)
+13. [Use the FIDO2/WebAuthn CLI](use-fido2-cli-operations.md)
 
 Each guide should follow the template in `docs/templates/how-to-template.md` (TBD).

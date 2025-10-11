@@ -65,7 +65,23 @@ final class WebAuthnCredentialDirectoryController {
       return ResponseEntity.notFound().build();
     }
 
-    InlineVector vector = Fido2OperatorSampleData.inlineVectors().get(0);
+    String presetKey =
+        definition
+            .get()
+            .metadata()
+            .getOrDefault("presetKey", Fido2OperatorSampleData.inlineVectors().get(0).key());
+    InlineVector vector =
+        Fido2OperatorSampleData.inlineVectors().stream()
+            .filter(candidate -> candidate.key().equals(presetKey))
+            .findFirst()
+            .orElseGet(
+                () ->
+                    Fido2OperatorSampleData.inlineVectors().isEmpty()
+                        ? null
+                        : Fido2OperatorSampleData.inlineVectors().get(0));
+    if (vector == null) {
+      return ResponseEntity.notFound().build();
+    }
     WebAuthnStoredSampleResponse response =
         new WebAuthnStoredSampleResponse(
             definition.get().credentialId(),
@@ -75,9 +91,7 @@ final class WebAuthnCredentialDirectoryController {
             definition.get().algorithm().label(),
             definition.get().userVerificationRequired(),
             vector.expectedChallengeBase64Url(),
-            vector.clientDataBase64Url(),
-            vector.authenticatorDataBase64Url(),
-            vector.signatureBase64Url());
+            definition.get().privateKeyJwk());
     return ResponseEntity.ok(response);
   }
 
@@ -123,10 +137,8 @@ final class WebAuthnCredentialDirectoryController {
       String expectedType,
       String algorithm,
       boolean userVerificationRequired,
-      String expectedChallengeBase64Url,
-      String clientDataBase64Url,
-      String authenticatorDataBase64Url,
-      String signatureBase64Url) {
+      String challenge,
+      String privateKeyJwk) {
     // DTO marker
   }
 }

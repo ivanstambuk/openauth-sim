@@ -26,7 +26,8 @@ public final class WebAuthnFixtures {
     byte[] signature = decode(properties, "assertion.signature");
 
     WebAuthnStoredCredential storedCredential =
-        new WebAuthnStoredCredential("example.org", credentialId, publicKey, 0L, false);
+        new WebAuthnStoredCredential(
+            "example.org", credentialId, publicKey, 0L, false, WebAuthnSignatureAlgorithm.ES256);
 
     WebAuthnAssertionRequest assertionRequest =
         new WebAuthnAssertionRequest(

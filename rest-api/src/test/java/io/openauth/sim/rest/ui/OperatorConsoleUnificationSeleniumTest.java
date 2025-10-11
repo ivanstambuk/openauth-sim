@@ -255,7 +255,12 @@ final class OperatorConsoleUnificationSeleniumTest {
     WebElement fidoPanel = driver.findElement(By.cssSelector("[data-protocol-panel='fido2']"));
     new WebDriverWait(driver, Duration.ofSeconds(3))
         .until(panel -> fidoPanel.getAttribute("hidden") == null);
-    assertThat(fidoPanel.getText()).contains("FIDO2");
+    WebElement fidoEvaluateHeading =
+        fidoPanel.findElement(By.cssSelector("#fido2-evaluate-heading"));
+    assertThat(fidoEvaluateHeading.getText()).contains("Evaluate a WebAuthn assertion");
+    WebElement fidoReplayTab =
+        fidoPanel.findElement(By.cssSelector("[data-testid='fido2-panel-tab-replay']"));
+    assertThat(fidoReplayTab.getText()).containsIgnoringCase("Replay");
 
     eudiOpenidTab.click();
     WebElement eudiOpenidPanel =

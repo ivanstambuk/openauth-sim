@@ -42,7 +42,7 @@ paths:
     post:
       tags:
       - "web-authn-evaluation-controller"
-      summary: "Validate a stored WebAuthn credential"
+      summary: "Generate a WebAuthn assertion using a stored credential"
       operationId: "evaluateStoredWebAuthn"
       requestBody:
         content:
@@ -52,13 +52,13 @@ paths:
         required: true
       responses:
         "200":
-          description: "Assertion accepted"
+          description: "Assertion generated"
           content:
             '*/*':
               schema:
                 $ref: "#/components/schemas/WebAuthnEvaluationResponse"
         "422":
-          description: "Assertion rejected or request invalid"
+          description: "Request invalid"
           content:
             '*/*':
               schema:
@@ -73,7 +73,7 @@ paths:
     post:
       tags:
       - "web-authn-evaluation-controller"
-      summary: "Validate an inline WebAuthn assertion without loading a stored credential"
+      summary: "Generate a WebAuthn assertion without loading a stored credential"
       operationId: "evaluateInlineWebAuthn"
       requestBody:
         content:
@@ -83,13 +83,13 @@ paths:
         required: true
       responses:
         "200":
-          description: "Assertion accepted"
+          description: "Assertion generated"
           content:
             '*/*':
               schema:
                 $ref: "#/components/schemas/WebAuthnEvaluationResponse"
         "422":
-          description: "Assertion rejected or request invalid"
+          description: "Request invalid"
           content:
             '*/*':
               schema:
@@ -232,18 +232,6 @@ paths:
               $ref: "#/components/schemas/OcraVerificationRequest"
         required: true
       responses:
-        "404":
-          description: "Credential not found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "422":
           description: "Verification payload failed validation"
           content:
@@ -264,6 +252,12 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
+        "404":
+          description: "Credential not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "200":
           description: "Verification completed"
           content:
@@ -285,6 +279,12 @@ paths:
                       contextFingerprint: "Base64URL-Hash"
                       telemetryId: "rest-ocra-verify-<uuid>"
                       outcome: "match"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
   /api/v1/ocra/evaluate:
     post:
       tags:
@@ -299,12 +299,6 @@ paths:
               $ref: "#/components/schemas/OcraEvaluationRequest"
         required: true
       responses:
-        "500":
-          description: "Unexpected server error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
         "200":
           description: "Evaluation successful"
           content:
@@ -331,6 +325,12 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
+        "500":
+          description: "Unexpected server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
   /api/v1/ocra/credentials/seed:
     post:
       tags:
@@ -358,18 +358,6 @@ paths:
               $ref: "#/components/schemas/HotpReplayRequest"
         required: true
       responses:
-        "404":
-          description: "Credential not found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
         "400":
           description: "Validation error"
           content:
@@ -382,6 +370,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "404":
+          description: "Credential not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
   /api/v1/hotp/evaluate:
     post:
       tags:
@@ -403,18 +403,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "200":
-          description: "Evaluation completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationResponse"
         "500":
           description: "Unexpected error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
+        "200":
+          description: "Evaluation completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationResponse"
         "400":
           description: "Validation error"
           content:
@@ -436,18 +436,18 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
-        "200":
-          description: "Evaluation completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationResponse"
         "500":
           description: "Unexpected error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
+        "200":
+          description: "Evaluation completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationResponse"
         "400":
           description: "Validation error"
           content:
@@ -650,15 +650,35 @@ components:
       properties:
         credentialId:
           type: "string"
+        credentialName:
+          type: "string"
         relyingPartyId:
           type: "string"
         origin:
           type: "string"
         expectedType:
           type: "string"
+        publicKey:
+          type: "string"
+        signatureCounter:
+          type: "integer"
+          format: "int64"
+        userVerificationRequired:
+          type: "boolean"
+        algorithm:
+          type: "string"
         expectedChallenge:
           type: "string"
         clientData:
+          type: "string"
+        authenticatorData:
+          type: "string"
+        signature:
+          type: "string"
+    WebAuthnAssertionResponse:
+      type: "object"
+      properties:
+        clientDataJSON:
           type: "string"
         authenticatorData:
           type: "string"
@@ -690,12 +710,32 @@ components:
       properties:
         status:
           type: "string"
-        reasonCode:
-          type: "string"
-        valid:
-          type: "boolean"
+        assertion:
+          $ref: "#/components/schemas/WebAuthnGeneratedAssertion"
         metadata:
           $ref: "#/components/schemas/WebAuthnEvaluationMetadata"
+    WebAuthnGeneratedAssertion:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        rawId:
+          type: "string"
+        type:
+          type: "string"
+        response:
+          $ref: "#/components/schemas/WebAuthnAssertionResponse"
+        relyingPartyId:
+          type: "string"
+        origin:
+          type: "string"
+        algorithm:
+          type: "string"
+        userVerificationRequired:
+          type: "boolean"
+        signatureCounter:
+          type: "integer"
+          format: "int64"
     WebAuthnEvaluationErrorResponse:
       type: "object"
       properties:
@@ -724,18 +764,21 @@ components:
           type: "string"
         expectedType:
           type: "string"
-        expectedChallenge:
+        challenge:
           type: "string"
-        clientData:
+        privateKey:
           type: "string"
-        authenticatorData:
-          type: "string"
-        signature:
-          type: "string"
+        signatureCounter:
+          type: "integer"
+          format: "int64"
+        userVerificationRequired:
+          type: "boolean"
     WebAuthnInlineEvaluationRequest:
       type: "object"
       properties:
         credentialName:
+          type: "string"
+        credentialId:
           type: "string"
         relyingPartyId:
           type: "string"
@@ -743,24 +786,16 @@ components:
           type: "string"
         expectedType:
           type: "string"
-        credentialId:
-          type: "string"
-        publicKey:
+        algorithm:
           type: "string"
         signatureCounter:
           type: "integer"
           format: "int64"
         userVerificationRequired:
           type: "boolean"
-        algorithm:
+        challenge:
           type: "string"
-        expectedChallenge:
-          type: "string"
-        clientData:
-          type: "string"
-        authenticatorData:
-          type: "string"
-        signature:
+        privateKey:
           type: "string"
     SeedResponse:
       type: "object"
@@ -1057,6 +1092,15 @@ components:
         counter:
           type: "integer"
           format: "int64"
+    OcraEvaluationResponse:
+      type: "object"
+      properties:
+        suite:
+          type: "string"
+        otp:
+          type: "string"
+        telemetryId:
+          type: "string"
     OcraEvaluationErrorResponse:
       type: "object"
       properties:
@@ -1068,15 +1112,6 @@ components:
           type: "object"
           additionalProperties:
             type: "string"
-    OcraEvaluationResponse:
-      type: "object"
-      properties:
-        suite:
-          type: "string"
-        otp:
-          type: "string"
-        telemetryId:
-          type: "string"
     HotpReplayRequest:
       type: "object"
       properties:
@@ -1238,13 +1273,9 @@ components:
           type: "string"
         userVerificationRequired:
           type: "boolean"
-        expectedChallengeBase64Url:
+        challenge:
           type: "string"
-        clientDataBase64Url:
-          type: "string"
-        authenticatorDataBase64Url:
-          type: "string"
-        signatureBase64Url:
+        privateKeyJwk:
           type: "string"
     TotpCredentialSummary:
       type: "object"

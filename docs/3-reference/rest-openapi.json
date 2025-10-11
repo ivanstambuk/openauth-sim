@@ -61,7 +61,7 @@
     "/api/v1/webauthn/evaluate" : {
       "post" : {
         "tags" : [ "web-authn-evaluation-controller" ],
-        "summary" : "Validate a stored WebAuthn credential",
+        "summary" : "Generate a WebAuthn assertion using a stored credential",
         "operationId" : "evaluateStoredWebAuthn",
         "requestBody" : {
           "content" : {
@@ -75,7 +75,7 @@
         },
         "responses" : {
           "200" : {
-            "description" : "Assertion accepted",
+            "description" : "Assertion generated",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -85,7 +85,7 @@
             }
           },
           "422" : {
-            "description" : "Assertion rejected or request invalid",
+            "description" : "Request invalid",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -110,7 +110,7 @@
     "/api/v1/webauthn/evaluate/inline" : {
       "post" : {
         "tags" : [ "web-authn-evaluation-controller" ],
-        "summary" : "Validate an inline WebAuthn assertion without loading a stored credential",
+        "summary" : "Generate a WebAuthn assertion without loading a stored credential",
         "operationId" : "evaluateInlineWebAuthn",
         "requestBody" : {
           "content" : {
@@ -124,7 +124,7 @@
         },
         "responses" : {
           "200" : {
-            "description" : "Assertion accepted",
+            "description" : "Assertion generated",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -134,7 +134,7 @@
             }
           },
           "422" : {
-            "description" : "Assertion rejected or request invalid",
+            "description" : "Request invalid",
             "content" : {
               "*/*" : {
                 "schema" : {
@@ -356,26 +356,6 @@
           "required" : true
         },
         "responses" : {
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Verification payload failed validation",
             "content" : {
@@ -400,6 +380,16 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
                 }
               }
             }
@@ -432,6 +422,16 @@
                 }
               }
             }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -453,16 +453,6 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected server error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
-                }
-              }
-            }
-          },
           "200" : {
             "description" : "Evaluation successful",
             "content" : {
@@ -497,6 +487,16 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
                 }
               }
             }
@@ -539,26 +539,6 @@
           "required" : true
         },
         "responses" : {
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
           "400" : {
             "description" : "Validation error",
             "content" : {
@@ -575,6 +555,26 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpReplayResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
                 }
               }
             }
@@ -609,22 +609,22 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -659,22 +659,22 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -982,6 +982,9 @@
           "credentialId" : {
             "type" : "string"
           },
+          "credentialName" : {
+            "type" : "string"
+          },
           "relyingPartyId" : {
             "type" : "string"
           },
@@ -991,10 +994,37 @@
           "expectedType" : {
             "type" : "string"
           },
+          "publicKey" : {
+            "type" : "string"
+          },
+          "signatureCounter" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "userVerificationRequired" : {
+            "type" : "boolean"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
           "expectedChallenge" : {
             "type" : "string"
           },
           "clientData" : {
+            "type" : "string"
+          },
+          "authenticatorData" : {
+            "type" : "string"
+          },
+          "signature" : {
+            "type" : "string"
+          }
+        }
+      },
+      "WebAuthnAssertionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "clientDataJSON" : {
             "type" : "string"
           },
           "authenticatorData" : {
@@ -1043,14 +1073,44 @@
           "status" : {
             "type" : "string"
           },
-          "reasonCode" : {
-            "type" : "string"
-          },
-          "valid" : {
-            "type" : "boolean"
+          "assertion" : {
+            "$ref" : "#/components/schemas/WebAuthnGeneratedAssertion"
           },
           "metadata" : {
             "$ref" : "#/components/schemas/WebAuthnEvaluationMetadata"
+          }
+        }
+      },
+      "WebAuthnGeneratedAssertion" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "rawId" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "response" : {
+            "$ref" : "#/components/schemas/WebAuthnAssertionResponse"
+          },
+          "relyingPartyId" : {
+            "type" : "string"
+          },
+          "origin" : {
+            "type" : "string"
+          },
+          "algorithm" : {
+            "type" : "string"
+          },
+          "userVerificationRequired" : {
+            "type" : "boolean"
+          },
+          "signatureCounter" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       },
@@ -1095,17 +1155,18 @@
           "expectedType" : {
             "type" : "string"
           },
-          "expectedChallenge" : {
+          "challenge" : {
             "type" : "string"
           },
-          "clientData" : {
+          "privateKey" : {
             "type" : "string"
           },
-          "authenticatorData" : {
-            "type" : "string"
+          "signatureCounter" : {
+            "type" : "integer",
+            "format" : "int64"
           },
-          "signature" : {
-            "type" : "string"
+          "userVerificationRequired" : {
+            "type" : "boolean"
           }
         }
       },
@@ -1113,6 +1174,9 @@
         "type" : "object",
         "properties" : {
           "credentialName" : {
+            "type" : "string"
+          },
+          "credentialId" : {
             "type" : "string"
           },
           "relyingPartyId" : {
@@ -1124,10 +1188,7 @@
           "expectedType" : {
             "type" : "string"
           },
-          "credentialId" : {
-            "type" : "string"
-          },
-          "publicKey" : {
+          "algorithm" : {
             "type" : "string"
           },
           "signatureCounter" : {
@@ -1137,19 +1198,10 @@
           "userVerificationRequired" : {
             "type" : "boolean"
           },
-          "algorithm" : {
+          "challenge" : {
             "type" : "string"
           },
-          "expectedChallenge" : {
-            "type" : "string"
-          },
-          "clientData" : {
-            "type" : "string"
-          },
-          "authenticatorData" : {
-            "type" : "string"
-          },
-          "signature" : {
+          "privateKey" : {
             "type" : "string"
           }
         }
@@ -1589,6 +1641,20 @@
           }
         }
       },
+      "OcraEvaluationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "suite" : {
+            "type" : "string"
+          },
+          "otp" : {
+            "type" : "string"
+          },
+          "telemetryId" : {
+            "type" : "string"
+          }
+        }
+      },
       "OcraEvaluationErrorResponse" : {
         "type" : "object",
         "properties" : {
@@ -1603,20 +1669,6 @@
             "additionalProperties" : {
               "type" : "string"
             }
-          }
-        }
-      },
-      "OcraEvaluationResponse" : {
-        "type" : "object",
-        "properties" : {
-          "suite" : {
-            "type" : "string"
-          },
-          "otp" : {
-            "type" : "string"
-          },
-          "telemetryId" : {
-            "type" : "string"
           }
         }
       },
@@ -1860,16 +1912,10 @@
           "userVerificationRequired" : {
             "type" : "boolean"
           },
-          "expectedChallengeBase64Url" : {
+          "challenge" : {
             "type" : "string"
           },
-          "clientDataBase64Url" : {
-            "type" : "string"
-          },
-          "authenticatorDataBase64Url" : {
-            "type" : "string"
-          },
-          "signatureBase64Url" : {
+          "privateKeyJwk" : {
             "type" : "string"
           }
         }

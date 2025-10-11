@@ -87,7 +87,8 @@ public final class WebAuthnEvaluationApplicationService {
               command.credentialId(),
               command.publicKeyCose(),
               command.signatureCounter(),
-              command.userVerificationRequired());
+              command.userVerificationRequired(),
+              command.algorithm());
 
       WebAuthnVerificationResult verification =
           verifier.verify(storedCredential, toRequest(command));

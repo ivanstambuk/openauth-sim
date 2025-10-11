@@ -8,12 +8,14 @@ public record WebAuthnStoredCredential(
     byte[] credentialId,
     byte[] publicKeyCose,
     long signatureCounter,
-    boolean userVerificationRequired) {
+    boolean userVerificationRequired,
+    WebAuthnSignatureAlgorithm algorithm) {
 
   public WebAuthnStoredCredential {
     Objects.requireNonNull(relyingPartyId, "relyingPartyId");
     Objects.requireNonNull(credentialId, "credentialId");
     Objects.requireNonNull(publicKeyCose, "publicKeyCose");
+    Objects.requireNonNull(algorithm, "algorithm");
     credentialId = credentialId.clone();
     publicKeyCose = publicKeyCose.clone();
   }

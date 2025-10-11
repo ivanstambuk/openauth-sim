@@ -4,8 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 record WebAuthnEvaluationResponse(
     @JsonProperty("status") String status,
-    @JsonProperty("reasonCode") String reasonCode,
-    @JsonProperty("valid") boolean valid,
+    @JsonProperty("assertion") WebAuthnGeneratedAssertion assertion,
     @JsonProperty("metadata") WebAuthnEvaluationMetadata metadata) {
   // DTO marker
 }

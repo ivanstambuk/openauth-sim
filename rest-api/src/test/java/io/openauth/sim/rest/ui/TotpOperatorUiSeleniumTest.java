@@ -562,20 +562,27 @@ final class TotpOperatorUiSeleniumTest {
     waitUntilAttribute(replayToggle, "data-mode", "stored");
 
     waitUntilOptionsCount(By.id("totpReplayStoredCredentialId"), 2);
-    Select replayCredentialSelect =
-        new Select(driver.findElement(By.id("totpReplayStoredCredentialId")));
-    replayCredentialSelect.selectByValue(STORED_CREDENTIAL_ID);
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(
+            d -> {
+              Select select = new Select(d.findElement(By.id("totpReplayStoredCredentialId")));
+              try {
+                select.selectByValue(STORED_CREDENTIAL_ID);
+                return true;
+              } catch (NullPointerException ex) {
+                return false;
+              }
+            });
 
     WebElement sampleActions =
         waitFor(By.cssSelector("[data-testid='totp-replay-sample-actions']"));
     WebElement sampleButton =
         sampleActions.findElement(By.cssSelector("[data-testid='totp-replay-sample-load']"));
-    WebElement sampleStatus =
-        sampleActions.findElement(By.cssSelector("[data-testid='totp-replay-sample-status']"));
-
     assertEquals("Load sample data", sampleButton.getText().trim());
 
     sampleButton.click();
+
+    WebElement sampleStatus = waitFor(By.cssSelector("[data-testid='totp-replay-sample-status']"));
 
     waitUntilFieldValue(By.id("totpReplayStoredOtp"), EXPECTED_STORED_OTP);
     waitUntilFieldValue(

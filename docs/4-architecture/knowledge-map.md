@@ -1,7 +1,7 @@
 # Architecture Knowledge Map
 
 _Status: Draft_
-_Last updated: 2025-10-08_
+_Last updated: 2025-10-10_
 
 This living map captures the explicit relationships between modules, data flows, and external interfaces so future agents can reason about change impact quickly. Update it after every iteration that introduces or modifies a component, dependency, or contract.
 
@@ -27,8 +27,11 @@ This living map captures the explicit relationships between modules, data flows,
 - Core WebAuthn package now exposes `WebAuthnFixtures`, lifting W3C §16 sample vectors into main scope so application, CLI, REST, and UI layers can share consistent seed/preset data without duplicating decoding logic.
 - Core FIDO2 package now includes a `WebAuthnCredentialPersistenceAdapter` that serialises relying-party metadata, COSE public keys, and counters into MapDB schema v1 so downstream CLI/REST/UI facades can retrieve `WebAuthnCredentialDescriptor` entries alongside HOTP/TOTP/OCRA records.
 - Application module now exposes `WebAuthnEvaluationApplicationService` and `WebAuthnReplayApplicationService`, resolving MapDB-backed descriptors through the persistence adapter, delegating to the core verifier, and emitting sanitized `fido2.evaluate`/`fido2.replay` telemetry ahead of facade wiring.
+- Application module now provides `WebAuthnGeneratorSamples`, delivering deterministic presets (challenge + authenticator private-key JWKs) that the CLI, REST API, and operator console share when generating WebAuthn assertions.
 - CLI module now provides `Fido2Cli` with stored/inline evaluate and replay commands that delegate to the new application services, reuse sanitized telemetry fields, and avoid printing challenges, client data, or signatures to the console.
 - REST API module now offers `/api/v1/webauthn/evaluate`, `/evaluate/inline`, and `/replay` endpoints via `WebAuthnEvaluationController`/`WebAuthnReplayController`, marshalling requests into the application services and returning sanitized metadata (telemetry IDs, relying-party info) without exposing raw challenges, client data, or signatures.
+- Operator console WebAuthn presets now load curated generator samples (one per supported algorithm) that pre-fill challenge and private-key inputs, while CLI and REST facades expose the full catalogue for QA reproducibility.
+- Docs under `docs/2-how-to/use-fido2-*.md` capture the CLI, REST, and operator UI workflows, including guidance on JWK key material and JSON vector handling.
 - REST API module now exposes `/api/v1/totp/evaluate` endpoints for stored and inline validation, logging `rest.totp.evaluate` telemetry while leaving secrets redacted.
 - REST API module now exposes `/api/v1/totp/replay`, delegating to `TotpReplayApplicationService`, returning non-mutating diagnostics, and emitting `rest.totp.replay` telemetry with matched skew metadata.
 - REST API module now exposes `/api/v1/totp/credentials/{credentialId}/sample`, delegating to `TotpSampleApplicationService` to produce deterministic OTP/timestamp payloads and logging `totp.sample` telemetry for operator diagnostics.

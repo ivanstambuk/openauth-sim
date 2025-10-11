@@ -1,9 +1,12 @@
 package io.openauth.sim.cli;
 
+import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService;
+import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationCommand;
+import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationResult;
 import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService;
-import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService.EvaluationCommand;
-import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService.EvaluationResult;
 import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService.TelemetrySignal;
+import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples;
+import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples.Sample;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService.ReplayCommand;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService.ReplayResult;
@@ -11,19 +14,28 @@ import io.openauth.sim.application.telemetry.Fido2TelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.fido2.WebAuthnAssertionVerifier;
 import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
+import io.openauth.sim.core.fido2.WebAuthnFixtures;
+import io.openauth.sim.core.fido2.WebAuthnJsonVectorFixtures;
+import io.openauth.sim.core.fido2.WebAuthnJsonVectorFixtures.WebAuthnJsonVector;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.support.ProjectPaths;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import picocli.CommandLine;
 
 /** CLI facade for WebAuthn assertion verification and replay diagnostics. */
@@ -34,13 +46,21 @@ import picocli.CommandLine;
     subcommands = {
       Fido2Cli.EvaluateStoredCommand.class,
       Fido2Cli.EvaluateInlineCommand.class,
-      Fido2Cli.ReplayStoredCommand.class
+      Fido2Cli.ReplayStoredCommand.class,
+      Fido2Cli.VectorsCommand.class
     })
 public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
   private static final String EVENT_PREFIX = "cli.fido2.";
   private static final String DEFAULT_DATABASE_FILE = "fido2-credentials.db";
+  private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
   private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
+  private static final Map<String, WebAuthnJsonVector> JSON_VECTOR_INDEX = loadVectorIndex();
+  private static final List<WebAuthnJsonVector> JSON_VECTOR_LIST =
+      JSON_VECTOR_INDEX.values().stream()
+          .sorted(Comparator.comparing(WebAuthnJsonVector::vectorId, String.CASE_INSENSITIVE_ORDER))
+          .collect(Collectors.toUnmodifiableList());
+  private static final Map<String, Sample> GENERATOR_SAMPLE_INDEX = loadGeneratorSampleIndex();
 
   private static final Fido2TelemetryAdapter EVALUATION_TELEMETRY =
       new Fido2TelemetryAdapter("fido2.evaluate");
@@ -93,6 +113,36 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     return "cli-fido2-" + UUID.randomUUID();
   }
 
+  private static Map<String, WebAuthnJsonVector> loadVectorIndex() {
+    Map<String, WebAuthnJsonVector> loaded =
+        WebAuthnJsonVectorFixtures.loadAll()
+            .collect(
+                Collectors.toMap(
+                    WebAuthnJsonVector::vectorId,
+                    Function.identity(),
+                    (left, right) -> left,
+                    LinkedHashMap::new));
+    if (loaded.isEmpty()) {
+      WebAuthnFixtures.WebAuthnFixture fallback = WebAuthnFixtures.loadPackedEs256();
+      WebAuthnJsonVector vector =
+          new WebAuthnJsonVector(
+              "packed-es256",
+              WebAuthnSignatureAlgorithm.ES256,
+              fallback.storedCredential(),
+              fallback.request());
+      loaded = new LinkedHashMap<>();
+      loaded.put(vector.vectorId(), vector);
+    }
+    return Map.copyOf(loaded);
+  }
+
+  private static Map<String, Sample> loadGeneratorSampleIndex() {
+    return WebAuthnGeneratorSamples.samples().stream()
+        .collect(
+            Collectors.toMap(
+                Sample::key, Function.identity(), (left, right) -> left, LinkedHashMap::new));
+  }
+
   private static String sanitizeMessage(String message) {
     if (message == null) {
       return "unspecified";
@@ -116,12 +166,230 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     writer.println(builder);
   }
 
+  private Optional<WebAuthnJsonVector> findVector(String vectorId) {
+    if (!hasText(vectorId)) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(JSON_VECTOR_INDEX.get(vectorId));
+  }
+
+  private Optional<Sample> findPreset(String presetId) {
+    if (!hasText(presetId)) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(GENERATOR_SAMPLE_INDEX.get(presetId));
+  }
+
+  private void printVectorSummaries(PrintWriter writer) {
+    if (JSON_VECTOR_LIST.isEmpty()) {
+      writer.println("No JSON bundle vectors available.");
+      return;
+    }
+    writer.println("vectorId\talgorithm\tuvRequired\trelyingPartyId\torigin");
+    JSON_VECTOR_LIST.forEach(
+        vector ->
+            writer.printf(
+                "%s\t%s\t%s\t%s\t%s%n",
+                vector.vectorId(),
+                vector.algorithm().label(),
+                vector.storedCredential().userVerificationRequired(),
+                vector.storedCredential().relyingPartyId(),
+                vector.assertionRequest().origin()));
+  }
+
+  private void applyStoredPresetDefaults(EvaluateStoredCommand command, Sample sample) {
+    if (!hasText(command.credentialId)) {
+      command.credentialId = sample.key();
+    }
+    if (!hasText(command.relyingPartyId)) {
+      command.relyingPartyId = sample.relyingPartyId();
+    }
+    if (!hasText(command.origin)) {
+      command.origin = sample.origin();
+    }
+    if (!hasText(command.expectedType)) {
+      command.expectedType = sample.expectedType();
+    }
+    if (!hasText(command.challenge)) {
+      command.challenge = sample.challengeBase64Url();
+    }
+    if (!hasText(command.privateKey)) {
+      command.privateKey = sample.privateKeyJwk();
+    }
+    if (command.signatureCounter == null) {
+      command.signatureCounter = sample.signatureCounter();
+    }
+    if (command.userVerificationRequired == null) {
+      command.userVerificationRequired = sample.userVerificationRequired();
+    }
+  }
+
+  private void applyInlinePresetDefaults(EvaluateInlineCommand command, Sample sample) {
+    if (!hasText(command.credentialName) || "cli-fido2-inline".equals(command.credentialName)) {
+      command.credentialName = sample.label();
+    }
+    if (!hasText(command.relyingPartyId)) {
+      command.relyingPartyId = sample.relyingPartyId();
+    }
+    if (!hasText(command.origin)) {
+      command.origin = sample.origin();
+    }
+    if (!hasText(command.expectedType)) {
+      command.expectedType = sample.expectedType();
+    }
+    if (!hasText(command.credentialId)) {
+      command.credentialId = sample.credentialIdBase64Url();
+    }
+    if (command.signatureCounter == null) {
+      command.signatureCounter = sample.signatureCounter();
+    }
+    if (command.userVerificationRequired == null) {
+      command.userVerificationRequired = sample.userVerificationRequired();
+    }
+    if (!hasText(command.algorithm)) {
+      command.algorithm = sample.algorithm().label();
+    }
+    if (!hasText(command.challenge)) {
+      command.challenge = sample.challengeBase64Url();
+    }
+    if (!hasText(command.privateKey)) {
+      command.privateKey = sample.privateKeyJwk();
+    }
+  }
+
+  private void applyReplayVectorDefaults(ReplayStoredCommand command, WebAuthnJsonVector vector) {
+    if (!hasText(command.credentialId)) {
+      command.credentialId = vector.vectorId();
+    }
+    if (!hasText(command.relyingPartyId)) {
+      command.relyingPartyId = vector.storedCredential().relyingPartyId();
+    }
+    if (!hasText(command.origin)) {
+      command.origin = vector.assertionRequest().origin();
+    }
+    if (!hasText(command.expectedType)) {
+      command.expectedType = vector.assertionRequest().expectedType();
+    }
+    if (!hasText(command.expectedChallenge)) {
+      command.expectedChallenge = encodeBase64(vector.assertionRequest().expectedChallenge());
+    }
+    if (!hasText(command.clientData)) {
+      command.clientData = encodeBase64(vector.assertionRequest().clientDataJson());
+    }
+    if (!hasText(command.authenticatorData)) {
+      command.authenticatorData = encodeBase64(vector.assertionRequest().authenticatorData());
+    }
+    if (!hasText(command.signature)) {
+      command.signature = encodeBase64(vector.assertionRequest().signature());
+    }
+  }
+
+  private static boolean hasText(String value) {
+    return value != null && !value.trim().isEmpty();
+  }
+
+  private static String encodeBase64(byte[] value) {
+    return URL_ENCODER.encodeToString(value);
+  }
+
+  private static String extractPrivateKey(String inlineValue, Path fileValue) throws IOException {
+    boolean hasInline = hasText(inlineValue);
+    boolean hasFile = fileValue != null;
+    if (hasInline && hasFile) {
+      throw new IllegalArgumentException(
+          "Provide either --private-key or --private-key-file, not both.");
+    }
+    if (hasFile) {
+      String content = Files.readString(fileValue);
+      if (!hasText(content)) {
+        throw new IllegalArgumentException("Private key file is empty: " + fileValue);
+      }
+      return content.trim();
+    }
+    if (hasInline) {
+      return inlineValue.trim();
+    }
+    return null;
+  }
+
+  private static String escapeJson(String value) {
+    if (value == null) {
+      return "";
+    }
+    return value
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r");
+  }
+
+  private static String formatPublicKeyCredentialJson(GenerationResult result) {
+    StringBuilder builder = new StringBuilder();
+    builder.append("{\"id\":\"").append(encodeBase64(result.credentialId())).append("\",");
+    builder.append("\"rawId\":\"").append(encodeBase64(result.credentialId())).append("\",");
+    builder.append("\"type\":\"public-key\",");
+    builder.append("\"response\":{");
+    builder
+        .append("\"clientDataJSON\":\"")
+        .append(encodeBase64(result.clientDataJson()))
+        .append("\",");
+    builder
+        .append("\"authenticatorData\":\"")
+        .append(encodeBase64(result.authenticatorData()))
+        .append("\",");
+    builder.append("\"signature\":\"").append(encodeBase64(result.signature())).append("\"},");
+    builder
+        .append("\"relyingPartyId\":\"")
+        .append(escapeJson(result.relyingPartyId()))
+        .append("\",");
+    builder.append("\"origin\":\"").append(escapeJson(result.origin())).append("\",");
+    builder.append("\"algorithm\":\"").append(result.algorithm().label()).append("\",");
+    builder
+        .append("\"userVerificationRequired\":")
+        .append(result.userVerificationRequired())
+        .append(',');
+    builder.append("\"signatureCounter\":").append(result.signatureCounter()).append('}');
+    return builder.toString();
+  }
+
+  private static Map<String, Object> generatorTelemetryFields(
+      GenerationResult result, String credentialSource) {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("credentialSource", credentialSource);
+    fields.put("credentialReference", result.credentialReference());
+    fields.put("credentialId", encodeBase64(result.credentialId()));
+    fields.put("relyingPartyId", result.relyingPartyId());
+    fields.put("origin", result.origin());
+    fields.put("algorithm", result.algorithm().label());
+    fields.put("userVerificationRequired", result.userVerificationRequired());
+    fields.put("signatureCounter", result.signatureCounter());
+    return fields;
+  }
+
   private CredentialStore openStore() throws Exception {
     return CredentialStoreFactory.openFileStore(databasePath());
   }
 
   private WebAuthnEvaluationApplicationService createEvaluationService(CredentialStore store) {
     return new WebAuthnEvaluationApplicationService(store, verifier, persistenceAdapter);
+  }
+
+  private WebAuthnAssertionGenerationApplicationService createGeneratorService(
+      CredentialStore store) {
+    return new WebAuthnAssertionGenerationApplicationService(store, persistenceAdapter);
+  }
+
+  private WebAuthnAssertionGenerationApplicationService createInlineGeneratorService() {
+    return new WebAuthnAssertionGenerationApplicationService();
+  }
+
+  private int emitGenerationSuccess(GenerationResult result, String credentialSource) {
+    out().println(formatPublicKeyCredentialJson(result));
+    Map<String, Object> fields = generatorTelemetryFields(result, credentialSource);
+    TelemetryFrame frame =
+        EVALUATION_TELEMETRY.status("success", nextTelemetryId(), "generated", true, null, fields);
+    writeFrame(out(), event("evaluate"), frame);
+    return CommandLine.ExitCode.OK;
   }
 
   private int failValidation(
@@ -164,25 +432,6 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     }
   }
 
-  private TelemetryFrame augmentEvaluationFrame(
-      TelemetryFrame frame, EvaluationResult result, boolean credentialReference) {
-    Map<String, Object> merged = new LinkedHashMap<>(frame.fields());
-    merged.put("credentialReference", credentialReference);
-    merged.put("valid", result.valid());
-    if (result.credentialId() != null) {
-      merged.put("credentialId", result.credentialId());
-    }
-    if (result.relyingPartyId() != null) {
-      merged.put("relyingPartyId", result.relyingPartyId());
-    }
-    if (result.algorithm() != null) {
-      merged.put("algorithm", result.algorithm().label());
-    }
-    merged.put("userVerificationRequired", result.userVerificationRequired());
-    result.error().ifPresent(error -> merged.put("error", error.name().toLowerCase(Locale.US)));
-    return new TelemetryFrame(frame.event(), frame.status(), frame.sanitized(), merged);
-  }
-
   private TelemetryFrame augmentReplayFrame(ReplayResult result, TelemetryFrame frame) {
     Map<String, Object> merged = new LinkedHashMap<>(frame.fields());
     merged.put("match", result.match());
@@ -196,136 +445,183 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     return new TelemetryFrame(frame.event(), frame.status(), frame.sanitized(), merged);
   }
 
-  @CommandLine.Command(name = "evaluate", description = "Evaluate a stored WebAuthn credential.")
+  @CommandLine.Command(
+      name = "evaluate",
+      description = "Generate a WebAuthn assertion using a stored credential.")
   static final class EvaluateStoredCommand extends AbstractFido2Command {
 
     @CommandLine.Option(
+        names = "--preset-id",
+        paramLabel = "<preset>",
+        description = "Load default values from a generator preset")
+    String presetId;
+
+    @CommandLine.Option(
         names = "--credential-id",
-        required = true,
+        defaultValue = "",
         paramLabel = "<id>",
         description = "Stored credential identifier")
     String credentialId;
 
     @CommandLine.Option(
         names = "--relying-party-id",
-        required = true,
+        defaultValue = "",
         paramLabel = "<rpId>",
-        description = "Expected relying party identifier")
+        description = "Override relying party identifier (defaults to stored value)")
     String relyingPartyId;
 
     @CommandLine.Option(
         names = "--origin",
-        required = true,
+        defaultValue = "",
         paramLabel = "<origin>",
-        description = "Expected client data origin")
+        description = "Origin to embed in clientDataJSON")
     String origin;
 
     @CommandLine.Option(
         names = "--type",
-        required = true,
+        defaultValue = "",
         paramLabel = "<type>",
-        description = "Expected client data type (e.g., webauthn.get)")
+        description = "Client data type (for example, webauthn.get)")
     String expectedType;
 
     @CommandLine.Option(
-        names = "--expected-challenge",
-        required = true,
+        names = "--challenge",
+        defaultValue = "",
         paramLabel = "<base64url>",
-        description = "Expected challenge in Base64URL form")
-    String expectedChallenge;
+        description = "Challenge to sign in Base64URL form")
+    String challenge;
 
     @CommandLine.Option(
-        names = "--client-data",
-        required = true,
-        paramLabel = "<base64url>",
-        description = "ClientDataJSON payload in Base64URL form")
-    String clientData;
+        names = "--signature-counter",
+        paramLabel = "<counter>",
+        description = "Override signature counter in the generated authenticator data")
+    Long signatureCounter;
 
     @CommandLine.Option(
-        names = "--authenticator-data",
-        required = true,
-        paramLabel = "<base64url>",
-        description = "Authenticator data in Base64URL form")
-    String authenticatorData;
+        names = "--user-verification-required",
+        paramLabel = "<bool>",
+        arity = "0..1",
+        fallbackValue = "true",
+        description = "Override user verification requirement (true/false)")
+    Boolean userVerificationRequired;
 
     @CommandLine.Option(
-        names = "--signature",
-        required = true,
-        paramLabel = "<base64url>",
-        description = "Authenticator signature in Base64URL form")
-    String signature;
+        names = "--private-key",
+        paramLabel = "<jwk-or-pem>",
+        description = "Authenticator private key as JWK (preferred) or PEM/PKCS#8")
+    String privateKey;
+
+    @CommandLine.Option(
+        names = "--private-key-file",
+        paramLabel = "<path>",
+        description = "Path to a file containing the authenticator private key (JWK or PEM/PKCS#8)")
+    Path privateKeyFile;
 
     @Override
     public Integer call() {
-      byte[] challengeBytes;
-      byte[] clientDataBytes;
-      byte[] authenticatorDataBytes;
-      byte[] signatureBytes;
+      Map<String, Object> baseFields = new LinkedHashMap<>();
+      baseFields.put("credentialSource", "stored");
+      baseFields.put("credentialReference", true);
+      if (hasText(presetId)) {
+        baseFields.put("presetId", presetId);
+        Optional<Sample> preset = parent.findPreset(presetId);
+        if (preset.isEmpty()) {
+          return parent.failValidation(
+              event("evaluate"),
+              "preset_not_found",
+              "Unknown generator preset " + presetId,
+              Map.copyOf(baseFields));
+        }
+        parent.applyStoredPresetDefaults(this, preset.get());
+      }
+
+      if (!hasText(credentialId)) {
+        return parent.failValidation(
+            event("evaluate"),
+            "missing_option",
+            "--credential-id is required",
+            Map.copyOf(baseFields));
+      }
+      baseFields.put("credentialId", credentialId);
+      if (!hasText(origin)) {
+        return parent.failValidation(
+            event("evaluate"), "missing_option", "--origin is required", Map.copyOf(baseFields));
+      }
+      if (!hasText(expectedType)) {
+        return parent.failValidation(
+            event("evaluate"), "missing_option", "--type is required", Map.copyOf(baseFields));
+      }
+
+      if (!hasText(challenge)) {
+        return parent.failValidation(
+            event("evaluate"), "missing_option", "--challenge is required", Map.copyOf(baseFields));
+      }
+
+      String resolvedPrivateKey;
       try {
-        challengeBytes = decodeBase64Url("expected-challenge", expectedChallenge);
-        clientDataBytes = decodeBase64Url("client-data", clientData);
-        authenticatorDataBytes = decodeBase64Url("authenticator-data", authenticatorData);
-        signatureBytes = decodeBase64Url("signature", signature);
+        resolvedPrivateKey = extractPrivateKey(privateKey, privateKeyFile);
+      } catch (IllegalArgumentException | IOException ex) {
+        return parent.failValidation(
+            event("evaluate"), "private_key_invalid", ex.getMessage(), Map.copyOf(baseFields));
+      }
+
+      if (!hasText(resolvedPrivateKey)) {
+        return parent.failValidation(
+            event("evaluate"),
+            "private_key_required",
+            "Provide --private-key or --private-key-file",
+            Map.copyOf(baseFields));
+      }
+
+      byte[] challengeBytes;
+      try {
+        challengeBytes = decodeBase64Url("challenge", challenge);
       } catch (IllegalArgumentException ex) {
-        Map<String, Object> fields =
-            Map.of("credentialReference", true, "credentialId", credentialId);
-        return parent.failValidation(event("evaluate"), "invalid_payload", ex.getMessage(), fields);
+        return parent.failValidation(
+            event("evaluate"), "invalid_payload", ex.getMessage(), Map.copyOf(baseFields));
       }
 
       try (CredentialStore store = parent.openStore()) {
-        WebAuthnEvaluationApplicationService service = parent.createEvaluationService(store);
-        EvaluationResult result =
-            service.evaluate(
-                new EvaluationCommand.Stored(
+        WebAuthnAssertionGenerationApplicationService generator =
+            parent.createGeneratorService(store);
+        GenerationResult result =
+            generator.generate(
+                new GenerationCommand.Stored(
                     credentialId,
                     relyingPartyId,
                     origin,
                     expectedType,
                     challengeBytes,
-                    clientDataBytes,
-                    authenticatorDataBytes,
-                    signatureBytes));
-        return handleResult(result);
+                    resolvedPrivateKey,
+                    signatureCounter,
+                    userVerificationRequired));
+        return parent.emitGenerationSuccess(result, "stored");
       } catch (IllegalArgumentException ex) {
-        Map<String, Object> fields =
-            Map.of("credentialReference", true, "credentialId", credentialId);
-        return parent.failValidation(
-            event("evaluate"), "validation_error", ex.getMessage(), fields);
+        String message = ex.getMessage() == null ? "Generation failed" : ex.getMessage();
+        String reason =
+            message.toLowerCase(Locale.US).contains("private key")
+                ? "private_key_invalid"
+                : "generation_failed";
+        return parent.failValidation(event("evaluate"), reason, message, Map.copyOf(baseFields));
       } catch (Exception ex) {
-        Map<String, Object> fields =
-            Map.of("credentialReference", true, "credentialId", credentialId);
         return parent.failUnexpected(
-            event("evaluate"), fields, "Evaluation failed: " + sanitizeMessage(ex.getMessage()));
+            event("evaluate"),
+            Map.copyOf(baseFields),
+            "Generation failed: " + sanitizeMessage(ex.getMessage()));
       }
-    }
-
-    private Integer handleResult(EvaluationResult result) {
-      TelemetrySignal signal = result.telemetry();
-      Map<String, Object> baseFields =
-          Map.of("credentialReference", true, "credentialId", result.credentialId());
-
-      return switch (signal.status()) {
-        case SUCCESS -> {
-          TelemetryFrame frame =
-              parent.augmentEvaluationFrame(
-                  result.evaluationFrame(EVALUATION_TELEMETRY, nextTelemetryId()), result, true);
-          writeFrame(parent.out(), event("evaluate"), frame);
-          yield CommandLine.ExitCode.OK;
-        }
-        case INVALID -> parent.failValidation(event("evaluate"), signal, baseFields);
-        case ERROR ->
-            parent.failUnexpected(
-                event("evaluate"),
-                baseFields,
-                Optional.ofNullable(signal.reason()).orElse("WebAuthn evaluation failed"));
-      };
     }
   }
 
   @CommandLine.Command(
       name = "evaluate-inline",
-      description = "Evaluate an inline WebAuthn assertion without referencing stored credentials.")
+      description = "Generate a WebAuthn assertion using inline credential parameters.")
   static final class EvaluateInlineCommand extends AbstractFido2Command {
+
+    @CommandLine.Option(
+        names = "--preset-id",
+        paramLabel = "<preset>",
+        description = "Load default values from a generator preset")
+    String presetId;
 
     @CommandLine.Option(
         names = "--credential-name",
@@ -336,163 +632,186 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
     @CommandLine.Option(
         names = "--relying-party-id",
-        required = true,
+        defaultValue = "",
         paramLabel = "<rpId>",
-        description = "Expected relying party identifier")
+        description = "Relying party identifier")
     String relyingPartyId;
 
     @CommandLine.Option(
         names = "--origin",
-        required = true,
+        defaultValue = "",
         paramLabel = "<origin>",
-        description = "Expected client data origin")
+        description = "Origin to embed in clientDataJSON")
     String origin;
 
     @CommandLine.Option(
         names = "--type",
-        required = true,
+        defaultValue = "",
         paramLabel = "<type>",
-        description = "Expected client data type (e.g., webauthn.get)")
+        description = "Client data type (for example, webauthn.get)")
     String expectedType;
 
     @CommandLine.Option(
         names = "--credential-id",
-        required = true,
+        defaultValue = "",
         paramLabel = "<base64url>",
         description = "Credential ID in Base64URL form")
     String credentialId;
 
     @CommandLine.Option(
-        names = "--public-key",
-        required = true,
-        paramLabel = "<base64url>",
-        description = "COSE public key in Base64URL form")
-    String publicKey;
-
-    @CommandLine.Option(
         names = "--signature-counter",
-        required = true,
         paramLabel = "<counter>",
-        description = "Stored signature counter value")
-    long signatureCounter;
+        description = "Signature counter value")
+    Long signatureCounter;
 
     @CommandLine.Option(
         names = "--user-verification-required",
         paramLabel = "<bool>",
         arity = "0..1",
         fallbackValue = "true",
-        defaultValue = "false",
         description = "Whether the credential requires user verification (true/false)")
-    boolean userVerificationRequired;
+    Boolean userVerificationRequired;
 
     @CommandLine.Option(
         names = "--algorithm",
-        required = true,
+        defaultValue = "",
         paramLabel = "<name>",
         description = "Signature algorithm label (e.g., ES256, RS256)")
     String algorithm;
 
     @CommandLine.Option(
-        names = "--expected-challenge",
-        required = true,
+        names = "--challenge",
+        defaultValue = "",
         paramLabel = "<base64url>",
-        description = "Expected challenge in Base64URL form")
-    String expectedChallenge;
+        description = "Challenge to sign in Base64URL form")
+    String challenge;
 
     @CommandLine.Option(
-        names = "--client-data",
-        required = true,
-        paramLabel = "<base64url>",
-        description = "ClientDataJSON payload in Base64URL form")
-    String clientData;
+        names = "--private-key",
+        paramLabel = "<jwk-or-pem>",
+        description = "Authenticator private key as JWK (preferred) or PEM/PKCS#8")
+    String privateKey;
 
     @CommandLine.Option(
-        names = "--authenticator-data",
-        required = true,
-        paramLabel = "<base64url>",
-        description = "Authenticator data in Base64URL form")
-    String authenticatorData;
-
-    @CommandLine.Option(
-        names = "--signature",
-        required = true,
-        paramLabel = "<base64url>",
-        description = "Authenticator signature in Base64URL form")
-    String signature;
+        names = "--private-key-file",
+        paramLabel = "<path>",
+        description = "Path to a file containing the authenticator private key (JWK or PEM/PKCS#8)")
+    Path privateKeyFile;
 
     @Override
     public Integer call() {
+      Map<String, Object> baseFields = new LinkedHashMap<>();
+      baseFields.put("credentialSource", "inline");
+      baseFields.put("credentialReference", false);
+
+      if (hasText(presetId)) {
+        baseFields.put("presetId", presetId);
+        Optional<Sample> preset = parent.findPreset(presetId);
+        if (preset.isEmpty()) {
+          return parent.failValidation(
+              event("evaluate"),
+              "preset_not_found",
+              "Unknown generator preset " + presetId,
+              Map.copyOf(baseFields));
+        }
+        parent.applyInlinePresetDefaults(this, preset.get());
+      }
+
+      if (!hasText(relyingPartyId) || !hasText(origin)) {
+        return parent.failValidation(
+            event("evaluate"),
+            "missing_option",
+            "--relying-party-id and --origin are required",
+            Map.copyOf(baseFields));
+      }
+      if (!hasText(expectedType)) {
+        return parent.failValidation(
+            event("evaluate"), "missing_option", "--type is required", Map.copyOf(baseFields));
+      }
+      if (!hasText(credentialId)) {
+        return parent.failValidation(
+            event("evaluate"),
+            "missing_option",
+            "--credential-id is required",
+            Map.copyOf(baseFields));
+      }
+      if (!hasText(algorithm)) {
+        return parent.failValidation(
+            event("evaluate"), "missing_option", "--algorithm is required", Map.copyOf(baseFields));
+      }
+      if (signatureCounter == null) {
+        return parent.failValidation(
+            event("evaluate"),
+            "missing_option",
+            "--signature-counter is required",
+            Map.copyOf(baseFields));
+      }
+      if (!hasText(challenge)) {
+        return parent.failValidation(
+            event("evaluate"), "missing_option", "--challenge is required", Map.copyOf(baseFields));
+      }
+
+      String resolvedPrivateKey;
+      try {
+        resolvedPrivateKey = extractPrivateKey(privateKey, privateKeyFile);
+      } catch (IllegalArgumentException | IOException ex) {
+        return parent.failValidation(
+            event("evaluate"), "private_key_invalid", ex.getMessage(), Map.copyOf(baseFields));
+      }
+
+      if (!hasText(resolvedPrivateKey)) {
+        return parent.failValidation(
+            event("evaluate"),
+            "private_key_required",
+            "Provide --private-key or --private-key-file",
+            Map.copyOf(baseFields));
+      }
+
       byte[] credentialIdBytes;
-      byte[] publicKeyBytes;
       byte[] challengeBytes;
-      byte[] clientDataBytes;
-      byte[] authenticatorDataBytes;
-      byte[] signatureBytes;
       WebAuthnSignatureAlgorithm parsedAlgorithm;
 
       try {
         credentialIdBytes = decodeBase64Url("credential-id", credentialId);
-        publicKeyBytes = decodeBase64Url("public-key", publicKey);
-        challengeBytes = decodeBase64Url("expected-challenge", expectedChallenge);
-        clientDataBytes = decodeBase64Url("client-data", clientData);
-        authenticatorDataBytes = decodeBase64Url("authenticator-data", authenticatorData);
-        signatureBytes = decodeBase64Url("signature", signature);
+        challengeBytes = decodeBase64Url("challenge", challenge);
         parsedAlgorithm = WebAuthnSignatureAlgorithm.fromLabel(algorithm);
       } catch (IllegalArgumentException ex) {
-        Map<String, Object> fields = Map.of("credentialReference", false);
-        return parent.failValidation(event("evaluate"), "invalid_payload", ex.getMessage(), fields);
+        return parent.failValidation(
+            event("evaluate"), "invalid_payload", ex.getMessage(), Map.copyOf(baseFields));
       }
 
-      try (CredentialStore store = parent.openStore()) {
-        WebAuthnEvaluationApplicationService service = parent.createEvaluationService(store);
-        EvaluationResult result =
-            service.evaluate(
-                new EvaluationCommand.Inline(
+      boolean requireUv = userVerificationRequired != null && userVerificationRequired;
+
+      try {
+        WebAuthnAssertionGenerationApplicationService generator =
+            parent.createInlineGeneratorService();
+        GenerationResult result =
+            generator.generate(
+                new GenerationCommand.Inline(
                     credentialName,
+                    credentialIdBytes,
+                    parsedAlgorithm,
                     relyingPartyId,
                     origin,
                     expectedType,
-                    credentialIdBytes,
-                    publicKeyBytes,
                     signatureCounter,
-                    userVerificationRequired,
-                    parsedAlgorithm,
+                    requireUv,
                     challengeBytes,
-                    clientDataBytes,
-                    authenticatorDataBytes,
-                    signatureBytes));
-        return handleResult(result);
+                    resolvedPrivateKey));
+        return parent.emitGenerationSuccess(result, "inline");
       } catch (IllegalArgumentException ex) {
-        Map<String, Object> fields = Map.of("credentialReference", false);
-        return parent.failValidation(
-            event("evaluate"), "validation_error", ex.getMessage(), fields);
+        String message = ex.getMessage() == null ? "Generation failed" : ex.getMessage();
+        String reason =
+            message.toLowerCase(Locale.US).contains("private key")
+                ? "private_key_invalid"
+                : "generation_failed";
+        return parent.failValidation(event("evaluate"), reason, message, Map.copyOf(baseFields));
       } catch (Exception ex) {
-        Map<String, Object> fields = Map.of("credentialReference", false);
         return parent.failUnexpected(
-            event("evaluate"), fields, "Evaluation failed: " + sanitizeMessage(ex.getMessage()));
+            event("evaluate"),
+            Map.copyOf(baseFields),
+            "Generation failed: " + sanitizeMessage(ex.getMessage()));
       }
-    }
-
-    private Integer handleResult(EvaluationResult result) {
-      TelemetrySignal signal = result.telemetry();
-      Map<String, Object> baseFields = new LinkedHashMap<>(signal.fields());
-      baseFields.put("credentialReference", false);
-
-      return switch (signal.status()) {
-        case SUCCESS -> {
-          TelemetryFrame frame =
-              parent.augmentEvaluationFrame(
-                  result.evaluationFrame(EVALUATION_TELEMETRY, nextTelemetryId()), result, false);
-          writeFrame(parent.out(), event("evaluate"), frame);
-          yield CommandLine.ExitCode.OK;
-        }
-        case INVALID -> parent.failValidation(event("evaluate"), signal, baseFields);
-        case ERROR ->
-            parent.failUnexpected(
-                event("evaluate"),
-                Map.of("credentialReference", false),
-                Optional.ofNullable(signal.reason()).orElse("WebAuthn evaluation failed"));
-      };
     }
   }
 
@@ -502,63 +821,104 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
   static final class ReplayStoredCommand extends AbstractFido2Command {
 
     @CommandLine.Option(
+        names = "--vector-id",
+        paramLabel = "<vector>",
+        description = "Load replay payloads from the JSON bundle vector")
+    String vectorId;
+
+    @CommandLine.Option(
         names = "--credential-id",
-        required = true,
+        defaultValue = "",
         paramLabel = "<id>",
         description = "Stored credential identifier")
     String credentialId;
 
     @CommandLine.Option(
         names = "--relying-party-id",
-        required = true,
+        defaultValue = "",
         paramLabel = "<rpId>",
         description = "Expected relying party identifier")
     String relyingPartyId;
 
     @CommandLine.Option(
         names = "--origin",
-        required = true,
+        defaultValue = "",
         paramLabel = "<origin>",
         description = "Expected client data origin")
     String origin;
 
     @CommandLine.Option(
         names = "--type",
-        required = true,
+        defaultValue = "",
         paramLabel = "<type>",
         description = "Expected client data type (e.g., webauthn.get)")
     String expectedType;
 
     @CommandLine.Option(
         names = "--expected-challenge",
-        required = true,
+        defaultValue = "",
         paramLabel = "<base64url>",
         description = "Expected challenge in Base64URL form")
     String expectedChallenge;
 
     @CommandLine.Option(
         names = "--client-data",
-        required = true,
+        defaultValue = "",
         paramLabel = "<base64url>",
         description = "ClientDataJSON payload in Base64URL form")
     String clientData;
 
     @CommandLine.Option(
         names = "--authenticator-data",
-        required = true,
+        defaultValue = "",
         paramLabel = "<base64url>",
         description = "Authenticator data in Base64URL form")
     String authenticatorData;
 
     @CommandLine.Option(
         names = "--signature",
-        required = true,
+        defaultValue = "",
         paramLabel = "<base64url>",
         description = "Authenticator signature in Base64URL form")
     String signature;
 
     @Override
     public Integer call() {
+      Map<String, Object> baseFields = new LinkedHashMap<>();
+      baseFields.put("credentialReference", true);
+      if (hasText(vectorId)) {
+        baseFields.put("vectorId", vectorId);
+        Optional<WebAuthnJsonVector> vector = parent.findVector(vectorId);
+        if (vector.isEmpty()) {
+          return parent.failValidation(
+              event("replay"),
+              "vector_not_found",
+              "Unknown JSON vector id " + vectorId,
+              Map.copyOf(baseFields));
+        }
+        parent.applyReplayVectorDefaults(this, vector.get());
+      }
+
+      if (!hasText(credentialId)) {
+        return parent.failValidation(
+            event("replay"),
+            "missing_option",
+            "--credential-id is required",
+            Map.copyOf(baseFields));
+      }
+      baseFields.put("credentialId", credentialId);
+      if (!hasText(relyingPartyId) || !hasText(origin)) {
+        return parent.failValidation(
+            event("replay"),
+            "missing_option",
+            "--relying-party-id and --origin are required",
+            Map.copyOf(baseFields));
+      }
+      if (!hasText(expectedType)) {
+        return parent.failValidation(
+            event("replay"), "missing_option", "--type is required", Map.copyOf(baseFields));
+      }
+
       byte[] challengeBytes;
       byte[] clientDataBytes;
       byte[] authenticatorDataBytes;
@@ -569,9 +929,8 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         authenticatorDataBytes = decodeBase64Url("authenticator-data", authenticatorData);
         signatureBytes = decodeBase64Url("signature", signature);
       } catch (IllegalArgumentException ex) {
-        Map<String, Object> fields =
-            Map.of("credentialReference", true, "credentialId", credentialId);
-        return parent.failValidation(event("replay"), "invalid_payload", ex.getMessage(), fields);
+        return parent.failValidation(
+            event("replay"), "invalid_payload", ex.getMessage(), Map.copyOf(baseFields));
       }
 
       try (CredentialStore store = parent.openStore()) {
@@ -593,14 +952,13 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                     signatureBytes));
         return handleResult(result);
       } catch (IllegalArgumentException ex) {
-        Map<String, Object> fields =
-            Map.of("credentialReference", true, "credentialId", credentialId);
-        return parent.failValidation(event("replay"), "validation_error", ex.getMessage(), fields);
+        return parent.failValidation(
+            event("replay"), "validation_error", ex.getMessage(), Map.copyOf(baseFields));
       } catch (Exception ex) {
-        Map<String, Object> fields =
-            Map.of("credentialReference", true, "credentialId", credentialId);
         return parent.failUnexpected(
-            event("replay"), fields, "Replay failed: " + sanitizeMessage(ex.getMessage()));
+            event("replay"),
+            Map.copyOf(baseFields),
+            "Replay failed: " + sanitizeMessage(ex.getMessage()));
       }
     }
 
@@ -628,6 +986,18 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 baseFields,
                 Optional.ofNullable(signal.reason()).orElse("WebAuthn replay failed"));
       };
+    }
+  }
+
+  @CommandLine.Command(
+      name = "vectors",
+      description = "List available WebAuthn JSON bundle sample vectors.")
+  static final class VectorsCommand extends AbstractFido2Command {
+
+    @Override
+    public Integer call() {
+      parent.printVectorSummaries(out());
+      return CommandLine.ExitCode.OK;
     }
   }
 

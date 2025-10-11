@@ -7,9 +7,9 @@ record WebAuthnStoredEvaluationRequest(
     @JsonProperty("relyingPartyId") String relyingPartyId,
     @JsonProperty("origin") String origin,
     @JsonProperty("expectedType") String expectedType,
-    @JsonProperty("expectedChallenge") String expectedChallenge,
-    @JsonProperty("clientData") String clientData,
-    @JsonProperty("authenticatorData") String authenticatorData,
-    @JsonProperty("signature") String signature) {
+    @JsonProperty("challenge") String challenge,
+    @JsonProperty("privateKey") String privateKey,
+    @JsonProperty("signatureCounter") Long signatureCounter,
+    @JsonProperty("userVerificationRequired") Boolean userVerificationRequired) {
   // DTO marker
 }

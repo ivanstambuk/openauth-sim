@@ -92,6 +92,7 @@ class WebAuthnCredentialPersistenceAdapterTest {
     assertArrayEquals(descriptor.publicKeyCose(), stored.publicKeyCose());
     assertEquals(5L, stored.signatureCounter());
     assertEquals(true, stored.userVerificationRequired());
+    assertEquals(WebAuthnSignatureAlgorithm.ES256, stored.algorithm());
   }
 
   @Test

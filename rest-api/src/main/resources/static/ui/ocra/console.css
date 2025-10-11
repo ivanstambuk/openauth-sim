@@ -307,6 +307,25 @@ button {
   accent-color: var(--ocra-color-primary-accent);
 }
 
+.field-group--checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--ocra-spacing-sm);
+  padding-top: calc(var(--ocra-spacing-xs) * 0.5);
+}
+
+.field-group--checkbox input[type='checkbox'] {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--ocra-color-primary-accent);
+  margin: 0;
+}
+
+.field-group--checkbox label {
+  margin: 0;
+  font-weight: 500;
+}
+
 .builder-preview {
   border-radius: var(--ocra-radius-sm);
   background: rgba(18, 59, 93, 0.08);

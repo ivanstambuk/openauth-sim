@@ -56,7 +56,8 @@ public record WebAuthnCredentialDescriptor(
         credentialId(),
         publicKeyCose(),
         signatureCounter,
-        userVerificationRequired);
+        userVerificationRequired,
+        algorithm);
   }
 
   /** Fluent builder to make descriptor construction readable from fixtures and tests. */

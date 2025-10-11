@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.webauthn;
 
+import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnSeedApplicationService;
@@ -19,6 +20,13 @@ class WebAuthnApplicationConfiguration {
         credentialStore,
         new WebAuthnAssertionVerifier(),
         new WebAuthnCredentialPersistenceAdapter());
+  }
+
+  @Bean
+  WebAuthnAssertionGenerationApplicationService webAuthnAssertionGenerationApplicationService(
+      CredentialStore credentialStore) {
+    return new WebAuthnAssertionGenerationApplicationService(
+        credentialStore, new WebAuthnCredentialPersistenceAdapter());
   }
 
   @Bean

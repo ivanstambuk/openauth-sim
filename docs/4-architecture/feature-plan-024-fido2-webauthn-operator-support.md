@@ -5,13 +5,13 @@ _Status:_ In Progress
 _Last updated:_ 2025-10-10
 
 ## Vision & Success Criteria
-- Ship a parity WebAuthn assertion verification experience across core, persistence, CLI, REST, and operator UI facades, mirroring HOTP/OCRA ergonomics.
+- Ship a parity WebAuthn assertion generation + verification experience across core, persistence, CLI, REST, and operator UI facades, mirroring HOTP/OCRA ergonomics (authenticator-style generation on Evaluate, verification on Replay).
 - Validate canonical W3C WebAuthn Level 3 §16 authentication vectors end-to-end, then extend coverage to the synthetic JSONL bundle to safeguard algorithm breadth (ES256/384/512, RS256, PS256, Ed25519).
 - Enable operators to preload curated stored credentials and inject inline assertion vectors via UI presets, with key material surfaced as JWKs.
 - Maintain green coverage/quality gates (`spotlessApply`, SpotBugs, ArchUnit, reflectionScan, Jacoco ≥0.90, PIT ≥ baseline).
 
 ## Scope Alignment
-- In scope: verification engine, persistence schema entries, telemetry integration, CLI/REST/UI wiring, W3C + JSONL fixtures, seed/preset utilities, documentation.
+- In scope: verification engine, persistence schema entries, telemetry integration, CLI/REST/UI wiring, W3C + JSONL fixtures, seed/preset utilities, documentation, and a WebAuthn authenticator simulator that generates assertions from private-key inputs.
 - Out of scope: registration/attestation ceremonies, authenticator emulation, dependency upgrades, UI issuance flows.
 
 ## Dependencies & Interfaces
@@ -55,29 +55,46 @@ Each increment stages failing tests first, drives implementation to green, and r
    - Introduce failing MockMvc tests for `/api/v1/webauthn/evaluate`, `/evaluate/inline`, `/replay`.  
    - Wire controllers, request/response DTOs, telemetry, OpenAPI updates.  
    - **Next action (2025-10-10):** capture MockMvc expectations mirroring CLI/application behaviour, stage OpenAPI snapshot adjustments, and run the refreshed suite under `./gradlew --no-daemon :rest-api:test`.  
-   - _2025-10-10 – MockMvc tests staged in `Fido2EvaluationEndpointTest`; controllers/DTOs/services implemented with sanitized telemetry. Follow-up runs of `./gradlew --no-daemon :rest-api:test --rerun-tasks` now pass; OpenAPI snapshot update remains pending._ 
+   - _2025-10-10 – MockMvc tests staged in `Fido2EvaluationEndpointTest`; controllers/DTOs/services implemented with sanitized telemetry. Regenerated `docs/3-reference/rest-openapi.json|yaml` via `OPENAPI_SNAPSHOT_WRITE=true GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon :rest-api:test --tests io.openauth.sim.rest.OpenApiSnapshotTest`, then re-ran `./gradlew --no-daemon :rest-api:test --rerun-tasks` to confirm the refreshed contract._ 
 
 7. **I7 – Operator UI enablement**  
    - Extend Selenium/system tests to assert tab activation, mode switching, preset buttons, seed control, accessibility.  
    - Implement Thymeleaf/JS updates to enable forms, load vectors (inline) and seed curated stored credentials.  
    - Surface key material as JWK in UI modals/panels.  
+   - 2025-10-10 – Confirmed with product that the JSON “Load sample vector” controls remain inside the inline forms on Evaluate and Replay tabs after we adopt the HOTP/TOTP/OCRA layout (Option A).  
+   - 2025-10-10 – Realigned the FIDO2 panel with Evaluate/Replay tabs, enabled inline replay, refreshed REST wiring, and updated Selenium/OpenAPI snapshots.  
    - **Next action (2025-10-10):** describe target WebAuthn panel interactions (stored/inline evaluate, replay diagnostics, “Load sample vector” + JWK display), stage failing Selenium specs, and keep HtmlUnit traces for regression debugging.  
+   - Introduce failing Selenium assertions that expect success/invalid statuses to surface after Evaluate/Replay submissions and verify sanitized payload details (no challenge/signature leakage).  
+   - Implement fetch/XHR flows in `ui/fido2/console.js` that POST inline/stored evaluate and replay requests to the REST endpoints, update result panels with sanitized responses (status, reason code, telemetry ID), and surface validation errors.  
+   - Add defensive error handling for network failures (display `status=error`, keep telemetry sanitized) and ensure the result cards mirror HOTP/TOTP semantics.  
    - _2025-10-10 – WebAuthn operator panel activated with sanitized telemetry, seed helpers, and inline presets; Selenium coverage exercised via `./gradlew --no-daemon :rest-api:test --rerun-tasks` plus a focused rerun of `TotpOperatorUiSeleniumTest` to confirm stability._ 
+   - 2025-10-10 – **Follow-up:** Refactor Evaluate tab into an authenticator simulator. Stage failing Selenium/UI tests asserting assertion-generation output (signed authenticator data, client data JSON, signature) and removal of verification-only telemetry from the Evaluate result card before implementing JS/HTML changes.
+   - _2025-10-11 – Addressed inline generator regressions by aligning telemetry to `key=value` strings, seeding generator presets for stored flows, and updating Selenium coverage; `./gradlew --no-daemon :rest-api:test` is green post-fix._
 
 8. **I8 – JSONL coverage expansion**  
    - Add failing parameterised tests iterating over JSONL bundle entries across core/application layers.  
    - Implement ingestion utilities (parsing Base64url, verifying algorithms) ensuring deterministic seeds.  
    - Update UI preset catalogue to include JSONL-only flows where useful.
+   - _2025-10-10 – Added `WebAuthnJsonVectorVerificationTest` (core) and `WebAuthnJsonVectorEvaluationApplicationServiceTest` (application); extended `WebAuthnAssertionVerifier` to support ES384/ES512/RS256/PS256/EdDSA so both suites pass across all 42 JSON bundle vectors. CLI presets (`--vector-id`/`vectors`) and REST sample responses expose the full catalog for reproducibility, while the operator UI inline dropdown presents a curated subset to avoid clutter._ 
 
 9. **I9 – Documentation & knowledge sync**  
    - Update how-to guides, roadmap, knowledge map, and protocol docs to reflect WebAuthn launch.  
    - Record telemetry contract additions, seed vector catalogue, and operator instructions.
+   - _2025-10-10 – Authored new how-to guides for CLI, REST, and operator UI workflows (docs/2-how-to/use-fido2-*.md) and documented JWK/vector handling guidance._
 
 10. **I10 – Quality gate + follow-up capture**  
     - Run `./gradlew qualityGate`.  
     - Finalise feature documentation, resolve remaining TODOs, record lessons in plan/roadmap.  
     - Prepare conventional commit and ensure push after passing checks.  
     - _2025-10-10 – Quality gate executed via `./gradlew --no-daemon qualityGate`; reflection scan and aggregated coverage checks reported green, enabling wrap-up._
+
+11. **I11 – Assertion generation UX**  
+    - Update Evaluate tab request/response contract to accept relying party inputs, authenticator private key (auto-detect JWK or PEM/PKCS#8), and optional authenticator flags; generate signed assertions (authenticator data, client data JSON, signature) without invoking the verification pipeline.  
+    - Add failing REST controller/application tests for assertion generation responses, including deterministic sample vectors and error cases for malformed JWK/PEM payloads.  
+    - Update operator console JS/HTML to display generated payload blobs (with copy/download actions) and hide telemetry-style status text; ensure parsing errors surface inline.  
+    - Adjust documentation/how-to guides to explain the new generation workflow, private-key formats, and updated Replay usage for verification.  
+    - Initial implementation may emit ES256 assertions, but structure services/utilities to extend across RS256/PS256/ES384/ES512/EdDSA without UI rewrites.  
+    - 2025-10-10 – Confirmed: CLI `fido2 evaluate` commands will emit generated assertion payloads (no new `generate` verb), Evaluate result card presents a structured `PublicKeyCredential` JSON object with copy/download helpers, and operator presets provide ES256 JWK private keys only.  
 
 ## Risks & Mitigations
 - **Large vector set increases test time** → run JSONL suite in targeted tests (I8) with caching helpers; consider tagging for selective execution.  

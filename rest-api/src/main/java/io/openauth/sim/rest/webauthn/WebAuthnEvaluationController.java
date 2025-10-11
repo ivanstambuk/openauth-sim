@@ -25,16 +25,16 @@ class WebAuthnEvaluationController {
 
   @Operation(
       operationId = "evaluateStoredWebAuthn",
-      summary = "Validate a stored WebAuthn credential",
+      summary = "Generate a WebAuthn assertion using a stored credential",
       responses = {
         @ApiResponse(
             responseCode = "200",
-            description = "Assertion accepted",
+            description = "Assertion generated",
             content =
                 @Content(schema = @Schema(implementation = WebAuthnEvaluationResponse.class))),
         @ApiResponse(
             responseCode = "422",
-            description = "Assertion rejected or request invalid",
+            description = "Request invalid",
             content =
                 @Content(schema = @Schema(implementation = WebAuthnEvaluationErrorResponse.class))),
         @ApiResponse(
@@ -52,16 +52,16 @@ class WebAuthnEvaluationController {
 
   @Operation(
       operationId = "evaluateInlineWebAuthn",
-      summary = "Validate an inline WebAuthn assertion without loading a stored credential",
+      summary = "Generate a WebAuthn assertion without loading a stored credential",
       responses = {
         @ApiResponse(
             responseCode = "200",
-            description = "Assertion accepted",
+            description = "Assertion generated",
             content =
                 @Content(schema = @Schema(implementation = WebAuthnEvaluationResponse.class))),
         @ApiResponse(
             responseCode = "422",
-            description = "Assertion rejected or request invalid",
+            description = "Request invalid",
             content =
                 @Content(schema = @Schema(implementation = WebAuthnEvaluationErrorResponse.class))),
         @ApiResponse(

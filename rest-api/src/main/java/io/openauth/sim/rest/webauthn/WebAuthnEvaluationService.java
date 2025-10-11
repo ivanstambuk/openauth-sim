@@ -1,10 +1,8 @@
 package io.openauth.sim.rest.webauthn;
 
-import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService;
-import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService.EvaluationCommand;
-import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService.EvaluationResult;
-import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService.TelemetrySignal;
-import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService.TelemetryStatus;
+import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService;
+import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationCommand;
+import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationResult;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
@@ -24,44 +22,42 @@ class WebAuthnEvaluationService {
 
   private static final Logger TELEMETRY_LOGGER =
       Logger.getLogger("io.openauth.sim.rest.webauthn.telemetry");
+  private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
   private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
 
-  private final WebAuthnEvaluationApplicationService applicationService;
+  private final WebAuthnAssertionGenerationApplicationService generator;
 
-  WebAuthnEvaluationService(WebAuthnEvaluationApplicationService applicationService) {
-    this.applicationService = Objects.requireNonNull(applicationService, "applicationService");
+  WebAuthnEvaluationService(WebAuthnAssertionGenerationApplicationService generator) {
+    this.generator = Objects.requireNonNull(generator, "generator");
   }
 
   WebAuthnEvaluationResponse evaluateStored(WebAuthnStoredEvaluationRequest request) {
     Objects.requireNonNull(request, "request");
+
     String credentialId =
         requireText(request.credentialId(), "credential_id_required", "Credential ID is required");
-    String relyingPartyId =
-        requireText(
-            request.relyingPartyId(), "relying_party_id_required", "Relying party ID is required");
+    String relyingPartyId = request.relyingPartyId() == null ? "" : request.relyingPartyId().trim();
     String origin = requireText(request.origin(), "origin_required", "Origin is required");
     String expectedType =
         requireText(
             request.expectedType(), "type_required", "Expected client data type is required");
+    byte[] challenge = decode("challenge", request.challenge());
+    String privateKey =
+        requireText(request.privateKey(), "private_key_required", "Private key is required");
 
-    byte[] challenge = decode("expectedChallenge", request.expectedChallenge());
-    byte[] clientData = decode("clientData", request.clientData());
-    byte[] authenticatorData = decode("authenticatorData", request.authenticatorData());
-    byte[] signature = decode("signature", request.signature());
+    GenerationCommand.Stored command =
+        new GenerationCommand.Stored(
+            credentialId,
+            relyingPartyId,
+            origin,
+            expectedType,
+            challenge,
+            privateKey,
+            request.signatureCounter(),
+            request.userVerificationRequired());
 
-    EvaluationResult result =
-        applicationService.evaluate(
-            new EvaluationCommand.Stored(
-                credentialId,
-                relyingPartyId,
-                origin,
-                expectedType,
-                challenge,
-                clientData,
-                authenticatorData,
-                signature));
-
-    return handleResult(result, "stored");
+    GenerationResult result = invokeGenerator(command);
+    return buildResponse(result, "stored");
   }
 
   WebAuthnEvaluationResponse evaluateInline(WebAuthnInlineEvaluationRequest request) {
@@ -74,147 +70,155 @@ class WebAuthnEvaluationService {
     String expectedType =
         requireText(
             request.expectedType(), "type_required", "Expected client data type is required");
-
-    byte[] credentialId = decode("credentialId", request.credentialId());
-    byte[] publicKey = decode("publicKey", request.publicKey());
+    WebAuthnSignatureAlgorithm algorithm = parseAlgorithm(request.algorithm());
     long signatureCounter =
         Optional.ofNullable(request.signatureCounter())
             .orElseThrow(
                 () -> validation("signature_counter_required", "Signature counter is required"));
     boolean userVerificationRequired =
-        Optional.ofNullable(request.userVerificationRequired()).orElse(Boolean.FALSE);
-    WebAuthnSignatureAlgorithm algorithm =
-        Optional.ofNullable(request.algorithm())
-            .map(value -> value.trim().toUpperCase(Locale.ROOT))
-            .map(WebAuthnSignatureAlgorithm::fromLabel)
-            .orElseThrow(() -> validation("algorithm_required", "Signature algorithm is required"));
+        Optional.ofNullable(request.userVerificationRequired()).orElse(false);
+    byte[] credentialId = decode("credentialId", request.credentialId());
+    byte[] challenge = decode("challenge", request.challenge());
+    String credentialName =
+        request.credentialName() == null || request.credentialName().isBlank()
+            ? "inline"
+            : request.credentialName().trim();
+    String privateKey =
+        requireText(request.privateKey(), "private_key_required", "Private key is required");
 
-    byte[] challenge = decode("expectedChallenge", request.expectedChallenge());
-    byte[] clientData = decode("clientData", request.clientData());
-    byte[] authenticatorData = decode("authenticatorData", request.authenticatorData());
-    byte[] signature = decode("signature", request.signature());
+    GenerationCommand.Inline command =
+        new GenerationCommand.Inline(
+            credentialName,
+            credentialId,
+            algorithm,
+            relyingPartyId,
+            origin,
+            expectedType,
+            signatureCounter,
+            userVerificationRequired,
+            challenge,
+            privateKey);
 
-    EvaluationResult result =
-        applicationService.evaluate(
-            new EvaluationCommand.Inline(
-                request.credentialName(),
-                relyingPartyId,
-                origin,
-                expectedType,
-                credentialId,
-                publicKey,
-                signatureCounter,
-                userVerificationRequired,
-                algorithm,
-                challenge,
-                clientData,
-                authenticatorData,
-                signature));
-
-    return handleResult(result, "inline");
+    GenerationResult result = invokeGenerator(command);
+    return buildResponse(result, "inline");
   }
 
-  private WebAuthnEvaluationResponse handleResult(
-      EvaluationResult result, String credentialSource) {
-    TelemetrySignal signal = result.telemetry();
+  private GenerationResult invokeGenerator(GenerationCommand command) {
+    try {
+      return generator.generate(command);
+    } catch (IllegalArgumentException ex) {
+      throw validation(mapGeneratorFailure(ex), ex.getMessage());
+    }
+  }
+
+  private static String mapGeneratorFailure(IllegalArgumentException exception) {
+    String message = exception.getMessage();
+    if (message == null || message.isBlank()) {
+      return "generation_failed";
+    }
+    String normalized = message.toLowerCase(Locale.ROOT);
+    if (normalized.contains("private key")) {
+      return "private_key_invalid";
+    }
+    if (normalized.contains("credential not found")) {
+      return "credential_not_found";
+    }
+    if (normalized.contains("relying party mismatch")) {
+      return "relying_party_mismatch";
+    }
+    return "generation_failed";
+  }
+
+  private WebAuthnEvaluationResponse buildResponse(GenerationResult result, String source) {
     String telemetryId = nextTelemetryId();
+    Map<String, Object> telemetryFields = telemetryFields(result, source);
     TelemetryFrame frame =
-        result.evaluationFrame(TelemetryContracts.fido2EvaluationAdapter(), telemetryId);
-    logTelemetry(frame, credentialSource);
+        TelemetryContracts.fido2EvaluationAdapter()
+            .status("success", telemetryId, "generated", true, null, telemetryFields);
+    logTelemetry(frame, source);
 
-    Map<String, Object> combined = combineFields(frame.fields(), signal.fields());
+    WebAuthnEvaluationMetadata metadata =
+        new WebAuthnEvaluationMetadata(
+            telemetryId,
+            source,
+            result.credentialReference(),
+            result.credentialReference() ? encode(result.credentialId()) : null,
+            result.relyingPartyId(),
+            result.origin(),
+            result.algorithm().label(),
+            result.userVerificationRequired(),
+            null);
 
-    if (signal.status() == TelemetryStatus.SUCCESS) {
-      WebAuthnEvaluationMetadata metadata =
-          buildMetadata(
-              credentialSource,
-              result,
-              combined,
-              String.valueOf(combined.getOrDefault("telemetryId", telemetryId)));
+    WebAuthnGeneratedAssertion assertion = buildAssertion(result);
+    return new WebAuthnEvaluationResponse("generated", assertion, metadata);
+  }
 
-      return new WebAuthnEvaluationResponse(
-          signal.reasonCode(), signal.reasonCode(), result.valid(), metadata);
+  private static Map<String, Object> telemetryFields(GenerationResult result, String source) {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("credentialSource", source);
+    fields.put("credentialReference", result.credentialReference());
+    fields.put("relyingPartyId", result.relyingPartyId());
+    fields.put("origin", result.origin());
+    fields.put("algorithm", result.algorithm().label());
+    fields.put("userVerificationRequired", result.userVerificationRequired());
+    fields.put("signatureCounter", result.signatureCounter());
+    return fields;
+  }
+
+  private static WebAuthnGeneratedAssertion buildAssertion(GenerationResult result) {
+    WebAuthnAssertionResponse payload =
+        new WebAuthnAssertionResponse(
+            encode(result.clientDataJson()),
+            encode(result.authenticatorData()),
+            encode(result.signature()));
+
+    return new WebAuthnGeneratedAssertion(
+        encode(result.credentialId()),
+        encode(result.credentialId()),
+        "public-key",
+        payload,
+        result.relyingPartyId(),
+        result.origin(),
+        result.algorithm().label(),
+        result.userVerificationRequired(),
+        result.signatureCounter());
+  }
+
+  private static String encode(byte[] data) {
+    return URL_ENCODER.encodeToString(data);
+  }
+
+  private static byte[] decode(String field, String value) {
+    if (value == null || value.isBlank()) {
+      throw validation(field + "_required", field + " is required");
     }
-
-    if (signal.status() == TelemetryStatus.INVALID) {
-      Map<String, Object> details = sanitizedDetails(combined);
-      details.put("credentialSource", credentialSource);
-      throw validation(
-          signal.reasonCode(),
-          Optional.ofNullable(signal.reason()).orElse(signal.reasonCode()),
-          details);
+    try {
+      return URL_DECODER.decode(value);
+    } catch (IllegalArgumentException ex) {
+      throw validation(field + "_invalid", field + " must be Base64URL encoded");
     }
-
-    Map<String, Object> details = sanitizedDetails(combined);
-    details.put("credentialSource", credentialSource);
-    throw unexpected(
-        "WebAuthn evaluation failed unexpectedly",
-        Optional.ofNullable(signal.reason()).orElse("evaluation_failed"),
-        details);
   }
 
-  private WebAuthnEvaluationMetadata buildMetadata(
-      String credentialSource,
-      EvaluationResult result,
-      Map<String, Object> fields,
-      String telemetryId) {
-
-    String credentialId =
-        result.credentialReference()
-            ? (String) fields.getOrDefault("credentialId", result.credentialId())
-            : null;
-    String relyingPartyId =
-        (String)
-            fields.getOrDefault(
-                "relyingPartyId", Optional.ofNullable(result.relyingPartyId()).orElse("unknown"));
-    String origin = (String) fields.getOrDefault("origin", "unknown");
-    String algorithm =
-        Optional.ofNullable(result.algorithm())
-            .map(WebAuthnSignatureAlgorithm::label)
-            .orElse((String) fields.getOrDefault("algorithm", "ES256"));
-    boolean userVerificationRequired =
-        fields.containsKey("userVerificationRequired")
-            ? Boolean.parseBoolean(String.valueOf(fields.get("userVerificationRequired")))
-            : result.userVerificationRequired();
-    String error =
-        result
-            .error()
-            .map(err -> err.name().toLowerCase(Locale.ROOT))
-            .orElse((String) fields.get("error"));
-
-    return new WebAuthnEvaluationMetadata(
-        telemetryId,
-        credentialSource,
-        result.credentialReference(),
-        credentialId,
-        relyingPartyId,
-        origin,
-        algorithm,
-        userVerificationRequired,
-        error);
+  private static String requireText(String value, String reasonCode, String message) {
+    if (value == null || value.trim().isEmpty()) {
+      throw validation(reasonCode, message);
+    }
+    return value.trim();
   }
 
-  private static Map<String, Object> combineFields(
-      Map<String, Object> frameFields, Map<String, Object> telemetryFields) {
-    Map<String, Object> combined = new LinkedHashMap<>(frameFields);
-    telemetryFields.forEach(combined::putIfAbsent);
-    return combined;
+  private static WebAuthnSignatureAlgorithm parseAlgorithm(String value) {
+    if (value == null || value.isBlank()) {
+      throw validation("algorithm_required", "Signature algorithm is required");
+    }
+    try {
+      return WebAuthnSignatureAlgorithm.fromLabel(value.trim());
+    } catch (IllegalArgumentException ex) {
+      throw validation("algorithm_invalid", ex.getMessage());
+    }
   }
 
-  private static Map<String, Object> sanitizedDetails(Map<String, Object> fields) {
-    Map<String, Object> sanitized = new LinkedHashMap<>();
-    fields.forEach(
-        (key, value) -> {
-          String lower = key.toLowerCase(Locale.ROOT);
-          if (lower.contains("challenge")
-              || lower.contains("clientdata")
-              || lower.contains("signature")
-              || lower.contains("publickey")) {
-            return;
-          }
-          sanitized.put(key, value);
-        });
-    return sanitized;
+  private static String nextTelemetryId() {
+    return "rest-fido2-" + UUID.randomUUID();
   }
 
   private static void logTelemetry(TelemetryFrame frame, String credentialSource) {
@@ -243,28 +247,6 @@ class WebAuthnEvaluationService {
     TELEMETRY_LOGGER.fine(builder.toString());
   }
 
-  private static String requireText(String value, String reasonCode, String message) {
-    if (value == null || value.trim().isEmpty()) {
-      throw validation(reasonCode, message);
-    }
-    return value.trim();
-  }
-
-  private static byte[] decode(String label, String value) {
-    if (value == null || value.isBlank()) {
-      throw validation(label + "_required", label + " is required");
-    }
-    try {
-      return URL_DECODER.decode(value);
-    } catch (IllegalArgumentException ex) {
-      throw validation(label + "_invalid", label + " must be Base64URL encoded");
-    }
-  }
-
-  private static String nextTelemetryId() {
-    return "rest-fido2-" + UUID.randomUUID();
-  }
-
   private static WebAuthnEvaluationValidationException validation(
       String reasonCode, String message) {
     return validation(reasonCode, message, Map.of());
@@ -273,12 +255,5 @@ class WebAuthnEvaluationService {
   private static WebAuthnEvaluationValidationException validation(
       String reasonCode, String message, Map<String, Object> details) {
     return new WebAuthnEvaluationValidationException(reasonCode, message, Map.copyOf(details));
-  }
-
-  private static WebAuthnEvaluationUnexpectedException unexpected(
-      String message, String reason, Map<String, Object> details) {
-    Map<String, Object> merged = new LinkedHashMap<>(details);
-    merged.putIfAbsent("reason", reason);
-    return new WebAuthnEvaluationUnexpectedException(message, null, Map.copyOf(merged));
   }
 }

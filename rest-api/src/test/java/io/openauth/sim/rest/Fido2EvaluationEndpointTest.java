@@ -6,15 +6,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService;
+import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationCommand;
+import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationResult;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
-import io.openauth.sim.core.fido2.WebAuthnFixtures;
-import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,10 +44,26 @@ class Fido2EvaluationEndpointTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
+  private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
+  private static final String RELYING_PARTY_ID = "example.org";
+  private static final String ORIGIN = "https://example.org";
+  private static final String EXPECTED_TYPE = "webauthn.get";
+  private static final String PRIVATE_KEY_JWK =
+      """
+      {
+        \"kty\":\"EC\",
+        \"crv\":\"P-256\",
+        \"x\":\"qdZggyTjMpAsFSTkjMWSwuBQuB3T-w6bDAphr8rHSVk\",
+        \"y\":\"cNVi6TQ6udwSbuwQ9JCt0dAxM5LgpenvK6jQPZ2_GTs\",
+        \"d\":\"GV7Q6vqPvJNmr1Lu2swyafBOzG9hvrtqs-vronAeZv8\"
+      }
+      """;
 
   @Autowired private MockMvc mockMvc;
   @Autowired private CredentialStore credentialStore;
 
+  private final WebAuthnAssertionGenerationApplicationService generator =
+      new WebAuthnAssertionGenerationApplicationService();
   private final io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter persistenceAdapter =
       new io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter();
 
@@ -59,23 +80,26 @@ class Fido2EvaluationEndpointTest {
   }
 
   @Test
-  @DisplayName("Stored WebAuthn evaluation returns sanitized success payload")
-  void storedEvaluationReturnsSuccess() throws Exception {
-    WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
-    WebAuthnCredentialDescriptor descriptor =
-        WebAuthnCredentialDescriptor.builder()
-            .name("fido2-packed-es256")
-            .relyingPartyId(fixture.storedCredential().relyingPartyId())
-            .credentialId(fixture.storedCredential().credentialId())
-            .publicKeyCose(fixture.storedCredential().publicKeyCose())
-            .signatureCounter(fixture.storedCredential().signatureCounter())
-            .userVerificationRequired(fixture.storedCredential().userVerificationRequired())
-            .algorithm(WebAuthnSignatureAlgorithm.ES256)
-            .build();
+  @DisplayName("Stored WebAuthn evaluation generates an authenticator assertion")
+  void storedEvaluationGeneratesAssertion() throws Exception {
+    byte[] challenge = "stored-challenge".getBytes(StandardCharsets.UTF_8);
+    byte[] credentialId = "stored-credential-id".getBytes(StandardCharsets.UTF_8);
 
-    Credential credential =
-        VersionedCredentialRecordMapper.toCredential(persistenceAdapter.serialize(descriptor));
-    credentialStore.save(credential);
+    GenerationResult seed =
+        generator.generate(
+            new GenerationCommand.Inline(
+                "seed-inline",
+                credentialId,
+                WebAuthnSignatureAlgorithm.ES256,
+                RELYING_PARTY_ID,
+                ORIGIN,
+                EXPECTED_TYPE,
+                0L,
+                false,
+                challenge,
+                PRIVATE_KEY_JWK));
+
+    saveCredential("stored-credential", seed);
 
     String response =
         mockMvc
@@ -85,45 +109,53 @@ class Fido2EvaluationEndpointTest {
                     .content(
                         """
                         {
-                          "credentialId": "fido2-packed-es256",
-                          "relyingPartyId": "example.org",
-                          "origin": "https://example.org",
-                          "expectedType": "webauthn.get",
-                          "expectedChallenge": "%s",
-                          "clientData": "%s",
-                          "authenticatorData": "%s",
-                          "signature": "%s"
+                          \"credentialId\": \"stored-credential\",
+                          \"relyingPartyId\": \"%s\",
+                          \"origin\": \"%s\",
+                          \"expectedType\": \"%s\",
+                          \"challenge\": \"%s\",
+                          \"privateKey\": %s
                         }
                         """
                             .formatted(
-                                encode(fixture.request().expectedChallenge()),
-                                encode(fixture.request().clientDataJson()),
-                                encode(fixture.request().authenticatorData()),
-                                encode(fixture.request().signature()))))
+                                RELYING_PARTY_ID,
+                                ORIGIN,
+                                EXPECTED_TYPE,
+                                encode(challenge),
+                                jsonEscape(PRIVATE_KEY_JWK))))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
 
-    JsonNode body = MAPPER.readTree(response);
-    assertThat(body.get("status").asText()).isEqualTo("validated");
-    assertThat(body.get("valid").asBoolean()).isTrue();
-    JsonNode metadata = body.get("metadata");
+    JsonNode root = MAPPER.readTree(response);
+    assertThat(root.get("status").asText()).isEqualTo("generated");
+    JsonNode assertion = root.get("assertion");
+    assertThat(assertion.get("id").asText()).isEqualTo(encode(seed.credentialId()));
+    assertThat(assertion.get("type").asText()).isEqualTo("public-key");
+    assertThat(assertion.get("algorithm").asText()).isEqualTo("ES256");
+    assertThat(assertion.get("userVerificationRequired").asBoolean()).isFalse();
+
+    JsonNode responseNode = assertion.get("response");
+    byte[] clientDataJson = decode(responseNode.get("clientDataJSON").asText());
+    JsonNode clientData = MAPPER.readTree(clientDataJson);
+    assertThat(clientData.get("type").asText()).isEqualTo(EXPECTED_TYPE);
+    assertThat(clientData.get("origin").asText()).isEqualTo(ORIGIN);
+    assertThat(decode(clientData.get("challenge").asText())).isEqualTo(challenge);
+
+    assertThat(responseNode.get("authenticatorData").asText()).isNotBlank();
+    assertThat(responseNode.get("signature").asText()).isNotBlank();
+
+    JsonNode metadata = root.get("metadata");
     assertThat(metadata.get("credentialSource").asText()).isEqualTo("stored");
     assertThat(metadata.get("credentialReference").asBoolean()).isTrue();
-    assertThat(metadata.get("relyingPartyId").asText()).isEqualTo("example.org");
-    assertThat(metadata.get("origin").asText()).isEqualTo("https://example.org");
-    assertThat(metadata.get("algorithm").asText()).isEqualTo("ES256");
-    assertThat(metadata.get("userVerificationRequired").asBoolean()).isFalse();
-    assertThat(metadata.has("challenge")).isFalse();
-    assertThat(metadata.has("clientData")).isFalse();
-    assertThat(metadata.has("signature")).isFalse();
   }
 
   @Test
-  @DisplayName("Inline WebAuthn evaluation reports origin mismatch without exposing secrets")
-  void inlineEvaluationReportsOriginMismatch() throws Exception {
-    WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
+  @DisplayName("Inline WebAuthn evaluation generates an authenticator assertion")
+  void inlineEvaluationGeneratesAssertion() throws Exception {
+    byte[] challenge = "inline-challenge".getBytes(StandardCharsets.UTF_8);
+    byte[] credentialId = "inline-credential-id".getBytes(StandardCharsets.UTF_8);
 
     String response =
         mockMvc
@@ -133,106 +165,99 @@ class Fido2EvaluationEndpointTest {
                     .content(
                         """
                         {
-                          "credentialName": "cli-inline",
-                          "relyingPartyId": "example.org",
-                          "origin": "https://malicious.example.org",
-                          "expectedType": "webauthn.get",
-                          "credentialId": "%s",
-                          "publicKey": "%s",
-                          "signatureCounter": %d,
-                          "userVerificationRequired": false,
-                          "algorithm": "ES256",
-                          "expectedChallenge": "%s",
-                          "clientData": "%s",
-                          "authenticatorData": "%s",
-                          "signature": "%s"
+                          \"credentialName\": \"inline-demo\",
+                          \"credentialId\": \"%s\",
+                          \"relyingPartyId\": \"%s\",
+                          \"origin\": \"%s\",
+                          \"expectedType\": \"%s\",
+                          \"algorithm\": \"ES256\",
+                          \"signatureCounter\": 0,
+                          \"userVerificationRequired\": false,
+                          \"challenge\": \"%s\",
+                          \"privateKey\": %s
                         }
                         """
                             .formatted(
-                                encode(fixture.storedCredential().credentialId()),
-                                encode(fixture.storedCredential().publicKeyCose()),
-                                fixture.storedCredential().signatureCounter(),
-                                encode(fixture.request().expectedChallenge()),
-                                encode(fixture.request().clientDataJson()),
-                                encode(fixture.request().authenticatorData()),
-                                encode(fixture.request().signature()))))
-            .andExpect(status().isUnprocessableEntity())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    JsonNode body = MAPPER.readTree(response);
-    assertThat(body.get("status").asText()).isEqualTo("origin_mismatch");
-    assertThat(body.get("metadata").get("credentialReference").asBoolean()).isFalse();
-    assertThat(body.get("metadata").has("challenge")).isFalse();
-    assertThat(body.get("metadata").has("clientData")).isFalse();
-    assertThat(body.get("metadata").has("signature")).isFalse();
-  }
-
-  @Test
-  @DisplayName("Stored WebAuthn replay delegates to evaluation and remains sanitized")
-  void storedReplayDelegatesToEvaluation() throws Exception {
-    WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
-    WebAuthnCredentialDescriptor descriptor =
-        WebAuthnCredentialDescriptor.builder()
-            .name("fido2-packed-es256")
-            .relyingPartyId(fixture.storedCredential().relyingPartyId())
-            .credentialId(fixture.storedCredential().credentialId())
-            .publicKeyCose(fixture.storedCredential().publicKeyCose())
-            .signatureCounter(fixture.storedCredential().signatureCounter())
-            .userVerificationRequired(fixture.storedCredential().userVerificationRequired())
-            .algorithm(WebAuthnSignatureAlgorithm.ES256)
-            .build();
-
-    Credential credential =
-        VersionedCredentialRecordMapper.toCredential(persistenceAdapter.serialize(descriptor));
-    credentialStore.save(credential);
-
-    String response =
-        mockMvc
-            .perform(
-                post("/api/v1/webauthn/replay")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(
-                        """
-                        {
-                          "credentialId": "fido2-packed-es256",
-                          "relyingPartyId": "example.org",
-                          "origin": "https://example.org",
-                          "expectedType": "webauthn.get",
-                          "expectedChallenge": "%s",
-                          "clientData": "%s",
-                          "authenticatorData": "%s",
-                          "signature": "%s"
-                        }
-                        """
-                            .formatted(
-                                encode(fixture.request().expectedChallenge()),
-                                encode(fixture.request().clientDataJson()),
-                                encode(fixture.request().authenticatorData()),
-                                encode(fixture.request().signature()))))
+                                encode(credentialId),
+                                RELYING_PARTY_ID,
+                                ORIGIN,
+                                EXPECTED_TYPE,
+                                encode(challenge),
+                                jsonEscape(PRIVATE_KEY_JWK))))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
 
-    JsonNode body = MAPPER.readTree(response);
-    assertThat(body.get("match").asBoolean()).isTrue();
-    JsonNode metadata = body.get("metadata");
-    assertThat(metadata.get("credentialSource").asText()).isEqualTo("stored");
-    assertThat(metadata.get("credentialReference").asBoolean()).isTrue();
-    assertThat(metadata.has("challenge")).isFalse();
-    assertThat(metadata.has("clientData")).isFalse();
-    assertThat(metadata.has("signature")).isFalse();
+    JsonNode root = MAPPER.readTree(response);
+    assertThat(root.get("status").asText()).isEqualTo("generated");
+    JsonNode assertion = root.get("assertion");
+    assertThat(assertion.get("id").asText()).isEqualTo(encode(credentialId));
+    JsonNode responseNode = assertion.get("response");
+    assertThat(responseNode.get("signature").asText()).isNotBlank();
+  }
+
+  @Test
+  @DisplayName("Evaluate endpoints reject invalid private keys")
+  void evaluateRejectsInvalidPrivateKey() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/webauthn/evaluate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      \"credentialId\": \"missing\",
+                      \"relyingPartyId\": \"%s\",
+                      \"origin\": \"%s\",
+                      \"expectedType\": \"%s\",
+                      \"challenge\": \"%s\",
+                      \"privateKey\": \"not-a-key\"
+                    }
+                    """
+                        .formatted(RELYING_PARTY_ID, ORIGIN, EXPECTED_TYPE, encode(new byte[32]))))
+        .andExpect(status().isUnprocessableEntity());
+  }
+
+  private void saveCredential(String name, GenerationResult seed) {
+    WebAuthnCredentialDescriptor descriptor =
+        WebAuthnCredentialDescriptor.builder()
+            .name(name)
+            .relyingPartyId(RELYING_PARTY_ID)
+            .credentialId(seed.credentialId())
+            .publicKeyCose(seed.publicKeyCose())
+            .signatureCounter(seed.signatureCounter())
+            .userVerificationRequired(seed.userVerificationRequired())
+            .algorithm(seed.algorithm())
+            .build();
+
+    Credential credential =
+        VersionedCredentialRecordMapper.toCredential(persistenceAdapter.serialize(descriptor));
+    credentialStore.save(credential);
   }
 
   private static String encode(byte[] value) {
     return URL_ENCODER.encodeToString(value);
   }
 
-  @TestConfiguration
-  static class InMemoryStoreConfiguration {
+  private static byte[] decode(String value) {
+    return URL_DECODER.decode(value.getBytes(StandardCharsets.UTF_8));
+  }
 
+  private static String jsonEscape(String rawJson) {
+    String sanitized =
+        rawJson
+            .stripIndent()
+            .trim()
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r");
+    return "\"" + sanitized + "\"";
+  }
+
+  @TestConfiguration
+  static class TestConfig {
     @Bean
     CredentialStore credentialStore() {
       return new InMemoryCredentialStore();
@@ -240,36 +265,35 @@ class Fido2EvaluationEndpointTest {
   }
 
   static final class InMemoryCredentialStore implements CredentialStore {
-
-    private final LinkedHashMap<String, Credential> store = new LinkedHashMap<>();
-
-    void reset() {
-      store.clear();
-    }
+    private final Map<String, Credential> backing = new LinkedHashMap<>();
 
     @Override
     public void save(Credential credential) {
-      store.put(credential.name(), credential);
+      backing.put(credential.name(), credential);
     }
 
     @Override
-    public java.util.Optional<Credential> findByName(String name) {
-      return java.util.Optional.ofNullable(store.get(name));
+    public Optional<Credential> findByName(String name) {
+      return Optional.ofNullable(backing.get(name));
     }
 
     @Override
-    public java.util.List<Credential> findAll() {
-      return java.util.List.copyOf(store.values());
+    public List<Credential> findAll() {
+      return List.copyOf(backing.values());
     }
 
     @Override
     public boolean delete(String name) {
-      return store.remove(name) != null;
+      return backing.remove(name) != null;
     }
 
     @Override
     public void close() {
-      store.clear();
+      backing.clear();
+    }
+
+    void reset() {
+      backing.clear();
     }
   }
 }

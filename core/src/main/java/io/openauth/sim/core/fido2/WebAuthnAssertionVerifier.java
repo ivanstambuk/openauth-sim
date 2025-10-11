@@ -13,6 +13,12 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPoint;
 import java.security.spec.ECPublicKeySpec;
+import java.security.spec.EdECPoint;
+import java.security.spec.EdECPublicKeySpec;
+import java.security.spec.MGF1ParameterSpec;
+import java.security.spec.NamedParameterSpec;
+import java.security.spec.PSSParameterSpec;
+import java.security.spec.RSAPublicKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
@@ -38,12 +44,17 @@ public final class WebAuthnAssertionVerifier {
       parseClientData(assertionRequest, storedCredential);
       parseAuthenticatorData(assertionRequest, storedCredential);
 
-      PublicKey publicKey = createPublicKeyFromCose(storedCredential.publicKeyCose());
+      PublicKey publicKey =
+          createPublicKeyFromCose(storedCredential.publicKeyCose(), storedCredential.algorithm());
       byte[] clientDataHash = hashSha256(assertionRequest.clientDataJson());
       byte[] signedPayload = concatenate(assertionRequest.authenticatorData(), clientDataHash);
 
-      Signature signature = Signature.getInstance("SHA256withECDSA");
+      Signature signature = signatureFor(storedCredential.algorithm());
       signature.initVerify(publicKey);
+      if (storedCredential.algorithm() == WebAuthnSignatureAlgorithm.PS256) {
+        signature.setParameter(
+            new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1));
+      }
       signature.update(signedPayload);
       if (!signature.verify(assertionRequest.signature())) {
         return WebAuthnVerificationResult.failure(
@@ -157,26 +168,109 @@ public final class WebAuthnAssertionVerifier {
     return Base64.getUrlDecoder().decode(padded);
   }
 
-  private static PublicKey createPublicKeyFromCose(byte[] coseKey) throws GeneralSecurityException {
+  private static PublicKey createPublicKeyFromCose(
+      byte[] coseKey, WebAuthnSignatureAlgorithm algorithm) throws GeneralSecurityException {
     Map<Integer, Object> map = new CborReader(coseKey).readMap();
 
     int kty = requireInt(map, 1);
-    int alg = requireInt(map, 3);
+    int coseAlgorithm = requireInt(map, 3);
+    if (coseAlgorithm != algorithm.coseIdentifier()) {
+      throw new GeneralSecurityException("COSE algorithm mismatch for credential");
+    }
+
+    return switch (algorithm) {
+      case ES256, ES384, ES512 -> createEcPublicKey(map, kty, algorithm);
+      case RS256, PS256 -> createRsaPublicKey(map, kty);
+      case EDDSA -> createEd25519PublicKey(map, kty);
+    };
+  }
+
+  private static PublicKey createEcPublicKey(
+      Map<Integer, Object> map, int keyType, WebAuthnSignatureAlgorithm algorithm)
+      throws GeneralSecurityException {
+    if (keyType != 2) {
+      throw new GeneralSecurityException("Expected EC2 key type for algorithm " + algorithm);
+    }
     int curve = requireInt(map, -1);
+    int expectedCurve =
+        switch (algorithm) {
+          case ES256 -> 1;
+          case ES384 -> 2;
+          case ES512 -> 3;
+          default -> throw new GeneralSecurityException("Unsupported EC algorithm " + algorithm);
+        };
+    if (curve != expectedCurve) {
+      throw new GeneralSecurityException("Unexpected EC curve id " + curve + " for " + algorithm);
+    }
     byte[] x = requireBytes(map, -2);
     byte[] y = requireBytes(map, -3);
 
-    if (kty != 2 || alg != -7 || curve != 1) {
-      throw new GeneralSecurityException("Unsupported COSE key parameters");
-    }
+    String curveName =
+        switch (curve) {
+          case 1 -> "secp256r1";
+          case 2 -> "secp384r1";
+          case 3 -> "secp521r1";
+          default -> throw new GeneralSecurityException("Unsupported EC curve id: " + curve);
+        };
 
     AlgorithmParameters parameters = AlgorithmParameters.getInstance("EC");
-    parameters.init(new ECGenParameterSpec("secp256r1"));
+    parameters.init(new ECGenParameterSpec(curveName));
     ECParameterSpec ecParameters = parameters.getParameterSpec(ECParameterSpec.class);
 
     ECPoint ecPoint = new ECPoint(new BigInteger(1, x), new BigInteger(1, y));
     KeyFactory factory = KeyFactory.getInstance("EC");
     return factory.generatePublic(new ECPublicKeySpec(ecPoint, ecParameters));
+  }
+
+  private static PublicKey createRsaPublicKey(Map<Integer, Object> map, int keyType)
+      throws GeneralSecurityException {
+    if (keyType != 3) {
+      throw new GeneralSecurityException("Expected RSA key type for signature algorithm");
+    }
+    byte[] modulusBytes = requireBytes(map, -1);
+    byte[] exponentBytes = requireBytes(map, -2);
+
+    BigInteger modulus = new BigInteger(1, modulusBytes);
+    BigInteger exponent = new BigInteger(1, exponentBytes);
+
+    KeyFactory factory = KeyFactory.getInstance("RSA");
+    return factory.generatePublic(new RSAPublicKeySpec(modulus, exponent));
+  }
+
+  private static PublicKey createEd25519PublicKey(Map<Integer, Object> map, int keyType)
+      throws GeneralSecurityException {
+    if (keyType != 1) {
+      throw new GeneralSecurityException("Expected OKP key type for EdDSA algorithm");
+    }
+    int curve = requireInt(map, -1);
+    if (curve != 6) {
+      throw new GeneralSecurityException("Unsupported OKP curve id: " + curve);
+    }
+    byte[] encoded = requireBytes(map, -2);
+    if (encoded.length != 32) {
+      throw new GeneralSecurityException("Ed25519 public key must be 32 bytes");
+    }
+
+    boolean xOdd = (encoded[encoded.length - 1] & 0x80) != 0;
+    byte[] y = encoded.clone();
+    y[y.length - 1] &= 0x7F;
+
+    NamedParameterSpec parameterSpec = NamedParameterSpec.ED25519;
+    EdECPoint point = new EdECPoint(xOdd, littleEndianToBigInteger(y));
+    KeyFactory factory = KeyFactory.getInstance("Ed25519");
+    return factory.generatePublic(new EdECPublicKeySpec(parameterSpec, point));
+  }
+
+  private static Signature signatureFor(WebAuthnSignatureAlgorithm algorithm)
+      throws GeneralSecurityException {
+    return switch (algorithm) {
+      case ES256 -> Signature.getInstance("SHA256withECDSA");
+      case ES384 -> Signature.getInstance("SHA384withECDSA");
+      case ES512 -> Signature.getInstance("SHA512withECDSA");
+      case RS256 -> Signature.getInstance("SHA256withRSA");
+      case PS256 -> Signature.getInstance("RSASSA-PSS");
+      case EDDSA -> Signature.getInstance("Ed25519");
+    };
   }
 
   private static int requireInt(Map<Integer, Object> map, int key) throws GeneralSecurityException {
@@ -200,6 +294,16 @@ public final class WebAuthnAssertionVerifier {
     byte[] combined = Arrays.copyOf(first, first.length + second.length);
     System.arraycopy(second, 0, combined, first.length, second.length);
     return combined;
+  }
+
+  private static BigInteger littleEndianToBigInteger(byte[] littleEndian) {
+    byte[] reversed = littleEndian.clone();
+    for (int i = 0; i < reversed.length / 2; i++) {
+      byte tmp = reversed[i];
+      reversed[i] = reversed[reversed.length - 1 - i];
+      reversed[reversed.length - 1 - i] = tmp;
+    }
+    return new BigInteger(1, reversed);
   }
 
   private static RuntimeException failure(WebAuthnVerificationError error, String message) {

@@ -4,17 +4,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 record WebAuthnInlineEvaluationRequest(
     @JsonProperty("credentialName") String credentialName,
+    @JsonProperty("credentialId") String credentialId,
     @JsonProperty("relyingPartyId") String relyingPartyId,
     @JsonProperty("origin") String origin,
     @JsonProperty("expectedType") String expectedType,
-    @JsonProperty("credentialId") String credentialId,
-    @JsonProperty("publicKey") String publicKey,
+    @JsonProperty("algorithm") String algorithm,
     @JsonProperty("signatureCounter") Long signatureCounter,
     @JsonProperty("userVerificationRequired") Boolean userVerificationRequired,
-    @JsonProperty("algorithm") String algorithm,
-    @JsonProperty("expectedChallenge") String expectedChallenge,
-    @JsonProperty("clientData") String clientData,
-    @JsonProperty("authenticatorData") String authenticatorData,
-    @JsonProperty("signature") String signature) {
+    @JsonProperty("challenge") String challenge,
+    @JsonProperty("privateKey") String privateKey) {
   // DTO marker
 }

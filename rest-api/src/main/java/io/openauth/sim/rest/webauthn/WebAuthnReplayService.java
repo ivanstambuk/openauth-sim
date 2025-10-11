@@ -6,6 +6,7 @@ import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService.Replay
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService.ReplayResult;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -32,6 +33,14 @@ class WebAuthnReplayService {
 
   WebAuthnReplayResponse replay(WebAuthnReplayRequest request) {
     Objects.requireNonNull(request, "request");
+    Mode mode = determineMode(request);
+    return switch (mode) {
+      case STORED -> handleStoredReplay(request);
+      case INLINE -> handleInlineReplay(request);
+    };
+  }
+
+  private WebAuthnReplayResponse handleStoredReplay(WebAuthnReplayRequest request) {
     String credentialId =
         requireText(request.credentialId(), "credential_id_required", "Credential ID is required");
     String relyingPartyId =
@@ -97,6 +106,124 @@ class WebAuthnReplayService {
         "WebAuthn replay failed unexpectedly",
         Optional.ofNullable(result.telemetry().reason()).orElse("replay_failed"),
         details);
+  }
+
+  private WebAuthnReplayResponse handleInlineReplay(WebAuthnReplayRequest request) {
+    String relyingPartyId =
+        requireText(
+            request.relyingPartyId(), "relying_party_id_required", "Relying party ID is required");
+    String origin = requireText(request.origin(), "origin_required", "Origin is required");
+    String expectedType =
+        requireText(
+            request.expectedType(), "type_required", "Expected client data type is required");
+
+    byte[] credentialId = decode("credentialId", request.credentialId());
+    byte[] publicKey = decode("publicKey", request.publicKey());
+    long signatureCounter =
+        Optional.ofNullable(request.signatureCounter())
+            .orElseThrow(
+                () -> validation("signature_counter_required", "Signature counter is required"));
+    boolean userVerificationRequired =
+        Optional.ofNullable(request.userVerificationRequired()).orElse(Boolean.FALSE);
+    WebAuthnSignatureAlgorithm algorithm =
+        Optional.ofNullable(request.algorithm())
+            .map(value -> value.trim().toUpperCase(Locale.ROOT))
+            .map(WebAuthnSignatureAlgorithm::fromLabel)
+            .orElseThrow(() -> validation("algorithm_required", "Signature algorithm is required"));
+
+    byte[] challenge = decode("expectedChallenge", request.expectedChallenge());
+    byte[] clientData = decode("clientData", request.clientData());
+    byte[] authenticatorData = decode("authenticatorData", request.authenticatorData());
+    byte[] signature = decode("signature", request.signature());
+
+    ReplayResult result =
+        applicationService.replay(
+            new ReplayCommand.Inline(
+                request.credentialName(),
+                relyingPartyId,
+                origin,
+                expectedType,
+                credentialId,
+                publicKey,
+                signatureCounter,
+                userVerificationRequired,
+                algorithm,
+                challenge,
+                clientData,
+                authenticatorData,
+                signature));
+
+    String telemetryId = nextTelemetryId();
+    TelemetryFrame frame = result.replayFrame(TelemetryContracts.fido2ReplayAdapter(), telemetryId);
+    logTelemetry(frame, "inline");
+
+    Map<String, Object> combined = new LinkedHashMap<>(frame.fields());
+    result.telemetry().fields().forEach(combined::putIfAbsent);
+
+    if (result.telemetry().status() == TelemetryStatus.SUCCESS) {
+      WebAuthnReplayMetadata metadata =
+          buildMetadata(
+              result,
+              "inline",
+              combined,
+              String.valueOf(combined.getOrDefault("telemetryId", telemetryId)));
+      return new WebAuthnReplayResponse("match", result.telemetry().reasonCode(), false, metadata);
+    }
+
+    if (result.telemetry().status() == TelemetryStatus.INVALID) {
+      WebAuthnReplayMetadata metadata =
+          buildMetadata(
+              result,
+              "inline",
+              combined,
+              String.valueOf(combined.getOrDefault("telemetryId", telemetryId)));
+      Map<String, Object> details = sanitizedDetails(combined);
+      details.put("credentialSource", "inline");
+      throw validation(
+          result.telemetry().reasonCode(),
+          Optional.ofNullable(result.telemetry().reason()).orElse(result.telemetry().reasonCode()),
+          details);
+    }
+
+    Map<String, Object> details = sanitizedDetails(combined);
+    details.put("credentialSource", "inline");
+    throw unexpected(
+        "WebAuthn replay failed unexpectedly",
+        Optional.ofNullable(result.telemetry().reason()).orElse("replay_failed"),
+        details);
+  }
+
+  private Mode determineMode(WebAuthnReplayRequest request) {
+    if (hasInlineIndicators(request)) {
+      return Mode.INLINE;
+    }
+    return Mode.STORED;
+  }
+
+  private boolean hasInlineIndicators(WebAuthnReplayRequest request) {
+    if (request == null) {
+      return false;
+    }
+    if (hasText(request.publicKey())) {
+      return true;
+    }
+    if (hasText(request.algorithm())) {
+      return true;
+    }
+    if (request.signatureCounter() != null) {
+      return true;
+    }
+    if (request.userVerificationRequired() != null) {
+      return true;
+    }
+    if (hasText(request.credentialName())) {
+      return true;
+    }
+    return false;
+  }
+
+  private boolean hasText(String value) {
+    return value != null && !value.trim().isEmpty();
   }
 
   private static WebAuthnReplayMetadata buildMetadata(
@@ -196,6 +323,11 @@ class WebAuthnReplayService {
 
   private static String nextTelemetryId() {
     return "rest-fido2-" + UUID.randomUUID();
+  }
+
+  private enum Mode {
+    STORED,
+    INLINE
   }
 
   private static WebAuthnReplayValidationException validation(String reasonCode, String message) {
