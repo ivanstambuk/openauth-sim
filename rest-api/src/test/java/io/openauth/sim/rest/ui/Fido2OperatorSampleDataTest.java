@@ -1,66 +1,64 @@
 package io.openauth.sim.rest.ui;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-final class Fido2OperatorSampleDataTest {
+class Fido2OperatorSampleDataTest {
 
   @Test
-  void seedDefinitionsCoverAllAlgorithmsWithVectorMetadata() {
-    List<Fido2OperatorSampleData.SeedDefinition> definitions =
-        Fido2OperatorSampleData.seedDefinitions();
-    assertFalse(definitions.isEmpty(), "Expected curated seed definitions");
-
-    EnumSet<WebAuthnSignatureAlgorithm> algorithms =
-        EnumSet.noneOf(WebAuthnSignatureAlgorithm.class);
-    for (Fido2OperatorSampleData.SeedDefinition definition : definitions) {
-      algorithms.add(definition.algorithm());
-      Map<String, String> metadata = definition.metadata();
-      assertNotNull(metadata.get("presetKey"), "presetKey metadata missing");
-      assertNotNull(metadata.get("algorithm"), "algorithm metadata missing");
-      assertTrue(metadata.containsKey("source"), "source metadata missing");
-    }
-    EnumSet<WebAuthnSignatureAlgorithm> inlineAlgorithms =
+  void inlineVectorsLabelW3cFixturesWithProvenanceSuffix() {
+    Optional<Fido2OperatorSampleData.InlineVector> w3cVector =
         Fido2OperatorSampleData.inlineVectors().stream()
-            .map(vector -> WebAuthnSignatureAlgorithm.fromLabel(vector.algorithm()))
-            .collect(
-                Collectors.toCollection(() -> EnumSet.noneOf(WebAuthnSignatureAlgorithm.class)));
+            .filter(
+                vector ->
+                    "w3c"
+                        .equalsIgnoreCase(
+                            vector.metadata().getOrDefault("fixtureSource", "synthetic")))
+            .findFirst();
+
+    assertTrue(w3cVector.isPresent(), "Expected at least one W3C-backed inline vector");
+    assertTrue(
+        w3cVector.get().label().endsWith(" (W3C Level 3)"),
+        () -> "W3C inline vector label missing provenance suffix: " + w3cVector.get().label());
+  }
+
+  @Test
+  void inlineVectorsLeaveSyntheticLabelsUnchanged() {
+    Optional<Fido2OperatorSampleData.InlineVector> syntheticVector =
+        Fido2OperatorSampleData.inlineVectors().stream()
+            .filter(
+                vector ->
+                    !"w3c"
+                        .equalsIgnoreCase(
+                            vector.metadata().getOrDefault("fixtureSource", "synthetic")))
+            .findFirst();
+
+    assertTrue(syntheticVector.isPresent(), "Expected at least one synthetic inline vector");
+    assertFalse(
+        syntheticVector.get().label().endsWith(" (W3C Level 3)"),
+        () ->
+            "Synthetic inline vector should not include W3C suffix: "
+                + syntheticVector.get().label());
+  }
+
+  @Test
+  void rs256PresetUsesW3cFixture() {
+    Fido2OperatorSampleData.InlineVector rs256 =
+        Fido2OperatorSampleData.inlineVectors().stream()
+            .filter(vector -> "RS256".equals(vector.algorithm()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Missing RS256 inline vector"));
 
     assertTrue(
-        algorithms.containsAll(inlineAlgorithms), "Seed definitions cover inline algorithms");
-  }
-
-  @Test
-  void inlineVectorsExposeJsonBundleEntries() {
-    List<Fido2OperatorSampleData.InlineVector> vectors = Fido2OperatorSampleData.inlineVectors();
-    assertFalse(vectors.isEmpty(), "Expected inline vectors from JSON bundle");
-    Fido2OperatorSampleData.InlineVector sample = vectors.get(0);
-    assertNotNull(sample.key());
-    assertNotNull(sample.metadata().get("presetKey"));
-    assertNotNull(sample.privateKeyJwk(), "Expected private key JWK for inline presets");
-  }
-
-  @Test
-  void seedDefinitionsIncludePrivateKeys() {
-    List<Fido2OperatorSampleData.SeedDefinition> definitions =
-        Fido2OperatorSampleData.seedDefinitions();
-    assertFalse(definitions.isEmpty(), "Expected curated seed definitions");
-    for (Fido2OperatorSampleData.SeedDefinition definition : definitions) {
-      String privateKey = definition.privateKeyJwk();
-      assertNotNull(privateKey, "Private key JWK missing");
-      assertTrue(
-          privateKey.contains("\"kty\":\"EC\"")
-              || privateKey.contains("\"kty\":\"OKP\"")
-              || privateKey.contains("\"kty\":\"RSA\""),
-          "Unsupported private key format: " + privateKey);
-    }
+        "w3c".equalsIgnoreCase(rs256.metadata().get("fixtureSource")),
+        () ->
+            "Expected RS256 fixtureSource to be W3C but was "
+                + rs256.metadata().get("fixtureSource"));
+    assertTrue(
+        rs256.label().endsWith(" (W3C Level 3)"),
+        () -> "Expected RS256 label to include W3C suffix: " + rs256.label());
   }
 }

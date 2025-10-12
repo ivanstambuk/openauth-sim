@@ -97,6 +97,10 @@ public final class Fido2OperatorSampleData {
             result.put(metadataKey, metadataValue);
           }
         }
+        String fixtureSource = sampleMetadata.get("source");
+        if (fixtureSource != null && !fixtureSource.isBlank()) {
+          result.put("fixtureSource", fixtureSource);
+        }
       }
       result.put("algorithm", sample.algorithm().label());
       result.put("userVerificationRequired", Boolean.toString(sample.userVerificationRequired()));
@@ -111,7 +115,12 @@ public final class Fido2OperatorSampleData {
 
   private static String formatInlineVectorLabel(Sample sample) {
     String uvDescriptor = sample.userVerificationRequired() ? "UV required" : "UV optional";
-    return sample.algorithm().label() + " - " + uvDescriptor;
+    String baseLabel = sample.algorithm().label() + " - " + uvDescriptor;
+    String source = sample.metadata().get("source");
+    if ("w3c".equalsIgnoreCase(source)) {
+      return baseLabel + " (W3C Level 3)";
+    }
+    return baseLabel;
   }
 
   /** Descriptor used to seed canonical FIDO2/WebAuthn credentials. */

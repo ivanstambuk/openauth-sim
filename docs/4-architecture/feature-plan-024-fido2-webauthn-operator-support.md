@@ -8,6 +8,9 @@ _Last updated:_ 2025-10-12
 - Ship a parity WebAuthn assertion generation + verification experience across core, persistence, CLI, REST, and operator UI facades, mirroring HOTP/OCRA ergonomics (authenticator-style generation on Evaluate, verification on Replay).
 - Validate canonical W3C WebAuthn Level 3 §16 authentication vectors end-to-end, then extend coverage to the synthetic JSONL bundle to safeguard algorithm breadth (ES256/384/512, RS256, PS256, Ed25519).
 - Enable operators to preload curated stored credentials and inject inline assertion vectors via UI presets, with key material surfaced as JWKs.
+- Maintain a W3C-first preset policy: UI seed/preset flows use spec-authored fixtures when available, falling back to synthetic vectors only when the W3C catalogue lacks private keys.
+- Surface provenance to operators by appending “(W3C Level 3)” to preset labels sourced from the specification, keeping synthetic-only entries unlabelled.
+- Normalize RSA fixtures (RS256) to expose `{hex, base64Url}` fields so the loader can compute JWK factors directly from the specification data.
 - Maintain green coverage/quality gates (`spotlessApply`, SpotBugs, ArchUnit, reflectionScan, Jacoco ≥0.90, PIT ≥ baseline).
 
 ## Scope Alignment
@@ -19,6 +22,7 @@ _Last updated:_ 2025-10-12
 - Telemetry events must flow through `TelemetryContracts` (`application` module).
 - Operator console tab already present from Feature 020; this plan activates the FIDO2/WebAuthn content and REST wiring.
 - JSON bundle located at `docs/webauthn_assertion_vectors.json`; W3C vector conversions to be stored under `docs/webauthn_w3c_vectors/` (new).
+- Core verification suites must continue to execute against both datasets (`webauthn_w3c_vectors.json` + `webauthn_assertion_vectors.json`) so fixture parity is enforced independently of UI preferences.
 - JSON bundle stores high-entropy payloads as 16-character base64url segments to satisfy gitleaks; ingest utilities must join segments before verification.
 
 ## Increment Breakdown (≤10 min each)
@@ -28,7 +32,7 @@ Each increment stages failing tests first, drives implementation to green, and r
    - Convert targeted W3C §16 authentication vectors to Base64url fixtures under `docs/webauthn_w3c_vectors/`.  
    - Add failing core tests asserting successful verification for ES256 baseline and expected failures (RP ID mismatch, bad signature).  
    - Analysis gate: update spec clarifications with vector references.  
-   _2025-10-09 – Authored `packed-es256.properties`, added `WebAuthnAssertionVerifierTest` plus fixture loader, and confirmed red state via `./gradlew :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAssertionVerifierTest"` (throws `UnsupportedOperationException` as verifier not yet implemented)._ 
+   _2025-10-09 – Authored the initial `packed-es256` fixture (since consolidated into `webauthn_w3c_vectors.json`), added `WebAuthnAssertionVerifierTest` plus fixture loader, and confirmed red state via `./gradlew :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAssertionVerifierTest"` (throws `UnsupportedOperationException` as verifier not yet implemented)._ 
 
 2. **I2 – Verification engine skeleton**  
    - Implement minimal parser/validator in `core/fido2` package satisfying I1 tests.  
@@ -144,6 +148,14 @@ Each increment stages failing tests first, drives implementation to green, and r
     - Stage a failing UI test proving `/ui/console?protocol=fido2&fido2Mode=replay` renders the inline replay form (credential/public-key fields, telemetry inputs) instead of collapsing to the stored-only view.  
     - Adjust FIDO2 console bootstrap so deep-linked replay tabs honour the inline default before firing legacy compatibility hooks.  
     - Confirm the targeted test and `./gradlew spotlessApply check` both succeed.
+
+16. **I16 – Additional W3C §16 fixtures**  
+    - Convert the remaining WebAuthn Level 3 §16.1 authentication examples (ES256/384/512, RS256, Ed25519, platform variants) into the canonical `docs/webauthn_w3c_vectors.json`, capturing both the original hex literal and a Base64url rendering for every byte field.  
+    - Document that Level 3 currently omits a packed PS256 authentication fixture so the simulator continues relying on the synthetic JSON bundle for that algorithm until the specification adds coverage.  
+    - Extend loader utilities and unit tests to locate the new fixtures, adding at least one regression per algorithm that exercises the spec-authored data alongside the synthetic JSON bundle.  
+    - Feed generator presets with any vector that now publishes a credential private key (derive JWKs from the attested public key + private material) so CLI/REST/UI generators can exercise W3C data directly.  
+    - Update documentation (spec/plan/tasks) and rerun targeted test suites to confirm the additional fixtures compile, load, and pass verification.
+    - _2025-10-12 – Normalized `webauthn_w3c_vectors.json`, unified the fixture loader, derived EC/RSA/EdDSA JWKs for generator presets, refreshed spec/plan/tasks/knowledge-map, and reran `:core:test`, `:application:test`, `:cli:test`, `:rest-api:test`, and `spotlessApply check`._
 
 ## Risks & Mitigations
 - **Large vector set increases test time** → run JSONL suite in targeted tests (I8) with caching helpers; consider tagging for selective execution.  

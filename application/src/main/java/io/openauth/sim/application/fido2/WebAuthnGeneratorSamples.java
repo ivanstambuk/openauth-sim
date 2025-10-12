@@ -2,6 +2,8 @@ package io.openauth.sim.application.fido2;
 
 import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationCommand;
 import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationResult;
+import io.openauth.sim.core.fido2.WebAuthnFixtures;
+import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
 import io.openauth.sim.core.fido2.WebAuthnJsonVectorFixtures;
 import io.openauth.sim.core.fido2.WebAuthnJsonVectorFixtures.WebAuthnJsonVector;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
@@ -61,19 +63,17 @@ public final class WebAuthnGeneratorSamples {
   }
 
   private static List<Sample> buildSamples() {
-    EnumMap<WebAuthnSignatureAlgorithm, WebAuthnJsonVector> byAlgorithm =
+    EnumMap<WebAuthnSignatureAlgorithm, SampleBuilder> builders =
         new EnumMap<>(WebAuthnSignatureAlgorithm.class);
 
-    WebAuthnJsonVectorFixtures.loadAll()
-        .filter(vector -> hasText(vector.privateKeyJwk()))
-        .sorted(Comparator.comparing(WebAuthnJsonVector::vectorId, String.CASE_INSENSITIVE_ORDER))
-        .forEach(vector -> byAlgorithm.putIfAbsent(vector.algorithm(), vector));
+    populateFromW3cFixtures(builders);
+    populateFromSyntheticVectors(builders);
 
     List<Sample> samples = new ArrayList<>();
     for (WebAuthnSignatureAlgorithm algorithm : PRESET_ORDER) {
-      WebAuthnJsonVector vector = byAlgorithm.get(algorithm);
-      if (vector != null) {
-        samples.add(createSampleFromVector(algorithm, vector));
+      SampleBuilder builder = builders.get(algorithm);
+      if (builder != null) {
+        samples.add(builder.create());
       }
     }
 
@@ -82,6 +82,27 @@ public final class WebAuthnGeneratorSamples {
     }
 
     return List.copyOf(samples);
+  }
+
+  private static void populateFromW3cFixtures(
+      EnumMap<WebAuthnSignatureAlgorithm, SampleBuilder> builders) {
+    WebAuthnFixtures.w3cFixtures().stream()
+        .filter(fixture -> hasText(fixture.credentialPrivateKeyJwk()))
+        .sorted(Comparator.comparing(WebAuthnFixture::id, String.CASE_INSENSITIVE_ORDER))
+        .forEach(
+            fixture ->
+                builders.putIfAbsent(fixture.algorithm(), () -> createSampleFromFixture(fixture)));
+  }
+
+  private static void populateFromSyntheticVectors(
+      EnumMap<WebAuthnSignatureAlgorithm, SampleBuilder> builders) {
+    WebAuthnJsonVectorFixtures.loadAll()
+        .filter(vector -> hasText(vector.privateKeyJwk()))
+        .sorted(Comparator.comparing(WebAuthnJsonVector::vectorId, String.CASE_INSENSITIVE_ORDER))
+        .forEach(
+            vector ->
+                builders.putIfAbsent(
+                    vector.algorithm(), () -> createSampleFromVector(vector.algorithm(), vector)));
   }
 
   private static Sample createSampleFromVector(
@@ -113,7 +134,7 @@ public final class WebAuthnGeneratorSamples {
         Map.ofEntries(
             Map.entry("presetKey", presetKey),
             Map.entry("algorithm", algorithm.label()),
-            Map.entry("source", "generator-sample"),
+            Map.entry("source", "synthetic"),
             Map.entry("vectorId", vector.vectorId()),
             Map.entry("vectorRpId", vector.storedCredential().relyingPartyId()),
             Map.entry("vectorOrigin", vector.assertionRequest().origin()));
@@ -125,6 +146,55 @@ public final class WebAuthnGeneratorSamples {
         relyingPartyId,
         origin,
         vector.assertionRequest().expectedType(),
+        result.credentialId(),
+        result.challenge(),
+        result.signatureCounter(),
+        result.userVerificationRequired(),
+        privateKeyJwk,
+        result.publicKeyCose(),
+        result.clientDataJson(),
+        result.authenticatorData(),
+        result.signature(),
+        metadata);
+  }
+
+  private static Sample createSampleFromFixture(WebAuthnFixture fixture) {
+    String privateKeyJwk = fixture.credentialPrivateKeyJwk();
+    Objects.requireNonNull(privateKeyJwk, "credentialPrivateKeyJwk must be present");
+
+    String presetKey = presetKeyFor(fixture.algorithm());
+    String label =
+        fixture.algorithm().label() + " generator preset (W3C " + fixture.section() + ")";
+
+    GenerationResult result =
+        GENERATOR.generate(
+            new GenerationCommand.Inline(
+                label,
+                fixture.storedCredential().credentialId(),
+                fixture.algorithm(),
+                fixture.storedCredential().relyingPartyId(),
+                fixture.request().origin(),
+                fixture.request().expectedType(),
+                fixture.storedCredential().signatureCounter(),
+                fixture.storedCredential().userVerificationRequired(),
+                fixture.request().expectedChallenge(),
+                privateKeyJwk));
+
+    Map<String, String> metadata =
+        Map.ofEntries(
+            Map.entry("presetKey", presetKey),
+            Map.entry("algorithm", fixture.algorithm().label()),
+            Map.entry("source", "w3c"),
+            Map.entry("section", fixture.section()),
+            Map.entry("fixtureId", fixture.id()));
+
+    return new Sample(
+        presetKey,
+        label,
+        fixture.algorithm(),
+        fixture.storedCredential().relyingPartyId(),
+        fixture.request().origin(),
+        fixture.request().expectedType(),
         result.credentialId(),
         result.challenge(),
         result.signatureCounter(),
@@ -286,5 +356,10 @@ public final class WebAuthnGeneratorSamples {
 
   private static boolean hasText(String value) {
     return value != null && !value.isBlank();
+  }
+
+  @FunctionalInterface
+  private interface SampleBuilder {
+    Sample create();
   }
 }

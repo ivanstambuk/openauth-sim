@@ -7,7 +7,7 @@ _Last updated:_ 2025-10-11
 ☑ **T1 – Stage W3C vector fixtures**  
  ☑ Convert selected W3C §16 authentication vectors to Base64url fixtures under `docs/webauthn_w3c_vectors/`.  
  ☑ Add failing core verification tests (success + RP ID mismatch + signature failure cases).  
- _2025-10-09 – Created `packed-es256.properties`, introduced `WebAuthnAssertionVerifierTest`, and verified red state via `./gradlew :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAssertionVerifierTest"` (fails with `UnsupportedOperationException`)._  
+ _2025-10-09 – Created the original `packed-es256` fixture (now consolidated into `webauthn_w3c_vectors.json`), introduced `WebAuthnAssertionVerifierTest`, and verified red state via `./gradlew :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAssertionVerifierTest"` (fails with `UnsupportedOperationException`)._  
 
 ☑ **T2 – Implement verification engine**  
  ☑ Implement minimal parser/validator satisfying T1 tests (flags, RP ID hash, origin/type, signature base).  
@@ -42,6 +42,7 @@ _Last updated:_ 2025-10-11
  _2025-10-10 – Added `Fido2OperatorUiSeleniumTest` covering stored/inline evaluate, replay, and preset interactions; suite executed via `./gradlew --no-daemon :rest-api:test --rerun-tasks`, with HtmlUnit traces captured for regression auditing._  
 ☑ Implement Thymeleaf/JS updates enabling forms, preset loading, curated seed action, JWK display.  
  _2025-10-10 – Activated WebAuthn panel with sanitized telemetry, seed/fetch helpers, and sample vector presets; verified UI flows through the same `:rest-api:test` Selenium pass and a follow-up `spotlessApply check` run._  
+ _Note 2025-10-12 – Keep preset/seed helpers W3C-first: select the specification fixture when an algorithm exposes a private key and fall back to the synthetic bundle only when the W3C catalogue lacks coverage (e.g., PS256). Surface provenance by suffixing “(W3C Level 3)” in inline dropdown labels when the preset originates from the spec data._  
 ☑ Align panel layout with HOTP/TOTP/OCRA Evaluate/Replay structure while keeping JSON “Load sample vector” controls within inline forms.  
  _2025-10-10 – Restructured the FIDO2 template/console script to expose Evaluate/Replay tabs with stored/inline sub-modes, retained inline sample dropdowns, enabled inline replay, refreshed Selenium coverage, and re-ran `./gradlew --no-daemon spotlessApply check`._  
 ☑ Adjust FIDO2 evaluate/replay mode ordering to list inline parameters before stored credentials for parity with HOTP/TOTP/OCRA.  
@@ -158,3 +159,12 @@ _2025-10-11 – Placeholder parity: adjust inline preset handling so no sample i
  ☑ Normalize JSON vector payloads to single-line base64 strings, rename `publicKeyJwk` to `keyPairJwk`, and enrich JWK entries with private-key parameters.  
  ☑ Re-run `./gradlew --no-daemon spotlessApply check` after fixture updates to confirm the build remains green.  
  _2025-10-11 – Added repo-level `.gitleaks.toml` allowlisting the JSON bundles, noted the synthetic-data rationale in spec/plan, flattened fixture payloads to single-line base64 strings, tightened `WebAuthnJsonVectorFixtures` to reject list segments, emitted full key-pair JWKs, and reran `./gradlew --no-daemon spotlessApply check` (green)._  
+
+☑ **T16 – Additional W3C §16 fixtures**  
+ ☑ Normalize `docs/webauthn_w3c_vectors.json` so every hex literal is paired with a Base64url rendering; keep the file authoritative for spec-authored fixtures while retaining the synthetic bundle for complementary coverage.  
+ ☑ Replace the legacy packed-fixture loader with a unified reader that hydrates credential descriptors, assertion requests, and optional private-key material from `webauthn_w3c_vectors.json`.  
+ ☑ Derive JWK private keys from the W3C data (EC/EdDSA directly, RSA via CRT components) and surface them through `WebAuthnGeneratorSamples` so CLI/REST/UI presets can emit spec-authored assertions when available.  
+ ☑ Expand verification and generator tests to iterate over every W3C vector (not just the packed subset) alongside the synthetic bundle, guarding against regressions across algorithms and user-verification modes.  
+ ☑ Re-run focused Gradle suites (`:core:test`, `:application:test`, `:cli:test`) plus `./gradlew spotlessApply check`; capture results in the feature plan before marking the task complete.  
+ _2025-10-12 – Normalized the W3C dataset with hex/Base64url pairs, consolidated loader + CBOR utilities, generated JWK private keys (EC/EdDSA/RSA), promoted W3C presets into CLI/REST/UI samples, refreshed verification + UI Selenium suites, and completed `:core:test`, `:application:test`, `:cli:test`, and `spotlessApply check`._  
+ _2025-10-12 – Converted RS256 `private_key_p`/`private_key_q` entries from prose (`2^n - 1 = h'…'`) into canonical `{hex, base64Url}` objects so the loader can derive the JWK factors without falling back to synthetic presets._  

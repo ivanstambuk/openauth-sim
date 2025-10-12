@@ -39,6 +39,10 @@ public final class WebAuthnJsonVectorFixtures {
     return vectors.stream();
   }
 
+  static Object parseJson(String input) {
+    return JsonParser.parse(input);
+  }
+
   private static WebAuthnJsonVector toVector(Map<String, Object> root) {
     String vectorId = requireString(root, "vector_id");
 

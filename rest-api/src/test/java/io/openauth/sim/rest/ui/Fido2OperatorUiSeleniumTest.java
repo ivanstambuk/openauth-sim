@@ -686,9 +686,14 @@ final class Fido2OperatorUiSeleniumTest {
   }
 
   private static String expectedInlineLabel(Sample sample) {
-    return sample.algorithm().label()
-        + " - "
-        + (sample.userVerificationRequired() ? "UV required" : "UV optional");
+    String baseLabel =
+        sample.algorithm().label()
+            + " - "
+            + (sample.userVerificationRequired() ? "UV required" : "UV optional");
+    if ("w3c".equalsIgnoreCase(sample.metadata().get("source"))) {
+      return baseLabel + " (W3C Level 3)";
+    }
+    return baseLabel;
   }
 
   private String baseUrl(String path) {

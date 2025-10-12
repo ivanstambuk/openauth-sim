@@ -170,7 +170,7 @@ public final class WebAuthnAssertionVerifier {
 
   private static PublicKey createPublicKeyFromCose(
       byte[] coseKey, WebAuthnSignatureAlgorithm algorithm) throws GeneralSecurityException {
-    Map<Integer, Object> map = new CborReader(coseKey).readMap();
+    Map<Integer, Object> map = decodeCoseMap(coseKey);
 
     int kty = requireInt(map, 1);
     int coseAlgorithm = requireInt(map, 3);
@@ -320,76 +320,19 @@ public final class WebAuthnAssertionVerifier {
     }
   }
 
-  private static final class CborReader {
-    private final byte[] data;
-    private int index;
-
-    CborReader(byte[] data) {
-      this.data = Objects.requireNonNull(data, "data");
+  private static Map<Integer, Object> decodeCoseMap(byte[] coseKey)
+      throws GeneralSecurityException {
+    Object decoded = CborDecoder.decode(coseKey);
+    if (!(decoded instanceof Map<?, ?> rawMap)) {
+      throw new GeneralSecurityException("COSE key is not a CBOR map");
     }
-
-    Map<Integer, Object> readMap() throws GeneralSecurityException {
-      int initial = readUnsignedByte();
-      int majorType = initial >>> 5;
-      int additional = initial & 0x1F;
-      if (majorType != 5) {
-        throw new GeneralSecurityException("Expected CBOR map");
+    Map<Integer, Object> map = new HashMap<>(rawMap.size());
+    for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+      if (!(entry.getKey() instanceof Number number)) {
+        throw new GeneralSecurityException("COSE key contains non-numeric field identifiers");
       }
-      int entries = (int) readLength(additional);
-      Map<Integer, Object> map = new HashMap<>(entries);
-      for (int i = 0; i < entries; i++) {
-        Object keyObject = readData();
-        Object value = readData();
-        if (!(keyObject instanceof Number number)) {
-          throw new GeneralSecurityException("Unsupported CBOR key type");
-        }
-        map.put(number.intValue(), value);
-      }
-      return map;
+      map.put(number.intValue(), entry.getValue());
     }
-
-    private Object readData() throws GeneralSecurityException {
-      int initial = readUnsignedByte();
-      int majorType = initial >>> 5;
-      int additional = initial & 0x1F;
-
-      return switch (majorType) {
-        case 0 -> readLength(additional); // unsigned integer
-        case 1 -> -1 - readLength(additional); // negative integer
-        case 2 -> {
-          int length = (int) readLength(additional);
-          if (index + length > data.length) {
-            throw new GeneralSecurityException("Byte string overruns buffer");
-          }
-          byte[] bytes = Arrays.copyOfRange(data, index, index + length);
-          index += length;
-          yield bytes;
-        }
-        default -> throw new GeneralSecurityException("Unsupported CBOR major type: " + majorType);
-      };
-    }
-
-    private long readLength(int additional) throws GeneralSecurityException {
-      if (additional <= 23) {
-        return additional;
-      }
-      int lengthBytes =
-          switch (additional) {
-            case 24 -> 1;
-            case 25 -> 2;
-            case 26 -> 4;
-            case 27 -> 8;
-            default -> throw new GeneralSecurityException("Unsupported CBOR length encoding");
-          };
-      long value = 0;
-      for (int i = 0; i < lengthBytes; i++) {
-        value = (value << 8) | readUnsignedByte();
-      }
-      return value;
-    }
-
-    private int readUnsignedByte() {
-      return data[index++] & 0xFF;
-    }
+    return map;
   }
 }

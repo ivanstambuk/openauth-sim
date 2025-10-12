@@ -5,7 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class WebAuthnAssertionVerifierTest {
 
@@ -13,12 +16,23 @@ class WebAuthnAssertionVerifierTest {
 
   private final WebAuthnAssertionVerifier verifier = new WebAuthnAssertionVerifier();
 
-  @Test
-  void verifiesPackedEs256Vector() {
+  @ParameterizedTest
+  @MethodSource("w3cFixtures")
+  void verifiesSpecFixtures(WebAuthnFixture fixture) {
     WebAuthnVerificationResult result =
-        verifier.verify(PACKED_ES256.storedCredential(), PACKED_ES256.request());
+        verifier.verify(fixture.storedCredential(), fixture.request());
 
-    assertTrue(result.success());
+    assertTrue(
+        result.success(),
+        () ->
+            "Fixture should verify: "
+                + fixture.id()
+                + " error="
+                + result.error().map(Enum::name).orElse("none"));
+  }
+
+  private static Stream<WebAuthnFixture> w3cFixtures() {
+    return WebAuthnFixtures.w3cFixtures().stream();
   }
 
   @Test
