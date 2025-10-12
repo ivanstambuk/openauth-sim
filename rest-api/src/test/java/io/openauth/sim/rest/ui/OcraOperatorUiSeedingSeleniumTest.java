@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.rest.ui.OcraOperatorSampleData.SampleDefinition;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
@@ -30,12 +31,10 @@ import org.springframework.test.context.DynamicPropertySource;
 final class OcraOperatorUiSeedingSeleniumTest {
 
   private static final List<String> CANONICAL_SUITES =
-      List.of(
-          "OCRA-1:HOTP-SHA256-8:QA08-S064",
-          "OCRA-1:HOTP-SHA256-8:QA08-S128",
-          "OCRA-1:HOTP-SHA256-8:QA08-S256",
-          "OCRA-1:HOTP-SHA256-8:QA08-S512",
-          "OCRA-1:HOTP-SHA256-6:C-QH64");
+      OcraOperatorSampleData.seedDefinitions().stream()
+          .map(SampleDefinition::suite)
+          .distinct()
+          .toList();
 
   @TempDir static Path tempDir;
   private static Path databasePath;

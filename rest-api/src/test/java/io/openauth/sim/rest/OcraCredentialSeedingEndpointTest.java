@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.rest.ui.OcraOperatorSampleData;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,12 +40,10 @@ final class OcraCredentialSeedingEndpointTest {
   private static final Logger TELEMETRY_LOGGER =
       Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
   private static final List<String> CANONICAL_SUITES =
-      List.of(
-          "OCRA-1:HOTP-SHA256-8:QA08-S064",
-          "OCRA-1:HOTP-SHA256-8:QA08-S128",
-          "OCRA-1:HOTP-SHA256-8:QA08-S256",
-          "OCRA-1:HOTP-SHA256-8:QA08-S512",
-          "OCRA-1:HOTP-SHA256-6:C-QH64");
+      OcraOperatorSampleData.seedDefinitions().stream()
+          .map(OcraOperatorSampleData.SampleDefinition::suite)
+          .distinct()
+          .collect(Collectors.toUnmodifiableList());
 
   @TempDir static Path tempDir;
   private static Path databasePath;

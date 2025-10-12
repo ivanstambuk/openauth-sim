@@ -35,16 +35,29 @@ final class TotpOperatorUiSeedingSeleniumTest {
 
   private static final List<SeedExpectation> CANONICAL_CREDENTIALS =
       List.of(
+          new SeedExpectation("ui-totp-sample-sha1-6", "SHA-1, 6 digits, 30s", "SHA1", 6, 30, 1, 1),
           new SeedExpectation(
-              "ui-totp-demo", "ui-totp-demo (SHA1, 6 digits, 30s step)", "SHA1", 6, 30, 1, 1),
+              "ui-totp-sample-sha1-8", "SHA-1, 8 digits, 30s (RFC 6238)", "SHA1", 8, 30, 1, 1),
           new SeedExpectation(
-              "ui-totp-demo-sha512",
-              "ui-totp-demo-sha512 (SHA512, 8 digits, 60s step)",
+              "ui-totp-sample-sha256-6", "SHA-256, 6 digits, 30s", "SHA256", 6, 30, 1, 1),
+          new SeedExpectation(
+              "ui-totp-sample-sha256-8",
+              "SHA-256, 8 digits, 30s (RFC 6238)",
+              "SHA256",
+              8,
+              30,
+              1,
+              1),
+          new SeedExpectation(
+              "ui-totp-sample-sha512-6", "SHA-512, 6 digits, 30s", "SHA512", 6, 30, 1, 1),
+          new SeedExpectation(
+              "ui-totp-sample-sha512-8",
+              "SHA-512, 8 digits, 30s (RFC 6238)",
               "SHA512",
               8,
-              60,
-              2,
-              2));
+              30,
+              1,
+              1));
 
   @TempDir static Path tempDir;
   private static Path databasePath;

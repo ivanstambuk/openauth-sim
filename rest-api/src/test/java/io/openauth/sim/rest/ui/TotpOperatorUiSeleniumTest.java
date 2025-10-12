@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,7 +46,7 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 final class TotpOperatorUiSeleniumTest {
 
-  private static final String STORED_CREDENTIAL_ID = "ui-totp-demo";
+  private static final String STORED_CREDENTIAL_ID = "ui-totp-sample-sha1-6";
   private static final SecretMaterial STORED_SECRET =
       SecretMaterial.fromStringUtf8("1234567890123456789012");
   private static final TotpDescriptor STORED_DESCRIPTOR =
@@ -89,6 +90,14 @@ final class TotpOperatorUiSeleniumTest {
   private static final Instant INLINE_SAMPLE_TIMESTAMP = Instant.ofEpochSecond(59L);
   private static final String INLINE_SAMPLE_EXPECTED_OTP =
       TotpGenerator.generate(INLINE_SAMPLE_DESCRIPTOR, INLINE_SAMPLE_TIMESTAMP);
+  private static final List<String> INLINE_SAMPLE_PRESET_KEYS =
+      List.of(
+          "inline-rfc6238-sha1",
+          "inline-rfc6238-sha256-6",
+          "inline-rfc6238-sha256-8",
+          "inline-rfc6238-sha512-6",
+          "inline-rfc6238-sha512-8",
+          "inline-ui-totp-demo");
 
   @TempDir static Path tempDir;
   private static Path databasePath;
@@ -169,14 +178,14 @@ final class TotpOperatorUiSeleniumTest {
         waitForVisible(By.cssSelector("[data-testid='totp-stored-result-panel']"));
     String panelText = resultPanel.getText();
     assertTrue(
-        panelText.contains("validated"), "Stored TOTP result should surface validated status");
-    assertTrue(
-        panelText.contains("Matched skew steps"),
-        "Stored TOTP result should list matched skew steps metadata");
+        panelText.contains("OTP"), "Stored TOTP result should display the evaluated OTP label");
+    WebElement otpValue =
+        resultPanel.findElement(By.cssSelector("[data-testid='totp-result-otp']"));
+    assertEquals(EXPECTED_STORED_OTP, otpValue.getText().trim());
 
-    WebElement reasonCode =
-        resultPanel.findElement(By.cssSelector("[data-testid='totp-result-reason-code']"));
-    assertEquals("validated", reasonCode.getText().trim());
+    WebElement statusBadge =
+        resultPanel.findElement(By.cssSelector("[data-testid='totp-result-status']"));
+    assertEquals("validated", statusBadge.getText().trim().toLowerCase());
   }
 
   @Test
@@ -268,12 +277,15 @@ final class TotpOperatorUiSeleniumTest {
             presetContainer.findElement(
                 By.cssSelector("[data-testid='totp-inline-preset-select']")));
     assertTrue(
-        presetSelect.getOptions().size() >= 2,
-        "Inline preset dropdown should expose multiple sample options");
-    boolean sampleExists =
+        presetSelect.getOptions().size() >= INLINE_SAMPLE_PRESET_KEYS.size(),
+        "Inline preset dropdown should expose all expected sample options");
+    List<String> inlineOptionValues =
         presetSelect.getOptions().stream()
-            .anyMatch(option -> INLINE_SAMPLE_PRESET_KEY.equals(option.getAttribute("value")));
-    assertTrue(sampleExists, "Expected inline preset dropdown to expose RFC 6238 sample");
+            .map(option -> option.getAttribute("value"))
+            .collect(Collectors.toList());
+    assertTrue(
+        inlineOptionValues.containsAll(INLINE_SAMPLE_PRESET_KEYS),
+        "Inline preset dropdown should list all RFC 6238 variants");
 
     presetSelect.selectByValue(INLINE_SAMPLE_PRESET_KEY);
 
@@ -406,12 +418,15 @@ final class TotpOperatorUiSeleniumTest {
             presetContainer.findElement(
                 By.cssSelector("[data-testid='totp-replay-inline-preset-select']")));
     assertTrue(
-        presetSelect.getOptions().size() >= 2,
-        "Replay inline preset dropdown should expose multiple sample options");
-    boolean sampleOptionExists =
+        presetSelect.getOptions().size() >= INLINE_SAMPLE_PRESET_KEYS.size(),
+        "Replay inline preset dropdown should expose all expected sample options");
+    List<String> replayOptionValues =
         presetSelect.getOptions().stream()
-            .anyMatch(option -> INLINE_SAMPLE_PRESET_KEY.equals(option.getAttribute("value")));
-    assertTrue(sampleOptionExists, "Expected replay preset dropdown to expose RFC 6238 sample");
+            .map(option -> option.getAttribute("value"))
+            .collect(Collectors.toList());
+    assertTrue(
+        replayOptionValues.containsAll(INLINE_SAMPLE_PRESET_KEYS),
+        "Replay inline preset dropdown should list all RFC 6238 variants");
 
     presetSelect.selectByValue(INLINE_SAMPLE_PRESET_KEY);
 
@@ -860,9 +875,9 @@ final class TotpOperatorUiSeleniumTest {
     Credential serialized =
         VersionedCredentialRecordMapper.toCredential(adapter.serialize(STORED_DESCRIPTOR));
     Map<String, String> attributes = new LinkedHashMap<>(serialized.attributes());
-    attributes.put("totp.metadata.presetKey", "ui-totp-demo");
-    attributes.put("totp.metadata.presetLabel", "Seeded stored TOTP credential");
-    attributes.put("totp.metadata.notes", "Seeded TOTP credential (test fixture)");
+    attributes.put("totp.metadata.presetKey", "inline-ui-totp-demo");
+    attributes.put("totp.metadata.presetLabel", "SHA-1, 6 digits, 30s");
+    attributes.put("totp.metadata.notes", "Seeded TOTP credential (inline demo preset)");
     attributes.put(
         "totp.metadata.sampleTimestamp", Long.toString(STORED_TIMESTAMP.getEpochSecond()));
     return new Credential(

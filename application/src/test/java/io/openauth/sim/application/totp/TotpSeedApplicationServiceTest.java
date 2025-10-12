@@ -28,34 +28,46 @@ import org.junit.jupiter.api.Test;
  */
 final class TotpSeedApplicationServiceTest {
 
-  private static final String CANONICAL_ID_SHA1 = "ui-totp-demo";
-  private static final String CANONICAL_ID_SHA512 = "ui-totp-demo-sha512";
-  private static final SecretMaterial CANONICAL_SECRET =
-      SecretMaterial.fromStringUtf8("1234567890123456789012");
+  private static final String SECRET_SHA1_DEMO_HEX = "31323334353637383930313233343536373839303132";
+  private static final String SECRET_SHA1_INLINE_HEX = "3132333435363738393031323334353637383930";
+  private static final String SECRET_SHA256_HEX =
+      "3132333435363738393031323334353637383930313233343536373839303132";
+  private static final String SECRET_SHA512_HEX =
+      "31323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334";
+
+  private static final List<SeedSample> CANONICAL_SAMPLES =
+      List.of(
+          new SeedSample(
+              "ui-totp-sample-sha1-6", SECRET_SHA1_DEMO_HEX, TotpHashAlgorithm.SHA1, 6, 30, 1, 1),
+          new SeedSample(
+              "ui-totp-sample-sha1-8", SECRET_SHA1_INLINE_HEX, TotpHashAlgorithm.SHA1, 8, 30, 1, 1),
+          new SeedSample(
+              "ui-totp-sample-sha256-6", SECRET_SHA256_HEX, TotpHashAlgorithm.SHA256, 6, 30, 1, 1),
+          new SeedSample(
+              "ui-totp-sample-sha256-8", SECRET_SHA256_HEX, TotpHashAlgorithm.SHA256, 8, 30, 1, 1),
+          new SeedSample(
+              "ui-totp-sample-sha512-6", SECRET_SHA512_HEX, TotpHashAlgorithm.SHA512, 6, 30, 1, 1),
+          new SeedSample(
+              "ui-totp-sample-sha512-8", SECRET_SHA512_HEX, TotpHashAlgorithm.SHA512, 8, 30, 1, 1));
 
   private final TotpCredentialPersistenceAdapter adapter = new TotpCredentialPersistenceAdapter();
   private final CapturingCredentialStore credentialStore = new CapturingCredentialStore();
 
-  private TotpSeedApplicationService.SeedCommand sha1SeedCommand() {
-    return new TotpSeedApplicationService.SeedCommand(
-        CANONICAL_ID_SHA1,
-        CANONICAL_SECRET.asHex(),
-        TotpHashAlgorithm.SHA1,
-        6,
-        Duration.ofSeconds(30),
-        TotpDriftWindow.of(1, 1),
-        Map.of("ui.label", "TOTP demo credential (SHA1, 6 digits, 30s step)"));
+  private List<TotpSeedApplicationService.SeedCommand> canonicalCommands() {
+    return CANONICAL_SAMPLES.stream().map(this::toSeedCommand).toList();
   }
 
-  private TotpSeedApplicationService.SeedCommand sha512SeedCommand() {
+  private TotpSeedApplicationService.SeedCommand toSeedCommand(SeedSample sample) {
+    Map<String, String> metadata =
+        Map.of("presetKey", sample.credentialId(), "presetLabel", sample.credentialId());
     return new TotpSeedApplicationService.SeedCommand(
-        CANONICAL_ID_SHA512,
-        CANONICAL_SECRET.asHex(),
-        TotpHashAlgorithm.SHA512,
-        8,
-        Duration.ofSeconds(60),
-        TotpDriftWindow.of(2, 2),
-        Map.of("ui.label", "TOTP demo credential (SHA512, 8 digits, 60s step)"));
+        sample.credentialId(),
+        sample.sharedSecretHex(),
+        sample.algorithm(),
+        sample.digits(),
+        Duration.ofSeconds(sample.stepSeconds()),
+        TotpDriftWindow.of(sample.driftBackward(), sample.driftForward()),
+        metadata);
   }
 
   @BeforeEach
@@ -69,61 +81,69 @@ final class TotpSeedApplicationServiceTest {
     TotpSeedApplicationService service = new TotpSeedApplicationService();
 
     TotpSeedApplicationService.SeedResult result =
-        service.seed(List.of(sha1SeedCommand(), sha512SeedCommand()), credentialStore);
+        service.seed(canonicalCommands(), credentialStore);
 
-    List<String> expectedIds = List.of(CANONICAL_ID_SHA1, CANONICAL_ID_SHA512);
-    assertEquals(
-        expectedIds.stream().sorted().toList(),
-        result.addedCredentialIds().stream().sorted().toList());
+    List<String> expectedIds =
+        CANONICAL_SAMPLES.stream().map(SeedSample::credentialId).sorted().toList();
+    assertEquals(expectedIds, result.addedCredentialIds().stream().sorted().toList());
 
     List<Credential> persisted = credentialStore.findAll();
-    assertEquals(2, persisted.size());
+    assertEquals(CANONICAL_SAMPLES.size(), persisted.size());
 
-    Credential sha1Credential = credentialStore.findByName(CANONICAL_ID_SHA1).orElseThrow();
-    assertEquals(CredentialType.OATH_TOTP, sha1Credential.type());
-    assertEquals("SHA1", sha1Credential.attributes().get("totp.algorithm"));
-    assertEquals("6", sha1Credential.attributes().get("totp.digits"));
-    assertEquals("30", sha1Credential.attributes().get("totp.stepSeconds"));
-    assertEquals("1", sha1Credential.attributes().get("totp.drift.backward"));
-    assertEquals("1", sha1Credential.attributes().get("totp.drift.forward"));
-
-    Credential sha512Credential = credentialStore.findByName(CANONICAL_ID_SHA512).orElseThrow();
-    assertEquals(CredentialType.OATH_TOTP, sha512Credential.type());
-    assertEquals("SHA512", sha512Credential.attributes().get("totp.algorithm"));
-    assertEquals("8", sha512Credential.attributes().get("totp.digits"));
-    assertEquals("60", sha512Credential.attributes().get("totp.stepSeconds"));
-    assertEquals("2", sha512Credential.attributes().get("totp.drift.backward"));
-    assertEquals("2", sha512Credential.attributes().get("totp.drift.forward"));
+    for (SeedSample sample : CANONICAL_SAMPLES) {
+      Credential credential = credentialStore.findByName(sample.credentialId()).orElseThrow();
+      Map<String, String> attributes = credential.attributes();
+      assertEquals(CredentialType.OATH_TOTP, credential.type());
+      assertEquals(sample.algorithm().name(), attributes.get("totp.algorithm"));
+      assertEquals(Integer.toString(sample.digits()), attributes.get("totp.digits"));
+      assertEquals(Long.toString(sample.stepSeconds()), attributes.get("totp.stepSeconds"));
+      assertEquals(Integer.toString(sample.driftBackward()), attributes.get("totp.drift.backward"));
+      assertEquals(Integer.toString(sample.driftForward()), attributes.get("totp.drift.forward"));
+    }
 
     assertIterableEquals(
-        List.of(
-            Operation.save(CANONICAL_ID_SHA1, CredentialType.OATH_TOTP),
-            Operation.save(CANONICAL_ID_SHA512, CredentialType.OATH_TOTP)),
+        CANONICAL_SAMPLES.stream()
+            .map(sample -> Operation.save(sample.credentialId(), CredentialType.OATH_TOTP))
+            .toList(),
         credentialStore.operations());
   }
 
   @Test
   @DisplayName("Skips seeding when canonical identifiers already exist")
   void skipsExistingCanonicalCredentials() {
-    credentialStore.save(
-        serializeDescriptor(
-            TotpDescriptor.create(
-                CANONICAL_ID_SHA1,
-                CANONICAL_SECRET,
-                TotpHashAlgorithm.SHA1,
-                6,
-                Duration.ofSeconds(30),
-                TotpDriftWindow.of(1, 1))));
+    SeedSample existing = CANONICAL_SAMPLES.get(0);
+    credentialStore.save(serializeSample(existing));
     credentialStore.resetOperations();
 
     TotpSeedApplicationService service = new TotpSeedApplicationService();
     TotpSeedApplicationService.SeedResult result =
-        service.seed(List.of(sha1SeedCommand(), sha512SeedCommand()), credentialStore);
+        service.seed(canonicalCommands(), credentialStore);
 
-    assertEquals(List.of(CANONICAL_ID_SHA512), result.addedCredentialIds());
+    List<String> expectedIds =
+        CANONICAL_SAMPLES.stream()
+            .map(SeedSample::credentialId)
+            .filter(id -> !id.equals(existing.credentialId()))
+            .sorted()
+            .toList();
+    assertEquals(expectedIds, result.addedCredentialIds().stream().sorted().toList());
     assertIterableEquals(
-        List.of(Operation.save(CANONICAL_ID_SHA512, CredentialType.OATH_TOTP)),
+        CANONICAL_SAMPLES.stream()
+            .filter(sample -> !sample.equals(existing))
+            .map(sample -> Operation.save(sample.credentialId(), CredentialType.OATH_TOTP))
+            .toList(),
         credentialStore.operations());
+  }
+
+  private Credential serializeSample(SeedSample sample) {
+    TotpDescriptor descriptor =
+        TotpDescriptor.create(
+            sample.credentialId(),
+            SecretMaterial.fromHex(sample.sharedSecretHex()),
+            sample.algorithm(),
+            sample.digits(),
+            Duration.ofSeconds(sample.stepSeconds()),
+            TotpDriftWindow.of(sample.driftBackward(), sample.driftForward()));
+    return serializeDescriptor(descriptor);
   }
 
   private Credential serializeDescriptor(TotpDescriptor descriptor) {
@@ -193,5 +213,16 @@ final class TotpSeedApplicationServiceTest {
   private enum OperationType {
     SAVE,
     DELETE
+  }
+
+  private record SeedSample(
+      String credentialId,
+      String sharedSecretHex,
+      TotpHashAlgorithm algorithm,
+      int digits,
+      long stepSeconds,
+      int driftBackward,
+      int driftForward) {
+    // Marker record describing canonical seed expectations.
   }
 }

@@ -108,8 +108,8 @@ class TotpStoredSampleEndpointTest {
 
     JsonNode metadataNode = response.path("metadata");
     assertThat(metadataNode.isMissingNode()).isFalse();
-    assertEquals("ui-totp-demo", metadataNode.path("samplePresetKey").asText());
-    assertEquals("Seeded stored TOTP credential", metadataNode.path("samplePresetLabel").asText());
+    assertEquals("inline-ui-totp-demo", metadataNode.path("samplePresetKey").asText());
+    assertEquals("SHA-1, 6 digits, 30s", metadataNode.path("samplePresetLabel").asText());
     assertEquals("Seeded TOTP credential (test fixture)", metadataNode.path("notes").asText());
 
     Credential persisted = credentialStore.findByName(CREDENTIAL_ID).orElseThrow();
@@ -128,50 +128,53 @@ class TotpStoredSampleEndpointTest {
   }
 
   @Test
-  @DisplayName("Stored SHA-512 seed sample returns deterministic payload")
-  void storedSha512SeedSampleReturnsPayload() throws Exception {
-    SampleDefinition definition =
-        TotpOperatorSampleData.seedDefinitions().stream()
-            .filter(sample -> sample.credentialId().equals("ui-totp-demo-sha512"))
-            .findFirst()
-            .orElseThrow();
+  @DisplayName("Stored seed samples return deterministic payloads")
+  void storedSeedSamplesReturnPayloads() throws Exception {
+    for (SampleDefinition definition : TotpOperatorSampleData.seedDefinitions()) {
+      credentialStore.save(storedCredential(definition));
+      try {
+        String responseBody =
+            mockMvc
+                .perform(
+                    get("/api/v1/totp/credentials/{credentialId}/sample", definition.credentialId())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-    credentialStore.save(storedCredential(definition));
+        JsonNode response = JSON.readTree(responseBody);
+        assertEquals(definition.credentialId(), response.path("credentialId").asText());
+        assertEquals(definition.algorithm().name(), response.path("algorithm").asText());
+        assertEquals(definition.digits(), response.path("digits").asInt());
+        assertEquals(definition.stepSeconds(), response.path("stepSeconds").asLong());
+        assertEquals(definition.driftBackwardSteps(), response.path("driftBackward").asInt());
+        assertEquals(definition.driftForwardSteps(), response.path("driftForward").asInt());
 
-    String responseBody =
-        mockMvc
-            .perform(
-                get("/api/v1/totp/credentials/{credentialId}/sample", definition.credentialId())
-                    .accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+        long timestamp = response.path("timestamp").asLong();
+        TotpDescriptor descriptor =
+            TotpDescriptor.create(
+                definition.credentialId(),
+                SecretMaterial.fromHex(definition.sharedSecretHex()),
+                definition.algorithm(),
+                definition.digits(),
+                Duration.ofSeconds(definition.stepSeconds()),
+                TotpDriftWindow.of(
+                    definition.driftBackwardSteps(), definition.driftForwardSteps()));
+        String expectedOtp = TotpGenerator.generate(descriptor, Instant.ofEpochSecond(timestamp));
+        assertEquals(expectedOtp, response.path("otp").asText());
 
-    JsonNode response = JSON.readTree(responseBody);
-    assertEquals(definition.credentialId(), response.path("credentialId").asText());
-    assertEquals(definition.algorithm().name(), response.path("algorithm").asText());
-    assertEquals(definition.digits(), response.path("digits").asInt());
-    assertEquals(definition.stepSeconds(), response.path("stepSeconds").asLong());
-    assertEquals(definition.driftBackwardSteps(), response.path("driftBackward").asInt());
-    assertEquals(definition.driftForwardSteps(), response.path("driftForward").asInt());
-
-    long timestamp = response.path("timestamp").asLong();
-    TotpDescriptor descriptor =
-        TotpDescriptor.create(
-            definition.credentialId(),
-            SecretMaterial.fromHex(definition.sharedSecretHex()),
-            definition.algorithm(),
-            definition.digits(),
-            Duration.ofSeconds(definition.stepSeconds()),
-            TotpDriftWindow.of(definition.driftBackwardSteps(), definition.driftForwardSteps()));
-    String expectedOtp = TotpGenerator.generate(descriptor, Instant.ofEpochSecond(timestamp));
-    assertEquals(expectedOtp, response.path("otp").asText());
-
-    JsonNode metadata = response.path("metadata");
-    assertEquals(definition.metadata().get("presetKey"), metadata.path("samplePresetKey").asText());
-    assertEquals(definition.metadata().get("label"), metadata.path("label").asText());
-    assertEquals(definition.metadata().get("notes"), metadata.path("notes").asText());
+        JsonNode metadata = response.path("metadata");
+        assertEquals(
+            definition.metadata().get("presetKey"), metadata.path("samplePresetKey").asText());
+        assertEquals(definition.metadata().get("label"), metadata.path("label").asText());
+        assertEquals(
+            definition.metadata().get("presetLabel"), metadata.path("samplePresetLabel").asText());
+        assertEquals(definition.metadata().get("notes"), metadata.path("notes").asText());
+      } finally {
+        credentialStore.delete(definition.credentialId());
+      }
+    }
   }
 
   private Credential storedCredential(Map<String, String> metadata) {
@@ -217,8 +220,8 @@ class TotpStoredSampleEndpointTest {
 
   private Map<String, String> metadata() {
     Map<String, String> metadata = new LinkedHashMap<>();
-    metadata.put("presetKey", "ui-totp-demo");
-    metadata.put("presetLabel", "Seeded stored TOTP credential");
+    metadata.put("presetKey", "inline-ui-totp-demo");
+    metadata.put("presetLabel", "SHA-1, 6 digits, 30s");
     metadata.put("notes", "Seeded TOTP credential (test fixture)");
     metadata.put("sampleTimestamp", Long.toString(SAMPLE_TIMESTAMP));
     return metadata;

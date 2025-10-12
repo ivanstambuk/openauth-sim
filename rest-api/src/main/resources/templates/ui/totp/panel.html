@@ -404,46 +404,17 @@
                   aria-labelledby="totp-stored-result-heading"
                   hidden="hidden"
                 >
-                <h3 id="totp-stored-result-heading">Stored credential result</h3>
+                <h3 id="totp-stored-result-heading">Evaluation result</h3>
+                <p class="result-inline" data-testid="totp-stored-otp-row">
+                  OTP:
+                  <strong data-testid="totp-result-otp">—</strong>
+                </p>
                 <dl class="result-metadata">
                   <div class="result-row">
                     <dt>Status</dt>
                     <dd>
                       <span class="status-badge" data-testid="totp-result-status">—</span>
                     </dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Reason code</dt>
-                    <dd>
-                      <span data-testid="totp-result-reason-code">—</span>
-                    </dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Matched skew steps</dt>
-                    <dd data-testid="totp-result-skew">—</dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Algorithm</dt>
-                    <dd data-testid="totp-result-algorithm">—</dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Digits</dt>
-                    <dd data-testid="totp-result-digits">—</dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Step seconds</dt>
-                    <dd data-testid="totp-result-step">—</dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Drift window</dt>
-                    <dd>
-                      <span data-testid="totp-result-drift-backward">—</span> backward /
-                      <span data-testid="totp-result-drift-forward">—</span> forward
-                    </dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Telemetry ID</dt>
-                    <dd data-testid="totp-result-telemetry">—</dd>
                   </div>
                 </dl>
               </section>
@@ -455,23 +426,17 @@
                   aria-labelledby="totp-inline-result-heading"
                   hidden="hidden"
                 >
-                <h3 id="totp-inline-result-heading">Inline evaluation result</h3>
+                <h3 id="totp-inline-result-heading">Evaluation result</h3>
+                <p class="result-inline" data-testid="totp-inline-otp-row">
+                  OTP:
+                  <strong data-testid="totp-result-otp">—</strong>
+                </p>
                 <dl class="result-metadata">
                   <div class="result-row">
                     <dt>Status</dt>
                     <dd>
                       <span class="status-badge" data-testid="totp-inline-result-status">—</span>
                     </dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Reason code</dt>
-                    <dd>
-                      <span data-testid="totp-inline-result-reason-code">—</span>
-                    </dd>
-                  </div>
-                  <div class="result-row">
-                    <dt>Telemetry ID</dt>
-                    <dd data-testid="totp-inline-result-telemetry">—</dd>
                   </div>
                 </dl>
               </section>

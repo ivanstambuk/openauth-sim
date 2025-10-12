@@ -92,7 +92,7 @@ This living map captures the explicit relationships between modules, data flows,
 - Ocra credential factory provides a package-private telemetry logger accessor so validation logging assertions remain reflection-free.
 - Operator UI templates expose an accessible mode toggle (inline vs credential) and a sanitized telemetry summary panel so escalations reuse REST metadata without revealing secrets.
 - Operator UI submissions now rely on asynchronous JSON `fetch` calls (with an XMLHttpRequest fallback for HtmlUnit) to invoke `/api/v1/ocra/evaluate`, rendering result/error panels client-side while the server-side controller remains read-only.
-- Inline policy presets surface curated OCRA test vectors in the UI, auto-filling inline evaluation fields for QA and operator training.
+- Inline policy presets surface curated OCRA test vectors in the UI, now covering one representative for every RFC 6287 Appendix C suite plus the draft-only `OCRA-1:HOTP-SHA256-6:C-QH64` example so inline evaluations and canonical seeds remain aligned.
 - Ocra operator sample catalog centralises inline presets and canonical seeding definitions so UI tests and REST endpoints remain in sync without re-encoding RFC datasets.
 - REST seeding endpoint delegates credential creation to the application-layer `OcraSeedApplicationService`, ensuring facades no longer instantiate core factories directly while supporting append-only MapDB inserts.
 - Operator console now reveals the seeding control only when stored credential mode is active, keeping inline-mode evaluations uncluttered while still allowing append-only seeding flows.

@@ -71,8 +71,8 @@ final class TotpSampleApplicationServiceTest {
         TotpGenerator.generate(descriptor, Instant.ofEpochSecond(SAMPLE_TIMESTAMP));
     assertEquals(expectedOtp, sample.otp(), "Sample should include deterministic OTP");
 
-    assertEquals("ui-totp-demo", sample.metadata().get("samplePresetKey"));
-    assertEquals("Seeded stored TOTP credential", sample.metadata().get("samplePresetLabel"));
+    assertEquals("inline-ui-totp-demo", sample.metadata().get("samplePresetKey"));
+    assertEquals("SHA-1, 6 digits, 30s", sample.metadata().get("samplePresetLabel"));
     assertEquals("Seeded TOTP credential (test fixture)", sample.metadata().get("notes"));
 
     Credential persisted = store.findByName(CREDENTIAL_ID).orElseThrow();
@@ -124,8 +124,8 @@ final class TotpSampleApplicationServiceTest {
 
   private Map<String, String> metadata() {
     Map<String, String> metadata = new LinkedHashMap<>();
-    metadata.put("presetKey", "ui-totp-demo");
-    metadata.put("presetLabel", "Seeded stored TOTP credential");
+    metadata.put("presetKey", "inline-ui-totp-demo");
+    metadata.put("presetLabel", "SHA-1, 6 digits, 30s");
     metadata.put("notes", "Seeded TOTP credential (test fixture)");
     metadata.put("sampleTimestamp", Long.toString(SAMPLE_TIMESTAMP));
     return metadata;

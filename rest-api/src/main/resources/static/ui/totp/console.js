@@ -60,29 +60,8 @@
   var storedStatusBadge = storedResultPanel
     ? storedResultPanel.querySelector('[data-testid="totp-result-status"]')
     : null;
-  var storedReasonCode = storedResultPanel
-    ? storedResultPanel.querySelector('[data-testid="totp-result-reason-code"]')
-    : null;
-  var storedSkew = storedResultPanel
-    ? storedResultPanel.querySelector('[data-testid="totp-result-skew"]')
-    : null;
-  var storedAlgorithm = storedResultPanel
-    ? storedResultPanel.querySelector('[data-testid="totp-result-algorithm"]')
-    : null;
-  var storedDigits = storedResultPanel
-    ? storedResultPanel.querySelector('[data-testid="totp-result-digits"]')
-    : null;
-  var storedStep = storedResultPanel
-    ? storedResultPanel.querySelector('[data-testid="totp-result-step"]')
-    : null;
-  var storedDriftBackward = storedResultPanel
-    ? storedResultPanel.querySelector('[data-testid="totp-result-drift-backward"]')
-    : null;
-  var storedDriftForward = storedResultPanel
-    ? storedResultPanel.querySelector('[data-testid="totp-result-drift-forward"]')
-    : null;
-  var storedTelemetry = storedResultPanel
-    ? storedResultPanel.querySelector('[data-testid="totp-result-telemetry"]')
+  var storedOtpValue = storedResultPanel
+    ? storedResultPanel.querySelector('[data-testid="totp-result-otp"]')
     : null;
   var storedErrorPanel = totpPanel.querySelector('[data-testid="totp-stored-error-panel"]');
   var storedErrorReason = storedErrorPanel
@@ -91,6 +70,7 @@
   var storedErrorMessage = storedErrorPanel
     ? storedErrorPanel.querySelector('[data-testid="totp-stored-error-message"]')
     : null;
+  var storedOtpInput = totpPanel.querySelector('#totpStoredOtp');
 
   var seedDefinitionsPayload = [];
   if (seedDefinitionNode && seedDefinitionNode.textContent) {
@@ -121,11 +101,8 @@
   var inlineStatusBadge = inlineResultPanel
     ? inlineResultPanel.querySelector('[data-testid="totp-inline-result-status"]')
     : null;
-  var inlineReasonCode = inlineResultPanel
-    ? inlineResultPanel.querySelector('[data-testid="totp-inline-result-reason-code"]')
-    : null;
-  var inlineTelemetry = inlineResultPanel
-    ? inlineResultPanel.querySelector('[data-testid="totp-inline-result-telemetry"]')
+  var inlineOtpValue = inlineResultPanel
+    ? inlineResultPanel.querySelector('[data-testid="totp-result-otp"]')
     : null;
   var inlineErrorPanel = totpPanel.querySelector('[data-testid="totp-inline-error-panel"]');
   var inlineErrorReason = inlineErrorPanel
@@ -1160,14 +1137,11 @@
     }
     var metadata = response.metadata || {};
     setStatusBadge(storedStatusBadge, response.status || response.reasonCode);
-    writeText(storedReasonCode, response.reasonCode || response.status || '—');
-    writeText(storedSkew, metadata.matchedSkewSteps);
-    writeText(storedAlgorithm, metadata.algorithm);
-    writeText(storedDigits, metadata.digits);
-    writeText(storedStep, metadata.stepSeconds);
-    writeText(storedDriftBackward, metadata.driftBackwardSteps);
-    writeText(storedDriftForward, metadata.driftForwardSteps);
-    writeText(storedTelemetry, metadata.telemetryId);
+    writeText(
+        storedOtpValue,
+        storedOtpInput && typeof storedOtpInput.value === 'string'
+            ? storedOtpInput.value.trim()
+            : metadata.otp);
     setHidden(storedResultPanel, false);
   }
 
@@ -1199,8 +1173,11 @@
       return;
     }
     setStatusBadge(inlineStatusBadge, response.status || response.reasonCode);
-    writeText(inlineReasonCode, response.reasonCode || response.status || '—');
-    writeText(inlineTelemetry, response.metadata && response.metadata.telemetryId);
+    writeText(
+        inlineOtpValue,
+        inlineOtpInput && typeof inlineOtpInput.value === 'string'
+            ? inlineOtpInput.value.trim()
+            : (response.metadata && response.metadata.otp));
     setHidden(inlineResultPanel, false);
   }
 

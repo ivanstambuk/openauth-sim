@@ -6,10 +6,12 @@ import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
+import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.rest.ui.OcraOperatorUiController.InlineSample;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -41,23 +43,10 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 final class OcraOperatorUiSeleniumTest {
 
-  private static final String QA_PRESET_KEY = "qa08-s064";
-  private static final String QA_EXPECTED_SUITE = "OCRA-1:HOTP-SHA256-8:QA08-S064";
-  private static final String QA_EXPECTED_CHALLENGE = "SESSION01";
-  private static final String QA_EXPECTED_SESSION =
-      "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF"
-          + "112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567";
-  private static final String QA_EXPECTED_OTP = "17477202";
-  private static final String QH64_PRESET_KEY = "c-qh64";
-  private static final String QH64_EXPECTED_SUITE = "OCRA-1:HOTP-SHA256-6:C-QH64";
-  private static final String QH64_EXPECTED_CHALLENGE =
-      "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF";
-  private static final long QH64_EXPECTED_COUNTER = 1L;
-  private static final String QH64_EXPECTED_OTP = "429968";
-  private static final String INLINE_SHARED_SECRET =
-      "3132333435363738393031323334353637383930313233343536373839303132";
   private static final String DEFAULT_STORED_SECRET =
       "3132333435363738393031323334353637383930313233343536373839303132";
+  private static final String QA_PRESET_KEY = "qa08-s064";
+  private static final InlineSample QA_SAMPLE = findInlineSample(QA_PRESET_KEY);
   private static final StoredCredentialScenario QA_STORED_SCENARIO =
       new StoredCredentialScenario(
           "QA08 session credential",
@@ -136,6 +125,7 @@ final class OcraOperatorUiSeleniumTest {
   @DisplayName("Inline policy presets populate fields and evaluate successfully")
   void inlinePolicyPresetEvaluatesSuccessfully(InlinePresetScenario scenario) {
     navigateToEvaluationConsole();
+    InlineSample sample = scenario.sample();
 
     WebElement credentialSection = driver.findElement(By.id("credential-parameters"));
     assertThat(credentialSection.getAttribute("hidden")).isNotNull();
@@ -146,32 +136,65 @@ final class OcraOperatorUiSeleniumTest {
         .executeScript("window.__ocraApplyPreset(arguments[0]);", scenario.presetKey());
     waitForBackgroundJavaScript();
 
-    assertValueWithWait(By.id("suite"), scenario.expectedSuite());
-    assertValueWithWait(By.id("challenge"), scenario.expectedChallenge());
-    assertValueWithWait(By.id("sessionHex"), scenario.expectedSessionHex());
+    assertValueWithWait(By.id("suite"), sample.getSuite());
+    assertValueWithWait(By.id("sharedSecretHex"), sample.getSharedSecretHex());
+    assertValueWithWait(By.id("challenge"), sample.getChallenge());
+    assertValueWithWait(By.id("clientChallenge"), sample.getClientChallenge());
+    assertValueWithWait(By.id("serverChallenge"), sample.getServerChallenge());
+    assertValueWithWait(By.id("sessionHex"), sample.getSessionHex());
+    assertValueWithWait(By.id("timestampHex"), sample.getTimestampHex());
+    assertValueWithWait(By.id("pinHashHex"), sample.getPinHashHex());
     assertValueWithWait(By.id("counter"), scenario.expectedCounterAsString());
-    assertValueWithWait(By.id("sharedSecretHex"), scenario.expectedSharedSecretHex());
 
     driver.findElement(By.cssSelector("button[data-testid='ocra-evaluate-button']")).click();
 
+    WebDriverWait panelWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+    panelWait.until(
+        webDriver -> {
+          WebElement result =
+              webDriver.findElement(By.cssSelector("[data-testid='ocra-result-panel']"));
+          WebElement error =
+              webDriver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
+          boolean resultVisible = result.getAttribute("hidden") == null;
+          boolean errorVisible = error.getAttribute("hidden") == null;
+          return resultVisible || errorVisible;
+        });
+
     WebElement resultPanel =
-        new WebDriverWait(driver, Duration.ofSeconds(5))
-            .until(
-                ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector("[data-testid='ocra-result-panel']")));
-    assertThat(resultPanel.getAttribute("hidden")).isNull();
+        driver.findElement(By.cssSelector("[data-testid='ocra-result-panel']"));
+    WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
+
+    if (scenario.requiresDynamicTimestamp()) {
+      assertThat(resultPanel.getAttribute("hidden")).isNotNull();
+      assertThat(errorPanel.getAttribute("hidden")).isNull();
+      String errorText = errorPanel.getText();
+      assertThat(errorText).contains("Timestamp");
+      return;
+    }
+
+    if (resultPanel.getAttribute("hidden") != null) {
+      String errorText = errorPanel.getText();
+      throw new AssertionError(
+          "Evaluation failed for preset "
+              + scenario.presetKey()
+              + " with error panel text: "
+              + (errorText == null ? "" : errorText));
+    }
 
     WebElement otpElement = resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp']"));
-    assertThat(otpElement.getText()).contains(scenario.expectedOtp());
+    String expectedOtp = computeExpectedOtp(sample, sample.getTimestampHex());
+    if (sample.getExpectedOtp() != null) {
+      assertThat(expectedOtp).isEqualTo(sample.getExpectedOtp());
+    }
+    assertThat(otpElement.getText()).contains(expectedOtp);
     WebElement statusBadge =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-status-value']"));
     assertStatusBadge(statusBadge);
     assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-sanitized-flag']")))
         .as("Sanitized row should be removed from evaluation results")
         .isEmpty();
-    WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
     assertThat(errorPanel.getAttribute("hidden")).isNotNull();
-    assertValueWithWait(By.id("sharedSecretHex"), scenario.expectedSharedSecretHex());
+    assertValueWithWait(By.id("sharedSecretHex"), sample.getSharedSecretHex());
     assertThat(credentialSection.getAttribute("hidden")).isNotNull();
   }
 
@@ -372,10 +395,10 @@ final class OcraOperatorUiSeleniumTest {
     waitForCredentialOptions();
     Select credentialDropdown = new Select(driver.findElement(By.id("credentialId")));
     credentialDropdown.selectByValue(CREDENTIAL_ID);
-    driver.findElement(By.id("challenge")).sendKeys(QA_EXPECTED_CHALLENGE);
+    driver.findElement(By.id("challenge")).sendKeys(QA_SAMPLE.getChallenge());
     driver.findElement(By.cssSelector("button[data-testid='ocra-advanced-toggle']")).click();
     waitForBackgroundJavaScript();
-    driver.findElement(By.id("sessionHex")).sendKeys(QA_EXPECTED_SESSION);
+    driver.findElement(By.id("sessionHex")).sendKeys(QA_SAMPLE.getSessionHex());
 
     driver.findElement(By.cssSelector("button[data-testid='ocra-evaluate-button']")).click();
 
@@ -387,7 +410,7 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(resultPanel.getAttribute("hidden")).isNull();
 
     WebElement otpElement = resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp']"));
-    assertThat(otpElement.getText()).contains(QA_EXPECTED_OTP);
+    assertThat(otpElement.getText()).contains(QA_SAMPLE.getExpectedOtp());
     WebElement metadata =
         resultPanel.findElement(By.cssSelector("[data-testid='ocra-telemetry-summary']"));
     WebElement statusBadge =
@@ -716,26 +739,47 @@ final class OcraOperatorUiSeleniumTest {
     }
   }
 
+  private static InlineSample findInlineSample(String presetKey) {
+    return OcraOperatorSampleData.policyPresets().stream()
+        .filter(preset -> preset.getKey().equals(presetKey))
+        .map(OcraOperatorUiController.PolicyPreset::getSample)
+        .findFirst()
+        .orElseThrow(
+            () -> new IllegalStateException("Missing inline preset for key: " + presetKey));
+  }
+
+  private String computeExpectedOtp(InlineSample sample, String timestampHexOverride) {
+    OcraCredentialFactory factory = new OcraCredentialFactory();
+    OcraCredentialRequest request =
+        new OcraCredentialRequest(
+            "inline-" + sample.getSuite(),
+            sample.getSuite(),
+            sample.getSharedSecretHex(),
+            SecretEncoding.HEX,
+            sample.getCounter(),
+            sample.getPinHashHex(),
+            null,
+            Map.of("source", "inline-sample"));
+    OcraCredentialDescriptor descriptor = factory.createDescriptor(request);
+    String timestamp =
+        timestampHexOverride != null ? timestampHexOverride : sample.getTimestampHex();
+    OcraResponseCalculator.OcraExecutionContext context =
+        new OcraResponseCalculator.OcraExecutionContext(
+            sample.getCounter(),
+            sample.getChallenge(),
+            sample.getSessionHex(),
+            sample.getClientChallenge(),
+            sample.getServerChallenge(),
+            sample.getPinHashHex(),
+            timestamp);
+    return OcraResponseCalculator.generate(descriptor, context);
+  }
+
   private static Stream<InlinePresetScenario> inlinePresetScenarios() {
-    return Stream.of(
-        new InlinePresetScenario(
-            "QA08 S064 preset",
-            QA_PRESET_KEY,
-            QA_EXPECTED_SUITE,
-            QA_EXPECTED_CHALLENGE,
-            QA_EXPECTED_SESSION,
-            null,
-            QA_EXPECTED_OTP,
-            INLINE_SHARED_SECRET),
-        new InlinePresetScenario(
-            "C-QH64 preset",
-            QH64_PRESET_KEY,
-            QH64_EXPECTED_SUITE,
-            QH64_EXPECTED_CHALLENGE,
-            null,
-            QH64_EXPECTED_COUNTER,
-            QH64_EXPECTED_OTP,
-            INLINE_SHARED_SECRET));
+    return OcraOperatorSampleData.policyPresets().stream()
+        .map(
+            preset ->
+                new InlinePresetScenario(preset.getLabel(), preset.getKey(), preset.getSample()));
   }
 
   private static Stream<Arguments> storedCredentialAutoPopulateScenarios() {
@@ -743,15 +787,7 @@ final class OcraOperatorUiSeleniumTest {
         .map(scenario -> Arguments.of(scenario.description(), scenario));
   }
 
-  private record InlinePresetScenario(
-      String description,
-      String presetKey,
-      String expectedSuite,
-      String expectedChallenge,
-      String expectedSessionHex,
-      Long expectedCounter,
-      String expectedOtp,
-      String expectedSharedSecretHex) {
+  private record InlinePresetScenario(String description, String presetKey, InlineSample sample) {
 
     @Override
     public String toString() {
@@ -759,7 +795,12 @@ final class OcraOperatorUiSeleniumTest {
     }
 
     String expectedCounterAsString() {
-      return expectedCounter == null ? "" : Long.toString(expectedCounter);
+      Long counter = sample.getCounter();
+      return counter == null ? "" : Long.toString(counter);
+    }
+
+    boolean requiresDynamicTimestamp() {
+      return "qn08-t1m".equals(presetKey) || "qa10-t1m".equals(presetKey);
     }
   }
 

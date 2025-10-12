@@ -9,6 +9,7 @@ _Last updated: 2025-10-12_
 - Follow test-first cadence: add/extend MVC tests before implementing controllers/templates.
 - Capture telemetry/logging decisions in plan/spec if adjustments arise.
 - 2025-09-29: Fetch submission flow implemented with tests + polyfill; Selenium coverage updated; docs refreshed to describe JS-only workflow.
+- 2025-10-12: Inline preset catalogue expanded to include one representative for every RFC 6287 Appendix C suite while retaining the draft QH64 vector; sample data and tests updated accordingly.
 
 ## Tasks
 | ID | Task | Related Requirements | Status |

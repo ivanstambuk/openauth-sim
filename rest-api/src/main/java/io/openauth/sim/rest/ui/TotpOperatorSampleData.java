@@ -15,13 +15,19 @@ import java.util.Objects;
 public final class TotpOperatorSampleData {
 
   private static final Map<String, String> BASE_METADATA = Map.of("seedSource", "operator-ui");
+  private static final String SECRET_SHA1_INLINE_HEX = "3132333435363738393031323334353637383930";
+  private static final String SECRET_SHA1_DEMO_HEX = "31323334353637383930313233343536373839303132";
+  private static final String SECRET_SHA256_HEX =
+      "3132333435363738393031323334353637383930313233343536373839303132";
+  private static final String SECRET_SHA512_HEX =
+      "31323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334";
 
   private static final List<SampleDefinition> DEFINITIONS =
       List.of(
           sample(
-              "ui-totp-demo",
-              "ui-totp-demo (SHA1, 6 digits, 30s step)",
-              "31323334353637383930313233343536373839303132",
+              "ui-totp-sample-sha1-6",
+              "SHA-1, 6 digits, 30s",
+              SECRET_SHA1_DEMO_HEX,
               TotpHashAlgorithm.SHA1,
               6,
               30,
@@ -29,30 +35,86 @@ public final class TotpOperatorSampleData {
               1,
               1_111_111_111L,
               metadata(
-                  "ui-totp-demo",
-                  "ui-totp-demo (SHA1, 6 digits, 30s step)",
-                  "Seeded TOTP credential (SHA-1, 6 digits, 30s step).")),
+                  "inline-ui-totp-demo",
+                  "SHA-1, 6 digits, 30s",
+                  "Seeded TOTP credential (inline demo preset).")),
           sample(
-              "ui-totp-demo-sha512",
-              "ui-totp-demo-sha512 (SHA512, 8 digits, 60s step)",
-              "3132333435363738393031323334353637383930313233343536373839303132",
+              "ui-totp-sample-sha1-8",
+              "SHA-1, 8 digits, 30s (RFC 6238)",
+              SECRET_SHA1_INLINE_HEX,
+              TotpHashAlgorithm.SHA1,
+              8,
+              30,
+              1,
+              1,
+              59L,
+              metadata(
+                  "inline-rfc6238-sha1",
+                  "SHA-1, 8 digits, 30s (RFC 6238)",
+                  "Seeded TOTP credential based on RFC 6238 sample.")),
+          sample(
+              "ui-totp-sample-sha256-6",
+              "SHA-256, 6 digits, 30s",
+              SECRET_SHA256_HEX,
+              TotpHashAlgorithm.SHA256,
+              6,
+              30,
+              1,
+              1,
+              59L,
+              metadata(
+                  "inline-rfc6238-sha256-6",
+                  "SHA-256, 6 digits, 30s",
+                  "Seeded TOTP credential truncated to six digits from RFC 6238 sample.")),
+          sample(
+              "ui-totp-sample-sha256-8",
+              "SHA-256, 8 digits, 30s (RFC 6238)",
+              SECRET_SHA256_HEX,
+              TotpHashAlgorithm.SHA256,
+              8,
+              30,
+              1,
+              1,
+              59L,
+              metadata(
+                  "inline-rfc6238-sha256-8",
+                  "SHA-256, 8 digits, 30s (RFC 6238)",
+                  "Seeded TOTP credential based on RFC 6238 sample.")),
+          sample(
+              "ui-totp-sample-sha512-6",
+              "SHA-512, 6 digits, 30s",
+              SECRET_SHA512_HEX,
+              TotpHashAlgorithm.SHA512,
+              6,
+              30,
+              1,
+              1,
+              59L,
+              metadata(
+                  "inline-rfc6238-sha512-6",
+                  "SHA-512, 6 digits, 30s",
+                  "Seeded TOTP credential truncated to six digits from RFC 6238 sample.")),
+          sample(
+              "ui-totp-sample-sha512-8",
+              "SHA-512, 8 digits, 30s (RFC 6238)",
+              SECRET_SHA512_HEX,
               TotpHashAlgorithm.SHA512,
               8,
-              60,
-              2,
-              2,
-              2_222_222_222L,
+              30,
+              1,
+              1,
+              59L,
               metadata(
-                  "ui-totp-demo-sha512",
-                  "ui-totp-demo-sha512 (SHA512, 8 digits, 60s step)",
-                  "Seeded TOTP credential (SHA-512, 8 digits, 60s step).")));
+                  "inline-rfc6238-sha512-8",
+                  "SHA-512, 8 digits, 30s (RFC 6238)",
+                  "Seeded TOTP credential based on RFC 6238 sample.")));
 
   private static final List<InlinePreset> INLINE_PRESETS =
       List.of(
           inlinePreset(
               "inline-rfc6238-sha1",
               "SHA-1, 8 digits, 30s (RFC 6238)",
-              "3132333435363738393031323334353637383930",
+              SECRET_SHA1_INLINE_HEX,
               TotpHashAlgorithm.SHA1,
               8,
               30,
@@ -64,9 +126,65 @@ public final class TotpOperatorSampleData {
                   "SHA-1, 8 digits, 30s (RFC 6238)",
                   "Inline preset based on RFC 6238 sample.")),
           inlinePreset(
+              "inline-rfc6238-sha256-6",
+              "SHA-256, 6 digits, 30s",
+              SECRET_SHA256_HEX,
+              TotpHashAlgorithm.SHA256,
+              6,
+              30,
+              1,
+              1,
+              59L,
+              metadata(
+                  "inline-rfc6238-sha256-6",
+                  "SHA-256, 6 digits, 30s",
+                  "Inline preset derived from RFC 6238 sample (truncated to 6 digits).")),
+          inlinePreset(
+              "inline-rfc6238-sha256-8",
+              "SHA-256, 8 digits, 30s (RFC 6238)",
+              SECRET_SHA256_HEX,
+              TotpHashAlgorithm.SHA256,
+              8,
+              30,
+              1,
+              1,
+              59L,
+              metadata(
+                  "inline-rfc6238-sha256-8",
+                  "SHA-256, 8 digits, 30s (RFC 6238)",
+                  "Inline preset based on RFC 6238 sample.")),
+          inlinePreset(
+              "inline-rfc6238-sha512-6",
+              "SHA-512, 6 digits, 30s",
+              SECRET_SHA512_HEX,
+              TotpHashAlgorithm.SHA512,
+              6,
+              30,
+              1,
+              1,
+              59L,
+              metadata(
+                  "inline-rfc6238-sha512-6",
+                  "SHA-512, 6 digits, 30s",
+                  "Inline preset derived from RFC 6238 sample (truncated to 6 digits).")),
+          inlinePreset(
+              "inline-rfc6238-sha512-8",
+              "SHA-512, 8 digits, 30s (RFC 6238)",
+              SECRET_SHA512_HEX,
+              TotpHashAlgorithm.SHA512,
+              8,
+              30,
+              1,
+              1,
+              59L,
+              metadata(
+                  "inline-rfc6238-sha512-8",
+                  "SHA-512, 8 digits, 30s (RFC 6238)",
+                  "Inline preset based on RFC 6238 sample.")),
+          inlinePreset(
               "inline-ui-totp-demo",
-              "SHA-1, 6 digits, 30s (seeded demo)",
-              "31323334353637383930313233343536373839303132",
+              "SHA-1, 6 digits, 30s",
+              SECRET_SHA1_DEMO_HEX,
               TotpHashAlgorithm.SHA1,
               6,
               30,
@@ -75,7 +193,7 @@ public final class TotpOperatorSampleData {
               1_111_111_111L,
               metadata(
                   "inline-ui-totp-demo",
-                  "SHA-1, 6 digits, 30s (seeded demo)",
+                  "SHA-1, 6 digits, 30s",
                   "Inline preset mirroring the seeded demo credential.")));
 
   private TotpOperatorSampleData() {
@@ -119,9 +237,11 @@ public final class TotpOperatorSampleData {
 
   private static Map<String, String> metadata(String presetKey, String label, String notes) {
     Map<String, String> metadata = new java.util.LinkedHashMap<>();
+    String safeLabel = Objects.requireNonNull(label, "label");
     metadata.put("seedSource", BASE_METADATA.get("seedSource"));
     metadata.put("presetKey", Objects.requireNonNull(presetKey, "presetKey"));
-    metadata.put("label", Objects.requireNonNull(label, "label"));
+    metadata.put("label", safeLabel);
+    metadata.put("presetLabel", safeLabel);
     metadata.put("notes", Objects.requireNonNull(notes, "notes"));
     return Map.copyOf(metadata);
   }

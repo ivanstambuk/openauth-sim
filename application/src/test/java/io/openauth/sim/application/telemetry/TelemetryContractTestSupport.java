@@ -232,14 +232,22 @@ public final class TelemetryContractTestSupport {
 
   public static Map<String, Object> totpSeedFields() {
     Map<String, Object> fields = new LinkedHashMap<>();
-    fields.put("addedCount", 2);
-    fields.put("canonicalCount", 2);
+    fields.put("addedCount", 6);
+    fields.put("canonicalCount", 6);
     fields.put("existingCount", 0);
     fields.put("trigger", "ui");
-    fields.put("addedCredentialIds", List.of("ui-totp-demo", "ui-totp-demo-sha512"));
-    fields.put("algorithms", List.of("SHA1", "SHA512"));
-    fields.put("stepSeconds", List.of(30L, 60L));
-    fields.put("digits", List.of(6, 8));
+    fields.put(
+        "addedCredentialIds",
+        List.of(
+            "ui-totp-sample-sha1-6",
+            "ui-totp-sample-sha1-8",
+            "ui-totp-sample-sha256-6",
+            "ui-totp-sample-sha256-8",
+            "ui-totp-sample-sha512-6",
+            "ui-totp-sample-sha512-8"));
+    fields.put("algorithms", List.of("SHA1", "SHA1", "SHA256", "SHA256", "SHA512", "SHA512"));
+    fields.put("stepSeconds", List.of(30L, 30L, 30L, 30L, 30L, 30L));
+    fields.put("digits", List.of(6, 8, 6, 8, 6, 8));
     return fields;
   }
 
