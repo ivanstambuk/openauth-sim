@@ -411,6 +411,32 @@
                   th:value="${form.timestampHex}"
                   autocomplete="off"
                 />
+                <div class="timestamp-autofill" data-testid="timestamp-autofill-container">
+                  <label
+                    for="timestampAutofillToggle"
+                    class="choice-control timestamp-autofill-toggle"
+                  >
+                    <input
+                      type="checkbox"
+                      id="timestampAutofillToggle"
+                      data-testid="timestamp-autofill-toggle"
+                      checked="checked"
+                    />
+                    Auto-fill current timestamp (hex)
+                  </label>
+                  <div class="timestamp-autofill-actions">
+                    <p class="hint" data-testid="timestamp-autofill-status">
+                      Last auto-fill: —
+                    </p>
+                    <button
+                      type="button"
+                      class="button-secondary"
+                      data-testid="timestamp-reset-button"
+                    >
+                      Reset to now
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -577,6 +603,12 @@
         const serverChallengeInput = document.getElementById('serverChallenge');
         const pinHashInput = document.getElementById('pinHashHex');
         const timestampInput = document.getElementById('timestampHex');
+        const timestampAutofillToggle = document.querySelector('input[data-testid="timestamp-autofill-toggle"]');
+        const timestampResetButton = document.querySelector('button[data-testid="timestamp-reset-button"]');
+        const timestampAutofillStatus = document.querySelector('[data-testid="timestamp-autofill-status"]');
+        let timestampAutofillEnabled =
+          timestampAutofillToggle ? timestampAutofillToggle.checked : false;
+        let lastTimestampAutofillIso = null;
         const counterInput = document.getElementById('counter');
         const advancedToggle = document.querySelector('[data-testid="ocra-advanced-toggle"]');
         const advancedPanel = document.querySelector('[data-testid="ocra-advanced-panel"]');
@@ -709,6 +741,7 @@
             }
             setSeedStatus('', 'neutral');
           }
+          updateTimestampAutofillUi();
         }
 
         function ensureCredentialsLoaded() {
@@ -874,6 +907,7 @@
           if (!hasAdvancedValues()) {
             setAdvancedState(false);
           }
+          updateTimestampAutofillUi();
         }
 
         function applyRequestParameterConstraints(parsed) {
@@ -891,6 +925,7 @@
           if (!parsed.requiresAdvanced && !hasAdvancedValues()) {
             setAdvancedState(false);
           }
+          updateTimestampAutofillUi();
         }
 
         function handleStoredCredentialSelection() {
@@ -1159,16 +1194,20 @@
           return String(value);
         }
 
-        function computeTimestampHex(stepSeconds) {
+        function computeTimestampHex(stepSeconds, suiteValue) {
           if (!Number.isFinite(stepSeconds) || stepSeconds <= 0) {
             return '';
           }
-          var now = Date.now();
-          var step = Math.floor(now / (stepSeconds * 1000));
-          if (!Number.isFinite(step) || step < 0) {
-            step = 0;
+          var epochSeconds = Math.floor(Date.now() / 1000);
+          if (!Number.isFinite(epochSeconds) || epochSeconds < 0) {
+            epochSeconds = 0;
           }
-          var hex = step.toString(16).toUpperCase();
+          var useRawSeconds = stepSeconds === 1 || suiteUsesMinuteOrHourTimestamp(suiteValue);
+          var value = useRawSeconds ? epochSeconds : Math.floor(epochSeconds / stepSeconds);
+          if (!Number.isFinite(value) || value < 0) {
+            value = 0;
+          }
+          var hex = value.toString(16).toUpperCase();
           if (hex.length % 2 === 1) {
             hex = '0' + hex;
           }
@@ -1221,7 +1260,10 @@
           }
 
           if (parsed.timestampRequired) {
-            timestampInput.value = computeTimestampHex(parsed.timestampStepSeconds);
+            timestampInput.value = computeTimestampHex(
+              parsed.timestampStepSeconds,
+              metadata.suite
+            );
           } else if (timestampInput) {
             timestampInput.value = '';
           }
@@ -1326,12 +1368,16 @@
             pinHashInput.value = sample && sample.pinHashHex ? sample.pinHashHex : '';
           }
           if (timestampInput) {
-            timestampInput.value = sample && sample.timestampHex ? sample.timestampHex : '';
+            var fallbackTimestamp = sample && sample.timestampHex ? sample.timestampHex : '';
+            if (!autoFillTimestampForCurrentSuite(fallbackTimestamp)) {
+              timestampInput.value = fallbackTimestamp;
+            }
           }
           if (counterInput) {
             counterInput.value = sample && sample.counter != null ? sample.counter : '';
           }
           ensureAdvancedOpenIfNeeded();
+          updateTimestampAutofillUi();
         }
 
         function setTextContent(node, value) {
@@ -1423,6 +1469,110 @@
           if (hasAdvancedValues()) {
             setAdvancedState(true);
           }
+        }
+
+        function effectiveAutofillEnabled() {
+          if (!timestampAutofillEnabled) {
+            return false;
+          }
+          if (!timestampInput || timestampInput.disabled) {
+            return false;
+          }
+          var selected = document.querySelector('input[name="mode"]:checked');
+          return !selected || selected.value === 'inline';
+        }
+
+        function determineTimestampStepSeconds() {
+          var suiteValue = toTrimmedValue(suiteInput);
+          if (!suiteValue) {
+            return null;
+          }
+          var parsed = parseOcraSuite(suiteValue);
+          if (
+            parsed
+            && Number.isFinite(parsed.timestampStepSeconds)
+            && parsed.timestampStepSeconds > 0
+          ) {
+            return parsed.timestampStepSeconds;
+          }
+          return null;
+        }
+
+        function updateTimestampAutofillStatus(isoString) {
+          if (isoString !== undefined) {
+            lastTimestampAutofillIso = isoString;
+          }
+          if (!timestampAutofillStatus) {
+            return;
+          }
+          if (!effectiveAutofillEnabled()) {
+            timestampAutofillStatus.textContent =
+              'Auto-fill disabled. Enter timestamp manually.';
+            return;
+          }
+          var display = lastTimestampAutofillIso ? lastTimestampAutofillIso : '—';
+          timestampAutofillStatus.textContent = 'Last auto-fill: ' + display;
+        }
+
+        function updateTimestampAutofillUi() {
+          if (timestampResetButton) {
+            timestampResetButton.disabled = !effectiveAutofillEnabled();
+          }
+          updateTimestampAutofillStatus();
+        }
+
+        function suiteUsesMinuteOrHourTimestamp(suiteValue) {
+          if (!suiteValue || typeof suiteValue !== 'string') {
+            return false;
+          }
+          var parts = suiteValue.split(':');
+          if (parts.length < 3) {
+            return false;
+          }
+          return parts[2]
+            .split('-')
+            .some(function (token) {
+              var upper = token.trim().toUpperCase();
+              return /^T[0-9]+[MH]$/.test(upper);
+            });
+        }
+
+        function currentInlinePresetSample() {
+          if (!policySelect) {
+            return null;
+          }
+          var key = policySelect.value;
+          if (key && Object.prototype.hasOwnProperty.call(presetMap, key)) {
+            return presetMap[key];
+          }
+          return null;
+        }
+
+        function autoFillTimestampForCurrentSuite(fallbackHex) {
+          if (!timestampInput) {
+            return false;
+          }
+          if (!effectiveAutofillEnabled()) {
+            if (typeof fallbackHex === 'string') {
+              timestampInput.value = fallbackHex;
+            }
+            updateTimestampAutofillStatus(null);
+            return false;
+          }
+          var stepSeconds = determineTimestampStepSeconds();
+          if (!Number.isFinite(stepSeconds) || stepSeconds <= 0) {
+            if (typeof fallbackHex === 'string') {
+              timestampInput.value = fallbackHex;
+            } else {
+              timestampInput.value = '';
+            }
+            updateTimestampAutofillStatus(null);
+            return false;
+          }
+          var suiteValue = toTrimmedValue(suiteInput);
+          timestampInput.value = computeTimestampHex(stepSeconds, suiteValue);
+          updateTimestampAutofillStatus(new Date().toISOString());
+          return true;
         }
 
         function formatSessionLengthBits() {
@@ -1566,6 +1716,8 @@
           if (builderGeneratedSecret && sharedSecretInput) {
             sharedSecretInput.value = builderGeneratedSecret;
           }
+          autoFillTimestampForCurrentSuite('');
+          updateTimestampAutofillUi();
         }
 
         function resetBuilder() {
@@ -1741,8 +1893,39 @@
           }
         }
 
+        function refreshTimestampBeforeSubmit() {
+          const selected = document.querySelector('input[name="mode"]:checked');
+          const inlineActive = !selected || selected.value === 'inline';
+          if (inlineActive) {
+            if (timestampAutofillEnabled && timestampInput) {
+              var sample = currentInlinePresetSample();
+              var fallback = sample && sample.timestampHex ? sample.timestampHex : '';
+              autoFillTimestampForCurrentSuite(fallback);
+            }
+            return;
+          }
+          if (!timestampInput || timestampInput.disabled) {
+            return;
+          }
+          var credentialId = credentialSelect ? credentialSelect.value : '';
+          if (!credentialId) {
+            return;
+          }
+          var metadata = credentialMetadata[credentialId];
+          if (!metadata || typeof metadata.suite !== 'string') {
+            return;
+          }
+          var parsed = parseOcraSuite(metadata.suite);
+          if (!parsed || !parsed.timestampRequired) {
+            return;
+          }
+          timestampInput.value = computeTimestampHex(parsed.timestampStepSeconds, metadata.suite);
+          updateTimestampAutofillStatus(new Date().toISOString());
+        }
+
         function handleFetch(event) {
           event.preventDefault();
+          refreshTimestampBeforeSubmit();
           clearPanels();
           setBusy(true);
           const payload = buildPayload();
@@ -1924,6 +2107,7 @@
           builderApplyButton.addEventListener('click', function () {
             applyBuilderSuite();
             ensureAdvancedOpenIfNeeded();
+            updateTimestampAutofillUi();
           });
         }
 
@@ -1931,6 +2115,34 @@
           builderResetButton.addEventListener('click', function () {
             resetBuilder();
             ensureAdvancedOpenIfNeeded();
+            updateTimestampAutofillUi();
+          });
+        }
+
+        if (timestampResetButton) {
+          timestampResetButton.addEventListener('click', function () {
+            if (!effectiveAutofillEnabled()) {
+              return;
+            }
+            var sample = currentInlinePresetSample();
+            var fallback = sample && sample.timestampHex ? sample.timestampHex : '';
+            autoFillTimestampForCurrentSuite(fallback);
+            ensureAdvancedOpenIfNeeded();
+          });
+        }
+
+        if (timestampAutofillToggle) {
+          timestampAutofillToggle.addEventListener('change', function (event) {
+            timestampAutofillEnabled = Boolean(event && event.target && event.target.checked);
+            if (timestampAutofillEnabled) {
+              var sample = currentInlinePresetSample();
+              var fallback = sample && sample.timestampHex ? sample.timestampHex : '';
+              autoFillTimestampForCurrentSuite(fallback);
+              ensureAdvancedOpenIfNeeded();
+            } else {
+              updateTimestampAutofillStatus(null);
+            }
+            updateTimestampAutofillUi();
           });
         }
 
@@ -1977,6 +2189,7 @@
         resetBuilder();
         updateSecretPreview();
         updateBuilderPreview();
+        updateTimestampAutofillUi();
         if (policySelect && policySelect.value) {
           applyPreset(policySelect.value);
         }

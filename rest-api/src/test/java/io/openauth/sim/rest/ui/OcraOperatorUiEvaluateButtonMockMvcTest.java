@@ -46,4 +46,20 @@ final class OcraOperatorUiEvaluateButtonMockMvcTest {
     assertThat(html).contains("data-credential-label=\"Evaluate stored credential\"");
     assertThat(html).contains("Evaluate inline parameters");
   }
+
+  @Test
+  @DisplayName("Timestamp auto-fill controls render with descriptive label and reset button")
+  void timestampAutofillControlsRender() throws Exception {
+    String html =
+        mockMvc
+            .perform(get("/ui/console"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    assertThat(html).contains("data-testid=\"timestamp-autofill-toggle\"");
+    assertThat(html).contains("Auto-fill current timestamp (hex)");
+    assertThat(html).contains("data-testid=\"timestamp-reset-button\"");
+  }
 }

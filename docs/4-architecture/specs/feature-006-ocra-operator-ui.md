@@ -1,7 +1,7 @@
 # Feature 006 – OCRA Operator UI Specification
 
 _Status: Draft_
-_Last updated: 2025-10-07_
+_Last updated: 2025-10-12_
 
 ## Overview
 Deliver an operator-facing UI that allows manual OCRA evaluation without relying on the CLI. The experience will be hosted within the existing Spring Boot `rest-api` module as server-rendered pages, consume the published REST endpoints, and surface sanitized telemetry so operators can troubleshoot requests quickly. This first increment focuses on evaluation flows; credential lifecycle management remains CLI-only until future workstreams extend the REST surface.
@@ -29,6 +29,8 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-29 – Stored credential mode will surface a dropdown that lists available credential IDs fetched from the REST API; operators no longer type identifiers manually and selections hydrate the evaluation request.
 - 2025-09-29 – Stored credential mode will surface a dropdown that lists available credential IDs fetched from the REST API; operators no longer type identifiers manually and selections hydrate the evaluation request.
 - 2025-10-12 – Inline preset catalogue will expose one representative sample for every distinct RFC 6287 Appendix C suite while retaining the draft `OCRA-1:HOTP-SHA256-6:C-QH64` example (user chose option A).
+- 2025-10-12 – Timestamp-driven presets will auto-fill the current Unix second (derived from the operator’s clock) and refresh it automatically when the operator evaluates so they stay within the simulator’s one-second drift window (user chose option B).
+- 2025-10-12 – The toggle that controls timestamp auto-fill will read “Auto-fill current timestamp (hex)” to make the behaviour and encoding explicit (user chose option B).
 - 2025-10-07 – OCRA Evaluate tab must keep the same vertical spacing between the “Load a sample vector” label and selector as the Replay tab baseline so inline sample affordances align (user directive).
 - 2025-10-07 – The “Load a sample vector” label on the OCRA Evaluate tab must use the same typography weight token as the Replay tab and HOTP tabs to preserve cross-protocol consistency (user chose option A).
 - 2025-10-07 – Inline preset hint copy must read “Selecting a preset auto-fills the inline fields with illustrative data.” so the UI matches HOTP guidance (user directive).

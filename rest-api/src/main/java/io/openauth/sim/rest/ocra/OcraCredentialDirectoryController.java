@@ -160,6 +160,24 @@ final class OcraCredentialDirectoryController {
     if (!StringUtils.hasText(suite)) {
       return identifier;
     }
-    return identifier + " (" + suite + ")";
+    StringBuilder builder = new StringBuilder(identifier).append(" (").append(suite);
+    if (isRfc6287Preset(identifier, suite)) {
+      builder.append(", RFC 6287");
+    }
+    return builder.append(')').toString();
+  }
+
+  private static boolean isRfc6287Preset(String identifier, String suite) {
+    Optional<SampleDefinition> fromCredential =
+        StringUtils.hasText(identifier)
+            ? OcraOperatorSampleData.findByCredentialName(identifier)
+            : Optional.empty();
+    Optional<SampleDefinition> fromSuite =
+        StringUtils.hasText(suite) ? OcraOperatorSampleData.findBySuite(suite) : Optional.empty();
+    return fromCredential
+        .or(() -> fromSuite)
+        .map(SampleDefinition::label)
+        .map(label -> label.contains("(RFC 6287)"))
+        .orElse(false);
   }
 }

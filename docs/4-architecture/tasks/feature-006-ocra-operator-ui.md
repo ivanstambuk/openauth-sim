@@ -80,5 +80,9 @@ _Last updated: 2025-10-12_
 | R084 | Align Evaluate inline preset label typography weight with Replay/HOTP and rerun targeted Selenium + `./gradlew spotlessApply check` | UI-OCRA-002, UI-OCRA-005 | ✅ |
 | R085 | Add failing MockMvc + Selenium tests asserting Evaluate CTA label matches active mode (“Evaluate inline parameters” vs “Evaluate stored credential”). | UI-OCRA-011 | ✅ |
 | R086 | Update templates/scripts to make the Evaluate CTA label dynamic per mode, satisfy R085 tests, rerun targeted suites + `./gradlew spotlessApply check`. | UI-OCRA-011 | ✅ |
+| R087 | Add failing MockMvc + Selenium tests covering the timestamp auto-fill toggle (“Auto-fill current timestamp (hex)”) default state, manual override, and refresh control. | UI-OCRA-002, UI-OCRA-005 | ✅ |
+| R088 | Implement the timestamp auto-fill toggle logic (current Unix seconds → suite step → uppercase hex), integrate with presets, satisfy R087 coverage. | UI-OCRA-002, UI-OCRA-005 | ✅ |
+| R089 | Refresh operator docs/plan/knowledge map to describe live timestamp behaviour, rerun `./gradlew spotlessApply check`. | UI-OCRA-002, Documentation | ✅ |
+| R090 | Ensure timestamp auto-fill refreshes to the current Unix second on submission, update Selenium/MockMvc coverage, rerun `./gradlew :rest-api:test` and `spotlessApply check`. | UI-OCRA-002, UI-OCRA-005 | ✅ |
 
 Update this checklist as work progresses.

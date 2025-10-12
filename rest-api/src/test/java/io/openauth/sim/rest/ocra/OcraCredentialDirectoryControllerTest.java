@@ -60,6 +60,27 @@ class OcraCredentialDirectoryControllerTest {
   }
 
   @Test
+  @DisplayName("annotates stored RFC vectors with RFC 6287 label")
+  void listCredentialsAnnotatesRfcVectors() {
+    Credential rfcVector =
+        credential(
+            "sample-qa08-s064",
+            "OCRA-1:HOTP-SHA256-8:QA08-S064",
+            Map.of(
+                OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX + "presetKey", "qa08-s064"));
+
+    FixedCredentialStore store = new FixedCredentialStore(List.of(rfcVector));
+    OcraCredentialDirectoryController controller =
+        new OcraCredentialDirectoryController(provider(store), seedServiceFor(store));
+
+    List<OcraCredentialSummary> summaries = controller.listCredentials();
+
+    assertEquals(1, summaries.size());
+    assertEquals(
+        "sample-qa08-s064 (OCRA-1:HOTP-SHA256-8:QA08-S064, RFC 6287)", summaries.get(0).getLabel());
+  }
+
+  @Test
   @DisplayName("returns curated sample when preset metadata present")
   void fetchSampleWithPresetMetadata() {
     Credential credential =

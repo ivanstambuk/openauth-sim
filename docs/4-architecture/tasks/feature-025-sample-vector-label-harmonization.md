@@ -33,3 +33,9 @@ _Last updated:_ 2025-10-12
 
 ☑ **T8 – HOTP inline digit coverage**  
  ☑ Add SHA-1 8-digit and SHA-256/SHA-512 6-digit inline presets to the operator console, then sync Selenium/UI/REST coverage and documentation. (_2025-10-12 – Expanded HOTP inline catalog to six presets, removed the redundant “seeded demo” suffix, ensured stored seeding provisions the same six credentials, updated replay/evaluate Selenium assertions, refreshed docs, and revalidated with targeted :rest-api:test runs plus `spotlessApply check`._)
+
+☑ **T9 – OCRA RFC label parity**  
+ ☑ Append `(RFC 6287)` to every RFC-sourced OCRA inline preset while leaving the draft-only `C-QH64` label unchanged, and sync any dependent Selenium/doc expectations. (_2025-10-12 – Updated OCRA inline preset labels + docs/tests, reran `./gradlew spotlessApply check`._)
+
+☑ **T10 – Stored credential RFC parity**  
+ ☑ Append `(RFC 6287)` to stored credential dropdown entries tied to RFC Appendix C vectors while leaving the draft-only `C-QH64` label untouched; update controller/tests. (_2025-10-12 – Updated directory label helper + coverage, reran `./gradlew spotlessApply check`._)

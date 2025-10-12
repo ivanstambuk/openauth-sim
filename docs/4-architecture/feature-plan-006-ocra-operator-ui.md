@@ -74,6 +74,9 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R079 – Expand Selenium replay tests to exercise curated sample auto-fill and fallback behaviour. ✅ 2025-10-04
 - R085 – Add failing MockMvc + Selenium coverage ensuring the Evaluate button label swaps between “Evaluate inline parameters” and “Evaluate stored credential” when toggling modes; confirm targeted tests fail before implementation. ✅ 2025-10-12
 - R086 – Implement dynamic Evaluate CTA label updates in templates/scripts to satisfy R085 coverage, rerun targeted Selenium + MockMvc suites and `./gradlew spotlessApply check`. ✅ 2025-10-12
+- R087 – Add failing MockMvc + Selenium coverage for the timestamp auto-fill toggle to verify default-on state, manual override, and reset-to-now behaviour before coding. ✅ 2025-10-12
+- R088 – Implement timestamp auto-fill toggle logic (current Unix seconds → suite step → uppercase hex) plus UI wiring satisfying R087 tests. ✅ 2025-10-12
+- R089 – Sync documentation/knowledge map to describe live timestamp behaviour and rerun `./gradlew spotlessApply check`. ✅ 2025-10-12
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -142,6 +145,10 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-10-07 – R084: Introduced CSS override (`.field-grid .inline-preset label { font-weight: 400; }`) to align typography, reran the targeted Selenium test and full `./gradlew spotlessApply check` to confirm green build.
 - 2025-10-12 – Logged follow-up items R085/R086 to align the Evaluate CTA text with selected mode; coverage must assert label swaps before the implementation change ships.
 - 2025-10-12 – R085/R086 delivery: Added MockMvc test covering data attributes, Selenium regression verifying inline/stored toggles, implemented dynamic label handling, and reran targeted tests plus `./gradlew spotlessApply check`.
+- 2025-10-12 – Clarifications captured: inline timestamp presets now auto-fill the current clock-derived value (Option B) and the toggle label will read “Auto-fill current timestamp (hex)”; spec updated ahead of implementation.
+- 2025-10-12 – R087: Added MockMvc + Selenium coverage validating the timestamp auto-fill toggle defaults to on, exposes reset controls, and keeps dynamic presets within tolerance.
+- 2025-10-12 – R088: Implemented timestamp auto-fill toggle wiring, driving inline presets to inject current epoch seconds by default while preserving sample timestamps when disabled; refreshed CSS + scripts and reran targeted Selenium suites.
+- 2025-10-12 – R090: Corrected timestamp auto-fill so it refreshes to the current Unix second whenever operators submit inline requests, tightened Selenium coverage, and reran `./gradlew :rest-api:test` plus `spotlessApply check`.
 - ✅ R083 – Add failing Selenium regression asserting the OCRA Evaluate inline preset label font weight matches the Replay tab and HOTP inline preset baseline before adjusting CSS. (2025-10-07: introduced `inlinePresetLabelTypographyMatchesAcrossTabs` test and confirmed it fails on existing styling.)
 - ✅ R084 – Update templates/CSS to align the Evaluate inline preset label typography with Replay/HOTP, rerun the targeted Selenium test and `./gradlew spotlessApply check`. (2025-10-07: added field-grid override to normalize font weight, targeted Selenium + full build now green.)
 

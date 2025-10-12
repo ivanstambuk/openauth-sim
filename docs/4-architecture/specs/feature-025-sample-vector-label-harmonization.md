@@ -13,6 +13,8 @@ Unify the operator console “Load a sample vector” dropdown entries across HO
 - 2025-10-12 – HOTP inline presets must surface both 6-digit and 8-digit options for SHA-1, SHA-256, and SHA-512 seeded credentials so operators can exercise every stored preset variant (user follow-up).
 - 2025-10-12 – Remove the `(seeded demo)` suffix from HOTP inline labels; the surrounding UI already conveys that presets use demo credentials (user directive).
 - 2025-10-12 – Stored HOTP seeding must provision credentials for each inline preset (SHA-1/6, SHA-1/8, SHA-256/6, SHA-256/8, SHA-512/6, SHA-512/8) so stored and inline dropdowns stay aligned (user directive).
+- 2025-10-12 – Inline OCRA presets that originate from RFC 6287 Appendix C must append `(RFC 6287)` to their labels, keeping the draft-only `OCRA-1:HOTP-SHA256-6:C-QH64` entry unmarked (user request).
+- 2025-10-12 – Stored credential dropdown entries referencing RFC 6287 Appendix C vectors must also append `(RFC 6287)` while leaving the draft-only `OCRA-1:HOTP-SHA256-6:C-QH64` label unchanged (user request).
 
 ## Requirements
 1. Replace every inline preset label surfaced through the operator UI dropdowns with the format `<source or scenario> - <key attributes>` while preserving protocol-specific cues (e.g., RFC references, suite IDs, algorithm names).

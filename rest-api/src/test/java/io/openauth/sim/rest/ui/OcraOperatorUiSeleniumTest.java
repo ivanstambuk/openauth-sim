@@ -142,7 +142,17 @@ final class OcraOperatorUiSeleniumTest {
     assertValueWithWait(By.id("clientChallenge"), sample.getClientChallenge());
     assertValueWithWait(By.id("serverChallenge"), sample.getServerChallenge());
     assertValueWithWait(By.id("sessionHex"), sample.getSessionHex());
-    assertValueWithWait(By.id("timestampHex"), sample.getTimestampHex());
+    waitForBackgroundJavaScript();
+    String initialTimestamp = fieldValue("timestampHex");
+    if (scenario.requiresDynamicTimestamp()) {
+      assertTimestampNearCurrentEpoch(initialTimestamp);
+      assertThat(initialTimestamp)
+          .as("Dynamic timestamp presets should not reuse static vector value")
+          .isNotEqualToIgnoringCase(sample.getTimestampHex());
+    } else {
+      String expectedTimestamp = sample.getTimestampHex() == null ? "" : sample.getTimestampHex();
+      assertThat(initialTimestamp).isEqualTo(expectedTimestamp);
+    }
     assertValueWithWait(By.id("pinHashHex"), sample.getPinHashHex());
     assertValueWithWait(By.id("counter"), scenario.expectedCounterAsString());
 
@@ -164,12 +174,9 @@ final class OcraOperatorUiSeleniumTest {
         driver.findElement(By.cssSelector("[data-testid='ocra-result-panel']"));
     WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
 
+    String submittedTimestamp = fieldValue("timestampHex");
     if (scenario.requiresDynamicTimestamp()) {
-      assertThat(resultPanel.getAttribute("hidden")).isNotNull();
-      assertThat(errorPanel.getAttribute("hidden")).isNull();
-      String errorText = errorPanel.getText();
-      assertThat(errorText).contains("Timestamp");
-      return;
+      assertTimestampNearCurrentEpoch(submittedTimestamp);
     }
 
     if (resultPanel.getAttribute("hidden") != null) {
@@ -182,8 +189,8 @@ final class OcraOperatorUiSeleniumTest {
     }
 
     WebElement otpElement = resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp']"));
-    String expectedOtp = computeExpectedOtp(sample, sample.getTimestampHex());
-    if (sample.getExpectedOtp() != null) {
+    String expectedOtp = computeExpectedOtp(sample, submittedTimestamp);
+    if (!scenario.requiresDynamicTimestamp() && sample.getExpectedOtp() != null) {
       assertThat(expectedOtp).isEqualTo(sample.getExpectedOtp());
     }
     assertThat(otpElement.getText()).contains(expectedOtp);
@@ -214,6 +221,54 @@ final class OcraOperatorUiSeleniumTest {
     driver.findElement(By.id("mode-inline")).click();
     waitForBackgroundJavaScript();
     assertButtonLabel(evaluateButtonLocator, "Evaluate inline parameters");
+  }
+
+  @Test
+  @DisplayName(
+      "Timestamp auto-fill toggle defaults on, resets to current step, and restores preset value when disabled")
+  void timestampAutofillToggleControlsTimestamp() {
+    navigateToEvaluationConsole();
+    InlineSample t1mSample = findInlineSample("qn08-t1m");
+
+    WebElement advancedToggle =
+        driver.findElement(By.cssSelector("[data-testid='ocra-advanced-toggle']"));
+    advancedToggle.click();
+    waitForBackgroundJavaScript();
+
+    WebElement toggle =
+        driver.findElement(By.cssSelector("input[data-testid='timestamp-autofill-toggle']"));
+    assertThat(toggle.isSelected()).isTrue();
+
+    WebElement resetButton =
+        driver.findElement(By.cssSelector("button[data-testid='timestamp-reset-button']"));
+    assertThat(resetButton.isEnabled()).isTrue();
+
+    Select presetSelect = new Select(driver.findElement(By.id("policyPreset")));
+    presetSelect.selectByValue("qn08-t1m");
+    ((JavascriptExecutor) driver)
+        .executeScript("window.__ocraApplyPreset(arguments[0]);", "qn08-t1m");
+    waitForBackgroundJavaScript();
+
+    String initialTimestamp = fieldValue("timestampHex");
+    assertTimestampNearCurrentEpoch(initialTimestamp);
+
+    setFieldValue("timestampHex", "DEADBEEF");
+    resetButton.click();
+    waitForBackgroundJavaScript();
+
+    String afterReset = fieldValue("timestampHex");
+    assertTimestampNearCurrentEpoch(afterReset);
+    assertThat(afterReset).isNotEqualToIgnoringCase("DEADBEEF");
+
+    toggle.click();
+    waitForBackgroundJavaScript();
+    assertThat(toggle.isSelected()).isFalse();
+    assertThat(resetButton.isEnabled()).isFalse();
+
+    ((JavascriptExecutor) driver)
+        .executeScript("window.__ocraApplyPreset(arguments[0]);", "qn08-t1m");
+    waitForBackgroundJavaScript();
+    assertThat(fieldValue("timestampHex")).isEqualTo(t1mSample.getTimestampHex());
   }
 
   @ParameterizedTest(name = "{0}")
@@ -279,9 +334,7 @@ final class OcraOperatorUiSeleniumTest {
           .isNotBlank()
           .as("timestamp must be hexadecimal")
           .matches("[0-9A-F]+");
-      long parsedStep = Long.parseUnsignedLong(timestampValue, 16);
-      long expectedStep = currentTimeStep(scenario.timestampStepSeconds());
-      assertThat(Math.abs(parsedStep - expectedStep)).isLessThanOrEqualTo(1L);
+      assertTimestampMatchesStep(timestampValue, scenario.timestampStepSeconds());
     } else {
       assertThat(timestampValue).isBlank();
     }
@@ -748,6 +801,35 @@ final class OcraOperatorUiSeleniumTest {
             () -> new IllegalStateException("Missing inline preset for key: " + presetKey));
   }
 
+  private void assertTimestampNearCurrentEpoch(String timestampHex) {
+    assertThat(timestampHex).isNotBlank();
+    String normalized = timestampHex.trim();
+    if (normalized.startsWith("0x") || normalized.startsWith("0X")) {
+      normalized = normalized.substring(2);
+    }
+    long parsed = Long.parseUnsignedLong(normalized, 16);
+    long nowSeconds = Instant.now().getEpochSecond();
+    long deltaSeconds = Math.abs(parsed - nowSeconds);
+    assertThat(deltaSeconds)
+        .as("Expected timestamp to match the current Unix second within a 5s window")
+        .isLessThanOrEqualTo(5L);
+  }
+
+  private void assertTimestampMatchesStep(String timestampHex, long stepSeconds) {
+    assertThat(timestampHex).isNotBlank();
+    String normalized = timestampHex.trim();
+    if (normalized.startsWith("0x") || normalized.startsWith("0X")) {
+      normalized = normalized.substring(2);
+    }
+    long parsed = Long.parseUnsignedLong(normalized, 16);
+    long step = Math.max(stepSeconds, 1L);
+    long expectedStep = Instant.now().getEpochSecond() / step;
+    long deltaSteps = Math.abs(parsed - expectedStep);
+    assertThat(deltaSteps)
+        .as("Expected timestamp to align with current time-step counter")
+        .isLessThanOrEqualTo(1L);
+  }
+
   private String computeExpectedOtp(InlineSample sample, String timestampHexOverride) {
     OcraCredentialFactory factory = new OcraCredentialFactory();
     OcraCredentialRequest request =
@@ -1056,14 +1138,6 @@ final class OcraOperatorUiSeleniumTest {
                     + " return el ? window.getComputedStyle(el).getPropertyValue('cursor') : '';",
                 elementId);
     assertThat(cursor).isEqualTo("not-allowed");
-  }
-
-  private long currentTimeStep(long stepSeconds) {
-    if (stepSeconds <= 0) {
-      return 0L;
-    }
-    long epochSeconds = Instant.now().getEpochSecond();
-    return epochSeconds / stepSeconds;
   }
 
   private void waitForPresetScripts() {

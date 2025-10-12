@@ -307,6 +307,34 @@ button {
   accent-color: var(--ocra-color-primary-accent);
 }
 
+.timestamp-autofill {
+  margin-top: var(--ocra-spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ocra-spacing-xs);
+}
+
+.timestamp-autofill-toggle {
+  font-weight: 500;
+}
+
+.timestamp-autofill-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ocra-spacing-sm);
+}
+
+.timestamp-autofill-actions .hint {
+  margin: 0;
+  color: var(--ocra-color-text-muted);
+}
+
+.timestamp-autofill-actions button {
+  padding-inline: var(--ocra-spacing-sm);
+  padding-block: calc(var(--ocra-spacing-xs) * 1.5);
+}
+
 .field-group--checkbox {
   display: flex;
   align-items: center;

@@ -28,7 +28,7 @@ public final class OcraOperatorSampleData {
       List.of(
           seedDefinition(
               "qn08-sha1",
-              "QN08 numeric - HOTP-SHA1, 6 digits",
+              "QN08 numeric - HOTP-SHA1, 6 digits (RFC 6287)",
               "sample-qn08-sha1",
               "OCRA-1:HOTP-SHA1-6:QN08",
               STANDARD_KEY_20,
@@ -44,7 +44,7 @@ public final class OcraOperatorSampleData {
               "243178"),
           seedDefinition(
               "c-qn08-psha1",
-              "C-QN08 PIN - HOTP-SHA256, 8 digits",
+              "C-QN08 PIN - HOTP-SHA256, 8 digits (RFC 6287)",
               "sample-c-qn08-psha1",
               "OCRA-1:HOTP-SHA256-8:C-QN08-PSHA1",
               SHARED_SECRET_HEX,
@@ -60,7 +60,7 @@ public final class OcraOperatorSampleData {
               "65347737"),
           seedDefinition(
               "qn08-psha1",
-              "QN08 PIN - HOTP-SHA256, 8 digits",
+              "QN08 PIN - HOTP-SHA256, 8 digits (RFC 6287)",
               "sample-qn08-psha1",
               "OCRA-1:HOTP-SHA256-8:QN08-PSHA1",
               SHARED_SECRET_HEX,
@@ -76,7 +76,7 @@ public final class OcraOperatorSampleData {
               "83238735"),
           seedDefinition(
               "c-qn08-sha512",
-              "C-QN08 - HOTP-SHA512, 8 digits",
+              "C-QN08 - HOTP-SHA512, 8 digits (RFC 6287)",
               "sample-c-qn08-sha512",
               "OCRA-1:HOTP-SHA512-8:C-QN08",
               STANDARD_KEY_64,
@@ -92,7 +92,7 @@ public final class OcraOperatorSampleData {
               "07016083"),
           seedDefinition(
               "qn08-t1m",
-              "QN08 T1M - HOTP-SHA512, 8 digits",
+              "QN08 T1M - HOTP-SHA512, 8 digits (RFC 6287)",
               "sample-qn08-t1m",
               "OCRA-1:HOTP-SHA512-8:QN08-T1M",
               STANDARD_KEY_64,
@@ -108,7 +108,7 @@ public final class OcraOperatorSampleData {
               "95209754"),
           seedDefinition(
               "qa08-s064",
-              "QA08 S064 - session 64",
+              "QA08 S064 - session 64 (RFC 6287)",
               "sample-qa08-s064",
               "OCRA-1:HOTP-SHA256-8:QA08-S064",
               SHARED_SECRET_HEX,
@@ -125,7 +125,7 @@ public final class OcraOperatorSampleData {
               "17477202"),
           seedDefinition(
               "qa08-s128",
-              "QA08 S128 - session 128",
+              "QA08 S128 - session 128 (RFC 6287)",
               "sample-qa08-s128",
               "OCRA-1:HOTP-SHA256-8:QA08-S128",
               SHARED_SECRET_HEX,
@@ -144,7 +144,7 @@ public final class OcraOperatorSampleData {
               "18468077"),
           seedDefinition(
               "qa08-s256",
-              "QA08 S256 - session 256",
+              "QA08 S256 - session 256 (RFC 6287)",
               "sample-qa08-s256",
               "OCRA-1:HOTP-SHA256-8:QA08-S256",
               SHARED_SECRET_HEX,
@@ -163,7 +163,7 @@ public final class OcraOperatorSampleData {
               "77715695"),
           seedDefinition(
               "qa08-s512",
-              "QA08 S512 - session 512",
+              "QA08 S512 - session 512 (RFC 6287)",
               "sample-qa08-s512",
               "OCRA-1:HOTP-SHA256-8:QA08-S512",
               SHARED_SECRET_HEX,
@@ -182,7 +182,7 @@ public final class OcraOperatorSampleData {
               "05806151"),
           seedDefinition(
               "qa08-mutual-sha256",
-              "QA08 mutual - HOTP-SHA256, 8 digits",
+              "QA08 mutual - HOTP-SHA256, 8 digits (RFC 6287)",
               "sample-qa08-mutual-sha256",
               "OCRA-1:HOTP-SHA256-8:QA08",
               SHARED_SECRET_HEX,
@@ -198,7 +198,7 @@ public final class OcraOperatorSampleData {
               "28247970"),
           seedDefinition(
               "qa08-mutual-sha512",
-              "QA08 mutual SHA512 - HOTP-SHA512, 8 digits",
+              "QA08 mutual SHA512 - HOTP-SHA512, 8 digits (RFC 6287)",
               "sample-qa08-mutual-sha512",
               "OCRA-1:HOTP-SHA512-8:QA08",
               STANDARD_KEY_64,
@@ -214,7 +214,7 @@ public final class OcraOperatorSampleData {
               "79496648"),
           seedDefinition(
               "qa08-pin-sha512",
-              "QA08 PIN SHA512 - HOTP-SHA512, 8 digits",
+              "QA08 PIN SHA512 - HOTP-SHA512, 8 digits (RFC 6287)",
               "sample-qa08-pin-sha512",
               "OCRA-1:HOTP-SHA512-8:QA08-PSHA1",
               STANDARD_KEY_64,
@@ -230,7 +230,7 @@ public final class OcraOperatorSampleData {
               "18806276"),
           seedDefinition(
               "qa10-t1m",
-              "QA10 T1M signature - HOTP-SHA512, 8 digits",
+              "QA10 T1M signature - HOTP-SHA512, 8 digits (RFC 6287)",
               "sample-qa10-t1m",
               "OCRA-1:HOTP-SHA512-8:QA10-T1M",
               STANDARD_KEY_64,

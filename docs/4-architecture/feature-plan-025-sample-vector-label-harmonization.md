@@ -57,6 +57,15 @@ _Last updated:_ 2025-10-12
    - Refresh console metadata, Selenium assertions, REST expectations, and operator docs to reference the expanded preset set.
    _2025-10-12 – Added the missing presets, trimmed the “seeded demo” suffix, expanded HOTP stored seeding to mirror every inline preset, refreshed HOTP Selenium coverage, updated inline doc guidance, and reran `:rest-api:test` (evaluate + replay) alongside `spotlessApply check`._
 
+9. **I9 – OCRA RFC label parity**
+   - Append `(RFC 6287)` to RFC-backed OCRA inline presets while keeping the draft-only `C-QH64` unmarked.
+   - Update any Selenium/docs assertions that reference the affected labels.
+
+10. **I10 – Stored RFC label parity**
+    - Ensure OCRA stored credential dropdowns append `(RFC 6287)` to RFC-backed seeds while leaving `C-QH64` unchanged.
+    - Adjust controller helpers/tests to reflect the stored label format.
+    _2025-10-12 – Annotated stored credential labels via controller helper, added regression test, reran `./gradlew spotlessApply check`._
+
 ## Risks & Mitigations
 - **Missed test assertions:** audit every protocol-specific Selenium test for string expectations (mitigate with targeted test runs after each increment).
 - **Documentation drift:** update how-to guides in the same increment as code changes.
