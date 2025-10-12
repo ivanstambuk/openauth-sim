@@ -21,7 +21,7 @@ public final class OcraOperatorSampleData {
       List.of(
           seedDefinition(
               "qa08-s064",
-              "QA08 S064 (session 64)",
+              "QA08 S064 - session 64",
               "sample-qa08-s064",
               "OCRA-1:HOTP-SHA256-8:QA08-S064",
               SHARED_SECRET_HEX,
@@ -38,7 +38,7 @@ public final class OcraOperatorSampleData {
               "17477202"),
           seedDefinition(
               "qa08-s128",
-              "QA08 S128 (session 128)",
+              "QA08 S128 - session 128",
               "sample-qa08-s128",
               "OCRA-1:HOTP-SHA256-8:QA08-S128",
               SHARED_SECRET_HEX,
@@ -57,7 +57,7 @@ public final class OcraOperatorSampleData {
               "18468077"),
           seedDefinition(
               "qa08-s256",
-              "QA08 S256 (session 256)",
+              "QA08 S256 - session 256",
               "sample-qa08-s256",
               "OCRA-1:HOTP-SHA256-8:QA08-S256",
               SHARED_SECRET_HEX,
@@ -76,7 +76,7 @@ public final class OcraOperatorSampleData {
               "77715695"),
           seedDefinition(
               "qa08-s512",
-              "QA08 S512 (session 512)",
+              "QA08 S512 - session 512",
               "sample-qa08-s512",
               "OCRA-1:HOTP-SHA256-8:QA08-S512",
               SHARED_SECRET_HEX,
@@ -95,7 +95,7 @@ public final class OcraOperatorSampleData {
               "05806151"),
           seedDefinition(
               "c-qh64",
-              "C-QH64 (HOTP-SHA256-6)",
+              "C-QH64 - HOTP-SHA256, 6 digits",
               "sample-c-qh64",
               "OCRA-1:HOTP-SHA256-6:C-QH64",
               SHARED_SECRET_HEX,

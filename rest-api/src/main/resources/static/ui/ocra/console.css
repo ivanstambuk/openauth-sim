@@ -326,6 +326,43 @@ button {
   font-weight: 500;
 }
 
+.field-group--stacked {
+  display: grid;
+  gap: var(--ocra-spacing-xs);
+}
+
+.field-group--stacked textarea,
+.field-group--stacked input,
+.field-group--stacked select {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: var(--ocra-radius-sm);
+  border: 1px solid rgba(22, 211, 243, 0.18);
+  padding: var(--ocra-spacing-sm) var(--ocra-spacing-md);
+  background: rgba(6, 17, 32, 0.94);
+  color: var(--ocra-color-text);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field-group--stacked textarea:focus,
+.field-group--stacked input:focus,
+.field-group--stacked select:focus {
+  outline: 3px solid var(--ocra-color-primary-soft);
+  border-color: var(--ocra-color-outline);
+  box-shadow: 0 0 0 1px var(--ocra-color-outline);
+}
+
+.field-group--counter-toggle {
+  margin-top: var(--ocra-spacing-sm);
+  gap: var(--ocra-spacing-sm);
+  flex-wrap: wrap;
+}
+
+.field-group--counter-toggle .button-secondary {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .builder-preview {
   border-radius: var(--ocra-radius-sm);
   background: rgba(18, 59, 93, 0.08);
@@ -397,6 +434,11 @@ button {
   display: grid;
   gap: var(--ocra-spacing-xs);
   margin-bottom: var(--ocra-spacing-md);
+}
+
+[data-testid="fido2-inline-preset"],
+[data-testid="fido2-replay-inline-preset"] {
+  margin-bottom: var(--ocra-spacing-sm);
 }
 
 .inline-preset label {

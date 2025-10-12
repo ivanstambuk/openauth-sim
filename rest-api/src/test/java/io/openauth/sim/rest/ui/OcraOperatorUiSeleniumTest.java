@@ -175,6 +175,24 @@ final class OcraOperatorUiSeleniumTest {
     assertThat(credentialSection.getAttribute("hidden")).isNotNull();
   }
 
+  @Test
+  @DisplayName("Evaluate button label reflects selected mode")
+  void evaluateButtonLabelReflectsSelectedMode() {
+    navigateToEvaluationConsole();
+
+    By evaluateButtonLocator = By.cssSelector("button[data-testid='ocra-evaluate-button']");
+    assertButtonLabel(evaluateButtonLocator, "Evaluate inline parameters");
+
+    driver.findElement(By.id("mode-credential")).click();
+    waitForBackgroundJavaScript();
+    waitForCredentialOptions();
+    assertButtonLabel(evaluateButtonLocator, "Evaluate stored credential");
+
+    driver.findElement(By.id("mode-inline")).click();
+    waitForBackgroundJavaScript();
+    assertButtonLabel(evaluateButtonLocator, "Evaluate inline parameters");
+  }
+
   @ParameterizedTest(name = "{0}")
   @MethodSource("storedCredentialAutoPopulateScenarios")
   @DisplayName("Stored credential auto-populate fills required inputs and yields success")
@@ -860,6 +878,16 @@ final class OcraOperatorUiSeleniumTest {
               boolean hidden = element.getAttribute("hidden") != null;
               return expectedVisibility == PanelVisibility.VISIBLE ? !hidden : hidden;
             });
+  }
+
+  private void assertButtonLabel(By locator, String expectedText) {
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            d -> {
+              WebElement element = d.findElement(locator);
+              return expectedText.equals(element.getText().trim());
+            });
+    assertThat(driver.findElement(locator).getText().trim()).isEqualTo(expectedText);
   }
 
   private void assertValueWithWait(By locator, String expected) {

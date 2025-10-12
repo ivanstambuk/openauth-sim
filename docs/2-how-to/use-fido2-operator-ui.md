@@ -21,7 +21,7 @@ Directly open the WebAuthn tab via `http://localhost:8080/ui/console?protocol=fi
 
 ## Generate Inline Assertions
 1. Keep the Evaluate tab in **Inline** mode (the default). The stored form hides and the inline parameters remain compact until you pick a preset.
-2. Select a preset from **Load a generator preset**. The dropdown lists exactly one generator-backed option per supported algorithm, letting you jump between ES256/384/512, RS256, PS256, and Ed25519 without scrolling through the full JSON catalogue. The form fields update immediately, so you can tweak the pre-filled relying-party data, challenge, and authenticator private key as needed without touching the credential store.
+2. Select a sample from **Load a sample vector**. The dropdown lists exactly one generator-backed option per supported algorithm (labels follow the `<algorithm> - UV required|UV optional` pattern), letting you jump between ES256/384/512, RS256, PS256, and Ed25519 without scrolling through the full JSON catalogue. The form fields update immediately, so you can tweak the pre-filled relying-party data, challenge, and authenticator private key as needed without touching the credential store.
 3. Provide or adjust your own relying-party data, challenge, signature counter, UV flag, and private key. Click **Generate inline assertion** to invoke the REST endpoint.
 4. The result panel renders the generated `PublicKeyCredential` JSON. The telemetry line echoes a sanitized summary (`credentialSource=inline`, `credentialReference=false`, algorithm, origin, telemetry id). Errors (for example malformed JWK payloads) surface in an inline alert with the sanitized `reasonCode` returned by the API.
 
@@ -31,7 +31,7 @@ Directly open the WebAuthn tab via `http://localhost:8080/ui/console?protocol=fi
 3. Modify the challenge or origin to observe `match=false` behavior, then click **Verify assertion**.
 4. The result panel highlights whether the assertion matched and the telemetry frame records `event=rest.fido2.replay`, `credentialSource=stored`, `match=true|false`, and sanitized error details.
 
-Inline replay follows the same shape: switch the mode selector to **Inline**, load a sample vector, tweak fields as needed, and submit. Telemetry reports `credentialSource=inline` while keeping Base64URL material redacted.
+Inline replay follows the same shape: switch the mode selector to **Inline**, load a sample, tweak fields as needed, and submit. Telemetry reports `credentialSource=inline` while keeping Base64URL material redacted.
 
 ## Persisting Mode State
 - Deep links: append `&fido2Mode=stored|inline|replay` to the console URL to open the panel in a specific mode (for example `http://localhost:8080/ui/console?protocol=fido2&fido2Mode=inline`).
@@ -42,7 +42,7 @@ Inline replay follows the same shape: switch the mode selector to **Inline**, lo
 - Stored and inline generations emit sanitized telemetry frames (`event=rest.fido2.evaluate`). The result panel mirrors the telemetry id so you can cross-reference server logs without exposing challenges, signatures, or private keys.
 - Sample loading is local to the console. Seeding continues to call `/api/v1/webauthn/credentials/seed`; network failures surface in the metadata line with a sanitized error message.
 - Copy/download buttons are disabled until an assertion is successfully generated. If you change presets, the console clears the previous payload and telemetry so you do not accidentally reuse stale data.
-- If you add additional fixtures, update `Fido2OperatorSampleData.inlineVectors()` so the curated subset stays concise—exactly one generator preset per algorithm. The CLI/REST facades always expose the complete catalogue via `fido2 vectors` and the WebAuthn REST endpoints.
+- If you add additional fixtures, update `Fido2OperatorSampleData.inlineVectors()` so the curated subset stays concise—exactly one sample per algorithm. The CLI/REST facades always expose the complete catalogue via `fido2 vectors` and the WebAuthn REST endpoints.
 
 ## Related Resources
 - [Use the FIDO2/WebAuthn CLI](use-fido2-cli-operations.md) for headless verification and replay workflows powered by the same JSON vectors.

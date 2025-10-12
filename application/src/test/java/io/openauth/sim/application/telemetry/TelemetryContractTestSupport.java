@@ -216,11 +216,13 @@ public final class TelemetryContractTestSupport {
 
   public static Map<String, Object> hotpSeedFields() {
     Map<String, Object> fields = new LinkedHashMap<>();
-    fields.put("addedCount", 2);
-    fields.put("canonicalCount", 2);
+    fields.put("addedCount", 3);
+    fields.put("canonicalCount", 3);
     fields.put("existingCount", 0);
     fields.put("trigger", "ui");
-    fields.put("addedCredentialIds", List.of("ui-hotp-demo", "ui-hotp-demo-sha256"));
+    fields.put(
+        "addedCredentialIds",
+        List.of("ui-hotp-demo", "ui-hotp-demo-sha256", "ui-hotp-demo-sha512"));
     return fields;
   }
 

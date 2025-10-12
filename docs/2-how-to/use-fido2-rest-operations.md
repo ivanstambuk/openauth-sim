@@ -127,7 +127,7 @@ Inline requests provide every credential attribute explicitly. The example below
 curl -s -H "Content-Type: application/json"   -d '{"credentialName":"inline-generator","credentialId":"V2VhQXV0aFNpbUJhc2UuLi4=","relyingPartyId":"example.org","origin":"https://example.org","expectedType":"webauthn.get","algorithm":"ES256","signatureCounter":0,"userVerificationRequired":false,"challenge":"d2ViYXV0aG4taW5saW5lLWNobGctMTIz","privateKey":"<JWK JSON shortened>"}'   http://localhost:8080/api/v1/webauthn/evaluate/inline | jq
 ```
 > Replace `<JWK JSON shortened>` with the desired private key (for example the value returned by `/sample`).
-The response mirrors stored mode aside from `credentialSource`/`credentialReference` reflecting the inline request. If you load preset data from the operator console, the UI now forwards a `credentialName` field that matches the generator preset label (for example `"ES256 generator preset"`).
+The response mirrors stored mode aside from `credentialSource`/`credentialReference` reflecting the inline request. If you load preset data from the operator console, the UI now forwards a `credentialName` field that matches the sample vector label (for example `"ES256 sample vector"`).
 
 ### Quick inline payload helper
 Convert JSON vectors to inline request bodies while sourcing the accompanying private key from the generator presets:

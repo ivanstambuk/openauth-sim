@@ -91,7 +91,7 @@ final class HotpCredentialDirectoryController {
     Integer digits = parseInteger(attributes.get(ATTR_DIGITS));
     Long counter = parseLong(attributes.get(ATTR_COUNTER));
     String algorithm = attributes.get(ATTR_ALGORITHM);
-    String label = buildLabel(credential.name(), algorithm, digits);
+    String label = buildLabel(credential.name(), algorithm, digits, attributes);
     return new HotpCredentialSummary(credential.name(), label, digits, counter);
   }
 
@@ -117,7 +117,8 @@ final class HotpCredentialDirectoryController {
     }
   }
 
-  private static String buildLabel(String id, String algorithm, Integer digits) {
+  private static String buildLabel(
+      String id, String algorithm, Integer digits, Map<String, String> attributes) {
     if (id == null) {
       return null;
     }
@@ -128,6 +129,11 @@ final class HotpCredentialDirectoryController {
       return trimmedId;
     }
 
+    boolean isRfc4226 =
+        attributes != null
+            && "ui-hotp-demo".equals(attributes.get("hotp.metadata.presetKey"))
+            && hasDigits;
+
     StringBuilder builder = new StringBuilder(trimmedId).append(" (");
     if (hasAlgorithm) {
       builder.append(algorithm);
@@ -137,6 +143,9 @@ final class HotpCredentialDirectoryController {
     }
     if (hasDigits) {
       builder.append(digits).append(" digits");
+    }
+    if (isRfc4226) {
+      builder.append(", RFC 4226");
     }
     builder.append(')');
     return builder.toString();

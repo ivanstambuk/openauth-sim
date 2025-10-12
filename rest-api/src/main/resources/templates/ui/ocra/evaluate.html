@@ -440,8 +440,14 @@
             </div>
           </section>
 
-            <button type="button" class="button-primary" data-testid="ocra-evaluate-button">
-              Evaluate response
+            <button
+              type="button"
+              class="button-primary"
+              data-testid="ocra-evaluate-button"
+              data-inline-label="Evaluate inline parameters"
+              data-credential-label="Evaluate stored credential"
+            >
+              Evaluate inline parameters
             </button>
             </form>
           </div>
@@ -673,6 +679,13 @@
               input.removeAttribute('disabled');
             }
           });
+          if (submitButton) {
+            var inlineLabel = submitButton.getAttribute('data-inline-label');
+            var credentialLabel = submitButton.getAttribute('data-credential-label');
+            submitButton.textContent = inlineActive
+              ? (inlineLabel || 'Evaluate inline parameters')
+              : (credentialLabel || 'Evaluate stored credential');
+          }
           if (!inlineActive) {
             ensureCredentialsLoaded().then(function () {
               handleStoredCredentialSelection();

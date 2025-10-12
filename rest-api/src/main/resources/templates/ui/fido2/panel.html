@@ -96,7 +96,7 @@
               </fieldset>
 
               <section
-                  class="stack-md"
+                  class="stack-md stack-offset-top-lg"
                   data-mode-section="inline"
                   data-testid="fido2-evaluate-inline-section"
                   aria-label="Inline WebAuthn evaluation form"
@@ -114,6 +114,26 @@
                       id="fido2-inline-vectors"
                       th:utext="${fido2InlineVectorsJson}"
                     ></script>
+                  <div class="inline-preset" data-testid="fido2-inline-preset">
+                    <label for="fido2InlineSampleSelect">Load a sample vector</label>
+                    <select
+                        id="fido2InlineSampleSelect"
+                        data-testid="fido2-inline-sample-select"
+                        disabled="disabled"
+                      >
+                      <option value="">Select a sample</option>
+                      <th:block th:each="vector : ${fido2InlineVectors}">
+                        <option
+                            th:value="${vector.key()}"
+                            th:text="${vector.label()}"
+                            th:attr="data-algorithm=${vector.algorithm()},data-credential-name=${vector.credentialName()}">
+                        </option>
+                      </th:block>
+                    </select>
+                    <p class="hint">
+                      Select a sample to auto-fill reproducible inline generator data.
+                    </p>
+                  </div>
                   <div class="field-grid field-grid--two-column">
                     <div class="field-group">
                       <label for="fido2InlineRpId">Relying party ID</label>
@@ -175,7 +195,7 @@
                           readonly="readonly"
                           data-testid="fido2-inline-counter-input"
                         />
-                      <div class="field-group field-group--checkbox">
+                      <div class="field-group field-group--checkbox field-group--counter-toggle">
                         <input
                             type="checkbox"
                             id="fido2InlineCounterAuto"
@@ -183,11 +203,6 @@
                             data-testid="fido2-inline-counter-toggle"
                           />
                         <label for="fido2InlineCounterAuto">Use current Unix seconds</label>
-                      </div>
-                      <p class="hint" data-testid="fido2-inline-counter-hint">
-                        Last autofill: awaiting snapshot.
-                      </p>
-                      <div class="button-row">
                         <button
                             type="button"
                             class="button-secondary"
@@ -196,6 +211,9 @@
                           Reset to now
                         </button>
                       </div>
+                      <p class="hint" data-testid="fido2-inline-counter-hint">
+                        Last autofill: awaiting snapshot.
+                      </p>
                     </div>
                     <div class="field-group field-group--checkbox">
                       <input
@@ -211,48 +229,27 @@
                       <textarea
                           id="fido2InlineChallenge"
                           name="challenge"
-                          rows="3"
+                          rows="1"
                           spellcheck="false"
                         ></textarea>
                     </div>
                   </div>
-                  <div class="field-group">
+                  <div class="field-group field-group--stacked">
                     <label for="fido2InlinePrivateKey">Authenticator private key (JWK or PEM/PKCS#8)</label>
                     <textarea
                         id="fido2InlinePrivateKey"
                         name="privateKey"
                         rows="6"
                         spellcheck="false"
+                        data-json-pretty="true"
                       ></textarea>
-                    <p class="hint">
-                      Provide the authenticator's private key in JWK (recommended) or PEM/PKCS#8 form.
-                    </p>
-                  </div>
-                  <div class="inline-preset" data-testid="fido2-inline-preset">
-                    <label for="fido2InlineSampleSelect">Load a generator preset</label>
-                    <select
-                        id="fido2InlineSampleSelect"
-                        data-testid="fido2-inline-sample-select"
-                        disabled="disabled"
-                      >
-                      <option value="">Select a preset</option>
-                      <th:block th:each="vector : ${fido2InlineVectors}">
-                        <option
-                            th:value="${vector.key()}"
-                            th:text="${vector.label()}"
-                            th:attr="data-algorithm=${vector.algorithm()},data-credential-name=${vector.credentialName()}">
-                        </option>
-                      </th:block>
-                    </select>
-                    <p class="hint">
-                      Select an algorithm preset to auto-fill reproducible inline generator data.
-                    </p>
                   </div>
                   <div class="button-row">
                     <button
                         type="button"
                         class="button-primary"
                         data-testid="fido2-evaluate-inline-submit"
+                        data-inline-label="Generate inline assertion"
                       >
                       Generate inline assertion
                     </button>
@@ -352,22 +349,20 @@
                       <textarea
                           id="fido2StoredChallenge"
                           name="challenge"
-                          rows="3"
+                          rows="1"
                           spellcheck="false"
                         ></textarea>
                     </div>
                   </div>
-                  <div class="field-group">
+                  <div class="field-group field-group--stacked">
                     <label for="fido2StoredPrivateKey">Authenticator private key (JWK or PEM/PKCS#8)</label>
                     <textarea
                         id="fido2StoredPrivateKey"
                         name="privateKey"
                         rows="6"
                         spellcheck="false"
+                        data-json-pretty="true"
                       ></textarea>
-                    <p class="hint">
-                      Provide the authenticator's private key in JWK (recommended) or PEM/PKCS#8 form.
-                    </p>
                   </div>
                   <div class="field-grid">
                     <div class="field-group">
@@ -397,6 +392,7 @@
                         type="button"
                         class="button-primary"
                         data-testid="fido2-evaluate-stored-submit"
+                        data-stored-label="Generate stored assertion"
                       >
                       Generate stored assertion
                     </button>
@@ -410,6 +406,8 @@
                   class="result-panel"
                   data-testid="fido2-stored-result"
                   aria-live="polite"
+                  hidden="hidden"
+                  aria-hidden="true"
                 >
                 <h3 class="section-title">Generated assertion</h3>
                 <div class="button-row">
@@ -440,6 +438,8 @@
                   class="result-panel"
                   data-testid="fido2-inline-result"
                   aria-live="polite"
+                  hidden="hidden"
+                  aria-hidden="true"
                 >
                 <h3 class="section-title">Generated assertion</h3>
                 <pre class="code-block" data-testid="fido2-inline-generated-json">Awaiting submission.</pre>
@@ -506,7 +506,7 @@
               </fieldset>
 
               <section
-                  class="stack-md"
+                  class="stack-md stack-offset-top-lg"
                   data-replay-section="inline"
                   data-testid="fido2-replay-inline-section"
                   aria-label="Inline WebAuthn replay form"
@@ -520,6 +520,19 @@
                   >
                   <input type="hidden" name="_csrf" th:value="${csrfToken}" />
                   <input id="fido2ReplayRpId" type="hidden" name="relyingPartyId" />
+                  <div class="inline-preset" data-testid="fido2-replay-inline-preset">
+                    <label for="fido2ReplayInlineSampleSelect">Load a sample vector</label>
+                    <select
+                        id="fido2ReplayInlineSampleSelect"
+                        data-testid="fido2-replay-inline-sample-select"
+                        disabled="disabled"
+                      >
+                      <option value="">Select a sample</option>
+                    </select>
+                    <p class="hint">
+                      Presets auto-fill inline replay inputs with curated assertion payloads for diagnostics.
+                    </p>
+                  </div>
                   <div class="field-grid">
                     <div class="field-group">
                       <label for="fido2ReplayInlineCredentialId">Credential ID (Base64URL)</label>
@@ -611,24 +624,12 @@
                       hidden="hidden"
                     ></textarea>
                   <textarea id="fido2ReplayInlineSignature" name="signature" hidden="hidden"></textarea>
-                  <div class="inline-preset" data-testid="fido2-replay-inline-preset">
-                    <label for="fido2ReplayInlineSampleSelect">Load a sample vector</label>
-                    <select
-                        id="fido2ReplayInlineSampleSelect"
-                        data-testid="fido2-replay-inline-sample-select"
-                        disabled="disabled"
-                      >
-                      <option value="">Select a sample</option>
-                    </select>
-                    <p class="hint">
-                      Presets auto-fill inline replay inputs with curated assertion payloads for diagnostics.
-                    </p>
-                  </div>
                   <div class="button-row">
                     <button
                         type="button"
                         class="button-primary"
                         data-testid="fido2-replay-inline-submit"
+                        data-inline-label="Replay inline assertion"
                       >
                       Replay inline assertion
                     </button>
@@ -683,6 +684,7 @@
                         type="button"
                         class="button-primary"
                         data-testid="fido2-replay-stored-submit"
+                        data-stored-label="Replay stored assertion"
                       >
                       Replay stored assertion
                     </button>
@@ -692,7 +694,13 @@
             </div>
 
             <div class="status-column stack-md">
-              <section class="result-panel" data-testid="fido2-replay-result" aria-live="polite">
+              <section
+                  class="result-panel"
+                  data-testid="fido2-replay-result"
+                  aria-live="polite"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
                 <h3 class="section-title">Replay result</h3>
                 <p>
                   Outcome:

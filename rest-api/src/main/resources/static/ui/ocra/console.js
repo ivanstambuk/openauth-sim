@@ -4,6 +4,7 @@
   var documentRef = global.document;
   var protocolTabs = Array.prototype.slice.call(documentRef.querySelectorAll('[data-protocol-tab]'));
   var protocolPanels = Array.prototype.slice.call(documentRef.querySelectorAll('[data-protocol-panel]'));
+  var fido2Panel = documentRef.querySelector("[data-protocol-panel='fido2']");
   var modeToggle = documentRef.querySelector("[data-testid='ocra-mode-toggle']");
   var evaluateButton = modeToggle && modeToggle.querySelector("[data-testid='ocra-mode-select-evaluate']");
   var replayButton = modeToggle && modeToggle.querySelector("[data-testid='ocra-mode-select-replay']");
@@ -32,7 +33,7 @@
   var lastTotpTab = 'evaluate';
   var lastTotpMode = 'inline';
   var lastTotpReplayMode = 'stored';
-var lastFido2Mode = 'inline';
+  var lastFido2Mode = 'inline';
 
   if (operatorConsoleRoot) {
     var activeProtocolAttr = operatorConsoleRoot.getAttribute('data-active-protocol');
@@ -52,6 +53,28 @@ var lastFido2Mode = 'inline';
       panel.removeAttribute('hidden');
       panel.removeAttribute('aria-hidden');
     }
+  }
+
+  function ensureFido2Panel() {
+    if (!fido2Panel || !documentRef.contains(fido2Panel)) {
+      fido2Panel = documentRef.querySelector("[data-protocol-panel='fido2']");
+    }
+    return fido2Panel;
+  }
+
+  function rememberInitialFido2Mode(mode) {
+    var panel = ensureFido2Panel();
+    if (allowedFido2Modes.has(mode)) {
+      if (panel) {
+        panel.setAttribute('data-initial-fido2-mode', mode);
+      }
+      global.__openauthFido2InitialMode = mode;
+      return;
+    }
+    if (panel) {
+      panel.removeAttribute('data-initial-fido2-mode');
+    }
+    global.__openauthFido2InitialMode = undefined;
   }
 
   function toggleButtonState(button, active) {
@@ -128,9 +151,12 @@ var lastFido2Mode = 'inline';
               ? options.fido2Mode
               : getLastFido2Mode();
       rememberFido2Mode(desiredFidoMode);
+      rememberInitialFido2Mode(desiredFidoMode);
       if (global.Fido2Console && typeof global.Fido2Console.setMode === 'function') {
         global.Fido2Console.setMode(desiredFidoMode, { broadcast: false, force: true });
       }
+    } else {
+      rememberInitialFido2Mode(undefined);
     }
 
     if (options.syncProtocolInfo !== false && global.ProtocolInfo) {
@@ -259,7 +285,7 @@ var lastFido2Mode = 'inline';
       isSameTab = desiredTab === previousTab;
     }
 
-    if (!isSameProtocol || !isSameTab) {
+    if (!isSameProtocol || !isSameTab || desiredProtocol === 'fido2') {
       setActiveProtocol(
           desiredProtocol,
           desiredProtocol === 'ocra' || desiredProtocol === 'hotp' ? desiredTab : undefined,
@@ -468,6 +494,7 @@ var lastFido2Mode = 'inline';
       return;
     }
     rememberFido2Mode(mode);
+    rememberInitialFido2Mode(mode);
     if (currentProtocol !== 'fido2') {
       return;
     }

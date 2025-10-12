@@ -197,30 +197,85 @@
     seedDefinitionNode.parentNode.removeChild(seedDefinitionNode);
   }
 
-  var HOTP_SAMPLE_SECRET_HEX = '3132333435363738393031323334353637383930';
+  var HOTP_SEEDED_SHA1_SECRET_HEX = '3132333435363738393031323334353637383930';
+  var HOTP_SEEDED_SHA512_SECRET_HEX = '3132333435363738393031323334353637383930313233343536373839303132';
   var INLINE_SAMPLE_DATA = {
-    'demo-inline': {
-      label: 'Inline demo vector (SHA-1)',
-      sharedSecretHex: HOTP_SAMPLE_SECRET_HEX,
+    'seeded-demo-sha1': {
+      label: 'SHA-1, 6 digits (RFC 4226)',
+      sharedSecretHex: HOTP_SEEDED_SHA1_SECRET_HEX,
       algorithm: 'SHA1',
       digits: 6,
       counter: 5,
       otp: '254676',
       metadata: {
-        label: 'inline-demo',
-        notes: 'Inline HOTP replay demo vector derived from RFC 4226 sample.',
+        label: 'SHA-1, 6 digits (RFC 4226)',
+        presetKey: 'seeded-demo-sha1',
+        notes: 'Seeded HOTP SHA-1 credential (6 digits) mirrored for inline replay.',
       },
     },
-    'inline-demo-sha256': {
-      label: 'Inline demo vector (SHA-256)',
-      sharedSecretHex: HOTP_SAMPLE_SECRET_HEX,
+    'seeded-demo-sha1-8': {
+      label: 'SHA-1, 8 digits',
+      sharedSecretHex: HOTP_SEEDED_SHA1_SECRET_HEX,
+      algorithm: 'SHA1',
+      digits: 8,
+      counter: 5,
+      otp: '68254676',
+      metadata: {
+        label: 'SHA-1, 8 digits',
+        presetKey: 'seeded-demo-sha1-8',
+        notes: 'Seeded HOTP SHA-1 credential (8 digits) mirrored for inline replay.',
+      },
+    },
+    'seeded-demo-sha256': {
+      label: 'SHA-256, 8 digits',
+      sharedSecretHex: HOTP_SEEDED_SHA1_SECRET_HEX,
       algorithm: 'SHA256',
       digits: 8,
       counter: 5,
       otp: '89697997',
       metadata: {
-        label: 'inline-demo-sha256',
-        notes: 'Inline HOTP demo vector using SHA-256 with an 8-digit response.',
+        label: 'SHA-256, 8 digits',
+        presetKey: 'seeded-demo-sha256',
+        notes: 'Seeded HOTP SHA-256 credential (8 digits) mirrored for inline replay.',
+      },
+    },
+    'seeded-demo-sha256-6': {
+      label: 'SHA-256, 6 digits',
+      sharedSecretHex: HOTP_SEEDED_SHA1_SECRET_HEX,
+      algorithm: 'SHA256',
+      digits: 6,
+      counter: 5,
+      otp: '697997',
+      metadata: {
+        label: 'SHA-256, 6 digits',
+        presetKey: 'seeded-demo-sha256-6',
+        notes: 'Seeded HOTP SHA-256 credential (6 digits) mirrored for inline replay.',
+      },
+    },
+    'seeded-demo-sha512': {
+      label: 'SHA-512, 8 digits',
+      sharedSecretHex: HOTP_SEEDED_SHA512_SECRET_HEX,
+      algorithm: 'SHA512',
+      digits: 8,
+      counter: 5,
+      otp: '77873376',
+      metadata: {
+        label: 'SHA-512, 8 digits',
+        presetKey: 'seeded-demo-sha512',
+        notes: 'Seeded HOTP SHA-512 credential (8 digits) mirrored for inline replay.',
+      },
+    },
+    'seeded-demo-sha512-6': {
+      label: 'SHA-512, 6 digits',
+      sharedSecretHex: HOTP_SEEDED_SHA512_SECRET_HEX,
+      algorithm: 'SHA512',
+      digits: 6,
+      counter: 5,
+      otp: '873376',
+      metadata: {
+        label: 'SHA-512, 6 digits',
+        presetKey: 'seeded-demo-sha512-6',
+        notes: 'Seeded HOTP SHA-512 credential (6 digits) mirrored for inline replay.',
       },
     },
   };

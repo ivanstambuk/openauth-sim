@@ -49,10 +49,18 @@ final class HotpOperatorUiReplaySeleniumTest {
   private static final int DIGITS = 6;
   private static final long STORED_COUNTER = 0L;
   private static final long INLINE_COUNTER = 5L;
-  private static final String INLINE_SAMPLE_KEY = "demo-inline";
-  private static final String INLINE_SHA1_PRESET_LABEL = "Inline demo vector (SHA-1)";
-  private static final String INLINE_SHA256_PRESET_KEY = "inline-demo-sha256";
-  private static final String INLINE_SHA256_PRESET_LABEL = "Inline demo vector (SHA-256)";
+  private static final String INLINE_SHA1_PRESET_KEY = "seeded-demo-sha1";
+  private static final String INLINE_SHA1_PRESET_LABEL = "SHA-1, 6 digits";
+  private static final String INLINE_SHA1_8_PRESET_KEY = "seeded-demo-sha1-8";
+  private static final String INLINE_SHA1_8_PRESET_LABEL = "SHA-1, 8 digits";
+  private static final String INLINE_SHA256_PRESET_KEY = "seeded-demo-sha256";
+  private static final String INLINE_SHA256_PRESET_LABEL = "SHA-256, 8 digits";
+  private static final String INLINE_SHA256_6_PRESET_KEY = "seeded-demo-sha256-6";
+  private static final String INLINE_SHA256_6_PRESET_LABEL = "SHA-256, 6 digits";
+  private static final String INLINE_SHA512_PRESET_KEY = "seeded-demo-sha512";
+  private static final String INLINE_SHA512_PRESET_LABEL = "SHA-512, 8 digits";
+  private static final String INLINE_SHA512_6_PRESET_KEY = "seeded-demo-sha512-6";
+  private static final String INLINE_SHA512_6_PRESET_LABEL = "SHA-512, 6 digits";
   private static final HotpDescriptor DESCRIPTOR =
       HotpDescriptor.create(
           STORED_CREDENTIAL_ID, SecretMaterial.fromHex(SECRET_HEX), HotpHashAlgorithm.SHA1, DIGITS);
@@ -273,20 +281,37 @@ final class HotpOperatorUiReplaySeleniumTest {
 
     java.util.List<WebElement> options = presetSelect.getOptions();
     assertThat(options)
-        .as("Replay inline preset dropdown should expose placeholder plus two demo vectors")
-        .hasSize(3);
+        .as(
+            "Replay inline preset dropdown should expose placeholder plus SHA-1/SHA-256/SHA-512 seeded samples across 6- and 8-digit variants")
+        .hasSize(7);
 
     WebElement placeholder = options.get(0);
     assertThat(placeholder.getAttribute("value")).isEqualTo("");
     assertThat(placeholder.getText().trim()).isEqualTo("Select a sample");
 
     WebElement sha1Option = options.get(1);
-    assertThat(sha1Option.getAttribute("value")).isEqualTo(INLINE_SAMPLE_KEY);
-    assertThat(sha1Option.getText().trim()).isEqualTo(INLINE_SHA1_PRESET_LABEL);
+    assertThat(sha1Option.getAttribute("value")).isEqualTo(INLINE_SHA1_PRESET_KEY);
+    assertThat(sha1Option.getText().trim()).isEqualTo("SHA-1, 6 digits (RFC 4226)");
 
-    WebElement sha256Option = options.get(2);
-    assertThat(sha256Option.getAttribute("value")).isEqualTo(INLINE_SHA256_PRESET_KEY);
-    assertThat(sha256Option.getText().trim()).isEqualTo(INLINE_SHA256_PRESET_LABEL);
+    WebElement sha1EightOption = options.get(2);
+    assertThat(sha1EightOption.getAttribute("value")).isEqualTo(INLINE_SHA1_8_PRESET_KEY);
+    assertThat(sha1EightOption.getText().trim()).isEqualTo(INLINE_SHA1_8_PRESET_LABEL);
+
+    WebElement sha256EightOption = options.get(3);
+    assertThat(sha256EightOption.getAttribute("value")).isEqualTo(INLINE_SHA256_PRESET_KEY);
+    assertThat(sha256EightOption.getText().trim()).isEqualTo(INLINE_SHA256_PRESET_LABEL);
+
+    WebElement sha256SixOption = options.get(4);
+    assertThat(sha256SixOption.getAttribute("value")).isEqualTo(INLINE_SHA256_6_PRESET_KEY);
+    assertThat(sha256SixOption.getText().trim()).isEqualTo(INLINE_SHA256_6_PRESET_LABEL);
+
+    WebElement sha512EightOption = options.get(5);
+    assertThat(sha512EightOption.getAttribute("value")).isEqualTo(INLINE_SHA512_PRESET_KEY);
+    assertThat(sha512EightOption.getText().trim()).isEqualTo(INLINE_SHA512_PRESET_LABEL);
+
+    WebElement sha512SixOption = options.get(6);
+    assertThat(sha512SixOption.getAttribute("value")).isEqualTo(INLINE_SHA512_6_PRESET_KEY);
+    assertThat(sha512SixOption.getText().trim()).isEqualTo(INLINE_SHA512_6_PRESET_LABEL);
   }
 
   @Test
@@ -394,8 +419,8 @@ final class HotpOperatorUiReplaySeleniumTest {
         new Select(
             waitForVisible(
                 By.cssSelector("select[data-testid='hotp-replay-inline-sample-select']")));
-    waitForOption(presetSelect, INLINE_SAMPLE_KEY);
-    presetSelect.selectByValue(INLINE_SAMPLE_KEY);
+    waitForOption(presetSelect, INLINE_SHA1_PRESET_KEY);
+    presetSelect.selectByValue(INLINE_SHA1_PRESET_KEY);
 
     assertThat(driver.findElements(By.id("hotpReplayInlineIdentifier")))
         .as("Inline replay form should not render an identifier input")
@@ -455,8 +480,8 @@ final class HotpOperatorUiReplaySeleniumTest {
         new Select(
             waitForVisible(
                 By.cssSelector("select[data-testid='hotp-replay-inline-sample-select']")));
-    waitForOption(presetSelect, INLINE_SAMPLE_KEY);
-    presetSelect.selectByValue(INLINE_SAMPLE_KEY);
+    waitForOption(presetSelect, INLINE_SHA1_PRESET_KEY);
+    presetSelect.selectByValue(INLINE_SHA1_PRESET_KEY);
 
     waitForClickable(By.cssSelector("button[data-testid='hotp-replay-submit']")).click();
 

@@ -41,6 +41,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-29 – When an operator selects a stored credential, the UI immediately disables and clears request parameter inputs not supported by that credential’s OCRA suite (user chose option A).
 - 2025-09-29 – Disabled request parameter inputs must present a muted/disabled visual state (e.g., grey background, not-allowed cursor) so operators can tell they are non-editable (user request).
 - 2025-10-06 – Evaluate and replay tabs list Inline parameters before Stored credential so the inline option remains the default across protocols (user directive).
+- 2025-10-12 – Evaluate action button must adopt protocol-aligned copy: “Evaluate inline parameters” when Inline parameters mode is active and “Evaluate stored credential” when Stored credential mode is active, matching HOTP/TOTP operator flows (user directive).
 
 ## Objectives & Success Criteria
 - Provide browser-accessible pages that let operators evaluate OCRA responses using stored credentials or inline parameters, mirroring REST validation semantics.
@@ -61,6 +62,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 | UI-OCRA-008 | Provide a guided inline policy builder that assembles suite components (crypto function, response length, data inputs) with a live preview and the ability to apply the generated suite/secret to the form. | Selecting builder options updates the preview text and, when applied, populates suite/secret fields identically to manual entry/presets. |
 | UI-OCRA-009 | Present stored credentials via a REST-backed dropdown so operators pick an identifier instead of typing it manually. | Switching to stored credential mode triggers a fetch to `/api/v1/ocra/credentials`, populates the combo box, and evaluation requests include the chosen ID without additional input. |
 | UI-OCRA-010 | Offer an explicit replay helper that loads curated sample data for stored credentials without auto-populating on selection. | Stored replay mode renders a "Load sample data" action; clicking it fetches canonical context/OTP values via `/api/v1/ocra/credentials/{id}/sample` when available and fills the form, otherwise the UI surfaces a friendly message and leaves existing input untouched. |
+| UI-OCRA-011 | Match the Evaluate call-to-action label to the selected mode so operators see “Evaluate inline parameters” when inline mode is active and “Evaluate stored credential” when stored mode is active. | Toggling between modes in the UI updates the button label immediately without requiring a page reload; Selenium and MockMvc coverage assert the label values for each mode. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |

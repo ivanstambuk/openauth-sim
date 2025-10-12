@@ -34,10 +34,11 @@ public final class Fido2OperatorSampleData {
   }
 
   private static InlineVector toInlineVector(Sample sample) {
+    String sampleVectorLabel = formatInlineVectorLabel(sample);
     return new InlineVector(
         sample.key(),
-        sample.label(),
-        sample.label(),
+        sampleVectorLabel,
+        sampleVectorLabel,
         sample.relyingPartyId(),
         sample.origin(),
         sample.expectedType(),
@@ -53,8 +54,8 @@ public final class Fido2OperatorSampleData {
         sample.privateKeyJwk(),
         metadata(
             sample.key(),
-            sample.label(),
-            "Generator preset produced via WebAuthnAssertionGenerationApplicationService",
+            sampleVectorLabel,
+            "Sample vector produced via WebAuthnAssertionGenerationApplicationService",
             sample));
   }
 
@@ -106,6 +107,11 @@ public final class Fido2OperatorSampleData {
 
   private static String seedLabel(Sample sample) {
     return "Seed " + sample.label();
+  }
+
+  private static String formatInlineVectorLabel(Sample sample) {
+    String uvDescriptor = sample.userVerificationRequired() ? "UV required" : "UV optional";
+    return sample.algorithm().label() + " - " + uvDescriptor;
   }
 
   /** Descriptor used to seed canonical FIDO2/WebAuthn credentials. */

@@ -13,7 +13,7 @@ The operator console embedded in the REST API now provides HOTP evaluation and r
 ## Seed Canonical HOTP Credentials
 1. Navigate to `http://localhost:8080/ui/console?protocol=hotp` and confirm the **Stored credential** mode is active.
 2. Locate the **Seed sample credentials** button beneath the credential dropdown. The control appears only in stored mode.
-3. Choose **Seed sample credentials** to call `/api/v1/hotp/credentials/seed`. The UI surfaces a status message indicating how many canonical records were added (or whether they already exist) and refreshes the credential dropdown automatically.
+3. Choose **Seed sample credentials** to call `/api/v1/hotp/credentials/seed`. The UI surfaces a status message indicating how many canonical records were added (or whether they already exist) and refreshes the credential dropdown automatically. Seeding now provisions six stored credentials matching every inline preset: the RFC 4226 SHA-1 vector (6 digits), SHA-1 (8 digits), SHA-256 (6 digits, 8 digits), and SHA-512 (6 digits, 8 digits).
 4. Reseeding is idempotent; the console reports when no new credentials were added so repeated drills stay predictable.
 
 ## Evaluate a Stored HOTP Credential
@@ -23,7 +23,7 @@ The operator console embedded in the REST API now provides HOTP evaluation and r
 4. Validation errors (counter overflow, missing credential) appear in the error panel with sanitized messaging; counters are not mutated when evaluation fails.
 
 ## Run Inline HOTP Checks
-1. Switch the evaluation mode toggle to **Inline parameters**; the inline form appears immediately. Use **Load a sample vector** to populate known demo values—`Inline demo vector (SHA-1)` mirrors RFC 4226 while `Inline demo vector (SHA-256)` highlights the 8-digit SHA-256 flow. You can still provide your own secret, algorithm, digit length, and counter manually.
+1. Switch the evaluation mode toggle to **Inline parameters**; the inline form appears immediately. Use **Load a sample vector** to populate curated data—`SHA-1, 6 digits (RFC 4226)` mirrors the reference vector, while the remaining presets cover SHA-1/8 digits, SHA-256 (6 and 8 digits), and SHA-512 (6 and 8 digits). Each inline preset now has an identically configured stored credential seeded from the previous step so you can compare stored and inline flows side-by-side. You can still provide your own secret, algorithm, digit length, and counter manually.
 2. Choose **Evaluate inline parameters** to call `/api/v1/hotp/evaluate/inline` without mutating stored credentials. The response contains the generated OTP, the previous/next counter values, and telemetry metadata.
 3. Inline evaluation metadata now includes the selected preset key/label when you launch the request from a sample vector, making it easier to trace automated drills in downstream logs.
 

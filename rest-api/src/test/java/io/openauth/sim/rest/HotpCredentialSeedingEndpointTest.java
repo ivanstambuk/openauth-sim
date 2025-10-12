@@ -47,7 +47,23 @@ final class HotpCredentialSeedingEndpointTest {
           new SeedExpectation(
               "ui-hotp-demo", "3132333435363738393031323334353637383930", "SHA1", 6, 0L),
           new SeedExpectation(
-              "ui-hotp-demo-sha256", "3132333435363738393031323334353637383930", "SHA256", 8, 5L));
+              "ui-hotp-demo-sha1-8", "3132333435363738393031323334353637383930", "SHA1", 8, 5L),
+          new SeedExpectation(
+              "ui-hotp-demo-sha256", "3132333435363738393031323334353637383930", "SHA256", 8, 5L),
+          new SeedExpectation(
+              "ui-hotp-demo-sha256-6", "3132333435363738393031323334353637383930", "SHA256", 6, 5L),
+          new SeedExpectation(
+              "ui-hotp-demo-sha512",
+              "3132333435363738393031323334353637383930313233343536373839303132",
+              "SHA512",
+              8,
+              5L),
+          new SeedExpectation(
+              "ui-hotp-demo-sha512-6",
+              "3132333435363738393031323334353637383930313233343536373839303132",
+              "SHA512",
+              6,
+              5L));
 
   @TempDir static Path tempDir;
   private static Path databasePath;

@@ -40,8 +40,12 @@ final class HotpOperatorUiSeleniumTest {
   private static final String SECRET_HEX = "3132333435363738393031323334353637383930";
   private static final int DIGITS = 6;
   private static final long INITIAL_COUNTER = 0L;
-  private static final String INLINE_SHA256_PRESET_KEY = "inline-demo-sha256";
-  private static final String INLINE_SHA256_PRESET_LABEL = "Inline demo vector (SHA-256)";
+  private static final String INLINE_SHA1_PRESET_KEY = "seeded-demo-sha1";
+  private static final String INLINE_SHA1_8_PRESET_KEY = "seeded-demo-sha1-8";
+  private static final String INLINE_SHA256_PRESET_KEY = "seeded-demo-sha256";
+  private static final String INLINE_SHA256_6_PRESET_KEY = "seeded-demo-sha256-6";
+  private static final String INLINE_SHA512_PRESET_KEY = "seeded-demo-sha512";
+  private static final String INLINE_SHA512_6_PRESET_KEY = "seeded-demo-sha512-6";
   private static final int INLINE_SHA256_DIGITS = 8;
   private static final long INLINE_SHA256_COUNTER = 5L;
   private static final HotpDescriptor DESCRIPTOR =
@@ -410,17 +414,36 @@ final class HotpOperatorUiSeleniumTest {
 
     Select inlinePresetSelect =
         new Select(driver.findElement(By.cssSelector("[data-testid='hotp-inline-preset-select']")));
-    if (inlinePresetSelect.getOptions().size() < 3) {
-      throw new AssertionError("HOTP inline presets should expose at least two sample options");
+    if (inlinePresetSelect.getOptions().size() < 7) {
+      throw new AssertionError(
+          "HOTP inline presets should expose seeded SHA-1/SHA-256/SHA-512 samples across 6- and 8-digit variants");
     }
     boolean sha1Present =
         inlinePresetSelect.getOptions().stream()
-            .anyMatch(option -> "demo-inline".equals(option.getAttribute("value")));
+            .anyMatch(option -> INLINE_SHA1_PRESET_KEY.equals(option.getAttribute("value")));
+    boolean sha1EightPresent =
+        inlinePresetSelect.getOptions().stream()
+            .anyMatch(option -> INLINE_SHA1_8_PRESET_KEY.equals(option.getAttribute("value")));
     boolean sha256Present =
         inlinePresetSelect.getOptions().stream()
             .anyMatch(option -> INLINE_SHA256_PRESET_KEY.equals(option.getAttribute("value")));
-    if (!sha1Present || !sha256Present) {
-      throw new AssertionError("Expected inline presets to expose SHA-1 and SHA-256 demo vectors");
+    boolean sha256SixPresent =
+        inlinePresetSelect.getOptions().stream()
+            .anyMatch(option -> INLINE_SHA256_6_PRESET_KEY.equals(option.getAttribute("value")));
+    boolean sha512Present =
+        inlinePresetSelect.getOptions().stream()
+            .anyMatch(option -> INLINE_SHA512_PRESET_KEY.equals(option.getAttribute("value")));
+    boolean sha512SixPresent =
+        inlinePresetSelect.getOptions().stream()
+            .anyMatch(option -> INLINE_SHA512_6_PRESET_KEY.equals(option.getAttribute("value")));
+    if (!sha1Present
+        || !sha1EightPresent
+        || !sha256Present
+        || !sha256SixPresent
+        || !sha512Present
+        || !sha512SixPresent) {
+      throw new AssertionError(
+          "Expected inline presets to expose SHA-1, SHA-256, and SHA-512 seeded credentials for both digit configurations");
     }
 
     inlinePresetSelect.selectByValue(INLINE_SHA256_PRESET_KEY);

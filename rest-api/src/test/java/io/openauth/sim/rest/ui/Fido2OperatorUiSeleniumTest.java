@@ -19,6 +19,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
@@ -115,11 +116,18 @@ final class Fido2OperatorUiSeleniumTest {
     WebElement loadSample = waitFor(By.cssSelector("[data-testid='fido2-stored-load-sample']"));
     loadSample.click();
 
+    WebElement storedChallengeField = waitFor(By.id("fido2StoredChallenge"));
+    assertThat(storedChallengeField.getAttribute("rows")).isEqualTo("1");
+
     WebElement originInput = driver.findElement(By.id("fido2StoredOrigin"));
     assertThat(originInput.getAttribute("value")).isEqualTo("https://example.org");
 
     WebElement privateKeyField = waitFor(By.id("fido2StoredPrivateKey"));
+    assertThat(privateKeyField.findElement(By.xpath("..")).getAttribute("class"))
+        .contains("field-group--stacked");
     assertThat(privateKeyField.getAttribute("value")).contains("\"kty\"");
+    assertThat(privateKeyField.getAttribute("value")).contains("\n  \"kty\"");
+    assertThat(privateKeyField.getAttribute("value")).contains("\n  \"kty\"");
 
     WebElement submitButton =
         driver.findElement(By.cssSelector("[data-testid='fido2-evaluate-stored-submit']"));
@@ -187,6 +195,30 @@ final class Fido2OperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Evaluate CTA uses mode-specific copy and attributes")
+  void evaluateButtonCopyMatchesMode() {
+    navigateToWebAuthnPanel();
+
+    WebElement inlineButton =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-inline-submit']"));
+    assertThat(inlineButton.getAttribute("data-inline-label"))
+        .isEqualTo("Generate inline assertion");
+    assertThat(inlineButton.getText().trim()).isEqualTo("Generate inline assertion");
+
+    WebElement storedRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+    storedRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
+
+    WebElement storedButton =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-stored-submit']"));
+    assertThat(storedButton.getAttribute("data-stored-label"))
+        .isEqualTo("Generate stored assertion");
+    assertThat(storedButton.getText().trim()).isEqualTo("Generate stored assertion");
+  }
+
+  @Test
   @DisplayName("Inline WebAuthn generation renders a PublicKeyCredential payload")
   void inlineGenerationDisplaysGeneratedAssertion() {
     navigateToWebAuthnPanel();
@@ -198,7 +230,9 @@ final class Fido2OperatorUiSeleniumTest {
         By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "inline");
 
     List<String> expectedLabels =
-        WebAuthnGeneratorSamples.samples().stream().map(Sample::label).toList();
+        WebAuthnGeneratorSamples.samples().stream()
+            .map(Fido2OperatorUiSeleniumTest::expectedInlineLabel)
+            .toList();
     assertThat(expectedLabels).isNotEmpty();
     new WebDriverWait(driver, Duration.ofSeconds(3))
         .until(
@@ -206,7 +240,8 @@ final class Fido2OperatorUiSeleniumTest {
               Select select = new Select(webDriver.findElement(By.id("fido2InlineSampleSelect")));
               return select.getOptions().size() - 1 >= expectedLabels.size();
             });
-    Select inlineSelect = new Select(driver.findElement(By.id("fido2InlineSampleSelect")));
+    WebElement inlineSelectElement = waitFor(By.id("fido2InlineSampleSelect"));
+    Select inlineSelect = new Select(inlineSelectElement);
     assertThat(
             inlineSelect.getOptions().stream()
                 .skip(1)
@@ -216,12 +251,27 @@ final class Fido2OperatorUiSeleniumTest {
         .containsExactlyElementsOf(expectedLabels);
     if (inlineSelect.getOptions().size() > 1) {
       inlineSelect.selectByIndex(1);
+      dispatchChange(inlineSelectElement);
     }
 
-    WebElement algorithmField = waitFor(By.id("fido2InlineAlgorithm"));
-    assertThat(algorithmField.getText()).isNotEmpty();
+    WebElement challengeField = waitFor(By.id("fido2InlineChallenge"));
+    assertThat(challengeField.getAttribute("rows")).isEqualTo("1");
+
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(
+            webDriver ->
+                !new Select(webDriver.findElement(By.id("fido2InlineAlgorithm")))
+                    .getFirstSelectedOption()
+                    .getAttribute("value")
+                    .isBlank());
+    Select algorithmField = new Select(waitFor(By.id("fido2InlineAlgorithm")));
+    assertThat(algorithmField.getFirstSelectedOption().getAttribute("value")).isNotBlank();
 
     WebElement privateKeyField = waitFor(By.id("fido2InlinePrivateKey"));
+    assertThat(privateKeyField.findElement(By.xpath("..")).getAttribute("class"))
+        .contains("field-group--stacked");
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(driver1 -> privateKeyField.getAttribute("value").contains("\"kty\""));
     assertThat(privateKeyField.getAttribute("value")).contains("\"kty\"");
 
     WebElement evaluateButton =
@@ -250,12 +300,16 @@ final class Fido2OperatorUiSeleniumTest {
 
     new WebDriverWait(driver, Duration.ofSeconds(3))
         .until(ExpectedConditions.elementToBeClickable(By.id("fido2InlineSampleSelect")));
-    Select inlineSelect = new Select(driver.findElement(By.id("fido2InlineSampleSelect")));
+    WebElement inlineSelectElement = waitFor(By.id("fido2InlineSampleSelect"));
+    Select inlineSelect = new Select(inlineSelectElement);
     if (inlineSelect.getOptions().size() > 1) {
       inlineSelect.selectByIndex(1);
+      dispatchChange(inlineSelectElement);
     }
 
     WebElement privateKeyField = waitFor(By.id("fido2InlinePrivateKey"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(driver1 -> privateKeyField.getAttribute("value").contains("\"kty\""));
     privateKeyField.clear();
     privateKeyField.sendKeys("{\"kty\":\"EC\",\"crv\":\"P-256\",\"d\":\"invalid\"}");
 
@@ -278,6 +332,17 @@ final class Fido2OperatorUiSeleniumTest {
     WebElement counterInput = waitFor(counterSelector);
     long initialValue = Long.parseLong(counterInput.getAttribute("value"));
     assertThat(initialValue).isGreaterThan(0L);
+
+    WebElement toggleCluster = waitFor(By.cssSelector(".field-group--counter-toggle"));
+    assertThat(toggleCluster.getAttribute("class")).contains("field-group--checkbox");
+    List<WebElement> clusterChildren = toggleCluster.findElements(By.xpath("./*"));
+    assertThat(clusterChildren).hasSize(3);
+    assertThat(clusterChildren.get(0).getTagName()).isEqualTo("input");
+    assertThat(clusterChildren.get(1).getTagName()).isEqualTo("label");
+    assertThat(clusterChildren.get(2).getTagName()).isEqualTo("button");
+    assertThat(clusterChildren.get(1).getAttribute("for")).isEqualTo("fido2InlineCounterAuto");
+    assertThat(clusterChildren.get(2).getAttribute("data-testid"))
+        .isEqualTo("fido2-inline-counter-reset");
 
     WebElement resetButton = waitFor(By.cssSelector("[data-testid='fido2-inline-counter-reset']"));
     Thread.sleep(1_050L);
@@ -333,10 +398,16 @@ final class Fido2OperatorUiSeleniumTest {
     Select credentialSelect = new Select(waitFor(By.id("fido2ReplayCredentialId")));
     credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
 
+    By storedResultSelector = By.cssSelector("[data-testid='fido2-replay-result']");
+    waitUntilAttribute(storedResultSelector, "aria-hidden", "true");
+    WebElement storedResultPanel = waitFor(storedResultSelector);
+    assertThat(storedResultPanel.getAttribute("aria-hidden")).isEqualTo("true");
+
     WebElement replaySubmit =
         driver.findElement(By.cssSelector("[data-testid='fido2-replay-stored-submit']"));
     replaySubmit.click();
 
+    awaitVisible(By.cssSelector("[data-testid='fido2-replay-result']"));
     awaitText(
         By.cssSelector("[data-testid='fido2-replay-result'] [data-testid='fido2-replay-status']"),
         text -> !"pending".equalsIgnoreCase(text));
@@ -356,6 +427,31 @@ final class Fido2OperatorUiSeleniumTest {
     assertThat(replayStatus).isEqualToIgnoringCase("match");
     assertThat(replayReason).isEqualToIgnoringCase("validated");
     assertThat(replayTelemetry).doesNotContain("challenge=").doesNotContain("signature=");
+  }
+
+  @Test
+  @DisplayName("Replay CTA uses mode-specific copy and attributes")
+  void replayButtonCopyMatchesMode() {
+    navigateToWebAuthnPanel();
+
+    WebElement replayTab = waitFor(By.cssSelector("[data-testid='fido2-panel-tab-replay']"));
+    replayTab.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-panel-tab-replay']"), "aria-selected", "true");
+
+    WebElement inlineButton = waitFor(By.cssSelector("[data-testid='fido2-replay-inline-submit']"));
+    assertThat(inlineButton.getAttribute("data-inline-label")).isEqualTo("Replay inline assertion");
+    assertThat(inlineButton.getText().trim()).isEqualTo("Replay inline assertion");
+
+    WebElement storedRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-mode-select-stored']"));
+    storedRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-replay-mode-toggle']"), "data-mode", "stored");
+
+    WebElement storedButton = waitFor(By.cssSelector("[data-testid='fido2-replay-stored-submit']"));
+    assertThat(storedButton.getAttribute("data-stored-label")).isEqualTo("Replay stored assertion");
+    assertThat(storedButton.getText().trim()).isEqualTo("Replay stored assertion");
   }
 
   @Test
@@ -381,6 +477,11 @@ final class Fido2OperatorUiSeleniumTest {
       sampleSelect.selectByIndex(1);
     }
 
+    By inlineResultSelector = By.cssSelector("[data-testid='fido2-replay-inline-result']");
+    waitUntilAttribute(inlineResultSelector, "aria-hidden", "true");
+    WebElement inlineResultPanel = waitFor(inlineResultSelector);
+    assertThat(inlineResultPanel.getAttribute("aria-hidden")).isEqualTo("true");
+
     WebElement credentialIdField = waitFor(By.id("fido2ReplayInlineCredentialId"));
     assertThat(credentialIdField.getAttribute("value")).isNotEmpty();
     Select algorithmSelect =
@@ -391,6 +492,7 @@ final class Fido2OperatorUiSeleniumTest {
         driver.findElement(By.cssSelector("[data-testid='fido2-replay-inline-submit']"));
     submit.click();
 
+    awaitVisible(By.cssSelector("[data-testid='fido2-replay-inline-result']"));
     awaitText(
         By.cssSelector(
             "[data-testid='fido2-replay-inline-result'] [data-testid='fido2-replay-inline-status']"),
@@ -404,6 +506,30 @@ final class Fido2OperatorUiSeleniumTest {
 
     WebElement telemetry = waitFor(By.cssSelector("[data-testid='fido2-replay-inline-telemetry']"));
     assertThat(telemetry.getText()).doesNotContain("challenge=").doesNotContain("signature=");
+  }
+
+  @Test
+  @DisplayName("FIDO2 deep-link mode stays active across refresh and history navigation")
+  void deepLinkReplayModePersistsAcrossRefresh() {
+    String url = baseUrl("/ui/console?protocol=fido2&fido2Mode=replay");
+    driver.get(url);
+    waitFor(By.cssSelector("[data-protocol-panel='fido2']"));
+
+    assertReplayTabSelected();
+
+    driver.navigate().refresh();
+    waitFor(By.cssSelector("[data-protocol-panel='fido2']"));
+    assertReplayTabSelected();
+
+    WebElement evaluateTab = waitFor(By.cssSelector("[data-testid='fido2-panel-tab-evaluate']"));
+    evaluateTab.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-panel-tab-evaluate']"), "aria-selected", "true");
+    assertEvaluateTabSelected();
+
+    driver.navigate().back();
+    waitFor(By.cssSelector("[data-protocol-panel='fido2']"));
+    assertReplayTabSelected();
   }
 
   private void seedStoredCredential() {
@@ -441,9 +567,21 @@ final class Fido2OperatorUiSeleniumTest {
     waitFor(By.cssSelector("[data-protocol-panel='fido2']"));
   }
 
+  private void awaitVisible(By selector) {
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(ExpectedConditions.visibilityOfElementLocated(selector));
+  }
+
   private WebElement waitFor(By selector) {
     return new WebDriverWait(driver, Duration.ofSeconds(3))
         .until(ExpectedConditions.presenceOfElementLocated(selector));
+  }
+
+  private void dispatchChange(WebElement element) {
+    ((JavascriptExecutor) driver)
+        .executeScript(
+            "var event = new Event('change', { bubbles: true }); arguments[0].dispatchEvent(event);",
+            element);
   }
 
   private void waitUntilAttribute(By selector, String attribute, String expectedValue) {
@@ -494,6 +632,63 @@ final class Fido2OperatorUiSeleniumTest {
   private void awaitCounterEditable(By selector) {
     new WebDriverWait(driver, Duration.ofSeconds(3))
         .until(webDriver -> webDriver.findElement(selector).getAttribute("readonly") == null);
+  }
+
+  private void assertReplayTabSelected() {
+    WebElement replayTab = waitFor(By.cssSelector("[data-testid='fido2-panel-tab-replay']"));
+    WebElement evaluateTab = waitFor(By.cssSelector("[data-testid='fido2-panel-tab-evaluate']"));
+    assertThat(replayTab.getAttribute("aria-selected"))
+        .as("replay tab aria-selected")
+        .isEqualTo("true");
+    assertThat(evaluateTab.getAttribute("aria-selected"))
+        .as("evaluate tab aria-selected")
+        .isEqualTo("false");
+    WebElement replayPanel = waitFor(By.cssSelector("[data-testid='fido2-replay-panel']"));
+    assertThat(replayPanel.getAttribute("hidden")).as("replay panel hidden attribute").isNull();
+    WebElement evaluatePanel = waitFor(By.cssSelector("[data-testid='fido2-evaluate-panel']"));
+    assertThat(evaluatePanel.getAttribute("hidden"))
+        .as("evaluate panel hidden attribute")
+        .isNotNull();
+    WebElement replayModeToggle =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-mode-toggle']"));
+    assertThat(replayModeToggle.getAttribute("data-mode"))
+        .as("replay mode toggle data-mode")
+        .isEqualTo("inline");
+    WebElement replayInlineSection =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-inline-section']"));
+    assertThat(replayInlineSection.getAttribute("hidden"))
+        .as("replay inline section hidden attribute")
+        .isNull();
+    WebElement replayStoredSection =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-stored-section']"));
+    assertThat(replayStoredSection.getAttribute("hidden"))
+        .as("replay stored section hidden attribute")
+        .isNotNull();
+    WebElement credentialIdField = waitFor(By.id("fido2ReplayInlineCredentialId"));
+    assertThat(credentialIdField.isDisplayed()).as("inline credential id visible").isTrue();
+    WebElement publicKeyField = waitFor(By.id("fido2ReplayInlinePublicKey"));
+    assertThat(publicKeyField.isDisplayed()).as("inline public key visible").isTrue();
+  }
+
+  private void assertEvaluateTabSelected() {
+    WebElement replayTab = waitFor(By.cssSelector("[data-testid='fido2-panel-tab-replay']"));
+    WebElement evaluateTab = waitFor(By.cssSelector("[data-testid='fido2-panel-tab-evaluate']"));
+    assertThat(evaluateTab.getAttribute("aria-selected"))
+        .as("evaluate tab aria-selected")
+        .isEqualTo("true");
+    assertThat(replayTab.getAttribute("aria-selected"))
+        .as("replay tab aria-selected")
+        .isEqualTo("false");
+    WebElement replayPanel = waitFor(By.cssSelector("[data-testid='fido2-replay-panel']"));
+    assertThat(replayPanel.getAttribute("hidden")).as("replay panel hidden attribute").isNotNull();
+    WebElement evaluatePanel = waitFor(By.cssSelector("[data-testid='fido2-evaluate-panel']"));
+    assertThat(evaluatePanel.getAttribute("hidden")).as("evaluate panel hidden attribute").isNull();
+  }
+
+  private static String expectedInlineLabel(Sample sample) {
+    return sample.algorithm().label()
+        + " - "
+        + (sample.userVerificationRequired() ? "UV required" : "UV optional");
   }
 
   private String baseUrl(String path) {

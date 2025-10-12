@@ -25,8 +25,19 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 - 2025-10-10 – CLI `fido2 evaluate` stored/inline commands transition to assertion generation outputs (Option A); verification flows continue under Replay.
 - 2025-10-10 – Operator UI Evaluate result card presents a structured `PublicKeyCredential` JSON payload (with copy/download helpers) in place of the prior status-only telemetry block (Option A).
 - 2025-10-10 – `Fido2OperatorSampleData` presets surface ES256 JWK private keys exclusively when pre-filling generator forms (Option A); PEM/PKCS#8 conversions remain a manual step documented in how-to guides.
+- 2025-10-12 – When loading the console with `protocol=fido2&fido2Mode=<mode>`, always honour the query parameter on initial load/refresh even if the stored preference differs; deep links must deterministically open the requested mode (user selected Option A).
 - 2025-10-11 – Synthetic JSON vectors now include JWK private keys for every supported algorithm (ES256/384/512, RS256, PS256, Ed25519); generator presets across CLI/REST/UI must ingest these so operators can produce assertions without manual key entry.
 - 2025-10-11 – Inline signature counter field defaults to the current Unix seconds value, with a checked toggle labeled “Use current Unix seconds” that keeps the field read-only until operators uncheck it; a “Reset to now” helper button reapplies the latest epoch-second snapshot.
+- 2025-10-12 – Evaluate and replay call-to-action buttons must surface mode-specific wording: “Generate inline assertion” / “Generate stored assertion” for Evaluate and “Replay inline assertion” / “Replay stored assertion” for Replay, mirroring HOTP/TOTP parity while preserving WebAuthn terminology (user directive).
+- 2025-10-11 – FIDO2 Evaluate/Replay result cards stay hidden until after the first submission so the panels mirror HOTP/TOTP/OCRA behaviour (user selected Option A).
+- 2025-10-11 – Position the “Reset to now” helper immediately to the right of the “Use current Unix seconds” label so the toggle and action read as one control cluster (layout parity directive). Maintain comfortable spacing by aligning the button to the right edge of the field and adding vertical breathing room beneath the counter input.
+- 2025-10-11 – Inline/stored challenge inputs remain textareas for multi-line edits but default to a single-row height (matching credential ID fields) so the form stays compact until operators expand them.
+- 2025-10-11 – Sample-loaded private keys pretty-print JWK JSON (two-space indent) while leaving manual entries untouched for readability parity across protocols.
+- 2025-10-11 – Authenticator private-key inputs stack the textarea beneath the label via a dedicated field-group class with shared dark styling so the control aligns vertically across layouts.
+- 2025-10-11 – Removed inline/helper hint copy beneath private-key inputs to reduce clutter now that layout clarifies the expected entry format.
+- 2025-10-11 – Inline preset dropdown copy must mirror the other protocol panels: rename the control label to “Load a sample vector” and surface dropdown entries as “<algorithm> sample vector” rather than “… generator preset” (user request for cross-protocol parity).
+- 2025-10-11 – Inline preset controls on Evaluate and Replay tabs must sit directly beneath the mode selector with the shared `stack-offset-top-lg` spacing token, matching HOTP/TOTP/OCRA layout (user request).
+- 2025-10-11 – Inline preset dropdown must render with the placeholder selected on initial load; do not auto-apply the first sample vector until an operator makes an explicit selection (user request).
 - 2025-10-11 – Inline and stored generator panels render the relying party ID and origin inputs on the same row to reduce vertical scrolling while keeping individual labels visible.
 - 2025-10-11 – FIDO2 Evaluate tab must default to inline parameters mode (stored selectable afterward) so the authenticator generator aligns with HOTP/TOTP/OCRA defaults (defect report; Option A selected).
 - 2025-10-11 – Inline generator parse failures must surface the `private_key_invalid` reason so CLI/REST/UI error handling stays aligned across facades (bugfix directive).
@@ -45,6 +56,7 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 | FWS-008 | Extend test coverage to include the JSONL bundle immediately after W3C vectors pass, ensuring every algorithm/flag combination verifies successfully. | CI suite iterates over JSONL entries, seeding/clearing MapDB as needed; failures identify specific vector IDs. |
 | FWS-009 | Surface sample key material in JWK form throughout UI presets and documentation, avoiding PEM displays. | UI and doc snapshots show JWK output; tests assert absence of PEM markers. |
 | FWS-010 | Display curated algorithm labels on the inline preset dropdown so operators can quickly spot the signature suite in use. | Selenium coverage asserts visible option text includes the algorithm label per curated preset order. |
+| FWS-011 | Align Evaluate/Replay CTA button copy with the selected mode, using inline vs stored assertion wording to match HOTP/TOTP parity. | Selenium tests toggle modes and assert the visible button text matches “Generate inline assertion” / “Generate stored assertion” and “Replay inline assertion” / “Replay stored assertion.” |
 
 ## Non-Functional Requirements
 | ID | Requirement | Acceptance Signal |

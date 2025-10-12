@@ -1,7 +1,7 @@
 # Feature Plan 006 – OCRA Operator UI
 
 _Status: In progress_
-_Last updated: 2025-10-07_
+_Last updated: 2025-10-12_
 
 ## Objective
 Ship a server-rendered operator UI (hosted inside the Spring Boot `rest-api` module) that lets humans execute OCRA evaluations by calling the existing REST endpoints. The UI must respect sanitized telemetry practices, mirror REST validation semantics, and provide an accessible form-driven experience focused on evaluation scenarios.
@@ -72,6 +72,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - R077 – Add `/api/v1/ocra/credentials/{id}/sample` endpoint with fixture catalog + MockMvc coverage. ✅ 2025-10-04
 - R078 – Implement replay “Load sample data” button + client fetch handler with unit/MockMvc coverage. ✅ 2025-10-04
 - R079 – Expand Selenium replay tests to exercise curated sample auto-fill and fallback behaviour. ✅ 2025-10-04
+- R085 – Add failing MockMvc + Selenium coverage ensuring the Evaluate button label swaps between “Evaluate inline parameters” and “Evaluate stored credential” when toggling modes; confirm targeted tests fail before implementation. ✅ 2025-10-12
+- R086 – Implement dynamic Evaluate CTA label updates in templates/scripts to satisfy R085 coverage, rerun targeted Selenium + MockMvc suites and `./gradlew spotlessApply check`. ✅ 2025-10-12
 
 ## Dependencies
 - Add `spring-boot-starter-thymeleaf` (or approved templating starter) to `rest-api`. Ensure dependency approval is recorded (captured in spec clarifications).
@@ -138,6 +140,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - ☑ R079 – Apply template/CSS spacing adjustments to satisfy R078 and rerun the targeted Selenium test plus `./gradlew spotlessApply check`. (2025-10-07: evaluate panel now uses shared preset container styling with explicit spacing; targeted test and full `./gradlew spotlessApply check` pass.)
 - 2025-10-07 – R083: Added `inlinePresetLabelTypographyMatchesAcrossTabs` Selenium regression to enforce font-weight parity across Evaluate, Replay, and HOTP tabs; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest.inlinePresetLabelTypographyMatchesAcrossTabs"` failed as expected pre-fix.
 - 2025-10-07 – R084: Introduced CSS override (`.field-grid .inline-preset label { font-weight: 400; }`) to align typography, reran the targeted Selenium test and full `./gradlew spotlessApply check` to confirm green build.
+- 2025-10-12 – Logged follow-up items R085/R086 to align the Evaluate CTA text with selected mode; coverage must assert label swaps before the implementation change ships.
+- 2025-10-12 – R085/R086 delivery: Added MockMvc test covering data attributes, Selenium regression verifying inline/stored toggles, implemented dynamic label handling, and reran targeted tests plus `./gradlew spotlessApply check`.
 - ✅ R083 – Add failing Selenium regression asserting the OCRA Evaluate inline preset label font weight matches the Replay tab and HOTP inline preset baseline before adjusting CSS. (2025-10-07: introduced `inlinePresetLabelTypographyMatchesAcrossTabs` test and confirmed it fails on existing styling.)
 - ✅ R084 – Update templates/CSS to align the Evaluate inline preset label typography with Replay/HOTP, rerun the targeted Selenium test and `./gradlew spotlessApply check`. (2025-10-07: added field-grid override to normalize font weight, targeted Selenium + full build now green.)
 

@@ -1,7 +1,7 @@
 # Feature 006 – OCRA Operator UI Tasks
 
 _Status: In progress_
-_Last updated: 2025-10-07_
+_Last updated: 2025-10-12_
 
 ## Execution Notes
 - Specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui.md`.
@@ -77,5 +77,7 @@ _Last updated: 2025-10-07_
 | R082 | Adjust templates/CSS to satisfy spacing test, rerun targeted + full build checks | UI-OCRA-002, UI-OCRA-005 | ✅ |
 | R083 | Add failing Selenium regression verifying inline preset label font weight parity across Evaluate, Replay, and HOTP tabs | UI-OCRA-002, UI-OCRA-005 | ✅ |
 | R084 | Align Evaluate inline preset label typography weight with Replay/HOTP and rerun targeted Selenium + `./gradlew spotlessApply check` | UI-OCRA-002, UI-OCRA-005 | ✅ |
+| R085 | Add failing MockMvc + Selenium tests asserting Evaluate CTA label matches active mode (“Evaluate inline parameters” vs “Evaluate stored credential”). | UI-OCRA-011 | ✅ |
+| R086 | Update templates/scripts to make the Evaluate CTA label dynamic per mode, satisfy R085 tests, rerun targeted suites + `./gradlew spotlessApply check`. | UI-OCRA-011 | ✅ |
 
 Update this checklist as work progresses.

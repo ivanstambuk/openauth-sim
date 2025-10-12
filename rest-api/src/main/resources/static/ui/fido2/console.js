@@ -76,6 +76,8 @@
       panel.querySelector('[data-testid="fido2-replay-stored-submit"]');
   var replayInlineButton =
       panel.querySelector('[data-testid="fido2-replay-inline-submit"]');
+  var replayStoredResultPanel =
+      panel.querySelector('[data-testid="fido2-replay-result"]');
   var replayStoredStatus = panel.querySelector('[data-testid="fido2-replay-status"]');
   var replayReason = panel.querySelector('[data-testid="fido2-replay-reason"]');
   var replayMessage = panel.querySelector('[data-testid="fido2-replay-message"]');
@@ -169,6 +171,11 @@
   var seedDefinitionsNode = panel.querySelector('#fido2-seed-definitions');
   var inlineVectorsNode = panel.querySelector('#fido2-inline-vectors');
 
+  var hasStoredEvaluationResult = false;
+  var hasInlineEvaluationResult = false;
+  var hasStoredReplayResult = false;
+  var hasInlineReplayResult = false;
+
   var seedDefinitions = parseJson(seedDefinitionsNode);
   var inlineVectors = parseJson(inlineVectorsNode);
   var inlineVectorIndex = createInlineVectorIndex(inlineVectors);
@@ -186,6 +193,8 @@
   var currentTab = TAB_EVALUATE;
   var currentEvaluateMode = MODE_INLINE;
   var currentReplayMode = MODE_INLINE;
+  var lastReplayMode = MODE_INLINE;
+  var initialLegacyMode = readInitialLegacyMode();
 
   if (evaluateTabButton) {
     evaluateTabButton.addEventListener('click', function (event) {
@@ -307,6 +316,11 @@
   setTab(TAB_EVALUATE, { broadcast: false, force: true });
   setEvaluateMode(MODE_INLINE, { broadcast: false, force: true });
   setReplayMode(MODE_INLINE, { broadcast: false, force: true });
+  if (initialLegacyMode) {
+    legacySetMode(initialLegacyMode, { broadcast: false, force: true });
+  }
+  updateEvaluateButtonCopy();
+  updateReplayButtonCopy();
   applyStoredSample(storedCredentialSelect && storedCredentialSelect.value);
   applyInlineSample(inlineSampleSelect && inlineSampleSelect.value);
 
@@ -464,6 +478,8 @@
     enableStoredActions(true);
     updateStoredMetadata(
         formatEvaluationTelemetry(response && response.metadata, response && response.status));
+    hasStoredEvaluationResult = true;
+    refreshEvaluationResultVisibility();
   }
 
   function handleStoredEvaluationError(error) {
@@ -471,6 +487,8 @@
     setStoredAssertionText(sanitizeMessage(message));
     enableStoredActions(false);
     updateStoredMetadata(message);
+    hasStoredEvaluationResult = true;
+    refreshEvaluationResultVisibility();
   }
 
   function handleInlineEvaluationSuccess(response) {
@@ -478,6 +496,8 @@
     hideInlineError();
     updateInlineTelemetry(
         formatEvaluationTelemetry(response && response.metadata, response && response.status));
+    hasInlineEvaluationResult = true;
+    refreshEvaluationResultVisibility();
   }
 
   function handleInlineEvaluationError(error) {
@@ -485,6 +505,8 @@
     setInlineGeneratedText('Generation failed.');
     showInlineError(message);
     updateInlineTelemetry(message);
+    hasInlineEvaluationResult = true;
+    refreshEvaluationResultVisibility();
   }
 
   function handleStoredReplaySuccess(response) {
@@ -494,6 +516,8 @@
     setStatusText(replayReason, reason, status);
     setReplayMessage(formatReplaySuccessMessage(response && response.metadata, status));
     updateReplayTelemetry(formatReplayTelemetry(response && response.metadata, status));
+    hasStoredReplayResult = true;
+    refreshReplayResultVisibility();
   }
 
   function handleStoredReplayError(error) {
@@ -503,6 +527,8 @@
     setStatusText(replayReason, reason, status);
     setReplayMessage(formatReplayErrorMessage(error, 'Stored replay'));
     updateReplayTelemetry(formatReplayErrorMessage(error, 'Stored replay'));
+    hasStoredReplayResult = true;
+    refreshReplayResultVisibility();
   }
 
   function handleInlineReplaySuccess(response) {
@@ -512,6 +538,8 @@
     setStatusText(replayInlineReason, reason, status);
     setReplayInlineMessage(formatReplaySuccessMessage(response && response.metadata, status));
     updateReplayInlineTelemetry(formatReplayTelemetry(response && response.metadata, status));
+    hasInlineReplayResult = true;
+    refreshReplayResultVisibility();
   }
 
   function handleInlineReplayError(error) {
@@ -521,6 +549,8 @@
     setStatusText(replayInlineReason, reason, status);
     setReplayInlineMessage(formatReplayErrorMessage(error, 'Inline replay'));
     updateReplayInlineTelemetry(formatReplayErrorMessage(error, 'Inline replay'));
+    hasInlineReplayResult = true;
+    refreshReplayResultVisibility();
   }
 
   function setTab(tab, options) {
@@ -557,12 +587,12 @@
     }
     toggleSection(evaluateStoredSection, mode === MODE_STORED);
     toggleSection(evaluateInlineSection, mode === MODE_INLINE);
-    toggleSection(storedResultPanel, mode === MODE_STORED);
-    toggleSection(inlineResultPanel, mode === MODE_INLINE);
+    refreshEvaluationResultVisibility();
     toggleSeedActions();
     if (mode === MODE_INLINE) {
       refreshInlineCounterAfterPreset();
     }
+    updateEvaluateButtonCopy();
     if (!options || options.broadcast !== false) {
       broadcastModeChange(computeLegacyMode(), Boolean(options && options.replace));
     }
@@ -578,12 +608,14 @@
       }
     }
     currentReplayMode = mode;
+    lastReplayMode = mode;
     if (replayModeToggle) {
       replayModeToggle.setAttribute('data-mode', mode);
     }
     toggleSection(replayStoredSection, mode === MODE_STORED);
     toggleSection(replayInlineSection, mode === MODE_INLINE);
-    toggleSection(replayInlineResultPanel, mode === MODE_INLINE);
+    refreshReplayResultVisibility();
+    updateReplayButtonCopy();
     if (!options || options.broadcast !== false) {
       broadcastModeChange(computeLegacyMode(), Boolean(options && options.replace));
     }
@@ -608,6 +640,52 @@
       section.setAttribute('hidden', 'hidden');
       section.setAttribute('aria-hidden', 'true');
     }
+  }
+
+  function applyButtonLabel(button, attributeName, fallback) {
+    if (!button) {
+      return;
+    }
+    var label = button.getAttribute(attributeName);
+    if (typeof label !== 'string' || !label.trim()) {
+      label = fallback;
+    }
+    var normalized = label.trim();
+    if (button.textContent !== normalized) {
+      button.textContent = normalized;
+    }
+  }
+
+  function updateEvaluateButtonCopy() {
+    applyButtonLabel(
+        evaluateInlineButton, 'data-inline-label', 'Generate inline assertion');
+    applyButtonLabel(
+        evaluateStoredButton, 'data-stored-label', 'Generate stored assertion');
+  }
+
+  function updateReplayButtonCopy() {
+    applyButtonLabel(
+        replayInlineButton, 'data-inline-label', 'Replay inline assertion');
+    applyButtonLabel(
+        replayStoredButton, 'data-stored-label', 'Replay stored assertion');
+  }
+
+  function refreshEvaluationResultVisibility() {
+    toggleSection(
+        storedResultPanel,
+        currentEvaluateMode === MODE_STORED && hasStoredEvaluationResult);
+    toggleSection(
+        inlineResultPanel,
+        currentEvaluateMode === MODE_INLINE && hasInlineEvaluationResult);
+  }
+
+  function refreshReplayResultVisibility() {
+    toggleSection(
+        replayStoredResultPanel,
+        currentReplayMode === MODE_STORED && hasStoredReplayResult);
+    toggleSection(
+        replayInlineResultPanel,
+        currentReplayMode === MODE_INLINE && hasInlineReplayResult);
   }
 
   function refreshStoredCredentials() {
@@ -863,12 +941,16 @@
   }
 
   function pendingStoredResult() {
+    hasStoredEvaluationResult = false;
+    refreshEvaluationResultVisibility();
     setStoredAssertionText('Awaiting submission.');
     enableStoredActions(false);
     updateStoredMetadata('Telemetry pending (sanitized).');
   }
 
   function pendingInlineResult() {
+    hasInlineEvaluationResult = false;
+    refreshEvaluationResultVisibility();
     setInlineGeneratedText('Awaiting submission.');
     hideInlineError();
     updateInlineTelemetry('Telemetry pending (sanitized).');
@@ -922,6 +1004,8 @@
   }
 
   function pendingReplayStoredResult() {
+    hasStoredReplayResult = false;
+    refreshReplayResultVisibility();
     if (replayStoredStatus) {
       replayStoredStatus.textContent = 'pending';
     }
@@ -933,6 +1017,8 @@
   }
 
   function pendingReplayInlineResult() {
+    hasInlineReplayResult = false;
+    refreshReplayResultVisibility();
     if (replayInlineStatus) {
       replayInlineStatus.textContent = 'pending';
     }
@@ -1307,12 +1393,12 @@
   function populateInlineSampleOptions() {
     if (inlineSampleSelect) {
       if (inlineSampleSelect.options.length <= 1) {
-        populateSelectWithVectors(inlineSampleSelect, 'Select a generator preset');
+        populateSelectWithVectors(inlineSampleSelect, 'Select a sample');
       } else {
         enableSelect(inlineSampleSelect);
       }
     }
-    populateSelectWithVectors(replayInlineSampleSelect, 'Select a sample vector');
+    populateSelectWithVectors(replayInlineSampleSelect, 'Select a sample');
   }
 
   function populateSelectWithVectors(select, placeholderLabel) {
@@ -1320,7 +1406,7 @@
       return;
     }
     clearSelect(select);
-    addPlaceholderOption(select, placeholderLabel || 'Select a sample vector');
+    addPlaceholderOption(select, placeholderLabel || 'Select a sample');
     var seenAlgorithms = Object.create(null);
     inlineVectors.forEach(function (vector) {
       if (!vector || !vector.key) {
@@ -1568,7 +1654,10 @@
   }
 
   function resolveInlineVector(key) {
-    if (key && inlineVectorIndex[key]) {
+    if (!key) {
+      return null;
+    }
+    if (inlineVectorIndex[key]) {
       return inlineVectorIndex[key];
     }
     if (inlineVectors.length > 0) {
@@ -1597,12 +1686,21 @@
     if (!element) {
       return;
     }
+    var normalized = value == null ? '' : value;
+    if (element.dataset && element.dataset.jsonPretty === 'true' && typeof normalized === 'string') {
+      var trimmed = normalized.trim();
+      if (trimmed && (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[')) {
+        try {
+          normalized = JSON.stringify(JSON.parse(trimmed), null, 2);
+        } catch (formatError) {
+          // leave value as-is when parsing fails
+        }
+      }
+    }
     if (element.tagName === 'SELECT') {
-      element.value = value;
-    } else if (element.tagName === 'TEXTAREA') {
-      element.value = value == null ? '' : value;
+      element.value = normalized;
     } else {
-      element.value = value == null ? '' : value;
+      element.value = normalized;
     }
   }
 
@@ -1610,6 +1708,25 @@
     if (node && node.parentNode) {
       node.parentNode.removeChild(node);
     }
+  }
+
+  function readInitialLegacyMode() {
+    var candidate = null;
+    if (panel) {
+      var attr = panel.getAttribute('data-initial-fido2-mode');
+      if (attr && typeof attr === 'string') {
+        candidate = attr.trim().toLowerCase();
+      }
+      panel.removeAttribute('data-initial-fido2-mode');
+    }
+    if (!candidate && typeof global.__openauthFido2InitialMode === 'string') {
+      candidate = global.__openauthFido2InitialMode.toLowerCase();
+    }
+    global.__openauthFido2InitialMode = undefined;
+    if (candidate === 'replay' || candidate === 'inline' || candidate === 'stored') {
+      return candidate;
+    }
+    return null;
   }
 
   function broadcastModeChange(mode, replace) {
@@ -1635,8 +1752,15 @@
   function legacySetMode(mode, options) {
     var normalised = (mode || '').toLowerCase();
     if (normalised === 'replay') {
+      var desiredReplayMode = lastReplayMode;
+      if (options && options.replayMode && (options.replayMode === MODE_INLINE || options.replayMode === MODE_STORED)) {
+        desiredReplayMode = options.replayMode;
+      }
+      if (desiredReplayMode !== MODE_INLINE && desiredReplayMode !== MODE_STORED) {
+        desiredReplayMode = MODE_INLINE;
+      }
       setTab(TAB_REPLAY, mergeOptions(options, { replace: true, broadcast: false }));
-      setReplayMode(MODE_STORED, mergeOptions(options, { broadcast: false, force: true }));
+      setReplayMode(desiredReplayMode, mergeOptions(options, { broadcast: false, force: true }));
       broadcastModeChange('replay', Boolean(options && options.replace));
       return;
     }

@@ -48,8 +48,8 @@ class HotpEvaluationEndpointTest {
       Logger.getLogger("io.openauth.sim.rest.hotp.telemetry");
   private static final String SECRET_HEX = "3132333435363738393031323334353637383930";
   private static final String CREDENTIAL_ID = "rest-hotp-demo";
-  private static final String INLINE_SHA256_PRESET_KEY = "inline-demo-sha256";
-  private static final String INLINE_SHA256_PRESET_LABEL = "Inline demo vector (SHA-256)";
+  private static final String INLINE_SHA256_PRESET_KEY = "seeded-demo-sha256";
+  private static final String INLINE_SHA256_PRESET_LABEL = "SHA-256, 8 digits";
   private static final String INLINE_SHA256_OTP = "89697997";
   private static final long INLINE_SHA256_COUNTER = 5L;
 

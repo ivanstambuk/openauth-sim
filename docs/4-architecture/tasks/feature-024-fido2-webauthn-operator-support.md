@@ -48,14 +48,33 @@ _Last updated:_ 2025-10-11
  _2025-10-10 – Updated panel fieldsets/sections so inline appears first while stored remains default-selected; reran `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` to confirm the layout change._  
 ☑ Default FIDO2 Evaluate/Replay selections to inline parameters while keeping stored flows accessible.  
  _2025-10-10 – Switched initial radio state + console bootstrap to inline defaults and revalidated via `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`._  
+☑ Hide the Evaluate/Replay result cards until the first submission so the console no longer shows the “Awaiting submission” placeholder on load.  
+ _Completed 2025-10-11 – Updated `ui/fido2/panel.html` to mark result cards hidden by default, taught `console.js` to defer visibility until results resolve (tracking evaluation/replay state), refreshed Selenium coverage to assert hidden-on-load behaviour, and reran `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon spotlessApply check` (green)._
 ☑ Add failing Selenium coverage that expects Evaluate/Replay submissions to surface success/invalid statuses and sanitized telemetry fields.  
  _2025-10-10 – Extended `Fido2OperatorUiSeleniumTest` to assert validated/invalid outcomes, reason codes, and sanitized telemetry for stored/inline evaluate and replay flows; captured red state prior to wiring the console JS._  
 ☑ Wire `ui/fido2/console.js` evaluate/replay buttons to POST the inline/stored payloads to the REST endpoints, update the result cards with sanitized responses, and surface validation errors.  
  _2025-10-10 – Added JSON POST orchestration for stored/inline evaluate + replay, sanitized success/error handlers, and sample ingestion alignment via stored replay presets. Verified green via `./gradlew --no-daemon :rest-api:test`._  
 ☑ Handle transport failures gracefully (telemetry stays sanitized, status reflects error) to mirror HOTP/TOTP UX.  
-  _2025-10-10 – Normalised pending/error helpers, sanitized message handling, and ensured replay/evaluate status cards surface network validation errors without leaking payload data._
+		_2025-10-10 – Normalised pending/error helpers, sanitized message handling, and ensured replay/evaluate status cards surface network validation errors without leaking payload data._
+
+☑ Add failing Selenium assertions verifying Evaluate/Replay CTA copy matches inline/stored wording (FWS-011).
+	_2025-10-12 – Added `evaluateButtonCopyMatchesMode` / `replayButtonCopyMatchesMode` Selenium tests asserting CTA data-label attributes and text; captured red state via `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.evaluateButtonCopyMatchesMode"` before applying UI updates._
+☑ Implement mode-specific CTA labels in templates/console JS, then rerun targeted Selenium coverage and `./gradlew spotlessApply check`.
+	_2025-10-12 – Annotated CTA buttons with inline/stored labels, introduced dataset-driven helpers in `ui/fido2/console.js`, reran the targeted Selenium tests plus `./gradlew spotlessApply check` (green)._ 
+
+☑ Add regression coverage ensuring `fido2Mode` deep links force the Replay tab on load/refresh.
+	_2025-10-12 – Introduced `deepLinkReplayModePersistsAcrossRefresh`, updated the host console to reapply FIDO2 mode even when already active, added a lazy panel lookup so dataset hints survive SSR timing, and re-ran `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.deepLinkReplayModePersistsAcrossRefresh"` followed by `./gradlew spotlessApply check`._
+
+☑ Ensure replay deep-links default to inline mode and render inline fields on first load.
+	_2025-10-12 – Extended the deep-link Selenium regression to assert inline mode + fields, taught `legacySetMode('replay')` to reuse the last replay sub-mode (default inline), and reran `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.deepLinkReplayModePersistsAcrossRefresh"` followed by `./gradlew spotlessApply check`._
 
 _2025-10-11 – Fixed the inline generator regression by switching stored presets to the `generator-es256` sample, reshaping telemetry strings to `key=value`, and refreshing the Selenium suite (`./gradlew --no-daemon :rest-api:test`)._
+
+_2025-10-11 – Copy parity: queued UI/doc updates so the inline preset control reads “Load a sample vector” and dropdown options render as “<algorithm> sample vector” for consistency with HOTP/TOTP/OCRA._
+
+_2025-10-11 – Layout parity: move inline preset controls directly beneath the mode selector on Evaluate/Replay tabs and apply the shared `stack-offset-top-lg` spacing token so the panel matches HOTP/TOTP/OCRA._
+
+_2025-10-11 – Placeholder parity: adjust inline preset handling so no sample is auto-selected on first render; operators must choose a vector before fields autofill._
 
 ☐ **T12 – Multi-algorithm generator presets**  
  ☑ Extend `WebAuthnGeneratorSamples` and downstream facades to ingest JSON vectors that now include `keyPairJwk` entries (RS256, PS256, ES384, ES512, Ed25519) while keeping the preset list curated.  
@@ -81,6 +100,8 @@ _2025-10-11 – Fixed the inline generator regression by switching stored preset
 ☑ Restyle evaluate/replay inline sample dropdowns with the shared `.inline-preset` container so they match HOTP/TOTP/OCRA select colours and focus behaviour.  
 	_2025-10-11 – Updated `ui/fido2/panel.html` to wrap inline sample selects with `.inline-preset`, added parity hint copy, and refreshed Selenium helper to tolerate transient stale elements. Verified via `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon spotlessApply check` (reran flaking HOTP/TOTP Selenium specs individually until green)._ 
 
+	_2025-10-12 – Reduced the inline preset container’s bottom margin on Evaluate/Replay inline forms so the relying-party row sits flush beneath the hint, aligning FIDO2 spacing with HOTP/TOTP; verified via `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon spotlessApply check` (green)._ 
+
 ☑ Remove inline “Credential name” inputs from Evaluate and Replay tabs, relying on backend defaults while still surfacing sample metadata through telemetry.  
 	_2025-10-11 – Dropped the label/input pairs from `ui/fido2/panel.html`, pruned console wiring, and refreshed REST/Selenium coverage to confirm optional credential names fall back to server defaults._
 
@@ -98,6 +119,11 @@ _2025-10-11 – Fixed the inline generator regression by switching stored preset
 
 ☑ Restore “Reset to now” helper so clicking the button refreshes the signature counter value (with toggle checked or unchecked) and cover the behaviour in Selenium.
 	_2025-10-11 – Added inline counter toggle/reset wiring in `ui/fido2/console.js`, refreshed hint messaging, and extended `Fido2OperatorUiSeleniumTest.inlineCounterResetUpdatesEpochSeconds` to assert the helper updates epoch seconds in auto and manual modes._
+	_2025-10-11 – Repositioned the “Reset to now” helper inline beside the toggle label, added horizontal/vertical spacing (button aligned to the field edge), and reran `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon spotlessApply check` to confirm the UI change._ 
+	_2025-10-11 – Updated inline/stored challenge textareas to default to a single row so they mirror the credential ID controls while remaining expandable._
+	_2025-10-11 – Applied a stacked field-group class with shared dark styling to inline/stored private-key controls so the textarea renders beneath the label for consistent vertical alignment._
+	_2025-10-11 – Enabled automatic pretty-printing of sample-loaded private-key JWK JSON so the textarea values are indented for readability while manual entries remain unchanged._
+	_2025-10-11 – Removed the private-key format hint from the forms now that documentation covers JWK vs PEM guidance._
 
 ☐ **T8 – JSON bundle coverage**  
 	☑ Add failing parameterised tests iterating over `docs/webauthn_assertion_vectors.json` across core/application layers.  

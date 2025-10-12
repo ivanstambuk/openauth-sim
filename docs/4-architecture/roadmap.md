@@ -34,16 +34,18 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 18 | EUDIW SIOPv2 simulator | Implement SIOPv2 authentication flows aligned with EUDI wallet guidance | Not started | Spec: TBA; roadmap entry seeded per Feature 020 directive |
 | 19 | Quality gate reinstatement | Restore Jacoco thresholds to ≥0.90 line/branch and re-enable PIT in developer builds once HOTP scope stabilises | Planned | Temporary relaxation to ≥0.70 recorded 2025-10-06; follow-up will revisit coverage hot spots and reinstate mutation checks |
 | 20 | FIDO2/WebAuthn operator support | Launch WebAuthn assertion verification across core, persistence, CLI, REST, and operator UI with preset/seed utilities | In progress | Spec: [Feature 024](specs/feature-024-fido2-webauthn-operator-support.md), Plan: [Feature Plan 024](feature-plan-024-fido2-webauthn-operator-support.md), Tasks: [Feature 024 Tasks](tasks/feature-024-fido2-webauthn-operator-support.md); Kickoff 2025-10-09 with W3C §16 fixture staging (T1); CLI façade (T5) verified 2025-10-10 under sandbox escalation; 2025-10-10 docs pass added CLI/REST/UI how-tos and constrained operator UI presets to a curated JSON bundle subset while leaving CLI/REST catalogues intact |
+| 21 | Sample vector label harmonization | Harmonise operator UI preset labels across HOTP/TOTP/OCRA/FIDO2 with a compact attribute-focused format | Complete | Spec: [Feature 025](specs/feature-025-sample-vector-label-harmonization.md), Plan: [Feature Plan 025](feature-plan-025-sample-vector-label-harmonization.md), Tasks: [Feature 025 Tasks](tasks/feature-025-sample-vector-label-harmonization.md); 2025-10-12 compacted HOTP/TOTP inline preset labels, refreshed Selenium/API expectations, closed the task with spotless + targeted :rest-api:test runs, expanded HOTP inline presets to cover SHA-1/256/512 across 6- and 8-digit variants, removed the redundant “seeded demo” suffix, and aligned stored seeding with every inline preset |
 
 ## Upcoming Milestones
 
 1. Prepare specifications and feature plans for Workstreams 16–18 before initiating implementation; capture clarifications in `docs/4-architecture/open-questions.md`.
 2. Confirm the next high-priority facade effort (Workstream 9 vs forthcoming EUDIW simulators or Feature 024) through the clarification gate and update roadmap/scope documents.
 3. Monitor SpotBugs/PMD runtime impact post-Feature 015 rollout and capture build timing metrics in `docs/5-operations/analysis-gate-checklist.md` by 2025-10-07.
-4. Prototype educational simulator UI flows (Workstream 9) to complement human operators.
-5. Complete Feature 011 increments (reflection removal + guardrails) and roll the policy into standard operating instructions.
-6. Evaluate enabling operator UI issuance flows across all credential types once facade telemetry stabilises; decision pending per 2025-10-05 directive.
-7. Kick off Feature 024 increments once W3C vector fixtures are staged and analysis gate checklist is satisfied.
+4. Standardise operator preset labels per Feature 025 before expanding sample catalogues for future protocols; update Selenium and documentation coverage alongside the rename.
+5. Prototype educational simulator UI flows (Workstream 9) to complement human operators.
+6. Complete Feature 011 increments (reflection removal + guardrails) and roll the policy into standard operating instructions.
+7. Evaluate enabling operator UI issuance flows across all credential types once facade telemetry stabilises; decision pending per 2025-10-05 directive.
+8. Kick off Feature 024 increments once W3C vector fixtures are staged and analysis gate checklist is satisfied.
 
 ## Action Items & Follow-ups
 

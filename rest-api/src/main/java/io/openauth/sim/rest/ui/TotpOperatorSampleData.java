@@ -51,7 +51,7 @@ public final class TotpOperatorSampleData {
       List.of(
           inlinePreset(
               "inline-rfc6238-sha1",
-              "RFC 6238 sample (SHA1, 8 digits, 30s step)",
+              "SHA-1, 8 digits, 30s (RFC 6238)",
               "3132333435363738393031323334353637383930",
               TotpHashAlgorithm.SHA1,
               8,
@@ -61,11 +61,11 @@ public final class TotpOperatorSampleData {
               59L,
               metadata(
                   "inline-rfc6238-sha1",
-                  "RFC 6238 sample (SHA1, 8 digits, 30s step)",
-                  "Inline preset based on RFC 6238 sample vector.")),
+                  "SHA-1, 8 digits, 30s (RFC 6238)",
+                  "Inline preset based on RFC 6238 sample.")),
           inlinePreset(
               "inline-ui-totp-demo",
-              "Seeded demo (SHA1, 6 digits, 30s step)",
+              "SHA-1, 6 digits, 30s (seeded demo)",
               "31323334353637383930313233343536373839303132",
               TotpHashAlgorithm.SHA1,
               6,
@@ -75,7 +75,7 @@ public final class TotpOperatorSampleData {
               1_111_111_111L,
               metadata(
                   "inline-ui-totp-demo",
-                  "Seeded demo (SHA1, 6 digits, 30s step)",
+                  "SHA-1, 6 digits, 30s (seeded demo)",
                   "Inline preset mirroring the seeded demo credential.")));
 
   private TotpOperatorSampleData() {
