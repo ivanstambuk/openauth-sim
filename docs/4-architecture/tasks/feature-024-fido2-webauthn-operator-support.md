@@ -186,3 +186,11 @@ _2025-10-11 – Placeholder parity: adjust inline preset handling so no sample i
   _2025-10-13 – Added `WebAuthnJsonVectorJwkFormattingTest` and `WebAuthnFixturesJwkFormattingTest`; both initially red, then green after the serializer update (`./gradlew --no-daemon :core:test`)._  
  ☑ Refresh operator/CLI/REST documentation once the display order changes.  
   _2025-10-13 – Documentation already references sample endpoint output via placeholders; spec updated under FWS-009 to capture the `kty`-first requirement, so no additional doc snippets needed._
+
+☑ **T19 – Assertion result panel width clamp**  
+ ☑ Add a failing Selenium regression that renders a generated assertion and asserts the status column width stays within the clamp threshold and remains narrower than the evaluation column.  
+  _2025-10-13 – Added `generatedAssertionPanelStaysClamped`, which initially failed with the existing layout (HtmlUnit reported a 1 256 px status column) before the CSS clamp landed._  
+ ☑ Update console styling to enforce the max-width and introduce horizontal scrolling for long payloads.  
+  _2025-10-13 – Capped the status column at 600 px via the grid template, added overflow handling, and enabled horizontal scrolling on the generated assertion code block._  
+ ☑ Rerun `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` and `./gradlew --no-daemon spotlessApply check`; document outcomes before marking complete.  
+  _2025-10-13 – Both commands now pass (`:rest-api:test` focuses on the Selenium suite; `spotlessApply check` succeeded after the layout adjustment)._

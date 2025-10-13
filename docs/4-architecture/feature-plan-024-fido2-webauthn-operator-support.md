@@ -166,6 +166,11 @@ Each increment stages failing tests first, drives implementation to green, and r
     - Update JSON vector renderers and preset serializers so `kty` is written first within every JWK object surfaced across CLI, REST responses, and operator UI presets.  
     - Preserve existing payload content, adjust formatting helpers/tests, and add regression coverage for the new field order.  
     - _2025-10-13 – Updated canonical JSON helpers to emit `kty` first for synthetic + W3C fixtures, added regression tests to enforce ordering, and validated via `./gradlew --no-daemon :core:test` plus a full `./gradlew --no-daemon spotlessApply check` run._
+19. **I19 – Assertion result panel width clamp**  
+    - Stage a failing Selenium regression that generates a WebAuthn assertion and asserts the result/status column remains narrower than the evaluation form column (and under the clamp threshold).  
+    - Constrain the CSS for the status column/result panel to introduce a max-width with horizontal scrolling so Base64 payloads no longer expand the layout.  
+    - Rerun the WebAuthn Selenium suite and `./gradlew spotlessApply check`, then record the outcome in spec/plan/tasks.  
+    - _2025-10-13 – Selenium test `generatedAssertionPanelStaysClamped` failed first, the CSS clamp capped the status column at 600 px with horizontal scrolling, and both `:rest-api:test --tests io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest` and `./gradlew --no-daemon spotlessApply check` now pass._
 
 ## Risks & Mitigations
 - **Large vector set increases test time** → run JSONL suite in targeted tests (I8) with caching helpers; consider tagging for selective execution.  

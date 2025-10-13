@@ -151,6 +151,70 @@ final class Fido2OperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Generated assertion panel stays within the clamped width")
+  void generatedAssertionPanelStaysClamped() {
+    navigateToWebAuthnPanel();
+
+    WebElement storedRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+    storedRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
+
+    waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
+    Select credentialSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
+    credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
+
+    WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
+    if (seedButton.isDisplayed() && seedButton.isEnabled()) {
+      seedButton.click();
+      awaitText(
+          By.cssSelector("[data-testid='fido2-seed-status']"),
+          text -> text != null && text.contains("addedCount"));
+    }
+
+    WebElement loadSample = waitFor(By.cssSelector("[data-testid='fido2-stored-load-sample']"));
+    loadSample.click();
+
+    WebElement submitButton =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-stored-submit']"));
+    submitButton.click();
+
+    By storedAssertionSelector = By.cssSelector("[data-testid='fido2-generated-assertion-json']");
+    awaitText(storedAssertionSelector, text -> text.contains("\"type\": \"public-key\""));
+
+    WebElement formColumn =
+        waitFor(
+            By.cssSelector("[data-testid='fido2-evaluate-panel'] .section-columns > .stack-lg"));
+    WebElement statusColumn =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-panel'] .status-column"));
+
+    int formWidth = formColumn.getRect().getWidth();
+    int statusWidth = statusColumn.getRect().getWidth();
+    int formClientWidth =
+        ((Number)
+                ((JavascriptExecutor) driver)
+                    .executeScript("return arguments[0].clientWidth;", formColumn))
+            .intValue();
+    int statusClientWidth =
+        ((Number)
+                ((JavascriptExecutor) driver)
+                    .executeScript("return arguments[0].clientWidth;", statusColumn))
+            .intValue();
+
+    assertThat(statusClientWidth)
+        .as(
+            "status column width must remain clamped (client=%d, rect=%d)",
+            statusClientWidth, statusWidth)
+        .isLessThanOrEqualTo(600);
+    assertThat(statusClientWidth)
+        .as(
+            "status column should remain narrower than the evaluation form column (statusClient=%d, formClient=%d, statusRect=%d, formRect=%d)",
+            statusClientWidth, formClientWidth, statusWidth, formWidth)
+        .isLessThan(formClientWidth);
+  }
+
+  @Test
   @DisplayName("Seed sample credential control hides outside stored mode")
   void seedControlHidesOutsideStoredMode() {
     credentialStore.delete(STORED_CREDENTIAL_ID);
