@@ -79,6 +79,35 @@
   var seedDefinitionNode = hotpPanel
     ? hotpPanel.querySelector('#hotp-seed-definitions')
     : null;
+  var inlinePresetDefinitionNode = hotpPanel
+    ? hotpPanel.querySelector('#hotp-inline-presets')
+    : null;
+  var inlinePresetPayload = [];
+  if (inlinePresetDefinitionNode && inlinePresetDefinitionNode.textContent) {
+    var presetText = inlinePresetDefinitionNode.textContent.trim();
+    if (presetText.length) {
+      try {
+        inlinePresetPayload = JSON.parse(presetText);
+      } catch (error) {
+        if (global.console && typeof global.console.error === 'function') {
+          global.console.error('Failed to parse HOTP inline presets', error);
+        }
+        inlinePresetPayload = [];
+      }
+    }
+  }
+  if (inlinePresetDefinitionNode && inlinePresetDefinitionNode.parentNode) {
+    inlinePresetDefinitionNode.parentNode.removeChild(inlinePresetDefinitionNode);
+  }
+  var inlinePresetData = Object.create(null);
+  if (Array.isArray(inlinePresetPayload)) {
+    inlinePresetPayload.forEach(function (preset) {
+      if (!preset || typeof preset.presetKey !== 'string') {
+        return;
+      }
+      inlinePresetData[preset.presetKey] = preset;
+    });
+  }
 
   var replayForm = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-replay-form"]')
@@ -197,88 +226,6 @@
     seedDefinitionNode.parentNode.removeChild(seedDefinitionNode);
   }
 
-  var HOTP_SEEDED_SHA1_SECRET_HEX = '3132333435363738393031323334353637383930';
-  var HOTP_SEEDED_SHA512_SECRET_HEX = '3132333435363738393031323334353637383930313233343536373839303132';
-  var INLINE_SAMPLE_DATA = {
-    'seeded-demo-sha1': {
-      label: 'SHA-1, 6 digits (RFC 4226)',
-      sharedSecretHex: HOTP_SEEDED_SHA1_SECRET_HEX,
-      algorithm: 'SHA1',
-      digits: 6,
-      counter: 5,
-      otp: '254676',
-      metadata: {
-        label: 'SHA-1, 6 digits (RFC 4226)',
-        presetKey: 'seeded-demo-sha1',
-        notes: 'Seeded HOTP SHA-1 credential (6 digits) mirrored for inline replay.',
-      },
-    },
-    'seeded-demo-sha1-8': {
-      label: 'SHA-1, 8 digits',
-      sharedSecretHex: HOTP_SEEDED_SHA1_SECRET_HEX,
-      algorithm: 'SHA1',
-      digits: 8,
-      counter: 5,
-      otp: '68254676',
-      metadata: {
-        label: 'SHA-1, 8 digits',
-        presetKey: 'seeded-demo-sha1-8',
-        notes: 'Seeded HOTP SHA-1 credential (8 digits) mirrored for inline replay.',
-      },
-    },
-    'seeded-demo-sha256': {
-      label: 'SHA-256, 8 digits',
-      sharedSecretHex: HOTP_SEEDED_SHA1_SECRET_HEX,
-      algorithm: 'SHA256',
-      digits: 8,
-      counter: 5,
-      otp: '89697997',
-      metadata: {
-        label: 'SHA-256, 8 digits',
-        presetKey: 'seeded-demo-sha256',
-        notes: 'Seeded HOTP SHA-256 credential (8 digits) mirrored for inline replay.',
-      },
-    },
-    'seeded-demo-sha256-6': {
-      label: 'SHA-256, 6 digits',
-      sharedSecretHex: HOTP_SEEDED_SHA1_SECRET_HEX,
-      algorithm: 'SHA256',
-      digits: 6,
-      counter: 5,
-      otp: '697997',
-      metadata: {
-        label: 'SHA-256, 6 digits',
-        presetKey: 'seeded-demo-sha256-6',
-        notes: 'Seeded HOTP SHA-256 credential (6 digits) mirrored for inline replay.',
-      },
-    },
-    'seeded-demo-sha512': {
-      label: 'SHA-512, 8 digits',
-      sharedSecretHex: HOTP_SEEDED_SHA512_SECRET_HEX,
-      algorithm: 'SHA512',
-      digits: 8,
-      counter: 5,
-      otp: '77873376',
-      metadata: {
-        label: 'SHA-512, 8 digits',
-        presetKey: 'seeded-demo-sha512',
-        notes: 'Seeded HOTP SHA-512 credential (8 digits) mirrored for inline replay.',
-      },
-    },
-    'seeded-demo-sha512-6': {
-      label: 'SHA-512, 6 digits',
-      sharedSecretHex: HOTP_SEEDED_SHA512_SECRET_HEX,
-      algorithm: 'SHA512',
-      digits: 6,
-      counter: 5,
-      otp: '873376',
-      metadata: {
-        label: 'SHA-512, 6 digits',
-        presetKey: 'seeded-demo-sha512-6',
-        notes: 'Seeded HOTP SHA-512 credential (6 digits) mirrored for inline replay.',
-      },
-    },
-  };
 
   var credentialCache = null;
   var credentialPromise = null;
@@ -918,7 +865,7 @@
   }
 
   function applyInlineEvaluationPreset(presetKey) {
-    var preset = INLINE_SAMPLE_DATA[presetKey];
+    var preset = inlinePresetData[presetKey];
     if (!preset) {
       return;
     }
@@ -952,12 +899,12 @@
     placeholder.value = '';
     placeholder.textContent = 'Select a sample';
     selectNode.appendChild(placeholder);
-    Object.keys(INLINE_SAMPLE_DATA)
+    Object.keys(inlinePresetData)
       .sort(function (a, b) {
         return a.localeCompare(b, undefined, { sensitivity: 'base' });
       })
       .forEach(function (key) {
-        var preset = INLINE_SAMPLE_DATA[key];
+        var preset = inlinePresetData[key];
         if (!preset) {
           return;
         }
@@ -974,7 +921,7 @@
   }
 
   function applyInlinePreset(presetKey) {
-    var preset = INLINE_SAMPLE_DATA[presetKey];
+    var preset = inlinePresetData[presetKey];
     if (!preset) {
       return;
     }

@@ -29,7 +29,7 @@ Consistently derive new OCRA test vectors with the reference Java implementation
    EOF
    ```
    Adjust the variables as required, but keep the generator unchanged.
-4. **Capture outputs.** Record each OTP alongside its inputs in the relevant fixture class. Include at least one counter/example per suite so regressions can detect drift. Store artefacts under version control (e.g., `OcraDraftHotpVariantsVectorFixtures`).
+4. **Capture outputs.** For RFC 6287 Appendix C material, append a new entry to `docs/ocra_validation_vectors.json` using the existing field schema (vector id, suite, secret, counter/question/session/timestamp context, expected OTP). Run the OCRA JSON loader (`OcraJsonVectorFixtures`) locally to confirm the file parses before committing. For draft-only or bespoke suites, update the appropriate test fixture helpers (e.g., `OcraDraftHotpVariantsVectorFixtures`) and reference the provenance in commit notes. Include at least one example per suite so regressions detect drift.
 5. **Document provenance.** Cross-link the fixture or test with this how-to and note the generation date in commit messages or doc updates.
 
 

@@ -11,6 +11,8 @@ import io.openauth.sim.core.otp.totp.TotpDescriptor;
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
 import io.openauth.sim.core.otp.totp.TotpGenerator;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
+import io.openauth.sim.core.otp.totp.TotpJsonVectorFixtures;
+import io.openauth.sim.core.otp.totp.TotpJsonVectorFixtures.TotpJsonVector;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
@@ -29,8 +31,8 @@ import picocli.CommandLine;
 final class TotpCliTest {
 
   private static final String CREDENTIAL_ID = "totp-demo";
-  private static final SecretMaterial STORED_SECRET =
-      SecretMaterial.fromStringUtf8("1234567890123456789012");
+  private static final TotpJsonVector STORED_VECTOR =
+      TotpJsonVectorFixtures.getById("rfc6238_sha1_digits6_t1111111111");
   private static final SecretMaterial INLINE_SECRET =
       SecretMaterial.fromStringUtf8(
           "1234567890123456789012345678901234567890123456789012345678901234");
@@ -44,7 +46,13 @@ final class TotpCliTest {
 
     TotpDescriptor descriptor =
         TotpDescriptor.create(
-            CREDENTIAL_ID, STORED_SECRET, TotpHashAlgorithm.SHA1, 6, Duration.ofSeconds(30));
+            CREDENTIAL_ID,
+            STORED_VECTOR.secret(),
+            STORED_VECTOR.algorithm(),
+            STORED_VECTOR.digits(),
+            STORED_VECTOR.stepDuration(),
+            TotpDriftWindow.of(
+                STORED_VECTOR.driftBackwardSteps(), STORED_VECTOR.driftForwardSteps()));
     harness.save(descriptor);
 
     int exitCode = harness.execute("list");
@@ -66,14 +74,15 @@ final class TotpCliTest {
     TotpDescriptor descriptor =
         TotpDescriptor.create(
             CREDENTIAL_ID,
-            STORED_SECRET,
-            TotpHashAlgorithm.SHA1,
-            6,
-            Duration.ofSeconds(30),
-            TotpDriftWindow.of(1, 1));
+            STORED_VECTOR.secret(),
+            STORED_VECTOR.algorithm(),
+            STORED_VECTOR.digits(),
+            STORED_VECTOR.stepDuration(),
+            TotpDriftWindow.of(
+                STORED_VECTOR.driftBackwardSteps(), STORED_VECTOR.driftForwardSteps()));
     harness.save(descriptor);
 
-    Instant timestamp = Instant.ofEpochSecond(1_111_111_111L);
+    Instant timestamp = STORED_VECTOR.timestamp();
     String otp = TotpGenerator.generate(descriptor, timestamp);
 
     int exitCode =

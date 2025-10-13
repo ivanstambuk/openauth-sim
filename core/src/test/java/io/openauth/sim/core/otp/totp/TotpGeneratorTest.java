@@ -4,43 +4,51 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.openauth.sim.core.model.SecretMaterial;
+import io.openauth.sim.core.otp.totp.TotpJsonVectorFixtures.TotpJsonVector;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class TotpGeneratorTest {
 
-  private static final SecretMaterial RFC_SHA1_SECRET =
-      SecretMaterial.fromStringUtf8("12345678901234567890");
-  private static final SecretMaterial RFC_SHA256_SECRET =
-      SecretMaterial.fromStringUtf8("12345678901234567890123456789012");
-  private static final SecretMaterial RFC_SHA512_SECRET =
-      SecretMaterial.fromStringUtf8(
-          "1234567890123456789012345678901234567890123456789012345678901234");
-
-  private static final List<Instant> RFC_TIMESTAMPS =
-      List.of(
-          Instant.ofEpochSecond(59),
-          Instant.ofEpochSecond(1_111_111_109L),
-          Instant.ofEpochSecond(1_111_111_111L),
-          Instant.ofEpochSecond(1_234_567_890L),
-          Instant.ofEpochSecond(2_000_000_000L),
-          Instant.ofEpochSecond(20_000_000_000L));
+  private static final List<TotpJsonVector> SHA1_SEQUENCE =
+      TotpJsonVectorFixtures.loadAll()
+          .filter(
+              vector ->
+                  vector.algorithm() == TotpHashAlgorithm.SHA1
+                      && vector.digits() == 8
+                      && vector.stepSeconds() == 30)
+          .sorted(Comparator.comparingLong(TotpJsonVector::timestampEpochSeconds))
+          .toList();
+  private static final TotpJsonVector SHA1_T59 = vector("rfc6238_sha1_digits8_t59");
+  private static final TotpJsonVector SHA1_T1234567890 = vector("rfc6238_sha1_digits8_t1234567890");
+  private static final TotpJsonVector SHA1_DIGITS6_T59 = vector("rfc6238_sha1_digits6_t59");
+  private static final TotpJsonVector SHA256_T59 = vector("rfc6238_sha256_digits8_t59");
+  private static final TotpJsonVector SHA512_T59 = vector("rfc6238_sha512_digits8_t59");
 
   @Test
   void generatesRfc6238Sha1Sequence() {
     TotpDescriptor descriptor =
         TotpDescriptor.create(
-            "token-rfc-sha1", RFC_SHA1_SECRET, TotpHashAlgorithm.SHA1, 8, Duration.ofSeconds(30));
-
+            "token-rfc-sha1",
+            SHA1_T59.secret(),
+            TotpHashAlgorithm.SHA1,
+            8,
+            SHA1_T59.stepDuration());
     List<String> expectedOtps =
         List.of("94287082", "07081804", "14050471", "89005924", "69279037", "65353130");
 
-    for (int idx = 0; idx < RFC_TIMESTAMPS.size(); idx++) {
-      Instant timestamp = RFC_TIMESTAMPS.get(idx);
-      String otp = TotpGenerator.generate(descriptor, timestamp);
-      assertEquals(expectedOtps.get(idx), otp, "timestamp=" + timestamp.getEpochSecond());
+    assertEquals(
+        expectedOtps,
+        SHA1_SEQUENCE.stream().map(TotpJsonVector::otp).toList(),
+        "Fixture OTPs must match RFC 6238 Appendix B");
+
+    for (int idx = 0; idx < SHA1_SEQUENCE.size(); idx++) {
+      TotpJsonVector vector = SHA1_SEQUENCE.get(idx);
+      String actual = TotpGenerator.generate(descriptor, vector.timestamp());
+      assertEquals(vector.otp(), actual, "timestamp=" + vector.timestampEpochSeconds());
     }
   }
 
@@ -49,44 +57,52 @@ class TotpGeneratorTest {
     TotpDescriptor sha256Descriptor =
         TotpDescriptor.create(
             "token-rfc-sha256",
-            RFC_SHA256_SECRET,
+            SHA256_T59.secret(),
             TotpHashAlgorithm.SHA256,
             8,
-            Duration.ofSeconds(30));
+            SHA256_T59.stepDuration());
     TotpDescriptor sha512Descriptor =
         TotpDescriptor.create(
             "token-rfc-sha512",
-            RFC_SHA512_SECRET,
+            SHA512_T59.secret(),
             TotpHashAlgorithm.SHA512,
             8,
-            Duration.ofSeconds(30));
+            SHA512_T59.stepDuration());
 
     Instant timestamp = Instant.ofEpochSecond(59);
 
     String sha256Otp = TotpGenerator.generate(sha256Descriptor, timestamp);
     String sha512Otp = TotpGenerator.generate(sha512Descriptor, timestamp);
 
-    assertEquals("46119246", sha256Otp);
-    assertEquals("90693936", sha512Otp);
+    assertEquals(SHA256_T59.otp(), sha256Otp);
+    assertEquals(SHA512_T59.otp(), sha512Otp);
   }
 
   @Test
   void supportsSixDigitOtp() {
     TotpDescriptor descriptor =
         TotpDescriptor.create(
-            "token-six-digit", RFC_SHA1_SECRET, TotpHashAlgorithm.SHA1, 6, Duration.ofSeconds(30));
+            "token-six-digit",
+            SHA1_DIGITS6_T59.secret(),
+            TotpHashAlgorithm.SHA1,
+            6,
+            SHA1_DIGITS6_T59.stepDuration());
 
-    String otp = TotpGenerator.generate(descriptor, Instant.ofEpochSecond(59));
-    assertEquals("287082", otp);
+    String otp = TotpGenerator.generate(descriptor, SHA1_DIGITS6_T59.timestamp());
+    assertEquals(SHA1_DIGITS6_T59.otp(), otp);
   }
 
   @Test
   void remainsStableWithinSameTimeStep() {
     TotpDescriptor descriptor =
         TotpDescriptor.create(
-            "token-stable", RFC_SHA1_SECRET, TotpHashAlgorithm.SHA1, 8, Duration.ofSeconds(30));
+            "token-stable",
+            SHA1_T1234567890.secret(),
+            TotpHashAlgorithm.SHA1,
+            8,
+            SHA1_T1234567890.stepDuration());
 
-    Instant boundary = Instant.ofEpochSecond(1_234_567_890L);
+    Instant boundary = SHA1_T1234567890.timestamp();
     Instant withinStep = boundary.plusSeconds(15);
 
     String boundaryOtp = TotpGenerator.generate(descriptor, boundary);
@@ -105,5 +121,9 @@ class TotpGeneratorTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> TotpGenerator.generate(descriptor, Instant.ofEpochSecond(59)));
+  }
+
+  private static TotpJsonVector vector(String id) {
+    return TotpJsonVectorFixtures.getById(id);
   }
 }

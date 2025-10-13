@@ -36,7 +36,6 @@ import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -317,7 +316,8 @@ public final class WebAuthnAssertionGenerationApplicationService {
       KeyFactory factory = keyFactoryFor(algorithm);
       PrivateKey privateKey = factory.generatePrivate(new PKCS8EncodedKeySpec(der));
       PublicKey publicKey = derivePublicKey(privateKey, algorithm);
-      return new KeyMaterial(privateKey, publicKey, encodePublicKey(publicKey, algorithm));
+      return new KeyMaterial(
+          privateKey, publicKey, WebAuthnPublicKeyFormats.encodePublicKey(publicKey, algorithm));
     } catch (InvalidKeySpecException ex) {
       throw new GeneralSecurityException("Unsupported PEM key", ex);
     }
@@ -348,7 +348,9 @@ public final class WebAuthnAssertionGenerationApplicationService {
     PublicKey publicKey = factory.generatePublic(publicSpec);
     PrivateKey privateKey = factory.generatePrivate(privateSpec);
     return new KeyMaterial(
-        privateKey, publicKey, encodeEcPublicKey((ECPublicKey) publicKey, algorithm));
+        privateKey,
+        publicKey,
+        WebAuthnPublicKeyFormats.encodeEcPublicKey((ECPublicKey) publicKey, algorithm));
   }
 
   private static KeyMaterial parseRsaJwk(
@@ -384,7 +386,7 @@ public final class WebAuthnAssertionGenerationApplicationService {
     }
 
     PublicKey publicKey = factory.generatePublic(new RSAPublicKeySpec(modulus, publicExponent));
-    byte[] cose = encodeRsaPublicKey((RSAPublicKey) publicKey, algorithm);
+    byte[] cose = WebAuthnPublicKeyFormats.encodeRsaPublicKey((RSAPublicKey) publicKey, algorithm);
     return new KeyMaterial(privateKey, publicKey, cose);
   }
 
@@ -410,7 +412,7 @@ public final class WebAuthnAssertionGenerationApplicationService {
     PrivateKey privateKey = factory.generatePrivate(new PKCS8EncodedKeySpec(pkcs8));
     PublicKey publicKey = factory.generatePublic(new X509EncodedKeySpec(x509));
 
-    byte[] cose = encodeOkpPublicKey(publicKeyBytes, algorithm);
+    byte[] cose = WebAuthnPublicKeyFormats.encodeOkpPublicKey(publicKeyBytes, algorithm);
     return new KeyMaterial(privateKey, publicKey, cose);
   }
 
@@ -447,79 +449,6 @@ public final class WebAuthnAssertionGenerationApplicationService {
     return factory.generatePublic(new RSAPublicKeySpec(rsa.getModulus(), rsa.getPublicExponent()));
   }
 
-  private static byte[] encodePublicKey(PublicKey publicKey, WebAuthnSignatureAlgorithm algorithm)
-      throws GeneralSecurityException {
-    if (publicKey instanceof ECPublicKey ec) {
-      return encodeEcPublicKey(ec, algorithm);
-    }
-    if (publicKey instanceof RSAPublicKey rsa) {
-      return encodeRsaPublicKey(rsa, algorithm);
-    }
-    throw new GeneralSecurityException(
-        "Unsupported public key algorithm: " + publicKey.getAlgorithm());
-  }
-
-  private static byte[] encodeEcPublicKey(
-      ECPublicKey publicKey, WebAuthnSignatureAlgorithm algorithm) throws GeneralSecurityException {
-    int coseCurve =
-        switch (algorithm) {
-          case ES256 -> 1;
-          case ES384 -> 2;
-          case ES512 -> 3;
-          default -> throw new GeneralSecurityException("Unsupported EC algorithm " + algorithm);
-        };
-
-    byte[] x = toUnsigned(publicKey.getW().getAffineX(), coordinateLength(algorithm));
-    byte[] y = toUnsigned(publicKey.getW().getAffineY(), coordinateLength(algorithm));
-
-    CborWriter writer = new CborWriter();
-    writer.startMap(5);
-    writer.writeInt(1, 2); // kty: EC2
-    writer.writeInt(3, algorithm.coseIdentifier());
-    writer.writeInt(-1, coseCurve);
-    writer.writeBytes(-2, x);
-    writer.writeBytes(-3, y);
-    return writer.toByteArray();
-  }
-
-  private static byte[] encodeRsaPublicKey(
-      RSAPublicKey publicKey, WebAuthnSignatureAlgorithm algorithm)
-      throws GeneralSecurityException {
-    CborWriter writer = new CborWriter();
-    writer.startMap(3);
-    writer.writeInt(1, 3); // kty: RSA
-    int coseAlg =
-        algorithm == WebAuthnSignatureAlgorithm.PS256
-            ? WebAuthnSignatureAlgorithm.PS256.coseIdentifier()
-            : WebAuthnSignatureAlgorithm.RS256.coseIdentifier();
-    writer.writeInt(3, coseAlg);
-    writer.writeBytes(
-        -1, toUnsigned(publicKey.getModulus(), publicKey.getModulus().toByteArray().length));
-    writer.writeBytes(
-        -2,
-        toUnsigned(
-            publicKey.getPublicExponent(), publicKey.getPublicExponent().toByteArray().length));
-    return writer.toByteArray();
-  }
-
-  private static byte[] toUnsigned(BigInteger value, int length) {
-    byte[] bytes = value.toByteArray();
-    if (bytes.length == length) {
-      return bytes;
-    }
-    if (bytes.length == length + 1 && bytes[0] == 0) {
-      return Arrays.copyOfRange(bytes, 1, bytes.length);
-    }
-    byte[] result = new byte[length];
-    System.arraycopy(
-        bytes,
-        Math.max(0, bytes.length - length),
-        result,
-        Math.max(0, length - bytes.length),
-        Math.min(bytes.length, length));
-    return result;
-  }
-
   private static byte[] encodeEd25519PrivateKey(byte[] privateKey) throws GeneralSecurityException {
     if (privateKey.length != 32) {
       throw new GeneralSecurityException("Ed25519 private key must be 32 bytes");
@@ -532,21 +461,6 @@ public final class WebAuthnAssertionGenerationApplicationService {
       throw new GeneralSecurityException("Ed25519 public key must be 32 bytes");
     }
     return concat(ED25519_PUBLIC_KEY_PREFIX, publicKey);
-  }
-
-  private static byte[] encodeOkpPublicKey(byte[] publicKey, WebAuthnSignatureAlgorithm algorithm)
-      throws GeneralSecurityException {
-    if (algorithm != WebAuthnSignatureAlgorithm.EDDSA) {
-      throw new GeneralSecurityException(
-          "Unsupported OKP algorithm for COSE encoding: " + algorithm.label());
-    }
-    CborWriter writer = new CborWriter();
-    writer.startMap(4);
-    writer.writeInt(1, 1); // kty: OKP
-    writer.writeInt(3, algorithm.coseIdentifier());
-    writer.writeInt(-1, 6); // crv: Ed25519
-    writer.writeBytes(-2, publicKey);
-    return writer.toByteArray();
   }
 
   private static byte[] concat(byte[] prefix, byte[] value) {
@@ -567,15 +481,6 @@ public final class WebAuthnAssertionGenerationApplicationService {
       bytes[i] = (byte) Integer.parseInt(hex.substring(index, index + 2), 16);
     }
     return bytes;
-  }
-
-  private static int coordinateLength(WebAuthnSignatureAlgorithm algorithm) {
-    return switch (algorithm) {
-      case ES256 -> 32;
-      case ES384 -> 48;
-      case ES512 -> 66;
-      default -> 32;
-    };
   }
 
   private static Map<String, String> extractJsonFields(String json) {
@@ -818,58 +723,5 @@ public final class WebAuthnAssertionGenerationApplicationService {
 
   private record KeyMaterial(PrivateKey privateKey, PublicKey publicKey, byte[] publicKeyCose) {
     // marker record
-  }
-
-  private static final class CborWriter {
-    private final ByteBuffer buffer = ByteBuffer.allocate(512);
-
-    void startMap(int entries) {
-      buffer.put((byte) (0xA0 | entries));
-    }
-
-    void writeInt(int key, int value) {
-      writeInteger(key);
-      writeInteger(value);
-    }
-
-    void writeBytes(int key, byte[] value) {
-      writeInteger(key);
-      writeByteString(value);
-    }
-
-    private void writeInteger(int value) {
-      if (value >= 0) {
-        writeUnsigned(0, value);
-      } else {
-        writeUnsigned(1, -1 - value);
-      }
-    }
-
-    private void writeUnsigned(int majorType, int value) {
-      if (value < 24) {
-        buffer.put((byte) ((majorType << 5) | value));
-      } else if (value < 256) {
-        buffer.put((byte) ((majorType << 5) | 24));
-        buffer.put((byte) value);
-      } else if (value < 65536) {
-        buffer.put((byte) ((majorType << 5) | 25));
-        buffer.putShort((short) value);
-      } else {
-        buffer.put((byte) ((majorType << 5) | 26));
-        buffer.putInt(value);
-      }
-    }
-
-    private void writeByteString(byte[] value) {
-      writeUnsigned(2, value.length);
-      buffer.put(value);
-    }
-
-    byte[] toByteArray() {
-      byte[] data = new byte[buffer.position()];
-      buffer.rewind();
-      buffer.get(data);
-      return data;
-    }
   }
 }

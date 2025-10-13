@@ -9,6 +9,8 @@ import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
+import io.openauth.sim.core.credentials.ocra.OcraJsonVectorFixtures;
+import io.openauth.sim.core.credentials.ocra.OcraJsonVectorFixtures.OcraOneWayVector;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator.OcraExecutionContext;
 import io.openauth.sim.core.model.Credential;
@@ -33,14 +35,29 @@ import picocli.CommandLine;
 
 class OcraCliTest {
 
-  private static final String DEFAULT_SECRET_HEX = "3132333435363738393031323334353637383930";
-  private static final String DEFAULT_SUITE = "OCRA-1:HOTP-SHA1-6:QN08";
-  private static final String VERIFY_SUITE_COUNTER = "OCRA-1:HOTP-SHA256-8:C-QN08-PSHA1";
+  private static final OcraOneWayVector INLINE_VECTOR =
+      OcraJsonVectorFixtures.getOneWay("rfc6287_standard-challenge-question-repeated-digits");
+  private static final OcraOneWayVector STORED_VECTOR =
+      OcraJsonVectorFixtures.getOneWay("rfc6287_counter-with-hashed-pin-c-0");
+
+  private static final String DEFAULT_SECRET_HEX =
+      INLINE_VECTOR.secret().asHex().toUpperCase(Locale.ROOT);
+  private static final String DEFAULT_SUITE = INLINE_VECTOR.suite();
+  private static final String VERIFY_SUITE_COUNTER = STORED_VECTOR.suite();
   private static final String VERIFY_SECRET_HEX_COUNTER =
-      "3132333435363738393031323334353637383930313233343536373839303132";
-  private static final String VERIFY_PIN_HASH_SHA1 = "7110eda4d09e062aa5e4a390b0a572ac0d2c0220";
-  private static final long VERIFY_COUNTER = 0L;
-  private static final String VERIFY_CHALLENGE_NUMERIC = "12345678";
+      STORED_VECTOR.secret().asHex().toUpperCase(Locale.ROOT);
+  private static final String VERIFY_PIN_HASH_SHA1 =
+      STORED_VECTOR
+          .pinHashHex()
+          .orElseThrow(() -> new IllegalStateException("Counter vector missing PIN hash"));
+  private static final long VERIFY_COUNTER =
+      STORED_VECTOR
+          .counter()
+          .orElseThrow(() -> new IllegalStateException("Counter vector missing counter value"));
+  private static final String VERIFY_CHALLENGE_NUMERIC =
+      STORED_VECTOR
+          .challengeQuestion()
+          .orElseThrow(() -> new IllegalStateException("Counter vector missing question"));
 
   @Test
   @DisplayName("verify command matches stored credential when context is complete")

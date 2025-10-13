@@ -1,7 +1,7 @@
 # Feature 022 – HOTP Operator Support
 
 _Status: Complete_
-_Last updated: 2025-10-08_
+_Last updated: 2025-10-12_
 
 ## Overview
 Deliver RFC 4226 HOTP capabilities across the simulator so operators can register and validate HOTP credentials alongside the existing OCRA flows. This feature introduces a dedicated HOTP domain model, persistence wiring, telemetry events, façade endpoints (CLI + REST), and operator console UI evaluation flows (stored + inline) while keeping issuance out of scope. All success criteria were satisfied on 2025-10-08 following stored-mode seeding coverage verification.
@@ -55,6 +55,8 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-06 – HOTP evaluate UI must retain a vertical gap between the "Stored credential" selector and the "Load a sample vector" controls so the inline mode matches the OCRA evaluate layout (user directive).
 - 2025-10-06 – HOTP stored evaluation view positions the “Seed sample credentials” button above the stored credential selector to mirror the OCRA tab layout (user directive).
 - 2025-10-06 – HOTP stored evaluation seeding control maintains the same vertical spacing from the evaluation mode selector as the OCRA tab so the layout remains visually consistent (user directive).
+- 2025-10-12 – Task T2295 will introduce `docs/hotp_validation_vectors.json`, exposing RFC 4226 validation vectors so HOTP facades share parity with existing FIDO2 JSON fixtures; implementation pending scheduling.
+- 2025-10-13 – `docs/hotp_validation_vectors.json` must enumerate the canonical RFC 4226 sequences (counters 0–9) for both six- and eight-digit forms using fields `{ "vectorId", "secret", "secretEncoding", "algorithm", "digits", "counter", "otp" }` plus optional UI metadata (`label`, `notes`). Secrets are stored as hex, clients may derive Base32 where needed, and OTP strings remain zero-padded to the declared digit count. Downstream loaders will surface these records to core tests, CLI `--vector-id` options, REST sample endpoints, and operator presets without duplicating literals.
 
 - 2025-10-06 – HOTP operator console seeding button must provision both canonical stored credentials (`ui-hotp-demo` SHA-1/6 and `ui-hotp-demo-sha256` SHA-256/8) mirroring inline presets; reseeding appends missing entries without overwriting existing records (user directive; Option B selected).
 ## Functional Requirements

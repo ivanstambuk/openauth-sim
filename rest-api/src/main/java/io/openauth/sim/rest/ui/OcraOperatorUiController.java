@@ -72,6 +72,7 @@ final class OcraOperatorUiController {
     model.addAttribute("hotpCredentialSampleEndpoint", "/api/v1/hotp/credentials");
     model.addAttribute("hotpSeedEndpoint", "/api/v1/hotp/credentials/seed");
     model.addAttribute("hotpSeedDefinitionsJson", serializeHotpSeedDefinitions());
+    model.addAttribute("hotpInlinePresetsJson", serializeHotpInlinePresets());
     model.addAttribute("hotpReplayEndpoint", "/api/v1/hotp/replay");
     model.addAttribute("totpStoredEvaluateEndpoint", "/api/v1/totp/evaluate");
     model.addAttribute("totpInlineEvaluateEndpoint", "/api/v1/totp/evaluate/inline");
@@ -109,6 +110,14 @@ final class OcraOperatorUiController {
       return objectMapper.writeValueAsString(HotpOperatorSampleData.seedDefinitions());
     } catch (JsonProcessingException ex) {
       throw new IllegalStateException("Unable to render HOTP seed definitions", ex);
+    }
+  }
+
+  private String serializeHotpInlinePresets() {
+    try {
+      return objectMapper.writeValueAsString(HotpOperatorSampleData.inlinePresets());
+    } catch (JsonProcessingException ex) {
+      throw new IllegalStateException("Unable to render HOTP inline presets", ex);
     }
   }
 

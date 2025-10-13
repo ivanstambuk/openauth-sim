@@ -1,0 +1,222 @@
+[
+  {
+    "vectorId": "rfc4226_sha1_digits6_counter0",
+    "label": "RFC 4226 · SHA-1 · 6 digits · counter 0",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "counter": 0,
+    "otp": "755224"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits6_counter1",
+    "label": "RFC 4226 · SHA-1 · 6 digits · counter 1",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "counter": 1,
+    "otp": "287082"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits6_counter2",
+    "label": "RFC 4226 · SHA-1 · 6 digits · counter 2",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "counter": 2,
+    "otp": "359152"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits6_counter3",
+    "label": "RFC 4226 · SHA-1 · 6 digits · counter 3",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "counter": 3,
+    "otp": "969429"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits6_counter4",
+    "label": "RFC 4226 · SHA-1 · 6 digits · counter 4",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "counter": 4,
+    "otp": "338314"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits6_counter5",
+    "label": "RFC 4226 · SHA-1 · 6 digits · counter 5",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "counter": 5,
+    "otp": "254676"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits6_counter6",
+    "label": "RFC 4226 · SHA-1 · 6 digits · counter 6",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "counter": 6,
+    "otp": "287922"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits6_counter7",
+    "label": "RFC 4226 · SHA-1 · 6 digits · counter 7",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "counter": 7,
+    "otp": "162583"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits6_counter8",
+    "label": "RFC 4226 · SHA-1 · 6 digits · counter 8",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "counter": 8,
+    "otp": "399871"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits6_counter9",
+    "label": "RFC 4226 · SHA-1 · 6 digits · counter 9",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 6,
+    "counter": 9,
+    "otp": "520489"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits8_counter0",
+    "label": "RFC 4226 · SHA-1 · 8 digits · counter 0",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 8,
+    "counter": 0,
+    "otp": "84755224"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits8_counter1",
+    "label": "RFC 4226 · SHA-1 · 8 digits · counter 1",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 8,
+    "counter": 1,
+    "otp": "94287082"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits8_counter2",
+    "label": "RFC 4226 · SHA-1 · 8 digits · counter 2",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 8,
+    "counter": 2,
+    "otp": "37359152"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits8_counter3",
+    "label": "RFC 4226 · SHA-1 · 8 digits · counter 3",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 8,
+    "counter": 3,
+    "otp": "26969429"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits8_counter4",
+    "label": "RFC 4226 · SHA-1 · 8 digits · counter 4",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 8,
+    "counter": 4,
+    "otp": "40338314"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits8_counter5",
+    "label": "RFC 4226 · SHA-1 · 8 digits · counter 5",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 8,
+    "counter": 5,
+    "otp": "68254676"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits8_counter6",
+    "label": "RFC 4226 · SHA-1 · 8 digits · counter 6",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 8,
+    "counter": 6,
+    "otp": "18287922"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits8_counter7",
+    "label": "RFC 4226 · SHA-1 · 8 digits · counter 7",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 8,
+    "counter": 7,
+    "otp": "82162583"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits8_counter8",
+    "label": "RFC 4226 · SHA-1 · 8 digits · counter 8",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 8,
+    "counter": 8,
+    "otp": "73399871"
+  },
+  {
+    "vectorId": "rfc4226_sha1_digits8_counter9",
+    "label": "RFC 4226 · SHA-1 · 8 digits · counter 9",
+    "notes": "RFC 4226 Appendix D reference vector",
+    "secret": "3132333435363738393031323334353637383930",
+    "secretEncoding": "hex",
+    "algorithm": "SHA1",
+    "digits": 8,
+    "counter": 9,
+    "otp": "45520489"
+  }
+]

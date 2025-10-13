@@ -5,6 +5,8 @@ import io.openauth.sim.core.otp.totp.TotpDescriptor;
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
 import io.openauth.sim.core.otp.totp.TotpGenerator;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
+import io.openauth.sim.core.otp.totp.TotpJsonVectorFixtures;
+import io.openauth.sim.core.otp.totp.TotpJsonVectorFixtures.TotpJsonVector;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -15,12 +17,16 @@ import java.util.Objects;
 public final class TotpOperatorSampleData {
 
   private static final Map<String, String> BASE_METADATA = Map.of("seedSource", "operator-ui");
-  private static final String SECRET_SHA1_INLINE_HEX = "3132333435363738393031323334353637383930";
   private static final String SECRET_SHA1_DEMO_HEX = "31323334353637383930313233343536373839303132";
-  private static final String SECRET_SHA256_HEX =
-      "3132333435363738393031323334353637383930313233343536373839303132";
-  private static final String SECRET_SHA512_HEX =
-      "31323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334";
+  private static final TotpJsonVector VECTOR_SHA1_DIGITS8_T59 = vector("rfc6238_sha1_digits8_t59");
+  private static final TotpJsonVector VECTOR_SHA256_DIGITS6_T59 =
+      vector("rfc6238_sha256_digits6_t59");
+  private static final TotpJsonVector VECTOR_SHA256_DIGITS8_T59 =
+      vector("rfc6238_sha256_digits8_t59");
+  private static final TotpJsonVector VECTOR_SHA512_DIGITS6_T59 =
+      vector("rfc6238_sha512_digits6_t59");
+  private static final TotpJsonVector VECTOR_SHA512_DIGITS8_T59 =
+      vector("rfc6238_sha512_digits8_t59");
 
   private static final List<SampleDefinition> DEFINITIONS =
       List.of(
@@ -41,13 +47,13 @@ public final class TotpOperatorSampleData {
           sample(
               "ui-totp-sample-sha1-8",
               "SHA-1, 8 digits, 30s (RFC 6238)",
-              SECRET_SHA1_INLINE_HEX,
+              VECTOR_SHA1_DIGITS8_T59.secret().asHex(),
               TotpHashAlgorithm.SHA1,
               8,
-              30,
-              1,
-              1,
-              59L,
+              (int) VECTOR_SHA1_DIGITS8_T59.stepSeconds(),
+              VECTOR_SHA1_DIGITS8_T59.driftBackwardSteps(),
+              VECTOR_SHA1_DIGITS8_T59.driftForwardSteps(),
+              VECTOR_SHA1_DIGITS8_T59.timestampEpochSeconds(),
               metadata(
                   "inline-rfc6238-sha1",
                   "SHA-1, 8 digits, 30s (RFC 6238)",
@@ -55,13 +61,13 @@ public final class TotpOperatorSampleData {
           sample(
               "ui-totp-sample-sha256-6",
               "SHA-256, 6 digits, 30s",
-              SECRET_SHA256_HEX,
+              VECTOR_SHA256_DIGITS6_T59.secret().asHex(),
               TotpHashAlgorithm.SHA256,
               6,
-              30,
-              1,
-              1,
-              59L,
+              (int) VECTOR_SHA256_DIGITS6_T59.stepSeconds(),
+              VECTOR_SHA256_DIGITS6_T59.driftBackwardSteps(),
+              VECTOR_SHA256_DIGITS6_T59.driftForwardSteps(),
+              VECTOR_SHA256_DIGITS6_T59.timestampEpochSeconds(),
               metadata(
                   "inline-rfc6238-sha256-6",
                   "SHA-256, 6 digits, 30s",
@@ -69,13 +75,13 @@ public final class TotpOperatorSampleData {
           sample(
               "ui-totp-sample-sha256-8",
               "SHA-256, 8 digits, 30s (RFC 6238)",
-              SECRET_SHA256_HEX,
+              VECTOR_SHA256_DIGITS8_T59.secret().asHex(),
               TotpHashAlgorithm.SHA256,
               8,
-              30,
-              1,
-              1,
-              59L,
+              (int) VECTOR_SHA256_DIGITS8_T59.stepSeconds(),
+              VECTOR_SHA256_DIGITS8_T59.driftBackwardSteps(),
+              VECTOR_SHA256_DIGITS8_T59.driftForwardSteps(),
+              VECTOR_SHA256_DIGITS8_T59.timestampEpochSeconds(),
               metadata(
                   "inline-rfc6238-sha256-8",
                   "SHA-256, 8 digits, 30s (RFC 6238)",
@@ -83,13 +89,13 @@ public final class TotpOperatorSampleData {
           sample(
               "ui-totp-sample-sha512-6",
               "SHA-512, 6 digits, 30s",
-              SECRET_SHA512_HEX,
+              VECTOR_SHA512_DIGITS6_T59.secret().asHex(),
               TotpHashAlgorithm.SHA512,
               6,
-              30,
-              1,
-              1,
-              59L,
+              (int) VECTOR_SHA512_DIGITS6_T59.stepSeconds(),
+              VECTOR_SHA512_DIGITS6_T59.driftBackwardSteps(),
+              VECTOR_SHA512_DIGITS6_T59.driftForwardSteps(),
+              VECTOR_SHA512_DIGITS6_T59.timestampEpochSeconds(),
               metadata(
                   "inline-rfc6238-sha512-6",
                   "SHA-512, 6 digits, 30s",
@@ -97,13 +103,13 @@ public final class TotpOperatorSampleData {
           sample(
               "ui-totp-sample-sha512-8",
               "SHA-512, 8 digits, 30s (RFC 6238)",
-              SECRET_SHA512_HEX,
+              VECTOR_SHA512_DIGITS8_T59.secret().asHex(),
               TotpHashAlgorithm.SHA512,
               8,
-              30,
-              1,
-              1,
-              59L,
+              (int) VECTOR_SHA512_DIGITS8_T59.stepSeconds(),
+              VECTOR_SHA512_DIGITS8_T59.driftBackwardSteps(),
+              VECTOR_SHA512_DIGITS8_T59.driftForwardSteps(),
+              VECTOR_SHA512_DIGITS8_T59.timestampEpochSeconds(),
               metadata(
                   "inline-rfc6238-sha512-8",
                   "SHA-512, 8 digits, 30s (RFC 6238)",
@@ -114,13 +120,13 @@ public final class TotpOperatorSampleData {
           inlinePreset(
               "inline-rfc6238-sha1",
               "SHA-1, 8 digits, 30s (RFC 6238)",
-              SECRET_SHA1_INLINE_HEX,
+              VECTOR_SHA1_DIGITS8_T59.secret().asHex(),
               TotpHashAlgorithm.SHA1,
               8,
-              30,
-              1,
-              1,
-              59L,
+              (int) VECTOR_SHA1_DIGITS8_T59.stepSeconds(),
+              VECTOR_SHA1_DIGITS8_T59.driftBackwardSteps(),
+              VECTOR_SHA1_DIGITS8_T59.driftForwardSteps(),
+              VECTOR_SHA1_DIGITS8_T59.timestampEpochSeconds(),
               metadata(
                   "inline-rfc6238-sha1",
                   "SHA-1, 8 digits, 30s (RFC 6238)",
@@ -128,13 +134,13 @@ public final class TotpOperatorSampleData {
           inlinePreset(
               "inline-rfc6238-sha256-6",
               "SHA-256, 6 digits, 30s",
-              SECRET_SHA256_HEX,
+              VECTOR_SHA256_DIGITS6_T59.secret().asHex(),
               TotpHashAlgorithm.SHA256,
               6,
-              30,
-              1,
-              1,
-              59L,
+              (int) VECTOR_SHA256_DIGITS6_T59.stepSeconds(),
+              VECTOR_SHA256_DIGITS6_T59.driftBackwardSteps(),
+              VECTOR_SHA256_DIGITS6_T59.driftForwardSteps(),
+              VECTOR_SHA256_DIGITS6_T59.timestampEpochSeconds(),
               metadata(
                   "inline-rfc6238-sha256-6",
                   "SHA-256, 6 digits, 30s",
@@ -142,13 +148,13 @@ public final class TotpOperatorSampleData {
           inlinePreset(
               "inline-rfc6238-sha256-8",
               "SHA-256, 8 digits, 30s (RFC 6238)",
-              SECRET_SHA256_HEX,
+              VECTOR_SHA256_DIGITS8_T59.secret().asHex(),
               TotpHashAlgorithm.SHA256,
               8,
-              30,
-              1,
-              1,
-              59L,
+              (int) VECTOR_SHA256_DIGITS8_T59.stepSeconds(),
+              VECTOR_SHA256_DIGITS8_T59.driftBackwardSteps(),
+              VECTOR_SHA256_DIGITS8_T59.driftForwardSteps(),
+              VECTOR_SHA256_DIGITS8_T59.timestampEpochSeconds(),
               metadata(
                   "inline-rfc6238-sha256-8",
                   "SHA-256, 8 digits, 30s (RFC 6238)",
@@ -156,13 +162,13 @@ public final class TotpOperatorSampleData {
           inlinePreset(
               "inline-rfc6238-sha512-6",
               "SHA-512, 6 digits, 30s",
-              SECRET_SHA512_HEX,
+              VECTOR_SHA512_DIGITS6_T59.secret().asHex(),
               TotpHashAlgorithm.SHA512,
               6,
-              30,
-              1,
-              1,
-              59L,
+              (int) VECTOR_SHA512_DIGITS6_T59.stepSeconds(),
+              VECTOR_SHA512_DIGITS6_T59.driftBackwardSteps(),
+              VECTOR_SHA512_DIGITS6_T59.driftForwardSteps(),
+              VECTOR_SHA512_DIGITS6_T59.timestampEpochSeconds(),
               metadata(
                   "inline-rfc6238-sha512-6",
                   "SHA-512, 6 digits, 30s",
@@ -170,13 +176,13 @@ public final class TotpOperatorSampleData {
           inlinePreset(
               "inline-rfc6238-sha512-8",
               "SHA-512, 8 digits, 30s (RFC 6238)",
-              SECRET_SHA512_HEX,
+              VECTOR_SHA512_DIGITS8_T59.secret().asHex(),
               TotpHashAlgorithm.SHA512,
               8,
-              30,
-              1,
-              1,
-              59L,
+              (int) VECTOR_SHA512_DIGITS8_T59.stepSeconds(),
+              VECTOR_SHA512_DIGITS8_T59.driftBackwardSteps(),
+              VECTOR_SHA512_DIGITS8_T59.driftForwardSteps(),
+              VECTOR_SHA512_DIGITS8_T59.timestampEpochSeconds(),
               metadata(
                   "inline-rfc6238-sha512-8",
                   "SHA-512, 8 digits, 30s (RFC 6238)",
@@ -324,5 +330,9 @@ public final class TotpOperatorSampleData {
       Objects.requireNonNull(metadata, "metadata");
       metadata = Map.copyOf(metadata);
     }
+  }
+
+  private static TotpJsonVector vector(String id) {
+    return TotpJsonVectorFixtures.getById(id);
   }
 }

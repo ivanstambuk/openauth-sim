@@ -1,7 +1,7 @@
 # Feature 022 – Task Checklist
 
 _Status: Complete_
-_Last updated: 2025-10-09_
+_Last updated: 2025-10-12_
 
 ## Tasks (≤10 min each)
 - ☑ T2201 – Add failing HOTP generator/validator unit tests covering counter rollover, digit length variants, and secret bounds.
@@ -100,3 +100,10 @@ Mark tasks as work completes and record tooling outcomes within the feature plan
 - ☑ T2292 – Add failing Selenium regression asserting the HOTP replay stored panel exposes an editable counter input and that "Load sample data" pre-fills both counter and OTP before producing a successful verification. (2025-10-07: expanded `HotpOperatorUiReplaySeleniumTest` and captured failing targeted Selenium run.)
 - ☑ T2293 – Update HOTP replay templates/JS to provide the counter input, call the new sample endpoint, satisfy T2292, and finish with `./gradlew spotlessApply check`. (2025-10-07: UI + JS updates landed, targeted Selenium/REST tests rerun, full `./gradlew spotlessApply check` green.)
 - ☑ T2294 – Reposition the HOTP stored replay “Load sample data” control directly beneath the “Stored credential” selector, update templates/CSS/JS, refresh Selenium assertions, and rerun `./gradlew :rest-api:test` plus `./gradlew spotlessApply check`. (_2025-10-09 – Embedded the sample actions within the stored credential column, shared the spacing CSS with other panels, and reconfirmed via `./gradlew :rest-api:test` and `./gradlew spotlessApply check`._)
+
+☑ T2295 – Produce `docs/hotp_validation_vectors.json` with RFC 4226 verification cases, update HOTP fixture loaders/tests across core, CLI, REST, and operator UI, and refresh how-to documentation once the catalogue ships.
+ ☑ Draft the JSON catalogue (counters 0–9, six- and eight-digit variants) with fields `vectorId`, `secret`, `secretEncoding`, `algorithm`, `digits`, `counter`, `otp`, plus optional `label`/`notes`. _2025-10-13 – Authored 20-vector bundle mirroring RFC 4226 and checked in under `docs/`._
+ ☑ Add a shared loader/test harness (`HotpJsonVectorFixtures`) in `core`, replacing literal expectations in generator/validator tests with parameterised assertions. _2025-10-13 – Implemented loader with project-root fallback and updated generator/validator suites (`:core:test`)._
+ ☑ Propagate fixtures to CLI presets, REST sample endpoints, and operator UI dropdowns/seed metadata so sample data flows from the catalogue. _2025-10-13 – CLI/REST tests now ingest vectors; HOTP operator sample data + JS consume controller-provided JSON; full `:rest-api:test` rerun._
+ ☑ Update HOTP operator/CLI/REST how-to guides to document available vector IDs and outputs. _2025-10-13 – Expanded operator UI how-to with Reference Vectors section noting catalogue IDs._
+ ☑ Re-run `./gradlew spotlessApply check` and stage results once all wiring is complete. _2025-10-13 – `spotlessApply check` completed after module tests; results staged._

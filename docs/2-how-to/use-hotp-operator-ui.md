@@ -16,6 +16,11 @@ The operator console embedded in the REST API now provides HOTP evaluation and r
 3. Choose **Seed sample credentials** to call `/api/v1/hotp/credentials/seed`. The UI surfaces a status message indicating how many canonical records were added (or whether they already exist) and refreshes the credential dropdown automatically. Seeding now provisions six stored credentials matching every inline preset: the RFC 4226 SHA-1 vector (6 digits), SHA-1 (8 digits), SHA-256 (6 digits, 8 digits), and SHA-512 (6 digits, 8 digits).
 4. Reseeding is idempotent; the console reports when no new credentials were added so repeated drills stay predictable.
 
+## Reference Vectors
+- HOTP demo data now ships with an RFC 4226 catalogue at `docs/hotp_validation_vectors.json`. The file enumerates counters 0–9 for both six- and eight-digit SHA-1 sequences and includes metadata fields (`vectorId`, `secretEncoding`, `algorithm`, `digits`, `counter`, `otp`, optional `label`/`notes`).
+- Core, CLI, REST, and operator UI fixtures load from this catalogue so sample data stays consistent. Inline presets pull the `vectorId`s `rfc4226_sha1_digits6_counter5` and `rfc4226_sha1_digits8_counter5`; stored-mode seeding uses the counter `0` variant.
+- When adding new presets, extend the JSON catalogue first and reference the new `vectorId` from CLI/REST/JS helpers instead of hard-coding secrets or OTP values.
+
 ## Evaluate a Stored HOTP Credential
 1. Open `http://localhost:8080/ui/console?protocol=hotp` and select the **HOTP** tab if it is not already active.
 2. The console fetches stored HOTP credentials from `/api/v1/hotp/credentials`. Choose an entry from the **Credential** dropdown; labels include hash algorithm and digit length for quick reference.

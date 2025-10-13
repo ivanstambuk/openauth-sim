@@ -5,43 +5,58 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.openauth.sim.core.model.SecretMaterial;
 import org.junit.jupiter.api.Test;
 
 class HotpValidatorTest {
 
-  private static final SecretMaterial RFC_SECRET =
-      SecretMaterial.fromStringUtf8("12345678901234567890");
-
   @Test
   void acceptsMatchingOtpAndAdvancesCounter() {
-    HotpDescriptor descriptor =
-        HotpDescriptor.create("token-rfc", RFC_SECRET, HotpHashAlgorithm.SHA1, 6);
+    HotpJsonVectorFixtures.HotpJsonVector vector =
+        HotpJsonVectorFixtures.loadAll()
+            .filter(v -> v.digits() == 6 && v.counter() == 0L)
+            .findFirst()
+            .orElseThrow();
 
-    HotpVerificationResult result = HotpValidator.verify(descriptor, 0, "755224");
+    HotpDescriptor descriptor =
+        HotpDescriptor.create(
+            "vector-" + vector.vectorId(), vector.secret(), vector.algorithm(), vector.digits());
+
+    HotpVerificationResult result =
+        HotpValidator.verify(descriptor, vector.counter(), vector.otp());
 
     assertTrue(result.valid(), "OTP should validate");
-    assertEquals(1L, result.nextCounter());
+    assertEquals(vector.counter() + 1, result.nextCounter());
   }
 
   @Test
   void rejectsInvalidOtpWithoutAdvancingCounter() {
-    HotpDescriptor descriptor =
-        HotpDescriptor.create("token-rfc", RFC_SECRET, HotpHashAlgorithm.SHA1, 6);
+    HotpJsonVectorFixtures.HotpJsonVector vector =
+        HotpJsonVectorFixtures.loadAll()
+            .filter(v -> v.digits() == 6 && v.counter() == 0L)
+            .findFirst()
+            .orElseThrow();
 
-    HotpVerificationResult result = HotpValidator.verify(descriptor, 0, "123456");
+    HotpDescriptor descriptor =
+        HotpDescriptor.create(
+            "vector-" + vector.vectorId(), vector.secret(), vector.algorithm(), vector.digits());
+
+    HotpVerificationResult result = HotpValidator.verify(descriptor, vector.counter(), "000000");
 
     assertFalse(result.valid(), "OTP should be rejected");
-    assertEquals(0L, result.nextCounter());
+    assertEquals(vector.counter(), result.nextCounter());
   }
 
   @Test
   void preventsCounterOverflow() {
+    HotpJsonVectorFixtures.HotpJsonVector vector =
+        HotpJsonVectorFixtures.loadAll().filter(v -> v.digits() == 6).findFirst().orElseThrow();
+
     HotpDescriptor descriptor =
-        HotpDescriptor.create("token-rfc", RFC_SECRET, HotpHashAlgorithm.SHA1, 6);
+        HotpDescriptor.create(
+            "vector-" + vector.vectorId(), vector.secret(), vector.algorithm(), vector.digits());
 
     assertThrows(
         IllegalStateException.class,
-        () -> HotpValidator.verify(descriptor, Long.MAX_VALUE, "000000"));
+        () -> HotpValidator.verify(descriptor, Long.MAX_VALUE, vector.otp()));
   }
 }

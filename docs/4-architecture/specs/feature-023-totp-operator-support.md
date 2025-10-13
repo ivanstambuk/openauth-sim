@@ -1,7 +1,7 @@
 # Feature 023 – TOTP Operator Support
 
 _Status: Complete_
-_Last updated: 2025-10-09_
+_Last updated: 2025-10-13_
 
 ## Overview
 Deliver RFC 6238 TOTP capabilities across the simulator so operators can validate time-based one-time passwords alongside existing HOTP and OCRA flows. This feature introduces a TOTP domain model, shared persistence descriptors, application-layer services, CLI commands, REST endpoints, and operator console evaluation/replay experiences while keeping issuance out of scope for the initial release.
@@ -30,6 +30,9 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 - 2025-10-09 – Canonical seeded TOTP credentials must satisfy algorithm-specific minimum secret lengths so `/api/v1/totp/credentials/{credentialId}/sample` succeeds for SHA-512 alongside SHA-1/SHA-256 presets (defect report; Option A selected).
 - 2025-10-11 – TOTP evaluate tabs must default the mode selector to “Inline parameters” (stored option selectable afterward) to preserve parity with HOTP/OCRA/FIDO2 evaluate panels (defect report; Option A selected).
 - 2025-10-11 – TOTP evaluate and replay inline preset controls must reuse the HOTP/OCRA spacing token (`stack-offset-top-lg`) so “Load a sample vector” retains matching vertical padding beneath the mode selector (user directive; Option A selected).
+- 2025-10-12 – Task T2346 will publish `docs/totp_validation_vectors.json`, translating RFC 6238 Appendix B examples into the shared JSON format so all facades load canonical TOTP fixtures; implementation is pending.
+- 2025-10-13 – T2346 scope confirmed: bundle includes RFC 6238 Appendix B timestamps for SHA-1/SHA-256/SHA-512 (8-digit outputs) plus curated 6-digit truncations; core/CLI/REST/UI layers must hydrate presets from the JSON loader instead of hard-coded vectors (worklog note; Option A selected).
+- 2025-10-13 – Task T2346 delivered the shared `totp_validation_vectors.json` catalogue, added `TotpJsonVectorFixtures`, and rewired core/CLI/REST/UI tests and presets to consume the loader while keeping the demo preset inline-only.
 - 2025-10-12 – Inline TOTP preset dropdown must expose RFC 6238 SHA-256 and SHA-512 vectors for 8-digit configurations (labelled with the RFC suffix), plus 6-digit truncations that use plain labels without additional qualifiers (user directive; Option A selected, label refinement).
 - 2025-10-13 – Evaluation result cards mirror HOTP/OCRA layout by showing the submitted OTP and status badge only; telemetry identifiers and drift metadata remain available via server logs rather than UI chrome (user directive; Option A selected).
 - 2025-10-13 – Stored credential seeding mirrors the inline preset catalogue (SHA-1/SHA-256/SHA-512 across 6- and 8-digit variants) so dropdown labels match the inline sample vector names (user directive; Option A selected).

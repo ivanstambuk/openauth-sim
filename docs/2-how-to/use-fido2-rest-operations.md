@@ -171,7 +171,12 @@ curl -s \
   http://localhost:8080/api/v1/webauthn/replay | jq
 ```
 
-Replay responses include `match` (`true`/`false`), `credentialSource` (`stored` or `inline`), and sanitized error metadata. Mismatches remain HTTP 200 so you can diagnose incidents without triggering error handling.
+### Public-key formats
+- **COSE (Base64URL)**: Continue sending the raw credential `publicKey` returned by stored presets or inline generator outputs. The simulator accepts Base64URL strings exactly as before.
+- **JWK JSON**: Provide the public portion of a JWK object (fields such as `kty`, `crv`, `x`, `y` for EC or `n`, `e` for RSA). The API auto-detects JSON and converts it to the COSE representation used by the verifier. Validation errors surface `public_key_format_invalid`.
+- **PEM / PKCS#8**: Paste a `-----BEGIN PUBLIC KEY-----` block (EC, RSA, or Ed25519). The service parses the PEM, converts it into COSE, and reuses the same verification pipeline. Formatting issues also return `public_key_format_invalid`.
+
+All formats are interchangeable; choose whichever is easiest to export from your tooling. Replay responses include `match` (`true`/`false`), `credentialSource` (`stored` or `inline`), and sanitized error metadata. Mismatches remain HTTP 200 so you can diagnose incidents without triggering error handling.
 
 ## Telemetry & Troubleshooting
 - Stored requests emit `event=rest.fido2.evaluate` with `status=generated`, the sanitized telemetry id, `credentialReference`, `relyingPartyId`, `algorithm`, and `userVerificationRequired`. Inline requests emit the same event but omit credential references.

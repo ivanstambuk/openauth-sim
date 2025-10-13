@@ -1,7 +1,7 @@
 # Feature 024 – FIDO2/WebAuthn Operator Support
 
 _Status: In Progress_  
-_Last updated: 2025-10-11_
+_Last updated: 2025-10-12_
 
 ## Overview
 Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across the simulator. The feature introduces a core verification engine, persistence descriptors, application services, CLI commands, REST endpoints, and operator console panels that mirror the existing HOTP and OCRA evaluate/replay experiences. Work begins by validating canonical W3C WebAuthn Level 3 §16 authentication vectors, then expands immediately to cover the synthetic JSON assertion bundle committed under `docs/webauthn_assertion_vectors.json`.
@@ -26,6 +26,8 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 - 2025-10-10 – Operator UI Evaluate result card presents a structured `PublicKeyCredential` JSON payload (with copy/download helpers) in place of the prior status-only telemetry block (Option A).
 - 2025-10-10 – `Fido2OperatorSampleData` presets surface ES256 JWK private keys exclusively when pre-filling generator forms (Option A); PEM/PKCS#8 conversions remain a manual step documented in how-to guides.
 - 2025-10-12 – When loading the console with `protocol=fido2&fido2Mode=<mode>`, always honour the query parameter on initial load/refresh even if the stored preference differs; deep links must deterministically open the requested mode (user selected Option A).
+- 2025-10-12 – Replay APIs continue to expect Base64URL COSE public keys for now; Task T17 (Replay public-key format expansion) will extend the single `publicKey` field to auto-detect COSE, JWK, or PEM inputs (user selected Option A; implementation pending).
+- 2025-10-12 – Sample vector renderers should list `kty` as the first property when emitting JWK key material so operators see the key type immediately; Task T18 will reorder the serialized fields across CLI/REST/UI presets (implementation pending).
 - 2025-10-11 – Synthetic JSON vectors now include JWK private keys for every supported algorithm (ES256/384/512, RS256, PS256, Ed25519); generator presets across CLI/REST/UI must ingest these so operators can produce assertions without manual key entry.
 - 2025-10-12 – Operator console “Load sample vector” dropdowns and seed actions default to the W3C fixture for a given algorithm when a private key exists; fall back to the synthetic bundle only when the specification omits material (e.g., PS256). CLI/REST surfaces share the same preset precedence via `WebAuthnGeneratorSamples`.
 - 2025-10-12 – Core verification suites must continue to exercise both fixture sources (`docs/webauthn_w3c_vectors.json` and `docs/webauthn_assertion_vectors.json`) so regressions in either dataset are caught before UI wiring diverges.
@@ -35,6 +37,7 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 - 2025-10-12 – Merge the W3C packed attestation fixtures into a single JSON array (`docs/webauthn_w3c_vectors.json`) per Option A so duplicate `.properties`/`.json` pairs are eliminated (user directive).
 - 2025-10-13 – W3C vectors must surface canonical Base64url values and expose per-vector private keys where provided so generator presets can bind directly to the spec data; verification loaders should consolidate on the new JSON source (user directive).
 - 2025-10-13 – Normalize RS256 `private_key_p`/`private_key_q` factors into `{hex, base64Url}` objects inside `docs/webauthn_w3c_vectors.json` so the loader derives RSA private JWK parameters without relying on synthetic fallbacks.
+- 2025-10-13 – Replay endpoints must auto-detect Base64URL COSE blobs, JSON JWK objects, or PEM/PKCS#8 payloads supplied via `publicKey`; invalid payloads should surface a `public_key_format_invalid` reason while preserving legacy COSE support (owner directive).
 - 2025-10-11 – Inline signature counter field defaults to the current Unix seconds value, with a checked toggle labeled “Use current Unix seconds” that keeps the field read-only until operators uncheck it; a “Reset to now” helper button reapplies the latest epoch-second snapshot.
 - 2025-10-12 – Evaluate and replay call-to-action buttons must surface mode-specific wording: “Generate inline assertion” / “Generate stored assertion” for Evaluate and “Replay inline assertion” / “Replay stored assertion” for Replay, mirroring HOTP/TOTP parity while preserving WebAuthn terminology (user directive).
 - 2025-10-11 – FIDO2 Evaluate/Replay result cards stay hidden until after the first submission so the panels mirror HOTP/TOTP/OCRA behaviour (user selected Option A).
@@ -62,9 +65,10 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 | FWS-006 | Update the operator console UI with FIDO2/WebAuthn evaluate and replay panels featuring stored/inline modes, “Load a sample vector” controls, and a stored-only “Seed sample credentials” button. | Selenium/system tests verify panel enablement, preset behaviour, telemetry surfaces, and query-param deep links (`protocol=fido2`). |
 | FWS-007 | Validate W3C §16 authentication vectors end-to-end (core, CLI, REST, UI presets) before enabling the synthetic JSONL bundle, ensuring the generator can reproduce known assertions when supplied with the canonical private keys. | Dedicated tests ingest converted W3C vectors (hex → Base64url) and assert generation + verification success/failure as documented. |
 | FWS-008 | Extend test coverage to include the JSONL bundle immediately after W3C vectors pass, ensuring every algorithm/flag combination verifies successfully. | CI suite iterates over JSONL entries, seeding/clearing MapDB as needed; failures identify specific vector IDs. |
-| FWS-009 | Surface sample key material in JWK form throughout UI presets and documentation, avoiding PEM displays. | UI and doc snapshots show JWK output; tests assert absence of PEM markers. |
+| FWS-009 | Surface sample key material in JWK form throughout UI presets and documentation, avoiding PEM displays and ordering properties so `kty` appears first. | UI and doc snapshots show JWK output with `kty` leading each object; tests assert absence of PEM markers and confirm canonical ordering. |
 | FWS-010 | Display curated algorithm labels on the inline preset dropdown so operators can quickly spot the signature suite in use. | Selenium coverage asserts visible option text includes the algorithm label per curated preset order. |
 | FWS-011 | Align Evaluate/Replay CTA button copy with the selected mode, using inline vs stored assertion wording to match HOTP/TOTP parity. | Selenium tests toggle modes and assert the visible button text matches “Generate inline assertion” / “Generate stored assertion” and “Replay inline assertion” / “Replay stored assertion.” |
+| FWS-012 | Extend replay flows (application, REST, CLI) to accept Base64URL COSE, JSON JWK, or PEM/PKCS#8 public-key inputs while emitting format-specific validation errors. | New tests exercise each format, expect successful verification for valid inputs, and assert `public_key_format_invalid` errors for malformed payloads. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Acceptance Signal |

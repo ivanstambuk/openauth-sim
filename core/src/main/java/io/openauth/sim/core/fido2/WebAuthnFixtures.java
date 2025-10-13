@@ -455,22 +455,31 @@ public final class WebAuthnFixtures {
     Collections.sort(keys);
     StringBuilder builder = new StringBuilder();
     builder.append('{');
-    for (int i = 0; i < keys.size(); i++) {
-      if (i > 0) {
-        builder.append(',');
-      }
-      String key = keys.get(i);
-      builder
-          .append('"')
-          .append(escapeJson(key))
-          .append('"')
-          .append(':')
-          .append('"')
-          .append(escapeJson(fields.get(key)))
-          .append('"');
+    boolean first = true;
+    if (keys.remove("kty")) {
+      first = appendStringEntry(builder, first, "kty", fields.get("kty"));
+    }
+    for (String key : keys) {
+      first = appendStringEntry(builder, first, key, fields.get(key));
     }
     builder.append('}');
     return builder.toString();
+  }
+
+  private static boolean appendStringEntry(
+      StringBuilder builder, boolean first, String key, String value) {
+    if (!first) {
+      builder.append(',');
+    }
+    builder
+        .append('"')
+        .append(escapeJson(key))
+        .append('"')
+        .append(':')
+        .append('"')
+        .append(escapeJson(value))
+        .append('"');
+    return false;
   }
 
   private static String escapeJson(String input) {

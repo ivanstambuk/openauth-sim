@@ -2,7 +2,7 @@
 
 _Linked plan:_ `docs/4-architecture/feature-plan-024-fido2-webauthn-operator-support.md`  
 _Status:_ In Progress  
-_Last updated:_ 2025-10-11
+_Last updated:_ 2025-10-12
 
 ☑ **T1 – Stage W3C vector fixtures**  
  ☑ Convert selected W3C §16 authentication vectors to Base64url fixtures under `docs/webauthn_w3c_vectors/`.  
@@ -37,7 +37,7 @@ _Last updated:_ 2025-10-11
  ☑ Implement controllers/DTOs, ensure telemetry + validation, update OpenAPI docs.  
   _2025-10-10 – Added `rest.webauthn` controllers/services/DTOs with sanitized metadata, regenerated `docs/3-reference/rest-openapi.json|yaml` via `OPENAPI_SNAPSHOT_WRITE=true GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon :rest-api:test --tests io.openauth.sim.rest.OpenApiSnapshotTest`, and confirmed the refreshed contract alongside a clean `:rest-api:test` run._  
 
-☐ **T7 – Operator UI enablement**  
+☑ **T7 – Operator UI enablement**  
 ☑ Extend Selenium/system + accessibility tests for WebAuthn panels (presets, seed button, keyboard navigation).  
  _2025-10-10 – Added `Fido2OperatorUiSeleniumTest` covering stored/inline evaluate, replay, and preset interactions; suite executed via `./gradlew --no-daemon :rest-api:test --rerun-tasks`, with HtmlUnit traces captured for regression auditing._  
 ☑ Implement Thymeleaf/JS updates enabling forms, preset loading, curated seed action, JWK display.  
@@ -77,7 +77,7 @@ _2025-10-11 – Layout parity: move inline preset controls directly beneath the 
 
 _2025-10-11 – Placeholder parity: adjust inline preset handling so no sample is auto-selected on first render; operators must choose a vector before fields autofill._
 
-☐ **T12 – Multi-algorithm generator presets**  
+☑ **T12 – Multi-algorithm generator presets**  
  ☑ Extend `WebAuthnGeneratorSamples` and downstream facades to ingest JSON vectors that now include `keyPairJwk` entries (RS256, PS256, ES384, ES512, Ed25519) while keeping the preset list curated.  
   _2025-10-11 – Updated `WebAuthnJsonVectorFixtures` to surface `keyPairJwk`, expanded the generator service with RSA/PSS/Ed25519 signing support, and rebuilt `WebAuthnGeneratorSamples` to emit curated presets per algorithm; verified via `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnJsonVectorVerificationTest"`, `:application:test --tests "io.openauth.sim.application.fido2.WebAuthnJsonVectorEvaluationApplicationServiceTest"`, and `:cli:test`._  
  ☑ Refresh CLI/REST/operator UI documentation and Selenium coverage to reflect the expanded preset catalogue without overwhelming operators.  
@@ -126,7 +126,7 @@ _2025-10-11 – Placeholder parity: adjust inline preset handling so no sample i
 	_2025-10-11 – Enabled automatic pretty-printing of sample-loaded private-key JWK JSON so the textarea values are indented for readability while manual entries remain unchanged._
 	_2025-10-11 – Removed the private-key format hint from the forms now that documentation covers JWK vs PEM guidance._
 
-☐ **T8 – JSON bundle coverage**  
+☑ **T8 – JSON bundle coverage**  
 	☑ Add failing parameterised tests iterating over `docs/webauthn_assertion_vectors.json` across core/application layers.  
 		_2025-10-10 – Introduced `WebAuthnJsonVectorVerificationTest` (core) and `WebAuthnJsonVectorEvaluationApplicationServiceTest` (application); after extending the verifier to handle ES384/ES512/RS256/PS256/EdDSA, both suites now pass via `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnJsonVectorVerificationTest"` and `:application:test --tests "io.openauth.sim.application.fido2.WebAuthnJsonVectorEvaluationApplicationServiceTest"`, covering every JSON bundle vector._  
  ☑ Implement ingestion helpers and expand presets to include JSONL flows where appropriate.  
@@ -137,9 +137,10 @@ _2025-10-11 – Placeholder parity: adjust inline preset handling so no sample i
  ☑ Ensure documentation reflects JWK preference and vector handling.  
    _2025-10-10 – Authored FIDO2 CLI/REST/UI how-to guides (docs/2-how-to/use-fido2-*.md) and documented JWK-focused guidance for vector handling._  
 
-☐ **T10 – Quality gate & wrap-up**  
+☑ **T10 – Quality gate & wrap-up**  
  ☑ Run `./gradlew spotlessApply check` and `./gradlew qualityGate`; resolve issues.  
   _2025-10-10 – Executed `./gradlew --no-daemon spotlessApply check`, revalidated Selenium focus flows, and finished with `./gradlew --no-daemon qualityGate` (reflection scan + coverage verification all green)._  
+  _2025-10-13 – Reran `./gradlew --no-daemon spotlessApply check` after clearing the `OcraOperatorUiSeleniumTest` regression to reconfirm the full pipeline._  
  ☑ Finalise spec/plan/task updates, capture lessons, and prepare conventional commit & push.  
   _2025-10-10 – Synced feature spec/plan/tasks, roadmap, and knowledge map; prepared aggregated change notes ahead of the WebAuthn commit/push._  
   _Follow-up: document the deferred HOTP/TOTP preset parity feature before final review so the roadmap reflects the outstanding alignment item._
@@ -168,3 +169,20 @@ _2025-10-11 – Placeholder parity: adjust inline preset handling so no sample i
  ☑ Re-run focused Gradle suites (`:core:test`, `:application:test`, `:cli:test`) plus `./gradlew spotlessApply check`; capture results in the feature plan before marking the task complete.  
  _2025-10-12 – Normalized the W3C dataset with hex/Base64url pairs, consolidated loader + CBOR utilities, generated JWK private keys (EC/EdDSA/RSA), promoted W3C presets into CLI/REST/UI samples, refreshed verification + UI Selenium suites, and completed `:core:test`, `:application:test`, `:cli:test`, and `spotlessApply check`._  
  _2025-10-12 – Converted RS256 `private_key_p`/`private_key_q` entries from prose (`2^n - 1 = h'…'`) into canonical `{hex, base64Url}` objects so the loader can derive the JWK factors without falling back to synthetic presets._  
+
+☑ **T17 – Replay public-key format expansion**  
+ ☑ Update REST replay DTOs/validators to auto-detect COSE, JWK JSON, or PEM/PKCS#8 data supplied via the existing `publicKey` field, retaining Base64URL COSE parsing as the default.  
+ ☑ Extend application + core adapters to convert the new formats into COSE bytes before verification, emitting format-specific validation errors and telemetry reasons.  
+ ☑ Add failing tests across REST/application layers (stored + inline) for JWK, PEM, malformed payloads, and backward-compatible COSE inputs; drive implementation to green.  
+ ☑ Refresh CLI/REST/operator UI how-to guides once the format expansion ships.  
+ _2025-10-13 – Added `WebAuthnPublicKeyDecoderTest` (COSE/JWK/PEM coverage), introduced `Fido2ReplayEndpointTest` exercising the REST contract, implemented `WebAuthnPublicKeyDecoder` + multi-format normalization in the application layer, and taught the REST replay service to raise `public_key_format_invalid`. Updated `docs/2-how-to/use-fido2-rest-operations.md` with the new format guidance, then reran `./gradlew --no-daemon spotlessApply check` once `OcraOperatorUiSeleniumTest` passed to close the follow-up._  
+
+☑ **T18 – JWK field ordering in sample vectors**  
+ ☑ Adjust JSON vector serializers and preset helpers to render `kty` as the first property within each JWK before emitting additional fields.  
+  _2025-10-13 – Updated `WebAuthnJsonVectorFixtures` and `WebAuthnFixtures` canonical JSON helpers to prioritise `kty`; regenerated private-key strings now begin with `{"kty":…}` across synthetic and W3C datasets._  
+ ☑ Update CLI/REST/UI presentation layers to preserve the new ordering when formatting sample vectors or download payloads.  
+  _2025-10-13 – Confirmed CLI/REST/UI surfaces continue to emit the canonical string without reserialising maps, so the `kty`-first ordering flows through with no additional code changes._  
+ ☑ Add regression tests or snapshots confirming the canonical `kty`-first ordering for representative algorithms (EC, RSA, OKP).  
+  _2025-10-13 – Added `WebAuthnJsonVectorJwkFormattingTest` and `WebAuthnFixturesJwkFormattingTest`; both initially red, then green after the serializer update (`./gradlew --no-daemon :core:test`)._  
+ ☑ Refresh operator/CLI/REST documentation once the display order changes.  
+  _2025-10-13 – Documentation already references sample endpoint output via placeholders; spec updated under FWS-009 to capture the `kty`-first requirement, so no additional doc snippets needed._

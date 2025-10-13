@@ -10,6 +10,8 @@ import io.openauth.sim.core.otp.totp.TotpCredentialPersistenceAdapter;
 import io.openauth.sim.core.otp.totp.TotpDescriptor;
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
+import io.openauth.sim.core.otp.totp.TotpJsonVectorFixtures;
+import io.openauth.sim.core.otp.totp.TotpJsonVectorFixtures.TotpJsonVector;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.time.Duration;
@@ -29,26 +31,25 @@ import org.junit.jupiter.api.Test;
 final class TotpSeedApplicationServiceTest {
 
   private static final String SECRET_SHA1_DEMO_HEX = "31323334353637383930313233343536373839303132";
-  private static final String SECRET_SHA1_INLINE_HEX = "3132333435363738393031323334353637383930";
-  private static final String SECRET_SHA256_HEX =
-      "3132333435363738393031323334353637383930313233343536373839303132";
-  private static final String SECRET_SHA512_HEX =
-      "31323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334";
+  private static final TotpJsonVector VECTOR_SHA1_DIGITS8_T59 = vector("rfc6238_sha1_digits8_t59");
+  private static final TotpJsonVector VECTOR_SHA256_DIGITS6_T59 =
+      vector("rfc6238_sha256_digits6_t59");
+  private static final TotpJsonVector VECTOR_SHA256_DIGITS8_T59 =
+      vector("rfc6238_sha256_digits8_t59");
+  private static final TotpJsonVector VECTOR_SHA512_DIGITS6_T59 =
+      vector("rfc6238_sha512_digits6_t59");
+  private static final TotpJsonVector VECTOR_SHA512_DIGITS8_T59 =
+      vector("rfc6238_sha512_digits8_t59");
 
   private static final List<SeedSample> CANONICAL_SAMPLES =
       List.of(
           new SeedSample(
               "ui-totp-sample-sha1-6", SECRET_SHA1_DEMO_HEX, TotpHashAlgorithm.SHA1, 6, 30, 1, 1),
-          new SeedSample(
-              "ui-totp-sample-sha1-8", SECRET_SHA1_INLINE_HEX, TotpHashAlgorithm.SHA1, 8, 30, 1, 1),
-          new SeedSample(
-              "ui-totp-sample-sha256-6", SECRET_SHA256_HEX, TotpHashAlgorithm.SHA256, 6, 30, 1, 1),
-          new SeedSample(
-              "ui-totp-sample-sha256-8", SECRET_SHA256_HEX, TotpHashAlgorithm.SHA256, 8, 30, 1, 1),
-          new SeedSample(
-              "ui-totp-sample-sha512-6", SECRET_SHA512_HEX, TotpHashAlgorithm.SHA512, 6, 30, 1, 1),
-          new SeedSample(
-              "ui-totp-sample-sha512-8", SECRET_SHA512_HEX, TotpHashAlgorithm.SHA512, 8, 30, 1, 1));
+          fromVector("ui-totp-sample-sha1-8", VECTOR_SHA1_DIGITS8_T59),
+          fromVector("ui-totp-sample-sha256-6", VECTOR_SHA256_DIGITS6_T59),
+          fromVector("ui-totp-sample-sha256-8", VECTOR_SHA256_DIGITS8_T59),
+          fromVector("ui-totp-sample-sha512-6", VECTOR_SHA512_DIGITS6_T59),
+          fromVector("ui-totp-sample-sha512-8", VECTOR_SHA512_DIGITS8_T59));
 
   private final TotpCredentialPersistenceAdapter adapter = new TotpCredentialPersistenceAdapter();
   private final CapturingCredentialStore credentialStore = new CapturingCredentialStore();
@@ -224,5 +225,20 @@ final class TotpSeedApplicationServiceTest {
       int driftBackward,
       int driftForward) {
     // Marker record describing canonical seed expectations.
+  }
+
+  private static SeedSample fromVector(String credentialId, TotpJsonVector vector) {
+    return new SeedSample(
+        credentialId,
+        vector.secret().asHex(),
+        vector.algorithm(),
+        vector.digits(),
+        vector.stepSeconds(),
+        vector.driftBackwardSteps(),
+        vector.driftForwardSteps());
+  }
+
+  private static TotpJsonVector vector(String id) {
+    return TotpJsonVectorFixtures.getById(id);
   }
 }

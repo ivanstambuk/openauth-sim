@@ -107,6 +107,11 @@
                     th:attr="data-evaluate-endpoint=${hotpInlineEvaluateEndpoint}"
                   >
                   <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                  <script
+                    type="application/json"
+                    id="hotp-inline-presets"
+                    th:utext="${hotpInlinePresetsJson}"
+                  ></script>
                   <div class="inline-preset" data-testid="hotp-inline-preset">
                     <label for="hotpInlinePreset">Load a sample vector</label>
                     <select

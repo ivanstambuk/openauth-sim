@@ -1,7 +1,7 @@
 # Feature Plan 023 – TOTP Operator Support
 
 _Status: Complete_
-_Last updated: 2025-10-11_
+_Last updated: 2025-10-13_
 
 ## Objective
 Deliver RFC 6238-compliant TOTP evaluation and replay flows across core, shared persistence, application services, CLI, REST, and operator console UI so operators can validate time-based OTPs alongside HOTP and OCRA.
@@ -58,6 +58,7 @@ Reference specification: `docs/4-architecture/specs/feature-023-totp-operator-su
 - ☑ R2343 – Apply the shared `stack-offset-top-lg` spacing token to the TOTP evaluate and replay inline sections to satisfy R2342; rerun the targeted Selenium suite and `./gradlew spotlessApply check`. (_2025-10-11 – Updated Thymeleaf markup plus Selenium helper retries, re-ran the targeted test to green, then executed `./gradlew spotlessApply check` successfully._)
 - ☑ R2344 – Add failing Selenium regression asserting the TOTP Evaluate tab defaults the mode selector to “Inline parameters,” mirroring HOTP/OCRA/FIDO2 behaviour; expect red via `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest.totpEvaluateDefaultsToInline"` prior to implementation. (_2025-10-11 – New test inserted and verified red against existing stored default._)
 - ☑ R2345 – Update the operator console templates/JS so the TOTP Evaluate tab selects inline parameters by default and rerun the targeted Selenium suite plus `./gradlew spotlessApply check`. (_2025-10-11 – Adjusted Thymeleaf markup, TOTP/host console scripts, and Selenium expectations; reran `TotpOperatorUiSeleniumTest` plus `./gradlew spotlessApply check` to confirm green state._)
+- ☑ R2346 – Publish `docs/totp_validation_vectors.json` with RFC 6238 Appendix B reference cases, update TOTP fixture loaders/tests across core, CLI, REST, and operator UI, and document workflows in the how-to guides. (_2025-10-13 – Added shared JSON catalogue + loader, refactored presets/tests across core, CLI, REST, UI, and refreshed operator how-to/knowledge map._)
 
 ## Analysis Gate
 - 2025-10-08 – Completed checklist 1–6; plan/spec/tasks align, open-question log cleared, and no remediation required before development.

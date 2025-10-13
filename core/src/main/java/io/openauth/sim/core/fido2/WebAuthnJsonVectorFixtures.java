@@ -1,5 +1,6 @@
 package io.openauth.sim.core.fido2;
 
+import io.openauth.sim.core.json.SimpleJson;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -26,7 +27,7 @@ public final class WebAuthnJsonVectorFixtures {
 
   /** Load all WebAuthn assertion vectors from the JSON bundle. */
   public static Stream<WebAuthnJsonVector> loadAll() {
-    Object decoded = JsonParser.parse(readBundle());
+    Object decoded = SimpleJson.parse(readBundle());
     if (!(decoded instanceof List<?> entries)) {
       throw new IllegalStateException("Expected top-level JSON array for WebAuthn vectors");
     }
@@ -40,7 +41,7 @@ public final class WebAuthnJsonVectorFixtures {
   }
 
   static Object parseJson(String input) {
-    return JsonParser.parse(input);
+    return SimpleJson.parse(input);
   }
 
   private static WebAuthnJsonVector toVector(Map<String, Object> root) {
@@ -69,7 +70,7 @@ public final class WebAuthnJsonVectorFixtures {
 
     Map<String, Object> clientData =
         asObject(
-            JsonParser.parse(new String(clientDataJson, StandardCharsets.UTF_8)),
+            SimpleJson.parse(new String(clientDataJson, StandardCharsets.UTF_8)),
             vectorId + ".clientDataJSON");
 
     String expectedType = requireString(clientData, "type");
@@ -218,27 +219,35 @@ public final class WebAuthnJsonVectorFixtures {
     builder.append('{');
     List<String> keys = new ArrayList<>(object.keySet());
     Collections.sort(keys);
-    for (int index = 0; index < keys.size(); index++) {
-      if (index > 0) {
-        builder.append(',');
-      }
-      String key = keys.get(index);
-      builder.append('"').append(escapeJson(key)).append('"').append(':');
-      Object fieldValue = object.get(key);
-      if (fieldValue == null) {
-        builder.append("null");
-      } else if (fieldValue instanceof String str) {
-        builder.append('"').append(escapeJson(str)).append('"');
-      } else if (fieldValue instanceof Map<?, ?> nested) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> nestedMap = (Map<String, Object>) nested;
-        builder.append(toCanonicalJson(nestedMap));
-      } else {
-        builder.append('"').append(escapeJson(String.valueOf(fieldValue))).append('"');
-      }
+    boolean first = true;
+    if (keys.remove("kty")) {
+      first = appendJsonEntry(builder, first, "kty", object.get("kty"));
+    }
+    for (String key : keys) {
+      first = appendJsonEntry(builder, first, key, object.get(key));
     }
     builder.append('}');
     return builder.toString();
+  }
+
+  private static boolean appendJsonEntry(
+      StringBuilder builder, boolean first, String key, Object fieldValue) {
+    if (!first) {
+      builder.append(',');
+    }
+    builder.append('"').append(escapeJson(key)).append('"').append(':');
+    if (fieldValue == null) {
+      builder.append("null");
+    } else if (fieldValue instanceof String str) {
+      builder.append('"').append(escapeJson(str)).append('"');
+    } else if (fieldValue instanceof Map<?, ?> nested) {
+      @SuppressWarnings("unchecked")
+      Map<String, Object> nestedMap = (Map<String, Object>) nested;
+      builder.append(toCanonicalJson(nestedMap));
+    } else {
+      builder.append('"').append(escapeJson(String.valueOf(fieldValue))).append('"');
+    }
+    return false;
   }
 
   private static String escapeJson(String input) {
@@ -267,224 +276,6 @@ public final class WebAuthnJsonVectorFixtures {
 
   private static String objectDescription(Map<String, Object> object, String key) {
     return "Field '" + key + "' in object " + object.keySet();
-  }
-
-  private static final class JsonParser {
-    private final String input;
-    private int index;
-
-    private JsonParser(String input) {
-      this.input = input;
-    }
-
-    static Object parse(String input) {
-      JsonParser parser = new JsonParser(input);
-      parser.skipWhitespace();
-      Object value = parser.readValue();
-      parser.skipWhitespace();
-      if (!parser.isAtEnd()) {
-        throw new IllegalStateException("Unexpected trailing data in JSON bundle");
-      }
-      return value;
-    }
-
-    private Object readValue() {
-      skipWhitespace();
-      if (isAtEnd()) {
-        throw new IllegalStateException("Unexpected end of JSON input");
-      }
-      char ch = input.charAt(index);
-      return switch (ch) {
-        case '{' -> readObject();
-        case '[' -> readArray();
-        case '"' -> readString();
-        case 't', 'f' -> readBoolean();
-        case 'n' -> readNull();
-        default -> readNumber();
-      };
-    }
-
-    private Map<String, Object> readObject() {
-      expect('{');
-      Map<String, Object> map = new LinkedHashMap<>();
-      skipWhitespace();
-      if (peek('}')) {
-        index++;
-        return map;
-      }
-      while (true) {
-        skipWhitespace();
-        String key = readString();
-        skipWhitespace();
-        expect(':');
-        skipWhitespace();
-        Object value = readValue();
-        map.put(key, value);
-        skipWhitespace();
-        if (peek('}')) {
-          index++;
-          break;
-        }
-        expect(',');
-      }
-      return map;
-    }
-
-    private List<Object> readArray() {
-      expect('[');
-      List<Object> values = new ArrayList<>();
-      skipWhitespace();
-      if (peek(']')) {
-        index++;
-        return values;
-      }
-      while (true) {
-        values.add(readValue());
-        skipWhitespace();
-        if (peek(']')) {
-          index++;
-          break;
-        }
-        expect(',');
-      }
-      return values;
-    }
-
-    private String readString() {
-      expect('"');
-      StringBuilder builder = new StringBuilder();
-      while (!isAtEnd()) {
-        char ch = input.charAt(index++);
-        if (ch == '"') {
-          return builder.toString();
-        }
-        if (ch == '\\') {
-          if (isAtEnd()) {
-            throw new IllegalStateException("Unterminated escape sequence in JSON string");
-          }
-          char escape = input.charAt(index++);
-          builder.append(resolveEscape(escape));
-        } else {
-          builder.append(ch);
-        }
-      }
-      throw new IllegalStateException("Unterminated string literal in JSON input");
-    }
-
-    private char resolveEscape(char escape) {
-      return switch (escape) {
-        case '"' -> '"';
-        case '\\' -> '\\';
-        case '/' -> '/';
-        case 'b' -> '\b';
-        case 'f' -> '\f';
-        case 'n' -> '\n';
-        case 'r' -> '\r';
-        case 't' -> '\t';
-        case 'u' -> readUnicode();
-        default ->
-            throw new IllegalStateException("Unsupported escape sequence \\" + escape + "\"");
-      };
-    }
-
-    private char readUnicode() {
-      if (index + 4 > input.length()) {
-        throw new IllegalStateException("Invalid unicode escape in JSON string");
-      }
-      String hex = input.substring(index, index + 4);
-      index += 4;
-      try {
-        return (char) Integer.parseInt(hex, 16);
-      } catch (NumberFormatException nfe) {
-        throw new IllegalStateException("Invalid unicode escape in JSON string", nfe);
-      }
-    }
-
-    private Object readBoolean() {
-      if (match("true")) {
-        return Boolean.TRUE;
-      }
-      if (match("false")) {
-        return Boolean.FALSE;
-      }
-      throw new IllegalStateException("Invalid boolean literal in JSON input");
-    }
-
-    private Object readNull() {
-      if (match("null")) {
-        return null;
-      }
-      throw new IllegalStateException("Invalid null literal in JSON input");
-    }
-
-    private Number readNumber() {
-      int start = index;
-      if (peek('-')) {
-        index++;
-      }
-      readDigits();
-      boolean decimal = false;
-      if (peek('.')) {
-        decimal = true;
-        index++;
-        readDigits();
-      }
-      if (peek('e') || peek('E')) {
-        decimal = true;
-        index++;
-        if (peek('+') || peek('-')) {
-          index++;
-        }
-        readDigits();
-      }
-      String number = input.substring(start, index);
-      try {
-        if (decimal) {
-          return Double.parseDouble(number);
-        }
-        return Long.parseLong(number);
-      } catch (NumberFormatException nfe) {
-        throw new IllegalStateException("Invalid number literal in JSON input", nfe);
-      }
-    }
-
-    private void readDigits() {
-      if (isAtEnd() || !Character.isDigit(input.charAt(index))) {
-        throw new IllegalStateException("Invalid numeric literal in JSON input");
-      }
-      while (!isAtEnd() && Character.isDigit(input.charAt(index))) {
-        index++;
-      }
-    }
-
-    private void expect(char expected) {
-      if (isAtEnd() || input.charAt(index) != expected) {
-        throw new IllegalStateException("Expected '" + expected + "' in JSON input");
-      }
-      index++;
-    }
-
-    private boolean peek(char expected) {
-      return !isAtEnd() && input.charAt(index) == expected;
-    }
-
-    private boolean match(String keyword) {
-      if (input.regionMatches(index, keyword, 0, keyword.length())) {
-        index += keyword.length();
-        return true;
-      }
-      return false;
-    }
-
-    private void skipWhitespace() {
-      while (!isAtEnd() && Character.isWhitespace(input.charAt(index))) {
-        index++;
-      }
-    }
-
-    private boolean isAtEnd() {
-      return index >= input.length();
-    }
   }
 
   public record WebAuthnJsonVector(

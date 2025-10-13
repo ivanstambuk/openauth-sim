@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.openauth.sim.core.otp.hotp.HotpJsonVectorFixtures;
+import io.openauth.sim.core.otp.hotp.HotpJsonVectorFixtures.HotpJsonVector;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,11 +30,21 @@ class HotpEvaluationControllerTest {
   @Test
   @DisplayName("Stored evaluation returns generated OTP payload with metadata")
   void storedEvaluationReturnsResponse() throws Exception {
+    HotpJsonVector vector = vector(6, 0L);
     HotpEvaluationMetadata metadata =
         new HotpEvaluationMetadata(
-            "stored", "demo", true, "SHA1", 6, 0L, 1L, null, null, "rest-hotp-1");
+            "stored",
+            "demo",
+            true,
+            vector.algorithm().name(),
+            vector.digits(),
+            vector.counter(),
+            vector.counter() + 1,
+            null,
+            null,
+            "rest-hotp-1");
     HotpEvaluationResponse response =
-        new HotpEvaluationResponse("generated", "generated", "755224", metadata);
+        new HotpEvaluationResponse("generated", "generated", vector.otp(), metadata);
     when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenReturn(response);
 
     HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo");
@@ -44,7 +56,7 @@ class HotpEvaluationControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("generated"))
-        .andExpect(jsonPath("$.otp").value("755224"))
+        .andExpect(jsonPath("$.otp").value(vector.otp()))
         .andExpect(jsonPath("$.metadata.credentialSource").value("stored"))
         .andExpect(jsonPath("$.metadata.telemetryId").value("rest-hotp-1"));
   }
@@ -52,16 +64,30 @@ class HotpEvaluationControllerTest {
   @Test
   @DisplayName("Inline evaluation returns generated OTP payload with metadata")
   void inlineEvaluationReturnsResponse() throws Exception {
+    HotpJsonVector vector = vector(6, 5L);
     HotpEvaluationMetadata metadata =
         new HotpEvaluationMetadata(
-            "inline", null, false, "SHA1", 6, 7L, 8L, null, null, "rest-hotp-2");
+            "inline",
+            null,
+            false,
+            vector.algorithm().name(),
+            vector.digits(),
+            vector.counter(),
+            vector.counter() + 1,
+            null,
+            null,
+            "rest-hotp-2");
     HotpEvaluationResponse response =
-        new HotpEvaluationResponse("generated", "generated", "254676", metadata);
+        new HotpEvaluationResponse("generated", "generated", vector.otp(), metadata);
     when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenReturn(response);
 
     HotpInlineEvaluationRequest request =
         new HotpInlineEvaluationRequest(
-            "3132333435363738393031323334353637383930", "SHA1", 6, 7L, Map.of("source", "test"));
+            vector.secret().asHex(),
+            vector.algorithm().name(),
+            vector.digits(),
+            vector.counter(),
+            Map.of("source", "test"));
 
     mockMvc
         .perform(
@@ -70,7 +96,7 @@ class HotpEvaluationControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("generated"))
-        .andExpect(jsonPath("$.otp").value("254676"))
+        .andExpect(jsonPath("$.otp").value(vector.otp()))
         .andExpect(jsonPath("$.metadata.credentialSource").value("inline"))
         .andExpect(jsonPath("$.metadata.credentialId").doesNotExist());
   }
@@ -144,9 +170,10 @@ class HotpEvaluationControllerTest {
             "counter required");
     when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenThrow(exception);
 
+    HotpJsonVector sample = vector(6, 0L);
     HotpInlineEvaluationRequest request =
         new HotpInlineEvaluationRequest(
-            "3132333435363738393031323334353637383930", "SHA1", 6, null, Map.of());
+            sample.secret().asHex(), sample.algorithm().name(), sample.digits(), null, Map.of());
 
     mockMvc
         .perform(
@@ -166,9 +193,10 @@ class HotpEvaluationControllerTest {
     when(service.evaluateInline(any(HotpInlineEvaluationRequest.class)))
         .thenThrow(new IllegalStateException("store offline"));
 
+    HotpJsonVector sample = vector(6, 0L);
     HotpInlineEvaluationRequest request =
         new HotpInlineEvaluationRequest(
-            "3132333435363738393031323334353637383930", "SHA1", 6, 0L, Map.of());
+            sample.secret().asHex(), sample.algorithm().name(), sample.digits(), 0L, Map.of());
 
     mockMvc
         .perform(
@@ -216,9 +244,10 @@ class HotpEvaluationControllerTest {
             "counter required");
     when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenThrow(exception);
 
+    HotpJsonVector sample = vector(6, 0L);
     HotpInlineEvaluationRequest request =
         new HotpInlineEvaluationRequest(
-            "3132333435363738393031323334353637383930", "SHA1", 6, null, Map.of());
+            sample.secret().asHex(), sample.algorithm().name(), sample.digits(), null, Map.of());
 
     mockMvc
         .perform(
@@ -230,5 +259,12 @@ class HotpEvaluationControllerTest {
         .andExpect(jsonPath("$.details.sanitized").value("false"))
         .andExpect(jsonPath("$.details.field").value("counter"))
         .andExpect(jsonPath("$.details.identifier").doesNotExist());
+  }
+
+  private HotpJsonVector vector(int digits, long counter) {
+    return HotpJsonVectorFixtures.loadAll()
+        .filter(v -> v.digits() == digits && v.counter() == counter)
+        .findFirst()
+        .orElseThrow();
   }
 }

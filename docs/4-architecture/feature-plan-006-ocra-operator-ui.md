@@ -152,6 +152,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - ✅ R083 – Add failing Selenium regression asserting the OCRA Evaluate inline preset label font weight matches the Replay tab and HOTP inline preset baseline before adjusting CSS. (2025-10-07: introduced `inlinePresetLabelTypographyMatchesAcrossTabs` test and confirmed it fails on existing styling.)
 - ✅ R084 – Update templates/CSS to align the Evaluate inline preset label typography with Replay/HOTP, rerun the targeted Selenium test and `./gradlew spotlessApply check`. (2025-10-07: added field-grid override to normalize font weight, targeted Selenium + full build now green.)
 
+- ✅ R091 – Publish `docs/ocra_validation_vectors.json`, wire `OcraJsonVectorFixtures`, migrate CLI/core/REST/UI dependencies, refresh sample data/docs, and rerun `./gradlew spotlessApply check`. (2025-10-13 – Converted all RFC 6287 vectors to JSON, replaced fixture classes/tests with the shared loader, taught operator sample data to hydrate from the catalogue, updated the how-to + knowledge map, and validated via the full spotless + check pipeline.)
+
 ## Analysis Gate Notes
 - 2025-09-28 – Checklist complete prior to implementation:
   - Specification populated with objectives, functional + non-functional requirements, and clarified decisions.

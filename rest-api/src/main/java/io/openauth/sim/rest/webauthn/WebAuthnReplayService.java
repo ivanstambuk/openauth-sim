@@ -1,6 +1,7 @@
 package io.openauth.sim.rest.webauthn;
 
 import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService.TelemetryStatus;
+import io.openauth.sim.application.fido2.WebAuthnPublicKeyDecoder;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService.ReplayCommand;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService.ReplayResult;
@@ -81,7 +82,8 @@ class WebAuthnReplayService {
               "stored",
               combined,
               String.valueOf(combined.getOrDefault("telemetryId", telemetryId)));
-      return new WebAuthnReplayResponse("match", result.telemetry().reasonCode(), true, metadata);
+      return new WebAuthnReplayResponse(
+          "match", result.telemetry().reasonCode(), result.match(), metadata);
     }
 
     if (result.telemetry().status() == TelemetryStatus.INVALID) {
@@ -115,7 +117,6 @@ class WebAuthnReplayService {
     String expectedType = resolveClientDataType(request.expectedType());
 
     byte[] credentialId = decode("credentialId", request.credentialId());
-    byte[] publicKey = decode("publicKey", request.publicKey());
     long signatureCounter =
         Optional.ofNullable(request.signatureCounter())
             .orElseThrow(
@@ -127,6 +128,8 @@ class WebAuthnReplayService {
             .map(value -> value.trim().toUpperCase(Locale.ROOT))
             .map(WebAuthnSignatureAlgorithm::fromLabel)
             .orElseThrow(() -> validation("algorithm_required", "Signature algorithm is required"));
+
+    byte[] publicKey = decodePublicKey(request.publicKey(), algorithm);
 
     byte[] challenge = decode("expectedChallenge", request.expectedChallenge());
     byte[] clientData = decode("clientData", request.clientData());
@@ -164,7 +167,8 @@ class WebAuthnReplayService {
               "inline",
               combined,
               String.valueOf(combined.getOrDefault("telemetryId", telemetryId)));
-      return new WebAuthnReplayResponse("match", result.telemetry().reasonCode(), false, metadata);
+      return new WebAuthnReplayResponse(
+          "match", result.telemetry().reasonCode(), result.match(), metadata);
     }
 
     if (result.telemetry().status() == TelemetryStatus.INVALID) {
@@ -188,6 +192,16 @@ class WebAuthnReplayService {
         "WebAuthn replay failed unexpectedly",
         Optional.ofNullable(result.telemetry().reason()).orElse("replay_failed"),
         details);
+  }
+
+  private byte[] decodePublicKey(String value, WebAuthnSignatureAlgorithm algorithm) {
+    String normalized = requireText(value, "public_key_required", "Public key is required");
+    try {
+      return WebAuthnPublicKeyDecoder.decode(normalized, algorithm);
+    } catch (IllegalArgumentException ex) {
+      String message = ex.getMessage() == null ? "Public key format is invalid" : ex.getMessage();
+      throw validation("public_key_format_invalid", message);
+    }
   }
 
   private Mode determineMode(WebAuthnReplayRequest request) {

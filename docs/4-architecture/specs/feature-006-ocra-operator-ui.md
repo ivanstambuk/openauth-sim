@@ -31,6 +31,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-10-12 – Inline preset catalogue will expose one representative sample for every distinct RFC 6287 Appendix C suite while retaining the draft `OCRA-1:HOTP-SHA256-6:C-QH64` example (user chose option A).
 - 2025-10-12 – Timestamp-driven presets will auto-fill the current Unix second (derived from the operator’s clock) and refresh it automatically when the operator evaluates so they stay within the simulator’s one-second drift window (user chose option B).
 - 2025-10-12 – The toggle that controls timestamp auto-fill will read “Auto-fill current timestamp (hex)” to make the behaviour and encoding explicit (user chose option B).
+- 2025-10-13 – Task R091 published `docs/ocra_validation_vectors.json`, converted every RFC 6287 Appendix C validation case, and wired `OcraJsonVectorFixtures` so core/CLI/REST/UI layers share the catalogue.
 - 2025-10-07 – OCRA Evaluate tab must keep the same vertical spacing between the “Load a sample vector” label and selector as the Replay tab baseline so inline sample affordances align (user directive).
 - 2025-10-07 – The “Load a sample vector” label on the OCRA Evaluate tab must use the same typography weight token as the Replay tab and HOTP tabs to preserve cross-protocol consistency (user chose option A).
 - 2025-10-07 – Inline preset hint copy must read “Selecting a preset auto-fills the inline fields with illustrative data.” so the UI matches HOTP guidance (user directive).

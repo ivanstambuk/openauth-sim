@@ -8,6 +8,8 @@ import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
+import io.openauth.sim.core.credentials.ocra.OcraJsonVectorFixtures;
+import io.openauth.sim.core.credentials.ocra.OcraJsonVectorFixtures.OcraOneWayVector;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator.OcraExecutionContext;
 import io.openauth.sim.core.model.SecretEncoding;
@@ -21,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -30,10 +33,22 @@ import picocli.CommandLine;
 
 final class OcraCliCommandTest {
 
-  private static final String STANDARD_KEY_20 = "3132333435363738393031323334353637383930";
-  private static final String CHALLENGE_ZERO = "00000000";
-  private static final String CHALLENGE_ONE = "11111111";
-  private static final String OCRA_SUITE_QN08 = "OCRA-1:HOTP-SHA1-6:QN08";
+  private static final OcraOneWayVector CHALLENGE_ZERO_VECTOR =
+      OcraJsonVectorFixtures.getOneWay("rfc6287_standard-challenge-question-numeric-q");
+  private static final OcraOneWayVector CHALLENGE_ONE_VECTOR =
+      OcraJsonVectorFixtures.getOneWay("rfc6287_standard-challenge-question-repeated-digits");
+
+  private static final String STANDARD_KEY_20 =
+      CHALLENGE_ZERO_VECTOR.secret().asHex().toUpperCase(Locale.ROOT);
+  private static final String CHALLENGE_ZERO =
+      CHALLENGE_ZERO_VECTOR
+          .challengeQuestion()
+          .orElseThrow(() -> new IllegalStateException("Numeric challenge missing value"));
+  private static final String CHALLENGE_ONE =
+      CHALLENGE_ONE_VECTOR
+          .challengeQuestion()
+          .orElseThrow(() -> new IllegalStateException("Repeated digits challenge missing value"));
+  private static final String OCRA_SUITE_QN08 = CHALLENGE_ZERO_VECTOR.suite();
 
   @TempDir Path tempDir;
 

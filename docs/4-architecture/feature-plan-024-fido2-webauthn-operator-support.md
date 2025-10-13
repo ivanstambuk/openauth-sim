@@ -157,6 +157,16 @@ Each increment stages failing tests first, drives implementation to green, and r
     - Update documentation (spec/plan/tasks) and rerun targeted test suites to confirm the additional fixtures compile, load, and pass verification.
     - _2025-10-12 – Normalized `webauthn_w3c_vectors.json`, unified the fixture loader, derived EC/RSA/EdDSA JWKs for generator presets, refreshed spec/plan/tasks/knowledge-map, and reran `:core:test`, `:application:test`, `:cli:test`, `:rest-api:test`, and `spotlessApply check`._
 
+17. **I17 – Replay public-key format expansion**  
+    - Extend the REST replay service (stored + inline), application layer, and supporting DTOs/validators to auto-detect COSE, JWK JSON, or PEM/PKCS#8 payloads carried in the existing `publicKey` field.  
+    - Emit format-specific validation errors while keeping legacy Base64URL COSE behaviour intact, update OpenAPI contracts, and refresh CLI/REST/operator documentation.  
+    - _2025-10-13 – Added `WebAuthnPublicKeyDecoder` + fixtures covering COSE/JWK/PEM flows, taught the REST replay service to surface `public_key_format_invalid`, refreshed the REST how-to guide, and re-ran `:application:test --tests "io.openauth.sim.application.fido2.WebAuthnPublicKeyDecoderTest"` plus `:rest-api:test --tests "io.openauth.sim.rest.Fido2ReplayEndpointTest"` (both green). 2025-10-13 – Reran `./gradlew --no-daemon spotlessApply check` after the `OcraOperatorUiSeleniumTest` regression cleared, closing the outstanding follow-up._  
+
+18. **I18 – JWK field ordering in sample vectors**  
+    - Update JSON vector renderers and preset serializers so `kty` is written first within every JWK object surfaced across CLI, REST responses, and operator UI presets.  
+    - Preserve existing payload content, adjust formatting helpers/tests, and add regression coverage for the new field order.  
+    - _2025-10-13 – Updated canonical JSON helpers to emit `kty` first for synthetic + W3C fixtures, added regression tests to enforce ordering, and validated via `./gradlew --no-daemon :core:test` plus a full `./gradlew --no-daemon spotlessApply check` run._
+
 ## Risks & Mitigations
 - **Large vector set increases test time** → run JSONL suite in targeted tests (I8) with caching helpers; consider tagging for selective execution.  
 - **Signature algorithm variance** → rely on deterministic fixtures; add explicit assertions for DER decoding vs raw Ed25519.  

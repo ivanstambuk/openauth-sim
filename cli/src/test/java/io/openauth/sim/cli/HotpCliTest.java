@@ -6,10 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
-import io.openauth.sim.core.model.SecretMaterial;
-import io.openauth.sim.core.otp.hotp.HotpDescriptor;
-import io.openauth.sim.core.otp.hotp.HotpGenerator;
-import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
+import io.openauth.sim.core.otp.hotp.HotpJsonVectorFixtures;
+import io.openauth.sim.core.otp.hotp.HotpJsonVectorFixtures.HotpJsonVector;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.ByteArrayOutputStream;
@@ -26,7 +24,6 @@ import picocli.CommandLine;
 @Tag("cli")
 final class HotpCliTest {
 
-  private static final String SECRET_HEX = "3132333435363738393031323334353637383930";
   private static final String CREDENTIAL_ID = "hotp-demo";
 
   @TempDir Path tempDir;
@@ -64,6 +61,7 @@ final class HotpCliTest {
   void importFailsForUnknownAlgorithm() throws Exception {
     Path databasePath = databasePath();
     CommandHarness harness = harness(databasePath);
+    HotpJsonVector sample = vector(0L);
 
     int exitCode =
         harness.execute(
@@ -71,11 +69,11 @@ final class HotpCliTest {
             "--credential-id",
             CREDENTIAL_ID,
             "--secret",
-            SECRET_HEX,
+            sample.secret().asHex(),
             "--digits",
-            "6",
+            String.valueOf(sample.digits()),
             "--counter",
-            "0",
+            String.valueOf(sample.counter()),
             "--algorithm",
             "sha999");
 
@@ -149,6 +147,7 @@ final class HotpCliTest {
   void importPersistsMetadataAttributes() throws Exception {
     Path databasePath = databasePath();
     CommandHarness harness = harness(databasePath);
+    HotpJsonVector sample = vector(0L);
 
     int exitCode =
         harness.execute(
@@ -156,13 +155,13 @@ final class HotpCliTest {
             "--credential-id",
             CREDENTIAL_ID,
             "--secret",
-            SECRET_HEX,
+            sample.secret().asHex(),
             "--digits",
-            "6",
+            String.valueOf(sample.digits()),
             "--counter",
-            "0",
+            String.valueOf(sample.counter()),
             "--algorithm",
-            "SHA1",
+            sample.algorithm().name(),
             "--metadata",
             "label=primary,team=dev");
 
@@ -182,6 +181,7 @@ final class HotpCliTest {
             tempDir.resolve("broken.db"), new IllegalStateException("boom"));
     CommandHarness harness = CommandHarness.create();
     harness.cli().overrideDatabase(failing);
+    HotpJsonVector sample = vector(0L);
 
     int exitCode =
         harness.execute(
@@ -189,13 +189,13 @@ final class HotpCliTest {
             "--credential-id",
             CREDENTIAL_ID,
             "--secret",
-            SECRET_HEX,
+            sample.secret().asHex(),
             "--digits",
-            "6",
+            String.valueOf(sample.digits()),
             "--counter",
-            "0",
+            String.valueOf(sample.counter()),
             "--algorithm",
-            "SHA1");
+            sample.algorithm().name());
 
     assertEquals(CommandLine.ExitCode.SOFTWARE, exitCode);
     String stderr = harness.stderr();
@@ -207,13 +207,10 @@ final class HotpCliTest {
   @Test
   void importRejectsTypeMismatch() throws Exception {
     Path databasePath = databasePath();
+    HotpJsonVector sample = vector(0L);
     try (CredentialStore store = CredentialStoreFactory.openFileStore(databasePath)) {
       Credential existing =
-          Credential.create(
-              CREDENTIAL_ID,
-              CredentialType.OATH_OCRA,
-              SecretMaterial.fromHex(SECRET_HEX),
-              Map.of());
+          Credential.create(CREDENTIAL_ID, CredentialType.OATH_OCRA, sample.secret(), Map.of());
       store.save(existing);
     }
 
@@ -224,13 +221,13 @@ final class HotpCliTest {
             "--credential-id",
             CREDENTIAL_ID,
             "--secret",
-            SECRET_HEX,
+            sample.secret().asHex(),
             "--digits",
-            "6",
+            String.valueOf(sample.digits()),
             "--counter",
-            "0",
+            String.valueOf(sample.counter()),
             "--algorithm",
-            "SHA1");
+            sample.algorithm().name());
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode);
     String stderr = harness.stderr();
@@ -264,19 +261,20 @@ final class HotpCliTest {
     Path databasePath = databasePath();
 
     CommandHarness importHarness = harness(databasePath);
+    HotpJsonVector sample = vector(0L);
     int importExit =
         importHarness.execute(
             "import",
             "--credential-id",
             CREDENTIAL_ID,
             "--secret",
-            SECRET_HEX,
+            sample.secret().asHex(),
             "--digits",
-            "6",
+            String.valueOf(sample.digits()),
             "--counter",
             Long.toString(Long.MAX_VALUE),
             "--algorithm",
-            "SHA1");
+            sample.algorithm().name());
     assertEquals(CommandLine.ExitCode.OK, importExit, importHarness.stderr());
 
     CommandHarness evaluateHarness = harness(databasePath);
@@ -299,6 +297,7 @@ final class HotpCliTest {
   }
 
   private void importCredential(Path databasePath) {
+    HotpJsonVector sample = vector(0L);
     CommandHarness harness = harness(databasePath);
     int exitCode =
         harness.execute(
@@ -306,13 +305,13 @@ final class HotpCliTest {
             "--credential-id",
             CREDENTIAL_ID,
             "--secret",
-            SECRET_HEX,
+            sample.secret().asHex(),
             "--digits",
-            "6",
+            String.valueOf(sample.digits()),
             "--counter",
-            "0",
+            String.valueOf(sample.counter()),
             "--algorithm",
-            "SHA1");
+            sample.algorithm().name());
 
     assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
     String output = harness.stdout();
@@ -321,10 +320,14 @@ final class HotpCliTest {
   }
 
   private static String otpForCounter(long counter) {
-    HotpDescriptor descriptor =
-        HotpDescriptor.create(
-            CREDENTIAL_ID, SecretMaterial.fromHex(SECRET_HEX), HotpHashAlgorithm.SHA1, 6);
-    return HotpGenerator.generate(descriptor, counter);
+    return vector(counter).otp();
+  }
+
+  private static HotpJsonVector vector(long counter) {
+    return HotpJsonVectorFixtures.loadAll()
+        .filter(v -> v.digits() == 6 && v.counter() == counter)
+        .findFirst()
+        .orElseThrow();
   }
 
   private static final class CommandHarness {

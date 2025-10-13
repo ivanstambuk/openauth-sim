@@ -1,7 +1,7 @@
 # Feature 023 – Task Checklist
 
 _Status: Complete_
-_Last updated: 2025-10-11_
+_Last updated: 2025-10-13_
 
 ## Tasks (≤10 min each)
 - ☑ T2301 – Add failing core unit tests for TOTP generator/validator covering SHA-1/SHA-256/SHA-512, 6/8 digits, time-step conversion, and drift window limits. (_2025-10-08 – RFC 6238 vectors + drift scenarios added; `./gradlew :core:test` red as expected._)
@@ -49,3 +49,5 @@ _Last updated: 2025-10-11_
 - ☑ T2343 – Apply the shared `stack-offset-top-lg` spacing token to the TOTP evaluate and replay inline sections, then rerun the targeted Selenium suite and `./gradlew spotlessApply check`. (_2025-10-11 – Added Thymeleaf spacing class + Selenium select wait helper, verified via targeted Selenium pass and `./gradlew spotlessApply check`.)_
 - ☑ T2344 – Add failing Selenium regression asserting the TOTP Evaluate tab defaults the mode selector to “Inline parameters,” mirroring HOTP/OCRA/FIDO2 behaviour; execute `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest.totpEvaluateDefaultsToInline"` to capture the red state. (_2025-10-11 – Test added and observed red with stored default in place._)
 - ☑ T2345 – Update TOTP operator console templates/JS so the Evaluate tab selects inline parameters by default; rerun the targeted Selenium suite and `./gradlew spotlessApply check`. (_2025-10-11 – Implemented inline-first default across markup/JS, updated Selenium callers, ran the full class and project checks to confirm green._)
+
+☑ T2346 – Publish `docs/totp_validation_vectors.json` with RFC 6238 reference cases, update TOTP fixture loaders/tests across core, CLI, REST, and operator UI, and refresh operator/REST how-to guides once the catalogue lands. (_2025-10-13 – Added shared JSON fixture bundle + `TotpJsonVectorFixtures`, rewired core/CLI/REST/UI presets/tests to load from it, and updated docs/knowledge map._)

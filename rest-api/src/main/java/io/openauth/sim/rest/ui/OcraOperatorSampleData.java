@@ -1,5 +1,9 @@
 package io.openauth.sim.rest.ui;
 
+import io.openauth.sim.core.credentials.ocra.OcraJsonVectorFixtures;
+import io.openauth.sim.core.credentials.ocra.OcraJsonVectorFixtures.OcraMutualVector;
+import io.openauth.sim.core.credentials.ocra.OcraJsonVectorFixtures.OcraOneWayVector;
+import io.openauth.sim.core.credentials.ocra.OcraJsonVectorFixtures.OcraSignatureVector;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
@@ -11,255 +15,103 @@ import java.util.stream.Collectors;
 /** Shared sample data for inline presets and credential seeding. */
 public final class OcraOperatorSampleData {
 
-  private static final String STANDARD_KEY_20 = "3132333435363738393031323334353637383930";
-  private static final String SHARED_SECRET_HEX =
-      "3132333435363738393031323334353637383930313233343536373839303132";
-  private static final String STANDARD_KEY_64 =
-      "3132333435363738393031323334353637383930"
-          + "3132333435363738393031323334353637383930"
-          + "3132333435363738393031323334353637383930"
-          + "31323334";
-  private static final String PIN_SHA1_HASH = "7110eda4d09e062aa5e4a390b0a572ac0d2c0220";
-
   private static final Map<String, String> BASE_METADATA = Map.of("seedSource", "operator-ui");
   private static final Map<String, String> ALIASES = Map.of("operator-demo", "qa08-s064");
 
+  private static final OcraOneWayVector COUNTER_PIN_VECTOR =
+      OcraJsonVectorFixtures.getOneWay("rfc6287_counter-with-hashed-pin-c-0");
+
   private static final List<SampleDefinition> DEFINITIONS =
       List.of(
-          seedDefinition(
+          oneWaySample(
               "qn08-sha1",
               "QN08 numeric - HOTP-SHA1, 6 digits (RFC 6287)",
               "sample-qn08-sha1",
-              "OCRA-1:HOTP-SHA1-6:QN08",
-              STANDARD_KEY_20,
-              "11111111",
-              null,
-              null,
-              null,
-              null,
-              null,
-              null,
+              "rfc6287_standard-challenge-question-repeated-digits",
               "qn08-sha1",
-              null,
-              "243178"),
-          seedDefinition(
+              null),
+          oneWaySample(
               "c-qn08-psha1",
               "C-QN08 PIN - HOTP-SHA256, 8 digits (RFC 6287)",
               "sample-c-qn08-psha1",
-              "OCRA-1:HOTP-SHA256-8:C-QN08-PSHA1",
-              SHARED_SECRET_HEX,
-              "12345678",
-              null,
-              null,
-              null,
-              PIN_SHA1_HASH,
-              null,
-              0L,
+              "rfc6287_counter-with-hashed-pin-c-0",
               "c-qn08-psha1",
-              null,
-              "65347737"),
-          seedDefinition(
+              null),
+          oneWaySample(
               "qn08-psha1",
               "QN08 PIN - HOTP-SHA256, 8 digits (RFC 6287)",
               "sample-qn08-psha1",
-              "OCRA-1:HOTP-SHA256-8:QN08-PSHA1",
-              SHARED_SECRET_HEX,
-              "00000000",
-              null,
-              null,
-              null,
-              PIN_SHA1_HASH,
-              null,
-              null,
+              "rfc6287_hashed-pin-question-00000000",
               "qn08-psha1",
-              null,
-              "83238735"),
-          seedDefinition(
+              null),
+          oneWaySample(
               "c-qn08-sha512",
               "C-QN08 - HOTP-SHA512, 8 digits (RFC 6287)",
               "sample-c-qn08-sha512",
-              "OCRA-1:HOTP-SHA512-8:C-QN08",
-              STANDARD_KEY_64,
-              "00000000",
-              null,
-              null,
-              null,
-              null,
-              null,
-              0L,
+              "rfc6287_counter-only-sha512-question-00000000",
               "c-qn08-sha512",
-              null,
-              "07016083"),
-          seedDefinition(
+              null),
+          oneWaySample(
               "qn08-t1m",
               "QN08 T1M - HOTP-SHA512, 8 digits (RFC 6287)",
               "sample-qn08-t1m",
-              "OCRA-1:HOTP-SHA512-8:QN08-T1M",
-              STANDARD_KEY_64,
-              "00000000",
-              null,
-              null,
-              null,
-              null,
-              "0132D0B6",
-              null,
+              "rfc6287_time-based-sha512-question-00000000",
               "qn08-t1m",
-              Duration.ofMinutes(1),
-              "95209754"),
-          seedDefinition(
+              Duration.ofMinutes(1)),
+          oneWaySample(
               "qa08-s064",
               "QA08 S064 - session 64 (RFC 6287)",
               "sample-qa08-s064",
-              "OCRA-1:HOTP-SHA256-8:QA08-S064",
-              SHARED_SECRET_HEX,
-              "SESSION01",
-              "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF"
-                  + "112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567",
-              null,
-              null,
-              null,
-              null,
-              null,
+              "rfc6287_session-information-s064-with-alphanumeric-challenge",
               "qa08-s064",
-              null,
-              "17477202"),
-          seedDefinition(
+              null),
+          oneWaySample(
               "qa08-s128",
               "QA08 S128 - session 128 (RFC 6287)",
               "sample-qa08-s128",
-              "OCRA-1:HOTP-SHA256-8:QA08-S128",
-              SHARED_SECRET_HEX,
-              "SESSION01",
-              repeatHex(
-                  "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF"
-                      + "112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567",
-                  2),
-              null,
-              null,
-              null,
-              null,
-              null,
+              "rfc6287_session-information-s128-with-alphanumeric-challenge",
               "qa08-s128",
-              null,
-              "18468077"),
-          seedDefinition(
+              null),
+          oneWaySample(
               "qa08-s256",
               "QA08 S256 - session 256 (RFC 6287)",
               "sample-qa08-s256",
-              "OCRA-1:HOTP-SHA256-8:QA08-S256",
-              SHARED_SECRET_HEX,
-              "SESSION01",
-              repeatHex(
-                  "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF"
-                      + "112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567",
-                  4),
-              null,
-              null,
-              null,
-              null,
-              null,
+              "rfc6287_session-information-s256-with-alphanumeric-challenge",
               "qa08-s256",
-              null,
-              "77715695"),
-          seedDefinition(
+              null),
+          oneWaySample(
               "qa08-s512",
               "QA08 S512 - session 512 (RFC 6287)",
               "sample-qa08-s512",
-              "OCRA-1:HOTP-SHA256-8:QA08-S512",
-              SHARED_SECRET_HEX,
-              "SESSION01",
-              repeatHex(
-                  "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF"
-                      + "112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567",
-                  8),
-              null,
-              null,
-              null,
-              null,
-              null,
+              "rfc6287_session-information-s512-with-alphanumeric-challenge",
               "qa08-s512",
-              null,
-              "05806151"),
-          seedDefinition(
+              null),
+          mutualServerSample(
               "qa08-mutual-sha256",
               "QA08 mutual - HOTP-SHA256, 8 digits (RFC 6287)",
               "sample-qa08-mutual-sha256",
-              "OCRA-1:HOTP-SHA256-8:QA08",
-              SHARED_SECRET_HEX,
-              "CLI22220SRV11110",
-              null,
-              "CLI22220",
-              "SRV11110",
-              null,
-              null,
-              null,
-              "qa08-mutual-sha256",
-              null,
-              "28247970"),
-          seedDefinition(
+              "rfc6287_server-computes-response-for-cli22220-srv11110",
+              "qa08-mutual-sha256"),
+          mutualServerSample(
               "qa08-mutual-sha512",
               "QA08 mutual SHA512 - HOTP-SHA512, 8 digits (RFC 6287)",
               "sample-qa08-mutual-sha512",
-              "OCRA-1:HOTP-SHA512-8:QA08",
-              STANDARD_KEY_64,
-              "CLI22220SRV11110",
-              null,
-              "CLI22220",
-              "SRV11110",
-              null,
-              null,
-              null,
-              "qa08-mutual-sha512",
-              null,
-              "79496648"),
-          seedDefinition(
+              "rfc6287_server-computes-response-for-cli22220-srv11110-sha512",
+              "qa08-mutual-sha512"),
+          mutualClientSample(
               "qa08-pin-sha512",
               "QA08 PIN SHA512 - HOTP-SHA512, 8 digits (RFC 6287)",
               "sample-qa08-pin-sha512",
-              "OCRA-1:HOTP-SHA512-8:QA08-PSHA1",
-              STANDARD_KEY_64,
-              "SRV11110CLI22220",
-              null,
-              "CLI22220",
-              "SRV11110",
-              PIN_SHA1_HASH,
-              null,
-              null,
-              "qa08-pin-sha512",
-              null,
-              "18806276"),
-          seedDefinition(
+              "rfc6287_client-computes-response-for-srv11110-cli22220-sha512-with-pin",
+              "qa08-pin-sha512"),
+          signatureSample(
               "qa10-t1m",
               "QA10 T1M signature - HOTP-SHA512, 8 digits (RFC 6287)",
               "sample-qa10-t1m",
-              "OCRA-1:HOTP-SHA512-8:QA10-T1M",
-              STANDARD_KEY_64,
-              "SIG1000000",
-              null,
-              null,
-              null,
-              null,
-              "0132D0B6",
-              null,
+              "rfc6287_timed-signature-sig1000000",
               "qa10-t1m",
-              Duration.ofMinutes(1),
-              "77537423"),
-          seedDefinition(
-              "c-qh64",
-              "C-QH64 - HOTP-SHA256, 6 digits",
-              "sample-c-qh64",
-              "OCRA-1:HOTP-SHA256-6:C-QH64",
-              SHARED_SECRET_HEX,
-              "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF",
-              null,
-              null,
-              null,
-              null,
-              null,
-              Long.valueOf(1),
-              "c-qh64",
-              null,
-              "429968"));
+              Duration.ofMinutes(1)),
+          draftHotpQh64Sample());
 
   private OcraOperatorSampleData() {
     // utility class
@@ -334,6 +186,123 @@ public final class OcraOperatorSampleData {
     return Optional.empty();
   }
 
+  private static SampleDefinition oneWaySample(
+      String key,
+      String label,
+      String credentialName,
+      String vectorId,
+      String presetKey,
+      Duration allowedTimestampDrift) {
+    OcraOneWayVector vector = OcraJsonVectorFixtures.getOneWay(vectorId);
+    return seedDefinition(
+        key,
+        label,
+        credentialName,
+        vector.suite(),
+        vector.secret().asHex().toUpperCase(Locale.ROOT),
+        vector.challengeQuestion().orElse(null),
+        vector.sessionInformationHex().orElse(null),
+        null,
+        null,
+        vector.pinHashHex().orElse(null),
+        vector.timestampHex().orElse(null),
+        vector.counter().orElse(null),
+        presetKey,
+        allowedTimestampDrift,
+        vector.expectedOtp());
+  }
+
+  private static SampleDefinition mutualServerSample(
+      String key, String label, String credentialName, String vectorId, String presetKey) {
+    OcraMutualVector vector = OcraJsonVectorFixtures.getMutual(vectorId);
+    String clientChallenge = vector.challengeA();
+    String serverChallenge = vector.challengeB();
+    return seedDefinition(
+        key,
+        label,
+        credentialName,
+        vector.suite(),
+        vector.secret().asHex().toUpperCase(Locale.ROOT),
+        clientChallenge + serverChallenge,
+        null,
+        clientChallenge,
+        serverChallenge,
+        vector.pinHashHex().orElse(null),
+        vector.timestampHex().orElse(null),
+        null,
+        presetKey,
+        null,
+        vector.expectedOtp());
+  }
+
+  private static SampleDefinition mutualClientSample(
+      String key, String label, String credentialName, String vectorId, String presetKey) {
+    OcraMutualVector vector = OcraJsonVectorFixtures.getMutual(vectorId);
+    String clientChallenge = vector.challengeB();
+    String serverChallenge = vector.challengeA();
+    return seedDefinition(
+        key,
+        label,
+        credentialName,
+        vector.suite(),
+        vector.secret().asHex().toUpperCase(Locale.ROOT),
+        serverChallenge + clientChallenge,
+        null,
+        clientChallenge,
+        serverChallenge,
+        vector.pinHashHex().orElse(null),
+        vector.timestampHex().orElse(null),
+        null,
+        presetKey,
+        null,
+        vector.expectedOtp());
+  }
+
+  private static SampleDefinition signatureSample(
+      String key,
+      String label,
+      String credentialName,
+      String vectorId,
+      String presetKey,
+      Duration allowedTimestampDrift) {
+    OcraSignatureVector vector = OcraJsonVectorFixtures.getSignature(vectorId);
+    return seedDefinition(
+        key,
+        label,
+        credentialName,
+        vector.suite(),
+        vector.secret().asHex().toUpperCase(Locale.ROOT),
+        vector.challengeQuestion(),
+        null,
+        null,
+        null,
+        null,
+        vector.timestampHex().orElse(null),
+        null,
+        presetKey,
+        allowedTimestampDrift,
+        vector.expectedOtp());
+  }
+
+  private static SampleDefinition draftHotpQh64Sample() {
+    return seedDefinition(
+        "c-qh64",
+        "C-QH64 - HOTP-SHA256, 6 digits",
+        "sample-c-qh64",
+        "OCRA-1:HOTP-SHA256-6:C-QH64",
+        COUNTER_PIN_VECTOR.secret().asHex().toUpperCase(Locale.ROOT),
+        "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF",
+        null,
+        null,
+        null,
+        null,
+        null,
+        1L,
+        "c-qh64",
+        null,
+        "429968");
+  }
+
   private static SampleDefinition seedDefinition(
       String key,
       String label,
@@ -372,14 +341,6 @@ public final class OcraOperatorSampleData {
     return Map.of(
         "seedSource", BASE_METADATA.get("seedSource"),
         "presetKey", Objects.requireNonNull(presetKey, "presetKey"));
-  }
-
-  private static String repeatHex(String chunk, int times) {
-    Objects.requireNonNull(chunk, "chunk");
-    if (times <= 0) {
-      return "";
-    }
-    return chunk.repeat(times);
   }
 
   public record SampleDefinition(
