@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-024-fido2-webauthn-operator-support.md`  
 _Status:_ In Progress  
-_Last updated:_ 2025-10-12
+_Last updated:_ 2025-10-14
 
 ## Vision & Success Criteria
 - Ship a parity WebAuthn assertion generation + verification experience across core, persistence, CLI, REST, and operator UI facades, mirroring HOTP/OCRA ergonomics (authenticator-style generation on Evaluate, verification on Replay).
@@ -92,9 +92,14 @@ Each increment stages failing tests first, drives implementation to green, and r
    - _2025-10-11 – Dropped redundant “Load sample vector” buttons from inline Evaluate/Replay presets; dropdown change events now mirror HOTP/TOTP/OCRA behaviour._
    - _2025-10-11 – Identified regression where the host console defaulted the Evaluate tab back to stored mode; staged Selenium coverage and updated shared console scripts so inline remains the default even when protocol context restores prior state._
    - _2025-10-11 – Verified fix via `Fido2OperatorUiSeleniumTest.fido2EvaluateDefaultsToInline` after updating `ui/ocra/console.js` and `ui/fido2/console.js`; reran `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` and full `spotlessApply check`._
-   - _2025-10-11 – Hid the stored-only “Seed sample credentials” control whenever inline mode is active and added Selenium coverage (`Fido2OperatorUiSeleniumTest.seedControlHidesOutsideStoredMode`), exercised via `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon spotlessApply check`._
-   - _2025-10-11 – Reduced inline Credential ID text areas to a single-line default height while retaining textarea controls so operators can expand as needed; Selenium coverage unchanged (visual-only tweak)._
-   - **Next action (2025-10-11):** propagate the multi-algorithm generator presets into `Fido2OperatorSampleData`, update Thymeleaf/console JS preset selectors per algorithm, and stage documentation/test updates before rerunning Gradle quality gates.
+  - _2025-10-11 – Hid the stored-only “Seed sample credentials” control whenever inline mode is active and added Selenium coverage (`Fido2OperatorUiSeleniumTest.seedControlHidesOutsideStoredMode`), exercised via `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon spotlessApply check`._
+  - _2025-10-14 – Realigned the FIDO2 seed control with HOTP/TOTP/OCRA by keeping it visible throughout stored mode even when credentials exist, while extending Selenium coverage to assert visibility after seeding._
+  - _2025-10-14 – Restyled the FIDO2 seed control to the compact left-aligned layout shared by HOTP/TOTP/OCRA; Selenium coverage updated to guard the layout regression._
+  - _2025-10-11 – Reduced inline Credential ID text areas to a single-line default height while retaining textarea controls so operators can expand as needed; Selenium coverage unchanged (visual-only tweak)._
+  - _2025-10-13 – Removed the stored “Load preset challenge & key” button; stored credential selection already auto-populates preset values, and operators can reset by re-selecting the placeholder option. Updated docs to reflect the streamlined flow._
+  - _2025-10-13 – Trimmed the stored Evaluate result card telemetry line so the panel now focuses on the generated assertion JSON; sanitized telemetry remains in backend logs and inline mode retains its summary._
+  - _2025-10-13 – Removed the stored Copy/Download controls; the assertion JSON now renders read-only text for manual copy, keeping inline mode as the only panel with quick actions._
+  - **Next action (2025-10-11):** propagate the multi-algorithm generator presets into `Fido2OperatorSampleData`, update Thymeleaf/console JS preset selectors per algorithm, and stage documentation/test updates before rerunning Gradle quality gates.
 
 8. **I8 – JSONL coverage expansion**  
    - Add failing parameterised tests iterating over JSONL bundle entries across core/application layers.  
@@ -171,6 +176,38 @@ Each increment stages failing tests first, drives implementation to green, and r
     - Constrain the CSS for the status column/result panel to introduce a max-width with horizontal scrolling so Base64 payloads no longer expand the layout.  
     - Rerun the WebAuthn Selenium suite and `./gradlew spotlessApply check`, then record the outcome in spec/plan/tasks.  
     - _2025-10-13 – Selenium test `generatedAssertionPanelStaysClamped` failed first, the CSS clamp capped the status column at 600 px with horizontal scrolling, and both `:rest-api:test --tests io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest` and `./gradlew --no-daemon spotlessApply check` now pass._
+
+20. **I20 – Protocol tab defaults & query parameter harmonisation**  
+    - Add failing Selenium/UI tests that navigate between protocol tabs (HOTP/TOTP/OCRA/FIDO2), expecting the URL to update to `protocol=<key>&tab=evaluate&mode=inline` whenever a tab is clicked, regardless of prior state.  
+    - Update console routing helpers so protocol changes force Evaluate/Inline mode, keeping existing evaluate/replay toggles functional when switching within a protocol.  
+    - Extend the shared router to invoke each protocol façade’s `setMode(..., { broadcast: false, force: true })` hook when a deep link supplies `mode=stored` so HOTP/TOTP/OCRA/FIDO2 preserve stored selections across reloads without relying on synthetic radio clicks.  
+    - Align query-parameter parsing and serialisation helpers to honour the shared `mode` key while preserving backwards compatibility redirects for any legacy `*Mode` parameters.  
+    - Rerun `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleRoutingTest"` (or the Selenium suite covering protocol navigation) plus `./gradlew --no-daemon spotlessApply check`, then capture outcomes in spec/plan/tasks.
+    - _2025-10-13 – Completed I20 by extending `OperatorConsoleUnificationSeleniumTest` with HOTP/FIDO2 replay deep-link regressions, wiring the router to forward stored/inline modes to each façade’s `setMode`/`setReplayMode` (with initial-mode fallbacks for pre-mounted consoles), ensuring HOTP replay toggles emit query updates so `mode` stays in sync, and validating the flow via `:rest-api:test --tests "…OperatorConsoleUnificationSeleniumTest"` plus `spotlessApply check`._  
+    - _2025-10-13 – Follow-up: HOTP console now broadcasts `operator:hotp-tab-changed` when jumping from Evaluate → Replay so router state remains consistent before operators toggle replay mode._
+    - _2025-10-13 – Follow-up: OCRA replay toggles now emit `operator:ocra-replay-mode-changed`, aligning the shared router with inline/stored selections after switching from Evaluate → Replay._
+
+21. **I21 – Trim protocol-specific mode query parameters**  
+    - Tighten the router so clicking HOTP/TOTP/OCRA/FIDO2 tabs writes only the shared `protocol`, `tab`, and `mode` parameters (e.g., drop `totpTab`, `totpMode`, `totpReplayMode`, `fido2Mode`).  
+    - Backfill routing/unit tests that assert no protocol-specific mode parameters remain after tab activation, covering existing deep-link compatibility.  
+    - Update documentation or clarifications if behaviour shifts, then rerun targeted Selenium specs and `./gradlew spotlessApply check`.
+    - _2025-10-13 – Kicking off Increment I21 by preparing the routing regression tests; next step is to stage a failing Selenium case that asserts protocol tabs leave only the shared parameters in the URL before trimming the router serializers._
+    - _2025-10-13 – Added `protocolTabNavigationOmitsLegacyQueryParameters`, refactored the router to emit only `protocol`, `tab`, and `mode`, taught the TOTP/FIDO2 consoles to parse the shared parameters while honouring legacy deep links, and reran `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleUnificationSeleniumTest"` plus `./gradlew --no-daemon spotlessApply check` (both green)._
+
+22. **I22 – Stored dropdown styling parity**  
+    - Add a failing Selenium regression that ensures the Evaluate stored credential dropdown inherits stacked field styling (label on its own row plus dark surface background) matching other protocol consoles.  
+    - Update the FIDO2 evaluate template to apply the stacked field grouping or field-grid styling so the dropdown appears beneath the label with the same dark background as HOTP/TOTP/OCRA.  
+    - Rerun `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` alongside `./gradlew --no-daemon spotlessApply check`, then capture results here before marking the increment complete.
+    - _2025-10-14 – Added the new Selenium regression, applied the `field-group--stacked` helper to the stored credential select, and re-ran the targeted test plus full `spotlessApply check` with green results._
+
+23. **I23 – Stored preset label parity**  
+    - Stage a failing Selenium regression that asserts stored credential dropdown entries omit the “Seed … generator preset” prefix and display algorithm-first text (mirroring HOTP/TOTP/OCRA).  
+    - Update `WebAuthnGeneratorSamples` and `Fido2OperatorSampleData` so curated sample labels follow the new naming scheme (append W3C section suffix where applicable) without altering preset keys used by CLI/REST callers.  
+    - Refresh docs/spec/tasks with the directive, rerun the targeted Selenium test plus `./gradlew --no-daemon spotlessApply check`, and record results once green.
+    - _2025-10-14 – Added Selenium coverage, updated label generation + metadata, refreshed REST/operator docs, and re-ran the targeted test alongside `spotlessApply check`; dropdown entries now present algorithm-first text with W3C suffixes where applicable._
+
+## Analysis Gate
+- 2025-10-13 – Checklist completed after adding Increment T20; spec clarifications synced (protocol/tab/mode + default Evaluate/Inline), plan/tasks updated, no open questions remain. All items pass; next step is staging failing Selenium routing tests before implementation.
 
 ## Risks & Mitigations
 - **Large vector set increases test time** → run JSONL suite in targeted tests (I8) with caching helpers; consider tagging for selective execution.  

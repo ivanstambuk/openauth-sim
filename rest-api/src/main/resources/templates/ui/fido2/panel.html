@@ -275,7 +275,7 @@
                       th:utext="${fido2SeedDefinitionsJson}"
                     ></script>
                   <div
-                      class="seed-actions stack-sm"
+                      class="seed-actions"
                       data-testid="fido2-seed-actions"
                       hidden="hidden"
                       aria-hidden="true"
@@ -297,19 +297,7 @@
                         data-testid="fido2-seed-status"
                       ></p>
                   </div>
-                  <div class="stack-sm">
-                    <button
-                        type="button"
-                        class="button-secondary"
-                        data-testid="fido2-stored-load-sample"
-                      >
-                      Load preset challenge &amp; key
-                    </button>
-                    <p class="hint">
-                      Prefill the challenge and authenticator private key for the selected credential.
-                    </p>
-                  </div>
-                  <div class="field-group">
+                  <div class="field-group field-group--stacked">
                     <label for="fido2StoredCredentialId">Stored credential</label>
                     <select
                         id="fido2StoredCredentialId"
@@ -410,28 +398,7 @@
                   aria-hidden="true"
                 >
                 <h3 class="section-title">Generated assertion</h3>
-                <div class="button-row">
-                  <button
-                      type="button"
-                      class="button-secondary"
-                      data-testid="fido2-copy-assertion"
-                      disabled="disabled"
-                    >
-                    Copy JSON
-                  </button>
-                  <button
-                      type="button"
-                      class="button-secondary"
-                      data-testid="fido2-download-assertion"
-                      disabled="disabled"
-                    >
-                    Download JSON
-                  </button>
-                </div>
                 <pre class="code-block" data-testid="fido2-generated-assertion-json">Awaiting submission.</pre>
-                <div class="telemetry" data-testid="fido2-generated-assertion-metadata">
-                  Telemetry pending (sanitized).
-                </div>
               </section>
 
               <section

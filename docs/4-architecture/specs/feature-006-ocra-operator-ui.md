@@ -46,6 +46,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-09-29 – Disabled request parameter inputs must present a muted/disabled visual state (e.g., grey background, not-allowed cursor) so operators can tell they are non-editable (user request).
 - 2025-10-06 – Evaluate and replay tabs list Inline parameters before Stored credential so the inline option remains the default across protocols (user directive).
 - 2025-10-12 – Evaluate action button must adopt protocol-aligned copy: “Evaluate inline parameters” when Inline parameters mode is active and “Evaluate stored credential” when Stored credential mode is active, matching HOTP/TOTP operator flows (user directive).
+- 2025-10-13 – Clicking the OCRA protocol tab resets the view to Evaluate with Inline parameters selected, ensuring operators always land on the primary workflow regardless of prior state (user directive).
 
 ## Objectives & Success Criteria
 - Provide browser-accessible pages that let operators evaluate OCRA responses using stored credentials or inline parameters, mirroring REST validation semantics.

@@ -110,7 +110,7 @@ public final class WebAuthnGeneratorSamples {
     String privateKeyJwk =
         Objects.requireNonNull(vector.privateKeyJwk(), "privateKeyJwk must be present");
     String presetKey = presetKeyFor(algorithm);
-    String label = algorithm.label() + " generator preset";
+    String label = displayLabel(algorithm, "synthetic", null);
     String relyingPartyId = DEFAULT_RELYING_PARTY;
     String origin = DEFAULT_ORIGIN;
     long signatureCounter = vector.storedCredential().signatureCounter();
@@ -163,8 +163,7 @@ public final class WebAuthnGeneratorSamples {
     Objects.requireNonNull(privateKeyJwk, "credentialPrivateKeyJwk must be present");
 
     String presetKey = presetKeyFor(fixture.algorithm());
-    String label =
-        fixture.algorithm().label() + " generator preset (W3C " + fixture.section() + ")";
+    String label = displayLabel(fixture.algorithm(), "w3c", fixture.section());
 
     GenerationResult result =
         GENERATOR.generate(
@@ -210,7 +209,7 @@ public final class WebAuthnGeneratorSamples {
   private static Sample createLegacySample() {
     return createSampleFromInputs(
         "generator-es256",
-        "ES256 generator preset",
+        displayLabel(WebAuthnSignatureAlgorithm.ES256, "legacy", null),
         WebAuthnSignatureAlgorithm.ES256,
         "Z2VuZXJhdG9yLWVzMjU2LWNyZWRlbnRpYWw",
         "c3RvcmVkLWNoYWxsZW5nZQ",
@@ -352,6 +351,14 @@ public final class WebAuthnGeneratorSamples {
 
   private static String presetKeyFor(WebAuthnSignatureAlgorithm algorithm) {
     return "generator-" + algorithm.label().toLowerCase(Locale.US);
+  }
+
+  private static String displayLabel(
+      WebAuthnSignatureAlgorithm algorithm, String source, String section) {
+    if (hasText(source) && "w3c".equalsIgnoreCase(source) && hasText(section)) {
+      return algorithm.label() + " (W3C " + section + ")";
+    }
+    return algorithm.label();
   }
 
   private static boolean hasText(String value) {

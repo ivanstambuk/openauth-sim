@@ -744,6 +744,47 @@
           updateTimestampAutofillUi();
         }
 
+        function normalizeOcraExternalMode(mode) {
+          var value = typeof mode === 'string' ? mode.toLowerCase() : '';
+          if (value === 'stored' || value === 'credential') {
+            return 'credential';
+          }
+          return 'inline';
+        }
+
+        function setOcraModeExternal(mode, options) {
+          var normalized = normalizeOcraExternalMode(mode);
+          var force = Boolean(options && options.force === true);
+          var inlineRadio = document.getElementById('mode-inline');
+          var credentialRadio = document.getElementById('mode-credential');
+          var currentSelection = document.querySelector('input[name="mode"]:checked');
+          var currentValue = currentSelection ? currentSelection.value : 'inline';
+          if (!force && currentValue === normalized) {
+            return;
+          }
+          if (credentialRadio) {
+            credentialRadio.checked = normalized === 'credential';
+          }
+          if (inlineRadio) {
+            inlineRadio.checked = normalized !== 'credential';
+          }
+          updateSections();
+        }
+
+        function readInitialOcraMode() {
+          try {
+            var params = new URLSearchParams(window.location.search || '');
+            var value = params.get('mode');
+            if ((!value || value.trim() === '') && typeof window.__openauthOcraInitialMode === 'string') {
+              value = window.__openauthOcraInitialMode;
+            }
+            window.__openauthOcraInitialMode = undefined;
+            return value && value.toLowerCase() === 'stored' ? 'stored' : 'inline';
+          } catch (error) {
+            return 'inline';
+          }
+        }
+
         function ensureCredentialsLoaded() {
           if (!credentialSelect || !credentialsEndpoint) {
             return Promise.resolve([]);
@@ -1968,6 +2009,14 @@
         modeInputs.forEach(function (input) {
           input.addEventListener('change', updateSections);
         });
+
+        var initialMode = readInitialOcraMode();
+        setOcraModeExternal(initialMode, { force: true, broadcast: false });
+
+        window.OcraConsole = window.OcraConsole || {};
+        window.OcraConsole.setMode = function (mode, options) {
+          setOcraModeExternal(mode, options || {});
+        };
 
         if (policySelect) {
           policySelect.addEventListener('change', function () {

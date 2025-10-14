@@ -31,6 +31,8 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-07 – HOTP replay success badges must apply the same green success styling as OCRA when the verification result is a match (user directive).
 - 2025-10-05 – HOTP replay interactions emit dedicated `hotp.replay` telemetry frames (REST and UI), keeping evaluation metrics separate (option A confirmed).
 - 2025-10-05 – Operator console deep links must mirror OCRA conventions by writing `protocol=hotp` and `tab=evaluate|replay` query parameters so HOTP views restore correctly on refresh (user confirmation).
+- 2025-10-13 – Extend HOTP deep links to include `mode=<inline|stored>` so evaluate/replay forms reopen with the previously selected mode, matching the shared protocol/tab/mode convention (user directive; Option B selected).
+- 2025-10-13 – When operators click the HOTP protocol tab, force the Evaluate tab with Inline mode active regardless of prior state so workflows start from the primary path (user directive).
 - 2025-10-05 – HOTP evaluation panels remove the stored/inline headings and hint copy so operators see the input fields immediately after selecting a mode (user directive).
 - 2025-10-07 – HOTP and OCRA evaluation result headings must share the HOTP font size to keep success summaries visually aligned (user directive).
 - 2025-10-05 – HOTP mode selection mirrors OCRA ordering with Inline parameters listed before Stored credential for consistent operator workflows (user directive).

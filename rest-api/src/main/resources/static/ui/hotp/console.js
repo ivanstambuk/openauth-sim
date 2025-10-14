@@ -232,6 +232,8 @@
   var inlinePresetActiveKey = '';
   var inlinePresetActiveLabel = '';
   var seedInProgress = false;
+  var lastBroadcastHotpTab = null;
+  var lastBroadcastHotpReplayMode = null;
 
   function setHidden(element, hidden) {
     if (!element) {
@@ -650,6 +652,37 @@
     }
   }
 
+  function parseHotpModeFromSearch(search) {
+    try {
+      var params = new global.URLSearchParams(search || global.location.search || '');
+      var value = params.get('mode');
+      if ((!value || value.trim() === '') && typeof global.__openauthHotpInitialMode === 'string') {
+        value = global.__openauthHotpInitialMode;
+      }
+      global.__openauthHotpInitialMode = undefined;
+      return value && value.toLowerCase() === 'stored' ? 'stored' : 'inline';
+    } catch (error) {
+      return 'inline';
+    }
+  }
+
+  function parseHotpReplayModeFromSearch(search) {
+    try {
+      var params = new global.URLSearchParams(search || global.location.search || '');
+      var value = params.get('mode');
+      if (
+        (!value || value.trim() === '') &&
+        typeof global.__openauthHotpInitialReplayMode === 'string'
+      ) {
+        value = global.__openauthHotpInitialReplayMode;
+      }
+      global.__openauthHotpInitialReplayMode = undefined;
+      return value && value.toLowerCase() === 'stored' ? 'stored' : 'inline';
+    } catch (error) {
+      return 'inline';
+    }
+  }
+
   function hotpHistoryState(tab) {
     return { protocol: 'hotp', tab: normalizeHotpTab(tab) };
   }
@@ -718,6 +751,12 @@
     } else {
       initializeEvaluation();
     }
+
+    dispatchHotpTabChange(desired, {
+      replace: nextOptions.replaceHistory === true || samePanel,
+      broadcast: nextOptions.skipUrlSync === true ? false : true,
+      force: nextOptions.force === true,
+    });
   }
 
   function updateStoredSampleHints() {
@@ -1022,11 +1061,16 @@
     setHidden(inlineErrorPanel, true);
   }
 
-  function setReplayMode(mode) {
+  function setReplayMode(mode, options) {
     if (!replayModeToggle) {
       return;
     }
-    var normalized = mode === 'inline' ? 'inline' : 'stored';
+    var normalized = mode === 'stored' ? 'stored' : 'inline';
+    var currentModeAttr = replayModeToggle.getAttribute('data-mode') === 'stored' ? 'stored' : 'inline';
+    var force = Boolean(options && options.force === true);
+    if (!force && currentModeAttr === normalized) {
+      return;
+    }
     replayModeToggle.setAttribute('data-mode', normalized);
     var storedRadio = replayModeToggle.querySelector('[data-testid="hotp-replay-mode-select-stored"]');
     var inlineRadio = replayModeToggle.querySelector('[data-testid="hotp-replay-mode-select-inline"]');
@@ -1044,6 +1088,54 @@
     }
     setHidden(replayResultPanel, true);
     hideReplayError();
+    global.__openauthHotpInitialReplayMode = normalized;
+    if (!options || options.broadcast !== false) {
+      dispatchHotpReplayModeChange(normalized, options);
+    }
+  }
+
+  function dispatchHotpTabChange(tab, options) {
+    if (options && options.broadcast === false) {
+      return;
+    }
+    if (lastBroadcastHotpTab === tab && !(options && options.force)) {
+      return;
+    }
+    lastBroadcastHotpTab = tab;
+    try {
+      var detail = { tab: tab };
+      if (options && options.replace === true) {
+        detail.replace = true;
+      }
+      global.dispatchEvent(
+          new global.CustomEvent('operator:hotp-tab-changed', { detail: detail }));
+    } catch (error) {
+      if (global.console && typeof global.console.warn === 'function') {
+        global.console.warn('Unable to broadcast HOTP tab change', error);
+      }
+    }
+  }
+
+  function dispatchHotpReplayModeChange(mode, options) {
+    if (options && options.broadcast === false) {
+      return;
+    }
+    if (lastBroadcastHotpReplayMode === mode && !(options && options.force)) {
+      return;
+    }
+    lastBroadcastHotpReplayMode = mode;
+    try {
+      var detail = { mode: mode };
+      if (options && options.replace === true) {
+        detail.replace = true;
+      }
+      global.dispatchEvent(
+          new global.CustomEvent('operator:hotp-replay-mode-changed', { detail: detail }));
+    } catch (error) {
+      if (global.console && typeof global.console.warn === 'function') {
+        global.console.warn('Unable to broadcast HOTP replay mode change', error);
+      }
+    }
   }
 
   function currentReplayMode() {
@@ -1161,7 +1253,7 @@
       setHidden(inlineEvaluationSection, storedActive);
     }
 
-    if (storedActive) {
+  if (storedActive) {
       hideInlineError();
       setHidden(inlineResultPanel, true);
       ensureCredentials(false);
@@ -1169,6 +1261,19 @@
       hideStoredError();
       setHidden(storedResultPanel, true);
     }
+    global.__openauthHotpInitialReplayMode = storedActive ? 'stored' : 'inline';
+  }
+
+  function setExternalMode(mode, options) {
+    var normalized = mode === 'stored' ? 'stored' : 'inline';
+    var force = Boolean(options && options.force === true);
+    var replaceHistory = Boolean(options && options.replace === true);
+    initializeEvaluation();
+    setActivePanel('evaluate', { skipUrlSync: true, replaceHistory: replaceHistory });
+    if (!force && modeToggle && modeToggle.getAttribute('data-mode') === normalized) {
+      return;
+    }
+    setActiveMode(normalized);
   }
 
   function handleSeedRequest() {
@@ -1436,10 +1541,10 @@
           return;
         }
         if (target.getAttribute('data-testid') === 'hotp-replay-mode-select-stored') {
-          setReplayMode('stored');
+          setReplayMode('stored', { broadcast: true });
         }
         if (target.getAttribute('data-testid') === 'hotp-replay-mode-select-inline') {
-          setReplayMode('inline');
+          setReplayMode('inline', { broadcast: true });
         }
       });
     }
@@ -1496,7 +1601,26 @@
     initializeEvaluation();
     if (!replayInitialized) {
       attachReplayHandlers();
-      setReplayMode('inline');
+      var desiredReplayMode = 'inline';
+      try {
+        var searchParams = new global.URLSearchParams(global.location.search || '');
+        var queryMode = searchParams.get('mode');
+        if (queryMode === 'stored' || queryMode === 'inline') {
+          desiredReplayMode = queryMode;
+        } else if (typeof global.__openauthHotpInitialReplayMode === 'string') {
+          desiredReplayMode =
+              global.__openauthHotpInitialReplayMode === 'stored' ? 'stored' : 'inline';
+        } else if (modeToggle && modeToggle.getAttribute('data-mode') === 'stored') {
+          desiredReplayMode = 'stored';
+        }
+      } catch (error) {
+        desiredReplayMode =
+            typeof global.__openauthHotpInitialReplayMode === 'string'
+                ? (global.__openauthHotpInitialReplayMode === 'stored' ? 'stored' : 'inline')
+                : 'inline';
+      }
+      setReplayMode(desiredReplayMode, { broadcast: false, force: true });
+      dispatchHotpReplayModeChange(desiredReplayMode, { replace: true, force: true });
       replayInitialized = true;
     } else {
       updateStoredSampleHints();
@@ -1545,6 +1669,30 @@
   });
 
   if (hotpPanel && isHotpActive()) {
-    setActivePanel(parseHotpTabFromSearch(), { replaceHistory: true });
+    var initialTab = parseHotpTabFromSearch();
+    setActivePanel(initialTab, { replaceHistory: true });
+    if (initialTab === 'evaluate') {
+      var initialMode = parseHotpModeFromSearch();
+      setExternalMode(initialMode, { force: true, replace: true });
+    } else {
+      var initialReplayMode = parseHotpReplayModeFromSearch();
+      setReplayMode(initialReplayMode, { force: true, broadcast: false });
+    }
   }
+
+  global.HotpConsole = {
+    setMode: function (mode, options) {
+      setExternalMode(mode, options || {});
+    },
+    setReplayMode: function (mode, options) {
+      var opts = options ? Object.assign({}, options) : {};
+      if (typeof opts.broadcast === 'undefined') {
+        opts.broadcast = false;
+      }
+      setReplayMode(mode === 'stored' ? 'stored' : 'inline', opts);
+    },
+    getReplayMode: function () {
+      return currentReplayMode();
+    },
+  };
 })(window);

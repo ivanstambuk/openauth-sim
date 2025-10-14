@@ -1,7 +1,7 @@
 # Operate the FIDO2/WebAuthn REST API
 
 _Status: Draft_  
-_Last updated: 2025-10-11_
+_Last updated: 2025-10-14_
 
 The REST API exposes stored and inline WebAuthn assertion verification plus replay diagnostics and sample data feeds for the operator console. This guide walks through seeding the canonical credentials, validating assertions, replaying submissions, and tapping into the JSON vector catalogue that powers every facade.
 
@@ -26,7 +26,7 @@ OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.res
 ```
 
 ## Seed Canonical Credentials (`POST /api/v1/webauthn/credentials/seed`)
-Seed the curated generator presets (one credential per supported algorithm) so stored-mode flows work immediately:
+Seed the curated WebAuthn credentials (one per supported algorithm) so stored-mode flows work immediately. Each entry retains the preset key (for example `generator-es256`) used by CLI and automation flows:
 ```bash
 curl -s -X POST http://localhost:8080/api/v1/webauthn/credentials/seed | jq
 ```
@@ -68,18 +68,18 @@ Sample response:
 ```json
 [
   {
-    "id": "packed-es256",
-    "label": "packed-es256 (ES256)",
+    "id": "generator-eddsa",
+    "label": "EdDSA (W3C 16.1.10)",
+    "relyingPartyId": "example.org",
+    "algorithm": "EdDSA",
+    "userVerification": true
+  },
+  {
+    "id": "generator-es256",
+    "label": "ES256 (W3C 16.1.1)",
     "relyingPartyId": "example.org",
     "algorithm": "ES256",
     "userVerification": false
-  },
-  {
-    "id": "resident-key-es256",
-    "label": "resident-key-es256 (ES256)",
-    "relyingPartyId": "example.org",
-    "algorithm": "ES256",
-    "userVerification": true
   }
 ]
 ```

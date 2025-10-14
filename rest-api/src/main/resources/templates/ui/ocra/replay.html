@@ -360,6 +360,19 @@
         window.__ocraReplayLastResponse = null;
         window.__ocraReplayLastPayload = null;
         var presetMap = Object.create(null);
+        var lastBroadcastReplayMode = null;
+        var initialReplayMode = window.__ocraReplayInitialMode;
+        if (!initialReplayMode) {
+          try {
+            var replaySearchParams = new window.URLSearchParams(window.location.search || '');
+            var queryMode = replaySearchParams.get('mode');
+            if (queryMode && (queryMode === 'stored' || queryMode === 'inline')) {
+              initialReplayMode = queryMode;
+            }
+          } catch (error) {
+            initialReplayMode = null;
+          }
+        }
 
         if (presetSource && presetSource.textContent) {
           try {
@@ -598,7 +611,8 @@
           });
         }
 
-        function syncMode() {
+        function syncMode(options) {
+          options = options || {};
           var selected = form.querySelector('input[name="replayMode"]:checked');
           var mode = selected ? selected.value : 'inline';
           if (mode === 'stored') {
@@ -616,7 +630,7 @@
             fetchStoredCredentials();
             updateSampleVisibility();
             handleCredentialSelection();
-            if (credentialSelect && !credentialSelect.disabled) {
+            if (!options.skipFocus && credentialSelect && !credentialSelect.disabled) {
               credentialSelect.focus();
             }
           } else {
@@ -630,10 +644,37 @@
             if (presetContainer) {
               show(presetContainer);
             }
-            if (suiteInput) {
+            if (!options.skipFocus && suiteInput) {
               suiteInput.focus();
             }
             updateSampleVisibility();
+          }
+          broadcastReplayModeChange(mode, {
+            replace: options.replace === true,
+            force: options.force === true,
+          });
+        }
+
+        function broadcastReplayModeChange(mode, options) {
+          if (!mode) {
+            return;
+          }
+          if (lastBroadcastReplayMode === mode && !(options && options.force)) {
+            return;
+          }
+          lastBroadcastReplayMode = mode;
+          try {
+            var detail = { mode: mode };
+            if (options && options.replace) {
+              detail.replace = true;
+            }
+            window.dispatchEvent(
+              new window.CustomEvent('operator:ocra-replay-mode-changed', { detail: detail })
+            );
+          } catch (error) {
+            if (window.console && typeof window.console.warn === 'function') {
+              window.console.warn('Unable to broadcast OCRA replay mode change', error);
+            }
           }
         }
 
@@ -1168,7 +1209,9 @@
         }
 
         modeRadios.forEach(function (input) {
-          input.addEventListener('change', syncMode);
+          input.addEventListener('change', function () {
+            syncMode({ replace: true });
+          });
         });
         form.addEventListener('submit', handleSubmit);
         advancedToggle.addEventListener('click', toggleAdvanced);
@@ -1215,7 +1258,16 @@
           });
         }
 
-        syncMode();
+        if (initialReplayMode) {
+          var initialRadio =
+            form && form.querySelector('input[name="replayMode"][value="' + initialReplayMode + '"]');
+          if (initialRadio) {
+            initialRadio.checked = true;
+          }
+          window.__ocraReplayInitialMode = undefined;
+        }
+
+        syncMode({ replace: true, force: true, skipFocus: true });
         fetchStoredCredentials();
         window.__ocraReplayReady = true;
       })();

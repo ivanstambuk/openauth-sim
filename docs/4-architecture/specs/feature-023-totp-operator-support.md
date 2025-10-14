@@ -36,6 +36,8 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 - 2025-10-12 – Inline TOTP preset dropdown must expose RFC 6238 SHA-256 and SHA-512 vectors for 8-digit configurations (labelled with the RFC suffix), plus 6-digit truncations that use plain labels without additional qualifiers (user directive; Option A selected, label refinement).
 - 2025-10-13 – Evaluation result cards mirror HOTP/OCRA layout by showing the submitted OTP and status badge only; telemetry identifiers and drift metadata remain available via server logs rather than UI chrome (user directive; Option A selected).
 - 2025-10-13 – Stored credential seeding mirrors the inline preset catalogue (SHA-1/SHA-256/SHA-512 across 6- and 8-digit variants) so dropdown labels match the inline sample vector names (user directive; Option A selected).
+- 2025-10-13 – Operator console deep links standardise on `protocol=<key>`, `tab=<evaluate|replay>`, and `mode=<inline|stored>` parameters so TOTP URLs align with HOTP/OCRA/FIDO2 conventions (user directive; Option B selected).
+- 2025-10-13 – Selecting the TOTP protocol tab must always open the Evaluate tab in Inline mode, discarding prior tab/mode state to provide a consistent entry point (user directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

@@ -1,7 +1,7 @@
 # Feature 024 – FIDO2/WebAuthn Operator Support
 
 _Status: In Progress_  
-_Last updated: 2025-10-12_
+_Last updated: 2025-10-14_
 
 ## Overview
 Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across the simulator. The feature introduces a core verification engine, persistence descriptors, application services, CLI commands, REST endpoints, and operator console panels that mirror the existing HOTP and OCRA evaluate/replay experiences. Work begins by validating canonical W3C WebAuthn Level 3 §16 authentication vectors, then expands immediately to cover the synthetic JSON assertion bundle committed under `docs/webauthn_assertion_vectors.json`.
@@ -12,6 +12,8 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 - 2025-10-09 – Begin with W3C §16 authentication vectors as the authoritative baseline, then immediately follow with coverage for the synthetic JSONL bundle so both sources are exercised in CI (user direction “start with B then immediately A”).
 - 2025-10-09 – “Seed sample credentials” should load a curated subset of stored credentials—one representative entry per targeted algorithm/flag combination—rather than the entire catalog (user selected Option A).
 - 2025-10-11 – “Seed sample credentials” remains a stored-only affordance; hide or disable it whenever inline-only parameter panels are active to avoid confusing operators (bugfix directive).
+- 2025-10-14 – Keep the FIDO2 stored-mode “Seed sample credential” control visible even when the registry already contains entries; align behaviour with HOTP/TOTP/OCRA by only hiding the control when inline mode is selected (user confirmed Option A).
+- 2025-10-14 – Match the compact left-aligned styling used by HOTP/TOTP/OCRA for the seed control so FIDO2 no longer renders a full-width button (user direction).
 - 2025-10-09 – “Load a sample vector” buttons on evaluate and replay panels should pull from entries in `docs/webauthn_assertion_vectors.json`, pre-populating request/response payloads (user selected Option A).
 - 2025-10-09 – When surfacing sample key material in the UI, prefer JWK representations over PEM/PKCS#8 to keep output compact (user instruction).
 - 2025-10-11 – JSON vector bundles now keep base64 payloads as single-line strings and rely on a repository-level `.gitleaks.toml` allowlist for the fixture files; the data is synthetic test-only material, not real secrets, so the exemption does not weaken leak detection (maintainer note).
@@ -25,9 +27,18 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 - 2025-10-10 – CLI `fido2 evaluate` stored/inline commands transition to assertion generation outputs (Option A); verification flows continue under Replay.
 - 2025-10-10 – Operator UI Evaluate result card presents a structured `PublicKeyCredential` JSON payload (with copy/download helpers) in place of the prior status-only telemetry block (Option A).
 - 2025-10-10 – `Fido2OperatorSampleData` presets surface ES256 JWK private keys exclusively when pre-filling generator forms (Option A); PEM/PKCS#8 conversions remain a manual step documented in how-to guides.
-- 2025-10-12 – When loading the console with `protocol=fido2&fido2Mode=<mode>`, always honour the query parameter on initial load/refresh even if the stored preference differs; deep links must deterministically open the requested mode (user selected Option A).
+- 2025-10-12 – When loading the console with `protocol=fido2&tab=<evaluate|replay>&mode=<inline|stored>`, always honour the query parameters on initial load/refresh even if the stored preference differs; legacy links using `fido2Mode` remain supported for backward compatibility (user selected Option A; clarified 2025-10-13).
+- 2025-10-13 – Harmonise deep-link initialisation by having the router call each protocol module’s `setMode(..., { broadcast: false, force: true })` (HOTP, TOTP, OCRA, FIDO2) when a `mode` query parameter is present so stored/inline selections stick across reloads without relying on synthetic radio clicks (user confirmed shared Option A).
 - 2025-10-12 – Replay APIs continue to expect Base64URL COSE public keys for now; Task T17 (Replay public-key format expansion) will extend the single `publicKey` field to auto-detect COSE, JWK, or PEM inputs (user selected Option A; implementation pending).
 - 2025-10-13 – Clamp the generated assertion result panel width and provide horizontal scrolling so the evaluation column retains its layout when rendering long payloads (user selected Option A).
+- 2025-10-13 – Remove the stored “Load preset challenge & key” button; selecting a stored credential auto-populates preset values, and re-selecting the placeholder option resets the form (user directive).
+- 2025-10-13 – Stored Evaluate result cards no longer display the telemetry metadata line; the panel now surfaces only the generated `PublicKeyCredential` JSON while telemetry remains available in logs (user directive).
+- 2025-10-13 – Harmonise operator console deep links across protocols: URLs must use `protocol=<key>`, `tab=<evaluate|replay>`, and `mode=<inline|stored>` for HOTP, TOTP, OCRA, and FIDO2 so shared bookmarks restore the correct panels (user selected Option B).
+- 2025-10-13 – When an operator clicks a protocol tab, default the interface to the Evaluate tab with Inline mode selected for that protocol, overriding prior mode/tab state to provide a predictable starting point (user directive).
+- 2025-10-13 – Harmonise operator console deep links across protocols: URLs must use `protocol=<key>`, `tab=<evaluate|replay>`, and `mode=<inline|stored>` for HOTP, TOTP, OCRA, and FIDO2 so shared bookmarks restore the correct panels (user selected Option B).
+- 2025-10-13 – Remove the stored “Copy JSON” and “Download JSON” controls; operators can continue copying directly from the code block while inline mode keeps its copy/download helpers (user directive).
+- 2025-10-14 – Stored evaluate dropdown must mirror other protocol panels: render beneath the label with stacked styling and the dark surface background instead of the default browser chrome (user directive referencing UI screenshots).
+- 2025-10-14 – Stored credential dropdown entries must adopt algorithm-first labels (e.g., “EdDSA (W3C 16.1.10)”, “PS256”) and drop the “Seed … generator preset” prefix so the menu matches HOTP/TOTP/OCRA naming parity (user directive).
 - 2025-10-12 – Sample vector renderers should list `kty` as the first property when emitting JWK key material so operators see the key type immediately; Task T18 will reorder the serialized fields across CLI/REST/UI presets (implementation pending).
 - 2025-10-11 – Synthetic JSON vectors now include JWK private keys for every supported algorithm (ES256/384/512, RS256, PS256, Ed25519); generator presets across CLI/REST/UI must ingest these so operators can produce assertions without manual key entry.
 - 2025-10-12 – Operator console “Load sample vector” dropdowns and seed actions default to the W3C fixture for a given algorithm when a private key exists; fall back to the synthetic bundle only when the specification omits material (e.g., PS256). CLI/REST surfaces share the same preset precedence via `WebAuthnGeneratorSamples`.

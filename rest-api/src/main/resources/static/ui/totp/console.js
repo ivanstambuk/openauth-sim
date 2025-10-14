@@ -1416,7 +1416,11 @@
     }
     try {
       var params = new global.URLSearchParams(search);
-      return normalizeTab(params.get('totpTab'));
+      var tab = params.get('totpTab');
+      if (!tab) {
+        tab = params.get('tab');
+      }
+      return normalizeTab(tab);
     } catch (error) {
       return 'evaluate';
     }
@@ -1428,7 +1432,15 @@
     }
     try {
       var params = new global.URLSearchParams(search);
-      return normalizeMode(params.get('totpMode'));
+      var explicit = params.get('totpMode');
+      if (!explicit) {
+        var sharedMode = params.get('mode');
+        var sharedTab = normalizeTab(params.get('tab'));
+        if (sharedMode && sharedTab !== 'replay') {
+          explicit = sharedMode;
+        }
+      }
+      return normalizeMode(explicit || 'inline');
     } catch (error) {
       return 'inline';
     }
@@ -1440,7 +1452,15 @@
     }
     try {
       var params = new global.URLSearchParams(search);
-      return normalizeMode(params.get('totpReplayMode'));
+      var explicit = params.get('totpReplayMode');
+      if (!explicit) {
+        var sharedMode = params.get('mode');
+        var sharedTab = normalizeTab(params.get('tab'));
+        if (sharedMode && sharedTab === 'replay') {
+          explicit = sharedMode;
+        }
+      }
+      return normalizeMode(explicit || 'stored');
     } catch (error) {
       return 'stored';
     }

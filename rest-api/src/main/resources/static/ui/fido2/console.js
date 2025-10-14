@@ -40,18 +40,6 @@
       storedResultPanel
           ? storedResultPanel.querySelector('[data-testid="fido2-generated-assertion-json"]')
           : null;
-  var storedCopyButton =
-      storedResultPanel
-          ? storedResultPanel.querySelector('[data-testid="fido2-copy-assertion"]')
-          : null;
-  var storedDownloadButton =
-      storedResultPanel
-          ? storedResultPanel.querySelector('[data-testid="fido2-download-assertion"]')
-          : null;
-  var storedMetadata =
-      storedResultPanel
-          ? storedResultPanel.querySelector('[data-testid="fido2-generated-assertion-metadata"]')
-          : null;
   var inlineResultPanel = panel.querySelector('[data-testid="fido2-inline-result"]');
   var inlineGeneratedJson =
       inlineResultPanel
@@ -107,11 +95,8 @@
   var storedSeedActions = panel.querySelector('[data-testid="fido2-seed-actions"]');
   var storedSeedButton = panel.querySelector('[data-testid="fido2-seed-credentials"]');
   var storedSeedStatus = panel.querySelector('[data-testid="fido2-seed-status"]');
-  var shouldDisplaySeedActions = false;
   var storedRpInput = panel.querySelector('#fido2StoredRpId');
   var storedOriginInput = panel.querySelector('#fido2StoredOrigin');
-  var storedLoadSampleButton =
-      panel.querySelector('[data-testid="fido2-stored-load-sample"]');
   var storedChallengeField = panel.querySelector('#fido2StoredChallenge');
   var storedPrivateKeyField = panel.querySelector('#fido2StoredPrivateKey');
   var storedCounterInput = panel.querySelector('#fido2StoredCounter');
@@ -194,6 +179,15 @@
   var currentEvaluateMode = MODE_INLINE;
   var currentReplayMode = MODE_INLINE;
   var lastReplayMode = MODE_INLINE;
+  if (typeof global.__openauthFido2InitialReplayMode === 'string') {
+    var initialReplayMode =
+        global.__openauthFido2InitialReplayMode.toLowerCase();
+    if (initialReplayMode === MODE_STORED || initialReplayMode === MODE_INLINE) {
+      lastReplayMode = initialReplayMode;
+      currentReplayMode = initialReplayMode;
+    }
+    global.__openauthFido2InitialReplayMode = undefined;
+  }
   var initialLegacyMode = readInitialLegacyMode();
 
   if (evaluateTabButton) {
@@ -258,12 +252,6 @@
       seedStoredCredentials();
     });
   }
-  if (storedLoadSampleButton) {
-    storedLoadSampleButton.addEventListener('click', function (event) {
-      event.preventDefault();
-      applyStoredSample(storedCredentialSelect && storedCredentialSelect.value);
-    });
-  }
 
   if (inlineSampleSelect) {
     inlineSampleSelect.addEventListener('change', function () {
@@ -300,22 +288,9 @@
       submitInlineReplay();
     });
   }
-  if (storedCopyButton) {
-    storedCopyButton.addEventListener('click', function (event) {
-      event.preventDefault();
-      copyToClipboard(storedAssertionJson ? storedAssertionJson.textContent : '');
-    });
-  }
-  if (storedDownloadButton) {
-    storedDownloadButton.addEventListener('click', function (event) {
-      event.preventDefault();
-      downloadAssertionJson(storedAssertionJson ? storedAssertionJson.textContent : '');
-    });
-  }
-
   setTab(TAB_EVALUATE, { broadcast: false, force: true });
   setEvaluateMode(MODE_INLINE, { broadcast: false, force: true });
-  setReplayMode(MODE_INLINE, { broadcast: false, force: true });
+  setReplayMode(lastReplayMode, { broadcast: false, force: true });
   if (initialLegacyMode) {
     legacySetMode(initialLegacyMode, { broadcast: false, force: true });
   }
@@ -475,9 +450,6 @@
 
   function handleStoredEvaluationSuccess(response) {
     setStoredAssertionText(formatAssertionJson(response && response.assertion));
-    enableStoredActions(true);
-    updateStoredMetadata(
-        formatEvaluationTelemetry(response && response.metadata, response && response.status));
     hasStoredEvaluationResult = true;
     refreshEvaluationResultVisibility();
   }
@@ -485,8 +457,6 @@
   function handleStoredEvaluationError(error) {
     var message = formatEvaluationErrorMessage(error, 'Stored generation');
     setStoredAssertionText(sanitizeMessage(message));
-    enableStoredActions(false);
-    updateStoredMetadata(message);
     hasStoredEvaluationResult = true;
     refreshEvaluationResultVisibility();
   }
@@ -585,6 +555,12 @@
     if (evaluateModeToggle) {
       evaluateModeToggle.setAttribute('data-mode', mode);
     }
+    if (evaluateStoredRadio) {
+      evaluateStoredRadio.checked = mode === MODE_STORED;
+    }
+    if (evaluateInlineRadio) {
+      evaluateInlineRadio.checked = mode === MODE_INLINE;
+    }
     toggleSection(evaluateStoredSection, mode === MODE_STORED);
     toggleSection(evaluateInlineSection, mode === MODE_INLINE);
     refreshEvaluationResultVisibility();
@@ -611,6 +587,12 @@
     lastReplayMode = mode;
     if (replayModeToggle) {
       replayModeToggle.setAttribute('data-mode', mode);
+    }
+    if (replayStoredRadio) {
+      replayStoredRadio.checked = mode === MODE_STORED;
+    }
+    if (replayInlineRadio) {
+      replayInlineRadio.checked = mode === MODE_INLINE;
     }
     toggleSection(replayStoredSection, mode === MODE_STORED);
     toggleSection(replayInlineSection, mode === MODE_INLINE);
@@ -696,7 +678,6 @@
     fetchCredentials(endpoint).then(function (credentials) {
       updateCredentialSelect(storedCredentialSelect, credentials);
       updateCredentialSelect(replayCredentialSelect, credentials);
-      shouldDisplaySeedActions = credentials.length === 0;
       toggleSeedActions();
       if (credentials.length > 0) {
         var firstId = credentials[0].id;
@@ -749,8 +730,6 @@
     setValue(storedPrivateKeyField, definition.privateKeyJwk || '');
     setValue(storedCounterInput, '');
     setStoredAssertionText('Awaiting submission.');
-    enableStoredActions(false);
-    updateStoredMetadata('Telemetry ready (sanitized).');
     if (inlineSampleSelect && vector) {
       inlineSampleSelect.value = vector.key;
     }
@@ -944,8 +923,6 @@
     hasStoredEvaluationResult = false;
     refreshEvaluationResultVisibility();
     setStoredAssertionText('Awaiting submission.');
-    enableStoredActions(false);
-    updateStoredMetadata('Telemetry pending (sanitized).');
   }
 
   function pendingInlineResult() {
@@ -959,23 +936,6 @@
   function setStoredAssertionText(text) {
     if (storedAssertionJson) {
       storedAssertionJson.textContent = text;
-    }
-  }
-
-  function enableStoredActions(enabled) {
-    if (storedCopyButton) {
-      if (enabled) {
-        storedCopyButton.removeAttribute('disabled');
-      } else {
-        storedCopyButton.setAttribute('disabled', 'disabled');
-      }
-    }
-    if (storedDownloadButton) {
-      if (enabled) {
-        storedDownloadButton.removeAttribute('disabled');
-      } else {
-        storedDownloadButton.setAttribute('disabled', 'disabled');
-      }
     }
   }
 
@@ -1027,12 +987,6 @@
     }
     setReplayInlineMessage('Awaiting replay.');
     updateReplayInlineTelemetry('Awaiting replay (sanitized).');
-  }
-
-  function updateStoredMetadata(message) {
-    if (storedMetadata) {
-      storedMetadata.textContent = sanitizeMessage(message);
-    }
   }
 
   function updateInlineTelemetry(message) {
@@ -1295,52 +1249,6 @@
     return parsed;
   }
 
-  function copyToClipboard(text) {
-    var content = text || '';
-    if (!content) {
-      return;
-    }
-    var nav = global.navigator;
-    if (nav && nav.clipboard && nav.clipboard.writeText) {
-      nav.clipboard.writeText(content).catch(function () {
-        fallbackCopy(content);
-      });
-      return;
-    }
-    fallbackCopy(content);
-  }
-
-  function fallbackCopy(content) {
-    var textarea = documentRef.createElement('textarea');
-    textarea.value = content;
-    textarea.setAttribute('readonly', 'readonly');
-    textarea.style.position = 'absolute';
-    textarea.style.left = '-9999px';
-    documentRef.body.appendChild(textarea);
-    textarea.select();
-    try {
-      documentRef.execCommand('copy');
-    } catch (ex) {
-      // ignore copy failures
-    }
-    documentRef.body.removeChild(textarea);
-  }
-
-  function downloadAssertionJson(text) {
-    if (!text) {
-      return;
-    }
-    var blob = new Blob([text], { type: 'application/json' });
-    var url = global.URL.createObjectURL(blob);
-    var link = documentRef.createElement('a');
-    link.href = url;
-    link.download = 'webauthn-assertion.json';
-    documentRef.body.appendChild(link);
-    link.click();
-    documentRef.body.removeChild(link);
-    global.URL.revokeObjectURL(url);
-  }
-
   function sendJsonRequest(endpoint, payload, csrf) {
     return new Promise(function (resolve, reject) {
       if (!endpoint) {
@@ -1582,14 +1490,11 @@
     });
   }
 
-  function toggleSeedActions(shouldShow) {
+  function toggleSeedActions() {
     if (!storedSeedActions) {
       return;
     }
-    if (typeof shouldShow === 'boolean') {
-      shouldDisplaySeedActions = shouldShow;
-    }
-    var visible = shouldDisplaySeedActions && currentEvaluateMode === MODE_STORED;
+    var visible = currentEvaluateMode === MODE_STORED;
     if (visible) {
       storedSeedActions.removeAttribute('hidden');
       storedSeedActions.setAttribute('aria-hidden', 'false');

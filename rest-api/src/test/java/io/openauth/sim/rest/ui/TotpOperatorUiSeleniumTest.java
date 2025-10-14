@@ -396,7 +396,7 @@ final class TotpOperatorUiSeleniumTest {
   void totpReplayInlineSamplePresetPopulatesForm() {
     navigateToTotpPanel();
     switchToReplayTab();
-    waitUntilUrlContains("totpTab=replay");
+    waitUntilUrlContains("tab=replay");
 
     WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
     WebElement inlineToggle =
@@ -545,7 +545,7 @@ final class TotpOperatorUiSeleniumTest {
   void storedTotpReplayReturnsMatch() {
     navigateToTotpPanel();
     switchToReplayTab();
-    waitUntilUrlContains("totpTab=replay");
+    waitUntilUrlContains("tab=replay");
 
     WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
     waitUntilAttribute(replayToggle, "data-mode", "stored");
@@ -611,7 +611,7 @@ final class TotpOperatorUiSeleniumTest {
   void storedTotpReplaySampleButtonPopulatesForm() {
     navigateToTotpPanel();
     switchToReplayTab();
-    waitUntilUrlContains("totpTab=replay");
+    waitUntilUrlContains("tab=replay");
 
     WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
     waitUntilAttribute(replayToggle, "data-mode", "stored");
@@ -654,7 +654,7 @@ final class TotpOperatorUiSeleniumTest {
   void inlineTotpReplayReportsMismatch() {
     navigateToTotpPanel();
     switchToReplayTab();
-    waitUntilUrlContains("totpTab=replay");
+    waitUntilUrlContains("tab=replay");
 
     WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
     WebElement inlineToggle =
@@ -703,7 +703,7 @@ final class TotpOperatorUiSeleniumTest {
         driver.findElement(By.cssSelector("[data-testid='totp-replay-inline-submit']"));
     replayButton.click();
 
-    waitUntilUrlContains("totpReplayMode=inline");
+    waitUntilUrlContains("mode=inline");
 
     WebElement resultPanel =
         waitForVisible(By.cssSelector("[data-testid='totp-replay-result-panel']"));
@@ -739,8 +739,8 @@ final class TotpOperatorUiSeleniumTest {
     waitUntilAttribute(modeToggle, "data-mode", "inline");
 
     waitUntilUrlContains("protocol=totp");
-    waitUntilUrlContains("totpTab=evaluate");
-    waitUntilUrlContains("totpMode=inline");
+    waitUntilUrlContains("tab=evaluate");
+    waitUntilUrlContains("mode=inline");
 
     driver.navigate().refresh();
 

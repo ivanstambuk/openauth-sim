@@ -4,15 +4,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples;
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples.Sample;
+import io.openauth.sim.application.fido2.WebAuthnSeedApplicationService;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
 import io.openauth.sim.core.model.Credential;
+import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -67,8 +72,7 @@ final class Fido2OperatorUiSeleniumTest {
     driver.setJavascriptEnabled(true);
     driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));
 
-    credentialStore.delete(STORED_CREDENTIAL_ID);
-    credentialStore.delete("fido2-packed-es256");
+    clearCredentialStore();
     seedStoredCredential();
   }
 
@@ -100,29 +104,38 @@ final class Fido2OperatorUiSeleniumTest {
     waitUntilAttribute(
         By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
 
+    By seedActionsSelector = By.cssSelector("[data-testid='fido2-seed-actions']");
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(ExpectedConditions.attributeToBe(seedActionsSelector, "aria-hidden", "false"));
+    WebElement seedActions = waitFor(seedActionsSelector);
+    assertThat(seedActions.getAttribute("hidden")).isNull();
+    WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
+    assertThat(seedButton.getAttribute("disabled")).isNull();
+
+    seedButton.click();
+    awaitText(
+        By.cssSelector("[data-testid='fido2-seed-status']"),
+        text -> text != null && text.contains("Seeded sample credentials"));
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(ExpectedConditions.attributeToBe(seedActionsSelector, "aria-hidden", "false"));
+    assertThat(seedActions.getAttribute("hidden")).isNull();
+
+    waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
+
     waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
     Select credentialSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
     assertThat(credentialSelect.getOptions()).hasSizeGreaterThanOrEqualTo(2);
     credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
 
-    WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
-    if (seedButton.isDisplayed() && seedButton.isEnabled()) {
-      seedButton.click();
-      awaitText(
-          By.cssSelector("[data-testid='fido2-seed-status']"),
-          text -> text != null && text.contains("addedCount"));
-    }
-
-    WebElement loadSample = waitFor(By.cssSelector("[data-testid='fido2-stored-load-sample']"));
-    loadSample.click();
-
     WebElement storedChallengeField = waitFor(By.id("fido2StoredChallenge"));
+    awaitValue(By.id("fido2StoredChallenge"), value -> value != null && !value.isBlank());
     assertThat(storedChallengeField.getAttribute("rows")).isEqualTo("1");
 
     WebElement originInput = driver.findElement(By.id("fido2StoredOrigin"));
     assertThat(originInput.getAttribute("value")).isEqualTo("https://example.org");
 
     WebElement privateKeyField = waitFor(By.id("fido2StoredPrivateKey"));
+    awaitValue(By.id("fido2StoredPrivateKey"), value -> value != null && value.contains("\"kty\""));
     assertThat(privateKeyField.findElement(By.xpath("..")).getAttribute("class"))
         .contains("field-group--stacked");
     assertThat(privateKeyField.getAttribute("value")).contains("\"kty\"");
@@ -139,15 +152,96 @@ final class Fido2OperatorUiSeleniumTest {
     assertThat(assertionJson.getText()).contains("\"type\": \"public-key\"");
     assertThat(assertionJson.getText()).contains("\"clientDataJSON\"");
 
-    WebElement copyButton =
-        driver.findElement(By.cssSelector("[data-testid='fido2-copy-assertion']"));
-    assertThat(copyButton.isDisplayed()).isTrue();
+    assertThat(
+            driver.findElements(
+                By.cssSelector("[data-testid='fido2-generated-assertion-metadata']")))
+        .as("stored telemetry metadata should be removed")
+        .isEmpty();
+  }
 
-    By storedMetadataSelector =
-        By.cssSelector("[data-testid='fido2-generated-assertion-metadata']");
-    awaitText(storedMetadataSelector, text -> text.contains("credentialSource=stored"));
-    WebElement metadata = waitFor(storedMetadataSelector);
-    assertThat(metadata.getText()).contains("credentialSource=stored");
+  @Test
+  @DisplayName("Stored credential dropdown uses stacked styling with dark background")
+  void storedCredentialDropdownUsesStackedStyling() {
+    navigateToWebAuthnPanel();
+
+    WebElement storedRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+    storedRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
+
+    WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
+    if (seedButton.isDisplayed() && seedButton.isEnabled()) {
+      seedButton.click();
+      awaitText(
+          By.cssSelector("[data-testid='fido2-seed-status']"),
+          text -> text != null && text.contains("Seeded sample credentials"));
+    }
+
+    waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(webDriver -> webDriver.findElement(By.id("fido2StoredCredentialId")).isEnabled());
+
+    WebElement selectElement = waitFor(By.id("fido2StoredCredentialId"));
+    WebElement fieldGroup = selectElement.findElement(By.xpath(".."));
+    assertThat(fieldGroup.getAttribute("class"))
+        .as("stored credential field group should use stacked styling")
+        .contains("field-group--stacked");
+
+    String backgroundColor = selectElement.getCssValue("background-color");
+    assertThat(backgroundColor)
+        .as("stored credential dropdown should use dark background")
+        .isNotBlank()
+        .isNotEqualTo("rgba(255, 255, 255, 1)")
+        .isNotEqualTo("rgb(255, 255, 255)");
+  }
+
+  @Test
+  @DisplayName("Stored credential dropdown uses algorithm-first preset labels")
+  void storedCredentialDropdownUsesAlgorithmFirstLabels() {
+    clearCredentialStore();
+    seedAllCuratedCredentials();
+
+    navigateToWebAuthnPanel();
+
+    WebElement storedRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+    storedRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
+
+    WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
+    if (seedButton.isDisplayed() && seedButton.isEnabled()) {
+      seedButton.click();
+      awaitText(
+          By.cssSelector("[data-testid='fido2-seed-status']"),
+          text -> text != null && text.contains("Seeded sample credentials"));
+    }
+
+    waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
+    Select credentialSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
+    List<String> optionLabels =
+        credentialSelect.getOptions().stream()
+            .map(WebElement::getText)
+            .map(String::trim)
+            .filter(text -> !text.isBlank())
+            .filter(text -> !"Select a stored credential".equals(text))
+            .toList();
+
+    List<String> expectedLabels =
+        Fido2OperatorSampleData.seedDefinitions().stream()
+            .sorted(
+                Comparator.comparing(
+                    Fido2OperatorSampleData.SeedDefinition::credentialId,
+                    String::compareToIgnoreCase))
+            .map(Fido2OperatorSampleData.SeedDefinition::label)
+            .toList();
+
+    assertThat(optionLabels)
+        .as("stored credential dropdown labels")
+        .containsExactlyElementsOf(expectedLabels);
+    assertThat(optionLabels).allMatch(label -> !label.startsWith("Seed "));
+    assertThat(optionLabels).allMatch(label -> !label.contains("generator preset"));
   }
 
   @Test
@@ -161,20 +255,20 @@ final class Fido2OperatorUiSeleniumTest {
     waitUntilAttribute(
         By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
 
-    waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
-    Select credentialSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
-    credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
-
     WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
     if (seedButton.isDisplayed() && seedButton.isEnabled()) {
       seedButton.click();
       awaitText(
           By.cssSelector("[data-testid='fido2-seed-status']"),
-          text -> text != null && text.contains("addedCount"));
+          text -> text != null && text.contains("Seeded sample credentials"));
+      waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
     }
 
-    WebElement loadSample = waitFor(By.cssSelector("[data-testid='fido2-stored-load-sample']"));
-    loadSample.click();
+    waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
+    Select credentialSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
+    credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
+    awaitValue(By.id("fido2StoredChallenge"), value -> value != null && !value.isBlank());
+    awaitValue(By.id("fido2StoredPrivateKey"), value -> value != null && value.contains("\"kty\""));
 
     WebElement submitButton =
         waitFor(By.cssSelector("[data-testid='fido2-evaluate-stored-submit']"));
@@ -217,8 +311,7 @@ final class Fido2OperatorUiSeleniumTest {
   @Test
   @DisplayName("Seed sample credential control hides outside stored mode")
   void seedControlHidesOutsideStoredMode() {
-    credentialStore.delete(STORED_CREDENTIAL_ID);
-    credentialStore.delete("fido2-packed-es256");
+    clearCredentialStore();
 
     navigateToWebAuthnPanel();
 
@@ -236,6 +329,17 @@ final class Fido2OperatorUiSeleniumTest {
 
     WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
     assertThat(seedButton.getAttribute("disabled")).isNull();
+    String seedContainerDisplay =
+        (String)
+            ((JavascriptExecutor) driver)
+                .executeScript(
+                    "return window.getComputedStyle(arguments[0]).display;", seedActions);
+    assertThat(seedContainerDisplay).isIn("block", "inline", "inline-block");
+    String seedButtonDisplay =
+        (String)
+            ((JavascriptExecutor) driver)
+                .executeScript("return window.getComputedStyle(arguments[0]).display;", seedButton);
+    assertThat(seedButtonDisplay).isEqualTo("inline-flex");
 
     WebElement inlineRadio =
         waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-inline']"));
@@ -604,6 +708,7 @@ final class Fido2OperatorUiSeleniumTest {
                     new IllegalStateException(
                         "Generator sample not found for stored credential: "
                             + STORED_CREDENTIAL_ID));
+
     WebAuthnCredentialDescriptor descriptor =
         WebAuthnCredentialDescriptor.builder()
             .name(sample.key())
@@ -614,9 +719,30 @@ final class Fido2OperatorUiSeleniumTest {
             .userVerificationRequired(sample.userVerificationRequired())
             .algorithm(sample.algorithm())
             .build();
-    Credential credential =
+
+    Credential serialized =
         VersionedCredentialRecordMapper.toCredential(persistenceAdapter.serialize(descriptor));
-    credentialStore.save(credential);
+
+    Map<String, String> attributes = new LinkedHashMap<>(serialized.attributes());
+    Fido2OperatorSampleData.seedDefinitions().stream()
+        .filter(definition -> definition.credentialId().equals(STORED_CREDENTIAL_ID))
+        .findFirst()
+        .ifPresent(
+            definition ->
+                definition
+                    .metadata()
+                    .forEach((key, value) -> attributes.put("fido2.metadata." + key, value)));
+
+    Credential persisted =
+        new Credential(
+            serialized.name(),
+            CredentialType.FIDO2,
+            serialized.secret(),
+            attributes,
+            serialized.createdAt(),
+            serialized.updatedAt());
+
+    credentialStore.save(persisted);
   }
 
   private void navigateToWebAuthnPanel() {
@@ -662,8 +788,17 @@ final class Fido2OperatorUiSeleniumTest {
             });
   }
 
+  private void awaitValue(By selector, java.util.function.Predicate<String> predicate) {
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            webDriver -> {
+              String value = webDriver.findElement(selector).getAttribute("value");
+              return predicate.test(value);
+            });
+  }
+
   private void waitForOption(By selector, String value) {
-    new WebDriverWait(driver, Duration.ofSeconds(3))
+    new WebDriverWait(driver, Duration.ofSeconds(5))
         .until(
             webDriver -> {
               try {
@@ -732,6 +867,29 @@ final class Fido2OperatorUiSeleniumTest {
     assertThat(credentialIdField.isDisplayed()).as("inline credential id visible").isTrue();
     WebElement publicKeyField = waitFor(By.id("fido2ReplayInlinePublicKey"));
     assertThat(publicKeyField.isDisplayed()).as("inline public key visible").isTrue();
+  }
+
+  private void clearCredentialStore() {
+    credentialStore.findAll().forEach(credential -> credentialStore.delete(credential.name()));
+  }
+
+  private void seedAllCuratedCredentials() {
+    WebAuthnSeedApplicationService seedService = new WebAuthnSeedApplicationService();
+    List<WebAuthnSeedApplicationService.SeedCommand> commands =
+        Fido2OperatorSampleData.seedDefinitions().stream()
+            .map(
+                definition ->
+                    new WebAuthnSeedApplicationService.SeedCommand(
+                        definition.credentialId(),
+                        definition.relyingPartyId(),
+                        Base64.getUrlDecoder().decode(definition.credentialIdBase64Url()),
+                        Base64.getUrlDecoder().decode(definition.publicKeyCoseBase64Url()),
+                        definition.signatureCounter(),
+                        definition.userVerificationRequired(),
+                        definition.algorithm(),
+                        definition.metadata()))
+            .toList();
+    seedService.seed(commands, credentialStore);
   }
 
   private void assertEvaluateTabSelected() {

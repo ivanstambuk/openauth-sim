@@ -2,8 +2,10 @@ package io.openauth.sim.rest.ui;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
@@ -503,6 +505,260 @@ final class OperatorConsoleUnificationSeleniumTest {
   }
 
   @Test
+  @DisplayName("Protocol tab navigation omits legacy protocol-specific query parameters")
+  void protocolTabNavigationOmitsLegacyQueryParameters() {
+    driver.get(
+        baseUrl(
+            "/ui/console?protocol=ocra&tab=replay&mode=stored"
+                + "&totpTab=replay&totpMode=stored&totpReplayMode=stored"
+                + "&fido2Mode=replay"));
+
+    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
+
+    List<WebElement> tabs =
+        List.of(
+            wait.until(
+                ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("[data-testid='protocol-tab-hotp']"))),
+            driver.findElement(By.cssSelector("[data-testid='protocol-tab-totp']")),
+            driver.findElement(By.cssSelector("[data-testid='protocol-tab-ocra']")),
+            driver.findElement(By.cssSelector("[data-testid='protocol-tab-fido2']")));
+
+    List<String> expectedKeys = List.of("mode", "protocol", "tab");
+
+    tabs.forEach(
+        tab -> {
+          tab.click();
+          wait.until(d -> queryKeys(d.getCurrentUrl()).containsAll(expectedKeys));
+          List<String> sortedKeys = queryKeys(driver.getCurrentUrl());
+          assertThat(sortedKeys).isEqualTo(expectedKeys);
+          assertThat(driver.getCurrentUrl())
+              .doesNotContain("totpTab=")
+              .doesNotContain("totpMode=")
+              .doesNotContain("totpReplayMode=")
+              .doesNotContain("fido2Mode=");
+        });
+  }
+
+  @Test
+  @DisplayName("Protocol tab clicks reset evaluate inline defaults for active protocols")
+  void protocolTabsResetEvaluateInlineDefaults() {
+    driver.get(baseUrl("/ui/console?protocol=ocra&tab=replay"));
+
+    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
+
+    WebElement ocraEvaluateButton =
+        wait.until(
+            ExpectedConditions.elementToBeClickable(
+                By.cssSelector("[data-testid='ocra-mode-select-evaluate']")));
+    ocraEvaluateButton.click();
+    wait.until(
+        webDriver ->
+            "evaluate"
+                .equals(
+                    webDriver
+                        .findElement(By.cssSelector("[data-testid='ocra-mode-toggle']"))
+                        .getAttribute("data-mode")));
+
+    WebElement ocraStoredRadio =
+        wait.until(ExpectedConditions.elementToBeClickable(By.id("mode-credential")));
+    ocraStoredRadio.click();
+    wait.until(webDriver -> webDriver.findElement(By.id("mode-credential")).isSelected());
+
+    WebElement ocraReplayButton =
+        wait.until(
+            ExpectedConditions.elementToBeClickable(
+                By.cssSelector("[data-testid='ocra-mode-select-replay']")));
+    ocraReplayButton.click();
+    wait.until(
+        webDriver ->
+            "replay"
+                .equals(
+                    webDriver
+                        .findElement(By.cssSelector("[data-testid='ocra-mode-toggle']"))
+                        .getAttribute("data-mode")));
+
+    driver.get(baseUrl("/ui/console?protocol=hotp&tab=replay&mode=stored"));
+    waitUntilUrlContains("protocol=hotp");
+    waitUntilUrlContains("tab=replay");
+    waitUntilUrlContains("mode=stored");
+
+    driver.get(baseUrl("/ui/console?protocol=totp&tab=replay&mode=stored&totpReplayMode=stored"));
+    waitUntilUrlContains("protocol=totp");
+    waitUntilUrlContains("tab=replay");
+    waitUntilUrlContains("mode=stored");
+
+    driver.get(baseUrl("/ui/console?protocol=fido2&tab=replay&mode=stored&fido2Mode=replay"));
+    waitUntilUrlContains("protocol=fido2");
+    waitUntilUrlContains("tab=replay");
+    waitUntilUrlContains("mode=stored");
+
+    WebElement ocraTab =
+        wait.until(
+            ExpectedConditions.elementToBeClickable(
+                By.cssSelector("[data-testid='protocol-tab-ocra']")));
+    ocraTab.click();
+    waitUntilUrlContains("protocol=ocra");
+    waitUntilUrlContains("tab=evaluate");
+    waitUntilUrlContains("mode=inline");
+
+    WebElement ocraModeToggle =
+        driver.findElement(By.cssSelector("[data-testid='ocra-mode-toggle']"));
+    assertThat(ocraModeToggle.getAttribute("data-mode")).isEqualTo("evaluate");
+    assertThat(driver.findElement(By.id("mode-inline")).isSelected()).isTrue();
+    assertThat(driver.findElement(By.id("mode-credential")).isSelected()).isFalse();
+
+    WebElement hotpTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-hotp']"));
+    hotpTab.click();
+    waitUntilUrlContains("protocol=hotp");
+    waitUntilUrlContains("tab=evaluate");
+    waitUntilUrlContains("mode=inline");
+
+    WebElement hotpEvaluateTab =
+        driver.findElement(By.cssSelector("[data-testid='hotp-panel-tab-evaluate']"));
+    assertThat(hotpEvaluateTab.getAttribute("aria-selected")).isEqualTo("true");
+
+    WebElement hotpModeToggle =
+        driver.findElement(By.cssSelector("[data-testid='hotp-mode-toggle']"));
+    assertThat(hotpModeToggle.getAttribute("data-mode")).isEqualTo("inline");
+    assertThat(
+            driver
+                .findElement(By.cssSelector("[data-testid='hotp-mode-select-inline']"))
+                .isSelected())
+        .isTrue();
+    assertThat(
+            driver
+                .findElement(By.cssSelector("[data-testid='hotp-mode-select-stored']"))
+                .isSelected())
+        .isFalse();
+
+    WebElement totpTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-totp']"));
+    totpTab.click();
+    waitUntilUrlContains("protocol=totp");
+    waitUntilUrlContains("tab=evaluate");
+    waitUntilUrlContains("mode=inline");
+
+    WebElement totpEvaluateTab =
+        driver.findElement(By.cssSelector("[data-testid='totp-panel-tab-evaluate']"));
+    assertThat(totpEvaluateTab.getAttribute("aria-selected")).isEqualTo("true");
+
+    WebElement totpModeToggle =
+        driver.findElement(By.cssSelector("[data-testid='totp-mode-toggle']"));
+    assertThat(totpModeToggle.getAttribute("data-mode")).isEqualTo("inline");
+    assertThat(
+            driver
+                .findElement(By.cssSelector("[data-testid='totp-mode-select-inline']"))
+                .isSelected())
+        .isTrue();
+    assertThat(
+            driver
+                .findElement(By.cssSelector("[data-testid='totp-mode-select-stored']"))
+                .isSelected())
+        .isFalse();
+
+    WebElement fidoTab = driver.findElement(By.cssSelector("[data-testid='protocol-tab-fido2']"));
+    fidoTab.click();
+    waitUntilUrlContains("protocol=fido2");
+    waitUntilUrlContains("tab=evaluate");
+    waitUntilUrlContains("mode=inline");
+
+    WebElement fidoEvaluateTab =
+        driver.findElement(By.cssSelector("[data-testid='fido2-panel-tab-evaluate']"));
+    assertThat(fidoEvaluateTab.getAttribute("aria-selected")).isEqualTo("true");
+
+    WebElement fidoModeToggle =
+        driver.findElement(By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"));
+    assertThat(fidoModeToggle.getAttribute("data-mode")).isEqualTo("inline");
+    assertThat(
+            driver
+                .findElement(By.cssSelector("[data-testid='fido2-evaluate-mode-select-inline']"))
+                .isSelected())
+        .isTrue();
+    assertThat(
+            driver
+                .findElement(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"))
+                .isSelected())
+        .isFalse();
+  }
+
+  @Test
+  @DisplayName("Deep-link stored mode remains active across supported protocols and refresh")
+  void storedModeDeepLinksPersistAcrossProtocols() {
+    List<StoredModeExpectation> expectations =
+        List.of(
+            new StoredModeExpectation(
+                "ocra",
+                "/ui/console?protocol=ocra&tab=evaluate&mode=stored",
+                "[data-testid='ocra-evaluate-panel']",
+                "#mode-credential",
+                "#mode-inline",
+                null,
+                "[data-mode-section='credential']"),
+            new StoredModeExpectation(
+                "hotp",
+                "/ui/console?protocol=hotp&tab=evaluate&mode=stored",
+                "[data-testid='hotp-evaluate-panel']",
+                "[data-testid='hotp-mode-select-stored']",
+                "[data-testid='hotp-mode-select-inline']",
+                "[data-testid='hotp-mode-toggle']",
+                "[data-mode-section='stored']"),
+            new StoredModeExpectation(
+                "totp",
+                "/ui/console?protocol=totp&tab=evaluate&mode=stored",
+                "[data-testid='totp-evaluate-panel']",
+                "[data-testid='totp-mode-select-stored']",
+                "[data-testid='totp-mode-select-inline']",
+                "[data-testid='totp-mode-toggle']",
+                null),
+            new StoredModeExpectation(
+                "fido2",
+                "/ui/console?protocol=fido2&tab=evaluate&mode=stored",
+                "[data-testid='fido2-evaluate-panel']",
+                "[data-testid='fido2-evaluate-mode-select-stored']",
+                "[data-testid='fido2-evaluate-mode-select-inline']",
+                "[data-testid='fido2-evaluate-mode-toggle']",
+                null));
+
+    expectations.forEach(this::assertStoredDeepLinkPersists);
+  }
+
+  @Test
+  @DisplayName("HOTP replay stored deep link keeps stored selection after refresh")
+  void hotpReplayStoredDeepLinkPersistsStoredSelection() {
+    driver.get(baseUrl("/ui/console?protocol=hotp&tab=replay&mode=stored"));
+
+    waitUntilUrlContains("protocol=hotp");
+    waitUntilUrlContains("tab=replay");
+    waitUntilUrlContains("mode=stored");
+    waitForHotpReplayStoredState();
+
+    driver.navigate().refresh();
+
+    waitUntilUrlContains("protocol=hotp");
+    waitUntilUrlContains("tab=replay");
+    waitUntilUrlContains("mode=stored");
+    waitForHotpReplayStoredState();
+  }
+
+  @Test
+  @DisplayName("FIDO2 replay stored deep link keeps stored selection after refresh")
+  void fido2ReplayStoredDeepLinkPersistsStoredSelection() {
+    driver.get(baseUrl("/ui/console?protocol=fido2&tab=replay&mode=stored"));
+
+    waitUntilUrlContains("protocol=fido2");
+    waitUntilUrlContains("tab=replay");
+    waitUntilUrlContains("mode=stored");
+    waitForFido2ReplayStoredState();
+
+    driver.navigate().refresh();
+
+    waitUntilUrlContains("protocol=fido2");
+    waitUntilUrlContains("tab=replay");
+    waitUntilUrlContains("mode=stored");
+    waitForFido2ReplayStoredState();
+  }
+
+  @Test
   @DisplayName("OCRA inline preset hints use shared illustrative data copy")
   void ocraPresetHintMatchesRequirement() {
     driver.get(baseUrl("/ui/console"));
@@ -792,6 +1048,22 @@ final class OperatorConsoleUnificationSeleniumTest {
     return "http://localhost:" + port + path;
   }
 
+  private List<String> queryKeys(String url) {
+    String query = URI.create(url).getQuery();
+    if (query == null || query.isBlank()) {
+      return List.of();
+    }
+    return Arrays.stream(query.split("&"))
+        .map(pair -> pair.split("=", 2)[0])
+        .sorted()
+        .collect(Collectors.toList());
+  }
+
+  private void waitUntilUrlContains(String fragment) {
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(d -> d.getCurrentUrl().contains(fragment));
+  }
+
   private WebElement waitForProtocolInfoSurface() {
     return new WebDriverWait(driver, Duration.ofSeconds(3))
         .until(
@@ -849,5 +1121,194 @@ final class OperatorConsoleUnificationSeleniumTest {
       return stringValue.trim();
     }
     throw new AssertionError("Expected font-size string but received: " + value);
+  }
+
+  private void assertStoredDeepLinkPersists(StoredModeExpectation expectation) {
+    driver.get(baseUrl(expectation.query()));
+    waitUntilUrlContains("protocol=" + expectation.protocol());
+    waitUntilUrlContains("tab=evaluate");
+    waitUntilUrlContains("mode=stored");
+
+    waitForStoredState(expectation);
+
+    driver.navigate().refresh();
+
+    waitUntilUrlContains("protocol=" + expectation.protocol());
+    waitUntilUrlContains("mode=stored");
+
+    waitForStoredState(expectation);
+  }
+
+  private void waitForStoredState(StoredModeExpectation expectation) {
+    WebElement panel =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector(expectation.panelSelector())));
+    setPanelVisibilityExpectation(panel, false);
+
+    if (expectation.modeToggleSelector() != null) {
+      WebElement modeToggle =
+          new WebDriverWait(driver, Duration.ofSeconds(5))
+              .until(
+                  ExpectedConditions.presenceOfElementLocated(
+                      By.cssSelector(expectation.modeToggleSelector())));
+      new WebDriverWait(driver, Duration.ofSeconds(5))
+          .until(d -> "stored".equals(modeToggle.getAttribute("data-mode")));
+    }
+
+    WebElement storedRadio =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector(expectation.storedRadioSelector())));
+    WebElement inlineRadio =
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+            .until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector(expectation.inlineRadioSelector())));
+
+    assertThat(storedRadio.isSelected())
+        .as("stored radio selected for %s", expectation.protocol())
+        .isTrue();
+    assertThat(inlineRadio.isSelected())
+        .as("inline radio cleared for %s", expectation.protocol())
+        .isFalse();
+
+    if (expectation.storedSectionSelector() != null) {
+      By storedLocator = By.cssSelector(expectation.storedSectionSelector());
+      new WebDriverWait(driver, Duration.ofSeconds(5))
+          .until(ExpectedConditions.presenceOfElementLocated(storedLocator));
+      new WebDriverWait(driver, Duration.ofSeconds(5))
+          .until(d -> d.findElement(storedLocator).getAttribute("hidden") == null);
+      assertThat(driver.findElement(storedLocator).getAttribute("hidden"))
+          .as("stored section hidden attribute for %s", expectation.protocol())
+          .isNull();
+    }
+  }
+
+  private void waitForHotpReplayStoredState() {
+    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+
+    WebElement replayTab =
+        wait.until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='hotp-panel-tab-replay']")));
+    wait.until(ExpectedConditions.attributeToBe(replayTab, "aria-selected", "true"));
+
+    WebElement modeToggle =
+        wait.until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='hotp-replay-mode-toggle']")));
+    wait.until(d -> "stored".equals(modeToggle.getAttribute("data-mode")));
+
+    WebElement storedRadio =
+        wait.until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='hotp-replay-mode-select-stored']")));
+    WebElement inlineRadio =
+        wait.until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='hotp-replay-mode-select-inline']")));
+
+    assertThat(storedRadio.isSelected()).isTrue();
+    assertThat(inlineRadio.isSelected()).isFalse();
+
+    WebElement storedSection =
+        wait.until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='hotp-replay-stored-panel']")));
+    wait.until(d -> storedSection.getAttribute("hidden") == null);
+    assertThat(storedSection.getAttribute("hidden")).isNull();
+  }
+
+  private void waitForFido2ReplayStoredState() {
+    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+
+    WebElement replayTab =
+        wait.until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='fido2-panel-tab-replay']")));
+    wait.until(ExpectedConditions.attributeToBe(replayTab, "aria-selected", "true"));
+
+    WebElement modeToggle =
+        wait.until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='fido2-replay-mode-toggle']")));
+    wait.until(d -> "stored".equals(modeToggle.getAttribute("data-mode")));
+
+    WebElement storedRadio =
+        wait.until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='fido2-replay-mode-select-stored']")));
+    WebElement inlineRadio =
+        wait.until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='fido2-replay-mode-select-inline']")));
+
+    assertThat(storedRadio.isSelected()).isTrue();
+    assertThat(inlineRadio.isSelected()).isFalse();
+
+    WebElement storedSection =
+        wait.until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[data-testid='fido2-replay-stored-section']")));
+    wait.until(d -> storedSection.getAttribute("hidden") == null);
+    assertThat(storedSection.getAttribute("hidden")).isNull();
+  }
+
+  private static final class StoredModeExpectation {
+    private final String protocol;
+    private final String query;
+    private final String panelSelector;
+    private final String storedRadioSelector;
+    private final String inlineRadioSelector;
+    private final String modeToggleSelector;
+    private final String storedSectionSelector;
+
+    private StoredModeExpectation(
+        String protocol,
+        String query,
+        String panelSelector,
+        String storedRadioSelector,
+        String inlineRadioSelector,
+        String modeToggleSelector,
+        String storedSectionSelector) {
+      this.protocol = protocol;
+      this.query = query;
+      this.panelSelector = panelSelector;
+      this.storedRadioSelector = storedRadioSelector;
+      this.inlineRadioSelector = inlineRadioSelector;
+      this.modeToggleSelector = modeToggleSelector;
+      this.storedSectionSelector = storedSectionSelector;
+    }
+
+    private String protocol() {
+      return protocol;
+    }
+
+    private String query() {
+      return query;
+    }
+
+    private String panelSelector() {
+      return panelSelector;
+    }
+
+    private String storedRadioSelector() {
+      return storedRadioSelector;
+    }
+
+    private String inlineRadioSelector() {
+      return inlineRadioSelector;
+    }
+
+    private String modeToggleSelector() {
+      return modeToggleSelector;
+    }
+
+    private String storedSectionSelector() {
+      return storedSectionSelector;
+    }
   }
 }

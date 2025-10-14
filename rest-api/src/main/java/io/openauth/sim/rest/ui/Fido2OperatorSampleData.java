@@ -77,7 +77,7 @@ public final class Fido2OperatorSampleData {
         metadata(
             sample.key(),
             seedLabel(sample),
-            "Seeded WebAuthn credential produced by generator preset",
+            "Seeded WebAuthn credential curated for the operator console",
             sample));
   }
 
@@ -104,13 +104,24 @@ public final class Fido2OperatorSampleData {
       }
       result.put("algorithm", sample.algorithm().label());
       result.put("userVerificationRequired", Boolean.toString(sample.userVerificationRequired()));
-      result.put("source", "generator-preset");
+      result.put("source", resolveSampleSource(sample));
     }
     return Map.copyOf(result);
   }
 
   private static String seedLabel(Sample sample) {
-    return "Seed " + sample.label();
+    return sample.label();
+  }
+
+  private static String resolveSampleSource(Sample sample) {
+    Map<String, String> metadata = sample.metadata();
+    if (metadata != null) {
+      String source = metadata.get("source");
+      if (source != null && !source.isBlank()) {
+        return source;
+      }
+    }
+    return "curated-sample";
   }
 
   private static String formatInlineVectorLabel(Sample sample) {

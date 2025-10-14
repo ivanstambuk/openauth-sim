@@ -32,8 +32,8 @@ The operator console embedded in the REST API now exposes TOTP evaluation and re
 4. Replay requests emit `rest.totp.replay` telemetry with the same sanitisation guarantees as evaluation—secrets and OTP values are never echoed in the payload.
 
 ## Persist Tabs and Modes with Query Parameters
-- The console encodes the active tab (`totpTab=evaluate` or `totpTab=replay`) and the current mode (`totpMode=stored|inline` for evaluation, `totpReplayMode=stored|inline` for replay) into the URL. Bookmark or share the deep link to reopen the console in the same state.
-- Changing evaluation or replay modes emits `operator:totp-mode-changed` and `operator:totp-replay-mode-changed` events respectively; the surrounding console updates browser history so the back button and refreshes preserve your selection.
+- The console now encodes state with the shared query parameters: `protocol=totp`, `tab=evaluate|replay`, and `mode=inline|stored`. Bookmark links such as `?protocol=totp&tab=replay&mode=stored` to reopen the console in the same configuration; legacy bookmarks containing `totpTab`, `totpMode`, or `totpReplayMode` are still honoured.
+- Changing evaluation or replay modes emits `operator:totp-mode-changed` / `operator:totp-replay-mode-changed` events; the surrounding console updates the shared parameters in browser history so back/forward navigation and refreshes preserve your selection.
 
 ## Interpreting Metadata and Telemetry
 - Stored requests emit `rest.totp.evaluate` telemetry with context fields for algorithm, digit length, step seconds, drift window, matched skew steps, and whether a timestamp override was provided. Telemetry identifiers remain available in server logs; the UI focuses on OTP + status parity with HOTP/OCRA.
