@@ -231,3 +231,27 @@ _2025-10-11 – Placeholder parity: adjust inline preset handling so no sample i
   _2025-10-14 – Updated `WebAuthnGeneratorSamples` + `Fido2OperatorSampleData` so sample labels follow the algorithm-first pattern (W3C suffix retained) and metadata uses `curated-sample` source values._  
  ☑ Re-run `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.storedCredentialDropdownUsesAlgorithmFirstLabels"` and `./gradlew --no-daemon spotlessApply check`; capture outcomes before closing.  
   _2025-10-14 – Targeted Selenium test plus the full `spotlessApply check` suite now pass with the updated labels._
+
+☑ **T24 – Stored mode hides private key**  
+ ☑ Add failing Selenium coverage verifying the stored Evaluate form omits the authenticator private-key textarea while inline mode still renders it.  
+  _2025-10-14 – Added `inlineModeStillShowsPrivateKeyField` + updated stored generation test to assert the private key textarea is absent from stored mode; both cases initially failed against the existing UI._  
+ ☑ Update the UI templates/scripts so stored-mode submissions omit private-key inputs, render the relying-party ID as read-only text, and keep override fields (origin, challenge, counter, UV) editable.  
+  _2025-10-14 – Converted the stored RP ID input to `readonly`, introduced a hidden `privateKey` input, and updated `console.js` to continue seeding payloads without exposing the JWK in the UI._  
+ ☑ Adjust REST/application request handling if stored mode currently expects a private-key payload; ensure tests still pass when the field is absent.  
+  _2025-10-14 – Hidden input preserves the payload contract so no service changes were required; Selenium coverage confirms the hidden field receives the preset JWK._  
+ ☑ Re-run `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` alongside `./gradlew --no-daemon spotlessApply check`; document results then mark complete.  
+  _2025-10-14 – Targeted Selenium suite now passes with the hidden field assertion, and `spotlessApply check` completed cleanly after the UI update._  
+
+☑ **T25 – Seed message parity**  
+ ☑ Add failing Selenium coverage that verifies the FIDO2 seed control displays “Seeded 0 sample credentials. All sample credentials are already present.” and uses the warning styling when no new records are inserted.  
+  _2025-10-14 – Introduced `seedingWarnsWhenCuratedCredentialsAlreadyExist` to exercise the zero-insert flow; test failed prior to implementation with the old success copy._  
+ ☑ Update the REST/operator seed response copy (and any shared message helpers) to emit the parity text while retaining success messaging when inserts occur.  
+  _2025-10-14 – Refined the console seeding handler to parse `addedCount`, emit count-aware copy, and apply the warning class when no credentials are created; template now uses `credential-status` styling._  
+ ☑ Re-run `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` and `./gradlew --no-daemon spotlessApply check`; log outcomes before marking the task complete.  
+  _2025-10-14 – Selenium suite and `spotlessApply check` both pass post-change, confirming the parity message and styling across UI + REST wiring._
+
+☑ **T26 – Stored counter control parity**  
+ ☑ Stage a failing Selenium regression confirming the stored Evaluate form pre-fills the signature counter with the persisted value, keeps it read-only while “Use current Unix seconds” is checked, exposes the reset helper, and allows overrides once unchecked.  
+ ☑ Update the FIDO2 panel template and `ui/fido2/console.js` to reuse the inline counter toggle/reset pattern for stored mode while preserving override semantics sent to the generation service.  
+ ☑ Run the targeted Selenium test plus `./gradlew --no-daemon spotlessApply check`, documenting results before closing the task.  
+  _2025-10-14 – Added `storedCounterControlsMirrorInlineBehaviour` Selenium coverage, introduced stored counter toggle/reset controls in `panel.html` + `console.js`, reran `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.storedCounterControlsMirrorInlineBehaviour"` and `./gradlew --no-daemon spotlessApply check` with green results._

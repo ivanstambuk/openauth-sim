@@ -291,7 +291,8 @@
                       Populate the registry with demo WebAuthn credentials if no entries are available.
                     </p>
                     <p
-                        class="hint"
+                        class="credential-status"
+                        aria-live="polite"
                         hidden="hidden"
                         aria-hidden="true"
                         data-testid="fido2-seed-status"
@@ -317,6 +318,8 @@
                           name="relyingPartyId"
                           type="text"
                           value="example.org"
+                          readonly="readonly"
+                          aria-readonly="true"
                           autocomplete="off"
                         />
                     </div>
@@ -342,27 +345,45 @@
                         ></textarea>
                     </div>
                   </div>
-                  <div class="field-group field-group--stacked">
-                    <label for="fido2StoredPrivateKey">Authenticator private key (JWK or PEM/PKCS#8)</label>
-                    <textarea
-                        id="fido2StoredPrivateKey"
-                        name="privateKey"
-                        rows="6"
-                        spellcheck="false"
-                        data-json-pretty="true"
-                      ></textarea>
-                  </div>
+                  <input
+                      type="hidden"
+                      id="fido2StoredPrivateKey"
+                      name="privateKey"
+                      data-testid="fido2-stored-private-key"
+                    />
                   <div class="field-grid">
-                    <div class="field-group">
-                      <label for="fido2StoredCounter">Signature counter override</label>
+                    <div
+                        class="field-group"
+                        data-testid="fido2-stored-counter-group"
+                      >
+                      <label for="fido2StoredCounter">Signature counter</label>
                       <input
                           id="fido2StoredCounter"
                           name="signatureCounter"
                           type="number"
                           min="0"
                           step="1"
-                          placeholder="Use stored counter"
+                          value=""
+                          data-testid="fido2-stored-counter-input"
                         />
+                      <div class="field-group field-group--checkbox field-group--counter-toggle">
+                        <input
+                            type="checkbox"
+                            id="fido2StoredCounterAuto"
+                            data-testid="fido2-stored-counter-toggle"
+                          />
+                        <label for="fido2StoredCounterAuto">Use current Unix seconds</label>
+                        <button
+                            type="button"
+                            class="button-secondary"
+                            data-testid="fido2-stored-counter-reset"
+                          >
+                          Reset to now
+                        </button>
+                      </div>
+                      <p class="hint" data-testid="fido2-stored-counter-hint">
+                        Manual entry enabled.
+                      </p>
                     </div>
                     <div class="field-group field-group--checkbox">
                       <input

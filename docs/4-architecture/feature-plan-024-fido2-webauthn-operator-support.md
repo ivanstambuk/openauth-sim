@@ -206,6 +206,24 @@ Each increment stages failing tests first, drives implementation to green, and r
     - Refresh docs/spec/tasks with the directive, rerun the targeted Selenium test plus `./gradlew --no-daemon spotlessApply check`, and record results once green.
     - _2025-10-14 – Added Selenium coverage, updated label generation + metadata, refreshed REST/operator docs, and re-ran the targeted test alongside `spotlessApply check`; dropdown entries now present algorithm-first text with W3C suffixes where applicable._
 
+24. **I24 – Stored mode private key removal**  
+    - Add failing Selenium coverage that asserts the stored Evaluate form never renders the authenticator private-key textarea while inline mode still does.  
+    - Update the Thymeleaf template and client scripts so stored-mode submissions omit private-key inputs, ensure the relying-party ID displays as read-only text, and keep origin/challenge/counter/UV overrides editable.  
+    - Adjust REST/application contracts if necessary to accept empty private-key payloads from stored mode, then rerun targeted Selenium tests plus `./gradlew --no-daemon spotlessApply check`; capture results here when green.
+    - _2025-10-14 – Completed I24 by hiding the stored private-key textarea, backing the generator with a hidden field, marking the stored RP ID input `readonly`, updating `console.js` to continue seeding hidden key material, and rerunning the targeted Selenium suite plus `spotlessApply check` with green results._
+
+25. **I25 – Seed message parity**  
+    - Stage a failing Selenium regression that clicks the FIDO2 seed control with pre-seeded credentials and expects the warning copy “Seeded 0 sample credentials. All sample credentials are already present.” plus the amber status styling used by other protocols.  
+    - Update REST/operator UI messaging (and any shared service/DTO responses) to emit the parity warning when zero records are created while keeping the success tone when inserts occur.  
+    - Re-run `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` along with `./gradlew --no-daemon spotlessApply check`, then document the green results before marking the increment complete.
+    - _2025-10-14 – Landed the Selenium regression, switched the console seeding flow to parse added counts and emit parity copy + warning styling, updated seed template classnames, refreshed message predicates across existing UI tests, and finished with `:rest-api:test` + `spotlessApply check` green._
+
+26. **I26 – Stored counter control parity**  
+    - Add failing Selenium coverage asserting the stored Evaluate form mirrors the inline counter experience (stored counter pre-filled, read-only while “Use current Unix seconds” remains checked, reset helper present, overrides permitted once unchecked).  
+    - Update the Thymeleaf template and `ui/fido2/console.js` to surface the stored counter value, reuse the inline toggle/reset controls, and keep override submission semantics unchanged.  
+    - Re-run the targeted Selenium test plus `./gradlew --no-daemon spotlessApply check`, capture outcomes here, and note any service wiring adjustments required to transport the stored counter to the UI.  
+    - _2025-10-14 – Completed I26 by adding the stored counter parity Selenium regression, wiring new toggle/reset controls in `panel.html` + `console.js`, verifying targeted test via `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.storedCounterControlsMirrorInlineBehaviour"`, and finishing with a green `./gradlew --no-daemon spotlessApply check`; no additional service wiring required._
+
 ## Analysis Gate
 - 2025-10-13 – Checklist completed after adding Increment T20; spec clarifications synced (protocol/tab/mode + default Evaluate/Inline), plan/tasks updated, no open questions remain. All items pass; next step is staging failing Selenium routing tests before implementation.
 

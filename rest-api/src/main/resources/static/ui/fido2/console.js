@@ -98,8 +98,14 @@
   var storedRpInput = panel.querySelector('#fido2StoredRpId');
   var storedOriginInput = panel.querySelector('#fido2StoredOrigin');
   var storedChallengeField = panel.querySelector('#fido2StoredChallenge');
-  var storedPrivateKeyField = panel.querySelector('#fido2StoredPrivateKey');
   var storedCounterInput = panel.querySelector('#fido2StoredCounter');
+  var storedCounterToggle =
+      panel.querySelector('[data-testid="fido2-stored-counter-toggle"]');
+  var storedCounterHint =
+      panel.querySelector('[data-testid="fido2-stored-counter-hint"]');
+  var storedCounterResetButton =
+      panel.querySelector('[data-testid="fido2-stored-counter-reset"]');
+  var storedPrivateKeyField = panel.querySelector('#fido2StoredPrivateKey');
   var storedUvSelect = panel.querySelector('#fido2StoredUvRequired');
 
   var inlineForm = panel.querySelector('[data-testid="fido2-inline-form"]');
@@ -167,6 +173,8 @@
   var activeInlineCredentialName = null;
   var activeReplayInlineCredentialName = null;
   var inlineCounterSnapshotSeconds = null;
+  var storedCounterSnapshotSeconds = null;
+  var storedCounterBaseline = null;
 
   removeNode(seedDefinitionsNode);
   removeNode(inlineVectorsNode);
@@ -174,6 +182,7 @@
   populateInlineSampleOptions();
   refreshStoredCredentials();
   initializeInlineCounter();
+  initializeStoredCounter();
 
   var currentTab = TAB_EVALUATE;
   var currentEvaluateMode = MODE_INLINE;
@@ -325,9 +334,9 @@
       origin: elementValue(storedOriginInput),
       expectedType: CLIENT_DATA_TYPE,
       challenge: elementValue(storedChallengeField),
-      privateKey: elementValue(storedPrivateKeyField),
       signatureCounter: signatureCounter,
       userVerificationRequired: uvValue,
+      privateKey: elementValue(storedPrivateKeyField),
     };
     sendJsonRequest(endpoint, payload, csrfToken(storedForm))
         .then(handleStoredEvaluationSuccess)
@@ -700,8 +709,11 @@
     if (!credentialId) {
       pendingStoredResult();
       setValue(storedChallengeField, '');
-      setValue(storedPrivateKeyField, '');
+      storedCounterBaseline = null;
+      storedCounterSnapshotSeconds = null;
       setValue(storedCounterInput, '');
+      updateStoredCounterHintText();
+      setValue(storedPrivateKeyField, '');
       if (storedUvSelect) {
         storedUvSelect.checked = false;
       }
@@ -711,8 +723,11 @@
     if (!definition) {
       pendingStoredResult();
       setValue(storedChallengeField, '');
-      setValue(storedPrivateKeyField, '');
+      storedCounterBaseline = null;
+      storedCounterSnapshotSeconds = null;
       setValue(storedCounterInput, '');
+      updateStoredCounterHintText();
+      setValue(storedPrivateKeyField, '');
       if (storedUvSelect) {
         storedUvSelect.checked = false;
       }
@@ -727,8 +742,21 @@
         storedOriginInput,
         vector && vector.origin ? vector.origin : 'https://example.org');
     setValue(storedChallengeField, vector ? vector.expectedChallengeBase64Url : '');
+    var presetCounter = 0;
+    if (typeof definition.signatureCounter === 'number'
+        && isFinite(definition.signatureCounter)) {
+      presetCounter = definition.signatureCounter;
+    } else if (
+      vector
+      && typeof vector.signatureCounter === 'number'
+      && isFinite(vector.signatureCounter)) {
+      presetCounter = vector.signatureCounter;
+    }
+    storedCounterBaseline = presetCounter;
+    storedCounterSnapshotSeconds = null;
+    setValue(storedCounterInput, presetCounter);
+    refreshStoredCounterAfterPreset();
     setValue(storedPrivateKeyField, definition.privateKeyJwk || '');
-    setValue(storedCounterInput, '');
     setStoredAssertionText('Awaiting submission.');
     if (inlineSampleSelect && vector) {
       inlineSampleSelect.value = vector.key;
@@ -867,6 +895,92 @@
       inlineCounterInput.setAttribute('readonly', 'readonly');
     } else {
       inlineCounterInput.removeAttribute('readonly');
+    }
+  }
+
+  function initializeStoredCounter() {
+    if (!storedCounterInput) {
+      return;
+    }
+    setStoredCounterReadOnly(Boolean(storedCounterToggle && storedCounterToggle.checked));
+    if (storedCounterToggle) {
+      storedCounterToggle.addEventListener('change', function () {
+        var checked = Boolean(storedCounterToggle.checked);
+        setStoredCounterReadOnly(checked);
+        if (checked) {
+          refreshStoredCounterSnapshot();
+        } else {
+          updateStoredCounterHintText();
+        }
+      });
+    }
+    if (storedCounterResetButton) {
+      storedCounterResetButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        refreshStoredCounterSnapshot();
+      });
+    }
+    if (storedCounterToggle && storedCounterToggle.checked) {
+      refreshStoredCounterSnapshot();
+    } else {
+      updateStoredCounterHintText();
+    }
+  }
+
+  function refreshStoredCounterAfterPreset() {
+    if (storedCounterToggle && storedCounterToggle.checked) {
+      refreshStoredCounterSnapshot();
+    } else {
+      updateStoredCounterHintText();
+    }
+  }
+
+  function refreshStoredCounterSnapshot() {
+    if (!storedCounterInput) {
+      return null;
+    }
+    var nowSeconds = currentUnixSeconds();
+    storedCounterSnapshotSeconds = nowSeconds;
+    setValue(storedCounterInput, nowSeconds);
+    updateStoredCounterHintText();
+    return nowSeconds;
+  }
+
+  function updateStoredCounterHintText() {
+    if (!storedCounterHint) {
+      return;
+    }
+    if (storedCounterToggle && storedCounterToggle.checked) {
+      if (storedCounterSnapshotSeconds != null) {
+        storedCounterHint.textContent =
+            'Last autofill: ' + formatUnixSeconds(storedCounterSnapshotSeconds);
+      } else {
+        storedCounterHint.textContent = 'Last autofill: awaiting snapshot.';
+      }
+      return;
+    }
+    if (storedCounterSnapshotSeconds != null) {
+      storedCounterHint.textContent =
+          'Manual entry enabled (last autofill '
+          + formatUnixSeconds(storedCounterSnapshotSeconds) + ').';
+      return;
+    }
+    if (storedCounterBaseline != null) {
+      storedCounterHint.textContent =
+          'Manual entry enabled (stored counter ' + storedCounterBaseline + ').';
+      return;
+    }
+    storedCounterHint.textContent = 'Manual entry enabled.';
+  }
+
+  function setStoredCounterReadOnly(readOnly) {
+    if (!storedCounterInput) {
+      return;
+    }
+    if (readOnly) {
+      storedCounterInput.setAttribute('readonly', 'readonly');
+    } else {
+      storedCounterInput.removeAttribute('readonly');
     }
   }
 
@@ -1409,20 +1523,33 @@
     }
     var endpoint = storedForm.getAttribute('data-seed-endpoint');
     if (!endpoint) {
-      updateSeedStatus('Seed endpoint unavailable.');
+      updateSeedStatus('Seed endpoint unavailable.', 'error');
       return;
     }
     postJson(endpoint, {}, csrfToken(storedForm))
-        .then(function (success) {
-          if (success) {
-            updateSeedStatus('Seeded sample credentials.');
-            refreshStoredCredentials();
-          } else {
-            updateSeedStatus('Unable to seed credentials.');
+        .then(function (response) {
+          if (!response.ok) {
+            updateSeedStatus('Unable to seed sample credentials.', 'error');
+            return;
           }
+          var parsed = parseSeedResponse(response.bodyText);
+          var addedCount = resolveAddedCount(parsed);
+          var message =
+              'Seeded ' +
+              addedCount +
+              ' sample credential' +
+              (addedCount === 1 ? '' : 's') +
+              '.';
+          var severity = null;
+          if (addedCount === 0) {
+            message += ' All sample credentials are already present.';
+            severity = 'warning';
+          }
+          updateSeedStatus(message, severity);
+          refreshStoredCredentials();
         })
         .catch(function () {
-          updateSeedStatus('Unable to seed credentials.');
+          updateSeedStatus('Unable to seed sample credentials.', 'error');
         });
   }
 
@@ -1445,15 +1572,19 @@
         }
         request.onreadystatechange = function () {
           if (request.readyState === 4) {
-            resolve(request.status >= 200 && request.status < 300);
+            resolve({
+              ok: request.status >= 200 && request.status < 300,
+              status: request.status,
+              bodyText: request.responseText || '',
+            });
           }
         };
         request.onerror = function () {
-          resolve(false);
+          resolve({ ok: false, status: 0, bodyText: '' });
         };
         request.send(JSON.stringify(payload || {}));
       } catch (error) {
-        resolve(false);
+        resolve({ ok: false, status: 0, bodyText: '' });
       }
     });
   }
@@ -1514,13 +1645,51 @@
     }
   }
 
-  function updateSeedStatus(message) {
+  function updateSeedStatus(message, severity) {
     if (!storedSeedStatus) {
       return;
     }
-    storedSeedStatus.textContent = message;
+    storedSeedStatus.classList.remove('credential-status--error', 'credential-status--warning');
+    var text = typeof message === 'string' ? message.trim() : '';
+    if (!text) {
+      storedSeedStatus.textContent = '';
+      storedSeedStatus.setAttribute('hidden', 'hidden');
+      storedSeedStatus.setAttribute('aria-hidden', 'true');
+      return;
+    }
+    storedSeedStatus.textContent = text;
+    if (severity === 'error') {
+      storedSeedStatus.classList.add('credential-status--error');
+    } else if (severity === 'warning') {
+      storedSeedStatus.classList.add('credential-status--warning');
+    }
     storedSeedStatus.removeAttribute('hidden');
-    storedSeedStatus.setAttribute('aria-hidden', 'false');
+    storedSeedStatus.removeAttribute('aria-hidden');
+  }
+
+  function parseSeedResponse(bodyText) {
+    if (typeof bodyText !== 'string' || !bodyText.trim()) {
+      return {};
+    }
+    try {
+      var parsed = JSON.parse(bodyText);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function resolveAddedCount(payload) {
+    if (!payload || typeof payload !== 'object') {
+      return 0;
+    }
+    if (typeof payload.addedCount === 'number' && !Number.isNaN(payload.addedCount)) {
+      return payload.addedCount;
+    }
+    if (Array.isArray(payload.addedCredentialIds)) {
+      return payload.addedCredentialIds.length;
+    }
+    return 0;
   }
 
   function parseJson(scriptNode) {

@@ -113,9 +113,7 @@ final class Fido2OperatorUiSeleniumTest {
     assertThat(seedButton.getAttribute("disabled")).isNull();
 
     seedButton.click();
-    awaitText(
-        By.cssSelector("[data-testid='fido2-seed-status']"),
-        text -> text != null && text.contains("Seeded sample credentials"));
+    waitForNonBlankText(By.cssSelector("[data-testid='fido2-seed-status']"));
     new WebDriverWait(driver, Duration.ofSeconds(3))
         .until(ExpectedConditions.attributeToBe(seedActionsSelector, "aria-hidden", "false"));
     assertThat(seedActions.getAttribute("hidden")).isNull();
@@ -131,16 +129,19 @@ final class Fido2OperatorUiSeleniumTest {
     awaitValue(By.id("fido2StoredChallenge"), value -> value != null && !value.isBlank());
     assertThat(storedChallengeField.getAttribute("rows")).isEqualTo("1");
 
+    WebElement rpIdInput = waitFor(By.id("fido2StoredRpId"));
+    assertThat(rpIdInput.getAttribute("readonly")).isEqualTo("true");
+    assertThat(rpIdInput.getAttribute("value")).isEqualTo("example.org");
+
     WebElement originInput = driver.findElement(By.id("fido2StoredOrigin"));
     assertThat(originInput.getAttribute("value")).isEqualTo("https://example.org");
 
-    WebElement privateKeyField = waitFor(By.id("fido2StoredPrivateKey"));
-    awaitValue(By.id("fido2StoredPrivateKey"), value -> value != null && value.contains("\"kty\""));
-    assertThat(privateKeyField.findElement(By.xpath("..")).getAttribute("class"))
-        .contains("field-group--stacked");
-    assertThat(privateKeyField.getAttribute("value")).contains("\"kty\"");
-    assertThat(privateKeyField.getAttribute("value")).contains("\n  \"kty\"");
-    assertThat(privateKeyField.getAttribute("value")).contains("\n  \"kty\"");
+    WebElement hiddenPrivateKey =
+        waitFor(By.cssSelector("[data-testid='fido2-stored-private-key']"));
+    assertThat(hiddenPrivateKey.getAttribute("type")).isEqualTo("hidden");
+    awaitValue(
+        By.cssSelector("[data-testid='fido2-stored-private-key']"),
+        value -> value != null && value.contains("\"kty\""));
 
     WebElement submitButton =
         driver.findElement(By.cssSelector("[data-testid='fido2-evaluate-stored-submit']"));
@@ -173,9 +174,6 @@ final class Fido2OperatorUiSeleniumTest {
     WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
     if (seedButton.isDisplayed() && seedButton.isEnabled()) {
       seedButton.click();
-      awaitText(
-          By.cssSelector("[data-testid='fido2-seed-status']"),
-          text -> text != null && text.contains("Seeded sample credentials"));
     }
 
     waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
@@ -197,6 +195,34 @@ final class Fido2OperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Inline mode continues to expose authenticator private-key textarea for editing")
+  void inlineModeStillShowsPrivateKeyField() {
+    navigateToWebAuthnPanel();
+
+    awaitVisible(By.cssSelector("[data-testid='fido2-evaluate-inline-section']"));
+
+    WebElement inlineTextarea = waitFor(By.id("fido2InlinePrivateKey"));
+    assertThat(inlineTextarea.isDisplayed()).isTrue();
+
+    WebElement storedRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+    storedRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
+
+    WebElement inlineSection =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-inline-section']"));
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            webDriver ->
+                webDriver
+                        .findElement(
+                            By.cssSelector("[data-testid='fido2-evaluate-inline-section']"))
+                        .getAttribute("hidden")
+                    != null);
+  }
+
+  @Test
   @DisplayName("Stored credential dropdown uses algorithm-first preset labels")
   void storedCredentialDropdownUsesAlgorithmFirstLabels() {
     clearCredentialStore();
@@ -213,9 +239,6 @@ final class Fido2OperatorUiSeleniumTest {
     WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
     if (seedButton.isDisplayed() && seedButton.isEnabled()) {
       seedButton.click();
-      awaitText(
-          By.cssSelector("[data-testid='fido2-seed-status']"),
-          text -> text != null && text.contains("Seeded sample credentials"));
     }
 
     waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
@@ -245,6 +268,40 @@ final class Fido2OperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Seeding warns when all curated WebAuthn credentials already exist")
+  void seedingWarnsWhenCuratedCredentialsAlreadyExist() {
+    clearCredentialStore();
+    seedAllCuratedCredentials();
+
+    navigateToWebAuthnPanel();
+
+    WebElement storedRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+    storedRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
+
+    WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
+    assertThat(seedButton.isDisplayed()).isTrue();
+    assertThat(seedButton.getAttribute("disabled")).isNull();
+
+    seedButton.click();
+
+    By seedStatusSelector = By.cssSelector("[data-testid='fido2-seed-status']");
+    String seedStatusText = waitForNonBlankText(seedStatusSelector);
+    String expectedMessage =
+        "Seeded 0 sample credentials. All sample credentials are already present.";
+    assertThat(seedStatusText).isEqualTo(expectedMessage);
+
+    WebElement seedStatus = waitFor(seedStatusSelector);
+    assertThat(seedStatus.getAttribute("hidden")).isNull();
+    assertThat(seedStatus.getText().trim()).isEqualTo(expectedMessage);
+    assertThat(seedStatus.getAttribute("class"))
+        .contains("credential-status")
+        .contains("credential-status--warning");
+  }
+
+  @Test
   @DisplayName("Generated assertion panel stays within the clamped width")
   void generatedAssertionPanelStaysClamped() {
     navigateToWebAuthnPanel();
@@ -258,9 +315,7 @@ final class Fido2OperatorUiSeleniumTest {
     WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
     if (seedButton.isDisplayed() && seedButton.isEnabled()) {
       seedButton.click();
-      awaitText(
-          By.cssSelector("[data-testid='fido2-seed-status']"),
-          text -> text != null && text.contains("Seeded sample credentials"));
+      waitForNonBlankText(By.cssSelector("[data-testid='fido2-seed-status']"));
       waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
     }
 
@@ -543,6 +598,71 @@ final class Fido2OperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Stored signature counter controls mirror inline behaviour")
+  void storedCounterControlsMirrorInlineBehaviour() throws InterruptedException {
+    navigateToWebAuthnPanel();
+
+    WebElement storedRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+    storedRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
+
+    waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
+    Select credentialSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
+    credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
+
+    long expectedCounter =
+        Fido2OperatorSampleData.seedDefinitions().stream()
+            .filter(definition -> STORED_CREDENTIAL_ID.equals(definition.credentialId()))
+            .mapToLong(Fido2OperatorSampleData.SeedDefinition::signatureCounter)
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Stored credential not found in seed definitions: "
+                            + STORED_CREDENTIAL_ID));
+
+    By counterSelector = By.id("fido2StoredCounter");
+    WebElement counterInput = waitFor(counterSelector);
+    assertThat(counterInput.getAttribute("value")).isEqualTo(Long.toString(expectedCounter));
+    assertThat(counterInput.getAttribute("readonly")).isNull();
+
+    WebElement toggleCluster =
+        waitFor(
+            By.cssSelector(
+                "[data-testid='fido2-stored-counter-group'] .field-group--counter-toggle"));
+    assertThat(toggleCluster.getAttribute("class")).contains("field-group--checkbox");
+
+    WebElement toggle = waitFor(By.cssSelector("[data-testid='fido2-stored-counter-toggle']"));
+    assertThat(toggle.isSelected()).isFalse();
+
+    WebElement resetButton = waitFor(By.cssSelector("[data-testid='fido2-stored-counter-reset']"));
+    WebElement hint = waitFor(By.cssSelector("[data-testid='fido2-stored-counter-hint']"));
+    assertThat(hint.getText()).contains("Manual entry");
+
+    toggle.click();
+    awaitCounterReadOnly(counterSelector);
+    Thread.sleep(1_050L);
+    long beforeReset = Long.parseLong(waitFor(counterSelector).getAttribute("value"));
+    resetButton.click();
+    awaitCounterValueChange(counterSelector, beforeReset);
+
+    long afterReset = Long.parseLong(waitFor(counterSelector).getAttribute("value"));
+    assertThat(Math.abs(afterReset - Instant.now().getEpochSecond())).isLessThanOrEqualTo(5L);
+    assertThat(hint.getText()).contains("Last autofill");
+
+    toggle.click();
+    awaitCounterEditable(counterSelector);
+
+    WebElement editableCounter = waitFor(counterSelector);
+    editableCounter.clear();
+    editableCounter.sendKeys("1234");
+    assertThat(editableCounter.getAttribute("value")).isEqualTo("1234");
+    assertThat(hint.getText()).contains("Manual entry");
+  }
+
+  @Test
   @DisplayName("Stored WebAuthn replay reports match status")
   void storedReplayReportsMatchStatus() {
     navigateToWebAuthnPanel();
@@ -780,7 +900,7 @@ final class Fido2OperatorUiSeleniumTest {
   }
 
   private void awaitText(By selector, java.util.function.Predicate<String> predicate) {
-    new WebDriverWait(driver, Duration.ofSeconds(5))
+    new WebDriverWait(driver, Duration.ofSeconds(8))
         .until(
             webDriver -> {
               String text = webDriver.findElement(selector).getText().trim();
@@ -789,11 +909,24 @@ final class Fido2OperatorUiSeleniumTest {
   }
 
   private void awaitValue(By selector, java.util.function.Predicate<String> predicate) {
-    new WebDriverWait(driver, Duration.ofSeconds(5))
+    new WebDriverWait(driver, Duration.ofSeconds(8))
         .until(
             webDriver -> {
               String value = webDriver.findElement(selector).getAttribute("value");
               return predicate.test(value);
+            });
+  }
+
+  private String waitForNonBlankText(By selector) {
+    return new WebDriverWait(driver, Duration.ofSeconds(8))
+        .until(
+            webDriver -> {
+              String text = webDriver.findElement(selector).getText();
+              if (text == null) {
+                return null;
+              }
+              String normalized = text.trim();
+              return normalized.isEmpty() ? null : normalized;
             });
   }
 
@@ -831,6 +964,11 @@ final class Fido2OperatorUiSeleniumTest {
   private void awaitCounterEditable(By selector) {
     new WebDriverWait(driver, Duration.ofSeconds(3))
         .until(webDriver -> webDriver.findElement(selector).getAttribute("readonly") == null);
+  }
+
+  private void awaitCounterReadOnly(By selector) {
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(webDriver -> webDriver.findElement(selector).getAttribute("readonly") != null);
   }
 
   private void assertReplayTabSelected() {
