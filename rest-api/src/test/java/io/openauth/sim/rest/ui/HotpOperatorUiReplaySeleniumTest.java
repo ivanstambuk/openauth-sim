@@ -589,7 +589,7 @@ final class HotpOperatorUiReplaySeleniumTest {
 
   private String fetchConsoleStylesheet() {
     try {
-      URL url = new URL("http://localhost:" + port + "/ui/ocra/console.css");
+      URL url = new URL("http://localhost:" + port + "/ui/console/console.css");
       try (InputStream inputStream = url.openStream()) {
         return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
       }

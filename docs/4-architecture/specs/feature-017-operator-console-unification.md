@@ -27,6 +27,7 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 - 2025-10-04 – Display seeding status messages directly beneath the `Seed sample credentials` button while keeping the original hint text visible (user selected Option B).
 - 2025-10-04 – Highlight seeding failures with the existing red/danger styling so operators can spot errors quickly (user directive).
 - 2025-10-04 – Treat "no credentials added" outcomes as a warning: render the status in an accent distinct from the neutral hint (user directive).
+- 2025-10-15 – Shared operator console styles must live under a neutral namespace (e.g., `/ui/console/console.css`) rather than `ui/ocra/` so all protocol tabs reference the same asset without implying OCRA ownership (user selected Option B).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
@@ -43,6 +44,7 @@ Deliver a single dark-themed operator console that unifies OCRA evaluation and r
 | OCU-010 | Remove Suite and Sanitized fields from the evaluation result metadata, leaving only the Status row alongside the generated OTP. | Selenium/UI tests verify the evaluation result renders only the Status row with the OTP and omits Suite/Sanitized entries. |
 | OCU-011 | Provide a `Seed sample credentials` control when the stored credential registry is empty; the action calls a REST endpoint to insert canonical OCRA suites (matching inline autofill) and may be re-run to add any missing suites without overwriting existing ones. | UI/system tests confirm the button appears only when appropriate, invokes the endpoint, appends missing suites, and records telemetry; stored credentials remain intact if already present. |
 | OCU-012 | Reflect the selected authenticator protocol and sub-tab in `/ui/console` query parameters and restore the appropriate state (including disabled placeholders) on refresh, deep-link, and history navigation. | Selenium/UI tests verify query parameters update on tab changes, direct visits load the corresponding view, and history navigation replays tab state without desynchronisation. |
+| OCU-013 | Relocate the shared console stylesheet to a neutral namespace (`/ui/console/console.css`) and update HTML/JS/tests to reference the new path so future protocols consume the asset without OCRA coupling. | Static asset served from `/ui/console/console.css`; Selenium fetch helpers and Thymeleaf templates load the new URL; regression tests confirm styles apply across HOTP/TOTP/OCRA/FIDO2 tabs. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Target |

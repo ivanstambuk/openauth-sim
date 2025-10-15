@@ -27,5 +27,6 @@ _Last updated: 2025-10-04_
 - [x] T1721 – Implement seeding status layout/script adjustments and rerun `./gradlew :rest-api:test spotlessApply check`. (_2025-10-04_)
 - [x] T1722 – Add Selenium coverage asserting zero-added seeding responses apply the warning styling. (_2025-10-04_)
 - [x] T1723 – Implement warning styling for zero-added seeding results, rerun `./gradlew :rest-api:test spotlessApply check`. (_2025-10-04_)
+- [x] T1724 – Relocate the shared console stylesheet to `/ui/console/console.css`, update templates/JS/tests, and rerun `./gradlew spotlessApply check`. (_2025-10-15_)
 
 Update this checklist as increments progress; keep tests ahead of implementation per VDD cadence.

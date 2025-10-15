@@ -39,6 +39,7 @@ Reference specification: `docs/4-architecture/specs/feature-017-operator-console
 - ☑ R1721 – Adjust the console template/scripts to render seeding feedback under the seed control with danger styling for failures, then rerun `./gradlew :rest-api:test`. (2025-10-04 – Template adds dedicated seed status element with red-error handling; REST UI tests + `./gradlew spotlessApply check` verified.)
 - ☑ R1722 – Extend Selenium coverage so zero-added seeding outcomes assert the warning styling distinct from neutral hints. (2025-10-04 – Updated seeding Selenium test to require `credential-status--warning` after duplicate seeding.)
 - ☑ R1723 – Update UI scripts/styles to flag zero-added results with warning styling while keeping failures red, then rerun `./gradlew :rest-api:test`. (2025-10-04 – Added warning color token + severity handling; `./gradlew :rest-api:test spotlessApply check` passed.)
+- ☑ R1724 – Relocate the shared operator console stylesheet to `/ui/console/console.css`, adjust Thymeleaf templates, JS fetchers, Selenium helpers, and rerun `./gradlew spotlessApply check`. (2025-10-15 – Stylesheet moved, references updated, quality gate rerun.)
 
 Each increment must stay within ≤10 minutes, lead with tests, and capture notes/telemetry adjustments in this plan as work proceeds.
 
