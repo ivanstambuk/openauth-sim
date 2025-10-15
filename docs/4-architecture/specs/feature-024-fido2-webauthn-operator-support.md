@@ -1,7 +1,7 @@
 # Feature 024 – FIDO2/WebAuthn Operator Support
 
 _Status: In Progress_  
-_Last updated: 2025-10-14_
+_Last updated: 2025-10-15_
 
 ## Overview
 Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across the simulator. The feature introduces a core verification engine, persistence descriptors, application services, CLI commands, REST endpoints, and operator console panels that mirror the existing HOTP and OCRA evaluate/replay experiences. Work begins by validating canonical W3C WebAuthn Level 3 §16 authentication vectors, then expands immediately to cover the synthetic JSON assertion bundle committed under `docs/webauthn_assertion_vectors.json`.
@@ -16,10 +16,19 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 - 2025-10-14 – Match the compact left-aligned styling used by HOTP/TOTP/OCRA for the seed control so FIDO2 no longer renders a full-width button (user direction).
 - 2025-10-14 – When seeding FIDO2 sample credentials and no new entries are required, display the parity warning copy “Seeded 0 sample credentials. All sample credentials are already present.” to match HOTP/TOTP/OCRA behaviour (user selected Option B).
 - 2025-10-14 – Align the stored Evaluate signature counter controls with inline mode: pre-fill the field with the stored credential’s counter, keep it read-only while “Use current Unix seconds” remains checked, provide the “Reset to now” helper, and allow overrides when the toggle is cleared (user selected Option A).
+- 2025-10-14 – Restyle the FIDO2 replay result card to match the HOTP/TOTP/OCRA panel: retain the status badge and only display “Reason Code” and “Outcome” rows, removing telemetry lines entirely (user confirmation).
+- 2025-10-14 – Normalize successful FIDO2 replay/evaluation outcomes to use the “match” reason code so parity holds across HOTP/TOTP/OCRA (user preference).
 - 2025-10-09 – “Load a sample vector” buttons on evaluate and replay panels should pull from entries in `docs/webauthn_assertion_vectors.json`, pre-populating request/response payloads (user selected Option A).
 - 2025-10-09 – When surfacing sample key material in the UI, prefer JWK representations over PEM/PKCS#8 to keep output compact (user instruction).
 - 2025-10-11 – JSON vector bundles now keep base64 payloads as single-line strings and rely on a repository-level `.gitleaks.toml` allowlist for the fixture files; the data is synthetic test-only material, not real secrets, so the exemption does not weaken leak detection (maintainer note).
 - 2025-10-11 – `key_material` entries expose a `keyPairJwk` object (renamed from `publicKeyJwk`) that carries both public and private JWK components (`d`/factor fields where applicable) so generator flows can surface algorithm-specific private material without relying on PEM fixtures (maintainer note).
+- 2025-10-15 – Replay UI must display the full assertion payload fields inline (visible textareas mirroring the underlying request) so operators can inspect and edit them directly; fields stay read-only only where the protocol requires it (user selected Option A).
+- 2025-10-15 – Default the “Authenticator data (Base64URL)” textarea height to three rows; typical WebAuthn `authData` blobs are <160 Base64url characters, so operators can see the entire value without excess whitespace while retaining manual resize controls (user tweak request).
+- 2025-10-15 – Raise the default height of the “Client challenge (Base64URL)” textarea to three rows; challenges are usually 32–48 bytes (≈43–64 characters Base64url), so a multi-line box keeps the value visible without requiring horizontal scrolling (user tweak request).
+- 2025-10-15 – Update the replay public-key label to note the accepted formats (JWK, COSE Base64URL, or PEM) so operators know the field auto-detects each representation (copy tweak).
+- 2025-10-15 – Sample presets should populate the replay public-key textarea with the JWK form by default while retaining COSE/JWK/PEM manual support (user request).
+- 2025-10-15 – Stored replay dropdown must load with the placeholder (“Select a stored credential”) selected, leaving the Evaluate/Replay buttons active and relying on the existing validation message if operators submit without choosing (user selected Option A).
+- 2025-10-15 – Switching the stored credential refreshes both stored Evaluate and stored Replay forms (including status/result panels) so challenges, signatures, and counters always match the current selection (user selected Option A).
 - 2025-10-09 – W3C §16.1 authentication fixtures now reside in `docs/webauthn_w3c_vectors.json`; each field carries both the original hex literal and a Base64url encoding so loaders no longer juggle `h'…'` parsing (worklog note).
 - 2025-10-10 – CLI/REST/UI how-to guides live under `docs/2-how-to/use-fido2-*.md`, capturing the JSON vector workflow, JWK guidance, and curated operator preset behaviour chosen in Option A.
 - 2025-10-10 – Keep the full JSON vector catalogue exposed through CLI (`--vector-id`, `vectors`) and REST sample payloads for reproducibility, while trimming operator UI presets to a curated representative subset (user selected Option A).

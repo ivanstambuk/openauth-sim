@@ -83,7 +83,7 @@ class Fido2ReplayEndpointTest {
 
     JsonNode root = JSON.readTree(response);
     assertEquals("match", root.get("status").asText());
-    assertEquals("validated", root.get("reasonCode").asText());
+    assertEquals("match", root.get("reasonCode").asText());
     assertThat(root.get("match").asBoolean()).isTrue();
     JsonNode metadata = root.get("metadata");
     assertThat(metadata.get("credentialSource").asText()).isEqualTo("inline");
@@ -109,7 +109,7 @@ class Fido2ReplayEndpointTest {
                 .getContentAsString());
 
     assertEquals("match", root.get("status").asText());
-    assertEquals("validated", root.get("reasonCode").asText());
+    assertEquals("match", root.get("reasonCode").asText());
     assertThat(root.get("match").asBoolean()).isTrue();
   }
 

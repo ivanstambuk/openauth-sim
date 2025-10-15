@@ -68,6 +68,7 @@ final class WebAuthnReplayApplicationServiceTest {
 
     var telemetry = result.telemetry();
     assertEquals(WebAuthnEvaluationApplicationService.TelemetryStatus.SUCCESS, telemetry.status());
+    assertEquals("match", telemetry.reasonCode());
     Map<String, Object> fields = telemetry.fields();
     assertEquals("stored", fields.get("credentialSource"));
     assertEquals("example.org", fields.get("relyingPartyId"));

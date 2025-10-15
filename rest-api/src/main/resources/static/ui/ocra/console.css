@@ -134,7 +134,11 @@ button {
   gap: var(--ocra-spacing-md);
   min-width: 0;
   max-width: 600px;
-  overflow: hidden;
+  overflow: visible;
+  padding-right: 0.5rem;
+  padding-right: var(--ocra-spacing-sm);
+  margin-right: 0.5rem;
+  margin-right: var(--ocra-spacing-sm);
 }
 
 .evaluation-form {
@@ -706,6 +710,8 @@ fieldset {
 .error-panel {
   border-radius: var(--ocra-radius-lg);
   padding: var(--ocra-spacing-lg);
+  padding-right: 2rem;
+  padding-right: calc(var(--ocra-spacing-lg) + var(--ocra-spacing-sm));
   box-shadow: var(--ocra-shadow-sm);
   border: 1px solid rgba(22, 211, 243, 0.18);
 }

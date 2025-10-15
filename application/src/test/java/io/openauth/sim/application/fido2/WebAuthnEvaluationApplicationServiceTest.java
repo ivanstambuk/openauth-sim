@@ -69,7 +69,7 @@ final class WebAuthnEvaluationApplicationServiceTest {
 
     WebAuthnEvaluationApplicationService.TelemetrySignal telemetry = result.telemetry();
     assertEquals(WebAuthnEvaluationApplicationService.TelemetryStatus.SUCCESS, telemetry.status());
-    assertEquals("validated", telemetry.reasonCode());
+    assertEquals("match", telemetry.reasonCode());
     Map<String, Object> fields = telemetry.fields();
     assertEquals("stored", fields.get("credentialSource"));
     assertEquals(true, fields.get("credentialReference"));

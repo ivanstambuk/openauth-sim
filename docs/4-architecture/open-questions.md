@@ -11,5 +11,3 @@ Use this file to capture outstanding questions or ambiguities before starting wo
 When communicating options to the user—whether resolving an open question or proposing a general approach—enumerate them alphabetically (A, B, C …), include pros and cons for each, and call out the recommended choice with supporting rationale before requesting a decision.
 
 | Date | Context | Question | Status | Resolution |
-
-_No open questions currently logged._

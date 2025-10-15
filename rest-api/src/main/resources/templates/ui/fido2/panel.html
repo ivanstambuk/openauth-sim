@@ -532,12 +532,13 @@
                         ></textarea>
                     </div>
                     <div class="field-group">
-                      <label for="fido2ReplayInlinePublicKey">Public key (COSE, Base64URL)</label>
+                      <label for="fido2ReplayInlinePublicKey">Public key (JWK, COSE Base64URL, or PEM)</label>
                       <textarea
                           id="fido2ReplayInlinePublicKey"
                           name="publicKey"
-                          rows="4"
+                          rows="6"
                           spellcheck="false"
+                          data-json-pretty="true"
                         ></textarea>
                     </div>
                   </div>
@@ -600,18 +601,46 @@
                       <label for="fido2ReplayInlineUvRequired">User verification required</label>
                     </div>
                   </div>
-                  <textarea
-                      id="fido2ReplayInlineChallenge"
-                      name="expectedChallenge"
-                      hidden="hidden"
-                    ></textarea>
-                  <textarea id="fido2ReplayInlineClientData" name="clientData" hidden="hidden"></textarea>
-                  <textarea
-                      id="fido2ReplayInlineAuthenticatorData"
-                      name="authenticatorData"
-                      hidden="hidden"
-                    ></textarea>
-                  <textarea id="fido2ReplayInlineSignature" name="signature" hidden="hidden"></textarea>
+                  <div class="field-group field-group--stacked">
+                    <label for="fido2ReplayInlineChallenge">Client challenge (Base64URL)</label>
+                    <textarea
+                        id="fido2ReplayInlineChallenge"
+                        name="expectedChallenge"
+                        rows="3"
+                        spellcheck="false"
+                        data-testid="fido2-replay-inline-challenge"
+                      ></textarea>
+                  </div>
+                  <div class="field-group field-group--stacked">
+                    <label for="fido2ReplayInlineClientData">clientDataJSON (Base64URL)</label>
+                    <textarea
+                        id="fido2ReplayInlineClientData"
+                        name="clientData"
+                        rows="4"
+                        spellcheck="false"
+                        data-testid="fido2-replay-inline-client-data"
+                      ></textarea>
+                  </div>
+                  <div class="field-group field-group--stacked">
+                    <label for="fido2ReplayInlineAuthenticatorData">Authenticator data (Base64URL)</label>
+                    <textarea
+                        id="fido2ReplayInlineAuthenticatorData"
+                        name="authenticatorData"
+                        rows="3"
+                        spellcheck="false"
+                        data-testid="fido2-replay-inline-authenticator-data"
+                      ></textarea>
+                  </div>
+                  <div class="field-group field-group--stacked">
+                    <label for="fido2ReplayInlineSignature">Signature (Base64URL)</label>
+                    <textarea
+                        id="fido2ReplayInlineSignature"
+                        name="signature"
+                        rows="4"
+                        spellcheck="false"
+                        data-testid="fido2-replay-inline-signature"
+                      ></textarea>
+                  </div>
                   <div class="button-row">
                     <button
                         type="button"
@@ -659,14 +688,46 @@
                         />
                     </div>
                   </div>
-                  <textarea id="fido2ReplayChallenge" name="expectedChallenge" hidden="hidden"></textarea>
-                  <textarea id="fido2ReplayClientData" name="clientData" hidden="hidden"></textarea>
-                  <textarea
-                      id="fido2ReplayAuthenticatorData"
-                      name="authenticatorData"
-                      hidden="hidden"
-                    ></textarea>
-                  <textarea id="fido2ReplaySignature" name="signature" hidden="hidden"></textarea>
+                  <div class="field-group field-group--stacked">
+                    <label for="fido2ReplayChallenge">Client challenge (Base64URL)</label>
+                    <textarea
+                        id="fido2ReplayChallenge"
+                        name="expectedChallenge"
+                        rows="3"
+                        spellcheck="false"
+                        data-testid="fido2-replay-stored-challenge"
+                      ></textarea>
+                  </div>
+                  <div class="field-group field-group--stacked">
+                    <label for="fido2ReplayClientData">clientDataJSON (Base64URL)</label>
+                    <textarea
+                        id="fido2ReplayClientData"
+                        name="clientData"
+                        rows="4"
+                        spellcheck="false"
+                        data-testid="fido2-replay-stored-client-data"
+                      ></textarea>
+                  </div>
+                  <div class="field-group field-group--stacked">
+                    <label for="fido2ReplayAuthenticatorData">Authenticator data (Base64URL)</label>
+                    <textarea
+                        id="fido2ReplayAuthenticatorData"
+                        name="authenticatorData"
+                        rows="3"
+                        spellcheck="false"
+                        data-testid="fido2-replay-stored-authenticator-data"
+                      ></textarea>
+                  </div>
+                  <div class="field-group field-group--stacked">
+                    <label for="fido2ReplaySignature">Signature (Base64URL)</label>
+                    <textarea
+                        id="fido2ReplaySignature"
+                        name="signature"
+                        rows="4"
+                        spellcheck="false"
+                        data-testid="fido2-replay-stored-signature"
+                      ></textarea>
+                  </div>
                   <div class="button-row">
                     <button
                         type="button"
@@ -689,16 +750,20 @@
                   hidden="hidden"
                   aria-hidden="true"
                 >
-                <h3 class="section-title">Replay result</h3>
-                <p>
-                  Outcome:
-                  <span data-testid="fido2-replay-status">pending</span>
-                  (<span data-testid="fido2-replay-reason">awaiting submission</span>)
-                </p>
-                <p class="hint" data-testid="fido2-replay-message">Awaiting submission.</p>
-                <div class="telemetry" data-testid="fido2-replay-telemetry">
-                  Telemetry pending (sanitized).
+                <div class="result-header">
+                  <h3>Replay result</h3>
+                  <span class="status-badge" data-testid="fido2-replay-status">—</span>
                 </div>
+                <dl class="result-metadata">
+                  <div class="result-row">
+                    <dt>Reason Code</dt>
+                    <dd data-testid="fido2-replay-reason">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Outcome</dt>
+                    <dd data-testid="fido2-replay-outcome">—</dd>
+                  </div>
+                </dl>
               </section>
               <section
                   class="result-panel"
@@ -707,16 +772,20 @@
                   hidden="hidden"
                   aria-hidden="true"
                 >
-                <h3 class="section-title">Inline replay result</h3>
-                <p>
-                  Outcome:
-                  <span data-testid="fido2-replay-inline-status">pending</span>
-                  (<span data-testid="fido2-replay-inline-reason">awaiting submission</span>)
-                </p>
-                <p class="hint" data-testid="fido2-replay-inline-message">Awaiting submission.</p>
-                <div class="telemetry" data-testid="fido2-replay-inline-telemetry">
-                  Telemetry pending (sanitized).
+                <div class="result-header">
+                  <h3>Inline replay result</h3>
+                  <span class="status-badge" data-testid="fido2-replay-inline-status">—</span>
                 </div>
+                <dl class="result-metadata">
+                  <div class="result-row">
+                    <dt>Reason Code</dt>
+                    <dd data-testid="fido2-replay-inline-reason">—</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Outcome</dt>
+                    <dd data-testid="fido2-replay-inline-outcome">—</dd>
+                  </div>
+                </dl>
               </section>
             </div>
           </div>

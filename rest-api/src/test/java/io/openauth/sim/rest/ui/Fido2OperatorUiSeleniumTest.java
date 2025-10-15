@@ -704,17 +704,214 @@ final class Fido2OperatorUiSeleniumTest {
         driver.findElement(
             By.cssSelector(
                 "[data-testid='fido2-replay-result'] [data-testid='fido2-replay-status']"));
-    WebElement telemetry = waitFor(By.cssSelector("[data-testid='fido2-replay-telemetry']"));
+    WebElement outcomeElement =
+        driver.findElement(
+            By.cssSelector(
+                "[data-testid='fido2-replay-result'] [data-testid='fido2-replay-outcome']"));
     WebElement reasonElement =
         driver.findElement(
             By.cssSelector(
                 "[data-testid='fido2-replay-result'] [data-testid='fido2-replay-reason']"));
     String replayStatus = status.getText();
     String replayReason = reasonElement.getText();
-    String replayTelemetry = telemetry.getText();
+    String replayOutcome = outcomeElement.getText();
     assertThat(replayStatus).isEqualToIgnoringCase("match");
-    assertThat(replayReason).isEqualToIgnoringCase("validated");
-    assertThat(replayTelemetry).doesNotContain("challenge=").doesNotContain("signature=");
+    assertThat(status.getAttribute("class")).contains("status-badge");
+    assertThat(replayReason).isEqualToIgnoringCase("match");
+    assertThat(replayOutcome).isEqualToIgnoringCase("match");
+  }
+
+  @Test
+  @DisplayName("Stored WebAuthn replay result layout matches HOTP/TOTP/OCRA panels")
+  void storedReplayResultLayoutMatchesHotpPanels() {
+    navigateToWebAuthnPanel();
+
+    WebElement replayTab = waitFor(By.cssSelector("[data-testid='fido2-panel-tab-replay']"));
+    replayTab.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-panel-tab-replay']"), "aria-selected", "true");
+
+    WebElement storedRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-mode-select-stored']"));
+    storedRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-replay-mode-toggle']"), "data-mode", "stored");
+
+    waitForOption(By.id("fido2ReplayCredentialId"), STORED_CREDENTIAL_ID);
+    Select credentialSelect = new Select(waitFor(By.id("fido2ReplayCredentialId")));
+    credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
+
+    WebElement replaySubmit =
+        driver.findElement(By.cssSelector("[data-testid='fido2-replay-stored-submit']"));
+    replaySubmit.click();
+
+    By storedResultSelector = By.cssSelector("[data-testid='fido2-replay-result']");
+    awaitVisible(storedResultSelector);
+    WebElement resultPanel = driver.findElement(storedResultSelector);
+
+    assertThat(resultPanel.getAttribute("class")).contains("result-panel");
+    WebElement header = resultPanel.findElement(By.cssSelector(".result-header"));
+    assertThat(header.findElement(By.tagName("h3")).getText().trim()).isEqualTo("Replay result");
+    WebElement statusBadge = header.findElement(By.cssSelector(".status-badge"));
+    assertThat(statusBadge.getText().trim()).isNotEmpty();
+
+    WebElement metadata = resultPanel.findElement(By.cssSelector(".result-metadata"));
+    List<WebElement> rows = metadata.findElements(By.cssSelector(".result-row"));
+    assertThat(rows).hasSize(2);
+
+    WebElement reasonRow = rows.get(0);
+    assertThat(reasonRow.findElement(By.tagName("dt")).getText().trim()).isEqualTo("Reason Code");
+    WebElement reasonValue =
+        reasonRow.findElement(By.cssSelector("[data-testid='fido2-replay-reason']"));
+    assertThat(reasonValue.getText().trim()).isNotEmpty();
+
+    WebElement outcomeRow = rows.get(1);
+    assertThat(outcomeRow.findElement(By.tagName("dt")).getText().trim()).isEqualTo("Outcome");
+    WebElement outcomeValue =
+        outcomeRow.findElement(By.cssSelector("[data-testid='fido2-replay-outcome']"));
+    assertThat(outcomeValue.getText().trim()).isNotEmpty();
+
+    assertThat(resultPanel.findElements(By.cssSelector("[data-testid='fido2-replay-telemetry']")))
+        .as("telemetry block should be removed from the replay result panel")
+        .isEmpty();
+  }
+
+  @Test
+  @DisplayName("Stored credential selection starts empty and refreshes evaluate and replay forms")
+  void storedSelectionDefaultsToPlaceholderAndRefreshesForms() {
+    clearCredentialStore();
+    seedAllCuratedCredentials();
+
+    List<Fido2OperatorSampleData.SeedDefinition> definitions =
+        Fido2OperatorSampleData.seedDefinitions();
+    assertThat(definitions.size())
+        .as("expected at least two curated WebAuthn stored credentials")
+        .isGreaterThan(1);
+
+    Fido2OperatorSampleData.SeedDefinition firstDefinition = definitions.get(0);
+    Fido2OperatorSampleData.SeedDefinition secondDefinition = definitions.get(1);
+
+    Map<String, Fido2OperatorSampleData.InlineVector> inlineVectorIndex = new LinkedHashMap<>();
+    for (Fido2OperatorSampleData.InlineVector vector : Fido2OperatorSampleData.inlineVectors()) {
+      inlineVectorIndex.put(vector.key(), vector);
+    }
+
+    Fido2OperatorSampleData.InlineVector firstVector =
+        inlineVectorIndex.get(firstDefinition.metadata().get("presetKey"));
+    Fido2OperatorSampleData.InlineVector secondVector =
+        inlineVectorIndex.get(secondDefinition.metadata().get("presetKey"));
+
+    assertThat(firstVector).as("first curated inline vector").isNotNull();
+    assertThat(secondVector).as("second curated inline vector").isNotNull();
+    assertThat(secondVector.signatureBase64Url())
+        .as("sanity check second vector signature differs from first")
+        .isNotEqualTo(firstVector.signatureBase64Url());
+
+    navigateToWebAuthnPanel();
+
+    WebElement evaluateStoredRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+    evaluateStoredRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
+
+    waitForOption(By.id("fido2StoredCredentialId"), firstDefinition.credentialId());
+    waitForOption(By.id("fido2StoredCredentialId"), secondDefinition.credentialId());
+    Select evaluateSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
+    assertThat(evaluateSelect.getFirstSelectedOption().getAttribute("value")).isEqualTo("");
+
+    WebElement evaluateSubmit =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-stored-submit']"));
+    assertThat(evaluateSubmit.getAttribute("disabled")).isNull();
+
+    WebElement replayTab = waitFor(By.cssSelector("[data-testid='fido2-panel-tab-replay']"));
+    replayTab.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-panel-tab-replay']"), "aria-selected", "true");
+
+    WebElement replayStoredRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-mode-select-stored']"));
+    replayStoredRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-replay-mode-toggle']"), "data-mode", "stored");
+
+    waitForOption(By.id("fido2ReplayCredentialId"), firstDefinition.credentialId());
+    waitForOption(By.id("fido2ReplayCredentialId"), secondDefinition.credentialId());
+    Select replaySelect = new Select(waitFor(By.id("fido2ReplayCredentialId")));
+    assertThat(replaySelect.getFirstSelectedOption().getAttribute("value")).isEqualTo("");
+
+    WebElement replaySubmit = waitFor(By.cssSelector("[data-testid='fido2-replay-stored-submit']"));
+    assertThat(replaySubmit.getAttribute("disabled")).isNull();
+
+    WebElement evaluateTab = waitFor(By.cssSelector("[data-testid='fido2-panel-tab-evaluate']"));
+    evaluateTab.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-panel-tab-evaluate']"), "aria-selected", "true");
+
+    evaluateStoredRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+    evaluateStoredRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
+
+    WebElement evaluateSelectElement = waitFor(By.id("fido2StoredCredentialId"));
+    evaluateSelect = new Select(evaluateSelectElement);
+    evaluateSelect.selectByValue(firstDefinition.credentialId());
+    dispatchChange(evaluateSelectElement);
+
+    awaitValue(
+        By.id("fido2StoredChallenge"),
+        value -> firstVector.expectedChallengeBase64Url().equals(value));
+    awaitValue(
+        By.id("fido2StoredCounter"),
+        value -> value != null && value.equals(Long.toString(firstDefinition.signatureCounter())));
+
+    replayTab.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-panel-tab-replay']"), "aria-selected", "true");
+
+    replayStoredRadio = waitFor(By.cssSelector("[data-testid='fido2-replay-mode-select-stored']"));
+    replayStoredRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-replay-mode-toggle']"), "data-mode", "stored");
+
+    replaySelect = new Select(waitFor(By.id("fido2ReplayCredentialId")));
+    assertThat(replaySelect.getFirstSelectedOption().getAttribute("value"))
+        .isEqualTo(firstDefinition.credentialId());
+    awaitValue(
+        By.id("fido2ReplaySignature"), value -> firstVector.signatureBase64Url().equals(value));
+    awaitValue(
+        By.id("fido2ReplayChallenge"),
+        value -> firstVector.expectedChallengeBase64Url().equals(value));
+
+    replaySelect.selectByValue(secondDefinition.credentialId());
+    dispatchChange(waitFor(By.id("fido2ReplayCredentialId")));
+
+    awaitValue(
+        By.id("fido2ReplaySignature"), value -> secondVector.signatureBase64Url().equals(value));
+    awaitValue(
+        By.id("fido2ReplayChallenge"),
+        value -> secondVector.expectedChallengeBase64Url().equals(value));
+
+    evaluateTab.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-panel-tab-evaluate']"), "aria-selected", "true");
+
+    evaluateStoredRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+    evaluateStoredRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
+
+    evaluateSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
+    assertThat(evaluateSelect.getFirstSelectedOption().getAttribute("value"))
+        .isEqualTo(secondDefinition.credentialId());
+    awaitValue(
+        By.id("fido2StoredChallenge"),
+        value -> secondVector.expectedChallengeBase64Url().equals(value));
+    awaitValue(
+        By.id("fido2StoredCounter"),
+        value -> value != null && value.equals(Long.toString(secondDefinition.signatureCounter())));
   }
 
   @Test
@@ -772,6 +969,11 @@ final class Fido2OperatorUiSeleniumTest {
 
     WebElement credentialIdField = waitFor(By.id("fido2ReplayInlineCredentialId"));
     assertThat(credentialIdField.getAttribute("value")).isNotEmpty();
+    WebElement publicKeyField = waitFor(By.id("fido2ReplayInlinePublicKey"));
+    String publicKeyValue = publicKeyField.getAttribute("value");
+    assertThat(publicKeyValue).isNotBlank();
+    assertThat(publicKeyValue.trim()).startsWith("{");
+    assertThat(publicKeyValue).contains("\"kty\"");
     Select algorithmSelect =
         new Select(waitFor(By.cssSelector("[data-testid='fido2-replay-inline-algorithm']")));
     assertThat(algorithmSelect.getFirstSelectedOption().getAttribute("value")).isNotEmpty();
@@ -791,9 +993,89 @@ final class Fido2OperatorUiSeleniumTest {
             By.cssSelector(
                 "[data-testid='fido2-replay-inline-result'] [data-testid='fido2-replay-inline-status']"));
     assertThat(status.getText()).isEqualToIgnoringCase("match");
+    assertThat(status.getAttribute("class")).contains("status-badge");
 
-    WebElement telemetry = waitFor(By.cssSelector("[data-testid='fido2-replay-inline-telemetry']"));
-    assertThat(telemetry.getText()).doesNotContain("challenge=").doesNotContain("signature=");
+    WebElement reason =
+        driver.findElement(
+            By.cssSelector(
+                "[data-testid='fido2-replay-inline-result'] [data-testid='fido2-replay-inline-reason']"));
+    WebElement outcome =
+        driver.findElement(
+            By.cssSelector(
+                "[data-testid='fido2-replay-inline-result'] [data-testid='fido2-replay-inline-outcome']"));
+    assertThat(reason.getText()).isEqualToIgnoringCase("match");
+    assertThat(outcome.getText()).isEqualToIgnoringCase("match");
+  }
+
+  @Test
+  @DisplayName("Replay forms expose assertion payload textareas")
+  void replayFormsExposeAssertionPayloadTextareas() {
+    navigateToWebAuthnPanel();
+
+    WebElement replayTab = waitFor(By.cssSelector("[data-testid='fido2-panel-tab-replay']"));
+    replayTab.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-panel-tab-replay']"), "aria-selected", "true");
+
+    WebElement inlineRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-mode-select-inline']"));
+    inlineRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-replay-mode-toggle']"), "data-mode", "inline");
+
+    By inlineSampleSelectSelector = By.id("fido2ReplayInlineSampleSelect");
+    new WebDriverWait(driver, Duration.ofSeconds(3))
+        .until(ExpectedConditions.elementToBeClickable(inlineSampleSelectSelector));
+    WebElement inlineSampleElement = driver.findElement(inlineSampleSelectSelector);
+    Select inlineSampleSelect = new Select(inlineSampleElement);
+    if (inlineSampleSelect.getOptions().size() > 1) {
+      inlineSampleSelect.selectByIndex(1);
+      dispatchChange(inlineSampleElement);
+    }
+
+    WebElement inlineChallenge = waitFor(By.id("fido2ReplayInlineChallenge"));
+    WebElement inlineClientData = waitFor(By.id("fido2ReplayInlineClientData"));
+    WebElement inlineAuthenticatorData = waitFor(By.id("fido2ReplayInlineAuthenticatorData"));
+    WebElement inlineSignature = waitFor(By.id("fido2ReplayInlineSignature"));
+
+    assertThat(inlineChallenge.isDisplayed()).isTrue();
+    assertThat(inlineClientData.isDisplayed()).isTrue();
+    assertThat(inlineAuthenticatorData.isDisplayed()).isTrue();
+    assertThat(inlineSignature.isDisplayed()).isTrue();
+
+    awaitValue(By.id("fido2ReplayInlineChallenge"), value -> value != null && !value.isBlank());
+    awaitValue(By.id("fido2ReplayInlineClientData"), value -> value != null && !value.isBlank());
+    awaitValue(
+        By.id("fido2ReplayInlineAuthenticatorData"), value -> value != null && value.length() > 16);
+    awaitValue(By.id("fido2ReplayInlineSignature"), value -> value != null && !value.isBlank());
+
+    WebElement storedRadio =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-mode-select-stored']"));
+    storedRadio.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-replay-mode-toggle']"), "data-mode", "stored");
+
+    waitForOption(By.id("fido2ReplayCredentialId"), STORED_CREDENTIAL_ID);
+    WebElement storedSelectElement = waitFor(By.id("fido2ReplayCredentialId"));
+    Select storedSelect = new Select(storedSelectElement);
+    storedSelect.selectByValue(STORED_CREDENTIAL_ID);
+    dispatchChange(storedSelectElement);
+
+    WebElement storedChallenge = waitFor(By.id("fido2ReplayChallenge"));
+    WebElement storedClientData = waitFor(By.id("fido2ReplayClientData"));
+    WebElement storedAuthenticatorData = waitFor(By.id("fido2ReplayAuthenticatorData"));
+    WebElement storedSignature = waitFor(By.id("fido2ReplaySignature"));
+
+    assertThat(storedChallenge.isDisplayed()).isTrue();
+    assertThat(storedClientData.isDisplayed()).isTrue();
+    assertThat(storedAuthenticatorData.isDisplayed()).isTrue();
+    assertThat(storedSignature.isDisplayed()).isTrue();
+
+    awaitValue(By.id("fido2ReplayChallenge"), value -> value != null && !value.isBlank());
+    awaitValue(By.id("fido2ReplayClientData"), value -> value != null && !value.isBlank());
+    awaitValue(
+        By.id("fido2ReplayAuthenticatorData"), value -> value != null && value.length() > 16);
+    awaitValue(By.id("fido2ReplaySignature"), value -> value != null && !value.isBlank());
   }
 
   @Test

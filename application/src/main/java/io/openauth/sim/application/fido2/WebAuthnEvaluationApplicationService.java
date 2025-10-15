@@ -208,7 +208,7 @@ public final class WebAuthnEvaluationApplicationService {
 
     String reasonCode =
         success
-            ? "validated"
+            ? "match"
             : error.map(err -> err.name().toLowerCase(Locale.US)).orElse("verification_failed");
 
     Map<String, Object> fields =

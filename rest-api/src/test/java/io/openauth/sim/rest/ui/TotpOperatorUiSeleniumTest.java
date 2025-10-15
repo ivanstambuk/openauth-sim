@@ -650,6 +650,44 @@ final class TotpOperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("TOTP replay result column preserves status badge without clipping")
+  void totpReplayResultColumnPreservesStatusBadge() {
+    navigateToTotpPanel();
+    switchToReplayTab();
+    waitUntilUrlContains("tab=replay");
+
+    WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
+    waitUntilAttribute(replayToggle, "data-mode", "stored");
+
+    selectOption("totpReplayStoredCredentialId", STORED_CREDENTIAL_ID);
+
+    WebElement sampleActions =
+        waitFor(By.cssSelector("[data-testid='totp-replay-sample-actions']"));
+    WebElement sampleButton =
+        sampleActions.findElement(By.cssSelector("[data-testid='totp-replay-sample-load']"));
+    sampleButton.click();
+
+    waitUntilFieldValue(By.id("totpReplayStoredOtp"), EXPECTED_STORED_OTP);
+    waitUntilFieldValue(
+        By.id("totpReplayStoredTimestamp"), Long.toString(STORED_TIMESTAMP.getEpochSecond()));
+
+    WebElement replayButton =
+        driver.findElement(By.cssSelector("[data-testid='totp-replay-stored-submit']"));
+    replayButton.click();
+
+    WebElement resultPanel =
+        waitForVisible(By.cssSelector("[data-testid='totp-replay-result-panel']"));
+
+    WebElement statusColumn =
+        driver.findElement(By.cssSelector("#totp-replay-panel .status-column"));
+    String overflowX = statusColumn.getCssValue("overflow-x");
+    assertEquals(
+        "visible",
+        overflowX,
+        "Replay status column should allow horizontal content without clipping");
+  }
+
+  @Test
   @DisplayName("Inline TOTP replay outside drift returns mismatch")
   void inlineTotpReplayReportsMismatch() {
     navigateToTotpPanel();

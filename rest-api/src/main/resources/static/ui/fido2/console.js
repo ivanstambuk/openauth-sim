@@ -66,14 +66,12 @@
       panel.querySelector('[data-testid="fido2-replay-inline-submit"]');
   var replayStoredResultPanel =
       panel.querySelector('[data-testid="fido2-replay-result"]');
-  var replayStoredStatus = panel.querySelector('[data-testid="fido2-replay-status"]');
+  var replayStatusBadge = panel.querySelector('[data-testid="fido2-replay-status"]');
   var replayReason = panel.querySelector('[data-testid="fido2-replay-reason"]');
-  var replayMessage = panel.querySelector('[data-testid="fido2-replay-message"]');
-  var replayTelemetry =
-      panel.querySelector('[data-testid="fido2-replay-telemetry"]');
+  var replayOutcome = panel.querySelector('[data-testid="fido2-replay-outcome"]');
   var replayInlineResultPanel =
       panel.querySelector('[data-testid="fido2-replay-inline-result"]');
-  var replayInlineStatus =
+  var replayInlineStatusBadge =
       replayInlineResultPanel
           ? replayInlineResultPanel.querySelector('[data-testid="fido2-replay-inline-status"]')
           : null;
@@ -81,13 +79,9 @@
       replayInlineResultPanel
           ? replayInlineResultPanel.querySelector('[data-testid="fido2-replay-inline-reason"]')
           : null;
-  var replayInlineMessage =
+  var replayInlineOutcome =
       replayInlineResultPanel
-          ? replayInlineResultPanel.querySelector('[data-testid="fido2-replay-inline-message"]')
-          : null;
-  var replayInlineTelemetry =
-      replayInlineResultPanel
-          ? replayInlineResultPanel.querySelector('[data-testid="fido2-replay-inline-telemetry"]')
+          ? replayInlineResultPanel.querySelector('[data-testid="fido2-replay-inline-outcome"]')
           : null;
 
   var storedForm = panel.querySelector('[data-testid="fido2-stored-form"]');
@@ -175,6 +169,8 @@
   var inlineCounterSnapshotSeconds = null;
   var storedCounterSnapshotSeconds = null;
   var storedCounterBaseline = null;
+  var activeStoredCredentialId = '';
+  var suppressStoredCredentialSync = false;
 
   removeNode(seedDefinitionsNode);
   removeNode(inlineVectorsNode);
@@ -252,7 +248,18 @@
 
   if (storedCredentialSelect) {
     storedCredentialSelect.addEventListener('change', function () {
-      applyStoredSample(storedCredentialSelect.value);
+      if (suppressStoredCredentialSync) {
+        return;
+      }
+      setActiveStoredCredential(storedCredentialSelect.value);
+    });
+  }
+  if (replayCredentialSelect) {
+    replayCredentialSelect.addEventListener('change', function () {
+      if (suppressStoredCredentialSync) {
+        return;
+      }
+      setActiveStoredCredential(replayCredentialSelect.value);
     });
   }
 
@@ -305,7 +312,7 @@
   }
   updateEvaluateButtonCopy();
   updateReplayButtonCopy();
-  applyStoredSample(storedCredentialSelect && storedCredentialSelect.value);
+  setActiveStoredCredential(activeStoredCredentialId, { force: true });
   applyInlineSample(inlineSampleSelect && inlineSampleSelect.value);
 
   function submitStoredEvaluation() {
@@ -491,10 +498,9 @@
   function handleStoredReplaySuccess(response) {
     var status = resolveReplayStatus(response && response.status, response && response.match);
     var reason = resolveReason(response && response.reasonCode, status);
-    setStatusText(replayStoredStatus, status, 'match');
-    setStatusText(replayReason, reason, status);
-    setReplayMessage(formatReplaySuccessMessage(response && response.metadata, status));
-    updateReplayTelemetry(formatReplayTelemetry(response && response.metadata, status));
+    setStatusBadge(replayStatusBadge, status);
+    setStatusText(replayOutcome, status, '—');
+    setStatusText(replayReason, reason, '—');
     hasStoredReplayResult = true;
     refreshReplayResultVisibility();
   }
@@ -502,10 +508,9 @@
   function handleStoredReplayError(error) {
     var status = resolveReplayErrorStatus(error);
     var reason = resolveReason(readReasonCode(error), status);
-    setStatusText(replayStoredStatus, status, 'error');
-    setStatusText(replayReason, reason, status);
-    setReplayMessage(formatReplayErrorMessage(error, 'Stored replay'));
-    updateReplayTelemetry(formatReplayErrorMessage(error, 'Stored replay'));
+    setStatusBadge(replayStatusBadge, status);
+    setStatusText(replayOutcome, status, '—');
+    setStatusText(replayReason, reason, '—');
     hasStoredReplayResult = true;
     refreshReplayResultVisibility();
   }
@@ -513,10 +518,9 @@
   function handleInlineReplaySuccess(response) {
     var status = resolveReplayStatus(response && response.status, response && response.match);
     var reason = resolveReason(response && response.reasonCode, status);
-    setStatusText(replayInlineStatus, status, 'match');
-    setStatusText(replayInlineReason, reason, status);
-    setReplayInlineMessage(formatReplaySuccessMessage(response && response.metadata, status));
-    updateReplayInlineTelemetry(formatReplayTelemetry(response && response.metadata, status));
+    setStatusBadge(replayInlineStatusBadge, status);
+    setStatusText(replayInlineOutcome, status, '—');
+    setStatusText(replayInlineReason, reason, '—');
     hasInlineReplayResult = true;
     refreshReplayResultVisibility();
   }
@@ -524,10 +528,9 @@
   function handleInlineReplayError(error) {
     var status = resolveReplayErrorStatus(error);
     var reason = resolveReason(readReasonCode(error), status);
-    setStatusText(replayInlineStatus, status, 'error');
-    setStatusText(replayInlineReason, reason, status);
-    setReplayInlineMessage(formatReplayErrorMessage(error, 'Inline replay'));
-    updateReplayInlineTelemetry(formatReplayErrorMessage(error, 'Inline replay'));
+    setStatusBadge(replayInlineStatusBadge, status);
+    setStatusText(replayInlineOutcome, status, '—');
+    setStatusText(replayInlineReason, reason, '—');
     hasInlineReplayResult = true;
     refreshReplayResultVisibility();
   }
@@ -688,49 +691,65 @@
       updateCredentialSelect(storedCredentialSelect, credentials);
       updateCredentialSelect(replayCredentialSelect, credentials);
       toggleSeedActions();
-      if (credentials.length > 0) {
-        var firstId = credentials[0].id;
-        if (storedCredentialSelect && !storedCredentialSelect.value) {
-          storedCredentialSelect.value = firstId;
-        }
-        if (replayCredentialSelect && !replayCredentialSelect.value) {
-          replayCredentialSelect.value = firstId;
-        }
-        applyStoredSample(storedCredentialSelect && storedCredentialSelect.value);
-        applyStoredReplaySamples(replayCredentialSelect && replayCredentialSelect.value);
-      } else {
-        applyStoredSample(null);
-        applyStoredReplaySamples(null);
+      var nextActive = activeStoredCredentialId;
+      if (
+        nextActive
+        && (!storedCredentialSelect
+            || !elementHasOption(storedCredentialSelect, nextActive))
+        && (!replayCredentialSelect
+            || !elementHasOption(replayCredentialSelect, nextActive))) {
+        nextActive = '';
       }
+      setActiveStoredCredential(nextActive, { force: true });
     });
   }
 
+  function setActiveStoredCredential(credentialId, options) {
+    var normalized =
+        typeof credentialId === 'string' ? credentialId.trim() : '';
+    if (
+      normalized
+      && (!storedCredentialSelect
+          || !elementHasOption(storedCredentialSelect, normalized))
+      && (!replayCredentialSelect
+          || !elementHasOption(replayCredentialSelect, normalized))) {
+      normalized = '';
+    }
+    var shouldSync = options && options.force === true;
+    if (normalized !== activeStoredCredentialId) {
+      activeStoredCredentialId = normalized;
+      shouldSync = true;
+    }
+    suppressStoredCredentialSync = true;
+    syncStoredSelectValue(storedCredentialSelect, normalized);
+    syncStoredSelectValue(replayCredentialSelect, normalized);
+    suppressStoredCredentialSync = false;
+    if (shouldSync) {
+      applyStoredSample(normalized || null);
+      applyStoredReplaySamples(normalized || null);
+    }
+  }
+
+  function syncStoredSelectValue(select, credentialId) {
+    if (!select) {
+      return;
+    }
+    if (credentialId && elementHasOption(select, credentialId)) {
+      select.value = credentialId;
+    } else {
+      select.value = '';
+    }
+  }
+
   function applyStoredSample(credentialId) {
+    pendingStoredResult();
     if (!credentialId) {
-      pendingStoredResult();
-      setValue(storedChallengeField, '');
-      storedCounterBaseline = null;
-      storedCounterSnapshotSeconds = null;
-      setValue(storedCounterInput, '');
-      updateStoredCounterHintText();
-      setValue(storedPrivateKeyField, '');
-      if (storedUvSelect) {
-        storedUvSelect.checked = false;
-      }
+      clearStoredEvaluationFields();
       return;
     }
     var definition = findSeedDefinition(credentialId);
     if (!definition) {
-      pendingStoredResult();
-      setValue(storedChallengeField, '');
-      storedCounterBaseline = null;
-      storedCounterSnapshotSeconds = null;
-      setValue(storedCounterInput, '');
-      updateStoredCounterHintText();
-      setValue(storedPrivateKeyField, '');
-      if (storedUvSelect) {
-        storedUvSelect.checked = false;
-      }
+      clearStoredEvaluationFields();
       return;
     }
     var vectorKey =
@@ -763,14 +782,29 @@
     }
   }
 
+  function clearStoredEvaluationFields() {
+    setValue(storedRpInput, '');
+    setValue(storedOriginInput, '');
+    setValue(storedChallengeField, '');
+    storedCounterBaseline = null;
+    storedCounterSnapshotSeconds = null;
+    setValue(storedCounterInput, '');
+    updateStoredCounterHintText();
+    setValue(storedPrivateKeyField, '');
+    if (storedUvSelect) {
+      storedUvSelect.checked = false;
+    }
+  }
+
   function applyStoredReplaySamples(credentialId) {
+    pendingReplayStoredResult();
     if (!credentialId) {
-      pendingReplayStoredResult();
+      clearStoredReplayFields();
       return;
     }
     var definition = findSeedDefinition(credentialId);
     if (!definition) {
-      pendingReplayStoredResult();
+      clearStoredReplayFields();
       return;
     }
     var vectorKey =
@@ -784,6 +818,15 @@
     setValue(replayAuthenticatorDataField, vector ? vector.authenticatorDataBase64Url : '');
     setValue(replaySignatureField, vector ? vector.signatureBase64Url : '');
     updateReplayTelemetry('Telemetry ready (sanitized).');
+  }
+
+  function clearStoredReplayFields() {
+    setValue(replayRpInput, '');
+    setValue(replayOriginInput, '');
+    setValue(replayChallengeField, '');
+    setValue(replayClientDataField, '');
+    setValue(replayAuthenticatorDataField, '');
+    setValue(replaySignatureField, '');
   }
 
   function applyInlineSample(selectedKey) {
@@ -1011,7 +1054,8 @@
     }
     activeReplayInlineCredentialName = vector.credentialName || null;
     setValue(replayInlineCredentialIdField, vector.credentialIdBase64Url || '');
-    setValue(replayInlinePublicKeyField, vector.publicKeyCoseBase64Url || '');
+    var publicKeyText = vector.publicKeyJwk || vector.publicKeyCoseBase64Url || '';
+    setValue(replayInlinePublicKeyField, publicKeyText);
     setValue(replayInlineRpInput, vector.relyingPartyId || 'example.org');
     setValue(replayInlineOriginInput, vector.origin || 'https://example.org');
     setValue(replayInlineAlgorithmInput, vector.algorithm || 'ES256');
@@ -1080,27 +1124,17 @@
   function pendingReplayStoredResult() {
     hasStoredReplayResult = false;
     refreshReplayResultVisibility();
-    if (replayStoredStatus) {
-      replayStoredStatus.textContent = 'pending';
-    }
-    if (replayReason) {
-      replayReason.textContent = 'awaiting replay';
-    }
-    setReplayMessage('Awaiting replay.');
-    updateReplayTelemetry('Awaiting replay (sanitized).');
+    setStatusBadge(replayStatusBadge, 'pending');
+    setStatusText(replayReason, '—', '—');
+    setStatusText(replayOutcome, '—', '—');
   }
 
   function pendingReplayInlineResult() {
     hasInlineReplayResult = false;
     refreshReplayResultVisibility();
-    if (replayInlineStatus) {
-      replayInlineStatus.textContent = 'pending';
-    }
-    if (replayInlineReason) {
-      replayInlineReason.textContent = 'awaiting replay';
-    }
-    setReplayInlineMessage('Awaiting replay.');
-    updateReplayInlineTelemetry('Awaiting replay (sanitized).');
+    setStatusBadge(replayInlineStatusBadge, 'pending');
+    setStatusText(replayInlineReason, '—', '—');
+    setStatusText(replayInlineOutcome, '—', '—');
   }
 
   function updateInlineTelemetry(message) {
@@ -1110,34 +1144,37 @@
   }
 
   function updateReplayTelemetry(message) {
-    if (replayTelemetry) {
-      replayTelemetry.textContent = sanitizeMessage(message);
-    }
+    // Replay panels no longer render telemetry rows; retain hook for preset loaders.
+    void message;
   }
 
   function updateReplayInlineTelemetry(message) {
-    if (replayInlineTelemetry) {
-      replayInlineTelemetry.textContent = sanitizeMessage(message);
-    }
+    updateReplayTelemetry(message);
   }
 
-  function setReplayMessage(message) {
-    setMessageText(replayMessage, message, 'Awaiting replay.');
-  }
-
-  function setReplayInlineMessage(message) {
-    setMessageText(replayInlineMessage, message, 'Awaiting replay.');
-  }
-
-  function setMessageText(element, message, fallback) {
-    if (!element) {
+  function setStatusBadge(badge, status) {
+    if (!badge) {
       return;
     }
-    var text = message;
-    if (!text || !String(text).trim()) {
-      text = fallback || 'sanitized';
+    var normalized = status ? String(status).toLowerCase() : '';
+    var isSuccess =
+        normalized === 'validated' ||
+        normalized === 'success' ||
+        normalized === 'match';
+    var isInvalid =
+        normalized === 'invalid' ||
+        normalized === 'otp_out_of_window' ||
+        normalized === 'mismatch' ||
+        normalized === 'error' ||
+        normalized === 'failure';
+    var label = status ? String(status) : 'Pending';
+    badge.textContent = label;
+    badge.classList.remove('status-badge--success', 'status-badge--error');
+    if (isSuccess) {
+      badge.classList.add('status-badge--success');
+    } else if (isInvalid) {
+      badge.classList.add('status-badge--error');
     }
-    element.textContent = sanitizeMessage(String(text));
   }
 
   function setStatusText(element, value, fallback) {
@@ -1274,58 +1311,6 @@
     var message = readErrorMessage(error);
     var status = error && typeof error.status === 'number' && error.status > 0 ? 'HTTP ' + error.status : null;
     var parts = [prefix || 'Evaluation'];
-    if (reason) {
-      parts.push('reason: ' + reason);
-    }
-    if (status) {
-      parts.push(status);
-    }
-    if (message) {
-      parts.push(message);
-    }
-    return parts.join(' – ');
-  }
-
-  function formatReplayTelemetry(metadata, status) {
-    if (!metadata) {
-      return 'Replay telemetry recorded (sanitized).';
-    }
-    var parts = [];
-    if (metadata.telemetryId) {
-      parts.push('telemetryId=' + metadata.telemetryId);
-    }
-    if (metadata.credentialSource) {
-      parts.push('credentialSource=' + metadata.credentialSource);
-    }
-    if (typeof metadata.credentialReference === 'boolean') {
-      parts.push('credentialReference=' + metadata.credentialReference);
-    }
-    if (metadata.origin) {
-      parts.push('origin=' + metadata.origin);
-    }
-    if (metadata.algorithm) {
-      parts.push('algorithm=' + metadata.algorithm);
-    }
-    if (typeof metadata.userVerificationRequired === 'boolean') {
-      parts.push('userVerificationRequired=' + metadata.userVerificationRequired);
-    }
-    if (metadata.error) {
-      parts.push('error=' + metadata.error);
-    }
-    parts.push('status=' + (status || 'unknown'));
-    return parts.join(' · ');
-  }
-
-  function formatReplaySuccessMessage(metadata, status) {
-    var origin = metadata && metadata.origin ? metadata.origin : 'unknown origin';
-    return 'Replay ' + (status || 'match') + ' for ' + origin + '.';
-  }
-
-  function formatReplayErrorMessage(error, prefix) {
-    var reason = readReasonCode(error);
-    var message = readErrorMessage(error);
-    var status = error && typeof error.status === 'number' && error.status > 0 ? 'HTTP ' + error.status : null;
-    var parts = [prefix || 'Replay'];
     if (reason) {
       parts.push('reason: ' + reason);
     }
@@ -1499,13 +1484,13 @@
     });
     var hasCredentials = credentials.length > 0;
     select.disabled = !hasCredentials;
-    if (hasCredentials) {
-      if (previous && elementHasOption(select, previous)) {
-        select.value = previous;
-      } else {
-        select.value = credentials[0].id;
-      }
+    var desired = '';
+    if (activeStoredCredentialId && elementHasOption(select, activeStoredCredentialId)) {
+      desired = activeStoredCredentialId;
+    } else if (previous && elementHasOption(select, previous)) {
+      desired = previous;
     }
+    select.value = desired;
   }
 
   function elementHasOption(select, value) {

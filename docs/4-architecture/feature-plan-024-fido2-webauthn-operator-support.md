@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-024-fido2-webauthn-operator-support.md`  
 _Status:_ In Progress  
-_Last updated:_ 2025-10-14
+_Last updated:_ 2025-10-15
 
 ## Vision & Success Criteria
 - Ship a parity WebAuthn assertion generation + verification experience across core, persistence, CLI, REST, and operator UI facades, mirroring HOTP/OCRA ergonomics (authenticator-style generation on Evaluate, verification on Replay).
@@ -223,6 +223,41 @@ Each increment stages failing tests first, drives implementation to green, and r
     - Update the Thymeleaf template and `ui/fido2/console.js` to surface the stored counter value, reuse the inline toggle/reset controls, and keep override submission semantics unchanged.  
     - Re-run the targeted Selenium test plus `./gradlew --no-daemon spotlessApply check`, capture outcomes here, and note any service wiring adjustments required to transport the stored counter to the UI.  
     - _2025-10-14 – Completed I26 by adding the stored counter parity Selenium regression, wiring new toggle/reset controls in `panel.html` + `console.js`, verifying targeted test via `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.storedCounterControlsMirrorInlineBehaviour"`, and finishing with a green `./gradlew --no-daemon spotlessApply check`; no additional service wiring required._
+
+27. **I27 – Result column overflow regression**  
+    - Add failing Selenium coverage in the TOTP operator console suite that asserts the replay result column exposes visible overflow and preserves the status badge without clipping.  
+    - Adjust the shared operator console stylesheet so `.status-column` restores visible overflow and introduces a small inline-end inset while keeping the FIDO2 horizontal scrollbars functional.  
+    - Re-run the targeted Selenium test along with `./gradlew --no-daemon spotlessApply check`, recording the green results once the layout regression is fixed.
+    - _2025-10-14 – Completed I27 by adding the `totpReplayResultColumnPreservesStatusBadge` Selenium regression (failed under the existing overflow clipping), updating `console.css` to restore visible overflow and add inline-end spacing, rerunning the targeted `:rest-api:test` plus `spotlessApply check`, and confirming the badge renders fully across HOTP/TOTP/OCRA panels._
+
+28. **I28 – Replay result panel parity**  
+    - Stage a failing Selenium regression that asserts the FIDO2 replay result card renders identically to the HOTP/TOTP/OCRA panels (status badge + “Reason Code” and “Outcome” rows only, no telemetry lines).  
+    - Update the Thymeleaf template, shared panel partials, and any CSS helpers so the replay card layout matches the other protocols while still binding reason/outcome values from the existing DTO.  
+    - Re-run the targeted Selenium test along with `./gradlew --no-daemon spotlessApply check`, documenting outcomes before closing the increment.  
+    - _2025-10-14 – Added the layout parity Selenium regression, refactored the replay result sections and console script to emit status badge + reason/outcome rows (removing telemetry/messages), exercised the full `Fido2OperatorUiSeleniumTest` along with `spotlessApply check`, and captured green runs for both commands._
+
+29. **I29 – Reason code parity**  
+    - Stage failing service/UI tests asserting successful FIDO2 evaluation/replay returns reason code “match” (status badge + rows) to mirror HOTP/TOTP/OCRA.  
+    - Update `WebAuthnEvaluationApplicationService` (and any wrappers) so success reason codes normalize to “match”, adjust replay DTO/JS bindings if needed, and refresh Selenium expectations.  
+    - Re-run targeted application/service/REST/UI tests plus `./gradlew --no-daemon spotlessApply check`, recording results after the change.  
+    - _2025-10-14 – Updated application/REST/UI test expectations to `match`, normalized the success reason in the evaluation service (and replay wrappers/JS), ran targeted FIDO2 unit + Selenium tests, and closed with a green `./gradlew --no-daemon spotlessApply check` (Ocra Selenium suite required a retry due to a transient HtmlUnit error)._
+
+30. **I30 – Replay payload visibility**  
+    - Stage a failing Selenium regression confirming the inline and stored replay forms visibly display credential ID, public key, challenge, client data, authenticator data, and signature fields populated by presets.  
+    - Update the FIDO2 replay template and supporting JS so these assertion payload fields render as visible textareas (read-only only when the protocol mandates it), fulfilling the 2025-10-15 Option A directive.  
+    - Re-run the focused Selenium suite plus `./gradlew --no-daemon spotlessApply check`, documenting green outcomes on completion.
+
+31. **I31 – Replay presets default to JWK public keys**  
+    - Stage failing Selenium coverage ensuring inline replay presets populate the public-key textarea with the JWK representation while still accepting manual COSE/Pem entries.  
+    - Extend operator sample data and console wiring so loaded presets supply JWK strings by default (fall back to COSE when JWK is unavailable).  
+    - Re-run the targeted Selenium test and `./gradlew --no-daemon spotlessApply check`; capture outcomes once green.  
+    - _2025-10-15 – Added derived JWK strings to operator sample data, updated the console to populate JWK text by default, extended Selenium coverage, and verified via targeted `:rest-api:test` plus `spotlessApply check`._
+
+32. **I32 – Stored credential placeholder & refresh parity**  
+    - Stage failing Selenium coverage asserting the stored credential dropdown defaults to the placeholder while leaving Evaluate/Replay CTAs enabled, and that switching credentials refreshes both stored evaluate and stored replay forms/results.  
+    - Update the FIDO2 console JS to honour the placeholder default, keep action buttons active, and synchronise both form sections (and their status panels) whenever the selection changes.  
+    - Re-run the focused Selenium suite (`./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.*StoredCredential*"`), then finish with `./gradlew --no-daemon spotlessApply check`.  
+    - _2025-10-15 – Added placeholder/refresh Selenium regression, centralised stored-selection state in `console.js` (syncing evaluate/replay forms and resetting result panels), verified replay dropdown change updates signatures, and completed the Gradle runs noted above (spotless needed a second attempt with extended timeout)._
 
 ## Analysis Gate
 - 2025-10-13 – Checklist completed after adding Increment T20; spec clarifications synced (protocol/tab/mode + default Evaluate/Inline), plan/tasks updated, no open questions remain. All items pass; next step is staging failing Selenium routing tests before implementation.

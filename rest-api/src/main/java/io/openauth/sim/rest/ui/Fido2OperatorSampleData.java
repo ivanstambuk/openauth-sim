@@ -3,10 +3,14 @@ package io.openauth.sim.rest.ui;
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples;
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples.Sample;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import io.openauth.sim.core.json.SimpleJson;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /** Shared sample data for the FIDO2/WebAuthn operator console. */
 public final class Fido2OperatorSampleData {
@@ -44,6 +48,7 @@ public final class Fido2OperatorSampleData {
         sample.expectedType(),
         sample.credentialIdBase64Url(),
         sample.publicKeyCoseBase64Url(),
+        publicKeyJwk(sample),
         sample.signatureCounter(),
         sample.userVerificationRequired(),
         sample.algorithm().label(),
@@ -134,6 +139,99 @@ public final class Fido2OperatorSampleData {
     return baseLabel;
   }
 
+  private static String publicKeyJwk(Sample sample) {
+    return derivePublicJwk(sample.privateKeyJwk());
+  }
+
+  private static final Set<String> PRIVATE_JWK_FIELDS =
+      Set.of("d", "p", "q", "dp", "dq", "qi", "oth");
+
+  private static String derivePublicJwk(String keyPairJwk) {
+    if (keyPairJwk == null || keyPairJwk.isBlank()) {
+      return "";
+    }
+    Object parsed = SimpleJson.parse(keyPairJwk);
+    if (!(parsed instanceof Map<?, ?> parsedMap)) {
+      return keyPairJwk.trim();
+    }
+    Map<String, Object> filtered = new LinkedHashMap<>();
+    for (Map.Entry<?, ?> entry : parsedMap.entrySet()) {
+      Object rawKey = entry.getKey();
+      if (!(rawKey instanceof String key) || PRIVATE_JWK_FIELDS.contains(key)) {
+        continue;
+      }
+      filtered.put(key, entry.getValue());
+    }
+    return writeJson(filtered);
+  }
+
+  private static String writeJson(Map<String, Object> map) {
+    StringBuilder builder = new StringBuilder();
+    builder.append('{');
+    boolean first = true;
+    for (Map.Entry<String, Object> entry : map.entrySet()) {
+      if (!first) {
+        builder.append(',');
+      }
+      first = false;
+      builder.append('"').append(escape(entry.getKey())).append('"').append(':');
+      builder.append(serializeJsonValue(entry.getValue()));
+    }
+    builder.append('}');
+    return builder.toString();
+  }
+
+  private static String serializeJsonValue(Object value) {
+    if (value == null) {
+      return "null";
+    }
+    if (value instanceof Boolean || value instanceof Number) {
+      return value.toString();
+    }
+    if (value instanceof Map<?, ?> map) {
+      Map<String, Object> nested = new LinkedHashMap<>();
+      for (Map.Entry<?, ?> entry : map.entrySet()) {
+        Object rawKey = entry.getKey();
+        if (rawKey instanceof String key) {
+          nested.put(key, entry.getValue());
+        }
+      }
+      return writeJson(nested);
+    }
+    if (value instanceof Collection<?> collection) {
+      List<String> serialized = new ArrayList<>(collection.size());
+      for (Object item : collection) {
+        serialized.add(serializeJsonValue(item));
+      }
+      return "[" + String.join(",", serialized) + "]";
+    }
+    return '"' + escape(String.valueOf(value)) + '"';
+  }
+
+  private static String escape(String value) {
+    StringBuilder builder = new StringBuilder(value.length() + 16);
+    for (int i = 0; i < value.length(); i++) {
+      char ch = value.charAt(i);
+      switch (ch) {
+        case '\\' -> builder.append("\\\\");
+        case '"' -> builder.append("\\\"");
+        case '\b' -> builder.append("\\b");
+        case '\f' -> builder.append("\\f");
+        case '\n' -> builder.append("\\n");
+        case '\r' -> builder.append("\\r");
+        case '\t' -> builder.append("\\t");
+        default -> {
+          if (ch < 0x20) {
+            builder.append(String.format("\\u%04x", (int) ch));
+          } else {
+            builder.append(ch);
+          }
+        }
+      }
+    }
+    return builder.toString();
+  }
+
   /** Descriptor used to seed canonical FIDO2/WebAuthn credentials. */
   public record SeedDefinition(
       String credentialId,
@@ -171,6 +269,7 @@ public final class Fido2OperatorSampleData {
       String expectedType,
       String credentialIdBase64Url,
       String publicKeyCoseBase64Url,
+      String publicKeyJwk,
       long signatureCounter,
       boolean userVerificationRequired,
       String algorithm,
@@ -192,6 +291,7 @@ public final class Fido2OperatorSampleData {
           Objects.requireNonNull(credentialIdBase64Url, "credentialIdBase64Url");
       publicKeyCoseBase64Url =
           Objects.requireNonNull(publicKeyCoseBase64Url, "publicKeyCoseBase64Url");
+      publicKeyJwk = Objects.requireNonNull(publicKeyJwk, "publicKeyJwk");
       algorithm = Objects.requireNonNull(algorithm, "algorithm");
       expectedChallengeBase64Url =
           Objects.requireNonNull(expectedChallengeBase64Url, "expectedChallengeBase64Url");
