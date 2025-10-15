@@ -85,5 +85,6 @@ _Last updated: 2025-10-12_
 | R089 | Refresh operator docs/plan/knowledge map to describe live timestamp behaviour, rerun `./gradlew spotlessApply check`. | UI-OCRA-002, Documentation | ✅ |
 | R090 | Ensure timestamp auto-fill refreshes to the current Unix second on submission, update Selenium/MockMvc coverage, rerun `./gradlew :rest-api:test` and `spotlessApply check`. | UI-OCRA-002, UI-OCRA-005 | ✅ |
 | R091 | Publish `docs/ocra_validation_vectors.json`, refresh OCRA fixture loaders/tests across core/CLI/REST/operator UI, and document usage once the JSON catalogue ships. | UI-OCRA-002, Documentation | ✅ |
+| R092 | Remove the stored credential auto-fill button, auto-populate required parameters immediately on dropdown selection, and update accompanying tests/UI copy. | UI-OCRA-002, UI-OCRA-004 | ✅ |
 
 Update this checklist as work progresses.

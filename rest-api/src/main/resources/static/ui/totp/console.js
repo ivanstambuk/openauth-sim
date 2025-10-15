@@ -38,12 +38,9 @@
       totpPanel.querySelector('[data-testid="totp-replay-stored-status"]');
   var replayStoredSampleActions =
       totpPanel.querySelector('[data-testid="totp-replay-sample-actions"]');
-  var replayStoredSampleButton = replayStoredSampleActions
-    ? replayStoredSampleActions.querySelector('[data-testid="totp-replay-sample-load"]')
-    : null;
   var replayStoredSampleStatus = replayStoredSampleActions
-    ? replayStoredSampleActions.querySelector('[data-testid="totp-replay-sample-status"]')
-    : null;
+      ? replayStoredSampleActions.querySelector('[data-testid="totp-replay-sample-status"]')
+      : null;
   var credentialsEndpoint = storedForm
     ? storedForm.getAttribute('data-credentials-endpoint')
     : null;
@@ -480,23 +477,8 @@
             : false;
     var shouldShow = hasCredential && storedReplayModeActive();
     setHidden(replayStoredSampleActions, !shouldShow);
-    if (replayStoredSampleButton) {
-      if (shouldShow) {
-        replayStoredSampleButton.removeAttribute('disabled');
-        replayStoredSampleButton.removeAttribute('aria-disabled');
-      } else {
-        replayStoredSampleButton.setAttribute('disabled', 'disabled');
-        replayStoredSampleButton.setAttribute('aria-disabled', 'true');
-      }
-    }
     if (!shouldShow) {
       setReplaySampleStatus('', null);
-    } else if (
-      replayStoredSampleStatus &&
-      (!replayStoredSampleStatus.textContent ||
-        replayStoredSampleStatus.textContent.trim().length === 0)
-    ) {
-      setReplaySampleStatus('Apply sample data for this credential.', null);
     }
   }
 
@@ -562,6 +544,16 @@
     }
     if (select === replayStoredSelect) {
       syncReplaySampleActions();
+      if (storedReplayModeActive()) {
+        var selectedId = (replayStoredSelect.value || '').trim();
+        if (selectedId) {
+          applyReplayStoredSample(selectedId);
+        } else {
+          setReplaySampleStatus('', null);
+        }
+      } else {
+        setReplaySampleStatus('', null);
+      }
     }
   }
 
@@ -640,33 +632,28 @@
     return credentialPromise;
   }
 
-  function applyReplayStoredSample() {
-    if (!replayStoredForm || !replayStoredSelect) {
-      return;
-    }
-    var credentialId = (replayStoredSelect.value || '').trim();
+  function applyReplayStoredSample(credentialId) {
     if (!credentialId) {
       setReplaySampleStatus('', null);
       return;
     }
     var endpoint = storedSampleEndpoint(credentialId);
     if (!endpoint) {
+      setReplaySampleStatus('Sample data endpoint unavailable.', 'warning');
       return;
-    }
-    if (replayStoredSampleButton) {
-      replayStoredSampleButton.setAttribute('disabled', 'disabled');
-      replayStoredSampleButton.setAttribute('aria-disabled', 'true');
     }
     setReplaySampleStatus('Loading sample data…', null);
     getJson(endpoint)
       .then(function (payload) {
+        if (credentialId !== ((replayStoredSelect && replayStoredSelect.value) || '').trim()) {
+          return;
+        }
         if (!payload || typeof payload !== 'object') {
-          setReplaySampleStatus('Sample data is not available.', 'warning');
+          setReplaySampleStatus('Sample data is not available for this credential.', 'warning');
           return;
         }
         if (replayStoredOtpInput) {
-          replayStoredOtpInput.value =
-              typeof payload.otp === 'string' ? payload.otp : '';
+          replayStoredOtpInput.value = typeof payload.otp === 'string' ? payload.otp : '';
         }
         if (replayStoredTimestampInput) {
           if (typeof payload.timestamp === 'number') {
@@ -681,11 +668,15 @@
         if (replayStoredDriftBackwardInput) {
           if (typeof payload.driftBackward === 'number') {
             replayStoredDriftBackwardInput.value = String(payload.driftBackward);
+          } else {
+            replayStoredDriftBackwardInput.value = '';
           }
         }
         if (replayStoredDriftForwardInput) {
           if (typeof payload.driftForward === 'number') {
             replayStoredDriftForwardInput.value = String(payload.driftForward);
+          } else {
+            replayStoredDriftForwardInput.value = '';
           }
         }
         var metadata = payload.metadata && typeof payload.metadata === 'object'
@@ -697,27 +688,22 @@
         var presetLabel = metadata.samplePresetLabel && typeof metadata.samplePresetLabel === 'string'
           ? metadata.samplePresetLabel.trim()
           : '';
-        var message;
         if (notes) {
-          message = 'Sample: ' + notes;
+          setReplaySampleStatus('Sample: ' + notes, null);
         } else if (presetLabel) {
-          message = 'Sample "' + presetLabel + '" applied.';
+          setReplaySampleStatus('Sample "' + presetLabel + '" applied automatically.', null);
         } else {
-          message = 'Sample data applied.';
+          setReplaySampleStatus('Sample data applied automatically.', null);
         }
-        setReplaySampleStatus(message, null);
       })
       .catch(function (error) {
+        if (credentialId !== ((replayStoredSelect && replayStoredSelect.value) || '').trim()) {
+          return;
+        }
         if (error && (error.status === 404 || error.status === 400)) {
           setReplaySampleStatus('Sample data is not available for this credential.', 'warning');
         } else {
           setReplaySampleStatus('Unable to load sample data.', 'error');
-        }
-      })
-      .finally(function () {
-        if (replayStoredSampleButton) {
-          replayStoredSampleButton.removeAttribute('disabled');
-          replayStoredSampleButton.removeAttribute('aria-disabled');
         }
       });
   }
@@ -1059,9 +1045,18 @@
     setHidden(inlineSection, normalized !== 'inline');
     syncSeedActions(normalized === 'stored');
     if (normalized === 'stored') {
-      ensureStoredCredentials(options && options.force === true).catch(function () {
-        // ignore load errors; status message already updated
-      });
+      ensureStoredCredentials(options && options.force === true)
+        .then(function () {
+          var credentialId = (replayStoredSelect && replayStoredSelect.value || '').trim();
+          if (credentialId) {
+            applyReplayStoredSample(credentialId);
+          }
+        })
+        .catch(function () {
+          // ignore load errors; status message already updated
+        });
+    } else {
+      setReplaySampleStatus('', null);
     }
     dispatchModeChange(normalized, options);
   }
@@ -1539,18 +1534,34 @@
   if (replayStoredSelect) {
     replayStoredSelect.addEventListener('change', function () {
       syncReplaySampleActions();
+      clearReplayPanels();
+      var credentialId = (replayStoredSelect.value || '').trim();
+      if (replayStoredOtpInput) {
+        replayStoredOtpInput.value = '';
+      }
+      if (replayStoredTimestampInput) {
+        replayStoredTimestampInput.value = '';
+      }
+      if (replayStoredTimestampOverrideInput) {
+        replayStoredTimestampOverrideInput.value = '';
+      }
+      if (replayStoredDriftBackwardInput) {
+        replayStoredDriftBackwardInput.value = '';
+      }
+      if (replayStoredDriftForwardInput) {
+        replayStoredDriftForwardInput.value = '';
+      }
+      if (!credentialId) {
+        setReplaySampleStatus('', null);
+        return;
+      }
+      applyReplayStoredSample(credentialId);
     });
   }
   if (replayStoredButton) {
     replayStoredButton.addEventListener('click', function (event) {
       event.preventDefault();
       replayStored();
-    });
-  }
-  if (replayStoredSampleButton) {
-    replayStoredSampleButton.addEventListener('click', function (event) {
-      event.preventDefault();
-      applyReplayStoredSample();
     });
   }
   if (replayInlinePresetSelect) {

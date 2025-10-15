@@ -80,28 +80,12 @@
                     </p>
                   </div>
                 </div>
-                <div
-                  class="seed-actions"
-                  data-testid="replay-sample-actions"
+                <p
+                  class="hint credential-status"
+                  data-testid="replay-sample-status"
                   hidden="hidden"
                   aria-hidden="true"
-                >
-                  <button
-                    type="button"
-                    class="button-secondary"
-                    data-testid="replay-sample-load"
-                    disabled
-                    aria-disabled="true"
-                  >
-                    Load sample data
-                  </button>
-                  <p
-                    class="hint credential-status"
-                    data-testid="replay-sample-status"
-                    hidden="hidden"
-                    aria-hidden="true"
-                  ></p>
-                </div>
+                ></p>
               </section>
 
               <div
@@ -349,8 +333,6 @@
         var presetSource = doc.getElementById('ocra-replay-policy-presets');
         var credentialCache = null;
         var credentialPromise = null;
-        var sampleActions = doc.querySelector('[data-testid="replay-sample-actions"]');
-        var sampleButton = doc.querySelector('[data-testid="replay-sample-load"]');
         var sampleStatus = doc.querySelector('[data-testid="replay-sample-status"]');
         var sampleEndpointTemplate = form.getAttribute('data-sample-template');
         var sampleCache = Object.create(null);
@@ -438,16 +420,13 @@
         }
 
         function resetSampleUI() {
-          if (sampleButton) {
-            sampleButton.setAttribute('disabled', 'disabled');
-            sampleButton.setAttribute('aria-disabled', 'true');
+          if (!sampleStatus) {
+            return;
           }
-          if (sampleStatus) {
-            sampleStatus.textContent = '';
-            sampleStatus.classList.remove('credential-status--error', 'credential-status--warning');
-            sampleStatus.setAttribute('hidden', 'hidden');
-            sampleStatus.setAttribute('aria-hidden', 'true');
-          }
+          sampleStatus.textContent = '';
+          sampleStatus.classList.remove('credential-status--error', 'credential-status--warning');
+          sampleStatus.setAttribute('hidden', 'hidden');
+          sampleStatus.setAttribute('aria-hidden', 'true');
         }
 
         function setSampleStatus(message, severity) {
@@ -472,36 +451,13 @@
           sampleStatus.setAttribute('aria-hidden', 'false');
         }
 
-        function enableSampleButton() {
-          if (!sampleButton) {
-            return;
-          }
-          sampleButton.removeAttribute('disabled');
-          sampleButton.setAttribute('aria-disabled', 'false');
-        }
-
-        function disableSampleButton() {
-          if (!sampleButton) {
-            return;
-          }
-          sampleButton.setAttribute('disabled', 'disabled');
-          sampleButton.setAttribute('aria-disabled', 'true');
-        }
-
         function updateSampleVisibility() {
-          if (!sampleActions) {
-            return;
-          }
           if (currentMode() !== 'stored') {
-            hide(sampleActions);
             resetSampleUI();
             return;
           }
           var hasCredentials = Array.isArray(credentialCache) && credentialCache.length > 0;
-          if (hasCredentials) {
-            show(sampleActions);
-          } else {
-            hide(sampleActions);
+          if (!hasCredentials) {
             resetSampleUI();
           }
         }
@@ -737,6 +693,7 @@
             return;
           }
           if (!Array.isArray(credentialCache) || credentialCache.length === 0) {
+            activeCredentialId = '';
             resetSampleUI();
             return;
           }
@@ -744,24 +701,77 @@
           activeCredentialId = credentialId;
           resetSampleUI();
           if (!credentialId) {
-            disableSampleButton();
-            setSampleStatus('Select a credential to enable sample loading.', 'info');
+            setSampleStatus('', null);
             return;
           }
-          setSampleStatus('Checking for sample data…', 'info');
-          disableSampleButton();
-          ensureSample(credentialId).then(function (sample) {
-            if (credentialId !== activeCredentialId) {
-              return;
-            }
-            if (sampleAvailable(sample)) {
-              enableSampleButton();
-              setSampleStatus('Sample data ready. Click to load context.', 'info');
-            } else {
-              disableSampleButton();
-              setSampleStatus('No curated sample data available for this credential.', 'warning');
-            }
-          });
+          hide(resultPanel);
+          hide(errorPanel);
+          setAdvancedOpen(true);
+          if (otpInput) {
+            otpInput.value = '';
+          }
+          if (challengeInput) {
+            challengeInput.removeAttribute('disabled');
+            challengeInput.value = '';
+          }
+          if (sessionInput) {
+            sessionInput.removeAttribute('disabled');
+            sessionInput.value = '';
+          }
+          if (clientChallengeInput) {
+            clientChallengeInput.removeAttribute('disabled');
+            clientChallengeInput.value = '';
+          }
+          if (serverChallengeInput) {
+            serverChallengeInput.removeAttribute('disabled');
+            serverChallengeInput.value = '';
+          }
+          if (pinHashInput) {
+            pinHashInput.removeAttribute('disabled');
+            pinHashInput.value = '';
+          }
+          if (timestampInput) {
+            timestampInput.removeAttribute('disabled');
+            timestampInput.value = '';
+          }
+          if (counterInput) {
+            counterInput.removeAttribute('disabled');
+            counterInput.value = '';
+          }
+          setSampleStatus('Loading sample data…', null);
+          ensureSample(credentialId)
+            .then(function (sample) {
+              if (credentialId !== activeCredentialId) {
+                return;
+              }
+              if (sampleAvailable(sample)) {
+                applySample(sample);
+                var metadataEntry =
+                  sample && sample.metadata && typeof sample.metadata === 'object'
+                    ? sample.metadata
+                    : {};
+                var notes =
+                  typeof metadataEntry.notes === 'string' ? metadataEntry.notes.trim() : '';
+                var label =
+                  typeof metadataEntry.samplePresetLabel === 'string'
+                    ? metadataEntry.samplePresetLabel.trim()
+                    : '';
+                if (notes) {
+                  setSampleStatus(notes, null);
+                } else if (label) {
+                  setSampleStatus('Sample "' + label + '" applied automatically.', null);
+                } else {
+                  setSampleStatus('Sample data applied automatically.', null);
+                }
+              } else {
+                setSampleStatus('No curated sample data available for this credential.', 'warning');
+              }
+            })
+            .catch(function () {
+              if (credentialId === activeCredentialId) {
+                setSampleStatus('Unable to load sample data.', 'error');
+              }
+            });
         }
 
         function renderCredentialOptions() {
@@ -791,6 +801,189 @@
           }
           updateSampleVisibility();
           handleCredentialSelection();
+        }
+
+        function parseOcraSuite(suite) {
+          if (!suite || typeof suite !== 'string') {
+            return null;
+          }
+          var trimmed = suite.trim();
+          if (!trimmed) {
+            return null;
+          }
+          var parts = trimmed.split(':');
+          if (parts.length !== 3) {
+            return null;
+          }
+          var cryptoPart = parts[1];
+          var dataPart = parts[2];
+          var result = {
+            suite: trimmed,
+            counterRequired: false,
+            pinRequired: false,
+            challenge: null,
+            sessionLengthBytes: 0,
+            timestampStepSeconds: null,
+            timestampRequired: false,
+            requiresAdvanced: false,
+            supportsSplitChallenge: false,
+          };
+
+          var cryptoStep = extractTimeStepSeconds(cryptoPart);
+          if (cryptoStep) {
+            result.timestampStepSeconds = cryptoStep;
+          }
+
+          var tokens = dataPart.split('-');
+          tokens.forEach(function (token) {
+            var trimmedToken = token.trim();
+            if (!trimmedToken) {
+              return;
+            }
+            var upper = trimmedToken.toUpperCase();
+            if (upper === 'C') {
+              result.counterRequired = true;
+              return;
+            }
+            if (upper.startsWith('Q') && upper.length >= 3) {
+              var formatChar = upper.charAt(1);
+              var lengthPart = trimmedToken.substring(2).trim();
+              var lengthValue = parseInt(lengthPart, 10);
+              if (Number.isFinite(lengthValue) && lengthValue > 0) {
+                result.challenge = { format: formatChar, length: lengthValue };
+              }
+              return;
+            }
+            if (upper.startsWith('P')) {
+              result.pinRequired = true;
+              return;
+            }
+            if (upper.startsWith('S')) {
+              var sessionToken = trimmedToken.substring(1).trim();
+              var sessionLength = parseSessionLength(sessionToken);
+              if (Number.isFinite(sessionLength) && sessionLength > 0) {
+                result.sessionLengthBytes = sessionLength;
+              }
+              return;
+            }
+            if (upper.startsWith('T')) {
+              var stepSeconds = parseTimeStepToken(trimmedToken);
+              if (Number.isFinite(stepSeconds) && stepSeconds > 0) {
+                result.timestampStepSeconds = stepSeconds;
+              }
+            }
+          });
+
+          if (Number.isFinite(result.timestampStepSeconds) && result.timestampStepSeconds > 0) {
+            result.timestampRequired = true;
+          }
+          if (!Number.isFinite(result.sessionLengthBytes) || result.sessionLengthBytes < 0) {
+            result.sessionLengthBytes = 0;
+          }
+          result.requiresAdvanced =
+            result.sessionLengthBytes > 0 || result.timestampRequired === true;
+          return result;
+        }
+
+        function extractTimeStepSeconds(cryptoPart) {
+          if (!cryptoPart || typeof cryptoPart !== 'string') {
+            return null;
+          }
+          var cursor = cryptoPart.trim().toUpperCase();
+          if (cursor.startsWith('HOTP')) {
+            cursor = cursor.substring(4);
+            if (cursor.startsWith('-')) {
+              cursor = cursor.substring(1);
+            }
+          }
+          if (!cursor.startsWith('T')) {
+            return null;
+          }
+          var idx = 1;
+          while (idx < cursor.length && /[0-9]/.test(cursor.charAt(idx))) {
+            idx += 1;
+          }
+          if (idx === 1) {
+            return null;
+          }
+          var numericPart = cursor.substring(1, idx);
+          var seconds = parseInt(numericPart, 10);
+          if (!Number.isFinite(seconds) || seconds <= 0) {
+            return null;
+          }
+          var unitChar = cursor.charAt(idx);
+          if (unitChar === 'M') {
+            seconds *= 60;
+          } else if (unitChar === 'H') {
+            seconds *= 3600;
+          }
+          return seconds;
+        }
+
+        function parseSessionLength(token) {
+          if (!token) {
+            return 64;
+          }
+          var trimmed = token.trim();
+          if (!trimmed) {
+            return 64;
+          }
+          if (/^[0-9]+$/.test(trimmed)) {
+            return parseInt(trimmed, 10);
+          }
+          var upper = trimmed.toUpperCase();
+          if (upper === 'SHA1') {
+            return 20;
+          }
+          if (upper === 'SHA256') {
+            return 32;
+          }
+          if (upper === 'SHA512') {
+            return 64;
+          }
+          return 64;
+        }
+
+        function parseTimeStepToken(token) {
+          if (!token || typeof token !== 'string') {
+            return null;
+          }
+          var upper = token.trim().toUpperCase();
+          if (!upper.startsWith('T')) {
+            return null;
+          }
+          var idx = 1;
+          while (idx < upper.length && /[0-9]/.test(upper.charAt(idx))) {
+            idx += 1;
+          }
+          if (idx === 1) {
+            return null;
+          }
+          var numericPart = upper.substring(1, idx);
+          var seconds = parseInt(numericPart, 10);
+          if (!Number.isFinite(seconds) || seconds <= 0) {
+            return null;
+          }
+          var unitChar = upper.charAt(idx);
+          if (unitChar === 'M') {
+            seconds *= 60;
+          } else if (unitChar === 'H') {
+            seconds *= 3600;
+          }
+          return seconds;
+        }
+
+        function findCredentialSummary(credentialId) {
+          if (!Array.isArray(credentialCache)) {
+            return null;
+          }
+          for (var index = 0; index < credentialCache.length; index += 1) {
+            var entry = credentialCache[index];
+            if (entry && typeof entry.id === 'string' && entry.id === credentialId) {
+              return entry;
+            }
+          }
+          return null;
         }
 
         function buildContext() {
@@ -894,7 +1087,9 @@
             (context.timestampHex && context.timestampHex.trim && context.timestampHex.trim() !== '') ||
             (context.counter !== null && context.counter !== undefined)
           );
-          setAdvancedOpen(hasAdvanced);
+          if (hasAdvanced) {
+            setAdvancedOpen(true);
+          }
         }
 
         function resetResultDisplay() {
@@ -1217,36 +1412,6 @@
         advancedToggle.addEventListener('click', toggleAdvanced);
         if (credentialSelect) {
           credentialSelect.addEventListener('change', handleCredentialSelection);
-        }
-        if (sampleButton) {
-          sampleButton.addEventListener('click', function () {
-            var credentialId = credentialSelect ? credentialSelect.value.trim() : '';
-            if (!credentialId) {
-              return;
-            }
-            var cached = sampleCache[credentialId];
-            if (sampleAvailable(cached)) {
-              applySample(cached);
-              setSampleStatus('Sample data applied. Review context before verifying.', 'info');
-              enableSampleButton();
-              return;
-            }
-            disableSampleButton();
-            setSampleStatus('Loading sample data…', 'info');
-            ensureSample(credentialId).then(function (sample) {
-              if (credentialId !== activeCredentialId) {
-                return;
-              }
-              if (sampleAvailable(sample)) {
-                applySample(sample);
-                setSampleStatus('Sample data applied. Review context before verifying.', 'info');
-                enableSampleButton();
-              } else {
-                setSampleStatus('No curated sample data available for this credential.', 'warning');
-                disableSampleButton();
-              }
-            });
-          });
         }
         if (presetSelect) {
           presetSelect.addEventListener('change', function (event) {

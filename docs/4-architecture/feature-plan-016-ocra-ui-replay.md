@@ -54,6 +54,7 @@ Each increment should take ≤10 minutes and finish with the relevant tests red�
 - 2025-10-04 – Owner requested an inline auto-fill button equivalent to evaluate; Option B selected (sample preset auto-fill). Added R1614–R1616 increments.
 - 2025-10-04 – Implemented inline auto-fill control with Selenium coverage; reran targeted replay test and full `spotlessApply check` before updating operator docs.
 - 2025-10-04 – Follow-up request removes the inline auto-fill button; queued R1617–R1618 to revert UI wiring and documentation.
+- 2025-10-15 – Logged R1620 to remove the stored replay “Load sample data” button, auto-populate context when a credential is selected, and refresh Selenium coverage/tests accordingly (Option B decision).
 
 Use this section to log telemetry schema updates, notable UI decisions, and benchmark/latency observations as work proceeds.
 - 2025-10-03 – Quality gate run via `./gradlew :rest-api:test spotlessApply check` (no `systemTest` task defined for rest-api); recorded as baseline before UI implementation.

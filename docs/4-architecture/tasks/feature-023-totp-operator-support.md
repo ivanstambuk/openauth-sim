@@ -1,7 +1,7 @@
 # Feature 023 – Task Checklist
 
-_Status: Complete_
-_Last updated: 2025-10-13_
+_Status: In Progress_
+_Last updated: 2025-10-15_
 
 ## Tasks (≤10 min each)
 - ☑ T2301 – Add failing core unit tests for TOTP generator/validator covering SHA-1/SHA-256/SHA-512, 6/8 digits, time-step conversion, and drift window limits. (_2025-10-08 – RFC 6238 vectors + drift scenarios added; `./gradlew :core:test` red as expected._)
@@ -51,3 +51,4 @@ _Last updated: 2025-10-13_
 - ☑ T2345 – Update TOTP operator console templates/JS so the Evaluate tab selects inline parameters by default; rerun the targeted Selenium suite and `./gradlew spotlessApply check`. (_2025-10-11 – Implemented inline-first default across markup/JS, updated Selenium callers, ran the full class and project checks to confirm green._)
 
 ☑ T2346 – Publish `docs/totp_validation_vectors.json` with RFC 6238 reference cases, update TOTP fixture loaders/tests across core, CLI, REST, and operator UI, and refresh operator/REST how-to guides once the catalogue lands. (_2025-10-13 – Added shared JSON fixture bundle + `TotpJsonVectorFixtures`, rewired core/CLI/REST/UI presets/tests to load from it, and updated docs/knowledge map._)
+- ☑ T2347 – Remove the TOTP replay “Load sample data” button, auto-fill OTP/context on stored credential selection, update Selenium/MockMvc coverage, and rerun `./gradlew spotlessApply check`. (_2025-10-15 – Relied on automatic sample hydration by updating `TotpOperatorUiSeleniumTest.storedTotpReplayReturnsMatch` to wait for the fetched values, dropping the redundant manual field writes, and ensuring the stored status hint surfaces once the fetch completes. Validated with `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest"` and the aggregate `./gradlew :rest-api:test`, then executed `./gradlew spotlessApply check`._)

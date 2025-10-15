@@ -38,6 +38,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-05 – HOTP mode selection mirrors OCRA ordering with Inline parameters listed before Stored credential for consistent operator workflows (user directive).
 - 2025-10-07 – HOTP replay "Load sample data" action must prefill an OTP that matches the credential's current counter state so the immediate "Verify OTP" succeeds, even after prior verifications in the session (user directive).
 - 2025-10-09 – Align the stored replay “Load sample data” control placement with OCRA by rendering it directly beneath the “Stored credential” selector with consistent vertical spacing (user directive).
+- 2025-10-15 – HOTP stored replay selections now auto-fill curated sample data immediately; the “Load sample data” button is removed so credential picks hydrate OTP/counter context without extra clicks (user chose option B).
 - 2025-10-07 – HOTP stored replay keeps the counter input editable, pre-populating it with the credential's current moving factor (mirroring OCRA) so operators can adjust when needed while defaulting to a succeeding sample (user directive; Option C selected).
 - 2025-10-05 – HOTP replay hints read “Select a persisted credential, and replay the OTP without advancing counters.” and “Provide HOTP parameters directly for ad-hoc verification.” to align copy with operator guidance (user directive).
 - 2025-10-06 – HOTP replay stored credential selector label must read “Stored credential” to align the replay screen with the OCRA equivalent (user directive).

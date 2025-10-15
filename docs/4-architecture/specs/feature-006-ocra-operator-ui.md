@@ -38,7 +38,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-10-07 – Guided inline policy builder remains exclusive to the Evaluate tab; Replay continues to rely on manual context entry so historical OTP payloads stay immutable (user chose option A).
 - 2025-09-29 – Default credential database lives at `data/ocra-credentials.db` in the repo root so CLI and REST/Operator UI share the same persistence by default; environment/property overrides remain supported.
 - 2025-09-29 – Builder must surface inline validation and disable Apply when configuration is incomplete (e.g., invalid session length or missing challenge) while keeping assistive messaging accessible (agreed during UX polish).
-- 2025-09-29 – Stored credential auto-populate button will fill every suite-required field (challenge, counter, session, timestamp, PIN) and clear disallowed inputs to prevent validation conflicts; logic executes entirely in the client.
+- 2025-09-29 – Stored credential selection automatically fills every suite-required field (challenge, counter, session, timestamp, PIN) and clears disallowed inputs to prevent validation conflicts; logic executes entirely in the client.
 - 2025-10-04 – Stored replay mode will expose an explicit "Load sample data" action per curated credential so operators can opt into the preset payload; selecting a credential must not auto-fill context data (user chose option A).
 - 2025-09-29 – Timestamp values generated during stored credential auto-population will derive from the current UTC clock snapped to the suite’s declared timestep so evaluations succeed without drift.
 - 2025-09-29 – Appendix A/B OCRA reference code from the draft is embedded directly in the generator how-to so agents work offline while preserving the canonical URL reference.
@@ -47,6 +47,7 @@ Deliver an operator-facing UI that allows manual OCRA evaluation without relying
 - 2025-10-06 – Evaluate and replay tabs list Inline parameters before Stored credential so the inline option remains the default across protocols (user directive).
 - 2025-10-12 – Evaluate action button must adopt protocol-aligned copy: “Evaluate inline parameters” when Inline parameters mode is active and “Evaluate stored credential” when Stored credential mode is active, matching HOTP/TOTP operator flows (user directive).
 - 2025-10-13 – Clicking the OCRA protocol tab resets the view to Evaluate with Inline parameters selected, ensuring operators always land on the primary workflow regardless of prior state (user directive).
+- 2025-10-15 – Stored credential mode auto-fills required parameters immediately upon dropdown selection and the dedicated button is removed (user chose option B).
 
 ## Objectives & Success Criteria
 - Provide browser-accessible pages that let operators evaluate OCRA responses using stored credentials or inline parameters, mirroring REST validation semantics.

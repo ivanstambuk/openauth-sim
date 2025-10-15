@@ -564,21 +564,11 @@ final class TotpOperatorUiSeleniumTest {
         "Stored replay credential dropdown should default to placeholder option");
     selectOption("totpReplayStoredCredentialId", STORED_CREDENTIAL_ID);
 
-    WebElement otpInput = driver.findElement(By.id("totpReplayStoredOtp"));
-    otpInput.clear();
-    otpInput.sendKeys(EXPECTED_STORED_OTP);
-
-    WebElement timestampInput = driver.findElement(By.id("totpReplayStoredTimestamp"));
-    timestampInput.clear();
-    timestampInput.sendKeys(Long.toString(STORED_TIMESTAMP.getEpochSecond()));
-
-    WebElement driftBackward = driver.findElement(By.id("totpReplayStoredDriftBackward"));
-    driftBackward.clear();
-    driftBackward.sendKeys("1");
-
-    WebElement driftForward = driver.findElement(By.id("totpReplayStoredDriftForward"));
-    driftForward.clear();
-    driftForward.sendKeys("1");
+    waitUntilFieldValue(By.id("totpReplayStoredOtp"), EXPECTED_STORED_OTP);
+    waitUntilFieldValue(
+        By.id("totpReplayStoredTimestamp"), Long.toString(STORED_TIMESTAMP.getEpochSecond()));
+    waitUntilFieldValue(By.id("totpReplayStoredDriftBackward"), "1");
+    waitUntilFieldValue(By.id("totpReplayStoredDriftForward"), "1");
 
     WebElement replayButton =
         driver.findElement(By.cssSelector("[data-testid='totp-replay-stored-submit']"));
@@ -607,8 +597,8 @@ final class TotpOperatorUiSeleniumTest {
   }
 
   @Test
-  @DisplayName("Stored TOTP replay sample button populates OTP and timestamp fields")
-  void storedTotpReplaySampleButtonPopulatesForm() {
+  @DisplayName("Stored TOTP replay auto-fills OTP and timestamp fields")
+  void storedTotpReplaySampleAutoFillsForm() {
     navigateToTotpPanel();
     switchToReplayTab();
     waitUntilUrlContains("tab=replay");
@@ -628,16 +618,9 @@ final class TotpOperatorUiSeleniumTest {
                 return false;
               }
             });
-
-    WebElement sampleActions =
-        waitFor(By.cssSelector("[data-testid='totp-replay-sample-actions']"));
-    WebElement sampleButton =
-        sampleActions.findElement(By.cssSelector("[data-testid='totp-replay-sample-load']"));
-    assertEquals("Load sample data", sampleButton.getText().trim());
-
-    sampleButton.click();
-
     WebElement sampleStatus = waitFor(By.cssSelector("[data-testid='totp-replay-sample-status']"));
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(d -> !sampleStatus.getText().trim().isEmpty());
 
     waitUntilFieldValue(By.id("totpReplayStoredOtp"), EXPECTED_STORED_OTP);
     waitUntilFieldValue(
@@ -660,12 +643,6 @@ final class TotpOperatorUiSeleniumTest {
     waitUntilAttribute(replayToggle, "data-mode", "stored");
 
     selectOption("totpReplayStoredCredentialId", STORED_CREDENTIAL_ID);
-
-    WebElement sampleActions =
-        waitFor(By.cssSelector("[data-testid='totp-replay-sample-actions']"));
-    WebElement sampleButton =
-        sampleActions.findElement(By.cssSelector("[data-testid='totp-replay-sample-load']"));
-    sampleButton.click();
 
     waitUntilFieldValue(By.id("totpReplayStoredOtp"), EXPECTED_STORED_OTP);
     waitUntilFieldValue(

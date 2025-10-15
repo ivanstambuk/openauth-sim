@@ -1,7 +1,7 @@
 # Feature 022 – Task Checklist
 
-_Status: Complete_
-_Last updated: 2025-10-12_
+_Status: In Progress_
+_Last updated: 2025-10-15_
 
 ## Tasks (≤10 min each)
 - ☑ T2201 – Add failing HOTP generator/validator unit tests covering counter rollover, digit length variants, and secret bounds.
@@ -107,3 +107,5 @@ Mark tasks as work completes and record tooling outcomes within the feature plan
  ☑ Propagate fixtures to CLI presets, REST sample endpoints, and operator UI dropdowns/seed metadata so sample data flows from the catalogue. _2025-10-13 – CLI/REST tests now ingest vectors; HOTP operator sample data + JS consume controller-provided JSON; full `:rest-api:test` rerun._
  ☑ Update HOTP operator/CLI/REST how-to guides to document available vector IDs and outputs. _2025-10-13 – Expanded operator UI how-to with Reference Vectors section noting catalogue IDs._
  ☑ Re-run `./gradlew spotlessApply check` and stage results once all wiring is complete. _2025-10-13 – `spotlessApply check` completed after module tests; results staged._
+
+- ☑ T2296 – Remove the HOTP replay “Load sample data” button, auto-fill OTP/counter context on stored credential selection, update Selenium/MockMvc coverage, and rerun `./gradlew spotlessApply check`. (_2025-10-15 – Dropped the stored replay sample button, renamed the status test hook to `data-testid="hotp-replay-sample-status"`, reinstated status visibility handling in `hotp/console.js`, and refreshed `HotpOperatorUiReplaySeleniumTest` to wait for the applied message. Verified with `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiReplaySeleniumTest"` and the aggregate `./gradlew :rest-api:test`, then closed with `./gradlew spotlessApply check`._)

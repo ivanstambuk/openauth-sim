@@ -25,3 +25,4 @@ Update this checklist as increments complete; keep tests ahead of implementation
 - [x] T1617 – Remove replay inline auto-fill button, adjust templates/JS/tests so preset selection alone populates fields. (_2025-10-04_)
 - [x] T1618 – Update documentation/spec/knowledge map for the removal and rerun affected tests + `./gradlew spotlessApply check`. (_2025-10-04_)
 - [x] T1619 – Drop the replay "Mode" metadata row (keep reason/outcome), update Selenium/UI expectations, and rerun ./gradlew :rest-api:test spotlessApply check. (_2025-10-04_)
+- [ ] T1620 – Remove the stored replay “Load sample data” control, auto-fill context on credential selection, refresh Selenium/MockMvc coverage, and rerun `./gradlew spotlessApply check`. (_Pending_)

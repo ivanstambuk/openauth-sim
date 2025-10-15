@@ -21,6 +21,7 @@ Extend the operator console with replay/verification capabilities so auditors ca
 - 2025-10-03 – UI interactions will continue to call the published REST replay endpoint (`/api/v1/ocra/verify`) to preserve facade parity (user selected Option A).
 - 2025-10-03 – Replay interactions will emit additional telemetry fields/events alongside the existing UI instrumentation so audit logs differentiate matches, mismatches, and context issues (user selected Option B).
 - 2025-10-07 – Inline replay preset hints must read “Selecting a preset auto-fills the inline fields with illustrative data.” to keep messaging consistent with HOTP (user directive).
+- 2025-10-15 – Stored replay selections auto-fill curated sample data immediately; the “Load sample data” button is removed so credential picks hydrate OTP context without extra clicks (user chose option B).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

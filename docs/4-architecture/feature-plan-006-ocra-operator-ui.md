@@ -153,6 +153,8 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - ✅ R084 – Update templates/CSS to align the Evaluate inline preset label typography with Replay/HOTP, rerun the targeted Selenium test and `./gradlew spotlessApply check`. (2025-10-07: added field-grid override to normalize font weight, targeted Selenium + full build now green.)
 
 - ✅ R091 – Publish `docs/ocra_validation_vectors.json`, wire `OcraJsonVectorFixtures`, migrate CLI/core/REST/UI dependencies, refresh sample data/docs, and rerun `./gradlew spotlessApply check`. (2025-10-13 – Converted all RFC 6287 vectors to JSON, replaced fixture classes/tests with the shared loader, taught operator sample data to hydrate from the catalogue, updated the how-to + knowledge map, and validated via the full spotless + check pipeline.)
+- 2025-10-15 – Logged Option B decision: stored credential selection now auto-fills required parameters; remove the manual button and refresh UI tests in upcoming increment R092.
+- 2025-10-15 – R092 delivery: removed the manual auto-fill button, auto-populated stored credential parameters on selection, updated Selenium coverage, and reran `./gradlew spotlessApply check` (4m) for green build.
 
 ## Analysis Gate Notes
 - 2025-09-28 – Checklist complete prior to implementation:

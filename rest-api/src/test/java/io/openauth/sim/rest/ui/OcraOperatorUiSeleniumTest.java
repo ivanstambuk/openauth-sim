@@ -302,10 +302,14 @@ final class OcraOperatorUiSeleniumTest {
     Select credentialDropdown = new Select(driver.findElement(By.id("credentialId")));
     credentialDropdown.selectByValue(scenario.credentialId());
 
-    WebElement autoFillButton =
-        driver.findElement(By.cssSelector("button[data-testid='stored-credential-autofill']"));
-    autoFillButton.click();
     waitForBackgroundJavaScript();
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            d -> {
+              WebElement suiteField = d.findElement(By.id("suite"));
+              String value = suiteField.getAttribute("value");
+              return value != null && value.equals(scenario.suite());
+            });
 
     String challengeValue = fieldValue("challenge");
     scenario.challengeExpectation().assertMatches(challengeValue);
@@ -448,10 +452,30 @@ final class OcraOperatorUiSeleniumTest {
     waitForCredentialOptions();
     Select credentialDropdown = new Select(driver.findElement(By.id("credentialId")));
     credentialDropdown.selectByValue(CREDENTIAL_ID);
-    driver.findElement(By.id("challenge")).sendKeys(QA_SAMPLE.getChallenge());
-    driver.findElement(By.cssSelector("button[data-testid='ocra-advanced-toggle']")).click();
     waitForBackgroundJavaScript();
-    driver.findElement(By.id("sessionHex")).sendKeys(QA_SAMPLE.getSessionHex());
+    new WebDriverWait(driver, Duration.ofSeconds(5))
+        .until(
+            d -> {
+              WebElement suiteField = d.findElement(By.id("suite"));
+              return QA_STORED_SCENARIO.suite().equals(suiteField.getAttribute("value"));
+            });
+
+    WebElement challengeInput = driver.findElement(By.id("challenge"));
+    challengeInput.clear();
+    challengeInput.sendKeys(QA_SAMPLE.getChallenge());
+
+    WebElement advancedToggle =
+        driver.findElement(By.cssSelector("button[data-testid='ocra-advanced-toggle']"));
+    WebElement advancedPanel =
+        driver.findElement(By.cssSelector("[data-testid='ocra-advanced-panel']"));
+    if (!"true".equals(advancedPanel.getAttribute("data-open"))) {
+      advancedToggle.click();
+      waitForBackgroundJavaScript();
+    }
+
+    WebElement sessionInput = driver.findElement(By.id("sessionHex"));
+    sessionInput.clear();
+    sessionInput.sendKeys(QA_SAMPLE.getSessionHex());
 
     driver.findElement(By.cssSelector("button[data-testid='ocra-evaluate-button']")).click();
 

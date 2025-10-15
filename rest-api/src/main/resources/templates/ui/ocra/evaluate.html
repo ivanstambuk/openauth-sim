@@ -325,15 +325,6 @@
                     Select a credential
                   </option>
                 </select>
-                <div class="credential-actions">
-                  <button
-                    type="button"
-                    class="button-secondary"
-                    data-testid="stored-credential-autofill"
-                  >
-                    Auto-fill required parameters
-                  </button>
-                </div>
                 <p
                   class="hint credential-status"
                   data-testid="stored-credential-status"
@@ -547,7 +538,6 @@
         const credentialsEndpoint = form
           ? form.getAttribute('data-credentials-endpoint')
           : null;
-        const autoFillButton = document.querySelector('[data-testid="stored-credential-autofill"]');
         const seedActions = document.querySelector('[data-testid="ocra-seed-actions"]');
         const seedButton = document.querySelector('[data-testid="ocra-seed-credentials"]');
         const seedStatus = document.querySelector('[data-testid="ocra-seed-status"]');
@@ -721,6 +711,7 @@
           if (!inlineActive) {
             ensureCredentialsLoaded().then(function () {
               handleStoredCredentialSelection();
+              autoPopulateForSelectedCredential();
             });
             if (seedActions) {
               seedActions.removeAttribute('hidden');
@@ -916,6 +907,7 @@
             credentialSelect.setAttribute('disabled', 'disabled');
           }
           handleStoredCredentialSelection();
+          autoPopulateForSelectedCredential();
         }
 
         function setRequestParameterState(input, allowed) {
@@ -1259,9 +1251,9 @@
           if (!credentialSelect) {
             return;
           }
+          setCredentialStatus('', false);
           var credentialId = credentialSelect.value;
           if (!credentialId) {
-            setCredentialStatus('Select a stored credential before auto-filling.', true);
             return;
           }
           var metadata = credentialMetadata[credentialId];
@@ -1319,21 +1311,13 @@
             serverChallengeInput.value = '';
           }
 
-          var credentialModeRadio = document.getElementById('mode-credential');
-          if (credentialModeRadio) {
-            credentialModeRadio.checked = true;
-          }
-          if (inlineModeRadio) {
-            inlineModeRadio.checked = false;
-          }
-          updateSections();
-
           if (parsed.requiresAdvanced) {
             setAdvancedState(true);
           } else {
             setAdvancedState(false);
           }
           ensureAdvancedOpenIfNeeded();
+          updateTimestampAutofillUi();
 
           setCredentialStatus('', false);
         }
@@ -2025,7 +2009,10 @@
         }
 
         if (credentialSelect) {
-          credentialSelect.addEventListener('change', handleStoredCredentialSelection);
+          credentialSelect.addEventListener('change', function () {
+            handleStoredCredentialSelection();
+            autoPopulateForSelectedCredential();
+          });
         }
 
         if (seedButton) {
@@ -2216,18 +2203,6 @@
 
         if (submitButton) {
           submitButton.addEventListener('click', handleFetch);
-        }
-
-        if (autoFillButton) {
-          autoFillButton.addEventListener('click', function () {
-            ensureCredentialsLoaded()
-              .then(function () {
-                autoPopulateForSelectedCredential();
-              })
-              .catch(function () {
-                setCredentialStatus('Unable to auto-populate parameters.', true);
-              });
-          });
         }
 
         window.__ocraApplyPreset = applyPreset;

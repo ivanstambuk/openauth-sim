@@ -138,12 +138,6 @@ final class HotpOperatorUiReplaySeleniumTest {
     WebElement counterInput = waitForVisible(By.id("hotpReplayStoredCounter"));
     assertThat(counterInput.isDisplayed()).isTrue();
 
-    WebElement sampleButton =
-        waitForVisible(By.cssSelector("button[data-testid='hotp-replay-sample-load']"));
-    assertThat(sampleButton.isEnabled()).isTrue();
-
-    sampleButton.click();
-
     waitForAttribute(
         By.id("hotpReplayStoredOtp"),
         "value",
@@ -326,15 +320,25 @@ final class HotpOperatorUiReplaySeleniumTest {
   }
 
   @Test
-  @DisplayName("Stored HOTP replay sample status message removed")
-  void storedHotpReplaySampleStatusRemoved() {
+  @DisplayName("Stored HOTP replay auto-fills and surfaces sample status")
+  void storedHotpReplaySampleStatusDisplayed() {
     navigateToReplayPanel();
 
-    List<WebElement> statusNodes =
-        driver.findElements(By.cssSelector("[data-testid='hotp-replay-sample-status']"));
-    assertThat(statusNodes)
-        .as("Stored replay panel should not render the sample status message")
-        .isEmpty();
+    WebElement storedMode = waitForVisible(By.id("hotpReplayModeStored"));
+    if (!storedMode.isSelected()) {
+      storedMode.click();
+      new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> storedMode.isSelected());
+    }
+
+    Select storedSelect = new Select(waitForVisible(By.id("hotpReplayStoredCredentialId")));
+    waitForCredentialOption(storedSelect, STORED_CREDENTIAL_ID);
+    storedSelect.selectByValue(STORED_CREDENTIAL_ID);
+
+    WebElement statusNode =
+        waitForVisible(By.cssSelector("[data-testid='hotp-replay-sample-status']"));
+    new WebDriverWait(driver, WAIT_TIMEOUT)
+        .until(d -> statusNode.getText().trim().toLowerCase().contains("applied"));
+    assertThat(statusNode.getText().toLowerCase()).contains("applied");
   }
 
   @Test
@@ -358,10 +362,6 @@ final class HotpOperatorUiReplaySeleniumTest {
     Select credentialSelect = new Select(waitForVisible(By.id("hotpReplayStoredCredentialId")));
     waitForCredentialOption(credentialSelect, STORED_CREDENTIAL_ID);
     credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
-
-    WebElement sampleButton =
-        waitForClickable(By.cssSelector("button[data-testid='hotp-replay-sample-load']"));
-    sampleButton.click();
 
     waitForAttribute(
         By.id("hotpReplayStoredOtp"),

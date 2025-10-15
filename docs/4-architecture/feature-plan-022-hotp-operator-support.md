@@ -1,7 +1,7 @@
 # Feature Plan 022 – HOTP Operator Support
 
-_Status: Complete_
-_Last updated: 2025-10-12_
+_Status: In Progress_
+_Last updated: 2025-10-15_
 
 ## Objective
 Implement end-to-end HOTP flows (core domain, shared persistence, telemetry, CLI, REST) so operators can manage HOTP credentials alongside OCRA while reusing the existing schema-v1 storage baseline.
@@ -159,6 +159,7 @@ Each increment must complete within ≤10 minutes, lead with tests where practic
   - Extend CLI preset handling, REST sample endpoints, and operator UI dropdowns/seed metadata to source from the shared loader. _(2025-10-13 – CLI/REST tests now ingest vectors, HOTP operator presets hydrate via controller-provided JSON, and Selenium/MockMvc suites rerun green.)_
   - Update `docs/2-how-to/use-hotp-operator-ui.md` (and CLI/REST guides where applicable) to reference the new vector IDs and sample outputs. _(2025-10-13 – Added Reference Vectors section pointing to the catalogue and preset IDs.)_
   - Re-run `./gradlew spotlessApply check` after wiring the fixtures across modules. _(2025-10-13 – `spotlessApply check` + `:rest-api:test` executed successfully.)_
+- ☑ R2296 – Remove the HOTP replay “Load sample data” control, auto-fill OTP/counter context when a stored credential is selected, update Selenium/MockMvc coverage, and rerun `./gradlew spotlessApply check`. (_2025-10-15 – Retired the legacy stored replay button from `ui/hotp/panel.html`, aligned `hotp/console.js` with automatic sample application (status toggle + fetch callback rename), and updated Selenium coverage to wait for the applied-status hint. Revalidated with `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiReplaySeleniumTest"` before running the full `./gradlew :rest-api:test` suite and `./gradlew spotlessApply check`._)
 
 ## Analysis Gate (2025-10-04)
 - [x] Specification completeness – HOS requirements and clarifications recorded (telemetry parity, shared schema, CLI/REST scope).

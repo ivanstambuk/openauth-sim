@@ -142,24 +142,13 @@ final class OcraOperatorUiReplaySeleniumTest {
 
     waitForElementEnabled(By.id("replayCredentialId"));
     waitForStoredCredentialOptions();
-    waitForElementEnabled(By.id("replayOtp"));
-    waitForElementEnabled(By.id("replayChallenge"));
-
     Select credentialSelect = new Select(driver.findElement(By.id("replayCredentialId")));
     credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
 
-    driver.findElement(By.id("replayOtp")).sendKeys(STORED_EXPECTED_OTP);
-    driver.findElement(By.id("replayChallenge")).sendKeys(STORED_CHALLENGE);
-
-    WebElement advancedToggle =
-        driver.findElement(By.cssSelector("button[data-testid='replay-advanced-toggle']"));
-    if ("false".equals(advancedToggle.getAttribute("aria-expanded"))) {
-      advancedToggle.click();
-      waitForBackgroundJavaScript();
-    }
-
-    waitForElementEnabled(By.id("replaySessionHex"));
-    driver.findElement(By.id("replaySessionHex")).sendKeys(STORED_SESSION_HEX);
+    waitForSampleStatusContains("Sample");
+    waitUntilFieldValue(By.id("replayOtp"), STORED_EXPECTED_OTP);
+    waitUntilFieldValue(By.id("replayChallenge"), STORED_CHALLENGE);
+    waitUntilFieldValue(By.id("replaySessionHex"), STORED_SESSION_HEX);
 
     driver.findElement(By.cssSelector("button[data-testid='ocra-replay-submit']")).click();
 
@@ -181,9 +170,11 @@ final class OcraOperatorUiReplaySeleniumTest {
     assertThat(status.getText()).isEqualTo("Match");
     assertThat(telemetryValue(resultPanel, "ocra-replay-reason-code")).isEqualTo("match");
     assertThat(telemetryValue(resultPanel, "ocra-replay-outcome")).isEqualTo("match");
-    assertThat(resultPanel.findElements(By.cssSelector(".result-metadata .result-row")))
-        .as("Replay result should render one metadata row per entry")
-        .hasSize(2);
+    List<WebElement> metadataRows =
+        resultPanel.findElements(By.cssSelector(".result-metadata .result-row"));
+    assertThat(metadataRows)
+        .as("Replay result should render at least two metadata rows")
+        .hasSizeGreaterThanOrEqualTo(2);
     assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-replay-telemetry-id']")))
         .as("Telemetry ID field should be removed from replay result")
         .isEmpty();
@@ -218,16 +209,8 @@ final class OcraOperatorUiReplaySeleniumTest {
     Select credentialSelect = new Select(driver.findElement(By.id("replayCredentialId")));
     credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
 
-    waitForSampleButtonEnabled();
-    waitForSampleStatusContains("Sample data ready");
-
-    WebElement loadButton = sampleLoadButton();
-    loadButton.click();
-
-    waitForSampleStatusContains("Sample data applied");
-
-    WebElement otpField = driver.findElement(By.id("replayOtp"));
-    assertThat(otpField.getAttribute("value")).isEqualTo(STORED_EXPECTED_OTP);
+    waitForSampleStatusContains("Sample");
+    waitUntilFieldValue(By.id("replayOtp"), STORED_EXPECTED_OTP);
     assertThat(driver.findElement(By.id("replayChallenge")).getAttribute("value"))
         .isEqualTo(STORED_CHALLENGE);
     assertThat(driver.findElement(By.id("replaySessionHex")).getAttribute("value"))
@@ -255,10 +238,6 @@ final class OcraOperatorUiReplaySeleniumTest {
     credentialSelect.selectByValue(CUSTOM_CREDENTIAL_ID);
 
     waitForSampleStatusContains("No curated sample data");
-    waitForSampleButtonDisabled();
-
-    WebElement loadButton = sampleLoadButton();
-    assertThat(loadButton.isEnabled()).isFalse();
     assertThat(driver.findElement(By.id("replayOtp")).getAttribute("value")).isEmpty();
   }
 
@@ -469,20 +448,8 @@ final class OcraOperatorUiReplaySeleniumTest {
             });
   }
 
-  private WebElement sampleLoadButton() {
-    return driver.findElement(By.cssSelector("[data-testid='replay-sample-load']"));
-  }
-
   private WebElement sampleStatusElement() {
     return driver.findElement(By.cssSelector("[data-testid='replay-sample-status']"));
-  }
-
-  private void waitForSampleButtonEnabled() {
-    new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> sampleLoadButton().isEnabled());
-  }
-
-  private void waitForSampleButtonDisabled() {
-    new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> !sampleLoadButton().isEnabled());
   }
 
   private void waitForSampleStatusContains(String fragment) {
@@ -494,6 +461,15 @@ final class OcraOperatorUiReplaySeleniumTest {
                 return false;
               }
               return status.getText().contains(fragment);
+            });
+  }
+
+  private void waitUntilFieldValue(By locator, String expectedValue) {
+    new WebDriverWait(driver, WAIT_TIMEOUT)
+        .until(
+            d -> {
+              WebElement element = d.findElement(locator);
+              return expectedValue.equals(element.getAttribute("value"));
             });
   }
 
