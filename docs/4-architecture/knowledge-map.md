@@ -1,7 +1,7 @@
 # Architecture Knowledge Map
 
 _Status: Draft_
-_Last updated: 2025-10-11_
+_Last updated: 2025-10-15_
 
 This living map captures the explicit relationships between modules, data flows, and external interfaces so future agents can reason about change impact quickly. Update it after every iteration that introduces or modifies a component, dependency, or contract.
 
@@ -35,11 +35,12 @@ This living map captures the explicit relationships between modules, data flows,
 - Core module now publishes `HotpJsonVectorFixtures`, loading RFC 4226 HOTP validation vectors from `docs/hotp_validation_vectors.json` so CLI, REST, and operator UI layers share a single source of truth for sample secrets/OTPs and avoid duplicating literals.
 - REST API module now offers `/api/v1/webauthn/evaluate`, `/evaluate/inline`, and `/replay` endpoints via `WebAuthnEvaluationController`/`WebAuthnReplayController`, marshalling requests into the application services and returning sanitized metadata (telemetry IDs, relying-party info) without exposing raw challenges, client data, or signatures.
 - Operator console WebAuthn presets now load curated generator samples (one per supported algorithm) sourced from `WebAuthnGeneratorSamples`; `Fido2OperatorSampleData` deduplicates by algorithm, emits preset metadata (including vector ids), and supplies telemetry-friendly `credentialName` hints while CLI/REST facades still expose the full catalogue for QA reproducibility.
+- FIDO2 operator console panels share stored credential state across evaluate and replay tabs, render all assertion payload fields as visible textareas, default replay presets to JWK public keys, and display seed-count parity messaging with counter controls that mirror HOTP/TOTP/OCRA behaviour.
 - Docs under `docs/2-how-to/use-fido2-*.md` capture the CLI, REST, and operator UI workflows, including guidance on JWK key material and JSON vector handling.
 - REST API module now exposes `/api/v1/totp/evaluate` endpoints for stored and inline validation, logging `rest.totp.evaluate` telemetry while leaving secrets redacted.
 - REST API module now exposes `/api/v1/totp/replay`, delegating to `TotpReplayApplicationService`, returning non-mutating diagnostics, and emitting `rest.totp.replay` telemetry with matched skew metadata.
 - REST API module now exposes `/api/v1/totp/credentials/{credentialId}/sample`, delegating to `TotpSampleApplicationService` to produce deterministic OTP/timestamp payloads and logging `totp.sample` telemetry for operator diagnostics.
-- HOTP evaluation and replay now run within the operator console (stored credential counters, inline submissions, and read-only replay diagnostics), while FIDO2/WebAuthn, EMV/CAP, and EUDI wallet packages (OpenID4VP 1.0, ISO/IEC 18013-5, SIOPv2) remain placeholder panels until their specs and facades land.
+- HOTP, TOTP, OCRA, and FIDO2/WebAuthn evaluation and replay now run within the operator console (stored credential counters, inline submissions, read-only replay diagnostics, curated presets, and seed helpers); EMV/CAP and EUDI wallet packages (OpenID4VP 1.0, ISO/IEC 18013-5, SIOPv2) remain placeholder tabs pending specifications.
 - Operator console UI now exposes TOTP evaluation and replay panels backed by `/api/v1/totp/evaluate` and `/api/v1/totp/replay`, with drift/timestamp controls, inline sample presets sourced from `TotpOperatorSampleData`, telemetry surfacing (including preset metadata), and tab/mode persistence coordinated through `ui/totp/console.js`.
 - Operator console stored replay form now includes a **Load sample data** button positioned directly beneath the **Stored credential** selector, calling the sample endpoint to populate OTP/timestamp/drift fields while surfacing telemetry metadata.
 - MapDB-backed persistence layer (planned) will expose repositories consumed by CLI, REST API, and UI facades.
@@ -58,12 +59,12 @@ This living map captures the explicit relationships between modules, data flows,
 - Operator console replay flows call the same HOTP replay service, surface sample payload loaders, and normalise telemetry identifiers from `rest-hotp-*` to `ui-hotp-*` prefixes so operators can distinguish UI traffic while preserving the original telemetry payload for log correlation.
 - `infra-persistence` module centralises `CredentialStoreFactory` wiring so CLI, REST, and tests acquire MapDB-backed stores through a shared configuration seam while keeping encryption profiles and future migrations/overrides injectable.
 - CLI module now exposes `maintenance <compact|verify>` commands that orchestrate the helper for operators working on local MapDB stores.
-- Unified operator console at `/ui/console` now embeds OCRA evaluation/replay flows alongside HOTP evaluation/replay and the live TOTP evaluation cards, with placeholder tabs remaining for EMV/CAP, FIDO2/WebAuthn, and the EUDI wallet protocols; legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` views now redirect/not-found so the console remains the single entry point.
+- Unified operator console at `/ui/console` now embeds HOTP, TOTP, OCRA, and FIDO2/WebAuthn evaluation/replay flows, with placeholder tabs remaining only for the forthcoming EMV/CAP and EUDI wallet protocols; legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` views now redirect/not-found so the console remains the single entry point.
 - Operator console canonicalises deep links for HOTP/TOTP/OCRA/FIDO2 using the shared `protocol`, `tab`, and `mode` query parameters so refreshes and history navigation reopen the correct protocol/mode; the router still remembers per-protocol preferences and accepts legacy `totp*`/`fido2Mode` parameters for existing bookmarks.
 - Operator console panels standardise on the evaluate/replay pill header, shared summary messaging, and hint styling so HOTP, OCRA, and forthcoming credential tabs retain a uniform UX while protocol-specific forms capture their unique inputs/outputs.
 - Operator console now exposes a JSON-driven protocol info drawer/modal that syncs with tab selection, persists seen/surface/panel state in localStorage, auto-opens once per protocol on wide viewports, honours reduced-motion preferences, toggles aria-hidden on the console when the modal is active, dispatches CustomEvents for open/close/spec interactions, and is triggered by a single global info button aligned beside the tablist.
 - Embeddable Protocol Info assets (`protocol-info.css` / `protocol-info.js`) plus a standalone demo and how-to guide enable vanilla DOM integrations outside the operator console while reusing the same API.
-- Console state (protocol + OCRA tab) is now encoded via query parameters so deep links and history navigation stay in sync across disabled placeholders, with telemetry unaffected because tab changes remain client-side.
+- Console state (protocol + tab + mode) is now encoded via query parameters so deep links and history navigation stay in sync across active HOTP/TOTP/OCRA/FIDO2 panels and future placeholder tabs, with telemetry unaffected because tab changes remain client-side.
 - REST OCRA verification metadata now includes a `mode` attribute (stored vs inline) exposed to telemetry so replay facades can log outcome context consistently.
 - Operator console replay mode posts sanitized telemetry summaries to `TelemetryContracts.ocraVerificationAdapter`, tagging `origin=ui` and surfacing mode/outcome/fingerprint for downstream analytics.
 - REST OCRA directory now serves `/api/v1/ocra/credentials/{id}/sample`, returning curated challenge/context fingerprints used by operator-facing sample loaders.
@@ -115,7 +116,7 @@ This living map captures the explicit relationships between modules, data flows,
 | Date | Topic | Question | Status | Follow-up |
 |------|-------|----------|--------|-----------|
 | 2025-09-27 | Persistence design | Confirm MapDB caching topology (shared vs per facade) | Resolved | Resolved 2025-09-27 – Shared MapDB store with core-managed shared cache for all facades |
-| 2025-10-01 | Architecture harmonization | Capture shared application layer + telemetry relationships once implemented | Open | Update after R1403–R1408 to reflect new modules and contracts |
+| 2025-10-01 | Architecture harmonization | Capture shared application layer + telemetry relationships once implemented | Resolved | Resolved 2025-10-15 – Documented FIDO2 application services, facades, and operator console wiring above |
 
 ## PlantUML Sketch
 ```plantuml

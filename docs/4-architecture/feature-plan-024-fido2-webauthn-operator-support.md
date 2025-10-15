@@ -1,7 +1,7 @@
 # Feature Plan 024 – FIDO2/WebAuthn Operator Support
 
 _Linked specification:_ `docs/4-architecture/specs/feature-024-fido2-webauthn-operator-support.md`  
-_Status:_ In Progress  
+_Status:_ Complete  
 _Last updated:_ 2025-10-15
 
 ## Vision & Success Criteria
@@ -246,6 +246,7 @@ Each increment stages failing tests first, drives implementation to green, and r
     - Stage a failing Selenium regression confirming the inline and stored replay forms visibly display credential ID, public key, challenge, client data, authenticator data, and signature fields populated by presets.  
     - Update the FIDO2 replay template and supporting JS so these assertion payload fields render as visible textareas (read-only only when the protocol mandates it), fulfilling the 2025-10-15 Option A directive.  
     - Re-run the focused Selenium suite plus `./gradlew --no-daemon spotlessApply check`, documenting green outcomes on completion.
+    - _2025-10-15 – Made inline and stored replay payload fields permanently visible (credential ID, public key, challenge, client data, authenticator data, signature), refreshed `console.js` bindings to keep preset/manual edits in sync, added the `replayFormsExposeAssertionPayloadTextareas` Selenium regression, and reran `./gradlew --no-daemon :rest-api:test` alongside `./gradlew --no-daemon spotlessApply check` with green results._
 
 31. **I31 – Replay presets default to JWK public keys**  
     - Stage failing Selenium coverage ensuring inline replay presets populate the public-key textarea with the JWK representation while still accepting manual COSE/Pem entries.  
@@ -276,3 +277,4 @@ Each increment stages failing tests first, drives implementation to green, and r
 - Gradle wrapper configured with `GRADLE_USER_HOME=$PWD/.gradle` to avoid home-directory locks; CLI/REST/Application suites re-executed locally via `./gradlew --no-daemon :cli:test --rerun-tasks`, `:rest-api:test --rerun-tasks`, `:application:test --tests "io.openauth.sim.application.fido2.*"`, and `spotlessApply check`.  
 - JSONL + W3C fixtures will be version-controlled to avoid external fetches.
 - 2025-10-12 – Delivered I13 by adding CTA copy Selenium coverage, wiring dataset-based label helpers in `ui/fido2/console.js`, rerunning targeted `:rest-api:test` cases, and completing `./gradlew spotlessApply check`.
+- 2025-10-15 – Re-ran `./gradlew --no-daemon spotlessApply check` and `./gradlew --no-daemon qualityGate` post-UI parity increments to confirm a green build before closing Workstream 19.

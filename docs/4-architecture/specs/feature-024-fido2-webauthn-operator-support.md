@@ -1,6 +1,6 @@
 # Feature 024 – FIDO2/WebAuthn Operator Support
 
-_Status: In Progress_  
+_Status: Complete_  
 _Last updated: 2025-10-15_
 
 ## Overview

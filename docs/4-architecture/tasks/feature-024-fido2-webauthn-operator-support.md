@@ -1,7 +1,7 @@
 # Feature 024 Tasks – FIDO2/WebAuthn Operator Support
 
 _Linked plan:_ `docs/4-architecture/feature-plan-024-fido2-webauthn-operator-support.md`  
-_Status:_ In Progress  
+_Status:_ Complete  
 _Last updated:_ 2025-10-15
 
 ☑ **T1 – Stage W3C vector fixtures**  
