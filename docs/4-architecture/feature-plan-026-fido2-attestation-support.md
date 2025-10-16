@@ -28,12 +28,14 @@ _Last updated:_ 2025-10-16
    - Convert targeted W3C and synthetic attestation vectors into per-format JSON fixtures under `docs/webauthn_attestation/` (`packed.json`, `fido-u2f.json`, `tpm.json`, `android-key.json`).  
    - Add failing core tests for attestation generation/verification covering the four formats (happy path + invalid cases) using `WebAuthnAttestationFixtures`.  
    - Update spec clarifications if additional vector gaps emerge.  
-   - Commands: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAttestationVerifierTest*"` (expected red).
+   - Commands: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAttestationFixturesTest"` / `WebAuthnAttestationVerifierTest`.  
+   - Notes: Loader coverage landed alongside the attestation verifier scaffold; verifier tests promoted to active coverage after I2 landed.
 
 2. **I2 – Core attestation engine**  
    - Implement attestation generation/verification helpers in `core`, satisfying I1 tests.  
    - Ensure format-specific validation (certificate parsing, nonce/hash checks) and error enums.  
    - Add failure-branch tests for bad signatures, unsupported formats, and certificate mismatches.
+   - _2025-10-16 – Delivered `WebAuthnAttestationVerifier` with packed/FIDO-U2F/TPM/Android Key flows, certificate parsing, TPM extraData validation, and negative tests for tampered signatures and format mismatches; verification result wrapper now surfaces attested credentials + certificate chains._
 
 3. **I3 – Application services & telemetry**  
    - Stage failing application-level tests for attestation generation/replay telemetry, trust-anchor enforcement (anchors supplied vs absent), and self-attested warnings.  

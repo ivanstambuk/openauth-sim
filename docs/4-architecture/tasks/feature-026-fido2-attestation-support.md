@@ -1,16 +1,18 @@
 # Feature 026 Tasks – FIDO2/WebAuthn Attestation Support
 
 _Linked plan:_ `docs/4-architecture/feature-plan-026-fido2-attestation-support.md`  
-_Status:_ Proposed  
-_Last updated:_ 2025-10-12
+_Status:_ In Progress  
+_Last updated:_ 2025-10-16
 
-☐ **T2601 – Fixture scaffolding**  
- ☐ Convert selected W3C Level 3 attestation examples and synthetic fixtures into JSON assets under `docs/`.  
- ☐ Add failing core attestation generation/verification tests for packed, FIDO-U2F, TPM, and Android Key formats.  
+☑ **T2601 – Fixture scaffolding**  
+ ☑ Convert selected W3C Level 3 attestation examples and synthetic fixtures into JSON assets under `docs/`.  
+ ☑ Add failing core attestation generation/verification tests for packed, FIDO-U2F, TPM, and Android Key formats.  
+  _2025-10-16 – Added per-format bundles in `docs/webauthn_attestation/` plus `WebAuthnAttestationFixturesTest`; attestation verifier tests promoted to active coverage alongside I2._  
 
-☐ **T2602 – Core attestation engine implementation**  
- ☐ Implement attestation helpers satisfying T2601 tests, including format-specific validation and error mapping.  
- ☐ Add failure-branch unit tests (bad signatures, unsupported formats, certificate issues).  
+☑ **T2602 – Core attestation engine implementation**  
+ ☑ Implement attestation helpers satisfying T2601 tests, including format-specific validation and error mapping.  
+ ☑ Add failure-branch unit tests (bad signatures, unsupported formats, certificate issues).  
+  _2025-10-16 – Implemented `WebAuthnAttestationVerifier` with packed/FIDO-U2F/TPM/Android Key verification paths, certificate parsing, and challenge/origin/RP-hash validation; enabled parameterized success cases and added tampered-signature + mismatched-format failure coverage._  
 
 ☐ **T2603 – Application services & telemetry**  
  ☐ Stage failing tests for `fido2.attest` / `fido2.attestReplay` telemetry emission.  

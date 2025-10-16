@@ -1,0 +1,29 @@
+[
+  {
+    "vector_id": "w3c-fido-u2f-es256",
+    "format": "fido-u2f",
+    "algorithm": "ES256",
+    "w3c_section": "16.1.14",
+    "title": "FIDO U2F Attestation with ES256 Credential",
+    "rpId": "example.org",
+    "origin": "https://example.org",
+    "registration": {
+      "challenge_b64u": "4HQ3KZC5yqUHoiffxnsAN4DEUyU4DRqQwg-B7X0IDAY",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiNEhRM0taQzV5cVVIb2lmZnhuc0FONERFVXlVNERScVF3Zy1CN1gwSURBWSIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmciLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+      "attestationObject_b64u": "o2NmbXRoZmlkby11MmZnYXR0U3RtdKJjc2lnWEcwRQIhAPQYh6IAY7smhny5dRl4rM6luBeRpo9PTdbqH7alwIbDAiBOXgCqOJV3fmYI8fN1-VRQBF2j2leg5P1FHfNaMdLZimN4NWOBWQIlMIICITCCAcegAwIBAgIQBPZtxlQup3Gd6kFtMlokATAKBggqhkjOPQQDAjBiMR4wHAYDVQQDDBVXZWJBdXRobiB0ZXN0IHZlY3RvcnMxDDAKBgNVBAoMA1czQzElMCMGA1UECwwcQXV0aGVudGljYXRvciBBdHRlc3RhdGlvbiBDQTELMAkGA1UEBhMCQUEwIBcNMjQwMTAxMDAwMDAwWhgPMzAyNDAxMDEwMDAwMDBaMF8xHjAcBgNVBAMMFVdlYkF1dGhuIHRlc3QgdmVjdG9yczEMMAoGA1UECgwDVzNDMSIwIAYDVQQLDBlBdXRoZW50aWNhdG9yIEF0dGVzdGF0aW9uMQswCQYDVQQGEwJBQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABFb_-nCT3t5Grv7vtuUgx8zHiWdjbi-SWCunFFX2TpOTLf875ODU72jj47c6oIfiagoKMLAtwqojCdtMOi_JNt6jYDBeMAwGA1UdEwEB_wQCMAAwDgYDVR0PAQH_BAQDAgeAMB0GA1UdDgQWBBRCCCLrGQi1zTkRAX-8rUZBwF4FozAfBgNVHSMEGDAWgBRFr_cVsN14Z0H-6ZbrwWVHo5MbHjAKBggqhkjOPQQDAgNIADBFAiANC3d_CgsYGtKDAnWswxUP1gkkMLzQNP13vre9-MLVRgIhANSGTt2V2qOScICFXfGZ8XFymbJKXuzvvQF0Vam5NNj2aGF1dGhEYXRhWKS_q8N0MpWLBjNg061kYcnEc1rn-O3UZZKl4PAUUrLktUEAAAAAr7PC78BU30JQE9XIjnnDwQAgpLpuLSz-xDZI19JcXtVlm8GPK3gVOFJ-vUkt4DJWvfSlAQIDJiABIVggsNYt5rMPhvC6x6kBaVE5HC4xhJ4uZGYcvSsTzX1VCK0iWCBQOwvaKjV6mks0R1oo5ltmC0iYqePpu_CCDUNJQpft0A",
+      "credentialId_b64u": "pLpuLSz-xDZI19JcXtVlm8GPK3gVOFJ-vUkt4DJWvfQ",
+      "aaguid_b64u": "r7PC78BU30JQE9XIjnnDwQ"
+    },
+    "authentication": {
+      "challenge_b64u": "-QxhKYHYT1mUON4aUA92km6SzIS--OAsbiNVPwBIVDU",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiLVF4aEtZSFlUMW1VT040YVVBOTJrbTZTeklTLS1PQXNiaU5WUHdCSVZEVSIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmciLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+      "authenticatorData_b64u": "v6vDdDKViwYzYNOtZGHJxHNa5_jt1GWSpeDwFFKy5LUBAAAAAA",
+      "signature_b64u": "MEQCIGFyRZlY_qkHtykrkvVVA0v9iEiV8oenYgDBuihyORNwAiBHJ7FmFH4mohu8KSHRkuv-1Wm3lDhTjlwSi14o5pJt1w"
+    },
+    "key_material": {
+      "credential_private_key_b64u": "Ub0AKTj6ELg2g6wqIDLQpzOMf2WpAijP0fYbgexyiNA",
+      "attestation_private_key_b64u": "Zv2kd6KpnRTF7dfBBBope6XzN1EIsdAyt5Qp9CNJzjM",
+      "attestation_cert_serial_b64u": "BPZtxlQup3Gd6kFtMlokAQ"
+    }
+  }
+]

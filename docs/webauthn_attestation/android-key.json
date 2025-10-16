@@ -1,0 +1,29 @@
+[
+  {
+    "vector_id": "w3c-android-key-es256",
+    "format": "android-key",
+    "algorithm": "ES256",
+    "w3c_section": "16.1.12",
+    "title": "Android Key Attestation with ES256 Credential",
+    "rpId": "example.org",
+    "origin": "https://example.org",
+    "registration": {
+      "challenge_b64u": "PeHwtzZdzN4_8MvyXib_p7r_h-8QbID8hl3EAtmWAFA",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiUGVId3R6WmR6TjRfOE12eVhpYl9wN3JfaC04UWJJRDhobDNFQXRtV0FGQSIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmciLCJjcm9zc09yaWdpbiI6ZmFsc2UsImV4dHJhRGF0YSI6ImNsaWVudERhdGFKU09OIG1heSBiZSBleHRlbmRlZCB3aXRoIGFkZGl0aW9uYWwgZmllbGRzIGluIHRoZSBmdXR1cmUsIHN1Y2ggYXMgdGhpczogVlYxY1F1UjJxTE1fYW1QZm9IekwwZz09In0",
+      "attestationObject_b64u": "o2NmbXRrYW5kcm9pZC1rZXlnYXR0U3RtdKNjYWxnJmNzaWdYRjBEAiBZK7w8TF9hWLUr4eCFyShImG14RCRd_JUS4afp_3os2AIgFb3QhS070JHhwi2kIR9Mzw_fTZElmdHGYwsfMQ0xZvVjeDVjgVkCbTCCAmkwggIQoAMCAQICEB_5H3a2P0SBL5mLJQsChr8wCgYIKoZIzj0EAwIwYjEeMBwGA1UEAwwVV2ViQXV0aG4gdGVzdCB2ZWN0b3JzMQwwCgYDVQQKDANXM0MxJTAjBgNVBAsMHEF1dGhlbnRpY2F0b3IgQXR0ZXN0YXRpb24gQ0ExCzAJBgNVBAYTAkFBMCAXDTI0MDEwMTAwMDAwMFoYDzMwMjQwMTAxMDAwMDAwWjBfMR4wHAYDVQQDDBVXZWJBdXRobiB0ZXN0IHZlY3RvcnMxDDAKBgNVBAoMA1czQzEiMCAGA1UECwwZQXV0aGVudGljYXRvciBBdHRlc3RhdGlvbjELMAkGA1UEBhMCQUEwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASZFpZXA20ImiqYIafQBj00HxpGEziTWWNu-rXzy_Gsz92RxVVDF26pm2REBt0d1jd0tq9lrHWeBv9AscirAt9ro4GoMIGlMAwGA1UdEwEB_wQCMAAwDgYDVR0PAQH_BAQDAgeAMB0GA1UdDgQWBBQayB5QZB6NEzmrn36yXwzVqsBUsDAfBgNVHSMEGDAWgBRFr_cVsN14Z0H-6ZbrwWVHo5MbHjBFBgorBgEEAdZ5AgERBDcwNQICASwCAQACAQACAQAEILIOlD46dUSzpDiUO21WVTE6R-8a804A_zJhrrntFVgXBAAwADAAMAoGCCqGSM49BAMCA0cAMEQCIG9GCcn_yUbEGM7wTGSg0HvM548ym5knC4IvKk0eO3UzAiAJPI0YMo827xV_KWOTvcdyHdK9Z0OP_qpC8FGgRLdFcWhhdXRoRGF0YVikv6vDdDKViwYzYNOtZGHJxHNa5_jt1GWSpeDwFFKy5LVdAAAAAK3pcF4c5whbiZpUDQIZm_gAIApHKVGXiLbtii13K0lOGGJE2MeYwFKWDbyMEMkVF2eVpQECAyYgASFYIJkWllcDbQiaKpghp9AGPTQfGkYTOJNZY276tfPL8azPIlgg3ZHFVUMXbqmbZEQG3R3WN3S2r2WsdZ4G_0CxyKsC32s",
+      "credentialId_b64u": "CkcpUZeItu2KLXcrSU4YYkTYx5jAUpYNvIwQyRUXZ5U",
+      "aaguid_b64u": "relwXhznCFuJmlQNAhmb-A"
+    },
+    "authentication": {
+      "challenge_b64u": "5O4Fyp287XQRZUDyTtmtxiquhQdWBSKET_p-6hT3r4Y",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiNU80RnlwMjg3WFFSWlVEeVR0bXR4aXF1aFFkV0JTS0VUX3AtNmhUM3I0WSIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmciLCJjcm9zc09yaWdpbiI6ZmFsc2UsImV4dHJhRGF0YSI6ImNsaWVudERhdGFKU09OIG1heSBiZSBleHRlbmRlZCB3aXRoIGFkZGl0aW9uYWwgZmllbGRzIGluIHRoZSBmdXR1cmUsIHN1Y2ggYXMgdGhpczogcXhKeEItX3hncnd5TUw2MThkclNuQT09In0",
+      "authenticatorData_b64u": "v6vDdDKViwYzYNOtZGHJxHNa5_jt1GWSpeDwFFKy5LUJAAAAAA",
+      "signature_b64u": "MEUCICBgEH2VOyhqob814-jHizg_3atVkbLbF_-yPtg_598gAiEAqZvgKXyw2dOKqW8wt2Ck4HSdqzhazSpR0FYMquVw0iU"
+    },
+    "key_material": {
+      "credential_private_key_b64u": "1DKNkRrLDrzEKq0psp_7VdW8MdivfKmhZwPVbCGrx7Q",
+      "attestation_private_key_b64u": null,
+      "attestation_cert_serial_b64u": "H_kfdrY_RIEvmYslCwKGvw"
+    }
+  }
+]

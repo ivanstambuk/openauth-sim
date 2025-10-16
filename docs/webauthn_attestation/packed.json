@@ -1,0 +1,137 @@
+[
+  {
+    "vector_id": "w3c-packed-es256",
+    "format": "packed",
+    "algorithm": "ES256",
+    "w3c_section": "16.1.6",
+    "title": "Packed Attestation with ES256 Credential",
+    "rpId": "example.org",
+    "origin": "https://example.org",
+    "registration": {
+      "challenge_b64u": "wRhKX934BF4T3Ef1S2H1pla2ZrWQGPFthw6SVumVIBI",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoid1JoS1g5MzRCRjRUM0VmMVMySDFwbGEyWnJXUUdQRnRodzZTVnVtVklCSSIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmciLCJjcm9zc09yaWdpbiI6ZmFsc2UsImV4dHJhRGF0YSI6ImNsaWVudERhdGFKU09OIG1heSBiZSBleHRlbmRlZCB3aXRoIGFkZGl0aW9uYWwgZmllbGRzIGluIHRoZSBmdXR1cmUsIHN1Y2ggYXMgdGhpczogOWE4Yk5ZaktDZ1dyQlhVLWZDbDFhZz09In0",
+      "attestationObject_b64u": "o2NmbXRmcGFja2VkZ2F0dFN0bXSjY2FsZyZjc2lnWEcwRQIgJfzulFgBuU5j18Ap5vdhZUzwLnEA1TZKO5DgPapidvwCIQDqvN9M4Z_rCYDoKcO2E3B5sY5C9Dzlw8VzuDNoeU81TGN4NWOBWQIlMIICITCCAcigAwIBAgIRAIjCIPg8jvH-r-lN6uRfqtAwCgYIKoZIzj0EAwIwYjEeMBwGA1UEAwwVV2ViQXV0aG4gdGVzdCB2ZWN0b3JzMQwwCgYDVQQKDANXM0MxJTAjBgNVBAsMHEF1dGhlbnRpY2F0b3IgQXR0ZXN0YXRpb24gQ0ExCzAJBgNVBAYTAkFBMCAXDTI0MDEwMTAwMDAwMFoYDzMwMjQwMTAxMDAwMDAwWjBfMR4wHAYDVQQDDBVXZWJBdXRobiB0ZXN0IHZlY3RvcnMxDDAKBgNVBAoMA1czQzEiMCAGA1UECwwZQXV0aGVudGljYXRvciBBdHRlc3RhdGlvbjELMAkGA1UEBhMCQUEwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASpG6Q4lAndOKQoFBlAyo_rGsDXtDUFWBBKN3ekkyLzeYRA83izOYqy07t7-RMiyS6yNVb1mtCoNv7Ex2Y7Dk3Do2AwXjAMBgNVHRMBAf8EAjAAMA4GA1UdDwEB_wQEAwIHgDAdBgNVHQ4EFgQUpYm6ctBghCqxH3T7JGve2rFvm5swHwYDVR0jBBgwFoAURa_3FbDdeGdB_umW68FlR6OTGx4wCgYIKoZIzj0EAwIDRwAwRAIgFya52F7Nil7VEWNyLKOiCIb9myQqCqBFPUQhFgdd79UCIH70ceUwrIeWGoin8NDBewkf_GuSONMPefY1tBe-WRDnaGF1dGhEYXRhWKS_q8N0MpWLBjNg061kYcnEc1rn-O3UZZKl4PAUUrLktU0AAAAAh2yk9SBxw-myVQnvLN9-1gAgyab1s0YtAoc_6gxWhiI0-Z8IFygITlEbt3YCAaiQVKWlAQIDJiABIVggHPJ_JdpZEgikI5wuMk8QT1hVJUeaKe3u3YMPSOd66uUiWCBZ5LfabAEG4gbOOQyTq5ihWl7DiH5X8Mwr7OgDuSDEIw",
+      "credentialId_b64u": "yab1s0YtAoc_6gxWhiI0-Z8IFygITlEbt3YCAaiQVKU",
+      "aaguid_b64u": "h2yk9SBxw-myVQnvLN9-1g"
+    },
+    "authentication": {
+      "challenge_b64u": "sRBvpGpXvvF4FRHAVX3ImKA0E9Xw8X0kRjDBlMfhrbU",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoic1JCdnBHcFh2dkY0RlJIQVZYM0ltS0EwRTlYdzhYMGtSakRCbE1maHJiVSIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmciLCJjcm9zc09yaWdpbiI6ZmFsc2UsImV4dHJhRGF0YSI6ImNsaWVudERhdGFKU09OIG1heSBiZSBleHRlbmRlZCB3aXRoIGFkZGl0aW9uYWwgZmllbGRzIGluIHRoZSBmdXR1cmUsIHN1Y2ggYXMgdGhpczogQVpNd3lNeEliRDgtdWd1Rk5wNnI4UT09In0",
+      "authenticatorData_b64u": "v6vDdDKViwYzYNOtZGHJxHNa5_jt1GWSpeDwFFKy5LUNAAAAAA",
+      "signature_b64u": "MEYCIQCdjVSJU5OJTTe5-nvfvP8FQD3jzw1kQ_-zlPojnxAVeQIhAMiHEojxnGxIo7ZMCdOYaMEtFu2A6kxdiJAoiXXAJy9Q"
+    },
+    "key_material": {
+      "credential_private_key_b64u": "Nu176iNXzvqMTsfhNPMxLS5sowWFGdC8tMFCQnIBBDI",
+      "attestation_private_key_b64u": "7CgEsiJVK0snfR9Y-MQ0PAsLDbVHTrVTZcidZqK8lr4",
+      "attestation_cert_serial_b64u": "iMIg-DyO8f6v6U3q5F-q0A"
+    }
+  },
+  {
+    "vector_id": "w3c-packed-es384",
+    "format": "packed",
+    "algorithm": "ES384",
+    "w3c_section": "16.1.7",
+    "title": "Packed Attestation with ES384 Credential",
+    "rpId": "example.org",
+    "origin": "https://example.org",
+    "registration": {
+      "challenge_b64u": "VnsDCz4Ya8HRad1Ft5-eDYbx_WNHTaPq3lvbjbN5oMM",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiVm5zREN6NFlhOEhSYWQxRnQ1LWVEWWJ4X1dOSFRhUHEzbHZiamJONW9NTSIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmciLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+      "attestationObject_b64u": "o2NmbXRmcGFja2VkZ2F0dFN0bXSjY2FsZyZjc2lnWEcwRQIhAMVuzJcLeEODPg9GH94mIz9h6zlRYdSBVYwIucbtYWdbAiAp9eBQM3Bc0PmwoH4UlGjsMIpPhJBkCe_c6x2iCnUY1mN4NWOBWQIlMIICITCCAcegAwIBAgIQPQpViLuH67HUzuShgHwbfDAKBggqhkjOPQQDAjBiMR4wHAYDVQQDDBVXZWJBdXRobiB0ZXN0IHZlY3RvcnMxDDAKBgNVBAoMA1czQzElMCMGA1UECwwcQXV0aGVudGljYXRvciBBdHRlc3RhdGlvbiBDQTELMAkGA1UEBhMCQUEwIBcNMjQwMTAxMDAwMDAwWhgPMzAyNDAxMDEwMDAwMDBaMF8xHjAcBgNVBAMMFVdlYkF1dGhuIHRlc3QgdmVjdG9yczEMMAoGA1UECgwDVzNDMSIwIAYDVQQLDBlBdXRoZW50aWNhdG9yIEF0dGVzdGF0aW9uMQswCQYDVQQGEwJBQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABBflzJHWdtNw42qn3kDCWqy0WjhF8T0pMgiOziJwubQxJBwhnCLQwlbJQ4reAPLAXmL475Brm5l66fPEYMLbZvWjYDBeMAwGA1UdEwEB_wQCMAAwDgYDVR0PAQH_BAQDAgeAMB0GA1UdDgQWBBTHyN2VOCoiMOTA3TZkM4-pCBaanDAfBgNVHSMEGDAWgBRFr_cVsN14Z0H-6ZbrwWVHo5MbHjAKBggqhkjOPQQDAgNIADBFAiBUBozJrgOJN7fEaMMH7bnGkn_962ogBwxIPrQDMPmfEAIhAM9BlTkZw8BGk9ax9CphN1PyBOcOhfxumxcDYXC4NZbgaGF1dGhEYXRhWMW_q8N0MpWLBjNg061kYcnEc1rn-O3UZZKl4PAUUrLktVkAAAAA6VDc2jva4dCHzaOAqJeEiwAglTri3Z8osaHVgCyD4fZYM7uXaaCN6C2BK8J8E_xvBqmlAQIDOCIgAiFYMEhmvYsB2nienrgG5eqwWuWmOFQilqsFei8bvOm1j4oIuRcTkLWKN6x__8LF9FhX2iJYMCoLAkx_S3IHKh-WvTCnJhqulXHdOYcOsp5VwJQcawjolimh6hIWqmTOV8KAe_OQGg",
+      "credentialId_b64u": "lTri3Z8osaHVgCyD4fZYM7uXaaCN6C2BK8J8E_xvBqk",
+      "aaguid_b64u": "6VDc2jva4dCHzaOAqJeEiw"
+    },
+    "authentication": {
+      "challenge_b64u": "_0HD0l29iWb7YeKO9eRwQeE37SaFIEEtdiAroK0tFFM",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiXzBIRDBsMjlpV2I3WWVLTzllUndRZUUzN1NhRklFRXRkaUFyb0swdEZGTSIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmciLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+      "authenticatorData_b64u": "v6vDdDKViwYzYNOtZGHJxHNa5_jt1GWSpeDwFFKy5LUNAAAAAA",
+      "signature_b64u": "MGUCMQDk77tGdF7QDmfE1Rqyusqyr2L_qLfF_s7G19m_JYInUDSnE6PdcxaF7uga369qpj8CMBYWVTU_B-AYo8JTn43nyMTPiNTDLSvin-Tnb6CW7MlFi7_giV1XEpqzJBMObwaS2w"
+    },
+    "key_material": {
+      "credential_private_key_b64u": "Jx430wnFWMDzUiKzerunUAN31o4Xnkx0sMtVhVGy5SdrR7kKMXyo674aEsk8LV3Z",
+      "attestation_private_key_b64u": "jZefu25JxO61kloryg_NsCPT-5C8rc6DkdqdpO0q7po",
+      "attestation_cert_serial_b64u": "PQpViLuH67HUzuShgHwbfA"
+    }
+  },
+  {
+    "vector_id": "w3c-packed-es512",
+    "format": "packed",
+    "algorithm": "ES512",
+    "w3c_section": "16.1.8",
+    "title": "Packed Attestation with ES512 Credential",
+    "rpId": "example.org",
+    "origin": "https://example.org",
+    "registration": {
+      "challenge_b64u": "TuIgzZKwfhFFHLTCAcV1W9h5hI5JKpsS15E1xidk3C_Sjq1ICMr-WtHej6ngjUqO6v6k37Mzh3sCvFA_R107DBOUp2g7qvTyR3gp97jPdQlImFVYdIwHMGg5b8_c0_JFvyA45rs411MnaKrRO-jBGPcnci50JhOQQenKylA4hMU",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiVHVJZ3paS3dmaEZGSExUQ0FjVjFXOWg1aEk1Sktwc1MxNUUxeGlkazNDX1NqcTFJQ01yLVd0SGVqNm5nalVxTzZ2NmszN016aDNzQ3ZGQV9SMTA3REJPVXAyZzdxdlR5UjNncDk3alBkUWxJbUZWWWRJd0hNR2c1YjhfYzBfSkZ2eUE0NXJzNDExTW5hS3JSTy1qQkdQY25jaTUwSmhPUVFlbkt5bEE0aE1VIiwib3JpZ2luIjoiaHR0cHM6Ly9leGFtcGxlLm9yZyIsImNyb3NzT3JpZ2luIjpmYWxzZSwiZXh0cmFEYXRhIjoiY2xpZW50RGF0YUpTT04gbWF5IGJlIGV4dGVuZGVkIHdpdGggYWRkaXRpb25hbCBmaWVsZHMgaW4gdGhlIGZ1dHVyZSwgc3VjaCBhcyB0aGlzOiBvM3FWak9MMnRUV200R3hreklfUWdnPT0ifQ",
+      "attestationObject_b64u": "o2NmbXRmcGFja2VkZ2F0dFN0bXSjY2FsZyZjc2lnWEgwRgIhAMSPy9gmu8eWgIAgJmiNQattqMOh0iq2zs82yNdpXSJQAiEAh2ff5ZEnfpcweNVpLIw1z51Xl5KCLnFFyWoKxFFd9bBjeDVjgVkCJzCCAiMwggHIoAMCAQICEQCKEot-vlK5k4NXeebZuBNVMAoGCCqGSM49BAMCMGIxHjAcBgNVBAMMFVdlYkF1dGhuIHRlc3QgdmVjdG9yczEMMAoGA1UECgwDVzNDMSUwIwYDVQQLDBxBdXRoZW50aWNhdG9yIEF0dGVzdGF0aW9uIENBMQswCQYDVQQGEwJBQTAgFw0yNDAxMDEwMDAwMDBaGA8zMDI0MDEwMTAwMDAwMFowXzEeMBwGA1UEAwwVV2ViQXV0aG4gdGVzdCB2ZWN0b3JzMQwwCgYDVQQKDANXM0MxIjAgBgNVBAsMGUF1dGhlbnRpY2F0b3IgQXR0ZXN0YXRpb24xCzAJBgNVBAYTAkFBMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAElAtoiFKRU24vfGDAWs-yUufuvPQwRCXdk6t7GWLyBJK_GNwPEoYlmegft2SskhUfmnj8uzXXomyMUpSbGBM8BqNgMF4wDAYDVR0TAQH_BAIwADAOBgNVHQ8BAf8EBAMCB4AwHQYDVR0OBBYEFD_62GOrzT3FcXuKJSGJ9Br5fn8xMB8GA1UdIwQYMBaAFEWv9xWw3XhnQf7pluvBZUejkxseMAoGCCqGSM49BAMCA0kAMEYCIQCDLItkxPAYi9MuG-xj4TMBzcAxZdPvhA0fPau5pXGfgwIhAK3Vep1b7eyY8pIi38l-p5XQVe4ToCoVPQK-nOAK7euRaGF1dGhEYXRhWOm_q8N0MpWLBjNg061kYcnEc1rn-O3UZZKl4PAUUrLktU0AAAAAOdjOajz2ECV3UIOnOOXCVAAg0X1a9-PzfFZiKmfIRiyeHGM238y4th01ncRzeNuljOSlAQIDOCMgAyFYQgCDJAosOtIaPcCm2qPYvAWkbXzZglugEK4qImhsLW1mPX1fZ4mH-x52dULmPcGXrpFeJfjuKEZRrykGaRCizAg_UCJYQgFzN99Hq1zOXXFu-Mr_qXowEmibHzJupsQ6G6lZbHL3HwEiOQFDVStCvncrTDX_uWEiDHQ7SGpgHqTLbVQS9bB40w",
+      "credentialId_b64u": "0X1a9-PzfFZiKmfIRiyeHGM238y4th01ncRzeNuljOQ",
+      "aaguid_b64u": "OdjOajz2ECV3UIOnOOXCVA"
+    },
+    "authentication": {
+      "challenge_b64u": "CNMZDG3LPU8MtlmgMzv16hJN3zagzTPVIEsNeiKozCby5PFp0gAoXHez-yLg8cf0mofUvi0l6S15eAjdqqm1cV79OmrakznTBSpofbxdL4yHGwRR4GkfV60ThUG3ty56qJM3KewcZkvy5N7a4WFtCOzvqAoqU7EDZjzlqIEEiCk",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiQ05NWkRHM0xQVThNdGxtZ016djE2aEpOM3phZ3pUUFZJRXNOZWlLb3pDYnk1UEZwMGdBb1hIZXoteUxnOGNmMG1vZlV2aTBsNlMxNWVBamRxcW0xY1Y3OU9tcmFrem5UQlNwb2ZieGRMNHlIR3dSUjRHa2ZWNjBUaFVHM3R5NTZxSk0zS2V3Y1prdnk1TjdhNFdGdENPenZxQW9xVTdFRFpqemxxSUVFaUNrIiwib3JpZ2luIjoiaHR0cHM6Ly9leGFtcGxlLm9yZyIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+      "authenticatorData_b64u": "v6vDdDKViwYzYNOtZGHJxHNa5_jt1GWSpeDwFFKy5LUZAAAAAA",
+      "signature_b64u": "MIGHAkIAm9oC_jhOd7y5-0KwfDlbelPsnZYW3QMIq4SVwhQcg2TH0W4hKkpPuOOYf_bJnq_WTYSE_SjD_Hlo9lipAz0bsbgCQWOD6fPuIMaRtmYgKZ_vNr6i3005ySsurZL1jnt5qw2YZNLr87Dcxm6hMjRJLM7m6dQh20PJWby5TBYtyUlBNsn2"
+    },
+    "key_material": {
+      "credential_private_key_b64u": "8REgWU9qSUSsO6Wa27xbhQFolbZJ9MyUmmEPS0i-R7MYhQussQX3R2R7uohStrjlKgs2efG7vf4YyZQJvLZE-kU",
+      "attestation_private_key_b64u": "_7yJ1fdZlPUtxedTjuJpQC0mmV1AwW-3E0c-NPypi-Q",
+      "attestation_cert_serial_b64u": "ihKLfr5SuZODV3nm2bgTVQ"
+    }
+  },
+  {
+    "vector_id": "w3c-packed-rs256",
+    "format": "packed",
+    "algorithm": "RS256",
+    "w3c_section": "16.1.9",
+    "title": "Packed Attestation with RS256 Credential",
+    "rpId": "example.org",
+    "origin": "https://example.org",
+    "registration": {
+      "challenge_b64u": "vqjwdwAJvVfywN9v6p90Oifkthu-kjyGLHqtep_I5KY",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoidnFqd2R3QUp2VmZ5d045djZwOTBPaWZrdGh1LWtqeUdMSHF0ZXBfSTVLWSIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmciLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+      "attestationObject_b64u": "o2NmbXRmcGFja2VkZ2F0dFN0bXSjY2FsZyZjc2lnWEcwRQIhAIuMXG6owULAMuC-aeE1PURGHFyRCZQc3alRuXbrlbazAiBNUvQGwZ4lSz_5WJvRgHD7BVrI2xL90KZzS-qdcWjpAGN4NWOBWQImMIICIjCCAcegAwIBAgIQH2-3pezoG0WJa5g6mV2l8zAKBggqhkjOPQQDAjBiMR4wHAYDVQQDDBVXZWJBdXRobiB0ZXN0IHZlY3RvcnMxDDAKBgNVBAoMA1czQzElMCMGA1UECwwcQXV0aGVudGljYXRvciBBdHRlc3RhdGlvbiBDQTELMAkGA1UEBhMCQUEwIBcNMjQwMTAxMDAwMDAwWhgPMzAyNDAxMDEwMDAwMDBaMF8xHjAcBgNVBAMMFVdlYkF1dGhuIHRlc3QgdmVjdG9yczEMMAoGA1UECgwDVzNDMSIwIAYDVQQLDBlBdXRoZW50aWNhdG9yIEF0dGVzdGF0aW9uMQswCQYDVQQGEwJBQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABLeza3VCoREgtEPHlNDJn9wloGt2WGQT2B4IYWPvb-FHpVevw04oYdkFfW1GXUcFoDEFUL3utfNe41uUJauFmYGjYDBeMAwGA1UdEwEB_wQCMAAwDgYDVR0PAQH_BAQDAgeAMB0GA1UdDgQWBBT7N7ZHvM-55U2YnqqswWM4aHA_szAfBgNVHSMEGDAWgBRFr_cVsN14Z0H-6ZbrwWVHo5MbHjAKBggqhkjOPQQDAgNJADBGAiEAuGvBKdkq_KfZhpo59w8TmjBbQHOjnrZU2BQkvtV1fZECIQDPn3xgyrfEp9Pn8AIPKBqT1P0Kn5USG5ifVpMqaIhfumhhdXRoRGF0YVkCG7-rw3QylYsGM2DTrWRhycRzWuf47dRlkqXg8BRSsuS1XQAAAABCj4h4KYuYYqNq2MdSe_7yACCZKhisyD9nUzYAwROKS0xL0jbeE2Kc8CXtF8sAsAt036QBAwM5AQAgWQG0A_____________________________________________________________________________________________________________________________________________________________________________________________________________________f_________________________________________________________________________________________________________________________________________________________gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASFDAQAB",
+      "credentialId_b64u": "mSoYrMg_Z1M2AMETiktMS9I23hNinPAl7RfLALALdN8",
+      "aaguid_b64u": "Qo-IeCmLmGKjatjHUnv-8g"
+    },
+    "authentication": {
+      "challenge_b64u": "KV9Z9fqP5ixayp4nYmx4yNo3aubYzS3SmuutYB4bxMU",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiS1Y5WjlmcVA1aXhheXA0bllteDR5Tm8zYXViWXpTM1NtdXV0WUI0YnhNVSIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmciLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+      "authenticatorData_b64u": "v6vDdDKViwYzYNOtZGHJxHNa5_jt1GWSpeDwFFKy5LUZAAAAAA",
+      "signature_b64u": "AQY9UtfDm01DL8cGPF2T5YK9yxaInNcfiI1n2IDqcwpChJjTvI4e4R8rHsvmwpKxGMVf-q3e-oytClTdE3xR8e7Gc_G7bE0XidaCaiIrItD1hfyQH9yTMhLledGZuJ1nKqRIkTM-ahNVU2Al6CslWQJWw1OCKbVXNwg7L2uTd-SeJHLxGVL3n90NoYC1_9kBtASajwgbtAcRvvdsYq7ZQ1cfLQV1MEy1SdaNiJL5UIajD5Nxau6Bj43AbpbA1eDtTPqf2Hc9kEZLaM8UD3mGZm_5yeMwKs0FNdYNdp9GXiq1fviqvIn8z-97oypkFUqLPSa-Ipj0cLjMU3fb49_UsLRfjwHmO95s_Ha2J3H5twqifPQBUsrZOqWs14T9S5D2duLqgo0L8kAK67quQVPlg49Tf4i2IoNGeCqTqJm-Zux33kWz788xHaYyHJLmsM0Rv-ZTvz6YzujjQfAtZ9u2-cmNnoF4CQz7W3D7xtVBWZrHlK4vHU3hKG7I3owtr3sdFchDjpDZJN9cGQRSIKTIQ4wbl5u-AWzz0O7sI8OZnUiCzGRbd23pMHVmEs3G3TmBYP8Cpg"
+    },
+    "key_material": {
+      "credential_private_key_b64u": "f____________________________________________________________________________________________________________________________________________________________________________________________________________________w",
+      "attestation_private_key_b64u": "CKEyLVqltbQM1nwswwsDjnkh14iMhMNC1Q158MX8NGQ",
+      "attestation_cert_serial_b64u": "H2-3pezoG0WJa5g6mV2l8w"
+    }
+  },
+  {
+    "vector_id": "w3c-packed-ed25519",
+    "format": "packed",
+    "algorithm": "Ed25519",
+    "w3c_section": "16.1.10",
+    "title": "Packed Attestation with Ed25519 Credential",
+    "rpId": "example.org",
+    "origin": "https://example.org",
+    "registration": {
+      "challenge_b64u": "VgxzoJznoVhtYcHW5B_vFJvlI-Ig_J84XTirI3Auvxs",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiVmd4em9Kem5vVmh0WWNIVzVCX3ZGSnZsSS1JZ19KODRYVGlySTNBdXZ4cyIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmciLCJjcm9zc09yaWdpbiI6ZmFsc2UsImV4dHJhRGF0YSI6ImNsaWVudERhdGFKU09OIG1heSBiZSBleHRlbmRlZCB3aXRoIGFkZGl0aW9uYWwgZmllbGRzIGluIHRoZSBmdXR1cmUsIHN1Y2ggYXMgdGhpczogMjNXSDRrdVJoLTIzZVROMVF6SGtRdz09In0",
+      "attestationObject_b64u": "o2NmbXRmcGFja2VkZ2F0dFN0bXSjY2FsZyZjc2lnWEcwRQIgcwpU1PdssfK33Upabu4zdOPIpg-zxNqlJ8knfjZbZKoCIQCLMaBKKMxBSLFMQqkWVI7n9DC8dikpW0Luk-XRqrqO5mN4NWOBWQIlMIICITCCAcegAwIBAgIQbjkfI_VxUNx6EtrRjytDrTAKBggqhkjOPQQDAjBiMR4wHAYDVQQDDBVXZWJBdXRobiB0ZXN0IHZlY3RvcnMxDDAKBgNVBAoMA1czQzElMCMGA1UECwwcQXV0aGVudGljYXRvciBBdHRlc3RhdGlvbiBDQTELMAkGA1UEBhMCQUEwIBcNMjQwMTAxMDAwMDAwWhgPMzAyNDAxMDEwMDAwMDBaMF8xHjAcBgNVBAMMFVdlYkF1dGhuIHRlc3QgdmVjdG9yczEMMAoGA1UECgwDVzNDMSIwIAYDVQQLDBlBdXRoZW50aWNhdG9yIEF0dGVzdGF0aW9uMQswCQYDVQQGEwJBQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABPuWpYGgs2dCqMRdb_ta8e8VVSS1AzlEXsEQmHQEXgCH23ft75Hz3JSZJ0cNhLAWJwh7cshrfJ0C4TicumgP_DajYDBeMAwGA1UdEwEB_wQCMAAwDgYDVR0PAQH_BAQDAgeAMB0GA1UdDgQWBBTvLOGobKuoUSETChbozoKnXVpmUzAfBgNVHSMEGDAWgBRFr_cVsN14Z0H-6ZbrwWVHo5MbHjAKBggqhkjOPQQDAgNIADBFAiEArU-mKM_7paZCpWLL_v5j7-zOJtkMgBFBFNF0U4PhLwECICivh7o7D_hoo0uUWLxpc7JzgKMo3Ye3Q2ZR_6gjKAvKaGF1dGhEYXRhWIG_q8N0MpWLBjNg061kYcnEc1rn-O3UZZKl4PAUUrLktUkAAAAAFkAJ6gn6rnw5e8PirQ5-wAAgxs_6Abf9o2in4LKcE4SnGYICRryolN0SkUcIdDrwzs2kAQEDJyAGIVggifgeukofUQyyQ_9_uenPiZv2J-Sc4aw8Pq6K2yqNfXs",
+      "credentialId_b64u": "xs_6Abf9o2in4LKcE4SnGYICRryolN0SkUcIdDrwzs0",
+      "aaguid_b64u": "FkAJ6gn6rnw5e8PirQ5-wA"
+    },
+    "authentication": {
+      "challenge_b64u": "N5Daiyty7ozhl2F4etOMv6ppfrPKAToTQpiHVrmHhas",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiTjVEYWl5dHk3b3pobDJGNGV0T012NnBwZnJQS0FUb1RRcGlIVnJtSGhhcyIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmciLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+      "authenticatorData_b64u": "v6vDdDKViwYzYNOtZGHJxHNa5_jt1GWSpeDwFFKy5LUZAAAAAA",
+      "signature_b64u": "TIc1cTd6wBnyV9a_BySfY6wkh0g8UbxRHODw4yZshAywegnNxEWi-WPYYDqfD2z5znCdf8apbHxR6gjTN3YBDA"
+    },
+    "key_material": {
+      "credential_private_key_b64u": "yH_OnpzSg9JyokGNloM2b4NmHkWK1EUfDxyVy4Ow8Kg",
+      "attestation_private_key_b64u": "Zz7n_ZRAXeUj_YSgiKsILXW3_O7wKjAeK8oKKFN88kM",
+      "attestation_cert_serial_b64u": "bjkfI_VxUNx6EtrRjytDrQ"
+    }
+  }
+]
