@@ -14,6 +14,7 @@ Immediate actions:
 5. Inspect the corresponding feature plan(s) in `docs/4-architecture/feature-plan-*.md`.
 6. Review the per-feature tasks in `docs/4-architecture/tasks/`.
 7. Check `docs/4-architecture/open-questions.md` for unresolved clarifications.
+8. Consult `docs/_current-session.md` for the latest workstream snapshot; update it as you discover new status.
 
 Diagnosis tree:
 - If open questions exist, prepare a clarification request before planning.
@@ -24,6 +25,9 @@ Remediation:
 - Summarise project status back to the user (roadmap state, open questions, next suggested action).
 - Request clarifications where needed and wait for responses before coding.
 - Once direction is confirmed, ensure the analysis gate (`docs/5-operations/analysis-gate-checklist.md`) is satisfied, then proceed with planning/implementation per `AGENTS.md` guidelines.
+
+## Handoff Prompt Template
+Copy/paste the template in `docs/5-operations/session-quick-reference.md` when opening a new chat so the next agent inherits the full context quickly. Replace bracketed sections with the current details.
 
 Owner/On-call escalation:
 - Escalate to the user when:

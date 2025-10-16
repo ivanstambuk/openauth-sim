@@ -22,6 +22,9 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - Begin every fresh interaction by summarising roadmap status, feature plan progress, and open questions for the user.
 - Request clarification on outstanding questions before planning or implementation; log any new questions immediately.
 
+> Quick reference: See `docs/5-operations/session-quick-reference.md` for the Session Kickoff Checklist and handoff prompt template.
+- Maintain `docs/_current-session.md` as the single live snapshot across active chats; always review/update it before closing a session.
+
 ## VDD Feedback Loops
 - **Update specs before code.** For every task, refresh the relevant feature plan and note open questions; only move forward once the plan reflects the desired change.
 - **Test-first cadence.** Write or extend executable specifications (unit, behaviour, or scenario tests) ahead of implementation, confirm they fail, and then drive code to green before refactoring.
