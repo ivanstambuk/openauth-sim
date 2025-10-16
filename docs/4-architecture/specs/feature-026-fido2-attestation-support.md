@@ -13,6 +13,10 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - 2025-10-12 – Attestation generation and verification remain inline-only in the operator UI; stored credential persistence continues to rely on CLI/REST/Java APIs. (User approved Option B.)
 - 2025-10-12 – Fixture coverage should combine W3C WebAuthn Level 3 attestation examples with the synthetic JSON bundle, mirroring the current assertion strategy. (User approved Option B.)
 - 2025-10-12 – The operator UI Evaluate tab will expose a toggle between “Assertion” and “Attestation.” Replay will gain the same toggle so operators can verify either payload type. Stored assertion mode stays available; attestation remains inline-only.
+- 2025-10-16 – Attestation verification must support both self-attested flows (no trust anchors provided) and full trust-path validation. Provide optional trust anchor bundles via CLI/REST parameters and an operator UI text area upload; plan for Metadata Service (MDS) ingestion to supply default anchors. Absence of anchors should fall back to self-signed acceptance with warnings.
+- 2025-10-16 – Attestation certificate chains will be supplied by fixtures or operator-provided anchors; no additional subject/issuer authoring UI is required for this feature slice.
+- 2025-10-16 – Telemetry should include attestation format, RP ID, authenticator AAGUID, certificate SHA-256 fingerprint, and outcome while redacting attestation statements, raw certificates, and private keys. (User selected Option B.)
+- 2025-10-16 – Store attestation fixtures under a dedicated `docs/webauthn_attestation/` directory with per-format JSON files (e.g., `packed.json`, `tpm.json`) to keep datasets modular. (User selected Option B.)
 
 ## Scope
 - Implement attestation generation/verification helpers in `core` covering the targeted formats and leveraging existing COSE/JWK utilities.
@@ -20,6 +24,8 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - Update CLI commands with attestation generation/verification options, including format selection and validation feedback.
 - Add REST endpoints for attestation generation (`/api/v1/webauthn/attest`) and replay (`/api/v1/webauthn/attest/replay`), plus OpenAPI documentation and tests.
 - Introduce UI affordances (toggle, inline forms, result cards) enabling operators to generate and verify attestation payloads.
+- Provide optional trust anchor validation with CLI/REST inputs and an operator UI text area upload, defaulting to self-attested acceptance when no anchors are supplied.
+- Lay groundwork for WebAuthn Metadata Service (MDS) ingestion to hydrate trusted roots and metadata for deterministic fixtures.
 - Provide deterministic fixture data (W3C + synthetic) and update existing loader/test infrastructure to consume the new datasets.
 
 ## Out of Scope
@@ -32,6 +38,7 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - Application services surface sanitized telemetry (`fido2.attest` and `fido2.attestReplay`) and reuse existing redaction policies.
 - CLI and REST interfaces expose generation and replay commands/endpoints with comprehensive coverage (MockMvc, Picocli, documentation snapshots).
 - Operator UI displays an attestation-specific form, toggles cleanly between assertion and attestation workflows, and renders result cards with copy/download affordances.
+- Trust-anchor aware verification accepts optional anchor bundles (UI upload, CLI/REST parameter) and clearly reports when validation falls back to self-attested evaluation.
 - Fixture loaders/tests ingest W3C and synthetic attestation data, ensuring multi-format coverage in both generation and replay flows.
 - `./gradlew spotlessApply check` and targeted suites (`:core:test`, `:application:test`, `:cli:test`, `:rest-api:test`) remain green after each increment.
 
