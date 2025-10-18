@@ -9,6 +9,7 @@ import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.otp.totp.TotpCredentialPersistenceAdapter;
 import io.openauth.sim.core.otp.totp.TotpDescriptor;
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
+import io.openauth.sim.core.otp.totp.TotpGenerator;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
 import io.openauth.sim.core.otp.totp.TotpJsonVectorFixtures;
 import io.openauth.sim.core.otp.totp.TotpJsonVectorFixtures.TotpJsonVector;
@@ -149,6 +150,10 @@ final class TotpCliTest {
     assertTrue(stdout.contains("credentialReference=false"));
     assertTrue(stdout.contains("reasonCode=generated"));
     assertTrue(stdout.contains("otp="));
+
+    String expectedOtp = TotpGenerator.generate(inlineDescriptor, issuedAt);
+    String actualOtp = extractOtp(stdout);
+    assertEquals(expectedOtp, actualOtp, "CLI should emit the generated OTP");
   }
 
   private static final class CommandHarness {
@@ -194,5 +199,15 @@ final class TotpCliTest {
         store.save(credential);
       }
     }
+  }
+
+  private static String extractOtp(String stdout) {
+    int otpIndex = stdout.indexOf("otp=");
+    assertTrue(otpIndex >= 0, "OTP not found in CLI output:\n" + stdout);
+    int endIndex = stdout.indexOf(' ', otpIndex);
+    if (endIndex == -1) {
+      endIndex = stdout.length();
+    }
+    return stdout.substring(otpIndex + 4, endIndex).trim();
   }
 }

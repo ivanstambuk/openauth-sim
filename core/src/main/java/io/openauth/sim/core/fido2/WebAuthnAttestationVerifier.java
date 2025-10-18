@@ -27,8 +27,26 @@ public final class WebAuthnAttestationVerifier {
   public WebAuthnAttestationVerification verify(WebAuthnAttestationRequest request) {
     Objects.requireNonNull(request, "request");
     try {
-      ClientData clientData =
-          parseClientData(request.clientDataJson(), request.expectedChallenge(), request.origin());
+      ClientData clientData = parseClientData(request.clientDataJson());
+      if (!"webauthn.create".equals(clientData.type())) {
+        throw failure(
+            WebAuthnVerificationError.CLIENT_DATA_TYPE_MISMATCH,
+            "Client data type must be 'webauthn.create'");
+      }
+      if (clientData.challenge().length == 0) {
+        throw failure(
+            WebAuthnVerificationError.CLIENT_DATA_CHALLENGE_MISMATCH,
+            "Client data challenge must be present");
+      }
+      if (!Arrays.equals(request.expectedChallenge(), clientData.challenge())) {
+        throw failure(
+            WebAuthnVerificationError.CLIENT_DATA_CHALLENGE_MISMATCH,
+            "Client data challenge mismatch");
+      }
+      if (!Objects.equals(request.origin(), clientData.origin())) {
+        throw failure(WebAuthnVerificationError.ORIGIN_MISMATCH, "Client data origin mismatch");
+      }
+
       AttestationObject attestationObject = parseAttestationObject(request.attestationObject());
       if (attestationObject.format != request.format()) {
         throw failure(
@@ -47,7 +65,7 @@ public final class WebAuthnAttestationVerifier {
             WebAuthnVerificationError.RP_ID_HASH_MISMATCH, "RP ID hash mismatch in attestation");
       }
 
-      byte[] clientDataHash = hashSha256(request.clientDataJson());
+      byte[] clientDataHash = hashSha256(clientData.rawJson());
       List<X509Certificate> certificates =
           verifyAttestationStatement(
               request.format(), attestationObject.attStmt(), authData, clientDataHash);
@@ -70,32 +88,15 @@ public final class WebAuthnAttestationVerifier {
     }
   }
 
-  private static ClientData parseClientData(
-      byte[] clientDataJson, byte[] expectedChallenge, String expectedOrigin) {
+  private static ClientData parseClientData(byte[] clientDataJson) {
     String json = new String(clientDataJson, StandardCharsets.UTF_8);
     Map<String, String> values = extractJsonValues(json);
 
     String type = values.get("type");
-    if (!"webauthn.create".equals(type)) {
-      throw failure(
-          WebAuthnVerificationError.CLIENT_DATA_TYPE_MISMATCH,
-          "Client data type must be 'webauthn.create'");
-    }
-
     String challengeB64 = values.get("challenge");
     byte[] challenge = decodeBase64Url(challengeB64);
-    if (!Arrays.equals(expectedChallenge, challenge)) {
-      throw failure(
-          WebAuthnVerificationError.CLIENT_DATA_CHALLENGE_MISMATCH,
-          "Client data challenge mismatch");
-    }
-
     String origin = values.get("origin");
-    if (!Objects.equals(expectedOrigin, origin)) {
-      throw failure(WebAuthnVerificationError.ORIGIN_MISMATCH, "Client data origin mismatch");
-    }
-
-    return new ClientData(type, challenge);
+    return new ClientData(type, challenge, origin, clientDataJson.clone());
   }
 
   private static AttestationObject parseAttestationObject(byte[] attestationObject)
@@ -565,8 +566,15 @@ public final class WebAuthnAttestationVerifier {
     return new VerificationFailure(error, message);
   }
 
-  private record ClientData(String type, byte[] challenge) {
-    // Marker record for parsed client data.
+  private record ClientData(String type, byte[] challenge, String origin, byte[] rawJson) {
+    ClientData {
+      challenge = challenge == null ? new byte[0] : challenge.clone();
+      rawJson = rawJson == null ? new byte[0] : rawJson.clone();
+    }
+
+    public byte[] rawJson() {
+      return rawJson.clone();
+    }
   }
 
   private record AttestationObject(

@@ -231,13 +231,10 @@ final class Fido2OperatorUiSeleniumTest {
     WebElement inlineSection =
         waitFor(By.cssSelector("[data-testid='fido2-evaluate-inline-section']"));
     new WebDriverWait(driver, Duration.ofSeconds(5))
-        .until(
-            webDriver ->
-                webDriver
-                        .findElement(
-                            By.cssSelector("[data-testid='fido2-evaluate-inline-section']"))
-                        .getAttribute("hidden")
-                    != null);
+        .until(d -> inlineSection.getAttribute("hidden") != null);
+    assertThat(inlineSection.getAttribute("hidden"))
+        .as("Inline section should be hidden after switching to stored mode")
+        .isNotNull();
   }
 
   @Test

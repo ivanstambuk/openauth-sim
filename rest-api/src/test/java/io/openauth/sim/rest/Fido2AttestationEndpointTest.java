@@ -170,6 +170,12 @@ class Fido2AttestationEndpointTest {
     assertThat(root.get("status").asText()).isEqualTo("success");
 
     JsonNode attestation = root.get("generatedAttestation");
+    assertThat(attestation.get("id").asText()).isEqualTo(EXPECTED_CREDENTIAL_ID);
+    assertThat(attestation.get("rawId").asText()).isEqualTo(EXPECTED_CREDENTIAL_ID);
+    JsonNode responsePayload = attestation.get("response");
+    assertThat(responsePayload.get("attestationObject").asText()).isNotBlank();
+    assertThat(responsePayload.get("clientDataJSON").asText()).isEqualTo(EXPECTED_CLIENT_DATA);
+
     JsonNode metadata = root.get("metadata");
     assertThat(metadata.get("generationMode").asText()).isEqualTo("custom_root");
     assertThat(metadata.get("customRootCount").asInt()).isEqualTo(1);

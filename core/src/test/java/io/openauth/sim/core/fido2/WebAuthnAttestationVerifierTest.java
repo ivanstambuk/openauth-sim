@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
+import java.nio.charset.StandardCharsets;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -68,6 +69,96 @@ class WebAuthnAttestationVerifierTest {
         verification.result().error().orElseThrow());
   }
 
+  @Test
+  void incorrectClientDataTypeFails() {
+    WebAuthnAttestationVector packedVector =
+        WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
+            .findFirst()
+            .orElseThrow();
+
+    byte[] tamperedClientData =
+        mutateClientData(
+            packedVector,
+            original ->
+                original.replace("\"type\":\"webauthn.create\"", "\"type\":\"webauthn.get\""));
+
+    WebAuthnAttestationRequest invalidRequest =
+        new WebAuthnAttestationRequest(
+            packedVector.format(),
+            packedVector.registration().attestationObject(),
+            tamperedClientData,
+            packedVector.registration().challenge(),
+            packedVector.relyingPartyId(),
+            packedVector.origin());
+
+    WebAuthnAttestationVerification verification = verifier.verify(invalidRequest);
+
+    assertFalse(verification.result().success());
+    assertEquals(
+        WebAuthnVerificationError.CLIENT_DATA_TYPE_MISMATCH,
+        verification.result().error().orElseThrow());
+  }
+
+  @Test
+  void emptyClientDataChallengeFails() {
+    WebAuthnAttestationVector packedVector =
+        WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
+            .findFirst()
+            .orElseThrow();
+
+    byte[] tamperedClientData =
+        mutateClientData(
+            packedVector,
+            original -> original.replaceFirst("\"challenge\":\"[^\"]+\"", "\"challenge\":\"\""));
+
+    WebAuthnAttestationRequest invalidRequest =
+        new WebAuthnAttestationRequest(
+            packedVector.format(),
+            packedVector.registration().attestationObject(),
+            tamperedClientData,
+            packedVector.registration().challenge(),
+            packedVector.relyingPartyId(),
+            packedVector.origin());
+
+    WebAuthnAttestationVerification verification = verifier.verify(invalidRequest);
+
+    assertFalse(verification.result().success());
+    assertEquals(
+        WebAuthnVerificationError.CLIENT_DATA_CHALLENGE_MISMATCH,
+        verification.result().error().orElseThrow());
+  }
+
+  @Test
+  void mismatchedClientDataOriginFails() {
+    WebAuthnAttestationVector packedVector =
+        WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
+            .findFirst()
+            .orElseThrow();
+
+    byte[] tamperedClientData =
+        mutateClientData(
+            packedVector,
+            original ->
+                original.replace(
+                    "\"origin\":\"" + packedVector.origin() + "\"",
+                    "\"origin\":\"https://evil.example\""));
+
+    WebAuthnAttestationRequest invalidRequest =
+        new WebAuthnAttestationRequest(
+            packedVector.format(),
+            packedVector.registration().attestationObject(),
+            tamperedClientData,
+            packedVector.registration().challenge(),
+            packedVector.relyingPartyId(),
+            packedVector.origin());
+
+    WebAuthnAttestationVerification verification = verifier.verify(invalidRequest);
+
+    assertFalse(verification.result().success());
+    assertEquals(
+        WebAuthnVerificationError.ORIGIN_MISMATCH, verification.result().error().orElseThrow());
+  }
+
   private static Stream<WebAuthnAttestationVector> attestationVectors() {
     return WebAuthnAttestationFixtures.allVectors();
   }
@@ -91,5 +182,12 @@ class WebAuthnAttestationVerifierTest {
         request.expectedChallenge(),
         request.relyingPartyId(),
         request.origin());
+  }
+
+  private static byte[] mutateClientData(
+      WebAuthnAttestationVector vector, java.util.function.UnaryOperator<String> mutator) {
+    String original = new String(vector.registration().clientDataJson(), StandardCharsets.UTF_8);
+    String mutated = mutator.apply(original);
+    return mutated.getBytes(StandardCharsets.UTF_8);
   }
 }

@@ -94,7 +94,7 @@ class WebAuthnReplayService {
               combined,
               String.valueOf(combined.getOrDefault("telemetryId", telemetryId)));
       Map<String, Object> details = sanitizedDetails(combined);
-      details.put("credentialSource", "stored");
+      metadataDetails(metadata).forEach(details::putIfAbsent);
       throw validation(
           result.telemetry().reasonCode(),
           Optional.ofNullable(result.telemetry().reason()).orElse(result.telemetry().reasonCode()),
@@ -179,7 +179,7 @@ class WebAuthnReplayService {
               combined,
               String.valueOf(combined.getOrDefault("telemetryId", telemetryId)));
       Map<String, Object> details = sanitizedDetails(combined);
-      details.put("credentialSource", "inline");
+      metadataDetails(metadata).forEach(details::putIfAbsent);
       throw validation(
           result.telemetry().reasonCode(),
           Optional.ofNullable(result.telemetry().reason()).orElse(result.telemetry().reasonCode()),
@@ -286,6 +286,29 @@ class WebAuthnReplayService {
           sanitized.put(key, value);
         });
     return sanitized;
+  }
+
+  private static Map<String, Object> metadataDetails(WebAuthnReplayMetadata metadata) {
+    if (metadata == null) {
+      return Map.of();
+    }
+    Map<String, Object> details = new LinkedHashMap<>();
+    putIfNotBlank(details, "telemetryId", metadata.telemetryId());
+    putIfNotBlank(details, "credentialSource", metadata.credentialSource());
+    details.put("credentialReference", metadata.credentialReference());
+    putIfNotBlank(details, "credentialId", metadata.credentialId());
+    putIfNotBlank(details, "relyingPartyId", metadata.relyingPartyId());
+    putIfNotBlank(details, "origin", metadata.origin());
+    putIfNotBlank(details, "algorithm", metadata.algorithm());
+    details.put("userVerificationRequired", metadata.userVerificationRequired());
+    putIfNotBlank(details, "error", metadata.error());
+    return details;
+  }
+
+  private static void putIfNotBlank(Map<String, Object> target, String key, String value) {
+    if (value != null && !value.isBlank()) {
+      target.put(key, value);
+    }
   }
 
   private static void logTelemetry(TelemetryFrame frame, String credentialSource) {

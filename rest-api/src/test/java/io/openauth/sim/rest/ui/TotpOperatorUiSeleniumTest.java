@@ -677,6 +677,8 @@ final class TotpOperatorUiSeleniumTest {
 
     WebElement resultPanel =
         waitForVisible(By.cssSelector("[data-testid='totp-replay-result-panel']"));
+    assertTrue(
+        resultPanel.isDisplayed(), "Replay result panel should be visible before layout checks");
 
     WebElement statusColumn =
         driver.findElement(By.cssSelector("#totp-replay-panel .status-column"));

@@ -142,7 +142,6 @@ public final class TotpReplayApplicationService {
         credentialId = Objects.requireNonNull(credentialId, "credentialId").trim();
         otp = Objects.requireNonNull(otp, "otp");
         driftWindow = Objects.requireNonNull(driftWindow, "driftWindow");
-        evaluationInstant = evaluationInstant;
         timestampOverride = timestampOverride == null ? Optional.empty() : timestampOverride;
       }
     }
@@ -164,7 +163,6 @@ public final class TotpReplayApplicationService {
         stepDuration = Objects.requireNonNull(stepDuration, "stepDuration");
         otp = Objects.requireNonNull(otp, "otp");
         driftWindow = Objects.requireNonNull(driftWindow, "driftWindow");
-        evaluationInstant = evaluationInstant;
         timestampOverride = timestampOverride == null ? Optional.empty() : timestampOverride;
       }
     }

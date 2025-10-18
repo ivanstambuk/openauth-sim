@@ -285,7 +285,9 @@ final class HotpOperatorUiReplaySeleniumTest {
 
     WebElement sha1Option = options.get(1);
     assertThat(sha1Option.getAttribute("value")).isEqualTo(INLINE_SHA1_PRESET_KEY);
-    assertThat(sha1Option.getText().trim()).isEqualTo("SHA-1, 6 digits (RFC 4226)");
+    assertThat(sha1Option.getText().trim())
+        .startsWith(INLINE_SHA1_PRESET_LABEL)
+        .contains("(RFC 4226)");
 
     WebElement sha1EightOption = options.get(2);
     assertThat(sha1EightOption.getAttribute("value")).isEqualTo(INLINE_SHA1_8_PRESET_KEY);

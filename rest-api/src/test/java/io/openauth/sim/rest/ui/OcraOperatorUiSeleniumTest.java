@@ -757,6 +757,11 @@ final class OcraOperatorUiSeleniumTest {
             .until(
                 ExpectedConditions.visibilityOfElementLocated(
                     By.cssSelector("[data-testid='ocra-evaluate-panel'] select#policyPreset")));
+    assertThat(evaluateSelect.getTagName()).isEqualTo("select");
+    Select evaluateSelectControl = new Select(evaluateSelect);
+    assertThat(evaluateSelectControl.getOptions())
+        .as("Evaluate preset dropdown should expose at least the placeholder and sample vectors")
+        .hasSizeGreaterThan(1);
     double evaluateHeadingOffset =
         topOf(evaluateLabel)
             - topOf(
@@ -787,6 +792,11 @@ final class OcraOperatorUiSeleniumTest {
             .until(
                 ExpectedConditions.visibilityOfElementLocated(
                     By.cssSelector("[data-testid='ocra-replay-panel'] select#replayPolicyPreset")));
+    assertThat(replaySelect.isDisplayed()).isTrue();
+    Select replaySelectControl = new Select(replaySelect);
+    assertThat(replaySelectControl.getOptions())
+        .as("Replay preset dropdown should mirror evaluate options")
+        .hasSize(evaluateSelectControl.getOptions().size());
     WebElement replayHeading =
         new WebDriverWait(driver, Duration.ofSeconds(5))
             .until(

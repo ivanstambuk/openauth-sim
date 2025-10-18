@@ -104,7 +104,6 @@ final class WebAuthnPublicKeyDecoderTest {
     return toJson(parsed);
   }
 
-  @SuppressWarnings("unchecked")
   private static Map<String, Object> parseJwk(String jwk) {
     Object parsed = SimpleJson.parse(jwk);
     if (!(parsed instanceof Map<?, ?> map)) {

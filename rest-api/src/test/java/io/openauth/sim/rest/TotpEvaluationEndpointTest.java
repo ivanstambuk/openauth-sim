@@ -168,6 +168,75 @@ class TotpEvaluationEndpointTest {
     assertEquals("inline", response.get("metadata").get("credentialSource").asText());
   }
 
+  @Test
+  @DisplayName("Stored TOTP evaluation requires credential ID")
+  void storedTotpEvaluationRequiresCredentialId() throws Exception {
+    String body =
+        """
+        {
+          "credentialId": "  ",
+          "otp": "123456"
+        }
+        """;
+
+    String responseBody =
+        mockMvc
+            .perform(
+                post("/api/v1/totp/evaluate").contentType(MediaType.APPLICATION_JSON).content(body))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode response = MAPPER.readTree(responseBody);
+    assertEquals("invalid_input", response.get("status").asText());
+    assertEquals("credential_id_required", response.get("reasonCode").asText());
+  }
+
+  @Test
+  @DisplayName("Stored TOTP evaluation rejects invalid OTP format")
+  void storedTotpEvaluationRejectsInvalidOtpFormat() throws Exception {
+    TotpDescriptor descriptor =
+        TotpDescriptor.create(
+            CREDENTIAL_ID,
+            STORED_SECRET,
+            TotpHashAlgorithm.SHA1,
+            6,
+            Duration.ofSeconds(30),
+            TotpDriftWindow.of(1, 1));
+    Credential credential =
+        VersionedCredentialRecordMapper.toCredential(adapter.serialize(descriptor));
+    credentialStore.save(credential);
+
+    String body =
+        """
+        {
+          "credentialId": "%s",
+          "otp": "abc123",
+          "driftBackward": 1,
+          "driftForward": 1
+        }
+        """
+            .formatted(CREDENTIAL_ID);
+
+    String responseBody =
+        mockMvc
+            .perform(
+                post("/api/v1/totp/evaluate").contentType(MediaType.APPLICATION_JSON).content(body))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode response = MAPPER.readTree(responseBody);
+    assertEquals("invalid_input", response.get("status").asText());
+    assertEquals("otp_invalid_format", response.get("reasonCode").asText());
+    JsonNode details = response.get("details");
+    assertEquals("stored", details.get("credentialSource").asText());
+    assertEquals(1, details.get("driftBackwardSteps").asInt());
+    assertEquals(CREDENTIAL_ID, details.get("credentialId").asText());
+  }
+
   @TestConfiguration
   static class InMemoryStoreConfiguration {
 
