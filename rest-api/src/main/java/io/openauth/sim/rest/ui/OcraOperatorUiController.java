@@ -2,8 +2,11 @@ package io.openauth.sim.rest.ui;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.openauth.sim.application.fido2.WebAuthnAttestationSamples;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,6 +38,8 @@ final class OcraOperatorUiController {
           "eudi-openid4vp",
           "eudi-iso-18013-5",
           "eudi-siopv2");
+
+  private static final Base64.Encoder BASE64_URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
 
   private final ObjectMapper objectMapper;
   private final OcraOperatorUiReplayLogger telemetry;
@@ -92,6 +97,9 @@ final class OcraOperatorUiController {
     model.addAttribute("fido2SeedDefinitionsJson", serializeFido2SeedDefinitions());
     model.addAttribute("fido2InlineVectorsJson", serializeFido2InlineVectors());
     model.addAttribute("fido2InlineVectors", Fido2OperatorSampleData.inlineVectors());
+    model.addAttribute("fido2AttestationVectorsJson", serializeFido2AttestationVectors());
+    model.addAttribute("fido2AttestationEndpoint", "/api/v1/webauthn/attest");
+    model.addAttribute("fido2AttestationReplayEndpoint", "/api/v1/webauthn/attest/replay");
     model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
     populatePolicyPresets(model);
     return "ui/console/index";
@@ -151,6 +159,55 @@ final class OcraOperatorUiController {
     } catch (JsonProcessingException ex) {
       throw new IllegalStateException("Unable to render FIDO2 inline vectors", ex);
     }
+  }
+
+  private String serializeFido2AttestationVectors() {
+    try {
+      List<Map<String, Object>> payload =
+          WebAuthnAttestationSamples.vectors().stream()
+              .map(OcraOperatorUiController::describeAttestationVector)
+              .toList();
+      return objectMapper.writeValueAsString(payload);
+    } catch (JsonProcessingException ex) {
+      throw new IllegalStateException("Unable to render FIDO2 attestation vectors", ex);
+    }
+  }
+
+  private static Map<String, Object> describeAttestationVector(WebAuthnAttestationVector vector) {
+    Map<String, Object> descriptor = new java.util.LinkedHashMap<>();
+    descriptor.put("vectorId", vector.vectorId());
+    descriptor.put("format", vector.format().label());
+    descriptor.put("algorithm", vector.algorithm().label());
+    descriptor.put("w3cSection", vector.w3cSection());
+    descriptor.put("title", vector.title());
+    descriptor.put("relyingPartyId", vector.relyingPartyId());
+    descriptor.put("origin", vector.origin());
+    descriptor.put("authenticationAvailable", vector.authentication().isPresent());
+    descriptor.put("label", buildAttestationLabel(vector));
+    descriptor.put("challengeBase64Url", encodeBase64Url(vector.registration().challenge()));
+    descriptor.put("credentialPrivateKey", vector.keyMaterial().credentialPrivateKeyBase64Url());
+    descriptor.put("attestationPrivateKey", vector.keyMaterial().attestationPrivateKeyBase64Url());
+    descriptor.put(
+        "attestationCertificateSerial",
+        vector.keyMaterial().attestationCertificateSerialBase64Url());
+    return descriptor;
+  }
+
+  private static String buildAttestationLabel(WebAuthnAttestationVector vector) {
+    String title = vector.title();
+    String base = (title != null && !title.isBlank()) ? title.trim() : vector.vectorId();
+    String algorithmLabel = vector.algorithm() == null ? "" : vector.algorithm().label();
+    if (!algorithmLabel.isBlank()) {
+      return base + " (" + vector.format().label() + " · " + algorithmLabel + ")";
+    }
+    return base + " (" + vector.format().label() + ")";
+  }
+
+  private static String encodeBase64Url(byte[] value) {
+    if (value == null || value.length == 0) {
+      return "";
+    }
+    return BASE64_URL_ENCODER.encodeToString(value);
   }
 
   @PostMapping(value = "/ocra/replay/telemetry", consumes = "application/json")

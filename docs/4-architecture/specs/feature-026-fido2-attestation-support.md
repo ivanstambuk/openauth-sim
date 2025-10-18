@@ -1,7 +1,7 @@
 # Feature 026 – FIDO2/WebAuthn Attestation Support
 
 _Status: Proposed_  
-_Last updated: 2025-10-12_
+_Last updated: 2025-10-18_
 
 ## Overview
 Extend the simulator so it can generate and verify WebAuthn authenticator attestations in addition to assertions. The feature will deliver a full-stack slice—core attestation helpers, application services, CLI flows, REST endpoints, and operator UI affordances—so operators can exercise registration-style ceremonies alongside the existing assertion evaluation tooling.
@@ -17,9 +17,24 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - 2025-10-16 – Attestation certificate chains will be supplied by fixtures or operator-provided anchors; no additional subject/issuer authoring UI is required for this feature slice.
 - 2025-10-16 – Telemetry should include attestation format, RP ID, authenticator AAGUID, certificate SHA-256 fingerprint, and outcome while redacting attestation statements, raw certificates, and private keys. (User selected Option B.)
 - 2025-10-16 – Store attestation fixtures under a dedicated `docs/webauthn_attestation/` directory with per-format JSON files (e.g., `packed.json`, `tpm.json`) to keep datasets modular. (User selected Option B.)
+- 2025-10-16 – Treat newly committed guidance in `AGENTS.md`, `docs/5-operations/runbook-session-reset.md`, and `docs/5-operations/session-quick-reference.md` as the authoritative baseline for this feature’s workflow.
+- 2025-10-17 – Curate offline metadata from the FIDO MDS v3 production release; bundle only the selected entries required for validation (no full archive).
+- 2025-10-17 – Apple does not currently publish FIDO2 authenticators in the MDS v3 production feed; curated datasets therefore omit Apple-specific entries.
+- 2025-10-17 – REST/CLI/operator Evaluate flows must generate new attestation payloads (attestationObject, clientDataJSON, challenge) instead of validating existing submissions; attestation verification is handled exclusively by the Replay flows.
+- 2025-10-17 – Attestation generation must support three modes: (a) self-signed certificates produced locally, (b) unsigned “no signature” payload emission when operators need structural fixtures, and (c) signing with operator-provided X.509 roots supplied inline or imported from disk.
+- 2025-10-17 – Resolve lingering Checkstyle/PMD violations by updating offending source/tests to satisfy the current rule sets (Option A); rule configuration changes require separate approval.
+- 2025-10-17 – Attestation Evaluate result cards should omit duplicated metadata (attestation ID / format / signing mode) and redundant status rows since the header badge already conveys success/error; payload panels should focus on generated artifacts.
+- 2025-10-17 – Attestation result cards should likewise drop the expected challenge excerpt and telemetry hint; operators can reference the input summary and CLI/REST outputs for those fields.
+- 2025-10-17 – Generated attestation payloads must omit `expectedChallenge`, raw certificate PEM chains, and `signatureIncluded` flags; expose only `clientDataJSON` and `attestationObject` within the nested response while surfacing signature/certificate statistics through telemetry metadata. (Owner selected Option B.)
+- 2025-10-17 – Hide the visible Attestation ID input; auto-populate a hidden `presetId` field from the selected preset. Provide an optional "Copy preset ID" affordance later if needed. (Approved.)
+- 2025-10-17 – Add a Manual generation mode: when no preset is selected (or when overrides are applied), build the attestationObject/clientDataJSON from supplied inputs instead of reading from fixtures. Supported formats: packed, fido-u2f, tpm, android-key. (Proposed; see Open Questions.)
+- 2025-10-17 – Preset with overrides: if the operator selects a preset but edits any of challenge, RP ID, origin, credential/attestation private key, or certificate serial, the generator must treat the request as Manual and favour the edited values. Telemetry should still record the original presetId as `seedPresetId` and list the `overrides` fields. (Approved in principle.)
 
 ## Scope
 - Implement attestation generation/verification helpers in `core` covering the targeted formats and leveraging existing COSE/JWK utilities.
+- Extend generation to support two input sources:
+  - PRESET: existing flow (uses fixture for attestationObject/clientData, validates inputs).
+  - MANUAL: new flow (constructs attestationObject/clientData from request inputs; no preset required).
 - Extend application-layer services to orchestrate attestation generation and replay, emitting sanitized telemetry while redacting key material.
 - Update CLI commands with attestation generation/verification options, including format selection and validation feedback.
 - Add REST endpoints for attestation generation (`/api/v1/webauthn/attest`) and replay (`/api/v1/webauthn/attest/replay`), plus OpenAPI documentation and tests.
@@ -27,6 +42,27 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - Provide optional trust anchor validation with CLI/REST inputs and an operator UI text area upload, defaulting to self-attested acceptance when no anchors are supplied.
 - Lay groundwork for WebAuthn Metadata Service (MDS) ingestion to hydrate trusted roots and metadata for deterministic fixtures.
 - Provide deterministic fixture data (W3C + synthetic) and update existing loader/test infrastructure to consume the new datasets.
+
+## API Adjustments (Attestation Generation)
+- Request: add `inputSource` with values `PRESET` (default) or `MANUAL`.
+- When `inputSource=PRESET`, `attestationId` is required and current validation rules apply.
+- When `inputSource=MANUAL`, `attestationId` is optional, and the service must build attestationObject/clientDataJSON from inputs. Required fields: `format`, `relyingPartyId`, `origin`, `challenge`, `credentialPrivateKey`, and either `signingMode=UNSIGNED` or both `attestationPrivateKey` and `attestationCertificateSerial` (plus optional `customRootCertificates`).
+- Response: continue to return `generatedAttestation` and `metadata`, but trim the nested `response` payload to only `clientDataJSON` and `attestationObject`. Surface signature inclusion and certificate chain counts exclusively via telemetry metadata. Telemetry adds `inputSource`, optional `seedPresetId`, and `overrides` (set of changed fields) when applicable.
+
+## UI Adjustments
+- Hide the visible Attestation ID field. Keep a hidden `presetId` input that JS fills from the preset dropdown.
+- Add implicit auto-switch to Manual mode when edited fields diverge from the selected preset; visually indicate the mode near the Generate button.
+
+## Success Criteria (additions)
+- Manual mode produces valid attestation payloads across the four formats without relying on fixtures.
+- Preset with overrides switches to Manual automatically and honours edited inputs; telemetry records `seedPresetId` and `overrides`.
+
+## Open Questions
+1. Manual inputs: Do we require an explicit AAGUID input for Manual mode, or may we default to a deterministic synthetic value per format? (Recommend: default synthetic with optional override.)
+2. Packed/TPM attestation certs: For Manual + CUSTOM_ROOT signing, is a chain of length ≥1 sufficient, or should we enforce root + leaf? (Recommend: length ≥1.)
+3. UI affordance: Would you like a visible “Copy preset ID” link next to the preset selector, or keep it hidden? (Recommend: add link.)
+4. CLI parity: Should CLI accept `--input-source=manual` with the same fields as REST? (Recommend: yes.)
+5. Default algorithm: When Manual mode is selected, should `algorithm` be inferred from the provided credential private key (preferred), or supplied explicitly as a separate field?
 
 ## Out of Scope
 - Persistent storage of attestation payloads via MapDB (deferred until broader credential import/export support exists for non-assertion authenticators).
@@ -50,3 +86,15 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - Builds on `WebAuthnAssertionGenerationApplicationService` infrastructure; cross-verify COSE/JWK utilities support the new attestation encodings.
 - Ensure TPM and Android Key attestation verification handles certificate chains appropriately (likely synthetic chain fixtures).
 - Reuse existing `.gitleaks.toml` allowances or extend them if new fixture files introduce additional high-entropy payloads.
+
+## Clarifications – Manual Mode Decisions (2025-10-17)
+The following decisions were confirmed by the owner and apply to Manual generation and preset-with-overrides behavior:
+
+1. Manual AAGUID: Default a deterministic synthetic AAGUID per selected format, with optional override (Option B).
+2. Manual + CUSTOM_ROOT: Require certificate chain length ≥1 (at least one PEM certificate) (Option B).
+3. UI affordance: Initial decision (Option A) added a “Copy preset ID” link; owner rescinded on 2025-10-17, so the button is removed and presets remain implicit.
+4. Attestation response payloads must mirror WebAuthn assertions: the API returns `type`, `id`, and `rawId` alongside a nested `response` object containing only `clientDataJSON` and `attestationObject`. Remove `expectedChallenge`, certificate PEM payloads, and `signatureIncluded`; rely on telemetry metadata for signature and certificate counts. Update REST, CLI, and UI formatting plus OpenAPI/docs accordingly.
+4. CLI parity: Support `--input-source=manual` mirroring REST (Option A).
+5. Manual algorithm: Infer algorithm from the supplied credential key; error if undecidable (Option B).
+
+Capture `inputSource`, optional `seedPresetId`, and `overrides` (set of edited fields) in telemetry for preset-with-overrides. REST/CLI validation must follow these decisions.

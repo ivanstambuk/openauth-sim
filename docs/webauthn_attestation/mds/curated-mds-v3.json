@@ -1,0 +1,531 @@
+{
+  "metadata_version": "offline-mds/1.2",
+  "entries": [
+    {
+      "entry_id": "mds-google-google-titan-security-key-v2",
+      "aaguid": "42b4fb4a-2866-43b2-9bf7-6c6669c2e5d3",
+      "attestation_format": "packed",
+      "description": "Google Titan Security Key v2",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "countryName=US, organizationName=Google, organizationalUnitName=Authenticator Attestation, commonName=Titan Security Key Signing",
+          "fingerprint_sha256": "918a618c220cfdaeda51ea4eae0eb5dea106deef721882a82e5df5a9b04728e7",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIICIjCCAcigAwIBAgIBAjAKBggqhkjOPQQDAjBkMQswCQYDVQQGEwJVUzEPMA0G\nA1UECgwGR29vZ2xlMSIwIAYDVQQLDBlBdXRoZW50aWNhdG9yIEF0dGVzdGF0aW9u\nMSAwHgYDVQQDDBdUaXRhbiBTZWN1cml0eSBLZXkgUm9vdDAgFw0yMTEyMDExNTI2\nMzFaGA8yMTIxMTIwMjE1MjYzMVowZzELMAkGA1UEBhMCVVMxDzANBgNVBAoMBkdv\nb2dsZTEiMCAGA1UECwwZQXV0aGVudGljYXRvciBBdHRlc3RhdGlvbjEjMCEGA1UE\nAwwaVGl0YW4gU2VjdXJpdHkgS2V5IFNpZ25pbmcwWTATBgcqhkjOPQIBBggqhkjO\nPQMBBwNCAARGSX/0WmoStYfhmlzSPB4SARhmTBpPi0o3yYygS4smn/4OFdGNJdsP\nxkub62pOlWe0I6cJSh9W3EAHA2ZPO+S+o2YwZDAOBgNVHQ8BAf8EBAMCAQYwEgYD\nVR0TAQH/BAgwBgEB/wIBADAdBgNVHQ4EFgQURTqQYOsPJ897X40vav+XoW+S6sgw\nHwYDVR0jBBgwFoAU2d6JrFCoEZAe/LUpIMybltDsMh0wCgYIKoZIzj0EAwIDSAAw\nRQIgSr3N14HdtCfj7QZ0R7kWg6I317QENb8q+fbNko6nK4oCIQD5Jh14grDc6F7g\nHib9QTv8sUs6w8gF1JYKMK+LDOYPYg==\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "countryName=US, organizationName=Google, organizationalUnitName=Authenticator Attestation, commonName=Titan Security Key Root",
+          "fingerprint_sha256": "198493807e92540a44a9e1cc9cb0634e27ac68eb37a442da8af9cf60f99e70a6",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIICMjCCAdmgAwIBAgIBATAKBggqhkjOPQQDAjBkMQswCQYDVQQGEwJVUzEPMA0G\nA1UECgwGR29vZ2xlMSIwIAYDVQQLDBlBdXRoZW50aWNhdG9yIEF0dGVzdGF0aW9u\nMSAwHgYDVQQDDBdUaXRhbiBTZWN1cml0eSBLZXkgUm9vdDAgFw0yMTEyMDExNTIz\nNTFaGA8yMTIxMTIwMjE1MjM1MVowZDELMAkGA1UEBhMCVVMxDzANBgNVBAoMBkdv\nb2dsZTEiMCAGA1UECwwZQXV0aGVudGljYXRvciBBdHRlc3RhdGlvbjEgMB4GA1UE\nAwwXVGl0YW4gU2VjdXJpdHkgS2V5IFJvb3QwWTATBgcqhkjOPQIBBggqhkjOPQMB\nBwNCAARqmNWzcDNH63o8TzodB2jk9b49VPsfIvXpdhaWxfLayo4LBbDrXyxF3JR1\nP6W6ZsqWCEYrX0oYIxAog3hCE4ydo3oweDAOBgNVHQ8BAf8EBAMCAQYwDwYDVR0T\nAQH/BAUwAwEB/zAdBgNVHQ4EFgQU2d6JrFCoEZAe/LUpIMybltDsMh0wHwYDVR0j\nBBgwFoAU2d6JrFCoEZAe/LUpIMybltDsMh0wFQYLKwYBBAGC5RwCAQEEBgQEAwIA\nADAKBggqhkjOPQQDAgNHADBEAiANIQ48/nMp2KfYNiovcyxWXJLiul4Sv+zcRJez\nrd/WWAIgVucQ531fqzY7ODoK+dIDykRudvlW/yBqza/AdS0Sq6Q=\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-idmelon-android-key",
+      "aaguid": "39a5647e-1853-446c-a1f6-a79bae9f5bc7",
+      "attestation_format": "android-key",
+      "description": "IDmelon Android Authenticator",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "organizationName=Vancosys Data Security Inc., commonName=Vancosys Root CA",
+          "fingerprint_sha256": "a5c6dad67cb3d89c6e6abef362c527b0ffe66fe3b873e17f04e412b987a5c7ec",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIByzCCAXGgAwIBAgIJANmMNK6jVpuuMAoGCCqGSM49BAMCMEExJDAiBgNVBAoM\nG1ZhbmNvc3lzIERhdGEgU2VjdXJpdHkgSW5jLjEZMBcGA1UEAwwQVmFuY29zeXMg\nUm9vdCBDQTAgFw0yMjEyMTQxODQxMDlaGA8yMDcyMTIwMTE4NDEwOVowQTEkMCIG\nA1UECgwbVmFuY29zeXMgRGF0YSBTZWN1cml0eSBJbmMuMRkwFwYDVQQDDBBWYW5j\nb3N5cyBSb290IENBMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEalYgEopnKScA\nm+d9f1XpGB3zbkZCD3hZEKuxTclpBYlj4ypNRg0gMSa7geBgd6nck50YaVhdy75u\nIc2wbWX8t6NQME4wHQYDVR0OBBYEFOxyf0cDs8Yl+VnWSZ1uYJAKkFeVMB8GA1Ud\nIwQYMBaAFOxyf0cDs8Yl+VnWSZ1uYJAKkFeVMAwGA1UdEwQFMAMBAf8wCgYIKoZI\nzj0EAwIDSAAwRQIhAO2XuiRDXxy/UkWhsuZQYNUXeOj08AeTWADAqXvcA30hAiBi\n2cdGd61PNwHDTYjXPenPcD8S0rFTDncNWfs3E/WDXA==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-ledger-nanox-packed",
+      "aaguid": "fcb1bcb4-f370-078c-6993-bc24d0ae3fbe",
+      "attestation_format": "packed",
+      "description": "Ledger Nano X FIDO2 Authenticator",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "countryName=FR, organizationName=Ledger, commonName=Ledger FIDO Attestation CA",
+          "fingerprint_sha256": "209c9167b1a2ba4d20fffb168d3f6906e0ba43514386ead6ee2296c65485d4b3",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIBgTCCAScCFFM1QCDXg122F9cvWFVmqeGX3tQWMAoGCCqGSM49BAMCMEMxCzAJ\nBgNVBAYTAkZSMQ8wDQYDVQQKDAZMZWRnZXIxIzAhBgNVBAMMGkxlZGdlciBGSURP\nIEF0dGVzdGF0aW9uIENBMB4XDTI0MDUzMDE0MTk0MFoXDTM0MDUyODE0MTk0MFow\nQzELMAkGA1UEBhMCRlIxDzANBgNVBAoMBkxlZGdlcjEjMCEGA1UEAwwaTGVkZ2Vy\nIEZJRE8gQXR0ZXN0YXRpb24gQ0EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATK\n7nXyH4pgN3TMwCWSoMDRe4EV8Jl3XzuhicZ/2gvh+zz3WmW0OZ/EcRYEA8F26cee\nuMcd21WQRRKWpjWD+JWiMAoGCCqGSM49BAMCA0gAMEUCIQD8J+0/b8PeYjFRQYkU\nRcqhax27olw1jY/pbskhBuRp4AIgOAHb6n+7fNffyoxpeCq3VZ7B1jN3wqmPNfna\neAjdoXs=\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "countryName=FR, organizationName=Ledger, commonName=Ledger FIDO Attestation CA",
+          "fingerprint_sha256": "da82cd09da32cf2131d2a7c9c0c25967eb8204b8dc7de049d2b4781ff2d73200",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIBgTCCAScCFBlo0s5QYFdXbfusRdQeoLX6QenlMAoGCCqGSM49BAMCMEMxCzAJ\nBgNVBAYTAkZSMQ8wDQYDVQQKDAZMZWRnZXIxIzAhBgNVBAMMGkxlZGdlciBGSURP\nIEF0dGVzdGF0aW9uIENBMB4XDTIzMDIyMzEwMzMwOFoXDTMzMDIyMDEwMzMwOFow\nQzELMAkGA1UEBhMCRlIxDzANBgNVBAoMBkxlZGdlcjEjMCEGA1UEAwwaTGVkZ2Vy\nIEZJRE8gQXR0ZXN0YXRpb24gQ0EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATK\n7nXyH4pgN3TMwCWSoMDRe4EV8Jl3XzuhicZ/2gvh+zz3WmW0OZ/EcRYEA8F26cee\nuMcd21WQRRKWpjWD+JWiMAoGCCqGSM49BAMCA0gAMEUCIQCwcsHuL8ZFL3FNyU/D\nOQn3bmx08lnn0O5RktLbOnoPHQIgOEi6ImAZ181q8RJiL0hbw7ZquuniRq6fjWjG\noBu1Moo=\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-microsoft-windows-hello-hardware-authenticator",
+      "aaguid": "08987058-cadc-4b81-b6e1-30de50dcbe96",
+      "attestation_format": "tpm",
+      "description": "Windows Hello Hardware Authenticator",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "countryName=US, stateOrProvinceName=Washington, localityName=Redmond, organizationName=Microsoft Corporation, commonName=Microsoft TPM Root Certificate Authority 2014",
+          "fingerprint_sha256": "870c7a35ceab3d59979f2c6a524042d404cb71518004350925fb2ced79a999da",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIF9TCCA92gAwIBAgIQXbYwTgy/J79JuMhpUB5dyzANBgkqhkiG9w0BAQsFADCB\njDELMAkGA1UEBhMCVVMxEzARBgNVBAgTCldhc2hpbmd0b24xEDAOBgNVBAcTB1Jl\nZG1vbmQxHjAcBgNVBAoTFU1pY3Jvc29mdCBDb3Jwb3JhdGlvbjE2MDQGA1UEAxMt\nTWljcm9zb2Z0IFRQTSBSb290IENlcnRpZmljYXRlIEF1dGhvcml0eSAyMDE0MB4X\nDTE0MTIxMDIxMzExOVoXDTM5MTIxMDIxMzkyOFowgYwxCzAJBgNVBAYTAlVTMRMw\nEQYDVQQIEwpXYXNoaW5ndG9uMRAwDgYDVQQHEwdSZWRtb25kMR4wHAYDVQQKExVN\naWNyb3NvZnQgQ29ycG9yYXRpb24xNjA0BgNVBAMTLU1pY3Jvc29mdCBUUE0gUm9v\ndCBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkgMjAxNDCCAiIwDQYJKoZIhvcNAQEBBQAD\nggIPADCCAgoCggIBAJ+n+bnKt/JHIRC/oI/xgkgsYdPzP0gpvduDA2GbRtth+L4W\nUyoZKGBw7uz5bjjP8Aql4YExyjR3EZQ4LqnZChMpoCofbeDR4MjCE1TGwWghGpS0\nmM3GtWD9XiME4rE2K0VW3pdN0CLzkYbvZbs2wQTFfE62yNQiDjyHFWAZ4BQH4eWa\n8wrDMUxIAneUCpU6zCwM+l6Qh4ohX063BHzXlTSTc1fDsiPaKuMMjWjK9vp5UHFP\na+dMAWr6OljQZPFIg3aZ4cUfzS9y+n77Hs1NXPBn6E4Db679z4DThIXyoKeZTv1a\naWOWl/exsDLGt2mTMTyykVV8uD1eRjYriFpmoRDwJKAEMOfaURarzp7hka9TOElG\nyD2gOV4Fscr2MxAYCywLmOLzA4VDSYLuKAhPSp7yawET30AvY1HRfMwBxetSqWP2\n+yZRNYJlHpor5QTuRDgzR+Zej+aWx6rWNYx43kLthozeVJ3QCsD5iEI/OZlmWn5W\nYf7O8LB/1A7scrYv44FD8ck3Z+hxXpkklAsjJMsHZa9mBqh+VR1AicX4uZG8m16x\n65ZU2uUpBa3rn8CTNmw17ZHOiuSWJtS9+PrZVA8ljgf4QgA1g6NPOEiLG2fn8Gm+\nr5Ak+9tqv72KDd2FPBJ7Xx4stYj/WjNPtEUhW4rcLK3ktLfcy6ea7Rocw5y5AgMB\nAAGjUTBPMAsGA1UdDwQEAwIBhjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBR6\njArOL0hiF+KU0a5VwVLscXSkVjAQBgkrBgEEAYI3FQEEAwIBADANBgkqhkiG9w0B\nAQsFAAOCAgEAW4ioo1+J9VWC0UntSBXcXRm1ePTVamtsxVy/GpP4EmJd3Ub53JzN\nBfYdgfUL51CppS3ZY6BoagB+DqoA2GbSL+7sFGHBl5ka6FNelrwsH6VVw4xV/8kl\nIjmqOyfatPYsz0sUdZev+reeiGpKVoXrK6BDnUU27/mgPtem5YKWvHB/soofUrLK\nzZV3WfGdx9zBr8V0xW6vO3CKaqkqU9y6EsQw34n7eJCbEVVQ8VdFd9iV1pmXwaBA\nfBwkviPTKEP9Cm+zbFIOLr3V3CL9hJj+gkTUuXWlJJ6wVXEG5i4rIbLAV59UrW4L\nonP+seqvWMJYUFxu/niF0R3fSGM+NU11DtBVkhRZt1u0kFhZqjDz1dWyfT/N7Hke\n3WsDqUFsBi+8SEw90rWx2aUkLvKo83oU4Mx4na+2I3l9F2a2VNGk4K7l3a00g51m\niPiq0Da0jqw30PaLluTMTGY5+RnZVh50JD6nk+Ea3wRkU8aiYFnpIxfKBZ72whmY\nYa/egj9IKeqpR0vuLebbU0fJBf880K1jWD3Z5SFyJXo057Mv0OPw5mttytE585ZI\ny5JsaRXlsOoWGRXE3kUT/MKR1UoAgR54c8Bsh+9Dq2wqIK9mRn15zvBDeyHG6+cz\nurLopziOUeWokxZN1syrEdKlhFoPYavm6t+PzIcpdxZwHA+V3jLJPfI=\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-microsoft-windows-hello-software-authenticator",
+      "aaguid": "6028b017-b1d4-4c02-b4b3-afcdafc96bb2",
+      "attestation_format": "packed",
+      "description": "Windows Hello Software Authenticator",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": []
+    },
+    {
+      "entry_id": "mds-microsoft-windows-hello-vbs-hardware-authenticator",
+      "aaguid": "9ddd1817-af5a-4672-a2b9-3e3dd95000a9",
+      "attestation_format": "tpm",
+      "description": "Windows Hello VBS Hardware Authenticator",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "countryName=US, stateOrProvinceName=Washington, localityName=Redmond, organizationName=Microsoft Corporation, commonName=Microsoft TPM Root Certificate Authority 2014",
+          "fingerprint_sha256": "870c7a35ceab3d59979f2c6a524042d404cb71518004350925fb2ced79a999da",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIF9TCCA92gAwIBAgIQXbYwTgy/J79JuMhpUB5dyzANBgkqhkiG9w0BAQsFADCB\njDELMAkGA1UEBhMCVVMxEzARBgNVBAgTCldhc2hpbmd0b24xEDAOBgNVBAcTB1Jl\nZG1vbmQxHjAcBgNVBAoTFU1pY3Jvc29mdCBDb3Jwb3JhdGlvbjE2MDQGA1UEAxMt\nTWljcm9zb2Z0IFRQTSBSb290IENlcnRpZmljYXRlIEF1dGhvcml0eSAyMDE0MB4X\nDTE0MTIxMDIxMzExOVoXDTM5MTIxMDIxMzkyOFowgYwxCzAJBgNVBAYTAlVTMRMw\nEQYDVQQIEwpXYXNoaW5ndG9uMRAwDgYDVQQHEwdSZWRtb25kMR4wHAYDVQQKExVN\naWNyb3NvZnQgQ29ycG9yYXRpb24xNjA0BgNVBAMTLU1pY3Jvc29mdCBUUE0gUm9v\ndCBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkgMjAxNDCCAiIwDQYJKoZIhvcNAQEBBQAD\nggIPADCCAgoCggIBAJ+n+bnKt/JHIRC/oI/xgkgsYdPzP0gpvduDA2GbRtth+L4W\nUyoZKGBw7uz5bjjP8Aql4YExyjR3EZQ4LqnZChMpoCofbeDR4MjCE1TGwWghGpS0\nmM3GtWD9XiME4rE2K0VW3pdN0CLzkYbvZbs2wQTFfE62yNQiDjyHFWAZ4BQH4eWa\n8wrDMUxIAneUCpU6zCwM+l6Qh4ohX063BHzXlTSTc1fDsiPaKuMMjWjK9vp5UHFP\na+dMAWr6OljQZPFIg3aZ4cUfzS9y+n77Hs1NXPBn6E4Db679z4DThIXyoKeZTv1a\naWOWl/exsDLGt2mTMTyykVV8uD1eRjYriFpmoRDwJKAEMOfaURarzp7hka9TOElG\nyD2gOV4Fscr2MxAYCywLmOLzA4VDSYLuKAhPSp7yawET30AvY1HRfMwBxetSqWP2\n+yZRNYJlHpor5QTuRDgzR+Zej+aWx6rWNYx43kLthozeVJ3QCsD5iEI/OZlmWn5W\nYf7O8LB/1A7scrYv44FD8ck3Z+hxXpkklAsjJMsHZa9mBqh+VR1AicX4uZG8m16x\n65ZU2uUpBa3rn8CTNmw17ZHOiuSWJtS9+PrZVA8ljgf4QgA1g6NPOEiLG2fn8Gm+\nr5Ak+9tqv72KDd2FPBJ7Xx4stYj/WjNPtEUhW4rcLK3ktLfcy6ea7Rocw5y5AgMB\nAAGjUTBPMAsGA1UdDwQEAwIBhjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBR6\njArOL0hiF+KU0a5VwVLscXSkVjAQBgkrBgEEAYI3FQEEAwIBADANBgkqhkiG9w0B\nAQsFAAOCAgEAW4ioo1+J9VWC0UntSBXcXRm1ePTVamtsxVy/GpP4EmJd3Ub53JzN\nBfYdgfUL51CppS3ZY6BoagB+DqoA2GbSL+7sFGHBl5ka6FNelrwsH6VVw4xV/8kl\nIjmqOyfatPYsz0sUdZev+reeiGpKVoXrK6BDnUU27/mgPtem5YKWvHB/soofUrLK\nzZV3WfGdx9zBr8V0xW6vO3CKaqkqU9y6EsQw34n7eJCbEVVQ8VdFd9iV1pmXwaBA\nfBwkviPTKEP9Cm+zbFIOLr3V3CL9hJj+gkTUuXWlJJ6wVXEG5i4rIbLAV59UrW4L\nonP+seqvWMJYUFxu/niF0R3fSGM+NU11DtBVkhRZt1u0kFhZqjDz1dWyfT/N7Hke\n3WsDqUFsBi+8SEw90rWx2aUkLvKo83oU4Mx4na+2I3l9F2a2VNGk4K7l3a00g51m\niPiq0Da0jqw30PaLluTMTGY5+RnZVh50JD6nk+Ea3wRkU8aiYFnpIxfKBZ72whmY\nYa/egj9IKeqpR0vuLebbU0fJBf880K1jWD3Z5SFyJXo057Mv0OPw5mttytE585ZI\ny5JsaRXlsOoWGRXE3kUT/MKR1UoAgR54c8Bsh+9Dq2wqIK9mRn15zvBDeyHG6+cz\nurLopziOUeWokxZN1syrEdKlhFoPYavm6t+PzIcpdxZwHA+V3jLJPfI=\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-thales-thales-idprime-fido-bio",
+      "aaguid": "4d41190c-7beb-4a84-8018-adf265a6352d",
+      "attestation_format": "packed",
+      "description": "Thales IDPrime FIDO Bio",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Gemalto MultiApp FIDO CA",
+          "fingerprint_sha256": "0c247f03fd5237a2df6661bf878faa09b38f2cfdcb89a2f24c61d48ca13b91da",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIC6TCCAdGgAwIBAgIJAJbTyru1X/IPMA0GCSqGSIb3DQEBCwUAMCMxITAfBgNV\nBAMMGEdlbWFsdG8gTXVsdGlBcHAgRklETyBDQTAeFw0xODA2MTIxNDQ1NTBaFw0y\nODA2MDkxNDQ1NTBaMCMxITAfBgNVBAMMGEdlbWFsdG8gTXVsdGlBcHAgRklETyBD\nQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMVjKHWpbD7TSlMxocjT\nl6nIf7x32PmsQ9zGuLGGqA0UQZoIq3XLzL6LYUvJ5A5g0uyFGllHEfGAKrEaCQ8F\nVvPS/Uh0FyfzWhRAziTSijjMIIVjjjUv9m9vFmcXScgHig7Odz8858V0krNH99qG\nm3wjgaOerTWmt+jXCUfn01IkTPwxG2HlgEd45jNLSV7Vool+Ke8E2ki4lEkTeHzb\noulR5GUbp3nMi7E47VMQa3bNwnzWBbsaBSSQhLk3m5HaKhhxa6wJDK47NiMCkCkd\nIHuWSQLVAfm85UAONtEOPwi0OuK3qbe8yKOFGf0KhB5MMeAym7MV/M4W0a49ogPD\n9pMCAwEAAaMgMB4wDAYDVR0TBAUwAwEB/zAOBgNVHQ8BAf8EBAMCAoQwDQYJKoZI\nhvcNAQELBQADggEBAJWz5xLMk5WNYbAb6yOxECBoZ2WeB/ql4VJ3O/3/tNsxOYnz\nLeWo540zQh9rAmaxz7eumBlskMq4yGPSNXB9ycWGHgkcCeSzN2wv8CIzDBs2oBZj\nTNk65LBZDssTOBtMW/+uTFHQfbuO3ISLhI0DXfREi9NDM3jfk11xHcsfh2RMV+Qd\nNfwVaZZrCq+ouG+Evkv7Kqq+oyu0VFM/tz68TGl6ylhPFR1qh9wttpVjAOOCEQCL\nqP2dP28lwYByCqHQqVHwbujv/LZjZnKW3LYndZixPPSRCJssDDwJvh/f6nTxg9ZE\n+/JcYre5CaI8nzVHaSOCjNJ7FzULG64JiWOvQ50=\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "countryName=FR, organizationName=DIS, organizationalUnitName=CS, commonName=Gemalto MultiApp FIDO Subca CA",
+          "fingerprint_sha256": "050d4ebb551eac10382d05c147124f1c6347af433802dc51702c0cbf1153de1a",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDdTCCAl2gAwIBAgIJAICUTvkgtj5CMA0GCSqGSIb3DQEBCwUAMFExCzAJBgNV\nBAYTAkZSMQwwCgYDVQQKDANESVMxCzAJBgNVBAsMAkNTMScwJQYDVQQDDB5HZW1h\nbHRvIE11bHRpQXBwIEZJRE8gU3ViY2EgQ0EwHhcNMjAwNzA3MTQzNzE4WhcNMzAw\nNzA1MTQzNzE4WjBRMQswCQYDVQQGEwJGUjEMMAoGA1UECgwDRElTMQswCQYDVQQL\nDAJDUzEnMCUGA1UEAwweR2VtYWx0byBNdWx0aUFwcCBGSURPIFN1YmNhIENBMIIB\nIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvAKOeqC5/p0D1isCYKQJlVUO\nrB6I7DLocunE/Rm8duGTbyxQht3CbFVTv3N2Lp2fbjxlI+3sOSGk33FTYkTqxcdJ\nIrJ7SskBcUSNrfKOaQT/6KQcP4Cm7V+655Tq+TWxyxWQhDygt15qoP7MuK6bT9Sw\npCjpfKhaMSmyQaMoUcRAbLqdzBCac0hzB+Ze+gqJlnWV9UaSI2rFsVuH4ZE0cRO+\nMOpaLgM/s248nGGHp22ewSQfbnPaBbb8iqyAP+cu52GLsUpKRJebE+R6+PMQ9JCd\nWeQZR3DkfSidkv3mcb4jq1iIta+MqKhRnwrfXh911KWLnYAl9ENChLX0c6Sj1QID\nAQABo1AwTjAdBgNVHQ4EFgQUWLvhRBUPn8uLIf68+gv/NZIwGSIwHwYDVR0jBBgw\nFoAUWLvhRBUPn8uLIf68+gv/NZIwGSIwDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0B\nAQsFAAOCAQEAFLrDhaegeKHxYjH3EP3vUBKhnzM206ASxgeYCO2Ec9pOlYJaeqFE\n+sUamUV/pwjDlqNaSgFgy7TweYkvOmMn4qScsHqvJ3zGOAiafwah1vUHfClXR8+a\nxO2iGOUF0JKrZ9YYjbAa5/4HClv7jFPOdMWTOQyngoiHAs3jkuYjpCLFlB4VOi3d\n1wjA1pnTdBKkAb7t8nTvw+/XbFvcQa73VH7sjvoBqD3fdMfRcuVq4qUZtZT6cGag\nTHD61Ttqh9oMCZXcDbR1PGZnNbqycsWPDIK0npmK3/3lfV8c+Zsry6e170mfJMZp\n7O8m6CSz6/VLK+yDJd7841wpmeKTf6InZA==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-winmagic-fidoeazy-tpm",
+      "aaguid": "970c8d9c-19d2-46af-aa32-3f448db49e35",
+      "attestation_format": "tpm",
+      "description": "WinMagic FIDO Eazy - TPM",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "domainComponent=local, domainComponent=winmagic, commonName=Winmagic",
+          "fingerprint_sha256": "df48b8132abf8d3b2263d41f77101bb3ba5cb4c85c4a38e954926ac881c8097a",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIErTCCA5WgAwIBAgIQRTfcgo6xwIFGfmtzk1BSnTANBgkqhkiG9w0BAQsFADBE\nMRUwEwYKCZImiZPyLGQBGRYFbG9jYWwxGDAWBgoJkiaJk/IsZAEZFgh3aW5tYWdp\nYzERMA8GA1UEAxMIV2lubWFnaWMwHhcNMDgxMTI0MTgzNDQ5WhcNMjgwNzEzMTcz\nMjM3WjBEMRUwEwYKCZImiZPyLGQBGRYFbG9jYWwxGDAWBgoJkiaJk/IsZAEZFgh3\naW5tYWdpYzERMA8GA1UEAxMIV2lubWFnaWMwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQDQCkmQ/K8Dn39qSCW5tKLvvDLH3ClScgQrDg7+uY44jHlIY1/L\nl6v2rpj7nlmVMlIzogd3yXjCFBvGr4ziGQ2Qc8UpkaU96EZxEtHwZStw6YQ0jdng\nkSLPvOp8T8YiJpcvsVtQtiQ0OsTTuiO2Ei4LuLh7KR+8x4bARvzkBWstNBTqVSAZ\nQYesqnl8H5Sfwb3Iou8LSiAsuOXyxt2ms911YrxWvh/KnOel3Od3h+K5dQYP53+f\nPUzgz56TTj8R4Y6zRuzdkbnR6xWXdrK414iX9D6x5q8W2XJJpTMK7EnSXG0q7XF7\np68jDKAnxAF8kfh3uinc2ulmVOZbTRzxF8B3AgMBAAGjggGZMIIBlTATBgkrBgEE\nAYI3FAIEBh4EAEMAQTALBgNVHQ8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zAdBgNV\nHQ4EFgQUjMsTbY0wXQBR29bWHIvbFfUAFfUwggEGBgNVHR8Egf4wgfswgfiggfWg\ngfKGgbVsZGFwOi8vL0NOPVdpbm1hZ2ljKDIpLENOPXBob2VuaXgsQ049Q0RQLENO\nPVB1YmxpYyUyMEtleSUyMFNlcnZpY2VzLENOPVNlcnZpY2VzLENOPUNvbmZpZ3Vy\nYXRpb24sREM9d2lubWFnaWMsREM9bG9jYWw/Y2VydGlmaWNhdGVSZXZvY2F0aW9u\nTGlzdD9iYXNlP29iamVjdENsYXNzPWNSTERpc3RyaWJ1dGlvblBvaW50hjhodHRw\nOi8vcGhvZW5peC53aW5tYWdpYy5sb2NhbC9DZXJ0RW5yb2xsL1dpbm1hZ2ljKDIp\nLmNybDASBgkrBgEEAYI3FQEEBQIDAgADMCMGCSsGAQQBgjcVAgQWBBTfQQ5WrWMR\nW78vkWh2niDT3V97rDANBgkqhkiG9w0BAQsFAAOCAQEAiLpLtnaE0AbIiSmmj4EL\nRTRMGuedxd6ZTY2yUi1QNswaI2OFnh/NDWLWOgF36HOvDELXBYZM6+AsPiVHU72s\nvlYj7Y5HzZvoUkM3dvbxr6U2BJ89JEETRIWqUlYOq47Be84OR2XvmniUuJrFOzsA\nYctrZX2TFX3AbVPs4LSTNc0da0uq0CqoOSOICfzz1X7uf7Tw9O0KcKerFgzeUcmG\ntKv5oK7RY9WkDxdi22Ry0GEb60tnav7qk9ja45WBjN10xuNpNslCalRnNYOGVtY1\nm4oy2g+1xd1b0vxg0xJsW4k2ovTdZQS5HCkme05M5Ly0SFSVG/RHxMs6Ix43CctC\nIQ==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-by-yubico",
+      "aaguid": "f8a011f3-8c0a-4d15-8006-17111f9edc7d",
+      "attestation_format": "packed",
+      "description": "Security Key by Yubico",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico U2F Root CA Serial 457200631",
+          "fingerprint_sha256": "0fa1386f80eb8713263ae5c1d84deb455bdf08aea50ab05503cefee82b092d42",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDHjCCAgagAwIBAgIEG0BT9zANBgkqhkiG9w0BAQsFADAuMSwwKgYDVQQDEyNZ\ndWJpY28gVTJGIFJvb3QgQ0EgU2VyaWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAw\nMDBaGA8yMDUwMDkwNDAwMDAwMFowLjEsMCoGA1UEAxMjWXViaWNvIFUyRiBSb290\nIENBIFNlcmlhbCA0NTcyMDA2MzEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\nAoIBAQC/jwYuhBVlqaiYWEMsrWFisgJ+PtM91eSrpI4TK7U53mwCIawSDHy8vUmk\n5N2KAj9abvT9NP5SMS1hQi3usxoYGonXQgfO6ZXyUA9a+KAkqdFnBnlyugSeCOep\n8EdZFfsaRFtMjkwz5Gcz2Py4vIYvCdMHPtwaz0bVuzneueIEz6TnQjE63Rdt2zbw\nnebwTG5ZybeWSwbzy+BJ34ZHcUhPAY89yJQXuE0IzMZFcEBbPNRbWECRKgjq//qT\n9nmDOFVlSRCt2wiqPSzluwn+v+suQEBsUjTGMEd25tKXXTkNW21wIWbxeSyUoTXw\nLvGS6xlwQSgNpk2qXYwf8iXg7VWZAgMBAAGjQjBAMB0GA1UdDgQWBBQgIvz0bNGJ\nhjgpToksyKpP9xv9oDAPBgNVHRMECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIBBjAN\nBgkqhkiG9w0BAQsFAAOCAQEAjvjuOMDSa+JXFCLyBKsycXtBVZsJ4Ue3LbaEsPY4\nMYN/hIQ5ZM5p7EjfcnMG4CtYkNsfNHc0AhBLdq45rnT87q/6O3vUEtNMafbhU6kt\nhX7Y+9XFN9NpmYxr+ekVY5xOxi8h9JDIgoMP4VB1uS0aunL1IGqrNooL9mmFnL2k\nLVVee6/VR6C5+KSTCMCWppMuJIZII2v9o4dkoZ8Y7QRjQlLfYzd3qGtKbw7xaF1U\nsG/5xUb/Btwb2X2g4InpiB/yt/3CpQXpiWX/K4mBvUKiGn05ZsqeY1gx4g0xLBqc\nU9psmyPzK+Vsgw2jeRQ5JlKDyqE0hebfC1tvFu0CCrJFcw==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-by-yubico-2",
+      "aaguid": "b92c3f9a-c014-4056-887f-140a2501163b",
+      "attestation_format": "packed",
+      "description": "Security Key by Yubico",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico U2F Root CA Serial 457200631",
+          "fingerprint_sha256": "0fa1386f80eb8713263ae5c1d84deb455bdf08aea50ab05503cefee82b092d42",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDHjCCAgagAwIBAgIEG0BT9zANBgkqhkiG9w0BAQsFADAuMSwwKgYDVQQDEyNZ\ndWJpY28gVTJGIFJvb3QgQ0EgU2VyaWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAw\nMDBaGA8yMDUwMDkwNDAwMDAwMFowLjEsMCoGA1UEAxMjWXViaWNvIFUyRiBSb290\nIENBIFNlcmlhbCA0NTcyMDA2MzEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\nAoIBAQC/jwYuhBVlqaiYWEMsrWFisgJ+PtM91eSrpI4TK7U53mwCIawSDHy8vUmk\n5N2KAj9abvT9NP5SMS1hQi3usxoYGonXQgfO6ZXyUA9a+KAkqdFnBnlyugSeCOep\n8EdZFfsaRFtMjkwz5Gcz2Py4vIYvCdMHPtwaz0bVuzneueIEz6TnQjE63Rdt2zbw\nnebwTG5ZybeWSwbzy+BJ34ZHcUhPAY89yJQXuE0IzMZFcEBbPNRbWECRKgjq//qT\n9nmDOFVlSRCt2wiqPSzluwn+v+suQEBsUjTGMEd25tKXXTkNW21wIWbxeSyUoTXw\nLvGS6xlwQSgNpk2qXYwf8iXg7VWZAgMBAAGjQjBAMB0GA1UdDgQWBBQgIvz0bNGJ\nhjgpToksyKpP9xv9oDAPBgNVHRMECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIBBjAN\nBgkqhkiG9w0BAQsFAAOCAQEAjvjuOMDSa+JXFCLyBKsycXtBVZsJ4Ue3LbaEsPY4\nMYN/hIQ5ZM5p7EjfcnMG4CtYkNsfNHc0AhBLdq45rnT87q/6O3vUEtNMafbhU6kt\nhX7Y+9XFN9NpmYxr+ekVY5xOxi8h9JDIgoMP4VB1uS0aunL1IGqrNooL9mmFnL2k\nLVVee6/VR6C5+KSTCMCWppMuJIZII2v9o4dkoZ8Y7QRjQlLfYzd3qGtKbw7xaF1U\nsG/5xUb/Btwb2X2g4InpiB/yt/3CpQXpiWX/K4mBvUKiGn05ZsqeY1gx4g0xLBqc\nU9psmyPzK+Vsgw2jeRQ5JlKDyqE0hebfC1tvFu0CCrJFcw==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-by-yubico-with-nfc",
+      "aaguid": "149a2021-8ef6-4133-96b8-81f8d5b7f1f5",
+      "attestation_format": "packed",
+      "description": "Security Key by Yubico with NFC",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico U2F Root CA Serial 457200631",
+          "fingerprint_sha256": "0fa1386f80eb8713263ae5c1d84deb455bdf08aea50ab05503cefee82b092d42",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDHjCCAgagAwIBAgIEG0BT9zANBgkqhkiG9w0BAQsFADAuMSwwKgYDVQQDEyNZ\ndWJpY28gVTJGIFJvb3QgQ0EgU2VyaWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAw\nMDBaGA8yMDUwMDkwNDAwMDAwMFowLjEsMCoGA1UEAxMjWXViaWNvIFUyRiBSb290\nIENBIFNlcmlhbCA0NTcyMDA2MzEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\nAoIBAQC/jwYuhBVlqaiYWEMsrWFisgJ+PtM91eSrpI4TK7U53mwCIawSDHy8vUmk\n5N2KAj9abvT9NP5SMS1hQi3usxoYGonXQgfO6ZXyUA9a+KAkqdFnBnlyugSeCOep\n8EdZFfsaRFtMjkwz5Gcz2Py4vIYvCdMHPtwaz0bVuzneueIEz6TnQjE63Rdt2zbw\nnebwTG5ZybeWSwbzy+BJ34ZHcUhPAY89yJQXuE0IzMZFcEBbPNRbWECRKgjq//qT\n9nmDOFVlSRCt2wiqPSzluwn+v+suQEBsUjTGMEd25tKXXTkNW21wIWbxeSyUoTXw\nLvGS6xlwQSgNpk2qXYwf8iXg7VWZAgMBAAGjQjBAMB0GA1UdDgQWBBQgIvz0bNGJ\nhjgpToksyKpP9xv9oDAPBgNVHRMECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIBBjAN\nBgkqhkiG9w0BAQsFAAOCAQEAjvjuOMDSa+JXFCLyBKsycXtBVZsJ4Ue3LbaEsPY4\nMYN/hIQ5ZM5p7EjfcnMG4CtYkNsfNHc0AhBLdq45rnT87q/6O3vUEtNMafbhU6kt\nhX7Y+9XFN9NpmYxr+ekVY5xOxi8h9JDIgoMP4VB1uS0aunL1IGqrNooL9mmFnL2k\nLVVee6/VR6C5+KSTCMCWppMuJIZII2v9o4dkoZ8Y7QRjQlLfYzd3qGtKbw7xaF1U\nsG/5xUb/Btwb2X2g4InpiB/yt/3CpQXpiWX/K4mBvUKiGn05ZsqeY1gx4g0xLBqc\nU9psmyPzK+Vsgw2jeRQ5JlKDyqE0hebfC1tvFu0CCrJFcw==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-by-yubico-with-nfc-2",
+      "aaguid": "6d44ba9b-f6ec-2e49-b930-0c8fe920cb73",
+      "attestation_format": "packed",
+      "description": "Security Key by Yubico with NFC",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico U2F Root CA Serial 457200631",
+          "fingerprint_sha256": "0fa1386f80eb8713263ae5c1d84deb455bdf08aea50ab05503cefee82b092d42",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDHjCCAgagAwIBAgIEG0BT9zANBgkqhkiG9w0BAQsFADAuMSwwKgYDVQQDEyNZ\ndWJpY28gVTJGIFJvb3QgQ0EgU2VyaWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAw\nMDBaGA8yMDUwMDkwNDAwMDAwMFowLjEsMCoGA1UEAxMjWXViaWNvIFUyRiBSb290\nIENBIFNlcmlhbCA0NTcyMDA2MzEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\nAoIBAQC/jwYuhBVlqaiYWEMsrWFisgJ+PtM91eSrpI4TK7U53mwCIawSDHy8vUmk\n5N2KAj9abvT9NP5SMS1hQi3usxoYGonXQgfO6ZXyUA9a+KAkqdFnBnlyugSeCOep\n8EdZFfsaRFtMjkwz5Gcz2Py4vIYvCdMHPtwaz0bVuzneueIEz6TnQjE63Rdt2zbw\nnebwTG5ZybeWSwbzy+BJ34ZHcUhPAY89yJQXuE0IzMZFcEBbPNRbWECRKgjq//qT\n9nmDOFVlSRCt2wiqPSzluwn+v+suQEBsUjTGMEd25tKXXTkNW21wIWbxeSyUoTXw\nLvGS6xlwQSgNpk2qXYwf8iXg7VWZAgMBAAGjQjBAMB0GA1UdDgQWBBQgIvz0bNGJ\nhjgpToksyKpP9xv9oDAPBgNVHRMECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIBBjAN\nBgkqhkiG9w0BAQsFAAOCAQEAjvjuOMDSa+JXFCLyBKsycXtBVZsJ4Ue3LbaEsPY4\nMYN/hIQ5ZM5p7EjfcnMG4CtYkNsfNHc0AhBLdq45rnT87q/6O3vUEtNMafbhU6kt\nhX7Y+9XFN9NpmYxr+ekVY5xOxi8h9JDIgoMP4VB1uS0aunL1IGqrNooL9mmFnL2k\nLVVee6/VR6C5+KSTCMCWppMuJIZII2v9o4dkoZ8Y7QRjQlLfYzd3qGtKbw7xaF1U\nsG/5xUb/Btwb2X2g4InpiB/yt/3CpQXpiWX/K4mBvUKiGn05ZsqeY1gx4g0xLBqc\nU9psmyPzK+Vsgw2jeRQ5JlKDyqE0hebfC1tvFu0CCrJFcw==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-nfc-by-yubico",
+      "aaguid": "b7d3f68e-88a6-471e-9ecf-2df26d041ede",
+      "attestation_format": "packed",
+      "description": "Security Key NFC by Yubico",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico FIDO Attestation B 1",
+          "fingerprint_sha256": "4eadda86ff62cff987e111a07910d8554de42f71d5d6da7744610e09012dd319",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSjCCAjKgAwIBAgIUR38mq26Sf2szVV2BdG6WEN7kuWUwDQYJKoZIhvcNAQEL\nBQAwLjEsMCoGA1UEAwwjWXViaWNvIEF0dGVzdGF0aW9uIEludGVybWVkaWF0ZSBC\nIDEwIBcNMjQxMjAxMDAwMDAwWhgPOTk5OTEyMzEyMzU5NTlaMCYxJDAiBgNVBAMM\nG1l1YmljbyBGSURPIEF0dGVzdGF0aW9uIEIgMTCCASIwDQYJKoZIhvcNAQEBBQAD\nggEPADCCAQoCggEBANY0Wb9oPoRoKoQyWPaJpz11vrWTg6zTtmNj2VoKRnyvKGRq\npzb83w5l6YA96UYkYBDQP0ilO2DPe6wWqVR5zDfRzdcH8bh+L7dGGvae6hRTZhkF\nkCpXDs4HccknrDf8FClJ7He39Jf42/G1Qm2zz9WWmrPXtgiK/x05GjsQfGuDG1zf\n5QTUUie8lwymK3TfdOvNeeJAAPe2pn7ItfRb+rVrNWiDzlRn2vNnZ2wPo4wH/WJ6\ndhXZG+rMWT+a6Bocg1UfIw6kdunG4bTpZzsvacFYyR0mpf+DeOnpSWAmywJWHvTl\nf2YXxFyeXcTACdQlcMNGJ2VhZQ48xtP5/RBP/8kCAwEAAaNmMGQwHQYDVR0OBBYE\nFChy42okiqcTS1iqa/HRWjkBn4H/MB8GA1UdIwQYMBaAFOq3QpCeDHtkettUfAO6\nfE6f2KFhMBIGA1UdEwEB/wQIMAYBAf8CAQAwDgYDVR0PAQH/BAQDAgGGMA0GCSqG\nSIb3DQEBCwUAA4IBAQAn+RHIPbtMEDNdT1g8H/RitAkUdLgAt1tWGWnlj9knbv4/\n4GlX7C9p45efPO9/aZL6OV1XRKBi6KmtBW5K7nuYEnMx/5BqBSbLT7rhduC49TBe\nMb9PHdXsTlSVNYefr1dGidr4j0xVBQLb1rknDAbdWDzKfvnayKO8Frwe7Hx843MG\n/rJ+c0XruUvbfVTCHLiIWhM7oNDhL8xob6xUo9KLKcSL+ItYsO3/9Wb8Q9GjsqL4\nFXsDcG1SaYh7KpfuMmOixqzJZO2nIicPYRg1I2SuiUfYO70tmdHcbl+kSQmSYt7r\nq4viILg2Gx3j9rITuWTjbaUaSSQxgOmMSHuyzMAC\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico Attestation Root 1",
+          "fingerprint_sha256": "62760c6a6ef91679f454c8902b80fd009825b3f25da90f1fbace2ec6586cd5a8",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDPjCCAiagAwIBAgIUXzeiEDJEOTt14F5n0o6Zf/bBwiUwDQYJKoZIhvcNAQEN\nBQAwJDEiMCAGA1UEAwwZWXViaWNvIEF0dGVzdGF0aW9uIFJvb3QgMTAgFw0yNDEy\nMDEwMDAwMDBaGA85OTk5MTIzMTIzNTk1OVowJDEiMCAGA1UEAwwZWXViaWNvIEF0\ndGVzdGF0aW9uIFJvb3QgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB\nAMZ6/TxM8rIT+EaoPvG81ontMOo/2mQ2RBwJHS0QZcxVaNXvl12LUhBZ5LmiBScI\nZd1Rnx1od585h+/dhK7hEm7JAALkKKts1fO53KGNLZujz5h3wGncr4hyKF0G74b/\nU3K9hE5mGND6zqYchCRAHfrYMYRDF4YL0X4D5nGdxvppAy6nkEmtWmMnwO3i0TAu\ncsrbE485HvGM4r0VpgVdJpvgQjiTJCTIq+D35hwtT8QDIv+nGvpcyi5wcIfCkzyC\nimJukhYy6KoqNMKQEdpNiSOvWyDMTMt1bwCvEzpw91u+msUt4rj0efnO9s0ZOwdw\nMRDnH4xgUl5ZLwrrPkfC1/0CAwEAAaNmMGQwHQYDVR0OBBYEFNLu71oijTptXCOX\nPfKF1SbxJXuSMB8GA1UdIwQYMBaAFNLu71oijTptXCOXPfKF1SbxJXuSMBIGA1Ud\nEwEB/wQIMAYBAf8CAQMwDgYDVR0PAQH/BAQDAgGGMA0GCSqGSIb3DQEBDQUAA4IB\nAQC3IW/sgB9pZ8apJNjxuGoX+FkILks0wMNrdXL/coUvsrhzsvl6mePMrbGJByJ1\nXnquB5sgcRENFxdQFma3mio8Upf1owM1ZreXrJ0mADG2BplqbJnxiyYa+R11reIF\nTWeIhMNcZKsDZrFAyPuFjCWSQvJmNWe9mFRYFgNhXJKkXIb5H1XgEDlwiedYRM7V\nolBNlld6pRFKlX8ust6OTMOeADl2xNF0m1LThSdeuXvDyC1g9+ILfz3S6OIYgc3i\nroRcFD354g7rKfu67qFAw9gC4yi0xBTPrY95rh4/HqaUYCA/L8ldRk6H7Xk35D+W\nVpmq2Sh/xT5HiFuhf4wJb0bK\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico FIDO Attestation A 1",
+          "fingerprint_sha256": "4ebabc9cbc964f722c985f3784d057e9ef5dcf454dcb4f767fccca58cf16a4e8",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSjCCAjKgAwIBAgIUTnbbGIR2NHvzqIKFAeQwG1XBis0wDQYJKoZIhvcNAQEL\nBQAwLjEsMCoGA1UEAwwjWXViaWNvIEF0dGVzdGF0aW9uIEludGVybWVkaWF0ZSBB\nIDEwIBcNMjQxMjAxMDAwMDAwWhgPOTk5OTEyMzEyMzU5NTlaMCYxJDAiBgNVBAMM\nG1l1YmljbyBGSURPIEF0dGVzdGF0aW9uIEEgMTCCASIwDQYJKoZIhvcNAQEBBQAD\nggEPADCCAQoCggEBAOsXj3k04Ban4TYdtZKqD/OPJxyDyaPmCBUFUiaZIgTteZnj\n3X25DhgpZZXsC4D0ydIcrlA6wNUInORL/L9zBbTEIMAVMGo6g7UKAmb2MF6AHbnh\nYJd9eikupVNWShHNYNc4GBdO1YN6AfUqvJhHbe3V4SNMPmBREKJPVz7ThwgmggTe\n8Ws2K0/wsqv2wSE7pbCBsUZhIX51bZM3pqDwJPTmRFEvt0/6tG5eO8F3j14OXqfE\nhmjn1VvxKDYQOLZAxCwwgC0P4CdfWv3y8PSR8I354hO1Y+GzNjvIqX38NKLywuIY\nHFerOxNlxEMBvFhYBuRuYAkkgUaPqN6UBhsILrsCAwEAAaNmMGQwHQYDVR0OBBYE\nFCCoRHhiyNnbnXRWIL6ZBXoBX9YTMB8GA1UdIwQYMBaAFCAoUCEbpFpb6FPLnZ3F\n5PxsL3ofMBIGA1UdEwEB/wQIMAYBAf8CAQAwDgYDVR0PAQH/BAQDAgGGMA0GCSqG\nSIb3DQEBCwUAA4IBAQCQFafJI1/5Wg9CEEimE1RP54RgQwTNTOOQsLACTe+rItlF\nQzC9ZDhrV828yX7jzy+AAsp3izK7T1th2dl7m+tu0sw2Pa/olc02nt6PyIw348ga\nHzhI1+0KE45qxvFDeL2lMxbPfCYvyEEaYzjiQELU5951pXGWyKMa/4fLtO+ZKOXh\nMuVeq4rXDPI54W6JHOiAaiKdiw+5e3c2kt/jFIQtM6vMXg9LNFzdjETNt20VX9Qe\nvRpFZfucMG9wCaQDoFlPzpTMJKhPev/imJmZYhKfr0lLcemtqjIxLAoqZdOYfHBg\n6+vAcdPI/iauGpUAv7X+UKNmDwjZ2BaH4sLwhB2m\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico Attestation Intermediate B 1",
+          "fingerprint_sha256": "d4cc3f456fdaf4e7812a21aab1dfe9d8e27d24e2fd2d6f21c9940109f0daa754",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSDCCAjCgAwIBAgIUDqERw+4RnGSggxgUewJFEPDRZ3YwDQYJKoZIhvcNAQEL\nBQAwJDEiMCAGA1UEAwwZWXViaWNvIEF0dGVzdGF0aW9uIFJvb3QgMTAgFw0yNDEy\nMDEwMDAwMDBaGA85OTk5MTIzMTIzNTk1OVowLjEsMCoGA1UEAwwjWXViaWNvIEF0\ndGVzdGF0aW9uIEludGVybWVkaWF0ZSBCIDEwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQDI7XnH+ZvDwMCQU8M8ZeV5qscublvVYaaRt3Ybaxn9godLx5sw\nH0lXrdgjh5h7FpVgCgYYX7E4bl1vbzULemrMWT8N3WMGUe8QAJbBeioV7W/E+hTZ\nP/0SKJVa3ewKBo6ULeMnfQZDrVORAk8wTLq2v5Llj5vMj7JtOotKa9J7nHS8kLmz\nXXSaj0SwEPh5OAZUTNV4zs1bvoTAQQWrL4/J9QuKt6WCFE5nUNiRQcEbVF8mlqK2\nbx2z6okVltyDVLCxYbpUTELvY1usR3DTGPUoIClOm4crpwnDRLVHvjYePGBB//pE\nyzxA/gcScxjwaH1ZUw9bnSbHyurKqbTa1KvjAgMBAAGjZjBkMB0GA1UdDgQWBBTq\nt0KQngx7ZHrbVHwDunxOn9ihYTAfBgNVHSMEGDAWgBTS7u9aIo06bVwjlz3yhdUm\n8SV7kjASBgNVHRMBAf8ECDAGAQH/AgECMA4GA1UdDwEB/wQEAwIBhjANBgkqhkiG\n9w0BAQsFAAOCAQEAqQaCWMxTGqVVX7Sk7kkJmUueTSYKuU6+KBBSgwIRnlw9K7He\n1IpxZ0hdwpPNikKjmcyFgFPzhImwHJgxxuT90Pw3vYOdcJJNktDg35PXOfzSn15c\nFAx1RO0mPTmIb8dXiEWOpzoXvdwXDM41ZaCDYMT7w4IQtMyvE7xUBZq2bjtAnq/N\nDUA7be4H8H3ipC+/+NKlUrcUh+j48K67WI0u1m6FeQueBA7n06j825rqDqsaLs9T\nb7KAHAw8PmrWaNPG2kjKerxPEfecivlFawp2RWZvxrVtn3TV2SBxyCJCkXsND05d\nCErVHSJIs+BdtTVNY9AwtyPmnyb0v4mSTzvWdw==\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico Attestation Intermediate A 1",
+          "fingerprint_sha256": "4698a1d3389c3ec60016c216250f1d0439922832d65142327436376dc2942b55",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSDCCAjCgAwIBAgIUUcmMXzRIFOgGTK0Tb3gEuZYZkBIwDQYJKoZIhvcNAQEL\nBQAwJDEiMCAGA1UEAwwZWXViaWNvIEF0dGVzdGF0aW9uIFJvb3QgMTAgFw0yNDEy\nMDEwMDAwMDBaGA85OTk5MTIzMTIzNTk1OVowLjEsMCoGA1UEAwwjWXViaWNvIEF0\ndGVzdGF0aW9uIEludGVybWVkaWF0ZSBBIDEwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQDm555bWY9WW+tOY0rIWHldh+aNanoCZCFh7Gk3YZrQmPUw0hkS\nG6qYHQtP+fZyS33VErvg+BQqnmumgNhfxFrkwEZELeidBcC8C4Ag4nqqiPWpzsvI\n17NcxYlInLNLFcZY/+gOiN6ZOTihO5/vBZMbj9riaAcqliYmNGJPgTcMGaEAyMzE\nMNy2nm6Ep+pjP5aF6gi21t/UQFsuJ1j2Rj/ynM/SdRt+ecal5OYotxHkFbL9vvv2\nA2Ov5ITZClw4bOS9npypQimOZ5QAYytmYaQpWl/pMYz6zSj8RqkVDNEJGqNfTKA2\nivLYwX6lSttMPapg0J84l9X0voVN/FpS4VCVAgMBAAGjZjBkMB0GA1UdDgQWBBQg\nKFAhG6RaW+hTy52dxeT8bC96HzAfBgNVHSMEGDAWgBTS7u9aIo06bVwjlz3yhdUm\n8SV7kjASBgNVHRMBAf8ECDAGAQH/AgECMA4GA1UdDwEB/wQEAwIBhjANBgkqhkiG\n9w0BAQsFAAOCAQEAYMzgLrJLIr0OovQnAZrRIGuabiHSUKSmbLRWpRkWeAtsChDE\nHpXcJ/bgDNKYWoHqQ8xRUjB4CyepYevc3YlrG8o7zHxpfVcaoL5SeuJkzHxKn4bT\naSp9+Mvwamnp64kZMiNbFLknfP9kYKoRHkMWheRJ1UsP1z4ScmkCeILfsMs6vqov\nqjWClFsJpBcsluYHWF7bBJ1n4Rwg+ATEopY4IgGv6Zvwc+A9r+AT2hqpoSkYoAl+\nANYwgslOf9sJe0V+TA9YY/UlaBmPPTd0//r9wvcePWZkPjKoAC/zUNhfDbh4LV8G\nHs3lyX2XomL/LNc8JYzyIaDEhGQveoPhh/tr1g==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-nfc-by-yubico-2",
+      "aaguid": "a4e9fc6d-4cbe-4758-b8ba-37598bb5bbaa",
+      "attestation_format": "packed",
+      "description": "Security Key NFC by Yubico",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico U2F Root CA Serial 457200631",
+          "fingerprint_sha256": "0fa1386f80eb8713263ae5c1d84deb455bdf08aea50ab05503cefee82b092d42",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDHjCCAgagAwIBAgIEG0BT9zANBgkqhkiG9w0BAQsFADAuMSwwKgYDVQQDEyNZ\ndWJpY28gVTJGIFJvb3QgQ0EgU2VyaWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAw\nMDBaGA8yMDUwMDkwNDAwMDAwMFowLjEsMCoGA1UEAxMjWXViaWNvIFUyRiBSb290\nIENBIFNlcmlhbCA0NTcyMDA2MzEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\nAoIBAQC/jwYuhBVlqaiYWEMsrWFisgJ+PtM91eSrpI4TK7U53mwCIawSDHy8vUmk\n5N2KAj9abvT9NP5SMS1hQi3usxoYGonXQgfO6ZXyUA9a+KAkqdFnBnlyugSeCOep\n8EdZFfsaRFtMjkwz5Gcz2Py4vIYvCdMHPtwaz0bVuzneueIEz6TnQjE63Rdt2zbw\nnebwTG5ZybeWSwbzy+BJ34ZHcUhPAY89yJQXuE0IzMZFcEBbPNRbWECRKgjq//qT\n9nmDOFVlSRCt2wiqPSzluwn+v+suQEBsUjTGMEd25tKXXTkNW21wIWbxeSyUoTXw\nLvGS6xlwQSgNpk2qXYwf8iXg7VWZAgMBAAGjQjBAMB0GA1UdDgQWBBQgIvz0bNGJ\nhjgpToksyKpP9xv9oDAPBgNVHRMECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIBBjAN\nBgkqhkiG9w0BAQsFAAOCAQEAjvjuOMDSa+JXFCLyBKsycXtBVZsJ4Ue3LbaEsPY4\nMYN/hIQ5ZM5p7EjfcnMG4CtYkNsfNHc0AhBLdq45rnT87q/6O3vUEtNMafbhU6kt\nhX7Y+9XFN9NpmYxr+ekVY5xOxi8h9JDIgoMP4VB1uS0aunL1IGqrNooL9mmFnL2k\nLVVee6/VR6C5+KSTCMCWppMuJIZII2v9o4dkoZ8Y7QRjQlLfYzd3qGtKbw7xaF1U\nsG/5xUb/Btwb2X2g4InpiB/yt/3CpQXpiWX/K4mBvUKiGn05ZsqeY1gx4g0xLBqc\nU9psmyPzK+Vsgw2jeRQ5JlKDyqE0hebfC1tvFu0CCrJFcw==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-nfc-by-yubico-3",
+      "aaguid": "e77e3c64-05e3-428b-8824-0cbeb04b829d",
+      "attestation_format": "packed",
+      "description": "Security Key NFC by Yubico",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico U2F Root CA Serial 457200631",
+          "fingerprint_sha256": "0fa1386f80eb8713263ae5c1d84deb455bdf08aea50ab05503cefee82b092d42",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDHjCCAgagAwIBAgIEG0BT9zANBgkqhkiG9w0BAQsFADAuMSwwKgYDVQQDEyNZ\ndWJpY28gVTJGIFJvb3QgQ0EgU2VyaWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAw\nMDBaGA8yMDUwMDkwNDAwMDAwMFowLjEsMCoGA1UEAxMjWXViaWNvIFUyRiBSb290\nIENBIFNlcmlhbCA0NTcyMDA2MzEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\nAoIBAQC/jwYuhBVlqaiYWEMsrWFisgJ+PtM91eSrpI4TK7U53mwCIawSDHy8vUmk\n5N2KAj9abvT9NP5SMS1hQi3usxoYGonXQgfO6ZXyUA9a+KAkqdFnBnlyugSeCOep\n8EdZFfsaRFtMjkwz5Gcz2Py4vIYvCdMHPtwaz0bVuzneueIEz6TnQjE63Rdt2zbw\nnebwTG5ZybeWSwbzy+BJ34ZHcUhPAY89yJQXuE0IzMZFcEBbPNRbWECRKgjq//qT\n9nmDOFVlSRCt2wiqPSzluwn+v+suQEBsUjTGMEd25tKXXTkNW21wIWbxeSyUoTXw\nLvGS6xlwQSgNpk2qXYwf8iXg7VWZAgMBAAGjQjBAMB0GA1UdDgQWBBQgIvz0bNGJ\nhjgpToksyKpP9xv9oDAPBgNVHRMECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIBBjAN\nBgkqhkiG9w0BAQsFAAOCAQEAjvjuOMDSa+JXFCLyBKsycXtBVZsJ4Ue3LbaEsPY4\nMYN/hIQ5ZM5p7EjfcnMG4CtYkNsfNHc0AhBLdq45rnT87q/6O3vUEtNMafbhU6kt\nhX7Y+9XFN9NpmYxr+ekVY5xOxi8h9JDIgoMP4VB1uS0aunL1IGqrNooL9mmFnL2k\nLVVee6/VR6C5+KSTCMCWppMuJIZII2v9o4dkoZ8Y7QRjQlLfYzd3qGtKbw7xaF1U\nsG/5xUb/Btwb2X2g4InpiB/yt/3CpQXpiWX/K4mBvUKiGn05ZsqeY1gx4g0xLBqc\nU9psmyPzK+Vsgw2jeRQ5JlKDyqE0hebfC1tvFu0CCrJFcw==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-nfc-by-yubico-enterprise-edition",
+      "aaguid": "47ab2fb4-66ac-4184-9ae1-86be814012d5",
+      "attestation_format": "packed",
+      "description": "Security Key NFC by Yubico - Enterprise Edition",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico U2F Root CA Serial 457200631",
+          "fingerprint_sha256": "0fa1386f80eb8713263ae5c1d84deb455bdf08aea50ab05503cefee82b092d42",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDHjCCAgagAwIBAgIEG0BT9zANBgkqhkiG9w0BAQsFADAuMSwwKgYDVQQDEyNZ\ndWJpY28gVTJGIFJvb3QgQ0EgU2VyaWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAw\nMDBaGA8yMDUwMDkwNDAwMDAwMFowLjEsMCoGA1UEAxMjWXViaWNvIFUyRiBSb290\nIENBIFNlcmlhbCA0NTcyMDA2MzEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\nAoIBAQC/jwYuhBVlqaiYWEMsrWFisgJ+PtM91eSrpI4TK7U53mwCIawSDHy8vUmk\n5N2KAj9abvT9NP5SMS1hQi3usxoYGonXQgfO6ZXyUA9a+KAkqdFnBnlyugSeCOep\n8EdZFfsaRFtMjkwz5Gcz2Py4vIYvCdMHPtwaz0bVuzneueIEz6TnQjE63Rdt2zbw\nnebwTG5ZybeWSwbzy+BJ34ZHcUhPAY89yJQXuE0IzMZFcEBbPNRbWECRKgjq//qT\n9nmDOFVlSRCt2wiqPSzluwn+v+suQEBsUjTGMEd25tKXXTkNW21wIWbxeSyUoTXw\nLvGS6xlwQSgNpk2qXYwf8iXg7VWZAgMBAAGjQjBAMB0GA1UdDgQWBBQgIvz0bNGJ\nhjgpToksyKpP9xv9oDAPBgNVHRMECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIBBjAN\nBgkqhkiG9w0BAQsFAAOCAQEAjvjuOMDSa+JXFCLyBKsycXtBVZsJ4Ue3LbaEsPY4\nMYN/hIQ5ZM5p7EjfcnMG4CtYkNsfNHc0AhBLdq45rnT87q/6O3vUEtNMafbhU6kt\nhX7Y+9XFN9NpmYxr+ekVY5xOxi8h9JDIgoMP4VB1uS0aunL1IGqrNooL9mmFnL2k\nLVVee6/VR6C5+KSTCMCWppMuJIZII2v9o4dkoZ8Y7QRjQlLfYzd3qGtKbw7xaF1U\nsG/5xUb/Btwb2X2g4InpiB/yt/3CpQXpiWX/K4mBvUKiGn05ZsqeY1gx4g0xLBqc\nU9psmyPzK+Vsgw2jeRQ5JlKDyqE0hebfC1tvFu0CCrJFcw==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-nfc-by-yubico-enterprise-edition-2",
+      "aaguid": "ed042a3a-4b22-4455-bb69-a267b652ae7e",
+      "attestation_format": "packed",
+      "description": "Security Key NFC by Yubico - Enterprise Edition",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico FIDO Attestation B 1",
+          "fingerprint_sha256": "4eadda86ff62cff987e111a07910d8554de42f71d5d6da7744610e09012dd319",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSjCCAjKgAwIBAgIUR38mq26Sf2szVV2BdG6WEN7kuWUwDQYJKoZIhvcNAQEL\nBQAwLjEsMCoGA1UEAwwjWXViaWNvIEF0dGVzdGF0aW9uIEludGVybWVkaWF0ZSBC\nIDEwIBcNMjQxMjAxMDAwMDAwWhgPOTk5OTEyMzEyMzU5NTlaMCYxJDAiBgNVBAMM\nG1l1YmljbyBGSURPIEF0dGVzdGF0aW9uIEIgMTCCASIwDQYJKoZIhvcNAQEBBQAD\nggEPADCCAQoCggEBANY0Wb9oPoRoKoQyWPaJpz11vrWTg6zTtmNj2VoKRnyvKGRq\npzb83w5l6YA96UYkYBDQP0ilO2DPe6wWqVR5zDfRzdcH8bh+L7dGGvae6hRTZhkF\nkCpXDs4HccknrDf8FClJ7He39Jf42/G1Qm2zz9WWmrPXtgiK/x05GjsQfGuDG1zf\n5QTUUie8lwymK3TfdOvNeeJAAPe2pn7ItfRb+rVrNWiDzlRn2vNnZ2wPo4wH/WJ6\ndhXZG+rMWT+a6Bocg1UfIw6kdunG4bTpZzsvacFYyR0mpf+DeOnpSWAmywJWHvTl\nf2YXxFyeXcTACdQlcMNGJ2VhZQ48xtP5/RBP/8kCAwEAAaNmMGQwHQYDVR0OBBYE\nFChy42okiqcTS1iqa/HRWjkBn4H/MB8GA1UdIwQYMBaAFOq3QpCeDHtkettUfAO6\nfE6f2KFhMBIGA1UdEwEB/wQIMAYBAf8CAQAwDgYDVR0PAQH/BAQDAgGGMA0GCSqG\nSIb3DQEBCwUAA4IBAQAn+RHIPbtMEDNdT1g8H/RitAkUdLgAt1tWGWnlj9knbv4/\n4GlX7C9p45efPO9/aZL6OV1XRKBi6KmtBW5K7nuYEnMx/5BqBSbLT7rhduC49TBe\nMb9PHdXsTlSVNYefr1dGidr4j0xVBQLb1rknDAbdWDzKfvnayKO8Frwe7Hx843MG\n/rJ+c0XruUvbfVTCHLiIWhM7oNDhL8xob6xUo9KLKcSL+ItYsO3/9Wb8Q9GjsqL4\nFXsDcG1SaYh7KpfuMmOixqzJZO2nIicPYRg1I2SuiUfYO70tmdHcbl+kSQmSYt7r\nq4viILg2Gx3j9rITuWTjbaUaSSQxgOmMSHuyzMAC\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico FIDO Attestation A 1",
+          "fingerprint_sha256": "4ebabc9cbc964f722c985f3784d057e9ef5dcf454dcb4f767fccca58cf16a4e8",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSjCCAjKgAwIBAgIUTnbbGIR2NHvzqIKFAeQwG1XBis0wDQYJKoZIhvcNAQEL\nBQAwLjEsMCoGA1UEAwwjWXViaWNvIEF0dGVzdGF0aW9uIEludGVybWVkaWF0ZSBB\nIDEwIBcNMjQxMjAxMDAwMDAwWhgPOTk5OTEyMzEyMzU5NTlaMCYxJDAiBgNVBAMM\nG1l1YmljbyBGSURPIEF0dGVzdGF0aW9uIEEgMTCCASIwDQYJKoZIhvcNAQEBBQAD\nggEPADCCAQoCggEBAOsXj3k04Ban4TYdtZKqD/OPJxyDyaPmCBUFUiaZIgTteZnj\n3X25DhgpZZXsC4D0ydIcrlA6wNUInORL/L9zBbTEIMAVMGo6g7UKAmb2MF6AHbnh\nYJd9eikupVNWShHNYNc4GBdO1YN6AfUqvJhHbe3V4SNMPmBREKJPVz7ThwgmggTe\n8Ws2K0/wsqv2wSE7pbCBsUZhIX51bZM3pqDwJPTmRFEvt0/6tG5eO8F3j14OXqfE\nhmjn1VvxKDYQOLZAxCwwgC0P4CdfWv3y8PSR8I354hO1Y+GzNjvIqX38NKLywuIY\nHFerOxNlxEMBvFhYBuRuYAkkgUaPqN6UBhsILrsCAwEAAaNmMGQwHQYDVR0OBBYE\nFCCoRHhiyNnbnXRWIL6ZBXoBX9YTMB8GA1UdIwQYMBaAFCAoUCEbpFpb6FPLnZ3F\n5PxsL3ofMBIGA1UdEwEB/wQIMAYBAf8CAQAwDgYDVR0PAQH/BAQDAgGGMA0GCSqG\nSIb3DQEBCwUAA4IBAQCQFafJI1/5Wg9CEEimE1RP54RgQwTNTOOQsLACTe+rItlF\nQzC9ZDhrV828yX7jzy+AAsp3izK7T1th2dl7m+tu0sw2Pa/olc02nt6PyIw348ga\nHzhI1+0KE45qxvFDeL2lMxbPfCYvyEEaYzjiQELU5951pXGWyKMa/4fLtO+ZKOXh\nMuVeq4rXDPI54W6JHOiAaiKdiw+5e3c2kt/jFIQtM6vMXg9LNFzdjETNt20VX9Qe\nvRpFZfucMG9wCaQDoFlPzpTMJKhPev/imJmZYhKfr0lLcemtqjIxLAoqZdOYfHBg\n6+vAcdPI/iauGpUAv7X+UKNmDwjZ2BaH4sLwhB2m\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico Attestation Root 1",
+          "fingerprint_sha256": "62760c6a6ef91679f454c8902b80fd009825b3f25da90f1fbace2ec6586cd5a8",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDPjCCAiagAwIBAgIUXzeiEDJEOTt14F5n0o6Zf/bBwiUwDQYJKoZIhvcNAQEN\nBQAwJDEiMCAGA1UEAwwZWXViaWNvIEF0dGVzdGF0aW9uIFJvb3QgMTAgFw0yNDEy\nMDEwMDAwMDBaGA85OTk5MTIzMTIzNTk1OVowJDEiMCAGA1UEAwwZWXViaWNvIEF0\ndGVzdGF0aW9uIFJvb3QgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB\nAMZ6/TxM8rIT+EaoPvG81ontMOo/2mQ2RBwJHS0QZcxVaNXvl12LUhBZ5LmiBScI\nZd1Rnx1od585h+/dhK7hEm7JAALkKKts1fO53KGNLZujz5h3wGncr4hyKF0G74b/\nU3K9hE5mGND6zqYchCRAHfrYMYRDF4YL0X4D5nGdxvppAy6nkEmtWmMnwO3i0TAu\ncsrbE485HvGM4r0VpgVdJpvgQjiTJCTIq+D35hwtT8QDIv+nGvpcyi5wcIfCkzyC\nimJukhYy6KoqNMKQEdpNiSOvWyDMTMt1bwCvEzpw91u+msUt4rj0efnO9s0ZOwdw\nMRDnH4xgUl5ZLwrrPkfC1/0CAwEAAaNmMGQwHQYDVR0OBBYEFNLu71oijTptXCOX\nPfKF1SbxJXuSMB8GA1UdIwQYMBaAFNLu71oijTptXCOXPfKF1SbxJXuSMBIGA1Ud\nEwEB/wQIMAYBAf8CAQMwDgYDVR0PAQH/BAQDAgGGMA0GCSqGSIb3DQEBDQUAA4IB\nAQC3IW/sgB9pZ8apJNjxuGoX+FkILks0wMNrdXL/coUvsrhzsvl6mePMrbGJByJ1\nXnquB5sgcRENFxdQFma3mio8Upf1owM1ZreXrJ0mADG2BplqbJnxiyYa+R11reIF\nTWeIhMNcZKsDZrFAyPuFjCWSQvJmNWe9mFRYFgNhXJKkXIb5H1XgEDlwiedYRM7V\nolBNlld6pRFKlX8ust6OTMOeADl2xNF0m1LThSdeuXvDyC1g9+ILfz3S6OIYgc3i\nroRcFD354g7rKfu67qFAw9gC4yi0xBTPrY95rh4/HqaUYCA/L8ldRk6H7Xk35D+W\nVpmq2Sh/xT5HiFuhf4wJb0bK\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico Attestation Intermediate A 1",
+          "fingerprint_sha256": "4698a1d3389c3ec60016c216250f1d0439922832d65142327436376dc2942b55",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSDCCAjCgAwIBAgIUUcmMXzRIFOgGTK0Tb3gEuZYZkBIwDQYJKoZIhvcNAQEL\nBQAwJDEiMCAGA1UEAwwZWXViaWNvIEF0dGVzdGF0aW9uIFJvb3QgMTAgFw0yNDEy\nMDEwMDAwMDBaGA85OTk5MTIzMTIzNTk1OVowLjEsMCoGA1UEAwwjWXViaWNvIEF0\ndGVzdGF0aW9uIEludGVybWVkaWF0ZSBBIDEwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQDm555bWY9WW+tOY0rIWHldh+aNanoCZCFh7Gk3YZrQmPUw0hkS\nG6qYHQtP+fZyS33VErvg+BQqnmumgNhfxFrkwEZELeidBcC8C4Ag4nqqiPWpzsvI\n17NcxYlInLNLFcZY/+gOiN6ZOTihO5/vBZMbj9riaAcqliYmNGJPgTcMGaEAyMzE\nMNy2nm6Ep+pjP5aF6gi21t/UQFsuJ1j2Rj/ynM/SdRt+ecal5OYotxHkFbL9vvv2\nA2Ov5ITZClw4bOS9npypQimOZ5QAYytmYaQpWl/pMYz6zSj8RqkVDNEJGqNfTKA2\nivLYwX6lSttMPapg0J84l9X0voVN/FpS4VCVAgMBAAGjZjBkMB0GA1UdDgQWBBQg\nKFAhG6RaW+hTy52dxeT8bC96HzAfBgNVHSMEGDAWgBTS7u9aIo06bVwjlz3yhdUm\n8SV7kjASBgNVHRMBAf8ECDAGAQH/AgECMA4GA1UdDwEB/wQEAwIBhjANBgkqhkiG\n9w0BAQsFAAOCAQEAYMzgLrJLIr0OovQnAZrRIGuabiHSUKSmbLRWpRkWeAtsChDE\nHpXcJ/bgDNKYWoHqQ8xRUjB4CyepYevc3YlrG8o7zHxpfVcaoL5SeuJkzHxKn4bT\naSp9+Mvwamnp64kZMiNbFLknfP9kYKoRHkMWheRJ1UsP1z4ScmkCeILfsMs6vqov\nqjWClFsJpBcsluYHWF7bBJ1n4Rwg+ATEopY4IgGv6Zvwc+A9r+AT2hqpoSkYoAl+\nANYwgslOf9sJe0V+TA9YY/UlaBmPPTd0//r9wvcePWZkPjKoAC/zUNhfDbh4LV8G\nHs3lyX2XomL/LNc8JYzyIaDEhGQveoPhh/tr1g==\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico Attestation Intermediate B 1",
+          "fingerprint_sha256": "d4cc3f456fdaf4e7812a21aab1dfe9d8e27d24e2fd2d6f21c9940109f0daa754",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSDCCAjCgAwIBAgIUDqERw+4RnGSggxgUewJFEPDRZ3YwDQYJKoZIhvcNAQEL\nBQAwJDEiMCAGA1UEAwwZWXViaWNvIEF0dGVzdGF0aW9uIFJvb3QgMTAgFw0yNDEy\nMDEwMDAwMDBaGA85OTk5MTIzMTIzNTk1OVowLjEsMCoGA1UEAwwjWXViaWNvIEF0\ndGVzdGF0aW9uIEludGVybWVkaWF0ZSBCIDEwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQDI7XnH+ZvDwMCQU8M8ZeV5qscublvVYaaRt3Ybaxn9godLx5sw\nH0lXrdgjh5h7FpVgCgYYX7E4bl1vbzULemrMWT8N3WMGUe8QAJbBeioV7W/E+hTZ\nP/0SKJVa3ewKBo6ULeMnfQZDrVORAk8wTLq2v5Llj5vMj7JtOotKa9J7nHS8kLmz\nXXSaj0SwEPh5OAZUTNV4zs1bvoTAQQWrL4/J9QuKt6WCFE5nUNiRQcEbVF8mlqK2\nbx2z6okVltyDVLCxYbpUTELvY1usR3DTGPUoIClOm4crpwnDRLVHvjYePGBB//pE\nyzxA/gcScxjwaH1ZUw9bnSbHyurKqbTa1KvjAgMBAAGjZjBkMB0GA1UdDgQWBBTq\nt0KQngx7ZHrbVHwDunxOn9ihYTAfBgNVHSMEGDAWgBTS7u9aIo06bVwjlz3yhdUm\n8SV7kjASBgNVHRMBAf8ECDAGAQH/AgECMA4GA1UdDwEB/wQEAwIBhjANBgkqhkiG\n9w0BAQsFAAOCAQEAqQaCWMxTGqVVX7Sk7kkJmUueTSYKuU6+KBBSgwIRnlw9K7He\n1IpxZ0hdwpPNikKjmcyFgFPzhImwHJgxxuT90Pw3vYOdcJJNktDg35PXOfzSn15c\nFAx1RO0mPTmIb8dXiEWOpzoXvdwXDM41ZaCDYMT7w4IQtMyvE7xUBZq2bjtAnq/N\nDUA7be4H8H3ipC+/+NKlUrcUh+j48K67WI0u1m6FeQueBA7n06j825rqDqsaLs9T\nb7KAHAw8PmrWaNPG2kjKerxPEfecivlFawp2RWZvxrVtn3TV2SBxyCJCkXsND05d\nCErVHSJIs+BdtTVNY9AwtyPmnyb0v4mSTzvWdw==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-nfc-by-yubico-enterprise-edition-3",
+      "aaguid": "0bb43545-fd2c-4185-87dd-feb0b2916ace",
+      "attestation_format": "packed",
+      "description": "Security Key NFC by Yubico - Enterprise Edition",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico U2F Root CA Serial 457200631",
+          "fingerprint_sha256": "0fa1386f80eb8713263ae5c1d84deb455bdf08aea50ab05503cefee82b092d42",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDHjCCAgagAwIBAgIEG0BT9zANBgkqhkiG9w0BAQsFADAuMSwwKgYDVQQDEyNZ\ndWJpY28gVTJGIFJvb3QgQ0EgU2VyaWFsIDQ1NzIwMDYzMTAgFw0xNDA4MDEwMDAw\nMDBaGA8yMDUwMDkwNDAwMDAwMFowLjEsMCoGA1UEAxMjWXViaWNvIFUyRiBSb290\nIENBIFNlcmlhbCA0NTcyMDA2MzEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\nAoIBAQC/jwYuhBVlqaiYWEMsrWFisgJ+PtM91eSrpI4TK7U53mwCIawSDHy8vUmk\n5N2KAj9abvT9NP5SMS1hQi3usxoYGonXQgfO6ZXyUA9a+KAkqdFnBnlyugSeCOep\n8EdZFfsaRFtMjkwz5Gcz2Py4vIYvCdMHPtwaz0bVuzneueIEz6TnQjE63Rdt2zbw\nnebwTG5ZybeWSwbzy+BJ34ZHcUhPAY89yJQXuE0IzMZFcEBbPNRbWECRKgjq//qT\n9nmDOFVlSRCt2wiqPSzluwn+v+suQEBsUjTGMEd25tKXXTkNW21wIWbxeSyUoTXw\nLvGS6xlwQSgNpk2qXYwf8iXg7VWZAgMBAAGjQjBAMB0GA1UdDgQWBBQgIvz0bNGJ\nhjgpToksyKpP9xv9oDAPBgNVHRMECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIBBjAN\nBgkqhkiG9w0BAQsFAAOCAQEAjvjuOMDSa+JXFCLyBKsycXtBVZsJ4Ue3LbaEsPY4\nMYN/hIQ5ZM5p7EjfcnMG4CtYkNsfNHc0AhBLdq45rnT87q/6O3vUEtNMafbhU6kt\nhX7Y+9XFN9NpmYxr+ekVY5xOxi8h9JDIgoMP4VB1uS0aunL1IGqrNooL9mmFnL2k\nLVVee6/VR6C5+KSTCMCWppMuJIZII2v9o4dkoZ8Y7QRjQlLfYzd3qGtKbw7xaF1U\nsG/5xUb/Btwb2X2g4InpiB/yt/3CpQXpiWX/K4mBvUKiGn05ZsqeY1gx4g0xLBqc\nU9psmyPzK+Vsgw2jeRQ5JlKDyqE0hebfC1tvFu0CCrJFcw==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-nfc-by-yubico-enterprise-edition-enterprise-profile",
+      "aaguid": "9ff4cc65-6154-4fff-ba09-9e2af7882ad2",
+      "attestation_format": "packed",
+      "description": "Security Key NFC by Yubico - Enterprise Edition (Enterprise Profile)",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico FIDO Root CA Serial 450203556",
+          "fingerprint_sha256": "35f1a54b353bfb711e6d42adbeb76c0e9dead095018e6a94783ba2192fd6faad",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDMzCCAhugAwIBAgIUSOEjTf//yqRfPW7Qq8qtIyCrAg8wDQYJKoZIhvcNAQEL\nBQAwLzEtMCsGA1UEAwwkWXViaWNvIEZJRE8gUm9vdCBDQSBTZXJpYWwgNDUwMjAz\nNTU2MCAXDTI0MDUwMTAwMDAwMFoYDzIwNjAwNDMwMDAwMDAwWjAvMS0wKwYDVQQD\nDCRZdWJpY28gRklETyBSb290IENBIFNlcmlhbCA0NTAyMDM1NTYwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCdvl27w2gu1fPXeEFbIdqx0BalvVDVWrQP\nJ7HqviuEtZHlxSLxSFtcXpTolvLvof8f4tMerQTkVGzcmYzm1EBT4IJuMmoEqfkE\nEhWpsADMFrjZkqlZY9EqxQzLoVEEonE5oGxSdVCxCcLIackpyR/CCXvj1Bt/hTgE\n9hTlF4pRqxMkx3plF7y8dDZlRHWs7vbnhmBCGeI0ZPEQ6nl2mCg2r74adF2u6K9r\nrLfhBC3QLE8EPrgqUsI+hkuq2tK4M2SMOp8uUVVkqUeu3h0kr3WVI0W02pkgrOgi\nFKLFNkSrbYhdjMBDj5izmqfc9xJRKoDX612qd8ZGVHpT5AYFX+1hAgMBAAGjRTBD\nMB0GA1UdDgQWBBTZyU5DiQ/a2UEgE7qBK0zhIsRNRjASBgNVHRMBAf8ECDAGAQH/\nAgEAMA4GA1UdDwEB/wQEAwIBBjANBgkqhkiG9w0BAQsFAAOCAQEAXvnB4SLuUJfY\nMSVGAhssL/SmWli3FSccgxydvKlACcidIIWKQqa3q/QSUEQzC9DgEfMgr7iC1BkT\nZbILboV6UZ5knNsvjEZWuMeogJ8tgZs1hVvKwZizwJ+mEcmsjhIrBYuoL1T6yrOJ\nvKFg1jv+Cy4ZwA9Bpk/V3UOir1VyK8dCtyHu6vfosotAdYx8FAuR243gRTMV6Jx8\nJdig2JDIAQMlzVeDpSUHX/K2HXRHxHwfgjbgUjjBu/72r8OfehyhzHXI3K8CFFdf\nlO+8nEOJK3y8F1ivgS5uN/8SmcYw/STQYwhrxPuwz3nP8baMum4BB2nnYmpB60sX\n3bl5k8QUSw==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-nfc-by-yubico-enterprise-edition-enterprise-profile-2",
+      "aaguid": "72c6b72d-8512-4c66-8359-9d3d10d9222f",
+      "attestation_format": "packed",
+      "description": "Security Key NFC by Yubico - Enterprise Edition (Enterprise Profile)",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico Attestation Intermediate A 1",
+          "fingerprint_sha256": "4698a1d3389c3ec60016c216250f1d0439922832d65142327436376dc2942b55",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSDCCAjCgAwIBAgIUUcmMXzRIFOgGTK0Tb3gEuZYZkBIwDQYJKoZIhvcNAQEL\nBQAwJDEiMCAGA1UEAwwZWXViaWNvIEF0dGVzdGF0aW9uIFJvb3QgMTAgFw0yNDEy\nMDEwMDAwMDBaGA85OTk5MTIzMTIzNTk1OVowLjEsMCoGA1UEAwwjWXViaWNvIEF0\ndGVzdGF0aW9uIEludGVybWVkaWF0ZSBBIDEwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQDm555bWY9WW+tOY0rIWHldh+aNanoCZCFh7Gk3YZrQmPUw0hkS\nG6qYHQtP+fZyS33VErvg+BQqnmumgNhfxFrkwEZELeidBcC8C4Ag4nqqiPWpzsvI\n17NcxYlInLNLFcZY/+gOiN6ZOTihO5/vBZMbj9riaAcqliYmNGJPgTcMGaEAyMzE\nMNy2nm6Ep+pjP5aF6gi21t/UQFsuJ1j2Rj/ynM/SdRt+ecal5OYotxHkFbL9vvv2\nA2Ov5ITZClw4bOS9npypQimOZ5QAYytmYaQpWl/pMYz6zSj8RqkVDNEJGqNfTKA2\nivLYwX6lSttMPapg0J84l9X0voVN/FpS4VCVAgMBAAGjZjBkMB0GA1UdDgQWBBQg\nKFAhG6RaW+hTy52dxeT8bC96HzAfBgNVHSMEGDAWgBTS7u9aIo06bVwjlz3yhdUm\n8SV7kjASBgNVHRMBAf8ECDAGAQH/AgECMA4GA1UdDwEB/wQEAwIBhjANBgkqhkiG\n9w0BAQsFAAOCAQEAYMzgLrJLIr0OovQnAZrRIGuabiHSUKSmbLRWpRkWeAtsChDE\nHpXcJ/bgDNKYWoHqQ8xRUjB4CyepYevc3YlrG8o7zHxpfVcaoL5SeuJkzHxKn4bT\naSp9+Mvwamnp64kZMiNbFLknfP9kYKoRHkMWheRJ1UsP1z4ScmkCeILfsMs6vqov\nqjWClFsJpBcsluYHWF7bBJ1n4Rwg+ATEopY4IgGv6Zvwc+A9r+AT2hqpoSkYoAl+\nANYwgslOf9sJe0V+TA9YY/UlaBmPPTd0//r9wvcePWZkPjKoAC/zUNhfDbh4LV8G\nHs3lyX2XomL/LNc8JYzyIaDEhGQveoPhh/tr1g==\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico FIDO Attestation B 1",
+          "fingerprint_sha256": "4eadda86ff62cff987e111a07910d8554de42f71d5d6da7744610e09012dd319",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSjCCAjKgAwIBAgIUR38mq26Sf2szVV2BdG6WEN7kuWUwDQYJKoZIhvcNAQEL\nBQAwLjEsMCoGA1UEAwwjWXViaWNvIEF0dGVzdGF0aW9uIEludGVybWVkaWF0ZSBC\nIDEwIBcNMjQxMjAxMDAwMDAwWhgPOTk5OTEyMzEyMzU5NTlaMCYxJDAiBgNVBAMM\nG1l1YmljbyBGSURPIEF0dGVzdGF0aW9uIEIgMTCCASIwDQYJKoZIhvcNAQEBBQAD\nggEPADCCAQoCggEBANY0Wb9oPoRoKoQyWPaJpz11vrWTg6zTtmNj2VoKRnyvKGRq\npzb83w5l6YA96UYkYBDQP0ilO2DPe6wWqVR5zDfRzdcH8bh+L7dGGvae6hRTZhkF\nkCpXDs4HccknrDf8FClJ7He39Jf42/G1Qm2zz9WWmrPXtgiK/x05GjsQfGuDG1zf\n5QTUUie8lwymK3TfdOvNeeJAAPe2pn7ItfRb+rVrNWiDzlRn2vNnZ2wPo4wH/WJ6\ndhXZG+rMWT+a6Bocg1UfIw6kdunG4bTpZzsvacFYyR0mpf+DeOnpSWAmywJWHvTl\nf2YXxFyeXcTACdQlcMNGJ2VhZQ48xtP5/RBP/8kCAwEAAaNmMGQwHQYDVR0OBBYE\nFChy42okiqcTS1iqa/HRWjkBn4H/MB8GA1UdIwQYMBaAFOq3QpCeDHtkettUfAO6\nfE6f2KFhMBIGA1UdEwEB/wQIMAYBAf8CAQAwDgYDVR0PAQH/BAQDAgGGMA0GCSqG\nSIb3DQEBCwUAA4IBAQAn+RHIPbtMEDNdT1g8H/RitAkUdLgAt1tWGWnlj9knbv4/\n4GlX7C9p45efPO9/aZL6OV1XRKBi6KmtBW5K7nuYEnMx/5BqBSbLT7rhduC49TBe\nMb9PHdXsTlSVNYefr1dGidr4j0xVBQLb1rknDAbdWDzKfvnayKO8Frwe7Hx843MG\n/rJ+c0XruUvbfVTCHLiIWhM7oNDhL8xob6xUo9KLKcSL+ItYsO3/9Wb8Q9GjsqL4\nFXsDcG1SaYh7KpfuMmOixqzJZO2nIicPYRg1I2SuiUfYO70tmdHcbl+kSQmSYt7r\nq4viILg2Gx3j9rITuWTjbaUaSSQxgOmMSHuyzMAC\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico Attestation Intermediate B 1",
+          "fingerprint_sha256": "d4cc3f456fdaf4e7812a21aab1dfe9d8e27d24e2fd2d6f21c9940109f0daa754",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSDCCAjCgAwIBAgIUDqERw+4RnGSggxgUewJFEPDRZ3YwDQYJKoZIhvcNAQEL\nBQAwJDEiMCAGA1UEAwwZWXViaWNvIEF0dGVzdGF0aW9uIFJvb3QgMTAgFw0yNDEy\nMDEwMDAwMDBaGA85OTk5MTIzMTIzNTk1OVowLjEsMCoGA1UEAwwjWXViaWNvIEF0\ndGVzdGF0aW9uIEludGVybWVkaWF0ZSBCIDEwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQDI7XnH+ZvDwMCQU8M8ZeV5qscublvVYaaRt3Ybaxn9godLx5sw\nH0lXrdgjh5h7FpVgCgYYX7E4bl1vbzULemrMWT8N3WMGUe8QAJbBeioV7W/E+hTZ\nP/0SKJVa3ewKBo6ULeMnfQZDrVORAk8wTLq2v5Llj5vMj7JtOotKa9J7nHS8kLmz\nXXSaj0SwEPh5OAZUTNV4zs1bvoTAQQWrL4/J9QuKt6WCFE5nUNiRQcEbVF8mlqK2\nbx2z6okVltyDVLCxYbpUTELvY1usR3DTGPUoIClOm4crpwnDRLVHvjYePGBB//pE\nyzxA/gcScxjwaH1ZUw9bnSbHyurKqbTa1KvjAgMBAAGjZjBkMB0GA1UdDgQWBBTq\nt0KQngx7ZHrbVHwDunxOn9ihYTAfBgNVHSMEGDAWgBTS7u9aIo06bVwjlz3yhdUm\n8SV7kjASBgNVHRMBAf8ECDAGAQH/AgECMA4GA1UdDwEB/wQEAwIBhjANBgkqhkiG\n9w0BAQsFAAOCAQEAqQaCWMxTGqVVX7Sk7kkJmUueTSYKuU6+KBBSgwIRnlw9K7He\n1IpxZ0hdwpPNikKjmcyFgFPzhImwHJgxxuT90Pw3vYOdcJJNktDg35PXOfzSn15c\nFAx1RO0mPTmIb8dXiEWOpzoXvdwXDM41ZaCDYMT7w4IQtMyvE7xUBZq2bjtAnq/N\nDUA7be4H8H3ipC+/+NKlUrcUh+j48K67WI0u1m6FeQueBA7n06j825rqDqsaLs9T\nb7KAHAw8PmrWaNPG2kjKerxPEfecivlFawp2RWZvxrVtn3TV2SBxyCJCkXsND05d\nCErVHSJIs+BdtTVNY9AwtyPmnyb0v4mSTzvWdw==\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico FIDO Attestation A 1",
+          "fingerprint_sha256": "4ebabc9cbc964f722c985f3784d057e9ef5dcf454dcb4f767fccca58cf16a4e8",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSjCCAjKgAwIBAgIUTnbbGIR2NHvzqIKFAeQwG1XBis0wDQYJKoZIhvcNAQEL\nBQAwLjEsMCoGA1UEAwwjWXViaWNvIEF0dGVzdGF0aW9uIEludGVybWVkaWF0ZSBB\nIDEwIBcNMjQxMjAxMDAwMDAwWhgPOTk5OTEyMzEyMzU5NTlaMCYxJDAiBgNVBAMM\nG1l1YmljbyBGSURPIEF0dGVzdGF0aW9uIEEgMTCCASIwDQYJKoZIhvcNAQEBBQAD\nggEPADCCAQoCggEBAOsXj3k04Ban4TYdtZKqD/OPJxyDyaPmCBUFUiaZIgTteZnj\n3X25DhgpZZXsC4D0ydIcrlA6wNUInORL/L9zBbTEIMAVMGo6g7UKAmb2MF6AHbnh\nYJd9eikupVNWShHNYNc4GBdO1YN6AfUqvJhHbe3V4SNMPmBREKJPVz7ThwgmggTe\n8Ws2K0/wsqv2wSE7pbCBsUZhIX51bZM3pqDwJPTmRFEvt0/6tG5eO8F3j14OXqfE\nhmjn1VvxKDYQOLZAxCwwgC0P4CdfWv3y8PSR8I354hO1Y+GzNjvIqX38NKLywuIY\nHFerOxNlxEMBvFhYBuRuYAkkgUaPqN6UBhsILrsCAwEAAaNmMGQwHQYDVR0OBBYE\nFCCoRHhiyNnbnXRWIL6ZBXoBX9YTMB8GA1UdIwQYMBaAFCAoUCEbpFpb6FPLnZ3F\n5PxsL3ofMBIGA1UdEwEB/wQIMAYBAf8CAQAwDgYDVR0PAQH/BAQDAgGGMA0GCSqG\nSIb3DQEBCwUAA4IBAQCQFafJI1/5Wg9CEEimE1RP54RgQwTNTOOQsLACTe+rItlF\nQzC9ZDhrV828yX7jzy+AAsp3izK7T1th2dl7m+tu0sw2Pa/olc02nt6PyIw348ga\nHzhI1+0KE45qxvFDeL2lMxbPfCYvyEEaYzjiQELU5951pXGWyKMa/4fLtO+ZKOXh\nMuVeq4rXDPI54W6JHOiAaiKdiw+5e3c2kt/jFIQtM6vMXg9LNFzdjETNt20VX9Qe\nvRpFZfucMG9wCaQDoFlPzpTMJKhPev/imJmZYhKfr0lLcemtqjIxLAoqZdOYfHBg\n6+vAcdPI/iauGpUAv7X+UKNmDwjZ2BaH4sLwhB2m\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico Attestation Root 1",
+          "fingerprint_sha256": "62760c6a6ef91679f454c8902b80fd009825b3f25da90f1fbace2ec6586cd5a8",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDPjCCAiagAwIBAgIUXzeiEDJEOTt14F5n0o6Zf/bBwiUwDQYJKoZIhvcNAQEN\nBQAwJDEiMCAGA1UEAwwZWXViaWNvIEF0dGVzdGF0aW9uIFJvb3QgMTAgFw0yNDEy\nMDEwMDAwMDBaGA85OTk5MTIzMTIzNTk1OVowJDEiMCAGA1UEAwwZWXViaWNvIEF0\ndGVzdGF0aW9uIFJvb3QgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB\nAMZ6/TxM8rIT+EaoPvG81ontMOo/2mQ2RBwJHS0QZcxVaNXvl12LUhBZ5LmiBScI\nZd1Rnx1od585h+/dhK7hEm7JAALkKKts1fO53KGNLZujz5h3wGncr4hyKF0G74b/\nU3K9hE5mGND6zqYchCRAHfrYMYRDF4YL0X4D5nGdxvppAy6nkEmtWmMnwO3i0TAu\ncsrbE485HvGM4r0VpgVdJpvgQjiTJCTIq+D35hwtT8QDIv+nGvpcyi5wcIfCkzyC\nimJukhYy6KoqNMKQEdpNiSOvWyDMTMt1bwCvEzpw91u+msUt4rj0efnO9s0ZOwdw\nMRDnH4xgUl5ZLwrrPkfC1/0CAwEAAaNmMGQwHQYDVR0OBBYEFNLu71oijTptXCOX\nPfKF1SbxJXuSMB8GA1UdIwQYMBaAFNLu71oijTptXCOXPfKF1SbxJXuSMBIGA1Ud\nEwEB/wQIMAYBAf8CAQMwDgYDVR0PAQH/BAQDAgGGMA0GCSqGSIb3DQEBDQUAA4IB\nAQC3IW/sgB9pZ8apJNjxuGoX+FkILks0wMNrdXL/coUvsrhzsvl6mePMrbGJByJ1\nXnquB5sgcRENFxdQFma3mio8Upf1owM1ZreXrJ0mADG2BplqbJnxiyYa+R11reIF\nTWeIhMNcZKsDZrFAyPuFjCWSQvJmNWe9mFRYFgNhXJKkXIb5H1XgEDlwiedYRM7V\nolBNlld6pRFKlX8ust6OTMOeADl2xNF0m1LThSdeuXvDyC1g9+ILfz3S6OIYgc3i\nroRcFD354g7rKfu67qFAw9gC4yi0xBTPrY95rh4/HqaUYCA/L8ldRk6H7Xk35D+W\nVpmq2Sh/xT5HiFuhf4wJb0bK\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-nfc-by-yubico-enterprise-edition-preview",
+      "aaguid": "2772ce93-eb4b-4090-8b73-330f48477d73",
+      "attestation_format": "packed",
+      "description": "Security Key NFC by Yubico - Enterprise Edition Preview",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico 2023 FIDO Preview CA",
+          "fingerprint_sha256": "e77ac5884512d5ac7860d5853a367021fc1dac8faeca918715d675f7abf571d9",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDKjCCAhKgAwIBAgIUef+VvHkcTQnED++wJM/IxzSULk0wDQYJKoZIhvcNAQEL\nBQAwJjEkMCIGA1UEAwwbWXViaWNvIDIwMjMgRklETyBQcmV2aWV3IENBMB4XDTIz\nMDkyNTExMzI0MVoXDTI0MTIzMTExMzI0MVowJjEkMCIGA1UEAwwbWXViaWNvIDIw\nMjMgRklETyBQcmV2aWV3IENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC\nAQEAouFMTOKaE0YtexOoisSxp+Ebi5IA4esEScx16lzQdqV6/eZ82KtJeNXEuNkB\nVZDpc32gStuxLBH8mgsoHBFai2DkjfBn5qbwR/c5+snlwZvjgVA0hzKw9CwAeAwR\nD5krWt88/CVyCkMcgLSGwZs/rj7F/Ls3Ebg7MqLbbQJ9CozbbLdJUYIHcPpSZPto\nMrZb4Gvni6iVS9UvCKgpqc6LGRmoYGG4ZR3lGJ/XQZfu+GeJW67iimMj/yoXOwxu\ncxivZHFk6cQSgwuwioeNm4wvk83LhSuWctf2kAyQcZ7kUnpNee+d4MgrmGU4XMFL\niTgutaB+e9V8d5JTkUOHiLztkQIDAQABo1AwTjAdBgNVHQ4EFgQUM5SB5bHrV+jp\nIOMdJl7u7bcnTY8wHwYDVR0jBBgwFoAUM5SB5bHrV+jpIOMdJl7u7bcnTY8wDAYD\nVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEACowR3KTLfidJyQFNqEFfUrfZ\n9aa9egpOQtNRJdLStJ6xu2WfLwvG4ojGJlBKNnfa5DIcyQYf/8qJ4eliAVeNXuYm\neMmgNgZZyuY6G1yWCD2V3sD6Z4uj3SbaDOHj3gHvszgQhrhT1h/puHQkn6+hYKAp\n77kM7Ic6AZ/RFbjpmLLk2D0sE1lzT/02i+Bh7M8smaiDZ9++JGzxeSun8W1HleZU\nm2qKGmRa4XPdryT7x6KGUGnU4a3bpUmVeY9rQ/sfMd5ZToo+3unFWDzoVV2vNu8+\n+VLC9zo40FaKQLr9VAJDJ4yLENR7KrmV8L0cCXKJGZWAWtG5RGTmHIhd+nB41g==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubico-security-key-nfc-by-yubico-preview",
+      "aaguid": "760eda36-00aa-4d29-855b-4012a182cdeb",
+      "attestation_format": "packed",
+      "description": "Security Key NFC by Yubico Preview",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico 2023 FIDO Preview CA",
+          "fingerprint_sha256": "e77ac5884512d5ac7860d5853a367021fc1dac8faeca918715d675f7abf571d9",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDKjCCAhKgAwIBAgIUef+VvHkcTQnED++wJM/IxzSULk0wDQYJKoZIhvcNAQEL\nBQAwJjEkMCIGA1UEAwwbWXViaWNvIDIwMjMgRklETyBQcmV2aWV3IENBMB4XDTIz\nMDkyNTExMzI0MVoXDTI0MTIzMTExMzI0MVowJjEkMCIGA1UEAwwbWXViaWNvIDIw\nMjMgRklETyBQcmV2aWV3IENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC\nAQEAouFMTOKaE0YtexOoisSxp+Ebi5IA4esEScx16lzQdqV6/eZ82KtJeNXEuNkB\nVZDpc32gStuxLBH8mgsoHBFai2DkjfBn5qbwR/c5+snlwZvjgVA0hzKw9CwAeAwR\nD5krWt88/CVyCkMcgLSGwZs/rj7F/Ls3Ebg7MqLbbQJ9CozbbLdJUYIHcPpSZPto\nMrZb4Gvni6iVS9UvCKgpqc6LGRmoYGG4ZR3lGJ/XQZfu+GeJW67iimMj/yoXOwxu\ncxivZHFk6cQSgwuwioeNm4wvk83LhSuWctf2kAyQcZ7kUnpNee+d4MgrmGU4XMFL\niTgutaB+e9V8d5JTkUOHiLztkQIDAQABo1AwTjAdBgNVHQ4EFgQUM5SB5bHrV+jp\nIOMdJl7u7bcnTY8wHwYDVR0jBBgwFoAUM5SB5bHrV+jpIOMdJl7u7bcnTY8wDAYD\nVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEACowR3KTLfidJyQFNqEFfUrfZ\n9aa9egpOQtNRJdLStJ6xu2WfLwvG4ojGJlBKNnfa5DIcyQYf/8qJ4eliAVeNXuYm\neMmgNgZZyuY6G1yWCD2V3sD6Z4uj3SbaDOHj3gHvszgQhrhT1h/puHQkn6+hYKAp\n77kM7Ic6AZ/RFbjpmLLk2D0sE1lzT/02i+Bh7M8smaiDZ9++JGzxeSun8W1HleZU\nm2qKGmRa4XPdryT7x6KGUGnU4a3bpUmVeY9rQ/sfMd5ZToo+3unFWDzoVV2vNu8+\n+VLC9zo40FaKQLr9VAJDJ4yLENR7KrmV8L0cCXKJGZWAWtG5RGTmHIhd+nB41g==\n-----END CERTIFICATE-----"
+        }
+      ]
+    },
+    {
+      "entry_id": "mds-yubikey5-u2f",
+      "aaguid": "00000000-0000-0000-0000-000000000000",
+      "attestation_format": "fido-u2f",
+      "description": "YubiKey 5 Series",
+      "sources": [
+        {
+          "type": "fido-mds",
+          "value": "mds3-production"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "commonName=Yubico FIDO Attestation A 1",
+          "fingerprint_sha256": "4ebabc9cbc964f722c985f3784d057e9ef5dcf454dcb4f767fccca58cf16a4e8",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSjCCAjKgAwIBAgIUTnbbGIR2NHvzqIKFAeQwG1XBis0wDQYJKoZIhvcNAQEL\nBQAwLjEsMCoGA1UEAwwjWXViaWNvIEF0dGVzdGF0aW9uIEludGVybWVkaWF0ZSBB\nIDEwIBcNMjQxMjAxMDAwMDAwWhgPOTk5OTEyMzEyMzU5NTlaMCYxJDAiBgNVBAMM\nG1l1YmljbyBGSURPIEF0dGVzdGF0aW9uIEEgMTCCASIwDQYJKoZIhvcNAQEBBQAD\nggEPADCCAQoCggEBAOsXj3k04Ban4TYdtZKqD/OPJxyDyaPmCBUFUiaZIgTteZnj\n3X25DhgpZZXsC4D0ydIcrlA6wNUInORL/L9zBbTEIMAVMGo6g7UKAmb2MF6AHbnh\nYJd9eikupVNWShHNYNc4GBdO1YN6AfUqvJhHbe3V4SNMPmBREKJPVz7ThwgmggTe\n8Ws2K0/wsqv2wSE7pbCBsUZhIX51bZM3pqDwJPTmRFEvt0/6tG5eO8F3j14OXqfE\nhmjn1VvxKDYQOLZAxCwwgC0P4CdfWv3y8PSR8I354hO1Y+GzNjvIqX38NKLywuIY\nHFerOxNlxEMBvFhYBuRuYAkkgUaPqN6UBhsILrsCAwEAAaNmMGQwHQYDVR0OBBYE\nFCCoRHhiyNnbnXRWIL6ZBXoBX9YTMB8GA1UdIwQYMBaAFCAoUCEbpFpb6FPLnZ3F\n5PxsL3ofMBIGA1UdEwEB/wQIMAYBAf8CAQAwDgYDVR0PAQH/BAQDAgGGMA0GCSqG\nSIb3DQEBCwUAA4IBAQCQFafJI1/5Wg9CEEimE1RP54RgQwTNTOOQsLACTe+rItlF\nQzC9ZDhrV828yX7jzy+AAsp3izK7T1th2dl7m+tu0sw2Pa/olc02nt6PyIw348ga\nHzhI1+0KE45qxvFDeL2lMxbPfCYvyEEaYzjiQELU5951pXGWyKMa/4fLtO+ZKOXh\nMuVeq4rXDPI54W6JHOiAaiKdiw+5e3c2kt/jFIQtM6vMXg9LNFzdjETNt20VX9Qe\nvRpFZfucMG9wCaQDoFlPzpTMJKhPev/imJmZYhKfr0lLcemtqjIxLAoqZdOYfHBg\n6+vAcdPI/iauGpUAv7X+UKNmDwjZ2BaH4sLwhB2m\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico Attestation Root 1",
+          "fingerprint_sha256": "62760c6a6ef91679f454c8902b80fd009825b3f25da90f1fbace2ec6586cd5a8",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDPjCCAiagAwIBAgIUXzeiEDJEOTt14F5n0o6Zf/bBwiUwDQYJKoZIhvcNAQEN\nBQAwJDEiMCAGA1UEAwwZWXViaWNvIEF0dGVzdGF0aW9uIFJvb3QgMTAgFw0yNDEy\nMDEwMDAwMDBaGA85OTk5MTIzMTIzNTk1OVowJDEiMCAGA1UEAwwZWXViaWNvIEF0\ndGVzdGF0aW9uIFJvb3QgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB\nAMZ6/TxM8rIT+EaoPvG81ontMOo/2mQ2RBwJHS0QZcxVaNXvl12LUhBZ5LmiBScI\nZd1Rnx1od585h+/dhK7hEm7JAALkKKts1fO53KGNLZujz5h3wGncr4hyKF0G74b/\nU3K9hE5mGND6zqYchCRAHfrYMYRDF4YL0X4D5nGdxvppAy6nkEmtWmMnwO3i0TAu\ncsrbE485HvGM4r0VpgVdJpvgQjiTJCTIq+D35hwtT8QDIv+nGvpcyi5wcIfCkzyC\nimJukhYy6KoqNMKQEdpNiSOvWyDMTMt1bwCvEzpw91u+msUt4rj0efnO9s0ZOwdw\nMRDnH4xgUl5ZLwrrPkfC1/0CAwEAAaNmMGQwHQYDVR0OBBYEFNLu71oijTptXCOX\nPfKF1SbxJXuSMB8GA1UdIwQYMBaAFNLu71oijTptXCOXPfKF1SbxJXuSMBIGA1Ud\nEwEB/wQIMAYBAf8CAQMwDgYDVR0PAQH/BAQDAgGGMA0GCSqGSIb3DQEBDQUAA4IB\nAQC3IW/sgB9pZ8apJNjxuGoX+FkILks0wMNrdXL/coUvsrhzsvl6mePMrbGJByJ1\nXnquB5sgcRENFxdQFma3mio8Upf1owM1ZreXrJ0mADG2BplqbJnxiyYa+R11reIF\nTWeIhMNcZKsDZrFAyPuFjCWSQvJmNWe9mFRYFgNhXJKkXIb5H1XgEDlwiedYRM7V\nolBNlld6pRFKlX8ust6OTMOeADl2xNF0m1LThSdeuXvDyC1g9+ILfz3S6OIYgc3i\nroRcFD354g7rKfu67qFAw9gC4yi0xBTPrY95rh4/HqaUYCA/L8ldRk6H7Xk35D+W\nVpmq2Sh/xT5HiFuhf4wJb0bK\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico Attestation Intermediate A 1",
+          "fingerprint_sha256": "4698a1d3389c3ec60016c216250f1d0439922832d65142327436376dc2942b55",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSDCCAjCgAwIBAgIUUcmMXzRIFOgGTK0Tb3gEuZYZkBIwDQYJKoZIhvcNAQEL\nBQAwJDEiMCAGA1UEAwwZWXViaWNvIEF0dGVzdGF0aW9uIFJvb3QgMTAgFw0yNDEy\nMDEwMDAwMDBaGA85OTk5MTIzMTIzNTk1OVowLjEsMCoGA1UEAwwjWXViaWNvIEF0\ndGVzdGF0aW9uIEludGVybWVkaWF0ZSBBIDEwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQDm555bWY9WW+tOY0rIWHldh+aNanoCZCFh7Gk3YZrQmPUw0hkS\nG6qYHQtP+fZyS33VErvg+BQqnmumgNhfxFrkwEZELeidBcC8C4Ag4nqqiPWpzsvI\n17NcxYlInLNLFcZY/+gOiN6ZOTihO5/vBZMbj9riaAcqliYmNGJPgTcMGaEAyMzE\nMNy2nm6Ep+pjP5aF6gi21t/UQFsuJ1j2Rj/ynM/SdRt+ecal5OYotxHkFbL9vvv2\nA2Ov5ITZClw4bOS9npypQimOZ5QAYytmYaQpWl/pMYz6zSj8RqkVDNEJGqNfTKA2\nivLYwX6lSttMPapg0J84l9X0voVN/FpS4VCVAgMBAAGjZjBkMB0GA1UdDgQWBBQg\nKFAhG6RaW+hTy52dxeT8bC96HzAfBgNVHSMEGDAWgBTS7u9aIo06bVwjlz3yhdUm\n8SV7kjASBgNVHRMBAf8ECDAGAQH/AgECMA4GA1UdDwEB/wQEAwIBhjANBgkqhkiG\n9w0BAQsFAAOCAQEAYMzgLrJLIr0OovQnAZrRIGuabiHSUKSmbLRWpRkWeAtsChDE\nHpXcJ/bgDNKYWoHqQ8xRUjB4CyepYevc3YlrG8o7zHxpfVcaoL5SeuJkzHxKn4bT\naSp9+Mvwamnp64kZMiNbFLknfP9kYKoRHkMWheRJ1UsP1z4ScmkCeILfsMs6vqov\nqjWClFsJpBcsluYHWF7bBJ1n4Rwg+ATEopY4IgGv6Zvwc+A9r+AT2hqpoSkYoAl+\nANYwgslOf9sJe0V+TA9YY/UlaBmPPTd0//r9wvcePWZkPjKoAC/zUNhfDbh4LV8G\nHs3lyX2XomL/LNc8JYzyIaDEhGQveoPhh/tr1g==\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico Attestation Intermediate B 1",
+          "fingerprint_sha256": "d4cc3f456fdaf4e7812a21aab1dfe9d8e27d24e2fd2d6f21c9940109f0daa754",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSDCCAjCgAwIBAgIUDqERw+4RnGSggxgUewJFEPDRZ3YwDQYJKoZIhvcNAQEL\nBQAwJDEiMCAGA1UEAwwZWXViaWNvIEF0dGVzdGF0aW9uIFJvb3QgMTAgFw0yNDEy\nMDEwMDAwMDBaGA85OTk5MTIzMTIzNTk1OVowLjEsMCoGA1UEAwwjWXViaWNvIEF0\ndGVzdGF0aW9uIEludGVybWVkaWF0ZSBCIDEwggEiMA0GCSqGSIb3DQEBAQUAA4IB\nDwAwggEKAoIBAQDI7XnH+ZvDwMCQU8M8ZeV5qscublvVYaaRt3Ybaxn9godLx5sw\nH0lXrdgjh5h7FpVgCgYYX7E4bl1vbzULemrMWT8N3WMGUe8QAJbBeioV7W/E+hTZ\nP/0SKJVa3ewKBo6ULeMnfQZDrVORAk8wTLq2v5Llj5vMj7JtOotKa9J7nHS8kLmz\nXXSaj0SwEPh5OAZUTNV4zs1bvoTAQQWrL4/J9QuKt6WCFE5nUNiRQcEbVF8mlqK2\nbx2z6okVltyDVLCxYbpUTELvY1usR3DTGPUoIClOm4crpwnDRLVHvjYePGBB//pE\nyzxA/gcScxjwaH1ZUw9bnSbHyurKqbTa1KvjAgMBAAGjZjBkMB0GA1UdDgQWBBTq\nt0KQngx7ZHrbVHwDunxOn9ihYTAfBgNVHSMEGDAWgBTS7u9aIo06bVwjlz3yhdUm\n8SV7kjASBgNVHRMBAf8ECDAGAQH/AgECMA4GA1UdDwEB/wQEAwIBhjANBgkqhkiG\n9w0BAQsFAAOCAQEAqQaCWMxTGqVVX7Sk7kkJmUueTSYKuU6+KBBSgwIRnlw9K7He\n1IpxZ0hdwpPNikKjmcyFgFPzhImwHJgxxuT90Pw3vYOdcJJNktDg35PXOfzSn15c\nFAx1RO0mPTmIb8dXiEWOpzoXvdwXDM41ZaCDYMT7w4IQtMyvE7xUBZq2bjtAnq/N\nDUA7be4H8H3ipC+/+NKlUrcUh+j48K67WI0u1m6FeQueBA7n06j825rqDqsaLs9T\nb7KAHAw8PmrWaNPG2kjKerxPEfecivlFawp2RWZvxrVtn3TV2SBxyCJCkXsND05d\nCErVHSJIs+BdtTVNY9AwtyPmnyb0v4mSTzvWdw==\n-----END CERTIFICATE-----"
+        },
+        {
+          "label": "commonName=Yubico FIDO Attestation B 1",
+          "fingerprint_sha256": "4eadda86ff62cff987e111a07910d8554de42f71d5d6da7744610e09012dd319",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIIDSjCCAjKgAwIBAgIUR38mq26Sf2szVV2BdG6WEN7kuWUwDQYJKoZIhvcNAQEL\nBQAwLjEsMCoGA1UEAwwjWXViaWNvIEF0dGVzdGF0aW9uIEludGVybWVkaWF0ZSBC\nIDEwIBcNMjQxMjAxMDAwMDAwWhgPOTk5OTEyMzEyMzU5NTlaMCYxJDAiBgNVBAMM\nG1l1YmljbyBGSURPIEF0dGVzdGF0aW9uIEIgMTCCASIwDQYJKoZIhvcNAQEBBQAD\nggEPADCCAQoCggEBANY0Wb9oPoRoKoQyWPaJpz11vrWTg6zTtmNj2VoKRnyvKGRq\npzb83w5l6YA96UYkYBDQP0ilO2DPe6wWqVR5zDfRzdcH8bh+L7dGGvae6hRTZhkF\nkCpXDs4HccknrDf8FClJ7He39Jf42/G1Qm2zz9WWmrPXtgiK/x05GjsQfGuDG1zf\n5QTUUie8lwymK3TfdOvNeeJAAPe2pn7ItfRb+rVrNWiDzlRn2vNnZ2wPo4wH/WJ6\ndhXZG+rMWT+a6Bocg1UfIw6kdunG4bTpZzsvacFYyR0mpf+DeOnpSWAmywJWHvTl\nf2YXxFyeXcTACdQlcMNGJ2VhZQ48xtP5/RBP/8kCAwEAAaNmMGQwHQYDVR0OBBYE\nFChy42okiqcTS1iqa/HRWjkBn4H/MB8GA1UdIwQYMBaAFOq3QpCeDHtkettUfAO6\nfE6f2KFhMBIGA1UdEwEB/wQIMAYBAf8CAQAwDgYDVR0PAQH/BAQDAgGGMA0GCSqG\nSIb3DQEBCwUAA4IBAQAn+RHIPbtMEDNdT1g8H/RitAkUdLgAt1tWGWnlj9knbv4/\n4GlX7C9p45efPO9/aZL6OV1XRKBi6KmtBW5K7nuYEnMx/5BqBSbLT7rhduC49TBe\nMb9PHdXsTlSVNYefr1dGidr4j0xVBQLb1rknDAbdWDzKfvnayKO8Frwe7Hx843MG\n/rJ+c0XruUvbfVTCHLiIWhM7oNDhL8xob6xUo9KLKcSL+ItYsO3/9Wb8Q9GjsqL4\nFXsDcG1SaYh7KpfuMmOixqzJZO2nIicPYRg1I2SuiUfYO70tmdHcbl+kSQmSYt7r\nq4viILg2Gx3j9rITuWTjbaUaSSQxgOmMSHuyzMAC\n-----END CERTIFICATE-----"
+        }
+      ]
+    }
+  ]
+}

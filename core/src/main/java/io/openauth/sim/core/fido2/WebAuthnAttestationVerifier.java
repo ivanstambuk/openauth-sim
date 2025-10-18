@@ -61,7 +61,7 @@ public final class WebAuthnAttestationVerifier {
               authData.userVerified(),
               authData.algorithm());
 
-      return WebAuthnAttestationVerification.success(credential, certificates);
+      return WebAuthnAttestationVerification.success(credential, certificates, authData.aaguid());
     } catch (VerificationFailure vf) {
       return WebAuthnAttestationVerification.failure(vf.error, vf.getMessage());
     } catch (GeneralSecurityException ex) {

@@ -56,53 +56,85 @@
           >
           <div class="card-shell__body section-columns">
             <div class="stack-lg">
-              <h2 class="section-title" id="fido2-evaluate-heading">Evaluate a WebAuthn assertion</h2>
-
-              <fieldset
-                  class="mode-toggle"
-                  data-testid="fido2-evaluate-mode-toggle"
-                  data-mode="inline"
+              <h2
+                  class="section-title"
+                  id="fido2-evaluate-heading"
+                  data-testid="fido2-evaluate-heading"
                 >
-                <legend>Choose evaluation mode</legend>
-                <div class="mode-option">
-                  <input
-                    type="radio"
-                    id="fido2EvaluateModeInline"
-                    name="fido2EvaluateMode"
-                    value="inline"
-                    data-testid="fido2-evaluate-mode-select-inline"
-                    aria-describedby="fido2EvaluateModeInlineHint"
-                    checked="checked"
-                  />
-                  <label for="fido2EvaluateModeInline">Inline parameters</label>
-                  <p id="fido2EvaluateModeInlineHint" class="hint">
-                    Provide credential metadata and assertion payloads without storing them first.
-                  </p>
-                </div>
-                <div class="mode-option">
-                  <input
-                    type="radio"
-                    id="fido2EvaluateModeStored"
-                    name="fido2EvaluateMode"
-                    value="stored"
-                    data-testid="fido2-evaluate-mode-select-stored"
-                    aria-describedby="fido2EvaluateModeStoredHint"
-                  />
-                  <label for="fido2EvaluateModeStored">Stored credential</label>
-                  <p id="fido2EvaluateModeStoredHint" class="hint">
-                    Select a stored WebAuthn credential and supply assertion payloads for verification.
-                  </p>
-                </div>
-              </fieldset>
+                Evaluate a WebAuthn assertion
+              </h2>
 
-              <section
-                  class="stack-md stack-offset-top-lg"
-                  data-mode-section="inline"
-                  data-testid="fido2-evaluate-inline-section"
-                  aria-label="Inline WebAuthn evaluation form"
-                  hidden="hidden"
-                  aria-hidden="true"
+              <div
+                  class="ocra-mode-toggle"
+                  data-testid="fido2-evaluate-ceremony-toggle"
+                  role="group"
+                  aria-label="Choose WebAuthn ceremony"
+                  data-mode="assertion"
                 >
+                <button
+                    type="button"
+                    class="mode-pill mode-pill--active"
+                    data-testid="fido2-evaluate-ceremony-select-assertion"
+                    aria-pressed="true"
+                  >
+                  Assertion
+                </button>
+                <button
+                    type="button"
+                    class="mode-pill"
+                    data-testid="fido2-evaluate-ceremony-select-attestation"
+                    aria-pressed="false"
+                  >
+                  Attestation
+                </button>
+              </div>
+
+              <div class="stack-lg" data-ceremony-view="assertion">
+                <fieldset
+                    class="mode-toggle"
+                    data-testid="fido2-evaluate-mode-toggle"
+                    data-mode="inline"
+                  >
+                  <legend>Choose evaluation mode</legend>
+                  <div class="mode-option">
+                    <input
+                      type="radio"
+                      id="fido2EvaluateModeInline"
+                      name="fido2EvaluateMode"
+                      value="inline"
+                      data-testid="fido2-evaluate-mode-select-inline"
+                      aria-describedby="fido2EvaluateModeInlineHint"
+                      checked="checked"
+                    />
+                    <label for="fido2EvaluateModeInline">Inline parameters</label>
+                    <p id="fido2EvaluateModeInlineHint" class="hint">
+                      Provide credential metadata and assertion payloads without storing them first.
+                    </p>
+                  </div>
+                  <div class="mode-option">
+                    <input
+                      type="radio"
+                      id="fido2EvaluateModeStored"
+                      name="fido2EvaluateMode"
+                      value="stored"
+                      data-testid="fido2-evaluate-mode-select-stored"
+                      aria-describedby="fido2EvaluateModeStoredHint"
+                    />
+                    <label for="fido2EvaluateModeStored">Stored credential</label>
+                    <p id="fido2EvaluateModeStoredHint" class="hint">
+                      Select a stored WebAuthn credential and supply assertion payloads for verification.
+                    </p>
+                  </div>
+                </fieldset>
+
+                <section
+                    class="stack-md stack-offset-top-lg"
+                    data-mode-section="inline"
+                    data-testid="fido2-evaluate-inline-section"
+                    aria-label="Inline WebAuthn evaluation form"
+                    hidden="hidden"
+                    aria-hidden="true"
+                  >
                 <form
                     data-testid="fido2-inline-form"
                     class="evaluation-form"
@@ -257,12 +289,12 @@
                 </form>
               </section>
 
-              <section
-                  class="stack-md"
-                  data-mode-section="stored"
-                  data-testid="fido2-evaluate-stored-section"
-                  aria-label="Stored WebAuthn evaluation form"
-                >
+                <section
+                    class="stack-md"
+                    data-mode-section="stored"
+                    data-testid="fido2-evaluate-stored-section"
+                    aria-label="Stored WebAuthn evaluation form"
+                  >
                 <form
                     data-testid="fido2-stored-form"
                     class="evaluation-form"
@@ -408,12 +440,157 @@
                   </div>
                 </form>
               </section>
+              </div>
+
+              <section
+                  class="stack-md stack-offset-top-lg"
+                  data-ceremony-view="attestation"
+                  data-testid="fido2-attestation-inline-section"
+                  aria-label="Inline WebAuthn attestation form"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
+                <form
+                    data-testid="fido2-attestation-form"
+                    class="evaluation-form"
+                    th:attr="data-attestation-endpoint=${fido2AttestationEndpoint}"
+                  >
+                  <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                  <script
+                      type="application/json"
+                      id="fido2-attestation-vectors"
+                      th:utext="${fido2AttestationVectorsJson}"
+                    ></script>
+                  <div class="inline-preset" data-testid="fido2-attestation-preset">
+                    <label for="fido2AttestationSampleSelect">Load an attestation vector</label>
+                    <select
+                        id="fido2AttestationSampleSelect"
+                        data-testid="fido2-attestation-sample-select"
+                        disabled="disabled"
+                      >
+                      <option value="">Select a vector</option>
+                    </select>
+                    <p class="hint">
+                      Selecting a vector pre-fills generator inputs (challenge, key material, and metadata).
+                    </p>
+                  </div>
+                  <input type="hidden" id="fido2AttestationId" name="attestationId" />
+                  <div class="field-grid field-grid--two-column">
+                    <div class="field-group">
+                      <label for="fido2AttestationFormat">Attestation format</label>
+                      <select id="fido2AttestationFormat" name="format">
+                        <option value="packed">packed</option>
+                        <option value="fido-u2f">fido-u2f</option>
+                        <option value="tpm">tpm</option>
+                        <option value="android-key">android-key</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="field-grid field-grid--two-column">
+                    <div class="field-group">
+                      <label for="fido2AttestationRpId">Relying party ID</label>
+                      <input
+                          id="fido2AttestationRpId"
+                          name="relyingPartyId"
+                          type="text"
+                          value="example.org"
+                          autocomplete="off"
+                        />
+                    </div>
+                    <div class="field-group">
+                      <label for="fido2AttestationOrigin">Origin</label>
+                      <input
+                          id="fido2AttestationOrigin"
+                          name="origin"
+                          type="text"
+                          value="https://example.org"
+                          autocomplete="off"
+                        />
+                    </div>
+                  </div>
+                  <div class="field-grid">
+                    <div class="field-group">
+                      <label for="fido2AttestationChallenge">Challenge (Base64URL)</label>
+                      <textarea
+                          id="fido2AttestationChallenge"
+                          name="challenge"
+                          rows="2"
+                          spellcheck="false"
+                          placeholder="Provide base64url challenge"
+                        ></textarea>
+                    </div>
+                  </div>
+                  <div class="field-grid field-grid--two-column">
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2AttestationCredentialKey">Credential private key (Base64URL)</label>
+                      <textarea
+                          id="fido2AttestationCredentialKey"
+                          name="credentialPrivateKey"
+                          rows="6"
+                          spellcheck="false"
+                        ></textarea>
+                    </div>
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2AttestationPrivateKey">Attestation private key (Base64URL)</label>
+                      <textarea
+                          id="fido2AttestationPrivateKey"
+                          name="attestationPrivateKey"
+                          rows="6"
+                          spellcheck="false"
+                        ></textarea>
+                    </div>
+                  </div>
+                  <div class="field-grid field-grid--two-column">
+                    <div class="field-group">
+                      <label for="fido2AttestationSerial">Attestation certificate serial (Base64URL)</label>
+                      <textarea
+                          id="fido2AttestationSerial"
+                          name="attestationCertificateSerial"
+                          rows="2"
+                          spellcheck="false"
+                        ></textarea>
+                    </div>
+                    <div class="field-group">
+                      <label for="fido2AttestationSigningMode">Signing mode</label>
+                      <select id="fido2AttestationSigningMode" name="signingMode">
+                        <option value="SELF_SIGNED">Self-signed</option>
+                        <option value="UNSIGNED">Unsigned (no signature)</option>
+                        <option value="CUSTOM_ROOT">Custom root (provide PEM)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="field-group field-group--stacked">
+                    <label for="fido2AttestationCustomRoot">Custom root certificates (PEM, optional)</label>
+                    <textarea
+                        id="fido2AttestationCustomRoot"
+                        name="customRootCertificates"
+                        rows="6"
+                        spellcheck="false"
+                        placeholder="Paste PEM certificate bundles to sign with a custom root"
+                      ></textarea>
+                    <p class="hint" data-testid="fido2-attestation-custom-root-help">
+                      Optional custom root bundle; paste one or more PEM certificates when using the custom-root signing mode.
+                    </p>
+                  </div>
+                  <div class="button-row">
+                    <button
+                        type="button"
+                        class="button-primary"
+                        data-testid="fido2-attestation-submit"
+                        data-attestation-label="Generate attestation"
+                      >
+                      Generate attestation
+                    </button>
+                  </div>
+                </form>
+              </section>
             </div>
 
             <div class="status-column stack-md">
               <section
                   class="result-panel"
                   data-testid="fido2-stored-result"
+                  data-ceremony-view="assertion"
                   aria-live="polite"
                   hidden="hidden"
                   aria-hidden="true"
@@ -425,6 +602,7 @@
               <section
                   class="result-panel"
                   data-testid="fido2-inline-result"
+                  data-ceremony-view="assertion"
                   aria-live="polite"
                   hidden="hidden"
                   aria-hidden="true"
@@ -434,6 +612,40 @@
                 <div
                     class="alert alert-error"
                     data-testid="fido2-inline-error"
+                    hidden="hidden"
+                    aria-hidden="true"
+                  ></div>
+              </section>
+
+              <section
+                  class="result-panel"
+                  data-testid="fido2-attestation-result"
+                  data-ceremony-view="attestation"
+                  aria-live="polite"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
+                <div class="result-header">
+                  <h3>Generated attestation</h3>
+                  <span class="status-badge" data-testid="fido2-attestation-status">pending</span>
+                </div>
+                <dl class="result-metadata"></dl>
+                <div class="result-body stack-md">
+                  <div>
+                    <h4 class="result-subtitle">response</h4>
+                    <pre class="code-block" data-testid="fido2-attestation-result-json">Awaiting submission.</pre>
+                  </div>
+                  <div>
+                    <h4 class="result-subtitle">summary</h4>
+                    <div class="stack-sm" data-testid="fido2-attestation-summary">
+                      <p class="hint" data-testid="fido2-attestation-summary-signature">Signature: —</p>
+                      <p class="hint" data-testid="fido2-attestation-summary-cert-count">Certificate chain count: —</p>
+                    </div>
+                  </div>
+                </div>
+                <div
+                    class="alert alert-error"
+                    data-testid="fido2-attestation-error"
                     hidden="hidden"
                     aria-hidden="true"
                   ></div>
@@ -454,99 +666,363 @@
           >
           <div class="card-shell__body section-columns">
             <div class="stack-lg">
-              <h2 class="section-title" id="fido2-replay-heading">Replay a WebAuthn assertion</h2>
-
-              <fieldset
-                  class="mode-toggle"
-                  data-testid="fido2-replay-mode-toggle"
-                  data-mode="inline"
+              <h2
+                  class="section-title"
+                  id="fido2-replay-heading"
+                  data-testid="fido2-replay-heading"
                 >
-                <legend>Choose replay mode</legend>
-                <div class="mode-option">
-                  <input
-                    type="radio"
-                    id="fido2ReplayModeInline"
-                    name="fido2ReplayMode"
-                    value="inline"
-                    data-testid="fido2-replay-mode-select-inline"
-                    aria-describedby="fido2ReplayModeInlineHint"
-                    checked="checked"
-                  />
-                  <label for="fido2ReplayModeInline">Inline parameters</label>
-                  <p id="fido2ReplayModeInlineHint" class="hint">
-                    Provide credential metadata and assertion payloads directly for diagnostics.
-                  </p>
-                </div>
-                <div class="mode-option">
-                  <input
-                    type="radio"
-                    id="fido2ReplayModeStored"
-                    name="fido2ReplayMode"
-                    value="stored"
-                    data-testid="fido2-replay-mode-select-stored"
-                    aria-describedby="fido2ReplayModeStoredHint"
-                  />
-                  <label for="fido2ReplayModeStored">Stored credential</label>
-                  <p id="fido2ReplayModeStoredHint" class="hint">
-                    Select a stored credential and replay an assertion without mutating state.
-                  </p>
-                </div>
-              </fieldset>
+                Replay a WebAuthn assertion
+              </h2>
+
+              <div
+                  class="ocra-mode-toggle"
+                  data-testid="fido2-replay-ceremony-toggle"
+                  role="group"
+                  aria-label="Choose WebAuthn ceremony"
+                  data-mode="assertion"
+                >
+                <button
+                    type="button"
+                    class="mode-pill mode-pill--active"
+                    data-testid="fido2-replay-ceremony-select-assertion"
+                    aria-pressed="true"
+                  >
+                  Assertion
+                </button>
+                <button
+                    type="button"
+                    class="mode-pill"
+                    data-testid="fido2-replay-ceremony-select-attestation"
+                    aria-pressed="false"
+                  >
+                  Attestation
+                </button>
+              </div>
+
+              <div class="stack-lg" data-replay-ceremony-view="assertion">
+                <fieldset
+                    class="mode-toggle"
+                    data-testid="fido2-replay-mode-toggle"
+                    data-mode="inline"
+                  >
+                  <legend>Choose replay mode</legend>
+                  <div class="mode-option" data-testid="fido2-replay-mode-inline-option">
+                    <input
+                      type="radio"
+                      id="fido2ReplayModeInline"
+                      name="fido2ReplayMode"
+                      value="inline"
+                      data-testid="fido2-replay-mode-select-inline"
+                      aria-describedby="fido2ReplayModeInlineHint"
+                      checked="checked"
+                    />
+                    <label for="fido2ReplayModeInline">Inline parameters</label>
+                    <p id="fido2ReplayModeInlineHint" class="hint">
+                      Provide credential metadata and assertion payloads directly for diagnostics.
+                    </p>
+                  </div>
+                  <div class="mode-option" data-testid="fido2-replay-mode-stored-option">
+                    <input
+                      type="radio"
+                      id="fido2ReplayModeStored"
+                      name="fido2ReplayMode"
+                      value="stored"
+                      data-testid="fido2-replay-mode-select-stored"
+                      aria-describedby="fido2ReplayModeStoredHint"
+                    />
+                    <label for="fido2ReplayModeStored">Stored credential</label>
+                    <p id="fido2ReplayModeStoredHint" class="hint">
+                      Select a stored credential and replay an assertion without mutating state.
+                    </p>
+                  </div>
+                </fieldset>
+
+                <section
+                    class="stack-md stack-offset-top-lg"
+                    data-replay-ceremony-view="assertion"
+                    data-testid="fido2-replay-inline-section"
+                    aria-label="Inline WebAuthn replay form"
+                    hidden="hidden"
+                    aria-hidden="true"
+                  >
+                  <form
+                      data-testid="fido2-replay-inline-form"
+                      class="evaluation-form"
+                      th:attr="data-replay-endpoint=${fido2ReplayEndpoint}"
+                    >
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                    <div class="inline-preset" data-testid="fido2-replay-inline-preset">
+                      <label for="fido2ReplayInlineSampleSelect">Load a sample vector</label>
+                      <select
+                          id="fido2ReplayInlineSampleSelect"
+                          data-testid="fido2-replay-inline-sample-select"
+                          disabled="disabled"
+                        >
+                        <option value="">Select a sample</option>
+                      </select>
+                      <p class="hint">
+                        Presets auto-fill inline replay inputs with curated assertion payloads for diagnostics.
+                      </p>
+                    </div>
+                    <div class="field-grid">
+                      <div class="field-group">
+                        <label for="fido2ReplayInlineCredentialId">Credential ID (Base64URL)</label>
+                        <textarea
+                            id="fido2ReplayInlineCredentialId"
+                            name="credentialId"
+                            rows="1"
+                            spellcheck="false"
+                          ></textarea>
+                      </div>
+                      <div class="field-group">
+                        <label for="fido2ReplayInlinePublicKey">Public key (JWK, COSE Base64URL, or PEM)</label>
+                        <textarea
+                            id="fido2ReplayInlinePublicKey"
+                            name="publicKey"
+                            rows="6"
+                            spellcheck="false"
+                            data-json-pretty="true"
+                          ></textarea>
+                      </div>
+                    </div>
+                    <div class="field-grid field-grid--two-column">
+                      <div class="field-group">
+                        <label for="fido2ReplayInlineRpId">Relying party ID</label>
+                        <input
+                            id="fido2ReplayInlineRpId"
+                            name="relyingPartyId"
+                            type="text"
+                            value="example.org"
+                            autocomplete="off"
+                          />
+                      </div>
+                      <div class="field-group">
+                        <label for="fido2ReplayInlineOrigin">Origin</label>
+                        <input
+                            id="fido2ReplayInlineOrigin"
+                            name="origin"
+                            type="text"
+                            value="https://example.org"
+                            autocomplete="off"
+                          />
+                      </div>
+                    </div>
+                    <div class="field-grid">
+                      <div class="field-group">
+                        <label for="fido2ReplayInlineAlgorithm">Algorithm</label>
+                        <select
+                            id="fido2ReplayInlineAlgorithm"
+                            name="algorithm"
+                            data-testid="fido2-replay-inline-algorithm"
+                          >
+                          <option value="ES256" selected="selected">ES256</option>
+                          <option value="ES384">ES384</option>
+                          <option value="ES512">ES512</option>
+                          <option value="RS256">RS256</option>
+                          <option value="PS256">PS256</option>
+                          <option value="EdDSA">EdDSA</option>
+                        </select>
+                      </div>
+                      <div class="field-group">
+                        <label for="fido2ReplayInlineCounter">Signature counter</label>
+                        <input
+                            id="fido2ReplayInlineCounter"
+                            name="signatureCounter"
+                            type="number"
+                            min="0"
+                            step="1"
+                            value="0"
+                          />
+                      </div>
+                      <div class="field-group field-group--checkbox">
+                        <input
+                            type="checkbox"
+                            id="fido2ReplayInlineUvRequired"
+                            name="userVerificationRequired"
+                            value="true"
+                          />
+                        <label for="fido2ReplayInlineUvRequired">User verification required</label>
+                      </div>
+                    </div>
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2ReplayInlineChallenge">Client challenge (Base64URL)</label>
+                      <textarea
+                          id="fido2ReplayInlineChallenge"
+                          name="expectedChallenge"
+                          rows="3"
+                          spellcheck="false"
+                          data-testid="fido2-replay-inline-challenge"
+                        ></textarea>
+                    </div>
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2ReplayInlineClientData">clientDataJSON (Base64URL)</label>
+                      <textarea
+                          id="fido2ReplayInlineClientData"
+                          name="clientData"
+                          rows="4"
+                          spellcheck="false"
+                          data-testid="fido2-replay-inline-client-data"
+                        ></textarea>
+                    </div>
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2ReplayInlineAuthenticatorData">Authenticator data (Base64URL)</label>
+                      <textarea
+                          id="fido2ReplayInlineAuthenticatorData"
+                          name="authenticatorData"
+                          rows="3"
+                          spellcheck="false"
+                          data-testid="fido2-replay-inline-authenticator-data"
+                        ></textarea>
+                    </div>
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2ReplayInlineSignature">Signature (Base64URL)</label>
+                      <textarea
+                          id="fido2ReplayInlineSignature"
+                          name="signature"
+                          rows="4"
+                          spellcheck="false"
+                          data-testid="fido2-replay-inline-signature"
+                        ></textarea>
+                    </div>
+                    <div class="button-row">
+                      <button
+                          type="button"
+                          class="button-primary"
+                          data-testid="fido2-replay-inline-submit"
+                          data-inline-label="Replay inline assertion"
+                        >
+                        Replay inline assertion
+                      </button>
+                    </div>
+                  </form>
+                </section>
+
+                <section
+                    class="stack-md"
+                    data-replay-ceremony-view="assertion"
+                    data-testid="fido2-replay-stored-section"
+                    aria-label="Stored WebAuthn replay form"
+                  >
+                  <form
+                      data-testid="fido2-replay-form"
+                      class="evaluation-form"
+                      th:attr="data-replay-endpoint=${fido2ReplayEndpoint},data-credentials-endpoint=${fido2CredentialsEndpoint},data-sample-endpoint=${fido2StoredSampleEndpoint}"
+                    >
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                    <div class="field-grid field-grid--two-column">
+                      <div class="field-group">
+                        <label for="fido2ReplayCredentialId">Stored credential</label>
+                        <select
+                            id="fido2ReplayCredentialId"
+                            name="credentialId"
+                            disabled="disabled"
+                            data-testid="fido2-replay-credential-select"
+                          >
+                          <option value="">Select a stored credential</option>
+                        </select>
+                      </div>
+                      <div class="field-group">
+                        <label for="fido2ReplayOrigin">Origin</label>
+                        <input
+                            id="fido2ReplayOrigin"
+                            name="origin"
+                            type="text"
+                            value="https://example.org"
+                          />
+                      </div>
+                      <div class="field-group">
+                        <label for="fido2ReplayRpId">Relying party ID</label>
+                        <input
+                            id="fido2ReplayRpId"
+                            name="relyingPartyId"
+                            type="text"
+                            value="example.org"
+                          />
+                      </div>
+                    </div>
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2ReplayChallenge">Client challenge (Base64URL)</label>
+                      <textarea
+                          id="fido2ReplayChallenge"
+                          name="expectedChallenge"
+                          rows="3"
+                          spellcheck="false"
+                          data-testid="fido2-replay-stored-challenge"
+                        ></textarea>
+                    </div>
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2ReplayClientData">clientDataJSON (Base64URL)</label>
+                      <textarea
+                          id="fido2ReplayClientData"
+                          name="clientData"
+                          rows="4"
+                          spellcheck="false"
+                          data-testid="fido2-replay-stored-client-data"
+                        ></textarea>
+                    </div>
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2ReplayAuthenticatorData">Authenticator data (Base64URL)</label>
+                      <textarea
+                          id="fido2ReplayAuthenticatorData"
+                          name="authenticatorData"
+                          rows="3"
+                          spellcheck="false"
+                          data-testid="fido2-replay-stored-authenticator-data"
+                        ></textarea>
+                    </div>
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2ReplaySignature">Signature (Base64URL)</label>
+                      <textarea
+                          id="fido2ReplaySignature"
+                          name="signature"
+                          rows="4"
+                          spellcheck="false"
+                          data-testid="fido2-replay-stored-signature"
+                        ></textarea>
+                    </div>
+                    <div class="button-row">
+                      <button
+                          type="button"
+                          class="button-primary"
+                          data-testid="fido2-replay-stored-submit"
+                          data-stored-label="Replay stored assertion"
+                        >
+                        Replay stored assertion
+                      </button>
+                    </div>
+                  </form>
+                </section>
+              </div>
 
               <section
                   class="stack-md stack-offset-top-lg"
-                  data-replay-section="inline"
-                  data-testid="fido2-replay-inline-section"
-                  aria-label="Inline WebAuthn replay form"
+                  data-replay-ceremony-view="attestation"
+                  data-testid="fido2-replay-attestation-section"
+                  aria-label="WebAuthn attestation replay form"
                   hidden="hidden"
                   aria-hidden="true"
                 >
                 <form
-                    data-testid="fido2-replay-inline-form"
+                    data-testid="fido2-replay-attestation-form"
                     class="evaluation-form"
-                    th:attr="data-replay-endpoint=${fido2ReplayEndpoint}"
+                    th:attr="data-attestation-replay-endpoint=${fido2AttestationReplayEndpoint}"
                   >
                   <input type="hidden" name="_csrf" th:value="${csrfToken}" />
-                  <input id="fido2ReplayRpId" type="hidden" name="relyingPartyId" />
-                  <div class="inline-preset" data-testid="fido2-replay-inline-preset">
-                    <label for="fido2ReplayInlineSampleSelect">Load a sample vector</label>
-                    <select
-                        id="fido2ReplayInlineSampleSelect"
-                        data-testid="fido2-replay-inline-sample-select"
-                        disabled="disabled"
-                      >
-                      <option value="">Select a sample</option>
-                    </select>
-                    <p class="hint">
-                      Presets auto-fill inline replay inputs with curated assertion payloads for diagnostics.
-                    </p>
-                  </div>
-                  <div class="field-grid">
-                    <div class="field-group">
-                      <label for="fido2ReplayInlineCredentialId">Credential ID (Base64URL)</label>
-                      <textarea
-                          id="fido2ReplayInlineCredentialId"
-                          name="credentialId"
-                          rows="1"
-                          spellcheck="false"
-                        ></textarea>
-                    </div>
-                    <div class="field-group">
-                      <label for="fido2ReplayInlinePublicKey">Public key (JWK, COSE Base64URL, or PEM)</label>
-                      <textarea
-                          id="fido2ReplayInlinePublicKey"
-                          name="publicKey"
-                          rows="6"
-                          spellcheck="false"
-                          data-json-pretty="true"
-                        ></textarea>
-                    </div>
+                  <div class="field-group">
+                    <label for="fido2ReplayAttestationId">Attestation identifier (optional)</label>
+                    <input
+                        id="fido2ReplayAttestationId"
+                        name="attestationId"
+                        type="text"
+                        autocomplete="off"
+                      />
+                    <p class="hint">Telemetry correlation identifier, if desired.</p>
                   </div>
                   <div class="field-grid field-grid--two-column">
                     <div class="field-group">
-                      <label for="fido2ReplayInlineRpId">Relying party ID</label>
+                      <label for="fido2ReplayAttestationRpId">Relying party ID</label>
                       <input
-                          id="fido2ReplayInlineRpId"
+                          id="fido2ReplayAttestationRpId"
                           name="relyingPartyId"
                           type="text"
                           value="example.org"
@@ -554,9 +1030,9 @@
                         />
                     </div>
                     <div class="field-group">
-                      <label for="fido2ReplayInlineOrigin">Origin</label>
+                      <label for="fido2ReplayAttestationOrigin">Origin</label>
                       <input
-                          id="fido2ReplayInlineOrigin"
+                          id="fido2ReplayAttestationOrigin"
                           name="origin"
                           type="text"
                           value="https://example.org"
@@ -566,176 +1042,64 @@
                   </div>
                   <div class="field-grid">
                     <div class="field-group">
-                      <label for="fido2ReplayInlineAlgorithm">Algorithm</label>
-                      <select
-                          id="fido2ReplayInlineAlgorithm"
-                          name="algorithm"
-                          data-testid="fido2-replay-inline-algorithm"
-                        >
-                        <option value="ES256" selected="selected">ES256</option>
-                        <option value="ES384">ES384</option>
-                        <option value="ES512">ES512</option>
-                        <option value="RS256">RS256</option>
-                        <option value="PS256">PS256</option>
-                        <option value="EdDSA">EdDSA</option>
+                      <label for="fido2ReplayAttestationFormat">Attestation format</label>
+                      <select id="fido2ReplayAttestationFormat" name="format">
+                        <option value="packed">packed</option>
+                        <option value="fido-u2f">fido-u2f</option>
+                        <option value="tpm">tpm</option>
+                        <option value="android-key">android-key</option>
                       </select>
                     </div>
                     <div class="field-group">
-                      <label for="fido2ReplayInlineCounter">Signature counter</label>
-                      <input
-                          id="fido2ReplayInlineCounter"
-                          name="signatureCounter"
-                          type="number"
-                          min="0"
-                          step="1"
-                          value="0"
-                        />
-                    </div>
-                    <div class="field-group field-group--checkbox">
-                      <input
-                          type="checkbox"
-                          id="fido2ReplayInlineUvRequired"
-                          name="userVerificationRequired"
-                          value="true"
-                        />
-                      <label for="fido2ReplayInlineUvRequired">User verification required</label>
+                      <label for="fido2ReplayAttestationChallenge">Challenge (Base64URL)</label>
+                      <textarea
+                          id="fido2ReplayAttestationChallenge"
+                          name="expectedChallenge"
+                          rows="2"
+                          spellcheck="false"
+                          placeholder="Provide base64url challenge"
+                        ></textarea>
                     </div>
                   </div>
                   <div class="field-group field-group--stacked">
-                    <label for="fido2ReplayInlineChallenge">Client challenge (Base64URL)</label>
+                    <label for="fido2ReplayAttestationClientDataJson">clientDataJSON (Base64URL)</label>
                     <textarea
-                        id="fido2ReplayInlineChallenge"
-                        name="expectedChallenge"
-                        rows="3"
+                        id="fido2ReplayAttestationClientDataJson"
+                        name="clientDataJson"
+                        rows="6"
                         spellcheck="false"
-                        data-testid="fido2-replay-inline-challenge"
                       ></textarea>
                   </div>
                   <div class="field-group field-group--stacked">
-                    <label for="fido2ReplayInlineClientData">clientDataJSON (Base64URL)</label>
+                    <label for="fido2ReplayAttestationObject">Attestation object (Base64URL)</label>
                     <textarea
-                        id="fido2ReplayInlineClientData"
-                        name="clientData"
-                        rows="4"
+                        id="fido2ReplayAttestationObject"
+                        name="attestationObject"
+                        rows="8"
                         spellcheck="false"
-                        data-testid="fido2-replay-inline-client-data"
                       ></textarea>
                   </div>
                   <div class="field-group field-group--stacked">
-                    <label for="fido2ReplayInlineAuthenticatorData">Authenticator data (Base64URL)</label>
+                    <label for="fido2ReplayAttestationTrustAnchors">Trust anchors (PEM bundle, optional)</label>
                     <textarea
-                        id="fido2ReplayInlineAuthenticatorData"
-                        name="authenticatorData"
-                        rows="3"
+                        id="fido2ReplayAttestationTrustAnchors"
+                        name="trustAnchors"
+                        rows="6"
                         spellcheck="false"
-                        data-testid="fido2-replay-inline-authenticator-data"
+                        placeholder="Paste PEM certificates to enforce trust anchors"
                       ></textarea>
-                  </div>
-                  <div class="field-group field-group--stacked">
-                    <label for="fido2ReplayInlineSignature">Signature (Base64URL)</label>
-                    <textarea
-                        id="fido2ReplayInlineSignature"
-                        name="signature"
-                        rows="4"
-                        spellcheck="false"
-                        data-testid="fido2-replay-inline-signature"
-                      ></textarea>
+                    <p class="hint" data-testid="fido2-replay-attestation-trust-anchor-help">
+                      Optional trust anchors; leave blank to allow self-attested verification.
+                    </p>
                   </div>
                   <div class="button-row">
                     <button
                         type="button"
                         class="button-primary"
-                        data-testid="fido2-replay-inline-submit"
-                        data-inline-label="Replay inline assertion"
+                        data-testid="fido2-replay-attestation-submit"
+                        data-attestation-label="Replay attestation"
                       >
-                      Replay inline assertion
-                    </button>
-                  </div>
-                </form>
-              </section>
-
-              <section
-                  class="stack-md"
-                  data-replay-section="stored"
-                  data-testid="fido2-replay-stored-section"
-                  aria-label="Stored WebAuthn replay form"
-                >
-                <form
-                    data-testid="fido2-replay-form"
-                    class="evaluation-form"
-                    th:attr="data-replay-endpoint=${fido2ReplayEndpoint},data-credentials-endpoint=${fido2CredentialsEndpoint},data-sample-endpoint=${fido2StoredSampleEndpoint}"
-                  >
-                  <input type="hidden" name="_csrf" th:value="${csrfToken}" />
-                  <div class="field-grid">
-                    <div class="field-group">
-                      <label for="fido2ReplayCredentialId">Stored credential</label>
-                      <select
-                          id="fido2ReplayCredentialId"
-                          name="credentialId"
-                          disabled="disabled"
-                          data-testid="fido2-replay-credential-select"
-                        >
-                        <option value="">Select a stored credential</option>
-                      </select>
-                    </div>
-                    <div class="field-group">
-                      <label for="fido2ReplayOrigin">Origin</label>
-                      <input
-                          id="fido2ReplayOrigin"
-                          name="origin"
-                          type="text"
-                          value="https://example.org"
-                        />
-                    </div>
-                  </div>
-                  <div class="field-group field-group--stacked">
-                    <label for="fido2ReplayChallenge">Client challenge (Base64URL)</label>
-                    <textarea
-                        id="fido2ReplayChallenge"
-                        name="expectedChallenge"
-                        rows="3"
-                        spellcheck="false"
-                        data-testid="fido2-replay-stored-challenge"
-                      ></textarea>
-                  </div>
-                  <div class="field-group field-group--stacked">
-                    <label for="fido2ReplayClientData">clientDataJSON (Base64URL)</label>
-                    <textarea
-                        id="fido2ReplayClientData"
-                        name="clientData"
-                        rows="4"
-                        spellcheck="false"
-                        data-testid="fido2-replay-stored-client-data"
-                      ></textarea>
-                  </div>
-                  <div class="field-group field-group--stacked">
-                    <label for="fido2ReplayAuthenticatorData">Authenticator data (Base64URL)</label>
-                    <textarea
-                        id="fido2ReplayAuthenticatorData"
-                        name="authenticatorData"
-                        rows="3"
-                        spellcheck="false"
-                        data-testid="fido2-replay-stored-authenticator-data"
-                      ></textarea>
-                  </div>
-                  <div class="field-group field-group--stacked">
-                    <label for="fido2ReplaySignature">Signature (Base64URL)</label>
-                    <textarea
-                        id="fido2ReplaySignature"
-                        name="signature"
-                        rows="4"
-                        spellcheck="false"
-                        data-testid="fido2-replay-stored-signature"
-                      ></textarea>
-                  </div>
-                  <div class="button-row">
-                    <button
-                        type="button"
-                        class="button-primary"
-                        data-testid="fido2-replay-stored-submit"
-                        data-stored-label="Replay stored assertion"
-                      >
-                      Replay stored assertion
+                      Replay attestation
                     </button>
                   </div>
                 </form>
@@ -746,6 +1110,7 @@
               <section
                   class="result-panel"
                   data-testid="fido2-replay-result"
+                  data-replay-ceremony-view="assertion"
                   aria-live="polite"
                   hidden="hidden"
                   aria-hidden="true"
@@ -765,15 +1130,17 @@
                   </div>
                 </dl>
               </section>
+
               <section
                   class="result-panel"
                   data-testid="fido2-replay-inline-result"
+                  data-replay-ceremony-view="assertion"
                   aria-live="polite"
                   hidden="hidden"
                   aria-hidden="true"
                 >
                 <div class="result-header">
-                  <h3>Inline replay result</h3>
+                  <h3>Replay result</h3>
                   <span class="status-badge" data-testid="fido2-replay-inline-status">—</span>
                 </div>
                 <dl class="result-metadata">
@@ -786,6 +1153,44 @@
                     <dd data-testid="fido2-replay-inline-outcome">—</dd>
                   </div>
                 </dl>
+              </section>
+
+              <section
+                  class="result-panel"
+                  data-testid="fido2-replay-attestation-result"
+                  data-replay-ceremony-view="attestation"
+                  aria-live="polite"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
+                <div class="result-header">
+                  <h3>Attestation replay</h3>
+                  <span class="status-badge" data-testid="fido2-replay-attestation-status">pending</span>
+                </div>
+                <dl class="result-metadata">
+                  <div class="result-row">
+                    <dt>Reason Code</dt>
+                    <dd data-testid="fido2-replay-attestation-reason">Awaiting submission.</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Outcome</dt>
+                    <dd data-testid="fido2-replay-attestation-outcome">Awaiting submission.</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Anchor Source</dt>
+                    <dd data-testid="fido2-replay-attestation-anchor-source">Awaiting submission.</dd>
+                  </div>
+                  <div class="result-row">
+                    <dt>Anchor Trust</dt>
+                    <dd data-testid="fido2-replay-attestation-anchor-trusted">Awaiting submission.</dd>
+                  </div>
+                </dl>
+                <div
+                    class="alert alert-error"
+                    data-testid="fido2-replay-attestation-error"
+                    hidden="hidden"
+                    aria-hidden="true"
+                  ></div>
               </section>
             </div>
           </div>

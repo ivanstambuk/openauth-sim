@@ -174,6 +174,104 @@
         }
       }
     },
+    "/api/v1/webauthn/attest" : {
+      "post" : {
+        "tags" : [ "web-authn-attestation-controller" ],
+        "summary" : "Generate a deterministic WebAuthn attestation object",
+        "operationId" : "generateWebAuthnAttestation",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebAuthnAttestationGenerationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Attestation generated",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnAttestationResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Request invalid",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnAttestationErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnAttestationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webauthn/attest/replay" : {
+      "post" : {
+        "tags" : [ "web-authn-attestation-controller" ],
+        "summary" : "Replay a WebAuthn attestation verification",
+        "operationId" : "replayWebAuthnAttestation",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebAuthnAttestationReplayRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Attestation replay succeeded",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnAttestationResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Request invalid",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnAttestationErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebAuthnAttestationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/totp/replay" : {
       "post" : {
         "tags" : [ "totp-replay-controller" ],
@@ -356,36 +454,8 @@
           "required" : true
         },
         "responses" : {
-          "422" : {
-            "description" : "Verification payload failed validation",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                },
-                "examples" : {
-                  "Missing context" : {
-                    "summary" : "Validation failure",
-                    "description" : "Missing context",
-                    "value" : {
-                      "error" : "invalid_input",
-                      "message" : "sessionHex is required",
-                      "details" : {
-                        "telemetryId" : "rest-ocra-verify-<uuid>",
-                        "status" : "invalid",
-                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
-                        "field" : "sessionHex",
-                        "reasonCode" : "session_required",
-                        "sanitized" : "true"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Credential not found",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -423,12 +493,40 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
+          "404" : {
+            "description" : "Credential not found",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Verification payload failed validation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                },
+                "examples" : {
+                  "Missing context" : {
+                    "summary" : "Validation failure",
+                    "description" : "Missing context",
+                    "value" : {
+                      "error" : "invalid_input",
+                      "message" : "sessionHex is required",
+                      "details" : {
+                        "telemetryId" : "rest-ocra-verify-<uuid>",
+                        "status" : "invalid",
+                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
+                        "field" : "sessionHex",
+                        "reasonCode" : "session_required",
+                        "sanitized" : "true"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -539,8 +637,18 @@
           "required" : true
         },
         "responses" : {
-          "400" : {
-            "description" : "Validation error",
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -559,18 +667,8 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Credential not found",
+          "400" : {
+            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -599,26 +697,6 @@
           "required" : true
         },
         "responses" : {
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
           "200" : {
             "description" : "Evaluation completed",
             "content" : {
@@ -631,6 +709,26 @@
           },
           "400" : {
             "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -659,16 +757,6 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
           "200" : {
             "description" : "Evaluation completed",
             "content" : {
@@ -681,6 +769,16 @@
           },
           "400" : {
             "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1224,6 +1322,374 @@
             }
           }
         }
+      },
+      "WebAuthnAttestationMetadata" : {
+        "type" : "object",
+        "properties" : {
+          "telemetryId" : {
+            "type" : "string",
+            "description" : "Telemetry correlation identifier",
+            "example" : "rest-fido2-attest-2c66c5f9"
+          },
+          "reasonCode" : {
+            "type" : "string",
+            "description" : "Reason code associated with the result",
+            "example" : "generated"
+          },
+          "attestationFormat" : {
+            "type" : "string",
+            "description" : "Attestation format processed by the service",
+            "example" : "packed"
+          },
+          "relyingPartyId" : {
+            "type" : "string",
+            "description" : "Reported relying party identifier",
+            "example" : "example.org"
+          },
+          "anchorProvided" : {
+            "type" : "boolean",
+            "description" : "Flag indicating whether trust anchors were provided"
+          },
+          "anchorTrusted" : {
+            "type" : "boolean",
+            "description" : "Flag indicating whether provided trust anchors matched the certificate chain"
+          },
+          "selfAttestedFallback" : {
+            "type" : "boolean",
+            "description" : "Flag indicating the verification fell back to self-attestation"
+          },
+          "anchorSource" : {
+            "type" : "string",
+            "description" : "Derived source describing which anchors were used",
+            "example" : "provided"
+          },
+          "anchorMode" : {
+            "type" : "string",
+            "description" : "Indicates whether anchors were loaded fresh or retrieved from cache",
+            "example" : "fresh"
+          },
+          "certificateFingerprint" : {
+            "type" : "string",
+            "description" : "SHA-256 fingerprint of the attestation certificate when anchors were provided"
+          },
+          "aaguid" : {
+            "type" : "string",
+            "description" : "Authenticator AAGUID rendered as a canonical UUID string"
+          },
+          "attestationId" : {
+            "type" : "string",
+            "description" : "Identifier echoed from the request payload"
+          },
+          "anchorMetadataEntry" : {
+            "type" : "string",
+            "description" : "Offline metadata entry leveraged when resolving trust anchors",
+            "example" : "mds-w3c-packed-es256"
+          },
+          "anchorWarnings" : {
+            "type" : "array",
+            "description" : "Warnings generated while processing trust anchors",
+            "items" : {
+              "type" : "string",
+              "description" : "Warnings generated while processing trust anchors"
+            }
+          },
+          "signatureIncluded" : {
+            "type" : "boolean",
+            "description" : "Indicates whether the generated attestation includes a signature"
+          },
+          "customRootCount" : {
+            "type" : "integer",
+            "description" : "Number of custom roots provided for generation",
+            "format" : "int32",
+            "example" : 1
+          },
+          "customRootSource" : {
+            "type" : "string",
+            "description" : "Source describing how custom roots were supplied",
+            "example" : "inline"
+          },
+          "generationMode" : {
+            "type" : "string",
+            "description" : "Signing mode applied during generation",
+            "example" : "self_signed"
+          },
+          "inputSource" : {
+            "type" : "string",
+            "description" : "Input source used to build the request",
+            "example" : "manual"
+          },
+          "certificateChainCount" : {
+            "type" : "integer",
+            "description" : "Number of certificates returned in the attestation chain",
+            "format" : "int32",
+            "example" : 2
+          }
+        },
+        "description" : "Telemetry metadata describing the outcome of attestation generation or replay."
+      },
+      "WebAuthnAttestationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "description" : "High level status indicator (success on verified attestation)",
+            "example" : "success"
+          },
+          "generatedAttestation" : {
+            "$ref" : "#/components/schemas/WebAuthnGeneratedAttestation"
+          },
+          "attestedCredential" : {
+            "$ref" : "#/components/schemas/WebAuthnAttestedCredential"
+          },
+          "metadata" : {
+            "$ref" : "#/components/schemas/WebAuthnAttestationMetadata"
+          }
+        },
+        "description" : "Response payload for WebAuthn attestation verification and replay endpoints."
+      },
+      "WebAuthnAttestedCredential" : {
+        "type" : "object",
+        "properties" : {
+          "relyingPartyId" : {
+            "type" : "string",
+            "description" : "Relying party identifier associated with the credential",
+            "example" : "example.org"
+          },
+          "credentialId" : {
+            "type" : "string",
+            "description" : "Credential identifier encoded as Base64URL",
+            "example" : "yab1s0YtAoc_6gxWhiI0-Z8IFygITlEbt3YCAaiQVKU"
+          },
+          "algorithm" : {
+            "type" : "string",
+            "description" : "Authenticator signature algorithm label",
+            "example" : "ES256"
+          },
+          "userVerificationRequired" : {
+            "type" : "boolean",
+            "description" : "Whether the authenticator enforces user verification"
+          },
+          "signatureCounter" : {
+            "type" : "integer",
+            "description" : "Authenticator signature counter value",
+            "format" : "int64"
+          },
+          "aaguid" : {
+            "type" : "string",
+            "description" : "Authenticator AAGUID rendered as a canonical UUID string",
+            "example" : "6f4d6a94-7a9b-4c82-9c6d-9f83c60b0f14"
+          }
+        },
+        "description" : "Credential metadata produced by a successful WebAuthn attestation verification."
+      },
+      "WebAuthnGeneratedAttestation" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "description" : "Credential type",
+            "example" : "public-key"
+          },
+          "id" : {
+            "type" : "string",
+            "description" : "Credential identifier",
+            "example" : "Q2Jl...JfA"
+          },
+          "rawId" : {
+            "type" : "string",
+            "description" : "Raw credential identifier",
+            "example" : "Q2Jl...JfA"
+          },
+          "attestationId" : {
+            "type" : "string",
+            "description" : "Fixture identifier used for generation",
+            "example" : "w3c-packed-es256"
+          },
+          "format" : {
+            "type" : "string",
+            "description" : "Attestation format label",
+            "example" : "packed"
+          },
+          "response" : {
+            "$ref" : "#/components/schemas/WebAuthnGeneratedAttestationResponse"
+          }
+        },
+        "description" : "Generated WebAuthn attestation payload returned by the attestation endpoint."
+      },
+      "WebAuthnGeneratedAttestationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "clientDataJSON" : {
+            "type" : "string",
+            "description" : "ClientDataJSON payload encoded as Base64URL"
+          },
+          "attestationObject" : {
+            "type" : "string",
+            "description" : "Attestation object encoded as Base64URL"
+          }
+        },
+        "description" : "Attestation response payload mirroring WebAuthn assertions"
+      },
+      "WebAuthnAttestationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "description" : "High level status indicator for the failure",
+            "example" : "invalid"
+          },
+          "reasonCode" : {
+            "type" : "string",
+            "description" : "Reason code describing the failure",
+            "example" : "client_data_challenge_mismatch"
+          },
+          "message" : {
+            "type" : "string",
+            "description" : "Human-readable error message",
+            "example" : "Client data challenge mismatch."
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object",
+              "description" : "Additional details about the failure"
+            },
+            "description" : "Additional details about the failure"
+          },
+          "metadata" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object",
+              "description" : "Telemetry metadata captured during verification"
+            },
+            "description" : "Telemetry metadata captured during verification"
+          }
+        },
+        "description" : "Error payload returned when WebAuthn attestation verification fails."
+      },
+      "WebAuthnAttestationGenerationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "inputSource" : {
+            "type" : "string",
+            "description" : "Input source selection",
+            "example" : "PRESET",
+            "enum" : [ "PRESET", "MANUAL" ]
+          },
+          "attestationId" : {
+            "type" : "string",
+            "description" : "Fixture identifier to generate",
+            "example" : "w3c-packed-es256"
+          },
+          "format" : {
+            "type" : "string",
+            "description" : "Attestation format label",
+            "example" : "packed"
+          },
+          "relyingPartyId" : {
+            "type" : "string",
+            "description" : "Expected relying party ID",
+            "example" : "example.org"
+          },
+          "origin" : {
+            "type" : "string",
+            "description" : "Expected origin",
+            "example" : "https://example.org"
+          },
+          "challenge" : {
+            "type" : "string",
+            "description" : "Challenge encoded as Base64URL"
+          },
+          "credentialPrivateKey" : {
+            "type" : "string",
+            "description" : "Credential private key encoded as Base64URL"
+          },
+          "attestationPrivateKey" : {
+            "type" : "string",
+            "description" : "Attestation private key encoded as Base64URL"
+          },
+          "attestationCertificateSerial" : {
+            "type" : "string",
+            "description" : "Attestation certificate serial encoded as Base64URL"
+          },
+          "signingMode" : {
+            "type" : "string",
+            "description" : "Signing mode selection",
+            "example" : "SELF_SIGNED",
+            "enum" : [ "SELF_SIGNED", "UNSIGNED", "CUSTOM_ROOT" ]
+          },
+          "customRootCertificates" : {
+            "type" : "array",
+            "description" : "Inline PEM encoded custom root certificates",
+            "items" : {
+              "type" : "string",
+              "description" : "Inline PEM encoded custom root certificates"
+            }
+          },
+          "seedPresetId" : {
+            "type" : "string",
+            "description" : "Optional seed preset id when overrides are applied"
+          },
+          "overrides" : {
+            "type" : "array",
+            "description" : "Set of edited fields compared to the preset",
+            "items" : {
+              "type" : "string",
+              "description" : "Set of edited fields compared to the preset"
+            }
+          }
+        },
+        "description" : "Request payload for generating a deterministic WebAuthn attestation object."
+      },
+      "WebAuthnAttestationReplayRequest" : {
+        "required" : [ "attestationObject", "clientDataJson", "expectedChallenge", "format", "origin", "relyingPartyId" ],
+        "type" : "object",
+        "properties" : {
+          "attestationId" : {
+            "type" : "string",
+            "description" : "Identifier echoed back in telemetry metadata",
+            "example" : "w3c-packed-es256"
+          },
+          "format" : {
+            "type" : "string",
+            "description" : "Attestation statement format label (packed, fido-u2f, tpm, android-key)",
+            "example" : "packed"
+          },
+          "relyingPartyId" : {
+            "type" : "string",
+            "description" : "Expected relying party identifier",
+            "example" : "example.org"
+          },
+          "origin" : {
+            "type" : "string",
+            "description" : "Expected origin for the attested client data",
+            "example" : "https://example.org"
+          },
+          "attestationObject" : {
+            "type" : "string",
+            "description" : "Authenticator attestation object encoded as Base64URL",
+            "example" : "o2NmbXRmcGFja2VkZ2F0dFN0bXQ..."
+          },
+          "clientDataJson" : {
+            "type" : "string",
+            "description" : "ClientDataJSON payload encoded as Base64URL",
+            "example" : "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoi..."
+          },
+          "expectedChallenge" : {
+            "type" : "string",
+            "description" : "Expected challenge encoded as Base64URL",
+            "example" : "wRhKX934BF4T3Ef1S2H1pla2ZrWQGPFthw6SVumVIBI"
+          },
+          "trustAnchors" : {
+            "type" : "array",
+            "description" : "PEM encoded X.509 trust anchors to validate the attestation certificate chain",
+            "items" : {
+              "type" : "string",
+              "description" : "PEM encoded X.509 trust anchors to validate the attestation certificate chain"
+            }
+          }
+        },
+        "description" : "Request payload for replaying a WebAuthn attestation verification with optional trust anchors."
       },
       "TotpReplayMetadata" : {
         "type" : "object",
@@ -1774,23 +2240,6 @@
           }
         }
       },
-      "HotpEvaluationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "string"
-            }
-          }
-        }
-      },
       "HotpEvaluationMetadata" : {
         "type" : "object",
         "properties" : {
@@ -1843,6 +2292,23 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpEvaluationMetadata"
+          }
+        }
+      },
+      "HotpEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
           }
         }
       },

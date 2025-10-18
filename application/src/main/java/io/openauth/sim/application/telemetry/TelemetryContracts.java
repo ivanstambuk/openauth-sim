@@ -36,6 +36,10 @@ public final class TelemetryContracts {
       new Fido2TelemetryAdapter("fido2.evaluate");
   private static final Fido2TelemetryAdapter FIDO2_REPLAY_ADAPTER =
       new Fido2TelemetryAdapter("fido2.replay");
+  private static final Fido2TelemetryAdapter FIDO2_ATTEST_ADAPTER =
+      new Fido2TelemetryAdapter("fido2.attest");
+  private static final Fido2TelemetryAdapter FIDO2_ATTEST_REPLAY_ADAPTER =
+      new Fido2TelemetryAdapter("fido2.attestReplay");
 
   private TelemetryContracts() {
     throw new AssertionError("No instances");
@@ -104,5 +108,15 @@ public final class TelemetryContracts {
   /** Returns the shared adapter for FIDO2/WebAuthn replay telemetry. */
   public static Fido2TelemetryAdapter fido2ReplayAdapter() {
     return FIDO2_REPLAY_ADAPTER;
+  }
+
+  /** Returns the shared adapter for FIDO2/WebAuthn attestation telemetry. */
+  public static Fido2TelemetryAdapter fido2AttestAdapter() {
+    return FIDO2_ATTEST_ADAPTER;
+  }
+
+  /** Returns the shared adapter for FIDO2/WebAuthn attestation replay telemetry. */
+  public static Fido2TelemetryAdapter fido2AttestReplayAdapter() {
+    return FIDO2_ATTEST_REPLAY_ADAPTER;
   }
 }

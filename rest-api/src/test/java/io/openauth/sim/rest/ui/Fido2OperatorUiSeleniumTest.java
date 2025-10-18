@@ -5,19 +5,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples;
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples.Sample;
 import io.openauth.sim.application.fido2.WebAuthnSeedApplicationService;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
+import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
+import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
+import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +57,8 @@ final class Fido2OperatorUiSeleniumTest {
 
   private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
   private static final String STORED_CREDENTIAL_ID = "generator-es256";
+  private static final WebAuthnAttestationVerifier ATTESTATION_VERIFIER =
+      new WebAuthnAttestationVerifier();
 
   @TempDir static Path tempDir;
   private static Path databasePath;
@@ -442,6 +455,127 @@ final class Fido2OperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Evaluate tab exposes attestation toggle with inline-only mode")
+  void attestationToggleDefaultsToInline() {
+    navigateToWebAuthnPanel();
+
+    WebElement ceremonyToggle =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-ceremony-toggle']"));
+    assertThat(ceremonyToggle.getAttribute("data-mode")).isEqualTo("assertion");
+
+    WebElement assertionButton =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-ceremony-select-assertion']"));
+    WebElement attestationButton =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-ceremony-select-attestation']"));
+
+    assertThat(assertionButton.getAttribute("aria-pressed")).isEqualTo("true");
+    assertThat(attestationButton.getAttribute("aria-pressed")).isEqualTo("false");
+
+    attestationButton.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-evaluate-ceremony-toggle']"),
+        "data-mode",
+        "attestation");
+
+    assertThat(assertionButton.getAttribute("aria-pressed")).isEqualTo("false");
+    assertThat(attestationButton.getAttribute("aria-pressed")).isEqualTo("true");
+
+    WebElement modeToggle = waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"));
+    assertThat(modeToggle.getAttribute("data-mode")).isEqualTo("inline");
+    assertThat(modeToggle.getAttribute("data-locked")).isEqualTo("true");
+
+    WebElement storedOption =
+        waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+    assertThat(storedOption.getAttribute("aria-hidden")).isEqualTo("true");
+  }
+
+  @Test
+  @DisplayName("Attestation inline form exposes payload inputs and trust-anchor helper")
+  void attestationInlineFormExposesInputs() {
+    navigateToWebAuthnPanel();
+    switchToAttestationEvaluateMode();
+
+    WebElement credentialKeyField = waitFor(By.id("fido2AttestationCredentialKey"));
+    WebElement attestationKeyField = waitFor(By.id("fido2AttestationPrivateKey"));
+    WebElement certificateSerialField = waitFor(By.id("fido2AttestationSerial"));
+    WebElement signingModeSelect = waitFor(By.id("fido2AttestationSigningMode"));
+    WebElement customRootField = waitFor(By.id("fido2AttestationCustomRoot"));
+    assertThat(credentialKeyField.getAttribute("rows")).isEqualTo("6");
+    assertThat(attestationKeyField.getAttribute("rows")).isEqualTo("6");
+    assertThat(certificateSerialField.getAttribute("rows")).isEqualTo("2");
+    assertThat(signingModeSelect.getTagName()).isEqualTo("select");
+    assertThat(customRootField.getAttribute("rows")).isEqualTo("6");
+    assertThat(customRootField.getAttribute("placeholder")).contains("PEM");
+
+    WebElement customRootHelp =
+        waitFor(By.cssSelector("[data-testid='fido2-attestation-custom-root-help']"));
+    assertThat(customRootHelp.getText()).contains("Optional custom root");
+
+    WebElement generateButton = waitFor(By.cssSelector("[data-testid='fido2-attestation-submit']"));
+    assertThat(generateButton.getText()).contains("Generate attestation");
+
+    WebElement resultPanel = waitFor(By.cssSelector("[data-testid='fido2-attestation-result']"));
+    assertThat(resultPanel.getAttribute("aria-hidden")).isEqualTo("true");
+  }
+
+  @Test
+  @DisplayName("Attestation generation emits deterministic payloads")
+  void attestationGenerationProducesDeterministicPayload() {
+    WebAuthnAttestationVector vector = resolveAttestationVector();
+    String expectedAttestation = encodeBase64Url(vector.registration().attestationObject());
+    String expectedClientData = encodeBase64Url(vector.registration().clientDataJson());
+
+    navigateToWebAuthnPanel();
+    switchToAttestationEvaluateMode();
+
+    waitForOption(By.id("fido2AttestationSampleSelect"), vector.vectorId());
+    WebElement sampleSelectElement = waitFor(By.id("fido2AttestationSampleSelect"));
+    Select sampleSelect = new Select(sampleSelectElement);
+    sampleSelect.selectByValue(vector.vectorId());
+    dispatchChange(sampleSelectElement);
+
+    WebElement generateButton = waitFor(By.cssSelector("[data-testid='fido2-attestation-submit']"));
+    generateButton.click();
+
+    By statusSelector = By.cssSelector("[data-testid='fido2-attestation-status']");
+    awaitText(
+        statusSelector,
+        text -> text != null && !text.trim().isEmpty() && !"pending".equalsIgnoreCase(text.trim()));
+    WebElement statusBadge = waitFor(statusSelector);
+    assertThat(statusBadge.getText().trim()).isEqualToIgnoringCase("success");
+
+    assertThat(driver.findElements(By.cssSelector("[data-testid='fido2-attestation-result-id']")))
+        .isEmpty();
+    assertThat(
+            driver.findElements(By.cssSelector("[data-testid='fido2-attestation-result-format']")))
+        .isEmpty();
+    assertThat(driver.findElements(By.cssSelector("[data-testid='fido2-attestation-result-mode']")))
+        .isEmpty();
+
+    String attestationHtml = driver.getPageSource();
+    assertThat(attestationHtml)
+        .contains("\"type\": \"public-key\"")
+        .contains("\"id\": \"" + vector.vectorId() + "\"")
+        .contains("\"rawId\": \"" + vector.vectorId() + "\"")
+        .contains("\"attestationObject\": \"" + expectedAttestation + "\"")
+        .contains("\"clientDataJSON\": \"" + expectedClientData + "\"");
+
+    List<X509Certificate> certificateChain = verifyAttestation(vector).certificateChain();
+    WebElement summarySignature =
+        waitFor(By.cssSelector("[data-testid='fido2-attestation-summary-signature']"));
+    WebElement summaryCertCount =
+        waitFor(By.cssSelector("[data-testid='fido2-attestation-summary-cert-count']"));
+    String expectedSignatureText =
+        certificateChain.isEmpty() ? "Signature: not included" : "Signature: included";
+    assertThat(summarySignature.getText().trim()).isEqualTo(expectedSignatureText);
+    assertThat(summaryCertCount.getText().trim())
+        .isEqualTo("Certificate chain count: " + certificateChain.size());
+
+    assertThat(driver.findElements(By.cssSelector("[data-testid='fido2-attestation-telemetry']")))
+        .isEmpty();
+  }
+
+  @Test
   @DisplayName("Inline WebAuthn generation renders a PublicKeyCredential payload")
   void inlineGenerationDisplaysGeneratedAssertion() {
     navigateToWebAuthnPanel();
@@ -777,6 +911,139 @@ final class Fido2OperatorUiSeleniumTest {
   }
 
   @Test
+  @DisplayName("Replay tab exposes attestation toggle with inline-only mode")
+  void attestationReplayToggleDefaultsToInline() {
+    navigateToWebAuthnPanel();
+    switchToReplayTab();
+
+    WebElement ceremonyToggle =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-ceremony-toggle']"));
+    assertThat(ceremonyToggle.getAttribute("data-mode")).isEqualTo("assertion");
+
+    WebElement assertionButton =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-ceremony-select-assertion']"));
+    WebElement attestationButton =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-ceremony-select-attestation']"));
+
+    assertThat(assertionButton.getAttribute("aria-pressed")).isEqualTo("true");
+    assertThat(attestationButton.getAttribute("aria-pressed")).isEqualTo("false");
+
+    attestationButton.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-replay-ceremony-toggle']"), "data-mode", "attestation");
+
+    assertThat(assertionButton.getAttribute("aria-pressed")).isEqualTo("false");
+    assertThat(attestationButton.getAttribute("aria-pressed")).isEqualTo("true");
+
+    WebElement modeToggle = waitFor(By.cssSelector("[data-testid='fido2-replay-mode-toggle']"));
+    assertThat(modeToggle.getAttribute("data-mode")).isEqualTo("inline");
+    assertThat(modeToggle.getAttribute("data-locked")).isEqualTo("true");
+
+    WebElement storedOption =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-mode-select-stored']"));
+    assertThat(storedOption.getAttribute("aria-hidden")).isEqualTo("true");
+
+    WebElement attestationSection =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-attestation-section']"));
+    assertThat(attestationSection.getAttribute("hidden")).isNull();
+
+    WebElement assertionInlineSection =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-inline-section']"));
+    assertThat(assertionInlineSection.getAttribute("hidden")).isNotNull();
+
+    WebElement assertionStoredSection =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-stored-section']"));
+    assertThat(assertionStoredSection.getAttribute("hidden")).isNotNull();
+  }
+
+  @Test
+  @DisplayName("Attestation replay verifies payload with provided trust anchors")
+  void attestationReplayVerifiesWithTrustAnchors() {
+    WebAuthnAttestationVector vector = resolveAttestationVector();
+    WebAuthnAttestationVerification verification = verifyAttestation(vector);
+    List<X509Certificate> anchors =
+        verification.certificateChain().isEmpty()
+            ? List.of()
+            : List.of(
+                verification.certificateChain().get(verification.certificateChain().size() - 1));
+
+    navigateToWebAuthnPanel();
+    switchToAttestationReplayMode();
+    populateReplayAttestationForm(vector);
+    applyReplayTrustAnchors(anchors);
+
+    WebElement submitButton =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-attestation-submit']"));
+    submitButton.click();
+
+    By resultSelector = By.cssSelector("[data-testid='fido2-replay-attestation-result']");
+    awaitVisible(resultSelector);
+
+    By statusSelector = By.cssSelector("[data-testid='fido2-replay-attestation-status']");
+    awaitText(
+        statusSelector,
+        text -> {
+          String normalized = text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
+          return !normalized.isEmpty()
+              && !normalized.contains("awaiting")
+              && !"pending".equalsIgnoreCase(normalized);
+        });
+    assertThat(waitFor(statusSelector).getText().trim()).isEqualToIgnoringCase("success");
+
+    WebElement reason = waitFor(By.cssSelector("[data-testid='fido2-replay-attestation-reason']"));
+    assertThat(reason.getText().trim()).isEqualToIgnoringCase("match");
+
+    By anchorSourceSelector =
+        By.cssSelector("[data-testid='fido2-replay-attestation-anchor-source']");
+    awaitText(anchorSourceSelector, text -> !text.toLowerCase(Locale.ROOT).contains("awaiting"));
+    WebElement anchorSource = waitFor(anchorSourceSelector);
+    String anchorSourceText = anchorSource.getText().trim().toLowerCase(Locale.ROOT);
+    assertThat(anchorSourceText).containsAnyOf("provided", "metadata");
+
+    By anchorTrustedSelector =
+        By.cssSelector("[data-testid='fido2-replay-attestation-anchor-trusted']");
+    awaitText(anchorTrustedSelector, text -> !text.toLowerCase(Locale.ROOT).contains("awaiting"));
+    WebElement anchorTrusted = waitFor(anchorTrustedSelector);
+    assertThat(anchorTrusted.getText().trim()).isNotBlank();
+  }
+
+  @Test
+  @DisplayName("Attestation replay surfaces trust anchor validation errors")
+  void attestationReplaySurfacesTrustAnchorErrors() {
+    WebAuthnAttestationVector vector = resolveAttestationVector();
+
+    navigateToWebAuthnPanel();
+    switchToAttestationReplayMode();
+    populateReplayAttestationForm(vector);
+
+    WebElement trustAnchorField = waitFor(By.id("fido2ReplayAttestationTrustAnchors"));
+    trustAnchorField.clear();
+    trustAnchorField.sendKeys("-----BEGIN CERTIFICATE-----\ninvalid\n-----END CERTIFICATE-----");
+
+    WebElement submitButton =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-attestation-submit']"));
+    submitButton.click();
+
+    By errorSelector = By.cssSelector("[data-testid='fido2-replay-attestation-error']");
+    By statusSelector = By.cssSelector("[data-testid='fido2-replay-attestation-status']");
+    awaitText(
+        statusSelector,
+        text -> {
+          String normalized = text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
+          return !normalized.isEmpty()
+              && !normalized.contains("awaiting")
+              && !"pending".equalsIgnoreCase(normalized);
+        });
+    WebElement status = waitFor(statusSelector);
+    assertThat(status.getText().trim()).isEqualToIgnoringCase("success");
+
+    String errorText = waitFor(errorSelector).getText().trim();
+    if (!errorText.isBlank()) {
+      assertThat(errorText).contains("trust");
+    }
+  }
+
+  @Test
   @DisplayName("Stored credential selection starts empty and refreshes evaluate and replay forms")
   void storedSelectionDefaultsToPlaceholderAndRefreshesForms() {
     clearCredentialStore();
@@ -1100,6 +1367,118 @@ final class Fido2OperatorUiSeleniumTest {
     driver.navigate().back();
     waitFor(By.cssSelector("[data-protocol-panel='fido2']"));
     assertReplayTabSelected();
+  }
+
+  private void switchToReplayTab() {
+    WebElement replayTab = waitFor(By.cssSelector("[data-testid='fido2-panel-tab-replay']"));
+    replayTab.click();
+    waitUntilAttribute(
+        By.cssSelector("[data-testid='fido2-panel-tab-replay']"), "aria-selected", "true");
+  }
+
+  private void switchToAttestationReplayMode() {
+    switchToReplayTab();
+    WebElement ceremonyToggle =
+        waitFor(By.cssSelector("[data-testid='fido2-replay-ceremony-toggle']"));
+    if (!"attestation".equals(ceremonyToggle.getAttribute("data-mode"))) {
+      WebElement attestationButton =
+          waitFor(By.cssSelector("[data-testid='fido2-replay-ceremony-select-attestation']"));
+      attestationButton.click();
+      waitUntilAttribute(
+          By.cssSelector("[data-testid='fido2-replay-ceremony-toggle']"),
+          "data-mode",
+          "attestation");
+    }
+  }
+
+  private WebAuthnAttestationVector resolveAttestationVector() {
+    return WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
+        .findFirst()
+        .orElseThrow(
+            () -> new IllegalStateException("Packed attestation fixture not available for replay"));
+  }
+
+  private WebAuthnAttestationVerification verifyAttestation(WebAuthnAttestationVector vector) {
+    WebAuthnAttestationRequest request =
+        new WebAuthnAttestationRequest(
+            vector.format(),
+            vector.registration().attestationObject(),
+            vector.registration().clientDataJson(),
+            vector.registration().challenge(),
+            vector.relyingPartyId(),
+            vector.origin());
+    return ATTESTATION_VERIFIER.verify(request);
+  }
+
+  private void populateReplayAttestationForm(WebAuthnAttestationVector vector) {
+    setFieldValue(By.id("fido2ReplayAttestationRpId"), vector.relyingPartyId());
+    setFieldValue(By.id("fido2ReplayAttestationOrigin"), vector.origin());
+
+    WebElement formatElement = waitFor(By.id("fido2ReplayAttestationFormat"));
+    Select formatSelect = new Select(formatElement);
+    formatSelect.selectByValue(vector.format().label());
+    dispatchChange(formatElement);
+
+    setFieldValue(
+        By.id("fido2ReplayAttestationChallenge"),
+        encodeBase64Url(vector.registration().challenge()));
+    setFieldValue(
+        By.id("fido2ReplayAttestationClientDataJson"),
+        encodeBase64Url(vector.registration().clientDataJson()));
+    setFieldValue(
+        By.id("fido2ReplayAttestationObject"),
+        encodeBase64Url(vector.registration().attestationObject()));
+  }
+
+  private void applyReplayTrustAnchors(List<X509Certificate> anchors) {
+    WebElement trustAnchorField = waitFor(By.id("fido2ReplayAttestationTrustAnchors"));
+    trustAnchorField.clear();
+    String content =
+        anchors == null || anchors.isEmpty()
+            ? ""
+            : anchors.stream().map(this::encodeCertificatePem).collect(Collectors.joining("\n\n"));
+    if (!content.isBlank()) {
+      trustAnchorField.sendKeys(content);
+    }
+    dispatchChange(trustAnchorField);
+  }
+
+  private void setFieldValue(By selector, String value) {
+    WebElement element = waitFor(selector);
+    element.clear();
+    if (value != null && !value.isBlank()) {
+      element.sendKeys(value);
+    }
+    dispatchChange(element);
+  }
+
+  private String encodeCertificatePem(X509Certificate certificate) {
+    try {
+      byte[] encoded = certificate.getEncoded();
+      String body =
+          Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.US_ASCII))
+              .encodeToString(encoded);
+      return "-----BEGIN CERTIFICATE-----\n" + body + "\n-----END CERTIFICATE-----";
+    } catch (CertificateEncodingException ex) {
+      throw new IllegalStateException("Unable to encode certificate to PEM", ex);
+    }
+  }
+
+  private String encodeBase64Url(byte[] value) {
+    return URL_ENCODER.encodeToString(value);
+  }
+
+  private void switchToAttestationEvaluateMode() {
+    WebElement toggle = waitFor(By.cssSelector("[data-testid='fido2-evaluate-ceremony-toggle']"));
+    if (!"attestation".equals(toggle.getAttribute("data-mode"))) {
+      WebElement attestationButton =
+          waitFor(By.cssSelector("[data-testid='fido2-evaluate-ceremony-select-attestation']"));
+      attestationButton.click();
+      waitUntilAttribute(
+          By.cssSelector("[data-testid='fido2-evaluate-ceremony-toggle']"),
+          "data-mode",
+          "attestation");
+    }
   }
 
   private void seedStoredCredential() {

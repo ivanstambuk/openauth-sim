@@ -1,0 +1,24 @@
+{
+  "metadata_version": "offline-mds/1.0",
+  "entries": [
+    {
+      "entry_id": "mds-w3c-packed-es256",
+      "aaguid": "876ca4f5-2071-c3e9-b255-09ef2cdf7ed6",
+      "attestation_format": "packed",
+      "description": "W3C Packed ES256 Sample Authenticator",
+      "sources": [
+        {
+          "type": "fixture",
+          "vector_id": "w3c-packed-es256"
+        }
+      ],
+      "attestation_root_certificates": [
+        {
+          "label": "WebAuthn test vectors root",
+          "fingerprint_sha256": "f0f517576cf721fb564b64d723ea22152cf2f453de4e08b491fde7161659bc45",
+          "certificate_pem": "-----BEGIN CERTIFICATE-----\nMIICITCCAcigAwIBAgIRAIjCIPg8jvH+r+lN6uRfqtAwCgYIKoZIzj0EAwIwYjEe\nMBwGA1UEAwwVV2ViQXV0aG4gdGVzdCB2ZWN0b3JzMQwwCgYDVQQKDANXM0MxJTAj\nBgNVBAsMHEF1dGhlbnRpY2F0b3IgQXR0ZXN0YXRpb24gQ0ExCzAJBgNVBAYTAkFB\nMCAXDTI0MDEwMTAwMDAwMFoYDzMwMjQwMTAxMDAwMDAwWjBfMR4wHAYDVQQDDBVX\nZWJBdXRobiB0ZXN0IHZlY3RvcnMxDDAKBgNVBAoMA1czQzEiMCAGA1UECwwZQXV0\naGVudGljYXRvciBBdHRlc3RhdGlvbjELMAkGA1UEBhMCQUEwWTATBgcqhkjOPQIB\nBggqhkjOPQMBBwNCAASpG6Q4lAndOKQoFBlAyo/rGsDXtDUFWBBKN3ekkyLzeYRA\n83izOYqy07t7+RMiyS6yNVb1mtCoNv7Ex2Y7Dk3Do2AwXjAMBgNVHRMBAf8EAjAA\nMA4GA1UdDwEB/wQEAwIHgDAdBgNVHQ4EFgQUpYm6ctBghCqxH3T7JGve2rFvm5sw\nHwYDVR0jBBgwFoAURa/3FbDdeGdB/umW68FlR6OTGx4wCgYIKoZIzj0EAwIDRwAw\nRAIgFya52F7Nil7VEWNyLKOiCIb9myQqCqBFPUQhFgdd79UCIH70ceUwrIeWGoin\n8NDBewkf/GuSONMPefY1tBe+WRDn\n-----END CERTIFICATE-----"
+        }
+      ]
+    }
+  ]
+}

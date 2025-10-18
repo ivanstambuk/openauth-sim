@@ -34,7 +34,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 18 | Quality gate reinstatement | Restore Jacoco thresholds to ≥0.90 line/branch and re-enable PIT in developer builds once HOTP scope stabilises | Planned | Temporary relaxation to ≥0.70 recorded 2025-10-06; follow-up will revisit coverage hot spots and reinstate mutation checks |
 | 19 | FIDO2/WebAuthn operator support | Launch WebAuthn assertion verification across core, persistence, CLI, REST, and operator UI with preset/seed utilities | Complete | Spec: [Feature 024](specs/feature-024-fido2-webauthn-operator-support.md), Plan: [Feature Plan 024](feature-plan-024-fido2-webauthn-operator-support.md), Tasks: [Feature 024 Tasks](tasks/feature-024-fido2-webauthn-operator-support.md); Kickoff 2025-10-09 with W3C §16 fixture staging (T1); CLI façade (T5) verified 2025-10-10 under sandbox escalation; 2025-10-15 reran `./gradlew --no-daemon spotlessApply check` and `qualityGate` after the final UI parity increments to confirm green closure |
 | 20 | Sample vector label harmonization | Harmonise operator UI preset labels across HOTP/TOTP/OCRA/FIDO2 with a compact attribute-focused format | Complete | Spec: [Feature 025](specs/feature-025-sample-vector-label-harmonization.md), Plan: [Feature Plan 025](feature-plan-025-sample-vector-label-harmonization.md), Tasks: [Feature 025 Tasks](tasks/feature-025-sample-vector-label-harmonization.md); 2025-10-12 compacted HOTP/TOTP inline preset labels, refreshed Selenium/API expectations, closed the task with spotless + targeted :rest-api:test runs, expanded HOTP inline presets to cover SHA-1/256/512 across 6- and 8-digit variants, removed the redundant “seeded demo” suffix, and aligned stored seeding with every inline preset |
-| 21 | FIDO2 attestation support | Provide WebAuthn attestation generation and verification across core/application/CLI/REST/operator UI | Not started | Spec: [Feature 026](specs/feature-026-fido2-attestation-support.md), Plan: [Feature Plan 026](feature-plan-026-fido2-attestation-support.md), Tasks: [Feature 026 Tasks](tasks/feature-026-fido2-attestation-support.md); 2025-10-16 directive adds optional trust-anchor upload (self-attested fallback) and offline MDS ingestion scaffolding to the initial slice |
+| 21 | FIDO2 attestation support | Provide WebAuthn attestation generation and verification across core/application/CLI/REST/operator UI | In progress | Spec: [Feature 026](specs/feature-026-fido2-attestation-support.md), Plan: [Feature Plan 026](feature-plan-026-fido2-attestation-support.md), Tasks: [Feature 026 Tasks](tasks/feature-026-fido2-attestation-support.md); I1–I3 delivered fixture scaffolding, core verifier, and application telemetry by 2025-10-16; I4 (CLI façade) landed 2025-10-16 with new `fido2 attest`/`attest-replay` commands and updated operator docs; I5 (REST endpoints) implemented the `/api/v1/webauthn/attest` and `/attest/replay` flows with refreshed OpenAPI snapshots; I6–I7 (operator UI toggles) closed 2025-10-17 and introduced inline-only attestation Evaluate/Replay flows; I8 kicked off attestation fixture ingestion with shared catalogue wiring across core/application/CLI/REST/UI—documentation sync + spotless still pending to close the task |
 
 ## Upcoming Milestones
 
@@ -49,15 +49,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 
 ## Action Items & Follow-ups
 
-- [x] Create detailed feature plans for Workstreams 2–5 (Feature Plan 001 covers Workstream 1). Completed 2025-09-30.
-- [x] Confirm next priority (UI replay before learning UI) via clarification gate and log outcomes in `docs/4-architecture/open-questions.md`. Completed 2025-10-03.
-- [x] Draft specification and feature plan for the selected post-Feature 009 workstream before implementation begins. (Feature 016 spec + plan completed 2025-10-03; documentation synced.)
 - [ ] Capture ADRs for crypto design decisions (key formats, hashing algorithms, etc.).
 - [ ] Identify specification links for inclusion in docs once network lookups are permitted.
-- [x] Produce Maintenance CLI coverage hotspot analysis (Feature 012) to safeguard the ≥0.90 Jacoco buffer for Maintenance CLI. Completed 2025-10-01.
-- [x] Bootstrap architecture knowledge map in `docs/4-architecture/knowledge-map.md`.
-- [x] Publish OCRA capability matrix and telemetry contract in `docs/1-concepts` (T014).
-- [x] Retire legacy OCRA MapDB migration path and document schema-v1 baseline (Feature 018). Completed 2025-10-03.
-- [x] Relocate commit message linting to commit-msg hook (Feature 019). Completed 2025-10-04.
 
 Keep this roadmap synced with each significant decision or completion event.

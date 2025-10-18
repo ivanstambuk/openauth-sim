@@ -8,7 +8,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - **Work in small steps.** Deliver self-contained changes that finish in ≤10 minutes, run `./gradlew spotlessApply check`, and commit with a conventional message.
 - **Confirm prerequisites.** Ensure `JAVA_HOME` points to a Java 17 JDK before invoking Gradle or Git hooks.
 - **Hook guard.** Verify `git config core.hooksPath githooks` before staging changes; reapply the setting after fresh clones or tool resets so the managed pre-commit and commit-msg hooks run with the repo `.gitlint` policy.
-- **Prime the knowledge map.** Skim `docs/4-architecture/knowledge-map.md` before planning so new work reinforces the architectural relationships already captured there.
+- **Prime the knowledge map.** Skim `docs/4-architecture/knowledge-map.md` and the up-to-date module snapshot in `docs/architecture-graph.json` before planning so new work reinforces the architectural relationships already captured there.
 
 ## Specification Pipeline
 - Start every feature by updating or creating its specification in `docs/4-architecture/specs/`.
@@ -37,6 +37,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - **Maintain the knowledge map.** Add, adjust, or prune entries in `docs/4-architecture/knowledge-map.md` whenever new modules, dependencies, or contracts appear.
 - **Straight-line increments.** Keep each increment's control flow flat by delegating validation/normalisation into tiny pure helpers that return simple enums or result records, then compose them instead of introducing inline branching that inflates the branch count per change.
 - **RCI self-review.** Before hand-off, review your own changes, rerun checks, and ensure documentation/test coverage matches the behaviour.
+- **Lint checkpoints.** When introducing new helpers/utilities or editing files prone to style violations (records, DTOs, generated adapters), run the narrowest applicable lint target before the full pipeline (for example `./gradlew --no-daemon :application:checkstyleMain`). Note the command in the related plan/task so every agent repeats it.
 - **Commit & push protocol.** Once an increment passes `./gradlew spotlessApply check`, proactively commit and push unless the user has asked you to pause. Stage the entire repository (`git add -A`), craft a conventional message that summarises every staged change, run the managed hooks, and push to the tracked remote immediately. When the user explicitly requests a commit, follow the same procedure.
   - Pre-commit hooks and the managed quality pipeline routinely take longer than two minutes. When invoking `git commit` (or any command that triggers that pipeline) via the CLI tool, always specify `timeout_ms >= 300000` so the process has enough time to finish cleanly.
 - **Dependencies.** **Never add or upgrade libraries without explicit user approval.** When granted, document the rationale in the feature plan. Dependabot opens weekly update PRs—treat them as scoped requests that still require owner approval before merging.

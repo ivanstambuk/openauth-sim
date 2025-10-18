@@ -3,6 +3,9 @@ package io.openauth.sim.cli;
 import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationCommand;
 import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationResult;
+import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService;
+import io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService;
+import io.openauth.sim.application.fido2.WebAuthnAttestationSamples;
 import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService.TelemetrySignal;
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples;
@@ -10,9 +13,14 @@ import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples.Sample;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService.ReplayCommand;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService.ReplayResult;
+import io.openauth.sim.application.fido2.WebAuthnTrustAnchorResolver;
 import io.openauth.sim.application.telemetry.Fido2TelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.fido2.WebAuthnAssertionVerifier;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
+import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
+import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
 import io.openauth.sim.core.fido2.WebAuthnFixtures;
 import io.openauth.sim.core.fido2.WebAuthnJsonVectorFixtures;
@@ -25,6 +33,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -42,11 +51,14 @@ import picocli.CommandLine;
 @CommandLine.Command(
     name = "fido2",
     mixinStandardHelpOptions = true,
-    description = "Evaluate stored and inline WebAuthn assertions and replay diagnostics.",
+    description =
+        "Evaluate stored/inline WebAuthn assertions, verify attestation payloads, and replay diagnostics.",
     subcommands = {
       Fido2Cli.EvaluateStoredCommand.class,
       Fido2Cli.EvaluateInlineCommand.class,
       Fido2Cli.ReplayStoredCommand.class,
+      Fido2Cli.AttestCommand.class,
+      Fido2Cli.AttestReplayCommand.class,
       Fido2Cli.VectorsCommand.class
     })
 public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
@@ -60,16 +72,24 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
       JSON_VECTOR_INDEX.values().stream()
           .sorted(Comparator.comparing(WebAuthnJsonVector::vectorId, String.CASE_INSENSITIVE_ORDER))
           .collect(Collectors.toUnmodifiableList());
+  private static final List<WebAuthnAttestationVector> ATTESTATION_VECTOR_LIST =
+      WebAuthnAttestationSamples.vectors();
   private static final Map<String, Sample> GENERATOR_SAMPLE_INDEX = loadGeneratorSampleIndex();
 
   private static final Fido2TelemetryAdapter EVALUATION_TELEMETRY =
       new Fido2TelemetryAdapter("fido2.evaluate");
   private static final Fido2TelemetryAdapter REPLAY_TELEMETRY =
       new Fido2TelemetryAdapter("fido2.replay");
+  private static final Fido2TelemetryAdapter ATTEST_TELEMETRY =
+      new Fido2TelemetryAdapter("fido2.attest");
+  private static final Fido2TelemetryAdapter ATTEST_REPLAY_TELEMETRY =
+      new Fido2TelemetryAdapter("fido2.attestReplay");
 
   private final WebAuthnAssertionVerifier verifier = new WebAuthnAssertionVerifier();
+  private final WebAuthnAttestationVerifier attestationVerifier = new WebAuthnAttestationVerifier();
   private final WebAuthnCredentialPersistenceAdapter persistenceAdapter =
       new WebAuthnCredentialPersistenceAdapter();
+  private final WebAuthnTrustAnchorResolver trustAnchorResolver = new WebAuthnTrustAnchorResolver();
 
   @CommandLine.Spec private CommandLine.Model.CommandSpec spec;
 
@@ -182,20 +202,38 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
   }
 
   private void printVectorSummaries(PrintWriter writer) {
-    if (JSON_VECTOR_LIST.isEmpty()) {
-      writer.println("No JSON bundle vectors available.");
+    if (JSON_VECTOR_LIST.isEmpty() && ATTESTATION_VECTOR_LIST.isEmpty()) {
+      writer.println("No WebAuthn fixture vectors available.");
       return;
     }
-    writer.println("vectorId\talgorithm\tuvRequired\trelyingPartyId\torigin");
-    JSON_VECTOR_LIST.forEach(
-        vector ->
-            writer.printf(
-                "%s\t%s\t%s\t%s\t%s%n",
-                vector.vectorId(),
-                vector.algorithm().label(),
-                vector.storedCredential().userVerificationRequired(),
-                vector.storedCredential().relyingPartyId(),
-                vector.assertionRequest().origin()));
+    if (!JSON_VECTOR_LIST.isEmpty()) {
+      writer.println("vectorId\talgorithm\tuvRequired\trelyingPartyId\torigin");
+      JSON_VECTOR_LIST.forEach(
+          vector ->
+              writer.printf(
+                  "%s\t%s\t%s\t%s\t%s%n",
+                  vector.vectorId(),
+                  vector.algorithm().label(),
+                  vector.storedCredential().userVerificationRequired(),
+                  vector.storedCredential().relyingPartyId(),
+                  vector.assertionRequest().origin()));
+    }
+    if (!ATTESTATION_VECTOR_LIST.isEmpty()) {
+      if (!JSON_VECTOR_LIST.isEmpty()) {
+        writer.println();
+      }
+      writer.println("attestationId\tformat\talgorithm\trelyingPartyId\torigin\tsection");
+      ATTESTATION_VECTOR_LIST.forEach(
+          vector ->
+              writer.printf(
+                  "%s\t%s\t%s\t%s\t%s\t%s%n",
+                  vector.vectorId(),
+                  vector.format().label(),
+                  vector.algorithm().label(),
+                  vector.relyingPartyId(),
+                  vector.origin(),
+                  vector.w3cSection()));
+    }
   }
 
   private void applyStoredPresetDefaults(EvaluateStoredCommand command, Sample sample) {
@@ -384,6 +422,44 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     return new WebAuthnAssertionGenerationApplicationService();
   }
 
+  private WebAuthnAttestationGenerationApplicationService createAttestationGenerationService() {
+    return new WebAuthnAttestationGenerationApplicationService();
+  }
+
+  private WebAuthnAttestationReplayApplicationService createAttestationReplayService() {
+    return new WebAuthnAttestationReplayApplicationService(
+        attestationVerifier, ATTEST_REPLAY_TELEMETRY);
+  }
+
+  private static TelemetryFrame mergeTelemetryFrame(
+      TelemetryFrame frame, Map<String, Object> additionalFields) {
+    if (additionalFields == null || additionalFields.isEmpty()) {
+      return frame;
+    }
+    Map<String, Object> merged = new LinkedHashMap<>(frame.fields());
+    merged.putAll(additionalFields);
+    return new TelemetryFrame(frame.event(), frame.status(), frame.sanitized(), merged);
+  }
+
+  private WebAuthnTrustAnchorResolver.Resolution resolveTrustAnchors(
+      String attestationId, WebAuthnAttestationFormat format, List<Path> files) {
+    if (files == null || files.isEmpty()) {
+      return trustAnchorResolver.resolveFiles(attestationId, format, List.of());
+    }
+    return trustAnchorResolver.resolveFiles(attestationId, format, files);
+  }
+
+  private void emitTrustAnchorWarnings(List<String> warnings) {
+    if (warnings == null || warnings.isEmpty()) {
+      return;
+    }
+    PrintWriter writer = err();
+    warnings.stream()
+        .filter(message -> message != null && !message.isBlank())
+        .map(Fido2Cli::sanitizeMessage)
+        .forEach(message -> writer.println("warning=trust_anchor " + message));
+  }
+
   private int emitGenerationSuccess(GenerationResult result, String credentialSource) {
     out().println(formatPublicKeyCredentialJson(result));
     Map<String, Object> fields = generatorTelemetryFields(result, credentialSource);
@@ -402,6 +478,18 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     return CommandLine.ExitCode.USAGE;
   }
 
+  private int failValidation(
+      String event,
+      Fido2TelemetryAdapter adapter,
+      String reasonCode,
+      String message,
+      Map<String, Object> fields) {
+    TelemetryFrame frame =
+        adapter.invalid(nextTelemetryId(), reasonCode, sanitizeMessage(message), fields);
+    writeFrame(err(), event, frame);
+    return CommandLine.ExitCode.USAGE;
+  }
+
   private int failValidation(String event, TelemetrySignal signal, Map<String, Object> fields) {
     TelemetryFrame emitted = signal.emit(EVALUATION_TELEMETRY, nextTelemetryId());
     Map<String, Object> merged = new LinkedHashMap<>(emitted.fields());
@@ -415,6 +503,20 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
   private int failUnexpected(String event, Map<String, Object> fields, String message) {
     TelemetryFrame frame =
         EVALUATION_TELEMETRY.status(
+            "error",
+            nextTelemetryId(),
+            "unexpected_error",
+            false,
+            sanitizeMessage(message),
+            fields);
+    writeFrame(err(), event, frame);
+    return CommandLine.ExitCode.SOFTWARE;
+  }
+
+  private int failUnexpected(
+      String event, Fido2TelemetryAdapter adapter, Map<String, Object> fields, String message) {
+    TelemetryFrame frame =
+        adapter.status(
             "error",
             nextTelemetryId(),
             "unexpected_error",
@@ -987,6 +1089,446 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 baseFields,
                 Optional.ofNullable(signal.reason()).orElse("WebAuthn replay failed"));
       };
+    }
+  }
+
+  @CommandLine.Command(
+      name = "attest",
+      description = "Generate a WebAuthn attestation payload using deterministic fixtures.")
+  static final class AttestCommand extends AbstractFido2Command {
+
+    @CommandLine.Option(
+        names = "--format",
+        defaultValue = "",
+        paramLabel = "<format>",
+        description = "Attestation statement format (packed, fido-u2f, tpm, android-key)")
+    String format;
+
+    @CommandLine.Option(
+        names = "--attestation-id",
+        defaultValue = "",
+        paramLabel = "<id>",
+        description = "Fixture identifier to generate (for example, w3c-packed-es256)")
+    String attestationId;
+
+    @CommandLine.Option(
+        names = "--relying-party-id",
+        defaultValue = "",
+        paramLabel = "<rpId>",
+        description = "Expected relying party identifier")
+    String relyingPartyId;
+
+    @CommandLine.Option(
+        names = "--origin",
+        defaultValue = "",
+        paramLabel = "<origin>",
+        description = "Expected client origin (for example, https://example.org)")
+    String origin;
+
+    @CommandLine.Option(
+        names = "--challenge",
+        defaultValue = "",
+        paramLabel = "<base64url>",
+        description = "Challenge in Base64URL form")
+    String challenge;
+
+    @CommandLine.Option(
+        names = "--credential-private-key",
+        defaultValue = "",
+        paramLabel = "<base64url>",
+        description = "Credential private key in Base64URL form")
+    String credentialPrivateKey;
+
+    @CommandLine.Option(
+        names = "--attestation-private-key",
+        defaultValue = "",
+        paramLabel = "<base64url>",
+        description = "Attestation private key in Base64URL form")
+    String attestationPrivateKey;
+
+    @CommandLine.Option(
+        names = "--attestation-serial",
+        defaultValue = "",
+        paramLabel = "<base64url>",
+        description = "Attestation certificate serial in Base64URL form")
+    String attestationSerial;
+
+    @CommandLine.Option(
+        names = "--signing-mode",
+        defaultValue = "",
+        paramLabel = "<mode>",
+        description = "Signing mode (self-signed, unsigned, custom-root)")
+    String signingMode;
+
+    @CommandLine.Option(
+        names = "--custom-root-file",
+        paramLabel = "<path>",
+        description = "PEM encoded custom root certificate (repeat for multiple anchors)")
+    List<Path> customRootFiles;
+
+    @Override
+    public Integer call() {
+      Map<String, Object> baseFields = new LinkedHashMap<>();
+      if (hasText(attestationId)) {
+        baseFields.put("attestationId", attestationId);
+      }
+      if (hasText(format)) {
+        baseFields.put("format", format);
+      }
+
+      if (!hasText(format)) {
+        return parent.failValidation(
+            event("attest"),
+            ATTEST_TELEMETRY,
+            "missing_option",
+            "--format is required",
+            Map.copyOf(baseFields));
+      }
+
+      WebAuthnAttestationFormat attestationFormat;
+      try {
+        attestationFormat = WebAuthnAttestationFormat.fromLabel(format.trim());
+      } catch (IllegalArgumentException ex) {
+        return parent.failValidation(
+            event("attest"),
+            ATTEST_TELEMETRY,
+            "invalid_format",
+            ex.getMessage(),
+            Map.copyOf(baseFields));
+      }
+
+      if (!hasText(signingMode)) {
+        return parent.failValidation(
+            event("attest"),
+            ATTEST_TELEMETRY,
+            "missing_signing_mode",
+            "--signing-mode is required",
+            Map.copyOf(baseFields));
+      }
+
+      if (!hasText(attestationId)
+          || !hasText(relyingPartyId)
+          || !hasText(origin)
+          || !hasText(challenge)
+          || !hasText(credentialPrivateKey)
+          || !hasText(attestationPrivateKey)
+          || !hasText(attestationSerial)) {
+        return parent.failValidation(
+            event("attest"),
+            ATTEST_TELEMETRY,
+            "missing_option",
+            "--attestation-id, --relying-party-id, --origin, --challenge, "
+                + "--credential-private-key, --attestation-private-key, and --attestation-serial are required",
+            Map.copyOf(baseFields));
+      }
+
+      byte[] challengeBytes;
+      try {
+        challengeBytes = decodeBase64Url("--challenge", challenge);
+      } catch (IllegalArgumentException ex) {
+        return parent.failValidation(
+            event("attest"),
+            ATTEST_TELEMETRY,
+            "invalid_payload",
+            ex.getMessage(),
+            Map.copyOf(baseFields));
+      }
+
+      WebAuthnAttestationGenerator.SigningMode mode;
+      try {
+        mode = parseSigningMode(signingMode);
+      } catch (IllegalArgumentException ex) {
+        return parent.failValidation(
+            event("attest"),
+            ATTEST_TELEMETRY,
+            "invalid_signing_mode",
+            ex.getMessage(),
+            Map.copyOf(baseFields));
+      }
+      baseFields.put("signingMode", mode.name().toLowerCase(Locale.ROOT));
+
+      List<String> customRoots;
+      try {
+        customRoots = loadCustomRoots(customRootFiles);
+      } catch (IOException ex) {
+        return parent.failUnexpected(
+            event("attest"),
+            ATTEST_TELEMETRY,
+            Map.copyOf(baseFields),
+            "Unable to read custom root: " + sanitizeMessage(ex.getMessage()));
+      }
+
+      String customRootSource = customRoots.isEmpty() ? "" : "file";
+
+      WebAuthnAttestationGenerationApplicationService service =
+          parent.createAttestationGenerationService();
+
+      WebAuthnAttestationGenerationApplicationService.GenerationResult result;
+      try {
+        result =
+            service.generate(
+                new WebAuthnAttestationGenerationApplicationService.GenerationCommand.Inline(
+                    attestationId.trim(),
+                    attestationFormat,
+                    relyingPartyId.trim(),
+                    origin.trim(),
+                    challengeBytes,
+                    credentialPrivateKey.trim(),
+                    attestationPrivateKey.trim(),
+                    attestationSerial.trim(),
+                    mode,
+                    customRoots,
+                    customRootSource));
+      } catch (IllegalArgumentException ex) {
+        return parent.failValidation(
+            event("attest"),
+            ATTEST_TELEMETRY,
+            "generation_failed",
+            ex.getMessage() == null ? "Attestation generation failed" : ex.getMessage(),
+            Map.copyOf(baseFields));
+      } catch (Exception ex) {
+        return parent.failUnexpected(
+            event("attest"),
+            ATTEST_TELEMETRY,
+            Map.copyOf(baseFields),
+            "Attestation generation failed: " + sanitizeMessage(ex.getMessage()));
+      }
+
+      WebAuthnAttestationGenerationApplicationService.GeneratedAttestation attestation =
+          result.attestation();
+      out().println("Generated attestation:");
+      out().println("type=" + attestation.type());
+      out().println("id=" + attestation.id());
+      out().println("rawId=" + attestation.rawId());
+      out().println("attestationId=" + attestation.attestationId());
+      out().println("format=" + attestation.format().label());
+      var responsePayload = attestation.response();
+      out().println("response.clientDataJSON=" + responsePayload.clientDataJson());
+      out().println("response.attestationObject=" + responsePayload.attestationObject());
+
+      WebAuthnAttestationGenerationApplicationService.TelemetrySignal telemetry =
+          result.telemetry();
+      TelemetryFrame frame =
+          mergeTelemetryFrame(
+              telemetry.emit(ATTEST_TELEMETRY, nextTelemetryId()), Map.copyOf(baseFields));
+      writeFrame(out(), event("attest"), frame);
+      return CommandLine.ExitCode.OK;
+    }
+
+    private static WebAuthnAttestationGenerator.SigningMode parseSigningMode(String value) {
+      String normalized = value.trim().toLowerCase(Locale.ROOT);
+      return switch (normalized) {
+        case "self-signed", "self_signed" -> WebAuthnAttestationGenerator.SigningMode.SELF_SIGNED;
+        case "unsigned" -> WebAuthnAttestationGenerator.SigningMode.UNSIGNED;
+        case "custom-root", "custom_root" -> WebAuthnAttestationGenerator.SigningMode.CUSTOM_ROOT;
+        default ->
+            throw new IllegalArgumentException(
+                "Unsupported signing mode: "
+                    + value
+                    + " (expected self-signed, unsigned, or custom-root)");
+      };
+    }
+
+    private static List<String> loadCustomRoots(List<Path> files) throws IOException {
+      if (files == null || files.isEmpty()) {
+        return List.of();
+      }
+      List<String> roots = new java.util.ArrayList<>();
+      for (Path file : files) {
+        String content = Files.readString(file);
+        if (content != null && !content.isBlank()) {
+          roots.add(content.trim());
+        }
+      }
+      return List.copyOf(roots);
+    }
+  }
+
+  @CommandLine.Command(
+      name = "attest-replay",
+      description = "Replay a WebAuthn attestation verification with optional trust anchors.")
+  static final class AttestReplayCommand extends AbstractFido2Command {
+
+    @CommandLine.Option(
+        names = "--format",
+        defaultValue = "",
+        paramLabel = "<format>",
+        description = "Attestation statement format (packed, fido-u2f, tpm, android-key)")
+    String format;
+
+    @CommandLine.Option(
+        names = "--attestation-id",
+        defaultValue = "",
+        paramLabel = "<id>",
+        description = "Identifier to echo in telemetry outputs")
+    String attestationId;
+
+    @CommandLine.Option(
+        names = "--relying-party-id",
+        defaultValue = "",
+        paramLabel = "<rpId>",
+        description = "Expected relying party identifier")
+    String relyingPartyId;
+
+    @CommandLine.Option(
+        names = "--origin",
+        defaultValue = "",
+        paramLabel = "<origin>",
+        description = "Expected client origin (for example, https://example.org)")
+    String origin;
+
+    @CommandLine.Option(
+        names = "--attestation-object",
+        defaultValue = "",
+        paramLabel = "<base64url>",
+        description = "Attestation object in Base64URL form")
+    String attestationObject;
+
+    @CommandLine.Option(
+        names = "--client-data-json",
+        defaultValue = "",
+        paramLabel = "<base64url>",
+        description = "ClientDataJSON payload in Base64URL form")
+    String clientDataJson;
+
+    @CommandLine.Option(
+        names = "--expected-challenge",
+        defaultValue = "",
+        paramLabel = "<base64url>",
+        description = "Expected challenge in Base64URL form")
+    String expectedChallenge;
+
+    @CommandLine.Option(
+        names = "--trust-anchor-file",
+        paramLabel = "<path>",
+        description = "PEM encoded trust anchor certificate (repeat for multiple anchors)")
+    List<Path> trustAnchorFiles;
+
+    @Override
+    public Integer call() {
+      Map<String, Object> baseFields = new LinkedHashMap<>();
+      if (hasText(attestationId)) {
+        baseFields.put("attestationId", attestationId);
+      }
+      if (hasText(format)) {
+        baseFields.put("format", format);
+      }
+
+      if (!hasText(format)) {
+        return parent.failValidation(
+            event("attestReplay"),
+            ATTEST_REPLAY_TELEMETRY,
+            "missing_option",
+            "--format is required",
+            Map.copyOf(baseFields));
+      }
+
+      WebAuthnAttestationFormat attestationFormat;
+      try {
+        attestationFormat = WebAuthnAttestationFormat.fromLabel(format.trim());
+      } catch (IllegalArgumentException ex) {
+        return parent.failValidation(
+            event("attestReplay"),
+            ATTEST_REPLAY_TELEMETRY,
+            "invalid_format",
+            ex.getMessage(),
+            Map.copyOf(baseFields));
+      }
+
+      if (!hasText(relyingPartyId) || !hasText(origin)) {
+        return parent.failValidation(
+            event("attestReplay"),
+            ATTEST_REPLAY_TELEMETRY,
+            "missing_option",
+            "--relying-party-id and --origin are required",
+            Map.copyOf(baseFields));
+      }
+
+      if (!hasText(attestationObject) || !hasText(clientDataJson) || !hasText(expectedChallenge)) {
+        return parent.failValidation(
+            event("attestReplay"),
+            ATTEST_REPLAY_TELEMETRY,
+            "missing_option",
+            "--attestation-object, --client-data-json, and --expected-challenge are required",
+            Map.copyOf(baseFields));
+      }
+
+      byte[] attestationObjectBytes;
+      byte[] clientDataBytes;
+      byte[] expectedChallengeBytes;
+      try {
+        attestationObjectBytes = decodeBase64Url("--attestation-object", attestationObject);
+        clientDataBytes = decodeBase64Url("--client-data-json", clientDataJson);
+        expectedChallengeBytes = decodeBase64Url("--expected-challenge", expectedChallenge);
+      } catch (IllegalArgumentException ex) {
+        return parent.failValidation(
+            event("attestReplay"),
+            ATTEST_REPLAY_TELEMETRY,
+            "invalid_payload",
+            ex.getMessage(),
+            Map.copyOf(baseFields));
+      }
+
+      WebAuthnTrustAnchorResolver.Resolution anchorResolution =
+          parent.resolveTrustAnchors(attestationId, attestationFormat, trustAnchorFiles);
+      parent.emitTrustAnchorWarnings(anchorResolution.warnings());
+      List<X509Certificate> trustAnchors = anchorResolution.anchors();
+
+      if (!trustAnchors.isEmpty()) {
+        baseFields.put("trustAnchorCount", trustAnchors.size());
+        baseFields.put("trustAnchorMode", anchorResolution.cached() ? "cached" : "fresh");
+        if (anchorResolution.metadataEntryId() != null) {
+          baseFields.put("anchorMetadataEntry", anchorResolution.metadataEntryId());
+        }
+      }
+
+      WebAuthnAttestationReplayApplicationService service = parent.createAttestationReplayService();
+
+      WebAuthnAttestationReplayApplicationService.ReplayResult result;
+      try {
+        result =
+            service.replay(
+                new WebAuthnAttestationReplayApplicationService.ReplayCommand.Inline(
+                    attestationId,
+                    attestationFormat,
+                    relyingPartyId,
+                    origin,
+                    attestationObjectBytes,
+                    clientDataBytes,
+                    expectedChallengeBytes,
+                    trustAnchors,
+                    anchorResolution.cached(),
+                    anchorResolution.source(),
+                    anchorResolution.metadataEntryId(),
+                    anchorResolution.warnings()));
+      } catch (Exception ex) {
+        return parent.failUnexpected(
+            event("attestReplay"),
+            ATTEST_REPLAY_TELEMETRY,
+            Map.copyOf(baseFields),
+            "Attestation replay failed: " + sanitizeMessage(ex.getMessage()));
+      }
+
+      WebAuthnAttestationReplayApplicationService.TelemetrySignal telemetry = result.telemetry();
+      TelemetryFrame frame =
+          mergeTelemetryFrame(
+              telemetry.emit(ATTEST_REPLAY_TELEMETRY, nextTelemetryId()), Map.copyOf(baseFields));
+
+      switch (telemetry.status()) {
+        case SUCCESS -> {
+          writeFrame(out(), event("attestReplay"), frame);
+          return CommandLine.ExitCode.OK;
+        }
+        case INVALID -> {
+          writeFrame(err(), event("attestReplay"), frame);
+          return CommandLine.ExitCode.USAGE;
+        }
+        case ERROR -> {
+          writeFrame(err(), event("attestReplay"), frame);
+          return CommandLine.ExitCode.SOFTWARE;
+        }
+      }
+      return CommandLine.ExitCode.SOFTWARE;
     }
   }
 

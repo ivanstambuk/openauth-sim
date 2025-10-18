@@ -21,8 +21,14 @@ import java.util.stream.Stream;
 public final class WebAuthnAttestationFixtures {
 
   private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
-  private static final Map<WebAuthnAttestationFormat, List<WebAuthnAttestationVector>> FIXTURES =
-      loadAllFixtures();
+  private static final Map<WebAuthnAttestationFormat, List<WebAuthnAttestationVector>> FIXTURES;
+  private static final Map<String, WebAuthnAttestationVector> FIXTURE_INDEX;
+
+  static {
+    Map<WebAuthnAttestationFormat, List<WebAuthnAttestationVector>> fixtures = loadAllFixtures();
+    FIXTURES = fixtures;
+    FIXTURE_INDEX = indexById(fixtures);
+  }
 
   private WebAuthnAttestationFixtures() {
     throw new AssertionError("Utility class");
@@ -38,6 +44,14 @@ public final class WebAuthnAttestationFixtures {
     return FIXTURES.getOrDefault(format, List.of());
   }
 
+  /** Looks up an attestation vector by its identifier. */
+  public static Optional<WebAuthnAttestationVector> findById(String vectorId) {
+    if (vectorId == null || vectorId.isBlank()) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(FIXTURE_INDEX.get(vectorId.trim()));
+  }
+
   private static Map<WebAuthnAttestationFormat, List<WebAuthnAttestationVector>> loadAllFixtures() {
     Map<WebAuthnAttestationFormat, List<WebAuthnAttestationVector>> byFormat =
         new EnumMap<>(WebAuthnAttestationFormat.class);
@@ -50,6 +64,21 @@ public final class WebAuthnAttestationFixtures {
       byFormat.put(format, Collections.unmodifiableList(parseFixtureFile(path, format)));
     }
     return Collections.unmodifiableMap(byFormat);
+  }
+
+  private static Map<String, WebAuthnAttestationVector> indexById(
+      Map<WebAuthnAttestationFormat, List<WebAuthnAttestationVector>> fixtures) {
+    Map<String, WebAuthnAttestationVector> index = new LinkedHashMap<>();
+    for (List<WebAuthnAttestationVector> vectors : fixtures.values()) {
+      for (WebAuthnAttestationVector vector : vectors) {
+        String vectorId = Objects.requireNonNull(vector.vectorId(), "vectorId");
+        WebAuthnAttestationVector existing = index.putIfAbsent(vectorId, vector);
+        if (existing != null) {
+          throw new IllegalStateException("Duplicate attestation vector id detected: " + vectorId);
+        }
+      }
+    }
+    return Collections.unmodifiableMap(index);
   }
 
   private static List<WebAuthnAttestationVector> parseFixtureFile(

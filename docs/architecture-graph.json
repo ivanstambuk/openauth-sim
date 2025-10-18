@@ -1,0 +1,222 @@
+{
+  "meta": {
+    "intent": "Authoritative knowledge snapshot describing module responsibilities and dependencies for OpenAuth Simulator agents.",
+    "last_updated": "2025-10-17T19:45:00Z",
+    "maintenance": "Refresh this graph after any cross-module architectural change (new services, endpoint shifts, or telemetry contract updates). Keep it in sync with docs/4-architecture/knowledge-map.md and reference it during session kickoffs."
+  },
+  "nodes": [
+    {
+      "id": "workspace:root",
+      "name": "OpenAuth Simulator",
+      "observations": [
+        "Gradle 8.10 multi-module JVM workspace (Java 17) delivering deterministic auth protocol simulators.",
+        "Governed by constitution-driven workflow: specs → plans → tasks → implementation overseen in docs/ hierarchy.",
+        "Telemetry-first architecture: every facade emits structured frames (event, status, reasonCode, sanitized fields).",
+        "Quality gates include spotless formatting, ArchUnit, snapshot tests, Selenium, and OpenAPI diffs." 
+      ]
+    },
+    {
+      "id": "module:core",
+      "name": "core/",
+      "observations": [
+        "Implements canonical crypto/primitives (HOTP, TOTP, OCRA, WebAuthn), CBOR decoding, COSE handling, and fixture ingestion.",
+        "WebAuthnAttestationGenerator (2025-10-17) outputs packed/FIDO-U2F/TPM/Android Key attestations with SELF_SIGNED, UNSIGNED, CUSTOM_ROOT modes.",
+        "WebAuthnAttestationFixtures loads docs/webauthn_attestation/*.json, exposing registration/authentication/key material records.",
+        "Unit tests assert both positive flows and negative paths (missing custom root, format mismatch) for generator API stability." 
+      ]
+    },
+    {
+      "id": "module:application",
+      "name": "application/",
+      "observations": [
+        "Provides orchestration, telemetry bridging, persistence adapters, and trust-anchor resolution for higher-level facades.",
+        "WebAuthnAttestationGenerationApplicationService wraps the core generator, Base64 encodes payloads, and enriches telemetry with generationMode/custom root metrics.",
+        "WebAuthnTrustAnchorResolver merges manual PEM bundles with curated offline MDS catalogs (docs/webauthn_attestation/mds/...).",
+        "Attestation replay/verification services remain available for diagnostic workflows consumed by CLI/REST replay commands." 
+      ]
+    },
+    {
+      "id": "module:cli",
+      "name": "cli/",
+      "observations": [
+        "Picocli entry point Fido2Cli exposes evaluation, replay, attestation generation, and attestation replay commands.",
+        "`fido2 attest` now returns attestationObject/clientDataJSON while surfacing signature inclusion and certificate chain counts through telemetry instead of raw PEM payloads.",
+        "Telemetry frames (event=cli.fido2.attest) surface signing mode, certificate chain count, and custom root provenance for operators.",
+        "`fido2 vectors` enumerates assertion and attestation fixtures via shared JSON datasets." 
+      ]
+    },
+    {
+      "id": "module:rest-api",
+      "name": "rest-api/",
+      "observations": [
+        "Spring Boot facade serving JSON endpoints and Thymeleaf operator UI.",
+        "WebAuthnAttestationController: POST /api/v1/webauthn/attest generates deterministic payloads; /attest/replay validates submissions with optional trust anchors.",
+        "WebAuthnAttestationService handles request validation, delegates to generation/replay services, and emits TelemetryContracts frames.",
+        "MockMvc coverage (Fido2AttestationEndpointTest) includes a test-only in-memory CredentialStore to satisfy other configuration beans." 
+      ]
+    },
+    {
+      "id": "ui:operator",
+      "name": "Operator UI",
+      "observations": [
+        "Thymeleaf template templates/ui/fido2/panel.html and static/ui/fido2/console.js power the operator console.",
+        "Evaluate tab still renders attestation verification form; Feature 026 T2614 will pivot it to generation-only semantics (pending Selenium updates).",
+        "Selenium suite (Fido2OperatorUiSeleniumTest) asserts Evaluate/Replay controls and will require adjustments once generator UI ships." 
+      ]
+    },
+    {
+      "id": "docs:root",
+      "name": "docs/",
+      "observations": [
+        "Stores constitution, roadmap, specs, feature plans, tasks, knowledge map, and session snapshots.",
+        "Feature 026 docs (spec/plan/tasks) track attestation generation milestones, UI migration TODOs, and follow-up commands.",
+        "docs/webauthn_attestation/ hosts per-format JSON fixtures and curated MDS bundles; docs/2-how-to/use-fido2-cli-operations.md outlines generator CLI usage.",
+        "docs/3-reference/rest-openapi.(json|yaml) contain latest OpenAPI snapshots enforced by OpenApiSnapshotTest." 
+      ]
+    },
+    {
+      "id": "dataset:attestation-fixtures",
+      "name": "Attestation Fixtures",
+      "observations": [
+        "JSON records capture registration payloads, optional authentications, and key material (credential/attestation keys, serial numbers).",
+        "Consumed by core/application/CLI/REST/UI to guarantee deterministic outputs and consistent telemetry.",
+        "Curated to exclude sensitive data; high-entropy literals permitted via documented gitleaks exemptions." 
+      ]
+    },
+    {
+      "id": "concept:telemetry",
+      "name": "Telemetry Contracts",
+      "observations": [
+        "Fido2TelemetryAdapter and TelemetryContracts standardize event names, reason codes, and sanitized payloads across facades.",
+        "Generation telemetry uses reasonCode=generated with generationMode/customRootCount/certificateChainCount fields; replay/verification maintain match/invalid semantics.",
+        "REST metadata DTOs surface telemetryId and generation attributes for operator UI/CLI parity." 
+      ]
+    },
+    {
+      "id": "concept:tests",
+      "name": "Test Suites",
+      "observations": [
+        "Unit: JUnit + AssertJ for core/application/cli modules, including negative path assertions for generator services.",
+        "Integration: Spring Boot MockMvc tests (e.g., Fido2AttestationEndpointTest) run against in-memory credential stores.",
+        "End-to-end: Selenium Operator UI tests; pending updates once attestation generation UI ships (T2614).",
+        "Snapshot/contract: OpenApiSnapshotTest ensures REST contract stays in sync with docs/3-reference outputs." 
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "workspace:root",
+      "target": "module:core",
+      "name": "defines",
+      "description": "Core module implements protocol primitives and fixture loading consumed by higher layers." 
+    },
+    {
+      "source": "workspace:root",
+      "target": "module:application",
+      "name": "orchestrates",
+      "description": "Application services wrap core logic with telemetry, trust-anchor resolution, and persistence integration." 
+    },
+    {
+      "source": "workspace:root",
+      "target": "module:cli",
+      "name": "facade-cli",
+      "description": "CLI commands exercise application services, outputting telemetry and JSON payloads for operators." 
+    },
+    {
+      "source": "workspace:root",
+      "target": "module:rest-api",
+      "name": "facade-rest",
+      "description": "REST controllers expose HTTP endpoints aligned with application services and telemetry contracts." 
+    },
+    {
+      "source": "module:application",
+      "target": "module:cli",
+      "name": "consumed-by-cli",
+      "description": "CLI layers invoke application services for assertion generation, attestation generation, and replay telemetry." 
+    },
+    {
+      "source": "module:application",
+      "target": "module:rest-api",
+      "name": "consumed-by-rest",
+      "description": "REST controllers depend on application services for request validation, telemetry emission, and trust-anchor resolution." 
+    },
+    {
+      "source": "module:rest-api",
+      "target": "ui:operator",
+      "name": "renders",
+      "description": "Operator UI templates/js call REST endpoints; Selenium coverage enforces end-to-end behaviour." 
+    },
+    {
+      "source": "docs:root",
+      "target": "module:core",
+      "name": "fixture-source",
+      "description": "Attestation JSON datasets in docs/ drive core fixture loaders and generator verification." 
+    },
+    {
+      "source": "docs:root",
+      "target": "module:cli",
+      "name": "guidance",
+      "description": "How-to documentation references CLI commands, configuration flags, and fixture identifiers." 
+    },
+    {
+      "source": "docs:root",
+      "target": "module:rest-api",
+      "name": "contracts",
+      "description": "OpenAPI snapshots under docs/ enforce REST contract stability via snapshot tests." 
+    },
+    {
+      "source": "module:application",
+      "target": "concept:telemetry",
+      "name": "publishes",
+      "description": "Application services emit telemetry frames consumed by CLI, REST, and operator UI layers." 
+    },
+    {
+      "source": "dataset:attestation-fixtures",
+      "target": "module:cli",
+      "name": "consumed-fixtures-cli",
+      "description": "CLI generation and replay commands rely on fixture key material and challenges." 
+    },
+    {
+      "source": "dataset:attestation-fixtures",
+      "target": "module:rest-api",
+      "name": "consumed-fixtures-rest",
+      "description": "REST attestation endpoint pulls fixture data via application/core services for deterministic outputs." 
+    },
+    {
+      "source": "concept:tests",
+      "target": "module:core",
+      "name": "validates-core",
+      "description": "Unit tests ensure generator/verifier correctness across positive and negative scenarios." 
+    },
+    {
+      "source": "concept:tests",
+      "target": "module:application",
+      "name": "validates-application",
+      "description": "Application tests confirm telemetry, signing modes, and trust-anchor handling." 
+    },
+    {
+      "source": "concept:tests",
+      "target": "module:cli",
+      "name": "validates-cli",
+      "description": "CLI tests assert exit codes, stdout telemetry frames, and validation failures." 
+    },
+    {
+      "source": "concept:tests",
+      "target": "module:rest-api",
+      "name": "validates-rest",
+      "description": "MockMvc tests assert JSON payloads, metadata fields, and custom-root handling." 
+    },
+    {
+      "source": "concept:tests",
+      "target": "ui:operator",
+      "name": "validates-ui",
+      "description": "Selenium suite ensures Evaluate/Replay panels render expected controls; currently needs updates for generation-only flow (T2614)." 
+    },
+    {
+      "source": "concept:telemetry",
+      "target": "docs:root",
+      "name": "documented-in-docs",
+      "description": "Telemetry behaviour and fields recorded in Feature 026 spec/plan/tasks and how-to guides." 
+    }
+  ]
+}
