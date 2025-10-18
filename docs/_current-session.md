@@ -13,7 +13,7 @@
 ## Workstream Summary
 | Workstream | Status | Last Increment | Next Increment | Notes |
 |------------|--------|----------------|----------------|-------|
-| Feature 026 – FIDO2/WebAuthn Attestation Support | In progress | T2628 (Shared private-key parser integration) | T2628 – Surface pretty-printed JWK presets & prune Base64URL code paths | Parser shared across core/application/CLI/REST; Option B decisions locked to require JWK or PEM inputs and render presets as multi-line JWK JSON ahead of UI/docs/test updates. |
+| Feature 026 – FIDO2/WebAuthn Attestation Support | In progress | T2628 (Shared private-key parser integration) | T2628 – Surface pretty-printed JWK presets & prune Base64URL code paths; ensure manual attestation labels reflect JWK/PEM-only support after removing `attestationId` | Parser shared across core/application/CLI/REST; Option B decisions locked to require JWK or PEM inputs and render presets as multi-line JWK JSON ahead of UI/docs/test updates. |
 
 ## Active TODOs / Blocking Items
 - [x] Stage failing application-layer tests for attestation services (Feature 026, T2603). (_2025-10-16 – Added attestation verification/replay tests and skeletal services; superseded by the now-green implementation._)

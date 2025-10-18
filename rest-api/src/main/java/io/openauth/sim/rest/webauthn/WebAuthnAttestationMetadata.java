@@ -52,9 +52,6 @@ record WebAuthnAttestationMetadata(
     @Schema(description = "Authenticator AAGUID rendered as a canonical UUID string")
         @JsonProperty("aaguid")
         String aaguid,
-    @Schema(description = "Identifier echoed from the request payload")
-        @JsonProperty("attestationId")
-        String attestationId,
     @Schema(
             description = "Offline metadata entry leveraged when resolving trust anchors",
             example = "mds-w3c-packed-es256")
@@ -103,7 +100,6 @@ record WebAuthnAttestationMetadata(
         asString(telemetryFields.get("anchorMode")),
         asString(telemetryFields.get("certificateFingerprint")),
         asString(telemetryFields.get("aaguid")),
-        asString(telemetryFields.get("attestationId")),
         asString(telemetryFields.get("anchorMetadataEntry")),
         List.of(),
         asBoolean(telemetryFields.get("signatureIncluded")),
@@ -120,7 +116,6 @@ record WebAuthnAttestationMetadata(
       String reasonCode,
       String attestationFormat,
       Map<String, Object> telemetryFields,
-      String attestationId,
       List<String> anchorWarnings) {
     return new WebAuthnAttestationMetadata(
         telemetryId,
@@ -134,7 +129,6 @@ record WebAuthnAttestationMetadata(
         asString(telemetryFields.get("anchorMode")),
         asString(telemetryFields.get("certificateFingerprint")),
         asString(telemetryFields.get("aaguid")),
-        attestationId,
         asString(telemetryFields.get("anchorMetadataEntry")),
         anchorWarnings == null ? List.of() : List.copyOf(anchorWarnings),
         null, // signatureIncluded

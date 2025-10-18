@@ -917,9 +917,6 @@ components:
         aaguid:
           type: "string"
           description: "Authenticator AAGUID rendered as a canonical UUID string"
-        attestationId:
-          type: "string"
-          description: "Identifier echoed from the request payload"
         anchorMetadataEntry:
           type: "string"
           description: "Offline metadata entry leveraged when resolving trust anchors"
@@ -1021,10 +1018,6 @@ components:
           type: "string"
           description: "Raw credential identifier"
           example: "Q2Jl...JfA"
-        attestationId:
-          type: "string"
-          description: "Fixture identifier used for generation"
-          example: "w3c-packed-es256"
         format:
           type: "string"
           description: "Attestation format label"

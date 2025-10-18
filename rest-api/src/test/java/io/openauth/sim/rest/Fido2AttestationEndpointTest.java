@@ -91,7 +91,7 @@ class Fido2AttestationEndpointTest {
     assertThat(attestation.get("type").asText()).isEqualTo("public-key");
     assertThat(attestation.get("id").asText()).isEqualTo(EXPECTED_CREDENTIAL_ID);
     assertThat(attestation.get("rawId").asText()).isEqualTo(EXPECTED_CREDENTIAL_ID);
-    assertThat(attestation.get("attestationId").asText()).isEqualTo(VECTOR.vectorId());
+    assertThat(attestation.has("attestationId")).isFalse();
     assertThat(attestation.get("format").asText()).isEqualTo(VECTOR.format().label());
     JsonNode responsePayload = attestation.get("response");
     assertThat(responsePayload.get("attestationObject").asText()).isEqualTo(EXPECTED_ATTESTATION);

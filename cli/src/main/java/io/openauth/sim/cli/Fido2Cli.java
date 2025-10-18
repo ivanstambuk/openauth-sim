@@ -1300,7 +1300,6 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
       out().println("type=" + attestation.type());
       out().println("id=" + attestation.id());
       out().println("rawId=" + attestation.rawId());
-      out().println("attestationId=" + attestation.attestationId());
       out().println("format=" + attestation.format().label());
       var responsePayload = attestation.response();
       out().println("response.clientDataJSON=" + responsePayload.clientDataJson());

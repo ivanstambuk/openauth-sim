@@ -522,20 +522,22 @@
                   </div>
                   <div class="field-grid field-grid--two-column">
                     <div class="field-group field-group--stacked">
-                      <label for="fido2AttestationCredentialKey">Credential private key (Base64URL)</label>
+                      <label for="fido2AttestationCredentialKey">Credential private key (JWK or PEM/PKCS#8)</label>
                       <textarea
                           id="fido2AttestationCredentialKey"
                           name="credentialPrivateKey"
                           rows="6"
+                          wrap="off"
                           spellcheck="false"
                         ></textarea>
                     </div>
                     <div class="field-group field-group--stacked">
-                      <label for="fido2AttestationPrivateKey">Attestation private key (Base64URL)</label>
+                      <label for="fido2AttestationPrivateKey">Attestation private key (JWK or PEM/PKCS#8)</label>
                       <textarea
                           id="fido2AttestationPrivateKey"
                           name="attestationPrivateKey"
                           rows="6"
+                          wrap="off"
                           spellcheck="false"
                         ></textarea>
                     </div>

@@ -220,7 +220,6 @@ class WebAuthnAttestationService {
             attestation.type(),
             attestation.id(),
             attestation.rawId(),
-            attestation.attestationId(),
             attestation.format().label(),
             responsePayload);
 
@@ -323,7 +322,6 @@ class WebAuthnAttestationService {
               telemetry.reasonCode(),
               format.label(),
               metadataFields,
-              command.attestationId(),
               command.trustAnchorWarnings());
       return new WebAuthnAttestationResponse("success", null, attestedCredential, metadata);
     }

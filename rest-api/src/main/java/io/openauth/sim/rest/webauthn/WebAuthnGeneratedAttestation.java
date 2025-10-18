@@ -16,9 +16,6 @@ record WebAuthnGeneratedAttestation(
     @Schema(description = "Raw credential identifier", example = "Q2Jl...JfA")
         @JsonProperty("rawId")
         String rawId,
-    @Schema(description = "Fixture identifier used for generation", example = "w3c-packed-es256")
-        @JsonProperty("attestationId")
-        String attestationId,
     @Schema(description = "Attestation format label", example = "packed") @JsonProperty("format")
         String format,
     @Schema(description = "Attestation response payload mirroring WebAuthn assertions")

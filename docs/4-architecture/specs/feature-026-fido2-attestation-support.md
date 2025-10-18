@@ -28,6 +28,8 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - 2025-10-17 – Generated attestation payloads must omit `expectedChallenge`, raw certificate PEM chains, and `signatureIncluded` flags; expose only `clientDataJSON` and `attestationObject` within the nested response while surfacing signature/certificate statistics through telemetry metadata. (Owner selected Option B.)
 - 2025-10-18 – The attestation result panel should mirror the assertion layout by removing the intermediate “response” subheading and rendering the JSON payload directly beneath the card header.
 - 2025-10-17 – Hide the visible Attestation ID input; auto-populate a hidden `presetId` field from the selected preset. Provide an optional "Copy preset ID" affordance later if needed. (Approved.)
+- 2025-10-18 – Remove `attestationId` from CLI/REST/UI attestation JSON payloads while keeping it available for internal telemetry, preset resolution, and trust-anchor lookup.
+- 2025-10-18 – Update attestation private-key UI labels to match the supported formats (“JWK or PEM/PKCS#8”) and eliminate remaining Base64URL references for those inputs.
 - 2025-10-17 – Add a Manual generation mode: when no preset is selected (or when overrides are applied), build the attestationObject/clientDataJSON from supplied inputs instead of reading from fixtures. Supported formats: packed, fido-u2f, tpm, android-key. (Proposed; see Open Questions.)
 - 2025-10-18 – Manual credential IDs: default Manual runs generate a new random credential ID server-side (Base64URL). Provide an optional operator override accepting Base64URL; reject malformed overrides, but fall back to random generation when the field is blank/whitespace. (User approved Option A.)
 - 2025-10-18 – Attestation result cards should surface certificate chains in a dedicated panel outside the generated JSON payload; remove the prior summary text (“Signature included”/“Certificate chain count”).
@@ -52,7 +54,7 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - Request: add `inputSource` with values `PRESET` (default) or `MANUAL`.
 - When `inputSource=PRESET`, `attestationId` is required and current validation rules apply.
 - When `inputSource=MANUAL`, `attestationId` is optional, and the service must build attestationObject/clientDataJSON from inputs. Required fields: `format`, `relyingPartyId`, `origin`, `challenge`, `credentialPrivateKey`, and either `signingMode=UNSIGNED` or both `attestationPrivateKey` and `attestationCertificateSerial` (plus optional `customRootCertificates`).
-- Response: continue to return `generatedAttestation` and `metadata`, but trim the nested `response` payload to only `clientDataJSON` and `attestationObject`. Surface signature inclusion and certificate chain counts exclusively via telemetry metadata. Telemetry adds `inputSource`, optional `seedPresetId`, and `overrides` (set of changed fields) when applicable.
+- Response: continue to return `generatedAttestation` and `metadata`, but trim the nested `response` payload to only `clientDataJSON` and `attestationObject`. Remove `attestationId` from user-facing JSON while preserving it inside telemetry fields for preset tracking, trust-anchor resolution, and replay. Telemetry adds `inputSource`, optional `seedPresetId`, and `overrides` (set of changed fields) when applicable.
 
 ## UI Adjustments
 - Hide the visible Attestation ID field. Keep a hidden `presetId` input that JS fills from the preset dropdown.

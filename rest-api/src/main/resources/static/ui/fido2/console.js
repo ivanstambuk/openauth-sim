@@ -708,7 +708,6 @@
       type: generated.type || 'public-key',
       id: generated.id || '',
       rawId: generated.rawId || '',
-      attestationId: generated.attestationId || '',
       format: generated.format || '',
       response: {
         clientDataJSON: responsePayload.clientDataJSON || '',
