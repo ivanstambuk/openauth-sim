@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 class RestPersistenceConfiguration {
 
-  private static final String DEFAULT_DATABASE_FILE = "ocra-credentials.db";
+  private static final String DEFAULT_DATABASE_FILE = "credentials.db";
 
   @Bean(destroyMethod = "close")
   @ConditionalOnMissingBean(CredentialStore.class)

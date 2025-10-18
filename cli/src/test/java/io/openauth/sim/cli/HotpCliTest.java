@@ -293,7 +293,7 @@ final class HotpCliTest {
   }
 
   private Path databasePath() {
-    return tempDir.resolve("hotp-credentials.db");
+    return tempDir.resolve("credentials.db");
   }
 
   private void importCredential(Path databasePath) {

@@ -104,7 +104,7 @@ final class TotpOperatorUiSeleniumTest {
 
   @DynamicPropertySource
   static void configure(DynamicPropertyRegistry registry) {
-    databasePath = tempDir.resolve("totp-credentials.db");
+    databasePath = tempDir.resolve("credentials.db");
     registry.add("openauth.sim.persistence.database-path", () -> databasePath.toString());
     registry.add("openauth.sim.persistence.enable-store", () -> "true");
   }

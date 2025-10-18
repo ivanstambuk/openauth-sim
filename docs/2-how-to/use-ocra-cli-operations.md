@@ -5,7 +5,7 @@ This guide is for operators who manage the simulator from the command line. It c
 ## Prerequisites
 - Java 17 JDK configured (`JAVA_HOME` must point to it per the project constitution).
 - Repository cloned locally with Gradle available.
-- Default MapDB database path (`data/ocra-credentials.db`) is writable. Override with `--database` when needed.
+- Ensure the default MapDB database path (`data/credentials.db`) is writable. Override with `--database` when needed; legacy filenames such as `data/ocra-credentials.db` are still detected automatically.
 
 Warm up the CLI module once so dependencies compile:
 ```bash
@@ -27,7 +27,7 @@ Invoke commands via the Gradle helper:
 ```bash
 ./gradlew :cli:runOcraCli --args="[--database <path>] <command> [options]"
 ```
-If `--database` is omitted, the CLI asks `CredentialStoreFactory` to resolve the path and defaults to `data/ocra-credentials.db` (shared with REST/UI facades).
+If `--database` is omitted, the CLI asks `CredentialStoreFactory` to resolve the path and defaults to `data/credentials.db` (shared with REST/UI facades). When only a legacy file exists, the resolver logs the fallback decision and continues using that path so upgrades remain non-breaking.
 
 All commands emit structured telemetry lines (see `docs/3-reference/cli-ocra-telemetry-snapshot.md`) with `sanitized=true`.
 

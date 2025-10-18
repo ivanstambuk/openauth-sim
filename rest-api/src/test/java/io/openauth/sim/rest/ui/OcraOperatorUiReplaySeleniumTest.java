@@ -61,7 +61,13 @@ final class OcraOperatorUiReplaySeleniumTest {
   @DynamicPropertySource
   static void configure(DynamicPropertyRegistry registry) {
     databasePath = tempDir.resolve("credentials.db");
-    Path samplePath = Path.of("data/ocra-credentials.db");
+    Path samplePath = Path.of("data/credentials.db");
+    if (!Files.exists(samplePath)) {
+      samplePath = Path.of("data/ocra-credentials.db");
+    }
+    if (!Files.exists(samplePath)) {
+      samplePath = Path.of("../data/credentials.db");
+    }
     if (!Files.exists(samplePath)) {
       samplePath = Path.of("../data/ocra-credentials.db");
     }

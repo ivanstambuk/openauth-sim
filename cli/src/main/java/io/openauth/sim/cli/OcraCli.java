@@ -65,13 +65,13 @@ public final class OcraCli implements Callable<Integer> {
 
   @CommandLine.Spec private CommandLine.Model.CommandSpec spec;
 
-  private static final String DEFAULT_DATABASE_FILE = "ocra-credentials.db";
+  private static final String DEFAULT_DATABASE_FILE = "credentials.db";
 
   @CommandLine.Option(
       names = {"-d", "--database"},
       paramLabel = "<path>",
       scope = CommandLine.ScopeType.INHERIT,
-      description = "Path to the credential store database (default: data/ocra-credentials.db)")
+      description = "Path to the credential store database (default: data/credentials.db)")
   private Path database;
 
   void overrideDatabase(Path database) {

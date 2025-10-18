@@ -43,7 +43,7 @@ public final class HotpCli implements Callable<Integer> {
       TelemetryContracts.hotpEvaluationAdapter();
   private static final HotpTelemetryAdapter ISSUANCE_TELEMETRY =
       TelemetryContracts.hotpIssuanceAdapter();
-  private static final String DEFAULT_DATABASE_FILE = "hotp-credentials.db";
+  private static final String DEFAULT_DATABASE_FILE = "credentials.db";
 
   @CommandLine.Spec private CommandLine.Model.CommandSpec spec;
 
@@ -51,7 +51,7 @@ public final class HotpCli implements Callable<Integer> {
       names = {"-d", "--database"},
       paramLabel = "<path>",
       scope = CommandLine.ScopeType.INHERIT,
-      description = "Path to the credential store database (default: data/hotp-credentials.db)")
+      description = "Path to the credential store database (default: data/credentials.db)")
   private Path database;
 
   void overrideDatabase(Path database) {

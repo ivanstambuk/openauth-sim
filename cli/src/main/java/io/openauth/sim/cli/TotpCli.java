@@ -46,7 +46,7 @@ public final class TotpCli implements Callable<Integer> {
   private static final String EVENT_PREFIX = "cli.totp.";
   private static final TotpTelemetryAdapter EVALUATION_TELEMETRY =
       TelemetryContracts.totpEvaluationAdapter();
-  private static final String DEFAULT_DATABASE_FILE = "totp-credentials.db";
+  private static final String DEFAULT_DATABASE_FILE = "credentials.db";
 
   @CommandLine.Spec private CommandLine.Model.CommandSpec spec;
 
@@ -54,7 +54,7 @@ public final class TotpCli implements Callable<Integer> {
       names = {"-d", "--database"},
       paramLabel = "<path>",
       scope = CommandLine.ScopeType.INHERIT,
-      description = "Path to the credential store database (default: data/totp-credentials.db)")
+      description = "Path to the credential store database (default: data/credentials.db)")
   private Path database;
 
   void overrideDatabase(Path database) {

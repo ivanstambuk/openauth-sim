@@ -41,7 +41,7 @@ Outcome: proceed to implementation; no follow-up actions required at this stage.
 
 ## Notes
 - Confirm existing CLI/REST commands via `./gradlew :cli:runOcraCli --args="help"` and REST OpenAPI snapshots before finalising prose.
-- Keep examples aligned with stored credential defaults (`data/ocra-credentials.db`).
+- Keep examples aligned with the shared credential default (`data/credentials.db`); note that legacy filenames such as `data/ocra-credentials.db` still load via the persistence fallback introduced in Feature 027.
 - Include telemetry references where relevant so operators can correlate command/API invocations with logs.
 
 Update this plan after each increment and mark complete when Feature 007 ships.

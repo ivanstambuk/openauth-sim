@@ -14,6 +14,7 @@
 | Workstream | Status | Last Increment | Next Increment | Notes |
 |------------|--------|----------------|----------------|-------|
 | Feature 026 – FIDO2/WebAuthn Attestation Support | In progress | T2628 (Shared private-key parser integration) | T2628 – Surface pretty-printed JWK presets & prune Base64URL code paths; ensure manual attestation labels reflect JWK/PEM-only support after removing `attestationId` | Parser shared across core/application/CLI/REST; Option B decisions locked to require JWK or PEM inputs and render presets as multi-line JWK JSON ahead of UI/docs/test updates. |
+| Feature 027 – Unified Credential Store Naming | In progress | T2704 (Documentation refresh and migration guidance) | TBD – Coordinate fallback deprecation timeline after telemetry confirms unified default adoption | Factory/CLI/REST defaults updated to `credentials.db`, docs refreshed with legacy fallback notes; monitoring telemetry before retiring legacy probes. |
 
 ## Active TODOs / Blocking Items
 - [x] Stage failing application-layer tests for attestation services (Feature 026, T2603). (_2025-10-16 – Added attestation verification/replay tests and skeletal services; superseded by the now-green implementation._)
@@ -42,6 +43,8 @@
 - [x] Remove the attestation result “response” subheading so the JSON renders directly beneath the card header (T2626). (_2025-10-18 – Updated `panel.html` to inline the JSON block, refreshed Selenium assertions to enforce a single subtitle, and reran targeted REST/UI suites plus `spotlessApply check`._)
 - [x] Restyle the attestation certificate-chain heading to use title case and the standard result typography (`section-title`) (T2627). (_2025-10-18 – Promoted the heading to the `section-title` style, capitalised the label, added a `certificate-chain-block` spacer for breathing room, updated JS defaults, refreshed Selenium coverage, and reran targeted tests plus `spotlessApply check`._)
 - [ ] T2628 – Attestation private key format parity (render presets/manual outputs as pretty-printed JWK JSON, require JWK or PEM inputs, drop Base64URL branches across core/app/CLI/REST/UI/docs/tests, regenerate OpenAPI + Selenium coverage). (_2025-10-18 – Parser + CLI/REST integration landed; next step is converting fixtures/UI/docs and pruning legacy Base64URL code paths._)
+- [x] T2701 – Governance sync for unified credential store naming (roadmap/knowledge-map/current-session updates plus spec/tasks alignment). (_2025-10-18 – Completed via Feature 027 kickoff updates.)
+- [x] T2702 – Persistence fallback implementation for legacy credential filenames (update `CredentialStoreFactory`, add tests/logging). (_2025-10-18 – Factory updated, legacy fallback logging in place, targeted infra-persistence/rest-api tests green.)
 
 > Open questions live exclusively in `docs/4-architecture/open-questions.md`; consult that log for any pending clarifications.
 

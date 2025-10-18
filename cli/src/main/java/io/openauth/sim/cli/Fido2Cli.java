@@ -64,7 +64,7 @@ import picocli.CommandLine;
 public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
   private static final String EVENT_PREFIX = "cli.fido2.";
-  private static final String DEFAULT_DATABASE_FILE = "fido2-credentials.db";
+  private static final String DEFAULT_DATABASE_FILE = "credentials.db";
   private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
   private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
   private static final Map<String, WebAuthnJsonVector> JSON_VECTOR_INDEX = loadVectorIndex();
@@ -97,7 +97,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
       names = {"-d", "--database"},
       paramLabel = "<path>",
       scope = CommandLine.ScopeType.INHERIT,
-      description = "Path to the credential store database (default: data/fido2-credentials.db)")
+      description = "Path to the credential store database (default: data/credentials.db)")
   private Path database;
 
   void overrideDatabase(Path database) {

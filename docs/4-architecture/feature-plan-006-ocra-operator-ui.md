@@ -129,7 +129,7 @@ Reference specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui
 - 2025-09-29 – R052: Spec, plan, and tasks updated to capture REST-backed credential dropdown requirement and new UI behaviour.
 - 2025-09-29 – R053: Added `/api/v1/ocra/credentials` endpoint returning sanitized summaries with snapshot/test coverage.
 - 2025-09-29 – R054: Wired stored credential mode to fetch summaries, render dropdown/status messages, and updated Selenium coverage + controller assertions.
-- 2025-09-29 – R055: Unified CLI/REST defaults on repo-root `data/ocra-credentials.db`, added shared path utility, refreshed docs/tests, and re-ran checks.
+- 2025-09-29 – R055: Unified CLI/REST defaults on repo-root `data/ocra-credentials.db`, added shared path utility, refreshed docs/tests, and re-ran checks. (Superseded by Feature 027, which promotes the shared `data/credentials.db` default while keeping legacy filenames as fallbacks.)
 - 2025-09-29 – R059: Embedded Appendix A/B reference code directly in the generator how-to, refreshed spec/tasks, and re-ran `./gradlew spotlessApply check` to confirm the documentation-only change passes gates.
 - 2025-09-29 – Clarification: Stored credential selection immediately disables and clears suite-inapplicable request parameters (Option A confirmed by user); spec/tasks updated accordingly.
 - 2025-09-29 – R061 delivery: Added MockMvc + Selenium coverage and client-side handler to disable/clear unsupported request parameters upon stored credential selection; build validated via `./gradlew spotlessApply check`.

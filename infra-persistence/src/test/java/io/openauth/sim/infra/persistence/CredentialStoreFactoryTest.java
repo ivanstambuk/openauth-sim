@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.core.support.ProjectPaths;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -25,10 +27,25 @@ final class CredentialStoreFactoryTest {
   }
 
   @Test
-  @DisplayName("resolveDatabasePath falls back to default file")
+  @DisplayName("resolveDatabasePath falls back to unified default file")
   void resolveDatabasePathFallsBackToDefault() {
-    Path resolved = CredentialStoreFactory.resolveDatabasePath("   ", "fallback.db");
-    assertTrue(resolved.toString().endsWith("fallback.db"));
+    Path resolved = CredentialStoreFactory.resolveDatabasePath("   ", "legacy.db");
+    assertTrue(resolved.toString().endsWith("credentials.db"));
+  }
+
+  @Test
+  @DisplayName("resolveDatabasePath selects legacy file when present")
+  void resolveDatabasePathSelectsLegacyFile() throws Exception {
+    Path legacy = ProjectPaths.resolveDataFile("ocra-credentials.db");
+    Assumptions.assumeFalse(Files.exists(legacy), "legacy test fixture already present");
+    Files.createDirectories(legacy.getParent());
+    Files.createFile(legacy);
+    try {
+      Path resolved = CredentialStoreFactory.resolveDatabasePath("   ", "legacy.db");
+      assertEquals(legacy.toAbsolutePath(), resolved);
+    } finally {
+      Files.deleteIfExists(legacy);
+    }
   }
 
   @Test

@@ -7,7 +7,7 @@ The operator console bundled with the REST API now includes a FIDO2/WebAuthn pan
 
 ## Prerequisites
 - Start the REST API locally (`./gradlew :rest-api:bootRun`). The console lives at `http://localhost:8080/ui/console`.
-- Ensure the simulator can open its MapDB store (`data/fido2-credentials.db` by default). If you have not seeded any WebAuthn credentials, the UI provides a **Seed sample credential** button that pulls curated entries from `docs/webauthn_assertion_vectors.json`.
+- Ensure the simulator can open its MapDB store (`data/credentials.db` by default). If you have not seeded any WebAuthn credentials, the UI provides a **Seed sample credential** button that pulls curated entries from `docs/webauthn_assertion_vectors.json`. Legacy files such as `data/fido2-credentials.db` remain supported via the automatic fallback.
 - Use a modern browser with JavaScript enabled. The panel relies on client-side scripts for preset loading, telemetry updates, and query-parameter deep links.
 
 Directly open the WebAuthn tab via `http://localhost:8080/ui/console?protocol=fido2`. The console keeps protocol/mode preferences in the query string (see [Persisting mode state](#persisting-mode-state)).

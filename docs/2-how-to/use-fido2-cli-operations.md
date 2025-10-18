@@ -8,7 +8,7 @@ The `fido2` Picocli facade lets you validate WebAuthn assertions and attestation
 ## Prerequisites
 - Java 17 (`JAVA_HOME` must point to a JDK 17 install).
 - Build dependencies installed via Gradle (`./gradlew spotlessApply check` should already pass).
-- Optional but recommended: start the REST API (`./gradlew :rest-api:bootRun`) so you can seed sample credentials through `POST /api/v1/webauthn/credentials/seed` or the operator console. The CLI opens the same MapDB file (`data/fido2-credentials.db` by default) that the REST/UI layers use.
+- Optional but recommended: start the REST API (`./gradlew :rest-api:bootRun`) so you can seed sample credentials through `POST /api/v1/webauthn/credentials/seed` or the operator console. The CLI opens the same MapDB file (`data/credentials.db` by default) that the REST/UI layers use; legacy files like `data/fido2-credentials.db` continue to load automatically.
 - Base64url utilities (`base64url`-style encodings) for supplying raw credential material when you are not using presets.
 - (Optional) `jq` or similar tooling if you want to explore the assertion fixtures in `docs/webauthn_assertion_vectors.json` and the attestation fixtures in `docs/webauthn_attestation/*.json`.
 

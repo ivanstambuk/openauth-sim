@@ -20,7 +20,7 @@ Most workflows simply need a store that respects the project’s migrations and 
 ```java
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 
-try (MapDbCredentialStore store = CredentialStoreFactory.openFileStore(Paths.get("./data/ocra-credentials.db"))) {
+try (MapDbCredentialStore store = CredentialStoreFactory.openFileStore(Paths.get("./data/credentials.db"))) {
   // interact with the credential store
 }
 ```
@@ -69,11 +69,13 @@ try (MapDbCredentialStore store = CredentialStoreFactory.openInMemoryStore()) {
 
 **Configuration:**
 ```java
-Path databasePath = CredentialStoreFactory.resolveDatabasePath(null, "ocra-credentials.db");
+Path databasePath = CredentialStoreFactory.resolveDatabasePath(null, "credentials.db");
 try (MapDbCredentialStore store = CredentialStoreFactory.openFileStore(databasePath)) {
   // interact with the credential store
 }
 ```
+
+When the unified file does not yet exist but a legacy `*-credentials.db` file is present (for example `ocra-credentials.db`), the factory logs the fallback decision and returns the legacy path so existing stores keep working until you migrate to the new name.
 
 MapDB enables memory-mapped IO (when supported) and transactional commits for durability. Ensure the target directory exists and is writable.
 
