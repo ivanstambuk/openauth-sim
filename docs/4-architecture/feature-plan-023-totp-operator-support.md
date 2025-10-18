@@ -1,7 +1,7 @@
 # Feature Plan 023 – TOTP Operator Support
 
-_Status: In Progress_
-_Last updated: 2025-10-15_
+_Status: Complete_
+_Last updated: 2025-10-18_
 
 ## Objective
 Deliver RFC 6238-compliant TOTP evaluation and replay flows across core, shared persistence, application services, CLI, REST, and operator console UI so operators can validate time-based OTPs alongside HOTP and OCRA.
@@ -11,9 +11,9 @@ Reference specification: `docs/4-architecture/specs/feature-023-totp-operator-su
 ## Success Criteria
 - TOS-001 – Core TOTP generators/validators cover SHA-1/SHA-256/SHA-512, 6/8 digits, and configurable step durations with comprehensive tests.
 - TOS-002 – MapDB schema v1 stores TOTP descriptors without migrations and coexists with HOTP/OCRA records.
-- TOS-003 & TOS-004 – Application services evaluate stored/inline submissions with drift controls, emit `totp.evaluate`/`totp.replay` telemetry, and redact secrets.
-- TOS-005 – CLI imports/lists/evaluates TOTP credentials with drift/timestamp controls and telemetry parity.
-- TOS-006 – REST endpoints (`/api/v1/totp/evaluate`, `/inline`, `/replay`) satisfy MockMvc + OpenAPI coverage and keep replay non-mutating.
+- TOS-003 & TOS-004 – Application services generate stored/inline OTPs (drift/timestamp aware), expose replay validation hooks, emit `totp.evaluate`/`totp.replay` telemetry, and redact secrets.
+- TOS-005 – CLI imports/lists TOTP credentials, generates stored/inline OTPs, and routes replay validation with drift/timestamp controls.
+- TOS-006 – REST endpoints (`/api/v1/totp/evaluate`, `/inline`, `/replay`) satisfy MockMvc + OpenAPI coverage, return generated OTP payloads, and keep replay non-mutating.
 - TOS-007 – Operator console surfaces TOTP evaluate/replay panels with presets, drift/timestamp overrides, and query-parameter deep links.
 - TOS-008 – Documentation (operator how-to, roadmap, knowledge map) reflects live TOTP capabilities.
 - TOS-NFR-001..004 – Coverage, SpotBugs, accessibility, and telemetry sanitisation guardrails remain green via `./gradlew qualityGate` and `./gradlew spotlessApply check`.
@@ -60,6 +60,8 @@ Reference specification: `docs/4-architecture/specs/feature-023-totp-operator-su
 - ☑ R2345 – Update the operator console templates/JS so the TOTP Evaluate tab selects inline parameters by default and rerun the targeted Selenium suite plus `./gradlew spotlessApply check`. (_2025-10-11 – Adjusted Thymeleaf markup, TOTP/host console scripts, and Selenium expectations; reran `TotpOperatorUiSeleniumTest` plus `./gradlew spotlessApply check` to confirm green state._)
 - ☑ R2346 – Remove the TOTP replay “Load sample data” control, auto-fill OTP/context on stored credential selection, update Selenium/MockMvc coverage, and rerun `./gradlew spotlessApply check`. (_2025-10-15 – Finalised the stored replay auto-fill by relying on the existing fetch flow, trimming the legacy button, and updating `TotpOperatorUiSeleniumTest.storedTotpReplayReturnsMatch` to wait for auto-populated fields before submitting. Confirmed via `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest"` ahead of the full `./gradlew :rest-api:test` and `./gradlew spotlessApply check` runs._)
 - ☑ R2346 – Publish `docs/totp_validation_vectors.json` with RFC 6238 Appendix B reference cases, update TOTP fixture loaders/tests across core, CLI, REST, and operator UI, and document workflows in the how-to guides. (_2025-10-13 – Added shared JSON catalogue + loader, refactored presets/tests across core, CLI, REST, UI, and refreshed operator how-to/knowledge map._)
+- ☑ R2350 – Stage failing tests reflecting generated-evaluation behaviour (application, CLI, REST MockMvc/OpenAPI, operator UI Selenium) and updated telemetry/status expectations (`generated`, OTP payload). Record failing commands. (_2025-10-18 – Updated TOTP evaluation tests across layers + OpenAPI snapshot to fail pending implementation; noted commands in session log._)
+- ☑ R2351 – Implement generation-first evaluation across application/REST/CLI/UI, adjust telemetry contracts, update documentation, and rerun targeted suites plus `./gradlew spotlessApply check`. (_2025-10-18 – Added generation path to application service, REST/CLI/UI updates, OpenAPI snapshot regenerated, knowledge map refreshed, targeted tests + full check pipeline green._)
 
 ## Analysis Gate
 - 2025-10-08 – Completed checklist 1–6; plan/spec/tasks align, open-question log cleared, and no remediation required before development.

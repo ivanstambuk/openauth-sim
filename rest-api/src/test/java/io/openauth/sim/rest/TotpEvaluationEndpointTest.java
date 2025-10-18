@@ -69,8 +69,8 @@ class TotpEvaluationEndpointTest {
   }
 
   @Test
-  @DisplayName("Stored TOTP evaluation validates OTP within drift window")
-  void storedTotpEvaluationValidatesOtp() throws Exception {
+  @DisplayName("Stored TOTP evaluation generates OTP within drift window")
+  void storedTotpEvaluationGeneratesOtp() throws Exception {
     TotpDescriptor descriptor =
         TotpDescriptor.create(
             CREDENTIAL_ID,
@@ -84,7 +84,7 @@ class TotpEvaluationEndpointTest {
     credentialStore.save(credential);
 
     Instant timestamp = Instant.ofEpochSecond(1_111_111_111L);
-    String otp = TotpGenerator.generate(descriptor, timestamp);
+    String expectedOtp = TotpGenerator.generate(descriptor, timestamp);
 
     String responseBody =
         mockMvc
@@ -95,22 +95,22 @@ class TotpEvaluationEndpointTest {
                         """
                         {
                           "credentialId": "%s",
-                          "otp": "%s",
                           "timestamp": %d,
                           "driftBackward": 1,
                           "driftForward": 1
                         }
                         """
-                            .formatted(CREDENTIAL_ID, otp, timestamp.getEpochSecond())))
+                            .formatted(CREDENTIAL_ID, timestamp.getEpochSecond())))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getContentAsString();
 
     JsonNode response = MAPPER.readTree(responseBody);
-    assertEquals("validated", response.get("status").asText());
+    assertEquals("generated", response.get("status").asText());
+    assertEquals("generated", response.get("reasonCode").asText());
     assertTrue(response.get("valid").asBoolean());
-    assertEquals("validated", response.get("reasonCode").asText());
+    assertEquals(expectedOtp, response.get("otp").asText());
 
     JsonNode metadata = response.get("metadata");
     assertEquals("stored", metadata.get("credentialSource").asText());
@@ -124,8 +124,8 @@ class TotpEvaluationEndpointTest {
   }
 
   @Test
-  @DisplayName("Inline TOTP evaluation outside drift window responds with validation error")
-  void inlineTotpEvaluationOutsideDriftWindow() throws Exception {
+  @DisplayName("Inline TOTP evaluation generates OTP when OTP not supplied")
+  void inlineTotpEvaluationGeneratesOtp() throws Exception {
     TotpDescriptor descriptor =
         TotpDescriptor.create(
             "inline",
@@ -135,30 +135,37 @@ class TotpEvaluationEndpointTest {
             Duration.ofSeconds(60),
             TotpDriftWindow.of(0, 0));
     Instant issuedAt = Instant.ofEpochSecond(1_234_567_890L);
-    String otp = TotpGenerator.generate(descriptor, issuedAt);
+    String expectedOtp = TotpGenerator.generate(descriptor, issuedAt);
 
-    mockMvc
-        .perform(
-            post("/api/v1/totp/evaluate/inline")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "sharedSecretHex": "%s",
-                      "algorithm": "SHA512",
-                      "digits": 8,
-                      "stepSeconds": 60,
-                      "driftBackward": 0,
-                      "driftForward": 0,
-                      "timestamp": %d,
-                      "otp": "%s"
-                    }
-                    """
-                        .formatted(
-                            INLINE_SECRET.asHex(),
-                            issuedAt.plusSeconds(120).getEpochSecond(),
-                            otp)))
-        .andExpect(status().isUnprocessableEntity());
+    String responseBody =
+        mockMvc
+            .perform(
+                post("/api/v1/totp/evaluate/inline")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "sharedSecretHex": "%s",
+                          "algorithm": "SHA512",
+                          "digits": 8,
+                          "stepSeconds": 60,
+                          "driftBackward": 1,
+                          "driftForward": 1,
+                          "timestamp": %d
+                        }
+                        """
+                            .formatted(INLINE_SECRET.asHex(), issuedAt.getEpochSecond())))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    JsonNode response = MAPPER.readTree(responseBody);
+    assertEquals("generated", response.get("status").asText());
+    assertEquals("generated", response.get("reasonCode").asText());
+    assertTrue(response.get("valid").asBoolean());
+    assertEquals(expectedOtp, response.get("otp").asText());
+    assertEquals("inline", response.get("metadata").get("credentialSource").asText());
   }
 
   @TestConfiguration

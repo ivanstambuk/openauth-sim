@@ -274,7 +274,7 @@
           typeof preset.stepSeconds === 'number' ? String(preset.stepSeconds) : '';
     }
     if (inlineOtpInput) {
-      inlineOtpInput.value = preset.otp || '';
+      inlineOtpInput.value = '';
     }
     if (inlineTimestampInput) {
       inlineTimestampInput.value =
@@ -1045,6 +1045,11 @@
     setHidden(inlineSection, normalized !== 'inline');
     syncSeedActions(normalized === 'stored');
     if (normalized === 'stored') {
+      clearInlinePanels();
+    } else {
+      clearStoredPanels();
+    }
+    if (normalized === 'stored') {
       ensureStoredCredentials(options && options.force === true)
         .then(function () {
           var credentialId = (replayStoredSelect && replayStoredSelect.value || '').trim();
@@ -1111,12 +1116,33 @@
     var isSuccess =
         normalized === 'validated' ||
         normalized === 'success' ||
-        normalized === 'match';
+        normalized === 'match' ||
+        normalized === 'generated';
     var isInvalid =
         normalized === 'invalid' ||
         normalized === 'otp_out_of_window' ||
         normalized === 'mismatch';
-    badge.textContent = status ? String(status) : 'Unknown';
+    var displayLabel = (function () {
+      switch (normalized) {
+        case 'generated':
+          return 'Success';
+        case 'validated':
+          return 'Validated';
+        case 'success':
+          return 'Success';
+        case 'match':
+          return 'Match';
+        case 'otp_out_of_window':
+          return 'OTP out of window';
+        case 'invalid':
+          return 'Invalid';
+        case 'mismatch':
+          return 'Mismatch';
+        default:
+          return status ? String(status) : 'Unknown';
+      }
+    })();
+    badge.textContent = displayLabel;
     badge.classList.remove('status-badge--success', 'status-badge--error');
     if (isSuccess) {
       badge.classList.add('status-badge--success');
@@ -1127,21 +1153,23 @@
 
   function handleStoredSuccess(response) {
     clearStoredPanels();
+    clearInlinePanels();
     if (!response || typeof response !== 'object') {
       return;
     }
     var metadata = response.metadata || {};
     setStatusBadge(storedStatusBadge, response.status || response.reasonCode);
-    writeText(
-        storedOtpValue,
-        storedOtpInput && typeof storedOtpInput.value === 'string'
-            ? storedOtpInput.value.trim()
-            : metadata.otp);
+    var generatedOtp = typeof response.otp === 'string' ? response.otp : '';
+    if (storedOtpInput) {
+      storedOtpInput.value = generatedOtp;
+    }
+    writeText(storedOtpValue, generatedOtp || metadata.otp || '—');
     setHidden(storedResultPanel, false);
   }
 
   function handleStoredError(error) {
     clearStoredPanels();
+    clearInlinePanels();
     if (!storedErrorPanel) {
       return;
     }
@@ -1164,20 +1192,22 @@
 
   function handleInlineSuccess(response) {
     clearInlinePanels();
+    clearStoredPanels();
     if (!response || typeof response !== 'object') {
       return;
     }
     setStatusBadge(inlineStatusBadge, response.status || response.reasonCode);
-    writeText(
-        inlineOtpValue,
-        inlineOtpInput && typeof inlineOtpInput.value === 'string'
-            ? inlineOtpInput.value.trim()
-            : (response.metadata && response.metadata.otp));
+    var generatedOtp = typeof response.otp === 'string' ? response.otp : '';
+    if (inlineOtpInput) {
+      inlineOtpInput.value = generatedOtp;
+    }
+    writeText(inlineOtpValue, generatedOtp || (response.metadata && response.metadata.otp));
     setHidden(inlineResultPanel, false);
   }
 
   function handleInlineError(error) {
     clearInlinePanels();
+    clearStoredPanels();
     if (!inlineErrorPanel) {
       return;
     }
@@ -1235,11 +1265,17 @@
     if (!storedForm || !storedButton) {
       return;
     }
+    if (storedOtpInput) {
+      storedOtpInput.value = '';
+    }
     var endpoint = storedForm.getAttribute('data-evaluate-endpoint');
     var payload = {
       credentialId: valueOf('#totpStoredCredentialId'),
-      otp: valueOf('#totpStoredOtp'),
     };
+    var otp = valueOf('#totpStoredOtp');
+    if (otp) {
+      payload.otp = otp;
+    }
     var timestamp = toInteger(valueOf('#totpStoredTimestamp'));
     var timestampOverride = toInteger(valueOf('#totpStoredTimestampOverride'));
     var driftBackward = toInteger(valueOf('#totpStoredDriftBackward'));
@@ -1270,12 +1306,18 @@
     if (!inlineForm || !inlineButton) {
       return;
     }
+    if (inlineOtpInput) {
+      inlineOtpInput.value = '';
+    }
     var endpoint = inlineForm.getAttribute('data-evaluate-endpoint');
     var payload = {
       sharedSecretHex: valueOf('#totpInlineSecretHex'),
       algorithm: valueOf('#totpInlineAlgorithm'),
-      otp: valueOf('#totpInlineOtp'),
     };
+    var otp = valueOf('#totpInlineOtp');
+    if (otp) {
+      payload.otp = otp;
+    }
     var digits = toInteger(valueOf('#totpInlineDigits'));
     var stepSeconds = toInteger(valueOf('#totpInlineStepSeconds'));
     var driftBackward = toInteger(valueOf('#totpInlineDriftBackward'));

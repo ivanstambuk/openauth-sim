@@ -1,7 +1,7 @@
 # Feature 023 – Task Checklist
 
-_Status: In Progress_
-_Last updated: 2025-10-15_
+_Status: Complete_
+_Last updated: 2025-10-18_
 
 ## Tasks (≤10 min each)
 - ☑ T2301 – Add failing core unit tests for TOTP generator/validator covering SHA-1/SHA-256/SHA-512, 6/8 digits, time-step conversion, and drift window limits. (_2025-10-08 – RFC 6238 vectors + drift scenarios added; `./gradlew :core:test` red as expected._)
@@ -52,3 +52,5 @@ _Last updated: 2025-10-15_
 
 ☑ T2346 – Publish `docs/totp_validation_vectors.json` with RFC 6238 reference cases, update TOTP fixture loaders/tests across core, CLI, REST, and operator UI, and refresh operator/REST how-to guides once the catalogue lands. (_2025-10-13 – Added shared JSON fixture bundle + `TotpJsonVectorFixtures`, rewired core/CLI/REST/UI presets/tests to load from it, and updated docs/knowledge map._)
 - ☑ T2347 – Remove the TOTP replay “Load sample data” button, auto-fill OTP/context on stored credential selection, update Selenium/MockMvc coverage, and rerun `./gradlew spotlessApply check`. (_2025-10-15 – Relied on automatic sample hydration by updating `TotpOperatorUiSeleniumTest.storedTotpReplayReturnsMatch` to wait for the fetched values, dropping the redundant manual field writes, and ensuring the stored status hint surfaces once the fetch completes. Validated with `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest"` and the aggregate `./gradlew :rest-api:test`, then executed `./gradlew spotlessApply check`._)
+- ☑ T2350 – Stage failing tests for generated evaluation behaviour (application, CLI, REST MockMvc/OpenAPI, operator UI Selenium) and document breaking expectations. (_2025-10-18 – Updated application/REST/CLI/Selenium tests to expect `status=generated`, OTP payloads, read-only inputs; OpenAPI snapshot left failing pending implementation._)
+- ☑ T2351 – Implement generation-first evaluation across layers, update telemetry/docs, and rerun targeted suites plus `./gradlew spotlessApply check`. (_2025-10-18 – Adjusted application service, REST/CLI/UI, regenerated OpenAPI snapshots, knowledge map bullet, and ran targeted suites + `./gradlew spotlessApply check`._)

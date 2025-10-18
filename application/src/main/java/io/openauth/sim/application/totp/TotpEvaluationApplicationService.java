@@ -8,6 +8,7 @@ import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.otp.totp.TotpCredentialPersistenceAdapter;
 import io.openauth.sim.core.otp.totp.TotpDescriptor;
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
+import io.openauth.sim.core.otp.totp.TotpGenerator;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
 import io.openauth.sim.core.otp.totp.TotpValidator;
 import io.openauth.sim.core.otp.totp.TotpVerificationResult;
@@ -89,6 +90,25 @@ public final class TotpEvaluationApplicationService {
     }
 
     String candidateOtp = sanitizeOtp(command.otp());
+    boolean validationRequested = !candidateOtp.isEmpty();
+
+    if (!validationRequested) {
+      Instant evaluationInstant = defaultInstant(command.evaluationInstant());
+      Instant generationInstant = command.timestampOverride().orElse(evaluationInstant);
+      String generatedOtp = TotpGenerator.generate(descriptor, generationInstant);
+      return successResult(
+          true,
+          command.credentialId(),
+          descriptor.algorithm(),
+          descriptor.digits(),
+          descriptor.stepDuration(),
+          command.driftWindow(),
+          0,
+          command.timestampOverride().isPresent(),
+          "generated",
+          generatedOtp);
+    }
+
     if (!isValidOtpFormat(candidateOtp, descriptor.digits())) {
       return validationFailure(
           command.credentialId(),
@@ -121,7 +141,9 @@ public final class TotpEvaluationApplicationService {
           descriptor.stepDuration(),
           command.driftWindow(),
           verification.matchedSkewSteps(),
-          command.timestampOverride().isPresent());
+          command.timestampOverride().isPresent(),
+          "validated",
+          null);
     }
 
     return validationFailure(
@@ -180,6 +202,25 @@ public final class TotpEvaluationApplicationService {
     }
 
     String candidateOtp = sanitizeOtp(command.otp());
+    boolean validationRequested = !candidateOtp.isEmpty();
+
+    if (!validationRequested) {
+      Instant evaluationInstant = defaultInstant(command.evaluationInstant());
+      Instant generationInstant = command.timestampOverride().orElse(evaluationInstant);
+      String generatedOtp = TotpGenerator.generate(descriptor, generationInstant);
+      return successResult(
+          false,
+          null,
+          descriptor.algorithm(),
+          descriptor.digits(),
+          descriptor.stepDuration(),
+          descriptor.driftWindow(),
+          0,
+          command.timestampOverride().isPresent(),
+          "generated",
+          generatedOtp);
+    }
+
     if (!isValidOtpFormat(candidateOtp, descriptor.digits())) {
       return validationFailure(
           null,
@@ -212,7 +253,9 @@ public final class TotpEvaluationApplicationService {
           descriptor.stepDuration(),
           descriptor.driftWindow(),
           verification.matchedSkewSteps(),
-          command.timestampOverride().isPresent());
+          command.timestampOverride().isPresent(),
+          "validated",
+          null);
     }
 
     return validationFailure(
@@ -250,7 +293,9 @@ public final class TotpEvaluationApplicationService {
       Duration stepDuration,
       TotpDriftWindow driftWindow,
       int matchedSkewSteps,
-      boolean timestampOverrideProvided) {
+      boolean timestampOverrideProvided,
+      String reasonCode,
+      String otp) {
 
     Map<String, Object> fields =
         telemetryFields(
@@ -264,7 +309,7 @@ public final class TotpEvaluationApplicationService {
             matchedSkewSteps);
 
     TelemetrySignal telemetry =
-        new TelemetrySignal(TelemetryStatus.SUCCESS, "validated", null, true, fields);
+        new TelemetrySignal(TelemetryStatus.SUCCESS, reasonCode, null, true, fields);
 
     return new EvaluationResult(
         telemetry,
@@ -275,7 +320,8 @@ public final class TotpEvaluationApplicationService {
         algorithm,
         digits,
         stepDuration,
-        driftWindow);
+        driftWindow,
+        otp);
   }
 
   private EvaluationResult validationFailure(
@@ -313,7 +359,8 @@ public final class TotpEvaluationApplicationService {
         algorithm,
         digits,
         stepDuration,
-        driftWindow);
+        driftWindow,
+        null);
   }
 
   private Map<String, Object> telemetryFields(
@@ -413,7 +460,8 @@ public final class TotpEvaluationApplicationService {
       TotpHashAlgorithm algorithm,
       Integer digits,
       Duration stepDuration,
-      TotpDriftWindow driftWindow) {
+      TotpDriftWindow driftWindow,
+      String otp) {
 
     public TelemetryFrame evaluationFrame(String telemetryId) {
       return telemetry.emit(TelemetryContracts.totpEvaluationAdapter(), telemetryId);

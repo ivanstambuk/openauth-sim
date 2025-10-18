@@ -20,7 +20,7 @@ This living map captures the explicit relationships between modules, data flows,
 - `docs/1-concepts/README.md` documents the OCRA capability matrix and telemetry contract operators should consult when integrating facades.
 - Core TOTP package implements RFC 6238 descriptors, generators, validators, and drift window helpers that will feed shared persistence and facade services in Feature 023.
 - docs/totp_validation_vectors.json now centralises RFC 6238 TOTP fixtures consumed by the core loader (`TotpJsonVectorFixtures`) so CLI, REST, and operator UI presets stay in sync without duplicating literals.
-- Application module now exposes `TotpEvaluationApplicationService`, validating stored and inline submissions through the shared `CredentialStore`, emitting `totp.evaluate` telemetry via `TelemetryContracts`.
+- Application module now exposes `TotpEvaluationApplicationService`, generating stored/inline OTPs (and validating on replay) through the shared `CredentialStore`, emitting `totp.evaluate` telemetry via `TelemetryContracts`.
 - MapDB persistence now normalises TOTP credential attributes (algorithm, digits, step, drift windows) under schema v1 alongside existing HOTP defaults so shared stores can serve mixed protocol records.
 - CLI module now includes `TotpCli` list/evaluate commands that wrap the TOTP application service and emit `cli.totp.evaluate` telemetry without persisting secrets.
 - Core module now includes a `fido2` package where `WebAuthnAssertionVerifier` parses COSE public keys, validates client/ authenticator payloads, and produces signature-verification outcomes for downstream facades.

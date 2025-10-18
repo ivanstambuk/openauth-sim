@@ -1,7 +1,7 @@
 # Feature 023 – TOTP Operator Support
 
 _Status: Complete_
-_Last updated: 2025-10-13_
+_Last updated: 2025-10-18_
 
 ## Overview
 Deliver RFC 6238 TOTP capabilities across the simulator so operators can validate time-based one-time passwords alongside existing HOTP and OCRA flows. This feature introduces a TOTP domain model, shared persistence descriptors, application-layer services, CLI commands, REST endpoints, and operator console evaluation/replay experiences while keeping issuance out of scope for the initial release.
@@ -39,16 +39,19 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 - 2025-10-13 – Stored credential seeding mirrors the inline preset catalogue (SHA-1/SHA-256/SHA-512 across 6- and 8-digit variants) so dropdown labels match the inline sample vector names (user directive; Option A selected).
 - 2025-10-13 – Operator console deep links standardise on `protocol=<key>`, `tab=<evaluate|replay>`, and `mode=<inline|stored>` parameters so TOTP URLs align with HOTP/OCRA/FIDO2 conventions (user directive; Option B selected).
 - 2025-10-13 – Selecting the TOTP protocol tab must always open the Evaluate tab in Inline mode, discarding prior tab/mode state to provide a consistent entry point (user directive).
+- 2025-10-18 – Stored-mode evaluation now generates the current OTP (respecting timestamp overrides) and returns it in the response/UI; the operator must not supply an OTP for evaluation (owner directive; supersedes 2025-10-08 validation guidance).
+- 2025-10-18 – Inline evaluation mirrors stored behaviour by generating the OTP from the provided parameters. Replay is the only flow that accepts operator-entered OTPs and reports match/mismatch outcomes (owner directive).
+- 2025-10-18 – Evaluation responses use `status=generated`, include the generated OTP, and emit telemetry without exposing secret material; replay retains its existing semantics (owner directive).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
 |----|-------------|-------------------|
 | TOS-001 | Implement TOTP credential descriptors and generators complying with RFC 6238 (SHA-1/SHA-256/SHA-512, 6/8 digits, configurable step duration). | Core unit tests cover algorithm/digit combinations, rollover boundaries, and time-step conversions. |
 | TOS-002 | Store TOTP credentials in the existing schema v1 MapDB store without migrations, coexisting with HOTP/OCRA records. | Persistence integration tests confirm mixed credential types round-trip via `CredentialStoreFactory` and retain version markers. |
-| TOS-003 | Provide application-layer services that evaluate stored and inline TOTP submissions, exposing configurable drift windows and operator-supplied timestamps. | Application service tests verify success, invalid secret/hmac failures, and drift boundary rejection while emitting telemetry. |
+| TOS-003 | Provide application-layer services that generate stored/inline TOTP codes (respecting drift and timestamp overrides) and expose validation hooks used by replay. | Application service tests verify generation payloads, invalid secret handling, drift boundary rejection, and telemetry status transitions (`generated`, `otp_out_of_window`). |
 | TOS-004 | Extend telemetry adapters (`TelemetryContracts`) for TOTP evaluation/replay events, mirroring naming conventions (`totp.evaluate`, `totp.replay`). | Telemetry unit tests assert emitted frames redact secrets and include algorithm/digit/window metadata. |
-| TOS-005 | Deliver CLI commands to import/list TOTP credentials and evaluate stored/inline submissions with drift controls. | CLI integration tests (Picocli) demonstrate command help, successful evaluations, and failure messaging for out-of-window OTPs. |
-| TOS-006 | Expose REST endpoints for stored (`POST /api/v1/totp/evaluate`) and inline (`POST /api/v1/totp/evaluate/inline`) evaluation plus replay (`POST /api/v1/totp/replay`), supporting drift and timestamp overrides. | MockMvc tests validate status codes, payload contracts, OpenAPI snapshots, and non-mutating replay behaviour. |
+| TOS-005 | Deliver CLI commands to import/list TOTP credentials and generate stored/inline codes with drift controls, while replay validates operator-supplied OTPs. | CLI integration tests (Picocli) demonstrate command help, successful generations (returning OTPs), and failure messaging for out-of-window replay checks. |
+| TOS-006 | Expose REST endpoints for stored (`POST /api/v1/totp/evaluate`) and inline (`POST /api/v1/totp/evaluate/inline`) generation plus replay (`POST /api/v1/totp/replay`), supporting drift and timestamp overrides. | MockMvc tests validate status codes, OTP payloads/status `generated`, OpenAPI snapshots, and non-mutating replay behaviour. |
 | TOS-007 | Update operator console UI with TOTP evaluation and replay panels (stored + inline) that integrate with REST endpoints, presets, and drift controls. | Selenium/system tests confirm panel rendering, preset behaviours, drift/timestamp inputs, and query-parameter deep links (`protocol=totp`). |
 | TOS-008 | Document TOTP usage (operator how-to, roadmap, knowledge map) and align placeholder messaging with live functionality. | Documentation diffs show updated instructions; lint (`./gradlew spotlessApply check`) passes after doc updates. |
 | TOS-009 | Provide a dedicated TOTP replay application/REST flow that mirrors HOTP/OCRA replay semantics, returning diagnostic metadata without mutating credential state. | Application + MockMvc tests assert telemetry, non-mutating behaviour, stored/inline replay handling, and error signalling. |

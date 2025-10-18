@@ -205,7 +205,7 @@ public final class TotpCli implements Callable<Integer> {
 
   @CommandLine.Command(
       name = "evaluate",
-      description = "Validate a stored TOTP credential using a supplied OTP.")
+      description = "Generate a stored TOTP credential's current OTP.")
   static final class EvaluateStoredCommand extends AbstractTotpCommand {
 
     @CommandLine.Option(
@@ -214,13 +214,6 @@ public final class TotpCli implements Callable<Integer> {
         paramLabel = "<id>",
         description = "Identifier of the stored credential")
     String credentialId;
-
-    @CommandLine.Option(
-        names = "--otp",
-        required = true,
-        paramLabel = "<code>",
-        description = "One-time password provided by the operator")
-    String otp;
 
     @CommandLine.Option(
         names = "--timestamp",
@@ -262,7 +255,7 @@ public final class TotpCli implements Callable<Integer> {
         EvaluationResult result =
             service.evaluate(
                 new EvaluationCommand.Stored(
-                    credentialId, otp, window, evaluationInstant, override));
+                    credentialId, "", window, evaluationInstant, override));
         return handleResult(result, event("evaluate"), true);
       } catch (Exception ex) {
         Map<String, Object> fields = new LinkedHashMap<>();
@@ -279,11 +272,7 @@ public final class TotpCli implements Callable<Integer> {
       switch (signal.status()) {
         case SUCCESS -> {
           TelemetryFrame frame = signal.emit(EVALUATION_TELEMETRY, nextTelemetryId());
-          writeFrame(
-              out(),
-              event,
-              addResultFields(
-                  frame, credentialReference, result.valid(), result.matchedSkewSteps()));
+          writeFrame(out(), event, addResultFields(frame, credentialReference, result));
           return CommandLine.ExitCode.OK;
         }
         case INVALID -> {
@@ -309,18 +298,22 @@ public final class TotpCli implements Callable<Integer> {
     }
 
     private TelemetryFrame addResultFields(
-        TelemetryFrame frame, boolean credentialReference, boolean valid, int matchedSkew) {
+        TelemetryFrame frame, boolean credentialReference, EvaluationResult result) {
       Map<String, Object> merged = new LinkedHashMap<>(frame.fields());
       merged.put("credentialReference", credentialReference);
-      merged.put("valid", valid);
-      merged.put("matchedSkewSteps", matchedSkew);
+      merged.put("valid", result.valid());
+      merged.put("matchedSkewSteps", result.matchedSkewSteps());
+      merged.put("reasonCode", result.telemetry().reasonCode());
+      if (result.otp() != null && !result.otp().isBlank()) {
+        merged.put("otp", result.otp());
+      }
       return new TelemetryFrame(frame.event(), frame.status(), frame.sanitized(), merged);
     }
   }
 
   @CommandLine.Command(
       name = "evaluate-inline",
-      description = "Validate an inline TOTP submission without referencing stored credentials.")
+      description = "Generate an inline TOTP code without referencing stored credentials.")
   static final class EvaluateInlineCommand extends AbstractTotpCommand {
 
     @CommandLine.Option(
@@ -377,13 +370,6 @@ public final class TotpCli implements Callable<Integer> {
         description = "Authenticator-supplied timestamp override")
     Long timestampOverride;
 
-    @CommandLine.Option(
-        names = "--otp",
-        required = true,
-        paramLabel = "<code>",
-        description = "One-time password to validate")
-    String otp;
-
     @Override
     public Integer call() {
       TotpHashAlgorithm hashAlgorithm =
@@ -404,7 +390,7 @@ public final class TotpCli implements Callable<Integer> {
                     hashAlgorithm,
                     digits,
                     Duration.ofSeconds(stepSeconds),
-                    otp,
+                    "",
                     window,
                     evaluationInstant,
                     override));
@@ -429,8 +415,7 @@ public final class TotpCli implements Callable<Integer> {
       switch (signal.status()) {
         case SUCCESS -> {
           TelemetryFrame frame = signal.emit(EVALUATION_TELEMETRY, nextTelemetryId());
-          writeFrame(
-              out(), event, addResultFields(frame, result.valid(), result.matchedSkewSteps()));
+          writeFrame(out(), event, addResultFields(frame, result));
           return CommandLine.ExitCode.OK;
         }
         case INVALID -> {
@@ -452,11 +437,15 @@ public final class TotpCli implements Callable<Integer> {
       throw new IllegalStateException("Unhandled telemetry status: " + signal.status());
     }
 
-    private TelemetryFrame addResultFields(TelemetryFrame frame, boolean valid, int matchedSkew) {
+    private TelemetryFrame addResultFields(TelemetryFrame frame, EvaluationResult result) {
       Map<String, Object> merged = new LinkedHashMap<>(frame.fields());
       merged.put("credentialReference", false);
-      merged.put("valid", valid);
-      merged.put("matchedSkewSteps", matchedSkew);
+      merged.put("valid", result.valid());
+      merged.put("matchedSkewSteps", result.matchedSkewSteps());
+      merged.put("reasonCode", result.telemetry().reasonCode());
+      if (result.otp() != null && !result.otp().isBlank()) {
+        merged.put("otp", result.otp());
+      }
       return new TelemetryFrame(frame.event(), frame.status(), frame.sanitized(), merged);
     }
   }

@@ -42,7 +42,7 @@ class TotpEvaluationService {
         Optional.ofNullable(request.otp())
             .map(String::trim)
             .filter(code -> !code.isEmpty())
-            .orElseThrow(() -> validation("otp_required", "OTP is required"));
+            .orElse("");
 
     TotpDriftWindow drift =
         TotpDriftWindow.of(
@@ -68,11 +68,6 @@ class TotpEvaluationService {
             .map(String::trim)
             .filter(value -> !value.isEmpty())
             .orElseThrow(() -> validation("shared_secret_required", "Shared secret is required"));
-    String otp =
-        Optional.ofNullable(request.otp())
-            .map(String::trim)
-            .filter(value -> !value.isEmpty())
-            .orElseThrow(() -> validation("otp_required", "OTP is required"));
     Map<String, String> metadata = sanitizeMetadata(request.metadata());
 
     TotpHashAlgorithm algorithm =
@@ -100,7 +95,7 @@ class TotpEvaluationService {
                 algorithm,
                 digits,
                 Duration.ofSeconds(stepSeconds),
-                otp,
+                Optional.ofNullable(request.otp()).map(String::trim).orElse(""),
                 drift,
                 evaluationInstant,
                 timestampOverride));
@@ -121,7 +116,7 @@ class TotpEvaluationService {
       TotpEvaluationMetadata metadata =
           buildMetadata(frame, credentialSource, result, signal.fields());
       return new TotpEvaluationResponse(
-          signal.reasonCode(), signal.reasonCode(), result.valid(), metadata);
+          signal.reasonCode(), signal.reasonCode(), result.valid(), result.otp(), metadata);
     }
 
     if (signal.status() == TelemetryStatus.INVALID) {

@@ -9,7 +9,6 @@ import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.otp.totp.TotpCredentialPersistenceAdapter;
 import io.openauth.sim.core.otp.totp.TotpDescriptor;
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
-import io.openauth.sim.core.otp.totp.TotpGenerator;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
 import io.openauth.sim.core.otp.totp.TotpJsonVectorFixtures;
 import io.openauth.sim.core.otp.totp.TotpJsonVectorFixtures.TotpJsonVector;
@@ -67,7 +66,7 @@ final class TotpCliTest {
   }
 
   @Test
-  void evaluateStoredCredentialValidatesOtpWithinDriftWindow() throws Exception {
+  void evaluateStoredCredentialGeneratesOtpWithinDriftWindow() throws Exception {
     Path database = tempDir.resolve("totp.db");
     CommandHarness harness = CommandHarness.create(database);
 
@@ -83,15 +82,12 @@ final class TotpCliTest {
     harness.save(descriptor);
 
     Instant timestamp = STORED_VECTOR.timestamp();
-    String otp = TotpGenerator.generate(descriptor, timestamp);
 
     int exitCode =
         harness.execute(
             "evaluate",
             "--credential-id",
             CREDENTIAL_ID,
-            "--otp",
-            otp,
             "--timestamp",
             Long.toString(timestamp.getEpochSecond()),
             "--drift-backward",
@@ -102,8 +98,10 @@ final class TotpCliTest {
     assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
     String stdout = harness.stdout();
     assertTrue(stdout.contains("event=cli.totp.evaluate status=success"));
+    assertTrue(stdout.contains("reasonCode=generated"));
     assertTrue(stdout.contains("credentialReference=true"));
     assertTrue(stdout.contains("matchedSkewSteps=0"));
+    assertTrue(stdout.contains("otp="), "generated OTP should be printed in the evaluation frame");
 
     // Store should remain unchanged (no mutation for TOTP validation).
     try (CredentialStore store = CredentialStoreFactory.openFileStore(database)) {
@@ -113,7 +111,7 @@ final class TotpCliTest {
   }
 
   @Test
-  void evaluateInlineRejectsOtpOutsideConfiguredWindow() throws Exception {
+  void evaluateInlineGeneratesOtp() throws Exception {
     Path database = tempDir.resolve("totp.db");
     CommandHarness harness = CommandHarness.create(database);
 
@@ -126,7 +124,6 @@ final class TotpCliTest {
             Duration.ofSeconds(60),
             TotpDriftWindow.of(0, 0));
     Instant issuedAt = Instant.ofEpochSecond(1_234_567_890L);
-    String otp = TotpGenerator.generate(inlineDescriptor, issuedAt);
 
     int exitCode =
         harness.execute(
@@ -144,14 +141,14 @@ final class TotpCliTest {
             "--drift-forward",
             "0",
             "--timestamp",
-            Long.toString(issuedAt.plusSeconds(180).getEpochSecond()),
-            "--otp",
-            otp);
+            Long.toString(issuedAt.getEpochSecond()));
 
-    assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("event=cli.totp.evaluate status=invalid"));
-    assertTrue(stderr.contains("reasonCode=otp_out_of_window"));
+    assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+    String stdout = harness.stdout();
+    assertTrue(stdout.contains("event=cli.totp.evaluate status=success"));
+    assertTrue(stdout.contains("credentialReference=false"));
+    assertTrue(stdout.contains("reasonCode=generated"));
+    assertTrue(stdout.contains("otp="));
   }
 
   private static final class CommandHarness {

@@ -49,7 +49,7 @@ final class TotpEvaluationApplicationServiceTest {
   }
 
   @Test
-  void storedEvaluationMatchesWithinConfiguredDriftWindow() {
+  void storedEvaluationGeneratesOtpWithinConfiguredDriftWindow() {
     TotpDescriptor descriptor =
         TotpDescriptor.create(CREDENTIAL_ID, SECRET, ALGORITHM, 6, STEP, TotpDriftWindow.of(1, 1));
     TotpCredentialPersistenceAdapter adapter =
@@ -60,11 +60,11 @@ final class TotpEvaluationApplicationServiceTest {
     credentialStore.save(credential);
 
     Instant evaluationInstant = Instant.ofEpochSecond(1_111_111_111L);
-    String otp = TotpGenerator.generate(descriptor, evaluationInstant);
+    String expectedOtp = TotpGenerator.generate(descriptor, evaluationInstant);
 
     TotpEvaluationApplicationService.EvaluationCommand.Stored command =
         new TotpEvaluationApplicationService.EvaluationCommand.Stored(
-            CREDENTIAL_ID, otp, TotpDriftWindow.of(1, 1), evaluationInstant, Optional.empty());
+            CREDENTIAL_ID, "", TotpDriftWindow.of(1, 1), evaluationInstant, Optional.empty());
 
     TotpEvaluationApplicationService.EvaluationResult result = service.evaluate(command);
 
@@ -72,11 +72,11 @@ final class TotpEvaluationApplicationServiceTest {
         TotpEvaluationApplicationService.TelemetryStatus.SUCCESS,
         result.telemetry().status(),
         "telemetry status");
-    assertEquals("validated", result.telemetry().reasonCode());
-    assertTrue(result.valid());
+    assertEquals("generated", result.telemetry().reasonCode());
+    assertTrue(result.valid(), "generated OTP should be considered valid output");
     assertTrue(result.credentialReference());
     assertEquals(CREDENTIAL_ID, result.credentialId());
-    assertEquals(0, result.matchedSkewSteps());
+    assertEquals(0, result.matchedSkewSteps(), "generation should report zero skew");
     assertEquals(ALGORITHM, result.algorithm());
     assertEquals(6, result.digits());
     assertEquals(STEP, result.stepDuration());
@@ -90,6 +90,40 @@ final class TotpEvaluationApplicationServiceTest {
                 TelemetryContractTestSupport.telemetryId());
     assertEquals(CREDENTIAL_ID, frame.fields().get("credentialId"));
     assertEquals(0, frame.fields().get("matchedSkewSteps"));
+    assertFalse(
+        frame.fields().containsKey("otp"),
+        "telemetry must not leak generated OTP values; they belong in the response only");
+    assertEquals(
+        expectedOtp.length(),
+        result.digits(),
+        "digits metadata should align with generated OTP length");
+  }
+
+  @Test
+  void inlineEvaluationGeneratesOtpWhenOtpNotSupplied() {
+    Instant evaluationInstant = Instant.ofEpochSecond(1_234_567_890L);
+    SecretMaterial inlineSecret =
+        SecretMaterial.fromStringUtf8(
+            "1234567890123456789012345678901234567890123456789012345678901234");
+
+    TotpEvaluationApplicationService.EvaluationCommand.Inline command =
+        new TotpEvaluationApplicationService.EvaluationCommand.Inline(
+            inlineSecret.asHex(),
+            TotpHashAlgorithm.SHA512,
+            8,
+            Duration.ofSeconds(60),
+            "",
+            TotpDriftWindow.of(1, 1),
+            evaluationInstant,
+            Optional.empty());
+
+    TotpEvaluationApplicationService.EvaluationResult result = service.evaluate(command);
+
+    assertEquals(
+        TotpEvaluationApplicationService.TelemetryStatus.SUCCESS, result.telemetry().status());
+    assertEquals("generated", result.telemetry().reasonCode());
+    assertFalse(result.credentialReference());
+    assertTrue(result.valid());
   }
 
   @Test

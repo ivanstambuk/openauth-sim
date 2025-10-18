@@ -15,8 +15,11 @@
 |------------|--------|----------------|----------------|-------|
 | Feature 026 – FIDO2/WebAuthn Attestation Support | In progress | T2628 (Shared private-key parser integration) | T2628 – Surface pretty-printed JWK presets & prune Base64URL code paths; ensure manual attestation labels reflect JWK/PEM-only support after removing `attestationId` | Parser shared across core/application/CLI/REST; Option B decisions locked to require JWK or PEM inputs and render presets as multi-line JWK JSON ahead of UI/docs/test updates. |
 | Feature 027 – Unified Credential Store Naming | In progress | T2704 (Documentation refresh and migration guidance) | TBD – Coordinate fallback deprecation timeline after telemetry confirms unified default adoption | Factory/CLI/REST defaults updated to `credentials.db`, docs refreshed with legacy fallback notes; monitoring telemetry before retiring legacy probes. |
+| Feature 023 – TOTP Operator Support | Complete | T2351 (Generation-first evaluation) | — | Evaluation now generates stored/inline OTPs, replay handles validation; telemetry, REST/CLI/UI, and docs/OpenAPI updated 2025-10-18. |
 
 ## Active TODOs / Blocking Items
+- [x] Stage failing tests for TOTP generation-first evaluation across application/REST/CLI/operator UI (Feature 023, T2350); capture failing commands before implementation.
+- [x] Implement TOTP evaluation generation behaviour, update telemetry/contracts/UI docs, and rerun `./gradlew spotlessApply check` (Feature 023, T2351).
 - [x] Stage failing application-layer tests for attestation services (Feature 026, T2603). (_2025-10-16 – Added attestation verification/replay tests and skeletal services; superseded by the now-green implementation._)
 - [x] Align unexpected documentation updates (`AGENTS.md`, `docs/5-operations/runbook-session-reset.md`, new quick-reference files) with owner direction. (_2025-10-16 – Owner confirmed they are the authoritative baseline._)
 - [x] Implement attestation application services + telemetry to satisfy the new failing tests; refreshed plan/tasks/knowledge map and ran full quality gate (2025-10-16).
