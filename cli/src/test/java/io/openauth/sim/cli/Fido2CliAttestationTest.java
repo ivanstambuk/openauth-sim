@@ -9,13 +9,21 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.AlgorithmParameters;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPrivateKeySpec;
 import java.util.Base64;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -35,6 +43,10 @@ final class Fido2CliAttestationTest {
   void attestGeneratesSelfSignedAttestation() throws Exception {
     WebAuthnAttestationVector vector = attestationVector();
     CommandHarness harness = CommandHarness.create(tempDir.resolve("fido2-attest.db"));
+    String credentialPem =
+        toPemPrivateKey(vector, vector.keyMaterial().credentialPrivateKeyBase64Url());
+    String attestationPem =
+        toPemPrivateKey(vector, vector.keyMaterial().attestationPrivateKeyBase64Url());
 
     int exitCode =
         harness.execute(
@@ -50,9 +62,9 @@ final class Fido2CliAttestationTest {
             "--challenge",
             encode(vector.registration().challenge()),
             "--credential-private-key",
-            vector.keyMaterial().credentialPrivateKeyBase64Url(),
+            credentialPem,
             "--attestation-private-key",
-            vector.keyMaterial().attestationPrivateKeyBase64Url(),
+            attestationPem,
             "--attestation-serial",
             vector.keyMaterial().attestationCertificateSerialBase64Url(),
             "--signing-mode",
@@ -91,9 +103,9 @@ final class Fido2CliAttestationTest {
             "--challenge",
             encode(vector.registration().challenge()),
             "--credential-private-key",
-            vector.keyMaterial().credentialPrivateKeyBase64Url(),
+            vector.keyMaterial().credentialPrivateKeyJwk(),
             "--attestation-private-key",
-            vector.keyMaterial().attestationPrivateKeyBase64Url(),
+            vector.keyMaterial().attestationPrivateKeyJwk(),
             "--attestation-serial",
             vector.keyMaterial().attestationCertificateSerialBase64Url(),
             "--signing-mode",
@@ -134,9 +146,9 @@ final class Fido2CliAttestationTest {
             "--challenge",
             encode(vector.registration().challenge()),
             "--credential-private-key",
-            vector.keyMaterial().credentialPrivateKeyBase64Url(),
+            vector.keyMaterial().credentialPrivateKeyJwk(),
             "--attestation-private-key",
-            vector.keyMaterial().attestationPrivateKeyBase64Url(),
+            vector.keyMaterial().attestationPrivateKeyJwk(),
             "--attestation-serial",
             vector.keyMaterial().attestationCertificateSerialBase64Url(),
             "--signing-mode",
@@ -149,6 +161,37 @@ final class Fido2CliAttestationTest {
     assertTrue(stdout.contains("generationMode=custom_root"), stdout);
     assertTrue(stdout.contains("customRootCount=1"), stdout);
     assertTrue(stdout.contains("signatureIncluded=true"), stdout);
+  }
+
+  @Test
+  void attestRejectsLegacyBase64PrivateKeys() throws Exception {
+    WebAuthnAttestationVector vector = attestationVector();
+    CommandHarness harness = CommandHarness.create(tempDir.resolve("fido2-attest.db"));
+
+    int exitCode =
+        harness.execute(
+            "attest",
+            "--format",
+            vector.format().label(),
+            "--attestation-id",
+            vector.vectorId(),
+            "--relying-party-id",
+            vector.relyingPartyId(),
+            "--origin",
+            vector.origin(),
+            "--challenge",
+            encode(vector.registration().challenge()),
+            "--credential-private-key",
+            vector.keyMaterial().credentialPrivateKeyBase64Url(),
+            "--attestation-private-key",
+            vector.keyMaterial().attestationPrivateKeyBase64Url(),
+            "--attestation-serial",
+            vector.keyMaterial().attestationCertificateSerialBase64Url(),
+            "--signing-mode",
+            "self-signed");
+
+    assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stdout());
+    assertTrue(harness.stderr().contains("must be provided as JWK or PEM"), harness.stderr());
   }
 
   @Test
@@ -263,6 +306,36 @@ final class Fido2CliAttestationTest {
   private static String toPem(X509Certificate certificate) throws CertificateEncodingException {
     String encoded = MIME_ENCODER.encodeToString(certificate.getEncoded());
     return "-----BEGIN CERTIFICATE-----\n" + encoded + "\n-----END CERTIFICATE-----\n";
+  }
+
+  private static String toPemPrivateKey(
+      WebAuthnAttestationVector vector, String base64UrlPrivateKey)
+      throws GeneralSecurityException {
+    if (base64UrlPrivateKey == null || base64UrlPrivateKey.isBlank()) {
+      return "";
+    }
+    WebAuthnSignatureAlgorithm algorithm = vector.algorithm();
+    byte[] scalar = Base64.getUrlDecoder().decode(base64UrlPrivateKey);
+    AlgorithmParameters parameters = AlgorithmParameters.getInstance("EC");
+    parameters.init(new ECGenParameterSpec(curveFor(algorithm)));
+    ECParameterSpec spec = parameters.getParameterSpec(ECParameterSpec.class);
+    KeyFactory factory = KeyFactory.getInstance("EC");
+    ECPrivateKeySpec privateKeySpec =
+        new ECPrivateKeySpec(new java.math.BigInteger(1, scalar), spec);
+    PrivateKey privateKey = factory.generatePrivate(privateKeySpec);
+    String body = MIME_ENCODER.encodeToString(privateKey.getEncoded());
+    return "-----BEGIN PRIVATE KEY-----\n" + body + "\n-----END PRIVATE KEY-----\n";
+  }
+
+  private static String curveFor(WebAuthnSignatureAlgorithm algorithm) {
+    return switch (algorithm) {
+      case ES256 -> "secp256r1";
+      case ES384 -> "secp384r1";
+      case ES512 -> "secp521r1";
+      default ->
+          throw new IllegalArgumentException(
+              "PEM conversion supported only for EC algorithms; found " + algorithm);
+    };
   }
 
   private static final class CommandHarness {

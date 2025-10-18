@@ -18,6 +18,9 @@ When communicating options to the user—whether resolving an open question or p
 | 2025-10-17 | Feature 026 – UI affordance | Should we add a visible “Copy preset ID” link next to the preset selector? | Resolved | Option A approved: add copy link. Spec updated 2025-10-17. |
 | 2025-10-17 | Feature 026 – CLI parity | Should CLI accept `--input-source=manual` mirroring REST? | Resolved | Option A approved: support CLI parity. Spec updated 2025-10-17. |
 | 2025-10-17 | Feature 026 – algorithm inference | In Manual mode, infer algorithm from key or require an explicit field? | Resolved | Option B approved: infer from credential key; error if undecidable. Spec updated 2025-10-17. |
+| 2025-10-18 | Feature 026 – manual credential ID override | Should Manual generation auto-generate credential IDs, allow operator overrides, and how should overrides be validated? | Resolved | Spec `feature-026-fido2-attestation-support.md` (2025-10-18) – server generates random Base64URL IDs; optional override accepts Base64URL, rejects malformed values, blanks fall back to random. |
+| 2025-10-18 | Feature 026 – preset key representation | When surfacing attestation preset key material in UI/CLI/REST, should we present compact single-line JWK JSON or a pretty-printed multi-line variant? | Resolved | Spec `feature-026-fido2-attestation-support.md` (2025-10-18) – Option B confirmed: pretty-printed multi-line JWK payloads. |
+| 2025-10-18 | Feature 026 – legacy Base64URL inputs | Do we need to continue accepting legacy Base64URL attestation private-key inputs for backwards compatibility, or can we reject them now that JWK/PEM support is in place? | Resolved | Spec `feature-026-fido2-attestation-support.md` (2025-10-18) – Option B confirmed: drop Base64URL-only inputs; require JWK or PEM/PKCS#8. |
 
 ## Feature 026 – Pending Question Details (2025-10-17)
 

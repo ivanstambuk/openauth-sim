@@ -2,9 +2,12 @@ package io.openauth.sim.application.fido2;
 
 import io.openauth.sim.application.telemetry.Fido2TelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.SigningMode;
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import java.security.GeneralSecurityException;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,6 +38,27 @@ public final class WebAuthnAttestationGenerationApplicationService {
     boolean manualSource;
     if (command instanceof GenerationCommand.Inline inline) {
       manualSource = false;
+      WebAuthnAttestationVector vector = WebAuthnAttestationSamples.require(inline.attestationId());
+      WebAuthnSignatureAlgorithm algorithm = vector.algorithm();
+      WebAuthnSignatureAlgorithm attestationAlgorithm =
+          vector.keyMaterial().attestationPrivateKeyAlgorithm() == null
+              ? algorithm
+              : vector.keyMaterial().attestationPrivateKeyAlgorithm();
+      WebAuthnPrivateKeyParser.ParsedKey credentialKey;
+      WebAuthnPrivateKeyParser.ParsedKey attestationKey;
+      try {
+        credentialKey =
+            WebAuthnPrivateKeyParser.parse(inline.credentialPrivateKeyBase64Url(), algorithm);
+
+        String attestationKeyInput = inline.attestationPrivateKeyBase64Url();
+        attestationKey =
+            attestationKeyInput == null || attestationKeyInput.trim().isEmpty()
+                ? null
+                : WebAuthnPrivateKeyParser.parse(attestationKeyInput, attestationAlgorithm);
+      } catch (GeneralSecurityException ex) {
+        throw new IllegalArgumentException("Unable to parse attestation key material", ex);
+      }
+
       WebAuthnAttestationGenerator.GenerationCommand.Inline coreCommand =
           new WebAuthnAttestationGenerator.GenerationCommand.Inline(
               inline.attestationId(),
@@ -42,8 +66,8 @@ public final class WebAuthnAttestationGenerationApplicationService {
               inline.relyingPartyId(),
               inline.origin(),
               inline.challenge(),
-              inline.credentialPrivateKeyBase64Url(),
-              inline.attestationPrivateKeyBase64Url(),
+              credentialKey.canonicalBase64Url(),
+              attestationKey == null ? null : attestationKey.canonicalBase64Url(),
               inline.attestationCertificateSerialBase64Url(),
               inline.signingMode(),
               inline.customRootCertificatesPem());
@@ -51,38 +75,60 @@ public final class WebAuthnAttestationGenerationApplicationService {
     } else {
       manualSource = true;
       GenerationCommand.Manual manual = (GenerationCommand.Manual) command;
+      WebAuthnPrivateKeyParser.ParsedKey credentialKey;
+      try {
+        WebAuthnSignatureAlgorithm inferredAlgorithm =
+            WebAuthnPrivateKeyParser.inferAlgorithm(manual.credentialPrivateKeyBase64Url());
+        credentialKey =
+            WebAuthnPrivateKeyParser.parse(
+                manual.credentialPrivateKeyBase64Url(), inferredAlgorithm);
+      } catch (GeneralSecurityException ex) {
+        throw new IllegalArgumentException("Unable to parse credential private key", ex);
+      }
+
+      String attestationCanonical = null;
+      String attestationInput = manual.attestationPrivateKeyBase64Url();
+      if (attestationInput != null && !attestationInput.trim().isEmpty()) {
+        try {
+          WebAuthnSignatureAlgorithm attestationAlgorithm =
+              WebAuthnPrivateKeyParser.inferAlgorithm(attestationInput);
+          WebAuthnPrivateKeyParser.ParsedKey attestationKey =
+              WebAuthnPrivateKeyParser.parse(attestationInput, attestationAlgorithm);
+          attestationCanonical = attestationKey.canonicalBase64Url();
+        } catch (GeneralSecurityException ex) {
+          throw new IllegalArgumentException("Unable to parse attestation private key", ex);
+        }
+      }
       WebAuthnAttestationGenerator.GenerationCommand.Manual coreCommand =
           new WebAuthnAttestationGenerator.GenerationCommand.Manual(
               manual.format(),
               manual.relyingPartyId(),
               manual.origin(),
               manual.challenge(),
-              manual.credentialPrivateKeyBase64Url(),
-              manual.attestationPrivateKeyBase64Url(),
+              credentialKey.canonicalBase64Url(),
+              attestationCanonical,
               manual.attestationCertificateSerialBase64Url(),
               manual.signingMode(),
               manual.customRootCertificatesPem());
       generatorResult = generator.generate(coreCommand);
     }
 
-    String derivedCredentialId = generatorResult.attestationId();
-    if (manualSource) {
-      GenerationCommand.Manual manual = (GenerationCommand.Manual) command;
-      String seed = normalize(manual.seedPresetId());
-      if (!seed.isBlank()) {
-        derivedCredentialId = seed;
-      }
-    }
-
     GeneratedAttestation.Response responsePayload =
         new GeneratedAttestation.Response(
             encode(generatorResult.clientDataJson()), encode(generatorResult.attestationObject()));
 
+    String credentialIdBase64 = encode(generatorResult.credentialId());
+
+    List<String> certificateChain =
+        generatorResult.certificateChainPem() == null
+            ? List.of()
+            : List.copyOf(generatorResult.certificateChainPem());
+
     GeneratedAttestation attestation =
         new GeneratedAttestation(
             "public-key",
-            derivedCredentialId,
-            derivedCredentialId,
+            credentialIdBase64,
+            credentialIdBase64,
             generatorResult.attestationId(),
             generatorResult.format(),
             responsePayload);
@@ -114,7 +160,7 @@ public final class WebAuthnAttestationGenerationApplicationService {
     TelemetrySignal telemetry =
         new SuccessTelemetrySignal(Map.copyOf(telemetryFields), telemetryAdapter);
 
-    return new GenerationResult(attestation, telemetry);
+    return new GenerationResult(attestation, telemetry, certificateChain);
   }
 
   /** Marker interface for generation commands. */
@@ -209,8 +255,14 @@ public final class WebAuthnAttestationGenerationApplicationService {
   }
 
   /** Result payload for attestation generation requests. */
-  public record GenerationResult(GeneratedAttestation attestation, TelemetrySignal telemetry) {
-    // Accessors only; canonical components suffice for transport.
+  public record GenerationResult(
+      GeneratedAttestation attestation,
+      TelemetrySignal telemetry,
+      List<String> certificateChainPem) {
+    public GenerationResult {
+      certificateChainPem =
+          certificateChainPem == null ? List.of() : List.copyOf(certificateChainPem);
+    }
   }
 
   /** Generated attestation payload details. */

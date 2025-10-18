@@ -25,6 +25,7 @@ _Last updated:_ 2025-10-18
 - Trust anchor handling must accept inline PEM bundles and prepare for optional MDS-sourced metadata without introducing external network calls.
 
 ## Increment Breakdown (≤10 min each)
+_2025-10-18 – Active increment: T2628 now reuses `WebAuthnPrivateKeyParser` across application/CLI/REST so attestation generation accepts JWK and PEM/PKCS#8 inputs; next steps convert presets/UI bindings to multi-line JWK output and remove legacy Base64URL branches._
 1. **I1 – Fixture + test scaffolding**  
    - Convert targeted W3C and synthetic attestation vectors into per-format JSON fixtures under `docs/webauthn_attestation/` (`packed.json`, `fido-u2f.json`, `tpm.json`, `android-key.json`).  
    - Add failing core tests for attestation generation/verification covering the four formats (happy path + invalid cases) using `WebAuthnAttestationFixtures`.  
@@ -158,23 +159,29 @@ _Last updated:_ 2025-10-18
 - **Fixture entropy** – Large attestation blobs may trigger gitleaks; reuse or extend the existing allowlist with documented rationale.
 
 ## Upcoming Increments – Manual Mode (Blocked pending clarifications)
-1. I18 – Core Manual input source (tests first)
+1. I18 – Credential ID alignment
+   - Extract credential IDs from fixture attestation objects and encode them as Base64URL for generated payloads (PRESET path).
+   - Adjust CLI/REST/UI DTOs, tests, and documentation snapshots to assert `id`/`rawId` output in Base64URL format while keeping `attestationId` for fixture references.
+   - Commands: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAttestationGeneratorTest"`, `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService*"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestation*"`; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon spotlessApply check`.
+   - _2025-10-18 – Completed: Base64URL credential IDs now surface in PRESET responses across core/application/REST/UI layers; tests, OpenAPI snapshots, and docs refreshed._ 
+2. I19 – Core Manual input source (tests first)
    - Add `inputSource` to generator commands with a `MANUAL` path that does not require `attestationId`.
    - Stage failing tests for UNSIGNED, SELF_SIGNED, CUSTOM_ROOT across packed/fido-u2f/tpm/android-key.
+   - Implement server-generated random Base64URL credential IDs for Manual runs with optional override (Base64URL validation, blank → random).
    - Blocked by: Q1, Q2, Q5.
-2. I19 – Application service wiring
+3. I20 – Application service wiring
    - Accept `inputSource` (default PRESET) and pass-through for MANUAL; add telemetry fields `inputSource`, optional `seedPresetId`, and `overrides` set.
    - Blocked by: Q1, Q5.
-3. I20 – REST DTO/service/controller
+4. I21 – REST DTO/service/controller
    - Extend request with `inputSource` (PRESET|MANUAL) and conditional validation (attestationId required only for PRESET).
    - Reshape generation response to align with WebAuthn assertions (`type`/`id`/`rawId` + nested `response` containing only `clientDataJSON` and `attestationObject`); update OpenAPI snapshots and endpoint tests.
    - Blocked by: Q1, Q2, Q5.
-4. I21 – UI auto-switch to Manual
+5. I22 – UI auto-switch to Manual
    - Detect overrides (challenge, RP ID, origin, credential/attestation keys, serial) and flip to Manual; send `inputSource=MANUAL` and omit `attestationId`.
    - Render attestation results using the nested response object shape (clientDataJSON + attestationObject only) while surfacing signature/certificate statistics from telemetry.
    - Owner declined the “Copy preset ID” link; no additional affordance required.
    - Blocked by: Q1.
-5. I22 – CLI parity (if approved)
+6. I23 – CLI parity (if approved)
    - Add `--input-source=manual` and required inputs mirroring REST; update help and tests.
    - Blocked by: Q4, Q5.
 

@@ -27,10 +27,10 @@ record WebAuthnAttestationGenerationRequest(
         String origin,
     @Schema(description = "Challenge encoded as Base64URL") @JsonProperty("challenge")
         String challenge,
-    @Schema(description = "Credential private key encoded as Base64URL")
+    @Schema(description = "Credential private key (JWK or PEM/PKCS#8)")
         @JsonProperty("credentialPrivateKey")
         String credentialPrivateKey,
-    @Schema(description = "Attestation private key encoded as Base64URL")
+    @Schema(description = "Attestation private key (JWK or PEM/PKCS#8)")
         @JsonProperty("attestationPrivateKey")
         String attestationPrivateKey,
     @Schema(description = "Attestation certificate serial encoded as Base64URL")

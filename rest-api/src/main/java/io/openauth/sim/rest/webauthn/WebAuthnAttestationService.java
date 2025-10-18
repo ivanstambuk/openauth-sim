@@ -11,6 +11,8 @@ import io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationSer
 import io.openauth.sim.application.fido2.WebAuthnTrustAnchorResolver;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
 import java.util.Base64;
@@ -66,16 +68,27 @@ class WebAuthnAttestationService {
               "Invalid challenge (must be Base64URL)",
               requireText(request.challenge(), "challenge_required", "Challenge"));
 
+      WebAuthnAttestationVector vector = requireVector(attestationId, format);
+
       String credentialPrivateKey =
           requireText(
               request.credentialPrivateKey(),
               "credential_private_key_required",
               "Credential private key");
-      String attestationPrivateKey =
-          requireText(
-              request.attestationPrivateKey(),
-              "attestation_private_key_required",
-              "Attestation private key");
+      boolean attestationKeyRequired =
+          vector.keyMaterial().attestationPrivateKeyJwk() != null
+              || vector.keyMaterial().attestationPrivateKeyBase64Url() != null;
+      String attestationPrivateKey;
+      if (attestationKeyRequired) {
+        attestationPrivateKey =
+            requireText(
+                request.attestationPrivateKey(),
+                "attestation_private_key_required",
+                "Attestation private key");
+      } else {
+        String sanitized = sanitize(request.attestationPrivateKey());
+        attestationPrivateKey = sanitized.isBlank() ? null : sanitized;
+      }
       String attestationSerial =
           requireText(
               request.attestationCertificateSerial(),
@@ -213,7 +226,11 @@ class WebAuthnAttestationService {
 
     WebAuthnAttestationMetadata metadata =
         WebAuthnAttestationMetadata.forGeneration(
-            telemetryId, telemetry.reasonCode(), format.label(), telemetry.fields());
+            telemetryId,
+            telemetry.reasonCode(),
+            format.label(),
+            telemetry.fields(),
+            result.certificateChainPem());
 
     return new WebAuthnAttestationResponse("success", generated, null, metadata);
   }
@@ -427,5 +444,17 @@ class WebAuthnAttestationService {
       String reasonCode, String message, Map<String, Object> metadata) {
     return new WebAuthnAttestationUnexpectedException(
         sanitize(reasonCode), sanitize(message), metadata);
+  }
+
+  private static WebAuthnAttestationVector requireVector(
+      String attestationId, WebAuthnAttestationFormat format) {
+    return WebAuthnAttestationFixtures.findById(attestationId)
+        .filter(vector -> vector.format() == format)
+        .orElseThrow(
+            () ->
+                validation(
+                    "unknown_attestation",
+                    "Unknown attestation preset: " + attestationId,
+                    Map.of("attestationId", attestationId, "format", format.label())));
   }
 }

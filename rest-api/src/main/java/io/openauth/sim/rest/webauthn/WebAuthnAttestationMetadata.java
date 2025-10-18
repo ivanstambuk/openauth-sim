@@ -80,13 +80,17 @@ record WebAuthnAttestationMetadata(
         String inputSource,
     @Schema(description = "Number of certificates returned in the attestation chain", example = "2")
         @JsonProperty("certificateChainCount")
-        Integer certificateChainCount) {
+        Integer certificateChainCount,
+    @Schema(description = "Attestation certificate chain rendered in PEM format")
+        @JsonProperty("certificateChainPem")
+        List<String> certificateChainPem) {
 
   static WebAuthnAttestationMetadata forGeneration(
       String telemetryId,
       String reasonCode,
       String attestationFormat,
-      Map<String, Object> telemetryFields) {
+      Map<String, Object> telemetryFields,
+      List<String> certificateChainPem) {
     return new WebAuthnAttestationMetadata(
         telemetryId,
         reasonCode,
@@ -107,7 +111,8 @@ record WebAuthnAttestationMetadata(
         asString(telemetryFields.get("customRootSource")),
         asString(telemetryFields.get("generationMode")),
         asString(telemetryFields.get("inputSource")),
-        asInteger(telemetryFields.get("certificateChainCount")));
+        asInteger(telemetryFields.get("certificateChainCount")),
+        certificateChainPem == null ? List.of() : List.copyOf(certificateChainPem));
   }
 
   static WebAuthnAttestationMetadata forReplay(
@@ -137,7 +142,8 @@ record WebAuthnAttestationMetadata(
         null, // customRootSource
         null, // generationMode
         null, // inputSource
-        null); // certificateChainCount
+        null, // certificateChainCount
+        null); // certificateChainPem
   }
 
   private static String asString(Object value) {

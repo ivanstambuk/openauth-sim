@@ -242,12 +242,12 @@
       panel.querySelector('[data-testid="fido2-attestation-result-json"]');
   var attestationStatusBadge =
       panel.querySelector('[data-testid="fido2-attestation-status"]');
-  var attestationSummaryContainer =
-      panel.querySelector('[data-testid="fido2-attestation-summary"]');
-  var attestationSummarySignature =
-      panel.querySelector('[data-testid="fido2-attestation-summary-signature"]');
-  var attestationSummaryCertCount =
-      panel.querySelector('[data-testid="fido2-attestation-summary-cert-count"]');
+  var attestationCertificateSection =
+      panel.querySelector('[data-testid="fido2-attestation-certificate-chain-section"]');
+  var attestationCertificateHeading =
+      panel.querySelector('[data-testid="fido2-attestation-certificate-heading"]');
+  var attestationCertificateChain =
+      panel.querySelector('[data-testid="fido2-attestation-certificate-chain"]');
   var attestationErrorBanner =
       panel.querySelector('[data-testid="fido2-attestation-error"]');
 
@@ -681,7 +681,7 @@
     if (attestationResultJson) {
       attestationResultJson.textContent = buildAttestationJson(generated, responsePayload);
     }
-    renderAttestationSummary(metadata);
+    renderAttestationCertificateChain(metadata);
 
     hasAttestationResult = true;
     toggleSection(attestationResultPanel, true);
@@ -1838,7 +1838,7 @@
     if (attestationResultJson) {
       attestationResultJson.textContent = 'Awaiting submission.';
     }
-    renderAttestationSummary(null);
+    renderAttestationCertificateChain(null);
     hideAttestationError();
     refreshEvaluationResultVisibility();
     toggleSection(attestationResultPanel, false);
@@ -1914,41 +1914,34 @@
     }
   }
 
-  function renderAttestationSummary(metadata) {
-    if (attestationSummaryContainer) {
-      attestationSummaryContainer.setAttribute(
-          'data-signature-included',
-          metadata && typeof metadata.signatureIncluded === 'boolean'
-              ? String(metadata.signatureIncluded)
-              : 'unknown');
-      attestationSummaryContainer.setAttribute(
-          'data-certificate-chain-count',
-          metadata && typeof metadata.certificateChainCount === 'number'
-              ? String(metadata.certificateChainCount)
-              : 'unknown');
+  function renderAttestationCertificateChain(metadata) {
+    var certificates =
+        metadata && Array.isArray(metadata.certificateChainPem)
+            ? metadata.certificateChainPem
+            : [];
+    var certificateCount =
+        metadata && typeof metadata.certificateChainCount === 'number'
+            ? metadata.certificateChainCount
+            : certificates.length;
+    if (!attestationCertificateSection || !attestationCertificateChain) {
+      return;
     }
-    if (attestationSummarySignature) {
-      var signatureIncluded =
-          metadata && typeof metadata.signatureIncluded === 'boolean'
-              ? metadata.signatureIncluded
-              : null;
-      var signatureText = 'Signature: ';
-      if (signatureIncluded == null) {
-        signatureText += '—';
-      } else {
-        signatureText += signatureIncluded ? 'included' : 'not included';
+    if (!certificates.length) {
+      attestationCertificateChain.textContent = '';
+      if (attestationCertificateHeading) {
+        attestationCertificateHeading.textContent = 'Certificate chain';
       }
-      attestationSummarySignature.textContent = signatureText;
+      attestationCertificateSection.setAttribute('hidden', 'hidden');
+      attestationCertificateSection.setAttribute('aria-hidden', 'true');
+      return;
     }
-    if (attestationSummaryCertCount) {
-      var certificateCount =
-          metadata && typeof metadata.certificateChainCount === 'number'
-              ? metadata.certificateChainCount
-              : null;
-      var countText = 'Certificate chain count: ';
-      countText += certificateCount == null ? '—' : String(certificateCount);
-      attestationSummaryCertCount.textContent = countText;
+    attestationCertificateChain.textContent = certificates.join('\\n\\n');
+    if (attestationCertificateHeading) {
+      attestationCertificateHeading.textContent =
+          'Certificate chain (' + certificateCount + ')';
     }
+    attestationCertificateSection.removeAttribute('hidden');
+    attestationCertificateSection.setAttribute('aria-hidden', 'false');
   }
 
   function extractCustomRootCertificates(rawValue) {

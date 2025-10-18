@@ -56,7 +56,7 @@ public final class Fido2OperatorSampleData {
         sample.clientDataBase64Url(),
         sample.authenticatorDataBase64Url(),
         sample.signatureBase64Url(),
-        sample.privateKeyJwk(),
+        prettyJwk(sample.privateKeyJwk()),
         metadata(
             sample.key(),
             sampleVectorLabel,
@@ -78,7 +78,7 @@ public final class Fido2OperatorSampleData {
         sample.signatureCounter(),
         sample.userVerificationRequired(),
         sample.algorithm(),
-        sample.privateKeyJwk(),
+        prettyJwk(sample.privateKeyJwk()),
         metadata(
             sample.key(),
             seedLabel(sample),
@@ -178,6 +178,39 @@ public final class Fido2OperatorSampleData {
       builder.append(serializeJsonValue(entry.getValue()));
     }
     builder.append('}');
+    return builder.toString();
+  }
+
+  private static String prettyJwk(String jwk) {
+    if (jwk == null || jwk.isBlank()) {
+      return jwk;
+    }
+    Object parsed = SimpleJson.parse(jwk);
+    if (!(parsed instanceof Map<?, ?> raw)) {
+      return jwk.trim();
+    }
+    Map<String, Object> ordered = new LinkedHashMap<>();
+    for (Map.Entry<?, ?> entry : raw.entrySet()) {
+      Object key = entry.getKey();
+      if (key instanceof String name) {
+        ordered.put(name, entry.getValue());
+      }
+    }
+    StringBuilder builder = new StringBuilder();
+    builder.append("{\n");
+    boolean first = true;
+    for (Map.Entry<String, Object> entry : ordered.entrySet()) {
+      if (!first) {
+        builder.append(",\n");
+      }
+      first = false;
+      builder
+          .append("  \"")
+          .append(escape(entry.getKey()))
+          .append("\": ")
+          .append(serializeJsonValue(entry.getValue()));
+    }
+    builder.append('\n').append('}');
     return builder.toString();
   }
 

@@ -1135,15 +1135,15 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     @CommandLine.Option(
         names = "--credential-private-key",
         defaultValue = "",
-        paramLabel = "<base64url>",
-        description = "Credential private key in Base64URL form")
+        paramLabel = "<key>",
+        description = "Credential private key (JWK, PEM/PKCS#8, or Base64URL)")
     String credentialPrivateKey;
 
     @CommandLine.Option(
         names = "--attestation-private-key",
         defaultValue = "",
-        paramLabel = "<base64url>",
-        description = "Attestation private key in Base64URL form")
+        paramLabel = "<key>",
+        description = "Attestation private key (JWK, PEM/PKCS#8, or Base64URL)")
     String attestationPrivateKey;
 
     @CommandLine.Option(

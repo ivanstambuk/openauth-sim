@@ -12,9 +12,18 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestatio
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.security.AlgorithmParameters;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPrivateKeySpec;
 import java.util.Base64;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -48,6 +57,9 @@ class Fido2AttestationEndpointTest {
       encode(VECTOR.registration().attestationObject());
   private static final String EXPECTED_CLIENT_DATA = encode(VECTOR.registration().clientDataJson());
   private static final String EXPECTED_CHALLENGE = encode(VECTOR.registration().challenge());
+  private static final List<String> EXPECTED_CERTIFICATE_CHAIN_PEM =
+      CERTIFICATE_CHAIN.stream().map(Fido2AttestationEndpointTest::toPemUnchecked).toList();
+  private static final String EXPECTED_CREDENTIAL_ID = encode(VECTOR.registration().credentialId());
 
   @Autowired private MockMvc mockMvc;
 
@@ -77,8 +89,8 @@ class Fido2AttestationEndpointTest {
 
     JsonNode attestation = root.get("generatedAttestation");
     assertThat(attestation.get("type").asText()).isEqualTo("public-key");
-    assertThat(attestation.get("id").asText()).isEqualTo(VECTOR.vectorId());
-    assertThat(attestation.get("rawId").asText()).isEqualTo(VECTOR.vectorId());
+    assertThat(attestation.get("id").asText()).isEqualTo(EXPECTED_CREDENTIAL_ID);
+    assertThat(attestation.get("rawId").asText()).isEqualTo(EXPECTED_CREDENTIAL_ID);
     assertThat(attestation.get("attestationId").asText()).isEqualTo(VECTOR.vectorId());
     assertThat(attestation.get("format").asText()).isEqualTo(VECTOR.format().label());
     JsonNode responsePayload = attestation.get("response");
@@ -95,6 +107,14 @@ class Fido2AttestationEndpointTest {
     assertThat(metadata.get("generationMode").asText()).isEqualTo("self_signed");
     assertThat(metadata.get("signatureIncluded").asBoolean()).isTrue();
     assertThat(metadata.get("customRootCount").asInt()).isZero();
+    JsonNode certificateChainPem = metadata.get("certificateChainPem");
+    assertThat(certificateChainPem).isNotNull();
+    assertThat(certificateChainPem.isArray()).isTrue();
+    assertThat(certificateChainPem.size()).isEqualTo(EXPECTED_CERTIFICATE_CHAIN_PEM.size());
+    for (int index = 0; index < EXPECTED_CERTIFICATE_CHAIN_PEM.size(); index++) {
+      assertThat(certificateChainPem.get(index).asText())
+          .isEqualTo(EXPECTED_CERTIFICATE_CHAIN_PEM.get(index));
+    }
   }
 
   @Test
@@ -158,8 +178,9 @@ class Fido2AttestationEndpointTest {
     assertThat(metadata.get("signatureIncluded").asBoolean()).isTrue();
   }
 
-  private static String generationPayload(String signingMode, boolean includeCustomRoot)
-      throws Exception {
+  @Test
+  @DisplayName("Attestation endpoint rejects legacy Base64 private-key inputs")
+  void generateRejectsLegacyBase64PrivateKeys() throws Exception {
     ObjectNode root = MAPPER.createObjectNode();
     root.put("attestationId", VECTOR.vectorId());
     root.put("format", VECTOR.format().label());
@@ -171,6 +192,33 @@ class Fido2AttestationEndpointTest {
     root.put(
         "attestationCertificateSerial",
         VECTOR.keyMaterial().attestationCertificateSerialBase64Url());
+    root.put("signingMode", "SELF_SIGNED");
+
+    mockMvc
+        .perform(
+            post("/api/v1/webauthn/attest")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(root.toString()))
+        .andExpect(status().isUnprocessableEntity());
+  }
+
+  private static String generationPayload(String signingMode, boolean includeCustomRoot)
+      throws Exception {
+    ObjectNode root = MAPPER.createObjectNode();
+    root.put("attestationId", VECTOR.vectorId());
+    root.put("format", VECTOR.format().label());
+    root.put("relyingPartyId", VECTOR.relyingPartyId());
+    root.put("origin", VECTOR.origin());
+    root.put("challenge", EXPECTED_CHALLENGE);
+    root.put(
+        "credentialPrivateKey",
+        toPemPrivateKey(VECTOR.algorithm(), VECTOR.keyMaterial().credentialPrivateKeyBase64Url()));
+    root.put(
+        "attestationPrivateKey",
+        toPemPrivateKey(VECTOR.algorithm(), VECTOR.keyMaterial().attestationPrivateKeyBase64Url()));
+    root.put(
+        "attestationCertificateSerial",
+        VECTOR.keyMaterial().attestationCertificateSerialBase64Url());
     root.put("signingMode", signingMode);
 
     if (includeCustomRoot && !TRUST_ANCHOR_PEM.isBlank()) {
@@ -178,6 +226,33 @@ class Fido2AttestationEndpointTest {
     }
 
     return MAPPER.writeValueAsString(root);
+  }
+
+  private static String toPemPrivateKey(WebAuthnSignatureAlgorithm algorithm, String base64UrlKey)
+      throws GeneralSecurityException {
+    if (base64UrlKey == null || base64UrlKey.isBlank()) {
+      return "";
+    }
+    byte[] scalar = Base64.getUrlDecoder().decode(base64UrlKey);
+    AlgorithmParameters parameters = AlgorithmParameters.getInstance("EC");
+    parameters.init(new ECGenParameterSpec(curveFor(algorithm)));
+    ECParameterSpec spec = parameters.getParameterSpec(ECParameterSpec.class);
+    KeyFactory factory = KeyFactory.getInstance("EC");
+    ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(new BigInteger(1, scalar), spec);
+    PrivateKey privateKey = factory.generatePrivate(privateKeySpec);
+    String body = MIME_ENCODER.encodeToString(privateKey.getEncoded());
+    return "-----BEGIN PRIVATE KEY-----\n" + body + "\n-----END PRIVATE KEY-----\n";
+  }
+
+  private static String curveFor(WebAuthnSignatureAlgorithm algorithm) {
+    return switch (algorithm) {
+      case ES256 -> "secp256r1";
+      case ES384 -> "secp384r1";
+      case ES512 -> "secp521r1";
+      default ->
+          throw new IllegalArgumentException(
+              "PEM conversion supported only for EC algorithms; found " + algorithm);
+    };
   }
 
   private static List<X509Certificate> vectorCertificateChain(WebAuthnAttestationVector vector) {
@@ -210,6 +285,14 @@ class Fido2AttestationEndpointTest {
       return toPem(CERTIFICATE_CHAIN.get(CERTIFICATE_CHAIN.size() - 1));
     } catch (CertificateEncodingException ex) {
       throw new IllegalStateException("Unable to encode trust anchor", ex);
+    }
+  }
+
+  private static String toPemUnchecked(X509Certificate certificate) {
+    try {
+      return toPem(certificate);
+    } catch (CertificateEncodingException ex) {
+      throw new IllegalStateException("Unable to encode certificate", ex);
     }
   }
 

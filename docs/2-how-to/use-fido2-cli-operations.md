@@ -98,7 +98,7 @@ Replays run the same verification logic without mutating counters—use them for
 Replay output reports whether the supplied assertion matches the stored credential (`credentialSource=stored`, `match=true`) and surfaces sanitized errors (for example `reason=mismatch`) when verification fails.
 
 ## Generate WebAuthn Attestations
-Attestation generation accepts fixture identifiers from the JSON bundles in `docs/webauthn_attestation/`. Provide the challenge and key material exactly as published in the dataset. The command emits sanitized telemetry that records the format, signing mode, certificate-chain count, and whether custom roots were supplied.
+Attestation generation accepts fixture identifiers from the JSON bundles in `docs/webauthn_attestation/`. Provide the challenge and key material exactly as published in the dataset, or decode the keys into JWK or PEM/PKCS#8 form—the CLI normalises all three encodings before invoking the generator. The command emits sanitized telemetry that records the format, signing mode, certificate-chain count, and whether custom roots were supplied.
 
 ```bash
 vector=$(jq -r '.[0]' docs/webauthn_attestation/packed.json)
@@ -119,7 +119,7 @@ export ATTEST_SERIAL=$(jq -r '.key_material.attestation_cert_serial_b64u' <<<"$v
   --signing-mode self-signed"
 ```
 
-The CLI prints only the generated `clientDataJSON` and `attestationObject`; signature inclusion and certificate chain counts now surface exclusively through the trailing telemetry frame (`generationMode=self_signed`, `signatureIncluded=true`, `certificateChainCount=1`, `customRootCount=0`). Switch to `--signing-mode unsigned` to emit a structural attestation without a signature. To chain your own trust anchors, supply one or more PEM bundles via `--custom-root-file <path>` and select `--signing-mode custom-root`.
+The CLI prints only the generated `clientDataJSON` and `attestationObject`; signature inclusion and certificate chain counts now surface exclusively through the trailing telemetry frame (`generationMode=self_signed`, `signatureIncluded=true`, `certificateChainCount=1`, `customRootCount=0`). Swap the `--credential-private-key` / `--attestation-private-key` arguments for decoded PEM or JWK payloads if you prefer human-readable fixtures—the generator will canonicalise them to the deterministic Base64URL strings before validating. Switch to `--signing-mode unsigned` to emit a structural attestation without a signature. To chain your own trust anchors, supply one or more PEM bundles via `--custom-root-file <path>` and select `--signing-mode custom-root`.
 
 ## Replay Attestation Verification
 `fido2 attest-replay` mirrors the attestation verification flow and remains available for deterministic replays and incident drills. Supply the same Base64URL fields and optional trust anchors extracted from the generated payload:

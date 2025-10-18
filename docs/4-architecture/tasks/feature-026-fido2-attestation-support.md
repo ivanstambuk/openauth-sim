@@ -120,6 +120,41 @@ _Last updated:_ 2025-10-18
   _2025-10-18 – Reworked `console.js`/`panel.html` to display telemetry summary (signature + cert count), refreshed Selenium coverage, and reran targeted CLI/REST/Selenium suites plus `spotlessApply check`._  
  • Commands: `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, `./gradlew --no-daemon spotlessApply check`.  
 
+☑ **T2623 – Credential ID alignment**  
+ ☑ Emit Base64URL credential IDs for PRESET attestation generation by extracting the credentialId bytes from fixtures.  
+  _2025-10-18 – Updated `WebAuthnAttestationGenerator` to expose credentialId bytes and adjusted the application service to encode them for `id`/`rawId` while retaining `attestationId` for fixture references._  
+ ☑ Update CLI/REST/UI tests, OpenAPI snapshots, and operator docs to expect Base64URL credential IDs while retaining `attestationId` for fixture references.  
+  _2025-10-18 – Refreshed application/REST/Selenium assertions, rerouted certificate-chain display through the UI panel, regenerated OpenAPI snapshots, and reran targeted suites plus `spotlessApply check` (see command list below)._  
+ • Commands: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAttestationGeneratorTest"`, `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService*"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestation*"`; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`; `./gradlew --no-daemon spotlessApply check`.  
+
+☑ **T2625 – UI certificate chain count badge**  
+ ☑ Reintroduce the attestation result certificate-chain count label (matching the pre-T2617 summary styling) while keeping the PEM block separate from the JSON payload.  
+  _2025-10-18 – Added a certificate-chain heading indicator in `panel.html`, wired `console.js` to display `certificate chain (N)` using metadata counts, and renewed accessibility defaults when chains are absent._  
+ ☑ Update Selenium expectations to assert the count hint and adjust REST metadata assertions if needed.  
+  _2025-10-18 – Extended `Fido2OperatorUiSeleniumTest.attestationGenerationProducesDeterministicPayload` to expect the count label using the verified chain size; REST endpoint assertions already validate the metadata count._  
+ • Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationGenerationProducesDeterministicPayload"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`; `./gradlew --no-daemon spotlessApply check`.  
+
+☑ **T2626 – UI attestation result layout**  
+ ☑ Remove the “response” subheading from the attestation result card so the JSON payload appears directly beneath the card header.  
+  _2025-10-18 – Simplified the attestation result layout to mirror assertions by dropping the response subheading and promoting the JSON block, leaving certificate-chain metadata as the only subtitle._  
+ ☑ Update frontend logic/tests to ensure the attestation JSON still renders correctly and no stale labels remain.  
+  _2025-10-18 – Selenium coverage now asserts the attestation panel exposes a single subtitle (certificate chain), verifying the label removal while UI rendering remains intact._  
+ • Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationGenerationProducesDeterministicPayload"`; `./gradlew --no-daemon spotlessApply check`.  
+
+☑ **T2627 – Certificate heading styling**  
+	☑ Capitalise the attestation certificate-chain heading (“Certificate chain”) and apply the same typography class used by result cards (`section-title`).  
+		_2025-10-18 – Updated `panel.html` to promote the heading to an `h3.section-title` and ensured the default label uses title case._  
+	☑ Update JS/tests to expect the new casing and ensure no legacy subtitles remain.  
+		_2025-10-18 – Adjusted `console.js` heading text, refreshed Selenium assertions to require the new typography, increased the vertical spacing above the certificate panel via `certificate-chain-block`, and reran targeted UI + spotless checks._  
+	• Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationGenerationProducesDeterministicPayload"`; `./gradlew --no-daemon spotlessApply check`.  
+
+☐ **T2628 – Attestation private key format parity**  
+	☑ Replace Base64URL-only attestation private-key handling with shared loaders that accept JWK or PEM/PKCS#8 (matching assertions) while still supporting preset seeding.  
+	☐ Convert attestation fixture key material and manual-mode outputs to surface pretty-printed JWK representations; update REST/CLI/UI labels, DTO validation, and core/app services accordingly.  
+	☐ Refresh CLI/REST/UI tests, fixtures, and docs to reflect the new formats (including removal of the legacy Base64URL branches).  
+		_2025-10-18 – Parser in place: attestation generator now canonicalises JWK/PEM inputs via the shared `WebAuthnPrivateKeyParser`, and CLI/REST application layers plus request docs/tests cover PEM/JWK flows. Fixture exposure + UI updates remain._  
+  • Commands: (to be defined per subtask; expect targeted core/application/REST/CLI/UI suites plus `spotlessApply check`).  
+
 ☐ **T2618 – Core Manual input source**  
  ☐ Stage failing unit tests for `WebAuthnAttestationGenerator` MANUAL mode (UNSIGNED/SELF_SIGNED/CUSTOM_ROOT across packed/fido-u2f/tpm/android-key).  
  ☐ Implement MANUAL mode without requiring `attestationId`; infer algorithm from key (pending Q5).  

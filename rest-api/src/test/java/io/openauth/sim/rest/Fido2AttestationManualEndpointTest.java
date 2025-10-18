@@ -7,8 +7,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
+import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
+import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
+import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,11 +88,15 @@ class Fido2AttestationManualEndpointTest {
   void manualUnsignedAttestationWorks() throws Exception {
     ObjectNode root = MAPPER.createObjectNode();
     root.put("inputSource", "MANUAL");
-    root.put("format", WebAuthnAttestationFormat.PACKED.label());
+    WebAuthnAttestationVector vector =
+        WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
+            .findFirst()
+            .orElseThrow();
+    root.put("format", vector.format().label());
     root.put("relyingPartyId", "example.org");
     root.put("origin", "https://example.org");
     root.put("challenge", "dGVzdC1tYW51YWwtY2hhbGxlbmdl");
-    root.put("credentialPrivateKey", "cHJpdmF0ZS1rZXktY3JlZC");
+    root.put("credentialPrivateKey", vector.keyMaterial().credentialPrivateKeyJwk());
     root.put("signingMode", "UNSIGNED");
 
     String response =
@@ -112,16 +125,22 @@ class Fido2AttestationManualEndpointTest {
   void manualCustomRootAttestationWorks() throws Exception {
     ObjectNode root = MAPPER.createObjectNode();
     root.put("inputSource", "MANUAL");
-    root.put("format", WebAuthnAttestationFormat.PACKED.label());
+    WebAuthnAttestationVector vector =
+        WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.FIDO_U2F).stream()
+            .findFirst()
+            .orElseThrow();
+    root.put("format", vector.format().label());
     root.put("relyingPartyId", "example.org");
     root.put("origin", "https://example.org");
     root.put("challenge", "dGVzdC1tYW51YWwtY2hhbGxlbmdl");
-    root.put("credentialPrivateKey", "cHJpdmF0ZS1rZXktY3JlZC");
-    root.put("attestationPrivateKey", "YXR0ZXN0LXBriy10ZXN0");
-    root.put("attestationCertificateSerial", "c2VyaWFsLXRlc3Q");
+    root.put("credentialPrivateKey", vector.keyMaterial().credentialPrivateKeyJwk());
+    root.put("attestationPrivateKey", vector.keyMaterial().attestationPrivateKeyJwk());
+    root.put(
+        "attestationCertificateSerial",
+        vector.keyMaterial().attestationCertificateSerialBase64Url());
     root.put("signingMode", "CUSTOM_ROOT");
-    root.putArray("customRootCertificates")
-        .add("-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----\n");
+    List<String> chain = certificateChainPem(vector);
+    root.putArray("customRootCertificates").add(chain.get(chain.size() - 1));
 
     String response =
         mockMvc
@@ -139,5 +158,41 @@ class Fido2AttestationManualEndpointTest {
     assertThat(json.path("metadata").path("generationMode").asText()).isEqualTo("custom_root");
     assertThat(json.path("metadata").path("customRootCount").asInt()).isEqualTo(1);
     assertThat(json.path("metadata").path("inputSource").asText()).isEqualTo("manual");
+  }
+
+  private static List<String> certificateChainPem(WebAuthnAttestationVector vector) {
+    WebAuthnAttestationVerifier verifier = new WebAuthnAttestationVerifier();
+    WebAuthnAttestationVerification verification =
+        verifier.verify(
+            new WebAuthnAttestationRequest(
+                vector.format(),
+                vector.registration().attestationObject(),
+                vector.registration().clientDataJson(),
+                vector.registration().challenge(),
+                vector.relyingPartyId(),
+                vector.origin()));
+    if (!verification.result().success()) {
+      throw new IllegalStateException(
+          "Attestation verification failed for vector "
+              + vector.vectorId()
+              + ": "
+              + verification.result().message());
+    }
+    return verification.certificateChain().stream()
+        .map(
+            certificate -> {
+              try {
+                return toPem(certificate);
+              } catch (CertificateEncodingException ex) {
+                throw new IllegalStateException("Unable to encode certificate", ex);
+              }
+            })
+        .toList();
+  }
+
+  private static String toPem(X509Certificate certificate) throws CertificateEncodingException {
+    String encoded =
+        Base64.getMimeEncoder(64, new byte[] {'\n'}).encodeToString(certificate.getEncoded());
+    return "-----BEGIN CERTIFICATE-----\n" + encoded + "\n-----END CERTIFICATE-----\n";
   }
 }

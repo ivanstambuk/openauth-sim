@@ -155,6 +155,11 @@ final class Fido2OperatorUiSeleniumTest {
     awaitValue(
         By.cssSelector("[data-testid='fido2-stored-private-key']"),
         value -> value != null && value.contains("\"kty\""));
+    String storedPrivateKeyValue = hiddenPrivateKey.getAttribute("value");
+    assertThat(storedPrivateKeyValue)
+        .as("stored private key should render as pretty-printed JWK")
+        .contains("\n")
+        .contains("\"kty\"");
 
     WebElement submitButton =
         driver.findElement(By.cssSelector("[data-testid='fido2-evaluate-stored-submit']"));
@@ -495,6 +500,14 @@ final class Fido2OperatorUiSeleniumTest {
     navigateToWebAuthnPanel();
     switchToAttestationEvaluateMode();
 
+    WebAuthnAttestationVector vector = resolveAttestationVector();
+
+    waitForOption(By.id("fido2AttestationSampleSelect"), vector.vectorId());
+    WebElement sampleSelectElement = waitFor(By.id("fido2AttestationSampleSelect"));
+    Select sampleSelect = new Select(sampleSelectElement);
+    sampleSelect.selectByValue(vector.vectorId());
+    dispatchChange(sampleSelectElement);
+
     WebElement credentialKeyField = waitFor(By.id("fido2AttestationCredentialKey"));
     WebElement attestationKeyField = waitFor(By.id("fido2AttestationPrivateKey"));
     WebElement certificateSerialField = waitFor(By.id("fido2AttestationSerial"));
@@ -511,6 +524,20 @@ final class Fido2OperatorUiSeleniumTest {
         waitFor(By.cssSelector("[data-testid='fido2-attestation-custom-root-help']"));
     assertThat(customRootHelp.getText()).contains("Optional custom root");
 
+    awaitValue(
+        By.id("fido2AttestationCredentialKey"),
+        value -> value != null && value.contains("\"kty\""));
+    assertThat(credentialKeyField.getAttribute("value"))
+        .as("credential key field should use pretty-printed JWK formatting")
+        .contains("\n")
+        .contains("\"kty\"");
+    awaitValue(
+        By.id("fido2AttestationPrivateKey"), value -> value != null && value.contains("\"kty\""));
+    assertThat(attestationKeyField.getAttribute("value"))
+        .as("attestation key field should use pretty-printed JWK formatting")
+        .contains("\n")
+        .contains("\"kty\"");
+
     WebElement generateButton = waitFor(By.cssSelector("[data-testid='fido2-attestation-submit']"));
     assertThat(generateButton.getText()).contains("Generate attestation");
 
@@ -524,6 +551,7 @@ final class Fido2OperatorUiSeleniumTest {
     WebAuthnAttestationVector vector = resolveAttestationVector();
     String expectedAttestation = encodeBase64Url(vector.registration().attestationObject());
     String expectedClientData = encodeBase64Url(vector.registration().clientDataJson());
+    String expectedCredentialId = encodeBase64Url(vector.registration().credentialId());
 
     navigateToWebAuthnPanel();
     switchToAttestationEvaluateMode();
@@ -555,21 +583,40 @@ final class Fido2OperatorUiSeleniumTest {
     String attestationHtml = driver.getPageSource();
     assertThat(attestationHtml)
         .contains("\"type\": \"public-key\"")
-        .contains("\"id\": \"" + vector.vectorId() + "\"")
-        .contains("\"rawId\": \"" + vector.vectorId() + "\"")
+        .contains("\"id\": \"" + expectedCredentialId + "\"")
+        .contains("\"rawId\": \"" + expectedCredentialId + "\"")
         .contains("\"attestationObject\": \"" + expectedAttestation + "\"")
-        .contains("\"clientDataJSON\": \"" + expectedClientData + "\"");
+        .contains("\"clientDataJSON\": \"" + expectedClientData + "\"")
+        .contains("-----BEGIN CERTIFICATE-----");
+    assertThat(attestationHtml).doesNotContain("Signature: ");
 
     List<X509Certificate> certificateChain = verifyAttestation(vector).certificateChain();
-    WebElement summarySignature =
-        waitFor(By.cssSelector("[data-testid='fido2-attestation-summary-signature']"));
-    WebElement summaryCertCount =
-        waitFor(By.cssSelector("[data-testid='fido2-attestation-summary-cert-count']"));
-    String expectedSignatureText =
-        certificateChain.isEmpty() ? "Signature: not included" : "Signature: included";
-    assertThat(summarySignature.getText().trim()).isEqualTo(expectedSignatureText);
-    assertThat(summaryCertCount.getText().trim())
-        .isEqualTo("Certificate chain count: " + certificateChain.size());
+    WebElement certificateSection =
+        waitFor(By.cssSelector("[data-testid='fido2-attestation-certificate-chain-section']"));
+    assertThat(certificateSection.getAttribute("hidden")).isNull();
+    WebElement certificateHeading =
+        certificateSection.findElement(
+            By.cssSelector("[data-testid='fido2-attestation-certificate-heading']"));
+    assertThat(certificateHeading.getText().trim())
+        .isEqualTo("Certificate chain (" + certificateChain.size() + ")");
+    assertThat(certificateHeading.getTagName()).isEqualToIgnoringCase("h3");
+    assertThat(certificateHeading.getAttribute("class")).contains("section-title");
+    assertThat(
+            driver.findElements(
+                By.cssSelector("[data-testid='fido2-attestation-result'] .result-subtitle")))
+        .as("legacy subtitles should not remain in the attestation result panel")
+        .isEmpty();
+    WebElement certificateBlock =
+        certificateSection.findElement(
+            By.cssSelector("[data-testid='fido2-attestation-certificate-chain']"));
+    String certificateText = certificateBlock.getText().trim();
+    assertThat(certificateText).contains("-----BEGIN CERTIFICATE-----");
+    long pemCount =
+        certificateText
+            .lines()
+            .filter(line -> line.startsWith("-----BEGIN CERTIFICATE-----"))
+            .count();
+    assertThat((int) pemCount).isEqualTo(certificateChain.size());
 
     assertThat(driver.findElements(By.cssSelector("[data-testid='fido2-attestation-telemetry']")))
         .isEmpty();

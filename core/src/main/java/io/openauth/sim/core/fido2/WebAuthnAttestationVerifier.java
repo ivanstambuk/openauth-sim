@@ -223,7 +223,7 @@ public final class WebAuthnAttestationVerifier {
       verificationKey = certificates.get(0).getPublicKey();
     } else {
       verificationKey =
-          createPublicKeyFromCose(authData.credentialPublicKey(), authData.algorithm());
+          WebAuthnPublicKeyFactory.fromCose(authData.credentialPublicKey(), authData.algorithm());
     }
 
     byte[] signedPayload = concatenate(authData.rawAuthData(), clientDataHash);
@@ -419,97 +419,6 @@ public final class WebAuthnAttestationVerifier {
       case PS256 -> Signature.getInstance("SHA256withRSAandMGF1");
       case EDDSA -> Signature.getInstance("Ed25519");
     };
-  }
-
-  private static PublicKey createPublicKeyFromCose(
-      byte[] coseKey, WebAuthnSignatureAlgorithm algorithm) throws GeneralSecurityException {
-    Map<Integer, Object> map = decodeCoseMap(coseKey);
-
-    int keyType = requireInt(map, 1);
-    int coseAlgorithm = requireInt(map, 3);
-    if (coseAlgorithm != algorithm.coseIdentifier()) {
-      throw new GeneralSecurityException("COSE algorithm mismatch");
-    }
-
-    return switch (algorithm) {
-      case ES256, ES384, ES512 -> createEcPublicKey(map, keyType, algorithm);
-      case RS256, PS256 -> createRsaPublicKey(map, keyType);
-      case EDDSA -> createEd25519PublicKey(map, keyType);
-    };
-  }
-
-  private static PublicKey createEcPublicKey(
-      Map<Integer, Object> map, int keyType, WebAuthnSignatureAlgorithm algorithm)
-      throws GeneralSecurityException {
-    if (keyType != 2) {
-      throw new GeneralSecurityException("Expected EC2 key type for algorithm " + algorithm);
-    }
-    int curve = requireInt(map, -1);
-    int expectedCurve =
-        switch (algorithm) {
-          case ES256 -> 1;
-          case ES384 -> 2;
-          case ES512 -> 3;
-          default -> throw new GeneralSecurityException("Unsupported EC algorithm " + algorithm);
-        };
-    if (curve != expectedCurve) {
-      throw new GeneralSecurityException("Unexpected COSE curve for algorithm " + algorithm);
-    }
-    byte[] x = requireBytes(map, -2);
-    byte[] y = requireBytes(map, -3);
-    java.security.spec.ECParameterSpec params = createEcSpec(algorithm);
-    java.security.spec.ECPublicKeySpec spec =
-        new java.security.spec.ECPublicKeySpec(
-            new java.security.spec.ECPoint(
-                new java.math.BigInteger(1, x), new java.math.BigInteger(1, y)),
-            params);
-    return java.security.KeyFactory.getInstance("EC").generatePublic(spec);
-  }
-
-  private static java.security.spec.ECParameterSpec createEcSpec(
-      WebAuthnSignatureAlgorithm algorithm) throws GeneralSecurityException {
-    String curveName =
-        switch (algorithm) {
-          case ES256 -> "secp256r1";
-          case ES384 -> "secp384r1";
-          case ES512 -> "secp521r1";
-          default -> throw new GeneralSecurityException("Unsupported EC curve for " + algorithm);
-        };
-    java.security.AlgorithmParameters params = java.security.AlgorithmParameters.getInstance("EC");
-    params.init(new java.security.spec.ECGenParameterSpec(curveName));
-    return params.getParameterSpec(java.security.spec.ECParameterSpec.class);
-  }
-
-  private static PublicKey createRsaPublicKey(Map<Integer, Object> map, int keyType)
-      throws GeneralSecurityException {
-    if (keyType != 3) {
-      throw new GeneralSecurityException("Expected RSA key type");
-    }
-    byte[] modulus = requireBytes(map, -1);
-    byte[] exponent = requireBytes(map, -2);
-    java.security.spec.RSAPublicKeySpec spec =
-        new java.security.spec.RSAPublicKeySpec(
-            new java.math.BigInteger(1, modulus), new java.math.BigInteger(1, exponent));
-    return java.security.KeyFactory.getInstance("RSA").generatePublic(spec);
-  }
-
-  private static PublicKey createEd25519PublicKey(Map<Integer, Object> map, int keyType)
-      throws GeneralSecurityException {
-    if (keyType != 1) {
-      throw new GeneralSecurityException("Expected OKP key type");
-    }
-    int curve = requireInt(map, -1);
-    if (curve != 6) {
-      throw new GeneralSecurityException("Unsupported OKP curve for Ed25519 key");
-    }
-    byte[] publicKey = requireBytes(map, -2);
-    byte[] prefix =
-        new byte[] {0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00};
-    byte[] spki = new byte[prefix.length + publicKey.length];
-    System.arraycopy(prefix, 0, spki, 0, prefix.length);
-    System.arraycopy(publicKey, 0, spki, prefix.length, publicKey.length);
-    java.security.spec.X509EncodedKeySpec spec = new java.security.spec.X509EncodedKeySpec(spki);
-    return java.security.KeyFactory.getInstance("Ed25519").generatePublic(spec);
   }
 
   private static Map<Integer, Object> decodeCoseMap(byte[] coseKey)

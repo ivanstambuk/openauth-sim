@@ -3,6 +3,7 @@ package io.openauth.sim.application.fido2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService.GeneratedAttestation;
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService.GenerationCommand;
@@ -17,9 +18,20 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.SigningMode;
 import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import java.math.BigInteger;
+import java.security.AlgorithmParameters;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPrivateKeySpec;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +41,8 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
   private WebAuthnAttestationVector vector;
   private String expectedAttestation;
   private String expectedClientData;
+  private String expectedCredentialId;
+  private List<String> expectedCertificateChain;
 
   @BeforeEach
   void setUp() {
@@ -47,6 +61,25 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
         Base64.getUrlEncoder()
             .withoutPadding()
             .encodeToString(vector.registration().clientDataJson());
+    expectedCredentialId =
+        Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString(vector.registration().credentialId());
+    try {
+      expectedCertificateChain =
+          WebAuthnAttestationGeneratorTestHelper.certificateChain(vector.format()).stream()
+              .map(
+                  certificate -> {
+                    try {
+                      return WebAuthnAttestationGeneratorTestHelper.toPem(certificate);
+                    } catch (Exception ex) {
+                      throw new IllegalStateException("Unable to encode certificate to PEM", ex);
+                    }
+                  })
+              .collect(Collectors.toUnmodifiableList());
+    } catch (Exception ex) {
+      throw new IllegalStateException("Unable to prepare expected certificate chain", ex);
+    }
   }
 
   @Test
@@ -59,14 +92,15 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
 
     assertNotNull(attestation);
     assertEquals("public-key", attestation.type());
-    assertEquals(vector.vectorId(), attestation.id());
-    assertEquals(vector.vectorId(), attestation.rawId());
+    assertEquals(expectedCredentialId, attestation.id());
+    assertEquals(expectedCredentialId, attestation.rawId());
     assertEquals(vector.vectorId(), attestation.attestationId());
     assertEquals(vector.format(), attestation.format());
     assertEquals(expectedAttestation, attestation.response().attestationObject());
     assertEquals(expectedClientData, attestation.response().clientDataJson());
     assertEquals(true, result.telemetry().fields().get("signatureIncluded"));
     assertEquals(1, telemetry.fields().get("certificateChainCount"));
+    assertEquals(expectedCertificateChain, result.certificateChainPem());
 
     assertNotNull(telemetry);
     assertEquals(TelemetryStatus.SUCCESS, telemetry.status());
@@ -85,8 +119,8 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
             vector.relyingPartyId(),
             vector.origin(),
             vector.registration().challenge(),
-            vector.keyMaterial().credentialPrivateKeyBase64Url(),
-            vector.keyMaterial().attestationPrivateKeyBase64Url(),
+            vector.keyMaterial().credentialPrivateKeyJwk(),
+            vector.keyMaterial().attestationPrivateKeyJwk(),
             vector.keyMaterial().attestationCertificateSerialBase64Url(),
             SigningMode.UNSIGNED,
             List.of(),
@@ -99,6 +133,7 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
     assertEquals(TelemetryStatus.SUCCESS, result.telemetry().status());
     assertEquals(0, result.telemetry().fields().get("customRootCount"));
     assertEquals(0, result.telemetry().fields().get("certificateChainCount"));
+    assertTrue(result.certificateChainPem().isEmpty());
   }
 
   @Test
@@ -118,8 +153,8 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
             vector.relyingPartyId(),
             vector.origin(),
             vector.registration().challenge(),
-            vector.keyMaterial().credentialPrivateKeyBase64Url(),
-            vector.keyMaterial().attestationPrivateKeyBase64Url(),
+            vector.keyMaterial().credentialPrivateKeyJwk(),
+            vector.keyMaterial().attestationPrivateKeyJwk(),
             vector.keyMaterial().attestationCertificateSerialBase64Url(),
             SigningMode.CUSTOM_ROOT,
             List.of(rootPem),
@@ -132,6 +167,7 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
     assertEquals("custom_root", result.telemetry().fields().get("generationMode"));
     assertEquals(1, result.telemetry().fields().get("customRootCount"));
     assertEquals("inline", result.telemetry().fields().get("customRootSource"));
+    assertEquals(List.of(rootPem), result.certificateChainPem());
   }
 
   @Test
@@ -143,14 +179,87 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
             vector.relyingPartyId(),
             vector.origin(),
             vector.registration().challenge(),
-            vector.keyMaterial().credentialPrivateKeyBase64Url(),
-            vector.keyMaterial().attestationPrivateKeyBase64Url(),
+            vector.keyMaterial().credentialPrivateKeyJwk(),
+            vector.keyMaterial().attestationPrivateKeyJwk(),
             vector.keyMaterial().attestationCertificateSerialBase64Url(),
             SigningMode.CUSTOM_ROOT,
             List.of(),
             "");
 
     assertThrows(IllegalArgumentException.class, () -> service.generate(command));
+  }
+
+  @Test
+  void generateRejectsLegacyBase64PrivateKeys() {
+    GenerationCommand.Inline command =
+        new GenerationCommand.Inline(
+            vector.vectorId(),
+            vector.format(),
+            vector.relyingPartyId(),
+            vector.origin(),
+            vector.registration().challenge(),
+            vector.keyMaterial().credentialPrivateKeyBase64Url(),
+            vector.keyMaterial().attestationPrivateKeyBase64Url(),
+            vector.keyMaterial().attestationCertificateSerialBase64Url(),
+            SigningMode.SELF_SIGNED,
+            List.of(),
+            "");
+
+    assertThrows(IllegalArgumentException.class, () -> service.generate(command));
+  }
+
+  @Test
+  void generateSelfSignedAcceptsPemPrivateKeys() throws Exception {
+    GenerationCommand.Inline command = selfSignedPemCommand();
+
+    GenerationResult result = service.generate(command);
+    GeneratedAttestation attestation = result.attestation();
+
+    assertNotNull(attestation);
+    assertEquals(expectedAttestation, attestation.response().attestationObject());
+    assertEquals(expectedClientData, attestation.response().clientDataJson());
+    assertEquals(expectedCredentialId, attestation.id());
+    assertEquals(expectedCredentialId, attestation.rawId());
+    assertEquals(vector.vectorId(), attestation.attestationId());
+  }
+
+  @Test
+  void generateSelfSignedAcceptsJwkPrivateKeys() throws Exception {
+    String credentialJwk =
+        Objects.requireNonNull(
+            WebAuthnPrivateKeyParser.parse(
+                    toPemPrivateKey(
+                        vector.keyMaterial().credentialPrivateKeyBase64Url(), vector.algorithm()),
+                    vector.algorithm())
+                .jwkRepresentation(),
+            "credentialJwk");
+    String attestationJwk =
+        Objects.requireNonNull(
+            WebAuthnPrivateKeyParser.parse(
+                    toPemPrivateKey(
+                        vector.keyMaterial().attestationPrivateKeyBase64Url(), vector.algorithm()),
+                    vector.algorithm())
+                .jwkRepresentation(),
+            "attestationJwk");
+
+    GenerationCommand.Inline command =
+        new GenerationCommand.Inline(
+            vector.vectorId(),
+            vector.format(),
+            vector.relyingPartyId(),
+            vector.origin(),
+            vector.registration().challenge(),
+            credentialJwk,
+            attestationJwk,
+            vector.keyMaterial().attestationCertificateSerialBase64Url(),
+            SigningMode.SELF_SIGNED,
+            List.of(),
+            "");
+
+    GenerationResult result = service.generate(command);
+    GeneratedAttestation attestation = result.attestation();
+    assertEquals(expectedAttestation, attestation.response().attestationObject());
+    assertEquals(expectedClientData, attestation.response().clientDataJson());
   }
 
   private GenerationCommand.Inline selfSignedCommand() {
@@ -160,8 +269,23 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
         vector.relyingPartyId(),
         vector.origin(),
         vector.registration().challenge(),
-        vector.keyMaterial().credentialPrivateKeyBase64Url(),
-        vector.keyMaterial().attestationPrivateKeyBase64Url(),
+        vector.keyMaterial().credentialPrivateKeyJwk(),
+        vector.keyMaterial().attestationPrivateKeyJwk(),
+        vector.keyMaterial().attestationCertificateSerialBase64Url(),
+        SigningMode.SELF_SIGNED,
+        List.of(),
+        "");
+  }
+
+  private GenerationCommand.Inline selfSignedPemCommand() throws GeneralSecurityException {
+    return new GenerationCommand.Inline(
+        vector.vectorId(),
+        vector.format(),
+        vector.relyingPartyId(),
+        vector.origin(),
+        vector.registration().challenge(),
+        toPemPrivateKey(vector.keyMaterial().credentialPrivateKeyBase64Url(), vector.algorithm()),
+        toPemPrivateKey(vector.keyMaterial().attestationPrivateKeyBase64Url(), vector.algorithm()),
         vector.keyMaterial().attestationCertificateSerialBase64Url(),
         SigningMode.SELF_SIGNED,
         List.of(),
@@ -197,5 +321,36 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
           + MIME_ENCODER.encodeToString(certificate.getEncoded())
           + "\n-----END CERTIFICATE-----\n";
     }
+  }
+
+  private static String toPemPrivateKey(String base64Url, WebAuthnSignatureAlgorithm algorithm)
+      throws GeneralSecurityException {
+    if (base64Url == null || base64Url.isBlank()) {
+      return "";
+    }
+    byte[] scalar = Base64.getUrlDecoder().decode(base64Url);
+    AlgorithmParameters parameters = AlgorithmParameters.getInstance("EC");
+    parameters.init(new ECGenParameterSpec(curveFor(algorithm)));
+    ECParameterSpec spec = parameters.getParameterSpec(ECParameterSpec.class);
+    KeyFactory factory = KeyFactory.getInstance("EC");
+    ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(new BigInteger(1, scalar), spec);
+    PrivateKey privateKey = factory.generatePrivate(privateKeySpec);
+    return encodePem(privateKey.getEncoded(), "PRIVATE KEY");
+  }
+
+  private static String curveFor(WebAuthnSignatureAlgorithm algorithm) {
+    return switch (algorithm) {
+      case ES256 -> "secp256r1";
+      case ES384 -> "secp384r1";
+      case ES512 -> "secp521r1";
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported algorithm for PEM conversion: " + algorithm);
+    };
+  }
+
+  private static String encodePem(byte[] der, String label) {
+    String body = Base64.getMimeEncoder(64, new byte[] {'\n'}).encodeToString(der);
+    return "-----BEGIN " + label + "-----\n" + body + "\n-----END " + label + "-----\n";
   }
 }

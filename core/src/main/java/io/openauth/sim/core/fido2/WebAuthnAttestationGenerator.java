@@ -124,7 +124,8 @@ public final class WebAuthnAttestationGenerator {
       byte[] clientDataJson,
       byte[] expectedChallenge,
       List<String> certificateChainPem,
-      boolean signatureIncluded) {
+      boolean signatureIncluded,
+      byte[] credentialId) {
     // Provides canonical accessors for generation outputs.
   }
 
@@ -167,7 +168,8 @@ public final class WebAuthnAttestationGenerator {
           clientDataJson,
           expectedChallenge,
           certificateChain,
-          signatureIncluded);
+          signatureIncluded,
+          vector.registration().credentialId().clone());
     }
 
     // Manual input source: synthesize clientDataJSON and reuse a format template for
@@ -204,7 +206,8 @@ public final class WebAuthnAttestationGenerator {
         clientDataJson,
         expectedChallenge,
         certificateChain,
-        signatureIncluded);
+        signatureIncluded,
+        template.registration().credentialId().clone());
   }
 
   private static void validateInline(

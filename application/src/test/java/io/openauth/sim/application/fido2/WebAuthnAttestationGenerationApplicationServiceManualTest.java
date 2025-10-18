@@ -7,9 +7,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService.GenerationResult;
 import io.openauth.sim.application.telemetry.Fido2TelemetryAdapter;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.SigningMode;
+import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
+import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
+import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +36,10 @@ final class WebAuthnAttestationGenerationApplicationServiceManualTest {
   @Test
   void manualUnsignedEmitsInputSourceTelemetry() {
     byte[] challenge = Base64.getUrlDecoder().decode("dGVzdC1tYW51YWwtY2hhbGxlbmdl");
+    WebAuthnAttestationVector vector =
+        WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
+            .findFirst()
+            .orElseThrow();
 
     var command =
         new WebAuthnAttestationGenerationApplicationService.GenerationCommand.Manual(
@@ -36,7 +47,7 @@ final class WebAuthnAttestationGenerationApplicationServiceManualTest {
             "example.org",
             "https://example.org",
             challenge,
-            "cHJpdmF0ZS1rZXktY3JlZC",
+            vector.keyMaterial().credentialPrivateKeyJwk(),
             null,
             null,
             SigningMode.UNSIGNED,
@@ -48,20 +59,25 @@ final class WebAuthnAttestationGenerationApplicationServiceManualTest {
     GenerationResult result = service.generate(command);
 
     assertEquals("public-key", result.attestation().type());
-    assertEquals("manual", result.attestation().id());
-    assertEquals("manual", result.attestation().rawId());
+    assertEquals(result.attestation().id(), result.attestation().rawId());
+    assertTrue(isBase64Url(result.attestation().id()));
     assertEquals("manual", result.attestation().attestationId());
     assertEquals("manual", result.telemetry().fields().get("inputSource"));
     assertEquals("unsigned", result.telemetry().fields().get("generationMode"));
     assertEquals(0, result.telemetry().fields().get("customRootCount"));
     assertEquals(0, result.telemetry().fields().get("certificateChainCount"));
+    assertTrue(result.certificateChainPem().isEmpty());
   }
 
   @Test
   void manualCustomRootIncludesSeedAndOverridesTelemetry() {
     byte[] challenge = Base64.getUrlDecoder().decode("dGVzdC1tYW51YWwtY2hhbGxlbmdl");
-    String rootPem =
-        "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----\n"; // synthetic
+    WebAuthnAttestationVector vector =
+        WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.FIDO_U2F).stream()
+            .findFirst()
+            .orElseThrow();
+    List<String> certificateChain = certificateChainPem(vector);
+    String rootPem = certificateChain.get(certificateChain.size() - 1);
 
     var command =
         new WebAuthnAttestationGenerationApplicationService.GenerationCommand.Manual(
@@ -69,9 +85,9 @@ final class WebAuthnAttestationGenerationApplicationServiceManualTest {
             "example.org",
             "https://example.org",
             challenge,
-            "cHJpdmF0ZS1rZXktY3JlZC",
-            "YXR0ZXN0LXBriy10ZXN0",
-            "c2VyaWFsLXRlc3Q",
+            vector.keyMaterial().credentialPrivateKeyJwk(),
+            vector.keyMaterial().attestationPrivateKeyJwk(),
+            vector.keyMaterial().attestationCertificateSerialBase64Url(),
             SigningMode.CUSTOM_ROOT,
             List.of(rootPem),
             "inline",
@@ -84,8 +100,9 @@ final class WebAuthnAttestationGenerationApplicationServiceManualTest {
     assertEquals("manual", result.telemetry().fields().get("inputSource"));
     assertEquals("preset-123", result.telemetry().fields().get("seedPresetId"));
     assertEquals("public-key", result.attestation().type());
-    assertEquals("preset-123", result.attestation().id());
-    assertEquals("preset-123", result.attestation().rawId());
+    assertEquals(result.attestation().id(), result.attestation().rawId());
+    assertTrue(isBase64Url(result.attestation().id()));
+    assertEquals(List.of(rootPem.trim()), result.certificateChainPem());
     Object overrides = result.telemetry().fields().get("overrides");
     assertNotNull(overrides);
     assertTrue(overrides.toString().contains("challenge"));
@@ -95,15 +112,19 @@ final class WebAuthnAttestationGenerationApplicationServiceManualTest {
   @Test
   void manualCustomRootWithoutRootsFails() {
     byte[] challenge = Base64.getUrlDecoder().decode("dGVzdC1tYW51YWwtY2hhbGxlbmdl");
+    WebAuthnAttestationVector vector =
+        WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
+            .findFirst()
+            .orElseThrow();
     var command =
         new WebAuthnAttestationGenerationApplicationService.GenerationCommand.Manual(
             WebAuthnAttestationFormat.PACKED,
             "example.org",
             "https://example.org",
             challenge,
-            "cHJpdmF0ZS1rZXktY3JlZC",
-            "YXR0ZXN0LXBriy10ZXN0",
-            "c2VyaWFsLXRlc3Q",
+            vector.keyMaterial().credentialPrivateKeyJwk(),
+            vector.keyMaterial().attestationPrivateKeyJwk(),
+            vector.keyMaterial().attestationCertificateSerialBase64Url(),
             SigningMode.CUSTOM_ROOT,
             List.of(),
             "",
@@ -111,5 +132,71 @@ final class WebAuthnAttestationGenerationApplicationServiceManualTest {
             List.of());
 
     assertThrows(IllegalArgumentException.class, () -> service.generate(command));
+  }
+
+  @Test
+  void manualModeRejectsLegacyBase64CredentialKey() {
+    byte[] challenge = Base64.getUrlDecoder().decode("dGVzdC1tYW51YWwtY2hhbGxlbmdl");
+    var command =
+        new WebAuthnAttestationGenerationApplicationService.GenerationCommand.Manual(
+            WebAuthnAttestationFormat.ANDROID_KEY,
+            "example.org",
+            "https://example.org",
+            challenge,
+            "cHJpdmF0ZS1rZXktY3JlZC",
+            "YXR0ZXN0LXBriy10ZXN0",
+            "c2VyaWFsLXRlc3Q",
+            SigningMode.SELF_SIGNED,
+            List.of(),
+            "",
+            "",
+            List.of());
+
+    assertThrows(IllegalArgumentException.class, () -> service.generate(command));
+  }
+
+  private static boolean isBase64Url(String value) {
+    try {
+      Base64.getUrlDecoder().decode(value);
+      return true;
+    } catch (IllegalArgumentException ex) {
+      return false;
+    }
+  }
+
+  private static List<String> certificateChainPem(WebAuthnAttestationVector vector) {
+    WebAuthnAttestationVerifier verifier = new WebAuthnAttestationVerifier();
+    WebAuthnAttestationVerification verification =
+        verifier.verify(
+            new WebAuthnAttestationRequest(
+                vector.format(),
+                vector.registration().attestationObject(),
+                vector.registration().clientDataJson(),
+                vector.registration().challenge(),
+                vector.relyingPartyId(),
+                vector.origin()));
+    if (!verification.result().success()) {
+      throw new IllegalStateException(
+          "Attestation verification failed for vector "
+              + vector.vectorId()
+              + ": "
+              + verification.result().message());
+    }
+    return verification.certificateChain().stream()
+        .map(
+            certificate -> {
+              try {
+                return toPem(certificate);
+              } catch (CertificateEncodingException ex) {
+                throw new IllegalStateException("Unable to encode certificate", ex);
+              }
+            })
+        .toList();
+  }
+
+  private static String toPem(X509Certificate certificate) throws CertificateEncodingException {
+    String encoded =
+        Base64.getMimeEncoder(64, new byte[] {'\n'}).encodeToString(certificate.getEncoded());
+    return "-----BEGIN CERTIFICATE-----\n" + encoded + "\n-----END CERTIFICATE-----\n";
   }
 }

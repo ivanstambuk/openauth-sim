@@ -191,6 +191,10 @@ button {
   gap: var(--ocra-spacing-sm);
 }
 
+.certificate-chain-block {
+  margin-top: var(--ocra-spacing-lg);
+}
+
 .credential-actions {
   display: flex;
   flex-wrap: wrap;

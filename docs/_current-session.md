@@ -6,14 +6,14 @@
 - Date: 2025-10-18
 - Primary branch: `main`
 - Other active branches: none
-- Last green commands: `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`; `./gradlew --no-daemon spotlessApply check` (all completed 2025-10-18).
-- Quality gate note: Full pipeline (`spotlessApply check`) plus targeted CLI/REST/Selenium suites rerun 2025-10-18; all tasks exited green.
-- Outstanding git state: Incremental attestation payload trim touches `application/src/main/java/io/openauth/sim/application/fido2/WebAuthnAttestationGenerationApplicationService.java`, CLI/REST/UI attestation responses, updated OpenAPI snapshots, and associated docs; pre-existing Feature 026 scaffolding remains staged from earlier sessions (see `git status -sb` for the broader attestation files already present).
+- Last green commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationGenerationProducesDeterministicPayload"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest.inlinePolicyPresetEvaluatesSuccessfully"`; `./gradlew --no-daemon spotlessApply check` (all completed 2025-10-18).
+- Quality gate note: Full pipeline (`spotlessApply check`) plus targeted REST/UI Selenium suites rerun 2025-10-18; all tasks exited green after re-running a flaky Ocra Selenium scenario.
+- Outstanding git state: Attestation UI updates touch `rest-api/src/main/resources/static/ui/fido2/console.js`, `rest-api/src/main/resources/templates/ui/fido2/panel.html`, Selenium coverage under `rest-api/src/test/java/io/openauth/sim/rest/ui/Fido2OperatorUiSeleniumTest.java`, and the Feature 026 tasks doc; prior Feature 026 edits remain unstaged (see `git status -sb`).
 
 ## Workstream Summary
 | Workstream | Status | Last Increment | Next Increment | Notes |
 |------------|--------|----------------|----------------|-------|
-| Feature 026 – FIDO2/WebAuthn Attestation Support | In progress | I17 (Attestation response payload reduction) | I18 – Manual input source scaffolding | CLI/REST/UI attestation responses now expose only `clientDataJSON` + `attestationObject`; signature and certificate counts surface via telemetry metadata with updated OpenAPI, docs, and Selenium coverage. |
+| Feature 026 – FIDO2/WebAuthn Attestation Support | In progress | T2628 (Shared private-key parser integration) | T2628 – Surface pretty-printed JWK presets & prune Base64URL code paths | Parser shared across core/application/CLI/REST; Option B decisions locked to require JWK or PEM inputs and render presets as multi-line JWK JSON ahead of UI/docs/test updates. |
 
 ## Active TODOs / Blocking Items
 - [x] Stage failing application-layer tests for attestation services (Feature 026, T2603). (_2025-10-16 – Added attestation verification/replay tests and skeletal services; superseded by the now-green implementation._)
@@ -38,16 +38,15 @@
 - [x] Repository lint follow-up: per Option A decision, fix the offending core/application/cli sources/tests so `./gradlew --no-daemon spotlessApply check` returns green (see local build output for exact rule hits). (_2025-10-17 – Added record-body comments + CLI cleanup; pipeline now green._)
 - [x] Remove redundant attestation metadata rows from the Evaluate result panel and refresh Selenium coverage (T2616). (_2025-10-17 – Template/JS trimmed; Selenium + full pipeline rerun._)
 - [x] Implement Option B: trim generated attestation response payloads to `clientDataJSON` + `attestationObject`, dropping `expectedChallenge`, raw certificate chains, and `signatureIncluded`; update CLI/REST/UI and docs accordingly (Feature 026, T2617). (_2025-10-18 – Updated application/REST/CLI/JS, regenerated OpenAPI snapshots, refreshed docs, and reran CLI/REST/Selenium suites + `spotlessApply check`._)
+- [x] Restore the attestation certificate-chain count hint in the operator UI (T2625). (_2025-10-18 – Updated `panel.html`/`console.js` to render `certificate chain (N)`, refreshed Selenium expectations, reran targeted REST/UI tests, and completed `spotlessApply check`._)
+- [x] Remove the attestation result “response” subheading so the JSON renders directly beneath the card header (T2626). (_2025-10-18 – Updated `panel.html` to inline the JSON block, refreshed Selenium assertions to enforce a single subtitle, and reran targeted REST/UI suites plus `spotlessApply check`._)
+- [x] Restyle the attestation certificate-chain heading to use title case and the standard result typography (`section-title`) (T2627). (_2025-10-18 – Promoted the heading to the `section-title` style, capitalised the label, added a `certificate-chain-block` spacer for breathing room, updated JS defaults, refreshed Selenium coverage, and reran targeted tests plus `spotlessApply check`._)
+- [ ] T2628 – Attestation private key format parity (render presets/manual outputs as pretty-printed JWK JSON, require JWK or PEM inputs, drop Base64URL branches across core/app/CLI/REST/UI/docs/tests, regenerate OpenAPI + Selenium coverage). (_2025-10-18 – Parser + CLI/REST integration landed; next step is converting fixtures/UI/docs and pruning legacy Base64URL code paths._)
 
-## Open Questions / Follow-ups
-- [x] Clarify T2608 staging scope – resolved 2025-10-17 by selecting Option A (stage failing tests, defer loader/doc wiring).
-- [ ] Feature 026 Manual mode decisions pending (2025-10-17):
-  1) Manual AAGUID default vs explicit input (rec: deterministic default with override),
-  2) CUSTOM_ROOT chain length min (rec: ≥1),
-  3) UI “Copy preset ID” link (latest direction: remove the link),
-  4) CLI parity for Manual (rec: yes),
-  5) Algorithm selection (rec: infer from key),
-  6) Attestation generation responses must mirror WebAuthn assertion schema (`type`/`id`/`rawId` + nested `response`). Capture final answers under spec Clarifications.
+> Open questions live exclusively in `docs/4-architecture/open-questions.md`; consult that log for any pending clarifications.
+
+## Upcoming Focus
+- [ ] T2618 – Core Manual input source scaffolding (pending kickoff once Manual-mode clarifications are fully consumed in the spec).
 
 ## Reference Links
 - Roadmap entry: `docs/4-architecture/roadmap.md` (Workstream 21)

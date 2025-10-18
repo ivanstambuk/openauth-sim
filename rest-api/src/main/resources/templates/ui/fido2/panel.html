@@ -631,16 +631,17 @@
                 </div>
                 <dl class="result-metadata"></dl>
                 <div class="result-body stack-md">
-                  <div>
-                    <h4 class="result-subtitle">response</h4>
-                    <pre class="code-block" data-testid="fido2-attestation-result-json">Awaiting submission.</pre>
-                  </div>
-                  <div>
-                    <h4 class="result-subtitle">summary</h4>
-                    <div class="stack-sm" data-testid="fido2-attestation-summary">
-                      <p class="hint" data-testid="fido2-attestation-summary-signature">Signature: —</p>
-                      <p class="hint" data-testid="fido2-attestation-summary-cert-count">Certificate chain count: —</p>
-                    </div>
+                  <pre class="code-block" data-testid="fido2-attestation-result-json">Awaiting submission.</pre>
+                  <div
+                      class="stack-sm certificate-chain-block"
+                      data-testid="fido2-attestation-certificate-chain-section"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    >
+                    <h3 class="section-title" data-testid="fido2-attestation-certificate-heading">
+                      Certificate chain
+                    </h3>
+                    <pre class="code-block" data-testid="fido2-attestation-certificate-chain"></pre>
                   </div>
                 </div>
                 <div
