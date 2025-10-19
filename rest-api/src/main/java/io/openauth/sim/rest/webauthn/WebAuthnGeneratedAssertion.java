@@ -5,15 +5,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record WebAuthnGeneratedAssertion(
+    @JsonProperty("type") String type,
     @JsonProperty("id") String id,
     @JsonProperty("rawId") String rawId,
-    @JsonProperty("type") String type,
-    @JsonProperty("response") WebAuthnAssertionResponse response,
-    @JsonProperty("relyingPartyId") String relyingPartyId,
-    @JsonProperty("origin") String origin,
-    @JsonProperty("algorithm") String algorithm,
-    @JsonProperty("userVerificationRequired") boolean userVerificationRequired,
-    @JsonProperty("signatureCounter") long signatureCounter) {
+    @JsonProperty("response") WebAuthnAssertionResponse response) {
   // DTO marker
 }
 

@@ -177,15 +177,7 @@ class WebAuthnEvaluationService {
             encode(result.signature()));
 
     return new WebAuthnGeneratedAssertion(
-        encode(result.credentialId()),
-        encode(result.credentialId()),
-        "public-key",
-        payload,
-        result.relyingPartyId(),
-        result.origin(),
-        result.algorithm().label(),
-        result.userVerificationRequired(),
-        result.signatureCounter());
+        "public-key", encode(result.credentialId()), encode(result.credentialId()), payload);
   }
 
   private static String encode(byte[] data) {

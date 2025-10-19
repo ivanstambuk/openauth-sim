@@ -1,6 +1,7 @@
 package io.openauth.sim.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples;
@@ -77,8 +78,8 @@ final class Fido2CliTest {
     assertTrue(stdout.contains("event=cli.fido2.evaluate status=success"));
     assertTrue(stdout.contains("\"type\":\"public-key\""));
     assertTrue(stdout.contains("\"clientDataJSON\""));
-    assertTrue(stdout.contains("\"relyingPartyId\":\"example.org\""));
-    assertTrue(stdout.contains("\"origin\":\"https://example.org\""));
+    assertFalse(stdout.contains("\"relyingPartyId\""));
+    assertFalse(stdout.contains("\"origin\""));
     assertTrue(stdout.contains("credentialSource=stored"));
   }
 

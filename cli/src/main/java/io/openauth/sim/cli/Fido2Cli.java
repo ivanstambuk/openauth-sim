@@ -351,22 +351,11 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     return null;
   }
 
-  private static String escapeJson(String value) {
-    if (value == null) {
-      return "";
-    }
-    return value
-        .replace("\\", "\\\\")
-        .replace("\"", "\\\"")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r");
-  }
-
   private static String formatPublicKeyCredentialJson(GenerationResult result) {
     StringBuilder builder = new StringBuilder();
-    builder.append("{\"id\":\"").append(encodeBase64(result.credentialId())).append("\",");
+    builder.append("{\"type\":\"public-key\",");
+    builder.append("\"id\":\"").append(encodeBase64(result.credentialId())).append("\",");
     builder.append("\"rawId\":\"").append(encodeBase64(result.credentialId())).append("\",");
-    builder.append("\"type\":\"public-key\",");
     builder.append("\"response\":{");
     builder
         .append("\"clientDataJSON\":\"")
@@ -377,17 +366,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         .append(encodeBase64(result.authenticatorData()))
         .append("\",");
     builder.append("\"signature\":\"").append(encodeBase64(result.signature())).append("\"},");
-    builder
-        .append("\"relyingPartyId\":\"")
-        .append(escapeJson(result.relyingPartyId()))
-        .append("\",");
-    builder.append("\"origin\":\"").append(escapeJson(result.origin())).append("\",");
-    builder.append("\"algorithm\":\"").append(result.algorithm().label()).append("\",");
-    builder
-        .append("\"userVerificationRequired\":")
-        .append(result.userVerificationRequired())
-        .append(',');
-    builder.append("\"signatureCounter\":").append(result.signatureCounter()).append('}');
+    builder.append("\"signature\":\"").append(encodeBase64(result.signature())).append("\"}}");
     return builder.toString();
   }
 

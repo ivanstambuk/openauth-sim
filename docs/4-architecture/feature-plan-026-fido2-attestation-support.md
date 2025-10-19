@@ -159,6 +159,12 @@ _2025-10-18 – Active increment: T2628 now reuses `WebAuthnPrivateKeyParser` ac
     - Refresh MockMvc/Selenium coverage, documentation snapshots, and CLI expectations accordingly.  
     - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationTest"`, `./gradlew --no-daemon spotlessApply check`.
 
+19. **I25 – Assertion payload sanitization**  
+    - Trim generated assertion JSON (CLI/REST/UI) to the spec-compliant PublicKeyCredential shape (`type`, `id`, `rawId`, `response`).  
+    - Continue surfacing relying-party metadata, algorithm, UV requirements, and counters via telemetry/metadata sections, not inside the main credential payload.  
+    - Update MockMvc and CLI tests plus OpenAPI snapshots to assert the lean payload, and document the contract change where applicable.  
+    - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2EvaluationEndpointTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon spotlessApply check`.
+
 ## Risks & Mitigations
 - **Complex format coverage** – TPM/Android Key attestations involve certificate handling; rely on deterministic fixtures and synthetic certificate chains.  
 - **UI complexity** – Toggle must not regress assertion flows; isolate attestation form logic to maintain readability.  

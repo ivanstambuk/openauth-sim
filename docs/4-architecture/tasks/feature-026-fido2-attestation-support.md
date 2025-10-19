@@ -148,6 +148,15 @@ _Last updated:_ 2025-10-18
 		_2025-10-18 – Adjusted `console.js` heading text, refreshed Selenium assertions to require the new typography, increased the vertical spacing above the certificate panel via `certificate-chain-block`, and reran targeted UI + spotless checks._  
 	• Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationGenerationProducesDeterministicPayload"`; `./gradlew --no-daemon spotlessApply check`.  
 
+☑ **T2629 – Assertion payload sanitization**  
+	☑ Update CLI and REST generation outputs to emit only `type`, `id`, `rawId`, and `response` in the credential payload, keeping relying-party metadata in telemetry/metadata sections.  
+	 _2025-10-19 – `WebAuthnGeneratedAssertion` + CLI formatter trimmed to spec-compliant PublicKeyCredential shape; relying-party/algorithm/UV details now reside solely in metadata/telemetry.)_  
+	☑ Refresh MockMvc/CLI expectations, OpenAPI snapshots, and contributor docs that describe the response structure.  
+	 _2025-10-19 – Updated `Fido2EvaluationEndpointTest`, `Fido2CliTest`, regenerated OpenAPI snapshots, and documented the contract under Feature 026 spec/plan/tasks/current-session._  
+	☑ Verify UI rendering continues to display the payload with the lean schema.  
+	 _2025-10-19 – Selenium checks already ensure presence of `"type": "public-key"`; inline panel renders the lean payload without regression._  
+	• Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2EvaluationEndpointTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon spotlessApply check`.  
+
 ☐ **T2628 – Attestation private key format parity**  
 	☑ Replace Base64URL-only attestation private-key handling with shared loaders that accept JWK or PEM/PKCS#8 (matching assertions) while still supporting preset seeding.  
 	☐ Convert attestation fixture key material and manual-mode outputs to surface pretty-printed JWK representations; update REST/CLI/UI labels, DTO validation, and core/app services accordingly.  

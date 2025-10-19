@@ -131,10 +131,13 @@ class Fido2EvaluationEndpointTest {
     JsonNode root = MAPPER.readTree(response);
     assertThat(root.get("status").asText()).isEqualTo("generated");
     JsonNode assertion = root.get("assertion");
-    assertThat(assertion.get("id").asText()).isEqualTo(encode(seed.credentialId()));
     assertThat(assertion.get("type").asText()).isEqualTo("public-key");
-    assertThat(assertion.get("algorithm").asText()).isEqualTo("ES256");
-    assertThat(assertion.get("userVerificationRequired").asBoolean()).isFalse();
+    assertThat(assertion.get("id").asText()).isEqualTo(encode(seed.credentialId()));
+    assertThat(assertion.has("algorithm")).isFalse();
+    assertThat(assertion.has("userVerificationRequired")).isFalse();
+    assertThat(assertion.has("relyingPartyId")).isFalse();
+    assertThat(assertion.has("origin")).isFalse();
+    assertThat(assertion.has("signatureCounter")).isFalse();
 
     JsonNode responseNode = assertion.get("response");
     byte[] clientDataJson = decode(responseNode.get("clientDataJSON").asText());
@@ -149,6 +152,10 @@ class Fido2EvaluationEndpointTest {
     JsonNode metadata = root.get("metadata");
     assertThat(metadata.get("credentialSource").asText()).isEqualTo("stored");
     assertThat(metadata.get("credentialReference").asBoolean()).isTrue();
+    assertThat(metadata.get("relyingPartyId").asText()).isEqualTo(RELYING_PARTY_ID);
+    assertThat(metadata.get("origin").asText()).isEqualTo(ORIGIN);
+    assertThat(metadata.get("algorithm").asText()).isEqualTo("ES256");
+    assertThat(metadata.get("userVerificationRequired").asBoolean()).isFalse();
   }
 
   @Test
@@ -190,6 +197,9 @@ class Fido2EvaluationEndpointTest {
     assertThat(root.get("status").asText()).isEqualTo("generated");
     JsonNode assertion = root.get("assertion");
     assertThat(assertion.get("id").asText()).isEqualTo(encode(credentialId));
+    assertThat(assertion.has("relyingPartyId")).isFalse();
+    assertThat(assertion.has("origin")).isFalse();
+    assertThat(assertion.has("algorithm")).isFalse();
     JsonNode responseNode = assertion.get("response");
     assertThat(responseNode.get("signature").asText()).isNotBlank();
   }
