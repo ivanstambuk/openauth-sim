@@ -127,7 +127,9 @@ final class CborDecoder {
     }
     long value = 0;
     for (int i = 0; i < lengthBytes; i++) {
-      value = (value << 8) | (data[index++] & 0xFF);
+      int nextByte = data[index] & 0xFF;
+      index++;
+      value = (value << 8) | nextByte;
     }
     return value;
   }
@@ -136,6 +138,8 @@ final class CborDecoder {
     if (index >= data.length) {
       throw new GeneralSecurityException("Unexpected end of CBOR data");
     }
-    return data[index++] & 0xFF;
+    int unsignedByte = data[index] & 0xFF;
+    index++;
+    return unsignedByte;
   }
 }

@@ -78,7 +78,8 @@ final class OcraReplayVerifierBenchmark {
     List<OcraStoredVerificationRequest> requests = new ArrayList<>(vectors.size());
     int index = 0;
     for (OcraRfc6287VectorFixtures.OneWayVector vector : vectors) {
-      String credentialId = "benchmark-stored-" + index++;
+      String credentialId = "benchmark-stored-" + index;
+      index++;
       OcraCredentialFactory.OcraCredentialRequest descriptorRequest =
           new OcraCredentialFactory.OcraCredentialRequest(
               credentialId,
@@ -113,6 +114,8 @@ final class OcraReplayVerifierBenchmark {
     List<OcraInlineVerificationRequest> requests = new ArrayList<>(vectors.size());
     int index = 0;
     for (OcraRfc6287VectorFixtures.OneWayVector vector : vectors) {
+      String credentialId = "benchmark-inline-" + index;
+      index++;
       OcraVerificationContext context =
           new OcraVerificationContext(
               vector.counter(),
@@ -125,7 +128,7 @@ final class OcraReplayVerifierBenchmark {
 
       requests.add(
           new OcraInlineVerificationRequest(
-              "benchmark-inline-" + index++,
+              credentialId,
               vector.ocraSuite(),
               vector.sharedSecretHex(),
               vector.secretEncoding(),

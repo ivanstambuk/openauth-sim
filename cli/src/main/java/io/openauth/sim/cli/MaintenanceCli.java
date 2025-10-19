@@ -108,16 +108,16 @@ public final class MaintenanceCli {
   }
 
   ParsedArguments parseMaintenanceArguments(String[] args, PrintStream err) {
-    MaintenanceOperation operation;
     String command = args[0].toLowerCase(Locale.ROOT);
-    switch (command) {
-      case "compact" -> operation = MaintenanceOperation.COMPACTION;
-      case "verify", "integrity" -> operation = MaintenanceOperation.INTEGRITY_CHECK;
-      default -> {
-        err.printf(Locale.ROOT, "error: unknown command '%s'%n", args[0]);
-        err.println(usage());
-        return ParsedArguments.invalid();
-      }
+    MaintenanceOperation operation;
+    if ("compact".equals(command)) {
+      operation = MaintenanceOperation.COMPACTION;
+    } else if ("verify".equals(command) || "integrity".equals(command)) {
+      operation = MaintenanceOperation.INTEGRITY_CHECK;
+    } else {
+      err.printf(Locale.ROOT, "error: unknown command '%s'%n", args[0]);
+      err.println(usage());
+      return ParsedArguments.invalid();
     }
 
     Path databasePath = null;

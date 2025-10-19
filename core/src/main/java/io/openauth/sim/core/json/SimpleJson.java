@@ -101,7 +101,7 @@ public final class SimpleJson {
       expect('"');
       StringBuilder builder = new StringBuilder();
       while (!isAtEnd()) {
-        char ch = input.charAt(index++);
+        char ch = consumeChar();
         if (ch == '"') {
           return builder.toString();
         }
@@ -109,7 +109,7 @@ public final class SimpleJson {
           if (isAtEnd()) {
             throw new IllegalStateException("Unterminated escape sequence in JSON string");
           }
-          char escape = input.charAt(index++);
+          char escape = consumeChar();
           builder.append(
               switch (escape) {
                 case '"' -> '"';
@@ -136,7 +136,7 @@ public final class SimpleJson {
       }
       int codePoint = 0;
       for (int i = 0; i < 4; i++) {
-        char hex = input.charAt(index++);
+        char hex = consumeChar();
         codePoint <<= 4;
         if (hex >= '0' && hex <= '9') {
           codePoint |= hex - '0';
@@ -149,6 +149,15 @@ public final class SimpleJson {
         }
       }
       return (char) codePoint;
+    }
+
+    private char consumeChar() {
+      if (isAtEnd()) {
+        throw new IllegalStateException("Unexpected end of JSON input");
+      }
+      char ch = input.charAt(index);
+      index++;
+      return ch;
     }
 
     private Boolean readBoolean() {
