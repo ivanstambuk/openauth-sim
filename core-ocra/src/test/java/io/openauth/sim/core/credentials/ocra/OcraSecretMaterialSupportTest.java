@@ -9,65 +9,63 @@ import org.junit.jupiter.api.Test;
 
 class OcraSecretMaterialSupportTest {
 
-  @Test
-  @DisplayName("normaliseSharedSecret trims and decodes supported encodings")
-  void normaliseSharedSecretDecodesEncodings() {
-    assertEquals(
-        "31323334",
-        OcraSecretMaterialSupport.normaliseSharedSecret("0x31323334", SecretEncoding.HEX).asHex());
+    @Test
+    @DisplayName("normaliseSharedSecret trims and decodes supported encodings")
+    void normaliseSharedSecretDecodesEncodings() {
+        assertEquals(
+                "31323334",
+                OcraSecretMaterialSupport.normaliseSharedSecret("0x31323334", SecretEncoding.HEX)
+                        .asHex());
 
-    assertEquals(
-        "31323334",
-        OcraSecretMaterialSupport.normaliseSharedSecret(" MTIzNA== ", SecretEncoding.BASE64)
-            .asHex());
+        assertEquals(
+                "31323334",
+                OcraSecretMaterialSupport.normaliseSharedSecret(" MTIzNA== ", SecretEncoding.BASE64)
+                        .asHex());
 
-    assertEquals(
-        "31323334",
-        OcraSecretMaterialSupport.normaliseSharedSecret("1234", SecretEncoding.RAW).asHex());
-  }
+        assertEquals(
+                "31323334",
+                OcraSecretMaterialSupport.normaliseSharedSecret("1234", SecretEncoding.RAW)
+                        .asHex());
+    }
 
-  @Test
-  @DisplayName("normaliseSharedSecret rejects blank inputs")
-  void normaliseSharedSecretRejectsBlank() {
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> OcraSecretMaterialSupport.normaliseSharedSecret(null, SecretEncoding.HEX));
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> OcraSecretMaterialSupport.normaliseSharedSecret("   ", SecretEncoding.RAW));
-  }
+    @Test
+    @DisplayName("normaliseSharedSecret rejects blank inputs")
+    void normaliseSharedSecretRejectsBlank() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> OcraSecretMaterialSupport.normaliseSharedSecret(null, SecretEncoding.HEX));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> OcraSecretMaterialSupport.normaliseSharedSecret("   ", SecretEncoding.RAW));
+    }
 
-  @Test
-  @DisplayName("normaliseHex enforces even length and valid characters")
-  void normaliseHexValidatesInput() {
-    assertThrows(
-        IllegalArgumentException.class, () -> OcraSecretMaterialSupport.normaliseHex("0x1"));
-    assertThrows(
-        IllegalArgumentException.class, () -> OcraSecretMaterialSupport.normaliseHex("0xGG"));
-  }
+    @Test
+    @DisplayName("normaliseHex enforces even length and valid characters")
+    void normaliseHexValidatesInput() {
+        assertThrows(IllegalArgumentException.class, () -> OcraSecretMaterialSupport.normaliseHex("0x1"));
+        assertThrows(IllegalArgumentException.class, () -> OcraSecretMaterialSupport.normaliseHex("0xGG"));
+    }
 
-  @Test
-  @DisplayName("normaliseBase64 rejects invalid values")
-  void normaliseBase64RejectsInvalid() {
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> OcraSecretMaterialSupport.normaliseSharedSecret("@@@", SecretEncoding.BASE64));
-  }
+    @Test
+    @DisplayName("normaliseBase64 rejects invalid values")
+    void normaliseBase64RejectsInvalid() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> OcraSecretMaterialSupport.normaliseSharedSecret("@@@", SecretEncoding.BASE64));
+    }
 
-  @Test
-  @DisplayName("normaliseHex rejects whitespace-only inputs")
-  void normaliseHexRejectsWhitespace() {
-    assertThrows(
-        IllegalArgumentException.class, () -> OcraSecretMaterialSupport.normaliseHex("   "));
-    assertThrows(
-        IllegalArgumentException.class, () -> OcraSecretMaterialSupport.normaliseHex("0x  "));
-  }
+    @Test
+    @DisplayName("normaliseHex rejects whitespace-only inputs")
+    void normaliseHexRejectsWhitespace() {
+        assertThrows(IllegalArgumentException.class, () -> OcraSecretMaterialSupport.normaliseHex("   "));
+        assertThrows(IllegalArgumentException.class, () -> OcraSecretMaterialSupport.normaliseHex("0x  "));
+    }
 
-  @Test
-  @DisplayName("normaliseBase64 rejects whitespace-only shared secret")
-  void normaliseBase64RejectsWhitespace() {
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> OcraSecretMaterialSupport.normaliseSharedSecret("   ", SecretEncoding.BASE64));
-  }
+    @Test
+    @DisplayName("normaliseBase64 rejects whitespace-only shared secret")
+    void normaliseBase64RejectsWhitespace() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> OcraSecretMaterialSupport.normaliseSharedSecret("   ", SecretEncoding.BASE64));
+    }
 }

@@ -13,30 +13,30 @@ import org.junit.jupiter.api.Test;
 
 final class CredentialStoreFactoryTest {
 
-  @Test
-  @DisplayName("openFileStore creates parent directories")
-  void openFileStoreCreatesParentDirectories() throws Exception {
-    Path tempDir = Files.createTempDirectory("credential-store-factory");
-    Path database = tempDir.resolve("nested/store.db");
+    @Test
+    @DisplayName("openFileStore creates parent directories")
+    void openFileStoreCreatesParentDirectories() throws Exception {
+        Path tempDir = Files.createTempDirectory("credential-store-factory");
+        Path database = tempDir.resolve("nested/store.db");
 
-    try (CredentialStore store = CredentialStoreFactory.openFileStore(database)) {
-      assertNotNull(store);
-      assertTrue(Files.exists(database.getParent()));
+        try (CredentialStore store = CredentialStoreFactory.openFileStore(database)) {
+            assertNotNull(store);
+            assertTrue(Files.exists(database.getParent()));
+        }
     }
-  }
 
-  @Test
-  @DisplayName("resolveDatabasePath falls back to unified default file")
-  void resolveDatabasePathFallsBackToDefault() {
-    Path resolved = CredentialStoreFactory.resolveDatabasePath("   ", "legacy.db");
-    assertEquals(ProjectPaths.resolveDataFile("credentials.db"), resolved);
-  }
+    @Test
+    @DisplayName("resolveDatabasePath falls back to unified default file")
+    void resolveDatabasePathFallsBackToDefault() {
+        Path resolved = CredentialStoreFactory.resolveDatabasePath("   ", "legacy.db");
+        assertEquals(ProjectPaths.resolveDataFile("credentials.db"), resolved);
+    }
 
-  @Test
-  @DisplayName("resolveDatabasePath honors configured path")
-  void resolveDatabasePathHonorsConfiguredPath() {
-    Path configured = Path.of("build", "custom", "store.db").toAbsolutePath();
-    Path resolved = CredentialStoreFactory.resolveDatabasePath(configured.toString(), "ignored.db");
-    assertEquals(configured, resolved);
-  }
+    @Test
+    @DisplayName("resolveDatabasePath honors configured path")
+    void resolveDatabasePathHonorsConfiguredPath() {
+        Path configured = Path.of("build", "custom", "store.db").toAbsolutePath();
+        Path resolved = CredentialStoreFactory.resolveDatabasePath(configured.toString(), "ignored.db");
+        assertEquals(configured, resolved);
+    }
 }

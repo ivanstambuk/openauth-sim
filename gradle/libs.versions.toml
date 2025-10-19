@@ -3,7 +3,7 @@ archunit = "1.4.1"
 caffeine = "3.2.2"
 checkstyle = "10.18.1"
 errorprone = "2.42.0"
-googleJavaFormat = "1.28.0"
+palantirJavaFormat = "2.78.0"
 junit = "5.13.4"
 junitPlatform = "1.13.4"
 pmd = "7.17.0"
@@ -21,7 +21,7 @@ caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine", version
 checkstyle = { group = "com.puppycrawl.tools", name = "checkstyle", version.ref = "checkstyle" }
 errorprone-core = { group = "com.google.errorprone", name = "error_prone_core", version.ref = "errorprone" }
 errorprone-annotations = { group = "com.google.errorprone", name = "error_prone_annotations", version.ref = "errorprone" }
-googleJavaFormat = { group = "com.google.googlejavaformat", name = "google-java-format", version.ref = "googleJavaFormat" }
+palantirJavaFormat = { group = "com.palantir.javaformat", name = "palantir-java-format", version.ref = "palantirJavaFormat" }
 junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
 junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter" }
 mapdb = { group = "org.mapdb", name = "mapdb", version.ref = "mapdb" }

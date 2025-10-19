@@ -12,37 +12,37 @@ import java.util.Objects;
 /** Central factory for MapDB-backed credential stores used by CLI, REST, and tests. */
 public final class CredentialStoreFactory {
 
-  private static final String UNIFIED_DEFAULT_FILENAME = "credentials.db";
+    private static final String UNIFIED_DEFAULT_FILENAME = "credentials.db";
 
-  private CredentialStoreFactory() {
-    throw new AssertionError("No instances");
-  }
-
-  public static MapDbCredentialStore openFileStore(Path path) throws IOException {
-    Objects.requireNonNull(path, "path");
-    Path absolute = path.toAbsolutePath();
-    Path parent = absolute.getParent();
-    if (parent != null) {
-      Files.createDirectories(parent);
+    private CredentialStoreFactory() {
+        throw new AssertionError("No instances");
     }
-    return OcraStoreMigrations.apply(MapDbCredentialStore.file(absolute)).open();
-  }
 
-  public static MapDbCredentialStore openInMemoryStore() {
-    return OcraStoreMigrations.apply(MapDbCredentialStore.inMemory()).open();
-  }
-
-  public static Path resolveDatabasePath(String configuredPath, String defaultFileName) {
-    if (hasText(configuredPath)) {
-      return Paths.get(configuredPath.trim()).toAbsolutePath();
+    public static MapDbCredentialStore openFileStore(Path path) throws IOException {
+        Objects.requireNonNull(path, "path");
+        Path absolute = path.toAbsolutePath();
+        Path parent = absolute.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        return OcraStoreMigrations.apply(MapDbCredentialStore.file(absolute)).open();
     }
-    Objects.requireNonNull(defaultFileName, "defaultFileName");
 
-    Path unifiedPath = ProjectPaths.resolveDataFile(UNIFIED_DEFAULT_FILENAME);
-    return unifiedPath;
-  }
+    public static MapDbCredentialStore openInMemoryStore() {
+        return OcraStoreMigrations.apply(MapDbCredentialStore.inMemory()).open();
+    }
 
-  private static boolean hasText(String value) {
-    return value != null && !value.trim().isEmpty();
-  }
+    public static Path resolveDatabasePath(String configuredPath, String defaultFileName) {
+        if (hasText(configuredPath)) {
+            return Paths.get(configuredPath.trim()).toAbsolutePath();
+        }
+        Objects.requireNonNull(defaultFileName, "defaultFileName");
+
+        Path unifiedPath = ProjectPaths.resolveDataFile(UNIFIED_DEFAULT_FILENAME);
+        return unifiedPath;
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
 }

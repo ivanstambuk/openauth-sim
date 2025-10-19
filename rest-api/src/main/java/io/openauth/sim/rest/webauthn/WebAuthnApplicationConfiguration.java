@@ -19,54 +19,49 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 class WebAuthnApplicationConfiguration {
 
-  @Bean
-  WebAuthnEvaluationApplicationService webAuthnEvaluationApplicationService(
-      CredentialStore credentialStore) {
-    return new WebAuthnEvaluationApplicationService(
-        credentialStore,
-        new WebAuthnAssertionVerifier(),
-        new WebAuthnCredentialPersistenceAdapter());
-  }
+    @Bean
+    WebAuthnEvaluationApplicationService webAuthnEvaluationApplicationService(CredentialStore credentialStore) {
+        return new WebAuthnEvaluationApplicationService(
+                credentialStore, new WebAuthnAssertionVerifier(), new WebAuthnCredentialPersistenceAdapter());
+    }
 
-  @Bean
-  WebAuthnAssertionGenerationApplicationService webAuthnAssertionGenerationApplicationService(
-      CredentialStore credentialStore) {
-    return new WebAuthnAssertionGenerationApplicationService(
-        credentialStore, new WebAuthnCredentialPersistenceAdapter());
-  }
+    @Bean
+    WebAuthnAssertionGenerationApplicationService webAuthnAssertionGenerationApplicationService(
+            CredentialStore credentialStore) {
+        return new WebAuthnAssertionGenerationApplicationService(
+                credentialStore, new WebAuthnCredentialPersistenceAdapter());
+    }
 
-  @Bean
-  WebAuthnReplayApplicationService webAuthnReplayApplicationService(
-      WebAuthnEvaluationApplicationService evaluationApplicationService) {
-    return new WebAuthnReplayApplicationService(evaluationApplicationService);
-  }
+    @Bean
+    WebAuthnReplayApplicationService webAuthnReplayApplicationService(
+            WebAuthnEvaluationApplicationService evaluationApplicationService) {
+        return new WebAuthnReplayApplicationService(evaluationApplicationService);
+    }
 
-  @Bean
-  WebAuthnSeedApplicationService webAuthnSeedApplicationService() {
-    return new WebAuthnSeedApplicationService();
-  }
+    @Bean
+    WebAuthnSeedApplicationService webAuthnSeedApplicationService() {
+        return new WebAuthnSeedApplicationService();
+    }
 
-  @Bean
-  WebAuthnAttestationGenerationApplicationService
-      webAuthnAttestationGenerationApplicationService() {
-    return new WebAuthnAttestationGenerationApplicationService();
-  }
+    @Bean
+    WebAuthnAttestationGenerationApplicationService webAuthnAttestationGenerationApplicationService() {
+        return new WebAuthnAttestationGenerationApplicationService();
+    }
 
-  @Bean
-  WebAuthnAttestationVerificationApplicationService
-      webAuthnAttestationVerificationApplicationService() {
-    return new WebAuthnAttestationVerificationApplicationService(
-        new WebAuthnAttestationVerifier(), TelemetryContracts.fido2AttestAdapter());
-  }
+    @Bean
+    WebAuthnAttestationVerificationApplicationService webAuthnAttestationVerificationApplicationService() {
+        return new WebAuthnAttestationVerificationApplicationService(
+                new WebAuthnAttestationVerifier(), TelemetryContracts.fido2AttestAdapter());
+    }
 
-  @Bean
-  WebAuthnAttestationReplayApplicationService webAuthnAttestationReplayApplicationService() {
-    return new WebAuthnAttestationReplayApplicationService(
-        new WebAuthnAttestationVerifier(), TelemetryContracts.fido2AttestReplayAdapter());
-  }
+    @Bean
+    WebAuthnAttestationReplayApplicationService webAuthnAttestationReplayApplicationService() {
+        return new WebAuthnAttestationReplayApplicationService(
+                new WebAuthnAttestationVerifier(), TelemetryContracts.fido2AttestReplayAdapter());
+    }
 
-  @Bean
-  WebAuthnTrustAnchorResolver webAuthnTrustAnchorResolver() {
-    return new WebAuthnTrustAnchorResolver();
-  }
+    @Bean
+    WebAuthnTrustAnchorResolver webAuthnTrustAnchorResolver() {
+        return new WebAuthnTrustAnchorResolver();
+    }
 }

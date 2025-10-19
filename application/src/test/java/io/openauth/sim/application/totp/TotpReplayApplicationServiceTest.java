@@ -34,80 +34,65 @@ import org.junit.jupiter.api.Test;
 
 final class TotpReplayApplicationServiceTest {
 
-  private static final String CREDENTIAL_ID = "totp-replay-credential";
-  private static final SecretMaterial SECRET =
-      SecretMaterial.fromHex("31323334353637383930313233343536");
-  private static final Duration STEP = Duration.ofSeconds(30);
-  private static final TotpHashAlgorithm ALGORITHM = TotpHashAlgorithm.SHA1;
+    private static final String CREDENTIAL_ID = "totp-replay-credential";
+    private static final SecretMaterial SECRET = SecretMaterial.fromHex("31323334353637383930313233343536");
+    private static final Duration STEP = Duration.ofSeconds(30);
+    private static final TotpHashAlgorithm ALGORITHM = TotpHashAlgorithm.SHA1;
 
-  private InMemoryCredentialStore credentialStore;
-  private Clock clock;
-  private TotpReplayApplicationService service;
+    private InMemoryCredentialStore credentialStore;
+    private Clock clock;
+    private TotpReplayApplicationService service;
 
-  @BeforeEach
-  void setUp() {
-    credentialStore = new InMemoryCredentialStore();
-    clock = Clock.fixed(Instant.ofEpochSecond(111_111_110L), ZoneOffset.UTC);
-    TotpEvaluationApplicationService evaluationService =
-        new TotpEvaluationApplicationService(credentialStore, clock);
-    service = new TotpReplayApplicationService(evaluationService);
-  }
+    @BeforeEach
+    void setUp() {
+        credentialStore = new InMemoryCredentialStore();
+        clock = Clock.fixed(Instant.ofEpochSecond(111_111_110L), ZoneOffset.UTC);
+        TotpEvaluationApplicationService evaluationService =
+                new TotpEvaluationApplicationService(credentialStore, clock);
+        service = new TotpReplayApplicationService(evaluationService);
+    }
 
-  @Test
-  void storedReplayMatchesWithinConfiguredDriftWindow() {
-    TotpDescriptor descriptor =
-        TotpDescriptor.create(CREDENTIAL_ID, SECRET, ALGORITHM, 6, STEP, TotpDriftWindow.of(1, 1));
-    TotpCredentialPersistenceAdapter adapter =
-        new TotpCredentialPersistenceAdapter(
-            Clock.fixed(Instant.parse("2025-10-08T12:30:00Z"), ZoneOffset.UTC));
-    VersionedCredentialRecord record = adapter.serialize(descriptor);
-    Credential credential = VersionedCredentialRecordMapper.toCredential(record);
-    credentialStore.save(credential);
+    @Test
+    void storedReplayMatchesWithinConfiguredDriftWindow() {
+        TotpDescriptor descriptor =
+                TotpDescriptor.create(CREDENTIAL_ID, SECRET, ALGORITHM, 6, STEP, TotpDriftWindow.of(1, 1));
+        TotpCredentialPersistenceAdapter adapter = new TotpCredentialPersistenceAdapter(
+                Clock.fixed(Instant.parse("2025-10-08T12:30:00Z"), ZoneOffset.UTC));
+        VersionedCredentialRecord record = adapter.serialize(descriptor);
+        Credential credential = VersionedCredentialRecordMapper.toCredential(record);
+        credentialStore.save(credential);
 
-    Instant evaluationInstant = Instant.ofEpochSecond(1_699_999_970L);
-    String otp = TotpGenerator.generate(descriptor, evaluationInstant);
+        Instant evaluationInstant = Instant.ofEpochSecond(1_699_999_970L);
+        String otp = TotpGenerator.generate(descriptor, evaluationInstant);
 
-    ReplayResult result =
-        service.replay(
-            new ReplayCommand.Stored(
+        ReplayResult result = service.replay(new ReplayCommand.Stored(
                 CREDENTIAL_ID, otp, TotpDriftWindow.of(1, 1), evaluationInstant, Optional.empty()));
 
-    assertEquals(TelemetryStatus.SUCCESS, result.telemetry().status());
-    assertTrue(result.match());
-    assertTrue(result.credentialReference());
-    assertEquals(CREDENTIAL_ID, result.credentialId());
-    assertEquals(ALGORITHM, result.algorithm());
-    assertEquals(6, result.digits());
-    assertEquals(STEP, result.stepDuration());
-    assertEquals(TotpDriftWindow.of(1, 1), result.driftWindow());
-    assertEquals(0, result.matchedSkewSteps());
+        assertEquals(TelemetryStatus.SUCCESS, result.telemetry().status());
+        assertTrue(result.match());
+        assertTrue(result.credentialReference());
+        assertEquals(CREDENTIAL_ID, result.credentialId());
+        assertEquals(ALGORITHM, result.algorithm());
+        assertEquals(6, result.digits());
+        assertEquals(STEP, result.stepDuration());
+        assertEquals(TotpDriftWindow.of(1, 1), result.driftWindow());
+        assertEquals(0, result.matchedSkewSteps());
 
-    var frame =
-        result
-            .telemetry()
-            .emit(
-                TelemetryContracts.totpReplayAdapter(), TelemetryContractTestSupport.telemetryId());
-    TelemetryContractTestSupport.assertTotpReplaySuccessFrame(frame, "stored", 0);
-  }
+        var frame = result.telemetry()
+                .emit(TelemetryContracts.totpReplayAdapter(), TelemetryContractTestSupport.telemetryId());
+        TelemetryContractTestSupport.assertTotpReplaySuccessFrame(frame, "stored", 0);
+    }
 
-  @Test
-  void inlineReplayRejectsOtpOutsideDriftWindow() {
-    SecretMaterial inlineSecret =
-        SecretMaterial.fromHex("3132333435363738393031323334353637383930313233343536373839303132");
-    TotpDescriptor descriptor =
-        TotpDescriptor.create(
-            "inline",
-            inlineSecret,
-            TotpHashAlgorithm.SHA512,
-            8,
-            Duration.ofSeconds(60),
-            TotpDriftWindow.of(0, 0));
-    Instant issuedAt = Instant.ofEpochSecond(1_700_000_120L);
-    String otp = TotpGenerator.generate(descriptor, issuedAt);
+    @Test
+    void inlineReplayRejectsOtpOutsideDriftWindow() {
+        SecretMaterial inlineSecret =
+                SecretMaterial.fromHex("3132333435363738393031323334353637383930313233343536373839303132");
+        TotpDescriptor descriptor = TotpDescriptor.create(
+                "inline", inlineSecret, TotpHashAlgorithm.SHA512, 8, Duration.ofSeconds(60), TotpDriftWindow.of(0, 0));
+        Instant issuedAt = Instant.ofEpochSecond(1_700_000_120L);
+        String otp = TotpGenerator.generate(descriptor, issuedAt);
 
-    ReplayResult result =
-        service.replay(
-            new ReplayCommand.Inline(
+        ReplayResult result = service.replay(new ReplayCommand.Inline(
                 inlineSecret.asHex(),
                 TotpHashAlgorithm.SHA512,
                 8,
@@ -117,48 +102,45 @@ final class TotpReplayApplicationServiceTest {
                 Instant.ofEpochSecond(issuedAt.getEpochSecond() + 180),
                 Optional.of(issuedAt.minusSeconds(120))));
 
-    assertEquals(TelemetryStatus.INVALID, result.telemetry().status());
-    assertFalse(result.match());
-    assertFalse(result.credentialReference());
-    assertEquals(Integer.MIN_VALUE, result.matchedSkewSteps());
+        assertEquals(TelemetryStatus.INVALID, result.telemetry().status());
+        assertFalse(result.match());
+        assertFalse(result.credentialReference());
+        assertEquals(Integer.MIN_VALUE, result.matchedSkewSteps());
 
-    var frame =
-        result
-            .telemetry()
-            .emit(
-                TelemetryContracts.totpReplayAdapter(), TelemetryContractTestSupport.telemetryId());
-    TelemetryContractTestSupport.assertTotpReplayValidationFrame(frame, "inline");
-  }
-
-  private static final class InMemoryCredentialStore implements CredentialStore {
-    private final Map<String, Credential> store = new ConcurrentHashMap<>();
-    private final List<Credential> history = Collections.synchronizedList(new ArrayList<>());
-
-    @Override
-    public void save(Credential credential) {
-      store.put(credential.name(), credential);
-      history.add(credential);
+        var frame = result.telemetry()
+                .emit(TelemetryContracts.totpReplayAdapter(), TelemetryContractTestSupport.telemetryId());
+        TelemetryContractTestSupport.assertTotpReplayValidationFrame(frame, "inline");
     }
 
-    @Override
-    public Optional<Credential> findByName(String name) {
-      return Optional.ofNullable(store.get(name));
-    }
+    private static final class InMemoryCredentialStore implements CredentialStore {
+        private final Map<String, Credential> store = new ConcurrentHashMap<>();
+        private final List<Credential> history = Collections.synchronizedList(new ArrayList<>());
 
-    @Override
-    public List<Credential> findAll() {
-      return new ArrayList<>(store.values());
-    }
+        @Override
+        public void save(Credential credential) {
+            store.put(credential.name(), credential);
+            history.add(credential);
+        }
 
-    @Override
-    public boolean delete(String name) {
-      return store.remove(name) != null;
-    }
+        @Override
+        public Optional<Credential> findByName(String name) {
+            return Optional.ofNullable(store.get(name));
+        }
 
-    @Override
-    public void close() {
-      store.clear();
-      history.clear();
+        @Override
+        public List<Credential> findAll() {
+            return new ArrayList<>(store.values());
+        }
+
+        @Override
+        public boolean delete(String name) {
+            return store.remove(name) != null;
+        }
+
+        @Override
+        public void close() {
+            store.clear();
+            history.clear();
+        }
     }
-  }
 }

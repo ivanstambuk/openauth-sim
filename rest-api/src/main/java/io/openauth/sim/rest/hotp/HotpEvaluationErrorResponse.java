@@ -9,12 +9,11 @@ import java.util.Map;
 /** Error payload placeholder for HOTP evaluation endpoints. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpEvaluationErrorResponse(
-    @JsonProperty("error") String error,
-    @JsonProperty("message") String message,
-    @JsonProperty("details") Map<String, String> details) {
+        @JsonProperty("error") String error,
+        @JsonProperty("message") String message,
+        @JsonProperty("details") Map<String, String> details) {
 
-  HotpEvaluationErrorResponse {
-    details =
-        details == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(details));
-  }
+    HotpEvaluationErrorResponse {
+        details = details == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(details));
+    }
 }

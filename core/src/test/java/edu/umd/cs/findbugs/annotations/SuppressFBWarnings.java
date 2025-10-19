@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD})
 public @interface SuppressFBWarnings {
 
-  String[] value() default {};
+    String[] value() default {};
 
-  String justification() default "";
+    String justification() default "";
 }

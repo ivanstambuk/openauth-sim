@@ -18,96 +18,96 @@ import org.springframework.beans.factory.ObjectProvider;
 
 final class OcraApplicationConfigurationTest {
 
-  private final OcraApplicationConfiguration configuration = new OcraApplicationConfiguration();
+    private final OcraApplicationConfiguration configuration = new OcraApplicationConfiguration();
 
-  @Test
-  @DisplayName("Evaluation application service falls back to empty resolver when store missing")
-  void evaluationServiceWithoutStore() {
-    ObjectProvider<Clock> clockProvider = providerOf(Clock.systemUTC());
-    ObjectProvider<CredentialStore> storeProvider = providerOf(null);
+    @Test
+    @DisplayName("Evaluation application service falls back to empty resolver when store missing")
+    void evaluationServiceWithoutStore() {
+        ObjectProvider<Clock> clockProvider = providerOf(Clock.systemUTC());
+        ObjectProvider<CredentialStore> storeProvider = providerOf(null);
 
-    OcraEvaluationApplicationService service =
-        configuration.ocraEvaluationApplicationService(clockProvider, storeProvider);
+        OcraEvaluationApplicationService service =
+                configuration.ocraEvaluationApplicationService(clockProvider, storeProvider);
 
-    assertNotNull(service);
-  }
+        assertNotNull(service);
+    }
 
-  @Test
-  @DisplayName("Evaluation application service uses provided credential store")
-  void evaluationServiceWithStore() {
-    ObjectProvider<Clock> clockProvider = providerOf(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
-    CredentialStore store = new InMemoryStore();
-    ObjectProvider<CredentialStore> storeProvider = providerOf(store);
+    @Test
+    @DisplayName("Evaluation application service uses provided credential store")
+    void evaluationServiceWithStore() {
+        ObjectProvider<Clock> clockProvider = providerOf(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+        CredentialStore store = new InMemoryStore();
+        ObjectProvider<CredentialStore> storeProvider = providerOf(store);
 
-    OcraEvaluationApplicationService service =
-        configuration.ocraEvaluationApplicationService(clockProvider, storeProvider);
+        OcraEvaluationApplicationService service =
+                configuration.ocraEvaluationApplicationService(clockProvider, storeProvider);
 
-    assertNotNull(service);
-  }
+        assertNotNull(service);
+    }
 
-  @Test
-  @DisplayName("Verification application service accepts optional store")
-  void verificationServiceWithAndWithoutStore() {
-    OcraVerificationApplicationService withoutStore =
-        configuration.ocraVerificationApplicationService(providerOf(null));
-    assertNotNull(withoutStore);
+    @Test
+    @DisplayName("Verification application service accepts optional store")
+    void verificationServiceWithAndWithoutStore() {
+        OcraVerificationApplicationService withoutStore =
+                configuration.ocraVerificationApplicationService(providerOf(null));
+        assertNotNull(withoutStore);
 
-    OcraVerificationApplicationService withStore =
-        configuration.ocraVerificationApplicationService(providerOf(new InMemoryStore()));
-    assertNotNull(withStore);
-  }
+        OcraVerificationApplicationService withStore =
+                configuration.ocraVerificationApplicationService(providerOf(new InMemoryStore()));
+        assertNotNull(withStore);
+    }
 
-  private static <T> ObjectProvider<T> providerOf(T value) {
-    return new ObjectProvider<>() {
-      @Override
-      public T getObject(Object... args) {
-        throw new UnsupportedOperationException("Not required for test");
-      }
+    private static <T> ObjectProvider<T> providerOf(T value) {
+        return new ObjectProvider<>() {
+            @Override
+            public T getObject(Object... args) {
+                throw new UnsupportedOperationException("Not required for test");
+            }
 
-      @Override
-      public T getIfAvailable() {
-        return value;
-      }
+            @Override
+            public T getIfAvailable() {
+                return value;
+            }
 
-      @Override
-      public T getIfUnique() {
-        return value;
-      }
+            @Override
+            public T getIfUnique() {
+                return value;
+            }
 
-      @Override
-      public T getObject() {
-        if (value == null) {
-          throw new IllegalStateException("No instance available");
+            @Override
+            public T getObject() {
+                if (value == null) {
+                    throw new IllegalStateException("No instance available");
+                }
+                return value;
+            }
+        };
+    }
+
+    private static final class InMemoryStore implements CredentialStore {
+        @Override
+        public void save(Credential credential) {
+            // No-op for test stub
         }
-        return value;
-      }
-    };
-  }
 
-  private static final class InMemoryStore implements CredentialStore {
-    @Override
-    public void save(Credential credential) {
-      // No-op for test stub
-    }
+        @Override
+        public Optional<Credential> findByName(String name) {
+            return Optional.empty();
+        }
 
-    @Override
-    public Optional<Credential> findByName(String name) {
-      return Optional.empty();
-    }
+        @Override
+        public List<Credential> findAll() {
+            return Collections.emptyList();
+        }
 
-    @Override
-    public List<Credential> findAll() {
-      return Collections.emptyList();
-    }
+        @Override
+        public boolean delete(String name) {
+            return false;
+        }
 
-    @Override
-    public boolean delete(String name) {
-      return false;
+        @Override
+        public void close() {
+            // No-op for test stub
+        }
     }
-
-    @Override
-    public void close() {
-      // No-op for test stub
-    }
-  }
 }

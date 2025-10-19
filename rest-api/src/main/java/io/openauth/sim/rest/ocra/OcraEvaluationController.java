@@ -21,37 +21,36 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/ocra")
 class OcraEvaluationController {
 
-  private final OcraEvaluationService service;
+    private final OcraEvaluationService service;
 
-  OcraEvaluationController(OcraEvaluationService service) {
-    this.service = Objects.requireNonNull(service, "service");
-  }
+    OcraEvaluationController(OcraEvaluationService service) {
+        this.service = Objects.requireNonNull(service, "service");
+    }
 
-  @Operation(
-      summary = "Evaluate an OCRA request",
-      description = "Computes an OCRA OTP for the supplied suite and runtime parameters.")
-  @ApiResponses(
-      value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "Evaluation successful",
-            content =
-                @Content(
-                    mediaType = "application/json",
-                    schema = @Schema(implementation = OcraEvaluationResponse.class))),
-        @ApiResponse(
-            responseCode = "400",
-            description = "Invalid request payload",
-            content =
-                @Content(
-                    mediaType = "application/json",
-                    schema = @Schema(implementation = OcraEvaluationErrorResponse.class),
-                    examples =
-                        @ExampleObject(
-                            name = "Missing session payload",
-                            summary = "Validation failure with reason code",
-                            value =
-                                """
+    @Operation(
+            summary = "Evaluate an OCRA request",
+            description = "Computes an OCRA OTP for the supplied suite and runtime parameters.")
+    @ApiResponses(
+            value = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Evaluation successful",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = OcraEvaluationResponse.class))),
+                @ApiResponse(
+                        responseCode = "400",
+                        description = "Invalid request payload",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = OcraEvaluationErrorResponse.class),
+                                        examples =
+                                                @ExampleObject(
+                                                        name = "Missing session payload",
+                                                        summary = "Validation failure with reason code",
+                                                        value = """
                                 {
                                   "error": "invalid_input",
                                   "message": "sessionHex is required for the requested suite",
@@ -65,45 +64,43 @@ class OcraEvaluationController {
                                   }
                                 }
                                 """))),
-        @ApiResponse(
-            responseCode = "500",
-            description = "Unexpected server error",
-            content =
-                @Content(
-                    mediaType = "application/json",
-                    schema = @Schema(implementation = OcraEvaluationErrorResponse.class)))
-      })
-  @PostMapping(path = "/evaluate")
-  ResponseEntity<OcraEvaluationResponse> evaluate(@RequestBody OcraEvaluationRequest request) {
-    OcraEvaluationResponse response = service.evaluate(request);
-    return ResponseEntity.ok(response);
-  }
-
-  @ExceptionHandler(OcraEvaluationValidationException.class)
-  ResponseEntity<OcraEvaluationErrorResponse> handleValidationError(
-      OcraEvaluationValidationException exception) {
-    Map<String, String> details = new LinkedHashMap<>();
-    details.put("telemetryId", exception.telemetryId());
-    details.put("status", "invalid");
-    details.put("suite", exception.suite());
-    if (exception.field() != null) {
-      details.put("field", exception.field());
+                @ApiResponse(
+                        responseCode = "500",
+                        description = "Unexpected server error",
+                        content =
+                                @Content(
+                                        mediaType = "application/json",
+                                        schema = @Schema(implementation = OcraEvaluationErrorResponse.class)))
+            })
+    @PostMapping(path = "/evaluate")
+    ResponseEntity<OcraEvaluationResponse> evaluate(@RequestBody OcraEvaluationRequest request) {
+        OcraEvaluationResponse response = service.evaluate(request);
+        return ResponseEntity.ok(response);
     }
-    if (exception.reasonCode() != null) {
-      details.put("reasonCode", exception.reasonCode());
+
+    @ExceptionHandler(OcraEvaluationValidationException.class)
+    ResponseEntity<OcraEvaluationErrorResponse> handleValidationError(OcraEvaluationValidationException exception) {
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("telemetryId", exception.telemetryId());
+        details.put("status", "invalid");
+        details.put("suite", exception.suite());
+        if (exception.field() != null) {
+            details.put("field", exception.field());
+        }
+        if (exception.reasonCode() != null) {
+            details.put("reasonCode", exception.reasonCode());
+        }
+        details.put("sanitized", Boolean.toString(exception.sanitized()));
+
+        OcraEvaluationErrorResponse body =
+                new OcraEvaluationErrorResponse("invalid_input", exception.getMessage(), details);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
-    details.put("sanitized", Boolean.toString(exception.sanitized()));
 
-    OcraEvaluationErrorResponse body =
-        new OcraEvaluationErrorResponse("invalid_input", exception.getMessage(), details);
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
-  }
-
-  @ExceptionHandler(RuntimeException.class)
-  ResponseEntity<OcraEvaluationErrorResponse> handleUnexpected(RuntimeException exception) {
-    OcraEvaluationErrorResponse body =
-        new OcraEvaluationErrorResponse(
-            "internal_error", "OCRA evaluation failed", Map.of("status", "error"));
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
-  }
+    @ExceptionHandler(RuntimeException.class)
+    ResponseEntity<OcraEvaluationErrorResponse> handleUnexpected(RuntimeException exception) {
+        OcraEvaluationErrorResponse body =
+                new OcraEvaluationErrorResponse("internal_error", "OCRA evaluation failed", Map.of("status", "error"));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+    }
 }

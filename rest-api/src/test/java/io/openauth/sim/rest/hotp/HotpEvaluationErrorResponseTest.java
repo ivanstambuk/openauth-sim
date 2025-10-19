@@ -10,22 +10,22 @@ import org.junit.jupiter.api.Test;
 
 final class HotpEvaluationErrorResponseTest {
 
-  @Test
-  @DisplayName("Details default to empty map when null provided")
-  void detailsDefaultToEmptyMap() {
-    HotpEvaluationErrorResponse response =
-        new HotpEvaluationErrorResponse("invalid", "message", null);
+    @Test
+    @DisplayName("Details default to empty map when null provided")
+    void detailsDefaultToEmptyMap() {
+        HotpEvaluationErrorResponse response = new HotpEvaluationErrorResponse("invalid", "message", null);
 
-    assertTrue(response.details().isEmpty());
-  }
+        assertTrue(response.details().isEmpty());
+    }
 
-  @Test
-  @DisplayName("Details map is defensively copied and unmodifiable")
-  void detailsAreUnmodifiable() {
-    HotpEvaluationErrorResponse response =
-        new HotpEvaluationErrorResponse("invalid", "message", Map.of("field", "otp"));
+    @Test
+    @DisplayName("Details map is defensively copied and unmodifiable")
+    void detailsAreUnmodifiable() {
+        HotpEvaluationErrorResponse response =
+                new HotpEvaluationErrorResponse("invalid", "message", Map.of("field", "otp"));
 
-    assertEquals("otp", response.details().get("field"));
-    assertThrows(UnsupportedOperationException.class, () -> response.details().put("x", "y"));
-  }
+        assertEquals("otp", response.details().get("field"));
+        assertThrows(
+                UnsupportedOperationException.class, () -> response.details().put("x", "y"));
+    }
 }

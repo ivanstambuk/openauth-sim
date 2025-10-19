@@ -6,10 +6,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /** REST payload returned by HOTP evaluation endpoints. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpEvaluationResponse(
-    @JsonProperty("status") String status,
-    @JsonProperty("reasonCode") String reasonCode,
-    @JsonProperty("otp") String otp,
-    @JsonProperty("metadata") HotpEvaluationMetadata metadata) {
+        @JsonProperty("status") String status,
+        @JsonProperty("reasonCode") String reasonCode,
+        @JsonProperty("otp") String otp,
+        @JsonProperty("metadata") HotpEvaluationMetadata metadata) {
 
-  // Canonical record; no additional behaviour.
+    // Canonical record; no additional behaviour.
 }

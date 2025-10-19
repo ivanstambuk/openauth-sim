@@ -9,12 +9,12 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
  */
 public interface VersionedCredentialRecordMigration {
 
-  /**
-   * @return {@code true} when this migration handles the supplied credential type and schema
-   *     version.
-   */
-  boolean supports(CredentialType type, int fromVersion);
+    /**
+     * @return {@code true} when this migration handles the supplied credential type and schema
+     *     version.
+     */
+    boolean supports(CredentialType type, int fromVersion);
 
-  /** Perform the upgrade, returning a record with a greater schema version. */
-  VersionedCredentialRecord upgrade(VersionedCredentialRecord record);
+    /** Perform the upgrade, returning a record with a greater schema version. */
+    VersionedCredentialRecord upgrade(VersionedCredentialRecord record);
 }

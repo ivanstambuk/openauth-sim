@@ -65,7 +65,7 @@ spotless {
     }
     java {
         target("**/src/**/*.java")
-        googleJavaFormat(libsCatalog.version("googleJavaFormat"))
+        palantirJavaFormat(libsCatalog.version("palantirJavaFormat"))
         trimTrailingWhitespace()
         leadingTabsToSpaces()
         endWithNewline()
@@ -157,7 +157,7 @@ subprojects {
             "org.apache.httpcomponents:httpcore:4.4.16",
             "org.slf4j:slf4j-api:2.0.13",
             "commons-codec:commons-codec:1.19.0",
-            "com.google.googlejavaformat:google-java-format:${libsCatalog.version("googleJavaFormat")}",
+            "com.palantir.javaformat:palantir-java-format:${libsCatalog.version("palantirJavaFormat")}",
             "com.github.ben-manes.caffeine:caffeine:${libsCatalog.version("caffeine")}",
             "org.junit.jupiter:junit-jupiter:$junitVersion",
             "org.junit.jupiter:junit-jupiter-api:$junitVersion",

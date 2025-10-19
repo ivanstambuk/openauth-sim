@@ -5,7 +5,7 @@ set -euo pipefail
 # Pre-commit quality gate for OpenAuth Simulator
 #   1. Collect staged files and verify prerequisites
 #   2. Guard against oversized/binary artefacts
-#   3. Run Gradle formatting + targeted tests + check (sans full test suite)
+#   3. Run Gradle formatting (Palantir Java Format 2.78.0) + targeted tests + check (sans full test suite)
 #   4. Execute secret scanning (gitleaks)
 # -----------------------------------------------------------------------------
 
@@ -147,7 +147,7 @@ run_gradle_pipeline() {
   clear_configuration_cache
   run_gradle_with_retry "Warming Gradle configuration cache" help --configuration-cache
 
-  run_gradle_with_retry "Running Gradle spotlessApply" spotlessApply
+  run_gradle_with_retry "Running Gradle spotlessApply (Palantir Java Format 2.78.0)" spotlessApply
 
   declare -gA TEST_TASKS=()
   for file in "${STAGED_FILES[@]}"; do

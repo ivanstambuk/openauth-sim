@@ -13,41 +13,38 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 class HotpApplicationConfiguration {
 
-  @Bean
-  HotpEvaluationApplicationService hotpEvaluationApplicationService(
-      ObjectProvider<CredentialStore> storeProvider) {
-    CredentialStore store = Optional.ofNullable(storeProvider.getIfAvailable()).orElse(null);
-    if (store == null) {
-      throw new IllegalStateException(
-          "CredentialStore bean is required for HOTP evaluation to operate");
+    @Bean
+    HotpEvaluationApplicationService hotpEvaluationApplicationService(ObjectProvider<CredentialStore> storeProvider) {
+        CredentialStore store =
+                Optional.ofNullable(storeProvider.getIfAvailable()).orElse(null);
+        if (store == null) {
+            throw new IllegalStateException("CredentialStore bean is required for HOTP evaluation to operate");
+        }
+        return new HotpEvaluationApplicationService(store);
     }
-    return new HotpEvaluationApplicationService(store);
-  }
 
-  @Bean
-  HotpReplayApplicationService hotpReplayApplicationService(
-      ObjectProvider<CredentialStore> storeProvider) {
-    CredentialStore store = Optional.ofNullable(storeProvider.getIfAvailable()).orElse(null);
-    if (store == null) {
-      throw new IllegalStateException(
-          "CredentialStore bean is required for HOTP replay to operate");
+    @Bean
+    HotpReplayApplicationService hotpReplayApplicationService(ObjectProvider<CredentialStore> storeProvider) {
+        CredentialStore store =
+                Optional.ofNullable(storeProvider.getIfAvailable()).orElse(null);
+        if (store == null) {
+            throw new IllegalStateException("CredentialStore bean is required for HOTP replay to operate");
+        }
+        return new HotpReplayApplicationService(store);
     }
-    return new HotpReplayApplicationService(store);
-  }
 
-  @Bean
-  HotpSampleApplicationService hotpSampleApplicationService(
-      ObjectProvider<CredentialStore> storeProvider) {
-    CredentialStore store = Optional.ofNullable(storeProvider.getIfAvailable()).orElse(null);
-    if (store == null) {
-      throw new IllegalStateException(
-          "CredentialStore bean is required for HOTP sample generation to operate");
+    @Bean
+    HotpSampleApplicationService hotpSampleApplicationService(ObjectProvider<CredentialStore> storeProvider) {
+        CredentialStore store =
+                Optional.ofNullable(storeProvider.getIfAvailable()).orElse(null);
+        if (store == null) {
+            throw new IllegalStateException("CredentialStore bean is required for HOTP sample generation to operate");
+        }
+        return new HotpSampleApplicationService(store);
     }
-    return new HotpSampleApplicationService(store);
-  }
 
-  @Bean
-  HotpSeedApplicationService hotpSeedApplicationService() {
-    return new HotpSeedApplicationService();
-  }
+    @Bean
+    HotpSeedApplicationService hotpSeedApplicationService() {
+        return new HotpSeedApplicationService();
+    }
 }

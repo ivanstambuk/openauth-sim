@@ -35,6 +35,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 ## During Implementation
 - **Sync context to disk.** Update the roadmap (`docs/4-architecture/roadmap.md`), feature specs, feature plans, and tasks documents as progress is made. Use ADRs only for final decisions.
 - **Tests are compulsory.** Always run `./gradlew spotlessApply check`. If a test remains red, disable it with a TODO, note the reason, and capture the follow-up in the relevant plan. Commit messages must satisfy the repository `.gitlint` conventional-commit rules.
+- **Formatter policy.** Spotless now uses Palantir Java Format 2.78.0 with a 120-character wrap; configure IDE formatters to match before pushing code changes.
 - **Maintain the knowledge map.** Add, adjust, or prune entries in `docs/4-architecture/knowledge-map.md` whenever new modules, dependencies, or contracts appear.
 - **Straight-line increments.** Keep each increment's control flow flat by delegating validation/normalisation into tiny pure helpers that return simple enums or result records, then compose them instead of introducing inline branching that inflates the branch count per change.
 - **RCI self-review.** Before hand-off, review your own changes, rerun checks, and ensure documentation/test coverage matches the behaviour.

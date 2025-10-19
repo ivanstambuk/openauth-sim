@@ -7,13 +7,13 @@ import java.util.Map;
 /** Request payload for HOTP replay operations (stored or inline). */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpReplayRequest(
-    @JsonProperty("credentialId") String credentialId,
-    @JsonProperty("sharedSecretHex") String sharedSecretHex,
-    @JsonProperty("algorithm") String algorithm,
-    @JsonProperty("digits") Integer digits,
-    @JsonProperty("counter") Long counter,
-    @JsonProperty("otp") String otp,
-    @JsonProperty("metadata") Map<String, String> metadata) {
+        @JsonProperty("credentialId") String credentialId,
+        @JsonProperty("sharedSecretHex") String sharedSecretHex,
+        @JsonProperty("algorithm") String algorithm,
+        @JsonProperty("digits") Integer digits,
+        @JsonProperty("counter") Long counter,
+        @JsonProperty("otp") String otp,
+        @JsonProperty("metadata") Map<String, String> metadata) {
 
-  // Canonical record; controller/service validate invariants.
+    // Canonical record; controller/service validate invariants.
 }

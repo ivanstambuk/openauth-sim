@@ -24,286 +24,260 @@ import org.springframework.stereotype.Service;
 @Service
 class HotpEvaluationService {
 
-  private static final Logger TELEMETRY_LOGGER =
-      Logger.getLogger("io.openauth.sim.rest.hotp.telemetry");
+    private static final Logger TELEMETRY_LOGGER = Logger.getLogger("io.openauth.sim.rest.hotp.telemetry");
 
-  static {
-    TELEMETRY_LOGGER.setLevel(Level.ALL);
-  }
-
-  private final HotpEvaluationApplicationService applicationService;
-  private final HotpTelemetryAdapter telemetryAdapter = TelemetryContracts.hotpEvaluationAdapter();
-
-  HotpEvaluationService(HotpEvaluationApplicationService applicationService) {
-    this.applicationService = Objects.requireNonNull(applicationService, "applicationService");
-  }
-
-  HotpEvaluationResponse evaluateStored(HotpStoredEvaluationRequest request) {
-    Objects.requireNonNull(request, "request");
-    String telemetryId = nextTelemetryId();
-
-    String credentialId =
-        requireText(request.credentialId(), "credentialId", telemetryId, Mode.STORED, null);
-    EvaluationCommand command = new EvaluationCommand.Stored(credentialId);
-    return handleResult(
-        command, Mode.STORED, telemetryId, credentialId, Map.of("credentialId", credentialId));
-  }
-
-  HotpEvaluationResponse evaluateInline(HotpInlineEvaluationRequest request) {
-    Objects.requireNonNull(request, "request");
-    String telemetryId = nextTelemetryId();
-
-    String secretHex =
-        requireText(
-            request.sharedSecretHex(),
-            "sharedSecretHex",
-            telemetryId,
-            Mode.INLINE,
-            Map.of("field", "sharedSecretHex"));
-    HotpHashAlgorithm algorithm = parseAlgorithm(request.algorithm(), telemetryId);
-    int digits = requireDigits(request.digits(), telemetryId);
-    long counter = requireCounter(request.counter(), telemetryId);
-    Map<String, String> metadata =
-        request.metadata() == null ? Map.of() : Map.copyOf(request.metadata());
-
-    EvaluationCommand command =
-        new EvaluationCommand.Inline(secretHex, algorithm, digits, counter, metadata);
-    return handleResult(command, Mode.INLINE, telemetryId, null, Map.of());
-  }
-
-  private HotpEvaluationResponse handleResult(
-      EvaluationCommand command,
-      Mode mode,
-      String telemetryId,
-      String identifier,
-      Map<String, String> contextDetails) {
-
-    EvaluationResult result = applicationService.evaluate(command);
-    TelemetrySignal signal = result.telemetry();
-
-    TelemetryFrame frame = signal.emit(telemetryAdapter, telemetryId);
-    logTelemetry(levelFor(signal.status()), frame);
-
-    HotpEvaluationMetadata metadata =
-        new HotpEvaluationMetadata(
-            mode.source,
-            result.credentialId(),
-            result.credentialReference(),
-            result.algorithm() != null ? result.algorithm().name() : null,
-            result.digits(),
-            result.previousCounter(),
-            result.nextCounter(),
-            result.samplePresetKey(),
-            result.samplePresetLabel(),
-            telemetryId);
-
-    return switch (signal.status()) {
-      case SUCCESS ->
-          new HotpEvaluationResponse("generated", signal.reasonCode(), result.otp(), metadata);
-      case INVALID ->
-          handleInvalid(
-              signal, metadata, telemetryId, mode, identifier, frame.fields(), contextDetails);
-      case ERROR -> throw unexpectedError(signal, telemetryId, mode, frame.fields());
-    };
-  }
-
-  private HotpEvaluationResponse handleInvalid(
-      TelemetrySignal signal,
-      HotpEvaluationMetadata metadata,
-      String telemetryId,
-      Mode mode,
-      String identifier,
-      Map<String, Object> fields,
-      Map<String, String> contextDetails) {
-
-    Map<String, String> details =
-        sanitizedDetails(fields, contextDetails, signal.sanitized(), telemetryId, mode.source);
-
-    throw new HotpEvaluationValidationException(
-        telemetryId,
-        mode.source,
-        identifier,
-        signal.reasonCode(),
-        signal.sanitized(),
-        details,
-        safeMessage(signal.reason()));
-  }
-
-  private RuntimeException unexpectedError(
-      TelemetrySignal signal, String telemetryId, Mode mode, Map<String, Object> fields) {
-    Map<String, String> details =
-        sanitizedDetails(fields, Map.of(), false, telemetryId, mode.source);
-    return new HotpEvaluationUnexpectedException(
-        telemetryId, mode.source, safeMessage(signal.reason()), details);
-  }
-
-  private Map<String, String> sanitizedDetails(
-      Map<String, Object> telemetryFields,
-      Map<String, String> base,
-      boolean sanitized,
-      String telemetryId,
-      String source) {
-
-    Map<String, String> details = new LinkedHashMap<>();
-    details.put("telemetryId", telemetryId);
-    details.put("credentialSource", source);
-    details.put("sanitized", Boolean.toString(sanitized));
-    base.forEach((key, value) -> details.putIfAbsent(key, value));
-
-    if (sanitized && telemetryFields != null) {
-      telemetryFields.forEach(
-          (key, value) -> {
-            if (value != null) {
-              details.putIfAbsent(key, String.valueOf(value));
-            }
-          });
+    static {
+        TELEMETRY_LOGGER.setLevel(Level.ALL);
     }
-    return details;
-  }
 
-  private Level levelFor(TelemetryStatus status) {
-    return switch (status) {
-      case SUCCESS -> Level.INFO;
-      case INVALID -> Level.WARNING;
-      case ERROR -> Level.SEVERE;
-    };
-  }
+    private final HotpEvaluationApplicationService applicationService;
+    private final HotpTelemetryAdapter telemetryAdapter = TelemetryContracts.hotpEvaluationAdapter();
 
-  private String requireText(
-      String value,
-      String field,
-      String telemetryId,
-      Mode mode,
-      Map<String, String> additionalDetails) {
-    if (value == null || value.trim().isEmpty()) {
-      Map<String, String> details =
-          additionalDetails == null
-              ? Map.of("field", field)
-              : mergeDetails(additionalDetails, field);
-      throw validationFailure(
-          telemetryId,
-          mode,
-          details.getOrDefault("credentialId", details.get("identifier")),
-          field + " is required",
-          field + "_required",
-          details);
+    HotpEvaluationService(HotpEvaluationApplicationService applicationService) {
+        this.applicationService = Objects.requireNonNull(applicationService, "applicationService");
     }
-    return value.trim();
-  }
 
-  private int requireDigits(Integer digits, String telemetryId) {
-    if (digits == null) {
-      throw validationFailure(
-          telemetryId,
-          Mode.INLINE,
-          null,
-          "digits is required",
-          "digits_required",
-          Map.of("field", "digits"));
+    HotpEvaluationResponse evaluateStored(HotpStoredEvaluationRequest request) {
+        Objects.requireNonNull(request, "request");
+        String telemetryId = nextTelemetryId();
+
+        String credentialId = requireText(request.credentialId(), "credentialId", telemetryId, Mode.STORED, null);
+        EvaluationCommand command = new EvaluationCommand.Stored(credentialId);
+        return handleResult(command, Mode.STORED, telemetryId, credentialId, Map.of("credentialId", credentialId));
     }
-    return digits;
-  }
 
-  private long requireCounter(Long counter, String telemetryId) {
-    if (counter == null) {
-      throw validationFailure(
-          telemetryId,
-          Mode.INLINE,
-          null,
-          "counter is required",
-          "counter_required",
-          Map.of("field", "counter"));
+    HotpEvaluationResponse evaluateInline(HotpInlineEvaluationRequest request) {
+        Objects.requireNonNull(request, "request");
+        String telemetryId = nextTelemetryId();
+
+        String secretHex = requireText(
+                request.sharedSecretHex(),
+                "sharedSecretHex",
+                telemetryId,
+                Mode.INLINE,
+                Map.of("field", "sharedSecretHex"));
+        HotpHashAlgorithm algorithm = parseAlgorithm(request.algorithm(), telemetryId);
+        int digits = requireDigits(request.digits(), telemetryId);
+        long counter = requireCounter(request.counter(), telemetryId);
+        Map<String, String> metadata = request.metadata() == null ? Map.of() : Map.copyOf(request.metadata());
+
+        EvaluationCommand command = new EvaluationCommand.Inline(secretHex, algorithm, digits, counter, metadata);
+        return handleResult(command, Mode.INLINE, telemetryId, null, Map.of());
     }
-    return counter;
-  }
 
-  private HotpHashAlgorithm parseAlgorithm(String algorithm, String telemetryId) {
-    String normalized =
-        requireText(algorithm, "algorithm", telemetryId, Mode.INLINE, Map.of("field", "algorithm"))
-            .toUpperCase(Locale.ROOT);
-    try {
-      return HotpHashAlgorithm.valueOf(normalized);
-    } catch (IllegalArgumentException ex) {
-      throw validationFailure(
-          telemetryId,
-          Mode.INLINE,
-          null,
-          "Unsupported HOTP algorithm: " + normalized,
-          "algorithm_invalid",
-          Map.of("field", "algorithm"));
+    private HotpEvaluationResponse handleResult(
+            EvaluationCommand command,
+            Mode mode,
+            String telemetryId,
+            String identifier,
+            Map<String, String> contextDetails) {
+
+        EvaluationResult result = applicationService.evaluate(command);
+        TelemetrySignal signal = result.telemetry();
+
+        TelemetryFrame frame = signal.emit(telemetryAdapter, telemetryId);
+        logTelemetry(levelFor(signal.status()), frame);
+
+        HotpEvaluationMetadata metadata = new HotpEvaluationMetadata(
+                mode.source,
+                result.credentialId(),
+                result.credentialReference(),
+                result.algorithm() != null ? result.algorithm().name() : null,
+                result.digits(),
+                result.previousCounter(),
+                result.nextCounter(),
+                result.samplePresetKey(),
+                result.samplePresetLabel(),
+                telemetryId);
+
+        return switch (signal.status()) {
+            case SUCCESS -> new HotpEvaluationResponse("generated", signal.reasonCode(), result.otp(), metadata);
+            case INVALID ->
+                handleInvalid(signal, metadata, telemetryId, mode, identifier, frame.fields(), contextDetails);
+            case ERROR -> throw unexpectedError(signal, telemetryId, mode, frame.fields());
+        };
     }
-  }
 
-  private HotpEvaluationValidationException validationFailure(
-      String telemetryId,
-      Mode mode,
-      String credentialReference,
-      String message,
-      String reasonCode,
-      Map<String, String> baseDetails) {
+    private HotpEvaluationResponse handleInvalid(
+            TelemetrySignal signal,
+            HotpEvaluationMetadata metadata,
+            String telemetryId,
+            Mode mode,
+            String identifier,
+            Map<String, Object> fields,
+            Map<String, String> contextDetails) {
 
-    Map<String, Object> telemetryFields = new LinkedHashMap<>();
-    telemetryFields.put("credentialSource", mode.source);
-    if (credentialReference != null && !credentialReference.isBlank()) {
-      telemetryFields.put(mode == Mode.STORED ? "credentialId" : "identifier", credentialReference);
+        Map<String, String> details =
+                sanitizedDetails(fields, contextDetails, signal.sanitized(), telemetryId, mode.source);
+
+        throw new HotpEvaluationValidationException(
+                telemetryId,
+                mode.source,
+                identifier,
+                signal.reasonCode(),
+                signal.sanitized(),
+                details,
+                safeMessage(signal.reason()));
     }
-    baseDetails.forEach(telemetryFields::putIfAbsent);
 
-    TelemetryFrame frame =
-        telemetryAdapter.validationFailure(telemetryId, reasonCode, message, true, telemetryFields);
-    logTelemetry(Level.WARNING, frame);
-
-    Map<String, String> details =
-        sanitizedDetails(telemetryFields, baseDetails, true, telemetryId, mode.source);
-
-    return new HotpEvaluationValidationException(
-        telemetryId, mode.source, credentialReference, reasonCode, true, details, message);
-  }
-
-  private static Map<String, String> mergeDetails(Map<String, String> original, String field) {
-    Map<String, String> merged = new LinkedHashMap<>(original);
-    merged.put("field", field);
-    return merged;
-  }
-
-  private static String safeMessage(String message) {
-    if (message == null) {
-      return "";
+    private RuntimeException unexpectedError(
+            TelemetrySignal signal, String telemetryId, Mode mode, Map<String, Object> fields) {
+        Map<String, String> details = sanitizedDetails(fields, Map.of(), false, telemetryId, mode.source);
+        return new HotpEvaluationUnexpectedException(telemetryId, mode.source, safeMessage(signal.reason()), details);
     }
-    return message.trim().replaceAll("\\s+", " ");
-  }
 
-  private void logTelemetry(Level level, TelemetryFrame frame) {
-    StringBuilder builder =
-        new StringBuilder("event=rest.")
-            .append(frame.event())
-            .append(" status=")
-            .append(frame.status());
+    private Map<String, String> sanitizedDetails(
+            Map<String, Object> telemetryFields,
+            Map<String, String> base,
+            boolean sanitized,
+            String telemetryId,
+            String source) {
 
-    frame
-        .fields()
-        .forEach((key, value) -> builder.append(' ').append(key).append('=').append(value));
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("telemetryId", telemetryId);
+        details.put("credentialSource", source);
+        details.put("sanitized", Boolean.toString(sanitized));
+        base.forEach((key, value) -> details.putIfAbsent(key, value));
 
-    LogRecord record = new LogRecord(level, builder.toString());
-    TELEMETRY_LOGGER.log(record);
-    for (Handler handler : TELEMETRY_LOGGER.getHandlers()) {
-      handler.publish(record);
-      handler.flush();
+        if (sanitized && telemetryFields != null) {
+            telemetryFields.forEach((key, value) -> {
+                if (value != null) {
+                    details.putIfAbsent(key, String.valueOf(value));
+                }
+            });
+        }
+        return details;
     }
-  }
 
-  private String nextTelemetryId() {
-    return "rest-hotp-" + UUID.randomUUID();
-  }
-
-  private enum Mode {
-    STORED("stored"),
-    INLINE("inline");
-
-    private final String source;
-
-    Mode(String source) {
-      this.source = source;
+    private Level levelFor(TelemetryStatus status) {
+        return switch (status) {
+            case SUCCESS -> Level.INFO;
+            case INVALID -> Level.WARNING;
+            case ERROR -> Level.SEVERE;
+        };
     }
-  }
+
+    private String requireText(
+            String value, String field, String telemetryId, Mode mode, Map<String, String> additionalDetails) {
+        if (value == null || value.trim().isEmpty()) {
+            Map<String, String> details =
+                    additionalDetails == null ? Map.of("field", field) : mergeDetails(additionalDetails, field);
+            throw validationFailure(
+                    telemetryId,
+                    mode,
+                    details.getOrDefault("credentialId", details.get("identifier")),
+                    field + " is required",
+                    field + "_required",
+                    details);
+        }
+        return value.trim();
+    }
+
+    private int requireDigits(Integer digits, String telemetryId) {
+        if (digits == null) {
+            throw validationFailure(
+                    telemetryId, Mode.INLINE, null, "digits is required", "digits_required", Map.of("field", "digits"));
+        }
+        return digits;
+    }
+
+    private long requireCounter(Long counter, String telemetryId) {
+        if (counter == null) {
+            throw validationFailure(
+                    telemetryId,
+                    Mode.INLINE,
+                    null,
+                    "counter is required",
+                    "counter_required",
+                    Map.of("field", "counter"));
+        }
+        return counter;
+    }
+
+    private HotpHashAlgorithm parseAlgorithm(String algorithm, String telemetryId) {
+        String normalized = requireText(algorithm, "algorithm", telemetryId, Mode.INLINE, Map.of("field", "algorithm"))
+                .toUpperCase(Locale.ROOT);
+        try {
+            return HotpHashAlgorithm.valueOf(normalized);
+        } catch (IllegalArgumentException ex) {
+            throw validationFailure(
+                    telemetryId,
+                    Mode.INLINE,
+                    null,
+                    "Unsupported HOTP algorithm: " + normalized,
+                    "algorithm_invalid",
+                    Map.of("field", "algorithm"));
+        }
+    }
+
+    private HotpEvaluationValidationException validationFailure(
+            String telemetryId,
+            Mode mode,
+            String credentialReference,
+            String message,
+            String reasonCode,
+            Map<String, String> baseDetails) {
+
+        Map<String, Object> telemetryFields = new LinkedHashMap<>();
+        telemetryFields.put("credentialSource", mode.source);
+        if (credentialReference != null && !credentialReference.isBlank()) {
+            telemetryFields.put(mode == Mode.STORED ? "credentialId" : "identifier", credentialReference);
+        }
+        baseDetails.forEach(telemetryFields::putIfAbsent);
+
+        TelemetryFrame frame =
+                telemetryAdapter.validationFailure(telemetryId, reasonCode, message, true, telemetryFields);
+        logTelemetry(Level.WARNING, frame);
+
+        Map<String, String> details = sanitizedDetails(telemetryFields, baseDetails, true, telemetryId, mode.source);
+
+        return new HotpEvaluationValidationException(
+                telemetryId, mode.source, credentialReference, reasonCode, true, details, message);
+    }
+
+    private static Map<String, String> mergeDetails(Map<String, String> original, String field) {
+        Map<String, String> merged = new LinkedHashMap<>(original);
+        merged.put("field", field);
+        return merged;
+    }
+
+    private static String safeMessage(String message) {
+        if (message == null) {
+            return "";
+        }
+        return message.trim().replaceAll("\\s+", " ");
+    }
+
+    private void logTelemetry(Level level, TelemetryFrame frame) {
+        StringBuilder builder = new StringBuilder("event=rest.")
+                .append(frame.event())
+                .append(" status=")
+                .append(frame.status());
+
+        frame.fields()
+                .forEach((key, value) ->
+                        builder.append(' ').append(key).append('=').append(value));
+
+        LogRecord record = new LogRecord(level, builder.toString());
+        TELEMETRY_LOGGER.log(record);
+        for (Handler handler : TELEMETRY_LOGGER.getHandlers()) {
+            handler.publish(record);
+            handler.flush();
+        }
+    }
+
+    private String nextTelemetryId() {
+        return "rest-hotp-" + UUID.randomUUID();
+    }
+
+    private enum Mode {
+        STORED("stored"),
+        INLINE("inline");
+
+        private final String source;
+
+        Mode(String source) {
+            this.source = source;
+        }
+    }
 }

@@ -15,26 +15,23 @@ import org.junit.jupiter.api.Test;
 
 final class WebAuthnAssertionGenerationApplicationServiceTest {
 
-  private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
+    private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
 
-  private WebAuthnAssertionGenerationApplicationService service;
-  private WebAuthnAssertionVerifier verifier;
+    private WebAuthnAssertionGenerationApplicationService service;
+    private WebAuthnAssertionVerifier verifier;
 
-  @BeforeEach
-  void setUp() {
-    service = new WebAuthnAssertionGenerationApplicationService();
-    verifier = new WebAuthnAssertionVerifier();
-  }
+    @BeforeEach
+    void setUp() {
+        service = new WebAuthnAssertionGenerationApplicationService();
+        verifier = new WebAuthnAssertionVerifier();
+    }
 
-  @Test
-  void inlineGenerationProducesVerifiableAssertionFromJwk() {
-    byte[] challenge =
-        URL_DECODER.decode(
-            "sRBvpGpXvvF4FRHAVX3ImKA0E9Xw8X0kRjDBlMfhrbU".getBytes(StandardCharsets.UTF_8));
-    byte[] credentialId =
-        URL_DECODER.decode("bW9jay1jcmVkZW50aWFsLWlk".getBytes(StandardCharsets.UTF_8));
-    String privateKeyJwk =
-        """
+    @Test
+    void inlineGenerationProducesVerifiableAssertionFromJwk() {
+        byte[] challenge =
+                URL_DECODER.decode("sRBvpGpXvvF4FRHAVX3ImKA0E9Xw8X0kRjDBlMfhrbU".getBytes(StandardCharsets.UTF_8));
+        byte[] credentialId = URL_DECODER.decode("bW9jay1jcmVkZW50aWFsLWlk".getBytes(StandardCharsets.UTF_8));
+        String privateKeyJwk = """
         {
           "kty":"EC",
           "crv":"P-256",
@@ -44,45 +41,43 @@ final class WebAuthnAssertionGenerationApplicationServiceTest {
         }
         """;
 
-    WebAuthnAssertionGenerationApplicationService.GenerationCommand.Inline command =
-        new WebAuthnAssertionGenerationApplicationService.GenerationCommand.Inline(
-            "test-inline",
-            credentialId,
-            WebAuthnSignatureAlgorithm.ES256,
-            "example.org",
-            "https://example.org",
-            "webauthn.get",
-            0L,
-            false,
-            challenge,
-            privateKeyJwk);
+        WebAuthnAssertionGenerationApplicationService.GenerationCommand.Inline command =
+                new WebAuthnAssertionGenerationApplicationService.GenerationCommand.Inline(
+                        "test-inline",
+                        credentialId,
+                        WebAuthnSignatureAlgorithm.ES256,
+                        "example.org",
+                        "https://example.org",
+                        "webauthn.get",
+                        0L,
+                        false,
+                        challenge,
+                        privateKeyJwk);
 
-    WebAuthnAssertionGenerationApplicationService.GenerationResult result;
-    result = service.generate(command);
+        WebAuthnAssertionGenerationApplicationService.GenerationResult result;
+        result = service.generate(command);
 
-    assertNotNull(result);
-    assertEquals("test-inline", result.credentialName());
-    assertEquals(WebAuthnSignatureAlgorithm.ES256, result.algorithm());
+        assertNotNull(result);
+        assertEquals("test-inline", result.credentialName());
+        assertEquals(WebAuthnSignatureAlgorithm.ES256, result.algorithm());
 
-    WebAuthnStoredCredential storedCredential =
-        new WebAuthnStoredCredential(
-            command.relyingPartyId(),
-            result.credentialId(),
-            result.publicKeyCose(),
-            result.signatureCounter(),
-            command.userVerificationRequired(),
-            command.algorithm());
+        WebAuthnStoredCredential storedCredential = new WebAuthnStoredCredential(
+                command.relyingPartyId(),
+                result.credentialId(),
+                result.publicKeyCose(),
+                result.signatureCounter(),
+                command.userVerificationRequired(),
+                command.algorithm());
 
-    WebAuthnAssertionRequest assertionRequest =
-        new WebAuthnAssertionRequest(
-            command.relyingPartyId(),
-            command.origin(),
-            result.challenge(),
-            result.clientDataJson(),
-            result.authenticatorData(),
-            result.signature(),
-            command.expectedType());
+        WebAuthnAssertionRequest assertionRequest = new WebAuthnAssertionRequest(
+                command.relyingPartyId(),
+                command.origin(),
+                result.challenge(),
+                result.clientDataJson(),
+                result.authenticatorData(),
+                result.signature(),
+                command.expectedType());
 
-    assertTrue(verifier.verify(storedCredential, assertionRequest).success());
-  }
+        assertTrue(verifier.verify(storedCredential, assertionRequest).success());
+    }
 }

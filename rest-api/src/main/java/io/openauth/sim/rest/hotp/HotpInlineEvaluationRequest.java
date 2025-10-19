@@ -7,11 +7,11 @@ import java.util.Map;
 /** Request payload for inline HOTP evaluation (placeholder). */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpInlineEvaluationRequest(
-    @JsonProperty("sharedSecretHex") String sharedSecretHex,
-    @JsonProperty("algorithm") String algorithm,
-    @JsonProperty("digits") Integer digits,
-    @JsonProperty("counter") Long counter,
-    @JsonProperty("metadata") Map<String, String> metadata) {
+        @JsonProperty("sharedSecretHex") String sharedSecretHex,
+        @JsonProperty("algorithm") String algorithm,
+        @JsonProperty("digits") Integer digits,
+        @JsonProperty("counter") Long counter,
+        @JsonProperty("metadata") Map<String, String> metadata) {
 
-  // Canonical record; no additional behaviour.
+    // Canonical record; no additional behaviour.
 }

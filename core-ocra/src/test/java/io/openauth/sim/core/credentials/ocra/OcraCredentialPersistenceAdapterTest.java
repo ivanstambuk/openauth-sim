@@ -18,209 +18,191 @@ import org.junit.jupiter.api.Test;
 
 class OcraCredentialPersistenceAdapterTest {
 
-  private static final Clock FIXED_CLOCK =
-      Clock.fixed(Instant.parse("2025-09-30T12:00:00Z"), ZoneOffset.UTC);
-  private static final SecretMaterial SECRET = SecretMaterial.fromHex("31323334");
+    private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2025-09-30T12:00:00Z"), ZoneOffset.UTC);
+    private static final SecretMaterial SECRET = SecretMaterial.fromHex("31323334");
 
-  @Test
-  @DisplayName("serialize writes optional attributes when present")
-  void serializeWritesOptionalAttributes() {
-    OcraCredentialDescriptor descriptor =
-        new OcraCredentialDescriptor(
-            "credential",
-            OcraSuiteParser.parse("OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1"),
-            SECRET,
-            java.util.Optional.of(10L),
-            java.util.Optional.of(SECRET),
-            java.util.Optional.of(Duration.ofSeconds(30)),
-            Map.of("source", "test"));
+    @Test
+    @DisplayName("serialize writes optional attributes when present")
+    void serializeWritesOptionalAttributes() {
+        OcraCredentialDescriptor descriptor = new OcraCredentialDescriptor(
+                "credential",
+                OcraSuiteParser.parse("OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1"),
+                SECRET,
+                java.util.Optional.of(10L),
+                java.util.Optional.of(SECRET),
+                java.util.Optional.of(Duration.ofSeconds(30)),
+                Map.of("source", "test"));
 
-    OcraCredentialPersistenceAdapter adapter =
-        new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
+        OcraCredentialPersistenceAdapter adapter =
+                new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
 
-    VersionedCredentialRecord record = adapter.serialize(descriptor);
+        VersionedCredentialRecord record = adapter.serialize(descriptor);
 
-    assertEquals(CredentialType.OATH_OCRA, record.type());
-    assertEquals("10", record.attributes().get(OcraCredentialPersistenceAdapter.ATTR_COUNTER));
-    assertEquals(
-        SECRET.asHex(), record.attributes().get(OcraCredentialPersistenceAdapter.ATTR_PIN_HASH));
-    assertEquals(
-        "30", record.attributes().get(OcraCredentialPersistenceAdapter.ATTR_ALLOWED_DRIFT_SECONDS));
-    assertEquals(
-        "test",
-        record.attributes().get(OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX + "source"));
-  }
+        assertEquals(CredentialType.OATH_OCRA, record.type());
+        assertEquals("10", record.attributes().get(OcraCredentialPersistenceAdapter.ATTR_COUNTER));
+        assertEquals(SECRET.asHex(), record.attributes().get(OcraCredentialPersistenceAdapter.ATTR_PIN_HASH));
+        assertEquals("30", record.attributes().get(OcraCredentialPersistenceAdapter.ATTR_ALLOWED_DRIFT_SECONDS));
+        assertEquals("test", record.attributes().get(OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX + "source"));
+    }
 
-  @Test
-  @DisplayName("deserialize validates schema, type, and metadata keys")
-  void deserializeValidatesAttributes() {
-    OcraCredentialPersistenceAdapter adapter =
-        new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
+    @Test
+    @DisplayName("deserialize validates schema, type, and metadata keys")
+    void deserializeValidatesAttributes() {
+        OcraCredentialPersistenceAdapter adapter =
+                new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
 
-    VersionedCredentialRecord invalidSchema =
-        new VersionedCredentialRecord(
-            99, "name", CredentialType.OATH_OCRA, SECRET, Instant.now(), Instant.now(), Map.of());
-    assertThrows(IllegalArgumentException.class, () -> adapter.deserialize(invalidSchema));
+        VersionedCredentialRecord invalidSchema = new VersionedCredentialRecord(
+                99, "name", CredentialType.OATH_OCRA, SECRET, Instant.now(), Instant.now(), Map.of());
+        assertThrows(IllegalArgumentException.class, () -> adapter.deserialize(invalidSchema));
 
-    VersionedCredentialRecord invalidType =
-        new VersionedCredentialRecord(
-            OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
-            "name",
-            CredentialType.GENERIC,
-            SECRET,
-            Instant.now(),
-            Instant.now(),
-            Map.of());
-    assertThrows(IllegalArgumentException.class, () -> adapter.deserialize(invalidType));
+        VersionedCredentialRecord invalidType = new VersionedCredentialRecord(
+                OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
+                "name",
+                CredentialType.GENERIC,
+                SECRET,
+                Instant.now(),
+                Instant.now(),
+                Map.of());
+        assertThrows(IllegalArgumentException.class, () -> adapter.deserialize(invalidType));
 
-    VersionedCredentialRecord missingSuite =
-        new VersionedCredentialRecord(
-            OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
-            "name",
-            CredentialType.OATH_OCRA,
-            SECRET,
-            Instant.now(),
-            Instant.now(),
-            Map.of());
-    assertThrows(IllegalArgumentException.class, () -> adapter.deserialize(missingSuite));
+        VersionedCredentialRecord missingSuite = new VersionedCredentialRecord(
+                OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
+                "name",
+                CredentialType.OATH_OCRA,
+                SECRET,
+                Instant.now(),
+                Instant.now(),
+                Map.of());
+        assertThrows(IllegalArgumentException.class, () -> adapter.deserialize(missingSuite));
 
-    VersionedCredentialRecord invalidCounter =
-        new VersionedCredentialRecord(
-            OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
-            "name",
-            CredentialType.OATH_OCRA,
-            SECRET,
-            Instant.now(),
-            Instant.now(),
-            Map.of(
-                OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:C",
-                OcraCredentialPersistenceAdapter.ATTR_COUNTER, "not-a-number"));
-    assertThrows(IllegalArgumentException.class, () -> adapter.deserialize(invalidCounter));
+        VersionedCredentialRecord invalidCounter = new VersionedCredentialRecord(
+                OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
+                "name",
+                CredentialType.OATH_OCRA,
+                SECRET,
+                Instant.now(),
+                Instant.now(),
+                Map.of(
+                        OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:C",
+                        OcraCredentialPersistenceAdapter.ATTR_COUNTER, "not-a-number"));
+        assertThrows(IllegalArgumentException.class, () -> adapter.deserialize(invalidCounter));
 
-    VersionedCredentialRecord invalidMetadataKey =
-        new VersionedCredentialRecord(
-            OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
-            "name",
-            CredentialType.OATH_OCRA,
-            SECRET,
-            Instant.now(),
-            Instant.now(),
-            Map.of(
-                OcraCredentialPersistenceAdapter.ATTR_SUITE,
-                "OCRA-1:HOTP-SHA1-6:C",
-                OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX + " ",
-                "value"));
-    assertThrows(IllegalArgumentException.class, () -> adapter.deserialize(invalidMetadataKey));
-  }
+        VersionedCredentialRecord invalidMetadataKey = new VersionedCredentialRecord(
+                OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
+                "name",
+                CredentialType.OATH_OCRA,
+                SECRET,
+                Instant.now(),
+                Instant.now(),
+                Map.of(
+                        OcraCredentialPersistenceAdapter.ATTR_SUITE,
+                        "OCRA-1:HOTP-SHA1-6:C",
+                        OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX + " ",
+                        "value"));
+        assertThrows(IllegalArgumentException.class, () -> adapter.deserialize(invalidMetadataKey));
+    }
 
-  @Test
-  @DisplayName("deserialize trims optional attributes")
-  void deserializeTrimsOptionalAttributes() {
-    Map<String, String> attributes =
-        Map.of(
-            OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1",
-            OcraCredentialPersistenceAdapter.ATTR_COUNTER, " 5 ",
-            OcraCredentialPersistenceAdapter.ATTR_PIN_HASH,
-                " abcdef1234567890abcdef1234567890abcdef12 ",
-            OcraCredentialPersistenceAdapter.ATTR_ALLOWED_DRIFT_SECONDS, " 60 ");
+    @Test
+    @DisplayName("deserialize trims optional attributes")
+    void deserializeTrimsOptionalAttributes() {
+        Map<String, String> attributes = Map.of(
+                OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1",
+                OcraCredentialPersistenceAdapter.ATTR_COUNTER, " 5 ",
+                OcraCredentialPersistenceAdapter.ATTR_PIN_HASH, " abcdef1234567890abcdef1234567890abcdef12 ",
+                OcraCredentialPersistenceAdapter.ATTR_ALLOWED_DRIFT_SECONDS, " 60 ");
 
-    VersionedCredentialRecord record =
-        new VersionedCredentialRecord(
-            OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
-            "name",
-            CredentialType.OATH_OCRA,
-            SECRET,
-            Instant.now(),
-            Instant.now(),
-            attributes);
+        VersionedCredentialRecord record = new VersionedCredentialRecord(
+                OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
+                "name",
+                CredentialType.OATH_OCRA,
+                SECRET,
+                Instant.now(),
+                Instant.now(),
+                attributes);
 
-    OcraCredentialPersistenceAdapter adapter =
-        new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
+        OcraCredentialPersistenceAdapter adapter =
+                new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
 
-    OcraCredentialDescriptor descriptor = adapter.deserialize(record);
+        OcraCredentialDescriptor descriptor = adapter.deserialize(record);
 
-    assertEquals("OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1", descriptor.suite().value());
-    assertEquals(5L, descriptor.counter().orElseThrow().longValue());
-    assertTrue(descriptor.pinHash().isPresent());
-    assertEquals(Duration.ofSeconds(60), descriptor.allowedTimestampDrift().orElseThrow());
-  }
+        assertEquals("OCRA-1:HOTP-SHA1-6:C-QN08-PSHA1", descriptor.suite().value());
+        assertEquals(5L, descriptor.counter().orElseThrow().longValue());
+        assertTrue(descriptor.pinHash().isPresent());
+        assertEquals(Duration.ofSeconds(60), descriptor.allowedTimestampDrift().orElseThrow());
+    }
 
-  @Test
-  @DisplayName("deserialize ignores non-OCRA metadata keys and preserves prefixed entries")
-  void deserializeIgnoresUnscopedMetadata() {
-    Map<String, String> attributes = new HashMap<>();
-    attributes.put(OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:QN08");
-    attributes.put("unrelated", "value");
-    attributes.put(OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX + "source", "rest");
+    @Test
+    @DisplayName("deserialize ignores non-OCRA metadata keys and preserves prefixed entries")
+    void deserializeIgnoresUnscopedMetadata() {
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:QN08");
+        attributes.put("unrelated", "value");
+        attributes.put(OcraCredentialPersistenceAdapter.ATTR_METADATA_PREFIX + "source", "rest");
 
-    VersionedCredentialRecord record =
-        new VersionedCredentialRecord(
-            OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
-            "metadata-demo",
-            CredentialType.OATH_OCRA,
-            SECRET,
-            Instant.now(),
-            Instant.now(),
-            attributes);
+        VersionedCredentialRecord record = new VersionedCredentialRecord(
+                OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
+                "metadata-demo",
+                CredentialType.OATH_OCRA,
+                SECRET,
+                Instant.now(),
+                Instant.now(),
+                attributes);
 
-    OcraCredentialPersistenceAdapter adapter =
-        new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
+        OcraCredentialPersistenceAdapter adapter =
+                new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
 
-    OcraCredentialDescriptor descriptor = adapter.deserialize(record);
+        OcraCredentialDescriptor descriptor = adapter.deserialize(record);
 
-    assertTrue(descriptor.counter().isEmpty());
-    assertEquals(Map.of("source", "rest"), descriptor.metadata());
-  }
+        assertTrue(descriptor.counter().isEmpty());
+        assertEquals(Map.of("source", "rest"), descriptor.metadata());
+    }
 
-  @Test
-  @DisplayName("deserialize yields empty optionals when attributes omitted")
-  void deserializeReturnsEmptyOptionalsWhenMissing() {
-    VersionedCredentialRecord record =
-        new VersionedCredentialRecord(
-            OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
-            "minimal",
-            CredentialType.OATH_OCRA,
-            SECRET,
-            Instant.now(),
-            Instant.now(),
-            Map.of(OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:QN08"));
+    @Test
+    @DisplayName("deserialize yields empty optionals when attributes omitted")
+    void deserializeReturnsEmptyOptionalsWhenMissing() {
+        VersionedCredentialRecord record = new VersionedCredentialRecord(
+                OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
+                "minimal",
+                CredentialType.OATH_OCRA,
+                SECRET,
+                Instant.now(),
+                Instant.now(),
+                Map.of(OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:QN08"));
 
-    OcraCredentialPersistenceAdapter adapter =
-        new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
+        OcraCredentialPersistenceAdapter adapter =
+                new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
 
-    OcraCredentialDescriptor descriptor = adapter.deserialize(record);
+        OcraCredentialDescriptor descriptor = adapter.deserialize(record);
 
-    assertTrue(descriptor.counter().isEmpty());
-    assertTrue(descriptor.pinHash().isEmpty());
-    assertTrue(descriptor.allowedTimestampDrift().isEmpty());
-    assertTrue(descriptor.metadata().isEmpty());
-  }
+        assertTrue(descriptor.counter().isEmpty());
+        assertTrue(descriptor.pinHash().isEmpty());
+        assertTrue(descriptor.allowedTimestampDrift().isEmpty());
+        assertTrue(descriptor.metadata().isEmpty());
+    }
 
-  @Test
-  @DisplayName("deserialize treats blank pin hash and timestamp drift as absent")
-  void deserializeSanitisesBlankAttributes() {
-    Map<String, String> attributes =
-        Map.of(
-            OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:QN08",
-            OcraCredentialPersistenceAdapter.ATTR_PIN_HASH, "   ",
-            OcraCredentialPersistenceAdapter.ATTR_ALLOWED_DRIFT_SECONDS, "   ");
+    @Test
+    @DisplayName("deserialize treats blank pin hash and timestamp drift as absent")
+    void deserializeSanitisesBlankAttributes() {
+        Map<String, String> attributes = Map.of(
+                OcraCredentialPersistenceAdapter.ATTR_SUITE, "OCRA-1:HOTP-SHA1-6:QN08",
+                OcraCredentialPersistenceAdapter.ATTR_PIN_HASH, "   ",
+                OcraCredentialPersistenceAdapter.ATTR_ALLOWED_DRIFT_SECONDS, "   ");
 
-    VersionedCredentialRecord record =
-        new VersionedCredentialRecord(
-            OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
-            "blank-attrs",
-            CredentialType.OATH_OCRA,
-            SECRET,
-            Instant.now(),
-            Instant.now(),
-            attributes);
+        VersionedCredentialRecord record = new VersionedCredentialRecord(
+                OcraCredentialPersistenceAdapter.SCHEMA_VERSION,
+                "blank-attrs",
+                CredentialType.OATH_OCRA,
+                SECRET,
+                Instant.now(),
+                Instant.now(),
+                attributes);
 
-    OcraCredentialPersistenceAdapter adapter =
-        new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
+        OcraCredentialPersistenceAdapter adapter =
+                new OcraCredentialPersistenceAdapter(new OcraCredentialDescriptorFactory(), FIXED_CLOCK);
 
-    OcraCredentialDescriptor descriptor = adapter.deserialize(record);
+        OcraCredentialDescriptor descriptor = adapter.deserialize(record);
 
-    assertTrue(descriptor.pinHash().isEmpty());
-    assertTrue(descriptor.allowedTimestampDrift().isEmpty());
-  }
+        assertTrue(descriptor.pinHash().isEmpty());
+        assertTrue(descriptor.allowedTimestampDrift().isEmpty());
+    }
 }

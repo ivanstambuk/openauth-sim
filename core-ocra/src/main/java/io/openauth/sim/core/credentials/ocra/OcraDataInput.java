@@ -7,19 +7,20 @@ import java.util.Optional;
 
 /** Parsed representation of the OCRA data input descriptor list. */
 public record OcraDataInput(
-    boolean counter,
-    Optional<OcraChallengeQuestion> challengeQuestion,
-    Optional<OcraPinSpecification> pin,
-    Optional<OcraSessionSpecification> sessionInformation,
-    Optional<OcraTimestampSpecification> timestamp)
-    implements Serializable {
+        boolean counter,
+        Optional<OcraChallengeQuestion> challengeQuestion,
+        Optional<OcraPinSpecification> pin,
+        Optional<OcraSessionSpecification> sessionInformation,
+        Optional<OcraTimestampSpecification> timestamp)
+        implements Serializable {
 
-  @Serial private static final long serialVersionUID = 1L;
+    @Serial
+    private static final long serialVersionUID = 1L;
 
-  public OcraDataInput {
-    Objects.requireNonNull(challengeQuestion, "challengeQuestion");
-    Objects.requireNonNull(pin, "pin");
-    Objects.requireNonNull(sessionInformation, "sessionInformation");
-    Objects.requireNonNull(timestamp, "timestamp");
-  }
+    public OcraDataInput {
+        Objects.requireNonNull(challengeQuestion, "challengeQuestion");
+        Objects.requireNonNull(pin, "pin");
+        Objects.requireNonNull(sessionInformation, "sessionInformation");
+        Objects.requireNonNull(timestamp, "timestamp");
+    }
 }

@@ -1,18 +1,31 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
-com.google.code.findbugs:jsr305:3.0.2=spotless865488016,spotless865510119
+com.fasterxml.jackson.core:jackson-annotations:2.19.2=spotless-511510247
+com.fasterxml.jackson.core:jackson-core:2.19.2=spotless-511510247
+com.fasterxml.jackson.core:jackson-databind:2.19.2=spotless-511510247
+com.fasterxml.jackson.datatype:jackson-datatype-guava:2.19.2=spotless-511510247
+com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.19.2=spotless-511510247
+com.fasterxml.jackson.module:jackson-module-parameter-names:2.19.2=spotless-511510247
+com.fasterxml.jackson:jackson-bom:2.19.2=spotless-511510247
+com.google.code.findbugs:jsr305:3.0.2=spotless-511510247,spotless865488016,spotless865510119
 com.google.errorprone:error_prone_annotations:2.21.1=spotless865488016,spotless865510119
-com.google.googlejavaformat:google-java-format:1.28.0=spotless865488016
-com.google.googlejavaformat:google-java-format:1.30.0=spotless865510119
+com.google.errorprone:error_prone_annotations:2.36.0=spotless-511510247
 com.google.guava:failureaccess:1.0.1=spotless865488016,spotless865510119
+com.google.guava:failureaccess:1.0.3=spotless-511510247
 com.google.guava:guava:32.1.3-jre=spotless865488016,spotless865510119
-com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava=spotless865488016,spotless865510119
+com.google.guava:guava:33.4.8-jre=spotless-511510247
+com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava=spotless-511510247,spotless865488016,spotless865510119
+com.google.j2objc:j2objc-annotations:3.0.0=spotless-511510247
+com.palantir.javaformat:palantir-java-format-spi:2.78.0=spotless-511510247
+com.palantir.javaformat:palantir-java-format:2.78.0=spotless-511510247
 org.checkerframework:checker-qual:3.37.0=spotless865488016,spotless865510119
+org.functionaljava:functionaljava:4.8=spotless-511510247
 org.jacoco:org.jacoco.agent:0.8.11=jacocoAgent,jacocoAnt
 org.jacoco:org.jacoco.ant:0.8.11=jacocoAnt
 org.jacoco:org.jacoco.core:0.8.11=jacocoAnt
 org.jacoco:org.jacoco.report:0.8.11=jacocoAnt
+org.jspecify:jspecify:1.0.0=spotless-511510247
 org.ow2.asm:asm-commons:9.6=jacocoAnt
 org.ow2.asm:asm-tree:9.6=jacocoAnt
 org.ow2.asm:asm:9.6=jacocoAnt

@@ -9,20 +9,18 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 final class WebAuthnJsonVectorVerificationTest {
 
-  private final WebAuthnAssertionVerifier verifier = new WebAuthnAssertionVerifier();
+    private final WebAuthnAssertionVerifier verifier = new WebAuthnAssertionVerifier();
 
-  private static Stream<WebAuthnJsonVector> vectors() {
-    return WebAuthnJsonVectorFixtures.loadAll();
-  }
+    private static Stream<WebAuthnJsonVector> vectors() {
+        return WebAuthnJsonVectorFixtures.loadAll();
+    }
 
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("vectors")
-  void verifiesSyntheticJsonVectors(WebAuthnJsonVector vector) {
-    WebAuthnVerificationResult result =
-        verifier.verify(vector.storedCredential(), vector.assertionRequest());
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("vectors")
+    void verifiesSyntheticJsonVectors(WebAuthnJsonVector vector) {
+        WebAuthnVerificationResult result = verifier.verify(vector.storedCredential(), vector.assertionRequest());
 
-    assertTrue(result.success(), "Expected JSON vector " + vector.vectorId() + " to verify");
-    assertTrue(
-        result.error().isEmpty(), "Expected no verification error for vector " + vector.vectorId());
-  }
+        assertTrue(result.success(), "Expected JSON vector " + vector.vectorId() + " to verify");
+        assertTrue(result.error().isEmpty(), "Expected no verification error for vector " + vector.vectorId());
+    }
 }

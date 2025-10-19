@@ -15,34 +15,32 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class WebAuthnAttestationFixturesTest {
 
-  @Test
-  void loadsVectorsForEveryFormat() {
-    Set<WebAuthnAttestationFormat> missing = EnumSet.noneOf(WebAuthnAttestationFormat.class);
+    @Test
+    void loadsVectorsForEveryFormat() {
+        Set<WebAuthnAttestationFormat> missing = EnumSet.noneOf(WebAuthnAttestationFormat.class);
 
-    for (WebAuthnAttestationFormat format : WebAuthnAttestationFormat.values()) {
-      if (WebAuthnAttestationFixtures.vectorsFor(format).isEmpty()) {
-        missing.add(format);
-      }
+        for (WebAuthnAttestationFormat format : WebAuthnAttestationFormat.values()) {
+            if (WebAuthnAttestationFixtures.vectorsFor(format).isEmpty()) {
+                missing.add(format);
+            }
+        }
+
+        assertTrue(missing.isEmpty(), () -> "Missing attestation fixtures for: " + missing);
     }
 
-    assertTrue(missing.isEmpty(), () -> "Missing attestation fixtures for: " + missing);
-  }
+    @ParameterizedTest
+    @MethodSource("vectors")
+    void vectorContainsRequiredFields(WebAuthnAttestationVector vector) {
+        assertAll(
+                () -> assertNotNull(vector.vectorId(), "vector id"),
+                () -> assertNotNull(vector.registration(), "registration payload"),
+                () -> assertFalse(vector.registration().attestationObject().length == 0, "attestation object"),
+                () -> assertFalse(vector.registration().clientDataJson().length == 0, "clientDataJSON"),
+                () -> assertFalse(vector.registration().challenge().length == 0, "challenge"),
+                () -> assertNotNull(vector.keyMaterial(), "key material"));
+    }
 
-  @ParameterizedTest
-  @MethodSource("vectors")
-  void vectorContainsRequiredFields(WebAuthnAttestationVector vector) {
-    assertAll(
-        () -> assertNotNull(vector.vectorId(), "vector id"),
-        () -> assertNotNull(vector.registration(), "registration payload"),
-        () ->
-            assertFalse(
-                vector.registration().attestationObject().length == 0, "attestation object"),
-        () -> assertFalse(vector.registration().clientDataJson().length == 0, "clientDataJSON"),
-        () -> assertFalse(vector.registration().challenge().length == 0, "challenge"),
-        () -> assertNotNull(vector.keyMaterial(), "key material"));
-  }
-
-  private static Stream<WebAuthnAttestationVector> vectors() {
-    return WebAuthnAttestationFixtures.allVectors();
-  }
+    private static Stream<WebAuthnAttestationVector> vectors() {
+        return WebAuthnAttestationFixtures.allVectors();
+    }
 }

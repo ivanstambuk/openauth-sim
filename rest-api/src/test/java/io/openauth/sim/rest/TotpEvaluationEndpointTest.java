@@ -36,114 +36,97 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = "openauth.sim.persistence.enable-store=false")
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "openauth.sim.persistence.enable-store=false")
 @AutoConfigureMockMvc
 class TotpEvaluationEndpointTest {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final SecretMaterial STORED_SECRET =
-      SecretMaterial.fromStringUtf8("1234567890123456789012");
-  private static final SecretMaterial INLINE_SECRET =
-      SecretMaterial.fromStringUtf8(
-          "1234567890123456789012345678901234567890123456789012345678901234");
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final SecretMaterial STORED_SECRET = SecretMaterial.fromStringUtf8("1234567890123456789012");
+    private static final SecretMaterial INLINE_SECRET =
+            SecretMaterial.fromStringUtf8("1234567890123456789012345678901234567890123456789012345678901234");
 
-  private static final String CREDENTIAL_ID = "rest-totp-demo";
+    private static final String CREDENTIAL_ID = "rest-totp-demo";
 
-  @Autowired private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-  @Autowired private CredentialStore credentialStore;
+    @Autowired
+    private CredentialStore credentialStore;
 
-  private final TotpCredentialPersistenceAdapter adapter = new TotpCredentialPersistenceAdapter();
+    private final TotpCredentialPersistenceAdapter adapter = new TotpCredentialPersistenceAdapter();
 
-  @DynamicPropertySource
-  static void configure(DynamicPropertyRegistry registry) {
-    registry.add("openauth.sim.persistence.database-path", () -> "unused");
-  }
-
-  @BeforeEach
-  void resetStore() {
-    if (credentialStore instanceof InMemoryCredentialStore inMemory) {
-      inMemory.reset();
+    @DynamicPropertySource
+    static void configure(DynamicPropertyRegistry registry) {
+        registry.add("openauth.sim.persistence.database-path", () -> "unused");
     }
-  }
 
-  @Test
-  @DisplayName("Stored TOTP evaluation generates OTP within drift window")
-  void storedTotpEvaluationGeneratesOtp() throws Exception {
-    TotpDescriptor descriptor =
-        TotpDescriptor.create(
-            CREDENTIAL_ID,
-            STORED_SECRET,
-            TotpHashAlgorithm.SHA1,
-            6,
-            Duration.ofSeconds(30),
-            TotpDriftWindow.of(1, 1));
-    Credential credential =
-        VersionedCredentialRecordMapper.toCredential(adapter.serialize(descriptor));
-    credentialStore.save(credential);
+    @BeforeEach
+    void resetStore() {
+        if (credentialStore instanceof InMemoryCredentialStore inMemory) {
+            inMemory.reset();
+        }
+    }
 
-    Instant timestamp = Instant.ofEpochSecond(1_111_111_111L);
-    String expectedOtp = TotpGenerator.generate(descriptor, timestamp);
+    @Test
+    @DisplayName("Stored TOTP evaluation generates OTP within drift window")
+    void storedTotpEvaluationGeneratesOtp() throws Exception {
+        TotpDescriptor descriptor = TotpDescriptor.create(
+                CREDENTIAL_ID,
+                STORED_SECRET,
+                TotpHashAlgorithm.SHA1,
+                6,
+                Duration.ofSeconds(30),
+                TotpDriftWindow.of(1, 1));
+        Credential credential = VersionedCredentialRecordMapper.toCredential(adapter.serialize(descriptor));
+        credentialStore.save(credential);
 
-    String responseBody =
-        mockMvc
-            .perform(
-                post("/api/v1/totp/evaluate")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(
-                        """
+        Instant timestamp = Instant.ofEpochSecond(1_111_111_111L);
+        String expectedOtp = TotpGenerator.generate(descriptor, timestamp);
+
+        String responseBody = mockMvc.perform(post("/api/v1/totp/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
                         {
                           "credentialId": "%s",
                           "timestamp": %d,
                           "driftBackward": 1,
                           "driftForward": 1
                         }
-                        """
-                            .formatted(CREDENTIAL_ID, timestamp.getEpochSecond())))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+                        """.formatted(CREDENTIAL_ID, timestamp.getEpochSecond())))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-    JsonNode response = MAPPER.readTree(responseBody);
-    assertEquals("generated", response.get("status").asText());
-    assertEquals("generated", response.get("reasonCode").asText());
-    assertTrue(response.get("valid").asBoolean());
-    assertEquals(expectedOtp, response.get("otp").asText());
+        JsonNode response = MAPPER.readTree(responseBody);
+        assertEquals("generated", response.get("status").asText());
+        assertEquals("generated", response.get("reasonCode").asText());
+        assertTrue(response.get("valid").asBoolean());
+        assertEquals(expectedOtp, response.get("otp").asText());
 
-    JsonNode metadata = response.get("metadata");
-    assertEquals("stored", metadata.get("credentialSource").asText());
-    assertEquals(0, metadata.get("matchedSkewSteps").asInt());
-    assertEquals("SHA1", metadata.get("algorithm").asText());
-    assertEquals(6, metadata.get("digits").asInt());
-    assertEquals(30L, metadata.get("stepSeconds").asLong());
-    assertEquals(1, metadata.get("driftBackwardSteps").asInt());
-    assertEquals(1, metadata.get("driftForwardSteps").asInt());
-    assertTrue(metadata.get("telemetryId").asText().startsWith("rest-totp-"));
-  }
+        JsonNode metadata = response.get("metadata");
+        assertEquals("stored", metadata.get("credentialSource").asText());
+        assertEquals(0, metadata.get("matchedSkewSteps").asInt());
+        assertEquals("SHA1", metadata.get("algorithm").asText());
+        assertEquals(6, metadata.get("digits").asInt());
+        assertEquals(30L, metadata.get("stepSeconds").asLong());
+        assertEquals(1, metadata.get("driftBackwardSteps").asInt());
+        assertEquals(1, metadata.get("driftForwardSteps").asInt());
+        assertTrue(metadata.get("telemetryId").asText().startsWith("rest-totp-"));
+    }
 
-  @Test
-  @DisplayName("Inline TOTP evaluation generates OTP when OTP not supplied")
-  void inlineTotpEvaluationGeneratesOtp() throws Exception {
-    TotpDescriptor descriptor =
-        TotpDescriptor.create(
-            "inline",
-            INLINE_SECRET,
-            TotpHashAlgorithm.SHA512,
-            8,
-            Duration.ofSeconds(60),
-            TotpDriftWindow.of(0, 0));
-    Instant issuedAt = Instant.ofEpochSecond(1_234_567_890L);
-    String expectedOtp = TotpGenerator.generate(descriptor, issuedAt);
+    @Test
+    @DisplayName("Inline TOTP evaluation generates OTP when OTP not supplied")
+    void inlineTotpEvaluationGeneratesOtp() throws Exception {
+        TotpDescriptor descriptor = TotpDescriptor.create(
+                "inline", INLINE_SECRET, TotpHashAlgorithm.SHA512, 8, Duration.ofSeconds(60), TotpDriftWindow.of(0, 0));
+        Instant issuedAt = Instant.ofEpochSecond(1_234_567_890L);
+        String expectedOtp = TotpGenerator.generate(descriptor, issuedAt);
 
-    String responseBody =
-        mockMvc
-            .perform(
-                post("/api/v1/totp/evaluate/inline")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(
-                        """
+        String responseBody = mockMvc.perform(post("/api/v1/totp/evaluate/inline")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
                         {
                           "sharedSecretHex": "%s",
                           "algorithm": "SHA512",
@@ -153,130 +136,122 @@ class TotpEvaluationEndpointTest {
                           "driftForward": 1,
                           "timestamp": %d
                         }
-                        """
-                            .formatted(INLINE_SECRET.asHex(), issuedAt.getEpochSecond())))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+                        """.formatted(INLINE_SECRET.asHex(), issuedAt.getEpochSecond())))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-    JsonNode response = MAPPER.readTree(responseBody);
-    assertEquals("generated", response.get("status").asText());
-    assertEquals("generated", response.get("reasonCode").asText());
-    assertTrue(response.get("valid").asBoolean());
-    assertEquals(expectedOtp, response.get("otp").asText());
-    assertEquals("inline", response.get("metadata").get("credentialSource").asText());
-  }
+        JsonNode response = MAPPER.readTree(responseBody);
+        assertEquals("generated", response.get("status").asText());
+        assertEquals("generated", response.get("reasonCode").asText());
+        assertTrue(response.get("valid").asBoolean());
+        assertEquals(expectedOtp, response.get("otp").asText());
+        assertEquals("inline", response.get("metadata").get("credentialSource").asText());
+    }
 
-  @Test
-  @DisplayName("Stored TOTP evaluation requires credential ID")
-  void storedTotpEvaluationRequiresCredentialId() throws Exception {
-    String body =
-        """
+    @Test
+    @DisplayName("Stored TOTP evaluation requires credential ID")
+    void storedTotpEvaluationRequiresCredentialId() throws Exception {
+        String body = """
         {
           "credentialId": "  ",
           "otp": "123456"
         }
         """;
 
-    String responseBody =
-        mockMvc
-            .perform(
-                post("/api/v1/totp/evaluate").contentType(MediaType.APPLICATION_JSON).content(body))
-            .andExpect(status().isUnprocessableEntity())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+        String responseBody = mockMvc.perform(post("/api/v1/totp/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-    JsonNode response = MAPPER.readTree(responseBody);
-    assertEquals("invalid_input", response.get("status").asText());
-    assertEquals("credential_id_required", response.get("reasonCode").asText());
-  }
+        JsonNode response = MAPPER.readTree(responseBody);
+        assertEquals("invalid_input", response.get("status").asText());
+        assertEquals("credential_id_required", response.get("reasonCode").asText());
+    }
 
-  @Test
-  @DisplayName("Stored TOTP evaluation rejects invalid OTP format")
-  void storedTotpEvaluationRejectsInvalidOtpFormat() throws Exception {
-    TotpDescriptor descriptor =
-        TotpDescriptor.create(
-            CREDENTIAL_ID,
-            STORED_SECRET,
-            TotpHashAlgorithm.SHA1,
-            6,
-            Duration.ofSeconds(30),
-            TotpDriftWindow.of(1, 1));
-    Credential credential =
-        VersionedCredentialRecordMapper.toCredential(adapter.serialize(descriptor));
-    credentialStore.save(credential);
+    @Test
+    @DisplayName("Stored TOTP evaluation rejects invalid OTP format")
+    void storedTotpEvaluationRejectsInvalidOtpFormat() throws Exception {
+        TotpDescriptor descriptor = TotpDescriptor.create(
+                CREDENTIAL_ID,
+                STORED_SECRET,
+                TotpHashAlgorithm.SHA1,
+                6,
+                Duration.ofSeconds(30),
+                TotpDriftWindow.of(1, 1));
+        Credential credential = VersionedCredentialRecordMapper.toCredential(adapter.serialize(descriptor));
+        credentialStore.save(credential);
 
-    String body =
-        """
+        String body = """
         {
           "credentialId": "%s",
           "otp": "abc123",
           "driftBackward": 1,
           "driftForward": 1
         }
-        """
-            .formatted(CREDENTIAL_ID);
+        """.formatted(CREDENTIAL_ID);
 
-    String responseBody =
-        mockMvc
-            .perform(
-                post("/api/v1/totp/evaluate").contentType(MediaType.APPLICATION_JSON).content(body))
-            .andExpect(status().isUnprocessableEntity())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+        String responseBody = mockMvc.perform(post("/api/v1/totp/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-    JsonNode response = MAPPER.readTree(responseBody);
-    assertEquals("invalid_input", response.get("status").asText());
-    assertEquals("otp_invalid_format", response.get("reasonCode").asText());
-    JsonNode details = response.get("details");
-    assertEquals("stored", details.get("credentialSource").asText());
-    assertEquals(1, details.get("driftBackwardSteps").asInt());
-    assertEquals(CREDENTIAL_ID, details.get("credentialId").asText());
-  }
-
-  @TestConfiguration
-  static class InMemoryStoreConfiguration {
-
-    @Bean
-    CredentialStore credentialStore() {
-      return new InMemoryCredentialStore();
-    }
-  }
-
-  static final class InMemoryCredentialStore implements CredentialStore {
-
-    private final LinkedHashMap<String, Credential> store = new LinkedHashMap<>();
-
-    void reset() {
-      store.clear();
+        JsonNode response = MAPPER.readTree(responseBody);
+        assertEquals("invalid_input", response.get("status").asText());
+        assertEquals("otp_invalid_format", response.get("reasonCode").asText());
+        JsonNode details = response.get("details");
+        assertEquals("stored", details.get("credentialSource").asText());
+        assertEquals(1, details.get("driftBackwardSteps").asInt());
+        assertEquals(CREDENTIAL_ID, details.get("credentialId").asText());
     }
 
-    @Override
-    public void save(Credential credential) {
-      store.put(credential.name(), credential);
+    @TestConfiguration
+    static class InMemoryStoreConfiguration {
+
+        @Bean
+        CredentialStore credentialStore() {
+            return new InMemoryCredentialStore();
+        }
     }
 
-    @Override
-    public java.util.Optional<Credential> findByName(String name) {
-      return java.util.Optional.ofNullable(store.get(name));
-    }
+    static final class InMemoryCredentialStore implements CredentialStore {
 
-    @Override
-    public java.util.List<Credential> findAll() {
-      return java.util.List.copyOf(store.values());
-    }
+        private final LinkedHashMap<String, Credential> store = new LinkedHashMap<>();
 
-    @Override
-    public boolean delete(String name) {
-      return store.remove(name) != null;
-    }
+        void reset() {
+            store.clear();
+        }
 
-    @Override
-    public void close() {
-      // no-op
+        @Override
+        public void save(Credential credential) {
+            store.put(credential.name(), credential);
+        }
+
+        @Override
+        public java.util.Optional<Credential> findByName(String name) {
+            return java.util.Optional.ofNullable(store.get(name));
+        }
+
+        @Override
+        public java.util.List<Credential> findAll() {
+            return java.util.List.copyOf(store.values());
+        }
+
+        @Override
+        public boolean delete(String name) {
+            return store.remove(name) != null;
+        }
+
+        @Override
+        public void close() {
+            // no-op
+        }
     }
-  }
 }

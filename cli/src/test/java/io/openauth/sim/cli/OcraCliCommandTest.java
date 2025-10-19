@@ -34,148 +34,131 @@ import picocli.CommandLine;
 
 final class OcraCliCommandTest {
 
-  private static final OcraOneWayVector CHALLENGE_ZERO_VECTOR =
-      OcraJsonVectorFixtures.getOneWay("rfc6287_standard-challenge-question-numeric-q");
-  private static final OcraOneWayVector CHALLENGE_ONE_VECTOR =
-      OcraJsonVectorFixtures.getOneWay("rfc6287_standard-challenge-question-repeated-digits");
+    private static final OcraOneWayVector CHALLENGE_ZERO_VECTOR =
+            OcraJsonVectorFixtures.getOneWay("rfc6287_standard-challenge-question-numeric-q");
+    private static final OcraOneWayVector CHALLENGE_ONE_VECTOR =
+            OcraJsonVectorFixtures.getOneWay("rfc6287_standard-challenge-question-repeated-digits");
 
-  private static final String STANDARD_KEY_20 =
-      CHALLENGE_ZERO_VECTOR.secret().asHex().toUpperCase(Locale.ROOT);
-  private static final String CHALLENGE_ZERO =
-      CHALLENGE_ZERO_VECTOR
-          .challengeQuestion()
-          .orElseThrow(() -> new IllegalStateException("Numeric challenge missing value"));
-  private static final String CHALLENGE_ONE =
-      CHALLENGE_ONE_VECTOR
-          .challengeQuestion()
-          .orElseThrow(() -> new IllegalStateException("Repeated digits challenge missing value"));
-  private static final String OCRA_SUITE_QN08 = CHALLENGE_ZERO_VECTOR.suite();
+    private static final String STANDARD_KEY_20 =
+            CHALLENGE_ZERO_VECTOR.secret().asHex().toUpperCase(Locale.ROOT);
+    private static final String CHALLENGE_ZERO = CHALLENGE_ZERO_VECTOR
+            .challengeQuestion()
+            .orElseThrow(() -> new IllegalStateException("Numeric challenge missing value"));
+    private static final String CHALLENGE_ONE = CHALLENGE_ONE_VECTOR
+            .challengeQuestion()
+            .orElseThrow(() -> new IllegalStateException("Repeated digits challenge missing value"));
+    private static final String OCRA_SUITE_QN08 = CHALLENGE_ZERO_VECTOR.suite();
 
-  @TempDir Path tempDir;
+    @TempDir
+    Path tempDir;
 
-  @Test
-  void importCommandPersistsCredentialAndEmitsSanitizedTelemetry() throws Exception {
-    Path databasePath = databasePath("import");
+    @Test
+    void importCommandPersistsCredentialAndEmitsSanitizedTelemetry() throws Exception {
+        Path databasePath = databasePath("import");
 
-    CliResult result =
-        execute(
-            databasePath,
-            "import",
-            "--credential-id",
-            "cli-token",
-            "--suite",
-            OCRA_SUITE_QN08,
-            "--secret",
-            STANDARD_KEY_20);
+        CliResult result = execute(
+                databasePath,
+                "import",
+                "--credential-id",
+                "cli-token",
+                "--suite",
+                OCRA_SUITE_QN08,
+                "--secret",
+                STANDARD_KEY_20);
 
-    assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
-    Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.import");
-    assertEquals("success", telemetry.get("status"));
-    assertEquals("created", telemetry.get("reasonCode"));
-    assertEquals("true", telemetry.get("sanitized"));
-    assertEquals("cli-token", telemetry.get("credentialId"));
-    assertEquals(OCRA_SUITE_QN08, telemetry.get("suite"));
-    assertFalse(
-        result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
+        assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
+        Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.import");
+        assertEquals("success", telemetry.get("status"));
+        assertEquals("created", telemetry.get("reasonCode"));
+        assertEquals("true", telemetry.get("sanitized"));
+        assertEquals("cli-token", telemetry.get("credentialId"));
+        assertEquals(OCRA_SUITE_QN08, telemetry.get("suite"));
+        assertFalse(result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
 
-    try (MapDbCredentialStore store = ocraStoreBuilder(databasePath).open()) {
-      assertTrue(store.findByName("cli-token").isPresent());
+        try (MapDbCredentialStore store = ocraStoreBuilder(databasePath).open()) {
+            assertTrue(store.findByName("cli-token").isPresent());
+        }
     }
-  }
 
-  @Test
-  void listCommandRedactsSecretsWhileReportingMetadata() throws Exception {
-    Path databasePath = databasePath("list");
-    persistOcraCredential(databasePath, "list-token", STANDARD_KEY_20, OCRA_SUITE_QN08, null);
+    @Test
+    void listCommandRedactsSecretsWhileReportingMetadata() throws Exception {
+        Path databasePath = databasePath("list");
+        persistOcraCredential(databasePath, "list-token", STANDARD_KEY_20, OCRA_SUITE_QN08, null);
 
-    CliResult result = execute(databasePath, "list");
+        CliResult result = execute(databasePath, "list");
 
-    assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
-    Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.list");
-    assertEquals("success", telemetry.get("status"));
-    assertEquals("success", telemetry.get("reasonCode"));
-    assertEquals("true", telemetry.get("sanitized"));
-    assertEquals("1", telemetry.get("count"));
-    assertTrue(result.stdout().contains("credentialId=list-token"));
-    assertTrue(result.stdout().contains("suite=" + OCRA_SUITE_QN08));
-    assertFalse(
-        result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
-  }
-
-  @Test
-  void deleteCommandRemovesCredentialAndLogsOutcome() throws Exception {
-    Path databasePath = databasePath("delete");
-    persistOcraCredential(databasePath, "delete-token", STANDARD_KEY_20, OCRA_SUITE_QN08, null);
-
-    CliResult result = execute(databasePath, "delete", "--credential-id", "delete-token");
-
-    assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
-    Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.delete");
-    assertEquals("success", telemetry.get("status"));
-    assertEquals("deleted", telemetry.get("reasonCode"));
-    assertEquals("true", telemetry.get("sanitized"));
-    assertEquals("delete-token", telemetry.get("credentialId"));
-    assertFalse(
-        result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
-
-    try (MapDbCredentialStore store = ocraStoreBuilder(databasePath).open()) {
-      assertTrue(store.findByName("delete-token").isEmpty());
+        assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
+        Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.list");
+        assertEquals("success", telemetry.get("status"));
+        assertEquals("success", telemetry.get("reasonCode"));
+        assertEquals("true", telemetry.get("sanitized"));
+        assertEquals("1", telemetry.get("count"));
+        assertTrue(result.stdout().contains("credentialId=list-token"));
+        assertTrue(result.stdout().contains("suite=" + OCRA_SUITE_QN08));
+        assertFalse(result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
     }
-  }
 
-  @Test
-  void deleteCommandSurfacesNotFoundWhenCredentialMissing() {
-    Path databasePath = databasePath("delete-missing");
+    @Test
+    void deleteCommandRemovesCredentialAndLogsOutcome() throws Exception {
+        Path databasePath = databasePath("delete");
+        persistOcraCredential(databasePath, "delete-token", STANDARD_KEY_20, OCRA_SUITE_QN08, null);
 
-    CliResult result = execute(databasePath, "delete", "--credential-id", "unknown-token");
+        CliResult result = execute(databasePath, "delete", "--credential-id", "delete-token");
 
-    assertEquals(CommandLine.ExitCode.USAGE, result.exitCode());
-    Map<String, String> telemetry = telemetryLine(result.stderr(), "cli.ocra.delete");
-    assertEquals("invalid", telemetry.get("status"));
-    assertEquals("credential_not_found", telemetry.get("reasonCode"));
-    assertEquals("true", telemetry.get("sanitized"));
-  }
+        assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
+        Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.delete");
+        assertEquals("success", telemetry.get("status"));
+        assertEquals("deleted", telemetry.get("reasonCode"));
+        assertEquals("true", telemetry.get("sanitized"));
+        assertEquals("delete-token", telemetry.get("credentialId"));
+        assertFalse(result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
 
-  @Test
-  void evaluateWithCredentialReferenceGeneratesExpectedOtp() throws Exception {
-    Path databasePath = databasePath("evaluate-store");
-    OcraCredentialDescriptor descriptor =
-        persistOcraCredential(
-            databasePath, "evaluate-token", STANDARD_KEY_20, OCRA_SUITE_QN08, null);
+        try (MapDbCredentialStore store = ocraStoreBuilder(databasePath).open()) {
+            assertTrue(store.findByName("delete-token").isEmpty());
+        }
+    }
 
-    String expectedOtp =
-        OcraResponseCalculator.generate(
-            descriptor,
-            new OcraExecutionContext(null, CHALLENGE_ZERO, null, null, null, null, null));
+    @Test
+    void deleteCommandSurfacesNotFoundWhenCredentialMissing() {
+        Path databasePath = databasePath("delete-missing");
 
-    CliResult result =
-        execute(
-            databasePath,
-            "evaluate",
-            "--credential-id",
-            "evaluate-token",
-            "--challenge",
-            CHALLENGE_ZERO);
+        CliResult result = execute(databasePath, "delete", "--credential-id", "unknown-token");
 
-    assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
-    Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.evaluate");
-    assertEquals("success", telemetry.get("status"));
-    assertEquals("success", telemetry.get("reasonCode"));
-    assertEquals("true", telemetry.get("sanitized"));
-    assertEquals("evaluate-token", telemetry.get("credentialId"));
-    assertEquals(expectedOtp, telemetry.get("otp"));
-    assertFalse(
-        result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
-  }
+        assertEquals(CommandLine.ExitCode.USAGE, result.exitCode());
+        Map<String, String> telemetry = telemetryLine(result.stderr(), "cli.ocra.delete");
+        assertEquals("invalid", telemetry.get("status"));
+        assertEquals("credential_not_found", telemetry.get("reasonCode"));
+        assertEquals("true", telemetry.get("sanitized"));
+    }
 
-  @Test
-  void evaluateWithInlineSecretSupportsAlternateChallenge() {
-    Path databasePath = databasePath("evaluate-inline");
+    @Test
+    void evaluateWithCredentialReferenceGeneratesExpectedOtp() throws Exception {
+        Path databasePath = databasePath("evaluate-store");
+        OcraCredentialDescriptor descriptor =
+                persistOcraCredential(databasePath, "evaluate-token", STANDARD_KEY_20, OCRA_SUITE_QN08, null);
 
-    OcraCredentialFactory factory = new OcraCredentialFactory();
-    OcraCredentialDescriptor descriptor =
-        factory.createDescriptor(
-            new OcraCredentialRequest(
+        String expectedOtp = OcraResponseCalculator.generate(
+                descriptor, new OcraExecutionContext(null, CHALLENGE_ZERO, null, null, null, null, null));
+
+        CliResult result =
+                execute(databasePath, "evaluate", "--credential-id", "evaluate-token", "--challenge", CHALLENGE_ZERO);
+
+        assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
+        Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.evaluate");
+        assertEquals("success", telemetry.get("status"));
+        assertEquals("success", telemetry.get("reasonCode"));
+        assertEquals("true", telemetry.get("sanitized"));
+        assertEquals("evaluate-token", telemetry.get("credentialId"));
+        assertEquals(expectedOtp, telemetry.get("otp"));
+        assertFalse(result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
+    }
+
+    @Test
+    void evaluateWithInlineSecretSupportsAlternateChallenge() {
+        Path databasePath = databasePath("evaluate-inline");
+
+        OcraCredentialFactory factory = new OcraCredentialFactory();
+        OcraCredentialDescriptor descriptor = factory.createDescriptor(new OcraCredentialRequest(
                 "inline-token",
                 OCRA_SUITE_QN08,
                 STANDARD_KEY_20,
@@ -185,82 +168,69 @@ final class OcraCliCommandTest {
                 null,
                 Map.of("source", "inline-test")));
 
-    String expectedOtp =
-        OcraResponseCalculator.generate(
-            descriptor,
-            new OcraExecutionContext(null, CHALLENGE_ONE, null, null, null, null, null));
+        String expectedOtp = OcraResponseCalculator.generate(
+                descriptor, new OcraExecutionContext(null, CHALLENGE_ONE, null, null, null, null, null));
 
-    CliResult result =
-        execute(
-            databasePath,
-            "evaluate",
-            "--suite",
-            OCRA_SUITE_QN08,
-            "--secret",
-            STANDARD_KEY_20,
-            "--challenge",
-            CHALLENGE_ONE);
+        CliResult result = execute(
+                databasePath,
+                "evaluate",
+                "--suite",
+                OCRA_SUITE_QN08,
+                "--secret",
+                STANDARD_KEY_20,
+                "--challenge",
+                CHALLENGE_ONE);
 
-    assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
-    Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.evaluate");
-    assertEquals("success", telemetry.get("status"));
-    assertEquals("success", telemetry.get("reasonCode"));
-    assertEquals("true", telemetry.get("sanitized"));
-    assertEquals(expectedOtp, telemetry.get("otp"));
-    assertFalse(
-        result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
-  }
-
-  @Test
-  void listCommandVerboseEmitsMetadataEntries() throws Exception {
-    Path databasePath = databasePath("list-verbose");
-    persistOcraCredential(
-        databasePath, "list-verbose-token", STANDARD_KEY_20, OCRA_SUITE_QN08, null);
-
-    CliResult result = execute(databasePath, "list", "--verbose");
-
-    assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
-    Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.list");
-    assertEquals("success", telemetry.get("status"));
-    assertEquals("1", telemetry.get("count"));
-    assertTrue(result.stdout().contains("metadata.source=cli-test"));
-  }
-
-  private CliResult execute(Path databasePath, String... args) {
-    ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-    ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-    CommandLine commandLine = new CommandLine(new OcraCli());
-    commandLine.setOut(
-        new PrintWriter(new OutputStreamWriter(stdout, StandardCharsets.UTF_8), true));
-    commandLine.setErr(
-        new PrintWriter(new OutputStreamWriter(stderr, StandardCharsets.UTF_8), true));
-
-    String[] finalArgs = new String[args.length + 2];
-    finalArgs[0] = "--database";
-    finalArgs[1] = databasePath.toString();
-    System.arraycopy(args, 0, finalArgs, 2, args.length);
-
-    int exitCode = commandLine.execute(finalArgs);
-    return new CliResult(
-        exitCode, stdout.toString(StandardCharsets.UTF_8), stderr.toString(StandardCharsets.UTF_8));
-  }
-
-  private OcraCredentialDescriptor persistOcraCredential(
-      Path databasePath,
-      String credentialId,
-      String sharedSecretHex,
-      String ocraSuite,
-      Long counter)
-      throws Exception {
-    Path parent = databasePath.getParent();
-    if (parent != null) {
-      Files.createDirectories(parent);
+        assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
+        Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.evaluate");
+        assertEquals("success", telemetry.get("status"));
+        assertEquals("success", telemetry.get("reasonCode"));
+        assertEquals("true", telemetry.get("sanitized"));
+        assertEquals(expectedOtp, telemetry.get("otp"));
+        assertFalse(result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
     }
 
-    OcraCredentialFactory factory = new OcraCredentialFactory();
-    OcraCredentialDescriptor descriptor =
-        factory.createDescriptor(
-            new OcraCredentialRequest(
+    @Test
+    void listCommandVerboseEmitsMetadataEntries() throws Exception {
+        Path databasePath = databasePath("list-verbose");
+        persistOcraCredential(databasePath, "list-verbose-token", STANDARD_KEY_20, OCRA_SUITE_QN08, null);
+
+        CliResult result = execute(databasePath, "list", "--verbose");
+
+        assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
+        Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.list");
+        assertEquals("success", telemetry.get("status"));
+        assertEquals("1", telemetry.get("count"));
+        assertTrue(result.stdout().contains("metadata.source=cli-test"));
+    }
+
+    private CliResult execute(Path databasePath, String... args) {
+        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        CommandLine commandLine = new CommandLine(new OcraCli());
+        commandLine.setOut(new PrintWriter(new OutputStreamWriter(stdout, StandardCharsets.UTF_8), true));
+        commandLine.setErr(new PrintWriter(new OutputStreamWriter(stderr, StandardCharsets.UTF_8), true));
+
+        String[] finalArgs = new String[args.length + 2];
+        finalArgs[0] = "--database";
+        finalArgs[1] = databasePath.toString();
+        System.arraycopy(args, 0, finalArgs, 2, args.length);
+
+        int exitCode = commandLine.execute(finalArgs);
+        return new CliResult(
+                exitCode, stdout.toString(StandardCharsets.UTF_8), stderr.toString(StandardCharsets.UTF_8));
+    }
+
+    private OcraCredentialDescriptor persistOcraCredential(
+            Path databasePath, String credentialId, String sharedSecretHex, String ocraSuite, Long counter)
+            throws Exception {
+        Path parent = databasePath.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+
+        OcraCredentialFactory factory = new OcraCredentialFactory();
+        OcraCredentialDescriptor descriptor = factory.createDescriptor(new OcraCredentialRequest(
                 credentialId,
                 ocraSuite,
                 sharedSecretHex,
@@ -270,46 +240,43 @@ final class OcraCliCommandTest {
                 null,
                 Map.of("source", "cli-test")));
 
-    try (MapDbCredentialStore store = ocraStoreBuilder(databasePath).open()) {
-      store.save(
-          VersionedCredentialRecordMapper.toCredential(
-              new OcraCredentialPersistenceAdapter().serialize(descriptor)));
+        try (MapDbCredentialStore store = ocraStoreBuilder(databasePath).open()) {
+            store.save(VersionedCredentialRecordMapper.toCredential(
+                    new OcraCredentialPersistenceAdapter().serialize(descriptor)));
+        }
+
+        return descriptor;
     }
 
-    return descriptor;
-  }
+    private MapDbCredentialStore.Builder ocraStoreBuilder(Path databasePath) {
+        return OcraStoreMigrations.apply(MapDbCredentialStore.file(databasePath));
+    }
 
-  private MapDbCredentialStore.Builder ocraStoreBuilder(Path databasePath) {
-    return OcraStoreMigrations.apply(MapDbCredentialStore.file(databasePath));
-  }
+    private Path databasePath(String prefix) {
+        return tempDir.resolve(prefix + "-store.db");
+    }
 
-  private Path databasePath(String prefix) {
-    return tempDir.resolve(prefix + "-store.db");
-  }
+    private record CliResult(int exitCode, String stdout, String stderr) {
+        // Marker record; no additional members required for assertions.
+    }
 
-  private record CliResult(int exitCode, String stdout, String stderr) {
-    // Marker record; no additional members required for assertions.
-  }
+    @Test
+    void abstractCommandIsSealedAndPermitsKnownSubcommands() {
+        Class<OcraCli.AbstractOcraCommand> type = OcraCli.AbstractOcraCommand.class;
 
-  @Test
-  void abstractCommandIsSealedAndPermitsKnownSubcommands() {
-    Class<OcraCli.AbstractOcraCommand> type = OcraCli.AbstractOcraCommand.class;
+        assertTrue(type.isSealed(), "Abstract command should be sealed");
 
-    assertTrue(type.isSealed(), "Abstract command should be sealed");
+        Set<String> permitted =
+                Arrays.stream(type.getPermittedSubclasses()).map(Class::getName).collect(Collectors.toSet());
 
-    Set<String> permitted =
-        Arrays.stream(type.getPermittedSubclasses())
-            .map(Class::getName)
-            .collect(Collectors.toSet());
-
-    assertEquals(
-        Set.of(
-            "io.openauth.sim.cli.OcraCli$ImportCommand",
-            "io.openauth.sim.cli.OcraCli$ListCommand",
-            "io.openauth.sim.cli.OcraCli$DeleteCommand",
-            "io.openauth.sim.cli.OcraCli$EvaluateCommand",
-            "io.openauth.sim.cli.OcraCli$VerifyCommand"),
-        permitted,
-        () -> "permitted list did not match: " + permitted);
-  }
+        assertEquals(
+                Set.of(
+                        "io.openauth.sim.cli.OcraCli$ImportCommand",
+                        "io.openauth.sim.cli.OcraCli$ListCommand",
+                        "io.openauth.sim.cli.OcraCli$DeleteCommand",
+                        "io.openauth.sim.cli.OcraCli$EvaluateCommand",
+                        "io.openauth.sim.cli.OcraCli$VerifyCommand"),
+                permitted,
+                () -> "permitted list did not match: " + permitted);
+    }
 }

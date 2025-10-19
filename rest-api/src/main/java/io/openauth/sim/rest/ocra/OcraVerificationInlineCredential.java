@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record OcraVerificationInlineCredential(
-    @JsonProperty("suite") String suite, @JsonProperty("sharedSecretHex") String sharedSecretHex) {
-  // Marker record for inline credential payloads.
+        @JsonProperty("suite") String suite,
+        @JsonProperty("sharedSecretHex") String sharedSecretHex) {
+    // Marker record for inline credential payloads.
 }

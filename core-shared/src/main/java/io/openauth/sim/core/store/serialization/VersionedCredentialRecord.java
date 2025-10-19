@@ -13,36 +13,37 @@ import java.util.Objects;
  * future migrations.
  */
 public record VersionedCredentialRecord(
-    int schemaVersion,
-    String name,
-    CredentialType type,
-    SecretMaterial secret,
-    Instant createdAt,
-    Instant updatedAt,
-    Map<String, String> attributes)
-    implements Serializable {
+        int schemaVersion,
+        String name,
+        CredentialType type,
+        SecretMaterial secret,
+        Instant createdAt,
+        Instant updatedAt,
+        Map<String, String> attributes)
+        implements Serializable {
 
-  public static final int CURRENT_VERSION = 1;
+    public static final int CURRENT_VERSION = 1;
 
-  @Serial private static final long serialVersionUID = 1L;
+    @Serial
+    private static final long serialVersionUID = 1L;
 
-  public VersionedCredentialRecord {
-    if (schemaVersion < 0) {
-      throw new IllegalArgumentException("schemaVersion must be >= 0");
+    public VersionedCredentialRecord {
+        if (schemaVersion < 0) {
+            throw new IllegalArgumentException("schemaVersion must be >= 0");
+        }
+        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(type, "type");
+        Objects.requireNonNull(secret, "secret");
+        Objects.requireNonNull(createdAt, "createdAt");
+        Objects.requireNonNull(updatedAt, "updatedAt");
+        if (updatedAt.isBefore(createdAt)) {
+            throw new IllegalArgumentException("updatedAt must not be before createdAt");
+        }
+        Objects.requireNonNull(attributes, "attributes");
+        name = name.trim();
+        if (name.isEmpty()) {
+            throw new IllegalArgumentException("name must not be blank");
+        }
+        attributes = Map.copyOf(attributes);
     }
-    Objects.requireNonNull(name, "name");
-    Objects.requireNonNull(type, "type");
-    Objects.requireNonNull(secret, "secret");
-    Objects.requireNonNull(createdAt, "createdAt");
-    Objects.requireNonNull(updatedAt, "updatedAt");
-    if (updatedAt.isBefore(createdAt)) {
-      throw new IllegalArgumentException("updatedAt must not be before createdAt");
-    }
-    Objects.requireNonNull(attributes, "attributes");
-    name = name.trim();
-    if (name.isEmpty()) {
-      throw new IllegalArgumentException("name must not be blank");
-    }
-    attributes = Map.copyOf(attributes);
-  }
 }

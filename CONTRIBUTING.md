@@ -6,6 +6,7 @@ Thanks for helping shape OpenAuth Simulator! We build this project in deliberate
 
 - **Small steps.** Aim for units of work that you can complete (including tests and docs) in under ten minutes. If a change is larger, decompose it and land the pieces sequentially.
 - **Tests first, always.** Run `JAVA_HOME="$JAVA_HOME" ./gradlew spotlessApply check` after every change. Ensure `JAVA_HOME` resolves to a Java 17 JDK before running the command. Green builds are mandatory; if you must defer a failing test, disable it with a TODO and reference the follow-up issue/ADR.
+- **Formatter alignment.** Spotless enforces Palantir Java Format 2.78.0 (120-character wrap). Install the matching IDE plugin/settings so local formatting matches CI before you stage code.
 - **Conventional commits.** Use the Angular-style prefixes (`feat:`, `fix:`, `build:`, etc.) so release automation and changelogs can stay machine-readable.
 - **Keep docs in sync.** Update the relevant section under `docs/` whenever you introduce or change behaviour (overview, architecture notes, ADRs, runbooks, etc.).
 - **Own the ADRs.** Decisions—especially reversals—must be captured under `docs/6-decisions/` before or alongside the implementation.

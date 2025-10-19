@@ -7,9 +7,9 @@ import java.util.Map;
 /** Error payload returned when HOTP replay encounters validation or unexpected issues. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpReplayErrorResponse(
-    @JsonProperty("error") String error,
-    @JsonProperty("message") String message,
-    @JsonProperty("details") Map<String, String> details) {
+        @JsonProperty("error") String error,
+        @JsonProperty("message") String message,
+        @JsonProperty("details") Map<String, String> details) {
 
-  // Canonical record; no additional behaviour.
+    // Canonical record; no additional behaviour.
 }

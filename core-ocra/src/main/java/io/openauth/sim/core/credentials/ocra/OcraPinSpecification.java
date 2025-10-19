@@ -7,9 +7,10 @@ import java.util.Objects;
 /** Represents the PIN hashing strategy declared in an OCRA suite. */
 public record OcraPinSpecification(OcraHashAlgorithm hashAlgorithm) implements Serializable {
 
-  @Serial private static final long serialVersionUID = 1L;
+    @Serial
+    private static final long serialVersionUID = 1L;
 
-  public OcraPinSpecification {
-    Objects.requireNonNull(hashAlgorithm, "hashAlgorithm");
-  }
+    public OcraPinSpecification {
+        Objects.requireNonNull(hashAlgorithm, "hashAlgorithm");
+    }
 }

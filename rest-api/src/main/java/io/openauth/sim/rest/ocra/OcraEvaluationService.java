@@ -24,445 +24,414 @@ import org.springframework.stereotype.Service;
 @Service
 class OcraEvaluationService {
 
-  private static final Logger TELEMETRY_LOGGER =
-      Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
+    private static final Logger TELEMETRY_LOGGER = Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
 
-  static {
-    TELEMETRY_LOGGER.setLevel(Level.ALL);
-  }
-
-  private final OcraEvaluationApplicationService applicationService;
-
-  OcraEvaluationService(OcraEvaluationApplicationService applicationService) {
-    this.applicationService = Objects.requireNonNull(applicationService, "applicationService");
-  }
-
-  OcraEvaluationResponse evaluate(OcraEvaluationRequest rawRequest) {
-    Objects.requireNonNull(rawRequest, "request");
-
-    long started = System.nanoTime();
-    String telemetryId = nextTelemetryId();
-    CommandEnvelope envelope = null;
-
-    try {
-      envelope = CommandEnvelope.from(rawRequest);
-      EvaluationResult result = applicationService.evaluate(envelope.command());
-      NormalizedRequest normalized = result.request();
-      long durationMillis = toMillis(started);
-
-      TelemetryFrame frame =
-          TelemetryContracts.ocraEvaluationAdapter()
-              .success(
-                  telemetryId,
-                  successFields(
-                      result,
-                      hasText(normalized.sessionHex()),
-                      hasText(normalized.clientChallenge()),
-                      hasText(normalized.serverChallenge()),
-                      hasText(normalized.pinHashHex()),
-                      hasText(normalized.timestampHex()),
-                      durationMillis));
-
-      logEvaluation(Level.INFO, frame);
-
-      return new OcraEvaluationResponse(result.suite(), result.otp(), telemetryId);
-    } catch (EvaluationValidationException ex) {
-      long durationMillis = toMillis(started);
-      FailureDetails failure = FailureDetails.from(ex);
-      String suite = suiteOrUnknown(envelope, rawRequest);
-
-      TelemetryFrame frame =
-          TelemetryContracts.ocraEvaluationAdapter()
-              .validationFailure(
-                  telemetryId,
-                  failure.reasonCode(),
-                  failure.message(),
-                  failure.sanitized(),
-                  failureFields(
-                      suite,
-                      hasCredentialReference(envelope, rawRequest),
-                      hasSession(envelope, rawRequest),
-                      hasClientChallenge(envelope, rawRequest),
-                      hasServerChallenge(envelope, rawRequest),
-                      hasPin(envelope, rawRequest),
-                      hasTimestamp(envelope, rawRequest),
-                      durationMillis));
-
-      logEvaluation(Level.WARNING, frame);
-
-      throw new OcraEvaluationValidationException(
-          telemetryId,
-          suite,
-          failure.field(),
-          failure.reasonCode(),
-          failure.message(),
-          failure.sanitized(),
-          ex);
-    } catch (ValidationError ex) {
-      long durationMillis = toMillis(started);
-      FailureDetails failure = FailureDetails.from(ex);
-      String suite = suiteOrUnknown(envelope, rawRequest);
-
-      TelemetryFrame frame =
-          TelemetryContracts.ocraEvaluationAdapter()
-              .validationFailure(
-                  telemetryId,
-                  failure.reasonCode(),
-                  failure.message(),
-                  failure.sanitized(),
-                  failureFields(
-                      suite,
-                      hasCredentialReference(envelope, rawRequest),
-                      hasSession(envelope, rawRequest),
-                      hasClientChallenge(envelope, rawRequest),
-                      hasServerChallenge(envelope, rawRequest),
-                      hasPin(envelope, rawRequest),
-                      hasTimestamp(envelope, rawRequest),
-                      durationMillis));
-
-      logEvaluation(Level.WARNING, frame);
-
-      throw new OcraEvaluationValidationException(
-          telemetryId, suite, failure.field(), failure.reasonCode(), failure.message(), true, ex);
-    } catch (IllegalArgumentException ex) {
-      long durationMillis = toMillis(started);
-      FailureDetails failure = FailureDetails.fromIllegalArgument(ex.getMessage());
-      String suite = suiteOrUnknown(envelope, rawRequest);
-
-      TelemetryFrame frame =
-          TelemetryContracts.ocraEvaluationAdapter()
-              .validationFailure(
-                  telemetryId,
-                  failure.reasonCode(),
-                  failure.message(),
-                  true,
-                  failureFields(
-                      suite,
-                      hasCredentialReference(envelope, rawRequest),
-                      hasSession(envelope, rawRequest),
-                      hasClientChallenge(envelope, rawRequest),
-                      hasServerChallenge(envelope, rawRequest),
-                      hasPin(envelope, rawRequest),
-                      hasTimestamp(envelope, rawRequest),
-                      durationMillis));
-
-      logEvaluation(Level.WARNING, frame);
-
-      throw new OcraEvaluationValidationException(
-          telemetryId, suite, failure.field(), failure.reasonCode(), failure.message(), true, ex);
-    } catch (RuntimeException ex) {
-      long durationMillis = toMillis(started);
-      String suite = suiteOrUnknown(envelope, rawRequest);
-
-      TelemetryFrame frame =
-          TelemetryContracts.ocraEvaluationAdapter()
-              .error(
-                  telemetryId,
-                  "unexpected_error",
-                  ex.getMessage(),
-                  false,
-                  failureFields(
-                      suite,
-                      hasCredentialReference(envelope, rawRequest),
-                      hasSession(envelope, rawRequest),
-                      hasClientChallenge(envelope, rawRequest),
-                      hasServerChallenge(envelope, rawRequest),
-                      hasPin(envelope, rawRequest),
-                      hasTimestamp(envelope, rawRequest),
-                      durationMillis));
-
-      logEvaluation(Level.SEVERE, frame);
-      throw ex;
+    static {
+        TELEMETRY_LOGGER.setLevel(Level.ALL);
     }
-  }
 
-  private static boolean hasSession(CommandEnvelope envelope, OcraEvaluationRequest raw) {
-    return envelope != null
-        ? hasText(envelope.normalized().sessionHex())
-        : hasText(raw.sessionHex());
-  }
+    private final OcraEvaluationApplicationService applicationService;
 
-  private static boolean hasClientChallenge(CommandEnvelope envelope, OcraEvaluationRequest raw) {
-    return envelope != null
-        ? hasText(envelope.normalized().clientChallenge())
-        : hasText(raw.clientChallenge());
-  }
-
-  private static boolean hasServerChallenge(CommandEnvelope envelope, OcraEvaluationRequest raw) {
-    return envelope != null
-        ? hasText(envelope.normalized().serverChallenge())
-        : hasText(raw.serverChallenge());
-  }
-
-  private static boolean hasPin(CommandEnvelope envelope, OcraEvaluationRequest raw) {
-    return envelope != null
-        ? hasText(envelope.normalized().pinHashHex())
-        : hasText(raw.pinHashHex());
-  }
-
-  private static boolean hasTimestamp(CommandEnvelope envelope, OcraEvaluationRequest raw) {
-    return envelope != null
-        ? hasText(envelope.normalized().timestampHex())
-        : hasText(raw.timestampHex());
-  }
-
-  private static Map<String, Object> successFields(
-      EvaluationResult result,
-      boolean hasSession,
-      boolean hasClientChallenge,
-      boolean hasServerChallenge,
-      boolean hasPin,
-      boolean hasTimestamp,
-      long durationMillis) {
-    Map<String, Object> fields = new LinkedHashMap<>();
-    fields.put("suite", Objects.requireNonNullElse(result.suite(), "unknown"));
-    fields.put("hasCredentialReference", result.credentialReference());
-    fields.put("hasSessionPayload", hasSession);
-    fields.put("hasClientChallenge", hasClientChallenge);
-    fields.put("hasServerChallenge", hasServerChallenge);
-    fields.put("hasPin", hasPin);
-    fields.put("hasTimestamp", hasTimestamp);
-    fields.put("durationMillis", durationMillis);
-    return fields;
-  }
-
-  private static Map<String, Object> failureFields(
-      String suite,
-      boolean hasCredentialReference,
-      boolean hasSession,
-      boolean hasClientChallenge,
-      boolean hasServerChallenge,
-      boolean hasPin,
-      boolean hasTimestamp,
-      long durationMillis) {
-    Map<String, Object> fields = new LinkedHashMap<>();
-    fields.put("suite", Objects.requireNonNullElse(suite, "unknown"));
-    fields.put("hasCredentialReference", hasCredentialReference);
-    fields.put("hasSessionPayload", hasSession);
-    fields.put("hasClientChallenge", hasClientChallenge);
-    fields.put("hasServerChallenge", hasServerChallenge);
-    fields.put("hasPin", hasPin);
-    fields.put("hasTimestamp", hasTimestamp);
-    fields.put("durationMillis", durationMillis);
-    return fields;
-  }
-
-  private static void logEvaluation(Level level, TelemetryFrame frame) {
-    StringBuilder builder =
-        new StringBuilder("event=rest.")
-            .append(frame.event())
-            .append(" status=")
-            .append(frame.status());
-
-    frame
-        .fields()
-        .forEach((key, value) -> builder.append(' ').append(key).append('=').append(value));
-
-    LogRecord record = new LogRecord(level, builder.toString());
-    TELEMETRY_LOGGER.log(record);
-    for (Handler handler : TELEMETRY_LOGGER.getHandlers()) {
-      handler.publish(record);
-      handler.flush();
+    OcraEvaluationService(OcraEvaluationApplicationService applicationService) {
+        this.applicationService = Objects.requireNonNull(applicationService, "applicationService");
     }
-  }
 
-  private static boolean hasCredentialReference(
-      CommandEnvelope envelope, OcraEvaluationRequest raw) {
-    if (envelope != null) {
-      return envelope.credentialReference();
+    OcraEvaluationResponse evaluate(OcraEvaluationRequest rawRequest) {
+        Objects.requireNonNull(rawRequest, "request");
+
+        long started = System.nanoTime();
+        String telemetryId = nextTelemetryId();
+        CommandEnvelope envelope = null;
+
+        try {
+            envelope = CommandEnvelope.from(rawRequest);
+            EvaluationResult result = applicationService.evaluate(envelope.command());
+            NormalizedRequest normalized = result.request();
+            long durationMillis = toMillis(started);
+
+            TelemetryFrame frame = TelemetryContracts.ocraEvaluationAdapter()
+                    .success(
+                            telemetryId,
+                            successFields(
+                                    result,
+                                    hasText(normalized.sessionHex()),
+                                    hasText(normalized.clientChallenge()),
+                                    hasText(normalized.serverChallenge()),
+                                    hasText(normalized.pinHashHex()),
+                                    hasText(normalized.timestampHex()),
+                                    durationMillis));
+
+            logEvaluation(Level.INFO, frame);
+
+            return new OcraEvaluationResponse(result.suite(), result.otp(), telemetryId);
+        } catch (EvaluationValidationException ex) {
+            long durationMillis = toMillis(started);
+            FailureDetails failure = FailureDetails.from(ex);
+            String suite = suiteOrUnknown(envelope, rawRequest);
+
+            TelemetryFrame frame = TelemetryContracts.ocraEvaluationAdapter()
+                    .validationFailure(
+                            telemetryId,
+                            failure.reasonCode(),
+                            failure.message(),
+                            failure.sanitized(),
+                            failureFields(
+                                    suite,
+                                    hasCredentialReference(envelope, rawRequest),
+                                    hasSession(envelope, rawRequest),
+                                    hasClientChallenge(envelope, rawRequest),
+                                    hasServerChallenge(envelope, rawRequest),
+                                    hasPin(envelope, rawRequest),
+                                    hasTimestamp(envelope, rawRequest),
+                                    durationMillis));
+
+            logEvaluation(Level.WARNING, frame);
+
+            throw new OcraEvaluationValidationException(
+                    telemetryId,
+                    suite,
+                    failure.field(),
+                    failure.reasonCode(),
+                    failure.message(),
+                    failure.sanitized(),
+                    ex);
+        } catch (ValidationError ex) {
+            long durationMillis = toMillis(started);
+            FailureDetails failure = FailureDetails.from(ex);
+            String suite = suiteOrUnknown(envelope, rawRequest);
+
+            TelemetryFrame frame = TelemetryContracts.ocraEvaluationAdapter()
+                    .validationFailure(
+                            telemetryId,
+                            failure.reasonCode(),
+                            failure.message(),
+                            failure.sanitized(),
+                            failureFields(
+                                    suite,
+                                    hasCredentialReference(envelope, rawRequest),
+                                    hasSession(envelope, rawRequest),
+                                    hasClientChallenge(envelope, rawRequest),
+                                    hasServerChallenge(envelope, rawRequest),
+                                    hasPin(envelope, rawRequest),
+                                    hasTimestamp(envelope, rawRequest),
+                                    durationMillis));
+
+            logEvaluation(Level.WARNING, frame);
+
+            throw new OcraEvaluationValidationException(
+                    telemetryId, suite, failure.field(), failure.reasonCode(), failure.message(), true, ex);
+        } catch (IllegalArgumentException ex) {
+            long durationMillis = toMillis(started);
+            FailureDetails failure = FailureDetails.fromIllegalArgument(ex.getMessage());
+            String suite = suiteOrUnknown(envelope, rawRequest);
+
+            TelemetryFrame frame = TelemetryContracts.ocraEvaluationAdapter()
+                    .validationFailure(
+                            telemetryId,
+                            failure.reasonCode(),
+                            failure.message(),
+                            true,
+                            failureFields(
+                                    suite,
+                                    hasCredentialReference(envelope, rawRequest),
+                                    hasSession(envelope, rawRequest),
+                                    hasClientChallenge(envelope, rawRequest),
+                                    hasServerChallenge(envelope, rawRequest),
+                                    hasPin(envelope, rawRequest),
+                                    hasTimestamp(envelope, rawRequest),
+                                    durationMillis));
+
+            logEvaluation(Level.WARNING, frame);
+
+            throw new OcraEvaluationValidationException(
+                    telemetryId, suite, failure.field(), failure.reasonCode(), failure.message(), true, ex);
+        } catch (RuntimeException ex) {
+            long durationMillis = toMillis(started);
+            String suite = suiteOrUnknown(envelope, rawRequest);
+
+            TelemetryFrame frame = TelemetryContracts.ocraEvaluationAdapter()
+                    .error(
+                            telemetryId,
+                            "unexpected_error",
+                            ex.getMessage(),
+                            false,
+                            failureFields(
+                                    suite,
+                                    hasCredentialReference(envelope, rawRequest),
+                                    hasSession(envelope, rawRequest),
+                                    hasClientChallenge(envelope, rawRequest),
+                                    hasServerChallenge(envelope, rawRequest),
+                                    hasPin(envelope, rawRequest),
+                                    hasTimestamp(envelope, rawRequest),
+                                    durationMillis));
+
+            logEvaluation(Level.SEVERE, frame);
+            throw ex;
+        }
     }
-    return hasText(raw.credentialId());
-  }
 
-  private static String suiteOrUnknown(CommandEnvelope envelope, OcraEvaluationRequest raw) {
-    if (envelope != null) {
-      NormalizedRequest normalized = envelope.normalized();
-      if (normalized instanceof NormalizedRequest.InlineSecret inline) {
-        return inline.suite();
-      }
-      if (envelope.requestedSuite() != null) {
-        return envelope.requestedSuite();
-      }
+    private static boolean hasSession(CommandEnvelope envelope, OcraEvaluationRequest raw) {
+        return envelope != null ? hasText(envelope.normalized().sessionHex()) : hasText(raw.sessionHex());
     }
-    String suite = raw.suite();
-    return suite == null || suite.isBlank() ? "unknown" : suite.trim();
-  }
 
-  private static long toMillis(long started) {
-    return Duration.ofNanos(System.nanoTime() - started).toMillis();
-  }
+    private static boolean hasClientChallenge(CommandEnvelope envelope, OcraEvaluationRequest raw) {
+        return envelope != null ? hasText(envelope.normalized().clientChallenge()) : hasText(raw.clientChallenge());
+    }
 
-  private static boolean hasText(String value) {
-    return value != null && !value.isBlank();
-  }
+    private static boolean hasServerChallenge(CommandEnvelope envelope, OcraEvaluationRequest raw) {
+        return envelope != null ? hasText(envelope.normalized().serverChallenge()) : hasText(raw.serverChallenge());
+    }
 
-  private String nextTelemetryId() {
-    return "rest-ocra-" + UUID.randomUUID();
-  }
+    private static boolean hasPin(CommandEnvelope envelope, OcraEvaluationRequest raw) {
+        return envelope != null ? hasText(envelope.normalized().pinHashHex()) : hasText(raw.pinHashHex());
+    }
 
-  private record CommandEnvelope(
-      EvaluationCommand command,
-      NormalizedRequest normalized,
-      boolean credentialReference,
-      String requestedSuite) {
+    private static boolean hasTimestamp(CommandEnvelope envelope, OcraEvaluationRequest raw) {
+        return envelope != null ? hasText(envelope.normalized().timestampHex()) : hasText(raw.timestampHex());
+    }
 
-    static CommandEnvelope from(OcraEvaluationRequest request) {
-      boolean hasCredential = hasText(request.credentialId());
-      boolean hasInline = hasText(request.sharedSecretHex());
+    private static Map<String, Object> successFields(
+            EvaluationResult result,
+            boolean hasSession,
+            boolean hasClientChallenge,
+            boolean hasServerChallenge,
+            boolean hasPin,
+            boolean hasTimestamp,
+            long durationMillis) {
+        Map<String, Object> fields = new LinkedHashMap<>();
+        fields.put("suite", Objects.requireNonNullElse(result.suite(), "unknown"));
+        fields.put("hasCredentialReference", result.credentialReference());
+        fields.put("hasSessionPayload", hasSession);
+        fields.put("hasClientChallenge", hasClientChallenge);
+        fields.put("hasServerChallenge", hasServerChallenge);
+        fields.put("hasPin", hasPin);
+        fields.put("hasTimestamp", hasTimestamp);
+        fields.put("durationMillis", durationMillis);
+        return fields;
+    }
 
-      if (hasCredential && hasInline) {
-        throw new ValidationError(
-            "request",
-            "credential_conflict",
-            "Provide either credentialId or sharedSecretHex, not both");
-      }
-      if (!hasCredential && !hasInline) {
-        throw new ValidationError(
-            "request", "credential_missing", "credentialId or sharedSecretHex must be provided");
-      }
+    private static Map<String, Object> failureFields(
+            String suite,
+            boolean hasCredentialReference,
+            boolean hasSession,
+            boolean hasClientChallenge,
+            boolean hasServerChallenge,
+            boolean hasPin,
+            boolean hasTimestamp,
+            long durationMillis) {
+        Map<String, Object> fields = new LinkedHashMap<>();
+        fields.put("suite", Objects.requireNonNullElse(suite, "unknown"));
+        fields.put("hasCredentialReference", hasCredentialReference);
+        fields.put("hasSessionPayload", hasSession);
+        fields.put("hasClientChallenge", hasClientChallenge);
+        fields.put("hasServerChallenge", hasServerChallenge);
+        fields.put("hasPin", hasPin);
+        fields.put("hasTimestamp", hasTimestamp);
+        fields.put("durationMillis", durationMillis);
+        return fields;
+    }
 
-      if (hasCredential) {
-        EvaluationCommand command =
-            OcraEvaluationRequests.stored(
-                new OcraEvaluationRequests.StoredInputs(
-                    request.credentialId(),
+    private static void logEvaluation(Level level, TelemetryFrame frame) {
+        StringBuilder builder = new StringBuilder("event=rest.")
+                .append(frame.event())
+                .append(" status=")
+                .append(frame.status());
+
+        frame.fields()
+                .forEach((key, value) ->
+                        builder.append(' ').append(key).append('=').append(value));
+
+        LogRecord record = new LogRecord(level, builder.toString());
+        TELEMETRY_LOGGER.log(record);
+        for (Handler handler : TELEMETRY_LOGGER.getHandlers()) {
+            handler.publish(record);
+            handler.flush();
+        }
+    }
+
+    private static boolean hasCredentialReference(CommandEnvelope envelope, OcraEvaluationRequest raw) {
+        if (envelope != null) {
+            return envelope.credentialReference();
+        }
+        return hasText(raw.credentialId());
+    }
+
+    private static String suiteOrUnknown(CommandEnvelope envelope, OcraEvaluationRequest raw) {
+        if (envelope != null) {
+            NormalizedRequest normalized = envelope.normalized();
+            if (normalized instanceof NormalizedRequest.InlineSecret inline) {
+                return inline.suite();
+            }
+            if (envelope.requestedSuite() != null) {
+                return envelope.requestedSuite();
+            }
+        }
+        String suite = raw.suite();
+        return suite == null || suite.isBlank() ? "unknown" : suite.trim();
+    }
+
+    private static long toMillis(long started) {
+        return Duration.ofNanos(System.nanoTime() - started).toMillis();
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private String nextTelemetryId() {
+        return "rest-ocra-" + UUID.randomUUID();
+    }
+
+    private record CommandEnvelope(
+            EvaluationCommand command,
+            NormalizedRequest normalized,
+            boolean credentialReference,
+            String requestedSuite) {
+
+        static CommandEnvelope from(OcraEvaluationRequest request) {
+            boolean hasCredential = hasText(request.credentialId());
+            boolean hasInline = hasText(request.sharedSecretHex());
+
+            if (hasCredential && hasInline) {
+                throw new ValidationError(
+                        "request", "credential_conflict", "Provide either credentialId or sharedSecretHex, not both");
+            }
+            if (!hasCredential && !hasInline) {
+                throw new ValidationError(
+                        "request", "credential_missing", "credentialId or sharedSecretHex must be provided");
+            }
+
+            if (hasCredential) {
+                EvaluationCommand command = OcraEvaluationRequests.stored(new OcraEvaluationRequests.StoredInputs(
+                        request.credentialId(),
+                        request.challenge(),
+                        request.sessionHex(),
+                        request.clientChallenge(),
+                        request.serverChallenge(),
+                        request.pinHashHex(),
+                        request.timestampHex(),
+                        request.counter()));
+                NormalizedRequest normalized = OcraEvaluationApplicationService.NormalizedRequest.from(command);
+                return new CommandEnvelope(command, normalized, true, request.suite());
+            }
+
+            String suite = request.suite();
+            if (!hasText(suite)) {
+                throw new ValidationError("suite", "missing_required", "suite is required for inline mode");
+            }
+
+            String identifier = inlineIdentifier(request);
+            EvaluationCommand command = OcraEvaluationRequests.inline(new OcraEvaluationRequests.InlineInputs(
+                    identifier,
+                    suite,
+                    request.sharedSecretHex(),
                     request.challenge(),
                     request.sessionHex(),
                     request.clientChallenge(),
                     request.serverChallenge(),
                     request.pinHashHex(),
                     request.timestampHex(),
-                    request.counter()));
-        NormalizedRequest normalized =
-            OcraEvaluationApplicationService.NormalizedRequest.from(command);
-        return new CommandEnvelope(command, normalized, true, request.suite());
-      }
+                    request.counter(),
+                    null));
+            NormalizedRequest normalized = OcraEvaluationApplicationService.NormalizedRequest.from(command);
+            return new CommandEnvelope(command, normalized, false, suite);
+        }
 
-      String suite = request.suite();
-      if (!hasText(suite)) {
-        throw new ValidationError("suite", "missing_required", "suite is required for inline mode");
-      }
-
-      String identifier = inlineIdentifier(request);
-      EvaluationCommand command =
-          OcraEvaluationRequests.inline(
-              new OcraEvaluationRequests.InlineInputs(
-                  identifier,
-                  suite,
-                  request.sharedSecretHex(),
-                  request.challenge(),
-                  request.sessionHex(),
-                  request.clientChallenge(),
-                  request.serverChallenge(),
-                  request.pinHashHex(),
-                  request.timestampHex(),
-                  request.counter(),
-                  null));
-      NormalizedRequest normalized =
-          OcraEvaluationApplicationService.NormalizedRequest.from(command);
-      return new CommandEnvelope(command, normalized, false, suite);
+        private static String inlineIdentifier(OcraEvaluationRequest request) {
+            return OcraInlineIdentifiers.sharedIdentifier(request.suite(), request.sharedSecretHex());
+        }
     }
 
-    private static String inlineIdentifier(OcraEvaluationRequest request) {
-      return OcraInlineIdentifiers.sharedIdentifier(request.suite(), request.sharedSecretHex());
-    }
-  }
+    static final class ValidationError extends IllegalArgumentException {
+        private static final long serialVersionUID = 1L;
 
-  static final class ValidationError extends IllegalArgumentException {
-    private static final long serialVersionUID = 1L;
+        private final String field;
+        private final String reasonCode;
 
-    private final String field;
-    private final String reasonCode;
+        ValidationError(String field, String reasonCode, String message) {
+            super(message);
+            this.field = field;
+            this.reasonCode = reasonCode;
+        }
 
-    ValidationError(String field, String reasonCode, String message) {
-      super(message);
-      this.field = field;
-      this.reasonCode = reasonCode;
-    }
+        String field() {
+            return field;
+        }
 
-    String field() {
-      return field;
-    }
-
-    String reasonCode() {
-      return reasonCode;
-    }
-  }
-
-  record FailureDetails(String field, String reasonCode, String message, boolean sanitized) {
-
-    static FailureDetails from(EvaluationValidationException exception) {
-      return new FailureDetails(
-          exception.field(), exception.reasonCode(), exception.getMessage(), exception.sanitized());
+        String reasonCode() {
+            return reasonCode;
+        }
     }
 
-    static FailureDetails from(ValidationError error) {
-      return new FailureDetails(error.field(), error.reasonCode(), error.getMessage(), true);
-    }
+    record FailureDetails(String field, String reasonCode, String message, boolean sanitized) {
 
-    static FailureDetails fromIllegalArgument(String message) {
-      if (message == null || message.isBlank()) {
-        return new FailureDetails("request", "invalid_input", "Invalid input", true);
-      }
-      String trimmed = message.trim();
-      String lower = trimmed.toLowerCase(Locale.ROOT);
-      if (lower.contains("pin") && lower.contains("sha1") && lower.contains("40")) {
-        return new FailureDetails("pinHashHex", "pin_hash_mismatch", trimmed, true);
-      }
-      if (lower.contains("session") && lower.contains("required")) {
-        return new FailureDetails(
-            "sessionHex",
-            "session_required",
-            "sessionHex is required for the requested suite",
-            true);
-      }
-      if (lower.contains("session") && lower.contains("not permitted")) {
-        return new FailureDetails("sessionHex", "session_not_permitted", trimmed, true);
-      }
-      if (lower.contains("timestamp") && lower.contains("outside")) {
-        return new FailureDetails("timestampHex", "timestamp_drift_exceeded", trimmed, true);
-      }
-      if (lower.contains("timestamp") && lower.contains("not permitted")) {
-        return new FailureDetails("timestampHex", "timestamp_not_permitted", trimmed, true);
-      }
-      if (lower.contains("timestamp") && lower.contains("valid time")) {
-        return new FailureDetails("timestampHex", "timestamp_invalid", trimmed, true);
-      }
-      if (lower.contains("timestamphex") && lower.contains("hexadecimal")) {
-        return new FailureDetails("timestampHex", "timestamp_invalid", trimmed, true);
-      }
-      if (lower.contains("pin") && lower.contains("not permitted")) {
-        return new FailureDetails("pinHashHex", "pin_hash_not_permitted", trimmed, true);
-      }
-      if (lower.contains("pin") && lower.contains("required")) {
-        return new FailureDetails("pinHashHex", "pin_hash_required", trimmed, true);
-      }
-      if (lower.contains("counter") && lower.contains("required")) {
-        return new FailureDetails("counter", "counter_required", trimmed, true);
-      }
-      if (lower.contains("counter") && lower.contains("not permitted")) {
-        return new FailureDetails("counter", "counter_not_permitted", trimmed, true);
-      }
-      if (lower.contains("counter") && lower.contains("negative")) {
-        return new FailureDetails(
-            "counter", "counter_negative", "counter must be greater than or equal to zero", true);
-      }
-      if (lower.contains("countervalue") && lower.contains(">=")) {
-        return new FailureDetails(
-            "counter", "counter_negative", "counter must be greater than or equal to zero", true);
-      }
-      if (lower.contains("credential") && lower.contains("required")) {
-        return new FailureDetails("credentialId", "credential_missing", trimmed, true);
-      }
-      if (lower.contains("credentialid")
-          && lower.contains("sharedsecrethex")
-          && lower.contains("provided")) {
-        return new FailureDetails("credentialId", "credential_missing", trimmed, true);
-      }
-      if (lower.contains("sharedsecret") && lower.contains("required")) {
-        return new FailureDetails("sharedSecretHex", "missing_required", trimmed, true);
-      }
-      return new FailureDetails("request", "invalid_input", trimmed, true);
+        static FailureDetails from(EvaluationValidationException exception) {
+            return new FailureDetails(
+                    exception.field(), exception.reasonCode(), exception.getMessage(), exception.sanitized());
+        }
+
+        static FailureDetails from(ValidationError error) {
+            return new FailureDetails(error.field(), error.reasonCode(), error.getMessage(), true);
+        }
+
+        static FailureDetails fromIllegalArgument(String message) {
+            if (message == null || message.isBlank()) {
+                return new FailureDetails("request", "invalid_input", "Invalid input", true);
+            }
+            String trimmed = message.trim();
+            String lower = trimmed.toLowerCase(Locale.ROOT);
+            if (lower.contains("pin") && lower.contains("sha1") && lower.contains("40")) {
+                return new FailureDetails("pinHashHex", "pin_hash_mismatch", trimmed, true);
+            }
+            if (lower.contains("session") && lower.contains("required")) {
+                return new FailureDetails(
+                        "sessionHex", "session_required", "sessionHex is required for the requested suite", true);
+            }
+            if (lower.contains("session") && lower.contains("not permitted")) {
+                return new FailureDetails("sessionHex", "session_not_permitted", trimmed, true);
+            }
+            if (lower.contains("timestamp") && lower.contains("outside")) {
+                return new FailureDetails("timestampHex", "timestamp_drift_exceeded", trimmed, true);
+            }
+            if (lower.contains("timestamp") && lower.contains("not permitted")) {
+                return new FailureDetails("timestampHex", "timestamp_not_permitted", trimmed, true);
+            }
+            if (lower.contains("timestamp") && lower.contains("valid time")) {
+                return new FailureDetails("timestampHex", "timestamp_invalid", trimmed, true);
+            }
+            if (lower.contains("timestamphex") && lower.contains("hexadecimal")) {
+                return new FailureDetails("timestampHex", "timestamp_invalid", trimmed, true);
+            }
+            if (lower.contains("pin") && lower.contains("not permitted")) {
+                return new FailureDetails("pinHashHex", "pin_hash_not_permitted", trimmed, true);
+            }
+            if (lower.contains("pin") && lower.contains("required")) {
+                return new FailureDetails("pinHashHex", "pin_hash_required", trimmed, true);
+            }
+            if (lower.contains("counter") && lower.contains("required")) {
+                return new FailureDetails("counter", "counter_required", trimmed, true);
+            }
+            if (lower.contains("counter") && lower.contains("not permitted")) {
+                return new FailureDetails("counter", "counter_not_permitted", trimmed, true);
+            }
+            if (lower.contains("counter") && lower.contains("negative")) {
+                return new FailureDetails(
+                        "counter", "counter_negative", "counter must be greater than or equal to zero", true);
+            }
+            if (lower.contains("countervalue") && lower.contains(">=")) {
+                return new FailureDetails(
+                        "counter", "counter_negative", "counter must be greater than or equal to zero", true);
+            }
+            if (lower.contains("credential") && lower.contains("required")) {
+                return new FailureDetails("credentialId", "credential_missing", trimmed, true);
+            }
+            if (lower.contains("credentialid") && lower.contains("sharedsecrethex") && lower.contains("provided")) {
+                return new FailureDetails("credentialId", "credential_missing", trimmed, true);
+            }
+            if (lower.contains("sharedsecret") && lower.contains("required")) {
+                return new FailureDetails("sharedSecretHex", "missing_required", trimmed, true);
+            }
+            return new FailureDetails("request", "invalid_input", trimmed, true);
+        }
     }
-  }
 }

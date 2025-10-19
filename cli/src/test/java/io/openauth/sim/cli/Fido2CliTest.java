@@ -27,12 +27,12 @@ import picocli.CommandLine;
 @Tag("cli")
 final class Fido2CliTest {
 
-  private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
+    private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
 
-  @TempDir Path tempDir;
+    @TempDir
+    Path tempDir;
 
-  private static final String PRIVATE_KEY_JWK =
-      """
+    private static final String PRIVATE_KEY_JWK = """
       {
         "kty":"EC",
         "crv":"P-256",
@@ -42,283 +42,271 @@ final class Fido2CliTest {
       }
       """;
 
-  @Test
-  void evaluateStoredCredentialGeneratesAssertion() throws Exception {
-    Path database = tempDir.resolve("fido2.db");
-    CommandHarness harness = CommandHarness.create(database);
+    @Test
+    void evaluateStoredCredentialGeneratesAssertion() throws Exception {
+        Path database = tempDir.resolve("fido2.db");
+        CommandHarness harness = CommandHarness.create(database);
 
-    WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
-    harness.save("fido2-packed-es256", fixture, WebAuthnSignatureAlgorithm.ES256);
+        WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
+        harness.save("fido2-packed-es256", fixture, WebAuthnSignatureAlgorithm.ES256);
 
-    Path privateKeyFile = tempDir.resolve("private-key.json");
-    java.nio.file.Files.writeString(privateKeyFile, PRIVATE_KEY_JWK, StandardCharsets.UTF_8);
+        Path privateKeyFile = tempDir.resolve("private-key.json");
+        java.nio.file.Files.writeString(privateKeyFile, PRIVATE_KEY_JWK, StandardCharsets.UTF_8);
 
-    int exitCode =
-        harness.execute(
-            "evaluate",
-            "--credential-id",
-            "fido2-packed-es256",
-            "--relying-party-id",
-            "example.org",
-            "--origin",
-            "https://example.org",
-            "--type",
-            "webauthn.get",
-            "--challenge",
-            encode(fixture.request().expectedChallenge()),
-            "--signature-counter",
-            Long.toString(fixture.storedCredential().signatureCounter()),
-            "--user-verification-required",
-            Boolean.toString(fixture.storedCredential().userVerificationRequired()),
-            "--private-key-file",
-            privateKeyFile.toString());
+        int exitCode = harness.execute(
+                "evaluate",
+                "--credential-id",
+                "fido2-packed-es256",
+                "--relying-party-id",
+                "example.org",
+                "--origin",
+                "https://example.org",
+                "--type",
+                "webauthn.get",
+                "--challenge",
+                encode(fixture.request().expectedChallenge()),
+                "--signature-counter",
+                Long.toString(fixture.storedCredential().signatureCounter()),
+                "--user-verification-required",
+                Boolean.toString(fixture.storedCredential().userVerificationRequired()),
+                "--private-key-file",
+                privateKeyFile.toString());
 
-    assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
-    String stdout = harness.stdout();
-    assertTrue(stdout.contains("event=cli.fido2.evaluate status=success"));
-    assertTrue(stdout.contains("\"type\":\"public-key\""));
-    assertTrue(stdout.contains("\"clientDataJSON\""));
-    assertFalse(stdout.contains("\"relyingPartyId\""));
-    assertFalse(stdout.contains("\"origin\""));
-    assertTrue(stdout.contains("credentialSource=stored"));
-  }
-
-  @Test
-  void evaluateInlineGeneratesAssertion() throws Exception {
-    Path database = tempDir.resolve("fido2.db");
-    CommandHarness harness = CommandHarness.create(database);
-
-    WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
-
-    Path privateKeyFile = tempDir.resolve("inline-private-key.json");
-    java.nio.file.Files.writeString(privateKeyFile, PRIVATE_KEY_JWK, StandardCharsets.UTF_8);
-
-    int exitCode =
-        harness.execute(
-            "evaluate-inline",
-            "--relying-party-id",
-            "example.org",
-            "--origin",
-            "https://example.org",
-            "--type",
-            "webauthn.get",
-            "--credential-id",
-            encode(fixture.storedCredential().credentialId()),
-            "--signature-counter",
-            Long.toString(fixture.storedCredential().signatureCounter()),
-            "--user-verification-required",
-            "false",
-            "--algorithm",
-            "ES256",
-            "--challenge",
-            encode(fixture.request().expectedChallenge()),
-            "--private-key-file",
-            privateKeyFile.toString());
-
-    assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
-    String stdout = harness.stdout();
-    assertTrue(stdout.contains("event=cli.fido2.evaluate status=success"));
-    assertTrue(stdout.contains("\"type\":\"public-key\""));
-    assertTrue(stdout.contains("credentialSource=inline"));
-  }
-
-  @Test
-  void replayStoredDelegatesToEvaluation() throws Exception {
-    Path database = tempDir.resolve("fido2.db");
-    CommandHarness harness = CommandHarness.create(database);
-
-    WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
-    harness.save("fido2-packed-es256", fixture, WebAuthnSignatureAlgorithm.ES256);
-
-    int exitCode =
-        harness.execute(
-            "replay",
-            "--credential-id",
-            "fido2-packed-es256",
-            "--relying-party-id",
-            "example.org",
-            "--origin",
-            "https://example.org",
-            "--type",
-            "webauthn.get",
-            "--expected-challenge",
-            encode(fixture.request().expectedChallenge()),
-            "--client-data",
-            encode(fixture.request().clientDataJson()),
-            "--authenticator-data",
-            encode(fixture.request().authenticatorData()),
-            "--signature",
-            encode(fixture.request().signature()));
-
-    assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
-    String stdout = harness.stdout();
-    assertTrue(stdout.contains("event=cli.fido2.replay status=success"));
-    assertTrue(stdout.contains("credentialReference=true"));
-    assertTrue(stdout.contains("credentialSource=stored"));
-  }
-
-  @Test
-  void vectorsCommandListsJsonBundleEntries() {
-    Path database = tempDir.resolve("fido2.db");
-    CommandHarness harness = CommandHarness.create(database);
-
-    int exitCode = harness.execute("vectors");
-
-    assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
-    String output = harness.stdout();
-    assertTrue(output.contains("vectorId"));
-    assertTrue(output.contains("ES256"));
-  }
-
-  @Test
-  void evaluateStoredLoadsPresetDefaults() throws Exception {
-    Path database = tempDir.resolve("fido2.db");
-    CommandHarness harness = CommandHarness.create(database);
-
-    Sample sample = WebAuthnGeneratorSamples.samples().get(0);
-    harness.save(sample);
-
-    int exitCode = harness.execute("evaluate", "--preset-id", sample.key());
-
-    assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
-    String stdout = harness.stdout();
-    assertTrue(stdout.contains("event=cli.fido2.evaluate status=success"));
-    assertTrue(stdout.contains("\"type\":\"public-key\""));
-  }
-
-  @Test
-  void evaluateInlineLoadsPresetDefaults() {
-    Path database = tempDir.resolve("fido2.db");
-    CommandHarness harness = CommandHarness.create(database);
-
-    Sample sample = WebAuthnGeneratorSamples.samples().get(0);
-
-    int exitCode = harness.execute("evaluate-inline", "--preset-id", sample.key());
-
-    assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
-    assertTrue(harness.stdout().contains("\"type\":\"public-key\""));
-  }
-
-  @Test
-  void evaluateInlineRejectsInvalidPrivateKey() throws Exception {
-    Path database = tempDir.resolve("fido2.db");
-    CommandHarness harness = CommandHarness.create(database);
-
-    Path invalidKeyFile = tempDir.resolve("invalid-key.json");
-    java.nio.file.Files.writeString(
-        invalidKeyFile,
-        "{\"kty\":\"EC\",\"crv\":\"P-256\",\"d\":\"invalid\"}",
-        StandardCharsets.UTF_8);
-
-    WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
-
-    int exitCode =
-        harness.execute(
-            "evaluate-inline",
-            "--relying-party-id",
-            "example.org",
-            "--origin",
-            "https://example.org",
-            "--type",
-            "webauthn.get",
-            "--credential-id",
-            encode(fixture.storedCredential().credentialId()),
-            "--signature-counter",
-            Long.toString(fixture.storedCredential().signatureCounter()),
-            "--user-verification-required",
-            "false",
-            "--algorithm",
-            "ES256",
-            "--challenge",
-            encode(fixture.request().expectedChallenge()),
-            "--private-key-file",
-            invalidKeyFile.toString());
-
-    assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=private_key_invalid"));
-  }
-
-  private static String encode(byte[] value) {
-    return URL_ENCODER.encodeToString(value);
-  }
-
-  private static final class CommandHarness {
-
-    private final Fido2Cli cli;
-    private final CommandLine commandLine;
-    private final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-    private final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-    private final Path database;
-
-    private CommandHarness(Path database) {
-      this.database = database;
-      this.cli = new Fido2Cli();
-      cli.overrideDatabase(database);
-      this.commandLine = new CommandLine(cli);
-      commandLine.setOut(new PrintWriter(stdout, true, StandardCharsets.UTF_8));
-      commandLine.setErr(new PrintWriter(stderr, true, StandardCharsets.UTF_8));
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("event=cli.fido2.evaluate status=success"));
+        assertTrue(stdout.contains("\"type\":\"public-key\""));
+        assertTrue(stdout.contains("\"clientDataJSON\""));
+        assertFalse(stdout.contains("\"relyingPartyId\""));
+        assertFalse(stdout.contains("\"origin\""));
+        assertTrue(stdout.contains("credentialSource=stored"));
     }
 
-    static CommandHarness create(Path database) {
-      return new CommandHarness(database);
+    @Test
+    void evaluateInlineGeneratesAssertion() throws Exception {
+        Path database = tempDir.resolve("fido2.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
+
+        Path privateKeyFile = tempDir.resolve("inline-private-key.json");
+        java.nio.file.Files.writeString(privateKeyFile, PRIVATE_KEY_JWK, StandardCharsets.UTF_8);
+
+        int exitCode = harness.execute(
+                "evaluate-inline",
+                "--relying-party-id",
+                "example.org",
+                "--origin",
+                "https://example.org",
+                "--type",
+                "webauthn.get",
+                "--credential-id",
+                encode(fixture.storedCredential().credentialId()),
+                "--signature-counter",
+                Long.toString(fixture.storedCredential().signatureCounter()),
+                "--user-verification-required",
+                "false",
+                "--algorithm",
+                "ES256",
+                "--challenge",
+                encode(fixture.request().expectedChallenge()),
+                "--private-key-file",
+                privateKeyFile.toString());
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("event=cli.fido2.evaluate status=success"));
+        assertTrue(stdout.contains("\"type\":\"public-key\""));
+        assertTrue(stdout.contains("credentialSource=inline"));
     }
 
-    int execute(String... args) {
-      stdout.reset();
-      stderr.reset();
-      return commandLine.execute(args);
+    @Test
+    void replayStoredDelegatesToEvaluation() throws Exception {
+        Path database = tempDir.resolve("fido2.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
+        harness.save("fido2-packed-es256", fixture, WebAuthnSignatureAlgorithm.ES256);
+
+        int exitCode = harness.execute(
+                "replay",
+                "--credential-id",
+                "fido2-packed-es256",
+                "--relying-party-id",
+                "example.org",
+                "--origin",
+                "https://example.org",
+                "--type",
+                "webauthn.get",
+                "--expected-challenge",
+                encode(fixture.request().expectedChallenge()),
+                "--client-data",
+                encode(fixture.request().clientDataJson()),
+                "--authenticator-data",
+                encode(fixture.request().authenticatorData()),
+                "--signature",
+                encode(fixture.request().signature()));
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("event=cli.fido2.replay status=success"));
+        assertTrue(stdout.contains("credentialReference=true"));
+        assertTrue(stdout.contains("credentialSource=stored"));
     }
 
-    String stdout() {
-      return stdout.toString(StandardCharsets.UTF_8);
+    @Test
+    void vectorsCommandListsJsonBundleEntries() {
+        Path database = tempDir.resolve("fido2.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        int exitCode = harness.execute("vectors");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String output = harness.stdout();
+        assertTrue(output.contains("vectorId"));
+        assertTrue(output.contains("ES256"));
     }
 
-    String stderr() {
-      return stderr.toString(StandardCharsets.UTF_8);
+    @Test
+    void evaluateStoredLoadsPresetDefaults() throws Exception {
+        Path database = tempDir.resolve("fido2.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        Sample sample = WebAuthnGeneratorSamples.samples().get(0);
+        harness.save(sample);
+
+        int exitCode = harness.execute("evaluate", "--preset-id", sample.key());
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("event=cli.fido2.evaluate status=success"));
+        assertTrue(stdout.contains("\"type\":\"public-key\""));
     }
 
-    void save(String credentialName, WebAuthnFixture fixture, WebAuthnSignatureAlgorithm algorithm)
-        throws Exception {
-      WebAuthnCredentialDescriptor descriptor =
-          WebAuthnCredentialDescriptor.builder()
-              .name(credentialName)
-              .relyingPartyId(fixture.storedCredential().relyingPartyId())
-              .credentialId(fixture.storedCredential().credentialId())
-              .publicKeyCose(fixture.storedCredential().publicKeyCose())
-              .signatureCounter(fixture.storedCredential().signatureCounter())
-              .userVerificationRequired(fixture.storedCredential().userVerificationRequired())
-              .algorithm(algorithm)
-              .build();
+    @Test
+    void evaluateInlineLoadsPresetDefaults() {
+        Path database = tempDir.resolve("fido2.db");
+        CommandHarness harness = CommandHarness.create(database);
 
-      try (CredentialStore store = CredentialStoreFactory.openFileStore(database)) {
-        Credential credential =
-            VersionedCredentialRecordMapper.toCredential(
-                new io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter()
-                    .serialize(descriptor));
-        store.save(credential);
-      }
+        Sample sample = WebAuthnGeneratorSamples.samples().get(0);
+
+        int exitCode = harness.execute("evaluate-inline", "--preset-id", sample.key());
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        assertTrue(harness.stdout().contains("\"type\":\"public-key\""));
     }
 
-    void save(Sample sample) throws Exception {
-      WebAuthnCredentialDescriptor descriptor =
-          WebAuthnCredentialDescriptor.builder()
-              .name(sample.key())
-              .relyingPartyId(sample.relyingPartyId())
-              .credentialId(sample.credentialId())
-              .publicKeyCose(sample.publicKeyCose())
-              .signatureCounter(sample.signatureCounter())
-              .userVerificationRequired(sample.userVerificationRequired())
-              .algorithm(sample.algorithm())
-              .build();
+    @Test
+    void evaluateInlineRejectsInvalidPrivateKey() throws Exception {
+        Path database = tempDir.resolve("fido2.db");
+        CommandHarness harness = CommandHarness.create(database);
 
-      try (CredentialStore store = CredentialStoreFactory.openFileStore(database)) {
-        Credential credential =
-            VersionedCredentialRecordMapper.toCredential(
-                new io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter()
-                    .serialize(descriptor));
-        store.save(credential);
-      }
+        Path invalidKeyFile = tempDir.resolve("invalid-key.json");
+        java.nio.file.Files.writeString(
+                invalidKeyFile, "{\"kty\":\"EC\",\"crv\":\"P-256\",\"d\":\"invalid\"}", StandardCharsets.UTF_8);
+
+        WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
+
+        int exitCode = harness.execute(
+                "evaluate-inline",
+                "--relying-party-id",
+                "example.org",
+                "--origin",
+                "https://example.org",
+                "--type",
+                "webauthn.get",
+                "--credential-id",
+                encode(fixture.storedCredential().credentialId()),
+                "--signature-counter",
+                Long.toString(fixture.storedCredential().signatureCounter()),
+                "--user-verification-required",
+                "false",
+                "--algorithm",
+                "ES256",
+                "--challenge",
+                encode(fixture.request().expectedChallenge()),
+                "--private-key-file",
+                invalidKeyFile.toString());
+
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode);
+        String stderr = harness.stderr();
+        assertTrue(stderr.contains("reasonCode=private_key_invalid"));
     }
-  }
+
+    private static String encode(byte[] value) {
+        return URL_ENCODER.encodeToString(value);
+    }
+
+    private static final class CommandHarness {
+
+        private final Fido2Cli cli;
+        private final CommandLine commandLine;
+        private final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        private final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        private final Path database;
+
+        private CommandHarness(Path database) {
+            this.database = database;
+            this.cli = new Fido2Cli();
+            cli.overrideDatabase(database);
+            this.commandLine = new CommandLine(cli);
+            commandLine.setOut(new PrintWriter(stdout, true, StandardCharsets.UTF_8));
+            commandLine.setErr(new PrintWriter(stderr, true, StandardCharsets.UTF_8));
+        }
+
+        static CommandHarness create(Path database) {
+            return new CommandHarness(database);
+        }
+
+        int execute(String... args) {
+            stdout.reset();
+            stderr.reset();
+            return commandLine.execute(args);
+        }
+
+        String stdout() {
+            return stdout.toString(StandardCharsets.UTF_8);
+        }
+
+        String stderr() {
+            return stderr.toString(StandardCharsets.UTF_8);
+        }
+
+        void save(String credentialName, WebAuthnFixture fixture, WebAuthnSignatureAlgorithm algorithm)
+                throws Exception {
+            WebAuthnCredentialDescriptor descriptor = WebAuthnCredentialDescriptor.builder()
+                    .name(credentialName)
+                    .relyingPartyId(fixture.storedCredential().relyingPartyId())
+                    .credentialId(fixture.storedCredential().credentialId())
+                    .publicKeyCose(fixture.storedCredential().publicKeyCose())
+                    .signatureCounter(fixture.storedCredential().signatureCounter())
+                    .userVerificationRequired(fixture.storedCredential().userVerificationRequired())
+                    .algorithm(algorithm)
+                    .build();
+
+            try (CredentialStore store = CredentialStoreFactory.openFileStore(database)) {
+                Credential credential = VersionedCredentialRecordMapper.toCredential(
+                        new io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter().serialize(descriptor));
+                store.save(credential);
+            }
+        }
+
+        void save(Sample sample) throws Exception {
+            WebAuthnCredentialDescriptor descriptor = WebAuthnCredentialDescriptor.builder()
+                    .name(sample.key())
+                    .relyingPartyId(sample.relyingPartyId())
+                    .credentialId(sample.credentialId())
+                    .publicKeyCose(sample.publicKeyCose())
+                    .signatureCounter(sample.signatureCounter())
+                    .userVerificationRequired(sample.userVerificationRequired())
+                    .algorithm(sample.algorithm())
+                    .build();
+
+            try (CredentialStore store = CredentialStoreFactory.openFileStore(database)) {
+                Credential credential = VersionedCredentialRecordMapper.toCredential(
+                        new io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter().serialize(descriptor));
+                store.save(credential);
+            }
+        }
+    }
 }

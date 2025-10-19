@@ -16,43 +16,43 @@ import org.junit.jupiter.api.Test;
 @Tag("architecture")
 final class OcraArchitectureTest {
 
-  private static final String BASE_PACKAGE = "io.openauth.sim.core";
-  private static final String OCRA_PACKAGE = BASE_PACKAGE + ".credentials.ocra";
+    private static final String BASE_PACKAGE = "io.openauth.sim.core";
+    private static final String OCRA_PACKAGE = BASE_PACKAGE + ".credentials.ocra";
 
-  @Test
-  @DisplayName("Only approved packages may depend on OCRA internals")
-  void onlyApprovedPackagesTouchOcraPackage() {
-    JavaClasses imported = new ClassFileImporter().importPackages(BASE_PACKAGE);
+    @Test
+    @DisplayName("Only approved packages may depend on OCRA internals")
+    void onlyApprovedPackagesTouchOcraPackage() {
+        JavaClasses imported = new ClassFileImporter().importPackages(BASE_PACKAGE);
 
-    ArchRuleDefinition.classes()
-        .that()
-        .resideInAPackage(OCRA_PACKAGE)
-        .should()
-        .onlyBeAccessed()
-        .byAnyPackage(
-            OCRA_PACKAGE,
-            BASE_PACKAGE + ".credentials..",
-            BASE_PACKAGE + ".credentials.registry..",
-            BASE_PACKAGE + ".store..",
-            BASE_PACKAGE + ".model..")
-        .check(imported);
-  }
+        ArchRuleDefinition.classes()
+                .that()
+                .resideInAPackage(OCRA_PACKAGE)
+                .should()
+                .onlyBeAccessed()
+                .byAnyPackage(
+                        OCRA_PACKAGE,
+                        BASE_PACKAGE + ".credentials..",
+                        BASE_PACKAGE + ".credentials.registry..",
+                        BASE_PACKAGE + ".store..",
+                        BASE_PACKAGE + ".model..")
+                .check(imported);
+    }
 
-  @Test
-  @DisplayName("OCRA package does not depend on other protocol packages")
-  void ocraPackageDoesNotDependOnOtherProtocolPackages() {
-    JavaClasses imported = new ClassFileImporter().importPackages(BASE_PACKAGE);
+    @Test
+    @DisplayName("OCRA package does not depend on other protocol packages")
+    void ocraPackageDoesNotDependOnOtherProtocolPackages() {
+        JavaClasses imported = new ClassFileImporter().importPackages(BASE_PACKAGE);
 
-    ArchRuleDefinition.noClasses()
-        .that()
-        .resideInAPackage(OCRA_PACKAGE)
-        .should()
-        .dependOnClassesThat()
-        .resideInAnyPackage(
-            BASE_PACKAGE + ".credentials.fido2",
-            BASE_PACKAGE + ".credentials.eudiw",
-            BASE_PACKAGE + ".credentials.emvcap")
-        .because("protocol packages must remain isolated")
-        .check(imported);
-  }
+        ArchRuleDefinition.noClasses()
+                .that()
+                .resideInAPackage(OCRA_PACKAGE)
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        BASE_PACKAGE + ".credentials.fido2",
+                        BASE_PACKAGE + ".credentials.eudiw",
+                        BASE_PACKAGE + ".credentials.emvcap")
+                .because("protocol packages must remain isolated")
+                .check(imported);
+    }
 }

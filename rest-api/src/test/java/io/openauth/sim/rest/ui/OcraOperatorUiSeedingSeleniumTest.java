@@ -30,118 +30,115 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 final class OcraOperatorUiSeedingSeleniumTest {
 
-  private static final List<String> CANONICAL_SUITES =
-      OcraOperatorSampleData.seedDefinitions().stream()
-          .map(SampleDefinition::suite)
-          .distinct()
-          .toList();
+    private static final List<String> CANONICAL_SUITES = OcraOperatorSampleData.seedDefinitions().stream()
+            .map(SampleDefinition::suite)
+            .distinct()
+            .toList();
 
-  @TempDir static Path tempDir;
-  private static Path databasePath;
+    @TempDir
+    static Path tempDir;
 
-  @DynamicPropertySource
-  static void configurePersistence(DynamicPropertyRegistry registry) {
-    databasePath = tempDir.resolve("operator-ui-seed.db");
-    registry.add(
-        "openauth.sim.persistence.database-path", () -> databasePath.toAbsolutePath().toString());
-    registry.add("openauth.sim.persistence.enable-store", () -> "true");
-  }
+    private static Path databasePath;
 
-  @LocalServerPort private int port;
-
-  @Autowired private CredentialStore credentialStore;
-
-  private HtmlUnitDriver driver;
-
-  @BeforeEach
-  void setUp() {
-    credentialStore.findAll().forEach(credential -> credentialStore.delete(credential.name()));
-    driver = new HtmlUnitDriver(true);
-    driver.setJavascriptEnabled(true);
-    driver.getWebClient().getOptions().setFetchPolyfillEnabled(true);
-    driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));
-    driver.getWebClient().getOptions().setThrowExceptionOnScriptError(true);
-  }
-
-  @AfterEach
-  void tearDown() {
-    if (driver != null) {
-      driver.quit();
+    @DynamicPropertySource
+    static void configurePersistence(DynamicPropertyRegistry registry) {
+        databasePath = tempDir.resolve("operator-ui-seed.db");
+        registry.add(
+                "openauth.sim.persistence.database-path",
+                () -> databasePath.toAbsolutePath().toString());
+        registry.add("openauth.sim.persistence.enable-store", () -> "true");
     }
-  }
 
-  @Test
-  @DisplayName("Operator can seed canonical stored credentials when registry empty")
-  void operatorSeedsCanonicalStoredCredentials() {
-    driver.get(baseUrl("/ui/console"));
+    @LocalServerPort
+    private int port;
 
-    WebElement storedModeRadio =
+    @Autowired
+    private CredentialStore credentialStore;
+
+    private HtmlUnitDriver driver;
+
+    @BeforeEach
+    void setUp() {
+        credentialStore.findAll().forEach(credential -> credentialStore.delete(credential.name()));
+        driver = new HtmlUnitDriver(true);
+        driver.setJavascriptEnabled(true);
+        driver.getWebClient().getOptions().setFetchPolyfillEnabled(true);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));
+        driver.getWebClient().getOptions().setThrowExceptionOnScriptError(true);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (driver != null) {
+            driver.quit();
+        }
+    }
+
+    @Test
+    @DisplayName("Operator can seed canonical stored credentials when registry empty")
+    void operatorSeedsCanonicalStoredCredentials() {
+        driver.get(baseUrl("/ui/console"));
+
+        WebElement storedModeRadio = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.elementToBeClickable(By.id("mode-credential")));
+        storedModeRadio.click();
+
+        WebElement seedButton = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.elementToBeClickable(
+                        By.cssSelector("button[data-testid='ocra-seed-credentials']")));
+
+        WebElement seedHint = driver.findElement(By.cssSelector("[data-testid='ocra-seed-hint']"));
+        String seedHintText = seedHint.getDomProperty("textContent");
+        if (seedHintText == null) {
+            seedHintText = seedHint.getAttribute("textContent");
+        }
+        assertThat(seedHintText).contains("Adds canonical demo credentials");
+
+        WebElement seedStatus = driver.findElement(By.cssSelector("[data-testid='ocra-seed-status']"));
+        assertThat(seedStatus.getAttribute("hidden")).isNotNull();
+
+        Select storedSelect =
+                new Select(driver.findElement(By.cssSelector("select[data-testid='stored-credential-select']")));
+        assertThat(storedSelect.getOptions()).hasSize(1);
+
+        seedButton.click();
+        waitForBackgroundJavaScript();
+
         new WebDriverWait(driver, Duration.ofSeconds(5))
-            .until(ExpectedConditions.elementToBeClickable(By.id("mode-credential")));
-    storedModeRadio.click();
+                .until(webDriver -> storedSelect.getOptions().size() == CANONICAL_SUITES.size() + 1);
 
-    WebElement seedButton =
+        Set<String> storedSuites = credentialStore.findAll().stream()
+                .map(credential -> credential.attributes().get(OcraCredentialPersistenceAdapter.ATTR_SUITE))
+                .collect(Collectors.toSet());
+        assertThat(storedSuites).containsExactlyInAnyOrderElementsOf(CANONICAL_SUITES);
+
+        seedButton.click();
+        waitForBackgroundJavaScript();
+
         new WebDriverWait(driver, Duration.ofSeconds(5))
-            .until(
-                ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("button[data-testid='ocra-seed-credentials']")));
+                .until(webDriver -> storedSelect.getOptions().size() == CANONICAL_SUITES.size() + 1);
 
-    WebElement seedHint = driver.findElement(By.cssSelector("[data-testid='ocra-seed-hint']"));
-    String seedHintText = seedHint.getDomProperty("textContent");
-    if (seedHintText == null) {
-      seedHintText = seedHint.getAttribute("textContent");
+        String statusMessage = seedStatus.getDomProperty("textContent");
+        if (statusMessage == null) {
+            statusMessage = seedStatus.getAttribute("textContent");
+        }
+        assertThat(statusMessage).contains("Seeded");
+        assertThat(seedStatus.getAttribute("hidden")).isNull();
+        assertThat(seedStatus.getAttribute("class")).contains("credential-status--warning");
+        assertThat(seedStatus.getAttribute("class")).doesNotContain("credential-status--error");
+
+        String finalHintText = seedHint.getDomProperty("textContent");
+        if (finalHintText == null) {
+            finalHintText = seedHint.getAttribute("textContent");
+        }
+        assertThat(finalHintText).isEqualTo(seedHintText);
     }
-    assertThat(seedHintText).contains("Adds canonical demo credentials");
 
-    WebElement seedStatus = driver.findElement(By.cssSelector("[data-testid='ocra-seed-status']"));
-    assertThat(seedStatus.getAttribute("hidden")).isNotNull();
-
-    Select storedSelect =
-        new Select(
-            driver.findElement(By.cssSelector("select[data-testid='stored-credential-select']")));
-    assertThat(storedSelect.getOptions()).hasSize(1);
-
-    seedButton.click();
-    waitForBackgroundJavaScript();
-
-    new WebDriverWait(driver, Duration.ofSeconds(5))
-        .until(webDriver -> storedSelect.getOptions().size() == CANONICAL_SUITES.size() + 1);
-
-    Set<String> storedSuites =
-        credentialStore.findAll().stream()
-            .map(
-                credential ->
-                    credential.attributes().get(OcraCredentialPersistenceAdapter.ATTR_SUITE))
-            .collect(Collectors.toSet());
-    assertThat(storedSuites).containsExactlyInAnyOrderElementsOf(CANONICAL_SUITES);
-
-    seedButton.click();
-    waitForBackgroundJavaScript();
-
-    new WebDriverWait(driver, Duration.ofSeconds(5))
-        .until(webDriver -> storedSelect.getOptions().size() == CANONICAL_SUITES.size() + 1);
-
-    String statusMessage = seedStatus.getDomProperty("textContent");
-    if (statusMessage == null) {
-      statusMessage = seedStatus.getAttribute("textContent");
+    private void waitForBackgroundJavaScript() {
+        driver.getWebClient().waitForBackgroundJavaScript(Duration.ofSeconds(2).toMillis());
     }
-    assertThat(statusMessage).contains("Seeded");
-    assertThat(seedStatus.getAttribute("hidden")).isNull();
-    assertThat(seedStatus.getAttribute("class")).contains("credential-status--warning");
-    assertThat(seedStatus.getAttribute("class")).doesNotContain("credential-status--error");
 
-    String finalHintText = seedHint.getDomProperty("textContent");
-    if (finalHintText == null) {
-      finalHintText = seedHint.getAttribute("textContent");
+    private String baseUrl(String path) {
+        return "http://localhost:" + port + path;
     }
-    assertThat(finalHintText).isEqualTo(seedHintText);
-  }
-
-  private void waitForBackgroundJavaScript() {
-    driver.getWebClient().waitForBackgroundJavaScript(Duration.ofSeconds(2).toMillis());
-  }
-
-  private String baseUrl(String path) {
-    return "http://localhost:" + port + path;
-  }
 }

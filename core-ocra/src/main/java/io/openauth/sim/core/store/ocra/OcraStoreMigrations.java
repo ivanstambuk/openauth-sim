@@ -10,16 +10,16 @@ import java.util.Objects;
  */
 public final class OcraStoreMigrations {
 
-  private OcraStoreMigrations() {
-    throw new AssertionError("No instances");
-  }
+    private OcraStoreMigrations() {
+        throw new AssertionError("No instances");
+    }
 
-  /**
-   * Return the supplied builder after verifying it is non-null so facades keep a single entry point
-   * for future schema adjustments.
-   */
-  public static MapDbCredentialStore.Builder apply(MapDbCredentialStore.Builder builder) {
-    Objects.requireNonNull(builder, "builder");
-    return builder;
-  }
+    /**
+     * Return the supplied builder after verifying it is non-null so facades keep a single entry point
+     * for future schema adjustments.
+     */
+    public static MapDbCredentialStore.Builder apply(MapDbCredentialStore.Builder builder) {
+        Objects.requireNonNull(builder, "builder");
+        return builder;
+    }
 }

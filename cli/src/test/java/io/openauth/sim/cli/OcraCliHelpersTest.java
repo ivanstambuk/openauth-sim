@@ -17,49 +17,48 @@ import picocli.CommandLine;
  */
 final class OcraCliHelpersTest {
 
-  @Test
-  void callDisplaysUsageAndReturnsUsageExitCode() {
-    OcraCli cli = new OcraCli();
-    CommandLine commandLine = new CommandLine(cli);
+    @Test
+    void callDisplaysUsageAndReturnsUsageExitCode() {
+        OcraCli cli = new OcraCli();
+        CommandLine commandLine = new CommandLine(cli);
 
-    ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-    commandLine.setOut(new PrintWriter(stdout, true, StandardCharsets.UTF_8));
+        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        commandLine.setOut(new PrintWriter(stdout, true, StandardCharsets.UTF_8));
 
-    int exitCode = commandLine.execute();
+        int exitCode = commandLine.execute();
 
-    assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    String renderedUsage = stdout.toString(StandardCharsets.UTF_8);
-    assertTrue(renderedUsage.contains("Manage OCRA credentials"));
-    assertTrue(renderedUsage.contains("ocra"));
-  }
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode);
+        String renderedUsage = stdout.toString(StandardCharsets.UTF_8);
+        assertTrue(renderedUsage.contains("Manage OCRA credentials"));
+        assertTrue(renderedUsage.contains("ocra"));
+    }
 
-  @Test
-  void emitSkipsBlankReasonCodeAndFieldValues() {
-    OcraCli cli = new OcraCli();
+    @Test
+    void emitSkipsBlankReasonCodeAndFieldValues() {
+        OcraCli cli = new OcraCli();
 
-    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-    PrintWriter writer = new PrintWriter(buffer, true, StandardCharsets.UTF_8);
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        PrintWriter writer = new PrintWriter(buffer, true, StandardCharsets.UTF_8);
 
-    Map<String, String> fields = new LinkedHashMap<>();
-    fields.put("emptyField", "   ");
-    fields.put("valueField", "  present  ");
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("emptyField", "   ");
+        fields.put("valueField", "  present  ");
 
-    cli.emit(writer, "cli.ocra.test", "success", "   ", true, fields);
+        cli.emit(writer, "cli.ocra.test", "success", "   ", true, fields);
 
-    Map<String, String> telemetry =
-        TelemetryOutputAssertions.telemetryLine(
-            buffer.toString(StandardCharsets.UTF_8), "cli.ocra.test");
-    assertEquals("success", telemetry.get("status"));
-    assertEquals("unspecified", telemetry.get("reasonCode"));
-    assertEquals("true", telemetry.get("sanitized"));
-    assertEquals("present", telemetry.get("valueField"));
-    assertFalse(telemetry.containsKey("emptyField"));
-  }
+        Map<String, String> telemetry =
+                TelemetryOutputAssertions.telemetryLine(buffer.toString(StandardCharsets.UTF_8), "cli.ocra.test");
+        assertEquals("success", telemetry.get("status"));
+        assertEquals("unspecified", telemetry.get("reasonCode"));
+        assertEquals("true", telemetry.get("sanitized"));
+        assertEquals("present", telemetry.get("valueField"));
+        assertFalse(telemetry.containsKey("emptyField"));
+    }
 
-  @Test
-  void hasTextCoversNullAndBlankInput() {
-    assertFalse(OcraCli.hasText(null));
-    assertFalse(OcraCli.hasText("   "));
-    assertTrue(OcraCli.hasText("value"));
-  }
+    @Test
+    void hasTextCoversNullAndBlankInput() {
+        assertFalse(OcraCli.hasText(null));
+        assertFalse(OcraCli.hasText("   "));
+        assertTrue(OcraCli.hasText("value"));
+    }
 }

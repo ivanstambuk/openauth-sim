@@ -8,15 +8,15 @@ import org.junit.jupiter.api.Test;
 
 final class WebAuthnAttestationSamplesTest {
 
-  @Test
-  void vectorsExposeFixturesForAllFormats() {
-    var vectors = WebAuthnAttestationSamples.vectors();
-    assertFalse(vectors.isEmpty(), "Expected attestation vectors to be available");
-    for (WebAuthnAttestationFormat format : WebAuthnAttestationFormat.values()) {
-      boolean present =
-          vectors.stream()
-              .anyMatch(vector -> vector.format() == format && !vector.vectorId().isBlank());
-      assertTrue(present, () -> "Expected attestation catalogue to expose format " + format);
+    @Test
+    void vectorsExposeFixturesForAllFormats() {
+        var vectors = WebAuthnAttestationSamples.vectors();
+        assertFalse(vectors.isEmpty(), "Expected attestation vectors to be available");
+        for (WebAuthnAttestationFormat format : WebAuthnAttestationFormat.values()) {
+            boolean present = vectors.stream()
+                    .anyMatch(vector ->
+                            vector.format() == format && !vector.vectorId().isBlank());
+            assertTrue(present, () -> "Expected attestation catalogue to expose format " + format);
+        }
     }
-  }
 }

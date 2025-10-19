@@ -37,19 +37,18 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = "openauth.sim.persistence.enable-store=false")
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "openauth.sim.persistence.enable-store=false")
 @AutoConfigureMockMvc
 class Fido2EvaluationEndpointTest {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
-  private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
-  private static final String RELYING_PARTY_ID = "example.org";
-  private static final String ORIGIN = "https://example.org";
-  private static final String EXPECTED_TYPE = "webauthn.get";
-  private static final String PRIVATE_KEY_JWK =
-      """
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
+    private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
+    private static final String RELYING_PARTY_ID = "example.org";
+    private static final String ORIGIN = "https://example.org";
+    private static final String EXPECTED_TYPE = "webauthn.get";
+    private static final String PRIVATE_KEY_JWK = """
       {
         \"kty\":\"EC\",
         \"crv\":\"P-256\",
@@ -59,35 +58,36 @@ class Fido2EvaluationEndpointTest {
       }
       """;
 
-  @Autowired private MockMvc mockMvc;
-  @Autowired private CredentialStore credentialStore;
+    @Autowired
+    private MockMvc mockMvc;
 
-  private final WebAuthnAssertionGenerationApplicationService generator =
-      new WebAuthnAssertionGenerationApplicationService();
-  private final io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter persistenceAdapter =
-      new io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter();
+    @Autowired
+    private CredentialStore credentialStore;
 
-  @DynamicPropertySource
-  static void configureProperties(DynamicPropertyRegistry registry) {
-    registry.add("openauth.sim.persistence.database-path", () -> "unused");
-  }
+    private final WebAuthnAssertionGenerationApplicationService generator =
+            new WebAuthnAssertionGenerationApplicationService();
+    private final io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter persistenceAdapter =
+            new io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter();
 
-  @BeforeEach
-  void resetStore() {
-    if (credentialStore instanceof InMemoryCredentialStore inMemory) {
-      inMemory.reset();
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("openauth.sim.persistence.database-path", () -> "unused");
     }
-  }
 
-  @Test
-  @DisplayName("Stored WebAuthn evaluation generates an authenticator assertion")
-  void storedEvaluationGeneratesAssertion() throws Exception {
-    byte[] challenge = "stored-challenge".getBytes(StandardCharsets.UTF_8);
-    byte[] credentialId = "stored-credential-id".getBytes(StandardCharsets.UTF_8);
+    @BeforeEach
+    void resetStore() {
+        if (credentialStore instanceof InMemoryCredentialStore inMemory) {
+            inMemory.reset();
+        }
+    }
 
-    GenerationResult seed =
-        generator.generate(
-            new GenerationCommand.Inline(
+    @Test
+    @DisplayName("Stored WebAuthn evaluation generates an authenticator assertion")
+    void storedEvaluationGeneratesAssertion() throws Exception {
+        byte[] challenge = "stored-challenge".getBytes(StandardCharsets.UTF_8);
+        byte[] credentialId = "stored-credential-id".getBytes(StandardCharsets.UTF_8);
+
+        GenerationResult seed = generator.generate(new GenerationCommand.Inline(
                 "seed-inline",
                 credentialId,
                 WebAuthnSignatureAlgorithm.ES256,
@@ -99,15 +99,11 @@ class Fido2EvaluationEndpointTest {
                 challenge,
                 PRIVATE_KEY_JWK));
 
-    saveCredential("stored-credential", seed);
+        saveCredential("stored-credential", seed);
 
-    String response =
-        mockMvc
-            .perform(
-                post("/api/v1/webauthn/evaluate")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(
-                        """
+        String response = mockMvc.perform(post("/api/v1/webauthn/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
                         {
                           \"credentialId\": \"stored-credential\",
                           \"relyingPartyId\": \"%s\",
@@ -116,61 +112,56 @@ class Fido2EvaluationEndpointTest {
                           \"challenge\": \"%s\",
                           \"privateKey\": %s
                         }
-                        """
-                            .formatted(
-                                RELYING_PARTY_ID,
-                                ORIGIN,
-                                EXPECTED_TYPE,
-                                encode(challenge),
-                                jsonEscape(PRIVATE_KEY_JWK))))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+                        """.formatted(
+                                        RELYING_PARTY_ID,
+                                        ORIGIN,
+                                        EXPECTED_TYPE,
+                                        encode(challenge),
+                                        jsonEscape(PRIVATE_KEY_JWK))))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-    JsonNode root = MAPPER.readTree(response);
-    assertThat(root.get("status").asText()).isEqualTo("generated");
-    JsonNode assertion = root.get("assertion");
-    assertThat(assertion.get("type").asText()).isEqualTo("public-key");
-    assertThat(assertion.get("id").asText()).isEqualTo(encode(seed.credentialId()));
-    assertThat(assertion.has("algorithm")).isFalse();
-    assertThat(assertion.has("userVerificationRequired")).isFalse();
-    assertThat(assertion.has("relyingPartyId")).isFalse();
-    assertThat(assertion.has("origin")).isFalse();
-    assertThat(assertion.has("signatureCounter")).isFalse();
+        JsonNode root = MAPPER.readTree(response);
+        assertThat(root.get("status").asText()).isEqualTo("generated");
+        JsonNode assertion = root.get("assertion");
+        assertThat(assertion.get("type").asText()).isEqualTo("public-key");
+        assertThat(assertion.get("id").asText()).isEqualTo(encode(seed.credentialId()));
+        assertThat(assertion.has("algorithm")).isFalse();
+        assertThat(assertion.has("userVerificationRequired")).isFalse();
+        assertThat(assertion.has("relyingPartyId")).isFalse();
+        assertThat(assertion.has("origin")).isFalse();
+        assertThat(assertion.has("signatureCounter")).isFalse();
 
-    JsonNode responseNode = assertion.get("response");
-    byte[] clientDataJson = decode(responseNode.get("clientDataJSON").asText());
-    JsonNode clientData = MAPPER.readTree(clientDataJson);
-    assertThat(clientData.get("type").asText()).isEqualTo(EXPECTED_TYPE);
-    assertThat(clientData.get("origin").asText()).isEqualTo(ORIGIN);
-    assertThat(decode(clientData.get("challenge").asText())).isEqualTo(challenge);
+        JsonNode responseNode = assertion.get("response");
+        byte[] clientDataJson = decode(responseNode.get("clientDataJSON").asText());
+        JsonNode clientData = MAPPER.readTree(clientDataJson);
+        assertThat(clientData.get("type").asText()).isEqualTo(EXPECTED_TYPE);
+        assertThat(clientData.get("origin").asText()).isEqualTo(ORIGIN);
+        assertThat(decode(clientData.get("challenge").asText())).isEqualTo(challenge);
 
-    assertThat(responseNode.get("authenticatorData").asText()).isNotBlank();
-    assertThat(responseNode.get("signature").asText()).isNotBlank();
+        assertThat(responseNode.get("authenticatorData").asText()).isNotBlank();
+        assertThat(responseNode.get("signature").asText()).isNotBlank();
 
-    JsonNode metadata = root.get("metadata");
-    assertThat(metadata.get("credentialSource").asText()).isEqualTo("stored");
-    assertThat(metadata.get("credentialReference").asBoolean()).isTrue();
-    assertThat(metadata.get("relyingPartyId").asText()).isEqualTo(RELYING_PARTY_ID);
-    assertThat(metadata.get("origin").asText()).isEqualTo(ORIGIN);
-    assertThat(metadata.get("algorithm").asText()).isEqualTo("ES256");
-    assertThat(metadata.get("userVerificationRequired").asBoolean()).isFalse();
-  }
+        JsonNode metadata = root.get("metadata");
+        assertThat(metadata.get("credentialSource").asText()).isEqualTo("stored");
+        assertThat(metadata.get("credentialReference").asBoolean()).isTrue();
+        assertThat(metadata.get("relyingPartyId").asText()).isEqualTo(RELYING_PARTY_ID);
+        assertThat(metadata.get("origin").asText()).isEqualTo(ORIGIN);
+        assertThat(metadata.get("algorithm").asText()).isEqualTo("ES256");
+        assertThat(metadata.get("userVerificationRequired").asBoolean()).isFalse();
+    }
 
-  @Test
-  @DisplayName("Inline WebAuthn evaluation generates an authenticator assertion")
-  void inlineEvaluationGeneratesAssertion() throws Exception {
-    byte[] challenge = "inline-challenge".getBytes(StandardCharsets.UTF_8);
-    byte[] credentialId = "inline-credential-id".getBytes(StandardCharsets.UTF_8);
+    @Test
+    @DisplayName("Inline WebAuthn evaluation generates an authenticator assertion")
+    void inlineEvaluationGeneratesAssertion() throws Exception {
+        byte[] challenge = "inline-challenge".getBytes(StandardCharsets.UTF_8);
+        byte[] credentialId = "inline-credential-id".getBytes(StandardCharsets.UTF_8);
 
-    String response =
-        mockMvc
-            .perform(
-                post("/api/v1/webauthn/evaluate/inline")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(
-                        """
+        String response = mockMvc.perform(post("/api/v1/webauthn/evaluate/inline")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
                         {
                           \"credentialId\": \"%s\",
                           \"relyingPartyId\": \"%s\",
@@ -181,38 +172,34 @@ class Fido2EvaluationEndpointTest {
                           \"challenge\": \"%s\",
                           \"privateKey\": %s
                         }
-                        """
-                            .formatted(
-                                encode(credentialId),
-                                RELYING_PARTY_ID,
-                                ORIGIN,
-                                encode(challenge),
-                                jsonEscape(PRIVATE_KEY_JWK))))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+                        """.formatted(
+                                        encode(credentialId),
+                                        RELYING_PARTY_ID,
+                                        ORIGIN,
+                                        encode(challenge),
+                                        jsonEscape(PRIVATE_KEY_JWK))))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-    JsonNode root = MAPPER.readTree(response);
-    assertThat(root.get("status").asText()).isEqualTo("generated");
-    JsonNode assertion = root.get("assertion");
-    assertThat(assertion.get("id").asText()).isEqualTo(encode(credentialId));
-    assertThat(assertion.has("relyingPartyId")).isFalse();
-    assertThat(assertion.has("origin")).isFalse();
-    assertThat(assertion.has("algorithm")).isFalse();
-    JsonNode responseNode = assertion.get("response");
-    assertThat(responseNode.get("signature").asText()).isNotBlank();
-  }
+        JsonNode root = MAPPER.readTree(response);
+        assertThat(root.get("status").asText()).isEqualTo("generated");
+        JsonNode assertion = root.get("assertion");
+        assertThat(assertion.get("id").asText()).isEqualTo(encode(credentialId));
+        assertThat(assertion.has("relyingPartyId")).isFalse();
+        assertThat(assertion.has("origin")).isFalse();
+        assertThat(assertion.has("algorithm")).isFalse();
+        JsonNode responseNode = assertion.get("response");
+        assertThat(responseNode.get("signature").asText()).isNotBlank();
+    }
 
-  @Test
-  @DisplayName("Evaluate endpoints reject invalid private keys")
-  void evaluateRejectsInvalidPrivateKey() throws Exception {
-    mockMvc
-        .perform(
-            post("/api/v1/webauthn/evaluate")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
+    @Test
+    @DisplayName("Evaluate endpoints reject invalid private keys")
+    void evaluateRejectsInvalidPrivateKey() throws Exception {
+        mockMvc.perform(post("/api/v1/webauthn/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
                     {
                       \"credentialId\": \"missing\",
                       \"relyingPartyId\": \"%s\",
@@ -221,86 +208,81 @@ class Fido2EvaluationEndpointTest {
                       \"challenge\": \"%s\",
                       \"privateKey\": \"not-a-key\"
                     }
-                    """
-                        .formatted(RELYING_PARTY_ID, ORIGIN, EXPECTED_TYPE, encode(new byte[32]))))
-        .andExpect(status().isUnprocessableEntity());
-  }
-
-  private void saveCredential(String name, GenerationResult seed) {
-    WebAuthnCredentialDescriptor descriptor =
-        WebAuthnCredentialDescriptor.builder()
-            .name(name)
-            .relyingPartyId(RELYING_PARTY_ID)
-            .credentialId(seed.credentialId())
-            .publicKeyCose(seed.publicKeyCose())
-            .signatureCounter(seed.signatureCounter())
-            .userVerificationRequired(seed.userVerificationRequired())
-            .algorithm(seed.algorithm())
-            .build();
-
-    Credential credential =
-        VersionedCredentialRecordMapper.toCredential(persistenceAdapter.serialize(descriptor));
-    credentialStore.save(credential);
-  }
-
-  private static String encode(byte[] value) {
-    return URL_ENCODER.encodeToString(value);
-  }
-
-  private static byte[] decode(String value) {
-    return URL_DECODER.decode(value.getBytes(StandardCharsets.UTF_8));
-  }
-
-  private static String jsonEscape(String rawJson) {
-    String sanitized =
-        rawJson
-            .stripIndent()
-            .trim()
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r");
-    return "\"" + sanitized + "\"";
-  }
-
-  @TestConfiguration
-  static class TestConfig {
-    @Bean
-    CredentialStore credentialStore() {
-      return new InMemoryCredentialStore();
-    }
-  }
-
-  static final class InMemoryCredentialStore implements CredentialStore {
-    private final Map<String, Credential> backing = new LinkedHashMap<>();
-
-    @Override
-    public void save(Credential credential) {
-      backing.put(credential.name(), credential);
+                    """.formatted(RELYING_PARTY_ID, ORIGIN, EXPECTED_TYPE, encode(new byte[32]))))
+                .andExpect(status().isUnprocessableEntity());
     }
 
-    @Override
-    public Optional<Credential> findByName(String name) {
-      return Optional.ofNullable(backing.get(name));
+    private void saveCredential(String name, GenerationResult seed) {
+        WebAuthnCredentialDescriptor descriptor = WebAuthnCredentialDescriptor.builder()
+                .name(name)
+                .relyingPartyId(RELYING_PARTY_ID)
+                .credentialId(seed.credentialId())
+                .publicKeyCose(seed.publicKeyCose())
+                .signatureCounter(seed.signatureCounter())
+                .userVerificationRequired(seed.userVerificationRequired())
+                .algorithm(seed.algorithm())
+                .build();
+
+        Credential credential = VersionedCredentialRecordMapper.toCredential(persistenceAdapter.serialize(descriptor));
+        credentialStore.save(credential);
     }
 
-    @Override
-    public List<Credential> findAll() {
-      return List.copyOf(backing.values());
+    private static String encode(byte[] value) {
+        return URL_ENCODER.encodeToString(value);
     }
 
-    @Override
-    public boolean delete(String name) {
-      return backing.remove(name) != null;
+    private static byte[] decode(String value) {
+        return URL_DECODER.decode(value.getBytes(StandardCharsets.UTF_8));
     }
 
-    @Override
-    public void close() {
-      backing.clear();
+    private static String jsonEscape(String rawJson) {
+        String sanitized = rawJson.stripIndent()
+                .trim()
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
+        return "\"" + sanitized + "\"";
     }
 
-    void reset() {
-      backing.clear();
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        CredentialStore credentialStore() {
+            return new InMemoryCredentialStore();
+        }
     }
-  }
+
+    static final class InMemoryCredentialStore implements CredentialStore {
+        private final Map<String, Credential> backing = new LinkedHashMap<>();
+
+        @Override
+        public void save(Credential credential) {
+            backing.put(credential.name(), credential);
+        }
+
+        @Override
+        public Optional<Credential> findByName(String name) {
+            return Optional.ofNullable(backing.get(name));
+        }
+
+        @Override
+        public List<Credential> findAll() {
+            return List.copyOf(backing.values());
+        }
+
+        @Override
+        public boolean delete(String name) {
+            return backing.remove(name) != null;
+        }
+
+        @Override
+        public void close() {
+            backing.clear();
+        }
+
+        void reset() {
+            backing.clear();
+        }
+    }
 }

@@ -22,100 +22,75 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 class HotpReplayServiceTest {
-  private static final String INLINE_REPLAY_ID = "hotp-inline-replay";
+    private static final String INLINE_REPLAY_ID = "hotp-inline-replay";
 
-  @Test
-  @DisplayName("Stored replay delegates to application service and returns match response")
-  void storedReplayReturnsMatch() {
-    HotpJsonVector vector = vector(6, 0L);
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    TelemetrySignal signal =
-        new TelemetrySignal(
-            TelemetryStatus.SUCCESS,
-            "match",
-            "otp match",
-            false,
-            Map.of("credentialSource", "stored"),
-            null);
-    ReplayResult result =
-        new ReplayResult(signal, true, "cred-123", 10L, 10L, vector.algorithm(), vector.digits());
-    Mockito.when(applicationService.replay(Mockito.any(ReplayCommand.Stored.class)))
-        .thenReturn(result);
+    @Test
+    @DisplayName("Stored replay delegates to application service and returns match response")
+    void storedReplayReturnsMatch() {
+        HotpJsonVector vector = vector(6, 0L);
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        TelemetrySignal signal = new TelemetrySignal(
+                TelemetryStatus.SUCCESS, "match", "otp match", false, Map.of("credentialSource", "stored"), null);
+        ReplayResult result = new ReplayResult(signal, true, "cred-123", 10L, 10L, vector.algorithm(), vector.digits());
+        Mockito.when(applicationService.replay(Mockito.any(ReplayCommand.Stored.class)))
+                .thenReturn(result);
 
-    HotpReplayService service = new HotpReplayService(applicationService);
-    HotpReplayResponse response =
-        service.replay(
-            new HotpReplayRequest("cred-123", null, null, null, null, vector.otp(), null));
+        HotpReplayService service = new HotpReplayService(applicationService);
+        HotpReplayResponse response =
+                service.replay(new HotpReplayRequest("cred-123", null, null, null, null, vector.otp(), null));
 
-    assertEquals("match", response.status());
-    assertEquals("match", response.reasonCode());
-    assertEquals("stored", response.metadata().credentialSource());
-    assertEquals(10L, response.metadata().previousCounter());
-    assertEquals(10L, response.metadata().nextCounter());
+        assertEquals("match", response.status());
+        assertEquals("match", response.reasonCode());
+        assertEquals("stored", response.metadata().credentialSource());
+        assertEquals(10L, response.metadata().previousCounter());
+        assertEquals(10L, response.metadata().nextCounter());
 
-    ArgumentCaptor<ReplayCommand.Stored> captor =
-        ArgumentCaptor.forClass(ReplayCommand.Stored.class);
-    Mockito.verify(applicationService).replay(captor.capture());
-    assertEquals("cred-123", captor.getValue().credentialId());
-    assertEquals(vector.otp(), captor.getValue().otp());
-  }
+        ArgumentCaptor<ReplayCommand.Stored> captor = ArgumentCaptor.forClass(ReplayCommand.Stored.class);
+        Mockito.verify(applicationService).replay(captor.capture());
+        assertEquals("cred-123", captor.getValue().credentialId());
+        assertEquals(vector.otp(), captor.getValue().otp());
+    }
 
-  @Test
-  @DisplayName("Stored replay rejects metadata payloads")
-  void storedReplayRejectsMetadata() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpReplayService service = new HotpReplayService(applicationService);
-    HotpJsonVector vector = vector(6, 0L);
+    @Test
+    @DisplayName("Stored replay rejects metadata payloads")
+    void storedReplayRejectsMetadata() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpReplayService service = new HotpReplayService(applicationService);
+        HotpJsonVector vector = vector(6, 0L);
 
-    HotpReplayValidationException exception =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest(
-                        "cred-123",
-                        null,
-                        null,
-                        null,
-                        null,
-                        vector.otp(),
-                        Map.of("notes", "not-supported"))));
+        HotpReplayValidationException exception = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest(
+                        "cred-123", null, null, null, null, vector.otp(), Map.of("notes", "not-supported"))));
 
-    assertEquals("metadata_not_supported", exception.reasonCode());
-    assertEquals("stored", exception.credentialSource());
-    Mockito.verifyNoInteractions(applicationService);
-  }
+        assertEquals("metadata_not_supported", exception.reasonCode());
+        assertEquals("stored", exception.credentialSource());
+        Mockito.verifyNoInteractions(applicationService);
+    }
 
-  @Test
-  @DisplayName("Inline replay returning otp_mismatch yields mismatch status")
-  void inlineReplayReturnsMismatch() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpJsonVector vector = vector(6, 5L);
-    Map<String, Object> mismatchFields = new LinkedHashMap<>();
-    mismatchFields.put("credentialSource", "inline");
-    mismatchFields.put("diagnostic", null);
-    TelemetrySignal signal =
-        new TelemetrySignal(
-            TelemetryStatus.INVALID, "otp_mismatch", "otp mismatch", true, mismatchFields, null);
-    ReplayResult result =
-        new ReplayResult(
-            signal,
-            false,
-            INLINE_REPLAY_ID,
-            vector.counter(),
-            vector.counter(),
-            vector.algorithm(),
-            vector.digits());
-    Mockito.when(applicationService.replay(Mockito.any(ReplayCommand.Inline.class)))
-        .thenReturn(result);
+    @Test
+    @DisplayName("Inline replay returning otp_mismatch yields mismatch status")
+    void inlineReplayReturnsMismatch() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpJsonVector vector = vector(6, 5L);
+        Map<String, Object> mismatchFields = new LinkedHashMap<>();
+        mismatchFields.put("credentialSource", "inline");
+        mismatchFields.put("diagnostic", null);
+        TelemetrySignal signal = new TelemetrySignal(
+                TelemetryStatus.INVALID, "otp_mismatch", "otp mismatch", true, mismatchFields, null);
+        ReplayResult result = new ReplayResult(
+                signal,
+                false,
+                INLINE_REPLAY_ID,
+                vector.counter(),
+                vector.counter(),
+                vector.algorithm(),
+                vector.digits());
+        Mockito.when(applicationService.replay(Mockito.any(ReplayCommand.Inline.class)))
+                .thenReturn(result);
 
-    HotpReplayService service = new HotpReplayService(applicationService);
-    HotpReplayResponse response =
-        service.replay(
-            new HotpReplayRequest(
+        HotpReplayService service = new HotpReplayService(applicationService);
+        HotpReplayResponse response = service.replay(new HotpReplayRequest(
                 null,
                 vector.secret().asHex(),
                 vector.algorithm().name(),
@@ -124,39 +99,34 @@ class HotpReplayServiceTest {
                 vector.otp(),
                 null));
 
-    assertEquals("mismatch", response.status());
-    assertEquals("otp_mismatch", response.reasonCode());
-    assertEquals("inline", response.metadata().credentialSource());
-    assertEquals(5L, response.metadata().previousCounter());
-    assertEquals(5L, response.metadata().nextCounter());
-    assertTrue(response.metadata().telemetryId().startsWith("rest-hotp-"));
+        assertEquals("mismatch", response.status());
+        assertEquals("otp_mismatch", response.reasonCode());
+        assertEquals("inline", response.metadata().credentialSource());
+        assertEquals(5L, response.metadata().previousCounter());
+        assertEquals(5L, response.metadata().nextCounter());
+        assertTrue(response.metadata().telemetryId().startsWith("rest-hotp-"));
 
-    ArgumentCaptor<ReplayCommand.Inline> captor =
-        ArgumentCaptor.forClass(ReplayCommand.Inline.class);
-    Mockito.verify(applicationService).replay(captor.capture());
-    ReplayCommand.Inline command = captor.getValue();
-    assertEquals(vector.secret().asHex(), command.sharedSecretHex());
-    assertEquals(vector.algorithm(), command.algorithm());
-    assertEquals(vector.digits(), command.digits());
-    assertEquals(vector.counter(), command.counter());
-    assertEquals(vector.otp(), command.otp());
-    assertThat(command.metadata()).isEmpty();
-  }
+        ArgumentCaptor<ReplayCommand.Inline> captor = ArgumentCaptor.forClass(ReplayCommand.Inline.class);
+        Mockito.verify(applicationService).replay(captor.capture());
+        ReplayCommand.Inline command = captor.getValue();
+        assertEquals(vector.secret().asHex(), command.sharedSecretHex());
+        assertEquals(vector.algorithm(), command.algorithm());
+        assertEquals(vector.digits(), command.digits());
+        assertEquals(vector.counter(), command.counter());
+        assertEquals(vector.otp(), command.otp());
+        assertThat(command.metadata()).isEmpty();
+    }
 
-  @Test
-  @DisplayName("Inline replay rejects missing OTP before invoking application service")
-  void inlineReplayRequiresOtp() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpReplayService service = new HotpReplayService(applicationService);
-    HotpJsonVector vector = vector(6, 5L);
+    @Test
+    @DisplayName("Inline replay rejects missing OTP before invoking application service")
+    void inlineReplayRequiresOtp() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpReplayService service = new HotpReplayService(applicationService);
+        HotpJsonVector vector = vector(6, 5L);
 
-    HotpReplayValidationException exception =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest(
+        HotpReplayValidationException exception = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest(
                         null,
                         vector.secret().asHex(),
                         vector.algorithm().name(),
@@ -165,24 +135,20 @@ class HotpReplayServiceTest {
                         "  ",
                         null)));
 
-    assertEquals("otp_required", exception.reasonCode());
-    Mockito.verifyNoInteractions(applicationService);
-  }
+        assertEquals("otp_required", exception.reasonCode());
+        Mockito.verifyNoInteractions(applicationService);
+    }
 
-  @Test
-  @DisplayName("Inline replay rejects metadata payloads")
-  void inlineReplayRejectsMetadata() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpReplayService service = new HotpReplayService(applicationService);
-    HotpJsonVector vector = vector(6, 1L);
+    @Test
+    @DisplayName("Inline replay rejects metadata payloads")
+    void inlineReplayRejectsMetadata() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpReplayService service = new HotpReplayService(applicationService);
+        HotpJsonVector vector = vector(6, 1L);
 
-    HotpReplayValidationException exception =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest(
+        HotpReplayValidationException exception = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest(
                         null,
                         vector.secret().asHex(),
                         vector.algorithm().name(),
@@ -191,151 +157,114 @@ class HotpReplayServiceTest {
                         vector.otp(),
                         Map.of("label", "audit"))));
 
-    assertEquals("metadata_not_supported", exception.reasonCode());
-    assertEquals("inline", exception.credentialSource());
-    Mockito.verifyNoInteractions(applicationService);
-  }
+        assertEquals("metadata_not_supported", exception.reasonCode());
+        assertEquals("inline", exception.credentialSource());
+        Mockito.verifyNoInteractions(applicationService);
+    }
 
-  @Test
-  @DisplayName("Replay surfaces validation exceptions when application reports sanitized failures")
-  void replayPropagatesValidationFailures() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    TelemetrySignal signal =
-        new TelemetrySignal(
-            TelemetryStatus.INVALID,
-            "credential_not_found",
-            null,
-            true,
-            Map.of("credentialSource", "stored"),
-            null);
-    ReplayResult result = new ReplayResult(signal, true, null, 8L, 8L, null, null);
-    Mockito.when(applicationService.replay(Mockito.any(ReplayCommand.Stored.class)))
-        .thenReturn(result);
+    @Test
+    @DisplayName("Replay surfaces validation exceptions when application reports sanitized failures")
+    void replayPropagatesValidationFailures() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        TelemetrySignal signal = new TelemetrySignal(
+                TelemetryStatus.INVALID,
+                "credential_not_found",
+                null,
+                true,
+                Map.of("credentialSource", "stored"),
+                null);
+        ReplayResult result = new ReplayResult(signal, true, null, 8L, 8L, null, null);
+        Mockito.when(applicationService.replay(Mockito.any(ReplayCommand.Stored.class)))
+                .thenReturn(result);
 
-    HotpReplayService service = new HotpReplayService(applicationService);
+        HotpReplayService service = new HotpReplayService(applicationService);
 
-    HotpReplayValidationException exception =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest("cred-404", null, null, null, null, "123456", null)));
+        HotpReplayValidationException exception = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest("cred-404", null, null, null, null, "123456", null)));
 
-    assertEquals("credential_not_found", exception.reasonCode());
-    assertEquals("stored", exception.credentialSource());
-    assertEquals("cred-404", exception.credentialId());
-  }
+        assertEquals("credential_not_found", exception.reasonCode());
+        assertEquals("stored", exception.credentialSource());
+        assertEquals("cred-404", exception.credentialId());
+    }
 
-  @Test
-  @DisplayName("Replay wraps unexpected errors from the application service")
-  void replayWrapsUnexpectedErrors() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    TelemetrySignal signal =
-        new TelemetrySignal(
-            TelemetryStatus.ERROR,
-            "backend_failed",
-            null,
-            false,
-            Map.of("credentialSource", "stored"),
-            null);
-    ReplayResult result =
-        new ReplayResult(signal, true, "cred-500", 12L, 12L, HotpHashAlgorithm.SHA1, 6);
-    Mockito.when(applicationService.replay(Mockito.any(ReplayCommand.Stored.class)))
-        .thenReturn(result);
+    @Test
+    @DisplayName("Replay wraps unexpected errors from the application service")
+    void replayWrapsUnexpectedErrors() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        TelemetrySignal signal = new TelemetrySignal(
+                TelemetryStatus.ERROR, "backend_failed", null, false, Map.of("credentialSource", "stored"), null);
+        ReplayResult result = new ReplayResult(signal, true, "cred-500", 12L, 12L, HotpHashAlgorithm.SHA1, 6);
+        Mockito.when(applicationService.replay(Mockito.any(ReplayCommand.Stored.class)))
+                .thenReturn(result);
 
-    HotpReplayService service = new HotpReplayService(applicationService);
+        HotpReplayService service = new HotpReplayService(applicationService);
 
-    HotpReplayUnexpectedException exception =
-        assertThrows(
-            HotpReplayUnexpectedException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest("cred-500", null, null, null, null, "987654", null)));
+        HotpReplayUnexpectedException exception = assertThrows(
+                HotpReplayUnexpectedException.class,
+                () -> service.replay(new HotpReplayRequest("cred-500", null, null, null, null, "987654", null)));
 
-    assertEquals("stored", exception.credentialSource());
-    assertThat(exception.details()).containsEntry("telemetryId", exception.telemetryId());
-  }
+        assertEquals("stored", exception.credentialSource());
+        assertThat(exception.details()).containsEntry("telemetryId", exception.telemetryId());
+    }
 
-  @Test
-  @DisplayName("Stored replay requires an observed OTP before calling the application service")
-  void storedReplayRequiresOtp() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpReplayService service = new HotpReplayService(applicationService);
+    @Test
+    @DisplayName("Stored replay requires an observed OTP before calling the application service")
+    void storedReplayRequiresOtp() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpReplayService service = new HotpReplayService(applicationService);
 
-    HotpReplayValidationException exception =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest("cred-100", null, null, null, null, null, null)));
+        HotpReplayValidationException exception = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest("cred-100", null, null, null, null, null, null)));
 
-    assertEquals("otp_required", exception.reasonCode());
-    assertEquals("stored", exception.credentialSource());
-    Mockito.verifyNoInteractions(applicationService);
-  }
+        assertEquals("otp_required", exception.reasonCode());
+        assertEquals("stored", exception.credentialSource());
+        Mockito.verifyNoInteractions(applicationService);
+    }
 
-  @Test
-  @DisplayName("Replay requires shared secret when inline parameters are supplied")
-  void replayRequiresSharedSecretForInlineRequests() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpReplayService service = new HotpReplayService(applicationService);
+    @Test
+    @DisplayName("Replay requires shared secret when inline parameters are supplied")
+    void replayRequiresSharedSecretForInlineRequests() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpReplayService service = new HotpReplayService(applicationService);
 
-    HotpReplayValidationException exception =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () -> service.replay(new HotpReplayRequest(null, null, "SHA1", 6, 1L, "987654", null)));
+        HotpReplayValidationException exception = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest(null, null, "SHA1", 6, 1L, "987654", null)));
 
-    assertEquals("sharedSecretHex_required", exception.reasonCode());
-    assertEquals("inline", exception.credentialSource());
-    Mockito.verifyNoInteractions(applicationService);
-  }
+        assertEquals("sharedSecretHex_required", exception.reasonCode());
+        assertEquals("inline", exception.credentialSource());
+        Mockito.verifyNoInteractions(applicationService);
+    }
 
-  @Test
-  @DisplayName("Replay requires algorithm when shared secret is supplied")
-  void replayRequiresAlgorithmForInlineRequests() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpReplayService service = new HotpReplayService(applicationService);
+    @Test
+    @DisplayName("Replay requires algorithm when shared secret is supplied")
+    void replayRequiresAlgorithmForInlineRequests() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpReplayService service = new HotpReplayService(applicationService);
 
-    HotpJsonVector sample = vector(6, 1L);
-    HotpReplayValidationException exception =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest(
-                        null,
-                        sample.secret().asHex(),
-                        null,
-                        sample.digits(),
-                        sample.counter(),
-                        "111111",
-                        null)));
+        HotpJsonVector sample = vector(6, 1L);
+        HotpReplayValidationException exception = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest(
+                        null, sample.secret().asHex(), null, sample.digits(), sample.counter(), "111111", null)));
 
-    assertEquals("algorithm_required", exception.reasonCode());
-    assertEquals("inline", exception.credentialSource());
-    Mockito.verifyNoInteractions(applicationService);
-  }
+        assertEquals("algorithm_required", exception.reasonCode());
+        assertEquals("inline", exception.credentialSource());
+        Mockito.verifyNoInteractions(applicationService);
+    }
 
-  @Test
-  @DisplayName(
-      "Replay rejects requests that mix stored credential references with inline parameters")
-  void replayRejectsMixedModesIncludingInlineFields() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpReplayService service = new HotpReplayService(applicationService);
+    @Test
+    @DisplayName("Replay rejects requests that mix stored credential references with inline parameters")
+    void replayRejectsMixedModesIncludingInlineFields() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpReplayService service = new HotpReplayService(applicationService);
 
-    HotpJsonVector sample = vector(6, 1L);
-    HotpReplayValidationException exception =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest(
+        HotpJsonVector sample = vector(6, 1L);
+        HotpReplayValidationException exception = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest(
                         "cred-identifier-only",
                         sample.secret().asHex(),
                         sample.algorithm().name(),
@@ -344,24 +273,20 @@ class HotpReplayServiceTest {
                         "222222",
                         null)));
 
-    assertEquals("mode_ambiguous", exception.reasonCode());
-    Mockito.verifyNoInteractions(applicationService);
-  }
+        assertEquals("mode_ambiguous", exception.reasonCode());
+        Mockito.verifyNoInteractions(applicationService);
+    }
 
-  @Test
-  @DisplayName("Replay rejects payloads that mix stored and inline fields")
-  void replayRejectsMixedModes() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpReplayService service = new HotpReplayService(applicationService);
+    @Test
+    @DisplayName("Replay rejects payloads that mix stored and inline fields")
+    void replayRejectsMixedModes() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpReplayService service = new HotpReplayService(applicationService);
 
-    HotpJsonVector sample = vector(6, 5L);
-    HotpReplayValidationException exception =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest(
+        HotpJsonVector sample = vector(6, 5L);
+        HotpReplayValidationException exception = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest(
                         "cred-ambiguous",
                         sample.secret().asHex(),
                         sample.algorithm().name(),
@@ -370,79 +295,61 @@ class HotpReplayServiceTest {
                         "123456",
                         null)));
 
-    assertEquals("mode_ambiguous", exception.reasonCode());
-    Mockito.verifyNoInteractions(applicationService);
-  }
+        assertEquals("mode_ambiguous", exception.reasonCode());
+        Mockito.verifyNoInteractions(applicationService);
+    }
 
-  @Test
-  @DisplayName("Replay requires either stored or inline fields to determine the mode")
-  void replayRequiresMode() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpReplayService service = new HotpReplayService(applicationService);
+    @Test
+    @DisplayName("Replay requires either stored or inline fields to determine the mode")
+    void replayRequiresMode() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpReplayService service = new HotpReplayService(applicationService);
 
-    HotpReplayValidationException exception =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest(null, null, null, null, null, "123456", null)));
+        HotpReplayValidationException exception = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest(null, null, null, null, null, "123456", null)));
 
-    assertEquals("mode_required", exception.reasonCode());
-    Mockito.verifyNoInteractions(applicationService);
-  }
+        assertEquals("mode_required", exception.reasonCode());
+        Mockito.verifyNoInteractions(applicationService);
+    }
 
-  @Test
-  @DisplayName("Inline replay requires digits metadata")
-  void replayInlineRequiresDigits() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpReplayService service = new HotpReplayService(applicationService);
+    @Test
+    @DisplayName("Inline replay requires digits metadata")
+    void replayInlineRequiresDigits() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpReplayService service = new HotpReplayService(applicationService);
 
-    HotpJsonVector sample = vector(6, 1L);
-    HotpReplayValidationException exception =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest(
-                        null,
-                        sample.secret().asHex(),
-                        sample.algorithm().name(),
-                        null,
-                        4L,
-                        "987654",
-                        null)));
+        HotpJsonVector sample = vector(6, 1L);
+        HotpReplayValidationException exception = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest(
+                        null, sample.secret().asHex(), sample.algorithm().name(), null, 4L, "987654", null)));
 
-    assertEquals("digits_required", exception.reasonCode());
-    assertEquals("inline", exception.credentialSource());
-    Mockito.verifyNoInteractions(applicationService);
-  }
+        assertEquals("digits_required", exception.reasonCode());
+        assertEquals("inline", exception.credentialSource());
+        Mockito.verifyNoInteractions(applicationService);
+    }
 
-  @Test
-  @DisplayName("Replay helpers handle null-safe utilities")
-  void replayUtilityMethodsHandleNulls() throws Exception {
-    assertFalse(HotpReplayService.hasText("  "));
-    assertTrue(HotpReplayService.hasText("demo"));
+    @Test
+    @DisplayName("Replay helpers handle null-safe utilities")
+    void replayUtilityMethodsHandleNulls() throws Exception {
+        assertFalse(HotpReplayService.hasText("  "));
+        assertTrue(HotpReplayService.hasText("demo"));
 
-    assertEquals("", HotpReplayService.safeMessage(null));
-    assertEquals("boom", HotpReplayService.safeMessage("  boom  \n"));
-  }
+        assertEquals("", HotpReplayService.safeMessage(null));
+        assertEquals("boom", HotpReplayService.safeMessage("  boom  \n"));
+    }
 
-  @Test
-  @DisplayName("Inline replay rejects unsupported algorithms")
-  void inlineReplayRequiresValidAlgorithm() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpReplayService service = new HotpReplayService(applicationService);
+    @Test
+    @DisplayName("Inline replay rejects unsupported algorithms")
+    void inlineReplayRequiresValidAlgorithm() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpReplayService service = new HotpReplayService(applicationService);
 
-    HotpJsonVector sample = vector(6, 5L);
-    HotpReplayValidationException exception =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest(
+        HotpJsonVector sample = vector(6, 5L);
+        HotpReplayValidationException exception = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest(
                         null,
                         sample.secret().asHex(),
                         "SHA256X",
@@ -451,24 +358,20 @@ class HotpReplayServiceTest {
                         sample.otp(),
                         null)));
 
-    assertEquals("algorithm_invalid", exception.reasonCode());
-    Mockito.verifyNoInteractions(applicationService);
-  }
+        assertEquals("algorithm_invalid", exception.reasonCode());
+        Mockito.verifyNoInteractions(applicationService);
+    }
 
-  @Test
-  @DisplayName("Inline replay requires digits and counter values")
-  void inlineReplayRequiresDigitsAndCounter() {
-    HotpReplayApplicationService applicationService =
-        Mockito.mock(HotpReplayApplicationService.class);
-    HotpReplayService service = new HotpReplayService(applicationService);
+    @Test
+    @DisplayName("Inline replay requires digits and counter values")
+    void inlineReplayRequiresDigitsAndCounter() {
+        HotpReplayApplicationService applicationService = Mockito.mock(HotpReplayApplicationService.class);
+        HotpReplayService service = new HotpReplayService(applicationService);
 
-    HotpJsonVector sample = vector(6, 5L);
-    HotpReplayValidationException missingDigits =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest(
+        HotpJsonVector sample = vector(6, 5L);
+        HotpReplayValidationException missingDigits = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest(
                         null,
                         sample.secret().asHex(),
                         sample.algorithm().name(),
@@ -476,14 +379,11 @@ class HotpReplayServiceTest {
                         sample.counter(),
                         sample.otp(),
                         null)));
-    assertEquals("digits_required", missingDigits.reasonCode());
+        assertEquals("digits_required", missingDigits.reasonCode());
 
-    HotpReplayValidationException missingCounter =
-        assertThrows(
-            HotpReplayValidationException.class,
-            () ->
-                service.replay(
-                    new HotpReplayRequest(
+        HotpReplayValidationException missingCounter = assertThrows(
+                HotpReplayValidationException.class,
+                () -> service.replay(new HotpReplayRequest(
                         null,
                         sample.secret().asHex(),
                         sample.algorithm().name(),
@@ -491,14 +391,14 @@ class HotpReplayServiceTest {
                         null,
                         sample.otp(),
                         null)));
-    assertEquals("counter_required", missingCounter.reasonCode());
-    Mockito.verifyNoInteractions(applicationService);
-  }
+        assertEquals("counter_required", missingCounter.reasonCode());
+        Mockito.verifyNoInteractions(applicationService);
+    }
 
-  private HotpJsonVector vector(int digits, long counter) {
-    return HotpJsonVectorFixtures.loadAll()
-        .filter(v -> v.digits() == digits && v.counter() == counter)
-        .findFirst()
-        .orElseThrow();
-  }
+    private HotpJsonVector vector(int digits, long counter) {
+        return HotpJsonVectorFixtures.loadAll()
+                .filter(v -> v.digits() == digits && v.counter() == counter)
+                .findFirst()
+                .orElseThrow();
+    }
 }

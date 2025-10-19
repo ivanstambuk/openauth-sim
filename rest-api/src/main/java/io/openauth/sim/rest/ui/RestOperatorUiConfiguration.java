@@ -8,8 +8,8 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class RestOperatorUiConfiguration {
 
-  @Bean
-  RestTemplate ocraUiRestTemplate(RestTemplateBuilder builder) {
-    return builder.build();
-  }
+    @Bean
+    RestTemplate ocraUiRestTemplate(RestTemplateBuilder builder) {
+        return builder.build();
+    }
 }

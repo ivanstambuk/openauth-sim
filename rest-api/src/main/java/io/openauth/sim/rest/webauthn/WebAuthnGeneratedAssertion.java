@@ -5,9 +5,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record WebAuthnGeneratedAssertion(
-    @JsonProperty("type") String type,
-    @JsonProperty("id") String id,
-    @JsonProperty("rawId") String rawId,
-    @JsonProperty("response") WebAuthnAssertionResponse response) {
-  // DTO marker
+        @JsonProperty("type") String type,
+        @JsonProperty("id") String id,
+        @JsonProperty("rawId") String rawId,
+        @JsonProperty("response") WebAuthnAssertionResponse response) {
+    // DTO marker
 }

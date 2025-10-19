@@ -23,114 +23,107 @@ import org.springframework.stereotype.Service;
 @Service
 final class HotpCredentialSeedService {
 
-  private static final Logger TELEMETRY_LOGGER =
-      Logger.getLogger("io.openauth.sim.rest.hotp.telemetry");
+    private static final Logger TELEMETRY_LOGGER = Logger.getLogger("io.openauth.sim.rest.hotp.telemetry");
 
-  static {
-    TELEMETRY_LOGGER.setLevel(Level.ALL);
-  }
-
-  private final CredentialStore credentialStore;
-  private final HotpSeedApplicationService seedApplicationService;
-
-  HotpCredentialSeedService(
-      ObjectProvider<CredentialStore> credentialStoreProvider,
-      HotpSeedApplicationService seedApplicationService) {
-    this.credentialStore = credentialStoreProvider.getIfAvailable();
-    this.seedApplicationService =
-        Objects.requireNonNull(seedApplicationService, "seedApplicationService");
-  }
-
-  SeedResult seedCanonicalCredentials() {
-    List<SampleDefinition> definitions = HotpOperatorSampleData.seedDefinitions();
-    if (credentialStore == null) {
-      SeedResult result = SeedResult.disabled(definitions.size());
-      logSeed(Level.WARNING, "unavailable", result, "credential store unavailable");
-      return result;
+    static {
+        TELEMETRY_LOGGER.setLevel(Level.ALL);
     }
 
-    List<SeedCommand> commands =
-        definitions.stream()
-            .map(
-                definition ->
-                    new SeedCommand(
+    private final CredentialStore credentialStore;
+    private final HotpSeedApplicationService seedApplicationService;
+
+    HotpCredentialSeedService(
+            ObjectProvider<CredentialStore> credentialStoreProvider,
+            HotpSeedApplicationService seedApplicationService) {
+        this.credentialStore = credentialStoreProvider.getIfAvailable();
+        this.seedApplicationService = Objects.requireNonNull(seedApplicationService, "seedApplicationService");
+    }
+
+    SeedResult seedCanonicalCredentials() {
+        List<SampleDefinition> definitions = HotpOperatorSampleData.seedDefinitions();
+        if (credentialStore == null) {
+            SeedResult result = SeedResult.disabled(definitions.size());
+            logSeed(Level.WARNING, "unavailable", result, "credential store unavailable");
+            return result;
+        }
+
+        List<SeedCommand> commands = definitions.stream()
+                .map(definition -> new SeedCommand(
                         definition.credentialId(),
                         definition.sharedSecretHex(),
                         definition.algorithm(),
                         definition.digits(),
                         definition.counter(),
                         definition.metadata()))
-            .collect(Collectors.toUnmodifiableList());
+                .collect(Collectors.toUnmodifiableList());
 
-    HotpSeedApplicationService.SeedResult applicationResult =
-        seedApplicationService.seed(commands, credentialStore);
-    SeedResult result = new SeedResult(definitions.size(), applicationResult.addedCredentialIds());
-    logSeed(Level.INFO, result.addedCount() == 0 ? "noop" : "seeded", result, null);
-    return result;
-  }
-
-  private void logSeed(Level level, String status, SeedResult result, String reason) {
-    String telemetryId = "rest-hotp-seed-" + UUID.randomUUID();
-    Map<String, Object> fields = new LinkedHashMap<>();
-    fields.put("addedCount", result.addedCount());
-    fields.put("canonicalCount", result.canonicalCount());
-    fields.put("existingCount", result.existingCount());
-    fields.put("trigger", "ui");
-    if (!result.addedCredentialIds().isEmpty()) {
-      fields.put("addedCredentialIds", result.addedCredentialIds());
+        HotpSeedApplicationService.SeedResult applicationResult =
+                seedApplicationService.seed(commands, credentialStore);
+        SeedResult result = new SeedResult(definitions.size(), applicationResult.addedCredentialIds());
+        logSeed(Level.INFO, result.addedCount() == 0 ? "noop" : "seeded", result, null);
+        return result;
     }
 
-    TelemetryFrame frame =
-        TelemetryContracts.hotpSeedingAdapter()
-            .status(status, telemetryId, status, true, reason, fields);
-    logFrame(level, frame);
-  }
+    private void logSeed(Level level, String status, SeedResult result, String reason) {
+        String telemetryId = "rest-hotp-seed-" + UUID.randomUUID();
+        Map<String, Object> fields = new LinkedHashMap<>();
+        fields.put("addedCount", result.addedCount());
+        fields.put("canonicalCount", result.canonicalCount());
+        fields.put("existingCount", result.existingCount());
+        fields.put("trigger", "ui");
+        if (!result.addedCredentialIds().isEmpty()) {
+            fields.put("addedCredentialIds", result.addedCredentialIds());
+        }
 
-  private void logFrame(Level level, TelemetryFrame frame) {
-    Objects.requireNonNull(frame, "frame");
-    StringBuilder builder =
-        new StringBuilder("event=rest.")
-            .append(frame.event())
-            .append(" status=")
-            .append(frame.status());
-    frame
-        .fields()
-        .forEach((key, value) -> builder.append(' ').append(key).append('=').append(value));
-    LogRecord record = new LogRecord(level, builder.toString());
-    TELEMETRY_LOGGER.log(record);
-    for (Handler handler : TELEMETRY_LOGGER.getHandlers()) {
-      handler.publish(record);
-      handler.flush();
-    }
-  }
-
-  static final class SeedResult {
-    private final int canonicalCount;
-    private final List<String> addedCredentialIds;
-
-    SeedResult(int canonicalCount, List<String> addedCredentialIds) {
-      this.canonicalCount = canonicalCount;
-      this.addedCredentialIds = List.copyOf(addedCredentialIds);
+        TelemetryFrame frame =
+                TelemetryContracts.hotpSeedingAdapter().status(status, telemetryId, status, true, reason, fields);
+        logFrame(level, frame);
     }
 
-    static SeedResult disabled(int canonicalCount) {
-      return new SeedResult(canonicalCount, List.of());
+    private void logFrame(Level level, TelemetryFrame frame) {
+        Objects.requireNonNull(frame, "frame");
+        StringBuilder builder = new StringBuilder("event=rest.")
+                .append(frame.event())
+                .append(" status=")
+                .append(frame.status());
+        frame.fields()
+                .forEach((key, value) ->
+                        builder.append(' ').append(key).append('=').append(value));
+        LogRecord record = new LogRecord(level, builder.toString());
+        TELEMETRY_LOGGER.log(record);
+        for (Handler handler : TELEMETRY_LOGGER.getHandlers()) {
+            handler.publish(record);
+            handler.flush();
+        }
     }
 
-    int canonicalCount() {
-      return canonicalCount;
-    }
+    static final class SeedResult {
+        private final int canonicalCount;
+        private final List<String> addedCredentialIds;
 
-    List<String> addedCredentialIds() {
-      return addedCredentialIds;
-    }
+        SeedResult(int canonicalCount, List<String> addedCredentialIds) {
+            this.canonicalCount = canonicalCount;
+            this.addedCredentialIds = List.copyOf(addedCredentialIds);
+        }
 
-    int addedCount() {
-      return addedCredentialIds.size();
-    }
+        static SeedResult disabled(int canonicalCount) {
+            return new SeedResult(canonicalCount, List.of());
+        }
 
-    int existingCount() {
-      return canonicalCount - addedCredentialIds.size();
+        int canonicalCount() {
+            return canonicalCount;
+        }
+
+        List<String> addedCredentialIds() {
+            return addedCredentialIds;
+        }
+
+        int addedCount() {
+            return addedCredentialIds.size();
+        }
+
+        int existingCount() {
+            return canonicalCount - addedCredentialIds.size();
+        }
     }
-  }
 }

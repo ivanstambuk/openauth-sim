@@ -19,47 +19,45 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 final class OcraOperatorUiEvaluateButtonMockMvcTest {
 
-  @TempDir static Path tempDir;
+    @TempDir
+    static Path tempDir;
 
-  @Autowired private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-  @DynamicPropertySource
-  static void configure(DynamicPropertyRegistry registry) {
-    registry.add(
-        "openauth.sim.persistence.database-path",
-        () -> tempDir.resolve("credentials.db").toAbsolutePath().toString());
-    registry.add("openauth.sim.persistence.enable-store", () -> "true");
-  }
+    @DynamicPropertySource
+    static void configure(DynamicPropertyRegistry registry) {
+        registry.add(
+                "openauth.sim.persistence.database-path",
+                () -> tempDir.resolve("credentials.db").toAbsolutePath().toString());
+        registry.add("openauth.sim.persistence.enable-store", () -> "true");
+    }
 
-  @Test
-  @DisplayName("Evaluate button exposes mode-specific labels")
-  void evaluateButtonExposesModeSpecificLabels() throws Exception {
-    String html =
-        mockMvc
-            .perform(get("/ui/console"))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+    @Test
+    @DisplayName("Evaluate button exposes mode-specific labels")
+    void evaluateButtonExposesModeSpecificLabels() throws Exception {
+        String html = mockMvc.perform(get("/ui/console"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-    assertThat(html).contains("data-inline-label=\"Evaluate inline parameters\"");
-    assertThat(html).contains("data-credential-label=\"Evaluate stored credential\"");
-    assertThat(html).contains("Evaluate inline parameters");
-  }
+        assertThat(html).contains("data-inline-label=\"Evaluate inline parameters\"");
+        assertThat(html).contains("data-credential-label=\"Evaluate stored credential\"");
+        assertThat(html).contains("Evaluate inline parameters");
+    }
 
-  @Test
-  @DisplayName("Timestamp auto-fill controls render with descriptive label and reset button")
-  void timestampAutofillControlsRender() throws Exception {
-    String html =
-        mockMvc
-            .perform(get("/ui/console"))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+    @Test
+    @DisplayName("Timestamp auto-fill controls render with descriptive label and reset button")
+    void timestampAutofillControlsRender() throws Exception {
+        String html = mockMvc.perform(get("/ui/console"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
-    assertThat(html).contains("data-testid=\"timestamp-autofill-toggle\"");
-    assertThat(html).contains("Auto-fill current timestamp (hex)");
-    assertThat(html).contains("data-testid=\"timestamp-reset-button\"");
-  }
+        assertThat(html).contains("data-testid=\"timestamp-autofill-toggle\"");
+        assertThat(html).contains("Auto-fill current timestamp (hex)");
+        assertThat(html).contains("data-testid=\"timestamp-reset-button\"");
+    }
 }

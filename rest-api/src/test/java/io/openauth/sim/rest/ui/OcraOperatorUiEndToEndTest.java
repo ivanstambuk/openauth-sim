@@ -34,111 +34,108 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 final class OcraOperatorUiEndToEndTest {
 
-  private static final String CREDENTIAL_ID = "operator-demo";
-  private static final String SUITE = "OCRA-1:HOTP-SHA256-8:QA08-S064";
-  private static final String SHARED_SECRET_HEX =
-      "3132333435363738393031323334353637383930313233343536373839303132";
-  private static final String SESSION_HEX_64 =
-      "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF"
-          + "112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567";
-  private static final Pattern CSRF_PATTERN =
-      Pattern.compile("name=\"_csrf\"\\s+value=\"([^\"]+)\"");
+    private static final String CREDENTIAL_ID = "operator-demo";
+    private static final String SUITE = "OCRA-1:HOTP-SHA256-8:QA08-S064";
+    private static final String SHARED_SECRET_HEX = "3132333435363738393031323334353637383930313233343536373839303132";
+    private static final String SESSION_HEX_64 = "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF"
+            + "112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567";
+    private static final Pattern CSRF_PATTERN = Pattern.compile("name=\"_csrf\"\\s+value=\"([^\"]+)\"");
 
-  @TempDir static Path tempDir;
-  private static Path databasePath;
+    @TempDir
+    static Path tempDir;
 
-  @DynamicPropertySource
-  static void configure(DynamicPropertyRegistry registry) {
-    databasePath = tempDir.resolve("credentials.db");
-    registry.add(
-        "openauth.sim.persistence.database-path", () -> databasePath.toAbsolutePath().toString());
-    registry.add("openauth.sim.persistence.enable-store", () -> "true");
-  }
+    private static Path databasePath;
 
-  @Autowired private TestRestTemplate restTemplate;
-  @Autowired private CredentialStore credentialStore;
-
-  @BeforeEach
-  void seedCredential() {
-    credentialStore.delete(CREDENTIAL_ID);
-    OcraCredentialFactory factory = new OcraCredentialFactory();
-    OcraCredentialRequest request =
-        new OcraCredentialRequest(
-            CREDENTIAL_ID,
-            SUITE,
-            SHARED_SECRET_HEX,
-            SecretEncoding.HEX,
-            null,
-            null,
-            null,
-            java.util.Map.of("source", "test"));
-    OcraCredentialDescriptor descriptor = factory.createDescriptor(request);
-    Credential credential =
-        VersionedCredentialRecordMapper.toCredential(
-            new OcraCredentialPersistenceAdapter().serialize(descriptor));
-    credentialStore.save(credential);
-    assertThat(credentialStore.exists(CREDENTIAL_ID)).isTrue();
-  }
-
-  @Test
-  @DisplayName("Stored credential evaluation succeeds via operator UI")
-  void storedCredentialSubmissionSucceeds() {
-    ResponseEntity<String> formResponse = restTemplate.getForEntity("/ui/console", String.class);
-    assertThat(formResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-    String csrfToken = extractCsrf(formResponse.getBody());
-    String sessionCookie = firstCookie(formResponse.getHeaders());
-
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-    if (sessionCookie != null) {
-      headers.put(HttpHeaders.COOKIE, List.of(sessionCookie));
-    }
-    if (csrfToken != null && !csrfToken.isBlank()) {
-      headers.set("X-CSRF-TOKEN", csrfToken);
+    @DynamicPropertySource
+    static void configure(DynamicPropertyRegistry registry) {
+        databasePath = tempDir.resolve("credentials.db");
+        registry.add(
+                "openauth.sim.persistence.database-path",
+                () -> databasePath.toAbsolutePath().toString());
+        registry.add("openauth.sim.persistence.enable-store", () -> "true");
     }
 
-    OcraEvaluationRequest requestPayload =
-        new OcraEvaluationRequest(
-            CREDENTIAL_ID, null, null, "SESSION01", SESSION_HEX_64, null, null, null, null, null);
+    @Autowired
+    private TestRestTemplate restTemplate;
 
-    HttpEntity<OcraEvaluationRequest> requestEntity = new HttpEntity<>(requestPayload, headers);
-    ResponseEntity<OcraEvaluationResponse> response =
-        restTemplate.postForEntity(
-            "/api/v1/ocra/evaluate", requestEntity, OcraEvaluationResponse.class);
+    @Autowired
+    private CredentialStore credentialStore;
 
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    OcraEvaluationResponse body = response.getBody();
-    assertThat(body).isNotNull();
-    assertThat(body.otp()).isEqualTo("17477202");
-    assertThat(body.telemetryId()).isNotBlank();
-  }
-
-  @Test
-  @DisplayName("Legacy operator routes return 404 after console unification")
-  void legacyRoutesReturnNotFound() {
-    ResponseEntity<String> evaluateResponse =
-        restTemplate.getForEntity("/ui/ocra/evaluate", String.class);
-    ResponseEntity<String> replayResponse =
-        restTemplate.getForEntity("/ui/ocra/replay", String.class);
-
-    assertThat(evaluateResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-    assertThat(replayResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-  }
-
-  private static String extractCsrf(String html) {
-    Matcher matcher = CSRF_PATTERN.matcher(html);
-    if (!matcher.find()) {
-      throw new IllegalStateException("CSRF token not found in rendered form");
+    @BeforeEach
+    void seedCredential() {
+        credentialStore.delete(CREDENTIAL_ID);
+        OcraCredentialFactory factory = new OcraCredentialFactory();
+        OcraCredentialRequest request = new OcraCredentialRequest(
+                CREDENTIAL_ID,
+                SUITE,
+                SHARED_SECRET_HEX,
+                SecretEncoding.HEX,
+                null,
+                null,
+                null,
+                java.util.Map.of("source", "test"));
+        OcraCredentialDescriptor descriptor = factory.createDescriptor(request);
+        Credential credential = VersionedCredentialRecordMapper.toCredential(
+                new OcraCredentialPersistenceAdapter().serialize(descriptor));
+        credentialStore.save(credential);
+        assertThat(credentialStore.exists(CREDENTIAL_ID)).isTrue();
     }
-    return matcher.group(1);
-  }
 
-  private static String firstCookie(HttpHeaders headers) {
-    List<String> cookies = headers.get(HttpHeaders.SET_COOKIE);
-    if (cookies == null || cookies.isEmpty()) {
-      return null;
+    @Test
+    @DisplayName("Stored credential evaluation succeeds via operator UI")
+    void storedCredentialSubmissionSucceeds() {
+        ResponseEntity<String> formResponse = restTemplate.getForEntity("/ui/console", String.class);
+        assertThat(formResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        String csrfToken = extractCsrf(formResponse.getBody());
+        String sessionCookie = firstCookie(formResponse.getHeaders());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        if (sessionCookie != null) {
+            headers.put(HttpHeaders.COOKIE, List.of(sessionCookie));
+        }
+        if (csrfToken != null && !csrfToken.isBlank()) {
+            headers.set("X-CSRF-TOKEN", csrfToken);
+        }
+
+        OcraEvaluationRequest requestPayload = new OcraEvaluationRequest(
+                CREDENTIAL_ID, null, null, "SESSION01", SESSION_HEX_64, null, null, null, null, null);
+
+        HttpEntity<OcraEvaluationRequest> requestEntity = new HttpEntity<>(requestPayload, headers);
+        ResponseEntity<OcraEvaluationResponse> response =
+                restTemplate.postForEntity("/api/v1/ocra/evaluate", requestEntity, OcraEvaluationResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        OcraEvaluationResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.otp()).isEqualTo("17477202");
+        assertThat(body.telemetryId()).isNotBlank();
     }
-    return cookies.get(0);
-  }
+
+    @Test
+    @DisplayName("Legacy operator routes return 404 after console unification")
+    void legacyRoutesReturnNotFound() {
+        ResponseEntity<String> evaluateResponse = restTemplate.getForEntity("/ui/ocra/evaluate", String.class);
+        ResponseEntity<String> replayResponse = restTemplate.getForEntity("/ui/ocra/replay", String.class);
+
+        assertThat(evaluateResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(replayResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    private static String extractCsrf(String html) {
+        Matcher matcher = CSRF_PATTERN.matcher(html);
+        if (!matcher.find()) {
+            throw new IllegalStateException("CSRF token not found in rendered form");
+        }
+        return matcher.group(1);
+    }
+
+    private static String firstCookie(HttpHeaders headers) {
+        List<String> cookies = headers.get(HttpHeaders.SET_COOKIE);
+        if (cookies == null || cookies.isEmpty()) {
+            return null;
+        }
+        return cookies.get(0);
+    }
 }

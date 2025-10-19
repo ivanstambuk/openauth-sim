@@ -15,345 +15,340 @@ import java.util.Set;
 /** Shared sample data for the FIDO2/WebAuthn operator console. */
 public final class Fido2OperatorSampleData {
 
-  private static final Map<String, String> BASE_METADATA = Map.of("seedSource", "operator-ui");
-  private static final List<SeedDefinition> SEED_DEFINITIONS;
-  private static final List<InlineVector> INLINE_VECTORS;
+    private static final Map<String, String> BASE_METADATA = Map.of("seedSource", "operator-ui");
+    private static final List<SeedDefinition> SEED_DEFINITIONS;
+    private static final List<InlineVector> INLINE_VECTORS;
 
-  private Fido2OperatorSampleData() {
-    // utility class
-  }
+    private Fido2OperatorSampleData() {
+        // utility class
+    }
 
-  /** Canonical WebAuthn credential definitions available for seeding. */
-  public static List<SeedDefinition> seedDefinitions() {
-    return SEED_DEFINITIONS;
-  }
+    /** Canonical WebAuthn credential definitions available for seeding. */
+    public static List<SeedDefinition> seedDefinitions() {
+        return SEED_DEFINITIONS;
+    }
 
-  /** Inline WebAuthn assertion vectors for populating operator console presets. */
-  public static List<InlineVector> inlineVectors() {
-    return INLINE_VECTORS;
-  }
+    /** Inline WebAuthn assertion vectors for populating operator console presets. */
+    public static List<InlineVector> inlineVectors() {
+        return INLINE_VECTORS;
+    }
 
-  private static List<InlineVector> buildInlineVectors(List<Sample> samples) {
-    return List.copyOf(samples.stream().map(Fido2OperatorSampleData::toInlineVector).toList());
-  }
+    private static List<InlineVector> buildInlineVectors(List<Sample> samples) {
+        return List.copyOf(
+                samples.stream().map(Fido2OperatorSampleData::toInlineVector).toList());
+    }
 
-  private static InlineVector toInlineVector(Sample sample) {
-    String sampleVectorLabel = formatInlineVectorLabel(sample);
-    return new InlineVector(
-        sample.key(),
-        sampleVectorLabel,
-        sampleVectorLabel,
-        sample.relyingPartyId(),
-        sample.origin(),
-        sample.expectedType(),
-        sample.credentialIdBase64Url(),
-        sample.publicKeyCoseBase64Url(),
-        publicKeyJwk(sample),
-        sample.signatureCounter(),
-        sample.userVerificationRequired(),
-        sample.algorithm().label(),
-        sample.challengeBase64Url(),
-        sample.clientDataBase64Url(),
-        sample.authenticatorDataBase64Url(),
-        sample.signatureBase64Url(),
-        prettyJwk(sample.privateKeyJwk()),
-        metadata(
-            sample.key(),
-            sampleVectorLabel,
-            "Sample vector produced via WebAuthnAssertionGenerationApplicationService",
-            sample));
-  }
+    private static InlineVector toInlineVector(Sample sample) {
+        String sampleVectorLabel = formatInlineVectorLabel(sample);
+        return new InlineVector(
+                sample.key(),
+                sampleVectorLabel,
+                sampleVectorLabel,
+                sample.relyingPartyId(),
+                sample.origin(),
+                sample.expectedType(),
+                sample.credentialIdBase64Url(),
+                sample.publicKeyCoseBase64Url(),
+                publicKeyJwk(sample),
+                sample.signatureCounter(),
+                sample.userVerificationRequired(),
+                sample.algorithm().label(),
+                sample.challengeBase64Url(),
+                sample.clientDataBase64Url(),
+                sample.authenticatorDataBase64Url(),
+                sample.signatureBase64Url(),
+                prettyJwk(sample.privateKeyJwk()),
+                metadata(
+                        sample.key(),
+                        sampleVectorLabel,
+                        "Sample vector produced via WebAuthnAssertionGenerationApplicationService",
+                        sample));
+    }
 
-  private static List<SeedDefinition> buildSeedDefinitions(List<Sample> samples) {
-    return List.copyOf(samples.stream().map(Fido2OperatorSampleData::toSeedDefinition).toList());
-  }
+    private static List<SeedDefinition> buildSeedDefinitions(List<Sample> samples) {
+        return List.copyOf(
+                samples.stream().map(Fido2OperatorSampleData::toSeedDefinition).toList());
+    }
 
-  private static SeedDefinition toSeedDefinition(Sample sample) {
-    return new SeedDefinition(
-        sample.key(),
-        seedLabel(sample),
-        sample.relyingPartyId(),
-        sample.credentialIdBase64Url(),
-        sample.publicKeyCoseBase64Url(),
-        sample.signatureCounter(),
-        sample.userVerificationRequired(),
-        sample.algorithm(),
-        prettyJwk(sample.privateKeyJwk()),
-        metadata(
-            sample.key(),
-            seedLabel(sample),
-            "Seeded WebAuthn credential curated for the operator console",
-            sample));
-  }
+    private static SeedDefinition toSeedDefinition(Sample sample) {
+        return new SeedDefinition(
+                sample.key(),
+                seedLabel(sample),
+                sample.relyingPartyId(),
+                sample.credentialIdBase64Url(),
+                sample.publicKeyCoseBase64Url(),
+                sample.signatureCounter(),
+                sample.userVerificationRequired(),
+                sample.algorithm(),
+                prettyJwk(sample.privateKeyJwk()),
+                metadata(
+                        sample.key(),
+                        seedLabel(sample),
+                        "Seeded WebAuthn credential curated for the operator console",
+                        sample));
+    }
 
-  private static Map<String, String> metadata(
-      String key, String label, String notes, Sample sample) {
-    Map<String, String> result = new LinkedHashMap<>(BASE_METADATA);
-    result.put("presetKey", Objects.requireNonNull(key, "key"));
-    result.put("label", Objects.requireNonNull(label, "label"));
-    result.put("notes", Objects.requireNonNull(notes, "notes"));
-    if (sample != null) {
-      Map<String, String> sampleMetadata = sample.metadata();
-      if (sampleMetadata != null && !sampleMetadata.isEmpty()) {
-        for (Map.Entry<String, String> entry : sampleMetadata.entrySet()) {
-          String metadataKey = entry.getKey();
-          String metadataValue = entry.getValue();
-          if (metadataKey != null && metadataValue != null && !metadataValue.isBlank()) {
-            result.put(metadataKey, metadataValue);
-          }
+    private static Map<String, String> metadata(String key, String label, String notes, Sample sample) {
+        Map<String, String> result = new LinkedHashMap<>(BASE_METADATA);
+        result.put("presetKey", Objects.requireNonNull(key, "key"));
+        result.put("label", Objects.requireNonNull(label, "label"));
+        result.put("notes", Objects.requireNonNull(notes, "notes"));
+        if (sample != null) {
+            Map<String, String> sampleMetadata = sample.metadata();
+            if (sampleMetadata != null && !sampleMetadata.isEmpty()) {
+                for (Map.Entry<String, String> entry : sampleMetadata.entrySet()) {
+                    String metadataKey = entry.getKey();
+                    String metadataValue = entry.getValue();
+                    if (metadataKey != null && metadataValue != null && !metadataValue.isBlank()) {
+                        result.put(metadataKey, metadataValue);
+                    }
+                }
+                String fixtureSource = sampleMetadata.get("source");
+                if (fixtureSource != null && !fixtureSource.isBlank()) {
+                    result.put("fixtureSource", fixtureSource);
+                }
+            }
+            result.put("algorithm", sample.algorithm().label());
+            result.put("userVerificationRequired", Boolean.toString(sample.userVerificationRequired()));
+            result.put("source", resolveSampleSource(sample));
         }
-        String fixtureSource = sampleMetadata.get("source");
-        if (fixtureSource != null && !fixtureSource.isBlank()) {
-          result.put("fixtureSource", fixtureSource);
+        return Map.copyOf(result);
+    }
+
+    private static String seedLabel(Sample sample) {
+        return sample.label();
+    }
+
+    private static String resolveSampleSource(Sample sample) {
+        Map<String, String> metadata = sample.metadata();
+        if (metadata != null) {
+            String source = metadata.get("source");
+            if (source != null && !source.isBlank()) {
+                return source;
+            }
         }
-      }
-      result.put("algorithm", sample.algorithm().label());
-      result.put("userVerificationRequired", Boolean.toString(sample.userVerificationRequired()));
-      result.put("source", resolveSampleSource(sample));
+        return "curated-sample";
     }
-    return Map.copyOf(result);
-  }
 
-  private static String seedLabel(Sample sample) {
-    return sample.label();
-  }
-
-  private static String resolveSampleSource(Sample sample) {
-    Map<String, String> metadata = sample.metadata();
-    if (metadata != null) {
-      String source = metadata.get("source");
-      if (source != null && !source.isBlank()) {
-        return source;
-      }
-    }
-    return "curated-sample";
-  }
-
-  private static String formatInlineVectorLabel(Sample sample) {
-    String uvDescriptor = sample.userVerificationRequired() ? "UV required" : "UV optional";
-    String baseLabel = sample.algorithm().label() + " - " + uvDescriptor;
-    String source = sample.metadata().get("source");
-    if ("w3c".equalsIgnoreCase(source)) {
-      return baseLabel + " (W3C Level 3)";
-    }
-    return baseLabel;
-  }
-
-  private static String publicKeyJwk(Sample sample) {
-    return derivePublicJwk(sample.privateKeyJwk());
-  }
-
-  private static final Set<String> PRIVATE_JWK_FIELDS =
-      Set.of("d", "p", "q", "dp", "dq", "qi", "oth");
-
-  private static String derivePublicJwk(String keyPairJwk) {
-    if (keyPairJwk == null || keyPairJwk.isBlank()) {
-      return "";
-    }
-    Object parsed = SimpleJson.parse(keyPairJwk);
-    if (!(parsed instanceof Map<?, ?> parsedMap)) {
-      return keyPairJwk.trim();
-    }
-    Map<String, Object> filtered = new LinkedHashMap<>();
-    for (Map.Entry<?, ?> entry : parsedMap.entrySet()) {
-      Object rawKey = entry.getKey();
-      if (!(rawKey instanceof String key) || PRIVATE_JWK_FIELDS.contains(key)) {
-        continue;
-      }
-      filtered.put(key, entry.getValue());
-    }
-    return writeJson(filtered);
-  }
-
-  private static String writeJson(Map<String, Object> map) {
-    StringBuilder builder = new StringBuilder();
-    builder.append('{');
-    boolean first = true;
-    for (Map.Entry<String, Object> entry : map.entrySet()) {
-      if (!first) {
-        builder.append(',');
-      }
-      first = false;
-      builder.append('"').append(escape(entry.getKey())).append('"').append(':');
-      builder.append(serializeJsonValue(entry.getValue()));
-    }
-    builder.append('}');
-    return builder.toString();
-  }
-
-  private static String prettyJwk(String jwk) {
-    if (jwk == null || jwk.isBlank()) {
-      return jwk;
-    }
-    Object parsed = SimpleJson.parse(jwk);
-    if (!(parsed instanceof Map<?, ?> raw)) {
-      return jwk.trim();
-    }
-    Map<String, Object> ordered = new LinkedHashMap<>();
-    for (Map.Entry<?, ?> entry : raw.entrySet()) {
-      Object key = entry.getKey();
-      if (key instanceof String name) {
-        ordered.put(name, entry.getValue());
-      }
-    }
-    StringBuilder builder = new StringBuilder();
-    builder.append("{\n");
-    boolean first = true;
-    for (Map.Entry<String, Object> entry : ordered.entrySet()) {
-      if (!first) {
-        builder.append(",\n");
-      }
-      first = false;
-      builder
-          .append("  \"")
-          .append(escape(entry.getKey()))
-          .append("\": ")
-          .append(serializeJsonValue(entry.getValue()));
-    }
-    builder.append('\n').append('}');
-    return builder.toString();
-  }
-
-  private static String serializeJsonValue(Object value) {
-    if (value == null) {
-      return "null";
-    }
-    if (value instanceof Boolean || value instanceof Number) {
-      return value.toString();
-    }
-    if (value instanceof Map<?, ?> map) {
-      Map<String, Object> nested = new LinkedHashMap<>();
-      for (Map.Entry<?, ?> entry : map.entrySet()) {
-        Object rawKey = entry.getKey();
-        if (rawKey instanceof String key) {
-          nested.put(key, entry.getValue());
+    private static String formatInlineVectorLabel(Sample sample) {
+        String uvDescriptor = sample.userVerificationRequired() ? "UV required" : "UV optional";
+        String baseLabel = sample.algorithm().label() + " - " + uvDescriptor;
+        String source = sample.metadata().get("source");
+        if ("w3c".equalsIgnoreCase(source)) {
+            return baseLabel + " (W3C Level 3)";
         }
-      }
-      return writeJson(nested);
+        return baseLabel;
     }
-    if (value instanceof Collection<?> collection) {
-      List<String> serialized = new ArrayList<>(collection.size());
-      for (Object item : collection) {
-        serialized.add(serializeJsonValue(item));
-      }
-      return "[" + String.join(",", serialized) + "]";
-    }
-    return '"' + escape(String.valueOf(value)) + '"';
-  }
 
-  private static String escape(String value) {
-    StringBuilder builder = new StringBuilder(value.length() + 16);
-    for (int i = 0; i < value.length(); i++) {
-      char ch = value.charAt(i);
-      switch (ch) {
-        case '\\' -> builder.append("\\\\");
-        case '"' -> builder.append("\\\"");
-        case '\b' -> builder.append("\\b");
-        case '\f' -> builder.append("\\f");
-        case '\n' -> builder.append("\\n");
-        case '\r' -> builder.append("\\r");
-        case '\t' -> builder.append("\\t");
-        default -> {
-          if (ch < 0x20) {
-            builder.append(String.format("\\u%04x", (int) ch));
-          } else {
-            builder.append(ch);
-          }
+    private static String publicKeyJwk(Sample sample) {
+        return derivePublicJwk(sample.privateKeyJwk());
+    }
+
+    private static final Set<String> PRIVATE_JWK_FIELDS = Set.of("d", "p", "q", "dp", "dq", "qi", "oth");
+
+    private static String derivePublicJwk(String keyPairJwk) {
+        if (keyPairJwk == null || keyPairJwk.isBlank()) {
+            return "";
         }
-      }
+        Object parsed = SimpleJson.parse(keyPairJwk);
+        if (!(parsed instanceof Map<?, ?> parsedMap)) {
+            return keyPairJwk.trim();
+        }
+        Map<String, Object> filtered = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : parsedMap.entrySet()) {
+            Object rawKey = entry.getKey();
+            if (!(rawKey instanceof String key) || PRIVATE_JWK_FIELDS.contains(key)) {
+                continue;
+            }
+            filtered.put(key, entry.getValue());
+        }
+        return writeJson(filtered);
     }
-    return builder.toString();
-  }
 
-  /** Descriptor used to seed canonical FIDO2/WebAuthn credentials. */
-  public record SeedDefinition(
-      String credentialId,
-      String label,
-      String relyingPartyId,
-      String credentialIdBase64Url,
-      String publicKeyCoseBase64Url,
-      long signatureCounter,
-      boolean userVerificationRequired,
-      WebAuthnSignatureAlgorithm algorithm,
-      String privateKeyJwk,
-      Map<String, String> metadata) {
-
-    public SeedDefinition {
-      credentialId = Objects.requireNonNull(credentialId, "credentialId");
-      label = Objects.requireNonNull(label, "label");
-      relyingPartyId = Objects.requireNonNull(relyingPartyId, "relyingPartyId");
-      credentialIdBase64Url =
-          Objects.requireNonNull(credentialIdBase64Url, "credentialIdBase64Url");
-      publicKeyCoseBase64Url =
-          Objects.requireNonNull(publicKeyCoseBase64Url, "publicKeyCoseBase64Url");
-      algorithm = Objects.requireNonNull(algorithm, "algorithm");
-      privateKeyJwk = Objects.requireNonNull(privateKeyJwk, "privateKeyJwk");
-      metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+    private static String writeJson(Map<String, Object> map) {
+        StringBuilder builder = new StringBuilder();
+        builder.append('{');
+        boolean first = true;
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append('"').append(escape(entry.getKey())).append('"').append(':');
+            builder.append(serializeJsonValue(entry.getValue()));
+        }
+        builder.append('}');
+        return builder.toString();
     }
-  }
 
-  /** Inline preset describing a WebAuthn assertion vector. */
-  public record InlineVector(
-      String key,
-      String label,
-      String credentialName,
-      String relyingPartyId,
-      String origin,
-      String expectedType,
-      String credentialIdBase64Url,
-      String publicKeyCoseBase64Url,
-      String publicKeyJwk,
-      long signatureCounter,
-      boolean userVerificationRequired,
-      String algorithm,
-      String expectedChallengeBase64Url,
-      String clientDataBase64Url,
-      String authenticatorDataBase64Url,
-      String signatureBase64Url,
-      String privateKeyJwk,
-      Map<String, String> metadata) {
-
-    public InlineVector {
-      key = Objects.requireNonNull(key, "key");
-      label = Objects.requireNonNull(label, "label");
-      credentialName = Objects.requireNonNull(credentialName, "credentialName");
-      relyingPartyId = Objects.requireNonNull(relyingPartyId, "relyingPartyId");
-      origin = Objects.requireNonNull(origin, "origin");
-      expectedType = Objects.requireNonNull(expectedType, "expectedType");
-      credentialIdBase64Url =
-          Objects.requireNonNull(credentialIdBase64Url, "credentialIdBase64Url");
-      publicKeyCoseBase64Url =
-          Objects.requireNonNull(publicKeyCoseBase64Url, "publicKeyCoseBase64Url");
-      publicKeyJwk = Objects.requireNonNull(publicKeyJwk, "publicKeyJwk");
-      algorithm = Objects.requireNonNull(algorithm, "algorithm");
-      expectedChallengeBase64Url =
-          Objects.requireNonNull(expectedChallengeBase64Url, "expectedChallengeBase64Url");
-      clientDataBase64Url = Objects.requireNonNull(clientDataBase64Url, "clientDataBase64Url");
-      authenticatorDataBase64Url =
-          Objects.requireNonNull(authenticatorDataBase64Url, "authenticatorDataBase64Url");
-      signatureBase64Url = Objects.requireNonNull(signatureBase64Url, "signatureBase64Url");
-      privateKeyJwk = Objects.requireNonNull(privateKeyJwk, "privateKeyJwk");
-      metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+    private static String prettyJwk(String jwk) {
+        if (jwk == null || jwk.isBlank()) {
+            return jwk;
+        }
+        Object parsed = SimpleJson.parse(jwk);
+        if (!(parsed instanceof Map<?, ?> raw)) {
+            return jwk.trim();
+        }
+        Map<String, Object> ordered = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : raw.entrySet()) {
+            Object key = entry.getKey();
+            if (key instanceof String name) {
+                ordered.put(name, entry.getValue());
+            }
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append("{\n");
+        boolean first = true;
+        for (Map.Entry<String, Object> entry : ordered.entrySet()) {
+            if (!first) {
+                builder.append(",\n");
+            }
+            first = false;
+            builder.append("  \"")
+                    .append(escape(entry.getKey()))
+                    .append("\": ")
+                    .append(serializeJsonValue(entry.getValue()));
+        }
+        builder.append('\n').append('}');
+        return builder.toString();
     }
-  }
 
-  static {
-    List<Sample> samples = WebAuthnGeneratorSamples.samples();
-    List<Sample> curatedSamples = curateByAlgorithm(samples);
-    INLINE_VECTORS = buildInlineVectors(curatedSamples);
-    SEED_DEFINITIONS = buildSeedDefinitions(curatedSamples);
-  }
+    private static String serializeJsonValue(Object value) {
+        if (value == null) {
+            return "null";
+        }
+        if (value instanceof Boolean || value instanceof Number) {
+            return value.toString();
+        }
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> nested = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                Object rawKey = entry.getKey();
+                if (rawKey instanceof String key) {
+                    nested.put(key, entry.getValue());
+                }
+            }
+            return writeJson(nested);
+        }
+        if (value instanceof Collection<?> collection) {
+            List<String> serialized = new ArrayList<>(collection.size());
+            for (Object item : collection) {
+                serialized.add(serializeJsonValue(item));
+            }
+            return "[" + String.join(",", serialized) + "]";
+        }
+        return '"' + escape(String.valueOf(value)) + '"';
+    }
 
-  private static List<Sample> curateByAlgorithm(List<Sample> samples) {
-    if (samples.isEmpty()) {
-      return List.of();
+    private static String escape(String value) {
+        StringBuilder builder = new StringBuilder(value.length() + 16);
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            switch (ch) {
+                case '\\' -> builder.append("\\\\");
+                case '"' -> builder.append("\\\"");
+                case '\b' -> builder.append("\\b");
+                case '\f' -> builder.append("\\f");
+                case '\n' -> builder.append("\\n");
+                case '\r' -> builder.append("\\r");
+                case '\t' -> builder.append("\\t");
+                default -> {
+                    if (ch < 0x20) {
+                        builder.append(String.format("\\u%04x", (int) ch));
+                    } else {
+                        builder.append(ch);
+                    }
+                }
+            }
+        }
+        return builder.toString();
     }
-    Map<WebAuthnSignatureAlgorithm, Sample> byAlgorithm = new LinkedHashMap<>();
-    for (Sample sample : samples) {
-      if (sample != null) {
-        byAlgorithm.putIfAbsent(sample.algorithm(), sample);
-      }
+
+    /** Descriptor used to seed canonical FIDO2/WebAuthn credentials. */
+    public record SeedDefinition(
+            String credentialId,
+            String label,
+            String relyingPartyId,
+            String credentialIdBase64Url,
+            String publicKeyCoseBase64Url,
+            long signatureCounter,
+            boolean userVerificationRequired,
+            WebAuthnSignatureAlgorithm algorithm,
+            String privateKeyJwk,
+            Map<String, String> metadata) {
+
+        public SeedDefinition {
+            credentialId = Objects.requireNonNull(credentialId, "credentialId");
+            label = Objects.requireNonNull(label, "label");
+            relyingPartyId = Objects.requireNonNull(relyingPartyId, "relyingPartyId");
+            credentialIdBase64Url = Objects.requireNonNull(credentialIdBase64Url, "credentialIdBase64Url");
+            publicKeyCoseBase64Url = Objects.requireNonNull(publicKeyCoseBase64Url, "publicKeyCoseBase64Url");
+            algorithm = Objects.requireNonNull(algorithm, "algorithm");
+            privateKeyJwk = Objects.requireNonNull(privateKeyJwk, "privateKeyJwk");
+            metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+        }
     }
-    return List.copyOf(byAlgorithm.values());
-  }
+
+    /** Inline preset describing a WebAuthn assertion vector. */
+    public record InlineVector(
+            String key,
+            String label,
+            String credentialName,
+            String relyingPartyId,
+            String origin,
+            String expectedType,
+            String credentialIdBase64Url,
+            String publicKeyCoseBase64Url,
+            String publicKeyJwk,
+            long signatureCounter,
+            boolean userVerificationRequired,
+            String algorithm,
+            String expectedChallengeBase64Url,
+            String clientDataBase64Url,
+            String authenticatorDataBase64Url,
+            String signatureBase64Url,
+            String privateKeyJwk,
+            Map<String, String> metadata) {
+
+        public InlineVector {
+            key = Objects.requireNonNull(key, "key");
+            label = Objects.requireNonNull(label, "label");
+            credentialName = Objects.requireNonNull(credentialName, "credentialName");
+            relyingPartyId = Objects.requireNonNull(relyingPartyId, "relyingPartyId");
+            origin = Objects.requireNonNull(origin, "origin");
+            expectedType = Objects.requireNonNull(expectedType, "expectedType");
+            credentialIdBase64Url = Objects.requireNonNull(credentialIdBase64Url, "credentialIdBase64Url");
+            publicKeyCoseBase64Url = Objects.requireNonNull(publicKeyCoseBase64Url, "publicKeyCoseBase64Url");
+            publicKeyJwk = Objects.requireNonNull(publicKeyJwk, "publicKeyJwk");
+            algorithm = Objects.requireNonNull(algorithm, "algorithm");
+            expectedChallengeBase64Url =
+                    Objects.requireNonNull(expectedChallengeBase64Url, "expectedChallengeBase64Url");
+            clientDataBase64Url = Objects.requireNonNull(clientDataBase64Url, "clientDataBase64Url");
+            authenticatorDataBase64Url =
+                    Objects.requireNonNull(authenticatorDataBase64Url, "authenticatorDataBase64Url");
+            signatureBase64Url = Objects.requireNonNull(signatureBase64Url, "signatureBase64Url");
+            privateKeyJwk = Objects.requireNonNull(privateKeyJwk, "privateKeyJwk");
+            metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+        }
+    }
+
+    static {
+        List<Sample> samples = WebAuthnGeneratorSamples.samples();
+        List<Sample> curatedSamples = curateByAlgorithm(samples);
+        INLINE_VECTORS = buildInlineVectors(curatedSamples);
+        SEED_DEFINITIONS = buildSeedDefinitions(curatedSamples);
+    }
+
+    private static List<Sample> curateByAlgorithm(List<Sample> samples) {
+        if (samples.isEmpty()) {
+            return List.of();
+        }
+        Map<WebAuthnSignatureAlgorithm, Sample> byAlgorithm = new LinkedHashMap<>();
+        for (Sample sample : samples) {
+            if (sample != null) {
+                byAlgorithm.putIfAbsent(sample.algorithm(), sample);
+            }
+        }
+        return List.copyOf(byAlgorithm.values());
+    }
 }

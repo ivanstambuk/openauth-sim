@@ -36,153 +36,149 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 final class OcraCredentialSeedingEndpointTest {
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static final Logger TELEMETRY_LOGGER =
-      Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
-  private static final List<String> CANONICAL_SUITES =
-      OcraOperatorSampleData.seedDefinitions().stream()
-          .map(OcraOperatorSampleData.SampleDefinition::suite)
-          .distinct()
-          .collect(Collectors.toUnmodifiableList());
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final Logger TELEMETRY_LOGGER = Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
+    private static final List<String> CANONICAL_SUITES = OcraOperatorSampleData.seedDefinitions().stream()
+            .map(OcraOperatorSampleData.SampleDefinition::suite)
+            .distinct()
+            .collect(Collectors.toUnmodifiableList());
 
-  @TempDir static Path tempDir;
-  private static Path databasePath;
+    @TempDir
+    static Path tempDir;
 
-  @DynamicPropertySource
-  static void configurePersistence(DynamicPropertyRegistry registry) {
-    databasePath = tempDir.resolve("seed-endpoint.db");
-    registry.add(
-        "openauth.sim.persistence.database-path", () -> databasePath.toAbsolutePath().toString());
-    registry.add("openauth.sim.persistence.enable-store", () -> "true");
-  }
+    private static Path databasePath;
 
-  @Autowired private MockMvc mockMvc;
-  @Autowired private CredentialStore credentialStore;
-
-  @BeforeEach
-  void clearCredentialStore() {
-    credentialStore.findAll().forEach(credential -> credentialStore.delete(credential.name()));
-    assertThat(credentialStore.findAll()).isEmpty();
-  }
-
-  @Test
-  @DisplayName("POST /api/v1/ocra/credentials/seed populates canonical suites when empty")
-  void seedEndpointPopulatesCanonicalSuites() throws Exception {
-    TestLogHandler logHandler = registerTelemetryHandler();
-    try {
-      String responseBody =
-          mockMvc
-              .perform(
-                  post("/api/v1/ocra/credentials/seed").contentType(MediaType.APPLICATION_JSON))
-              .andExpect(status().isOk())
-              .andReturn()
-              .getResponse()
-              .getContentAsString();
-
-      JsonNode response = OBJECT_MAPPER.readTree(responseBody);
-      assertThat(response.get("addedCount").asInt()).isEqualTo(CANONICAL_SUITES.size());
-      assertThat(response.get("addedCredentialIds")).isNotNull();
-
-      Set<String> suites = new HashSet<>();
-      for (Credential credential : credentialStore.findAll()) {
-        suites.add(credential.attributes().get(OcraCredentialPersistenceAdapter.ATTR_SUITE));
-      }
-      assertThat(suites).containsExactlyInAnyOrderElementsOf(CANONICAL_SUITES);
-
-      assertThat(logHandler.records())
-          .anySatisfy(
-              record ->
-                  assertThat(record.getMessage())
-                      .contains("ocra.seed")
-                      .contains("addedCount=" + CANONICAL_SUITES.size()));
-    } finally {
-      deregisterTelemetryHandler(logHandler);
-    }
-  }
-
-  @Test
-  @DisplayName("Repeated seeding only adds missing suites and emits telemetry")
-  void reseedingOnlyAddsMissingSuites() throws Exception {
-    String initialResponse =
-        mockMvc
-            .perform(post("/api/v1/ocra/credentials/seed").contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-    JsonNode first = OBJECT_MAPPER.readTree(initialResponse);
-    assertThat(first.get("addedCount").asInt()).isEqualTo(CANONICAL_SUITES.size());
-
-    // Delete a single credential to simulate missing data.
-    assertThatNoException()
-        .describedAs("should delete existing credential for reseed scenario")
-        .isThrownBy(() -> credentialStore.delete(credentialStore.findAll().get(0).name()));
-
-    TestLogHandler logHandler = registerTelemetryHandler();
-    try {
-      String secondResponse =
-          mockMvc
-              .perform(
-                  post("/api/v1/ocra/credentials/seed").contentType(MediaType.APPLICATION_JSON))
-              .andExpect(status().isOk())
-              .andReturn()
-              .getResponse()
-              .getContentAsString();
-
-      JsonNode second = OBJECT_MAPPER.readTree(secondResponse);
-      assertThat(second.get("addedCount").asInt()).isEqualTo(1);
-      assertThat(second.get("addedCredentialIds")).isNotNull();
-      assertThat(second.get("addedCredentialIds")).isNotEmpty();
-
-      Set<String> suites = new HashSet<>();
-      for (Credential credential : credentialStore.findAll()) {
-        suites.add(credential.attributes().get(OcraCredentialPersistenceAdapter.ATTR_SUITE));
-      }
-      assertThat(suites).containsExactlyInAnyOrderElementsOf(CANONICAL_SUITES);
-
-      assertThat(logHandler.records())
-          .anySatisfy(
-              record ->
-                  assertThat(record.getMessage()).contains("ocra.seed").contains("addedCount=1"));
-    } finally {
-      deregisterTelemetryHandler(logHandler);
-    }
-  }
-
-  private static TestLogHandler registerTelemetryHandler() {
-    TestLogHandler handler = new TestLogHandler();
-    TELEMETRY_LOGGER.addHandler(handler);
-    TELEMETRY_LOGGER.setLevel(Level.ALL);
-    return handler;
-  }
-
-  private static void deregisterTelemetryHandler(TestLogHandler handler) {
-    TELEMETRY_LOGGER.removeHandler(handler);
-  }
-
-  private static final class TestLogHandler extends Handler {
-    private final List<LogRecord> records = new java.util.concurrent.CopyOnWriteArrayList<>();
-
-    @Override
-    public void publish(LogRecord record) {
-      if (record != null) {
-        records.add(record);
-      }
+    @DynamicPropertySource
+    static void configurePersistence(DynamicPropertyRegistry registry) {
+        databasePath = tempDir.resolve("seed-endpoint.db");
+        registry.add(
+                "openauth.sim.persistence.database-path",
+                () -> databasePath.toAbsolutePath().toString());
+        registry.add("openauth.sim.persistence.enable-store", () -> "true");
     }
 
-    @Override
-    public void flush() {
-      // no-op
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private CredentialStore credentialStore;
+
+    @BeforeEach
+    void clearCredentialStore() {
+        credentialStore.findAll().forEach(credential -> credentialStore.delete(credential.name()));
+        assertThat(credentialStore.findAll()).isEmpty();
     }
 
-    @Override
-    public void close() {
-      // no-op
+    @Test
+    @DisplayName("POST /api/v1/ocra/credentials/seed populates canonical suites when empty")
+    void seedEndpointPopulatesCanonicalSuites() throws Exception {
+        TestLogHandler logHandler = registerTelemetryHandler();
+        try {
+            String responseBody = mockMvc.perform(
+                            post("/api/v1/ocra/credentials/seed").contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+            JsonNode response = OBJECT_MAPPER.readTree(responseBody);
+            assertThat(response.get("addedCount").asInt()).isEqualTo(CANONICAL_SUITES.size());
+            assertThat(response.get("addedCredentialIds")).isNotNull();
+
+            Set<String> suites = new HashSet<>();
+            for (Credential credential : credentialStore.findAll()) {
+                suites.add(credential.attributes().get(OcraCredentialPersistenceAdapter.ATTR_SUITE));
+            }
+            assertThat(suites).containsExactlyInAnyOrderElementsOf(CANONICAL_SUITES);
+
+            assertThat(logHandler.records()).anySatisfy(record -> assertThat(record.getMessage())
+                    .contains("ocra.seed")
+                    .contains("addedCount=" + CANONICAL_SUITES.size()));
+        } finally {
+            deregisterTelemetryHandler(logHandler);
+        }
     }
 
-    List<LogRecord> records() {
-      return records;
+    @Test
+    @DisplayName("Repeated seeding only adds missing suites and emits telemetry")
+    void reseedingOnlyAddsMissingSuites() throws Exception {
+        String initialResponse = mockMvc.perform(
+                        post("/api/v1/ocra/credentials/seed").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode first = OBJECT_MAPPER.readTree(initialResponse);
+        assertThat(first.get("addedCount").asInt()).isEqualTo(CANONICAL_SUITES.size());
+
+        // Delete a single credential to simulate missing data.
+        assertThatNoException()
+                .describedAs("should delete existing credential for reseed scenario")
+                .isThrownBy(() ->
+                        credentialStore.delete(credentialStore.findAll().get(0).name()));
+
+        TestLogHandler logHandler = registerTelemetryHandler();
+        try {
+            String secondResponse = mockMvc.perform(
+                            post("/api/v1/ocra/credentials/seed").contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+            JsonNode second = OBJECT_MAPPER.readTree(secondResponse);
+            assertThat(second.get("addedCount").asInt()).isEqualTo(1);
+            assertThat(second.get("addedCredentialIds")).isNotNull();
+            assertThat(second.get("addedCredentialIds")).isNotEmpty();
+
+            Set<String> suites = new HashSet<>();
+            for (Credential credential : credentialStore.findAll()) {
+                suites.add(credential.attributes().get(OcraCredentialPersistenceAdapter.ATTR_SUITE));
+            }
+            assertThat(suites).containsExactlyInAnyOrderElementsOf(CANONICAL_SUITES);
+
+            assertThat(logHandler.records()).anySatisfy(record -> assertThat(record.getMessage())
+                    .contains("ocra.seed")
+                    .contains("addedCount=1"));
+        } finally {
+            deregisterTelemetryHandler(logHandler);
+        }
     }
-  }
+
+    private static TestLogHandler registerTelemetryHandler() {
+        TestLogHandler handler = new TestLogHandler();
+        TELEMETRY_LOGGER.addHandler(handler);
+        TELEMETRY_LOGGER.setLevel(Level.ALL);
+        return handler;
+    }
+
+    private static void deregisterTelemetryHandler(TestLogHandler handler) {
+        TELEMETRY_LOGGER.removeHandler(handler);
+    }
+
+    private static final class TestLogHandler extends Handler {
+        private final List<LogRecord> records = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+        @Override
+        public void publish(LogRecord record) {
+            if (record != null) {
+                records.add(record);
+            }
+        }
+
+        @Override
+        public void flush() {
+            // no-op
+        }
+
+        @Override
+        public void close() {
+            // no-op
+        }
+
+        List<LogRecord> records() {
+            return records;
+        }
+    }
 }

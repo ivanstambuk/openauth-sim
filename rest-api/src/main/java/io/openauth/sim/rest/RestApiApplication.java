@@ -7,11 +7,11 @@ import org.springframework.context.ConfigurableApplicationContext;
 @SpringBootApplication
 public class RestApiApplication {
 
-  static ConfigurableApplicationContext launch(String... args) {
-    return SpringApplication.run(RestApiApplication.class, args);
-  }
+    static ConfigurableApplicationContext launch(String... args) {
+        return SpringApplication.run(RestApiApplication.class, args);
+    }
 
-  public static void main(String[] args) {
-    launch(args);
-  }
+    public static void main(String[] args) {
+        launch(args);
+    }
 }

@@ -14,32 +14,29 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 class OcraApplicationConfiguration {
 
-  @Bean
-  OcraEvaluationApplicationService ocraEvaluationApplicationService(
-      ObjectProvider<Clock> clockProvider,
-      ObjectProvider<CredentialStore> credentialStoreProvider) {
-    Clock clock = Optional.ofNullable(clockProvider.getIfAvailable()).orElse(Clock.systemUTC());
-    CredentialStore store = credentialStoreProvider.getIfAvailable();
-    return new OcraEvaluationApplicationService(
-        clock,
-        store != null
-            ? OcraCredentialResolvers.forStore(store)
-            : OcraCredentialResolvers.emptyResolver());
-  }
+    @Bean
+    OcraEvaluationApplicationService ocraEvaluationApplicationService(
+            ObjectProvider<Clock> clockProvider, ObjectProvider<CredentialStore> credentialStoreProvider) {
+        Clock clock = Optional.ofNullable(clockProvider.getIfAvailable()).orElse(Clock.systemUTC());
+        CredentialStore store = credentialStoreProvider.getIfAvailable();
+        return new OcraEvaluationApplicationService(
+                clock,
+                store != null ? OcraCredentialResolvers.forStore(store) : OcraCredentialResolvers.emptyResolver());
+    }
 
-  @Bean
-  OcraVerificationApplicationService ocraVerificationApplicationService(
-      ObjectProvider<CredentialStore> storeProvider) {
-    CredentialStore store = storeProvider.getIfAvailable();
-    return new OcraVerificationApplicationService(
-        store != null
-            ? OcraCredentialResolvers.forVerificationStore(store)
-            : OcraCredentialResolvers.emptyVerificationResolver(),
-        store);
-  }
+    @Bean
+    OcraVerificationApplicationService ocraVerificationApplicationService(
+            ObjectProvider<CredentialStore> storeProvider) {
+        CredentialStore store = storeProvider.getIfAvailable();
+        return new OcraVerificationApplicationService(
+                store != null
+                        ? OcraCredentialResolvers.forVerificationStore(store)
+                        : OcraCredentialResolvers.emptyVerificationResolver(),
+                store);
+    }
 
-  @Bean
-  OcraSeedApplicationService ocraSeedApplicationService() {
-    return new OcraSeedApplicationService();
-  }
+    @Bean
+    OcraSeedApplicationService ocraSeedApplicationService() {
+        return new OcraSeedApplicationService();
+    }
 }

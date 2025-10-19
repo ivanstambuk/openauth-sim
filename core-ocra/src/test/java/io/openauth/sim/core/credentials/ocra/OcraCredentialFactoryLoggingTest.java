@@ -9,24 +9,21 @@ import org.junit.jupiter.api.Test;
 
 class OcraCredentialFactoryLoggingTest {
 
-  @Test
-  @DisplayName("logValidationFailure honours logger level and optional detail")
-  void logValidationFailureHonoursLoggerLevel() throws Exception {
-    Logger logger = OcraCredentialFactory.telemetryLogger();
-    Level previous = logger.getLevel();
-    try {
-      logger.setLevel(Level.OFF);
-      assertDoesNotThrow(
-          () -> OcraCredentialFactory.logValidationFailure("suite", "name", "code", "id", null));
+    @Test
+    @DisplayName("logValidationFailure honours logger level and optional detail")
+    void logValidationFailureHonoursLoggerLevel() throws Exception {
+        Logger logger = OcraCredentialFactory.telemetryLogger();
+        Level previous = logger.getLevel();
+        try {
+            logger.setLevel(Level.OFF);
+            assertDoesNotThrow(() -> OcraCredentialFactory.logValidationFailure("suite", "name", "code", "id", null));
 
-      logger.setLevel(Level.FINE);
-      assertDoesNotThrow(
-          () ->
-              OcraCredentialFactory.logValidationFailure("suite", "name", "code", "id", "detail"));
-      assertDoesNotThrow(
-          () -> OcraCredentialFactory.logValidationFailure("suite", "name", "code", "id", "   "));
-    } finally {
-      logger.setLevel(previous);
+            logger.setLevel(Level.FINE);
+            assertDoesNotThrow(
+                    () -> OcraCredentialFactory.logValidationFailure("suite", "name", "code", "id", "detail"));
+            assertDoesNotThrow(() -> OcraCredentialFactory.logValidationFailure("suite", "name", "code", "id", "   "));
+        } finally {
+            logger.setLevel(previous);
+        }
     }
-  }
 }

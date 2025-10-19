@@ -14,54 +14,49 @@ import org.springframework.beans.factory.ObjectProvider;
 
 final class HotpApplicationConfigurationTest {
 
-  @Test
-  @DisplayName("Configuration wires HotpEvaluationApplicationService when store present")
-  void configurationProvidesService() {
-    CredentialStore store = Mockito.mock(CredentialStore.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<CredentialStore> provider = Mockito.mock(ObjectProvider.class);
-    Mockito.when(provider.getIfAvailable()).thenReturn(store);
+    @Test
+    @DisplayName("Configuration wires HotpEvaluationApplicationService when store present")
+    void configurationProvidesService() {
+        CredentialStore store = Mockito.mock(CredentialStore.class);
+        @SuppressWarnings("unchecked")
+        ObjectProvider<CredentialStore> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(provider.getIfAvailable()).thenReturn(store);
 
-    HotpApplicationConfiguration configuration = new HotpApplicationConfiguration();
-    HotpEvaluationApplicationService service =
-        configuration.hotpEvaluationApplicationService(provider);
+        HotpApplicationConfiguration configuration = new HotpApplicationConfiguration();
+        HotpEvaluationApplicationService service = configuration.hotpEvaluationApplicationService(provider);
 
-    assertNotNull(service);
-  }
+        assertNotNull(service);
+    }
 
-  @Test
-  @DisplayName("Configuration wires HotpReplayApplicationService when store present")
-  void configurationProvidesReplayService() {
-    CredentialStore store = Mockito.mock(CredentialStore.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<CredentialStore> provider = Mockito.mock(ObjectProvider.class);
-    Mockito.when(provider.getIfAvailable()).thenReturn(store);
+    @Test
+    @DisplayName("Configuration wires HotpReplayApplicationService when store present")
+    void configurationProvidesReplayService() {
+        CredentialStore store = Mockito.mock(CredentialStore.class);
+        @SuppressWarnings("unchecked")
+        ObjectProvider<CredentialStore> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(provider.getIfAvailable()).thenReturn(store);
 
-    HotpApplicationConfiguration configuration = new HotpApplicationConfiguration();
-    HotpReplayApplicationService service = configuration.hotpReplayApplicationService(provider);
+        HotpApplicationConfiguration configuration = new HotpApplicationConfiguration();
+        HotpReplayApplicationService service = configuration.hotpReplayApplicationService(provider);
 
-    assertNotNull(service);
-  }
+        assertNotNull(service);
+    }
 
-  @Test
-  @DisplayName("Configuration throws when CredentialStore missing")
-  void configurationRequiresCredentialStore() {
-    @SuppressWarnings("unchecked")
-    ObjectProvider<CredentialStore> provider = Mockito.mock(ObjectProvider.class);
-    Mockito.when(provider.getIfAvailable()).thenReturn(null);
+    @Test
+    @DisplayName("Configuration throws when CredentialStore missing")
+    void configurationRequiresCredentialStore() {
+        @SuppressWarnings("unchecked")
+        ObjectProvider<CredentialStore> provider = Mockito.mock(ObjectProvider.class);
+        Mockito.when(provider.getIfAvailable()).thenReturn(null);
 
-    HotpApplicationConfiguration configuration = new HotpApplicationConfiguration();
+        HotpApplicationConfiguration configuration = new HotpApplicationConfiguration();
 
-    IllegalStateException exception =
-        assertThrows(
-            IllegalStateException.class,
-            () -> configuration.hotpEvaluationApplicationService(provider));
-    assertTrue(exception.getMessage().contains("CredentialStore"));
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class, () -> configuration.hotpEvaluationApplicationService(provider));
+        assertTrue(exception.getMessage().contains("CredentialStore"));
 
-    IllegalStateException replayException =
-        assertThrows(
-            IllegalStateException.class,
-            () -> configuration.hotpReplayApplicationService(provider));
-    assertTrue(replayException.getMessage().contains("CredentialStore"));
-  }
+        IllegalStateException replayException =
+                assertThrows(IllegalStateException.class, () -> configuration.hotpReplayApplicationService(provider));
+        assertTrue(replayException.getMessage().contains("CredentialStore"));
+    }
 }

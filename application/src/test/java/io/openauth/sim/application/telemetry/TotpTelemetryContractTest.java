@@ -6,35 +6,33 @@ import org.junit.jupiter.api.Test;
 @Tag("telemetry")
 final class TotpTelemetryContractTest {
 
-  @Test
-  void totpSeedingAdapterProducesSeedFrame() {
-    TotpTelemetryAdapter adapter = TelemetryContracts.totpSeedingAdapter();
+    @Test
+    void totpSeedingAdapterProducesSeedFrame() {
+        TotpTelemetryAdapter adapter = TelemetryContracts.totpSeedingAdapter();
 
-    TelemetryFrame frame =
-        adapter.status(
-            "seeded",
-            TelemetryContractTestSupport.telemetryId(),
-            "seeded",
-            true,
-            null,
-            TelemetryContractTestSupport.totpSeedFields());
+        TelemetryFrame frame = adapter.status(
+                "seeded",
+                TelemetryContractTestSupport.telemetryId(),
+                "seeded",
+                true,
+                null,
+                TelemetryContractTestSupport.totpSeedFields());
 
-    TelemetryContractTestSupport.assertTotpSeedFrame(frame);
-  }
+        TelemetryContractTestSupport.assertTotpSeedFrame(frame);
+    }
 
-  @Test
-  void totpSampleAdapterProducesSampleFrame() {
-    TotpTelemetryAdapter adapter = TelemetryContracts.totpSampleAdapter();
+    @Test
+    void totpSampleAdapterProducesSampleFrame() {
+        TotpTelemetryAdapter adapter = TelemetryContracts.totpSampleAdapter();
 
-    TelemetryFrame frame =
-        adapter.status(
-            "sampled",
-            TelemetryContractTestSupport.telemetryId(),
-            "sampled",
-            true,
-            null,
-            TelemetryContractTestSupport.totpSampleFields());
+        TelemetryFrame frame = adapter.status(
+                "sampled",
+                TelemetryContractTestSupport.telemetryId(),
+                "sampled",
+                true,
+                null,
+                TelemetryContractTestSupport.totpSampleFields());
 
-    TelemetryContractTestSupport.assertTotpSampleFrame(frame);
-  }
+        TelemetryContractTestSupport.assertTotpSampleFrame(frame);
+    }
 }
