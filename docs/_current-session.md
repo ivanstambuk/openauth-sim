@@ -6,7 +6,8 @@
 - Date: 2025-10-19
 - Primary branch: `main`
 - Other active branches: none
-- Last green commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*"` (2025-10-19) and `./gradlew --no-daemon spotlessApply check` (2025-10-19).
+- Last green commands: `./gradlew --no-daemon --write-locks spotlessApply check` (2025-10-19) followed by `./gradlew --no-daemon spotlessApply check` (2025-10-19) after reverting google-java-format to 1.28.0.
+- Build status: Workspace back to green on 2025-10-19; reverted google-java-format to 1.28.0 for JDK 17 compatibility, regenerated all dependency lockfiles (`./gradlew --no-daemon --write-locks spotlessApply check`), and confirmed `./gradlew --no-daemon spotlessApply check` passes.
 - Quality gate note: Targeted REST/UI Selenium suites and full `spotlessApply check` rerun 2025-10-19 after shifting operator networking to fetch-only presets, enabling HtmlUnit’s fetch polyfill, and renaming WebAuthn samples; build exited green.
 - Outstanding git state: Unstaged edits across FIDO2/HOTP/TOTP console scripts, HtmlUnit fetch polyfill enablement in Selenium tests, WebAuthn sample assets/tests, and Feature 031 docs.
 
