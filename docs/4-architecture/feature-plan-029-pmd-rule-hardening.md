@@ -32,8 +32,10 @@ _Last updated:_ 2025-10-19
    - _2025-10-19 – Started: spec/plan/tasks preparation underway; roadmap/session updates pending._
 
 3. **I3 – Ruleset expansion & dry run**  
-   - Append the targeted rule references to `config/pmd/ruleset.xml`.  
-   - Run `./gradlew --no-daemon pmdMain pmdTest` to capture baseline violations and log them in the plan/tasks for follow-up.
+  - Append the targeted rule references (including `category/java/bestpractices.xml/NonExhaustiveSwitch`) to `config/pmd/ruleset.xml`.  
+  - Run `./gradlew --no-daemon pmdMain pmdTest` across the full codebase to capture baseline violations and log them in the plan/tasks for follow-up.  
+  - _2025-10-19 – Dry run executed by temporarily adding `NonExhaustiveSwitch`; `./gradlew --no-daemon pmdMain pmdTest` completed with zero violations reported across all modules._  
+  - _2025-10-19 – Rule enabled permanently; both `./gradlew --no-daemon pmdMain pmdTest` and `./gradlew --no-daemon spotlessApply check` remain green._
 
 4. **I4 – Law-of-Demeter scoping**  
    - Introduce a dedicated whitelist resource (e.g., `config/pmd/law-of-demeter-excludes.txt`) referenced via `<exclude-pattern>`.  

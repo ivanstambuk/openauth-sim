@@ -13,10 +13,12 @@ _Last updated:_ 2025-10-19
   ☐ Create spec/plan/tasks artefacts and record the Law-of-Demeter heuristic under clarifications.  
   ☐ Add the roadmap entry and refresh `docs/_current-session.md` with the new workstream.
 
-☐ **T2903 – Ruleset expansion & baseline**  
-  ☐ Append all targeted PMD rules to `config/pmd/ruleset.xml`.  
-  ☐ Run `./gradlew --no-daemon pmdMain pmdTest` to capture baseline violations.  
-  ☐ Log notable findings (modules, rule names) back into the plan/tasks.
+☑ **T2903 – Ruleset expansion & baseline**  
+  ☑ Append all targeted PMD rules (including `category/java/bestpractices.xml/NonExhaustiveSwitch`) to `config/pmd/ruleset.xml`.  
+  ☑ Run `./gradlew --no-daemon pmdMain pmdTest` across the full codebase to capture baseline violations.  
+    - 2025-10-19 – Temporary dry run showed 0 NonExhaustiveSwitch violations; rule reverted pending enforcement decision.  
+    - 2025-10-19 – Rule enabled permanently; `pmdMain pmdTest` stayed green.  
+  ☑ Log notable findings (modules, rule names) back into the plan/tasks.
 
 ☐ **T2904 – Law-of-Demeter scoping**  
   ☐ Add a whitelist resource for fluent interfaces (e.g., `config/pmd/law-of-demeter-excludes.txt`) and reference it via `<exclude-pattern>`.  
