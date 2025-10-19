@@ -5,7 +5,7 @@ This guide teaches operators how to interact with every OCRA REST endpoint expos
 ## Prerequisites
 - Java 17 JDK configured (`JAVA_HOME` must point to it).
 - Repository dependencies installed via Gradle.
-- Default MapDB database (`data/credentials.db`) populated with any credentials you plan to reference. The REST service delegates persistence to `CredentialStoreFactory`, so the same file is shared with CLI/UI. Legacy files such as `data/ocra-credentials.db` are still detected automatically. Use the CLI guide if you need to import fixtures.
+- Default MapDB database (`data/credentials.db`) populated with any credentials you plan to reference. The REST service delegates persistence to `CredentialStoreFactory`, so the same file is shared with CLI/UI. If you rely on a legacy file such as `data/ocra-credentials.db`, either rename it or set `--openauth.sim.persistence.database-path` explicitly before launching. Use the CLI guide if you need to import fixtures.
 
 ## 1. Start the REST Service
 From the repository root:

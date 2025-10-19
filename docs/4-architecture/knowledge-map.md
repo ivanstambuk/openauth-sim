@@ -101,7 +101,7 @@ This living map captures the explicit relationships between modules, data flows,
 - REST OCRA evaluation supports credential lookup via `credentialId`, resolving descriptors from the persistence adapter while preserving the existing inline secret mode.
 - REST module now serves the unified Thymeleaf operator console at `/ui/console`, reusing `/ui/ocra` fragments under the hood while delegating evaluations to the REST endpoint and enforcing session-backed CSRF tokens.
 - REST module exposes `/api/v1/ocra/credentials` to surface sanitized OCRA credential summaries for operator dropdowns without leaking secret material.
-- Shared MapDB persistence now defaults to `data/credentials.db` at the repository root, automatically falling back to legacy `*-credentials.db` files when present so pre-existing stores remain usable without manual migration.
+- Shared MapDB persistence now defaults to `data/credentials.db` at the repository root; operators must rename or explicitly configure legacy `*-credentials.db` files if they wish to continue using them.
 - MapDB store now exposes a package-private cache accessor used by internal tests, eliminating the need for reflective field access while keeping cache internals encapsulated.
 - Ocra credential factory provides a package-private telemetry logger accessor so validation logging assertions remain reflection-free.
 - Operator UI templates expose an accessible mode toggle (inline vs credential) and a sanitized telemetry summary panel so escalations reuse REST metadata without revealing secrets.

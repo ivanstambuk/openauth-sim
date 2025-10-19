@@ -9,7 +9,6 @@ import io.openauth.sim.core.support.ProjectPaths;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -37,15 +36,16 @@ class RestPersistenceConfigurationTest {
   }
 
   @Test
-  @DisplayName("resolveDatabasePath selects legacy store when present")
-  void resolveDatabasePathSelectsLegacyStore() throws Exception {
-    Path legacy = ProjectPaths.resolveDataFile("ocra-credentials.db");
-    Assumptions.assumeFalse(Files.exists(legacy), "legacy store already present");
+  @DisplayName("resolveDatabasePath ignores legacy store when present")
+  void resolveDatabasePathIgnoresLegacyStore() throws Exception {
+    Path unified = ProjectPaths.resolveDataFile("credentials.db");
+    Path legacy = unified.getParent().resolve("test-legacy-store.db");
     Files.createDirectories(legacy.getParent());
+    Files.deleteIfExists(legacy);
     Files.createFile(legacy);
     try {
       Path resolved = RestPersistenceConfiguration.resolveDatabasePath("   ");
-      assertEquals(legacy.toAbsolutePath(), resolved);
+      assertEquals(unified, resolved);
     } finally {
       Files.deleteIfExists(legacy);
     }

@@ -10,7 +10,7 @@ calls with consistent telemetry.
 
 ## Prerequisites
 - The `rest-api` Spring Boot application is running (launch the `RestApiApplication` class from your IDE or use `./gradlew :rest-api:run` if you have added the `application` plugin locally).
-- Point both the REST app and CLI at the same credential database (default `data/credentials.db`). You can override this path via the `openauth.sim.persistence.database-path` property; legacy files like `data/ocra-credentials.db` are still detected automatically.
+- Point both the REST app and CLI at the same credential database (default `data/credentials.db`). You can override this path via the `openauth.sim.persistence.database-path` property; rename legacy files like `data/ocra-credentials.db` or point the property directly at them before launching.
 - Your browser can reach the service host (default `http://localhost:8080`).
 - OCRA credentials already exist if you plan to use stored flows (evaluation presets or replay).
 
@@ -19,7 +19,7 @@ calls with consistent telemetry.
 2. The console encodes the active protocol and OCRA tab in query parameters (for example `?protocol=ocra&tab=replay`), so bookmarks and shared URLs reload the correct state. Deep-linking to disabled protocols (FIDO2/WebAuthn, EMV/CAP) still surfaces their placeholder copy while keeping OCRA-specific controls hidden.
 3. The OCRA panel loads by default and presents a dark-themed mode toggle labelled **Evaluate** and **Replay**. Keyboard navigation lands on the toggle first so operators can switch modes with `Enter`/`Space`.
 4. Both forms execute CSRF-protected JSON fetches; session-bound tokens are embedded in the page and reused by the JavaScript client.
-5. If you seeded credentials via the CLI, make sure the REST app points at the same MapDB database (for example `--openauth.sim.persistence.database-path=data/credentials.db`). The resolver logs when it falls back to a legacy filename so you can audit remaining migrations.
+5. If you seeded credentials via the CLI, make sure the REST app points at the same MapDB database (for example `--openauth.sim.persistence.database-path=data/credentials.db`). The resolver no longer falls back to legacy filenames automatically, so update the property if you rely on an older file.
 
 ## Running Evaluations (Evaluate Mode)
 

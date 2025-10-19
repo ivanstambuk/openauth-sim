@@ -2,15 +2,15 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-027-unified-credential-store.md`  
 _Status:_ In Progress  
-_Last updated:_ 2025-10-18
+_Last updated:_ 2025-10-19
 
 ## Objective
-Deliver a seamless transition to the shared `credentials.db` default across all simulator facades while maintaining compatibility with existing protocol-specific database files.
+Deliver a seamless transition to the shared `credentials.db` default across all simulator facades while retiring compatibility shims for legacy protocol-specific database files.
 
 ## Current Context
 - Prior to this work, REST and the OCRA CLI defaulted to `ocra-credentials.db` while other CLIs used protocol-specific filenames, forcing operators to reconcile paths manually.
 - Documentation and knowledge artefacts assume the OCRA-specific filename for cross-facade sharing.
-- No automated migration exists for users with pre-populated OCRA/TOTP/HOTP/FIDO2 stores.
+- Operators with pre-populated OCRA/TOTP/HOTP/FIDO2 stores must now rename or explicitly configure their database paths; no automated migration is provided.
 
 ## Increment Breakdown (≤10 minutes each)
 1. **I1 – Documentation & governance sync**
@@ -19,11 +19,11 @@ Deliver a seamless transition to the shared `credentials.db` default across all 
    - Ensure the feature tasks checklist mirrors this plan.
    - _2025-10-18 – Completed: spec/plan/tasks created, roadmap/knowledge map/current-session updated, clarification logged._
 
-2. **I2 – Persistence factory fallback**
-   - Update `CredentialStoreFactory.resolveDatabasePath` to prefer `credentials.db` and probe legacy filenames when no explicit path is provided.
-   - Emit informational logging/telemetry when a legacy file is selected.
-   - Refresh `CredentialStoreFactoryTest` coverage and add focused unit tests for fallback ordering.
-   - _2025-10-18 – Completed: factory prioritises `credentials.db`, logs legacy fallbacks, and regression tests cover unified plus legacy discovery paths._
+2. **I2 – Persistence factory update**
+   - Update `CredentialStoreFactory.resolveDatabasePath` to always return `credentials.db` when no explicit path is provided.
+   - Remove legacy filename probing and related telemetry/logging.
+   - Refresh `CredentialStoreFactoryTest` coverage to assert the simplified behaviour.
+   - _2025-10-19 – Completed: factory now returns `credentials.db` by default with no legacy probes; tests updated accordingly._
 
 3. **I3 – Facade defaults & tests**
    - Replace default filename constants in CLI modules and REST configuration with the unified name.
@@ -32,9 +32,9 @@ Deliver a seamless transition to the shared `credentials.db` default across all 
    - _2025-10-18 – Completed: CLI/REST defaults updated, targeted CLI/REST/Selenium suites rerun; full `spotlessApply check` scheduled post-doc refresh._
 
 4. **I4 – Migration guidance**
-   - Document fallback behaviour and future deprecation notes in `docs/2-how-to/configure-persistence-profiles.md` and related guides.
+   - Document manual migration guidance (rename legacy files or set explicit paths) in `docs/2-how-to/configure-persistence-profiles.md` and related guides.
    - Note the change in release/roadmap documentation and update telemetry guidance if logging changed.
-   - _2025-10-18 – Completed: how-to guides, roadmap, and spec add unified default messaging plus legacy fallback guidance._
+   - _2025-10-19 – Completed: how-to guides, roadmap, and spec now instruct operators to migrate legacy files manually; fallback language removed._
 
 ## Dependencies
 - `infra-persistence` module for the shared factory logic.
@@ -42,11 +42,11 @@ Deliver a seamless transition to the shared `credentials.db` default across all 
 - Documentation stack under `docs/`.
 
 ## Risks & Mitigations
-- **Risk:** Operators might unintentionally create a new empty `credentials.db` while legacy files still exist.  
-  **Mitigation:** Probe legacy filenames and log clearly when fallbacks occur.
+- **Risk:** Operators might forget to migrate legacy `*-credentials.db` files and assume they are still loaded automatically.  
+  **Mitigation:** Highlight the manual migration requirement across docs and CLI/REST startup logs when the unified default is created.
 - **Risk:** Hard-coded tests assume legacy filenames.  
   **Mitigation:** Inventory and update tests across modules in Increment I3.
 
 ## Validation
 - Execute `./gradlew --no-daemon :infra-persistence:test :cli:test :rest-api:test spotlessApply check`.
-- Manual smoke test: launch CLI/REST without explicit database path to confirm the new default file is created and reused after restart when legacy files are absent; repeat with only a legacy file present to ensure fallback.
+- Manual smoke test: launch CLI/REST without explicit database path to confirm the new default file is created and reused after restart; repeat with a legacy file by explicitly pointing the configuration at it to verify manual migration guidance.

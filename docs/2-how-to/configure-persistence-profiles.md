@@ -75,7 +75,7 @@ try (MapDbCredentialStore store = CredentialStoreFactory.openFileStore(databaseP
 }
 ```
 
-When the unified file does not yet exist but a legacy `*-credentials.db` file is present (for example `ocra-credentials.db`), the factory logs the fallback decision and returns the legacy path so existing stores keep working until you migrate to the new name.
+Rename legacy files (for example `ocra-credentials.db`) to `credentials.db` or pass their path explicitly via CLI flags or Spring properties; the factory no longer probes legacy filenames automatically.
 
 MapDB enables memory-mapped IO (when supported) and transactional commits for durability. Ensure the target directory exists and is writable.
 
