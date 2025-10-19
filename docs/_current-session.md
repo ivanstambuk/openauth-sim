@@ -3,12 +3,12 @@
 > Keep this file up to date across all active chats. Treat it as the single source of truth for in-progress workstreams so every hand-off is instant. Replace the bracketed text and prune sections you do not need.
 
 ## Meta
-- Date: 2025-10-18
+- Date: 2025-10-19
 - Primary branch: `main`
 - Other active branches: none
 - Last green commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationGenerationProducesDeterministicPayload"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest.inlinePolicyPresetEvaluatesSuccessfully"`; `./gradlew --no-daemon spotlessApply check` (all completed 2025-10-18).
 - Quality gate note: Full pipeline (`spotlessApply check`) plus targeted REST/UI Selenium suites rerun 2025-10-18; all tasks exited green after re-running a flaky Ocra Selenium scenario.
-- Outstanding git state: Attestation UI updates touch `rest-api/src/main/resources/static/ui/fido2/console.js`, `rest-api/src/main/resources/templates/ui/fido2/panel.html`, Selenium coverage under `rest-api/src/test/java/io/openauth/sim/rest/ui/Fido2OperatorUiSeleniumTest.java`, and the Feature 026 tasks doc; prior Feature 026 edits remain unstaged (see `git status -sb`).
+- Outstanding git state: New Feature 029 planning artefacts staged locally (spec/plan/tasks) alongside the roadmap update; no code changes beyond documentation at this time.
 
 ## Workstream Summary
 | Workstream | Status | Last Increment | Next Increment | Notes |
@@ -16,9 +16,13 @@
 | Feature 026 – FIDO2/WebAuthn Attestation Support | In progress | T2628 (Shared private-key parser integration) | T2628 – Surface pretty-printed JWK presets & prune Base64URL code paths; ensure manual attestation labels reflect JWK/PEM-only support after removing `attestationId` | Parser shared across core/application/CLI/REST; Option B decisions locked to require JWK or PEM inputs and render presets as multi-line JWK JSON ahead of UI/docs/test updates. |
 | Feature 027 – Unified Credential Store Naming | In progress | T2704 (Documentation refresh and migration guidance) | TBD – Coordinate fallback deprecation timeline after telemetry confirms unified default adoption | Factory/CLI/REST defaults updated to `credentials.db`, docs refreshed with legacy fallback notes; monitoring telemetry before retiring legacy probes. |
 | Feature 028 – IDE Warning Remediation | In progress | T2806 (Quality gate verification) | — | Spec/plan/tasks added, Option B locked, TOTP constructors cleaned, WebAuthn attestation/REST metadata assertions updated; CLI/REST tests assert generated OTPs, Selenium suites verify inline/replay controls, and full `spotlessApply check` now passes. |
+| Feature 029 – PMD Rule Hardening | Planned | T2901 (Governance sync kickoff) | T2902 – Append PMD rules to `config/pmd/ruleset.xml` and capture baseline violations via `pmdMain`/`pmdTest` | Planning artefacts seeded; Law-of-Demeter heuristic scoped to domain/service layers with fluent-interface whitelist work tracked separately. |
 | Feature 023 – TOTP Operator Support | Complete | T2351 (Generation-first evaluation) | — | Evaluation now generates stored/inline OTPs, replay handles validation; telemetry, REST/CLI/UI, and docs/OpenAPI updated 2025-10-18. |
 
 ## Active TODOs / Blocking Items
+- [ ] Execute T2902 – Append the new PMD rules to `config/pmd/ruleset.xml` and run `./gradlew --no-daemon pmdMain pmdTest` to capture baseline violations (Feature 029).
+- [ ] Prepare the Law-of-Demeter whitelist resource per T2903 after the baseline run (Feature 029).
+- [x] Complete T2901 – Governance sync for Feature 029 (spec/plan/tasks, roadmap, current-session updates). (_2025-10-19 – Planning artefacts created in this session._)
 - [x] Stage failing tests for TOTP generation-first evaluation across application/REST/CLI/operator UI (Feature 023, T2350); capture failing commands before implementation.
 - [x] Implement TOTP evaluation generation behaviour, update telemetry/contracts/UI docs, and rerun `./gradlew spotlessApply check` (Feature 023, T2351).
 - [x] Stage failing application-layer tests for attestation services (Feature 026, T2603). (_2025-10-16 – Added attestation verification/replay tests and skeletal services; superseded by the now-green implementation._)
