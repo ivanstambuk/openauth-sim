@@ -172,7 +172,7 @@ subprojects {
             "net.bytebuddy:byte-buddy-agent:1.17.7",
             "org.hamcrest:hamcrest:3.0",
             "org.jspecify:jspecify:1.0.0",
-            "net.minidev:json-smart:2.5.1"
+            "net.minidev:json-smart:2.6.0"
         )
     }
 
