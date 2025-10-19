@@ -36,3 +36,11 @@ _Last updated:_ 2025-10-18
 ☑ **T2808 – SpotBugs annotation export**  
   ☑ Promote `spotbugs-annotations` to the application module’s exported compile classpath (`compileOnlyApi`) and refresh dependency locks via targeted `--write-locks` runs.  
   ☑ Execute `./gradlew --no-daemon --no-configuration-cache :application:compileJava`, `./gradlew --no-daemon --write-locks :application:compileJava :application:compileTestJava :application:pmdTest`, `./gradlew --no-daemon --write-locks :rest-api:compileJava :rest-api:compileTestJava :cli:compileJava :cli:compileTestJava :ui:compileJava :ui:compileTestJava`, and finish with `./gradlew --no-daemon --write-locks spotlessApply check` (followed by a non-locking re-run) to ensure downstream warnings are clear.
+
+☑ **T2809 – REST exception serialization warnings**  
+  ☑ Mark REST exception `details`/`metadata` fields as `transient` so they comply with serialization guidelines.  
+  ☑ Run `./gradlew --no-daemon :rest-api:compileJava` (optionally `:rest-api:test`) to confirm the warning clears.
+
+☑ **T2810 – WebAuthn assertion lossy conversion warning**  
+  ☑ Update `WebAuthnAssertionVerifierTest` to avoid implicit int-to-byte conversions during XOR.  
+  ☑ Execute `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAssertionVerifierTest"`.

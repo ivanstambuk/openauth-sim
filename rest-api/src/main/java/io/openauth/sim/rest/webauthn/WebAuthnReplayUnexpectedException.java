@@ -6,7 +6,7 @@ final class WebAuthnReplayUnexpectedException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 
-  private final Map<String, Object> details;
+  private final transient Map<String, Object> details;
 
   WebAuthnReplayUnexpectedException(String message, Throwable cause, Map<String, Object> details) {
     super(message, cause);

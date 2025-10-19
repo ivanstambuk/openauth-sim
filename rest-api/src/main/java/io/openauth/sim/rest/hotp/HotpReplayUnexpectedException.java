@@ -9,7 +9,7 @@ class HotpReplayUnexpectedException extends RuntimeException {
 
   private final String telemetryId;
   private final String credentialSource;
-  private final Map<String, String> details;
+  private final transient Map<String, String> details;
 
   HotpReplayUnexpectedException(
       String telemetryId, String credentialSource, String message, Map<String, String> details) {

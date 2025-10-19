@@ -12,7 +12,7 @@ class HotpReplayValidationException extends RuntimeException {
   private final String credentialId;
   private final String reasonCode;
   private final boolean sanitized;
-  private final Map<String, String> details;
+  private final transient Map<String, String> details;
 
   HotpReplayValidationException(
       String telemetryId,

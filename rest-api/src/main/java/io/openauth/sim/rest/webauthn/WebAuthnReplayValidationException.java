@@ -7,7 +7,7 @@ final class WebAuthnReplayValidationException extends RuntimeException {
   private static final long serialVersionUID = 1L;
 
   private final String reasonCode;
-  private final Map<String, Object> details;
+  private final transient Map<String, Object> details;
 
   WebAuthnReplayValidationException(
       String reasonCode, String message, Map<String, Object> details) {

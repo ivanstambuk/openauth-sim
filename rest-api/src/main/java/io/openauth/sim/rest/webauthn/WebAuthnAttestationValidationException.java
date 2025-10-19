@@ -7,8 +7,8 @@ final class WebAuthnAttestationValidationException extends RuntimeException {
   private static final long serialVersionUID = 1L;
 
   private final String reasonCode;
-  private final Map<String, Object> details;
-  private final Map<String, Object> metadata;
+  private final transient Map<String, Object> details;
+  private final transient Map<String, Object> metadata;
 
   WebAuthnAttestationValidationException(
       String reasonCode,

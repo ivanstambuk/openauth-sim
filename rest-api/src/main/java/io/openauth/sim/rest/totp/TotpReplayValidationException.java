@@ -11,7 +11,7 @@ final class TotpReplayValidationException extends RuntimeException {
   private final String credentialSource;
   private final String reasonCode;
   private final boolean sanitized;
-  private final Map<String, Object> details;
+  private final transient Map<String, Object> details;
 
   TotpReplayValidationException(
       String telemetryId,

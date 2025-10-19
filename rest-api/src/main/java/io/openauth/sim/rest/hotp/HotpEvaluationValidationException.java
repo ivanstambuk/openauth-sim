@@ -14,7 +14,7 @@ final class HotpEvaluationValidationException extends RuntimeException {
   private final String credentialId;
   private final String reasonCode;
   private final boolean sanitized;
-  private final Map<String, String> details;
+  private final transient Map<String, String> details;
 
   HotpEvaluationValidationException(
       String telemetryId,

@@ -52,6 +52,16 @@ Eliminate the IDE diagnostics reported on 2025-10-18 by strengthening assertions
    - Promote `spotbugs-annotations` to the application module’s exported compile classpath so downstream modules resolve `@SuppressFBWarnings`.  
    - _2025-10-19 – Completed: DTO extracted to `WebAuthnAssertionResponse.java`, Gradle locks refreshed via targeted `--write-locks` runs, and full `./gradlew --no-daemon --write-locks spotlessApply check` + follow-up run confirmed warnings eliminated._
 
+8. **I8 – REST exception serialization warnings**  
+   - Mark REST exception `details`/`metadata` maps as `transient` to satisfy the compiler’s serial guideline.  
+   - Re-run `./gradlew --no-daemon :rest-api:compileJava` and spot-check associated controller tests.  
+   - _2025-10-19 – Completed: all HOTP/TOTP/WebAuthn REST exception map fields marked transient; `:rest-api:compileJava` finished cleanly._
+
+9. **I9 – WebAuthn assertion lossy conversion warning**  
+   - Update `WebAuthnAssertionVerifierTest` to avoid implicit int-to-byte XOR (e.g., cast constants before applying).  
+   - Execute `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAssertionVerifierTest"`.  
+   - _2025-10-19 – Completed: test now assigns an explicit byte-masked value; targeted `:core:test` run passed._
+
 ## Dependencies
 - Application, core, CLI, and REST modules share telemetry and verification helpers; assertions must respect existing contracts.
 - Selenium tests rely on deterministic UI IDs; ensure selectors remain stable when adding assertions.

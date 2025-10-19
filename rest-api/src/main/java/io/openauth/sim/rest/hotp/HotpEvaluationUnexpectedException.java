@@ -12,7 +12,7 @@ final class HotpEvaluationUnexpectedException extends RuntimeException {
 
   private final String telemetryId;
   private final String credentialSource;
-  private final Map<String, String> details;
+  private final transient Map<String, String> details;
 
   HotpEvaluationUnexpectedException(
       String telemetryId, String credentialSource, String message, Map<String, String> details) {

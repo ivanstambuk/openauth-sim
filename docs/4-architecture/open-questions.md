@@ -28,6 +28,7 @@ When communicating options to the user—whether resolving an open question or p
 | 2025-10-18 | Feature 026 – legacy Base64URL inputs | Do we need to continue accepting legacy Base64URL attestation private-key inputs for backwards compatibility, or can we reject them now that JWK/PEM support is in place? | Resolved | Spec `feature-026-fido2-attestation-support.md` (2025-10-18) – Option B confirmed: drop Base64URL-only inputs; require JWK or PEM/PKCS#8. |
 | 2025-10-18 | Feature 026 – attestation result payload | Should we continue emitting `attestationId` in REST/CLI/UI JSON responses, or restrict it to internal telemetry only? | Resolved | Spec `feature-026-fido2-attestation-support.md` (2025-10-18) – drop from user-facing JSON, retain for telemetry. |
 | 2025-10-18 | Feature 027 – unified credential store naming | Which inclusive default filename should all facades adopt for the shared credential store? | Resolved | Spec `feature-027-unified-credential-store.md` (2025-10-18, updated 2025-10-19) – use `credentials.db`; legacy fallback removed per owner directive. |
+| 2025-10-19 | Feature 028 – IDE warning remediation | How should we remediate the new compiler warnings: mark the REST exception `details/metadata` maps as transient, refactor to guaranteed-serializable payloads, or pursue another strategy that aligns with Feature 028 scope? | Resolved | Spec `feature-028-ide-warning-remediation.md` (2025-10-19) – Option A approved: mark REST exception map fields transient. |
 
 ## Feature 026 – Pending Question Details (2025-10-17)
 

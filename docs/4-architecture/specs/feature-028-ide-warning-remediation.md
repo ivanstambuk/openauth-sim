@@ -21,6 +21,7 @@ Resolve the outstanding IDE diagnostics captured on 2025-10-18 by tightening ass
 - 2025-10-18 – Adopt Option B: when addressing the flagged warnings, prefer strengthening assertions/usages over deleting placeholders so diagnostics continue to guard behaviour. (Owner decision.)
 - 2025-10-19 – Adopt Option A: move `WebAuthnAssertionResponse` into its own source file so the DTO remains public while eliminating auxiliary-class compiler warnings in the REST module. (Owner decision.)
 - 2025-10-19 – Adopt Option A: promote `spotbugs-annotations` to the application module’s exported compile classpath (`compileOnlyApi`) so downstream builds can resolve `@SuppressFBWarnings` without reintroducing SpotBugs violations. (Owner decision.)
+- 2025-10-19 – Adopt Option A: mark REST exception `details`/`metadata` maps as `transient` to resolve serialization warnings without altering their HTTP response usage. (Owner decision.)
 
 ## Architecture & Design
 - **Application (TOTP evaluation/replay)** – Remove ineffective `evaluationInstant` assignments from record canonical constructors while keeping null allowance for on-demand instant resolution.

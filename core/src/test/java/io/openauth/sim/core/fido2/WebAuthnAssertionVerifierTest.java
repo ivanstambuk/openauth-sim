@@ -50,7 +50,7 @@ class WebAuthnAssertionVerifierTest {
   @Test
   void rejectsSignatureMismatch() {
     byte[] signature = PACKED_ES256.request().signature().clone();
-    signature[0] ^= 0xFF;
+    signature[0] = (byte) (signature[0] ^ 0xFF);
 
     WebAuthnAssertionRequest tamperedSignatureRequest =
         PACKED_ES256.requestWithSignature(signature);

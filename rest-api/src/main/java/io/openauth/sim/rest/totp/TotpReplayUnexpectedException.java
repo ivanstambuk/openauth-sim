@@ -9,7 +9,7 @@ final class TotpReplayUnexpectedException extends RuntimeException {
 
   private final String telemetryId;
   private final String credentialSource;
-  private final Map<String, Object> details;
+  private final transient Map<String, Object> details;
 
   TotpReplayUnexpectedException(
       String telemetryId,

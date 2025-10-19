@@ -6,7 +6,7 @@ final class WebAuthnEvaluationUnexpectedException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 
-  private final Map<String, Object> details;
+  private final transient Map<String, Object> details;
 
   WebAuthnEvaluationUnexpectedException(
       String message, Throwable cause, Map<String, Object> details) {
