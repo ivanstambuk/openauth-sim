@@ -16,6 +16,7 @@
 | Feature 026 – FIDO2/WebAuthn Attestation Support | In progress | T2628 (Shared private-key parser integration) | T2628 – Stack attestation key textareas, surface pretty-printed JWK presets, and prune legacy Base64URL code paths; ensure manual attestation labels reflect JWK/PEM-only support after removing `attestationId` | Parser shared across core/application/CLI/REST; Option B decisions locked to require JWK or PEM inputs and render presets as multi-line JWK JSON ahead of UI/docs/test updates. |
 | Feature 027 – Unified Credential Store Naming | In progress | T2704 (Documentation refresh and migration guidance) | TBD – Coordinate fallback deprecation timeline after telemetry confirms unified default adoption | Factory/CLI/REST defaults updated to `credentials.db`, docs refreshed with legacy fallback notes; monitoring telemetry before retiring legacy probes. |
 | Feature 028 – IDE Warning Remediation | In progress | T2806 (Quality gate verification) | — | Spec/plan/tasks added, Option B locked, TOTP constructors cleaned, WebAuthn attestation/REST metadata assertions updated; CLI/REST tests assert generated OTPs, Selenium suites verify inline/replay controls, and full `spotlessApply check` now passes. |
+| _Reminder_ |  |  |  | Keep this table limited to active workstreams; move completed features to the roadmap instead of tracking them here. |
 
 ## Active TODOs / Blocking Items
 - [ ] T2618 – Core Manual input source scaffolding (pending kickoff once Manual-mode clarifications are fully consumed in the spec).
