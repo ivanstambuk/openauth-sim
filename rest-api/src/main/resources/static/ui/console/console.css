@@ -515,6 +515,10 @@ button {
   color: var(--ocra-color-text-muted);
 }
 
+#fido2AttestationCredentialKey {
+  margin-bottom: var(--ocra-spacing-md);
+}
+
 .builder-status {
   margin: 0 0 var(--ocra-spacing-sm);
   color: var(--ocra-color-text-muted);

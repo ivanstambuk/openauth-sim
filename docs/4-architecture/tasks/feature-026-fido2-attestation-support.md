@@ -159,9 +159,10 @@ _Last updated:_ 2025-10-18
 
 ☐ **T2628 – Attestation private key format parity**  
 	☑ Replace Base64URL-only attestation private-key handling with shared loaders that accept JWK or PEM/PKCS#8 (matching assertions) while still supporting preset seeding.  
+	☑ Stack the credential and attestation private-key textareas vertically in the operator UI to match the assertion layout and remove horizontal scrolling.  
 	☐ Convert attestation fixture key material and manual-mode outputs to surface pretty-printed JWK representations; update REST/CLI/UI labels, DTO validation, and core/app services accordingly.  
 	☐ Refresh CLI/REST/UI tests, fixtures, and docs to reflect the new formats (including removal of the legacy Base64URL branches).  
-		_2025-10-18 – Parser in place: attestation generator now canonicalises JWK/PEM inputs via the shared `WebAuthnPrivateKeyParser`, and CLI/REST application layers plus request docs/tests cover PEM/JWK flows. Fixture exposure + UI updates remain._  
+		_2025-10-19 – Parser in place: attestation generator now canonicalises JWK/PEM inputs via the shared `WebAuthnPrivateKeyParser`, attestation key textareas are stacked with additional spacing in the UI, and CLI/REST application layers plus request docs/tests cover PEM/JWK flows. Fixture exposure + UI updates remain._  
   • Commands: (to be defined per subtask; expect targeted core/application/REST/CLI/UI suites plus `spotlessApply check`).  
 
 ☐ **T2618 – Core Manual input source**  

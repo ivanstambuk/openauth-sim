@@ -37,6 +37,7 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - 2025-10-17 – Preset with overrides: if the operator selects a preset but edits any of challenge, RP ID, origin, credential/attestation private key, or certificate serial, the generator must treat the request as Manual and favour the edited values. Telemetry should still record the original presetId as `seedPresetId` and list the `overrides` fields. (Approved in principle.)
 - 2025-10-18 – Attestation private keys must accept the same formats as assertions (JWK or PEM/PKCS#8) and drop the Base64URL-only path; when seeding or returning attestation key material, expose JWK representations for parity (fixture JSON remains unchanged; decode during load). (User selected Option B.)
 - 2025-10-18 – Present preset attestation private keys as pretty-printed multi-line JWK JSON to improve operator readability while keeping fixtures canonical. (User selected Option B.)
+- 2025-10-19 – Stack the attestation credential and attestation private-key inputs vertically in the operator UI to match the assertion textarea layout and remove the horizontal scrollbar. (User confirmed.)
 
 ## Scope
 - Implement attestation generation/verification helpers in `core` covering the targeted formats and leveraging existing COSE/JWK utilities.

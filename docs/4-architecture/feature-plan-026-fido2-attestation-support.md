@@ -26,7 +26,7 @@ _Last updated:_ 2025-10-18
 - Trust anchor handling must accept inline PEM bundles and prepare for optional MDS-sourced metadata without introducing external network calls.
 
 ## Increment Breakdown (≤10 min each)
-_2025-10-18 – Active increment: T2628 now reuses `WebAuthnPrivateKeyParser` across application/CLI/REST so attestation generation accepts JWK and PEM/PKCS#8 inputs; next steps convert presets/UI bindings to multi-line JWK output and remove legacy Base64URL branches. Latest directive: drop `attestationId` from all user-facing JSON responses while retaining telemetry coverage._
+_2025-10-19 – Active increment: T2628 now reuses `WebAuthnPrivateKeyParser` across application/CLI/REST so attestation generation accepts JWK and PEM/PKCS#8 inputs; next steps convert presets/UI bindings to multi-line JWK output and remove legacy Base64URL branches. Latest directives: drop `attestationId` from all user-facing JSON responses while retaining telemetry coverage; attestation key textareas have been stacked to eliminate horizontal scrolling._
 1. **I1 – Fixture + test scaffolding**  
    - Convert targeted W3C and synthetic attestation vectors into per-format JSON fixtures under `docs/webauthn_attestation/` (`packed.json`, `fido-u2f.json`, `tpm.json`, `android-key.json`).  
    - Add failing core tests for attestation generation/verification covering the four formats (happy path + invalid cases) using `WebAuthnAttestationFixtures`.  
