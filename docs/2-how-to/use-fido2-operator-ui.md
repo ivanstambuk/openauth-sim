@@ -21,7 +21,7 @@ Directly open the WebAuthn tab via `http://localhost:8080/ui/console?protocol=fi
 
 ## Generate Inline Assertions
 1. Keep the Evaluate tab in **Inline** mode (the default). The stored form hides and the inline parameters remain compact until you pick a preset.
-2. Select a sample from **Load a sample vector**. The dropdown lists exactly one generator-backed option per supported algorithm (labels follow the `<algorithm> - UV required|UV optional` pattern), letting you jump between ES256/384/512, RS256, PS256, and Ed25519 without scrolling through the full JSON catalogue. The form fields update immediately, so you can tweak the pre-filled relying-party data, challenge, and authenticator private key as needed without touching the credential store.
+2. Select a sample from **Load a sample vector**. The dropdown lists exactly one curated option per supported algorithm (labels follow the `<algorithm> - UV required|UV optional` pattern), letting you jump between ES256/384/512, RS256, PS256, and Ed25519 without scrolling through the full JSON catalogue. The form fields update immediately, so you can tweak the pre-filled relying-party data, challenge, and authenticator private key as needed without touching the credential store.
 3. Provide or adjust your own relying-party data, challenge, signature counter, UV flag, and private key. Click **Generate inline assertion** to invoke the REST endpoint.
 4. The result panel renders the generated `PublicKeyCredential` JSON. The telemetry line echoes a sanitized summary (`credentialSource=inline`, `credentialReference=false`, algorithm, origin, telemetry id). Errors (for example malformed JWK payloads) surface in an inline alert with the sanitized `reasonCode` returned by the API.
 

@@ -625,47 +625,12 @@
         const builderResetButton = document.querySelector('[data-testid="ocra-builder-reset"]');
         const builderStatus = document.querySelector('[data-testid="ocra-builder-status"]');
         let builderGeneratedSecret = '';
-        const fetchDelegate =
-          typeof window.fetch === 'function'
-            ? function (endpoint, options) {
-                return window.fetch(endpoint, options);
-              }
-            : function (endpoint, options) {
-                return new Promise(function (resolve, reject) {
-                  try {
-                    var requestOptions = options || { };
-                    var xhr = new XMLHttpRequest();
-                    var method = requestOptions.method || 'GET';
-                    xhr.open(method, endpoint, true);
-                    var headers = requestOptions.headers || { };
-                    Object.keys(headers).forEach(function (key) {
-                      xhr.setRequestHeader(key, headers[key]);
-                    });
-                    if (
-                      requestOptions.credentials &&
-                      requestOptions.credentials !== 'omit'
-                    ) {
-                      xhr.withCredentials = true;
-                    }
-                    xhr.onload = function () {
-                      var responseText = xhr.responseText || '';
-                      resolve({
-                        ok: xhr.status >= 200 && xhr.status < 300,
-                        status: xhr.status,
-                        text: function () {
-                          return Promise.resolve(responseText);
-                        },
-                      });
-                    };
-                    xhr.onerror = function () {
-                      reject(new Error('Request failed'));
-                    };
-                    xhr.send(requestOptions.body || null);
-                  } catch (error) {
-                    reject(error);
-                  }
-                });
-              };
+        const fetchDelegate = function (endpoint, options) {
+          if (typeof window.fetch !== 'function') {
+            return Promise.reject(new Error('Fetch API unavailable'));
+          }
+          return window.fetch(endpoint, options);
+        };
 
         function updateSections() {
           const selected = document.querySelector('input[name="mode"]:checked');
@@ -763,15 +728,23 @@
         }
 
         function readInitialOcraMode() {
+          var toggleRoot = document.querySelector('[data-testid="ocra-mode-toggle"]');
           try {
             var params = new URLSearchParams(window.location.search || '');
             var value = params.get('mode');
-            if ((!value || value.trim() === '') && typeof window.__openauthOcraInitialMode === 'string') {
-              value = window.__openauthOcraInitialMode;
+            if (!value && toggleRoot) {
+              value = toggleRoot.getAttribute('data-initial-ocra-mode');
+              toggleRoot.removeAttribute('data-initial-ocra-mode');
             }
-            window.__openauthOcraInitialMode = undefined;
             return value && value.toLowerCase() === 'stored' ? 'stored' : 'inline';
           } catch (error) {
+            if (toggleRoot) {
+              var fallback = toggleRoot.getAttribute('data-initial-ocra-mode');
+              toggleRoot.removeAttribute('data-initial-ocra-mode');
+              if (fallback && fallback.toLowerCase() === 'stored') {
+                return 'stored';
+              }
+            }
             return 'inline';
           }
         }

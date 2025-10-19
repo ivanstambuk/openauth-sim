@@ -108,6 +108,7 @@ final class OcraOperatorUiSeleniumTest {
   void setUp() {
     driver = new HtmlUnitDriver(true);
     driver.setJavascriptEnabled(true);
+    driver.getWebClient().getOptions().setFetchPolyfillEnabled(true);
     driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));
     driver.getWebClient().getOptions().setThrowExceptionOnScriptError(true);
     seedCredential();

@@ -26,7 +26,7 @@ OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.res
 ```
 
 ## Seed Canonical Credentials (`POST /api/v1/webauthn/credentials/seed`)
-Seed the curated WebAuthn credentials (one per supported algorithm) so stored-mode flows work immediately. Each entry retains the preset key (for example `generator-es256`) used by CLI and automation flows:
+Seed the curated WebAuthn credentials (one per supported algorithm) so stored-mode flows work immediately. Each entry retains the preset key (for example `packed-es256`) used by CLI and automation flows:
 ```bash
 curl -s -X POST http://localhost:8080/api/v1/webauthn/credentials/seed | jq
 ```
@@ -36,12 +36,12 @@ Example response:
   "addedCount": 6,
   "canonicalCount": 6,
   "addedCredentialIds": [
-    "generator-es256",
-    "generator-es384",
-    "generator-es512",
-    "generator-rs256",
-    "generator-ps256",
-    "generator-eddsa"
+    "packed-es256",
+    "packed-es384",
+    "packed-es512",
+    "packed-rs256",
+    "synthetic-ps256-uv0_up1",
+    "packed-ed25519"
   ]
 }
 ```
@@ -50,12 +50,12 @@ The action is idempotent—subsequent calls report `addedCount: 0` once every cu
 ### Generator preset catalogue
 | Preset key | Algorithm | Notes |
 |------------|-----------|-------|
-| `generator-es256` | ES256 | W3C §16 `packed` fixture with compact P-256 JWK private key |
-| `generator-es384` | ES384 | Synthetic JSON vector seeded from `docs/webauthn_assertion_vectors.json` |
-| `generator-es512` | ES512 | Synthetic JSON vector seeded from `docs/webauthn_assertion_vectors.json` |
-| `generator-rs256` | RS256 | Deterministic RSA-2048 JSON vector |
-| `generator-ps256` | PS256 | Deterministic RSA-PSS JSON vector |
-| `generator-eddsa` | Ed25519 | Deterministic Ed25519 JSON vector (`kty":"OKP"`) |
+| `packed-es256` | ES256 | W3C §16 `packed` fixture with compact P-256 JWK private key |
+| `packed-es384` | ES384 | W3C §16 `packed` fixture with compact P-384 JWK private key |
+| `packed-es512` | ES512 | W3C §16 `packed` fixture with compact P-521 JWK private key |
+| `packed-rs256` | RS256 | W3C §16 `packed` fixture with deterministic RSA-2048 key material |
+| `synthetic-ps256-uv0_up1` | PS256 | Synthetic JSON vector seeded from `docs/webauthn_assertion_vectors.json` (spec omits private key) |
+| `packed-ed25519` | Ed25519 | W3C §16 `packed` fixture with Ed25519 JWK private key |
 
 The CLI, REST, and operator console all rely on this catalogue, so preset behaviour stays consistent across facades.
 
@@ -68,14 +68,14 @@ Sample response:
 ```json
 [
   {
-    "id": "generator-eddsa",
+    "id": "packed-ed25519",
     "label": "EdDSA (W3C 16.1.10)",
     "relyingPartyId": "example.org",
     "algorithm": "EdDSA",
     "userVerification": true
   },
   {
-    "id": "generator-es256",
+    "id": "packed-es256",
     "label": "ES256 (W3C 16.1.1)",
     "relyingPartyId": "example.org",
     "algorithm": "ES256",
@@ -88,12 +88,12 @@ If persistence is disabled (`openauth.sim.persistence.enable-store=false`) the e
 ## Retrieve Sample Assertion Inputs
 Stored-mode helper (replace the preset key to target a different algorithm):
 ```bash
-curl -s http://localhost:8080/api/v1/webauthn/credentials/generator-es256/sample | jq
+curl -s http://localhost:8080/api/v1/webauthn/credentials/packed-es256/sample | jq
 ```
 Example response (trimmed):
 ```json
 {
-  "credentialId": "generator-es256",
+  "credentialId": "packed-es256",
   "relyingPartyId": "example.org",
   "origin": "https://example.org",
   "expectedType": "webauthn.get",
@@ -108,7 +108,7 @@ The endpoint returns the relying-party metadata, a Base64URL challenge, and a co
 ## Generate Stored Assertions (`POST /api/v1/webauthn/evaluate`)
 Send the credential identifier, relying-party context, challenge, and authenticator private key. Signature-counter and UV overrides are optional.
 ```bash
-curl -s -H "Content-Type: application/json"   -d '{"credentialId":"generator-es256","relyingPartyId":"example.org","origin":"https://example.org","expectedType":"webauthn.get","challenge":"tNvtqPm4a6c4ZC7a6r0N0Q","privateKey":"<JWK JSON shortened>"}'   http://localhost:8080/api/v1/webauthn/evaluate | jq
+curl -s -H "Content-Type: application/json"   -d '{"credentialId":"packed-es256","relyingPartyId":"example.org","origin":"https://example.org","expectedType":"webauthn.get","challenge":"tNvtqPm4a6c4ZC7a6r0N0Q","privateKey":"<JWK JSON shortened>"}'   http://localhost:8080/api/v1/webauthn/evaluate | jq
 ```
 > Replace `<JWK JSON shortened>` with the `privateKeyJwk` value returned by the sample endpoint.
 Success response:
@@ -122,7 +122,7 @@ Success response:
 Validation failures return HTTP 422 with sanitized error metadata (for example `credential_not_found`, `origin_mismatch`, or `private_key_invalid`). Only successful calls include the assertion payload.
 
 ## Generate Inline Assertions (`POST /api/v1/webauthn/evaluate/inline`)
-Inline requests provide every credential attribute explicitly. The example below reuses the `generator-es256` private key but supplies a fresh challenge.
+Inline requests provide every credential attribute explicitly. The example below reuses the `packed-es256` private key but supplies a fresh challenge.
 ```bash
 curl -s -H "Content-Type: application/json"   -d '{"credentialName":"inline-generator","credentialId":"V2VhQXV0aFNpbUJhc2UuLi4=","relyingPartyId":"example.org","origin":"https://example.org","expectedType":"webauthn.get","algorithm":"ES256","signatureCounter":0,"userVerificationRequired":false,"challenge":"d2ViYXV0aG4taW5saW5lLWNobGctMTIz","privateKey":"<JWK JSON shortened>"}'   http://localhost:8080/api/v1/webauthn/evaluate/inline | jq
 ```

@@ -15,6 +15,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - Use up to five high-impact clarification questions per feature; log them in `docs/4-architecture/open-questions.md` and record resolutions in the spec.
 - Generate or refresh the feature plan (`docs/4-architecture/feature-plan-*.md`) only after the specification is current and clarifications resolved.
 - Maintain a per-feature tasks checklist under `docs/4-architecture/tasks/` that mirrors the plan, orders tests before code, and keeps increments ≤10 minutes.
+- When revising a specification, only document fallback or compatibility behaviour if the user explicitly asked for it; if instructions are unclear, pause and request confirmation instead of assuming a fallback.
 - Run the analysis gate in `docs/5-operations/analysis-gate-checklist.md` once spec, plan, and tasks agree; address findings before implementation.
 
 ## Session Kickoff
@@ -46,6 +47,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 
 ## Guardrails & Governance
 - **Module boundaries.** Treat `core/` as the source of truth for cryptography; facades (`cli/`, `rest-api/`, `ui/`) must not mutate its internals without an approved plan. Delegate OCRA orchestration through the shared `application` module and acquire MapDB stores via `infra-persistence`’s `CredentialStoreFactory` instead of touching builders directly.
+- **Backward-compat stance.** Treat every interface (REST, CLI, UI/HTML+JS, programmatic APIs, and any future facades) as greenfield. Do not add fallbacks, shims, or legacy checks unless the user explicitly instructs you to do so for the current task.
 - **Telemetry contract.** Emit operational events through `application.telemetry.TelemetryContracts` adapters so CLI/REST/UI logging stays sanitised and architecture tests remain green; avoid bespoke loggers unless the specification grants an exemption.
 - **Intent logging.** Capture prompt summaries, command sequences, and rationale in the active feature plan or an appendix referenced from it so downstream reviewers know how the change was produced.
 - **Escalation policy.** Propose risky refactors, persistence changes, or dependency updates to the user before touching code—record approvals in the relevant plan.

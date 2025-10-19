@@ -56,7 +56,7 @@ import org.springframework.test.context.DynamicPropertySource;
 final class Fido2OperatorUiSeleniumTest {
 
   private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
-  private static final String STORED_CREDENTIAL_ID = "generator-es256";
+  private static final String STORED_CREDENTIAL_ID = "packed-es256";
   private static final WebAuthnAttestationVerifier ATTESTATION_VERIFIER =
       new WebAuthnAttestationVerifier();
 
@@ -83,6 +83,7 @@ final class Fido2OperatorUiSeleniumTest {
   void setUp() {
     driver = new HtmlUnitDriver(true);
     driver.setJavascriptEnabled(true);
+    driver.getWebClient().getOptions().setFetchPolyfillEnabled(true);
     driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));
 
     clearCredentialStore();
@@ -1392,7 +1393,7 @@ final class Fido2OperatorUiSeleniumTest {
   @Test
   @DisplayName("FIDO2 deep-link mode stays active across refresh and history navigation")
   void deepLinkReplayModePersistsAcrossRefresh() {
-    String url = baseUrl("/ui/console?protocol=fido2&fido2Mode=replay");
+    String url = baseUrl("/ui/console?protocol=fido2&tab=replay");
     driver.get(url);
     waitFor(By.cssSelector("[data-protocol-panel='fido2']"));
 

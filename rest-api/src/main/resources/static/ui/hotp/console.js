@@ -109,6 +109,17 @@
     });
   }
 
+  var hotpInitialEvaluateMode = hotpPanel
+      ? normalizeModeAttribute(hotpPanel.getAttribute('data-initial-evaluate-mode'))
+      : null;
+  var hotpInitialReplayMode = hotpPanel
+      ? normalizeModeAttribute(hotpPanel.getAttribute('data-initial-replay-mode'))
+      : null;
+  if (hotpPanel) {
+    hotpPanel.removeAttribute('data-initial-evaluate-mode');
+    hotpPanel.removeAttribute('data-initial-replay-mode');
+  }
+
   var replayForm = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-replay-form"]')
     : null;
@@ -309,38 +320,10 @@
   }
 
   function fetchDelegate(endpoint, options) {
-    if (typeof global.fetch === 'function') {
-      return global.fetch(endpoint, options);
+    if (typeof global.fetch !== 'function') {
+      return Promise.reject(new Error('Fetch API unavailable'));
     }
-    return new Promise(function (resolve, reject) {
-      try {
-        var xhr = new XMLHttpRequest();
-        var method = (options && options.method) || 'GET';
-        xhr.open(method, endpoint, true);
-        if (options && options.headers) {
-          Object.keys(options.headers).forEach(function (key) {
-            xhr.setRequestHeader(key, options.headers[key]);
-          });
-        }
-        xhr.withCredentials = options && options.credentials === 'same-origin';
-        xhr.onload = function () {
-          var responseText = xhr.responseText || '';
-          resolve({
-            ok: xhr.status >= 200 && xhr.status < 300,
-            status: xhr.status,
-            text: function () {
-              return Promise.resolve(responseText);
-            },
-          });
-        };
-        xhr.onerror = function () {
-          reject(new Error('Request failed'));
-        };
-        xhr.send((options && options.body) || null);
-      } catch (error) {
-        reject(error);
-      }
-    });
+    return global.fetch(endpoint, options);
   }
 
   function storedSampleEndpoint(credentialId) {
@@ -639,6 +622,20 @@
     return HOTP_ALLOWED_TABS.indexOf(value) >= 0 ? value : 'evaluate';
   }
 
+  function normalizeModeAttribute(value) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    var normalized = value.trim().toLowerCase();
+    if (normalized === 'stored') {
+      return 'stored';
+    }
+    if (normalized === 'inline') {
+      return 'inline';
+    }
+    return null;
+  }
+
   function parseHotpTabFromSearch(search) {
     try {
       var params = new global.URLSearchParams(search || global.location.search || '');
@@ -655,11 +652,11 @@
     try {
       var params = new global.URLSearchParams(search || global.location.search || '');
       var value = params.get('mode');
-      if ((!value || value.trim() === '') && typeof global.__openauthHotpInitialMode === 'string') {
-        value = global.__openauthHotpInitialMode;
+      if (!value && hotpInitialEvaluateMode) {
+        value = hotpInitialEvaluateMode;
+        hotpInitialEvaluateMode = null;
       }
-      global.__openauthHotpInitialMode = undefined;
-      return value && value.toLowerCase() === 'stored' ? 'stored' : 'inline';
+      return value && value.trim().toLowerCase() === 'stored' ? 'stored' : 'inline';
     } catch (error) {
       return 'inline';
     }
@@ -669,14 +666,11 @@
     try {
       var params = new global.URLSearchParams(search || global.location.search || '');
       var value = params.get('mode');
-      if (
-        (!value || value.trim() === '') &&
-        typeof global.__openauthHotpInitialReplayMode === 'string'
-      ) {
-        value = global.__openauthHotpInitialReplayMode;
+      if (!value && hotpInitialReplayMode) {
+        value = hotpInitialReplayMode;
+        hotpInitialReplayMode = null;
       }
-      global.__openauthHotpInitialReplayMode = undefined;
-      return value && value.toLowerCase() === 'stored' ? 'stored' : 'inline';
+      return value && value.trim().toLowerCase() === 'stored' ? 'stored' : 'inline';
     } catch (error) {
       return 'inline';
     }
@@ -1072,7 +1066,6 @@
     }
     setHidden(replayResultPanel, true);
     hideReplayError();
-    global.__openauthHotpInitialReplayMode = normalized;
     if (!options || options.broadcast !== false) {
       dispatchHotpReplayModeChange(normalized, options);
     }
@@ -1237,7 +1230,7 @@
       setHidden(inlineEvaluationSection, storedActive);
     }
 
-  if (storedActive) {
+    if (storedActive) {
       hideInlineError();
       setHidden(inlineResultPanel, true);
       ensureCredentials(false);
@@ -1245,7 +1238,6 @@
       hideStoredError();
       setHidden(storedResultPanel, true);
     }
-    global.__openauthHotpInitialReplayMode = storedActive ? 'stored' : 'inline';
   }
 
   function setExternalMode(mode, options) {
@@ -1585,17 +1577,15 @@
         var queryMode = searchParams.get('mode');
         if (queryMode === 'stored' || queryMode === 'inline') {
           desiredReplayMode = queryMode;
-        } else if (typeof global.__openauthHotpInitialReplayMode === 'string') {
-          desiredReplayMode =
-              global.__openauthHotpInitialReplayMode === 'stored' ? 'stored' : 'inline';
+        } else if (hotpInitialReplayMode) {
+          desiredReplayMode = hotpInitialReplayMode;
+          hotpInitialReplayMode = null;
         } else if (modeToggle && modeToggle.getAttribute('data-mode') === 'stored') {
           desiredReplayMode = 'stored';
         }
       } catch (error) {
-        desiredReplayMode =
-            typeof global.__openauthHotpInitialReplayMode === 'string'
-                ? (global.__openauthHotpInitialReplayMode === 'stored' ? 'stored' : 'inline')
-                : 'inline';
+        desiredReplayMode = hotpInitialReplayMode || 'inline';
+        hotpInitialReplayMode = null;
       }
       setReplayMode(desiredReplayMode, { broadcast: false, force: true });
       dispatchHotpReplayModeChange(desiredReplayMode, { replace: true, force: true });

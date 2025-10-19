@@ -46,13 +46,14 @@ final class OcraCliHelpersTest {
 
     cli.emit(writer, "cli.ocra.test", "success", "   ", true, fields);
 
-    String output = buffer.toString(StandardCharsets.UTF_8);
-    assertTrue(output.contains("event=cli.ocra.test"));
-    assertTrue(output.contains("status=success"));
-    assertTrue(output.contains("sanitized=true"));
-    assertTrue(output.contains("valueField=present"));
-    assertFalse(output.contains("reasonCode"));
-    assertFalse(output.contains("emptyField"));
+    Map<String, String> telemetry =
+        TelemetryOutputAssertions.telemetryLine(
+            buffer.toString(StandardCharsets.UTF_8), "cli.ocra.test");
+    assertEquals("success", telemetry.get("status"));
+    assertEquals("unspecified", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
+    assertEquals("present", telemetry.get("valueField"));
+    assertFalse(telemetry.containsKey("emptyField"));
   }
 
   @Test

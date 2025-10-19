@@ -9,6 +9,7 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 - [ ] If the last build is stale or after syncing, run `./gradlew --no-daemon spotlessApply check` to ensure the baseline is green (capture or resolve any failures before proceeding).
 - [ ] Before running long Gradle workflows (`spotlessApply check`, `qualityGate`, full commits), set CLI tool timeouts to ≥600 s so the run doesn’t terminate mid-pipeline.
 - [ ] Check `docs/_current-session.md` for the active snapshot; refresh it with today’s status before you hand off.
+- [ ] Confirm whether the user granted a compatibility exception; default is no fallbacks for any facade unless explicitly requested.
 
 ## Handoff Prompt Template
 ```
@@ -22,8 +23,11 @@ You’re resuming work on [project/workstream identifier]. Core context:
 - Next steps you should take now: [ordered checklist, e.g., “1. Stage failing tests for … 2. Implement … 3. Update docs …”].
 - Reminders: keep increments ≤10 minutes, update docs (spec/plan/tasks/roadmap), run `./gradlew --no-daemon spotlessApply check` before commits, capture telemetry/trust-anchor decisions (if relevant), and document open questions in `docs/4-architecture/open-questions.md`.
 ```
-
+    
 > Tip: Retros for new sessions should paste the filled template into the opening message so successors inherit complete context.
+
+## Reminders
+- Never document or implement fallback paths in specs, plans, or code without explicit user approval.
 
 ## Common Command Snippets
 - Repository snapshot: `git status -sb`

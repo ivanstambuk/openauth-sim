@@ -17,6 +17,15 @@
   var lastBroadcastMode = null;
   var lastBroadcastReplayMode = null;
 
+  var totpInitialTab = normalizeTab(totpPanel.getAttribute('data-initial-totp-tab'));
+  var totpInitialEvaluateMode = normalizeModeAttribute(
+      totpPanel.getAttribute('data-initial-evaluate-mode'));
+  var totpInitialReplayMode = normalizeModeAttribute(
+      totpPanel.getAttribute('data-initial-replay-mode'));
+  totpPanel.removeAttribute('data-initial-totp-tab');
+  totpPanel.removeAttribute('data-initial-evaluate-mode');
+  totpPanel.removeAttribute('data-initial-replay-mode');
+
   var tabContainer = totpPanel.querySelector('[data-testid="totp-panel-tabs"]');
   var evaluateTabButton = totpPanel.querySelector('[data-testid="totp-panel-tab-evaluate"]');
   var replayTabButton = totpPanel.querySelector('[data-testid="totp-panel-tab-replay"]');
@@ -780,63 +789,28 @@
     if (!endpoint) {
       return Promise.resolve(null);
     }
-
-    if (typeof global.fetch === 'function') {
-      return global
-        .fetch(endpoint, {
-          method: 'GET',
-          credentials: 'same-origin',
-          headers: {
-            Accept: 'application/json',
-          },
-        })
-        .then(function (response) {
-          return response.text().then(function (bodyText) {
-            if (response.ok) {
-              return parseJson(bodyText);
-            }
-            var error = new Error('TOTP request failed');
-            error.status = response.status;
-            error.payload = parseJson(bodyText);
-            throw error;
-          });
-        });
+    if (typeof global.fetch !== 'function') {
+      return Promise.reject(new Error('Fetch API unavailable'));
     }
-
-    return new Promise(function (resolve, reject) {
-      var XhrCtor = global.XMLHttpRequest;
-      if (typeof XhrCtor !== 'function') {
-        resolve(null);
-        return;
-      }
-      try {
-        var xhr = new XhrCtor();
-        xhr.open('GET', endpoint, true);
-        xhr.withCredentials = true;
-        xhr.setRequestHeader('Accept', 'application/json');
-        var DONE = typeof XhrCtor.DONE === 'number' ? XhrCtor.DONE : 4;
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState !== DONE) {
-            return;
-          }
-          var parsed = parseJson(xhr.responseText);
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(parsed);
-            return;
+    return global
+      .fetch(endpoint, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+        },
+      })
+      .then(function (response) {
+        return response.text().then(function (bodyText) {
+          if (response.ok) {
+            return parseJson(bodyText);
           }
           var error = new Error('TOTP request failed');
-          error.status = xhr.status;
-          error.payload = parsed;
-          reject(error);
-        };
-        xhr.onerror = function () {
-          reject(new Error('Network error during TOTP request'));
-        };
-        xhr.send();
-      } catch (error) {
-        reject(error);
-      }
-    });
+          error.status = response.status;
+          error.payload = parseJson(bodyText);
+          throw error;
+        });
+      });
   }
 
   function postJson(endpoint, payload, csrf) {
@@ -849,74 +823,35 @@
     } catch (error) {
       return Promise.reject(error);
     }
-
-    if (typeof global.fetch === 'function') {
-      var headers = {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      };
-      if (csrf) {
-        headers['X-CSRF-TOKEN'] = csrf;
-      }
-      return global
-        .fetch(endpoint, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: headers,
-          body: requestBody,
-        })
-        .then(function (response) {
-          return response.text().then(function (bodyText) {
-            var parsed = parseJson(bodyText);
-            if (response.ok) {
-              return parsed;
-            }
-            var error = new Error('TOTP request failed');
-            error.status = response.status;
-            error.payload = parsed;
-            throw error;
-          });
-        });
+    if (typeof global.fetch !== 'function') {
+      return Promise.reject(new Error('Fetch API unavailable'));
     }
-
-    return new Promise(function (resolve, reject) {
-      var XhrCtor = global.XMLHttpRequest;
-      if (typeof XhrCtor !== 'function') {
-        reject(new Error('Browser does not support XMLHttpRequest'));
-        return;
-      }
-      try {
-        var xhr = new XhrCtor();
-        xhr.open('POST', endpoint, true);
-        xhr.withCredentials = true;
-        xhr.setRequestHeader('Accept', 'application/json');
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        if (csrf) {
-          xhr.setRequestHeader('X-CSRF-TOKEN', csrf);
-        }
-        var DONE = typeof XhrCtor.DONE === 'number' ? XhrCtor.DONE : 4;
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState !== DONE) {
-            return;
-          }
-          var parsed = parseJson(xhr.responseText);
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(parsed);
-            return;
+    var headers = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    };
+    if (csrf) {
+      headers['X-CSRF-TOKEN'] = csrf;
+    }
+    return global
+      .fetch(endpoint, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: headers,
+        body: requestBody,
+      })
+      .then(function (response) {
+        return response.text().then(function (bodyText) {
+          var parsed = parseJson(bodyText);
+          if (response.ok) {
+            return parsed;
           }
           var error = new Error('TOTP request failed');
-          error.status = xhr.status;
+          error.status = response.status;
           error.payload = parsed;
-          reject(error);
-        };
-        xhr.onerror = function () {
-          reject(new Error('Network error during TOTP request'));
-        };
-        xhr.send(requestBody);
-      } catch (error) {
-        reject(error);
-      }
-    });
+          throw error;
+        });
+      });
   }
 
   function normalizeTab(tab) {
@@ -931,6 +866,14 @@
       return mode;
     }
     return 'inline';
+  }
+
+  function normalizeModeAttribute(value) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    var normalized = value.trim().toLowerCase();
+    return ALLOWED_MODES.indexOf(normalized) >= 0 ? normalized : null;
   }
 
   function dispatchTabChange(tab, options) {
@@ -1448,57 +1391,66 @@
   }
 
   function readTabFromUrl(search) {
-    if (!search) {
-      return 'evaluate';
-    }
     try {
-      var params = new global.URLSearchParams(search);
-      var tab = params.get('totpTab');
-      if (!tab) {
-        tab = params.get('tab');
+      var params = new global.URLSearchParams(search || global.location.search || '');
+      var tab = params.get('tab');
+      if (!tab && totpInitialTab) {
+        tab = totpInitialTab;
+        totpInitialTab = null;
       }
       return normalizeTab(tab);
     } catch (error) {
+      if (totpInitialTab) {
+        var fallback = totpInitialTab;
+        totpInitialTab = null;
+        return normalizeTab(fallback);
+      }
       return 'evaluate';
     }
   }
 
   function readModeFromUrl(search) {
-    if (!search) {
-      return 'inline';
-    }
     try {
-      var params = new global.URLSearchParams(search);
-      var explicit = params.get('totpMode');
-      if (!explicit) {
-        var sharedMode = params.get('mode');
-        var sharedTab = normalizeTab(params.get('tab'));
-        if (sharedMode && sharedTab !== 'replay') {
-          explicit = sharedMode;
-        }
+      var params = new global.URLSearchParams(search || global.location.search || '');
+      var tab = normalizeTab(params.get('tab'));
+      if (tab === 'replay') {
+        return 'inline';
       }
-      return normalizeMode(explicit || 'inline');
+      var mode = params.get('mode');
+      if (!mode && totpInitialEvaluateMode) {
+        mode = totpInitialEvaluateMode;
+        totpInitialEvaluateMode = null;
+      }
+      return normalizeMode(mode || 'inline');
     } catch (error) {
+      if (totpInitialEvaluateMode) {
+        var fallback = totpInitialEvaluateMode;
+        totpInitialEvaluateMode = null;
+        return normalizeMode(fallback);
+      }
       return 'inline';
     }
   }
 
   function readReplayModeFromUrl(search) {
-    if (!search) {
-      return 'stored';
-    }
     try {
-      var params = new global.URLSearchParams(search);
-      var explicit = params.get('totpReplayMode');
-      if (!explicit) {
-        var sharedMode = params.get('mode');
-        var sharedTab = normalizeTab(params.get('tab'));
-        if (sharedMode && sharedTab === 'replay') {
-          explicit = sharedMode;
-        }
+      var params = new global.URLSearchParams(search || global.location.search || '');
+      var tab = normalizeTab(params.get('tab'));
+      if (tab !== 'replay') {
+        return 'stored';
       }
-      return normalizeMode(explicit || 'stored');
+      var mode = params.get('mode');
+      if (!mode && totpInitialReplayMode) {
+        mode = totpInitialReplayMode;
+        totpInitialReplayMode = null;
+      }
+      return normalizeMode(mode || 'stored');
     } catch (error) {
+      if (totpInitialReplayMode) {
+        var fallback = totpInitialReplayMode;
+        totpInitialReplayMode = null;
+        return normalizeMode(fallback);
+      }
       return 'stored';
     }
   }

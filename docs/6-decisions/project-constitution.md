@@ -12,7 +12,7 @@ Follow-up TODOs: none
 ## Metadata
 - Constitution Version: 1.0.0
 - Ratified On: 2025-09-27
-- Last Amended On: 2025-09-27
+- Last Amended On: 2025-10-19
 - Maintainer: Ivan (project owner)
 
 ## Preamble
@@ -45,6 +45,7 @@ This constitution establishes the non-negotiable operating principles for the Op
 - Add or upgrade dependencies only with explicit owner approval and record the rationale in the feature plan.
 - Keep secrets synthetic and test-only; production data or sensitive keys must never enter the repository.
 - Follow least-destructive command practices; seek approval for high-risk actions even when automation is available.
+- Backward compatibility across all facades (REST, CLI, UI, programmatic, and future additions) is intentionally unsupported. Implement fallback logic only when the user explicitly directs it for the current scope.
 
 ## Governance
 - **Amendments:** Propose constitution changes via pull request referencing this document. Classify version bumps as MAJOR (principle removal or incompatible rewrite), MINOR (new principle or substantial expansion), or PATCH (clarification without semantic change).

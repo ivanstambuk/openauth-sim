@@ -295,17 +295,16 @@
   var lastReplayMode = MODE_INLINE;
   var currentReplayCeremony = CEREMONY_ASSERTION;
   var lastReplayAssertionMode = MODE_INLINE;
-  if (typeof global.__openauthFido2InitialReplayMode === 'string') {
-    var initialReplayMode =
-        global.__openauthFido2InitialReplayMode.toLowerCase();
-    if (initialReplayMode === MODE_STORED || initialReplayMode === MODE_INLINE) {
-      lastReplayMode = initialReplayMode;
-      currentReplayMode = initialReplayMode;
-    }
-    global.__openauthFido2InitialReplayMode = undefined;
-  }
+  var lastBroadcastTab = null;
+  var lastBroadcastEvaluateMode = null;
+  var lastBroadcastReplayMode = null;
+
+  var initialPanelState = readInitialPanelState();
+  currentEvaluateMode = initialPanelState.evaluateMode;
+  lastAssertionEvaluateMode = currentEvaluateMode;
+  currentReplayMode = initialPanelState.replayMode;
+  lastReplayMode = currentReplayMode;
   lastReplayAssertionMode = currentReplayMode;
-  var initialLegacyMode = readInitialLegacyMode();
 
   if (evaluateTabButton) {
     evaluateTabButton.addEventListener('click', function (event) {
@@ -465,13 +464,10 @@
     });
   }
   setCeremony(CEREMONY_ASSERTION, { broadcast: false, force: true });
-  setTab(TAB_EVALUATE, { broadcast: false, force: true });
-  setEvaluateMode(MODE_INLINE, { broadcast: false, force: true });
-  setReplayMode(lastReplayMode, { broadcast: false, force: true });
   setReplayCeremony(CEREMONY_ASSERTION, { broadcast: false, force: true });
-  if (initialLegacyMode) {
-    legacySetMode(initialLegacyMode, { broadcast: false, force: true });
-  }
+  setEvaluateMode(currentEvaluateMode, { broadcast: false, force: true });
+  setReplayMode(currentReplayMode, { broadcast: false, force: true });
+  setTab(initialPanelState.tab, { broadcast: false, force: true, replace: true });
   updateEvaluateButtonCopy();
   updateReplayButtonCopy();
   setActiveStoredCredential(activeStoredCredentialId, { force: true });
@@ -990,6 +986,72 @@
     replayAttestationError.setAttribute('aria-hidden', 'true');
   }
 
+  function dispatchTabChange(tab, options) {
+    if (options && options.broadcast === false) {
+      return;
+    }
+    if (lastBroadcastTab === tab && !(options && options.force)) {
+      return;
+    }
+    lastBroadcastTab = tab;
+    try {
+      var detail = { tab: tab };
+      if (options && options.replace === true) {
+        detail.replace = true;
+      }
+      global.dispatchEvent(
+          new global.CustomEvent('operator:fido2-tab-changed', { detail: detail }));
+    } catch (error) {
+      if (global.console && typeof global.console.warn === 'function') {
+        global.console.warn('Unable to broadcast FIDO2 tab change', error);
+      }
+    }
+  }
+
+  function dispatchEvaluateModeChange(mode, options) {
+    if (options && options.broadcast === false) {
+      return;
+    }
+    if (lastBroadcastEvaluateMode === mode && !(options && options.force)) {
+      return;
+    }
+    lastBroadcastEvaluateMode = mode;
+    try {
+      var detail = { mode: mode };
+      if (options && options.replace === true) {
+        detail.replace = true;
+      }
+      global.dispatchEvent(
+          new global.CustomEvent('operator:fido2-evaluate-mode-changed', { detail: detail }));
+    } catch (error) {
+      if (global.console && typeof global.console.warn === 'function') {
+        global.console.warn('Unable to broadcast FIDO2 evaluate mode change', error);
+      }
+    }
+  }
+
+  function dispatchReplayModeChange(mode, options) {
+    if (options && options.broadcast === false) {
+      return;
+    }
+    if (lastBroadcastReplayMode === mode && !(options && options.force)) {
+      return;
+    }
+    lastBroadcastReplayMode = mode;
+    try {
+      var detail = { mode: mode };
+      if (options && options.replace === true) {
+        detail.replace = true;
+      }
+      global.dispatchEvent(
+          new global.CustomEvent('operator:fido2-replay-mode-changed', { detail: detail }));
+    } catch (error) {
+      if (global.console && typeof global.console.warn === 'function') {
+        global.console.warn('Unable to broadcast FIDO2 replay mode change', error);
+      }
+    }
+  }
+
   function setTab(tab, options) {
     if (tab !== TAB_EVALUATE && tab !== TAB_REPLAY) {
       return;
@@ -1004,9 +1066,12 @@
     toggleTabButton(replayTabButton, tab === TAB_REPLAY);
     toggleSection(evaluatePanel, tab === TAB_EVALUATE);
     toggleSection(replayPanel, tab === TAB_REPLAY);
-    if (!options || options.broadcast !== false) {
-      broadcastModeChange(computeLegacyMode(), Boolean(options && options.replace));
+    if (tab === TAB_EVALUATE) {
+      setEvaluateMode(currentEvaluateMode, mergeOptions(options, { broadcast: false, force: true }));
+    } else {
+      setReplayMode(currentReplayMode, mergeOptions(options, { broadcast: false, force: true }));
     }
+    dispatchTabChange(tab, options);
   }
 
   function setEvaluateMode(mode, options) {
@@ -1044,9 +1109,7 @@
       refreshInlineCounterAfterPreset();
     }
     updateEvaluateButtonCopy();
-    if (!options || options.broadcast !== false) {
-      broadcastModeChange(computeLegacyMode(), Boolean(options && options.replace));
-    }
+    dispatchEvaluateModeChange(mode, options);
   }
 
   function setReplayMode(mode, options) {
@@ -1081,9 +1144,7 @@
     }
     refreshReplayResultVisibility();
     updateReplayButtonCopy();
-    if (!options || options.broadcast !== false) {
-      broadcastModeChange(computeLegacyMode(), Boolean(options && options.replace));
-    }
+    dispatchReplayModeChange(mode, options);
   }
 
   function setReplayCeremony(ceremony, options) {
@@ -1110,6 +1171,9 @@
     toggleNodeList(replayAssertionViews, ceremony === CEREMONY_ASSERTION);
     toggleNodeList(replayAttestationViews, ceremony === CEREMONY_ATTESTATION);
     refreshReplayResultVisibility();
+    if (!options || options.broadcast !== false) {
+      dispatchReplayModeChange(currentReplayMode, options);
+    }
   }
 
   function setCeremony(ceremony, options) {
@@ -1135,11 +1199,11 @@
     }
     toggleNodeList(assertionViews, ceremony === CEREMONY_ASSERTION);
     toggleNodeList(attestationViews, ceremony === CEREMONY_ATTESTATION);
-    updateEvaluateHeading(ceremony);
-    refreshEvaluationResultVisibility();
-    toggleSeedActions();
+   updateEvaluateHeading(ceremony);
+   refreshEvaluationResultVisibility();
+   toggleSeedActions();
     if (!options || options.broadcast !== false) {
-      broadcastModeChange(computeLegacyMode(), Boolean(options && options.replace));
+      dispatchEvaluateModeChange(currentEvaluateMode, options);
     }
   }
 
@@ -2184,32 +2248,40 @@
   }
 
   function sendJsonRequest(endpoint, payload, csrf) {
-    return new Promise(function (resolve, reject) {
-      if (!endpoint) {
-        reject({ status: 0, payload: null });
-        return;
-      }
-      try {
-        var request = new XMLHttpRequest();
-        request.open('POST', endpoint, true);
-        request.setRequestHeader('Content-Type', 'application/json');
-        if (csrf) {
-          request.setRequestHeader('X-CSRF-TOKEN', csrf);
-        }
-        request.onreadystatechange = function () {
-          if (request.readyState === 4) {
-            var responseText = request.responseText || '';
-            if (request.status >= 200 && request.status < 300) {
+    if (!endpoint) {
+      return Promise.reject({ status: 0, payload: null });
+    }
+    if (typeof global.fetch !== 'function') {
+      return Promise.reject({ status: 0, payload: null });
+    }
+    var requestBody;
+    try {
+      requestBody = JSON.stringify(payload || {});
+    } catch (error) {
+      return Promise.reject({ status: 0, payload: null });
+    }
+    var headers = { 'Content-Type': 'application/json' };
+    if (csrf) {
+      headers['X-CSRF-TOKEN'] = csrf;
+    }
+    return global
+        .fetch(endpoint, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: headers,
+          body: requestBody,
+        })
+        .then(function (response) {
+          return response.text().then(function (responseText) {
+            if (response.ok) {
               if (!responseText) {
-                resolve({});
-                return;
+                return {};
               }
               try {
-                resolve(JSON.parse(responseText));
+                return JSON.parse(responseText);
               } catch (error) {
-                resolve({});
+                return {};
               }
-              return;
             }
             var parsed = null;
             if (responseText) {
@@ -2219,17 +2291,15 @@
                 parsed = null;
               }
             }
-            reject({ status: request.status, payload: parsed });
+            throw { status: response.status, payload: parsed };
+          });
+        })
+        .catch(function (error) {
+          if (error && typeof error.status === 'number') {
+            throw error;
           }
-        };
-        request.onerror = function () {
-          reject({ status: 0, payload: null });
-        };
-        request.send(JSON.stringify(payload || {}));
-      } catch (error) {
-        reject({ status: 0, payload: null });
-      }
-    });
+          throw { status: 0, payload: null };
+        });
   }
 
   function populateInlineSampleOptions() {
@@ -2411,63 +2481,69 @@
   }
 
   function postJson(endpoint, payload, csrf) {
-    return new Promise(function (resolve) {
-      try {
-        var request = new XMLHttpRequest();
-        request.open('POST', endpoint, true);
-        request.setRequestHeader('Content-Type', 'application/json');
-        if (csrf) {
-          request.setRequestHeader('X-CSRF-TOKEN', csrf);
-        }
-        request.onreadystatechange = function () {
-          if (request.readyState === 4) {
-            resolve({
-              ok: request.status >= 200 && request.status < 300,
-              status: request.status,
-              bodyText: request.responseText || '',
-            });
-          }
-        };
-        request.onerror = function () {
-          resolve({ ok: false, status: 0, bodyText: '' });
-        };
-        request.send(JSON.stringify(payload || {}));
-      } catch (error) {
-        resolve({ ok: false, status: 0, bodyText: '' });
-      }
-    });
+    if (!endpoint || typeof global.fetch !== 'function') {
+      return Promise.resolve({ ok: false, status: 0, bodyText: '' });
+    }
+    var requestBody;
+    try {
+      requestBody = JSON.stringify(payload || {});
+    } catch (error) {
+      return Promise.resolve({ ok: false, status: 0, bodyText: '' });
+    }
+    var headers = { 'Content-Type': 'application/json' };
+    if (csrf) {
+      headers['X-CSRF-TOKEN'] = csrf;
+    }
+    return global
+        .fetch(endpoint, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: headers,
+          body: requestBody,
+        })
+        .then(function (response) {
+          return response.text().then(function (bodyText) {
+            return {
+              ok: response.ok,
+              status: response.status,
+              bodyText: bodyText,
+            };
+          });
+        })
+        .catch(function () {
+          return { ok: false, status: 0, bodyText: '' };
+        });
   }
 
   function fetchCredentials(endpoint) {
     if (!endpoint) {
       return Promise.resolve([]);
     }
-    return new Promise(function (resolve) {
-      try {
-        var request = new XMLHttpRequest();
-        request.open('GET', endpoint, true);
-        request.onreadystatechange = function () {
-          if (request.readyState === 4) {
-            if (request.status >= 200 && request.status < 300) {
-              try {
-                var payload = JSON.parse(request.responseText || '[]');
-                resolve(Array.isArray(payload) ? payload : []);
-              } catch (error) {
-                resolve([]);
-              }
-            } else {
-              resolve([]);
+    if (typeof global.fetch !== 'function') {
+      return Promise.resolve([]);
+    }
+    return global
+        .fetch(endpoint, {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        })
+        .then(function (response) {
+          return response.text().then(function (bodyText) {
+            if (!response.ok) {
+              return [];
             }
-          }
-        };
-        request.onerror = function () {
-          resolve([]);
-        };
-        request.send();
-      } catch (error) {
-        resolve([]);
-      }
-    });
+            try {
+              var payload = JSON.parse(bodyText || '[]');
+              return Array.isArray(payload) ? payload : [];
+            } catch (error) {
+              return [];
+            }
+          });
+        })
+        .catch(function () {
+          return [];
+        });
   }
 
   function toggleSeedActions() {
@@ -2658,69 +2734,44 @@
     }
   }
 
-  function readInitialLegacyMode() {
-    var candidate = null;
+  function readInitialPanelState() {
+    var tab = TAB_EVALUATE;
+    var evaluateMode = MODE_INLINE;
+    var replayMode = MODE_INLINE;
     if (panel) {
       var attr = panel.getAttribute('data-initial-fido2-mode');
       if (attr && typeof attr === 'string') {
-        candidate = attr.trim().toLowerCase();
+        var normalized = attr.trim().toLowerCase();
+        if (normalized === 'replay') {
+          tab = TAB_REPLAY;
+        } else if (normalized === MODE_INLINE || normalized === MODE_STORED) {
+          evaluateMode = normalized;
+        }
       }
       panel.removeAttribute('data-initial-fido2-mode');
+      var replayAttr = panel.getAttribute('data-initial-fido2-replay-mode');
+      if (replayAttr && typeof replayAttr === 'string') {
+        var normalizedReplay = replayAttr.trim().toLowerCase();
+        if (normalizedReplay === MODE_INLINE || normalizedReplay === MODE_STORED) {
+          replayMode = normalizedReplay;
+        }
+      }
+      panel.removeAttribute('data-initial-fido2-replay-mode');
     }
-    if (!candidate && typeof global.__openauthFido2InitialMode === 'string') {
-      candidate = global.__openauthFido2InitialMode.toLowerCase();
-    }
-    global.__openauthFido2InitialMode = undefined;
-    if (candidate === 'replay' || candidate === 'inline' || candidate === 'stored') {
-      return candidate;
-    }
-    return null;
-  }
-
-  function broadcastModeChange(mode, replace) {
-    try {
-      var event = new global.CustomEvent('operator:fido2-mode-changed', {
-        detail: { mode: mode, replace: Boolean(replace) },
-      });
-      global.dispatchEvent(event);
-    } catch (error) {
-      if (global.console && typeof global.console.error === 'function') {
-        global.console.error('Failed to broadcast FIDO2 mode change', error);
+    if (tab === TAB_EVALUATE) {
+      if (evaluateMode !== MODE_INLINE && evaluateMode !== MODE_STORED) {
+        evaluateMode = MODE_INLINE;
+      }
+    } else {
+      if (replayMode !== MODE_INLINE && replayMode !== MODE_STORED) {
+        replayMode = MODE_INLINE;
       }
     }
-  }
-
-  function computeLegacyMode() {
-    if (currentTab === TAB_REPLAY) {
-      return 'replay';
-    }
-    return currentEvaluateMode === MODE_INLINE ? 'inline' : 'stored';
-  }
-
-  function legacySetMode(mode, options) {
-    var normalised = (mode || '').toLowerCase();
-    if (normalised === 'replay') {
-      var desiredReplayMode = lastReplayMode;
-      if (options && options.replayMode && (options.replayMode === MODE_INLINE || options.replayMode === MODE_STORED)) {
-        desiredReplayMode = options.replayMode;
-      }
-      if (desiredReplayMode !== MODE_INLINE && desiredReplayMode !== MODE_STORED) {
-        desiredReplayMode = MODE_INLINE;
-      }
-      setTab(TAB_REPLAY, mergeOptions(options, { replace: true, broadcast: false }));
-      setReplayMode(desiredReplayMode, mergeOptions(options, { broadcast: false, force: true }));
-      broadcastModeChange('replay', Boolean(options && options.replace));
-      return;
-    }
-    if (normalised === 'inline') {
-      setTab(TAB_EVALUATE, mergeOptions(options, { replace: true, broadcast: false }));
-      setEvaluateMode(MODE_INLINE, mergeOptions(options, { broadcast: false, force: true }));
-      broadcastModeChange('inline', Boolean(options && options.replace));
-      return;
-    }
-    setTab(TAB_EVALUATE, mergeOptions(options, { replace: true, broadcast: false }));
-    setEvaluateMode(MODE_STORED, mergeOptions(options, { broadcast: false, force: true }));
-    broadcastModeChange('stored', Boolean(options && options.replace));
+    return {
+      tab: tab,
+      evaluateMode: evaluateMode,
+      replayMode: replayMode,
+    };
   }
 
   function mergeOptions(options, overrides) {
@@ -2747,12 +2798,6 @@
     },
     getCeremony: function () {
       return currentCeremony;
-    },
-    setMode: function (mode, options) {
-      legacySetMode(mode, options || {});
-    },
-    getMode: function () {
-      return computeLegacyMode();
     },
     setTab: function (tab, options) {
       setTab(tab, options || {});

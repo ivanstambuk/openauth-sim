@@ -46,6 +46,7 @@ final class OperatorConsoleUnificationSeleniumTest {
   void setUp() {
     driver = new HtmlUnitDriver(true);
     driver.setJavascriptEnabled(true);
+    driver.getWebClient().getOptions().setFetchPolyfillEnabled(true);
     driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));
     driver.getWebClient().getOptions().setThrowExceptionOnScriptError(true);
   }
@@ -583,12 +584,12 @@ final class OperatorConsoleUnificationSeleniumTest {
     waitUntilUrlContains("tab=replay");
     waitUntilUrlContains("mode=stored");
 
-    driver.get(baseUrl("/ui/console?protocol=totp&tab=replay&mode=stored&totpReplayMode=stored"));
+    driver.get(baseUrl("/ui/console?protocol=totp&tab=replay&mode=stored"));
     waitUntilUrlContains("protocol=totp");
     waitUntilUrlContains("tab=replay");
     waitUntilUrlContains("mode=stored");
 
-    driver.get(baseUrl("/ui/console?protocol=fido2&tab=replay&mode=stored&fido2Mode=replay"));
+    driver.get(baseUrl("/ui/console?protocol=fido2&tab=replay&mode=stored"));
     waitUntilUrlContains("protocol=fido2");
     waitUntilUrlContains("tab=replay");
     waitUntilUrlContains("mode=stored");
@@ -756,6 +757,42 @@ final class OperatorConsoleUnificationSeleniumTest {
     waitUntilUrlContains("tab=replay");
     waitUntilUrlContains("mode=stored");
     waitForFido2ReplayStoredState();
+  }
+
+  @Test
+  @DisplayName("FIDO2 console exposes canonical tab/mode helpers without legacy bridge")
+  void fido2ConsoleProvidesCanonicalApi() {
+    driver.get(baseUrl("/ui/console?protocol=fido2&tab=evaluate&mode=inline"));
+
+    waitUntilUrlContains("protocol=fido2");
+    waitUntilUrlContains("tab=evaluate");
+    waitUntilUrlContains("mode=inline");
+
+    JavascriptExecutor executor = (JavascriptExecutor) driver;
+    Boolean legacyModeFunction =
+        (Boolean)
+            executor.executeScript("return typeof window.Fido2Console.setMode === 'function';");
+    assertThat(legacyModeFunction)
+        .as("Fido2Console.setMode should be removed in favour of canonical helpers")
+        .isFalse();
+
+    executor.executeScript("window.Fido2Console.setTab('replay');");
+    waitUntilUrlContains("tab=replay");
+
+    executor.executeScript("window.Fido2Console.setReplayMode('stored');");
+    waitUntilUrlContains("mode=stored");
+
+    WebElement replayToggle =
+        driver.findElement(By.cssSelector("[data-testid='fido2-replay-mode-toggle']"));
+    assertThat(replayToggle.getAttribute("data-mode")).isEqualTo("stored");
+
+    executor.executeScript("window.Fido2Console.setTab('evaluate');");
+    waitUntilUrlContains("tab=evaluate");
+    waitUntilUrlContains("mode=inline");
+
+    WebElement evaluateToggle =
+        driver.findElement(By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"));
+    assertThat(evaluateToggle.getAttribute("data-mode")).isEqualTo("inline");
   }
 
   @Test

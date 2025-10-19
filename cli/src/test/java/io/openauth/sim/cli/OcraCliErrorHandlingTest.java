@@ -163,10 +163,11 @@ final class OcraCliErrorHandlingTest {
             DEFAULT_SECRET_HEX);
 
     assertEquals(CommandLine.ExitCode.OK, exit, harness.stderr());
-    String stdout = harness.stdout();
-    assertTrue(stdout.contains("event=cli.ocra.import"));
-    assertTrue(stdout.contains("status=success"));
-    assertTrue(stdout.contains("reasonCode=created"));
+    Map<String, String> telemetry =
+        TelemetryOutputAssertions.telemetryLine(harness.stdout(), "cli.ocra.import");
+    assertEquals("success", telemetry.get("status"));
+    assertEquals("created", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
 
     Files.walk(directory)
         .sorted((a, b) -> b.compareTo(a))
@@ -204,8 +205,9 @@ final class OcraCliErrorHandlingTest {
             "120");
 
     assertEquals(CommandLine.ExitCode.OK, exit, harness.stderr());
-    String stdout = harness.stdout();
-    assertTrue(stdout.contains("reasonCode=created"));
+    Map<String, String> telemetry =
+        TelemetryOutputAssertions.telemetryLine(harness.stdout(), "cli.ocra.import");
+    assertEquals("created", telemetry.get("reasonCode"));
 
     Files.walk(directory)
         .sorted((a, b) -> b.compareTo(a))

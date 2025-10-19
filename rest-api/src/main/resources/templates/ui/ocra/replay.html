@@ -259,43 +259,12 @@
           return;
         }
 
-        var fetchDelegate =
-          typeof window.fetch === 'function'
-            ? function (endpoint, options) {
-                return window.fetch(endpoint, options);
-              }
-            : function (endpoint, options) {
-                return new Promise(function (resolve, reject) {
-                  try {
-                    var xhr = new XMLHttpRequest();
-                    var method = (options && options.method) || 'GET';
-                    xhr.open(method, endpoint, true);
-                    var headers = (options && options.headers) || { };
-                    Object.keys(headers).forEach(function (key) {
-                      xhr.setRequestHeader(key, headers[key]);
-                    });
-                    if (options && options.credentials && options.credentials !== 'omit') {
-                      xhr.withCredentials = true;
-                    }
-                    xhr.onload = function () {
-                      var text = xhr.responseText || '';
-                      resolve({
-                        ok: xhr.status >= 200 && xhr.status < 300,
-                        status: xhr.status,
-                        text: function () {
-                          return Promise.resolve(text);
-                        },
-                      });
-                    };
-                    xhr.onerror = function () {
-                      reject(new Error('Request failed'));
-                    };
-                    xhr.send((options && options.body) || null);
-                  } catch (error) {
-                    reject(error);
-                  }
-                });
-              };
+        var fetchDelegate = function (endpoint, options) {
+          if (typeof window.fetch !== 'function') {
+            return Promise.reject(new Error('Fetch API unavailable'));
+          }
+          return window.fetch(endpoint, options);
+        };
 
         var modeRadios = form.querySelectorAll('input[name="replayMode"]');
         var storedSection = doc.getElementById('replay-stored-section');

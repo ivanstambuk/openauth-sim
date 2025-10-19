@@ -7,7 +7,6 @@ import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
 import io.openauth.sim.core.fido2.WebAuthnJsonVectorFixtures;
 import io.openauth.sim.core.fido2.WebAuthnJsonVectorFixtures.WebAuthnJsonVector;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
@@ -24,11 +23,7 @@ import java.util.Optional;
  */
 public final class WebAuthnGeneratorSamples {
 
-  private static final String EXPECTED_TYPE = "webauthn.get";
-  private static final String DEFAULT_RELYING_PARTY = "example.org";
-  private static final String DEFAULT_ORIGIN = "https://example.org";
   private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
-  private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
 
   private static final List<WebAuthnSignatureAlgorithm> PRESET_ORDER =
       List.of(
@@ -78,9 +73,8 @@ public final class WebAuthnGeneratorSamples {
     }
 
     if (samples.isEmpty()) {
-      samples.add(createLegacySample());
+      throw new IllegalStateException("WebAuthn generator presets unavailable");
     }
-
     return List.copyOf(samples);
   }
 
@@ -88,7 +82,9 @@ public final class WebAuthnGeneratorSamples {
       EnumMap<WebAuthnSignatureAlgorithm, SampleBuilder> builders) {
     WebAuthnFixtures.w3cFixtures().stream()
         .filter(fixture -> hasText(fixture.credentialPrivateKeyJwk()))
-        .sorted(Comparator.comparing(WebAuthnFixture::id, String.CASE_INSENSITIVE_ORDER))
+        .sorted(
+            Comparator.comparing((WebAuthnFixture fixture) -> !isPreferredFixture(fixture))
+                .thenComparing(WebAuthnFixture::id, String.CASE_INSENSITIVE_ORDER))
         .forEach(
             fixture ->
                 builders.putIfAbsent(fixture.algorithm(), () -> createSampleFromFixture(fixture)));
@@ -109,10 +105,11 @@ public final class WebAuthnGeneratorSamples {
       WebAuthnSignatureAlgorithm algorithm, WebAuthnJsonVector vector) {
     String privateKeyJwk =
         Objects.requireNonNull(vector.privateKeyJwk(), "privateKeyJwk must be present");
-    String presetKey = presetKeyFor(algorithm);
+    String presetKey = presetKeyForVector(vector);
     String label = displayLabel(algorithm, "synthetic", null);
-    String relyingPartyId = DEFAULT_RELYING_PARTY;
-    String origin = DEFAULT_ORIGIN;
+    String relyingPartyId = vector.storedCredential().relyingPartyId();
+    String origin = vector.assertionRequest().origin();
+    String expectedType = vector.assertionRequest().expectedType();
     long signatureCounter = vector.storedCredential().signatureCounter();
     boolean userVerificationRequired = vector.storedCredential().userVerificationRequired();
 
@@ -124,7 +121,7 @@ public final class WebAuthnGeneratorSamples {
                 algorithm,
                 relyingPartyId,
                 origin,
-                vector.assertionRequest().expectedType(),
+                expectedType,
                 signatureCounter,
                 userVerificationRequired,
                 vector.assertionRequest().expectedChallenge(),
@@ -145,7 +142,7 @@ public final class WebAuthnGeneratorSamples {
         algorithm,
         relyingPartyId,
         origin,
-        vector.assertionRequest().expectedType(),
+        expectedType,
         result.credentialId(),
         result.challenge(),
         result.signatureCounter(),
@@ -162,7 +159,7 @@ public final class WebAuthnGeneratorSamples {
     String privateKeyJwk = fixture.credentialPrivateKeyJwk();
     Objects.requireNonNull(privateKeyJwk, "credentialPrivateKeyJwk must be present");
 
-    String presetKey = presetKeyFor(fixture.algorithm());
+    String presetKey = presetKeyForFixture(fixture);
     String label = displayLabel(fixture.algorithm(), "w3c", fixture.section());
 
     GenerationResult result =
@@ -194,75 +191,6 @@ public final class WebAuthnGeneratorSamples {
         fixture.storedCredential().relyingPartyId(),
         fixture.request().origin(),
         fixture.request().expectedType(),
-        result.credentialId(),
-        result.challenge(),
-        result.signatureCounter(),
-        result.userVerificationRequired(),
-        privateKeyJwk,
-        result.publicKeyCose(),
-        result.clientDataJson(),
-        result.authenticatorData(),
-        result.signature(),
-        metadata);
-  }
-
-  private static Sample createLegacySample() {
-    return createSampleFromInputs(
-        "generator-es256",
-        displayLabel(WebAuthnSignatureAlgorithm.ES256, "legacy", null),
-        WebAuthnSignatureAlgorithm.ES256,
-        "Z2VuZXJhdG9yLWVzMjU2LWNyZWRlbnRpYWw",
-        "c3RvcmVkLWNoYWxsZW5nZQ",
-        0L,
-        false,
-        """
-        {
-          "kty":"EC",
-          "crv":"P-256",
-          "x":"qdZggyTjMpAsFSTkjMWSwuBQuB3T-w6bDAphr8rHSVk",
-          "y":"cNVi6TQ6udwSbuwQ9JCt0dAxM5LgpenvK6jQPZ2_GTs",
-          "d":"GV7Q6vqPvJNmr1Lu2swyafBOzG9hvrtqs-vronAeZv8"
-        }
-        """);
-  }
-
-  private static Sample createSampleFromInputs(
-      String key,
-      String label,
-      WebAuthnSignatureAlgorithm algorithm,
-      String credentialIdBase64Url,
-      String challengeBase64Url,
-      long signatureCounter,
-      boolean userVerificationRequired,
-      String privateKeyJwk) {
-
-    byte[] credentialId = decodeBase64Url(credentialIdBase64Url, "credentialId");
-    byte[] challenge = decodeBase64Url(challengeBase64Url, "challenge");
-
-    GenerationResult result =
-        GENERATOR.generate(
-            new GenerationCommand.Inline(
-                label,
-                credentialId,
-                algorithm,
-                DEFAULT_RELYING_PARTY,
-                DEFAULT_ORIGIN,
-                EXPECTED_TYPE,
-                signatureCounter,
-                userVerificationRequired,
-                challenge,
-                privateKeyJwk));
-
-    Map<String, String> metadata =
-        Map.of("presetKey", key, "algorithm", algorithm.label(), "source", "generator-sample");
-
-    return new Sample(
-        key,
-        label,
-        algorithm,
-        DEFAULT_RELYING_PARTY,
-        DEFAULT_ORIGIN,
-        EXPECTED_TYPE,
         result.credentialId(),
         result.challenge(),
         result.signatureCounter(),
@@ -336,21 +264,8 @@ public final class WebAuthnGeneratorSamples {
     }
   }
 
-  private static byte[] decodeBase64Url(String value, String field) {
-    try {
-      return URL_DECODER.decode(value.getBytes(StandardCharsets.UTF_8));
-    } catch (IllegalArgumentException ex) {
-      throw new IllegalStateException(
-          "Unable to decode Base64URL value for " + field.toLowerCase(Locale.ROOT), ex);
-    }
-  }
-
   private static String encode(byte[] value) {
     return URL_ENCODER.encodeToString(value);
-  }
-
-  private static String presetKeyFor(WebAuthnSignatureAlgorithm algorithm) {
-    return "generator-" + algorithm.label().toLowerCase(Locale.US);
   }
 
   private static String displayLabel(
@@ -359,6 +274,20 @@ public final class WebAuthnGeneratorSamples {
       return algorithm.label() + " (W3C " + section + ")";
     }
     return algorithm.label();
+  }
+
+  private static boolean isPreferredFixture(WebAuthnFixture fixture) {
+    String id = fixture.id();
+    return id.startsWith("packed-");
+  }
+
+  private static String presetKeyForFixture(WebAuthnFixture fixture) {
+    return fixture.id();
+  }
+
+  private static String presetKeyForVector(WebAuthnJsonVector vector) {
+    String normalized = vector.vectorId().toLowerCase(Locale.US).replace(':', '-');
+    return "synthetic-" + normalized;
   }
 
   private static boolean hasText(String value) {

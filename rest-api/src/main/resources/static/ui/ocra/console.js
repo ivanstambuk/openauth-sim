@@ -5,6 +5,8 @@
   var protocolTabs = Array.prototype.slice.call(documentRef.querySelectorAll('[data-protocol-tab]'));
   var protocolPanels = Array.prototype.slice.call(documentRef.querySelectorAll('[data-protocol-panel]'));
   var fido2Panel = documentRef.querySelector("[data-protocol-panel='fido2']");
+  var hotpPanel = documentRef.querySelector("[data-protocol-panel='hotp']");
+  var totpPanel = documentRef.querySelector("[data-protocol-panel='totp']");
   var modeToggle = documentRef.querySelector("[data-testid='ocra-mode-toggle']");
   var evaluateButton = modeToggle && modeToggle.querySelector("[data-testid='ocra-mode-select-evaluate']");
   var replayButton = modeToggle && modeToggle.querySelector("[data-testid='ocra-mode-select-replay']");
@@ -36,6 +38,8 @@
   var lastTotpMode = 'inline';
   var lastTotpReplayMode = 'stored';
   var lastFido2Mode = 'inline';
+  var lastFido2EvaluateMode = 'inline';
+  var lastFido2ReplayMode = 'inline';
 
   if (operatorConsoleRoot) {
     var activeProtocolAttr = operatorConsoleRoot.getAttribute('data-active-protocol');
@@ -69,20 +73,20 @@
     if (allowedFido2Modes.has(mode)) {
       if (panel) {
         panel.setAttribute('data-initial-fido2-mode', mode);
-      }
-      global.__openauthFido2InitialMode = mode;
-      if (mode === 'replay' && allowedModes.has(replayMode)) {
-        global.__openauthFido2InitialReplayMode = replayMode;
-      } else if (mode !== 'replay') {
-        global.__openauthFido2InitialReplayMode = undefined;
+        if (mode === 'replay' && allowedModes.has(replayMode)) {
+          panel.setAttribute('data-initial-fido2-replay-mode', replayMode);
+        } else {
+          panel.removeAttribute('data-initial-fido2-replay-mode');
+        }
       }
       return;
     }
     if (panel) {
       panel.removeAttribute('data-initial-fido2-mode');
     }
-    global.__openauthFido2InitialMode = undefined;
-    global.__openauthFido2InitialReplayMode = undefined;
+    if (panel) {
+      panel.removeAttribute('data-initial-fido2-replay-mode');
+    }
   }
 
   function toggleButtonState(button, active) {
@@ -138,17 +142,19 @@ protocolTabs.forEach(function (tab) {
       if (global.OcraConsole && typeof global.OcraConsole.setMode === 'function') {
         global.OcraConsole.setMode(desiredOcraEvaluateMode, { broadcast: false, force: true });
       } else {
-        global.__openauthOcraInitialMode = desiredOcraEvaluateMode;
+        if (modeToggle) {
+          modeToggle.setAttribute('data-initial-ocra-mode', desiredOcraEvaluateMode);
+        }
       }
     } else {
       setPanelVisibility(modeToggle, true);
-      global.__openauthOcraInitialMode = undefined;
+      if (modeToggle) {
+        modeToggle.removeAttribute('data-initial-ocra-mode');
+      }
     }
 
     if ((protocol === 'ocra' || protocol === 'hotp') && allowedTabs.has(ocraMode)) {
       rememberTab(protocol, ocraMode);
-    } else {
-      global.__openauthHotpInitialMode = undefined;
     }
 
     if (protocol === 'hotp') {
@@ -167,18 +173,18 @@ protocolTabs.forEach(function (tab) {
               ? options.hotpMode
               : getLastMode('hotp');
       if (hotpTargetTab === 'replay') {
-        global.__openauthHotpInitialMode = undefined;
+        if (hotpPanel) {
+          hotpPanel.setAttribute('data-initial-replay-mode', desiredHotpMode);
+        }
         if (global.HotpConsole && typeof global.HotpConsole.setReplayMode === 'function') {
           global.HotpConsole.setReplayMode(desiredHotpMode, { broadcast: false, force: true });
-        } else {
-          global.__openauthHotpInitialReplayMode = desiredHotpMode;
         }
       } else {
-        global.__openauthHotpInitialReplayMode = undefined;
+        if (hotpPanel) {
+          hotpPanel.setAttribute('data-initial-evaluate-mode', desiredHotpMode);
+        }
         if (global.HotpConsole && typeof global.HotpConsole.setMode === 'function') {
           global.HotpConsole.setMode(desiredHotpMode, { broadcast: false, force: true });
-        } else {
-          global.__openauthHotpInitialMode = desiredHotpMode;
         }
       }
     }
@@ -197,6 +203,10 @@ protocolTabs.forEach(function (tab) {
         if (typeof global.TotpConsole.setReplayMode === 'function') {
           global.TotpConsole.setReplayMode(desiredReplayMode, { broadcast: false, force: true });
         }
+      } else if (totpPanel) {
+        totpPanel.setAttribute('data-initial-totp-tab', desiredTab);
+        totpPanel.setAttribute('data-initial-evaluate-mode', desiredMode);
+        totpPanel.setAttribute('data-initial-replay-mode', desiredReplayMode);
       }
     }
 
@@ -210,21 +220,35 @@ protocolTabs.forEach(function (tab) {
           options && options.fido2PanelMode && allowedModes.has(options.fido2PanelMode)
               ? options.fido2PanelMode
               : undefined;
+      var desiredFidoTab = desiredFidoMode === 'replay' ? 'replay' : 'evaluate';
+      var targetEvaluateMode =
+          desiredFidoMode === 'replay'
+              ? getLastFido2EvaluateMode()
+              : (allowedModes.has(desiredFidoMode) ? desiredFidoMode : getLastFido2EvaluateMode());
+      if (desiredFidoMode !== 'replay'
+          && allowedModes.has(desiredFidoPanelMode)) {
+        targetEvaluateMode = desiredFidoPanelMode;
+      }
+      var targetReplayMode =
+          desiredFidoMode === 'replay'
+              ? (allowedModes.has(desiredFidoPanelMode)
+                     ? desiredFidoPanelMode
+                     : getLastFido2ReplayMode())
+              : getLastFido2ReplayMode();
+      rememberFido2EvaluateMode(targetEvaluateMode);
+      rememberFido2ReplayMode(targetReplayMode);
       rememberInitialFido2Mode(
-          desiredFidoMode, desiredFidoMode === 'replay' ? desiredFidoPanelMode : undefined);
-      if (global.Fido2Console && typeof global.Fido2Console.setMode === 'function') {
-        if (desiredFidoMode === 'replay') {
-          var replayMode =
-              desiredFidoPanelMode && allowedModes.has(desiredFidoPanelMode)
-                  ? desiredFidoPanelMode
-                  : getLastMode('fido2');
-          global.Fido2Console.setMode('replay', {
-            broadcast: false,
-            force: true,
-            replayMode: replayMode,
-          });
-        } else {
-          global.Fido2Console.setMode(desiredFidoMode, { broadcast: false, force: true });
+          desiredFidoMode === 'replay' ? 'replay' : targetEvaluateMode,
+          desiredFidoMode === 'replay' ? targetReplayMode : undefined);
+      if (global.Fido2Console) {
+        if (typeof global.Fido2Console.setEvaluateMode === 'function') {
+          global.Fido2Console.setEvaluateMode(targetEvaluateMode, { broadcast: false, force: true });
+        }
+        if (typeof global.Fido2Console.setReplayMode === 'function') {
+          global.Fido2Console.setReplayMode(targetReplayMode, { broadcast: false, force: true });
+        }
+        if (typeof global.Fido2Console.setTab === 'function') {
+          global.Fido2Console.setTab(desiredFidoTab, { broadcast: false, force: true });
         }
       }
     } else {
@@ -267,21 +291,19 @@ protocolTabs.forEach(function (tab) {
     if (protocol === 'totp') {
       var tabCandidate = state && state.tab;
       if (!allowedTabs.has(tabCandidate)) {
-        tabCandidate =
-            allowedTotpTabs.has(state && state.totpTab) ? state.totpTab : getLastTotpTab();
+        tabCandidate = getLastTotpTab();
       }
       var totpTab = allowedTabs.has(tabCandidate) ? tabCandidate : 'evaluate';
       normalized.tab = totpTab;
-      var evalModeCandidate =
-          allowedModes.has(state && state.mode)
-              ? state.mode
-              : allowedTotpModes.has(state && state.totpMode)
-                  ? state.totpMode
-                  : getLastTotpMode();
-      var replayModeCandidate =
-          allowedTotpModes.has(state && state.totpReplayMode)
-              ? state.totpReplayMode
-              : getLastTotpReplayMode();
+      var evalModeCandidate = getLastTotpMode();
+      var replayModeCandidate = getLastTotpReplayMode();
+      if (allowedModes.has(state && state.mode)) {
+        if (totpTab === 'replay') {
+          replayModeCandidate = state.mode;
+        } else {
+          evalModeCandidate = state.mode;
+        }
+      }
       normalized.totpTab = totpTab;
       normalized.totpMode =
           allowedTotpModes.has(evalModeCandidate) ? evalModeCandidate : getLastTotpMode();
@@ -293,39 +315,52 @@ protocolTabs.forEach(function (tab) {
     }
 
     if (protocol === 'fido2') {
+      var fidoTabCandidate = allowedTabs.has(state && state.tab) ? state.tab : null;
       var fidoModeCandidate;
       if (allowedFido2Modes.has(state && state.fido2Mode)) {
         fidoModeCandidate = state.fido2Mode;
-      } else if (state && state.tab === 'replay') {
-        fidoModeCandidate = 'replay';
       } else if (allowedModes.has(state && state.mode)) {
         fidoModeCandidate = state.mode === 'stored' ? 'stored' : 'inline';
       } else {
         fidoModeCandidate = getLastFido2Mode();
       }
-      normalized.fido2Mode = fidoModeCandidate;
-      var fidoTab =
-          allowedTabs.has(state && state.tab)
-              ? state.tab
-              : fidoModeCandidate === 'replay'
-                  ? 'replay'
-                  : 'evaluate';
-      normalized.tab = fidoTab;
-      if (fidoTab === 'replay') {
-        var replayMode =
-            allowedModes.has(state && state.mode)
-                ? state.mode
-                : (global.Fido2Console && typeof global.Fido2Console.getReplayMode === 'function'
-                      ? global.Fido2Console.getReplayMode()
-                      : getLastMode('fido2'));
-        normalized.mode = allowedModes.has(replayMode) ? replayMode : 'stored';
-      } else {
-        var evalMode =
-            allowedModes.has(state && state.mode)
-                ? state.mode
-                : (fidoModeCandidate === 'stored' ? 'stored' : 'inline');
-        normalized.mode = allowedModes.has(evalMode) ? evalMode : 'inline';
+      if (!fidoTabCandidate) {
+        if (fidoModeCandidate === 'replay') {
+          fidoTabCandidate = 'replay';
+        } else {
+          var previousTab = getLastTab('fido2');
+          fidoTabCandidate = allowedTabs.has(previousTab) ? previousTab : 'evaluate';
+        }
       }
+      if (!allowedTabs.has(fidoTabCandidate)) {
+        fidoTabCandidate = 'evaluate';
+      }
+      var evaluateModeCandidate = getLastFido2EvaluateMode();
+      var replayModeCandidate = getLastFido2ReplayMode();
+      if (allowedModes.has(state && state.mode)) {
+        if (fidoTabCandidate === 'replay') {
+          replayModeCandidate = state.mode;
+        } else {
+          evaluateModeCandidate = state.mode;
+        }
+      }
+      if (allowedFido2Modes.has(state && state.fido2Mode) && state.fido2Mode !== 'replay') {
+        evaluateModeCandidate = state.fido2Mode;
+      }
+      if (fidoModeCandidate === 'replay') {
+        fidoTabCandidate = 'replay';
+      }
+      if (!allowedModes.has(evaluateModeCandidate)) {
+        evaluateModeCandidate = getLastFido2EvaluateMode();
+      }
+      if (!allowedModes.has(replayModeCandidate)) {
+        replayModeCandidate = getLastFido2ReplayMode();
+      }
+      normalized.tab = fidoTabCandidate;
+      normalized.fido2Mode =
+          fidoTabCandidate === 'replay' ? 'replay' : evaluateModeCandidate;
+      normalized.mode =
+          fidoTabCandidate === 'replay' ? replayModeCandidate : evaluateModeCandidate;
       return normalized;
     }
 
@@ -368,11 +403,7 @@ protocolTabs.forEach(function (tab) {
     if (normalized.mode && allowedModes.has(normalized.mode)) {
       historyState.mode = normalized.mode;
     }
-    if (normalized.protocol === 'totp') {
-      historyState.totpTab = normalized.totpTab;
-      historyState.totpMode = normalized.totpMode;
-      historyState.totpReplayMode = normalized.totpReplayMode;
-    } else if (normalized.protocol === 'fido2') {
+    if (normalized.protocol === 'fido2') {
       historyState.fido2Mode = normalized.fido2Mode;
     }
 
@@ -463,18 +494,26 @@ protocolTabs.forEach(function (tab) {
 
     if (desiredProtocol === 'fido2') {
       rememberFido2Mode(normalized.fido2Mode);
-      rememberInitialFido2Mode(
-          normalized.fido2Mode,
-          normalized.fido2Mode === 'replay' ? normalized.mode : undefined);
-      if (global.Fido2Console && typeof global.Fido2Console.setMode === 'function') {
-        if (normalized.fido2Mode === 'replay') {
-          global.Fido2Console.setMode('replay', {
-            broadcast: false,
-            force: true,
-            replayMode: normalized.mode,
-          });
-        } else {
-          global.Fido2Console.setMode(normalized.fido2Mode, { broadcast: false, force: true });
+      if (normalized.fido2Mode === 'replay') {
+        rememberFido2ReplayMode(normalized.mode);
+        rememberInitialFido2Mode('replay', normalized.mode);
+      } else {
+        rememberFido2EvaluateMode(normalized.mode);
+        rememberInitialFido2Mode(normalized.mode);
+      }
+      if (global.Fido2Console) {
+        if (typeof global.Fido2Console.setEvaluateMode === 'function') {
+          global.Fido2Console.setEvaluateMode(
+              getLastFido2EvaluateMode(), { broadcast: false, force: true });
+        }
+        if (typeof global.Fido2Console.setReplayMode === 'function') {
+          global.Fido2Console.setReplayMode(
+              getLastFido2ReplayMode(), { broadcast: false, force: true });
+        }
+        if (typeof global.Fido2Console.setTab === 'function') {
+          global.Fido2Console.setTab(
+              normalized.fido2Mode === 'replay' ? 'replay' : 'evaluate',
+              { broadcast: false, force: true });
         }
       }
     }
@@ -490,36 +529,16 @@ protocolTabs.forEach(function (tab) {
     var protocol = params.get('protocol');
     var tab = params.get('tab');
     var mode = params.get('mode');
-    var totpTab = params.get('totpTab');
-    var totpMode = params.get('totpMode');
-    var totpReplayMode = params.get('totpReplayMode');
-    var fido2Mode = params.get('fido2Mode');
     if (!protocol && operatorConsoleRoot) {
       var attr = operatorConsoleRoot.getAttribute('data-active-protocol');
       if (attr && allowedProtocols.has(attr)) {
         protocol = attr;
       }
     }
-    if (!tab && allowedTotpTabs.has(totpTab)) {
-      tab = totpTab;
-    }
-    if (!mode && allowedTotpModes.has(totpMode)) {
-      mode = totpMode;
-    }
-    if (!mode && allowedTotpModes.has(totpReplayMode) && tab === 'replay') {
-      mode = totpReplayMode;
-    }
-    if (!mode && allowedFido2Modes.has(fido2Mode) && fido2Mode !== 'replay') {
-      mode = fido2Mode;
-    }
     return normalizeState({
       protocol: protocol,
       tab: tab,
       mode: mode,
-      totpTab: totpTab,
-      totpMode: totpMode,
-      totpReplayMode: totpReplayMode,
-      fido2Mode: fido2Mode,
     });
   }
 
@@ -603,6 +622,9 @@ protocolTabs.forEach(function (tab) {
       return;
     }
     rememberTotpMode(mode);
+    if (totpPanel) {
+      totpPanel.setAttribute('data-initial-evaluate-mode', mode);
+    }
     if (currentProtocol !== 'totp') {
       return;
     }
@@ -613,9 +635,6 @@ protocolTabs.forEach(function (tab) {
           protocol: 'totp',
           tab: 'evaluate',
           mode: mode,
-          totpTab: 'evaluate',
-          totpMode: mode,
-          totpReplayMode: getLastTotpReplayMode(),
         },
         { replace: Boolean(event.detail && event.detail.replace) });
   });
@@ -627,6 +646,9 @@ protocolTabs.forEach(function (tab) {
     }
     rememberTotpTab(tab);
     rememberTab('totp', tab);
+    if (totpPanel) {
+      totpPanel.setAttribute('data-initial-totp-tab', tab);
+    }
     if (currentProtocol !== 'totp') {
       return;
     }
@@ -637,9 +659,6 @@ protocolTabs.forEach(function (tab) {
           protocol: 'totp',
           tab: tab,
           mode: activeMode,
-          totpTab: tab,
-          totpMode: getLastTotpMode(),
-          totpReplayMode: getLastTotpReplayMode(),
         },
         { replace: Boolean(event.detail && event.detail.replace) });
   });
@@ -650,6 +669,9 @@ protocolTabs.forEach(function (tab) {
       return;
     }
     rememberTotpReplayMode(mode);
+    if (totpPanel) {
+      totpPanel.setAttribute('data-initial-replay-mode', mode);
+    }
     if (currentProtocol !== 'totp') {
       return;
     }
@@ -662,9 +684,6 @@ protocolTabs.forEach(function (tab) {
           protocol: 'totp',
           tab: activeTab,
           mode: activeTab === 'replay' ? mode : getLastTotpMode(),
-          totpTab: getLastTotpTab(),
-          totpMode: getLastTotpMode(),
-          totpReplayMode: mode,
         },
         { replace: Boolean(event.detail && event.detail.replace) });
   });
@@ -701,7 +720,9 @@ protocolTabs.forEach(function (tab) {
       var replayMode =
           global.HotpConsole && typeof global.HotpConsole.getReplayMode === 'function'
               ? global.HotpConsole.getReplayMode()
-              : global.__openauthHotpInitialReplayMode;
+              : (hotpPanel
+                     ? normalizeModeAttribute(hotpPanel.getAttribute('data-initial-replay-mode'))
+                     : null);
       if (allowedModes.has(replayMode)) {
         modeCandidate = replayMode;
       }
@@ -724,7 +745,9 @@ protocolTabs.forEach(function (tab) {
     if (!allowedModes.has(mode)) {
       return;
     }
-    global.__openauthHotpInitialReplayMode = mode;
+    if (hotpPanel) {
+      hotpPanel.setAttribute('data-initial-replay-mode', mode);
+    }
     if (currentProtocol !== 'hotp') {
       return;
     }
@@ -742,33 +765,85 @@ protocolTabs.forEach(function (tab) {
         { replace: Boolean(event.detail && event.detail.replace) });
   });
 
-  global.addEventListener('operator:fido2-mode-changed', function (event) {
-    var mode = event && event.detail ? event.detail.mode : null;
-    if (!allowedFido2Modes.has(mode)) {
-      return;
-    }
-    rememberFido2Mode(mode);
-    var tab = mode === 'replay' ? 'replay' : 'evaluate';
-    var activeMode = mode;
-    if (mode === 'replay') {
-      var replayMode =
-          global.Fido2Console && typeof global.Fido2Console.getReplayMode === 'function'
-              ? global.Fido2Console.getReplayMode()
-              : getLastMode('fido2');
-      activeMode = allowedModes.has(replayMode) ? replayMode : 'stored';
-    }
-    rememberInitialFido2Mode(mode, tab === 'replay' ? activeMode : undefined);
-    if (currentProtocol !== 'fido2') {
+  global.addEventListener('operator:fido2-tab-changed', function (event) {
+    var tab = event && event.detail ? event.detail.tab : null;
+    if (!allowedTabs.has(tab)) {
       return;
     }
     rememberTab('fido2', tab);
+    var activeMode = tab === 'replay' ? getLastFido2ReplayMode() : getLastFido2EvaluateMode();
+    if (tab === 'replay') {
+      rememberFido2Mode('replay');
+      rememberInitialFido2Mode('replay', activeMode);
+    } else {
+      rememberFido2Mode(activeMode);
+      rememberInitialFido2Mode(activeMode);
+    }
     rememberMode('fido2', activeMode);
+    if (currentProtocol !== 'fido2') {
+      return;
+    }
     pushUrlState(
         {
           protocol: 'fido2',
           tab: tab,
           mode: activeMode,
+          fido2Mode: tab === 'replay' ? 'replay' : activeMode,
+        },
+        { replace: Boolean(event.detail && event.detail.replace) });
+  });
+
+  global.addEventListener('operator:fido2-evaluate-mode-changed', function (event) {
+    var mode = event && event.detail ? event.detail.mode : null;
+    if (!allowedModes.has(mode)) {
+      return;
+    }
+    rememberFido2EvaluateMode(mode);
+    if (getLastTab('fido2') !== 'replay') {
+      rememberFido2Mode(mode);
+    }
+    if (currentProtocol !== 'fido2') {
+      rememberInitialFido2Mode(mode);
+      return;
+    }
+    rememberInitialFido2Mode(mode);
+    var activeTab = getLastTab('fido2');
+    if (activeTab !== 'evaluate') {
+      return;
+    }
+    rememberMode('fido2', mode);
+    pushUrlState(
+        {
+          protocol: 'fido2',
+          tab: 'evaluate',
+          mode: mode,
           fido2Mode: mode,
+        },
+        { replace: Boolean(event.detail && event.detail.replace) });
+  });
+
+  global.addEventListener('operator:fido2-replay-mode-changed', function (event) {
+    var mode = event && event.detail ? event.detail.mode : null;
+    if (!allowedModes.has(mode)) {
+      return;
+    }
+    rememberFido2ReplayMode(mode);
+    rememberInitialFido2Mode('replay', mode);
+    if (currentProtocol !== 'fido2') {
+      return;
+    }
+    var activeTab = getLastTab('fido2');
+    if (activeTab !== 'replay') {
+      return;
+    }
+    rememberFido2Mode('replay');
+    rememberMode('fido2', mode);
+    pushUrlState(
+        {
+          protocol: 'fido2',
+          tab: 'replay',
+          mode: mode,
+          fido2Mode: 'replay',
         },
         { replace: Boolean(event.detail && event.detail.replace) });
   });
@@ -822,6 +897,9 @@ protocolTabs.forEach(function (tab) {
           return;
         }
         rememberMode('hotp', nextMode);
+        if (hotpPanel) {
+          hotpPanel.setAttribute('data-initial-evaluate-mode', nextMode);
+        }
         if (currentProtocol === 'hotp' && getLastTab('hotp') === 'evaluate') {
           pushUrlState({ protocol: 'hotp', tab: 'evaluate', mode: nextMode }, { replace: true });
         }
@@ -857,13 +935,26 @@ protocolTabs.forEach(function (tab) {
       return allowedTotpModes.has(lastTotpMode) ? lastTotpMode : 'inline';
     }
     if (protocol === 'fido2') {
-      return allowedModes.has(lastProtocolModes[protocol])
-          ? lastProtocolModes[protocol]
-          : 'inline';
+      var fidoTab = lastProtocolTabs[protocol] || 'evaluate';
+      if (fidoTab === 'replay') {
+        return getLastFido2ReplayMode();
+      }
+      return getLastFido2EvaluateMode();
     }
     return allowedModes.has(lastProtocolModes[protocol])
         ? lastProtocolModes[protocol]
         : 'inline';
+  }
+
+  function normalizeModeAttribute(value) {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    var normalized = value.trim().toLowerCase();
+    if (allowedModes.has(normalized)) {
+      return normalized;
+    }
+    return null;
   }
 
   function rememberMode(protocol, mode) {
@@ -877,6 +968,15 @@ protocolTabs.forEach(function (tab) {
       } else {
         rememberTotpMode(mode);
       }
+      return;
+    }
+    if (protocol === 'fido2') {
+      if ((lastProtocolTabs[protocol] || 'evaluate') === 'replay') {
+        rememberFido2ReplayMode(mode);
+      } else {
+        rememberFido2EvaluateMode(mode);
+      }
+      return;
     }
   }
 
@@ -917,6 +1017,26 @@ protocolTabs.forEach(function (tab) {
   function rememberFido2Mode(mode) {
     if (allowedFido2Modes.has(mode)) {
       lastFido2Mode = mode;
+    }
+  }
+
+  function getLastFido2EvaluateMode() {
+    return allowedModes.has(lastFido2EvaluateMode) ? lastFido2EvaluateMode : 'inline';
+  }
+
+  function rememberFido2EvaluateMode(mode) {
+    if (allowedModes.has(mode)) {
+      lastFido2EvaluateMode = mode;
+    }
+  }
+
+  function getLastFido2ReplayMode() {
+    return allowedModes.has(lastFido2ReplayMode) ? lastFido2ReplayMode : 'inline';
+  }
+
+  function rememberFido2ReplayMode(mode) {
+    if (allowedModes.has(mode)) {
+      lastFido2ReplayMode = mode;
     }
   }
 })(window);

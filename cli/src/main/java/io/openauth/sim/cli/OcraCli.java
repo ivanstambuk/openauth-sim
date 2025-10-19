@@ -131,20 +131,12 @@ public final class OcraCli implements Callable<Integer> {
       String reasonCode,
       boolean sanitized,
       Map<String, String> fields) {
-    if (event.endsWith(".evaluate")) {
-      TelemetryFrame frame =
-          buildFrame(EVALUATION_TELEMETRY, status, reasonCode, sanitized, fields);
-      writeFrame(writer, event, frame);
-      return;
-    }
-    if (event.endsWith(".verify")) {
-      TelemetryFrame frame =
-          buildFrame(VERIFICATION_TELEMETRY, status, reasonCode, sanitized, fields);
-      writeFrame(writer, event, frame);
-      return;
-    }
+    TelemetryFrame frame = buildFrame(adapterFor(event), status, reasonCode, sanitized, fields);
+    writeFrame(writer, event, frame);
+  }
 
-    legacyEmit(writer, event, status, reasonCode, sanitized, fields);
+  private static OcraTelemetryAdapter adapterFor(String event) {
+    return event.endsWith(".verify") ? VERIFICATION_TELEMETRY : EVALUATION_TELEMETRY;
   }
 
   private static TelemetryFrame buildFrame(
@@ -167,13 +159,13 @@ public final class OcraCli implements Callable<Integer> {
     }
 
     String telemetryId = nextTelemetryId();
-    return switch (status) {
-      case "success" -> adapter.success(telemetryId, payload);
-      case "invalid" ->
-          adapter.validationFailure(telemetryId, reasonCode, message, sanitized, payload);
-      case "error" -> adapter.error(telemetryId, reasonCode, message, sanitized, payload);
-      default -> adapter.status(status, telemetryId, reasonCode, sanitized, message, payload);
-    };
+    if ("invalid".equals(status)) {
+      return adapter.validationFailure(telemetryId, reasonCode, message, sanitized, payload);
+    }
+    if ("error".equals(status)) {
+      return adapter.error(telemetryId, reasonCode, message, sanitized, payload);
+    }
+    return adapter.status(status, telemetryId, reasonCode, sanitized, message, payload);
   }
 
   private static void writeFrame(PrintWriter writer, String event, TelemetryFrame frame) {
@@ -203,29 +195,6 @@ public final class OcraCli implements Callable<Integer> {
               builder.append(' ').append(key).append('=').append(value);
             });
 
-    writer.println(builder);
-  }
-
-  private static void legacyEmit(
-      PrintWriter writer,
-      String event,
-      String status,
-      String reasonCode,
-      boolean sanitized,
-      Map<String, String> fields) {
-    StringBuilder builder =
-        new StringBuilder("event=").append(event).append(" status=").append(status).append(' ');
-    if (reasonCode != null && !reasonCode.isBlank()) {
-      builder.append("reasonCode=").append(reasonCode).append(' ');
-    }
-    builder.append("sanitized=").append(sanitized);
-    for (Map.Entry<String, String> entry : fields.entrySet()) {
-      String value = entry.getValue();
-      if (!hasText(value)) {
-        continue;
-      }
-      builder.append(' ').append(entry.getKey()).append('=').append(value.trim());
-    }
     writer.println(builder);
   }
 

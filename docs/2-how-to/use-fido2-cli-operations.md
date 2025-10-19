@@ -21,10 +21,10 @@ Stored mode relies on a credential that already lives in MapDB and a private key
    ```bash
    curl -s -X POST http://localhost:8080/api/v1/webauthn/credentials/seed | jq
    ```
-   The response enumerates which credential IDs were added (for example `generator-es256`).
-2. Invoke the CLI with a preset. The command below loads the curated challenge + private key for the credential named `generator-es256`, generates a signed `PublicKeyCredential`, prints it to stdout, and appends a sanitized telemetry line:
+   The response enumerates which credential IDs were added (for example `packed-es256`).
+2. Invoke the CLI with a preset. The command below loads the curated challenge + private key for the credential named `packed-es256`, generates a signed `PublicKeyCredential`, prints it to stdout, and appends a sanitized telemetry line:
    ```bash
-   ./gradlew --quiet :cli:run --args=$'fido2 evaluate --preset-id generator-es256'
+   ./gradlew --quiet :cli:run --args=$'fido2 evaluate --preset-id packed-es256'
    ```
    Output (truncated):
    ```json
@@ -45,12 +45,12 @@ Stored mode relies on a credential that already lives in MapDB and a private key
    }
    event=cli.fido2.evaluate status=success credentialSource=stored credentialReference=true algorithm=ES256 origin=https://example.org telemetryId=cli-fido2-64d6c5f9-…
    ```
-   The preset catalogue now covers every supported algorithm. Use `generator-es384`,
-   `generator-es512`, `generator-rs256`, `generator-ps256`, or `generator-eddsa` when you need RSA/PS or Ed25519 material; each preset ships with the matching private key JWK.
+   The preset catalogue now covers every supported algorithm. Use `packed-es384`,
+   `packed-es512`, `packed-rs256`, `synthetic-ps256-uv0_up1`, or `packed-ed25519` when you need RSA/PS or Ed25519 material; each preset ships with the matching private key JWK.
 3. To override any preset value, supply explicit options. For example:
    ```bash
    ./gradlew --quiet :cli:run --args=$'fido2 evaluate \
-     --preset-id generator-es256 \
+     --preset-id packed-es256 \
      --challenge $(printf stored-test | openssl base64 -A) \
      --private-key-file path/to/custom-es256-private.jwk'
    ```
@@ -61,7 +61,7 @@ Inline mode skips persistence—you provide the credential descriptor, challenge
 
 ```bash
 ./gradlew --quiet :cli:run --args=$'fido2 evaluate-inline \
-  --preset-id generator-es256 \
+  --preset-id packed-es256 \
   --credential-name inline-demo \
   --origin https://rp.example'
 ```

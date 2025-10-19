@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.openauth.sim.core.fido2.WebAuthnFixtures;
 import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
-import java.util.Locale;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -35,27 +34,38 @@ class WebAuthnGeneratorSamplesTest {
     assertFalse(algorithmsWithPrivateKeys.isEmpty(), "W3C fixtures should expose private keys");
 
     for (WebAuthnSignatureAlgorithm algorithm : algorithmsWithPrivateKeys) {
-      String presetKey = "generator-" + algorithm.label().toLowerCase(Locale.US);
       WebAuthnGeneratorSamples.Sample sample =
-          WebAuthnGeneratorSamples.findByKey(presetKey)
+          WebAuthnGeneratorSamples.samples().stream()
+              .filter(item -> item.algorithm() == algorithm)
+              .findFirst()
               .orElseThrow(() -> new AssertionError("Missing preset for " + algorithm));
+
       assertEquals(
           "w3c",
           sample.metadata().get("source"),
           () -> "Expected W3C source for algorithm " + algorithm);
+      assertEquals(
+          sample.metadata().get("fixtureId"),
+          sample.key(),
+          () -> "Preset key should mirror W3C fixture id for " + algorithm);
     }
   }
 
   @Test
   void syntheticVectorsFillGapsWhenSpecificationIsSilent() {
     WebAuthnGeneratorSamples.Sample ps256 =
-        WebAuthnGeneratorSamples.findByKey("generator-ps256")
+        WebAuthnGeneratorSamples.samples().stream()
+            .filter(sample -> sample.algorithm() == WebAuthnSignatureAlgorithm.PS256)
+            .findFirst()
             .orElseThrow(() -> new AssertionError("Missing PS256 preset"));
 
     assertEquals(
         "synthetic",
         ps256.metadata().get("source"),
         "PS256 should fall back to synthetic fixture bundle");
+    assertTrue(
+        ps256.key().startsWith("synthetic-"),
+        "Synthetic preset keys should retain the synthetic- prefix");
   }
 
   private static Predicate<WebAuthnFixture> hasPrivateKey() {

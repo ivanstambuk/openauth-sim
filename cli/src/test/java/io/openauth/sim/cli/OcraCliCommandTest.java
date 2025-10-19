@@ -1,5 +1,6 @@
 package io.openauth.sim.cli;
 
+import static io.openauth.sim.cli.TelemetryOutputAssertions.telemetryLine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -68,11 +69,12 @@ final class OcraCliCommandTest {
             STANDARD_KEY_20);
 
     assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
-    assertTrue(result.stdout().contains("event=cli.ocra.import"));
-    assertTrue(result.stdout().contains("status=success"));
-    assertTrue(result.stdout().contains("credentialId=cli-token"));
-    assertTrue(result.stdout().contains("suite=" + OCRA_SUITE_QN08));
-    assertTrue(result.stdout().contains("sanitized=true"));
+    Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.import");
+    assertEquals("success", telemetry.get("status"));
+    assertEquals("created", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
+    assertEquals("cli-token", telemetry.get("credentialId"));
+    assertEquals(OCRA_SUITE_QN08, telemetry.get("suite"));
     assertFalse(
         result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
 
@@ -89,11 +91,13 @@ final class OcraCliCommandTest {
     CliResult result = execute(databasePath, "list");
 
     assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
-    assertTrue(result.stdout().contains("event=cli.ocra.list"));
-    assertTrue(result.stdout().contains("status=success"));
+    Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.list");
+    assertEquals("success", telemetry.get("status"));
+    assertEquals("success", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
+    assertEquals("1", telemetry.get("count"));
     assertTrue(result.stdout().contains("credentialId=list-token"));
     assertTrue(result.stdout().contains("suite=" + OCRA_SUITE_QN08));
-    assertTrue(result.stdout().contains("sanitized=true"));
     assertFalse(
         result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
   }
@@ -106,10 +110,11 @@ final class OcraCliCommandTest {
     CliResult result = execute(databasePath, "delete", "--credential-id", "delete-token");
 
     assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
-    assertTrue(result.stdout().contains("event=cli.ocra.delete"));
-    assertTrue(result.stdout().contains("status=success"));
-    assertTrue(result.stdout().contains("credentialId=delete-token"));
-    assertTrue(result.stdout().contains("reasonCode=deleted"));
+    Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.delete");
+    assertEquals("success", telemetry.get("status"));
+    assertEquals("deleted", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
+    assertEquals("delete-token", telemetry.get("credentialId"));
     assertFalse(
         result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
 
@@ -125,9 +130,10 @@ final class OcraCliCommandTest {
     CliResult result = execute(databasePath, "delete", "--credential-id", "unknown-token");
 
     assertEquals(CommandLine.ExitCode.USAGE, result.exitCode());
-    assertTrue(result.stderr().contains("event=cli.ocra.delete"));
-    assertTrue(result.stderr().contains("reasonCode=credential_not_found"));
-    assertTrue(result.stderr().contains("sanitized=true"));
+    Map<String, String> telemetry = telemetryLine(result.stderr(), "cli.ocra.delete");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("credential_not_found", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
   }
 
   @Test
@@ -152,11 +158,12 @@ final class OcraCliCommandTest {
             CHALLENGE_ZERO);
 
     assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
-    assertTrue(result.stdout().contains("event=cli.ocra.evaluate"));
-    assertTrue(result.stdout().contains("status=success"));
-    assertTrue(result.stdout().contains("credentialId=evaluate-token"));
-    assertTrue(result.stdout().contains("otp=" + expectedOtp));
-    assertTrue(result.stdout().contains("reasonCode=success"));
+    Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.evaluate");
+    assertEquals("success", telemetry.get("status"));
+    assertEquals("success", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
+    assertEquals("evaluate-token", telemetry.get("credentialId"));
+    assertEquals(expectedOtp, telemetry.get("otp"));
     assertFalse(
         result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
   }
@@ -195,11 +202,11 @@ final class OcraCliCommandTest {
             CHALLENGE_ONE);
 
     assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
-    assertTrue(result.stdout().contains("event=cli.ocra.evaluate"));
-    assertTrue(result.stdout().contains("status=success"));
-    assertTrue(result.stdout().contains("otp=" + expectedOtp));
-    assertTrue(result.stdout().contains("reasonCode=success"));
-    assertTrue(result.stdout().contains("sanitized=true"));
+    Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.evaluate");
+    assertEquals("success", telemetry.get("status"));
+    assertEquals("success", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
+    assertEquals(expectedOtp, telemetry.get("otp"));
     assertFalse(
         result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
   }
@@ -213,8 +220,9 @@ final class OcraCliCommandTest {
     CliResult result = execute(databasePath, "list", "--verbose");
 
     assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
-    assertTrue(result.stdout().contains("event=cli.ocra.list"));
-    assertTrue(result.stdout().contains("count=1"));
+    Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.list");
+    assertEquals("success", telemetry.get("status"));
+    assertEquals("1", telemetry.get("count"));
     assertTrue(result.stdout().contains("metadata.source=cli-test"));
   }
 

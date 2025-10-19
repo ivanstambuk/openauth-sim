@@ -1,5 +1,6 @@
 package io.openauth.sim.cli;
 
+import static io.openauth.sim.cli.TelemetryOutputAssertions.telemetryLine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -111,10 +112,11 @@ class OcraCliTest {
 
     assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
     String output = harness.stdout() + harness.stderr();
-    assertTrue(output.contains("event=cli.ocra.verify"));
-    assertTrue(output.contains("status=match"));
-    assertTrue(output.contains("reasonCode=match"));
-    assertTrue(output.contains("credentialSource=stored"));
+    Map<String, String> telemetry = telemetryLine(output, "cli.ocra.verify");
+    assertEquals("match", telemetry.get("status"));
+    assertEquals("match", telemetry.get("reasonCode"));
+    assertEquals("stored", telemetry.get("credentialSource"));
+    assertEquals("true", telemetry.get("sanitized"));
 
     deleteRecursively(tempDir);
   }
@@ -155,10 +157,11 @@ class OcraCliTest {
 
     assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
     String output = harness.stdout() + harness.stderr();
-    assertTrue(output.contains("event=cli.ocra.verify"));
-    assertTrue(output.contains("status=match"));
-    assertTrue(output.contains("reasonCode=match"));
-    assertTrue(output.contains("credentialSource=inline"));
+    Map<String, String> telemetry = telemetryLine(output, "cli.ocra.verify");
+    assertEquals("match", telemetry.get("status"));
+    assertEquals("match", telemetry.get("reasonCode"));
+    assertEquals("inline", telemetry.get("credentialSource"));
+    assertEquals("true", telemetry.get("sanitized"));
   }
 
   @Test
@@ -212,10 +215,11 @@ class OcraCliTest {
             VERIFY_PIN_HASH_SHA1);
 
     assertEquals(2, exitCode, harness.stdout() + harness.stderr());
-    String output = harness.stdout() + harness.stderr();
-    assertTrue(output.contains("event=cli.ocra.verify"));
-    assertTrue(output.contains("status=mismatch"));
-    assertTrue(output.contains("reasonCode=strict_mismatch"));
+    Map<String, String> telemetry =
+        telemetryLine(harness.stdout() + harness.stderr(), "cli.ocra.verify");
+    assertEquals("mismatch", telemetry.get("status"));
+    assertEquals("strict_mismatch", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
 
     deleteRecursively(tempDir);
   }
@@ -253,10 +257,11 @@ class OcraCliTest {
             expectedOtp);
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    String output = harness.stdout() + harness.stderr();
-    assertTrue(output.contains("event=cli.ocra.verify"));
-    assertTrue(output.contains("reasonCode=challenge_required"));
-    assertTrue(output.toLowerCase(Locale.ROOT).contains("challenge"));
+    Map<String, String> telemetry =
+        telemetryLine(harness.stdout() + harness.stderr(), "cli.ocra.verify");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("challenge_required", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
   }
 
   @Test
@@ -268,9 +273,10 @@ class OcraCliTest {
         harness.execute("verify", "--suite", DEFAULT_SUITE, "--secret", DEFAULT_SECRET_HEX);
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stdout() + harness.stderr());
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("event=cli.ocra.verify"));
-    assertTrue(stderr.contains("reasonCode=otp_missing"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.verify");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("otp_missing", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
   }
 
   @Test
@@ -293,8 +299,9 @@ class OcraCliTest {
             "12345678");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=credential_conflict"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.verify");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("credential_conflict", telemetry.get("reasonCode"));
   }
 
   @Test
@@ -317,9 +324,9 @@ class OcraCliTest {
             "12345678");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stdout() + harness.stderr());
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("event=cli.ocra.verify"));
-    assertTrue(stderr.contains("reasonCode=credential_not_found"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.verify");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("credential_not_found", telemetry.get("reasonCode"));
 
     deleteRecursively(tempDir);
   }
@@ -332,8 +339,9 @@ class OcraCliTest {
     int exitCode = harness.execute("verify", "--otp", "123456");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stdout() + harness.stderr());
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=credential_missing"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.verify");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("credential_missing", telemetry.get("reasonCode"));
   }
 
   @Test
@@ -354,10 +362,11 @@ class OcraCliTest {
             "12345678");
 
     assertEquals(2, exitCode, harness.stdout() + harness.stderr());
-    String output = harness.stdout() + harness.stderr();
-    assertTrue(output.contains("credentialSource=inline"));
-    assertTrue(output.contains("status=mismatch"));
-    assertTrue(output.contains("reasonCode=strict_mismatch"));
+    Map<String, String> telemetry =
+        telemetryLine(harness.stdout() + harness.stderr(), "cli.ocra.verify");
+    assertEquals("mismatch", telemetry.get("status"));
+    assertEquals("inline", telemetry.get("credentialSource"));
+    assertEquals("strict_mismatch", telemetry.get("reasonCode"));
   }
 
   @Test
@@ -382,8 +391,9 @@ class OcraCliTest {
             "0");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stdout() + harness.stderr());
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=challenge_required"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.verify");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("challenge_required", telemetry.get("reasonCode"));
 
     deleteRecursively(tempDir);
   }
@@ -398,8 +408,9 @@ class OcraCliTest {
             "verify", "--secret", DEFAULT_SECRET_HEX, "--otp", "123456", "--challenge", "12345678");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stdout() + harness.stderr());
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=suite_missing"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.verify");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("suite_missing", telemetry.get("reasonCode"));
   }
 
   @Test
@@ -420,8 +431,9 @@ class OcraCliTest {
             "12345678");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stdout() + harness.stderr());
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=validation_error"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.verify");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("validation_error", telemetry.get("reasonCode"));
   }
 
   @Test
@@ -444,8 +456,9 @@ class OcraCliTest {
             "00FF");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stdout() + harness.stderr());
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=validation_error"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.verify");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("validation_error", telemetry.get("reasonCode"));
   }
 
   @Test
@@ -466,8 +479,9 @@ class OcraCliTest {
             "12345678");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stdout() + harness.stderr());
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=validation_error"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.verify");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("validation_error", telemetry.get("reasonCode"));
   }
 
   @Test
@@ -483,8 +497,9 @@ class OcraCliTest {
             "verify", "--credential-id", "alpha", "--otp", "123456", "--challenge", "12345678");
 
     assertEquals(CommandLine.ExitCode.SOFTWARE, exitCode);
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=unexpected_error"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.verify");
+    assertEquals("error", telemetry.get("status"));
+    assertEquals("unexpected_error", telemetry.get("reasonCode"));
 
     Files.deleteIfExists(conflictingFile);
   }
@@ -550,9 +565,10 @@ class OcraCliTest {
             "12345678");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=credential_conflict"));
-    assertTrue(stderr.contains("sanitized=true"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.evaluate");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("credential_conflict", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
   }
 
   @Test
@@ -564,9 +580,10 @@ class OcraCliTest {
         harness.execute("evaluate", "--secret", DEFAULT_SECRET_HEX, "--challenge", "12345678");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("reasonCode=suite_missing"));
-    assertTrue(stderr.contains("suite is required for inline mode"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.evaluate");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("suite_missing", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
   }
 
   @Test
@@ -585,9 +602,11 @@ class OcraCliTest {
             "1234");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    String output = harness.stdout() + harness.stderr();
-    assertTrue(output.contains("reasonCode=challenge_length"));
-    assertTrue(output.contains("challengeQuestion must contain"));
+    Map<String, String> telemetry =
+        telemetryLine(harness.stdout() + harness.stderr(), "cli.ocra.evaluate");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("challenge_length", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
   }
 
   @Test
@@ -629,7 +648,10 @@ class OcraCliTest {
 
     assertEquals(expectedOtp, otp);
     assertTrue(stdout.contains("mode=inline"));
-    assertTrue(stdout.contains("reasonCode=success"));
+    Map<String, String> telemetry = telemetryLine(stdout, "cli.ocra.evaluate");
+    assertEquals("success", telemetry.get("status"));
+    assertEquals("success", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
   }
 
   @Test
@@ -653,7 +675,10 @@ class OcraCliTest {
     assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
     String stdout = harness.stdout();
     assertTrue(stdout.contains("credentialId=alpha"));
-    assertTrue(stdout.contains("reasonCode=success"));
+    Map<String, String> telemetry = telemetryLine(stdout, "cli.ocra.evaluate");
+    assertEquals("success", telemetry.get("status"));
+    assertEquals("success", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
 
     deleteRecursively(tempDir);
   }
@@ -759,7 +784,10 @@ class OcraCliTest {
             "gamma");
 
     assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
-    assertTrue(harness.stdout().contains("reasonCode=deleted"));
+    Map<String, String> telemetry = telemetryLine(harness.stdout(), "cli.ocra.delete");
+    assertEquals("success", telemetry.get("status"));
+    assertEquals("deleted", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
 
     // Confirm list no longer returns credential
     CommandHarness listHarness = CommandHarness.create();
@@ -786,10 +814,10 @@ class OcraCliTest {
             "missing");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    String stderr = harness.stderr();
-    assertTrue(stderr.contains("event=cli.ocra.delete"));
-    assertTrue(stderr.contains("reasonCode=credential_not_found"));
-    assertTrue(stderr.contains("status=invalid"));
+    Map<String, String> telemetry = telemetryLine(harness.stderr(), "cli.ocra.delete");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("credential_not_found", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
 
     deleteRecursively(tempDir);
   }
@@ -810,10 +838,11 @@ class OcraCliTest {
     int exitCode = commandLine.execute("delete", "--credential-id", "invalid");
 
     assertEquals(CommandLine.ExitCode.USAGE, exitCode);
-    String err = stderr.toString(StandardCharsets.UTF_8);
-    assertTrue(err.contains("event=cli.ocra.delete"));
-    assertTrue(err.contains("reasonCode=validation_error"));
-    assertTrue(err.contains("sanitized=true"));
+    Map<String, String> telemetry =
+        telemetryLine(stderr.toString(StandardCharsets.UTF_8), "cli.ocra.delete");
+    assertEquals("invalid", telemetry.get("status"));
+    assertEquals("validation_error", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
   }
 
   @Test
@@ -835,10 +864,10 @@ class OcraCliTest {
     int exitCode = commandLine.execute("delete", "--credential-id", "gamma");
 
     assertEquals(CommandLine.ExitCode.SOFTWARE, exitCode);
-    String err = stderr.toString(StandardCharsets.UTF_8);
-    assertTrue(err.contains("event=cli.ocra.delete"));
-    assertTrue(err.contains("status=error"));
-    assertTrue(err.contains("reasonCode=unexpected_error"));
+    Map<String, String> telemetry =
+        telemetryLine(stderr.toString(StandardCharsets.UTF_8), "cli.ocra.delete");
+    assertEquals("error", telemetry.get("status"));
+    assertEquals("unexpected_error", telemetry.get("reasonCode"));
 
     Files.deleteIfExists(tempFile);
   }
@@ -853,13 +882,13 @@ class OcraCliTest {
     cli.emit(
         writer, "cli.ocra.test", "success", null, true, Map.of("field", "value", "blank", "   "));
 
-    String output = buffer.toString(StandardCharsets.UTF_8);
-    assertTrue(output.contains("event=cli.ocra.test"));
-    assertTrue(output.contains("status=success"));
-    assertTrue(output.contains("sanitized=true"));
-    assertTrue(output.contains("field=value"));
-    assertFalse(output.contains("blank="));
-    assertFalse(output.contains("reasonCode="));
+    Map<String, String> telemetry =
+        telemetryLine(buffer.toString(StandardCharsets.UTF_8), "cli.ocra.test");
+    assertEquals("success", telemetry.get("status"));
+    assertEquals("unspecified", telemetry.get("reasonCode"));
+    assertEquals("true", telemetry.get("sanitized"));
+    assertEquals("value", telemetry.get("field"));
+    assertFalse(telemetry.containsKey("blank"));
   }
 
   private static String extractField(String output, String field) {
