@@ -28,3 +28,11 @@ _Last updated:_ 2025-10-18
 ☑ **T2806 – Quality gate**  
   ☑ Execute `./gradlew --no-daemon spotlessApply check`.  
   ☑ Note residual warnings, if any, for follow-up in the roadmap.
+
+☑ **T2807 – WebAuthn assertion DTO extraction**  
+  ☑ Move `WebAuthnAssertionResponse` into its own `rest-api` source file and adjust usages to match the public `WebAuthnGeneratedAssertion` contract.  
+  ☑ Run `./gradlew --no-daemon --no-configuration-cache :rest-api:compileJava` (after `clean`) to confirm the auxiliary-class warning is resolved.
+
+☑ **T2808 – SpotBugs annotation export**  
+  ☑ Promote `spotbugs-annotations` to the application module’s exported compile classpath (`compileOnlyApi`) and refresh dependency locks via targeted `--write-locks` runs.  
+  ☑ Execute `./gradlew --no-daemon --no-configuration-cache :application:compileJava`, `./gradlew --no-daemon --write-locks :application:compileJava :application:compileTestJava :application:pmdTest`, `./gradlew --no-daemon --write-locks :rest-api:compileJava :rest-api:compileTestJava :cli:compileJava :cli:compileTestJava :ui:compileJava :ui:compileTestJava`, and finish with `./gradlew --no-daemon --write-locks spotlessApply check` (followed by a non-locking re-run) to ensure downstream warnings are clear.

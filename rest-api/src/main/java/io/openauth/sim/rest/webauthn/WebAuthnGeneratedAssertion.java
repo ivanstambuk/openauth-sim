@@ -11,10 +11,3 @@ record WebAuthnGeneratedAssertion(
     @JsonProperty("response") WebAuthnAssertionResponse response) {
   // DTO marker
 }
-
-record WebAuthnAssertionResponse(
-    @JsonProperty("clientDataJSON") String clientDataJson,
-    @JsonProperty("authenticatorData") String authenticatorData,
-    @JsonProperty("signature") String signature) {
-  // DTO marker
-}

@@ -47,6 +47,11 @@ Eliminate the IDE diagnostics reported on 2025-10-18 by strengthening assertions
    - Update knowledge artefacts if additional follow-ups emerge.  
    - _2025-10-18 – Completed: full `spotlessApply check` now passes after topping up TOTP REST coverage (`:core:test`, `:application:test`, `:cli:test`, `:rest-api:test`, and the aggregated jacoco verification all green`)._
 
+7. **I7 – WebAuthn DTO + SpotBugs annotation export**  
+   - Extract `WebAuthnAssertionResponse` into its own source file to clear auxiliary-class warnings while keeping the DTO public.  
+   - Promote `spotbugs-annotations` to the application module’s exported compile classpath so downstream modules resolve `@SuppressFBWarnings`.  
+   - _2025-10-19 – Completed: DTO extracted to `WebAuthnAssertionResponse.java`, Gradle locks refreshed via targeted `--write-locks` runs, and full `./gradlew --no-daemon --write-locks spotlessApply check` + follow-up run confirmed warnings eliminated._
+
 ## Dependencies
 - Application, core, CLI, and REST modules share telemetry and verification helpers; assertions must respect existing contracts.
 - Selenium tests rely on deterministic UI IDs; ensure selectors remain stable when adding assertions.

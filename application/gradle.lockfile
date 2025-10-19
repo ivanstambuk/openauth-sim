@@ -4,14 +4,14 @@
 com.github.ben-manes.caffeine:caffeine:3.2.2=annotationProcessor,mainPmdAuxClasspath,testAnnotationProcessor,testPmdAuxClasspath,testRuntimeClasspath
 com.github.kevinstern:software-and-algorithms:1.0=annotationProcessor,testAnnotationProcessor
 com.github.oowekyala.ooxml:nice-xml-messages:3.1=pmd
-com.github.spotbugs:spotbugs-annotations:4.8.3=compileClasspath,mainPmdAuxClasspath
+com.github.spotbugs:spotbugs-annotations:4.8.3=compileClasspath,mainPmdAuxClasspath,testCompileClasspath,testPmdAuxClasspath
 com.github.spotbugs:spotbugs-annotations:4.9.6=spotbugs
 com.github.spotbugs:spotbugs:4.9.6=spotbugs
 com.github.stephenc.jcip:jcip-annotations:1.0-1=spotbugs
 com.google.auto.service:auto-service-annotations:1.0.1=annotationProcessor,testAnnotationProcessor
 com.google.auto.value:auto-value-annotations:1.9=annotationProcessor,testAnnotationProcessor
 com.google.auto:auto-common:1.2.2=annotationProcessor,testAnnotationProcessor
-com.google.code.findbugs:jsr305:3.0.2=annotationProcessor,checkstyle,compileClasspath,mainPmdAuxClasspath,spotbugs,testAnnotationProcessor,testPmdAuxClasspath,testRuntimeClasspath
+com.google.code.findbugs:jsr305:3.0.2=annotationProcessor,checkstyle,compileClasspath,mainPmdAuxClasspath,spotbugs,testAnnotationProcessor,testCompileClasspath,testPmdAuxClasspath,testRuntimeClasspath
 com.google.code.gson:gson:2.13.1=pmd
 com.google.code.gson:gson:2.13.2=spotbugs
 com.google.errorprone:error_prone_annotation:2.42.0=annotationProcessor,testAnnotationProcessor
