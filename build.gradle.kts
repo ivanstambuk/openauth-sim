@@ -155,7 +155,7 @@ subprojects {
             "org.codehaus.plexus:plexus-utils:4.0.2",
             "org.apache.commons:commons-lang3:3.19.0",
             "org.apache.httpcomponents:httpcore:4.4.16",
-            "org.slf4j:slf4j-api:2.0.13",
+            "org.slf4j:slf4j-api:2.0.17",
             "commons-codec:commons-codec:1.19.0",
             "com.palantir.javaformat:palantir-java-format:${libsCatalog.version("palantirJavaFormat")}",
             "com.github.ben-manes.caffeine:caffeine:${libsCatalog.version("caffeine")}",
