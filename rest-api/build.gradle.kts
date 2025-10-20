@@ -37,6 +37,6 @@ dependencies {
     }
 
     constraints {
-        implementation("com.github.spotbugs:spotbugs-annotations:4.8.3")
+        implementation("com.github.spotbugs:spotbugs-annotations:4.9.8")
     }
 }
