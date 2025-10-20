@@ -562,6 +562,44 @@ final class Fido2OperatorUiSeleniumTest {
     }
 
     @Test
+    @DisplayName("Attestation preset auto-switches to manual mode when overrides are applied")
+    void attestationPresetAutoSwitchesToManualWhenOverridesApplied() {
+        WebAuthnAttestationVector vector = resolveAttestationVector();
+
+        navigateToWebAuthnPanel();
+        switchToAttestationEvaluateMode();
+
+        waitForOption(By.id("fido2AttestationSampleSelect"), vector.vectorId());
+        WebElement sampleSelectElement = waitFor(By.id("fido2AttestationSampleSelect"));
+        Select sampleSelect = new Select(sampleSelectElement);
+        sampleSelect.selectByValue(vector.vectorId());
+        dispatchChange(sampleSelectElement);
+
+        By indicatorSelector = By.cssSelector("[data-testid='fido2-attestation-mode-indicator']");
+        waitUntilAttribute(indicatorSelector, "data-mode", "preset");
+        WebElement indicator = waitFor(indicatorSelector);
+        assertThat(indicator.getText()).contains("Preset vector").contains(vector.vectorId());
+
+        awaitValue(By.id("fido2AttestationChallenge"), value -> value != null && !value.isBlank());
+        WebElement challengeField = waitFor(By.id("fido2AttestationChallenge"));
+        String originalChallenge = challengeField.getAttribute("value");
+        String manualChallenge = originalChallenge + "AA";
+        setInputValue(challengeField, manualChallenge);
+
+        waitUntilAttribute(indicatorSelector, "data-mode", "manual");
+        indicator = waitFor(indicatorSelector);
+        assertThat(indicator.getText())
+                .contains("Manual mode")
+                .contains(vector.vectorId())
+                .contains("Challenge");
+
+        setInputValue(challengeField, originalChallenge);
+        waitUntilAttribute(indicatorSelector, "data-mode", "preset");
+        indicator = waitFor(indicatorSelector);
+        assertThat(indicator.getText()).contains("Preset vector").contains(vector.vectorId());
+    }
+
+    @Test
     @DisplayName("Inline WebAuthn generation renders a PublicKeyCredential payload")
     void inlineGenerationDisplaysGeneratedAssertion() {
         navigateToWebAuthnPanel();
@@ -1427,6 +1465,16 @@ final class Fido2OperatorUiSeleniumTest {
                 .executeScript(
                         "var event = new Event('change', { bubbles: true }); arguments[0].dispatchEvent(event);",
                         element);
+    }
+
+    private void setInputValue(WebElement element, String value) {
+        ((JavascriptExecutor) driver)
+                .executeScript(
+                        "arguments[0].value = arguments[1];"
+                                + "var event = new Event('input', { bubbles: true });"
+                                + "arguments[0].dispatchEvent(event);",
+                        element,
+                        value);
     }
 
     private void waitUntilAttribute(By selector, String attribute, String expectedValue) {

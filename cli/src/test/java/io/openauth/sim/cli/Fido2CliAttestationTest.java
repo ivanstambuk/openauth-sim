@@ -160,6 +160,251 @@ final class Fido2CliAttestationTest {
     }
 
     @Test
+    void attestManualGeneratesSelfSignedAttestation() throws Exception {
+        WebAuthnAttestationVector vector = attestationVector();
+        CommandHarness harness = CommandHarness.create(tempDir.resolve("fido2-attest.db"));
+
+        int exitCode = harness.execute(
+                "attest",
+                "--input-source",
+                "manual",
+                "--format",
+                vector.format().label(),
+                "--relying-party-id",
+                vector.relyingPartyId(),
+                "--origin",
+                vector.origin(),
+                "--challenge",
+                encode(vector.registration().challenge()),
+                "--credential-private-key",
+                vector.keyMaterial().credentialPrivateKeyJwk(),
+                "--attestation-private-key",
+                vector.keyMaterial().attestationPrivateKeyJwk(),
+                "--attestation-serial",
+                vector.keyMaterial().attestationCertificateSerialBase64Url(),
+                "--signing-mode",
+                "self-signed");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("Generated attestation"), stdout);
+        assertTrue(stdout.contains("inputSource=manual"), stdout);
+        assertTrue(stdout.contains("generationMode=self_signed"), stdout);
+    }
+
+    @Test
+    void attestManualRejectsMissingCredentialKey() throws Exception {
+        WebAuthnAttestationVector vector = attestationVector();
+        CommandHarness harness = CommandHarness.create(tempDir.resolve("fido2-attest.db"));
+
+        int exitCode = harness.execute(
+                "attest",
+                "--input-source",
+                "manual",
+                "--format",
+                vector.format().label(),
+                "--relying-party-id",
+                vector.relyingPartyId(),
+                "--origin",
+                vector.origin(),
+                "--challenge",
+                encode(vector.registration().challenge()),
+                "--signing-mode",
+                "unsigned");
+
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stderr());
+        String stderr = harness.stderr();
+        assertTrue(stderr.contains("reasonCode=credential_private_key_required"), stderr);
+    }
+
+    @Test
+    void attestManualUnsignedOmitsAttestationKeyAndSerial() throws Exception {
+        WebAuthnAttestationVector vector = attestationVector();
+        CommandHarness harness = CommandHarness.create(tempDir.resolve("fido2-attest.db"));
+
+        int exitCode = harness.execute(
+                "attest",
+                "--input-source",
+                "manual",
+                "--format",
+                vector.format().label(),
+                "--relying-party-id",
+                vector.relyingPartyId(),
+                "--origin",
+                vector.origin(),
+                "--challenge",
+                encode(vector.registration().challenge()),
+                "--credential-private-key",
+                vector.keyMaterial().credentialPrivateKeyJwk(),
+                "--signing-mode",
+                "unsigned");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("inputSource=manual"), stdout);
+        assertTrue(stdout.contains("generationMode=unsigned"), stdout);
+        assertTrue(stdout.contains("signatureIncluded=false"), stdout);
+    }
+
+    @Test
+    void attestManualRequiresAttestationKeyForSignedMode() throws Exception {
+        WebAuthnAttestationVector vector = attestationVector();
+        CommandHarness harness = CommandHarness.create(tempDir.resolve("fido2-attest.db"));
+
+        int exitCode = harness.execute(
+                "attest",
+                "--input-source",
+                "manual",
+                "--format",
+                vector.format().label(),
+                "--relying-party-id",
+                vector.relyingPartyId(),
+                "--origin",
+                vector.origin(),
+                "--challenge",
+                encode(vector.registration().challenge()),
+                "--credential-private-key",
+                vector.keyMaterial().credentialPrivateKeyJwk(),
+                "--signing-mode",
+                "self-signed");
+
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stderr());
+        String stderr = harness.stderr();
+        assertTrue(stderr.contains("reasonCode=attestation_private_key_required"), stderr);
+    }
+
+    @Test
+    void attestManualRequiresCustomRootCertificates() throws Exception {
+        WebAuthnAttestationVector vector = attestationVector();
+        CommandHarness harness = CommandHarness.create(tempDir.resolve("fido2-attest.db"));
+
+        int exitCode = harness.execute(
+                "attest",
+                "--input-source",
+                "manual",
+                "--format",
+                vector.format().label(),
+                "--relying-party-id",
+                vector.relyingPartyId(),
+                "--origin",
+                vector.origin(),
+                "--challenge",
+                encode(vector.registration().challenge()),
+                "--credential-private-key",
+                vector.keyMaterial().credentialPrivateKeyJwk(),
+                "--attestation-private-key",
+                vector.keyMaterial().attestationPrivateKeyJwk(),
+                "--attestation-serial",
+                vector.keyMaterial().attestationCertificateSerialBase64Url(),
+                "--signing-mode",
+                "custom-root");
+
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stderr());
+        String stderr = harness.stderr();
+        assertTrue(stderr.contains("reasonCode=custom_root_required"), stderr);
+    }
+
+    @Test
+    void attestManualIncludesOverridesTelemetry() throws Exception {
+        WebAuthnAttestationVector vector = attestationVector();
+        CommandHarness harness = CommandHarness.create(tempDir.resolve("fido2-attest.db"));
+
+        int exitCode = harness.execute(
+                "attest",
+                "--input-source",
+                "manual",
+                "--format",
+                vector.format().label(),
+                "--relying-party-id",
+                vector.relyingPartyId(),
+                "--origin",
+                vector.origin(),
+                "--challenge",
+                encode(vector.registration().challenge()),
+                "--credential-private-key",
+                vector.keyMaterial().credentialPrivateKeyJwk(),
+                "--attestation-private-key",
+                vector.keyMaterial().attestationPrivateKeyJwk(),
+                "--attestation-serial",
+                vector.keyMaterial().attestationCertificateSerialBase64Url(),
+                "--signing-mode",
+                "self-signed",
+                "--seed-preset-id",
+                vector.vectorId(),
+                "--override",
+                "challenge",
+                "--override",
+                "credentialPrivateKey");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("seedPresetId=" + vector.vectorId()), stdout);
+        assertTrue(stdout.contains("overrides=[challenge, credentialPrivateKey]"), stdout);
+    }
+
+    @Test
+    void attestManualRejectsAttestationId() throws Exception {
+        WebAuthnAttestationVector vector = attestationVector();
+        CommandHarness harness = CommandHarness.create(tempDir.resolve("fido2-attest.db"));
+
+        int exitCode = harness.execute(
+                "attest",
+                "--input-source",
+                "manual",
+                "--format",
+                vector.format().label(),
+                "--attestation-id",
+                vector.vectorId(),
+                "--relying-party-id",
+                vector.relyingPartyId(),
+                "--origin",
+                vector.origin(),
+                "--challenge",
+                encode(vector.registration().challenge()),
+                "--credential-private-key",
+                vector.keyMaterial().credentialPrivateKeyJwk(),
+                "--signing-mode",
+                "unsigned");
+
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stderr());
+        String stderr = harness.stderr();
+        assertTrue(stderr.contains("reasonCode=attestation_id_not_applicable"), stderr);
+    }
+
+    @Test
+    void attestRejectsUnsupportedInputSource() throws Exception {
+        WebAuthnAttestationVector vector = attestationVector();
+        CommandHarness harness = CommandHarness.create(tempDir.resolve("fido2-attest.db"));
+
+        int exitCode = harness.execute(
+                "attest",
+                "--input-source",
+                "invalid-source",
+                "--format",
+                vector.format().label(),
+                "--attestation-id",
+                vector.vectorId(),
+                "--relying-party-id",
+                vector.relyingPartyId(),
+                "--origin",
+                vector.origin(),
+                "--challenge",
+                encode(vector.registration().challenge()),
+                "--credential-private-key",
+                vector.keyMaterial().credentialPrivateKeyJwk(),
+                "--attestation-private-key",
+                vector.keyMaterial().attestationPrivateKeyJwk(),
+                "--attestation-serial",
+                vector.keyMaterial().attestationCertificateSerialBase64Url(),
+                "--signing-mode",
+                "self-signed");
+
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stderr());
+        String stderr = harness.stderr();
+        assertTrue(stderr.contains("reasonCode=input_source_invalid"), stderr);
+    }
+
+    @Test
     void attestRejectsLegacyBase64PrivateKeys() throws Exception {
         WebAuthnAttestationVector vector = attestationVector();
         CommandHarness harness = CommandHarness.create(tempDir.resolve("fido2-attest.db"));

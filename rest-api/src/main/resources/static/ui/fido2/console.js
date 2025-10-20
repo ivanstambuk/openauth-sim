@@ -234,6 +234,19 @@
       panel.querySelector('#fido2AttestationSigningMode');
   var attestationCustomRootField =
       panel.querySelector('#fido2AttestationCustomRoot');
+  var attestationModeIndicator =
+      panel.querySelector('[data-testid="fido2-attestation-mode-indicator"]');
+  var attestationOverrideLabels = {
+    challenge: 'Challenge',
+    relyingPartyId: 'Relying party ID',
+    origin: 'Origin',
+    credentialPrivateKey: 'Credential private key',
+    attestationPrivateKey: 'Attestation private key',
+    attestationCertificateSerial: 'Certificate serial',
+    format: 'Attestation format',
+    signingMode: 'Signing mode',
+    customRootCertificates: 'Custom root certificates',
+  };
   var attestationSubmitButton =
       panel.querySelector('[data-testid="fido2-attestation-submit"]');
   var attestationResultPanel =
@@ -286,6 +299,7 @@
   refreshStoredCredentials();
   initializeInlineCounter();
   initializeStoredCounter();
+  initializeAttestationModeIndicator();
 
   var currentCeremony = CEREMONY_ASSERTION;
   var currentTab = TAB_EVALUATE;
@@ -409,6 +423,7 @@
   if (attestationSampleSelect) {
     attestationSampleSelect.addEventListener('change', function () {
       applyAttestationSample(attestationSampleSelect.value);
+      refreshAttestationModeIndicator();
     });
   }
   if (attestationCustomRootField && attestationSigningModeSelect) {
@@ -419,7 +434,11 @@
       } else if (attestationSigningModeSelect.value === 'CUSTOM_ROOT') {
         attestationSigningModeSelect.value = 'SELF_SIGNED';
       }
+      refreshAttestationModeIndicator();
     });
+  }
+  if (attestationSigningModeSelect) {
+    attestationSigningModeSelect.addEventListener('change', refreshAttestationModeIndicator);
   }
   if (replayInlineSampleSelect) {
     replayInlineSampleSelect.addEventListener('change', function () {
@@ -569,10 +588,10 @@
     var inputAttestationKey = elementValue(attestationPrivateKeyField);
     var inputSerial = elementValue(attestationSerialField);
     var inputSigningMode = elementValue(attestationSigningModeSelect);
-    var inputCustomRoots = extractCustomRootCertificates(
-        elementValue(attestationCustomRootField));
+    var customRootRaw = elementValue(attestationCustomRootField);
+    var inputCustomRoots = extractCustomRootCertificates(customRootRaw);
 
-    var sourceInfo = resolveAttestationInputSource(seedPresetId, {
+    var snapshot = {
       format: inputFormat,
       relyingPartyId: inputRpId,
       origin: inputOrigin,
@@ -580,7 +599,11 @@
       credentialPrivateKey: inputCredentialKey,
       attestationPrivateKey: inputAttestationKey,
       attestationCertificateSerial: inputSerial,
-    });
+      signingMode: inputSigningMode,
+      customRootCertificates: customRootRaw,
+    };
+
+    var sourceInfo = resolveAttestationInputSource(seedPresetId, snapshot);
 
     var payload = {
       inputSource: sourceInfo.inputSource,
@@ -624,6 +647,9 @@
     }
     // Compare fields to detect overrides.
     var diffs = [];
+    if (safeTrim(current.format) !== safeTrim(vector.format)) {
+      diffs.push('format');
+    }
     if (safeTrim(current.challengeBase64Url) !== safeTrim(vector.challengeBase64Url)) {
       diffs.push('challenge');
     }
@@ -642,8 +668,20 @@
     if (safeTrim(current.attestationCertificateSerial) !== safeTrim(vector.attestationCertificateSerial)) {
       diffs.push('attestationCertificateSerial');
     }
+    var normalizedSigningMode = normalizeSigningMode(current.signingMode);
+    var vectorSigningMode = normalizeSigningMode(vector.signingMode || 'SELF_SIGNED');
+    if (normalizedSigningMode !== vectorSigningMode) {
+      diffs.push('signingMode');
+    }
+    var currentCustomRoots = safeTrim(current.customRootCertificates);
+    var vectorCustomRoots = safeTrim(vector.customRootCertificates);
+    if (currentCustomRoots !== vectorCustomRoots) {
+      if (currentCustomRoots || vectorCustomRoots) {
+        diffs.push('customRootCertificates');
+      }
+    }
     if (diffs.length === 0) {
-      return { inputSource: 'PRESET' };
+      return { inputSource: 'PRESET', seedPresetId: seedId };
     }
     result.seedPresetId = seedId;
     result.overrides = diffs;
@@ -652,6 +690,97 @@
 
   function safeTrim(value) {
     return typeof value === 'string' ? value.trim() : '';
+  }
+
+  function normalizeSigningMode(value) {
+    var normalized = safeTrim(value);
+    if (!normalized) {
+      return 'SELF_SIGNED';
+    }
+    return normalized.toUpperCase().replace(/-/g, '_');
+  }
+
+  function collectAttestationSnapshot() {
+    return {
+      format: elementValue(attestationFormatSelect),
+      relyingPartyId: elementValue(attestationRpInput),
+      origin: elementValue(attestationOriginInput),
+      challengeBase64Url: elementValue(attestationChallengeField),
+      credentialPrivateKey: elementValue(attestationCredentialKeyField),
+      attestationPrivateKey: elementValue(attestationPrivateKeyField),
+      attestationCertificateSerial: elementValue(attestationSerialField),
+      signingMode: elementValue(attestationSigningModeSelect),
+      customRootCertificates: elementValue(attestationCustomRootField),
+    };
+  }
+
+  function refreshAttestationModeIndicator() {
+    if (!attestationModeIndicator) {
+      return;
+    }
+    var snapshot = collectAttestationSnapshot();
+    var sourceInfo =
+        resolveAttestationInputSource(elementValue(attestationIdInput), snapshot);
+    renderAttestationModeIndicator(sourceInfo);
+  }
+
+  function renderAttestationModeIndicator(sourceInfo) {
+    if (!attestationModeIndicator) {
+      return;
+    }
+    var info = sourceInfo || { inputSource: 'MANUAL', seedPresetId: '', overrides: [] };
+    var mode = info.inputSource === 'PRESET' ? 'preset' : 'manual';
+    attestationModeIndicator.setAttribute('data-mode', mode);
+
+    if (mode === 'preset') {
+      var presetId = info.seedPresetId || safeTrim(elementValue(attestationIdInput));
+      attestationModeIndicator.textContent = presetId
+          ? 'Preset vector ' + presetId + ' active.'
+          : 'Preset vector active.';
+      return;
+    }
+
+    var hasPreset = Boolean(info.seedPresetId);
+    var overridesList = Array.isArray(info.overrides) ? info.overrides : [];
+    var message =
+        hasPreset ? 'Manual mode (preset ' + info.seedPresetId + ')' : 'Manual mode (no preset selected)';
+    if (overridesList.length) {
+      message += '; overrides: ' + formatAttestationOverrides(overridesList);
+    }
+    attestationModeIndicator.textContent = message + '.';
+  }
+
+  function formatAttestationOverrides(overrides) {
+    return overrides.map(function (key) {
+      var label = attestationOverrideLabels[key];
+      return label ? label : key;
+    }).join(', ');
+  }
+
+  function attachAttestationFieldListener(field) {
+    if (!field) {
+      return;
+    }
+    var eventType = field.tagName === 'SELECT' ? 'change' : 'input';
+    field.addEventListener(eventType, refreshAttestationModeIndicator);
+  }
+
+  function initializeAttestationModeIndicator() {
+    if (!attestationForm || !attestationModeIndicator) {
+      return;
+    }
+    [
+      attestationFormatSelect,
+      attestationRpInput,
+      attestationOriginInput,
+      attestationChallengeField,
+      attestationCredentialKeyField,
+      attestationPrivateKeyField,
+      attestationSerialField,
+      attestationSigningModeSelect,
+      attestationCustomRootField,
+    ].forEach(attachAttestationFieldListener);
+    refreshAttestationModeIndicator();
   }
 
   function handleAttestationGenerationSuccess(response) {
@@ -704,7 +833,6 @@
       type: generated.type || 'public-key',
       id: generated.id || '',
       rawId: generated.rawId || '',
-      format: generated.format || '',
       response: {
         clientDataJSON: responsePayload.clientDataJSON || '',
         attestationObject: responsePayload.attestationObject || '',
@@ -1647,6 +1775,7 @@
       attestationSampleSelect.value = vector.vectorId;
     }
     pendingAttestationResult();
+    refreshAttestationModeIndicator();
   }
 
   function clearAttestationFields() {
@@ -1664,6 +1793,7 @@
     if (attestationCustomRootField) {
       attestationCustomRootField.value = '';
     }
+    refreshAttestationModeIndicator();
   }
 
   function initializeInlineCounter() {

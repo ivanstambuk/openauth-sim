@@ -100,7 +100,8 @@ class WebAuthnAttestationService {
                     attestationSerial,
                     parseSigningMode(signingMode),
                     customRoots,
-                    customRoots.isEmpty() ? "" : "inline");
+                    customRoots.isEmpty() ? "" : "inline",
+                    WebAuthnAttestationGenerationApplicationService.GenerationCommand.InputSource.PRESET);
 
             try {
                 result = generationService.generate(command);
@@ -201,11 +202,7 @@ class WebAuthnAttestationService {
                         attestation.response().attestationObject());
 
         WebAuthnGeneratedAttestation generated = new WebAuthnGeneratedAttestation(
-                attestation.type(),
-                attestation.id(),
-                attestation.rawId(),
-                attestation.format().label(),
-                responsePayload);
+                attestation.type(), attestation.id(), attestation.rawId(), responsePayload);
 
         WebAuthnAttestationMetadata metadata = WebAuthnAttestationMetadata.forGeneration(
                 telemetryId, telemetry.reasonCode(), format.label(), telemetry.fields(), result.certificateChainPem());
@@ -352,7 +349,9 @@ class WebAuthnAttestationService {
         return switch (normalized) {
             case "manual" -> InputSource.MANUAL;
             case "preset" -> InputSource.PRESET;
-            default -> InputSource.PRESET;
+            default ->
+                throw validation(
+                        "input_source_invalid", "Unsupported input source: " + input, Map.of("inputSource", input));
         };
     }
 

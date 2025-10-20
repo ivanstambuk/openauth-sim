@@ -15,6 +15,8 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.SigningMode;
 import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
@@ -107,6 +109,54 @@ final class WebAuthnAttestationGenerationApplicationServiceManualTest {
     }
 
     @Test
+    void manualCustomRootTelemetryEmitsRpIdAaguidAndCertificateFingerprint() {
+        byte[] challenge = Base64.getUrlDecoder().decode("dGVzdC1tYW51YWwtY2hhbGxlbmdl");
+        WebAuthnAttestationVector vector =
+                WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
+                        .findFirst()
+                        .orElseThrow();
+        List<String> certificateChain = certificateChainPem(vector);
+        String rootPem = certificateChain.get(certificateChain.size() - 1);
+
+        var command = new WebAuthnAttestationGenerationApplicationService.GenerationCommand.Manual(
+                WebAuthnAttestationFormat.PACKED,
+                "example.org",
+                "https://example.org",
+                challenge,
+                vector.keyMaterial().credentialPrivateKeyJwk(),
+                vector.keyMaterial().attestationPrivateKeyJwk(),
+                vector.keyMaterial().attestationCertificateSerialBase64Url(),
+                SigningMode.CUSTOM_ROOT,
+                List.of(rootPem),
+                "inline",
+                "",
+                List.of());
+
+        GenerationResult result = service.generate(command);
+
+        byte[] attestationObject =
+                Base64.getUrlDecoder().decode(result.attestation().response().attestationObject());
+        byte[] clientDataJson =
+                Base64.getUrlDecoder().decode(result.attestation().response().clientDataJson());
+        WebAuthnAttestationVerification verification = new WebAuthnAttestationVerifier()
+                .verify(new WebAuthnAttestationRequest(
+                        WebAuthnAttestationFormat.PACKED,
+                        attestationObject,
+                        clientDataJson,
+                        challenge,
+                        "example.org",
+                        "https://example.org"));
+        assertTrue(verification.result().success());
+
+        String expectedAaguid = formatAaguid(verification.aaguid());
+        String expectedFingerprint = fingerprint(verification.certificateChain().get(0));
+
+        assertEquals("example.org", result.telemetry().fields().get("relyingPartyId"));
+        assertEquals(expectedAaguid, result.telemetry().fields().get("aaguid"));
+        assertEquals(expectedFingerprint, result.telemetry().fields().get("certificateFingerprint"));
+    }
+
+    @Test
     void manualCustomRootWithoutRootsFails() {
         byte[] challenge = Base64.getUrlDecoder().decode("dGVzdC1tYW51YWwtY2hhbGxlbmdl");
         WebAuthnAttestationVector vector =
@@ -188,5 +238,37 @@ final class WebAuthnAttestationGenerationApplicationServiceManualTest {
     private static String toPem(X509Certificate certificate) throws CertificateEncodingException {
         String encoded = Base64.getMimeEncoder(64, new byte[] {'\n'}).encodeToString(certificate.getEncoded());
         return "-----BEGIN CERTIFICATE-----\n" + encoded + "\n-----END CERTIFICATE-----\n";
+    }
+
+    private static String formatAaguid(byte[] aaguid) {
+        if (aaguid == null || aaguid.length != 16) {
+            return "";
+        }
+        String hex = hex(aaguid);
+        return "%s-%s-%s-%s-%s"
+                .formatted(
+                        hex.substring(0, 8),
+                        hex.substring(8, 12),
+                        hex.substring(12, 16),
+                        hex.substring(16, 20),
+                        hex.substring(20));
+    }
+
+    private static String fingerprint(X509Certificate certificate) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(certificate.getEncoded());
+            return hex(hash);
+        } catch (CertificateEncodingException | NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("Unable to compute certificate fingerprint", ex);
+        }
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format("%02X", value));
+        }
+        return builder.toString();
     }
 }

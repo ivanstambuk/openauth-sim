@@ -98,13 +98,13 @@ Replays run the same verification logic without mutating counters—use them for
 Replay output reports whether the supplied assertion matches the stored credential (`credentialSource=stored`, `match=true`) and surfaces sanitized errors (for example `reason=mismatch`) when verification fails.
 
 ## Generate WebAuthn Attestations
-Attestation generation accepts fixture identifiers from the JSON bundles in `docs/webauthn_attestation/`. Provide the challenge and key material exactly as published in the dataset, or decode the keys into JWK or PEM/PKCS#8 form—the CLI normalises all three encodings before invoking the generator. The command emits sanitized telemetry that records the format, signing mode, certificate-chain count, and whether custom roots were supplied.
+Attestation generation accepts fixture identifiers from the JSON bundles in `docs/webauthn_attestation/`. Provide the challenge straight from the dataset and pass the authenticator private keys as JWK or PEM/PKCS#8; the CLI normalises either representation before invoking the generator. The command emits sanitized telemetry that records the format, signing mode, certificate-chain count, and whether custom roots were supplied. Preset runs are the default (`--input-source preset`), so you only need to provide the preset metadata and signing mode.
 
 ```bash
 vector=$(jq -r '.[0]' docs/webauthn_attestation/packed.json)
 export ATTEST_CHALLENGE=$(jq -r '.registration.challenge_b64u' <<<"$vector")
-export CREDENTIAL_KEY=$(jq -r '.key_material.credential_private_key_b64u' <<<"$vector")
-export ATTEST_KEY=$(jq -r '.key_material.attestation_private_key_b64u' <<<"$vector")
+export CREDENTIAL_KEY=$(jq '.key_material.credential_private_key' <<<"$vector")
+export ATTEST_KEY=$(jq '.key_material.attestation_private_key' <<<"$vector")
 export ATTEST_SERIAL=$(jq -r '.key_material.attestation_cert_serial_b64u' <<<"$vector")
 
 ./gradlew --quiet :cli:run --args="fido2 attest \
@@ -113,13 +113,30 @@ export ATTEST_SERIAL=$(jq -r '.key_material.attestation_cert_serial_b64u' <<<"$v
   --relying-party-id example.org \
   --origin https://example.org \
   --challenge $ATTEST_CHALLENGE \
-  --credential-private-key $CREDENTIAL_KEY \
-  --attestation-private-key $ATTEST_KEY \
+  --credential-private-key \"$CREDENTIAL_KEY\" \
+  --attestation-private-key \"$ATTEST_KEY\" \
   --attestation-serial $ATTEST_SERIAL \
   --signing-mode self-signed"
 ```
 
-The CLI prints only the generated `clientDataJSON` and `attestationObject`; signature inclusion and certificate chain counts now surface exclusively through the trailing telemetry frame (`generationMode=self_signed`, `signatureIncluded=true`, `certificateChainCount=1`, `customRootCount=0`). Swap the `--credential-private-key` / `--attestation-private-key` arguments for decoded PEM or JWK payloads if you prefer human-readable fixtures—the generator will canonicalise them to the deterministic Base64URL strings before validating. Switch to `--signing-mode unsigned` to emit a structural attestation without a signature. To chain your own trust anchors, supply one or more PEM bundles via `--custom-root-file <path>` and select `--signing-mode custom-root`.
+The CLI prints only the generated `clientDataJSON` and `attestationObject`; signature inclusion and certificate chain counts now surface exclusively through the trailing telemetry frame (`generationMode=self_signed`, `signatureIncluded=true`, `certificateChainCount=1`, `customRootCount=0`). Swap the `--credential-private-key` / `--attestation-private-key` arguments for decoded PEM payloads or alternate JWKs if you need custom material—the generator canonicalises all supported encodings before validating. Switch to `--signing-mode unsigned` to emit a structural attestation without a signature. To chain your own trust anchors, supply one or more PEM bundles via `--custom-root-file <path>` and select `--signing-mode custom-root`.
+
+Manual mode skips presets entirely. Pass `--input-source manual` and supply the relying party, origin, challenge, and credential private key directly. Signed modes still require an attestation private key plus the certificate serial (Base64URL), and `custom-root` additionally expects at least one `--custom-root-file` entry. When you derive manual inputs from an existing preset, tag the original identifier with `--seed-preset-id <id>` and note edited fields with `--override <field>`; both values flow into telemetry (`overrides`, `seedPresetId`) for downstream audits.
+
+```bash
+./gradlew --quiet :cli:run --args=$'fido2 attest \
+  --input-source manual \
+  --format packed \
+  --relying-party-id example.org \
+  --origin https://example.org \
+  --challenge '"$(jq -r '.registration.challenge' <<<"$vector")"' \
+  --credential-private-key "$(jq '.key_material.credential_private_key' <<<"$vector")" \
+  --attestation-private-key "$(jq '.key_material.attestation_private_key' <<<"$vector")" \
+  --attestation-serial $(jq -r '.key_material.attestation_cert_serial_b64u' <<<"$vector") \
+  --signing-mode self-signed'
+```
+
+The manual output mirrors the preset flow but the telemetry frame now includes `inputSource=manual`, optional `seedPresetId`, and any `overrides` you recorded.
 
 ## Replay Attestation Verification
 `fido2 attest-replay` mirrors the attestation verification flow and remains available for deterministic replays and incident drills. Supply the same Base64URL fields and optional trust anchors extracted from the generated payload:

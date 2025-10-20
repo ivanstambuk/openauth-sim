@@ -6,8 +6,15 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestatio
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.SigningMode;
+import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
+import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
+import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -137,7 +144,18 @@ public final class WebAuthnAttestationGenerationApplicationService {
                 "customRootCount", command.customRootCertificatesPem().size());
         telemetryFields.put(
                 "certificateChainCount", generatorResult.certificateChainPem().size());
-        telemetryFields.put("inputSource", manualSource ? "manual" : "preset");
+        telemetryFields.put("inputSource", inputSourceLabel(command.inputSource()));
+
+        TelemetryObservations observations = observeTelemetry(command, generatorResult);
+        if (!observations.relyingPartyId().isBlank()) {
+            telemetryFields.put("relyingPartyId", observations.relyingPartyId());
+        }
+        if (!observations.aaguid().isBlank()) {
+            telemetryFields.put("aaguid", observations.aaguid());
+        }
+        if (!observations.certificateFingerprint().isBlank()) {
+            telemetryFields.put("certificateFingerprint", observations.certificateFingerprint());
+        }
 
         if (!command.customRootCertificatesPem().isEmpty()) {
             String source = normalize(command.customRootSource());
@@ -183,6 +201,14 @@ public final class WebAuthnAttestationGenerationApplicationService {
 
         String customRootSource();
 
+        InputSource inputSource();
+
+        /** Origin of the input parameters for attestation generation. */
+        enum InputSource {
+            PRESET,
+            MANUAL
+        }
+
         /** Inline command carrier. */
         record Inline(
                 String attestationId,
@@ -195,7 +221,8 @@ public final class WebAuthnAttestationGenerationApplicationService {
                 String attestationCertificateSerialBase64Url,
                 SigningMode signingMode,
                 List<String> customRootCertificatesPem,
-                String customRootSource)
+                String customRootSource,
+                InputSource inputSource)
                 implements GenerationCommand {
 
             public Inline {
@@ -206,6 +233,10 @@ public final class WebAuthnAttestationGenerationApplicationService {
                 Objects.requireNonNull(challenge, "challenge");
                 Objects.requireNonNull(credentialPrivateKeyBase64Url, "credentialPrivateKeyBase64Url");
                 Objects.requireNonNull(signingMode, "signingMode");
+                inputSource = inputSource == null ? InputSource.PRESET : inputSource;
+                if (inputSource == InputSource.MANUAL) {
+                    throw new IllegalArgumentException("Inline commands require PRESET input source");
+                }
                 customRootCertificatesPem =
                         customRootCertificatesPem == null ? List.of() : List.copyOf(customRootCertificatesPem);
                 customRootSource = normalize(customRootSource);
@@ -245,6 +276,11 @@ public final class WebAuthnAttestationGenerationApplicationService {
             @Override
             public String attestationId() {
                 return "manual";
+            }
+
+            @Override
+            public InputSource inputSource() {
+                return InputSource.MANUAL;
             }
         }
     }
@@ -303,6 +339,73 @@ public final class WebAuthnAttestationGenerationApplicationService {
 
     private static String normalize(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private static String inputSourceLabel(GenerationCommand.InputSource inputSource) {
+        return switch (inputSource) {
+            case PRESET -> "preset";
+            case MANUAL -> "manual";
+        };
+    }
+
+    private static TelemetryObservations observeTelemetry(
+            GenerationCommand command, WebAuthnAttestationGenerator.GenerationResult generatorResult) {
+        String relyingPartyId = normalize(command.relyingPartyId());
+        try {
+            WebAuthnAttestationVerifier verifier = new WebAuthnAttestationVerifier();
+            WebAuthnAttestationVerification verification = verifier.verify(new WebAuthnAttestationRequest(
+                    generatorResult.format(),
+                    generatorResult.attestationObject().clone(),
+                    generatorResult.clientDataJson().clone(),
+                    command.challenge().clone(),
+                    command.relyingPartyId(),
+                    command.origin()));
+            if (!verification.result().success()) {
+                return new TelemetryObservations(relyingPartyId, "", "");
+            }
+            String aaguid = formatAaguid(verification.aaguid());
+            List<X509Certificate> chain = verification.certificateChain();
+            String certificateFingerprint = chain == null || chain.isEmpty() ? "" : fingerprint(chain.get(0));
+            return new TelemetryObservations(relyingPartyId, aaguid, certificateFingerprint);
+        } catch (RuntimeException ex) {
+            return new TelemetryObservations(relyingPartyId, "", "");
+        }
+    }
+
+    private static String formatAaguid(byte[] aaguid) {
+        if (aaguid == null || aaguid.length != 16) {
+            return "";
+        }
+        String hex = hex(aaguid);
+        return "%s-%s-%s-%s-%s"
+                .formatted(
+                        hex.substring(0, 8),
+                        hex.substring(8, 12),
+                        hex.substring(12, 16),
+                        hex.substring(16, 20),
+                        hex.substring(20));
+    }
+
+    private static String fingerprint(X509Certificate certificate) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(certificate.getEncoded());
+            return hex(hash);
+        } catch (CertificateEncodingException | NoSuchAlgorithmException ex) {
+            return "";
+        }
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format("%02X", value));
+        }
+        return builder.toString();
+    }
+
+    private record TelemetryObservations(String relyingPartyId, String aaguid, String certificateFingerprint) {
+        // Value carrier capturing derived telemetry attributes.
     }
 
     private static final class SuccessTelemetrySignal implements TelemetrySignal {

@@ -94,7 +94,7 @@ class Fido2AttestationEndpointTest {
         assertThat(attestation.get("id").asText()).isEqualTo(EXPECTED_CREDENTIAL_ID);
         assertThat(attestation.get("rawId").asText()).isEqualTo(EXPECTED_CREDENTIAL_ID);
         assertThat(attestation.has("attestationId")).isFalse();
-        assertThat(attestation.get("format").asText()).isEqualTo(VECTOR.format().label());
+        assertThat(attestation.has("format")).isFalse();
         JsonNode responsePayload = attestation.get("response");
         assertThat(responsePayload.get("attestationObject").asText()).isEqualTo(EXPECTED_ATTESTATION);
         assertThat(responsePayload.get("clientDataJSON").asText()).isEqualTo(EXPECTED_CLIENT_DATA);
@@ -168,6 +168,7 @@ class Fido2AttestationEndpointTest {
         JsonNode attestation = root.get("generatedAttestation");
         assertThat(attestation.get("id").asText()).isEqualTo(EXPECTED_CREDENTIAL_ID);
         assertThat(attestation.get("rawId").asText()).isEqualTo(EXPECTED_CREDENTIAL_ID);
+        assertThat(attestation.has("format")).isFalse();
         JsonNode responsePayload = attestation.get("response");
         assertThat(responsePayload.get("attestationObject").asText()).isNotBlank();
         assertThat(responsePayload.get("clientDataJSON").asText()).isEqualTo(EXPECTED_CLIENT_DATA);
@@ -181,9 +182,21 @@ class Fido2AttestationEndpointTest {
     }
 
     @Test
+    @DisplayName("Attestation endpoint accepts PEM formatted private keys")
+    void generateSelfSignedAttestationAcceptsPemInputs() throws Exception {
+        String payload = generationPayload("SELF_SIGNED", false, KeyEncoding.PEM);
+
+        mockMvc.perform(post("/api/v1/webauthn/attest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("Attestation endpoint rejects legacy Base64 private-key inputs")
     void generateRejectsLegacyBase64PrivateKeys() throws Exception {
         ObjectNode root = MAPPER.createObjectNode();
+        root.put("inputSource", "PRESET");
         root.put("attestationId", VECTOR.vectorId());
         root.put("format", VECTOR.format().label());
         root.put("relyingPartyId", VECTOR.relyingPartyId());
@@ -200,19 +213,165 @@ class Fido2AttestationEndpointTest {
                 .andExpect(status().isUnprocessableEntity());
     }
 
-    private static String generationPayload(String signingMode, boolean includeCustomRoot) throws Exception {
+    @Test
+    @DisplayName("Preset input source requires attestation id")
+    void presetInputSourceRequiresAttestationId() throws Exception {
         ObjectNode root = MAPPER.createObjectNode();
+        root.put("inputSource", "PRESET");
+        root.put("format", VECTOR.format().label());
+        root.put("relyingPartyId", VECTOR.relyingPartyId());
+        root.put("origin", VECTOR.origin());
+        root.put("challenge", EXPECTED_CHALLENGE);
+        root.put("credentialPrivateKey", VECTOR.keyMaterial().credentialPrivateKeyJwk());
+        root.put("attestationPrivateKey", VECTOR.keyMaterial().attestationPrivateKeyJwk());
+        root.put("attestationCertificateSerial", VECTOR.keyMaterial().attestationCertificateSerialBase64Url());
+        root.put("signingMode", "SELF_SIGNED");
+
+        mockMvc.perform(post("/api/v1/webauthn/attest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(root.toString()))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    @DisplayName("Invalid input source is rejected with a validation error")
+    void invalidInputSourceRejected() throws Exception {
+        ObjectNode root = MAPPER.createObjectNode();
+        root.put("inputSource", "LEGACY");
         root.put("attestationId", VECTOR.vectorId());
         root.put("format", VECTOR.format().label());
         root.put("relyingPartyId", VECTOR.relyingPartyId());
         root.put("origin", VECTOR.origin());
         root.put("challenge", EXPECTED_CHALLENGE);
-        root.put(
-                "credentialPrivateKey",
-                toPemPrivateKey(VECTOR.algorithm(), VECTOR.keyMaterial().credentialPrivateKeyBase64Url()));
-        root.put(
-                "attestationPrivateKey",
-                toPemPrivateKey(VECTOR.algorithm(), VECTOR.keyMaterial().attestationPrivateKeyBase64Url()));
+        root.put("credentialPrivateKey", VECTOR.keyMaterial().credentialPrivateKeyJwk());
+        root.put("attestationPrivateKey", VECTOR.keyMaterial().attestationPrivateKeyJwk());
+        root.put("attestationCertificateSerial", VECTOR.keyMaterial().attestationCertificateSerialBase64Url());
+        root.put("signingMode", "SELF_SIGNED");
+
+        String response = mockMvc.perform(post("/api/v1/webauthn/attest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(root.toString()))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        JsonNode error = MAPPER.readTree(response);
+        assertThat(error.get("reasonCode").asText()).isEqualTo("input_source_invalid");
+        assertThat(error.get("details").get("inputSource").asText()).isEqualTo("LEGACY");
+    }
+
+    @Test
+    @DisplayName("Manual input source generates attestation without preset id")
+    void manualInputSourceGeneratesAttestation() throws Exception {
+        ObjectNode root = MAPPER.createObjectNode();
+        root.put("inputSource", "MANUAL");
+        root.put("format", VECTOR.format().label());
+        root.put("relyingPartyId", "manual.example");
+        root.put("origin", "https://manual.example");
+        root.put("challenge", EXPECTED_CHALLENGE);
+        root.put("credentialPrivateKey", VECTOR.keyMaterial().credentialPrivateKeyJwk());
+        root.put("attestationPrivateKey", VECTOR.keyMaterial().attestationPrivateKeyJwk());
+        root.put("attestationCertificateSerial", VECTOR.keyMaterial().attestationCertificateSerialBase64Url());
+        root.put("signingMode", "SELF_SIGNED");
+        root.putArray("overrides").add("relyingPartyId").add("origin");
+
+        String response = mockMvc.perform(post("/api/v1/webauthn/attest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(root.toString()))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        JsonNode body = MAPPER.readTree(response);
+        assertThat(body.get("status").asText()).isEqualTo("success");
+
+        JsonNode attestation = body.get("generatedAttestation");
+        assertThat(attestation.get("type").asText()).isEqualTo("public-key");
+        String id = attestation.get("id").asText();
+        String rawId = attestation.get("rawId").asText();
+        assertThat(id).isNotBlank();
+        assertThat(rawId).isNotBlank();
+        Base64.getUrlDecoder().decode(id);
+        Base64.getUrlDecoder().decode(rawId);
+        assertThat(attestation.has("format")).isFalse();
+        JsonNode responsePayload = attestation.get("response");
+        assertThat(responsePayload.get("attestationObject").asText()).isNotBlank();
+        assertThat(responsePayload.get("clientDataJSON").asText()).isNotBlank();
+
+        JsonNode metadata = body.get("metadata");
+        assertThat(metadata.get("inputSource").asText()).isEqualTo("manual");
+        assertThat(metadata.get("relyingPartyId").asText()).isEqualTo("manual.example");
+        assertThat(metadata.get("generationMode").asText()).isEqualTo("self_signed");
+    }
+
+    @Test
+    @DisplayName("Manual input source requires credential key material")
+    void manualInputSourceMissingCredentialKeyFails() throws Exception {
+        ObjectNode root = MAPPER.createObjectNode();
+        root.put("inputSource", "MANUAL");
+        root.put("format", VECTOR.format().label());
+        root.put("relyingPartyId", "manual.example");
+        root.put("origin", "https://manual.example");
+        root.put("challenge", EXPECTED_CHALLENGE);
+        root.put("signingMode", "SELF_SIGNED");
+        root.put("attestationPrivateKey", VECTOR.keyMaterial().attestationPrivateKeyJwk());
+        root.put("attestationCertificateSerial", VECTOR.keyMaterial().attestationCertificateSerialBase64Url());
+
+        mockMvc.perform(post("/api/v1/webauthn/attest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(root.toString()))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    @DisplayName("Manual signed modes require attestation key and serial")
+    void manualSignedModeRequiresAttestationKey() throws Exception {
+        ObjectNode root = MAPPER.createObjectNode();
+        root.put("inputSource", "MANUAL");
+        root.put("format", VECTOR.format().label());
+        root.put("relyingPartyId", "manual.example");
+        root.put("origin", "https://manual.example");
+        root.put("challenge", EXPECTED_CHALLENGE);
+        root.put("credentialPrivateKey", VECTOR.keyMaterial().credentialPrivateKeyJwk());
+        root.put("signingMode", "SELF_SIGNED");
+
+        mockMvc.perform(post("/api/v1/webauthn/attest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(root.toString()))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    private enum KeyEncoding {
+        JWK,
+        PEM
+    }
+
+    private static String generationPayload(String signingMode, boolean includeCustomRoot) throws Exception {
+        return generationPayload(signingMode, includeCustomRoot, KeyEncoding.JWK);
+    }
+
+    private static String generationPayload(String signingMode, boolean includeCustomRoot, KeyEncoding encoding)
+            throws Exception {
+        ObjectNode root = MAPPER.createObjectNode();
+        root.put("inputSource", "PRESET");
+        root.put("attestationId", VECTOR.vectorId());
+        root.put("format", VECTOR.format().label());
+        root.put("relyingPartyId", VECTOR.relyingPartyId());
+        root.put("origin", VECTOR.origin());
+        root.put("challenge", EXPECTED_CHALLENGE);
+        if (encoding == KeyEncoding.JWK) {
+            root.put("credentialPrivateKey", VECTOR.keyMaterial().credentialPrivateKeyJwk());
+            root.put("attestationPrivateKey", VECTOR.keyMaterial().attestationPrivateKeyJwk());
+        } else {
+            root.put(
+                    "credentialPrivateKey",
+                    toPemPrivateKey(VECTOR.algorithm(), VECTOR.keyMaterial().credentialPrivateKeyBase64Url()));
+            root.put(
+                    "attestationPrivateKey",
+                    toPemPrivateKey(VECTOR.algorithm(), VECTOR.keyMaterial().attestationPrivateKeyBase64Url()));
+        }
         root.put("attestationCertificateSerial", VECTOR.keyMaterial().attestationCertificateSerialBase64Url());
         root.put("signingMode", signingMode);
 

@@ -135,12 +135,10 @@ public final class WebAuthnAttestationFixtures {
                             decodeBytes(
                                     authenticationRaw.get("signature_b64u"), vectorId + ".authentication.signature")));
 
-            String credentialPrivateKeyBase64 = decodeString(
-                    keyMaterial.get("credential_private_key_b64u"),
-                    vectorId + ".key_material.credential_private_key_b64u");
-            String attestationPrivateKeyBase64 = decodeString(
-                    keyMaterial.get("attestation_private_key_b64u"),
-                    vectorId + ".key_material.attestation_private_key_b64u");
+            String credentialPrivateKeyBase64 = extractPrivateKey(
+                    keyMaterial, "credential_private_key", vectorId + ".key_material.credential_private_key");
+            String attestationPrivateKeyBase64 = extractPrivateKey(
+                    keyMaterial, "attestation_private_key", vectorId + ".key_material.attestation_private_key");
             String attestationSerialBase64 = decodeString(
                     keyMaterial.get("attestation_cert_serial_b64u"),
                     vectorId + ".key_material.attestation_cert_serial_b64u");
@@ -571,6 +569,26 @@ public final class WebAuthnAttestationFixtures {
             return str;
         }
         throw new IllegalStateException(context + " must be a string");
+    }
+
+    private static String extractPrivateKey(Map<String, Object> keyMaterial, String field, String context) {
+        String legacy = decodeString(keyMaterial.get(field + "_b64u"), context + "_b64u");
+        if (legacy != null && !legacy.isBlank()) {
+            return normalizeBase64(legacy);
+        }
+        Object jwkNode = keyMaterial.get(field);
+        if (jwkNode == null) {
+            return null;
+        }
+        Map<String, Object> jwk = asObject(jwkNode, context);
+        Object dNode = jwk.get("d");
+        if (dNode == null) {
+            return null;
+        }
+        if (!(dNode instanceof String dValue) || dValue.isBlank()) {
+            throw new IllegalStateException(context + ".d must be a non-empty string");
+        }
+        return normalizeBase64(dValue);
     }
 
     private static byte[] decodeBytes(Object node, String context) {

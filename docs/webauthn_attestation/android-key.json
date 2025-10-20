@@ -21,8 +21,14 @@
       "signature_b64u": "MEUCICBgEH2VOyhqob814-jHizg_3atVkbLbF_-yPtg_598gAiEAqZvgKXyw2dOKqW8wt2Ck4HSdqzhazSpR0FYMquVw0iU"
     },
     "key_material": {
-      "credential_private_key_b64u": "1DKNkRrLDrzEKq0psp_7VdW8MdivfKmhZwPVbCGrx7Q",
-      "attestation_private_key_b64u": null,
+      "credential_private_key": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "mRaWVwNtCJoqmCGn0AY9NB8aRhM4k1ljbvq188vxrM8",
+        "y": "3ZHFVUMXbqmbZEQG3R3WN3S2r2WsdZ4G_0CxyKsC32s",
+        "d": "1DKNkRrLDrzEKq0psp_7VdW8MdivfKmhZwPVbCGrx7Q"
+      },
+      "attestation_private_key": null,
       "attestation_cert_serial_b64u": "H_kfdrY_RIEvmYslCwKGvw"
     }
   }

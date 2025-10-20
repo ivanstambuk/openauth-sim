@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.GenerationResult;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.SigningMode;
 import java.nio.charset.StandardCharsets;
@@ -23,13 +24,14 @@ final class WebAuthnAttestationGeneratorManualModeTest {
     @Test
     void manualUnsignedBuildsClientDataAndOmitsSignature() {
         WebAuthnAttestationGenerator generator = new WebAuthnAttestationGenerator();
+        WebAuthnAttestationVector vector = vector(WebAuthnAttestationFormat.PACKED);
         WebAuthnAttestationGenerator.GenerationCommand.Manual command =
                 new WebAuthnAttestationGenerator.GenerationCommand.Manual(
                         WebAuthnAttestationFormat.PACKED,
                         "example.org",
                         "https://example.org",
                         CHALLENGE,
-                        "cHJpdmF0ZS1rZXktY3JlZC", // dummy base64url
+                        vector.keyMaterial().credentialPrivateKeyBase64Url(),
                         null,
                         null,
                         SigningMode.UNSIGNED,
@@ -55,15 +57,16 @@ final class WebAuthnAttestationGeneratorManualModeTest {
     @Test
     void manualCustomRootRequiresAtLeastOneCertificate() {
         WebAuthnAttestationGenerator generator = new WebAuthnAttestationGenerator();
+        WebAuthnAttestationVector vector = vector(WebAuthnAttestationFormat.FIDO_U2F);
         WebAuthnAttestationGenerator.GenerationCommand.Manual command =
                 new WebAuthnAttestationGenerator.GenerationCommand.Manual(
                         WebAuthnAttestationFormat.FIDO_U2F,
                         "example.org",
                         "https://example.org",
                         CHALLENGE,
-                        "cHJpdmF0ZS1rZXktY3JlZC",
-                        "YXR0ZXN0LXBriy10ZXN0",
-                        "c2VyaWFsLXRlc3Q",
+                        vector.keyMaterial().credentialPrivateKeyBase64Url(),
+                        vector.keyMaterial().attestationPrivateKeyBase64Url(),
+                        vector.keyMaterial().attestationCertificateSerialBase64Url(),
                         SigningMode.CUSTOM_ROOT,
                         List.of());
 
@@ -73,15 +76,16 @@ final class WebAuthnAttestationGeneratorManualModeTest {
     @Test
     void manualSelfSignedIncludesCertificateChain() {
         WebAuthnAttestationGenerator generator = new WebAuthnAttestationGenerator();
+        WebAuthnAttestationVector vector = vector(WebAuthnAttestationFormat.ANDROID_KEY);
         WebAuthnAttestationGenerator.GenerationCommand.Manual command =
                 new WebAuthnAttestationGenerator.GenerationCommand.Manual(
                         WebAuthnAttestationFormat.ANDROID_KEY,
                         "example.org",
                         "https://example.org",
                         CHALLENGE,
-                        "cHJpdmF0ZS1rZXktY3JlZC",
-                        "YXR0ZXN0LXBriy10ZXN0",
-                        "c2VyaWFsLXRlc3Q",
+                        vector.keyMaterial().credentialPrivateKeyBase64Url(),
+                        vector.keyMaterial().attestationPrivateKeyBase64Url(),
+                        vector.keyMaterial().attestationCertificateSerialBase64Url(),
                         SigningMode.SELF_SIGNED,
                         List.of());
 
@@ -93,6 +97,7 @@ final class WebAuthnAttestationGeneratorManualModeTest {
     @Test
     void manualSignedModesRequireKeys() {
         WebAuthnAttestationGenerator generator = new WebAuthnAttestationGenerator();
+        WebAuthnAttestationVector vector = vector(WebAuthnAttestationFormat.PACKED);
         // Missing attestation key/serial for a signed mode should fail
         WebAuthnAttestationGenerator.GenerationCommand.Manual missingKey =
                 new WebAuthnAttestationGenerator.GenerationCommand.Manual(
@@ -100,12 +105,18 @@ final class WebAuthnAttestationGeneratorManualModeTest {
                         "example.org",
                         "https://example.org",
                         CHALLENGE,
-                        "cHJpdmF0ZS1rZXktY3JlZC",
+                        vector.keyMaterial().credentialPrivateKeyBase64Url(),
                         null,
                         null,
                         SigningMode.SELF_SIGNED,
                         List.of());
 
         assertThrows(IllegalArgumentException.class, () -> generator.generate(missingKey));
+    }
+
+    private static WebAuthnAttestationVector vector(WebAuthnAttestationFormat format) {
+        return WebAuthnAttestationFixtures.vectorsFor(format).stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Missing fixture for format " + format));
     }
 }

@@ -4,6 +4,7 @@ import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationS
 import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationCommand;
 import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationResult;
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService;
+import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService.GenerationCommand.InputSource;
 import io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnAttestationSamples;
 import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService;
@@ -1008,6 +1009,13 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     static final class AttestCommand extends AbstractFido2Command {
 
         @CommandLine.Option(
+                names = "--input-source",
+                defaultValue = "preset",
+                paramLabel = "<source>",
+                description = "Input source (preset or manual)")
+        String inputSource;
+
+        @CommandLine.Option(
                 names = "--format",
                 defaultValue = "",
                 paramLabel = "<format>",
@@ -1020,6 +1028,13 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 paramLabel = "<id>",
                 description = "Fixture identifier to generate (for example, w3c-packed-es256)")
         String attestationId;
+
+        @CommandLine.Option(
+                names = "--seed-preset-id",
+                defaultValue = "",
+                paramLabel = "<id>",
+                description = "Optional preset identifier to record when manual overrides are applied")
+        String seedPresetId;
 
         @CommandLine.Option(
                 names = "--relying-party-id",
@@ -1046,14 +1061,14 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 names = "--credential-private-key",
                 defaultValue = "",
                 paramLabel = "<key>",
-                description = "Credential private key (JWK, PEM/PKCS#8, or Base64URL)")
+                description = "Credential private key (JWK or PEM/PKCS#8)")
         String credentialPrivateKey;
 
         @CommandLine.Option(
                 names = "--attestation-private-key",
                 defaultValue = "",
                 paramLabel = "<key>",
-                description = "Attestation private key (JWK, PEM/PKCS#8, or Base64URL)")
+                description = "Attestation private key (JWK or PEM/PKCS#8)")
         String attestationPrivateKey;
 
         @CommandLine.Option(
@@ -1076,6 +1091,12 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 description = "PEM encoded custom root certificate (repeat for multiple anchors)")
         List<Path> customRootFiles;
 
+        @CommandLine.Option(
+                names = "--override",
+                paramLabel = "<field>",
+                description = "Override field name to record for telemetry (repeat for multiple overrides)")
+        List<String> overrideFields;
+
         @Override
         public Integer call() {
             Map<String, Object> baseFields = new LinkedHashMap<>();
@@ -1085,6 +1106,19 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             if (hasText(format)) {
                 baseFields.put("format", format);
             }
+
+            InputSource source;
+            try {
+                source = parseInputSource(inputSource);
+            } catch (IllegalArgumentException ex) {
+                return parent.failValidation(
+                        event("attest"),
+                        ATTEST_TELEMETRY,
+                        "input_source_invalid",
+                        ex.getMessage(),
+                        Map.copyOf(baseFields));
+            }
+            baseFields.put("inputSource", source.name().toLowerCase(Locale.ROOT));
 
             if (!hasText(format)) {
                 return parent.failValidation(
@@ -1110,30 +1144,6 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                         "missing_signing_mode",
                         "--signing-mode is required",
                         Map.copyOf(baseFields));
-            }
-
-            if (!hasText(attestationId)
-                    || !hasText(relyingPartyId)
-                    || !hasText(origin)
-                    || !hasText(challenge)
-                    || !hasText(credentialPrivateKey)
-                    || !hasText(attestationPrivateKey)
-                    || !hasText(attestationSerial)) {
-                return parent.failValidation(
-                        event("attest"),
-                        ATTEST_TELEMETRY,
-                        "missing_option",
-                        "--attestation-id, --relying-party-id, --origin, --challenge, "
-                                + "--credential-private-key, --attestation-private-key, and --attestation-serial are required",
-                        Map.copyOf(baseFields));
-            }
-
-            byte[] challengeBytes;
-            try {
-                challengeBytes = decodeBase64Url("--challenge", challenge);
-            } catch (IllegalArgumentException ex) {
-                return parent.failValidation(
-                        event("attest"), ATTEST_TELEMETRY, "invalid_payload", ex.getMessage(), Map.copyOf(baseFields));
             }
 
             WebAuthnAttestationGenerator.SigningMode mode;
@@ -1165,32 +1175,187 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             WebAuthnAttestationGenerationApplicationService service = parent.createAttestationGenerationService();
 
             WebAuthnAttestationGenerationApplicationService.GenerationResult result;
-            try {
-                result = service.generate(new WebAuthnAttestationGenerationApplicationService.GenerationCommand.Inline(
-                        attestationId.trim(),
-                        attestationFormat,
-                        relyingPartyId.trim(),
-                        origin.trim(),
-                        challengeBytes,
-                        credentialPrivateKey.trim(),
-                        attestationPrivateKey.trim(),
-                        attestationSerial.trim(),
-                        mode,
-                        customRoots,
-                        customRootSource));
-            } catch (IllegalArgumentException ex) {
-                return parent.failValidation(
-                        event("attest"),
-                        ATTEST_TELEMETRY,
-                        "generation_failed",
-                        ex.getMessage() == null ? "Attestation generation failed" : ex.getMessage(),
-                        Map.copyOf(baseFields));
-            } catch (Exception ex) {
-                return parent.failUnexpected(
-                        event("attest"),
-                        ATTEST_TELEMETRY,
-                        Map.copyOf(baseFields),
-                        "Attestation generation failed: " + sanitizeMessage(ex.getMessage()));
+            if (source == InputSource.PRESET) {
+                if (!hasText(attestationId)
+                        || !hasText(relyingPartyId)
+                        || !hasText(origin)
+                        || !hasText(challenge)
+                        || !hasText(credentialPrivateKey)
+                        || !hasText(attestationPrivateKey)
+                        || !hasText(attestationSerial)) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "missing_option",
+                            "--attestation-id, --relying-party-id, --origin, --challenge, "
+                                    + "--credential-private-key, --attestation-private-key, and --attestation-serial are required",
+                            Map.copyOf(baseFields));
+                }
+
+                byte[] challengeBytes;
+                try {
+                    challengeBytes = decodeBase64Url("--challenge", challenge);
+                } catch (IllegalArgumentException ex) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "invalid_payload",
+                            ex.getMessage(),
+                            Map.copyOf(baseFields));
+                }
+
+                try {
+                    result = service.generate(
+                            new WebAuthnAttestationGenerationApplicationService.GenerationCommand.Inline(
+                                    attestationId.trim(),
+                                    attestationFormat,
+                                    relyingPartyId.trim(),
+                                    origin.trim(),
+                                    challengeBytes,
+                                    credentialPrivateKey.trim(),
+                                    attestationPrivateKey.trim(),
+                                    attestationSerial.trim(),
+                                    mode,
+                                    customRoots,
+                                    customRootSource,
+                                    InputSource.PRESET));
+                } catch (IllegalArgumentException ex) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "generation_failed",
+                            ex.getMessage() == null ? "Attestation generation failed" : ex.getMessage(),
+                            Map.copyOf(baseFields));
+                } catch (Exception ex) {
+                    return parent.failUnexpected(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            Map.copyOf(baseFields),
+                            "Attestation generation failed: " + sanitizeMessage(ex.getMessage()));
+                }
+            } else {
+                baseFields.remove("attestationId");
+                if (hasText(attestationId)) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "attestation_id_not_applicable",
+                            "Manual input does not accept --attestation-id; use --seed-preset-id to annotate overrides",
+                            Map.copyOf(baseFields));
+                }
+                if (!hasText(relyingPartyId)) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "relying_party_id_required",
+                            "--relying-party-id is required for manual mode",
+                            Map.copyOf(baseFields));
+                }
+                if (!hasText(origin)) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "origin_required",
+                            "--origin is required for manual mode",
+                            Map.copyOf(baseFields));
+                }
+                if (!hasText(challenge)) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "challenge_required",
+                            "--challenge is required for manual mode",
+                            Map.copyOf(baseFields));
+                }
+
+                byte[] challengeBytes;
+                try {
+                    challengeBytes = decodeBase64Url("--challenge", challenge);
+                } catch (IllegalArgumentException ex) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "challenge_required",
+                            "Invalid challenge (must be Base64URL)",
+                            Map.copyOf(baseFields));
+                }
+
+                if (!hasText(credentialPrivateKey)) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "credential_private_key_required",
+                            "Credential private key is required for manual mode",
+                            Map.copyOf(baseFields));
+                }
+
+                String credentialKey = credentialPrivateKey.trim();
+                String attestationKey = hasText(attestationPrivateKey) ? attestationPrivateKey.trim() : "";
+                String attestationSerialValue = hasText(attestationSerial) ? attestationSerial.trim() : "";
+
+                if (mode != WebAuthnAttestationGenerator.SigningMode.UNSIGNED && attestationKey.isEmpty()) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "attestation_private_key_required",
+                            "Attestation private key is required for manual signed modes",
+                            Map.copyOf(baseFields));
+                }
+                if (mode != WebAuthnAttestationGenerator.SigningMode.UNSIGNED && attestationSerialValue.isEmpty()) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "attestation_serial_required",
+                            "Attestation certificate serial is required for manual signed modes",
+                            Map.copyOf(baseFields));
+                }
+                if (mode == WebAuthnAttestationGenerator.SigningMode.CUSTOM_ROOT && customRoots.isEmpty()) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "custom_root_required",
+                            "At least one custom root certificate is required for custom-root mode",
+                            Map.copyOf(baseFields));
+                }
+
+                List<String> sanitizedOverrides = sanitizeOverrides(overrideFields);
+                String sanitizedSeedPresetId = hasText(seedPresetId) ? seedPresetId.trim() : "";
+                if (!sanitizedSeedPresetId.isEmpty()) {
+                    baseFields.put("seedPresetId", sanitizedSeedPresetId);
+                }
+                if (!sanitizedOverrides.isEmpty()) {
+                    baseFields.put("overrides", sanitizedOverrides);
+                }
+
+                try {
+                    result = service.generate(
+                            new WebAuthnAttestationGenerationApplicationService.GenerationCommand.Manual(
+                                    attestationFormat,
+                                    relyingPartyId.trim(),
+                                    origin.trim(),
+                                    challengeBytes,
+                                    credentialKey,
+                                    attestationKey.isEmpty() ? null : attestationKey,
+                                    attestationSerialValue.isEmpty() ? null : attestationSerialValue,
+                                    mode,
+                                    customRoots,
+                                    customRootSource,
+                                    sanitizedSeedPresetId,
+                                    sanitizedOverrides));
+                } catch (IllegalArgumentException ex) {
+                    return parent.failValidation(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            "generation_failed",
+                            ex.getMessage() == null ? "Attestation generation failed" : ex.getMessage(),
+                            Map.copyOf(baseFields));
+                } catch (Exception ex) {
+                    return parent.failUnexpected(
+                            event("attest"),
+                            ATTEST_TELEMETRY,
+                            Map.copyOf(baseFields),
+                            "Attestation generation failed: " + sanitizeMessage(ex.getMessage()));
+                }
             }
 
             WebAuthnAttestationGenerationApplicationService.GeneratedAttestation attestation = result.attestation();
@@ -1210,6 +1375,20 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             return CommandLine.ExitCode.OK;
         }
 
+        private static InputSource parseInputSource(String value) {
+            if (value == null || value.isBlank()) {
+                return InputSource.PRESET;
+            }
+            String normalized = value.trim().toLowerCase(Locale.ROOT);
+            return switch (normalized) {
+                case "preset" -> InputSource.PRESET;
+                case "manual" -> InputSource.MANUAL;
+                default ->
+                    throw new IllegalArgumentException(
+                            "Unsupported input source: " + value + " (expected preset or manual)");
+            };
+        }
+
         private static WebAuthnAttestationGenerator.SigningMode parseSigningMode(String value) {
             String normalized = value.trim().toLowerCase(Locale.ROOT);
             return switch (normalized) {
@@ -1220,6 +1399,17 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                     throw new IllegalArgumentException(
                             "Unsupported signing mode: " + value + " (expected self-signed, unsigned, or custom-root)");
             };
+        }
+
+        private static List<String> sanitizeOverrides(List<String> overrides) {
+            if (overrides == null || overrides.isEmpty()) {
+                return List.of();
+            }
+            return overrides.stream()
+                    .filter(Objects::nonNull)
+                    .map(String::trim)
+                    .filter(value -> !value.isEmpty())
+                    .collect(Collectors.toUnmodifiableList());
         }
 
         private static List<String> loadCustomRoots(List<Path> files) throws IOException {

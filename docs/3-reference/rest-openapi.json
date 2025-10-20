@@ -454,34 +454,6 @@
           "required" : true
         },
         "responses" : {
-          "422" : {
-            "description" : "Verification payload failed validation",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                },
-                "examples" : {
-                  "Missing context" : {
-                    "summary" : "Validation failure",
-                    "description" : "Missing context",
-                    "value" : {
-                      "error" : "invalid_input",
-                      "message" : "sessionHex is required",
-                      "details" : {
-                        "telemetryId" : "rest-ocra-verify-<uuid>",
-                        "status" : "invalid",
-                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
-                        "field" : "sessionHex",
-                        "reasonCode" : "session_required",
-                        "sanitized" : "true"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
           "404" : {
             "description" : "Credential not found",
             "content" : {
@@ -521,6 +493,34 @@
               }
             }
           },
+          "422" : {
+            "description" : "Verification payload failed validation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                },
+                "examples" : {
+                  "Missing context" : {
+                    "summary" : "Validation failure",
+                    "description" : "Missing context",
+                    "value" : {
+                      "error" : "invalid_input",
+                      "message" : "sessionHex is required",
+                      "details" : {
+                        "telemetryId" : "rest-ocra-verify-<uuid>",
+                        "status" : "invalid",
+                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
+                        "field" : "sessionHex",
+                        "reasonCode" : "session_required",
+                        "sanitized" : "true"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
@@ -551,6 +551,26 @@
           "required" : true
         },
         "responses" : {
+          "500" : {
+            "description" : "Unexpected server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation successful",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                }
+              }
+            }
+          },
           "400" : {
             "description" : "Invalid request payload",
             "content" : {
@@ -575,26 +595,6 @@
                       }
                     }
                   }
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "Evaluation successful",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected server error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
                 }
               }
             }
@@ -637,6 +637,16 @@
           "required" : true
         },
         "responses" : {
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
           "200" : {
             "description" : "Replay completed",
             "content" : {
@@ -649,16 +659,6 @@
           },
           "404" : {
             "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -697,28 +697,18 @@
           "required" : true
         },
         "responses" : {
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
           "400" : {
             "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Credential not found",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -733,6 +723,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -757,16 +757,6 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
           "400" : {
             "description" : "Validation error",
             "content" : {
@@ -783,6 +773,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -1488,11 +1488,6 @@
             "description" : "Raw credential identifier",
             "example" : "Q2Jl...JfA"
           },
-          "format" : {
-            "type" : "string",
-            "description" : "Attestation format label",
-            "example" : "packed"
-          },
           "response" : {
             "$ref" : "#/components/schemas/WebAuthnGeneratedAttestationResponse"
           }
@@ -2155,6 +2150,23 @@
           }
         }
       },
+      "HotpReplayErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
       "HotpReplayMetadata" : {
         "type" : "object",
         "properties" : {
@@ -2198,23 +2210,6 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpReplayMetadata"
-          }
-        }
-      },
-      "HotpReplayErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "string"
-            }
           }
         }
       },

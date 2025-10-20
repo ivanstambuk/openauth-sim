@@ -157,38 +157,45 @@ _Last updated:_ 2025-10-18
 	 _2025-10-19 – Selenium checks already ensure presence of `"type": "public-key"`; inline panel renders the lean payload without regression._  
 	• Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2EvaluationEndpointTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon spotlessApply check`.  
 
-☐ **T2628 – Attestation private key format parity**  
+☑ **T2628 – Attestation private key format parity**  
 	☑ Replace Base64URL-only attestation private-key handling with shared loaders that accept JWK or PEM/PKCS#8 (matching assertions) while still supporting preset seeding.  
 	☑ Stack the credential and attestation private-key textareas vertically in the operator UI to match the assertion layout and remove horizontal scrolling.  
-	☐ Convert attestation fixture key material and manual-mode outputs to surface pretty-printed JWK representations; update REST/CLI/UI labels, DTO validation, and core/app services accordingly.  
-	☐ Refresh CLI/REST/UI tests, fixtures, and docs to reflect the new formats (including removal of the legacy Base64URL branches).  
-		_2025-10-19 – Parser in place: attestation generator now canonicalises JWK/PEM inputs via the shared `WebAuthnPrivateKeyParser`, attestation key textareas are stacked with additional spacing in the UI, and CLI/REST application layers plus request docs/tests cover PEM/JWK flows. Fixture exposure + UI updates remain._  
+		☑ Convert attestation fixture key material and manual-mode outputs to surface pretty-printed JWK representations; update REST/CLI/UI labels, DTO validation, and core/app services accordingly.  
+		☑ Refresh CLI/REST/UI tests, fixtures, and docs to reflect the new formats (including removal of the legacy Base64URL branches).  
+			_2025-10-19 – Fixture bundles now publish credential/attestation keys as structured JWK objects; the core loader infers canonical scalars from the JWK `d` field, and new coverage (`WebAuthnAttestationFixturesJwkFormattingTest`) guards key ordering._  
+			_2025-10-19 – CLI help/tests, REST MockMvc suites, and operator documentation switched to JWK inputs; `./gradlew spotlessApply check` verified the end-to-end change._  
   • Commands: (to be defined per subtask; expect targeted core/application/REST/CLI/UI suites plus `spotlessApply check`).  
 
-☐ **T2618 – Core Manual input source**  
- ☐ Stage failing unit tests for `WebAuthnAttestationGenerator` MANUAL mode (UNSIGNED/SELF_SIGNED/CUSTOM_ROOT across packed/fido-u2f/tpm/android-key).  
- ☐ Implement MANUAL mode without requiring `attestationId`; infer algorithm from key (pending Q5).  
- • Blocked by: Q1 (AAGUID default/override), Q2 (CUSTOM_ROOT chain length), Q5 (algorithm inference).
+☑ **T2618 – Core Manual input source**  
+ ☑ Stage failing unit tests for `WebAuthnAttestationGenerator` MANUAL mode (UNSIGNED/SELF_SIGNED/CUSTOM_ROOT across packed/fido-u2f/tpm/android-key).  
+  _2025-10-19 – Parameterized coverage in `WebAuthnAttestationGeneratorTest` drove UNSIGNED/SELF_SIGNED/CUSTOM_ROOT paths red prior to implementation; the suite now passes once manual mode wiring completes._  
+ ☑ Implement MANUAL mode without requiring `attestationId`; infer algorithm from key (pending Q5).  
+  _2025-10-19 – Manual generation rebuilds authenticator data, COSE public keys, attestation certificates, and signatures (supporting JWK/PEM parsing plus unsigned sanitization). Verification: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAttestationGeneratorTest"` (green)._  
 
-☐ **T2619 – Application service Manual wiring**  
- ☐ Accept `inputSource` (PRESET default, MANUAL allowed).  
- ☐ When MANUAL: bypass fixture validation, pass-through inputs, and emit telemetry fields {`inputSource`, optional `seedPresetId`, `overrides`}.  
+☑ **T2619 – Application service Manual wiring**  
+ ☑ Accept `inputSource` (PRESET default, MANUAL allowed).  
+ ☑ When MANUAL: bypass fixture validation, pass-through inputs, and emit telemetry fields {`inputSource`, optional `seedPresetId`, `overrides`}.  
+  _2025-10-19 – Manual telemetry coverage now verifies relying-party, AAGUID, and certificate fingerprint fields via `WebAuthnAttestationGenerationApplicationServiceManualTest`; `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationServiceManualTest"` passes after wiring the enrichment._  
+  _2025-10-20 – Inline generation defaults `inputSource=PRESET`, rejects manual overrides at the inline level, and telemetry asserts the preset/manual labels via `WebAuthnAttestationGenerationApplicationServiceTest`. Manual-mode DTO passthrough is exercised by `Fido2AttestationEndpointTest.manualInputSourceGeneratesAttestation`. Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService*"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`, `./gradlew --no-daemon spotlessApply check` (all green)._  
  • Blocked by: Q1, Q5.
 
-☐ **T2620 – REST inputSource + conditional validation**  
- ☐ Extend `WebAuthnAttestationGenerationRequest` with `inputSource` (PRESET|MANUAL).  
- ☐ PRESET → require `attestationId`; MANUAL → require format, rpId, origin, challenge, credential key; require UNSIGNED or attest key + serial (+ optional custom roots).  
- ☐ Reshape generation response to match assertion schema (`type`/`id`/`rawId` + nested `response` containing only `clientDataJSON` and `attestationObject`) and update OpenAPI snapshots/tests.  
- • Blocked by: Q1, Q2, Q5.
+☑ **T2620 – REST inputSource + conditional validation**  
+ ☑ Extend `WebAuthnAttestationGenerationRequest` with `inputSource` (PRESET|MANUAL).  
+ ☑ PRESET → require `attestationId`; MANUAL → require format, rpId, origin, challenge, credential key; require UNSIGNED or attest key + serial (+ optional custom roots).  
+ ☑ Reshape generation response to match assertion schema (`type`/`id`/`rawId` + nested `response` containing only `clientDataJSON` and `attestationObject`) and update OpenAPI snapshots/tests.  
+  _2025-10-20 – Completed: reject unsupported `inputSource` values with `input_source_invalid`, refreshed attestation endpoint tests, and reran `:rest-api:test` + `spotlessApply check`._  
+ • Blocked by: — (Clarifications resolved 2025-10-18).
 
-☐ **T2621 – UI auto-switch + Manual mode**  
- ☐ Detect overrides of challenge/RP ID/origin/credential+attestation keys/serial and flip to Manual; show a small “Manual” hint near Generate.  
- ☐ Send `inputSource=MANUAL` and omit `attestationId` when in Manual.  
- ☐ Render attestation results from the nested response object (clientDataJSON + attestationObject only), surfacing signature/certificate statistics via telemetry metadata.  
- ☐ Owner declined the “Copy preset ID” link; no additional action required.  
- • Blocked by: Q1.
+☑ **T2621 – UI auto-switch + Manual mode**  
+ ☑ Detect overrides of challenge/RP ID/origin/credential+attestation keys/serial and flip to Manual; show a small “Manual” hint near Generate.  
+ ☑ Send `inputSource=MANUAL` and omit `attestationId` when in Manual.  
+ ☑ Render attestation results from the nested response object (clientDataJSON + attestationObject only), surfacing signature/certificate statistics via telemetry metadata.  
+ ☑ Owner declined the “Copy preset ID” link; no additional action required.  
+  _2025-10-20 – Completed: attestation form now surfaces a live mode indicator (preset vs manual), auto-detects overrides, and Selenium verifies the toggle behaviour._  
+  • Blocked by: — (Clarifications resolved 2025-10-18).
 
-☐ **T2622 – CLI parity for Manual (if approved)**  
- ☐ Support `--input-source=manual` and required inputs, mirroring REST.  
- ☐ Tests mirroring REST application cases.  
- • Blocked by: Q4, Q5.
+☑ **T2622 – CLI parity for Manual**  
+ ☑ Extended Picocli options to accept `--input-source=manual` (plus `--seed-preset-id`/`--override`), enforced Manual-mode validation, and defaulted to presets.  
+ ☑ Added Manual success + missing-credential-key tests ahead of implementation (`Fido2CliAttestationTest`), then drove them green.  
+ ☑ Updated CLI usage strings and `docs/2-how-to/use-fido2-cli-operations.md` with Manual-mode guidance.  
+ ☑ Ran `./gradlew --no-daemon :cli:test` and `./gradlew --no-daemon spotlessApply check` (coverage guard satisfied after expanding Manual-mode tests).

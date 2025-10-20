@@ -21,8 +21,20 @@
       "signature_b64u": "MEUCIGDcdrFgfscWxuXrqNBWaV7WvEey49enKcNOdZ46tmqgAiEA0BCp6P3ctkxDnf3KYo3bM88kXVZ9FX2fZvlCYBvtmzg"
     },
     "key_material": {
-      "credential_private_key_b64u": "gMYIBeVk9tM-er3_nTLj2wmmIZ_jeKJo0jEHGRsY458",
-      "attestation_private_key_b64u": "YhDwngznWT6FGogKS93i0hkq_qxGEEq84aiQpacc8MY",
+      "credential_private_key": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "QSAmmMnZdT-0uz8nzQn-a4r9t2Q47irlTXydreENhks",
+        "y": "2HNRFc2zMKY-odbkPVAA9L1W-ZvOg-4dczAfwnARbQc",
+        "d": "gMYIBeVk9tM-er3_nTLj2wmmIZ_jeKJo0jEHGRsY458"
+      },
+      "attestation_private_key": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "xU4_EJCU9g12mbfbXYOFaf_R8-HJ6JfNnrQAY_lALj4",
+        "y": "mTfpNs8fzV63Q_9EPJerLtzXyODmz2z9QTuKsZ__p2k",
+        "d": "YhDwngznWT6FGogKS93i0hkq_qxGEEq84aiQpacc8MY"
+      },
       "attestation_cert_serial_b64u": "MR_ELaCrEMQ6mxvzp1404g"
     }
   }

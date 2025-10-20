@@ -1,7 +1,7 @@
 # Feature 026 – FIDO2/WebAuthn Attestation Support
 
-_Status: Proposed_  
-_Last updated: 2025-10-18_
+_Status: In Progress_  
+_Last updated: 2025-10-20_
 
 ## Overview
 Extend the simulator so it can generate and verify WebAuthn authenticator attestations in addition to assertions. The feature will deliver a full-stack slice—core attestation helpers, application services, CLI flows, REST endpoints, and operator UI affordances—so operators can exercise registration-style ceremonies alongside the existing assertion evaluation tooling.
@@ -38,6 +38,8 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - 2025-10-18 – Attestation private keys must accept the same formats as assertions (JWK or PEM/PKCS#8) and drop the Base64URL-only path; when seeding or returning attestation key material, expose JWK representations for parity (fixture JSON remains unchanged; decode during load). (User selected Option B.)
 - 2025-10-18 – Present preset attestation private keys as pretty-printed multi-line JWK JSON to improve operator readability while keeping fixtures canonical. (User selected Option B.)
 - 2025-10-19 – Stack the attestation credential and attestation private-key inputs vertically in the operator UI to match the assertion textarea layout and remove the horizontal scrollbar. (User confirmed.)
+- 2025-10-20 – The REST attestation endpoint rejects unsupported `inputSource` values with `input_source_invalid` while treating a blank/null field as the PRESET default for backwards compatibility.
+- 2025-10-20 – The operator UI auto-detects preset overrides, surfaces a Manual/Preset hint near Generate, and keeps manual submissions free of `attestationId` while still recording `seedPresetId`/`overrides` in telemetry.
 
 ## Scope
 - Implement attestation generation/verification helpers in `core` covering the targeted formats and leveraging existing COSE/JWK utilities.
@@ -67,11 +69,7 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - Preset with overrides switches to Manual automatically and honours edited inputs; telemetry records `seedPresetId` and `overrides`.
 
 ## Open Questions
-1. Manual inputs: Do we require an explicit AAGUID input for Manual mode, or may we default to a deterministic synthetic value per format? (Recommend: default synthetic with optional override.)
-2. Packed/TPM attestation certs: For Manual + CUSTOM_ROOT signing, is a chain of length ≥1 sufficient, or should we enforce root + leaf? (Recommend: length ≥1.)
-3. UI affordance: Would you like a visible “Copy preset ID” link next to the preset selector, or keep it hidden? (Recommend: add link.)
-4. CLI parity: Should CLI accept `--input-source=manual` with the same fields as REST? (Recommend: yes.)
-5. Default algorithm: When Manual mode is selected, should `algorithm` be inferred from the provided credential private key (preferred), or supplied explicitly as a separate field?
+None – the Manual-mode questions raised on 2025-10-17 and 2025-10-18 are resolved in the Clarifications list (deterministic AAGUID defaults, ≥1 certificate for CUSTOM_ROOT, no copy link for now, CLI parity approved, and algorithm inference from credential keys).
 
 ## Out of Scope
 - Persistent storage of attestation payloads via MapDB (deferred until broader credential import/export support exists for non-assertion authenticators).
@@ -82,6 +80,7 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - Core attestation helpers validate and emit attestation objects for the supported formats, with unit tests covering happy-path and failure cases (invalid signature, RP mismatch, unsupported alg).
 - Application services surface sanitized telemetry (`fido2.attest` and `fido2.attestReplay`) and reuse existing redaction policies.
 - CLI and REST interfaces expose generation and replay commands/endpoints with comprehensive coverage (MockMvc, Picocli, documentation snapshots).
+- CLI attestation generation must honour Manual versus Preset sources: default to Preset, accept `--input-source=manual`, enforce Manual-specific required fields (format, relying-party ID, origin, challenge, credential private key), infer algorithms from supplied keys, and reject `attestationId` unless echoing a preset reference solely for telemetry.
 - Operator UI displays an attestation-specific form, toggles cleanly between assertion and attestation workflows, and renders result cards with copy/download affordances.
 - Trust-anchor aware verification accepts optional anchor bundles (UI upload, CLI/REST parameter) and clearly reports when validation falls back to self-attested evaluation.
 - Fixture loaders/tests ingest W3C and synthetic attestation data, ensuring multi-format coverage in both generation and replay flows.
@@ -103,7 +102,7 @@ The following decisions were confirmed by the owner and apply to Manual generati
 2. Manual + CUSTOM_ROOT: Require certificate chain length ≥1 (at least one PEM certificate) (Option B).
 3. UI affordance: Initial decision (Option A) added a “Copy preset ID” link; owner rescinded on 2025-10-17, so the button is removed and presets remain implicit.
 4. Attestation response payloads must mirror WebAuthn assertions: the API returns `type`, `id`, and `rawId` alongside a nested `response` object containing only `clientDataJSON` and `attestationObject`. Remove `expectedChallenge`, certificate PEM payloads, and `signatureIncluded`; rely on telemetry metadata for signature and certificate counts. Update REST, CLI, and UI formatting plus OpenAPI/docs accordingly.
-4. CLI parity: Support `--input-source=manual` mirroring REST (Option A).
-5. Manual algorithm: Infer algorithm from the supplied credential key; error if undecidable (Option B).
+5. CLI parity: Support `--input-source=manual` mirroring REST (Option A).
+6. Manual algorithm inference: Infer algorithm from the supplied credential key; error if undecidable (Option B). Manual CLI submissions omit `attestationId`, require the same field set as REST (format, relying-party ID, origin, challenge, credential key), and accept optional attestation keys/serials when the signing mode mandates them; telemetry captures `seedPresetId`/`overrides` when operators blend presets with overrides.
 
 Capture `inputSource`, optional `seedPresetId`, and `overrides` (set of edited fields) in telemetry for preset-with-overrides. REST/CLI validation must follow these decisions.

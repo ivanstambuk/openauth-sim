@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-026-fido2-attestation-support.md`  
 _Status:_ In Progress  
-_Last updated:_ 2025-10-18
+_Last updated:_ 2025-10-20
 
 ## Vision & Success Criteria
 - Provide end-to-end attestation generation and verification across core, application services, CLI, REST API, and operator UI, mirroring the existing assertion workflow.
@@ -26,7 +26,7 @@ _Last updated:_ 2025-10-18
 - Trust anchor handling must accept inline PEM bundles and prepare for optional MDS-sourced metadata without introducing external network calls.
 
 ## Increment Breakdown (≤10 min each)
-_2025-10-19 – Active increment: T2628 now reuses `WebAuthnPrivateKeyParser` across application/CLI/REST so attestation generation accepts JWK and PEM/PKCS#8 inputs; next steps convert presets/UI bindings to multi-line JWK output and remove legacy Base64URL branches. Latest directives: drop `attestationId` from all user-facing JSON responses while retaining telemetry coverage; attestation key textareas have been stacked to eliminate horizontal scrolling._
+_2025-10-19 – T2628 closed: fixture key material now ships as structured JWK objects, the core loader derives canonical scalars from the JWK `d` field, CLI/REST/UI inputs reject legacy Base64-only keys, and `./gradlew spotlessApply check` verified the change. Manual-mode increments (T2618–T2622) remain next up._
 1. **I1 – Fixture + test scaffolding**  
    - Convert targeted W3C and synthetic attestation vectors into per-format JSON fixtures under `docs/webauthn_attestation/` (`packed.json`, `fido-u2f.json`, `tpm.json`, `android-key.json`).  
    - Add failing core tests for attestation generation/verification covering the four formats (happy path + invalid cases) using `WebAuthnAttestationFixtures`.  
@@ -179,23 +179,40 @@ _2025-10-19 – Active increment: T2628 now reuses `WebAuthnPrivateKeyParser` ac
 2. I20 – Core Manual input source (tests first)
    - Add `inputSource` to generator commands with a `MANUAL` path that does not require `attestationId`.
    - Stage failing tests for UNSIGNED, SELF_SIGNED, CUSTOM_ROOT across packed/fido-u2f/tpm/android-key.
+     - _2025-10-19 – Parameterized coverage added in `WebAuthnAttestationGeneratorTest`, asserting unsigned attStmt sanitization and successful verification for self-signed/custom-root manual flows. Command: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAttestationGeneratorTest"` (currently red pending implementation)._
    - Implement server-generated random Base64URL credential IDs for Manual runs with optional override (Base64URL validation, blank → random).
+     - _2025-10-19 – Manual generation implemented: generator now derives EC key material from JWK/PEM scalars, rebuilds authenticator data, COSE public keys, and emits attestation statements (including TPM `certInfo` regeneration). Self-signed, custom-root, and unsigned paths exercised by `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAttestationGeneratorTest"` (green)._ 
    - Blocked by: Q1, Q2, Q5.
 3. I21 – Application service wiring
    - Accept `inputSource` (default PRESET) and pass-through for MANUAL; add telemetry fields `inputSource`, optional `seedPresetId`, and `overrides` set.
-   - Blocked by: Q1, Q5.
+     - _2025-10-19 – `GenerationCommand` now exposes `inputSource`; inline commands default to PRESET, manual commands force MANUAL, and telemetry enrichment covers relying-party, AAGUID, and certificate fingerprint fields._
+   - Remaining: propagate `inputSource` through REST/CLI DTOs and manual override detection so callers can select MANUAL without hand-crafting commands.
 4. I22 – REST DTO/service/controller
    - Extend request with `inputSource` (PRESET|MANUAL) and conditional validation (attestationId required only for PRESET).
    - Reshape generation response to align with WebAuthn assertions (`type`/`id`/`rawId` + nested `response` containing only `clientDataJSON` and `attestationObject`); update OpenAPI snapshots and endpoint tests.
    - Blocked by: Q1, Q2, Q5.
+   - _2025-10-20 – Completed: enforced `input_source_invalid` validation, expanded attestation endpoint coverage, and reran targeted REST + spotless checks._
 5. I23 – UI auto-switch to Manual
    - Detect overrides (challenge, RP ID, origin, credential/attestation keys, serial) and flip to Manual; send `inputSource=MANUAL` and omit `attestationId`.
    - Render attestation results using the nested response object shape (clientDataJSON + attestationObject only) while surfacing signature/certificate statistics from telemetry.
    - Owner declined the “Copy preset ID” link; no additional affordance required.
    - Blocked by: Q1.
-6. I24 – CLI parity (if approved)
-   - Add `--input-source=manual` and required inputs mirroring REST; update help and tests.
-   - Blocked by: Q4, Q5.
+   - _2025-10-20 – Completed: operator console detects preset overrides, surfaces a live Manual/Preset hint, keeps Manual calls free of `attestationId`, and Selenium captures the mode toggling behaviour (T2621)._
+6. I24 – CLI parity (Manual source)
+   - Stage failing Picocli tests for Manual generation (one green-path run + validation errors for missing manual required fields and unsupported input-source values).
+   - Parse `--input-source` in `Fido2Cli.AttestCommand`, defaulting to PRESET; when Manual is requested, bypass preset lookups, enforce manual-required options, and propagate overrides metadata to telemetry.
+   - Refresh `fido2` help output and operator documentation (`docs/2-how-to/use-fido2-cli-operations.md`) to describe Manual mode inputs.
+   - Commands: `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationTest"` (expect red until implementation), `./gradlew --no-daemon :cli:test`, `./gradlew --no-daemon spotlessApply check`.
+   - _2025-10-20 – Completed: Added Manual-mode CLI tests (success + missing-key validation), wired `--input-source`, `--seed-preset-id`, and `--override` handling into `Fido2Cli`, refreshed the how-to guide, and verified `./gradlew --no-daemon :cli:test`. Full `./gradlew --no-daemon spotlessApply check` now passes after extending Manual-mode coverage._
+
+## Analysis Gate (2025-10-20)
+- **Specification completeness** – Objectives, requirements, and clarifications are current; manual-mode decisions (AAGUID defaults, input validation, telemetry fields) are reflected in `feature-026-fido2-attestation-support.md`.
+- **Open questions review** – No open entries remain for Feature 026 in `open-questions.md`.
+- **Plan alignment** – Plan references the active spec/tasks, and dependencies/success criteria mirror the specification wording (Manual vs Preset flow, telemetry scope).
+- **Tasks coverage** – Tasks cover every requirement, sequence failing tests before implementation, and keep increments under ten minutes (T2618–T2622 documented as such).
+- **Constitution compliance** – Work adheres to spec-first, clarification gate, test-first, documentation sync, and straight-line control-flow principles; no dependency changes introduced.
+- **Tooling readiness** – Plan/tasks record required commands (`./gradlew --no-daemon :cli:test`, `./gradlew --no-daemon spotlessApply check`) and reference existing Feature 015 dead-state enforcement; latest runs completed successfully on 2025-10-20.
+- **Outcome** – Checklist satisfied; proceed with remaining closure tasks (documentation roll-up + final owner sign-off).
 
 ## Telemetry & Observability
 - Add `fido2.attest` and `fido2.attestReplay` adapters capturing attestation format, RP ID, authenticator AAGUID, certificate SHA-256 fingerprint, anchor source (self-attested vs provided), and validity status.  

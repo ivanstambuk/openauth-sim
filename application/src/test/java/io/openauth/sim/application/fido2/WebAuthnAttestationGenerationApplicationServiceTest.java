@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService.GeneratedAttestation;
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService.GenerationCommand;
+import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService.GenerationCommand.InputSource;
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService.GenerationResult;
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService.TelemetrySignal;
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService.TelemetryStatus;
@@ -94,6 +95,7 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
         assertEquals(true, result.telemetry().fields().get("signatureIncluded"));
         assertEquals(1, telemetry.fields().get("certificateChainCount"));
         assertEquals(expectedCertificateChain, result.certificateChainPem());
+        assertEquals("preset", telemetry.fields().get("inputSource"));
 
         assertNotNull(telemetry);
         assertEquals(TelemetryStatus.SUCCESS, telemetry.status());
@@ -116,7 +118,8 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
                 vector.keyMaterial().attestationCertificateSerialBase64Url(),
                 SigningMode.UNSIGNED,
                 List.of(),
-                "");
+                "",
+                InputSource.PRESET);
 
         GenerationResult result = service.generate(command);
 
@@ -148,7 +151,8 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
                 vector.keyMaterial().attestationCertificateSerialBase64Url(),
                 SigningMode.CUSTOM_ROOT,
                 List.of(rootPem),
-                "inline");
+                "inline",
+                InputSource.PRESET);
 
         GenerationResult result = service.generate(command);
 
@@ -173,7 +177,8 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
                 vector.keyMaterial().attestationCertificateSerialBase64Url(),
                 SigningMode.CUSTOM_ROOT,
                 List.of(),
-                "");
+                "",
+                InputSource.PRESET);
 
         assertThrows(IllegalArgumentException.class, () -> service.generate(command));
     }
@@ -191,7 +196,8 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
                 vector.keyMaterial().attestationCertificateSerialBase64Url(),
                 SigningMode.SELF_SIGNED,
                 List.of(),
-                "");
+                "",
+                InputSource.PRESET);
 
         assertThrows(IllegalArgumentException.class, () -> service.generate(command));
     }
@@ -239,12 +245,32 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
                 vector.keyMaterial().attestationCertificateSerialBase64Url(),
                 SigningMode.SELF_SIGNED,
                 List.of(),
-                "");
+                "",
+                InputSource.PRESET);
 
         GenerationResult result = service.generate(command);
         GeneratedAttestation attestation = result.attestation();
         assertEquals(expectedAttestation, attestation.response().attestationObject());
         assertEquals(expectedClientData, attestation.response().clientDataJson());
+    }
+
+    @Test
+    void inlineManualInputSourceRejected() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new GenerationCommand.Inline(
+                        vector.vectorId(),
+                        vector.format(),
+                        vector.relyingPartyId(),
+                        vector.origin(),
+                        vector.registration().challenge(),
+                        vector.keyMaterial().credentialPrivateKeyJwk(),
+                        vector.keyMaterial().attestationPrivateKeyJwk(),
+                        vector.keyMaterial().attestationCertificateSerialBase64Url(),
+                        SigningMode.SELF_SIGNED,
+                        List.of(),
+                        "",
+                        InputSource.MANUAL));
     }
 
     private GenerationCommand.Inline selfSignedCommand() {
@@ -259,7 +285,8 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
                 vector.keyMaterial().attestationCertificateSerialBase64Url(),
                 SigningMode.SELF_SIGNED,
                 List.of(),
-                "");
+                "",
+                InputSource.PRESET);
     }
 
     private GenerationCommand.Inline selfSignedPemCommand() throws GeneralSecurityException {
@@ -274,7 +301,8 @@ final class WebAuthnAttestationGenerationApplicationServiceTest {
                 vector.keyMaterial().attestationCertificateSerialBase64Url(),
                 SigningMode.SELF_SIGNED,
                 List.of(),
-                "");
+                "",
+                InputSource.PRESET);
     }
 
     /** Helper bridging generator fixtures for certificate expectations. */
