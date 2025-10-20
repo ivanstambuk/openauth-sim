@@ -205,6 +205,10 @@ _2025-10-19 – T2628 closed: fixture key material now ships as structured JWK o
    - Refresh `fido2` help output and operator documentation (`docs/2-how-to/use-fido2-cli-operations.md`) to describe Manual mode inputs.
    - Commands: `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationTest"` (expect red until implementation), `./gradlew --no-daemon :cli:test`, `./gradlew --no-daemon spotlessApply check`.
    - _2025-10-20 – Completed: Added Manual-mode CLI tests (success + missing-key validation), wired `--input-source`, `--seed-preset-id`, and `--override` handling into `Fido2Cli`, refreshed the how-to guide, and verified `./gradlew --no-daemon :cli:test`. Full `./gradlew --no-daemon spotlessApply check` now passes after extending Manual-mode coverage._
+7. I25 – Attestation preset label harmonisation
+   - Update attestation vector labels exposed to the operator console to follow the `<algorithm> (format, W3C <section>)` pattern, with an origin fallback when no W3C section is defined.
+   - Extend controller/UI tests to assert the new label formatting so regressions surface quickly.
+   - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiControllerAttestationTest"` and targeted Selenium runs as needed, followed by `./gradlew --no-daemon spotlessApply check`.
 
 ## Analysis Gate (2025-10-20)
 - **Specification completeness** – Objectives, requirements, and clarifications are current; manual-mode decisions (AAGUID defaults, input validation, telemetry fields) are reflected in `feature-026-fido2-attestation-support.md`.

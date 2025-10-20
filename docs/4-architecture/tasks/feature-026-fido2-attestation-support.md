@@ -196,7 +196,13 @@ _Last updated:_ 2025-10-18
   • Blocked by: — (Clarifications resolved 2025-10-18).
 
 ☑ **T2622 – CLI parity for Manual**  
- ☑ Extended Picocli options to accept `--input-source=manual` (plus `--seed-preset-id`/`--override`), enforced Manual-mode validation, and defaulted to presets.  
- ☑ Added Manual success + missing-credential-key tests ahead of implementation (`Fido2CliAttestationTest`), then drove them green.  
- ☑ Updated CLI usage strings and `docs/2-how-to/use-fido2-cli-operations.md` with Manual-mode guidance.  
- ☑ Ran `./gradlew --no-daemon :cli:test` and `./gradlew --no-daemon spotlessApply check` (coverage guard satisfied after expanding Manual-mode tests).
+	☑ Extended Picocli options to accept `--input-source=manual` (plus `--seed-preset-id`/`--override`), enforced Manual-mode validation, and defaulted to presets.  
+	☑ Added Manual success + missing-credential-key tests ahead of implementation (`Fido2CliAttestationTest`), then drove them green.  
+	☑ Updated CLI usage strings and `docs/2-how-to/use-fido2-cli-operations.md` with Manual-mode guidance.  
+	☑ Ran `./gradlew --no-daemon :cli:test` and `./gradlew --no-daemon spotlessApply check` (coverage guard satisfied after expanding Manual-mode tests).
+
+☑ **T2630 – Attestation preset label harmonisation**  
+ ☑ Update `OcraOperatorUiController` attestation label builder to emit `<algorithm> (format, W3C <section>)` with origin fallback when no section exists.  
+ ☑ Extend `OcraOperatorUiControllerAttestationTest` (or similar unit coverage) to assert the new label for the packed ES256 vector.  
+ ☑ Run `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiControllerAttestationTest"` and `./gradlew --no-daemon spotlessApply check`.  
+  _2025-10-20 – Updated label builder, added JSON assertion coverage for the packed ES256 vector, reran targeted `:rest-api:test` plus full `spotlessApply check` (second invocation required an extended timeout)._ 

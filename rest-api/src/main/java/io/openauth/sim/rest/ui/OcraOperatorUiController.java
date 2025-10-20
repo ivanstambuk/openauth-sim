@@ -182,14 +182,38 @@ final class OcraOperatorUiController {
     }
 
     private static String buildAttestationLabel(WebAuthnAttestationVector vector) {
-        String title = vector.title();
-        String base = (title != null && !title.isBlank()) ? title.trim() : vector.vectorId();
         String algorithmLabel =
-                vector.algorithm() == null ? "" : vector.algorithm().label();
-        if (!algorithmLabel.isBlank()) {
-            return base + " (" + vector.format().label() + " · " + algorithmLabel + ")";
+                vector.algorithm() == null ? "" : safeTrim(vector.algorithm().label());
+        String formatLabel =
+                vector.format() == null ? "" : safeTrim(vector.format().label());
+        String w3cSection = safeTrim(vector.w3cSection());
+        String origin = safeTrim(vector.origin());
+        String fallbackTitle = safeTrim(vector.title());
+        if (fallbackTitle.isBlank()) {
+            fallbackTitle = safeTrim(vector.vectorId());
         }
-        return base + " (" + vector.format().label() + ")";
+
+        String prefix = algorithmLabel.isBlank() ? fallbackTitle : algorithmLabel;
+        if (prefix.isBlank()) {
+            prefix = "attestation";
+        }
+
+        StringBuilder suffix = new StringBuilder();
+        suffix.append(formatLabel.isBlank() ? "unknown-format" : formatLabel);
+        String descriptor = null;
+        if (!w3cSection.isBlank()) {
+            descriptor = "W3C " + w3cSection;
+        } else if (!origin.isBlank()) {
+            descriptor = origin;
+        }
+        if (descriptor != null && !descriptor.isBlank()) {
+            suffix.append(", ").append(descriptor);
+        }
+        return prefix + " (" + suffix + ")";
+    }
+
+    private static String safeTrim(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private static String encodeBase64Url(byte[] value) {
