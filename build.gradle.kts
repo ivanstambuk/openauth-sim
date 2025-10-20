@@ -137,6 +137,7 @@ subprojects {
     }
 
     extensions.configure<SpotBugsExtension> {
+        toolVersion.set("4.9.6")
         effort.set(Effort.MAX)
         reportLevel.set(Confidence.LOW)
         includeFilter.set(rootProject.layout.projectDirectory.file("config/spotbugs/dead-state-include.xml"))
@@ -149,13 +150,13 @@ subprojects {
     configurations.configureEach {
         resolutionStrategy.failOnVersionConflict()
         resolutionStrategy.force(
-            "com.google.guava:guava:33.5.0-jre",
+            "com.google.guava:guava:33.4.0-jre",
             "com.google.errorprone:error_prone_annotations:${libsCatalog.version("errorprone")}",
             "org.checkerframework:checker-qual:3.51.1",
             "org.codehaus.plexus:plexus-utils:4.0.2",
             "org.apache.commons:commons-lang3:3.19.0",
             "org.apache.httpcomponents:httpcore:4.4.16",
-            "org.slf4j:slf4j-api:2.0.17",
+            "org.slf4j:slf4j-api:2.0.13",
             "commons-codec:commons-codec:1.19.0",
             "com.palantir.javaformat:palantir-java-format:${libsCatalog.version("palantirJavaFormat")}",
             "com.github.ben-manes.caffeine:caffeine:${libsCatalog.version("caffeine")}",
@@ -166,8 +167,8 @@ subprojects {
             "org.junit.platform:junit-platform-commons:$junitPlatformVersion",
             "org.junit.platform:junit-platform-engine:$junitPlatformVersion",
             "org.junit.platform:junit-platform-launcher:$junitPlatformVersion",
-            "io.micrometer:micrometer-observation:1.15.5",
-            "io.micrometer:micrometer-commons:1.15.5",
+            "io.micrometer:micrometer-observation:1.13.4",
+            "io.micrometer:micrometer-commons:1.13.4",
             "net.bytebuddy:byte-buddy:1.17.7",
             "net.bytebuddy:byte-buddy-agent:1.17.7",
             "org.hamcrest:hamcrest:3.0",

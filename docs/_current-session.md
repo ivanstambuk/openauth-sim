@@ -6,10 +6,10 @@
 - Date: 2025-10-20
 - Primary branch: `main`
 - Other active branches: none
-- Last green commands: `./gradlew --no-daemon :cli:test` (2025-10-20) and `./gradlew --no-daemon spotlessApply check` (2025-10-20) after expanding CLI Manual-mode coverage.
-- Build status: Workspace green with CLI Manual-mode increments merged; Spotless + Jacoco verification succeeded on 2025-10-20.
+- Last green commands: `./gradlew --no-daemon build` (2025-10-20), `./gradlew --no-daemon :cli:test` (2025-10-20), and `./gradlew --no-daemon spotlessApply check` (2025-10-20) after expanding CLI Manual-mode coverage.
+- Build status: Workspace green; dependency forces realigned with existing Gradle locks and `./gradlew --no-daemon build` now completes successfully (2025-10-20).
 - Quality gate note: Additional CLI tests restored Jacoco branch coverage ≥0.70; no remaining blockers before analysis gate.
-- Outstanding git state: Feature 031 documentation refresh remains staged; Palantir reformat has landed and all formatter docs/roadmap updates are committed locally.
+- Outstanding git state: Uncommitted dependency-alignment edits in `build.gradle.kts`, `gradle/libs.versions.toml`, and `rest-api/build.gradle.kts` (2025-10-20); Feature 031 documentation refresh remains staged elsewhere.
 
 ## Workstream Summary
 | Workstream | Status | Last Increment | Next Increment | Notes |
