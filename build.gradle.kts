@@ -149,7 +149,7 @@ subprojects {
     configurations.configureEach {
         resolutionStrategy.failOnVersionConflict()
         resolutionStrategy.force(
-            "com.google.guava:guava:33.4.0-jre",
+            "com.google.guava:guava:33.5.0-jre",
             "com.google.errorprone:error_prone_annotations:${libsCatalog.version("errorprone")}",
             "org.checkerframework:checker-qual:3.51.1",
             "org.codehaus.plexus:plexus-utils:4.0.2",
