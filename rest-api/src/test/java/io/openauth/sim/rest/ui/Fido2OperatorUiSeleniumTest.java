@@ -462,8 +462,8 @@ final class Fido2OperatorUiSeleniumTest {
         WebElement certificateSerialField = waitFor(By.id("fido2AttestationSerial"));
         WebElement signingModeSelect = waitFor(By.id("fido2AttestationSigningMode"));
         WebElement customRootField = waitFor(By.id("fido2AttestationCustomRoot"));
-        assertThat(credentialKeyField.getAttribute("rows")).isEqualTo("6");
-        assertThat(attestationKeyField.getAttribute("rows")).isEqualTo("6");
+        assertThat(credentialKeyField.getAttribute("rows")).isEqualTo("8");
+        assertThat(attestationKeyField.getAttribute("rows")).isEqualTo("8");
         assertThat(certificateSerialField.getAttribute("rows")).isEqualTo("2");
         assertThat(signingModeSelect.getTagName()).isEqualTo("select");
         assertThat(customRootField.getAttribute("rows")).isEqualTo("6");

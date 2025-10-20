@@ -38,6 +38,7 @@ _Last updated:_ 2025-10-18
   _2025-10-16 – Added Selenium expectations for the attestation toggle, inline-only lock, payload inputs, and trust-anchor helper in `rest-api/src/test/java/io/openauth/sim/rest/ui/Fido2OperatorUiSeleniumTest.java`. Confirmed they fail via `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestation*"` (NoSuchElement for new attestation selectors, as expected)._  
  ☑ Implement Evaluate tab toggle, attestation form fields, and result card updates.  
   _2025-10-16 – Wired the ceremony toggle and attestation inline form in `rest-api/src/main/resources/templates/ui/fido2/panel.html`, locking stored evaluation + exposing trust-anchor guidance, with corresponding controller/model wiring and console.js state machine updates. Selenium coverage now passes via `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestation*"`._  
+  _2025-10-20 – Adjusted credential/attestation private-key text-area heights so EC JWK presets render without scrollbars, improving manual edit ergonomics._  
 
 ☑ **T2607 – Operator UI Replay attestation support**  
  ☑ Add failing Selenium tests covering attestation replay verification (inline-only) and error messaging.  

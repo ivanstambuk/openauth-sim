@@ -198,6 +198,7 @@ _2025-10-19 – T2628 closed: fixture key material now ships as structured JWK o
    - Owner declined the “Copy preset ID” link; no additional affordance required.
    - Blocked by: Q1.
    - _2025-10-20 – Completed: operator console detects preset overrides, surfaces a live Manual/Preset hint, keeps Manual calls free of `attestationId`, and Selenium captures the mode toggling behaviour (T2621)._
+   - _2025-10-20 – Follow-up: increase default height of credential/attestation private-key text areas so EC JWK payloads show without scrollbars._
 6. I24 – CLI parity (Manual source)
    - Stage failing Picocli tests for Manual generation (one green-path run + validation errors for missing manual required fields and unsupported input-source values).
    - Parse `--input-source` in `Fido2Cli.AttestCommand`, defaulting to PRESET; when Manual is requested, bypass preset lookups, enforce manual-required options, and propagate overrides metadata to telemetry.

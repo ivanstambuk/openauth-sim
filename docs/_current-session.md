@@ -9,7 +9,7 @@
 - Last green commands: `./gradlew --no-daemon build` (2025-10-20), `./gradlew --no-daemon :cli:test` (2025-10-20), and `./gradlew --no-daemon spotlessApply check` (2025-10-20) after expanding CLI Manual-mode coverage.
 - Build status: Workspace green; dependency forces realigned with existing Gradle locks and `./gradlew --no-daemon build` now completes successfully (2025-10-20).
 - Quality gate note: Additional CLI tests restored Jacoco branch coverage ≥0.70; no remaining blockers before analysis gate.
-- Outstanding git state: None (workspace clean on `main`, 2025-10-20); Feature 031 documentation refresh remains staged elsewhere.
+- Outstanding git state: In-progress attestation UI ergonomics tweak (text-area height + Selenium expectation) pending review on `main` (2025-10-20); Feature 031 documentation refresh remains staged elsewhere.
 
 ## Workstream Summary
 | Workstream | Status | Last Increment | Next Increment | Notes |
