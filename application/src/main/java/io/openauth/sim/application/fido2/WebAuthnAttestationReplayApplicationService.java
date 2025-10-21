@@ -2,11 +2,22 @@ package io.openauth.sim.application.fido2;
 
 import io.openauth.sim.application.telemetry.Fido2TelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.core.fido2.WebAuthnAttestationCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.fido2.WebAuthnVerificationError;
+import io.openauth.sim.core.model.Credential;
+import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,15 +29,85 @@ public final class WebAuthnAttestationReplayApplicationService {
 
     private final WebAuthnAttestationVerifier verifier;
     private final Fido2TelemetryAdapter telemetryAdapter;
+    private final CredentialStore credentialStore;
+    private final WebAuthnCredentialPersistenceAdapter persistenceAdapter;
+    private static final String ATTR_ATTESTATION_ENABLED_KEY = "fido2.attestation.enabled";
+
+    public WebAuthnAttestationReplayApplicationService(
+            WebAuthnAttestationVerifier verifier,
+            Fido2TelemetryAdapter telemetryAdapter,
+            CredentialStore credentialStore,
+            WebAuthnCredentialPersistenceAdapter persistenceAdapter) {
+        this.verifier = Objects.requireNonNull(verifier, "verifier");
+        this.telemetryAdapter = Objects.requireNonNull(telemetryAdapter, "telemetryAdapter");
+        if ((credentialStore == null) != (persistenceAdapter == null)) {
+            throw new IllegalArgumentException(
+                    "credentialStore and persistenceAdapter must both be provided or both be null");
+        }
+        this.credentialStore = credentialStore;
+        this.persistenceAdapter = persistenceAdapter;
+    }
 
     public WebAuthnAttestationReplayApplicationService(
             WebAuthnAttestationVerifier verifier, Fido2TelemetryAdapter telemetryAdapter) {
-        this.verifier = Objects.requireNonNull(verifier, "verifier");
-        this.telemetryAdapter = Objects.requireNonNull(telemetryAdapter, "telemetryAdapter");
+        this(verifier, telemetryAdapter, null, null);
+    }
+
+    public WebAuthnAttestationReplayApplicationService() {
+        this(new WebAuthnAttestationVerifier(), new Fido2TelemetryAdapter("fido2.attestReplay"), null, null);
     }
 
     public ReplayResult replay(ReplayCommand command) {
         Objects.requireNonNull(command, "command");
+
+        ReplayCommand telemetryCommand = command;
+        String telemetryInputSource = "inline";
+        String telemetryStoredCredentialId = null;
+
+        if (command instanceof ReplayCommand.Stored stored) {
+            if (credentialStore == null || persistenceAdapter == null) {
+                throw new IllegalStateException("Stored attestation replay requires a credential store");
+            }
+
+            Credential credential = credentialStore
+                    .findByName(stored.credentialName())
+                    .orElseThrow(() -> new IllegalArgumentException("Stored credential not found"));
+
+            var record = VersionedCredentialRecordMapper.toRecord(credential);
+            if (!"true".equals(record.attributes().get(ATTR_ATTESTATION_ENABLED_KEY))) {
+                throw new IllegalArgumentException("Stored credential does not contain attestation metadata");
+            }
+
+            WebAuthnAttestationCredentialDescriptor descriptor = persistenceAdapter.deserializeAttestation(record);
+
+            byte[] attestationObject =
+                    decodeBase64Attribute(record.attributes(), "fido2.attestation.stored.attestationObject");
+            byte[] clientDataJson =
+                    decodeBase64Attribute(record.attributes(), "fido2.attestation.stored.clientDataJson");
+            byte[] expectedChallenge =
+                    decodeBase64Attribute(record.attributes(), "fido2.attestation.stored.expectedChallenge");
+
+            List<X509Certificate> trustAnchors = decodeCertificates(descriptor.certificateChainPem());
+
+            ReplayCommand.Inline inline = new ReplayCommand.Inline(
+                    descriptor.attestationId(),
+                    descriptor.format(),
+                    descriptor.credentialDescriptor().relyingPartyId(),
+                    descriptor.origin(),
+                    attestationObject,
+                    clientDataJson,
+                    expectedChallenge,
+                    trustAnchors,
+                    false,
+                    WebAuthnTrustAnchorResolver.Source.MANUAL,
+                    null,
+                    List.of());
+
+            command = inline;
+            telemetryCommand = inline;
+            telemetryInputSource = "stored";
+            telemetryStoredCredentialId = descriptor.name();
+        }
 
         WebAuthnAttestationServiceSupport.Outcome outcome = WebAuthnAttestationServiceSupport.process(
                 verifier,
@@ -42,12 +123,14 @@ public final class WebAuthnAttestationReplayApplicationService {
                 command.trustAnchorsCached(),
                 command.trustAnchorMetadataEntryId());
 
+        Map<String, Object> telemetryFields = new LinkedHashMap<>(outcome.telemetryFields());
+        telemetryFields.put("inputSource", telemetryInputSource);
+        if (telemetryStoredCredentialId != null) {
+            telemetryFields.put("storedCredentialId", telemetryStoredCredentialId);
+        }
+
         TelemetrySignal telemetry = new TelemetrySignal(
-                toTelemetryStatus(outcome.status()),
-                outcome.reasonCode(),
-                outcome.reason(),
-                true,
-                outcome.telemetryFields());
+                toTelemetryStatus(outcome.status()), outcome.reasonCode(), outcome.reason(), true, telemetryFields);
 
         Optional<AttestedCredential> attestedCredential = outcome.credential()
                 .map(data -> new AttestedCredential(
@@ -70,7 +153,7 @@ public final class WebAuthnAttestationReplayApplicationService {
                 command.trustAnchorWarnings());
     }
 
-    public sealed interface ReplayCommand permits ReplayCommand.Inline {
+    public sealed interface ReplayCommand permits ReplayCommand.Inline, ReplayCommand.Stored {
 
         String attestationId();
 
@@ -145,6 +228,78 @@ public final class WebAuthnAttestationReplayApplicationService {
             @Override
             public byte[] expectedChallenge() {
                 return expectedChallenge.clone();
+            }
+        }
+
+        record Stored(String credentialName, WebAuthnAttestationFormat format) implements ReplayCommand {
+
+            public Stored {
+                credentialName =
+                        Objects.requireNonNull(credentialName, "credentialName").trim();
+                if (credentialName.isEmpty()) {
+                    throw new IllegalArgumentException("credentialName must not be blank");
+                }
+                format = Objects.requireNonNull(format, "format");
+            }
+
+            @Override
+            public String attestationId() {
+                return credentialName;
+            }
+
+            @Override
+            public WebAuthnAttestationFormat format() {
+                return format;
+            }
+
+            @Override
+            public String relyingPartyId() {
+                return "";
+            }
+
+            @Override
+            public String origin() {
+                return "";
+            }
+
+            @Override
+            public byte[] attestationObject() {
+                return new byte[0];
+            }
+
+            @Override
+            public byte[] clientDataJson() {
+                return new byte[0];
+            }
+
+            @Override
+            public byte[] expectedChallenge() {
+                return new byte[0];
+            }
+
+            @Override
+            public List<X509Certificate> trustAnchors() {
+                return List.of();
+            }
+
+            @Override
+            public boolean trustAnchorsCached() {
+                return false;
+            }
+
+            @Override
+            public WebAuthnTrustAnchorResolver.Source trustAnchorSource() {
+                return WebAuthnTrustAnchorResolver.Source.NONE;
+            }
+
+            @Override
+            public String trustAnchorMetadataEntryId() {
+                return null;
+            }
+
+            @Override
+            public List<String> trustAnchorWarnings() {
+                return List.of();
             }
         }
     }
@@ -230,5 +385,43 @@ public final class WebAuthnAttestationReplayApplicationService {
             case INVALID -> TelemetryStatus.INVALID;
             case ERROR -> TelemetryStatus.ERROR;
         };
+    }
+
+    private static byte[] decodeBase64Attribute(Map<String, String> attributes, String key) {
+        String value = attributes.get(key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Stored attestation is missing required attribute: " + key);
+        }
+        try {
+            return Base64.getUrlDecoder().decode(value);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(
+                    "Stored attestation attribute " + key + " must be Base64URL encoded", ex);
+        }
+    }
+
+    private static List<X509Certificate> decodeCertificates(List<String> pemCertificates) {
+        if (pemCertificates == null || pemCertificates.isEmpty()) {
+            return List.of();
+        }
+        CertificateFactory factory;
+        try {
+            factory = CertificateFactory.getInstance("X.509");
+        } catch (CertificateException ex) {
+            throw new IllegalStateException("Unable to create certificate factory", ex);
+        }
+        List<X509Certificate> certificates = new ArrayList<>();
+        for (String pem : pemCertificates) {
+            if (pem == null || pem.trim().isEmpty()) {
+                continue;
+            }
+            try {
+                ByteArrayInputStream input = new ByteArrayInputStream(pem.getBytes(StandardCharsets.US_ASCII));
+                certificates.add((X509Certificate) factory.generateCertificate(input));
+            } catch (CertificateException ex) {
+                throw new IllegalArgumentException("Unable to parse stored attestation certificate chain", ex);
+            }
+        }
+        return List.copyOf(certificates);
     }
 }

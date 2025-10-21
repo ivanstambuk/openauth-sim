@@ -11,7 +11,7 @@ record WebAuthnAttestationGenerationRequest(
         @Schema(
                 description = "Input source selection",
                 example = "PRESET",
-                allowableValues = {"PRESET", "MANUAL"})
+                allowableValues = {"PRESET", "MANUAL", "STORED"})
         @JsonProperty("inputSource")
         String inputSource,
 
@@ -30,6 +30,10 @@ record WebAuthnAttestationGenerationRequest(
 
         @Schema(description = "Challenge encoded as Base64URL") @JsonProperty("challenge")
         String challenge,
+
+        @Schema(description = "Stored credential identifier", example = "stored-packed-es256")
+        @JsonProperty("credentialId")
+        String credentialId,
 
         @Schema(description = "Credential private key (JWK or PEM/PKCS#8)") @JsonProperty("credentialPrivateKey")
         String credentialPrivateKey,

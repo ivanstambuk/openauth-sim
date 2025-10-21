@@ -1,7 +1,7 @@
 # Architecture Knowledge Map
 
 _Status: Draft_
-_Last updated: 2025-10-15_
+_Last updated: 2025-10-21_
 
 This living map captures the explicit relationships between modules, data flows, and external interfaces so future agents can reason about change impact quickly. Update it after every iteration that introduces or modifies a component, dependency, or contract.
 
@@ -30,6 +30,7 @@ This living map captures the explicit relationships between modules, data flows,
 - Core FIDO2 package now includes a `WebAuthnCredentialPersistenceAdapter` that serialises relying-party metadata, COSE public keys, and counters into MapDB schema v1 so downstream CLI/REST/UI facades can retrieve `WebAuthnCredentialDescriptor` entries alongside HOTP/TOTP/OCRA records.
 - Application module now exposes `WebAuthnEvaluationApplicationService` and `WebAuthnReplayApplicationService`, resolving MapDB-backed descriptors through the persistence adapter, delegating to the core verifier, and emitting sanitized `fido2.evaluate`/`fido2.replay` telemetry ahead of facade wiring.
 - Application module now introduces `WebAuthnAttestationVerificationApplicationService` and `WebAuthnAttestationReplayApplicationService`, layering trust-anchor enforcement and sanitized `fido2.attest`/`fido2.attestReplay` telemetry on top of the core attestation verifier for inline attestation workflows.
+- Application module now provides `WebAuthnAttestationSeedService` and stored-generation commands that persist curated attestation descriptors into the shared MapDB credential store; CLI `seed-attestations`, REST `/api/v1/webauthn/attestations/seed`, and operator UI stored selectors reuse the metadata endpoints to drive Preset/Manual/Stored generation parity across facades.
 - Application module now provides `WebAuthnGeneratorSamples`, delivering deterministic presets (challenge + authenticator private-key JWKs) keyed to W3C fixture identifiers (for example `packed-es256`) that the CLI, REST API, and operator console share when generating WebAuthn assertions.
 - Application module now exposes `WebAuthnAttestationSamples`, indexing the attestation JSON bundles so CLI vector listings, REST metadata, and operator UI catalogues consume a shared fixture catalogue sourced from `WebAuthnAttestationFixtures`.
 - Application module now provides `WebAuthnMetadataCatalogue`, hydrating offline MDS bundles under `docs/webauthn_attestation/mds/` so trust-anchor resolvers and future ingestion helpers can share deterministic metadata + certificate fingerprints.

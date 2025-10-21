@@ -2,6 +2,7 @@ package io.openauth.sim.application.fido2;
 
 import io.openauth.sim.application.telemetry.Fido2TelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.core.fido2.WebAuthnAttestationCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
@@ -9,7 +10,11 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.SigningMode;
 import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import io.openauth.sim.core.model.Credential;
+import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -25,25 +30,141 @@ import java.util.Objects;
 public final class WebAuthnAttestationGenerationApplicationService {
 
     private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
+    private static final String ATTR_ATTESTATION_ENABLED_KEY = "fido2.attestation.enabled";
 
     private final WebAuthnAttestationGenerator generator;
     private final Fido2TelemetryAdapter telemetryAdapter;
+    private final CredentialStore credentialStore;
+    private final WebAuthnCredentialPersistenceAdapter persistenceAdapter;
 
     public WebAuthnAttestationGenerationApplicationService(
-            WebAuthnAttestationGenerator generator, Fido2TelemetryAdapter telemetryAdapter) {
+            WebAuthnAttestationGenerator generator,
+            Fido2TelemetryAdapter telemetryAdapter,
+            CredentialStore credentialStore,
+            WebAuthnCredentialPersistenceAdapter persistenceAdapter) {
         this.generator = Objects.requireNonNull(generator, "generator");
         this.telemetryAdapter = Objects.requireNonNull(telemetryAdapter, "telemetryAdapter");
+        if ((credentialStore == null) != (persistenceAdapter == null)) {
+            throw new IllegalArgumentException(
+                    "credentialStore and persistenceAdapter must both be provided or both be null");
+        }
+        this.credentialStore = credentialStore;
+        this.persistenceAdapter = persistenceAdapter;
     }
 
     public WebAuthnAttestationGenerationApplicationService() {
-        this(new WebAuthnAttestationGenerator(), new Fido2TelemetryAdapter("fido2.attest"));
+        this(new WebAuthnAttestationGenerator(), new Fido2TelemetryAdapter("fido2.attest"), null, null);
+    }
+
+    public WebAuthnAttestationGenerationApplicationService(
+            WebAuthnAttestationGenerator generator, Fido2TelemetryAdapter telemetryAdapter) {
+        this(generator, telemetryAdapter, null, null);
     }
 
     public GenerationResult generate(GenerationCommand command) {
         Objects.requireNonNull(command, "command");
         WebAuthnAttestationGenerator.GenerationResult generatorResult;
         boolean manualSource;
-        if (command instanceof GenerationCommand.Inline inline) {
+        GenerationCommand telemetryCommand = command;
+        WebAuthnAttestationCredentialDescriptor storedDescriptor = null;
+
+        GenerationCommand.InputSource inputSource = command.inputSource();
+        String telemetryAttestationId = command.attestationId();
+        WebAuthnAttestationFormat telemetryFormat = command.format();
+        SigningMode telemetrySigningMode = command.signingMode();
+        List<String> telemetryCustomRoots = command.customRootCertificatesPem();
+        String telemetryCustomRootSource = command.customRootSource();
+        String telemetrySeedPresetId = "";
+        List<String> telemetryOverrides = List.of();
+        String telemetryStoredCredentialId = null;
+
+        String effectiveRelyingPartyId = command.relyingPartyId();
+        String effectiveOrigin = command.origin();
+        byte[] effectiveChallenge = command.challenge().clone();
+
+        if (command instanceof GenerationCommand.Stored stored) {
+            if (credentialStore == null || persistenceAdapter == null) {
+                throw new IllegalStateException("Stored attestation generation requires a credential store");
+            }
+
+            Credential credential = credentialStore
+                    .findByName(stored.credentialName())
+                    .orElseThrow(() -> new IllegalArgumentException("Stored credential not found"));
+            var record = VersionedCredentialRecordMapper.toRecord(credential);
+            if (!"true".equals(record.attributes().get(ATTR_ATTESTATION_ENABLED_KEY))) {
+                throw new IllegalArgumentException("Stored credential does not contain attestation metadata");
+            }
+
+            WebAuthnAttestationCredentialDescriptor descriptor = persistenceAdapter.deserializeAttestation(record);
+
+            storedDescriptor = descriptor;
+
+            telemetryStoredCredentialId = descriptor.name();
+            telemetryAttestationId = descriptor.attestationId();
+            telemetryFormat = descriptor.format();
+            telemetrySigningMode = descriptor.signingMode();
+            telemetryCustomRoots = descriptor.customRootCertificatesPem();
+            telemetryCustomRootSource = "stored";
+            inputSource = GenerationCommand.InputSource.STORED;
+
+            String descriptorRelyingParty = descriptor.credentialDescriptor().relyingPartyId();
+            if (stored.relyingPartyId() != null && !stored.relyingPartyId().isBlank()) {
+                String requested = stored.relyingPartyId().trim();
+                if (!descriptorRelyingParty.equals(requested)) {
+                    throw new IllegalArgumentException("Stored credential relying party mismatch");
+                }
+                effectiveRelyingPartyId = requested;
+            } else {
+                effectiveRelyingPartyId = descriptorRelyingParty;
+            }
+
+            if (stored.origin() == null || stored.origin().isBlank()) {
+                effectiveOrigin = descriptor.origin();
+            } else {
+                effectiveOrigin = stored.origin().trim();
+            }
+
+            if (effectiveChallenge.length == 0) {
+                throw new IllegalArgumentException("challenge must not be empty for stored attestation");
+            }
+
+            String credentialKey = descriptor.credentialPrivateKeyBase64Url();
+            String attestationKey = descriptor.attestationPrivateKeyBase64Url();
+            if (attestationKey == null) {
+                attestationKey = "";
+            }
+            String certificateSerial = descriptor.attestationCertificateSerialBase64Url();
+            if (certificateSerial == null) {
+                certificateSerial = "";
+            }
+
+            WebAuthnAttestationGenerator.GenerationCommand.Inline coreCommand =
+                    new WebAuthnAttestationGenerator.GenerationCommand.Inline(
+                            descriptor.attestationId(),
+                            descriptor.format(),
+                            effectiveRelyingPartyId,
+                            effectiveOrigin,
+                            effectiveChallenge,
+                            credentialKey,
+                            attestationKey,
+                            certificateSerial,
+                            descriptor.signingMode(),
+                            descriptor.customRootCertificatesPem());
+
+            generatorResult = generator.generate(coreCommand);
+            manualSource = false;
+
+            telemetryCommand = new StoredTelemetryCommand(
+                    telemetryAttestationId,
+                    telemetryFormat,
+                    effectiveRelyingPartyId,
+                    effectiveOrigin,
+                    effectiveChallenge,
+                    telemetrySigningMode,
+                    telemetryCustomRoots,
+                    telemetryCustomRootSource,
+                    inputSource);
+        } else if (command instanceof GenerationCommand.Inline inline) {
             manualSource = false;
             WebAuthnAttestationVector vector = WebAuthnAttestationSamples.require(inline.attestationId());
             WebAuthnSignatureAlgorithm algorithm = vector.algorithm();
@@ -78,6 +199,9 @@ public final class WebAuthnAttestationGenerationApplicationService {
                             inline.signingMode(),
                             inline.customRootCertificatesPem());
             generatorResult = generator.generate(coreCommand);
+            effectiveRelyingPartyId = inline.relyingPartyId();
+            effectiveOrigin = inline.origin();
+            effectiveChallenge = inline.challenge().clone();
         } else {
             manualSource = true;
             GenerationCommand.Manual manual = (GenerationCommand.Manual) command;
@@ -116,6 +240,11 @@ public final class WebAuthnAttestationGenerationApplicationService {
                             manual.signingMode(),
                             manual.customRootCertificatesPem());
             generatorResult = generator.generate(coreCommand);
+            telemetrySeedPresetId = normalize(manual.seedPresetId());
+            telemetryOverrides = manual.overrides() == null ? List.of() : List.copyOf(manual.overrides());
+            effectiveRelyingPartyId = manual.relyingPartyId();
+            effectiveOrigin = manual.origin();
+            effectiveChallenge = manual.challenge().clone();
         }
 
         GeneratedAttestation.Response responsePayload = new GeneratedAttestation.Response(
@@ -126,27 +255,32 @@ public final class WebAuthnAttestationGenerationApplicationService {
         List<String> certificateChain = generatorResult.certificateChainPem() == null
                 ? List.of()
                 : List.copyOf(generatorResult.certificateChainPem());
+        if (storedDescriptor != null && !storedDescriptor.certificateChainPem().isEmpty()) {
+            certificateChain = List.copyOf(storedDescriptor.certificateChainPem());
+        }
+        int certificateChainCount = certificateChain.size();
 
         GeneratedAttestation attestation = new GeneratedAttestation(
                 "public-key",
                 credentialIdBase64,
                 credentialIdBase64,
-                generatorResult.attestationId(),
-                generatorResult.format(),
+                telemetryAttestationId,
+                telemetryFormat,
                 responsePayload);
 
         Map<String, Object> telemetryFields = new LinkedHashMap<>();
-        telemetryFields.put("attestationId", command.attestationId());
-        telemetryFields.put("attestationFormat", command.format().label());
-        telemetryFields.put("generationMode", telemetryMode(command.signingMode()));
+        telemetryFields.put("attestationId", telemetryAttestationId);
+        telemetryFields.put("attestationFormat", telemetryFormat.label());
+        telemetryFields.put("generationMode", telemetryMode(telemetrySigningMode));
         telemetryFields.put("signatureIncluded", generatorResult.signatureIncluded());
-        telemetryFields.put(
-                "customRootCount", command.customRootCertificatesPem().size());
-        telemetryFields.put(
-                "certificateChainCount", generatorResult.certificateChainPem().size());
-        telemetryFields.put("inputSource", inputSourceLabel(command.inputSource()));
+        telemetryFields.put("customRootCount", telemetryCustomRoots.size());
+        telemetryFields.put("certificateChainCount", certificateChainCount);
+        telemetryFields.put("inputSource", inputSourceLabel(inputSource));
+        if (telemetryStoredCredentialId != null) {
+            telemetryFields.put("storedCredentialId", telemetryStoredCredentialId);
+        }
 
-        TelemetryObservations observations = observeTelemetry(command, generatorResult);
+        TelemetryObservations observations = observeTelemetry(telemetryCommand, generatorResult);
         if (!observations.relyingPartyId().isBlank()) {
             telemetryFields.put("relyingPartyId", observations.relyingPartyId());
         }
@@ -157,18 +291,17 @@ public final class WebAuthnAttestationGenerationApplicationService {
             telemetryFields.put("certificateFingerprint", observations.certificateFingerprint());
         }
 
-        if (!command.customRootCertificatesPem().isEmpty()) {
-            String source = normalize(command.customRootSource());
+        if (!telemetryCustomRoots.isEmpty()) {
+            String source = normalize(telemetryCustomRootSource);
             telemetryFields.put("customRootSource", source.isBlank() ? "inline" : source);
         }
 
         if (manualSource) {
-            GenerationCommand.Manual manual = (GenerationCommand.Manual) command;
-            if (!normalize(manual.seedPresetId()).isBlank()) {
-                telemetryFields.put("seedPresetId", normalize(manual.seedPresetId()));
+            if (!telemetrySeedPresetId.isBlank()) {
+                telemetryFields.put("seedPresetId", telemetrySeedPresetId);
             }
-            if (manual.overrides() != null && !manual.overrides().isEmpty()) {
-                telemetryFields.put("overrides", List.copyOf(manual.overrides()));
+            if (!telemetryOverrides.isEmpty()) {
+                telemetryFields.put("overrides", telemetryOverrides);
             }
         }
 
@@ -178,7 +311,11 @@ public final class WebAuthnAttestationGenerationApplicationService {
     }
 
     /** Marker interface for generation commands. */
-    public sealed interface GenerationCommand permits GenerationCommand.Inline, GenerationCommand.Manual {
+    public sealed interface GenerationCommand
+            permits GenerationCommand.Inline,
+                    GenerationCommand.Manual,
+                    GenerationCommand.Stored,
+                    StoredTelemetryCommand {
         String attestationId();
 
         WebAuthnAttestationFormat format();
@@ -206,7 +343,8 @@ public final class WebAuthnAttestationGenerationApplicationService {
         /** Origin of the input parameters for attestation generation. */
         enum InputSource {
             PRESET,
-            MANUAL
+            MANUAL,
+            STORED
         }
 
         /** Inline command carrier. */
@@ -283,6 +421,88 @@ public final class WebAuthnAttestationGenerationApplicationService {
                 return InputSource.MANUAL;
             }
         }
+
+        /** Stored command carrier. */
+        record Stored(
+                String credentialName,
+                WebAuthnAttestationFormat format,
+                String relyingPartyId,
+                String origin,
+                byte[] challenge)
+                implements GenerationCommand {
+
+            public Stored {
+                credentialName =
+                        Objects.requireNonNull(credentialName, "credentialName").trim();
+                if (credentialName.isEmpty()) {
+                    throw new IllegalArgumentException("credentialName must not be blank");
+                }
+                format = Objects.requireNonNull(format, "format");
+                relyingPartyId = relyingPartyId == null ? "" : relyingPartyId.trim();
+                origin = Objects.requireNonNull(origin, "origin").trim();
+                challenge = challenge == null ? new byte[0] : challenge.clone();
+            }
+
+            @Override
+            public String attestationId() {
+                return credentialName;
+            }
+
+            @Override
+            public WebAuthnAttestationFormat format() {
+                return format;
+            }
+
+            @Override
+            public String relyingPartyId() {
+                return relyingPartyId;
+            }
+
+            @Override
+            public String origin() {
+                return origin;
+            }
+
+            @Override
+            public byte[] challenge() {
+                return challenge.clone();
+            }
+
+            @Override
+            public String credentialPrivateKeyBase64Url() {
+                return "";
+            }
+
+            @Override
+            public String attestationPrivateKeyBase64Url() {
+                return "";
+            }
+
+            @Override
+            public String attestationCertificateSerialBase64Url() {
+                return "";
+            }
+
+            @Override
+            public SigningMode signingMode() {
+                return SigningMode.SELF_SIGNED;
+            }
+
+            @Override
+            public List<String> customRootCertificatesPem() {
+                return List.of();
+            }
+
+            @Override
+            public String customRootSource() {
+                return "";
+            }
+
+            @Override
+            public InputSource inputSource() {
+                return InputSource.STORED;
+            }
+        }
     }
 
     /** Result payload for attestation generation requests. */
@@ -290,6 +510,99 @@ public final class WebAuthnAttestationGenerationApplicationService {
             GeneratedAttestation attestation, TelemetrySignal telemetry, List<String> certificateChainPem) {
         public GenerationResult {
             certificateChainPem = certificateChainPem == null ? List.of() : List.copyOf(certificateChainPem);
+        }
+    }
+
+    private static final class StoredTelemetryCommand implements GenerationCommand {
+        private final String attestationId;
+        private final WebAuthnAttestationFormat format;
+        private final String relyingPartyId;
+        private final String origin;
+        private final byte[] challenge;
+        private final SigningMode signingMode;
+        private final List<String> customRoots;
+        private final String customRootSource;
+        private final InputSource inputSource;
+
+        StoredTelemetryCommand(
+                String attestationId,
+                WebAuthnAttestationFormat format,
+                String relyingPartyId,
+                String origin,
+                byte[] challenge,
+                SigningMode signingMode,
+                List<String> customRoots,
+                String customRootSource,
+                InputSource inputSource) {
+            this.attestationId = attestationId;
+            this.format = format;
+            this.relyingPartyId = relyingPartyId;
+            this.origin = origin;
+            this.challenge = challenge.clone();
+            this.signingMode = signingMode;
+            this.customRoots = customRoots == null ? List.of() : List.copyOf(customRoots);
+            this.customRootSource = customRootSource;
+            this.inputSource = inputSource;
+        }
+
+        @Override
+        public String attestationId() {
+            return attestationId;
+        }
+
+        @Override
+        public WebAuthnAttestationFormat format() {
+            return format;
+        }
+
+        @Override
+        public String relyingPartyId() {
+            return relyingPartyId;
+        }
+
+        @Override
+        public String origin() {
+            return origin;
+        }
+
+        @Override
+        public byte[] challenge() {
+            return challenge.clone();
+        }
+
+        @Override
+        public String credentialPrivateKeyBase64Url() {
+            return "";
+        }
+
+        @Override
+        public String attestationPrivateKeyBase64Url() {
+            return "";
+        }
+
+        @Override
+        public String attestationCertificateSerialBase64Url() {
+            return "";
+        }
+
+        @Override
+        public SigningMode signingMode() {
+            return signingMode;
+        }
+
+        @Override
+        public List<String> customRootCertificatesPem() {
+            return customRoots;
+        }
+
+        @Override
+        public String customRootSource() {
+            return customRootSource;
+        }
+
+        @Override
+        public InputSource inputSource() {
+            return inputSource;
         }
     }
 
@@ -345,6 +658,7 @@ public final class WebAuthnAttestationGenerationApplicationService {
         return switch (inputSource) {
             case PRESET -> "preset";
             case MANUAL -> "manual";
+            case STORED -> "stored";
         };
     }
 

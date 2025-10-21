@@ -55,7 +55,32 @@ class WebAuthnAttestationService {
         WebAuthnAttestationFormat format = parseFormat(request.format());
 
         GenerationResult result;
-        if (source == InputSource.PRESET) {
+        if (source == InputSource.STORED) {
+            String credentialId = requireText(request.credentialId(), "credential_id_required", "Credential ID");
+            byte[] challenge = decode(
+                    "challenge_required",
+                    "Invalid challenge (must be Base64URL)",
+                    requireText(request.challenge(), "challenge_required", "Challenge"));
+
+            String relyingPartyId = sanitize(request.relyingPartyId());
+            String origin = sanitize(request.origin());
+
+            var command = new WebAuthnAttestationGenerationApplicationService.GenerationCommand.Stored(
+                    credentialId.trim(), format, relyingPartyId, origin, challenge);
+
+            try {
+                result = generationService.generate(command);
+            } catch (IllegalArgumentException ex) {
+                String message = ex.getMessage() == null ? "Stored attestation generation failed" : ex.getMessage();
+                String reason = mapStoredGenerationReason(message);
+                throw validation(reason, message, Map.of("credentialId", credentialId));
+            } catch (Exception ex) {
+                throw unexpected(
+                        "generation_failed",
+                        "Attestation generation failed: " + sanitize(ex.getMessage()),
+                        Map.of("credentialId", credentialId));
+            }
+        } else if (source == InputSource.PRESET) {
             String attestationId = requireText(request.attestationId(), "attestation_id_required", "Attestation ID");
             String relyingPartyId =
                     requireText(request.relyingPartyId(), "relying_party_id_required", "Relying party ID");
@@ -117,7 +142,6 @@ class WebAuthnAttestationService {
                         Map.of("attestationId", attestationId, "format", format.label()));
             }
         } else {
-            // MANUAL input source
             String relyingPartyId =
                     requireText(request.relyingPartyId(), "relying_party_id_required", "Relying party ID");
             String origin = requireText(request.origin(), "origin_required", "Origin");
@@ -336,9 +360,24 @@ class WebAuthnAttestationService {
         return value.trim();
     }
 
+    private static String mapStoredGenerationReason(String message) {
+        String normalized = sanitize(message).toLowerCase(Locale.ROOT);
+        if (normalized.contains("not found")) {
+            return "stored_credential_not_found";
+        }
+        if (normalized.contains("metadata")) {
+            return "stored_attestation_required";
+        }
+        if (normalized.contains("relying party")) {
+            return "stored_relying_party_mismatch";
+        }
+        return "generation_failed";
+    }
+
     private enum InputSource {
         PRESET,
-        MANUAL
+        MANUAL,
+        STORED
     }
 
     private static InputSource parseInputSource(String input) {
@@ -349,6 +388,7 @@ class WebAuthnAttestationService {
         return switch (normalized) {
             case "manual" -> InputSource.MANUAL;
             case "preset" -> InputSource.PRESET;
+            case "stored" -> InputSource.STORED;
             default ->
                 throw validation(
                         "input_source_invalid", "Unsupported input source: " + input, Map.of("inputSource", input));

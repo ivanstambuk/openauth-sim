@@ -442,158 +442,280 @@
               </section>
               </div>
 
-              <section
-                  class="stack-md stack-offset-top-lg"
-                  data-ceremony-view="attestation"
-                  data-testid="fido2-attestation-inline-section"
-                  aria-label="Inline WebAuthn attestation form"
-                  hidden="hidden"
-                  aria-hidden="true"
-                >
-                <form
-                    data-testid="fido2-attestation-form"
-                    class="evaluation-form"
-                    th:attr="data-attestation-endpoint=${fido2AttestationEndpoint}"
+              <div class="stack-lg" data-ceremony-view="attestation">
+                <fieldset
+                    class="mode-toggle"
+                    data-testid="fido2-attestation-mode-toggle"
+                    data-mode="inline"
                   >
-                  <input type="hidden" name="_csrf" th:value="${csrfToken}" />
-                  <script
-                      type="application/json"
-                      id="fido2-attestation-vectors"
-                      th:utext="${fido2AttestationVectorsJson}"
-                    ></script>
-                  <div class="inline-preset" data-testid="fido2-attestation-preset">
-                    <label for="fido2AttestationSampleSelect">Load an attestation vector</label>
-                    <select
-                        id="fido2AttestationSampleSelect"
-                        data-testid="fido2-attestation-sample-select"
-                        disabled="disabled"
-                      >
-                      <option value="">Select a vector</option>
-                    </select>
-                    <p class="hint">
-                      Selecting a vector pre-fills generator inputs (challenge, key material, and metadata).
+                  <legend>Choose attestation mode</legend>
+                  <div class="mode-option">
+                    <input
+                        type="radio"
+                        id="fido2AttestationModeInline"
+                        name="fido2AttestationMode"
+                        value="inline"
+                        data-testid="fido2-attestation-mode-select-inline"
+                        aria-describedby="fido2AttestationModeInlineHint"
+                        checked="checked"
+                      />
+                    <label for="fido2AttestationModeInline">Inline parameters</label>
+                    <p id="fido2AttestationModeInlineHint" class="hint">
+                      Generate attestation payloads using preset vectors or manual inputs.
                     </p>
                   </div>
-                  <input type="hidden" id="fido2AttestationId" name="attestationId" />
-                  <div class="field-grid field-grid--two-column">
-                    <div class="field-group">
-                      <label for="fido2AttestationFormat">Attestation format</label>
-                      <select id="fido2AttestationFormat" name="format">
-                        <option value="packed">packed</option>
-                        <option value="fido-u2f">fido-u2f</option>
-                        <option value="tpm">tpm</option>
-                        <option value="android-key">android-key</option>
+                  <div class="mode-option">
+                    <input
+                        type="radio"
+                        id="fido2AttestationModeStored"
+                        name="fido2AttestationMode"
+                        value="stored"
+                        data-testid="fido2-attestation-mode-select-stored"
+                        aria-describedby="fido2AttestationModeStoredHint"
+                      />
+                    <label for="fido2AttestationModeStored">Stored credential</label>
+                    <p id="fido2AttestationModeStoredHint" class="hint">
+                      Generate a stored attestation from the selected credential.
+                    </p>
+                  </div>
+                </fieldset>
+                <section
+                    class="stack-md stack-offset-top-lg"
+                    data-testid="fido2-attestation-inline-section"
+                    aria-label="Inline WebAuthn attestation form"
+                  >
+                  <form
+                      data-testid="fido2-attestation-form"
+                      class="evaluation-form"
+                      th:attr="data-attestation-endpoint=${fido2AttestationEndpoint}"
+                    >
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                    <script
+                        type="application/json"
+                        id="fido2-attestation-vectors"
+                        th:utext="${fido2AttestationVectorsJson}"
+                      ></script>
+                    <div class="inline-preset" data-testid="fido2-attestation-preset">
+                      <label for="fido2AttestationSampleSelect">Load a sample vector</label>
+                      <select
+                          id="fido2AttestationSampleSelect"
+                          data-testid="fido2-attestation-sample-select"
+                          disabled="disabled"
+                        >
+                        <option value="">Select a vector</option>
+                      </select>
+                      <p class="hint">
+                        Selecting a vector pre-fills generator inputs (challenge, key material, and metadata).
+                      </p>
+                    </div>
+                    <input type="hidden" id="fido2AttestationId" name="attestationId" />
+                    <div class="field-grid field-grid--two-column">
+                      <div class="field-group">
+                        <label for="fido2AttestationFormat">Attestation format</label>
+                        <select id="fido2AttestationFormat" name="format">
+                          <option value="packed">packed</option>
+                          <option value="fido-u2f">fido-u2f</option>
+                          <option value="tpm">tpm</option>
+                          <option value="android-key">android-key</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="field-grid field-grid--two-column">
+                      <div class="field-group">
+                        <label for="fido2AttestationRpId">Relying party ID</label>
+                        <input
+                            id="fido2AttestationRpId"
+                            name="relyingPartyId"
+                            type="text"
+                            value="example.org"
+                            autocomplete="off"
+                          />
+                      </div>
+                      <div class="field-group">
+                        <label for="fido2AttestationOrigin">Origin</label>
+                        <input
+                            id="fido2AttestationOrigin"
+                            name="origin"
+                            type="text"
+                            value="https://example.org"
+                            autocomplete="off"
+                          />
+                      </div>
+                    </div>
+                    <div class="field-grid">
+                      <div class="field-group">
+                        <label for="fido2AttestationChallenge">Challenge (Base64URL)</label>
+                        <textarea
+                            id="fido2AttestationChallenge"
+                            name="challenge"
+                            rows="2"
+                            spellcheck="false"
+                        placeholder="Provide Base64URL challenge"
+                          ></textarea>
+                      </div>
+                    </div>
+                    <div class="stack-md">
+                      <div class="field-group field-group--stacked">
+                        <label for="fido2AttestationCredentialKey">Credential private key (JWK or PEM/PKCS#8)</label>
+                        <textarea
+                            id="fido2AttestationCredentialKey"
+                            name="credentialPrivateKey"
+                            rows="8"
+                            wrap="off"
+                            spellcheck="false"
+                          ></textarea>
+                      </div>
+                      <div class="field-group field-group--stacked">
+                        <label for="fido2AttestationPrivateKey">Attestation private key (JWK or PEM/PKCS#8)</label>
+                        <textarea
+                            id="fido2AttestationPrivateKey"
+                            name="attestationPrivateKey"
+                            rows="8"
+                            wrap="off"
+                            spellcheck="false"
+                          ></textarea>
+                      </div>
+                    </div>
+                    <div class="field-grid field-grid--two-column">
+                      <div class="field-group">
+                        <label for="fido2AttestationSerial">Attestation certificate serial (Base64URL)</label>
+                        <textarea
+                            id="fido2AttestationSerial"
+                            name="attestationCertificateSerial"
+                            rows="2"
+                            spellcheck="false"
+                          ></textarea>
+                      </div>
+                      <div class="field-group">
+                        <label for="fido2AttestationSigningMode">Signing mode</label>
+                        <select id="fido2AttestationSigningMode" name="signingMode">
+                          <option value="SELF_SIGNED">Self-signed</option>
+                          <option value="UNSIGNED">Unsigned (no signature)</option>
+                          <option value="CUSTOM_ROOT">Custom root (provide PEM)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2AttestationCustomRoot">Custom root certificates (PEM, optional)</label>
+                      <textarea
+                          id="fido2AttestationCustomRoot"
+                          name="customRootCertificates"
+                          rows="6"
+                          spellcheck="false"
+                          placeholder="Paste PEM certificate bundles to sign with a custom root"
+                        ></textarea>
+                      <p class="hint" data-testid="fido2-attestation-custom-root-help">
+                        Optional custom root bundle; paste one or more PEM certificates when using the custom-root signing mode.
+                      </p>
+                    </div>
+                    <div class="button-row">
+                      <button
+                          type="button"
+                          class="button-primary"
+                          data-testid="fido2-attestation-submit"
+                          data-attestation-label="Generate attestation"
+                        >
+                        Generate attestation
+                      </button>
+                    </div>
+                  </form>
+                </section>
+
+                <section
+                    class="stack-md stack-offset-top-lg"
+                    data-testid="fido2-attestation-stored-section"
+                    aria-label="Stored WebAuthn attestation form"
+                    hidden="hidden"
+                    aria-hidden="true"
+                  >
+                  <form
+                      data-testid="fido2-attestation-stored-form"
+                      class="evaluation-form"
+                      th:attr="data-attestation-endpoint=${fido2AttestationEndpoint},data-attestation-metadata-endpoint=${fido2AttestationMetadataEndpoint},data-attestation-seed-endpoint=${fido2AttestationSeedEndpoint},data-credentials-endpoint=${fido2CredentialsEndpoint}"
+                    >
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                    <div
+                        class="seed-actions"
+                        data-testid="fido2-attestation-seed-actions"
+                        hidden="hidden"
+                        aria-hidden="true"
+                      >
+                      <button
+                          type="button"
+                          class="button-secondary"
+                          data-testid="fido2-attestation-seed"
+                        >
+                        Seed attestation credentials
+                      </button>
+                      <p class="hint">
+                        Populate the registry with demo attestation credentials if no entries are available.
+                      </p>
+                      <p
+                          class="credential-status"
+                          aria-live="polite"
+                          hidden="hidden"
+                          aria-hidden="true"
+                          data-testid="fido2-attestation-seed-status"
+                        ></p>
+                    </div>
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2AttestationStoredCredentialId">Stored attestation</label>
+                      <select
+                          id="fido2AttestationStoredCredentialId"
+                          name="credentialId"
+                          required="required"
+                          disabled="disabled"
+                          data-testid="fido2-attestation-stored-credential-select"
+                        >
+                        <option value="">Select a stored credential</option>
                       </select>
                     </div>
-                  </div>
-                  <div class="field-grid field-grid--two-column">
-                    <div class="field-group">
-                      <label for="fido2AttestationRpId">Relying party ID</label>
-                      <input
-                          id="fido2AttestationRpId"
-                          name="relyingPartyId"
-                          type="text"
-                          value="example.org"
-                          autocomplete="off"
-                        />
+                    <input type="hidden" id="fido2AttestationStoredFormat" name="format" />
+                    <div class="field-grid field-grid--two-column">
+                      <div class="field-group">
+                        <label for="fido2AttestationStoredRpId">Relying party ID</label>
+                        <input
+                            id="fido2AttestationStoredRpId"
+                            name="relyingPartyId"
+                            type="text"
+                            autocomplete="off"
+                          />
+                      </div>
+                      <div class="field-group">
+                        <label for="fido2AttestationStoredOrigin">Origin</label>
+                        <input
+                            id="fido2AttestationStoredOrigin"
+                            name="origin"
+                            type="text"
+                            autocomplete="off"
+                          />
+                      </div>
                     </div>
-                    <div class="field-group">
-                      <label for="fido2AttestationOrigin">Origin</label>
-                      <input
-                          id="fido2AttestationOrigin"
-                          name="origin"
-                          type="text"
-                          value="https://example.org"
-                          autocomplete="off"
-                        />
+                    <div class="field-grid">
+                      <div class="field-group">
+                        <label for="fido2AttestationStoredChallenge">Challenge (Base64URL)</label>
+                        <textarea
+                            id="fido2AttestationStoredChallenge"
+                            name="challenge"
+                            rows="2"
+                            spellcheck="false"
+                            placeholder="Provide Base64URL challenge"
+                          ></textarea>
+                      </div>
                     </div>
-                  </div>
-                  <div class="field-grid">
-                    <div class="field-group">
-                      <label for="fido2AttestationChallenge">Challenge (Base64URL)</label>
-                      <textarea
-                          id="fido2AttestationChallenge"
-                          name="challenge"
-                          rows="2"
-                          spellcheck="false"
-                          placeholder="Provide base64url challenge"
-                        ></textarea>
+                    <div class="button-row">
+                      <button
+                          type="button"
+                          class="button-primary"
+                          data-testid="fido2-attestation-stored-submit"
+                          data-stored-label="Generate stored attestation"
+                        >
+                        Generate stored attestation
+                      </button>
                     </div>
-                  </div>
-                  <div class="stack-md">
-                    <div class="field-group field-group--stacked">
-                      <label for="fido2AttestationCredentialKey">Credential private key (JWK or PEM/PKCS#8)</label>
-                      <textarea
-                          id="fido2AttestationCredentialKey"
-                          name="credentialPrivateKey"
-                          rows="8"
-                          wrap="off"
-                          spellcheck="false"
-                        ></textarea>
-                    </div>
-                    <div class="field-group field-group--stacked">
-                      <label for="fido2AttestationPrivateKey">Attestation private key (JWK or PEM/PKCS#8)</label>
-                      <textarea
-                          id="fido2AttestationPrivateKey"
-                          name="attestationPrivateKey"
-                          rows="8"
-                          wrap="off"
-                          spellcheck="false"
-                        ></textarea>
-                    </div>
-                  </div>
-                  <div class="field-grid field-grid--two-column">
-                    <div class="field-group">
-                      <label for="fido2AttestationSerial">Attestation certificate serial (Base64URL)</label>
-                      <textarea
-                          id="fido2AttestationSerial"
-                          name="attestationCertificateSerial"
-                          rows="2"
-                          spellcheck="false"
-                        ></textarea>
-                    </div>
-                    <div class="field-group">
-                      <label for="fido2AttestationSigningMode">Signing mode</label>
-                      <select id="fido2AttestationSigningMode" name="signingMode">
-                        <option value="SELF_SIGNED">Self-signed</option>
-                        <option value="UNSIGNED">Unsigned (no signature)</option>
-                        <option value="CUSTOM_ROOT">Custom root (provide PEM)</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="field-group field-group--stacked">
-                    <label for="fido2AttestationCustomRoot">Custom root certificates (PEM, optional)</label>
-                    <textarea
-                        id="fido2AttestationCustomRoot"
-                        name="customRootCertificates"
-                        rows="6"
-                        spellcheck="false"
-                        placeholder="Paste PEM certificate bundles to sign with a custom root"
-                      ></textarea>
-                    <p class="hint" data-testid="fido2-attestation-custom-root-help">
-                      Optional custom root bundle; paste one or more PEM certificates when using the custom-root signing mode.
-                    </p>
-                  </div>
-                  <div class="button-row">
-                    <button
-                        type="button"
-                        class="button-primary"
-                        data-testid="fido2-attestation-submit"
-                        data-attestation-label="Generate attestation"
-                      >
-                      Generate attestation
-                    </button>
-                    <p
-                        class="hint"
-                        data-testid="fido2-attestation-mode-indicator"
-                        data-mode="manual"
-                        aria-live="polite"
-                      >
-                      Manual mode (no preset selected).
-                    </p>
-                  </div>
-                </form>
-              </section>
+                  </form>
+                </section>
+              </div>
             </div>
 
             <div class="status-column stack-md">
@@ -1068,7 +1190,7 @@
                           name="expectedChallenge"
                           rows="2"
                           spellcheck="false"
-                          placeholder="Provide base64url challenge"
+                          placeholder="Provide Base64URL challenge"
                         ></textarea>
                     </div>
                   </div>

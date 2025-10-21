@@ -36,8 +36,7 @@ final class WebAuthnAttestationReplayApplicationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new WebAuthnAttestationReplayApplicationService(
-                new WebAuthnAttestationVerifier(), new Fido2TelemetryAdapter("fido2.attestReplay"));
+        service = new WebAuthnAttestationReplayApplicationService();
 
         vector = WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.ANDROID_KEY).stream()
                 .findFirst()

@@ -90,6 +90,8 @@ final class OcraOperatorUiController {
         model.addAttribute("fido2AttestationVectorsJson", serializeFido2AttestationVectors());
         model.addAttribute("fido2AttestationEndpoint", "/api/v1/webauthn/attest");
         model.addAttribute("fido2AttestationReplayEndpoint", "/api/v1/webauthn/attest/replay");
+        model.addAttribute("fido2AttestationSeedEndpoint", "/api/v1/webauthn/attestations/seed");
+        model.addAttribute("fido2AttestationMetadataEndpoint", "/api/v1/webauthn/attestations/{credentialId}");
         model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
         populatePolicyPresets(model);
         return "ui/console/index";

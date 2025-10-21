@@ -8,18 +8,19 @@ _Last updated:_ 2025-10-20
 - Provide end-to-end attestation generation and verification across core, application services, CLI, REST API, and operator UI, mirroring the existing assertion workflow.
 - Cover the packed, FIDO-U2F, TPM, and Android Key attestation formats with deterministic fixtures (W3C Level 3 + synthetic bundle).
 - Maintain sanitized telemetry (`fido2.attest`, `fido2.attestReplay`) and redaction rules equivalent to assertion flows.
-- Keep attestation generation inline-only in the operator UI while preserving stored assertion generation.
+- Introduce Preset, Manual, and Stored attestation flows across all facades, backed by the shared MapDB credential store and a curated seeding control.
 - Allow operators to supply optional trust anchor bundles (UI text area, CLI/REST inputs) while defaulting to self-attested acceptance and laying groundwork for WebAuthn MDS ingestion.
 - Ensure `./gradlew spotlessApply check` plus targeted suites (`:core:test`, `:application:test`, `:cli:test`, `:rest-api:test`) remain green after each increment.
 - Align operator UI labels with the accepted input formats (JWK or PEM/PKCS#8) now that Base64URL private keys are no longer supported.
 
 ## Scope Alignment
-- In scope: attestation generation & replay helpers, telemetry, CLI/REST endpoints, UI toggles/forms, fixture ingestion, trust-anchor configuration (inline uploads), documentation updates, and initial MDS ingestion scaffolding.
-- Evaluate flows across CLI/REST/operator UI must generate attestation payloads (attestationObject, clientDataJSON, challenge) while Replay owns verification scenarios.
-- Out of scope: MapDB persistence of attestation payloads, attestation formats beyond the four specified types, hardware-backed certificate chain validation beyond deterministic fixtures.
+- In scope: attestation generation & replay helpers, telemetry, CLI/REST endpoints, UI toggles/forms, fixture ingestion, trust-anchor configuration (inline uploads), documentation updates, initial MDS ingestion scaffolding, and stored attestation credential workflows (seeding + reuse through MapDB).
+- Evaluate flows across CLI/REST/operator UI must generate attestation payloads (attestationObject, clientDataJSON, challenge) while Replay owns verification scenarios; all facades must also resolve Stored attestation credentials via the shared `CredentialStore`.
+- Out of scope: credential export/import tooling beyond curated seeds, attestation formats beyond the four specified types, hardware-backed certificate chain validation beyond deterministic fixtures.
 
 ## Dependencies & Interfaces
 - Builds on existing FIDO2 assertion utilities (COSE parsing, JWK conversion).
+- Stored workflows reuse the shared `CredentialStore` (MapDB) and `WebAuthn` persistence adapters; ensure schema extensions capture attestation metadata/private keys without breaking existing assertion records.
 - Stores attestation fixtures under `docs/webauthn_attestation/` with per-format JSON files while reusing shared loader patterns.
 - Operator UI adjustments hinge on the current Evaluate/Replay tab layout; ensure toggle logic integrates with existing state management.
 - Telemetry contracts must extend `TelemetryContracts` without breaking existing assertion events.
@@ -210,15 +211,58 @@ _2025-10-19 – T2628 closed: fixture key material now ships as structured JWK o
    - Extend controller/UI tests to assert the new label formatting so regressions surface quickly.
    - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiControllerAttestationTest"` and targeted Selenium runs as needed, followed by `./gradlew --no-daemon spotlessApply check`.
 
+8. **I26 – Credential store attestation schema** _(completed 2025-10-20)_  
+   - Stage failing persistence/application tests asserting MapDB can persist and retrieve attestation credentials (leaf certificate chain, signing mode, attestation private key linkage) alongside assertions.  
+   - Extend `WebAuthnCredentialPersistenceAdapter` (or equivalent) to serialise attestation descriptors, update schema enums, and document migration notes.  
+   - _Outcome:_ Persistence adapter now emits `WebAuthnAttestationCredentialDescriptor` records with certificate chains/private keys; tests in core, infra, and application verify the round-trip.  
+   - Commands: `./gradlew --no-daemon :infra-persistence:test --tests "io.openauth.sim.infra.persistence.webauthn.WebAuthnCredentialStoreAttestationTest"`, `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnCredentialPersistenceSmokeTest"`, `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAttestationPersistenceAdapterTest"`, `./gradlew --no-daemon spotlessApply check`.  
+
+9. **I27 – Stored attestation application services** _(completed 2025-10-20)_  
+   - Add failing application tests ensuring stored credentials resolve via generation commands (`inputSource=STORED`), telemetry records credential handles, and replay flows can fetch stored attestations when requested.  
+   - Implement service wiring that looks up MapDB entries, reuses manual/preset validation, and surfaces meaningful errors when a stored credential is missing.  
+   - _Outcome:_ Application services now load stored attestation descriptors from MapDB, regenerate attestation payloads, reuse stored certificate chains, and enrich telemetry with `storedCredentialId`; replay flows hydrate stored attestation objects/clientData and verify them through the existing support helper.  
+   - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationGenerationStoredTest" --tests "io.openauth.sim.application.fido2.WebAuthnAttestationReplayStoredTest"`, `./gradlew --no-daemon :application:test`.  
+
+10. **I28 – CLI/REST stored flow support**  
+    - Stage failing Picocli + MockMvc tests covering `inputSource=stored`, including credential selection validation, not-found errors, and telemetry propagation.  
+      _2025-10-20 – Staged `Fido2CliAttestationStoredTest` and `Fido2AttestationStoredEndpointTest`; both suites currently red, exercising stored success paths, missing identifier validation, and not-found handling to keep telemetry expectations (`inputSource=stored`, `storedCredentialId`) front-loaded._  
+    - Update CLI flags/help (`--input-source=stored`, `--credential-id`, stored credential selector) and REST request DTO validation (`credentialId` + Base64URL `challenge`, optional RP/origin overrides), ensuring stored mode skips manual-only requirements and loads MapDB entries with descriptive errors when metadata is absent.  
+      _2025-10-20 – CLI stored attestation generation now opens the configured store, hydrates descriptors via the persistence adapter, and emits deterministic payloads/telemetry; REST controller/service accept `inputSource=STORED`, validate credential/challenge fields, and surface consistent reason codes. Targeted suites pass via `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationStoredTest"` and `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationStoredEndpointTest"`._  
+    - Commands: `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationStoredTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationStoredEndpointTest"`, plus `./gradlew --no-daemon spotlessApply check`.  
+
+11. **I29 – Operator UI stored selector**  
+    - Add failing Selenium + controller tests asserting the attestation Evaluate tab renders Preset/Manual/Stored radio buttons, lists stored credentials, and hides manual inputs when Stored is selected.  
+      _2025-10-20 – Staged `Fido2OperatorUiSeleniumTest.attestationStoredModeRendersStoredForm` alongside `Fido2AttestationStoredOperatorControllerTest`; both fail pending UI/controller implementation, covering stored credential lists, manual-panel hiding, and operator API metadata responses._  
+    - Implement UI state management to fetch stored credential summaries, submit `inputSource=STORED`, and display retrieval errors inline without breaking Manual/Preset flows.  
+      _2025-10-21 – Operator console now preloads stored attestation selectors, wiring REST metadata/seed endpoints and toggling inline/manual panels; Selenium suite covers stored mode, seeding feedback, and replay flows once more. Tests: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest" --tests "io.openauth.sim.rest.Fido2AttestationStoredOperatorControllerTest"`._  
+    - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationStored*"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationStoredOperatorControllerTest"`, and `./gradlew --no-daemon spotlessApply check`.  
+
+12. **I30 – Seed stored attestation credentials**  
+    - Stage failing tests for a seeding application service, CLI command, REST endpoint, and operator UI control that populate curated attestation credentials into MapDB; assert idempotent runs and telemetry output.  
+      _2025-10-20 – Staged `WebAuthnAttestationSeedServiceTest`, `Fido2CliAttestationSeedTest`, `Fido2AttestationSeedEndpointTest`, and the Selenium scenario `attestationSeedPopulatesStoredCredentials`; all suites currently red, covering curated seed data, CLI/REST affordances, and operator UI feedback._  
+    - Implement the seed helper reusing fixture data, expose it via CLI (`seed-attestations`), REST (`POST /api/v1/webauthn/attestations/seed`), and UI controls, then document operator guidance + knowledge map updates.  
+      _2025-10-21 – Seed service persists canonical attestation payloads (challenge/clientData/attestationObject), CLI command surfaces idempotent output, REST endpoint returns deterministic metadata, and operator UI seeding integrates stored-mode selectors; full stack verified via `./gradlew --no-daemon :application:test :cli:test :rest-api:test` and `spotlessApply check`._  
+    - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationSeedServiceTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationSeedTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationSeedEndpointTest" --tests "io.openauth.sim.rest.Fido2AttestationStoredEndpointTest" --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, Selenium stored seed spec, and `./gradlew --no-daemon spotlessApply check`.  
+
 ## Analysis Gate (2025-10-20)
-- **Specification completeness** – Objectives, requirements, and clarifications are current; manual-mode decisions (AAGUID defaults, input validation, telemetry fields) are reflected in `feature-026-fido2-attestation-support.md`.
+- **Specification completeness** – Updated 2025-10-20 to capture Preset/Manual/Stored inputs, MapDB-backed persistence, and curated seeding controls; clarifications document the owner’s Option B selections for both decisions.
 - **Open questions review** – No open entries remain for Feature 026 in `open-questions.md`.
-- **Plan alignment** – Plan references the active spec/tasks, and dependencies/success criteria mirror the specification wording (Manual vs Preset flow, telemetry scope).
-- **Tasks coverage** – Tasks cover every requirement, sequence failing tests before implementation, and keep increments under ten minutes (T2618–T2622 documented as such).
-- **Constitution compliance** – Work adheres to spec-first, clarification gate, test-first, documentation sync, and straight-line control-flow principles; no dependency changes introduced.
-- **Tooling readiness** – Plan/tasks record required commands (`./gradlew --no-daemon :cli:test`, `./gradlew --no-daemon spotlessApply check`) and reference existing Feature 015 dead-state enforcement; latest runs completed successfully on 2025-10-20.
-- **Outcome** – Checklist satisfied; proceed with remaining closure tasks (documentation roll-up + final owner sign-off).
+- **Plan alignment** – Stored-mode increments (I26–I30) now implemented across application, CLI, REST, and operator UI; dependencies and success criteria mirror the revised specification.
+- **Tasks coverage** – Tasks checklist reflects completed stored-mode work (T2633–T2635) with verification commands recorded.
+- **Constitution compliance** – Spec-first, clarification gate, and test-first expectations remain in force; newly added increments continue the ≤10-minute cadence with failing tests staged ahead of code.
+- **Tooling readiness** – Existing commands remain valid; add targeted `:infra-persistence:test`, stored-mode CLI/REST tests, and Selenium stored-mode specs to the baseline before coding.
+- **Outcome** – Gate reopened for the stored-mode scope; proceed with I26–I30 only after tasks/spec/plan stay in sync and failing tests are staged.
+
+## Analysis Gate (2025-10-21)
+- **Specification completeness** – PASS; spec dated 2025-10-20 still current after stored-mode delivery, clarifications unchanged.
+- **Open questions review** – PASS; `docs/4-architecture/open-questions.md` contains no Feature 026 entries.
+- **Plan alignment** – PASS; plan references spec/tasks and now marks I26–I30 complete with MapDB stored flows captured.
+- **Tasks coverage** – PASS; tasks checklist updated through T2635 with documented test commands ahead of implementation.
+- **Constitution compliance** – PASS; increments maintained spec-first/test-first cadence and reused shared helpers to keep control flow flat.
+- **Tooling readiness** – PASS; verification commands (`./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`) captured under Last Green Commands on 2025-10-21.
+- **Outcome** – All checklist items satisfied and recorded; Feature 026 authorised for merge pending final diff review.
 
 ## Telemetry & Observability
 - Add `fido2.attest` and `fido2.attestReplay` adapters capturing attestation format, RP ID, authenticator AAGUID, certificate SHA-256 fingerprint, anchor source (self-attested vs provided), and validity status.  
 - Ensure CLI/REST/UI outputs surface telemetry IDs and anchor provenance without exposing raw attestation statements, certificates, or private keys.
+- Record the attestation input source (Preset, Manual, Stored), stored credential handles, and seeded preset identifiers in telemetry frames so cross-facade analytics stay aligned.

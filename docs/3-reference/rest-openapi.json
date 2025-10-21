@@ -174,6 +174,24 @@
         }
       }
     },
+    "/api/v1/webauthn/attestations/seed" : {
+      "post" : {
+        "tags" : [ "web-authn-attestation-seed-controller" ],
+        "operationId" : "seedStoredAttestations",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SeedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/webauthn/attest" : {
       "post" : {
         "tags" : [ "web-authn-attestation-controller" ],
@@ -454,6 +472,34 @@
           "required" : true
         },
         "responses" : {
+          "422" : {
+            "description" : "Verification payload failed validation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                },
+                "examples" : {
+                  "Missing context" : {
+                    "summary" : "Validation failure",
+                    "description" : "Missing context",
+                    "value" : {
+                      "error" : "invalid_input",
+                      "message" : "sessionHex is required",
+                      "details" : {
+                        "telemetryId" : "rest-ocra-verify-<uuid>",
+                        "status" : "invalid",
+                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
+                        "field" : "sessionHex",
+                        "reasonCode" : "session_required",
+                        "sanitized" : "true"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "404" : {
             "description" : "Credential not found",
             "content" : {
@@ -493,34 +539,6 @@
               }
             }
           },
-          "422" : {
-            "description" : "Verification payload failed validation",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                },
-                "examples" : {
-                  "Missing context" : {
-                    "summary" : "Validation failure",
-                    "description" : "Missing context",
-                    "value" : {
-                      "error" : "invalid_input",
-                      "message" : "sessionHex is required",
-                      "details" : {
-                        "telemetryId" : "rest-ocra-verify-<uuid>",
-                        "status" : "invalid",
-                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
-                        "field" : "sessionHex",
-                        "reasonCode" : "session_required",
-                        "sanitized" : "true"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
@@ -551,22 +569,22 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected server error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
-                }
-              }
-            }
-          },
           "200" : {
             "description" : "Evaluation successful",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
                 }
               }
             }
@@ -637,16 +655,6 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
           "200" : {
             "description" : "Replay completed",
             "content" : {
@@ -657,8 +665,8 @@
               }
             }
           },
-          "404" : {
-            "description" : "Credential not found",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -669,6 +677,16 @@
           },
           "400" : {
             "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Credential not found",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -707,6 +725,16 @@
               }
             }
           },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
           "404" : {
             "description" : "Credential not found",
             "content" : {
@@ -723,16 +751,6 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -767,22 +785,22 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -848,6 +866,32 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/WebAuthnStoredSampleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webauthn/attestations/{credentialId}" : {
+      "get" : {
+        "tags" : [ "web-authn-attestation-stored-controller" ],
+        "operationId" : "metadata",
+        "parameters" : [ {
+          "name" : "credentialId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StoredAttestationMetadataResponse"
                 }
               }
             }
@@ -1398,6 +1442,11 @@
             "description" : "Input source used to build the request",
             "example" : "manual"
           },
+          "storedCredentialId" : {
+            "type" : "string",
+            "description" : "Stored credential identifier used for generation",
+            "example" : "stored-packed-es256"
+          },
           "certificateChainCount" : {
             "type" : "integer",
             "description" : "Number of certificates returned in the attestation chain",
@@ -1552,7 +1601,7 @@
             "type" : "string",
             "description" : "Input source selection",
             "example" : "PRESET",
-            "enum" : [ "PRESET", "MANUAL" ]
+            "enum" : [ "PRESET", "MANUAL", "STORED" ]
           },
           "attestationId" : {
             "type" : "string",
@@ -1577,6 +1626,11 @@
           "challenge" : {
             "type" : "string",
             "description" : "Challenge encoded as Base64URL"
+          },
+          "credentialId" : {
+            "type" : "string",
+            "description" : "Stored credential identifier",
+            "example" : "stored-packed-es256"
           },
           "credentialPrivateKey" : {
             "type" : "string",
@@ -2088,6 +2142,20 @@
           }
         }
       },
+      "OcraEvaluationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "suite" : {
+            "type" : "string"
+          },
+          "otp" : {
+            "type" : "string"
+          },
+          "telemetryId" : {
+            "type" : "string"
+          }
+        }
+      },
       "OcraEvaluationErrorResponse" : {
         "type" : "object",
         "properties" : {
@@ -2102,20 +2170,6 @@
             "additionalProperties" : {
               "type" : "string"
             }
-          }
-        }
-      },
-      "OcraEvaluationResponse" : {
-        "type" : "object",
-        "properties" : {
-          "suite" : {
-            "type" : "string"
-          },
-          "otp" : {
-            "type" : "string"
-          },
-          "telemetryId" : {
-            "type" : "string"
           }
         }
       },
@@ -2143,23 +2197,6 @@
             "type" : "string"
           },
           "metadata" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "string"
-            }
-          }
-        }
-      },
-      "HotpReplayErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
             "type" : "object",
             "additionalProperties" : {
               "type" : "string"
@@ -2210,6 +2247,23 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpReplayMetadata"
+          }
+        }
+      },
+      "HotpReplayErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
           }
         }
       },
@@ -2363,6 +2417,44 @@
             "type" : "string"
           },
           "privateKeyJwk" : {
+            "type" : "string"
+          }
+        }
+      },
+      "StoredAttestationMetadataResponse" : {
+        "type" : "object",
+        "properties" : {
+          "storedCredentialId" : {
+            "type" : "string"
+          },
+          "attestationId" : {
+            "type" : "string"
+          },
+          "format" : {
+            "type" : "string"
+          },
+          "relyingPartyId" : {
+            "type" : "string"
+          },
+          "origin" : {
+            "type" : "string"
+          },
+          "signingMode" : {
+            "type" : "string"
+          },
+          "certificateChainPem" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "challenge" : {
+            "type" : "string"
+          },
+          "attestationObject" : {
+            "type" : "string"
+          },
+          "clientDataJson" : {
             "type" : "string"
           }
         }

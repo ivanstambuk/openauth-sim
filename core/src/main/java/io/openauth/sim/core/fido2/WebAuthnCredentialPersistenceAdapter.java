@@ -1,5 +1,6 @@
 package io.openauth.sim.core.fido2;
 
+import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.serialization.CredentialPersistenceAdapter;
@@ -8,6 +9,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -24,6 +27,17 @@ public final class WebAuthnCredentialPersistenceAdapter
     static final String ATTR_UV_REQUIRED = "fido2.userVerificationRequired";
     static final String ATTR_ALGORITHM = "fido2.algorithm";
     static final String ATTR_ALGORITHM_COSE = "fido2.algorithm.cose";
+    static final String ATTR_ATTESTATION_ENABLED = "fido2.attestation.enabled";
+    static final String ATTR_ATTESTATION_VERSION = "fido2.attestation.version";
+    static final String ATTR_ATTESTATION_FORMAT = "fido2.attestation.format";
+    static final String ATTR_ATTESTATION_SIGNING_MODE = "fido2.attestation.signingMode";
+    static final String ATTR_ATTESTATION_ID = "fido2.attestation.id";
+    static final String ATTR_ATTESTATION_ORIGIN = "fido2.attestation.origin";
+    static final String ATTR_ATTESTATION_CREDENTIAL_PRIVATE_KEY = "fido2.attestation.credentialPrivateKey";
+    static final String ATTR_ATTESTATION_PRIVATE_KEY = "fido2.attestation.privateKey";
+    static final String ATTR_ATTESTATION_CERTIFICATE_SERIAL = "fido2.attestation.certificateSerial";
+    static final String ATTR_ATTESTATION_CERTIFICATE_CHAIN = "fido2.attestation.certificateChainPem";
+    static final String ATTR_ATTESTATION_CUSTOM_ROOTS = "fido2.attestation.customRootPem";
 
     private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
     private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
@@ -177,5 +191,159 @@ public final class WebAuthnCredentialPersistenceAdapter
             return false;
         }
         throw new IllegalArgumentException(attribute + " must be true or false");
+    }
+
+    /**
+     * Serializes a stored attestation descriptor into a {@link VersionedCredentialRecord}. Placeholder until stored
+     * attestation persistence is implemented.
+     */
+    public VersionedCredentialRecord serializeAttestation(WebAuthnAttestationCredentialDescriptor descriptor) {
+        Objects.requireNonNull(descriptor, "descriptor");
+
+        VersionedCredentialRecord baseRecord = serialize(descriptor.credentialDescriptor());
+        Map<String, String> attributes = new LinkedHashMap<>(baseRecord.attributes());
+
+        attributes.put(ATTR_ATTESTATION_ENABLED, "true");
+        attributes.put(ATTR_ATTESTATION_VERSION, "1");
+        attributes.put(ATTR_ATTESTATION_FORMAT, descriptor.format().label());
+        attributes.put(ATTR_ATTESTATION_SIGNING_MODE, descriptor.signingMode().name());
+        attributes.put(ATTR_ATTESTATION_ID, descriptor.attestationId());
+        attributes.put(ATTR_ATTESTATION_ORIGIN, descriptor.origin());
+        attributes.put(ATTR_ATTESTATION_CREDENTIAL_PRIVATE_KEY, descriptor.credentialPrivateKeyBase64Url());
+        if (descriptor.attestationPrivateKeyBase64Url() != null) {
+            attributes.put(ATTR_ATTESTATION_PRIVATE_KEY, descriptor.attestationPrivateKeyBase64Url());
+        } else {
+            attributes.remove(ATTR_ATTESTATION_PRIVATE_KEY);
+        }
+        attributes.put(ATTR_ATTESTATION_CERTIFICATE_SERIAL, descriptor.attestationCertificateSerialBase64Url());
+        attributes.put(ATTR_ATTESTATION_CERTIFICATE_CHAIN, encodeStringList(descriptor.certificateChainPem()));
+        if (!descriptor.customRootCertificatesPem().isEmpty()) {
+            attributes.put(ATTR_ATTESTATION_CUSTOM_ROOTS, encodeStringList(descriptor.customRootCertificatesPem()));
+        } else {
+            attributes.remove(ATTR_ATTESTATION_CUSTOM_ROOTS);
+        }
+
+        SecretMaterial secret = SecretMaterial.fromBytes(
+                decode(descriptor.credentialPrivateKeyBase64Url(), ATTR_ATTESTATION_CREDENTIAL_PRIVATE_KEY));
+        Instant now = clock.instant();
+        return new VersionedCredentialRecord(SCHEMA_VERSION, descriptor.name(), type(), secret, now, now, attributes);
+    }
+
+    /**
+     * Deserializes a {@link VersionedCredentialRecord} into a stored attestation descriptor. Placeholder until stored
+     * attestation persistence is implemented.
+     */
+    public WebAuthnAttestationCredentialDescriptor deserializeAttestation(VersionedCredentialRecord record) {
+        Objects.requireNonNull(record, "record");
+        if (record.schemaVersion() != SCHEMA_VERSION) {
+            throw new IllegalArgumentException("Unsupported schema version: " + record.schemaVersion());
+        }
+        if (record.type() != CredentialType.FIDO2) {
+            throw new IllegalArgumentException("Unsupported credential type: " + record.type());
+        }
+
+        Map<String, String> attributes = record.attributes();
+        if (!"true".equals(attributes.get(ATTR_ATTESTATION_ENABLED))) {
+            throw new IllegalArgumentException("Record does not contain stored attestation metadata");
+        }
+
+        WebAuthnCredentialDescriptor credentialDescriptor = deserialize(record);
+
+        WebAuthnAttestationFormat format =
+                WebAuthnAttestationFormat.fromLabel(require(attributes, ATTR_ATTESTATION_FORMAT));
+        WebAuthnAttestationGenerator.SigningMode signingMode =
+                WebAuthnAttestationGenerator.SigningMode.valueOf(require(attributes, ATTR_ATTESTATION_SIGNING_MODE));
+        String attestationId = require(attributes, ATTR_ATTESTATION_ID);
+        String origin = require(attributes, ATTR_ATTESTATION_ORIGIN);
+        String credentialPrivateKey = require(attributes, ATTR_ATTESTATION_CREDENTIAL_PRIVATE_KEY);
+        String attestationPrivateKey = sanitize(attributes.get(ATTR_ATTESTATION_PRIVATE_KEY));
+        String certificateSerial = require(attributes, ATTR_ATTESTATION_CERTIFICATE_SERIAL);
+        List<String> certificateChain = decodeStringList(attributes.get(ATTR_ATTESTATION_CERTIFICATE_CHAIN));
+        List<String> customRoots = decodeStringList(attributes.getOrDefault(ATTR_ATTESTATION_CUSTOM_ROOTS, "[]"));
+
+        return WebAuthnAttestationCredentialDescriptor.builder()
+                .name(record.name())
+                .format(format)
+                .signingMode(signingMode)
+                .credentialDescriptor(credentialDescriptor)
+                .relyingPartyId(credentialDescriptor.relyingPartyId())
+                .origin(origin)
+                .attestationId(attestationId)
+                .credentialPrivateKeyBase64Url(credentialPrivateKey)
+                .attestationPrivateKeyBase64Url(attestationPrivateKey)
+                .attestationCertificateSerialBase64Url(certificateSerial)
+                .certificateChainPem(certificateChain)
+                .customRootCertificatesPem(customRoots)
+                .build();
+    }
+
+    private static List<String> decodeStringList(String encoded) {
+        if (encoded == null || encoded.isBlank()) {
+            return List.of();
+        }
+        Object parsed = SimpleJson.parse(encoded);
+        if (!(parsed instanceof List<?> list)) {
+            throw new IllegalArgumentException("Expected JSON array for attestation metadata");
+        }
+        List<String> values = new LinkedList<>();
+        for (Object value : list) {
+            if (value == null) {
+                continue;
+            }
+            String text = value.toString().trim();
+            if (!text.isEmpty()) {
+                values.add(text);
+            }
+        }
+        return List.copyOf(values);
+    }
+
+    private static String encodeStringList(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return "[]";
+        }
+        StringBuilder builder = new StringBuilder("[");
+        for (int i = 0; i < values.size(); i++) {
+            if (i > 0) {
+                builder.append(',');
+            }
+            builder.append('"').append(escapeJson(values.get(i))).append('"');
+        }
+        builder.append(']');
+        return builder.toString();
+    }
+
+    private static String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(value.length() + 16);
+        for (char ch : value.toCharArray()) {
+            switch (ch) {
+                case '"' -> builder.append("\\\"");
+                case '\\' -> builder.append("\\\\");
+                case '\b' -> builder.append("\\b");
+                case '\f' -> builder.append("\\f");
+                case '\n' -> builder.append("\\n");
+                case '\r' -> builder.append("\\r");
+                case '\t' -> builder.append("\\t");
+                default -> {
+                    if (ch < 0x20) {
+                        builder.append(String.format("\\u%04x", (int) ch));
+                    } else {
+                        builder.append(ch);
+                    }
+                }
+            }
+        }
+        return builder.toString();
+    }
+
+    private static String sanitize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

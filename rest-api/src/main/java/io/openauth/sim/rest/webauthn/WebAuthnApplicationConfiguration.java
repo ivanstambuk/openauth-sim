@@ -3,6 +3,7 @@ package io.openauth.sim.rest.webauthn;
 import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService;
+import io.openauth.sim.application.fido2.WebAuthnAttestationSeedService;
 import io.openauth.sim.application.fido2.WebAuthnAttestationVerificationApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService;
@@ -10,6 +11,7 @@ import io.openauth.sim.application.fido2.WebAuthnSeedApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnTrustAnchorResolver;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.core.fido2.WebAuthnAssertionVerifier;
+import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
 import io.openauth.sim.core.store.CredentialStore;
@@ -44,8 +46,13 @@ class WebAuthnApplicationConfiguration {
     }
 
     @Bean
-    WebAuthnAttestationGenerationApplicationService webAuthnAttestationGenerationApplicationService() {
-        return new WebAuthnAttestationGenerationApplicationService();
+    WebAuthnAttestationGenerationApplicationService webAuthnAttestationGenerationApplicationService(
+            CredentialStore credentialStore) {
+        return new WebAuthnAttestationGenerationApplicationService(
+                new WebAuthnAttestationGenerator(),
+                TelemetryContracts.fido2AttestAdapter(),
+                credentialStore,
+                new WebAuthnCredentialPersistenceAdapter());
     }
 
     @Bean
@@ -55,13 +62,27 @@ class WebAuthnApplicationConfiguration {
     }
 
     @Bean
-    WebAuthnAttestationReplayApplicationService webAuthnAttestationReplayApplicationService() {
+    WebAuthnAttestationReplayApplicationService webAuthnAttestationReplayApplicationService(
+            CredentialStore credentialStore) {
         return new WebAuthnAttestationReplayApplicationService(
-                new WebAuthnAttestationVerifier(), TelemetryContracts.fido2AttestReplayAdapter());
+                new WebAuthnAttestationVerifier(),
+                TelemetryContracts.fido2AttestReplayAdapter(),
+                credentialStore,
+                new WebAuthnCredentialPersistenceAdapter());
     }
 
     @Bean
     WebAuthnTrustAnchorResolver webAuthnTrustAnchorResolver() {
         return new WebAuthnTrustAnchorResolver();
+    }
+
+    @Bean
+    WebAuthnAttestationSeedService webAuthnAttestationSeedService() {
+        return new WebAuthnAttestationSeedService();
+    }
+
+    @Bean
+    WebAuthnCredentialPersistenceAdapter webAuthnCredentialPersistenceAdapter() {
+        return new WebAuthnCredentialPersistenceAdapter();
     }
 }

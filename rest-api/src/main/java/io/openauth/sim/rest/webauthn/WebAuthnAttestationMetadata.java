@@ -81,6 +81,10 @@ record WebAuthnAttestationMetadata(
         @Schema(description = "Input source used to build the request", example = "manual") @JsonProperty("inputSource")
         String inputSource,
 
+        @Schema(description = "Stored credential identifier used for generation", example = "stored-packed-es256")
+        @JsonProperty("storedCredentialId")
+        String storedCredentialId,
+
         @Schema(description = "Number of certificates returned in the attestation chain", example = "2")
         @JsonProperty("certificateChainCount")
         Integer certificateChainCount,
@@ -114,6 +118,7 @@ record WebAuthnAttestationMetadata(
                 asString(telemetryFields.get("customRootSource")),
                 asString(telemetryFields.get("generationMode")),
                 asString(telemetryFields.get("inputSource")),
+                asString(telemetryFields.get("storedCredentialId")),
                 asInteger(telemetryFields.get("certificateChainCount")),
                 certificateChainPem == null ? List.of() : List.copyOf(certificateChainPem));
     }
@@ -143,6 +148,7 @@ record WebAuthnAttestationMetadata(
                 null, // customRootSource
                 null, // generationMode
                 null, // inputSource
+                null, // storedCredentialId
                 null, // certificateChainCount
                 null); // certificateChainPem
     }

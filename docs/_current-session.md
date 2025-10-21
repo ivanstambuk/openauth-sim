@@ -3,18 +3,18 @@
 > Keep this file up to date across all active chats. Treat it as the single source of truth for in-progress workstreams so every hand-off is instant. Replace the bracketed text and prune sections you do not need.
 
 ## Meta
-- Date: 2025-10-20
+- Date: 2025-10-21
 - Primary branch: `main`
 - Other active branches: none
-- Last green commands: `./gradlew --no-daemon build` (2025-10-20), `./gradlew --no-daemon :cli:test` (2025-10-20), and `./gradlew --no-daemon spotlessApply check` (2025-10-20) after expanding CLI Manual-mode coverage.
-- Build status: Workspace green; dependency forces realigned with existing Gradle locks and `./gradlew --no-daemon build` now completes successfully (2025-10-20).
-- Quality gate note: Additional CLI tests restored Jacoco branch coverage ≥0.70; no remaining blockers before analysis gate.
-- Outstanding git state: In-progress attestation UI ergonomics tweak (text-area height + Selenium expectation) pending review on `main` (2025-10-20); Feature 031 documentation refresh remains staged elsewhere.
+- Last green commands: `./gradlew --no-daemon :application:test :cli:test :rest-api:test` (2025-10-21) validating stored attestation seeding, and `./gradlew --no-daemon spotlessApply check` (2025-10-21).
+- Build status: Workspace green after stored-mode CLI/REST/UI wiring; dependency forces remain aligned with Gradle locks as of 2025-10-21.
+- Quality gate note: Stored-mode increments (T2631–T2635) revalidated via the analysis gate on 2025-10-21; Jacoco branch coverage stays ≥0.70.
+- Outstanding git state: CLI/REST/UI stored-attestation diffs staged on `main` pending documentation sync and final review; Feature 031 documentation refresh remains staged elsewhere.
 
 ## Workstream Summary
 | Workstream | Status | Last Increment | Next Increment | Notes |
 |------------|--------|----------------|----------------|-------|
-| Feature 026 – FIDO2/WebAuthn Attestation Support | In progress | T2630 (Attestation preset label harmonisation) | Owner sign-off & release notes | Attestation presets now follow the algorithm/format/W3C label pattern, REST façade rejects unsupported `inputSource` values, the operator UI auto-detects overrides, and the CLI honours Manual mode with matching validation/telemetry; analysis gate passed 2025-10-20, remaining work is owner sign-off and public release docs. |
+| Feature 026 – FIDO2/WebAuthn Attestation Support | Complete | T2635 (Seed stored attestation credentials) | Merge readiness review | Stored-mode flow delivered CLI `seed-attestations`, REST `/api/v1/webauthn/attestations/seed`, metadata fetch endpoints, and operator UI selectors backed by MapDB; docs/roadmap/knowledge map refreshed and analysis gate closed 2025-10-21. |
 | Feature 027 – Unified Credential Store Naming | In progress | T2704 (Documentation refresh and migration guidance) | TBD – Track operator adoption of the unified file; add migration FAQ if support requests surface | Factory/CLI/REST defaults anchored to `credentials.db`; legacy fallback checks removed, docs now instruct manual migration for existing stores. |
 | Feature 028 – IDE Warning Remediation | In progress | T2810 (WebAuthn assertion lossy conversion warning) | — | Spec/plan/tasks added, Option B locked, TOTP constructors cleaned, WebAuthn attestation/REST metadata assertions updated; CLI/REST tests assert generated OTPs, Selenium suites verify inline/replay controls, full `spotlessApply check` passes; 2025-10-19 clarifications implemented (DTO extraction + SpotBugs annotation export); rest-api dependency lock refreshed to align `checker-qual` 3.51.1 with Gradle force. |
 | Feature 029 – PMD Rule Hardening | In progress | T2903 (Ruleset expansion & baseline) | T2902 – Governance sync & backlog updates | PMD toolVersion bumped to 7.17.0 with dependency locks refreshed via `--write-locks`; legacy `AssignmentInOperand` findings in CLI `MaintenanceCli`, core `CborDecoder`/`SimpleJson`, and core-ocra `OcraReplayVerifierBenchmark` have been refactored and `./gradlew --no-daemon pmdMain pmdTest` now passes; NonExhaustiveSwitch added permanently with green `pmdMain pmdTest` + `spotlessApply check`. |
