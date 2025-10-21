@@ -11,12 +11,12 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.ui.ConcurrentModel;
 
-final class OcraOperatorUiControllerAttestationTest {
+final class OperatorConsoleControllerAttestationTest {
 
     @Test
     void unifiedConsoleExposesAttestationVectorsJson() throws Exception {
-        OcraOperatorUiController controller =
-                new OcraOperatorUiController(new ObjectMapper(), new OcraOperatorUiReplayLogger());
+        OperatorConsoleController controller =
+                new OperatorConsoleController(new ObjectMapper(), new OperatorConsoleTelemetryLogger());
         ConcurrentModel model = new ConcurrentModel();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(new MockHttpSession());

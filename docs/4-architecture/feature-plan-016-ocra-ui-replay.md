@@ -18,7 +18,7 @@ Reference specification: `docs/4-architecture/specs/feature-016-ocra-ui-replay.m
 
 ## Proposed Increments
 - ☑ R1601 – Capture clarifications, draft spec, update roadmap/knowledge map/open-questions. (2025-10-03 – Spec/plan/tasks synced; no open questions.)
-- ☑ R1602 – Author failing Selenium system coverage for replay navigation, stored credential submission, and inline flows. (2025-10-03 – Added `OcraOperatorUiReplaySeleniumTest` expecting missing screen, documented failure in Notes.)
+- ☑ R1602 – Author failing Selenium system coverage for replay navigation, stored credential submission, and inline flows. (2025-10-03 – Added `OperatorConsoleReplaySeleniumTest` expecting missing screen, documented failure in Notes.)
 - ☑ R1603 – Add MockMvc/WebTestClient tests for replay controller/service wiring, including telemetry expectations and REST error handling. (2025-10-03 – `OcraReplayControllerTest` and telemetry verifications passing.)
 - ☑ R1604 – Implement replay screen templates, controllers, and REST wiring to satisfy stored/inline flows with telemetry. (2025-10-03 – UI renders replay screen; REST + telemetry suites green.)
 - ☑ R1605 – Polish UI copy/accessibility, update telemetry adapters, and rerun Selenium suites. (2025-10-03 – Replay Selenium tests green with hashed fingerprints + WCAG contrast checks.)
@@ -58,12 +58,12 @@ Each increment should take ≤10 minutes and finish with the relevant tests red�
 
 Use this section to log telemetry schema updates, notable UI decisions, and benchmark/latency observations as work proceeds.
 - 2025-10-03 – Quality gate run via `./gradlew :rest-api:test spotlessApply check` (no `systemTest` task defined for rest-api); recorded as baseline before UI implementation.
-- 2025-10-03 – Added Selenium replay suite (`OcraOperatorUiReplaySeleniumTest`) covering stored and inline flows; initial run failed before the replay screen existed, documenting the red state for R1602.
+- 2025-10-03 – Added Selenium replay suite (`OperatorConsoleReplaySeleniumTest`) covering stored and inline flows; initial run failed before the replay screen existed, documenting the red state for R1602.
 - 2025-10-03 – Confirmed with owner that T1602 covers inline replay Selenium coverage; stored replay navigation remains part of earlier tasks.
 - 2025-10-03 – MockMvc verification endpoint tests assert metadata.mode + telemetry mode fields; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.OcraVerificationEndpointTest"` now passes after service telemetry wiring update.
 - 2025-10-03 – Replay template JS now consumes REST metadata.mode/credentialSource to render telemetry summaries; Selenium replay suite verifies stored/inline flows show hashed fingerprints and sanitized flags.
 - 2025-10-04 – Stored replay Selenium test now treats the bundled sample MapDB as optional, falling back to programmatic credential seeding when the copy step fails (Option B).
-- 2025-10-03 – UI replay telemetry now posts to `/ui/ocra/replay/telemetry`; new logger component emits through `TelemetryContracts.ocraVerificationAdapter` with mode/outcome/context fingerprints, covered by unit + WebMvc tests.
+- 2025-10-03 – UI replay telemetry now posts to `/ui/console/replay/telemetry`; new logger component emits through `TelemetryContracts.ocraVerificationAdapter` with mode/outcome/context fingerprints, covered by unit + WebMvc tests.
 
 - 2025-10-03 – Replay Selenium suite passes post-implementation; verifies hashed fingerprints and sanitized flags for stored/inline flows.
 - 2025-10-03 – Operator UI how-to and telemetry snapshot updated for replay workflow; `./gradlew spotlessApply check` rerun (configuration cache) and passed.

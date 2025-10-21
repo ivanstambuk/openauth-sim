@@ -7,7 +7,7 @@ OpenAuth Simulator is a Java&nbsp;17, Gradle-based lab environment for emulating
 - ✅ `core` provides the OCRA credential domain, persistence adapters, and ArchUnit guards used by all facades.
 - ✅ `cli` ships Picocli commands for importing, listing, deleting, evaluating credentials, and running MapDB maintenance tasks.
 - ✅ `rest-api` exposes `/api/v1/ocra/evaluate` and `/api/v1/ocra/credentials`, publishes OpenAPI snapshots, and serves Swagger UI at `http://localhost:8080/swagger-ui/index.html` when booted locally.
-- ✅ `ui` hosts the operator console at `/ui/ocra`, reusing the REST endpoints for inline and stored-credential evaluations.
+- ✅ `ui` hosts the operator console at `/ui/console`, reusing the REST endpoints for inline and stored-credential evaluations.
 - ✅ Documentation under `docs/` now covers operator workflows across Java integrations, CLI usage, REST operations, test vector generation, and persistence tuning.
 
 ## Module map

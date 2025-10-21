@@ -118,7 +118,7 @@ _2025-10-11 – Placeholder parity: adjust inline preset handling so no sample i
 	_2025-10-11 – Deleted the extra buttons from the templates, trimmed the handlers, and confirmed change events still hydrate inline forms immediately._
 
 ☑ Ensure the host console restores inline as the default Evaluate mode even after prior sessions toggle to stored.  
-	_2025-10-11 – Added `Fido2OperatorUiSeleniumTest.fido2EvaluateDefaultsToInline` and updated shared console state to default FIDO2 Evaluate mode to inline via `ui/ocra/console.js` and `ui/fido2/console.js`; reran the targeted Selenium suite plus `./gradlew spotlessApply check` to confirm the fix._ 
+	_2025-10-11 – Added `Fido2OperatorUiSeleniumTest.fido2EvaluateDefaultsToInline` and updated shared console state to default FIDO2 Evaluate mode to inline via `ui/console/console.js` and `ui/fido2/console.js`; reran the targeted Selenium suite plus `./gradlew spotlessApply check` to confirm the fix._ 
 
 ☑ Assert inline preset dropdown labels expose curated algorithm names in Selenium coverage.  
 	_2025-10-11 – Extended `Fido2OperatorUiSeleniumTest.inlineGenerationDisplaysGeneratedAssertion` to compare dropdown option text with `WebAuthnGeneratorSamples` labels and reran `GRADLE_USER_HOME=$PWD/.gradle ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` plus `spotlessApply check` (both green)._  
@@ -145,7 +145,7 @@ _2025-10-11 – Placeholder parity: adjust inline preset handling so no sample i
 ☑ **T10 – Quality gate & wrap-up**  
  ☑ Run `./gradlew spotlessApply check` and `./gradlew qualityGate`; resolve issues.  
   _2025-10-10 – Executed `./gradlew --no-daemon spotlessApply check`, revalidated Selenium focus flows, and finished with `./gradlew --no-daemon qualityGate` (reflection scan + coverage verification all green)._  
-  _2025-10-13 – Reran `./gradlew --no-daemon spotlessApply check` after clearing the `OcraOperatorUiSeleniumTest` regression to reconfirm the full pipeline._  
+  _2025-10-13 – Reran `./gradlew --no-daemon spotlessApply check` after clearing the `OperatorConsoleSeleniumTest` regression to reconfirm the full pipeline._  
  ☑ Finalise spec/plan/task updates, capture lessons, and prepare conventional commit & push.  
   _2025-10-10 – Synced feature spec/plan/tasks, roadmap, and knowledge map; prepared aggregated change notes ahead of the WebAuthn commit/push._  
   _Follow-up: document the deferred HOTP/TOTP preset parity feature before final review so the roadmap reflects the outstanding alignment item._
@@ -180,7 +180,7 @@ _2025-10-11 – Placeholder parity: adjust inline preset handling so no sample i
  ☑ Extend application + core adapters to convert the new formats into COSE bytes before verification, emitting format-specific validation errors and telemetry reasons.  
  ☑ Add failing tests across REST/application layers (stored + inline) for JWK, PEM, malformed payloads, and backward-compatible COSE inputs; drive implementation to green.  
  ☑ Refresh CLI/REST/operator UI how-to guides once the format expansion ships.  
- _2025-10-13 – Added `WebAuthnPublicKeyDecoderTest` (COSE/JWK/PEM coverage), introduced `Fido2ReplayEndpointTest` exercising the REST contract, implemented `WebAuthnPublicKeyDecoder` + multi-format normalization in the application layer, and taught the REST replay service to raise `public_key_format_invalid`. Updated `docs/2-how-to/use-fido2-rest-operations.md` with the new format guidance, then reran `./gradlew --no-daemon spotlessApply check` once `OcraOperatorUiSeleniumTest` passed to close the follow-up._  
+ _2025-10-13 – Added `WebAuthnPublicKeyDecoderTest` (COSE/JWK/PEM coverage), introduced `Fido2ReplayEndpointTest` exercising the REST contract, implemented `WebAuthnPublicKeyDecoder` + multi-format normalization in the application layer, and taught the REST replay service to raise `public_key_format_invalid`. Updated `docs/2-how-to/use-fido2-rest-operations.md` with the new format guidance, then reran `./gradlew --no-daemon spotlessApply check` once `OperatorConsoleSeleniumTest` passed to close the follow-up._  
 
 ☑ **T18 – JWK field ordering in sample vectors**  
  ☑ Adjust JSON vector serializers and preset helpers to render `kty` as the first property within each JWK before emitting additional fields.  

@@ -14,8 +14,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(OcraOperatorUiController.class)
-class OcraOperatorUiReplayTelemetryEndpointTest {
+@WebMvcTest(OperatorConsoleController.class)
+class OperatorConsoleTelemetryEndpointTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -24,20 +24,21 @@ class OcraOperatorUiReplayTelemetryEndpointTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private OcraOperatorUiReplayLogger telemetry;
+    private OperatorConsoleTelemetryLogger telemetry;
 
     @Test
     @DisplayName("replay telemetry endpoint forwards payload to telemetry component")
     void replayTelemetryEndpoint() throws Exception {
-        OcraReplayUiEventRequest request = new OcraReplayUiEventRequest(
+        OperatorConsoleReplayEventRequest request = new OperatorConsoleReplayEventRequest(
                 "ui-telemetry-3", "match", "match", null, "stored", "stored", "match", "hash", Boolean.TRUE);
 
-        mockMvc.perform(post("/ui/ocra/replay/telemetry")
+        mockMvc.perform(post("/ui/console/replay/telemetry")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNoContent());
 
-        ArgumentCaptor<OcraReplayUiEventRequest> captor = ArgumentCaptor.forClass(OcraReplayUiEventRequest.class);
+        ArgumentCaptor<OperatorConsoleReplayEventRequest> captor =
+                ArgumentCaptor.forClass(OperatorConsoleReplayEventRequest.class);
         verify(telemetry).record(captor.capture());
     }
 }

@@ -32,7 +32,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-final class OcraOperatorUiEndToEndTest {
+final class OperatorConsoleEndToEndTest {
 
     private static final String CREDENTIAL_ID = "operator-demo";
     private static final String SUITE = "OCRA-1:HOTP-SHA256-8:QA08-S064";

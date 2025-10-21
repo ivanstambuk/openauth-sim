@@ -28,7 +28,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-final class OcraOperatorUiSeedingSeleniumTest {
+final class OperatorConsoleSeedingSeleniumTest {
 
     private static final List<String> CANONICAL_SUITES = OcraOperatorSampleData.seedDefinitions().stream()
             .map(SampleDefinition::suite)

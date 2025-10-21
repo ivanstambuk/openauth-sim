@@ -17,7 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
-final class OcraOperatorUiEvaluateButtonMockMvcTest {
+final class OperatorConsoleEvaluateButtonMockMvcTest {
 
     @TempDir
     static Path tempDir;

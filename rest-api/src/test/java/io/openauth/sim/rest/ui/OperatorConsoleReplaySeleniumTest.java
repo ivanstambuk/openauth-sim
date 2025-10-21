@@ -38,7 +38,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-final class OcraOperatorUiReplaySeleniumTest {
+final class OperatorConsoleReplaySeleniumTest {
 
     private static final ObjectMapper JSON = new ObjectMapper();
 

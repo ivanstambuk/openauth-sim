@@ -155,13 +155,13 @@ Verification emits `event=rest.ocra.verify` with hashed payloads (`otpHash`, `co
 Issue a request with an intentionally altered counter, timestamp, or OTP to rehearse `strict_mismatch` handling. Terminate requests at the operator UI or CLI once the telemetry confirms the mismatch path is logged.
 
 
-## 5. Navigate the Operator UI (`GET /ui/ocra`)
-The REST service also hosts an operator UI that consumes the same endpoints via asynchronous fetch calls. Access it at `http://localhost:8080/ui/ocra` to validate JSON requests interactively before automating them in your tooling.
+## 5. Navigate the Operator UI (`GET /ui/console`)
+The REST service also hosts an operator UI that consumes the same endpoints via asynchronous fetch calls. Access it at `http://localhost:8080/ui/console` to validate JSON requests interactively before automating them in your tooling.
 
 ### 5.1 Replay telemetry
-The replay screen issues two network calls: a POST to `/api/v1/ocra/verify` and a follow-up POST to `/ui/ocra/replay/telemetry` once a response arrives. The telemetry payload mirrors the REST metadata (`mode`, `credentialSource`, `outcome`, `contextFingerprint`) and flows through `TelemetryContracts.ocraVerificationAdapter` with `event=ui.ocra.replay`. Example log line:
+The replay screen issues two network calls: a POST to `/api/v1/ocra/verify` and a follow-up POST to `/ui/console/replay/telemetry` once a response arrives. The telemetry payload mirrors the REST metadata (`mode`, `credentialSource`, `outcome`, `contextFingerprint`) and flows through `TelemetryContracts.ocraVerificationAdapter` with `event=ui.console.replay`. Example log line:
 ```
-2025-10-03T11:42:09.117Z INFO io.openauth.sim.rest.ui.telemetry : event=ui.ocra.replay status=match telemetryId=ui-replay-793aac origin=ui uiView=replay mode=stored credentialSource=stored outcome=match contextFingerprint=d8o6y8HgxWfaJQ2a1zAifg sanitized=true
+2025-10-03T11:42:09.117Z INFO io.openauth.sim.rest.ui.telemetry : event=ui.console.replay status=match telemetryId=ui-replay-793aac origin=ui uiView=replay mode=stored credentialSource=stored outcome=match contextFingerprint=d8o6y8HgxWfaJQ2a1zAifg sanitized=true
 ```
 Validation failures produce `status=invalid` (reason code defaults to `validation_error`) and include the offending field in the REST response. Network failures emit `status=error` / `reasonCode=unexpected_error` with `sanitized=false`, signalling operators to retry the REST request.
 

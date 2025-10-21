@@ -20,6 +20,7 @@
 | Feature 029 – PMD Rule Hardening | In progress | T2903 (Ruleset expansion & baseline) | T2902 – Governance sync & backlog updates | PMD toolVersion bumped to 7.17.0 with dependency locks refreshed via `--write-locks`; legacy `AssignmentInOperand` findings in CLI `MaintenanceCli`, core `CborDecoder`/`SimpleJson`, and core-ocra `OcraReplayVerifierBenchmark` have been refactored and `./gradlew --no-daemon pmdMain pmdTest` now passes; NonExhaustiveSwitch added permanently with green `pmdMain pmdTest` + `spotlessApply check`. |
 | Feature 031 – Legacy Entry-Point Removal | In progress | T3108 (Docs/analysis gate post-fetch + preset rename) | Confirm closure & changelog updates | WebAuthn presets now use W3C fixture identifiers, the legacy generator sample is gone, docs/knowledge map refreshed, HtmlUnit fetch polyfill enabled within Selenium suites, and targeted UI suites plus `spotlessApply check` reran 2025-10-19. |
 | Feature 032 – Palantir Formatter Adoption | Complete | T3209 (Roadmap/changelog updates) | — | Palantir Java Format 2.78.0 is now enforced via Spotless + hooks, all JVM sources were reformatted, roadmap/changelog updated, and Feature 032 artefacts retained for traceability. |
+| Feature 033 – Operator Console Naming Alignment | Complete | T3305 (Documentation & verification) | — | Controller, telemetry logger, replay endpoint, and UI assets renamed to `OperatorConsole*`; targeted `:rest-api:test` and `spotlessApply check` rerun 2025-10-21, telemetry now logs `event=ui.console.replay`. |
 | _Reminder_ |  |  |  | Keep this table limited to active workstreams; move completed features to the roadmap instead of tracking them here. |
 
 > Open questions live exclusively in `docs/4-architecture/open-questions.md`; consult that log for any pending clarifications.
@@ -36,6 +37,9 @@
 - Additional plan: `docs/4-architecture/feature-plan-031-legacy-entrypoint-removal.md`
 - Additional tasks: `docs/4-architecture/tasks/feature-031-legacy-entrypoint-removal.md`
 - Additional spec: `docs/4-architecture/specs/feature-032-palantir-formatter-adoption.md`
+- Additional spec: `docs/4-architecture/specs/feature-033-operator-console-naming-alignment.md`
+- Additional plan: `docs/4-architecture/feature-plan-033-operator-console-naming-alignment.md`
+- Additional tasks: `docs/4-architecture/tasks/feature-033-operator-console-naming-alignment.md`
 - Quick reference: `docs/5-operations/session-quick-reference.md`
 
 > Update this snapshot before ending each session and after significant context changes.

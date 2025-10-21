@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-record OcraReplayUiEventRequest(
+record OperatorConsoleReplayEventRequest(
         @JsonProperty("telemetryId") String telemetryId,
         @JsonProperty("status") String status,
         @JsonProperty("reasonCode") String reasonCode,
@@ -14,5 +14,5 @@ record OcraReplayUiEventRequest(
         @JsonProperty("outcome") String outcome,
         @JsonProperty("contextFingerprint") String contextFingerprint,
         @JsonProperty("sanitized") Boolean sanitized) {
-    // Marker record for replay telemetry payloads.
+    // Marker record for operator console replay telemetry payloads.
 }

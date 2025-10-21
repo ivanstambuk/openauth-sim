@@ -6,10 +6,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
 @Configuration
-public class RestOperatorUiConfiguration {
+public class OperatorConsoleUiConfiguration {
 
     @Bean
-    RestTemplate ocraUiRestTemplate(RestTemplateBuilder builder) {
+    RestTemplate operatorConsoleRestTemplate(RestTemplateBuilder builder) {
         return builder.build();
     }
 }

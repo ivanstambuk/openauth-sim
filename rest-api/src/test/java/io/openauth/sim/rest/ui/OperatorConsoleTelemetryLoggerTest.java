@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-class OcraOperatorUiReplayLoggerTest {
+class OperatorConsoleTelemetryLoggerTest {
 
     @Test
     @DisplayName("record emits match telemetry with mode and fingerprint")
@@ -21,10 +21,10 @@ class OcraOperatorUiReplayLoggerTest {
         logger.setUseParentHandlers(false);
         logger.addHandler(handler);
 
-        OcraOperatorUiReplayLogger telemetry =
-                new OcraOperatorUiReplayLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
+        OperatorConsoleTelemetryLogger telemetry =
+                new OperatorConsoleTelemetryLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
 
-        OcraReplayUiEventRequest request = new OcraReplayUiEventRequest(
+        OperatorConsoleReplayEventRequest request = new OperatorConsoleReplayEventRequest(
                 "ui-telemetry-1", "match", "match", null, "stored", "stored", "match", "hash-value", Boolean.TRUE);
 
         telemetry.record(request);
@@ -33,7 +33,7 @@ class OcraOperatorUiReplayLoggerTest {
         assertThat(record).isNotNull();
         assertThat(record.getLevel()).isEqualTo(Level.INFO);
         assertThat(record.getMessage())
-                .contains("event=ui.ocra.replay")
+                .contains("event=ui.console.replay")
                 .contains("status=match")
                 .contains("telemetryId=ui-telemetry-1")
                 .contains("mode=stored")
@@ -48,10 +48,10 @@ class OcraOperatorUiReplayLoggerTest {
         logger.setUseParentHandlers(false);
         logger.addHandler(handler);
 
-        OcraOperatorUiReplayLogger telemetry =
-                new OcraOperatorUiReplayLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
+        OperatorConsoleTelemetryLogger telemetry =
+                new OperatorConsoleTelemetryLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
 
-        OcraReplayUiEventRequest request = new OcraReplayUiEventRequest(
+        OperatorConsoleReplayEventRequest request = new OperatorConsoleReplayEventRequest(
                 "ui-telemetry-2",
                 "invalid",
                 "otp_missing",
@@ -81,10 +81,10 @@ class OcraOperatorUiReplayLoggerTest {
         logger.setUseParentHandlers(false);
         logger.addHandler(handler);
 
-        OcraOperatorUiReplayLogger telemetry =
-                new OcraOperatorUiReplayLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
+        OperatorConsoleTelemetryLogger telemetry =
+                new OperatorConsoleTelemetryLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
 
-        OcraReplayUiEventRequest request = new OcraReplayUiEventRequest(
+        OperatorConsoleReplayEventRequest request = new OperatorConsoleReplayEventRequest(
                 "ui-telemetry-7", "invalid", null, null, "inline", "inline", "invalid", null, null);
 
         telemetry.record(request);
@@ -106,10 +106,10 @@ class OcraOperatorUiReplayLoggerTest {
         logger.setUseParentHandlers(false);
         logger.addHandler(handler);
 
-        OcraOperatorUiReplayLogger telemetry =
-                new OcraOperatorUiReplayLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
+        OperatorConsoleTelemetryLogger telemetry =
+                new OperatorConsoleTelemetryLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
 
-        OcraReplayUiEventRequest request = new OcraReplayUiEventRequest(
+        OperatorConsoleReplayEventRequest request = new OperatorConsoleReplayEventRequest(
                 "ui-telemetry-3",
                 "error",
                 "network_error",
@@ -139,10 +139,10 @@ class OcraOperatorUiReplayLoggerTest {
         logger.setUseParentHandlers(false);
         logger.addHandler(handler);
 
-        OcraOperatorUiReplayLogger telemetry =
-                new OcraOperatorUiReplayLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
+        OperatorConsoleTelemetryLogger telemetry =
+                new OperatorConsoleTelemetryLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
 
-        OcraReplayUiEventRequest request = new OcraReplayUiEventRequest(
+        OperatorConsoleReplayEventRequest request = new OperatorConsoleReplayEventRequest(
                 "ui-telemetry-8", "error", null, null, "stored", "stored", "error", null, null);
 
         telemetry.record(request);
@@ -164,10 +164,10 @@ class OcraOperatorUiReplayLoggerTest {
         logger.setUseParentHandlers(false);
         logger.addHandler(handler);
 
-        OcraOperatorUiReplayLogger telemetry =
-                new OcraOperatorUiReplayLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
+        OperatorConsoleTelemetryLogger telemetry =
+                new OperatorConsoleTelemetryLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
 
-        OcraReplayUiEventRequest request = new OcraReplayUiEventRequest(
+        OperatorConsoleReplayEventRequest request = new OperatorConsoleReplayEventRequest(
                 "ui-telemetry-4", null, null, null, "stored", "stored", "unknown", "unavailable", Boolean.TRUE);
 
         telemetry.record(request);
@@ -188,10 +188,10 @@ class OcraOperatorUiReplayLoggerTest {
         logger.setUseParentHandlers(false);
         logger.addHandler(handler);
 
-        OcraOperatorUiReplayLogger telemetry =
-                new OcraOperatorUiReplayLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
+        OperatorConsoleTelemetryLogger telemetry =
+                new OperatorConsoleTelemetryLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
 
-        OcraReplayUiEventRequest request = new OcraReplayUiEventRequest(
+        OperatorConsoleReplayEventRequest request = new OperatorConsoleReplayEventRequest(
                 "ui-telemetry-5",
                 "mismatch",
                 "strict_mismatch",
@@ -220,10 +220,10 @@ class OcraOperatorUiReplayLoggerTest {
         logger.setUseParentHandlers(false);
         logger.addHandler(handler);
 
-        OcraOperatorUiReplayLogger telemetry =
-                new OcraOperatorUiReplayLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
+        OperatorConsoleTelemetryLogger telemetry =
+                new OperatorConsoleTelemetryLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
 
-        OcraReplayUiEventRequest request = new OcraReplayUiEventRequest(
+        OperatorConsoleReplayEventRequest request = new OperatorConsoleReplayEventRequest(
                 "ui-telemetry-6", "success", null, null, "stored", "stored", "match", "hash", Boolean.TRUE);
 
         telemetry.record(request);
@@ -244,10 +244,10 @@ class OcraOperatorUiReplayLoggerTest {
         logger.setUseParentHandlers(false);
         logger.addHandler(handler);
 
-        OcraOperatorUiReplayLogger telemetry =
-                new OcraOperatorUiReplayLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
+        OperatorConsoleTelemetryLogger telemetry =
+                new OperatorConsoleTelemetryLogger(TelemetryContracts.ocraVerificationAdapter(), logger);
 
-        OcraReplayUiEventRequest request = new OcraReplayUiEventRequest(
+        OperatorConsoleReplayEventRequest request = new OperatorConsoleReplayEventRequest(
                 null, "match", "match", null, "stored", "stored", "match", "", Boolean.TRUE);
 
         telemetry.record(request);

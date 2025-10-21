@@ -5,7 +5,7 @@ This snapshot records representative log lines emitted by the OCRA evaluation an
 ```
 OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.rest.ocra.OcraVerificationServiceTest --info
 ./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest --info
-./gradlew :rest-api:test --tests io.openauth.sim.rest.ui.OcraOperatorUiReplaySeleniumTest --info
+./gradlew :rest-api:test --tests io.openauth.sim.rest.ui.OperatorConsoleReplaySeleniumTest --info
 ```
 
 ## Sample Output – Evaluation (2025-10-02)
@@ -19,12 +19,12 @@ Keep this snapshot in sync when telemetry fields change.
 
 ## Sample Output – Operator UI Replay (2025-10-03)
 ```
-2025-10-03T11:44:28.412+02:00  INFO 821640 --- [nio-8080-exec-4] io.openauth.sim.rest.ui.telemetry       : event=ui.ocra.replay status=match telemetryId=ui-replay-35f8fbb7 origin=ui uiView=replay mode=stored credentialSource=stored outcome=match contextFingerprint=d8o6y8HgxWfaJQ2a1zAifg sanitized=true
-2025-10-03T11:44:29.006+02:00  WARN 821640 --- [nio-8080-exec-5] io.openauth.sim.rest.ui.telemetry       : event=ui.ocra.replay status=invalid telemetryId=ui-replay-f03bd90a origin=ui uiView=replay mode=inline credentialSource=inline outcome=invalid contextFingerprint=unavailable sanitized=true reasonCode=validation_error reason=Replay payload invalid
+2025-10-03T11:44:28.412+02:00  INFO 821640 --- [nio-8080-exec-4] io.openauth.sim.rest.ui.telemetry       : event=ui.console.replay status=match telemetryId=ui-replay-35f8fbb7 origin=ui uiView=replay mode=stored credentialSource=stored outcome=match contextFingerprint=d8o6y8HgxWfaJQ2a1zAifg sanitized=true
+2025-10-03T11:44:29.006+02:00  WARN 821640 --- [nio-8080-exec-5] io.openauth.sim.rest.ui.telemetry       : event=ui.console.replay status=invalid telemetryId=ui-replay-f03bd90a origin=ui uiView=replay mode=inline credentialSource=inline outcome=invalid contextFingerprint=unavailable sanitized=true reasonCode=validation_error reason=Replay payload invalid
 ```
 
 ## Field Reference – Operator UI Replay (2025-10-03)
-- `event` == `ui.ocra.replay` so monitoring can separate UI-driven activity from REST or CLI usage.
+- `event` == `ui.console.replay` so monitoring can separate UI-driven activity from REST or CLI usage.
 - `origin` and `uiView` identify the facade (`ui`) and screen (`replay`) that emitted the event.
 - `mode` mirrors the REST metadata (`stored` vs `inline`) while `credentialSource` confirms which payload field supplied the secret (identifier or inline secret).
 - `outcome` reports `match`, `mismatch`, or `invalid`; `status` mirrors the HTTP classification shared with other telemetry frames.

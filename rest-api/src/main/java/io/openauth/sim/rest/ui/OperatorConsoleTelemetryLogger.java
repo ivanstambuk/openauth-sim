@@ -13,24 +13,24 @@ import java.util.logging.Logger;
 import org.springframework.stereotype.Component;
 
 @Component
-final class OcraOperatorUiReplayLogger {
+final class OperatorConsoleTelemetryLogger {
 
     private static final Logger TELEMETRY_LOGGER = Logger.getLogger("io.openauth.sim.rest.ui.telemetry");
 
     private final OcraTelemetryAdapter adapter;
     private final Logger logger;
 
-    OcraOperatorUiReplayLogger() {
+    OperatorConsoleTelemetryLogger() {
         this(TelemetryContracts.ocraVerificationAdapter(), TELEMETRY_LOGGER);
     }
 
-    OcraOperatorUiReplayLogger(OcraTelemetryAdapter adapter, Logger logger) {
+    OperatorConsoleTelemetryLogger(OcraTelemetryAdapter adapter, Logger logger) {
         this.adapter = Objects.requireNonNull(adapter, "adapter");
         this.logger = Objects.requireNonNull(logger, "logger");
         this.logger.setLevel(Level.ALL);
     }
 
-    void record(OcraReplayUiEventRequest request) {
+    void record(OperatorConsoleReplayEventRequest request) {
         Objects.requireNonNull(request, "request");
         String telemetryId = normalize(request.telemetryId());
         if (telemetryId == null) {
@@ -90,7 +90,7 @@ final class OcraOperatorUiReplayLogger {
 
     private void logFrame(TelemetryFrame frame) {
         Map<String, Object> fields = frame.fields();
-        StringBuilder builder = new StringBuilder("event=ui.ocra.replay status=")
+        StringBuilder builder = new StringBuilder("event=ui.console.replay status=")
                 .append(frame.status())
                 .append(' ');
         builder.append("telemetryId=").append(fields.getOrDefault("telemetryId", "unknown"));

@@ -43,7 +43,7 @@ _Last updated: 2025-10-15_
 - ☑ T2237 – Rework HOTP evaluation layout/JS so stored and inline result cards live in the shared status column’s leading position, then rerun the targeted UI suite and `./gradlew spotlessApply check` (2025-10-06: single section-columns wrapper with shared status column; targeted suite + spotless both green).
 - ☑ T2238 – Add failing Selenium assertions that HOTP result rows render labels and values on the same line (OTP/status) with the same structure as the OCRA evaluation panel (`./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeleniumTest"` red prior to layout sync on 2025-10-06).
 - ☑ T2239 – Update HOTP result markup/styles/scripts to satisfy T2238 (matching OCRA card spacing/typography) and rerun targeted suite plus `./gradlew spotlessApply check` (2025-10-06: result panels now reuse OCRA inline row markup; targeted Selenium suite and full build both green).
-- ☑ T2240 – Add failing OCRA Selenium assertions that the evaluation status row uses the shared success badge styling (`./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest"` red prior to badge wiring on 2025-10-06).
+- ☑ T2240 – Add failing OCRA Selenium assertions that the evaluation status row uses the shared success badge styling (`./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleSeleniumTest"` red prior to badge wiring on 2025-10-06).
 - ☑ T2241 – Update OCRA evaluation result markup/styles to reuse the success badge, rerun targeted OCRA + HOTP suites and `./gradlew spotlessApply check` (2025-10-06: inline script applies badge variants; targeted suites and full build green).
 
 Mark tasks as work completes and record tooling outcomes within the feature plan.

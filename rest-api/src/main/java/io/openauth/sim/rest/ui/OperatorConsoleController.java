@@ -23,10 +23,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
 @RequestMapping("/ui")
-final class OcraOperatorUiController {
+final class OperatorConsoleController {
 
     private static final String REST_EVALUATION_PATH = "/api/v1/ocra/evaluate";
-    private static final String CSRF_ATTRIBUTE = "ocra-ui-csrf-token";
+    private static final String CSRF_ATTRIBUTE = "operator-console-csrf-token";
     private static final String REST_VERIFICATION_PATH = "/api/v1/ocra/verify";
     private static final Set<String> SUPPORTED_PROTOCOLS =
             Set.of("ocra", "hotp", "totp", "fido2", "emv", "eudi-openid4vp", "eudi-iso-18013-5", "eudi-siopv2");
@@ -35,9 +35,9 @@ final class OcraOperatorUiController {
             Base64.getUrlEncoder().withoutPadding();
 
     private final ObjectMapper objectMapper;
-    private final OcraOperatorUiReplayLogger telemetry;
+    private final OperatorConsoleTelemetryLogger telemetry;
 
-    OcraOperatorUiController(ObjectMapper objectMapper, OcraOperatorUiReplayLogger telemetry) {
+    OperatorConsoleController(ObjectMapper objectMapper, OperatorConsoleTelemetryLogger telemetry) {
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
         this.telemetry = Objects.requireNonNull(telemetry, "telemetry");
     }
@@ -92,7 +92,7 @@ final class OcraOperatorUiController {
         model.addAttribute("fido2AttestationReplayEndpoint", "/api/v1/webauthn/attest/replay");
         model.addAttribute("fido2AttestationSeedEndpoint", "/api/v1/webauthn/attestations/seed");
         model.addAttribute("fido2AttestationMetadataEndpoint", "/api/v1/webauthn/attestations/{credentialId}");
-        model.addAttribute("telemetryEndpoint", "/ui/ocra/replay/telemetry");
+        model.addAttribute("telemetryEndpoint", "/ui/console/replay/telemetry");
         populatePolicyPresets(model);
         return "ui/console/index";
     }
@@ -156,7 +156,7 @@ final class OcraOperatorUiController {
     private String serializeFido2AttestationVectors() {
         try {
             List<Map<String, Object>> payload = WebAuthnAttestationSamples.vectors().stream()
-                    .map(OcraOperatorUiController::describeAttestationVector)
+                    .map(OperatorConsoleController::describeAttestationVector)
                     .toList();
             return objectMapper.writeValueAsString(payload);
         } catch (JsonProcessingException ex) {
@@ -225,8 +225,9 @@ final class OcraOperatorUiController {
         return BASE64_URL_ENCODER.encodeToString(value);
     }
 
-    @PostMapping(value = "/ocra/replay/telemetry", consumes = "application/json")
-    org.springframework.http.ResponseEntity<Void> replayTelemetry(@RequestBody OcraReplayUiEventRequest request) {
+    @PostMapping(value = "/console/replay/telemetry", consumes = "application/json")
+    org.springframework.http.ResponseEntity<Void> replayTelemetry(
+            @RequestBody OperatorConsoleReplayEventRequest request) {
         telemetry.record(request);
         return org.springframework.http.ResponseEntity.noContent().build();
     }

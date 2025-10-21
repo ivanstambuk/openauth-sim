@@ -202,9 +202,9 @@ _Last updated:_ 2025-10-18
 	☑ Ran `./gradlew --no-daemon :cli:test` and `./gradlew --no-daemon spotlessApply check` (coverage guard satisfied after expanding Manual-mode tests).
 
 ☑ **T2630 – Attestation preset label harmonisation**  
-	☑ Update `OcraOperatorUiController` attestation label builder to emit `<algorithm> (format, W3C <section>)` with origin fallback when no section exists.  
-	☑ Extend `OcraOperatorUiControllerAttestationTest` (or similar unit coverage) to assert the new label for the packed ES256 vector.  
-	☑ Run `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiControllerAttestationTest"` and `./gradlew --no-daemon spotlessApply check`.  
+☑ Update `OperatorConsoleController` attestation label builder to emit `<algorithm> (format, W3C <section>)` with origin fallback when no section exists.  
+☑ Extend `OperatorConsoleControllerAttestationTest` (or similar unit coverage) to assert the new label for the packed ES256 vector.  
+☑ Run `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleControllerAttestationTest"` and `./gradlew --no-daemon spotlessApply check`.  
 		_2025-10-20 – Updated label builder, added JSON assertion coverage for the packed ES256 vector, reran targeted `:rest-api:test` plus full `spotlessApply check` (second invocation required an extended timeout)._ 
 
 ☑ **T2631 – Credential store attestation schema**  

@@ -37,7 +37,7 @@ The mode toggle is keyboard-accessible and announces which section is visible. J
 ## Running Replays (Replay Mode)
 1. Click the **Replay** toggle inside the OCRA panel. The evaluation form hides while the replay fields become visible in-place.
 2. Replay mode exposes two subsections: **Stored credential replay** (default) and **Inline replay**. The radio buttons drive the same async wiring HtmlUnit exercises in the Selenium suite, so keyboard users receive focus and `aria-live` announcements when sections change.
-3. Successful replays trigger a telemetry POST to `/ui/ocra/replay/telemetry` with `origin=ui`, `mode`, outcome, sanitized fingerprint, and credential source so downstream observability matches the REST facade.
+3. Successful replays trigger a telemetry POST to `/ui/console/replay/telemetry` with `origin=ui`, `mode`, outcome, sanitized fingerprint, and credential source so downstream observability matches the REST facade.
 
 ### Stored Credential Replays
 - Pick a credential from the dropdown. The UI fetches the credential inventory from `/api/v1/ocra/credentials` and caches it for the active session.
@@ -56,7 +56,7 @@ The mode toggle is keyboard-accessible and announces which section is visible. J
 - Validation errors reuse sanitized reason codes/messages from the REST API. Unexpected server errors surface a generic banner without secret material. Error panels appear only when the REST call returns a non-2xx status.
 
 ## Logging & Observability Notes
-- Evaluation submissions emit `event=rest.ocra.evaluate`; replays emit `event=ui.ocra.replay` with `mode`, `outcome`, and hashed fingerprints. All events flow through `TelemetryContracts.ocraVerificationAdapter` and preserve the `sanitized=true` invariant.
+- Evaluation submissions emit `event=rest.ocra.evaluate`; replays emit `event=ui.console.replay` with `mode`, `outcome`, and hashed fingerprints. All events flow through `TelemetryContracts.ocraVerificationAdapter` and preserve the `sanitized=true` invariant.
 - CSRF protection relies on HTTP sessions; clear cookies or restart the server to invalidate tokens.
 - The controller keeps shared secrets in memory for the active session so operators can reuse inline data. Only the optional PIN hash field is cleared automatically after each request.
 - Keep observer tooling pointed at the telemetry ID to correlate UI actions with backend traces. Stored replays use the credential identifier only; the shared secret never leaves persistence.

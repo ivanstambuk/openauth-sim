@@ -11,7 +11,7 @@ import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
-import io.openauth.sim.rest.ui.OcraOperatorUiController.InlineSample;
+import io.openauth.sim.rest.ui.OperatorConsoleController.InlineSample;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -41,7 +41,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-final class OcraOperatorUiSeleniumTest {
+final class OperatorConsoleSeleniumTest {
 
     private static final String DEFAULT_STORED_SECRET =
             "3132333435363738393031323334353637383930313233343536373839303132";
@@ -745,7 +745,7 @@ final class OcraOperatorUiSeleniumTest {
     private static InlineSample findInlineSample(String presetKey) {
         return OcraOperatorSampleData.policyPresets().stream()
                 .filter(preset -> preset.getKey().equals(presetKey))
-                .map(OcraOperatorUiController.PolicyPreset::getSample)
+                .map(OperatorConsoleController.PolicyPreset::getSample)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Missing inline preset for key: " + presetKey));
     }

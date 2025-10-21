@@ -116,12 +116,12 @@ public final class OcraOperatorSampleData {
         // utility class
     }
 
-    static List<OcraOperatorUiController.PolicyPreset> policyPresets() {
+    static List<OperatorConsoleController.PolicyPreset> policyPresets() {
         return DEFINITIONS.stream()
-                .map(definition -> new OcraOperatorUiController.PolicyPreset(
+                .map(definition -> new OperatorConsoleController.PolicyPreset(
                         definition.key(),
                         definition.label(),
-                        new OcraOperatorUiController.InlineSample(
+                        new OperatorConsoleController.InlineSample(
                                 definition.suite(),
                                 definition.sharedSecretHex(),
                                 definition.challenge(),

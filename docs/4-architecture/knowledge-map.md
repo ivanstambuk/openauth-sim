@@ -101,7 +101,7 @@ This living map captures the explicit relationships between modules, data flows,
 - REST OCRA telemetry snapshot is archived under `docs/3-reference/rest-ocra-telemetry-snapshot.md` to illustrate redaction guarantees for operators.
 - REST OCRA telemetry events now emit `reasonCode` and `sanitized` attributes so downstream alerting can distinguish validation failures from unexpected errors without leaking secrets.
 - REST OCRA evaluation supports credential lookup via `credentialId`, resolving descriptors from the persistence adapter while preserving the existing inline secret mode.
-- REST module now serves the unified Thymeleaf operator console at `/ui/console`, reusing `/ui/ocra` fragments under the hood while delegating evaluations to the REST endpoint and enforcing session-backed CSRF tokens.
+- REST module now serves the unified Thymeleaf operator console through `OperatorConsoleController` at `/ui/console`, reusing `/ui/ocra` fragments under the hood while delegating evaluations to the REST endpoint and enforcing session-backed CSRF tokens; replay telemetry posts to `/ui/console/replay/telemetry` via `OperatorConsoleTelemetryLogger` and the shared `TelemetryContracts` adapter.
 - REST module exposes `/api/v1/ocra/credentials` to surface sanitized OCRA credential summaries for operator dropdowns without leaking secret material.
 - Shared MapDB persistence now defaults to `data/credentials.db` at the repository root; operators must rename or explicitly configure legacy `*-credentials.db` files if they wish to continue using them.
 - MapDB store now exposes a package-private cache accessor used by internal tests, eliminating the need for reflective field access while keeping cache internals encapsulated.

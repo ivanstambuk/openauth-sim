@@ -23,7 +23,7 @@ Retire the Java/JavaScript compatibility branches so there is a single telemetry
 ## Increments
 1. T3101 – Update CLI telemetry tests to lock the structured adapter output; add regression for `OcraCli.emit` covering evaluate/verify cases only. _Tests first._
 2. T3102 – Remove `legacyEmit` path; ensure CLI integration tests emit structured frames exclusively.
-3. T3103 – In operator console router (`ui/ocra/console.js`), delete `__openauth*` shims and legacy query-param coercion; add targeted front-end unit test covering canonical params.
+3. T3103 – In operator console router (`ui/console/console.js`), delete `__openauth*` shims and legacy query-param coercion; add targeted front-end unit test covering canonical params.
 4. T3104 – Mirror router cleanup in HOTP/TOTP consoles; adjust Selenium tests to navigate via canonical params.
 5. T3105 – Drop FIDO2 `legacySetMode` bridge and legacy mode persistence; update FIDO2 Selenium flows and HtmlUnit harness to use the canonical API.
 6. T3106 – Remove XMLHttpRequest fallbacks; enable HtmlUnit’s built-in `fetch` polyfill in Selenium harnesses; rerun impacted suites.

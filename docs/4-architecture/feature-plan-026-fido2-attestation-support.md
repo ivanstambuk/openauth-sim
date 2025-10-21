@@ -209,7 +209,7 @@ _2025-10-19 – T2628 closed: fixture key material now ships as structured JWK o
 7. I25 – Attestation preset label harmonisation
    - Update attestation vector labels exposed to the operator console to follow the `<algorithm> (format, W3C <section>)` pattern, with an origin fallback when no W3C section is defined.
    - Extend controller/UI tests to assert the new label formatting so regressions surface quickly.
-   - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiControllerAttestationTest"` and targeted Selenium runs as needed, followed by `./gradlew --no-daemon spotlessApply check`.
+   - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleControllerAttestationTest"` and targeted Selenium runs as needed, followed by `./gradlew --no-daemon spotlessApply check`.
 
 8. **I26 – Credential store attestation schema** _(completed 2025-10-20)_  
    - Stage failing persistence/application tests asserting MapDB can persist and retrieve attestation credentials (leaf certificate chain, signing mode, attestation private key linkage) alongside assertions.  

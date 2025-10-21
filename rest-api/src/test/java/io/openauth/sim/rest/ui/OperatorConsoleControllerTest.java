@@ -10,10 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.ui.ConcurrentModel;
 
-class OcraOperatorUiControllerTest {
+class OperatorConsoleControllerTest {
 
-    private final OcraOperatorUiController controller =
-            new OcraOperatorUiController(new ObjectMapper(), new OcraOperatorUiReplayLogger());
+    private final OperatorConsoleController controller =
+            new OperatorConsoleController(new ObjectMapper(), new OperatorConsoleTelemetryLogger());
 
     @Test
     @DisplayName("landingPage redirects to unified console")
@@ -35,7 +35,7 @@ class OcraOperatorUiControllerTest {
         assertEquals("/api/v1/ocra/verify", model.getAttribute("verificationEndpoint"));
         assertEquals("/api/v1/ocra/credentials", model.getAttribute("credentialsEndpoint"));
         assertEquals("/api/v1/hotp/credentials/seed", model.getAttribute("hotpSeedEndpoint"));
-        assertEquals("/ui/ocra/replay/telemetry", model.getAttribute("telemetryEndpoint"));
+        assertEquals("/ui/console/replay/telemetry", model.getAttribute("telemetryEndpoint"));
         assertEquals("ocra", model.getAttribute("activeProtocol"));
         assertTrue(model.containsAttribute("hotpSeedDefinitionsJson"));
         String hotpSeedJson = (String) model.getAttribute("hotpSeedDefinitionsJson");
@@ -44,7 +44,7 @@ class OcraOperatorUiControllerTest {
 
         String csrf = (String) model.getAttribute("csrfToken");
         assertNotNull(csrf);
-        assertEquals(csrf, request.getSession().getAttribute("ocra-ui-csrf-token"));
+        assertEquals(csrf, request.getSession().getAttribute("operator-console-csrf-token"));
 
         assertTrue(model.containsAttribute("policyPresets"));
         assertTrue(model.containsAttribute("policyPresetJson"));
@@ -60,13 +60,13 @@ class OcraOperatorUiControllerTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         jakarta.servlet.http.HttpSession originalSession = request.getSession(true);
         assertNotNull(originalSession);
-        originalSession.setAttribute("ocra-ui-csrf-token", "existing-token");
+        originalSession.setAttribute("operator-console-csrf-token", "existing-token");
         ConcurrentModel model = new ConcurrentModel();
 
         controller.unifiedConsole(form, request, model);
 
         assertEquals("existing-token", model.getAttribute("csrfToken"));
-        assertEquals("existing-token", originalSession.getAttribute("ocra-ui-csrf-token"));
+        assertEquals("existing-token", originalSession.getAttribute("operator-console-csrf-token"));
     }
 
     @Test
@@ -76,22 +76,22 @@ class OcraOperatorUiControllerTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         jakarta.servlet.http.HttpSession session = request.getSession(true);
         assertNotNull(session);
-        session.setAttribute("ocra-ui-csrf-token", "   ");
+        session.setAttribute("operator-console-csrf-token", "   ");
         ConcurrentModel model = new ConcurrentModel();
 
         controller.unifiedConsole(form, request, model);
 
         String token = (String) model.getAttribute("csrfToken");
         assertNotNull(token);
-        assertEquals(token, session.getAttribute("ocra-ui-csrf-token"));
+        assertEquals(token, session.getAttribute("operator-console-csrf-token"));
         assertTrue(token.trim().length() > 0);
     }
 
     @Test
     @DisplayName("unified console wraps JSON errors in IllegalStateException")
     void unifiedConsoleWrapsJsonErrors() {
-        OcraOperatorUiController failingController =
-                new OcraOperatorUiController(new FailingObjectMapper(), new OcraOperatorUiReplayLogger());
+        OperatorConsoleController failingController =
+                new OperatorConsoleController(new FailingObjectMapper(), new OperatorConsoleTelemetryLogger());
 
         OcraEvaluationForm form = failingController.formModel();
         MockHttpServletRequest request = new MockHttpServletRequest();
