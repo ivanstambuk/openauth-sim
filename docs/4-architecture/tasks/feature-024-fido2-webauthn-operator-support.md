@@ -130,6 +130,7 @@ _2025-10-11 – Placeholder parity: adjust inline preset handling so no sample i
 	_2025-10-11 – Applied a stacked field-group class with shared dark styling to inline/stored private-key controls so the textarea renders beneath the label for consistent vertical alignment._
 	_2025-10-11 – Enabled automatic pretty-printing of sample-loaded private-key JWK JSON so the textarea values are indented for readability while manual entries remain unchanged._
 	_2025-10-11 – Removed the private-key format hint from the forms now that documentation covers JWK vs PEM guidance._
+	_2025-10-21 – Increased the inline assertion private-key textarea default height to 10 rows so preset JWKs display without scrollbars; Selenium coverage now asserts the row count and `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` + `./gradlew --no-daemon spotlessApply check` ran green._ 
 
 ☑ **T8 – JSON bundle coverage**  
 	☑ Add failing parameterised tests iterating over `docs/webauthn_assertion_vectors.json` across core/application layers.  

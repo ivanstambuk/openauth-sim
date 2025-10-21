@@ -223,6 +223,7 @@ final class Fido2OperatorUiSeleniumTest {
 
         WebElement inlineTextarea = waitFor(By.id("fido2InlinePrivateKey"));
         assertThat(inlineTextarea.isDisplayed()).isTrue();
+        assertThat(inlineTextarea.getAttribute("rows")).isEqualTo("10");
 
         WebElement storedRadio = waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
         storedRadio.click();

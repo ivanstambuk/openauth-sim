@@ -78,6 +78,7 @@ Deliver an end-to-end FIDO2/WebAuthn assertion verification capability across th
 - 2025-10-11 – FIDO2 Evaluate tab must default to inline parameters mode (stored selectable afterward) so the authenticator generator aligns with HOTP/TOTP/OCRA defaults (defect report; Option A selected).
 - 2025-10-11 – Inline generator parse failures must surface the `private_key_invalid` reason so CLI/REST/UI error handling stays aligned across facades (bugfix directive).
 - 2025-10-11 – Inline Credential ID text areas must default to a single-line height while remaining resizable multi-line controls so long values can still expand without crowding the panel.
+- 2025-10-21 – Increase the inline assertion “Authenticator private key (JWK or PEM/PKCS#8)” textarea height so bundled JWK presets render without a default vertical scrollbar; attestation inputs already meet the ergonomics target (user instruction).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |
