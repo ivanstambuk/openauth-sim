@@ -1,7 +1,7 @@
 # Feature 026 – FIDO2/WebAuthn Attestation Support
 
-_Status: In Progress_  
-_Last updated: 2025-10-20_
+_Status: Complete_  
+_Last updated: 2025-10-21_
 
 ## Overview
 Extend the simulator so it can generate and verify WebAuthn authenticator attestations in addition to assertions. The feature will deliver a full-stack slice—core attestation helpers, application services, CLI flows, REST endpoints, and operator UI affordances—so operators can exercise registration-style ceremonies alongside the existing assertion evaluation tooling. This iteration also introduces stored attestation credential workflows backed by the shared MapDB store so presets can be seeded once and reused across CLI/REST/UI experiences.
@@ -131,4 +131,3 @@ Capture `inputSource`, optional `seedPresetId`, and `overrides` (set of edited f
   - The attestation Evaluate form renders Preset / Manual / Stored radio buttons. Stored mode hides manual input areas, lists stored credential options, requests a Base64URL challenge, and posts to the REST endpoint.
   - A “Seed attestation credentials” control calls `/api/v1/webauthn/attestations/seed`, refreshes the selector, and surfaces status messaging (success, already-present, unavailable).
   - Selenium coverage verifies stored mode visibility, selector population after seeding, and validation when credential IDs are missing.
-

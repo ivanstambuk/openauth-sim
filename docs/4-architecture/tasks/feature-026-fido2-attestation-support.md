@@ -1,8 +1,8 @@
 # Feature 026 Tasks – FIDO2/WebAuthn Attestation Support
 
 _Linked plan:_ `docs/4-architecture/feature-plan-026-fido2-attestation-support.md`  
-_Status:_ In Progress  
-_Last updated:_ 2025-10-18
+_Status:_ Complete  
+_Last updated:_ 2025-10-21
 
 ☑ **T2601 – Fixture scaffolding**  
  ☑ Convert selected W3C Level 3 attestation examples and synthetic fixtures into JSON assets under `docs/`.  
@@ -14,9 +14,9 @@ _Last updated:_ 2025-10-18
  ☑ Add failure-branch unit tests (bad signatures, unsupported formats, certificate issues).  
   _2025-10-16 – Implemented `WebAuthnAttestationVerifier` with packed/FIDO-U2F/TPM/Android Key verification paths, certificate parsing, and challenge/origin/RP-hash validation; enabled parameterized success cases and added tampered-signature + mismatched-format failure coverage._  
 
-☐ **T2603 – Application services & telemetry**  
+☑ **T2603 – Application services & telemetry**  
  ☑ Stage failing tests for `fido2.attest` / `fido2.attestReplay` telemetry emission.  
-  _2025-10-16 – Added attestation verification/replay application tests (`WebAuthnAttestationVerificationApplicationServiceTest`, `WebAuthnAttestationReplayApplicationServiceTest`); both currently red pending service implementation._  
+  _2025-10-16 – Added attestation verification/replay application tests (`WebAuthnAttestationVerificationApplicationServiceTest`, `WebAuthnAttestationReplayApplicationServiceTest`) and confirmed they failed ahead of service implementation._  
  ☑ Implement generation/replay services with sanitized telemetry and inline-only handling.  
   _2025-10-16 – Implemented attestation verification & replay application services with shared support helpers, trust-anchor enforcement, self-attested fallback warnings, and sanitized telemetry; tests now green via `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestation*"`._  
 

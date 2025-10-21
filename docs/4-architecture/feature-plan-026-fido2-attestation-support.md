@@ -1,8 +1,8 @@
 # Feature Plan 026 – FIDO2/WebAuthn Attestation Support
 
 _Linked specification:_ `docs/4-architecture/specs/feature-026-fido2-attestation-support.md`  
-_Status:_ In Progress  
-_Last updated:_ 2025-10-20
+_Status:_ Complete  
+_Last updated:_ 2025-10-21
 
 ## Vision & Success Criteria
 - Provide end-to-end attestation generation and verification across core, application services, CLI, REST API, and operator UI, mirroring the existing assertion workflow.
