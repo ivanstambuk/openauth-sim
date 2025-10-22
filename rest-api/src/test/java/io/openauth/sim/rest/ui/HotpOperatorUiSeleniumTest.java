@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
@@ -285,6 +286,119 @@ final class HotpOperatorUiSeleniumTest {
                     + expectedHint
                     + "\" but found \""
                     + replayHintCopy
+                    + "\"");
+        }
+    }
+
+    @Test
+    @DisplayName("HOTP stored replay mismatch surfaces ResultCard message")
+    void hotpStoredReplayMismatchSurfacesMessage() {
+        navigateToHotpPanel();
+
+        WebElement replayTab = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.elementToBeClickable(
+                        By.cssSelector("[data-testid='hotp-panel-tab-replay']")));
+        replayTab.click();
+
+        WebElement modeToggle = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.presenceOfElementLocated(
+                        By.cssSelector("[data-testid='hotp-replay-mode-toggle']")));
+        WebElement storedToggle =
+                modeToggle.findElement(By.cssSelector("[data-testid='hotp-replay-mode-select-stored']"));
+        storedToggle.click();
+
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector("[data-testid='hotp-replay-stored-panel']")));
+
+        new WebDriverWait(driver, Duration.ofSeconds(5)).until(d -> {
+            WebElement select = d.findElement(By.id("hotpReplayStoredCredentialId"));
+            String disabled = select.getAttribute("disabled");
+            return disabled == null || disabled.isBlank();
+        });
+
+        Select credentialSelect = new Select(driver.findElement(By.id("hotpReplayStoredCredentialId")));
+        credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
+
+        WebElement otpInput = driver.findElement(By.id("hotpReplayStoredOtp"));
+        otpInput.clear();
+        otpInput.sendKeys("000000");
+
+        driver.findElement(By.cssSelector("[data-testid='hotp-replay-submit']")).click();
+
+        WebElement resultPanel = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector("[data-testid='hotp-replay-result']")));
+
+        WebElement messageNode = resultPanel.findElement(By.cssSelector("[data-result-message]"));
+        new WebDriverWait(driver, Duration.ofSeconds(5)).until(d -> {
+            String text = messageNode.getText().trim();
+            return !text.isBlank();
+        });
+
+        String messageCopy = messageNode.getText().trim();
+        if (!"Replay request returned status: Mismatch.".equals(messageCopy)) {
+            throw new AssertionError("Expected HOTP replay mismatch message to read "
+                    + "\"Replay request returned status: Mismatch.\" but found \""
+                    + messageCopy
+                    + "\"");
+        }
+
+        WebElement hintNode = resultPanel.findElement(By.cssSelector("[data-result-hint]"));
+        new WebDriverWait(driver, Duration.ofSeconds(5)).until(d -> {
+            String text = hintNode.getText().trim();
+            return !text.isBlank();
+        });
+
+        String hintCopy = hintNode.getText().trim();
+        if (!"Reason: otp_mismatch".equals(hintCopy)) {
+            throw new AssertionError("Expected HOTP replay mismatch hint to read "
+                    + "\"Reason: otp_mismatch\" but found \""
+                    + hintCopy
+                    + "\"");
+        }
+    }
+
+    @Test
+    @DisplayName("HOTP inline invalid payload surfaces ResultCard message")
+    void hotpInlineInvalidPayloadSurfacesMessage() {
+        navigateToHotpPanel();
+        assertHotpInlineDefaultState();
+
+        WebElement secretInput = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.visibilityOfElementLocated(By.id("hotpInlineSecretHex")));
+        secretInput.clear();
+        secretInput.sendKeys("invalid-secret");
+
+        WebElement digitsInput = driver.findElement(By.id("hotpInlineDigits"));
+        digitsInput.clear();
+        digitsInput.sendKeys("6");
+
+        WebElement counterInput = driver.findElement(By.id("hotpInlineCounter"));
+        counterInput.clear();
+        counterInput.sendKeys("0");
+
+        driver.findElement(By.cssSelector("[data-testid='hotp-inline-evaluate-button']"))
+                .click();
+
+        WebElement resultPanel = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector("[data-testid='hotp-inline-result-panel']")));
+
+        WebElement messageNode = resultPanel.findElement(By.cssSelector("[data-result-message]"));
+        waitUntilTextPopulated(messageNode);
+        String messageCopy = messageNode.getText().trim();
+        if (messageCopy.isBlank()) {
+            throw new AssertionError("Expected inline ResultCard message to be populated for invalid payload");
+        }
+
+        WebElement hintNode = resultPanel.findElement(By.cssSelector("[data-result-hint]"));
+        waitUntilTextPopulated(hintNode);
+        String hintCopy = hintNode.getText().trim();
+        if (!"Reason: validation_error".equals(hintCopy)) {
+            throw new AssertionError("Expected inline invalid payload hint to read "
+                    + "\"Reason: validation_error\" but found \""
+                    + hintCopy
                     + "\"");
         }
     }
@@ -571,6 +685,16 @@ final class HotpOperatorUiSeleniumTest {
                 .isEmpty()) {
             throw new AssertionError("HOTP result panel should not render additional metadata copy");
         }
+    }
+
+    private void waitUntilTextPopulated(WebElement element) {
+        new WebDriverWait(driver, Duration.ofSeconds(5)).until(webDriver -> {
+            try {
+                return element.getText() != null && !element.getText().trim().isEmpty();
+            } catch (StaleElementReferenceException ex) {
+                return false;
+            }
+        });
     }
 
     private Credential storedCredential() {

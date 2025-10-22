@@ -294,6 +294,18 @@
                     </dd>
                   </div>
                 </dl>
+                <div
+                  class="result-message"
+                  data-result-message
+                  hidden="hidden"
+                  aria-hidden="true"
+                ></div>
+                <p
+                  class="hint result-message__hint"
+                  data-result-hint
+                  hidden="hidden"
+                  aria-hidden="true"
+                ></p>
               </section>
               <section
                   data-testid="hotp-stored-result-panel"
@@ -315,26 +327,18 @@
                     </dd>
                   </div>
                 </dl>
-              </section>
-              <section
-                  data-testid="hotp-inline-error-panel"
-                  class="error-panel"
-                  role="alert"
-                  aria-live="assertive"
+                <div
+                  class="result-message"
+                  data-result-message
                   hidden="hidden"
-                >
-                <h3>Inline evaluation failed</h3>
-                <p data-testid="hotp-inline-error"></p>
-              </section>
-              <section
-                  data-testid="hotp-stored-error-panel"
-                  class="error-panel"
-                  role="alert"
-                  aria-live="assertive"
+                  aria-hidden="true"
+                ></div>
+                <p
+                  class="hint result-message__hint"
+                  data-result-hint
                   hidden="hidden"
-                >
-                <h3>Stored evaluation failed</h3>
-                <p data-testid="hotp-stored-error"></p>
+                  aria-hidden="true"
+                ></p>
               </section>
             </div>
           </div>
@@ -594,17 +598,19 @@
                     <dd data-testid="hotp-replay-outcome">—</dd>
                   </div>
                 </dl>
-              </section>
-
-              <div
-                  class="error-card"
-                  data-testid="hotp-replay-error"
+                <div
+                  class="result-message"
+                  data-result-message
                   hidden="hidden"
                   aria-hidden="true"
-                >
-                <h3>Replay failed</h3>
-                <p data-testid="hotp-replay-error-message"></p>
-              </div>
+                ></div>
+                <p
+                  class="hint result-message__hint"
+                  data-result-hint
+                  hidden="hidden"
+                  aria-hidden="true"
+                ></p>
+              </section>
             </div>
           </div>
         </div>

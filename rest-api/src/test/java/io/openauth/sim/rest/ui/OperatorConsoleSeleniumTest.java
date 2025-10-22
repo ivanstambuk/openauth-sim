@@ -161,28 +161,19 @@ final class OperatorConsoleSeleniumTest {
         driver.findElement(By.cssSelector("button[data-testid='ocra-evaluate-button']"))
                 .click();
 
-        WebDriverWait panelWait = new WebDriverWait(driver, Duration.ofSeconds(5));
-        panelWait.until(webDriver -> {
-            WebElement result = webDriver.findElement(By.cssSelector("[data-testid='ocra-result-panel']"));
-            WebElement error = webDriver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
-            boolean resultVisible = result.getAttribute("hidden") == null;
-            boolean errorVisible = error.getAttribute("hidden") == null;
-            return resultVisible || errorVisible;
-        });
-
-        WebElement resultPanel = driver.findElement(By.cssSelector("[data-testid='ocra-result-panel']"));
-        WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
+        WebElement resultPanel = waitForOcraResultPanelVisible();
+        WebElement messageNode = resultPanel.findElement(By.cssSelector("[data-result-message]"));
 
         String submittedTimestamp = fieldValue("timestampHex");
         if (scenario.requiresDynamicTimestamp()) {
             assertTimestampNearCurrentEpoch(submittedTimestamp);
         }
 
-        if (resultPanel.getAttribute("hidden") != null) {
-            String errorText = errorPanel.getText();
+        if (messageNode.getAttribute("hidden") == null) {
+            String errorText = messageNode.getText();
             throw new AssertionError("Evaluation failed for preset "
                     + scenario.presetKey()
-                    + " with error panel text: "
+                    + " with result message: "
                     + (errorText == null ? "" : errorText));
         }
 
@@ -197,7 +188,9 @@ final class OperatorConsoleSeleniumTest {
         assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-sanitized-flag']")))
                 .as("Sanitized row should be removed from evaluation results")
                 .isEmpty();
-        assertThat(errorPanel.getAttribute("hidden")).isNotNull();
+        WebElement hintNode = resultPanel.findElement(By.cssSelector("[data-result-hint]"));
+        assertThat(messageNode.getAttribute("hidden")).isNotNull();
+        assertThat(hintNode.getAttribute("hidden")).isNotNull();
         assertValueWithWait(By.id("sharedSecretHex"), sample.getSharedSecretHex());
         assertThat(credentialSection.getAttribute("hidden")).isNotNull();
     }
@@ -351,22 +344,23 @@ final class OperatorConsoleSeleniumTest {
         waitForBackgroundJavaScript();
 
         WebElement resultPanel = driver.findElement(By.cssSelector("[data-testid='ocra-result-panel']"));
-        WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
-        boolean resultVisible = resultPanel.getAttribute("hidden") == null;
-        boolean errorVisible = errorPanel.getAttribute("hidden") == null;
+        WebElement messageNode = resultPanel.findElement(By.cssSelector("[data-result-message]"));
+        WebElement hintNode = resultPanel.findElement(By.cssSelector("[data-result-hint]"));
 
-        assertThat(errorVisible)
-                .as(
-                        "expected stored credential evaluation to succeed but received error panel: %s",
-                        errorPanel.getText())
-                .isFalse();
-        assertThat(resultVisible).isTrue();
+        assertThat(resultPanel.getAttribute("hidden"))
+                .as("Result panel should be visible after stored credential evaluation")
+                .isNull();
+        assertThat(messageNode.getAttribute("hidden"))
+                .as("Result message should remain hidden for successful evaluation")
+                .isNotNull();
+        assertThat(hintNode.getAttribute("hidden"))
+                .as("Result hint should remain hidden for successful evaluation")
+                .isNotNull();
 
         String otpText = resultPanel
                 .findElement(By.cssSelector("[data-testid='ocra-otp-value']"))
                 .getText();
         assertThat(otpText).isNotBlank().matches("\\d{4,10}");
-        assertThat(errorPanel.getAttribute("hidden")).isNotNull();
     }
 
     @ParameterizedTest(name = "{0} disables unsupported parameters on selection")
@@ -481,8 +475,10 @@ final class OperatorConsoleSeleniumTest {
                         .hasSize(2));
         assertThat(metadata.getText()).doesNotContain("Sanitized");
         assertThat(metadata.getText()).doesNotContain("Suite");
-        WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-error-panel']"));
-        assertThat(errorPanel.getAttribute("hidden")).isNotNull();
+        WebElement messageNode = resultPanel.findElement(By.cssSelector("[data-result-message]"));
+        WebElement hintNode = resultPanel.findElement(By.cssSelector("[data-result-hint]"));
+        assertThat(messageNode.getAttribute("hidden")).isNotNull();
+        assertThat(hintNode.getAttribute("hidden")).isNotNull();
     }
 
     private void assertStatusBadge(WebElement badge) {
@@ -916,6 +912,14 @@ final class OperatorConsoleSeleniumTest {
         waitForPanelVisibility(By.cssSelector("[data-testid='ocra-evaluate-panel']"), PanelVisibility.VISIBLE);
         waitForPanelVisibility(By.cssSelector("[data-testid='ocra-replay-panel']"), PanelVisibility.HIDDEN);
         waitForPresetScripts();
+    }
+
+    private WebElement waitForOcraResultPanelVisible() {
+        By locator = By.cssSelector("[data-testid='ocra-result-panel']");
+        return new WebDriverWait(driver, Duration.ofSeconds(5)).until(driverInstance -> {
+            WebElement panel = driverInstance.findElement(locator);
+            return panel.getAttribute("hidden") == null ? panel : null;
+        });
     }
 
     private String baseUrl(String path) {

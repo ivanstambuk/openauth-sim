@@ -557,6 +557,42 @@ final class TotpOperatorUiSeleniumTest {
     }
 
     @Test
+    @DisplayName("Stored TOTP replay mismatch surfaces ResultCard message")
+    void storedTotpReplayMismatchSurfacesMessage() {
+        navigateToTotpPanel();
+        switchToReplayTab();
+        waitUntilUrlContains("tab=replay");
+
+        WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
+        waitUntilAttribute(replayToggle, "data-mode", "stored");
+
+        selectOption("totpReplayStoredCredentialId", STORED_CREDENTIAL_ID);
+        waitUntilFieldValue(By.id("totpReplayStoredOtp"), EXPECTED_STORED_OTP);
+
+        WebElement otpInput = driver.findElement(By.id("totpReplayStoredOtp"));
+        otpInput.clear();
+        otpInput.sendKeys("000000");
+
+        WebElement submitButton = driver.findElement(By.cssSelector("[data-testid='totp-replay-stored-submit']"));
+        submitButton.click();
+
+        WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='totp-replay-result-panel']"));
+        WebElement messageNode = resultPanel.findElement(By.cssSelector("[data-result-message]"));
+        waitUntilTextPopulated(messageNode);
+        assertEquals(
+                "Replay request returned status: Mismatch.",
+                messageNode.getText().trim(),
+                "Stored mismatch should render ResultCard message");
+
+        WebElement hintNode = resultPanel.findElement(By.cssSelector("[data-result-hint]"));
+        waitUntilTextPopulated(hintNode);
+        assertEquals(
+                "Reason: otp_out_of_window",
+                hintNode.getText().trim(),
+                "Stored mismatch should surface telemetry reason code");
+    }
+
+    @Test
     @DisplayName("Stored TOTP replay auto-fills OTP and timestamp fields")
     void storedTotpReplaySampleAutoFillsForm() {
         navigateToTotpPanel();
@@ -684,6 +720,20 @@ final class TotpOperatorUiSeleniumTest {
                 .getText()
                 .trim();
         assertEquals("mismatch", outcome.toLowerCase());
+
+        WebElement messageNode = resultPanel.findElement(By.cssSelector("[data-result-message]"));
+        waitUntilTextPopulated(messageNode);
+        assertEquals(
+                "Replay request returned status: Mismatch.",
+                messageNode.getText().trim(),
+                "Mismatch result should surface ResultCard message");
+
+        WebElement hintNode = resultPanel.findElement(By.cssSelector("[data-result-hint]"));
+        waitUntilTextPopulated(hintNode);
+        assertEquals(
+                "Reason: otp_out_of_window",
+                hintNode.getText().trim(),
+                "Mismatch hint should surface telemetry reason code");
     }
 
     @Test
@@ -773,6 +823,17 @@ final class TotpOperatorUiSeleniumTest {
             try {
                 WebElement element = driver1.findElement(locator);
                 return expectedValue.equals(element.getAttribute("value"));
+            } catch (StaleElementReferenceException ex) {
+                return false;
+            }
+        });
+    }
+
+    private void waitUntilTextPopulated(WebElement element) {
+        new WebDriverWait(driver, Duration.ofSeconds(5)).until(driver1 -> {
+            try {
+                String text = element.getText();
+                return text != null && !text.trim().isEmpty();
             } catch (StaleElementReferenceException ex) {
                 return false;
             }

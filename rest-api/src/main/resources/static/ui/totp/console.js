@@ -69,13 +69,6 @@
   var storedOtpValue = storedResultPanel
     ? storedResultPanel.querySelector('[data-testid="totp-result-otp"]')
     : null;
-  var storedErrorPanel = totpPanel.querySelector('[data-testid="totp-stored-error-panel"]');
-  var storedErrorReason = storedErrorPanel
-    ? storedErrorPanel.querySelector('[data-testid="totp-stored-error-reason"]')
-    : null;
-  var storedErrorMessage = storedErrorPanel
-    ? storedErrorPanel.querySelector('[data-testid="totp-stored-error-message"]')
-    : null;
   var storedOtpInput = totpPanel.querySelector('#totpStoredOtp');
 
   var seedDefinitionsPayload = [];
@@ -109,13 +102,6 @@
     : null;
   var inlineOtpValue = inlineResultPanel
     ? inlineResultPanel.querySelector('[data-testid="totp-result-otp"]')
-    : null;
-  var inlineErrorPanel = totpPanel.querySelector('[data-testid="totp-inline-error-panel"]');
-  var inlineErrorReason = inlineErrorPanel
-    ? inlineErrorPanel.querySelector('[data-testid="totp-inline-error-reason"]')
-    : null;
-  var inlineErrorMessage = inlineErrorPanel
-    ? inlineErrorPanel.querySelector('[data-testid="totp-inline-error-message"]')
     : null;
 
   var inlinePresetContainer = totpPanel.querySelector('[data-testid="totp-inline-preset"]');
@@ -189,13 +175,6 @@
   var replayOutcome = replayResultPanel
     ? replayResultPanel.querySelector('[data-testid="totp-replay-outcome"]')
     : null;
-  var replayErrorPanel = totpPanel.querySelector('[data-testid="totp-replay-error-panel"]');
-  var replayErrorReason = replayErrorPanel
-    ? replayErrorPanel.querySelector('[data-testid="totp-replay-error-reason"]')
-    : null;
-  var replayErrorMessage = replayErrorPanel
-    ? replayErrorPanel.querySelector('[data-testid="totp-replay-error-message"]')
-    : null;
   var replayInlinePresetContainer =
       totpPanel.querySelector('[data-testid="totp-replay-inline-preset"]');
   var replayInlinePresetSelect = replayInlinePresetContainer
@@ -226,6 +205,39 @@
       node.removeAttribute('hidden');
       node.removeAttribute('aria-hidden');
     }
+  }
+
+  function resetResultCard(panel) {
+    if (!panel) {
+      return;
+    }
+    if (global.ResultCard && typeof global.ResultCard.resetMessage === 'function') {
+      global.ResultCard.resetMessage(panel);
+    }
+  }
+
+  function showResultError(panel, message, hint) {
+    if (!panel) {
+      return;
+    }
+    var text = typeof message === 'string' && message.trim().length > 0
+        ? message.trim()
+        : 'Request failed.';
+    var options = {};
+    if (typeof hint === 'string' && hint.trim().length > 0) {
+      options.hint = hint.trim();
+    }
+    if (global.ResultCard && typeof global.ResultCard.showMessage === 'function') {
+      global.ResultCard.showMessage(panel, text, 'error', options);
+    } else {
+      var messageNode = panel.querySelector('[data-result-message]');
+      if (messageNode) {
+        messageNode.textContent = text;
+        messageNode.removeAttribute('hidden');
+        messageNode.setAttribute('aria-hidden', 'false');
+      }
+    }
+    setHidden(panel, false);
   }
 
   function writeText(node, value) {
@@ -1037,59 +1049,68 @@
   }
 
   function clearStoredPanels() {
+    resetResultCard(storedResultPanel);
     setHidden(storedResultPanel, true);
-    setHidden(storedErrorPanel, true);
   }
 
   function clearInlinePanels() {
+    resetResultCard(inlineResultPanel);
     setHidden(inlineResultPanel, true);
-    setHidden(inlineErrorPanel, true);
   }
 
   function clearReplayPanels() {
+    resetResultCard(replayResultPanel);
     setHidden(replayResultPanel, true);
-    setHidden(replayErrorPanel, true);
+  }
+
+  function resolveStatusVariant(status) {
+    var normalized = !status && status !== 0 ? '' : String(status).trim().toLowerCase();
+    if (!normalized) {
+      return 'info';
+    }
+    if (['generated', 'validated', 'success', 'ok', 'valid', 'match'].indexOf(normalized) >= 0) {
+      return 'success';
+    }
+    if (
+        ['invalid', 'mismatch', 'otp_out_of_window', 'error', 'failed', 'failure', 'denied', 'rejected'].indexOf(
+            normalized) >= 0) {
+      return 'error';
+    }
+    return 'info';
+  }
+
+  function resolveStatusLabel(status) {
+    var normalized = !status && status !== 0 ? '' : String(status).trim().toLowerCase();
+    switch (normalized) {
+      case 'generated':
+      case 'success':
+        return 'Success';
+      case 'validated':
+        return 'Validated';
+      case 'match':
+        return 'Match';
+      case 'invalid':
+        return 'Invalid';
+      case 'mismatch':
+        return 'Mismatch';
+      case 'otp_out_of_window':
+        return 'OTP out of window';
+      default:
+        return status ? String(status) : 'Unknown';
+    }
   }
 
   function setStatusBadge(badge, status) {
     if (!badge) {
       return;
     }
-    var normalized = status ? String(status).toLowerCase() : '';
-    var isSuccess =
-        normalized === 'validated' ||
-        normalized === 'success' ||
-        normalized === 'match' ||
-        normalized === 'generated';
-    var isInvalid =
-        normalized === 'invalid' ||
-        normalized === 'otp_out_of_window' ||
-        normalized === 'mismatch';
-    var displayLabel = (function () {
-      switch (normalized) {
-        case 'generated':
-          return 'Success';
-        case 'validated':
-          return 'Validated';
-        case 'success':
-          return 'Success';
-        case 'match':
-          return 'Match';
-        case 'otp_out_of_window':
-          return 'OTP out of window';
-        case 'invalid':
-          return 'Invalid';
-        case 'mismatch':
-          return 'Mismatch';
-        default:
-          return status ? String(status) : 'Unknown';
-      }
-    })();
+    var variant = resolveStatusVariant(status);
+    var displayLabel = resolveStatusLabel(status);
     badge.textContent = displayLabel;
     badge.classList.remove('status-badge--success', 'status-badge--error');
-    if (isSuccess) {
+    if (variant === 'success') {
       badge.classList.add('status-badge--success');
-    } else if (isInvalid) {
+    } else if (variant === 'error') {
       badge.classList.add('status-badge--error');
     }
   }
@@ -1107,15 +1128,13 @@
       storedOtpInput.value = generatedOtp;
     }
     writeText(storedOtpValue, generatedOtp || metadata.otp || '—');
+    resetResultCard(storedResultPanel);
     setHidden(storedResultPanel, false);
   }
 
   function handleStoredError(error) {
     clearStoredPanels();
     clearInlinePanels();
-    if (!storedErrorPanel) {
-      return;
-    }
     var reason = 'unexpected_error';
     var message = 'An unexpected error occurred during evaluation.';
     if (error && error.payload) {
@@ -1128,9 +1147,9 @@
     } else if (error && error.status) {
       message = 'Evaluation failed with status ' + error.status + '.';
     }
-    writeText(storedErrorReason, reason);
-    writeText(storedErrorMessage, message);
-    setHidden(storedErrorPanel, false);
+    setStatusBadge(storedStatusBadge, 'error');
+    writeText(storedOtpValue, '—');
+    showResultError(storedResultPanel, message, 'Reason: ' + reason);
   }
 
   function handleInlineSuccess(response) {
@@ -1145,15 +1164,13 @@
       inlineOtpInput.value = generatedOtp;
     }
     writeText(inlineOtpValue, generatedOtp || (response.metadata && response.metadata.otp));
+    resetResultCard(inlineResultPanel);
     setHidden(inlineResultPanel, false);
   }
 
   function handleInlineError(error) {
     clearInlinePanels();
     clearStoredPanels();
-    if (!inlineErrorPanel) {
-      return;
-    }
     var reason = 'unexpected_error';
     var message = 'Inline evaluation failed unexpectedly.';
     if (error && error.payload) {
@@ -1166,9 +1183,9 @@
     } else if (error && error.status) {
       message = 'Inline evaluation failed with status ' + error.status + '.';
     }
-    writeText(inlineErrorReason, reason);
-    writeText(inlineErrorMessage, message);
-    setHidden(inlineErrorPanel, false);
+    setStatusBadge(inlineStatusBadge, 'error');
+    writeText(inlineOtpValue, '—');
+    showResultError(inlineResultPanel, message, 'Reason: ' + reason);
   }
 
   function handleReplaySuccess(response) {
@@ -1176,17 +1193,24 @@
     if (!response || typeof response !== 'object') {
       return;
     }
-    setStatusBadge(replayStatusBadge, response.status || response.reasonCode);
-    writeText(replayReasonCode, response.reasonCode || response.status || '—');
-    writeText(replayOutcome, response.status || '—');
-    setHidden(replayResultPanel, false);
+    var status = response.status || response.reasonCode || '';
+    var reason = response.reasonCode || response.status || '';
+    setStatusBadge(replayStatusBadge, status);
+    writeText(replayReasonCode, reason || '—');
+    writeText(replayOutcome, status || '—');
+    resetResultCard(replayResultPanel);
+    var variant = resolveStatusVariant(status);
+    if (variant === 'error') {
+      var message = 'Replay request returned status: ' + resolveStatusLabel(status) + '.';
+      var hint = reason ? 'Reason: ' + reason : '';
+      showResultError(replayResultPanel, message, hint);
+    } else {
+      setHidden(replayResultPanel, false);
+    }
   }
 
   function handleReplayError(error) {
     clearReplayPanels();
-    if (!replayErrorPanel) {
-      return;
-    }
     var reason = 'unexpected_error';
     var message = 'TOTP replay failed unexpectedly.';
     if (error && error.payload) {
@@ -1199,9 +1223,10 @@
     } else if (error && error.status) {
       message = 'Replay failed with status ' + error.status + '.';
     }
-    writeText(replayErrorReason, reason);
-    writeText(replayErrorMessage, message);
-    setHidden(replayErrorPanel, false);
+    setStatusBadge(replayStatusBadge, 'error');
+    writeText(replayReasonCode, reason);
+    writeText(replayOutcome, 'error');
+    showResultError(replayResultPanel, message, 'Reason: ' + reason);
   }
 
   function evaluateStored() {

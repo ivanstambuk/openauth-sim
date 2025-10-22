@@ -730,6 +730,35 @@ fieldset {
   width: 100%;
 }
 
+.result-message {
+  margin-top: var(--ocra-spacing-sm);
+  padding: var(--ocra-spacing-sm) var(--ocra-spacing-md);
+  border-radius: var(--ocra-radius-md);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  border: 1px solid rgba(22, 211, 243, 0.24);
+  background: rgba(13, 30, 49, 0.64);
+  color: var(--ocra-color-text);
+}
+
+.result-message--error {
+  border-color: rgba(255, 93, 122, 0.45);
+  background: rgba(185, 28, 28, 0.16);
+  color: var(--ocra-color-danger);
+}
+
+.result-message--info {
+  border-color: rgba(79, 255, 200, 0.45);
+  background: rgba(15, 122, 108, 0.16);
+  color: var(--ocra-color-primary-accent);
+}
+
+.result-message__hint {
+  margin-top: var(--ocra-spacing-xs);
+  color: var(--ocra-color-text-muted);
+  font-size: 0.9rem;
+}
+
 .result-header {
   display: flex;
   align-items: center;

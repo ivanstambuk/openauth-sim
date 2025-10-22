@@ -58,10 +58,6 @@
       inlineResultPanel
           ? inlineResultPanel.querySelector('[data-testid="fido2-inline-generated-json"]')
           : null;
-  var inlineErrorBanner =
-      inlineResultPanel
-          ? inlineResultPanel.querySelector('[data-testid="fido2-inline-error"]')
-          : null;
   var inlineTelemetry =
       inlineResultPanel
           ? inlineResultPanel.querySelector('[data-testid="fido2-inline-telemetry"]')
@@ -236,8 +232,6 @@
       panel.querySelector('[data-testid="fido2-replay-attestation-anchor-source"]');
   var replayAttestationAnchorTrusted =
       panel.querySelector('[data-testid="fido2-replay-attestation-anchor-trusted"]');
-  var replayAttestationError =
-      panel.querySelector('[data-testid="fido2-replay-attestation-error"]');
 
   var seedDefinitionsNode = panel.querySelector('#fido2-seed-definitions');
   var inlineVectorsNode = panel.querySelector('#fido2-inline-vectors');
@@ -279,8 +273,6 @@
       panel.querySelector('[data-testid="fido2-attestation-certificate-heading"]');
   var attestationCertificateChain =
       panel.querySelector('[data-testid="fido2-attestation-certificate-chain"]');
-  var attestationErrorBanner =
-      panel.querySelector('[data-testid="fido2-attestation-error"]');
 
   var hasStoredEvaluationResult = false;
   var hasInlineEvaluationResult = false;
@@ -794,10 +786,8 @@
     var reason = readReasonCode(error) || 'generation_failed';
     var message = readErrorMessage(error) || 'Attestation generation failed.';
     setStatusBadge(attestationStatusBadge, status);
-    var displayMessage = reason ? reason + ' - ' + message : message;
-    showAttestationError(displayMessage);
-    hasAttestationResult = false;
-    toggleSection(attestationResultPanel, false);
+    showAttestationError(message, reason);
+    hasAttestationResult = true;
     refreshEvaluationResultVisibility();
     if (attestationResultJson) {
       attestationResultJson.textContent = 'Awaiting submission.';
@@ -952,10 +942,12 @@
   }
 
   function handleInlineEvaluationError(error) {
-    var message = formatEvaluationErrorMessage(error, 'Inline generation');
+    var telemetryMessage = formatEvaluationErrorMessage(error, 'Inline generation');
+    var message = readErrorMessage(error) || telemetryMessage;
+    var reason = readReasonCode(error);
     setInlineGeneratedText('Generation failed.');
-    showInlineError(message);
-    updateInlineTelemetry(message);
+    showInlineError(message, reason);
+    updateInlineTelemetry(telemetryMessage);
     hasInlineEvaluationResult = true;
     refreshEvaluationResultVisibility();
   }
@@ -1050,13 +1042,7 @@
     setStatusText(replayAttestationOutcome, 'error', '—');
     setStatusText(replayAttestationAnchorSource, '—', '—');
     setStatusText(replayAttestationAnchorTrusted, '—', '—');
-    var displayMessage = message;
-    if (reason && message && message.toLowerCase().indexOf(reason.toLowerCase()) === -1) {
-      displayMessage = reason + ' – ' + message;
-    } else if (reason && !message) {
-      displayMessage = reason;
-    }
-    showReplayAttestationError(displayMessage);
+    showReplayAttestationError(message, reason);
     hasReplayAttestationResult = true;
     refreshReplayResultVisibility();
   }
@@ -1072,22 +1058,59 @@
     refreshReplayResultVisibility();
   }
 
-  function showReplayAttestationError(message) {
-    if (!replayAttestationError) {
+  function showReplayAttestationError(message, reason) {
+    if (!replayAttestationResultPanel) {
       return;
     }
-    replayAttestationError.textContent = sanitizeMessage(message);
-    replayAttestationError.removeAttribute('hidden');
-    replayAttestationError.setAttribute('aria-hidden', 'false');
+    var normalizedMessage = sanitizeMessage(message || 'Attestation replay failed.');
+    var options = {};
+    if (reason && String(reason).trim().length > 0) {
+      options.hint = 'Reason: ' + String(reason).trim();
+    }
+    if (global.ResultCard && typeof global.ResultCard.showMessage === 'function') {
+      global.ResultCard.showMessage(replayAttestationResultPanel, normalizedMessage, 'error', options);
+    } else {
+      var messageNode = replayAttestationResultPanel.querySelector('[data-result-message]');
+      if (messageNode) {
+        messageNode.textContent = normalizedMessage;
+        messageNode.removeAttribute('hidden');
+        messageNode.setAttribute('aria-hidden', 'false');
+      }
+      var hintNode = replayAttestationResultPanel.querySelector('[data-result-hint]');
+      if (hintNode) {
+        if (options.hint) {
+          hintNode.textContent = options.hint;
+          hintNode.removeAttribute('hidden');
+          hintNode.setAttribute('aria-hidden', 'false');
+        } else {
+          hintNode.textContent = '';
+          hintNode.setAttribute('hidden', 'hidden');
+          hintNode.setAttribute('aria-hidden', 'true');
+        }
+      }
+    }
   }
 
   function hideReplayAttestationError() {
-    if (!replayAttestationError) {
+    if (!replayAttestationResultPanel) {
       return;
     }
-    replayAttestationError.textContent = '';
-    replayAttestationError.setAttribute('hidden', 'hidden');
-    replayAttestationError.setAttribute('aria-hidden', 'true');
+    if (global.ResultCard && typeof global.ResultCard.resetMessage === 'function') {
+      global.ResultCard.resetMessage(replayAttestationResultPanel);
+    } else {
+      var messageNode = replayAttestationResultPanel.querySelector('[data-result-message]');
+      if (messageNode) {
+        messageNode.textContent = '';
+        messageNode.setAttribute('hidden', 'hidden');
+        messageNode.setAttribute('aria-hidden', 'true');
+      }
+      var hintNode = replayAttestationResultPanel.querySelector('[data-result-hint]');
+      if (hintNode) {
+        hintNode.textContent = '';
+        hintNode.setAttribute('hidden', 'hidden');
+        hintNode.setAttribute('aria-hidden', 'true');
+      }
+    }
   }
 
   function dispatchTabChange(tab, options) {
@@ -2065,40 +2088,114 @@
     }
   }
 
-  function showInlineError(message) {
-    if (!inlineErrorBanner) {
+  function showInlineError(message, reason) {
+    if (!inlineResultPanel) {
       return;
     }
-    inlineErrorBanner.textContent = sanitizeMessage(message || 'Generation failed.');
-    inlineErrorBanner.removeAttribute('hidden');
-    inlineErrorBanner.setAttribute('aria-hidden', 'false');
+    var normalizedMessage = sanitizeMessage(message || 'Inline generation failed.');
+    var options = {};
+    if (reason && String(reason).trim().length > 0) {
+      options.hint = 'Reason: ' + String(reason).trim();
+    }
+    if (global.ResultCard && typeof global.ResultCard.showMessage === 'function') {
+      global.ResultCard.showMessage(inlineResultPanel, normalizedMessage, 'error', options);
+    } else {
+      var messageNode = inlineResultPanel.querySelector('[data-result-message]');
+      if (messageNode) {
+        messageNode.textContent = normalizedMessage;
+        messageNode.removeAttribute('hidden');
+        messageNode.setAttribute('aria-hidden', 'false');
+      }
+      var hintNode = inlineResultPanel.querySelector('[data-result-hint]');
+      if (hintNode) {
+        if (options.hint) {
+          hintNode.textContent = options.hint;
+          hintNode.removeAttribute('hidden');
+          hintNode.setAttribute('aria-hidden', 'false');
+        } else {
+          hintNode.textContent = '';
+          hintNode.setAttribute('hidden', 'hidden');
+          hintNode.setAttribute('aria-hidden', 'true');
+        }
+      }
+    }
   }
 
   function hideInlineError() {
-    if (!inlineErrorBanner) {
+    if (!inlineResultPanel) {
       return;
     }
-    inlineErrorBanner.textContent = '';
-    inlineErrorBanner.setAttribute('hidden', 'hidden');
-    inlineErrorBanner.setAttribute('aria-hidden', 'true');
+    if (global.ResultCard && typeof global.ResultCard.resetMessage === 'function') {
+      global.ResultCard.resetMessage(inlineResultPanel);
+    } else {
+      var messageNode = inlineResultPanel.querySelector('[data-result-message]');
+      if (messageNode) {
+        messageNode.textContent = '';
+        messageNode.setAttribute('hidden', 'hidden');
+        messageNode.setAttribute('aria-hidden', 'true');
+      }
+      var hintNode = inlineResultPanel.querySelector('[data-result-hint]');
+      if (hintNode) {
+        hintNode.textContent = '';
+        hintNode.setAttribute('hidden', 'hidden');
+        hintNode.setAttribute('aria-hidden', 'true');
+      }
+    }
   }
 
-  function showAttestationError(message) {
-    if (!attestationErrorBanner) {
+  function showAttestationError(message, reason) {
+    if (!attestationResultPanel) {
       return;
     }
-    attestationErrorBanner.textContent = sanitizeMessage(message || 'Attestation generation failed.');
-    attestationErrorBanner.removeAttribute('hidden');
-    attestationErrorBanner.setAttribute('aria-hidden', 'false');
+    var normalizedMessage = sanitizeMessage(message || 'Attestation generation failed.');
+    var options = {};
+    if (reason && String(reason).trim().length > 0) {
+      options.hint = 'Reason: ' + String(reason).trim();
+    }
+    if (global.ResultCard && typeof global.ResultCard.showMessage === 'function') {
+      global.ResultCard.showMessage(attestationResultPanel, normalizedMessage, 'error', options);
+    } else {
+      var messageNode = attestationResultPanel.querySelector('[data-result-message]');
+      if (messageNode) {
+        messageNode.textContent = normalizedMessage;
+        messageNode.removeAttribute('hidden');
+        messageNode.setAttribute('aria-hidden', 'false');
+      }
+      var hintNode = attestationResultPanel.querySelector('[data-result-hint]');
+      if (hintNode) {
+        if (options.hint) {
+          hintNode.textContent = options.hint;
+          hintNode.removeAttribute('hidden');
+          hintNode.setAttribute('aria-hidden', 'false');
+        } else {
+          hintNode.textContent = '';
+          hintNode.setAttribute('hidden', 'hidden');
+          hintNode.setAttribute('aria-hidden', 'true');
+        }
+      }
+    }
   }
 
   function hideAttestationError() {
-    if (!attestationErrorBanner) {
+    if (!attestationResultPanel) {
       return;
     }
-    attestationErrorBanner.textContent = '';
-    attestationErrorBanner.setAttribute('hidden', 'hidden');
-    attestationErrorBanner.setAttribute('aria-hidden', 'true');
+    if (global.ResultCard && typeof global.ResultCard.resetMessage === 'function') {
+      global.ResultCard.resetMessage(attestationResultPanel);
+    } else {
+      var messageNode = attestationResultPanel.querySelector('[data-result-message]');
+      if (messageNode) {
+        messageNode.textContent = '';
+        messageNode.setAttribute('hidden', 'hidden');
+        messageNode.setAttribute('aria-hidden', 'true');
+      }
+      var hintNode = attestationResultPanel.querySelector('[data-result-hint]');
+      if (hintNode) {
+        hintNode.textContent = '';
+        hintNode.setAttribute('hidden', 'hidden');
+        hintNode.setAttribute('aria-hidden', 'true');
+      }
+    }
   }
 
   function pendingReplayStoredResult() {

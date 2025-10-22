@@ -417,6 +417,18 @@
                     </dd>
                   </div>
                 </dl>
+                <div
+                  class="result-message"
+                  data-result-message
+                  hidden="hidden"
+                  aria-hidden="true"
+                ></div>
+                <p
+                  class="hint result-message__hint"
+                  data-result-hint
+                  hidden="hidden"
+                  aria-hidden="true"
+                ></p>
               </section>
 
               <section
@@ -439,34 +451,18 @@
                     </dd>
                   </div>
                 </dl>
-              </section>
-
-              <section
-                  data-testid="totp-stored-error-panel"
-                  class="error-panel"
-                  role="alert"
-                  aria-live="assertive"
+                <div
+                  class="result-message"
+                  data-result-message
                   hidden="hidden"
-                >
-                <h3>Stored evaluation failed</h3>
-                <p>
-                  <strong data-testid="totp-stored-error-reason">—</strong>
-                  <span data-testid="totp-stored-error-message"></span>
-                </p>
-              </section>
-
-              <section
-                  data-testid="totp-inline-error-panel"
-                  class="error-panel"
-                  role="alert"
-                  aria-live="assertive"
+                  aria-hidden="true"
+                ></div>
+                <p
+                  class="hint result-message__hint"
+                  data-result-hint
                   hidden="hidden"
-                >
-                <h3>Inline evaluation failed</h3>
-                <p>
-                  <strong data-testid="totp-inline-error-reason">—</strong>
-                  <span data-testid="totp-inline-error-message"></span>
-                </p>
+                  aria-hidden="true"
+                ></p>
               </section>
             </div>
           </div>
@@ -826,20 +822,18 @@
                     <dd data-testid="totp-replay-outcome">—</dd>
                   </div>
                 </dl>
-              </section>
-
-              <section
-                  data-testid="totp-replay-error-panel"
-                  class="error-panel"
-                  role="alert"
-                  aria-live="assertive"
+                <div
+                  class="result-message"
+                  data-result-message
                   hidden="hidden"
-                >
-                <h3>TOTP replay failed</h3>
-                <p>
-                  <strong data-testid="totp-replay-error-reason">—</strong>
-                  <span data-testid="totp-replay-error-message"></span>
-                </p>
+                  aria-hidden="true"
+                ></div>
+                <p
+                  class="hint result-message__hint"
+                  data-result-hint
+                  hidden="hidden"
+                  aria-hidden="true"
+                ></p>
               </section>
             </div>
           </div>

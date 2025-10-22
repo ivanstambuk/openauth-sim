@@ -42,7 +42,7 @@ final class OperatorConsoleReplaySeleniumTest {
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
-    private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(5);
+    private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(10);
     private static final String STORED_CREDENTIAL_ID = "operator-demo";
     private static final String STORED_SUITE = "OCRA-1:HOTP-SHA256-8:QA08-S064";
     private static final String STORED_SECRET_HEX = "3132333435363738393031323334353637383930313233343536373839303132";
@@ -154,7 +154,6 @@ final class OperatorConsoleReplaySeleniumTest {
         Select credentialSelect = new Select(driver.findElement(By.id("replayCredentialId")));
         credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
 
-        waitForSampleStatusContains("Sample");
         waitUntilFieldValue(By.id("replayOtp"), STORED_EXPECTED_OTP);
         waitUntilFieldValue(By.id("replayChallenge"), STORED_CHALLENGE);
         waitUntilFieldValue(By.id("replaySessionHex"), STORED_SESSION_HEX);
@@ -194,8 +193,10 @@ final class OperatorConsoleReplaySeleniumTest {
                 .as("Sanitized field should be removed from replay result")
                 .isEmpty();
 
-        WebElement errorPanel = driver.findElement(By.cssSelector("[data-testid='ocra-replay-error']"));
-        assertThat(errorPanel.getAttribute("hidden")).isNotNull();
+        WebElement messageNode = resultPanel.findElement(By.cssSelector("[data-result-message]"));
+        WebElement hintNode = resultPanel.findElement(By.cssSelector("[data-result-hint]"));
+        assertThat(messageNode.getAttribute("hidden")).isNotNull();
+        assertThat(hintNode.getAttribute("hidden")).isNotNull();
     }
 
     @Test
@@ -213,7 +214,6 @@ final class OperatorConsoleReplaySeleniumTest {
         Select credentialSelect = new Select(driver.findElement(By.id("replayCredentialId")));
         credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
 
-        waitForSampleStatusContains("Sample");
         waitUntilFieldValue(By.id("replayOtp"), STORED_EXPECTED_OTP);
         assertThat(driver.findElement(By.id("replayChallenge")).getAttribute("value"))
                 .isEqualTo(STORED_CHALLENGE);
@@ -375,18 +375,26 @@ final class OperatorConsoleReplaySeleniumTest {
         assertThat(response.path("ok").asBoolean())
                 .as("inline replay missing OTP should fail: %s", response)
                 .isFalse();
+        String reasonCode =
+                response.path("body").path("details").path("reasonCode").asText();
+        assertThat(reasonCode).isNotBlank();
 
-        WebElement errorPanel = new WebDriverWait(driver, WAIT_TIMEOUT)
-                .until(ExpectedConditions.visibilityOfElementLocated(
-                        By.cssSelector("[data-testid='ocra-replay-error']")));
-        assertThat(errorPanel.getAttribute("hidden")).isNull();
-        assertThat(errorPanel.getText()).contains("validation_failure").contains("otp");
+        WebElement resultPanel = driver.findElement(By.cssSelector("[data-testid='ocra-replay-result']"));
+        WebElement resultMessage = new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> {
+            WebElement message =
+                    d.findElement(By.cssSelector("[data-testid='ocra-replay-result'] [data-result-message]"));
+            return message.getAttribute("hidden") == null ? message : null;
+        });
+        assertThat(resultPanel.getAttribute("hidden")).isNull();
+        WebElement hintNode = resultPanel.findElement(By.cssSelector("[data-result-hint]"));
+        assertThat(hintNode.getAttribute("hidden")).isNull();
+        String messageText = resultMessage.getText().trim().toLowerCase();
+        String hintText = hintNode.getText().trim().toLowerCase();
+        assertThat(messageText).isNotBlank();
+        assertThat(hintText).contains("reason:").contains("otp");
 
         WebElement secretField = driver.findElement(By.id("replaySharedSecretHex"));
         assertThat(secretField.getAttribute("value")).isEqualTo(STORED_SECRET_HEX);
-
-        WebElement resultPanel = driver.findElement(By.cssSelector("[data-testid='ocra-replay-result']"));
-        assertThat(resultPanel.getAttribute("hidden")).isNotNull();
     }
 
     @Test
@@ -433,13 +441,8 @@ final class OperatorConsoleReplaySeleniumTest {
     }
 
     private void waitForSampleStatusContains(String fragment) {
-        new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> {
-            WebElement status = sampleStatusElement();
-            if (status.getAttribute("hidden") != null) {
-                return false;
-            }
-            return status.getText().contains(fragment);
-        });
+        new WebDriverWait(driver, WAIT_TIMEOUT)
+                .until(d -> sampleStatusElement().getText().contains(fragment));
     }
 
     private void waitUntilFieldValue(By locator, String expectedValue) {

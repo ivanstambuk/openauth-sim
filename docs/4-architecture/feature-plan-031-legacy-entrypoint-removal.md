@@ -1,7 +1,7 @@
 # Feature Plan 031 – Legacy Entry-Point Removal
 
-_Status: Draft_  
-_Last reviewed: 2025-10-19_
+_Status: Complete_  
+_Last reviewed: 2025-10-21_
 
 ## Alignment
 - Specification: `docs/4-architecture/specs/feature-031-legacy-entrypoint-removal.md`
@@ -13,12 +13,12 @@ _Last reviewed: 2025-10-19_
 Retire the Java/JavaScript compatibility branches so there is a single telemetry format, router state contract, and networking pathway across all facades. This plan sequences test-first removal in ≤10 minute increments to keep the build green while we excise the legacy affordances.
 
 ## Current Status
-- Specification drafted 2025-10-19. T3101–T3104 completed on 2025-10-19 delivering adapter-only CLI telemetry and unified HOTP/TOTP/FIDO2 routing without `__openauth*` shims or legacy query parameters.
+- Specification drafted 2025-10-19 and promoted to complete on 2025-10-21 after reconfirming T3101–T3108 outcomes and documentation updates.
 - No open questions logged; REST contract tightening explicitly out of scope per product directive.
 - 2025-10-19 – T3105 removed the FIDO2 `legacySetMode` bridge, rewired the console to emit canonical tab/mode events, and refreshed Selenium coverage (`OperatorConsoleUnificationSeleniumTest.fido2ConsoleProvidesCanonicalApi`). Commands executed: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*"` and `./gradlew --no-daemon spotlessApply check`.
 - 2025-10-19 – T3106 replaced HOTP/TOTP/FIDO2 operator console XHR fallbacks with Fetch API calls, enabled HtmlUnit’s built-in fetch polyfill across Selenium harnesses, and revalidated UI suites (`:rest-api:test --tests "io.openauth.sim.rest.ui.*"`) plus `spotlessApply check`.
 - 2025-10-19 – T3107 aligned WebAuthn generator presets with W3C fixture identifiers (`packed-es256`, etc.), removed the legacy `generator-*` fallback, refreshed CLI/REST/operator documentation, and updated Selenium coverage. Commands executed: `./gradlew --no-daemon :application:test`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*"`.
-- 2025-10-19 – T3108 synced knowledge artefacts (roadmap, knowledge map, how-to guides, session snapshot), captured the HtmlUnit fetch polyfill requirement, and reran the analysis gate (`spotlessApply check` + targeted UI suites) to confirm a green baseline.
+- 2025-10-19 – T3108 synced knowledge artefacts (roadmap, changelog, knowledge map, how-to guides, session snapshot), captured the HtmlUnit fetch polyfill requirement, and reran the analysis gate (`spotlessApply check` + targeted UI suites) to confirm a green baseline.
 
 ## Increments
 1. T3101 – Update CLI telemetry tests to lock the structured adapter output; add regression for `OcraCli.emit` covering evaluate/verify cases only. _Tests first._

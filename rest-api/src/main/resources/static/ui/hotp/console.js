@@ -45,12 +45,6 @@
   var inlineResultPanel = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-inline-result-panel"]')
     : null;
-  var storedErrorPanel = hotpPanel
-    ? hotpPanel.querySelector('[data-testid="hotp-stored-error-panel"]')
-    : null;
-  var inlineErrorPanel = hotpPanel
-    ? hotpPanel.querySelector('[data-testid="hotp-inline-error-panel"]')
-    : null;
   var storedStatus = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-stored-status"]')
     : null;
@@ -182,12 +176,6 @@
     : null;
   var replayOutcomeNode = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-replay-outcome"]')
-    : null;
-  var replayErrorPanel = hotpPanel
-    ? hotpPanel.querySelector('[data-testid="hotp-replay-error"]')
-    : null;
-  var replayErrorMessage = hotpPanel
-    ? hotpPanel.querySelector('[data-testid="hotp-replay-error-message"]')
     : null;
   var replaySubmitButton = replayForm
     ? replayForm.querySelector('[data-testid="hotp-replay-submit"]')
@@ -576,10 +564,71 @@
     if (['generated', 'success', 'ok', 'valid', 'completed', 'match'].indexOf(lowered) >= 0) {
       return 'success';
     }
-    if (['failed', 'failure', 'error', 'invalid', 'denied', 'rejected'].indexOf(lowered) >= 0) {
+    if (['failed', 'failure', 'error', 'invalid', 'denied', 'rejected', 'mismatch'].indexOf(lowered) >= 0) {
       return 'error';
     }
     return 'info';
+  }
+
+  function resetResultCard(panel) {
+    if (!panel) {
+      return;
+    }
+    if (global.ResultCard && typeof global.ResultCard.resetMessage === 'function') {
+      global.ResultCard.resetMessage(panel);
+    }
+  }
+
+  function showResultError(panel, message, hint) {
+    if (!panel) {
+      return;
+    }
+    var fallbackMessage = typeof message === 'string' && message.trim().length > 0
+        ? message.trim()
+        : 'Operation failed.';
+    var options = {};
+    if (typeof hint === 'string' && hint.trim().length > 0) {
+      options.hint = hint.trim();
+    }
+    if (global.ResultCard && typeof global.ResultCard.showMessage === 'function') {
+      global.ResultCard.showMessage(panel, fallbackMessage, 'error', options);
+    } else {
+      var messageNode = panel.querySelector('[data-result-message]');
+      if (messageNode) {
+        messageNode.textContent = fallbackMessage;
+        messageNode.removeAttribute('hidden');
+        messageNode.setAttribute('aria-hidden', 'false');
+      }
+    }
+    setHidden(panel, false);
+  }
+
+  function resolveApiErrorPayload(parsed, fallbackMessage) {
+    var message = typeof fallbackMessage === 'string' && fallbackMessage.trim().length > 0
+        ? fallbackMessage.trim()
+        : 'Operation failed.';
+    var reason = '';
+    if (parsed) {
+      if (typeof parsed.message === 'string' && parsed.message.trim().length > 0) {
+        message = parsed.message.trim();
+      } else if (
+          parsed.error &&
+          typeof parsed.error.description === 'string' &&
+          parsed.error.description.trim().length > 0) {
+        message = parsed.error.description.trim();
+      }
+      var details = parsed.details;
+      if (details && typeof details === 'object') {
+        var detailReason = details.reasonCode || details.reason || details.reason_code;
+        if (typeof detailReason === 'string' && detailReason.trim().length > 0) {
+          reason = detailReason.trim();
+        }
+      }
+      if (!reason && typeof parsed.reasonCode === 'string' && parsed.reasonCode.trim().length > 0) {
+        reason = parsed.reasonCode.trim();
+      }
+    }
+    return { message: message, reason: reason };
   }
 
   function applyStatusBadge(statusNode, status) {
@@ -603,18 +652,30 @@
     if (!panel) {
       return;
     }
-    setHidden(panel, false);
+    resetResultCard(panel);
     var status = payload && payload.status ? payload.status : 'unknown';
     var metadata = payload && payload.metadata ? payload.metadata : null;
     var otp = payload && payload.otp ? payload.otp : null;
+    var reason = payload && payload.reasonCode ? String(payload.reasonCode).trim() : '';
     applyStatusBadge(panel.querySelector('[data-testid="hotp-result-status"]'), status);
     var otpNode = panel.querySelector('[data-testid="hotp-result-otp"]');
     if (otpNode) {
-      otpNode.textContent = otp && otp.trim().length > 0 ? otp.trim() : '—';
+      var normalizedOtp = otp && otp.trim().length > 0 ? otp.trim() : '—';
+      otpNode.textContent = normalizedOtp;
     }
     var metadataNode = panel.querySelector('[data-testid="hotp-result-metadata"]');
     if (metadataNode) {
       metadataNode.textContent = formatMetadata(metadata);
+    }
+    if (resolveStatusVariant(status) === 'error') {
+      var label = normalizeStatusLabel(status);
+      var hint = reason ? 'Reason: ' + reason : '';
+      showResultError(panel, 'Evaluation returned status: ' + label + '.', hint);
+      if (otpNode) {
+        otpNode.textContent = '—';
+      }
+    } else {
+      setHidden(panel, false);
     }
   }
 
@@ -959,23 +1020,27 @@
   }
 
   function hideReplayError() {
-    if (replayErrorPanel) {
-      setHidden(replayErrorPanel, true);
+    if (!replayResultPanel) {
+      return;
     }
-    if (replayErrorMessage) {
-      replayErrorMessage.textContent = '';
-    }
+    resetResultCard(replayResultPanel);
   }
 
   function showReplayError(message) {
-    if (!replayErrorPanel) {
+    if (!replayResultPanel) {
       return;
     }
-    if (replayErrorMessage) {
-      replayErrorMessage.textContent = message;
+    var hint = '';
+    if (replayReasonNode) {
+      replayReasonNode.textContent = 'validation_failure';
     }
-    setHidden(replayResultPanel, true);
-    setHidden(replayErrorPanel, false);
+    if (replayOutcomeNode) {
+      replayOutcomeNode.textContent = 'error';
+    }
+    if (replayStatusBadge) {
+      applyStatusBadge(replayStatusBadge, 'error');
+    }
+    showResultError(replayResultPanel, message || 'Replay request failed.', hint);
   }
 
   function renderReplayResult(payload) {
@@ -1001,37 +1066,67 @@
     if (replayOutcomeNode) {
       replayOutcomeNode.textContent = status;
     }
-    setHidden(replayResultPanel, false);
+    resetResultCard(replayResultPanel);
+    var variant = resolveStatusVariant(status);
+    if (variant === 'error') {
+      var statusLabel = normalizeStatusLabel(status);
+      var hint = reason ? 'Reason: ' + reason : '';
+      showResultError(replayResultPanel, 'Replay request returned status: ' + statusLabel + '.', hint);
+    } else {
+      setHidden(replayResultPanel, false);
+    }
   }
 
   function showStoredError(message) {
-    if (!storedErrorPanel) {
+    if (!storedResultPanel) {
       return;
     }
-    var messageNode = storedErrorPanel.querySelector('[data-testid="hotp-stored-error"]');
-    if (messageNode) {
-      messageNode.textContent = message;
+    applyStatusBadge(storedResultPanel.querySelector('[data-testid="hotp-result-status"]'), 'error');
+    var otpNode = storedResultPanel.querySelector('[data-testid="hotp-result-otp"]');
+    if (otpNode) {
+      otpNode.textContent = '—';
     }
-    setHidden(storedErrorPanel, false);
+    showResultError(storedResultPanel, message || 'Stored credential evaluation failed.');
   }
 
   function hideStoredError() {
-    setHidden(storedErrorPanel, true);
-  }
-
-  function showInlineError(message) {
-    if (!inlineErrorPanel) {
+    if (!storedResultPanel) {
       return;
     }
-    var messageNode = inlineErrorPanel.querySelector('[data-testid="hotp-inline-error"]');
-    if (messageNode) {
-      messageNode.textContent = message;
+    resetResultCard(storedResultPanel);
+  }
+
+  function showInlineError(message, hint) {
+    if (!inlineResultPanel) {
+      return;
     }
-    setHidden(inlineErrorPanel, false);
+    applyStatusBadge(inlineResultPanel.querySelector('[data-testid="hotp-result-status"]'), 'error');
+    var otpNode = inlineResultPanel.querySelector('[data-testid="hotp-result-otp"]');
+    if (otpNode) {
+      otpNode.textContent = '—';
+    }
+    var normalizedMessage =
+        typeof message === 'string' && message.trim().length > 0 ? message.trim() : 'Inline evaluation failed.';
+    var options = {};
+    if (typeof hint === 'string' && hint.trim().length > 0) {
+      options.hint = hint.trim();
+    }
+    if (global.ResultCard && typeof global.ResultCard.showMessage === 'function') {
+      global.ResultCard.showMessage(inlineResultPanel, normalizedMessage, 'error', options);
+    } else {
+      showResultError(inlineResultPanel, normalizedMessage, options.hint);
+    }
   }
 
   function hideInlineError() {
-    setHidden(inlineErrorPanel, true);
+    if (!inlineResultPanel) {
+      return;
+    }
+    if (global.ResultCard && typeof global.ResultCard.resetMessage === 'function') {
+      global.ResultCard.resetMessage(inlineResultPanel);
+    } else {
+      resetResultCard(inlineResultPanel);
+    }
   }
 
   function setReplayMode(mode, options) {
@@ -1426,17 +1521,23 @@
       .then(function (payload) {
         if (!payload.ok) {
           var parsed = parseJson(payload.body);
-          var message =
-            parsed && parsed.error && parsed.error.description
-              ? parsed.error.description
-              : 'Inline HOTP evaluation failed.';
-          throw new Error(message);
+          var apiError = resolveApiErrorPayload(parsed, 'Inline HOTP evaluation failed.');
+          var error = new Error(apiError.message);
+          if (apiError.reason) {
+            error.reason = apiError.reason;
+          }
+          throw error;
         }
         var parsedBody = parseJson(payload.body) || {};
         renderResult(inlineResultPanel, parsedBody);
       })
       .catch(function (error) {
-        showInlineError(error && error.message ? error.message : 'Unable to evaluate inline parameters.');
+        var message =
+            error && error.message ? error.message : 'Unable to evaluate inline parameters.';
+        var hint = error && typeof error.reason === 'string' && error.reason.trim().length > 0
+            ? 'Reason: ' + error.reason.trim()
+            : null;
+        showInlineError(message, hint);
       })
       .finally(function () {
         inlineButton.removeAttribute('disabled');

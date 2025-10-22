@@ -489,21 +489,18 @@
                   </dd>
                 </div>
               </dl>
-            </section>
-
-            <section
-              data-testid="ocra-error-panel"
-              aria-live="assertive"
-              role="alert"
-              aria-labelledby="error-heading"
-              hidden="hidden"
-              class="error-panel"
-            >
-              <div>
-                <h2 id="error-heading">Evaluation failed</h2>
-                <p data-testid="ocra-error-primary"></p>
-                <p class="hint" data-testid="ocra-error-secondary"></p>
-              </div>
+              <div
+                class="result-message"
+                data-result-message
+                hidden="hidden"
+                aria-hidden="true"
+              ></div>
+              <p
+                class="hint result-message__hint"
+                data-result-hint
+                hidden="hidden"
+                aria-hidden="true"
+              ></p>
             </section>
           </div>
         </div>
@@ -605,9 +602,6 @@
         const resultPanel = document.querySelector('[data-testid="ocra-result-panel"]');
         const statusValue = document.querySelector('[data-testid="ocra-status-value"]');
         const otpValue = document.querySelector('[data-testid="ocra-otp-value"]');
-        const errorPanel = document.querySelector('[data-testid="ocra-error-panel"]');
-        const errorPrimary = document.querySelector('[data-testid="ocra-error-primary"]');
-        const errorSecondary = document.querySelector('[data-testid="ocra-error-secondary"]');
         const builderVersion = document.getElementById('builderVersion');
         const builderAlgorithm = document.getElementById('builderAlgorithm');
         const builderDigits = document.getElementById('builderDigits');
@@ -1411,6 +1405,7 @@
             return;
           }
           panel.setAttribute('hidden', 'hidden');
+          panel.setAttribute('aria-hidden', 'true');
         }
 
         function showPanel(panel) {
@@ -1418,6 +1413,87 @@
             return;
           }
           panel.removeAttribute('hidden');
+          panel.setAttribute('aria-hidden', 'false');
+        }
+
+        function hideResultPanel(panel) {
+          if (!panel) {
+            return;
+          }
+          if (window.ResultCard && typeof window.ResultCard.hidePanel === 'function') {
+            window.ResultCard.hidePanel(panel);
+            return;
+          }
+          hidePanel(panel);
+        }
+
+        function showResultPanel(panel) {
+          if (!panel) {
+            return;
+          }
+          if (window.ResultCard && typeof window.ResultCard.showPanel === 'function') {
+            window.ResultCard.showPanel(panel);
+            return;
+          }
+          showPanel(panel);
+        }
+
+        function resetResultPanel(panel) {
+          if (!panel) {
+            return;
+          }
+          if (window.ResultCard && typeof window.ResultCard.resetMessage === 'function') {
+            window.ResultCard.resetMessage(panel);
+            return;
+          }
+          var messageNode = panel.querySelector('[data-result-message]');
+          if (messageNode) {
+            messageNode.textContent = '';
+            messageNode.setAttribute('hidden', 'hidden');
+            messageNode.setAttribute('aria-hidden', 'true');
+          }
+          var hintNode = panel.querySelector('[data-result-hint]');
+          if (hintNode) {
+            hintNode.textContent = '';
+            hintNode.setAttribute('hidden', 'hidden');
+            hintNode.setAttribute('aria-hidden', 'true');
+          }
+        }
+
+        function showResultError(panel, message, hint) {
+          if (!panel) {
+            return;
+          }
+          var text = typeof message === 'string' && message.trim().length > 0
+            ? message.trim()
+            : 'Unable to process your request.';
+          var options = {};
+          if (typeof hint === 'string' && hint.trim().length > 0) {
+            options.hint = hint.trim();
+          }
+          if (window.ResultCard && typeof window.ResultCard.showMessage === 'function') {
+            window.ResultCard.showMessage(panel, text, 'error', options);
+          } else {
+            var messageNode = panel.querySelector('[data-result-message]');
+            if (messageNode) {
+              messageNode.textContent = text;
+              messageNode.removeAttribute('hidden');
+              messageNode.setAttribute('aria-hidden', 'false');
+            }
+            var hintNode = panel.querySelector('[data-result-hint]');
+            if (hintNode) {
+              if (options.hint) {
+                hintNode.textContent = options.hint;
+                hintNode.removeAttribute('hidden');
+                hintNode.setAttribute('aria-hidden', 'false');
+              } else {
+                hintNode.textContent = '';
+                hintNode.setAttribute('hidden', 'hidden');
+                hintNode.setAttribute('aria-hidden', 'true');
+              }
+            }
+          }
+          showResultPanel(panel);
         }
 
         function scrubSecrets() {
@@ -1428,12 +1504,10 @@
         }
 
         function clearPanels() {
-          hidePanel(resultPanel);
-          hidePanel(errorPanel);
+          hideResultPanel(resultPanel);
+          resetResultPanel(resultPanel);
           setTextContent(statusValue, '');
           setTextContent(otpValue, '');
-          setTextContent(errorPrimary, '');
-          setTextContent(errorSecondary, '');
         }
 
         function toTrimmedValue(input) {
@@ -1839,8 +1913,8 @@
         function renderSuccess(body, payload) {
           applyStatusBadge(statusValue, 'Success');
           setTextContent(otpValue, body && body.otp ? body.otp : '');
-          showPanel(resultPanel);
-          hidePanel(errorPanel);
+          resetResultPanel(resultPanel);
+          showResultPanel(resultPanel);
         }
 
         function deriveErrorMessage(body) {
@@ -1874,10 +1948,9 @@
 
         function renderError(body) {
           const derived = deriveErrorMessage(body);
-          setTextContent(errorPrimary, derived.primary);
-          setTextContent(errorSecondary, derived.secondary);
-          hidePanel(resultPanel);
-          showPanel(errorPanel);
+          applyStatusBadge(statusValue, 'Error');
+          setTextContent(otpValue, '—');
+          showResultError(resultPanel, derived.primary, derived.secondary);
         }
 
         function parseJsonSafely(text) {

@@ -229,15 +229,19 @@
                   <dd data-testid="ocra-replay-outcome">—</dd>
                 </div>
               </dl>
+              <div
+                class="result-message"
+                data-result-message
+                hidden
+                aria-hidden="true"
+              ></div>
+              <p
+                class="hint result-message__hint"
+                data-result-hint
+                hidden
+                aria-hidden="true"
+              ></p>
             </section>
-
-            <div class="error-card" data-testid="ocra-replay-error" hidden aria-hidden="true">
-              <h3>Replay request failed</h3>
-              <p data-testid="ocra-replay-error-primary">Unable to process the request.</p>
-              <p class="hint" data-testid="ocra-replay-error-secondary">
-                Additional context is sanitized to protect credential material.
-              </p>
-            </div>
           </aside>
         </div>
       </section>
@@ -290,9 +294,6 @@
         var statusBadge = doc.querySelector('[data-testid="ocra-replay-status"]');
         var reasonCodeValue = doc.querySelector('[data-testid="ocra-replay-reason-code"]');
         var outcomeValue = doc.querySelector('[data-testid="ocra-replay-outcome"]');
-        var errorPanel = doc.querySelector('[data-testid="ocra-replay-error"]');
-        var errorPrimary = doc.querySelector('[data-testid="ocra-replay-error-primary"]');
-        var errorSecondary = doc.querySelector('[data-testid="ocra-replay-error-secondary"]');
         var credentialsEndpoint = form.getAttribute('data-credentials-endpoint');
         var verificationEndpoint = form.getAttribute('data-replay-endpoint');
         var telemetryEndpoint = form.getAttribute('data-telemetry-endpoint');
@@ -508,9 +509,88 @@
           element.setAttribute('aria-hidden', 'true');
         }
 
+        function hideResultPanel(panel) {
+          if (!panel) {
+            return;
+          }
+          if (window.ResultCard && typeof window.ResultCard.hidePanel === 'function') {
+            window.ResultCard.hidePanel(panel);
+            return;
+          }
+          hide(panel);
+        }
+
+        function showResultPanel(panel) {
+          if (!panel) {
+            return;
+          }
+          if (window.ResultCard && typeof window.ResultCard.showPanel === 'function') {
+            window.ResultCard.showPanel(panel);
+            return;
+          }
+          show(panel);
+        }
+
+        function resetResultPanel(panel) {
+          if (!panel) {
+            return;
+          }
+          if (window.ResultCard && typeof window.ResultCard.resetMessage === 'function') {
+            window.ResultCard.resetMessage(panel);
+            return;
+          }
+          var messageNode = panel.querySelector('[data-result-message]');
+          if (messageNode) {
+            messageNode.textContent = '';
+            messageNode.setAttribute('hidden', 'hidden');
+            messageNode.setAttribute('aria-hidden', 'true');
+          }
+          var hintNode = panel.querySelector('[data-result-hint]');
+          if (hintNode) {
+            hintNode.textContent = '';
+            hintNode.setAttribute('hidden', 'hidden');
+            hintNode.setAttribute('aria-hidden', 'true');
+          }
+        }
+
+        function showResultError(panel, message, hint) {
+          if (!panel) {
+            return;
+          }
+          var text = typeof message === 'string' && message.trim().length > 0
+            ? message.trim()
+            : 'Unable to process replay request.';
+          var options = {};
+          if (typeof hint === 'string' && hint.trim().length > 0) {
+            options.hint = hint.trim();
+          }
+          if (window.ResultCard && typeof window.ResultCard.showMessage === 'function') {
+            window.ResultCard.showMessage(panel, text, 'error', options);
+          } else {
+            var messageNode = panel.querySelector('[data-result-message]');
+            if (messageNode) {
+              messageNode.textContent = text;
+              messageNode.removeAttribute('hidden');
+              messageNode.setAttribute('aria-hidden', 'false');
+            }
+            var hintNode = panel.querySelector('[data-result-hint]');
+            if (hintNode) {
+              if (options.hint) {
+                hintNode.textContent = options.hint;
+                hintNode.removeAttribute('hidden');
+                hintNode.setAttribute('aria-hidden', 'false');
+              } else {
+                hintNode.textContent = '';
+                hintNode.setAttribute('hidden', 'hidden');
+                hintNode.setAttribute('aria-hidden', 'true');
+              }
+            }
+          }
+          showResultPanel(panel);
+        }
+
         function clearPanels() {
-          hide(resultPanel);
-          hide(errorPanel);
+          hideResultPanel(resultPanel);
           resetResultDisplay();
         }
 
@@ -673,8 +753,8 @@
             setSampleStatus('', null);
             return;
           }
-          hide(resultPanel);
-          hide(errorPanel);
+          hideResultPanel(resultPanel);
+          resetResultPanel(resultPanel);
           setAdvancedOpen(true);
           if (otpInput) {
             otpInput.value = '';
@@ -1068,6 +1148,7 @@
           }
           setTelemetryField(reasonCodeValue, '—');
           setTelemetryField(outcomeValue, '—');
+          resetResultPanel(resultPanel);
         }
 
         function setTelemetryField(node, value) {
@@ -1169,8 +1250,8 @@
           applyStatusBadge(statusText);
           setTelemetryField(reasonCodeValue, reasonCode);
           setTelemetryField(outcomeValue, outcome);
-          hide(errorPanel);
-          show(resultPanel);
+          resetResultPanel(resultPanel);
+          showResultPanel(resultPanel);
           return {
             telemetryId: telemetryId,
             status: statusText,
@@ -1215,20 +1296,13 @@
             }
           }
           var reason = body && body.message ? body.message : 'Unable to process replay request.';
-          if (errorPrimary) {
-            errorPrimary.textContent = reason;
-          }
-          if (errorSecondary) {
-            var reasonLabel = 'validation_failure';
-            if (specificReason && specificReason !== reasonLabel) {
-              reasonLabel = reasonLabel + ' (' + specificReason + ')';
-            }
-            var suffix = field ? ' Field: ' + field + '.' : '';
-            errorSecondary.textContent = 'Reason: ' + reasonLabel + '. Sanitized: ' + sanitized + '.' + suffix;
-          }
           resetResultDisplay();
-          hide(resultPanel);
-          show(errorPanel);
+          applyStatusBadge(statusValue);
+          var reasonLabel = specificReason || 'validation_failure';
+          var suffix = field ? ' Field: ' + field + '.' : '';
+          var hint =
+              'Reason: ' + reasonLabel + '. Sanitized: ' + sanitized + '.' + suffix;
+          showResultError(resultPanel, reason, hint);
           var reasonCodeValue = specificReason || (statusValue === 'error' ? 'unexpected_error' : 'validation_failure');
           return {
             telemetryId: telemetryId,

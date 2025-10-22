@@ -1,7 +1,7 @@
 # Feature 031 – Legacy Entry-Point Removal
 
-_Status: Proposed_  
-_Last updated: 2025-10-19_
+_Status: Complete_  
+_Last updated: 2025-10-21_
 
 ## Overview
 Gradually accumulated compatibility paths keep older tooling and bookmarks working but now block simplifying the simulator. This feature retires the Java and JavaScript legacy entry points so only the canonical telemetry emitters, router state keys, and modern browser APIs remain. Operators and automated tests must migrate to the primary interfaces captured in Features 017, 024, 026, and 027.
@@ -21,6 +21,7 @@ Gradually accumulated compatibility paths keep older tooling and bookmarks worki
 
 ## Clarifications
 - 2025-10-19 – REST controller contracts stay as-is; we are not deprecating optional fields or relaxing JSON backwards compatibility.
+- 2025-10-19 – Completion: T3107/T3108 aligned WebAuthn presets with W3C identifiers, refreshed documentation/knowledge artefacts, recorded the changelog entry, and re-ran the analysis gate to confirm a green baseline.
 
 ## Architecture & Design
 - Replace the `legacyEmit` branch in `cli/OcraCli` with adapters-only emission and refresh tests that asserted the legacy text format.

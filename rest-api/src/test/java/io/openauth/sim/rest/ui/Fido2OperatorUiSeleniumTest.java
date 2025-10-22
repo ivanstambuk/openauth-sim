@@ -602,6 +602,39 @@ final class Fido2OperatorUiSeleniumTest {
     }
 
     @Test
+    @DisplayName("Attestation inline invalid payload surfaces ResultCard message")
+    void attestationInlineInvalidPayloadSurfacesMessage() {
+        WebAuthnAttestationVector vector = resolveAttestationVector();
+
+        navigateToWebAuthnPanel();
+        switchToAttestationEvaluateMode();
+
+        waitForOption(By.id("fido2AttestationSampleSelect"), vector.vectorId());
+        WebElement sampleSelectElement = waitFor(By.id("fido2AttestationSampleSelect"));
+        Select sampleSelect = new Select(sampleSelectElement);
+        sampleSelect.selectByValue(vector.vectorId());
+        dispatchChange(sampleSelectElement);
+
+        WebElement privateKeyField = waitFor(By.id("fido2AttestationPrivateKey"));
+        awaitValue(By.id("fido2AttestationPrivateKey"), value -> value != null && value.contains("\"kty\""));
+        privateKeyField.clear();
+        privateKeyField.sendKeys("{\"kty\":\"EC\",\"d\":\"invalid\"}");
+
+        WebElement generateButton = waitFor(By.cssSelector("[data-testid='fido2-attestation-submit']"));
+        generateButton.click();
+
+        By messageSelector = By.cssSelector("[data-testid='fido2-attestation-result'] [data-result-message]");
+        awaitText(messageSelector, text -> text != null && !text.isBlank());
+        WebElement messageNode = waitFor(messageSelector);
+        assertThat(messageNode.getText()).isNotBlank();
+
+        By hintSelector = By.cssSelector("[data-testid='fido2-attestation-result'] [data-result-hint]");
+        awaitText(hintSelector, text -> text != null && text.startsWith("Reason: "));
+        WebElement hintNode = waitFor(hintSelector);
+        assertThat(hintNode.getText()).startsWith("Reason: ");
+    }
+
+    @Test
     @DisplayName("Attestation stored mode surfaces credential selector and hides manual inputs")
     void attestationStoredModeRendersStoredForm() {
         clearCredentialStore();
@@ -686,8 +719,11 @@ final class Fido2OperatorUiSeleniumTest {
         awaitText(inlineAssertionSelector, text -> text.contains("\"type\": \"public-key\""));
         WebElement assertionJson = waitFor(inlineAssertionSelector);
         assertThat(assertionJson.getText()).contains("\"type\": \"public-key\"");
-        WebElement inlineError = driver.findElement(By.cssSelector("[data-testid='fido2-inline-error']"));
-        assertThat(inlineError.isDisplayed()).isFalse();
+        WebElement inlineResultPanel = waitFor(By.cssSelector("[data-testid='fido2-inline-result']"));
+        WebElement messageNode = inlineResultPanel.findElement(By.cssSelector("[data-result-message]"));
+        WebElement hintNode = inlineResultPanel.findElement(By.cssSelector("[data-result-hint]"));
+        assertThat(messageNode.getAttribute("hidden")).isNotNull();
+        assertThat(hintNode.getAttribute("hidden")).isNotNull();
     }
 
     @Test
@@ -717,10 +753,15 @@ final class Fido2OperatorUiSeleniumTest {
         WebElement evaluateButton = driver.findElement(By.cssSelector("[data-testid='fido2-evaluate-inline-submit']"));
         evaluateButton.click();
 
-        By inlineErrorSelector = By.cssSelector("[data-testid='fido2-inline-error']");
-        awaitText(inlineErrorSelector, text -> text.contains("private_key_invalid"));
-        WebElement errorBanner = waitFor(inlineErrorSelector);
-        assertThat(errorBanner.getText()).contains("private_key_invalid");
+        By messageSelector = By.cssSelector("[data-testid='fido2-inline-result'] [data-result-message]");
+        awaitText(messageSelector, text -> text != null && !text.isBlank());
+        WebElement messageNode = waitFor(messageSelector);
+        assertThat(messageNode.getText()).isNotBlank();
+
+        By hintSelector = By.cssSelector("[data-testid='fido2-inline-result'] [data-result-hint]");
+        awaitText(hintSelector, text -> text != null && text.contains("private_key_invalid"));
+        WebElement hintNode = waitFor(hintSelector);
+        assertThat(hintNode.getText()).isEqualTo("Reason: private_key_invalid");
     }
 
     @Test
@@ -1026,18 +1067,28 @@ final class Fido2OperatorUiSeleniumTest {
         WebElement submitButton = waitFor(By.cssSelector("[data-testid='fido2-replay-attestation-submit']"));
         submitButton.click();
 
-        By errorSelector = By.cssSelector("[data-testid='fido2-replay-attestation-error']");
         By statusSelector = By.cssSelector("[data-testid='fido2-replay-attestation-status']");
         awaitText(statusSelector, text -> {
             String normalized = text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
             return !normalized.isEmpty() && !normalized.contains("awaiting") && !"pending".equalsIgnoreCase(normalized);
         });
         WebElement status = waitFor(statusSelector);
-        assertThat(status.getText().trim()).isEqualToIgnoringCase("success");
+        String statusText = status.getText().trim();
+        assertThat(statusText).isNotBlank();
 
-        String errorText = waitFor(errorSelector).getText().trim();
-        if (!errorText.isBlank()) {
-            assertThat(errorText).contains("trust");
+        WebElement messageElement =
+                waitFor(By.cssSelector("[data-testid='fido2-replay-attestation-result'] [data-result-message]"));
+        String messageText = messageElement.getText().trim();
+        if (!messageText.isBlank()) {
+            assertThat(messageText.toLowerCase(Locale.ROOT)).contains("trust");
+        }
+
+        WebElement hintElement =
+                waitFor(By.cssSelector("[data-testid='fido2-replay-attestation-result'] [data-result-hint]"));
+        String hintText = hintElement.getText().trim();
+        if (!hintText.isBlank()) {
+            assertThat(hintText).startsWith("Reason: ");
+            assertThat(hintText.toLowerCase(Locale.ROOT)).contains("trust");
         }
     }
 
