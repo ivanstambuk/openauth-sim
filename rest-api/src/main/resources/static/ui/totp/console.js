@@ -69,7 +69,6 @@
   var storedOtpValue = storedResultPanel
     ? storedResultPanel.querySelector('[data-testid="totp-result-otp"]')
     : null;
-  var storedOtpInput = totpPanel.querySelector('#totpStoredOtp');
 
   var seedDefinitionsPayload = [];
   if (seedDefinitionNode && seedDefinitionNode.textContent) {
@@ -141,7 +140,6 @@
   var inlineAlgorithmSelect = totpPanel.querySelector('#totpInlineAlgorithm');
   var inlineDigitsInput = totpPanel.querySelector('#totpInlineDigits');
   var inlineStepInput = totpPanel.querySelector('#totpInlineStepSeconds');
-  var inlineOtpInput = totpPanel.querySelector('#totpInlineOtp');
   var inlineTimestampInput = totpPanel.querySelector('#totpInlineTimestamp');
   var inlineTimestampOverrideInput = totpPanel.querySelector('#totpInlineTimestampOverride');
   var inlineDriftBackwardInput = totpPanel.querySelector('#totpInlineDriftBackward');
@@ -293,9 +291,6 @@
     if (inlineStepInput) {
       inlineStepInput.value =
           typeof preset.stepSeconds === 'number' ? String(preset.stepSeconds) : '';
-    }
-    if (inlineOtpInput) {
-      inlineOtpInput.value = '';
     }
     if (inlineTimestampInput) {
       inlineTimestampInput.value =
@@ -1124,9 +1119,6 @@
     var metadata = response.metadata || {};
     setStatusBadge(storedStatusBadge, response.status || response.reasonCode);
     var generatedOtp = typeof response.otp === 'string' ? response.otp : '';
-    if (storedOtpInput) {
-      storedOtpInput.value = generatedOtp;
-    }
     writeText(storedOtpValue, generatedOtp || metadata.otp || '—');
     resetResultCard(storedResultPanel);
     setHidden(storedResultPanel, false);
@@ -1160,9 +1152,6 @@
     }
     setStatusBadge(inlineStatusBadge, response.status || response.reasonCode);
     var generatedOtp = typeof response.otp === 'string' ? response.otp : '';
-    if (inlineOtpInput) {
-      inlineOtpInput.value = generatedOtp;
-    }
     writeText(inlineOtpValue, generatedOtp || (response.metadata && response.metadata.otp));
     resetResultCard(inlineResultPanel);
     setHidden(inlineResultPanel, false);
@@ -1233,17 +1222,10 @@
     if (!storedForm || !storedButton) {
       return;
     }
-    if (storedOtpInput) {
-      storedOtpInput.value = '';
-    }
     var endpoint = storedForm.getAttribute('data-evaluate-endpoint');
     var payload = {
       credentialId: valueOf('#totpStoredCredentialId'),
     };
-    var otp = valueOf('#totpStoredOtp');
-    if (otp) {
-      payload.otp = otp;
-    }
     var timestamp = toInteger(valueOf('#totpStoredTimestamp'));
     var timestampOverride = toInteger(valueOf('#totpStoredTimestampOverride'));
     var driftBackward = toInteger(valueOf('#totpStoredDriftBackward'));
@@ -1274,18 +1256,11 @@
     if (!inlineForm || !inlineButton) {
       return;
     }
-    if (inlineOtpInput) {
-      inlineOtpInput.value = '';
-    }
     var endpoint = inlineForm.getAttribute('data-evaluate-endpoint');
     var payload = {
       sharedSecretHex: valueOf('#totpInlineSecretHex'),
       algorithm: valueOf('#totpInlineAlgorithm'),
     };
-    var otp = valueOf('#totpInlineOtp');
-    if (otp) {
-      payload.otp = otp;
-    }
     var digits = toInteger(valueOf('#totpInlineDigits'));
     var stepSeconds = toInteger(valueOf('#totpInlineStepSeconds'));
     var driftBackward = toInteger(valueOf('#totpInlineDriftBackward'));

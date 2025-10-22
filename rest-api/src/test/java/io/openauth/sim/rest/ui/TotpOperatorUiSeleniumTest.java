@@ -174,13 +174,9 @@ final class TotpOperatorUiSeleniumTest {
         WebElement statusBadge = resultPanel.findElement(By.cssSelector("[data-testid='totp-result-status']"));
         assertEquals("success", statusBadge.getText().trim().toLowerCase());
 
-        WebElement otpInput = driver.findElement(By.id("totpStoredOtp"));
-        assertEquals(
-                EXPECTED_STORED_OTP,
-                otpInput.getAttribute("value"),
-                "Stored OTP input should auto-populate with the generated code");
-        assertEquals(
-                "true", otpInput.getAttribute("readonly"), "Stored OTP input should be read-only when auto-populated");
+        assertTrue(
+                driver.findElements(By.id("totpStoredOtp")).isEmpty(),
+                "Stored evaluate form should not render an OTP input field");
     }
 
     @Test
@@ -231,11 +227,9 @@ final class TotpOperatorUiSeleniumTest {
         timestampInput.clear();
         timestampInput.sendKeys(Long.toString(INLINE_TIMESTAMP.getEpochSecond()));
 
-        WebElement otpInput = driver.findElement(By.id("totpInlineOtp"));
-        assertEquals(
-                "",
-                otpInput.getAttribute("value"),
-                "Inline OTP input should start empty when operator is generating a code");
+        assertTrue(
+                driver.findElements(By.id("totpInlineOtp")).isEmpty(),
+                "Inline evaluate form should not render an OTP input field");
 
         driver.findElement(By.cssSelector("[data-testid='totp-inline-evaluate-button']"))
                 .click();
@@ -246,12 +240,9 @@ final class TotpOperatorUiSeleniumTest {
         WebElement statusBadge = resultPanel.findElement(By.cssSelector("[data-testid='totp-inline-result-status']"));
         assertEquals("success", statusBadge.getText().trim().toLowerCase());
 
-        assertEquals(
-                INLINE_EXPECTED_OTP,
-                otpInput.getAttribute("value"),
-                "Inline OTP input should be populated with the generated code");
-        assertEquals(
-                "true", otpInput.getAttribute("readonly"), "Inline OTP input should be read-only after generation");
+        assertTrue(
+                driver.findElements(By.id("totpInlineOtp")).isEmpty(),
+                "Inline evaluate form should continue to omit an OTP input field after generation");
     }
 
     @Test
@@ -304,12 +295,9 @@ final class TotpOperatorUiSeleniumTest {
         WebElement timestampField = driver.findElement(By.id("totpInlineTimestamp"));
         assertEquals(Long.toString(INLINE_SAMPLE_TIMESTAMP.getEpochSecond()), timestampField.getAttribute("value"));
 
-        WebElement otpField = driver.findElement(By.id("totpInlineOtp"));
-        assertEquals("", otpField.getAttribute("value"));
-        assertEquals(
-                "true",
-                otpField.getAttribute("readonly"),
-                "Inline OTP input should remain read-only when presets are applied");
+        assertTrue(
+                driver.findElements(By.id("totpInlineOtp")).isEmpty(),
+                "Inline evaluate form should not render an OTP input field when presets apply");
 
         WebElement driftBackward = driver.findElement(By.id("totpInlineDriftBackward"));
         assertEquals(

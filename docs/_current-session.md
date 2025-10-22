@@ -3,12 +3,12 @@
 > Keep this file up to date across all active chats. Treat it as the single source of truth for in-progress workstreams so every hand-off is instant. Replace the bracketed text and prune sections you do not need.
 
 ## Meta
-- Date: 2025-10-21
+- Date: 2025-10-22
 - Primary branch: `main`
 - Other active branches: none
- - Last green commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeleniumTest"` (2025-10-21), `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest"` (2025-10-21), `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` (2025-10-21), `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleSeleniumTest"` (2025-10-21), and `./gradlew --no-daemon spotlessApply` (2025-10-21); full `check` deferred until console docs are refreshed.
- - Build status: HOTP/TOTP/WebAuthn/OCRA operator panels now surface ResultCard messaging with Selenium coverage; pending console documentation refresh followed by a full `./gradlew --no-daemon spotlessApply check` rerun.
-- Quality gate note: Latest Selenium/Spotless runs (2025-10-21) remain green after the inline private-key ergonomics update; global coverage unchanged.
+- Last green commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest"` (2025-10-22) and `./gradlew --no-daemon spotlessApply` (2025-10-22); previous targeted Selenium runs for HOTP/WebAuthn/OCRA remain green from 2025-10-21. Full `./gradlew --no-daemon spotlessApply check` still pending the console documentation refresh.
+- Build status: HOTP/TOTP/WebAuthn/OCRA operator panels share ResultCard messaging; 2025-10-22 TOTP evaluate forms now surface generated OTPs exclusively via the result panel with targeted Selenium coverage.
+- Quality gate note: Targeted Selenium + spotless runs (2025-10-22) verified the TOTP evaluate-view refinement; broader coverage metrics unchanged from last full gate.
 - Outstanding git state: Feature 034 planning documents (spec/plan/tasks), roadmap entry, and session snapshot updates staged on `main` (2025-10-21); Feature 031 documentation refresh remains staged elsewhere.
 
 ## Workstream Summary
