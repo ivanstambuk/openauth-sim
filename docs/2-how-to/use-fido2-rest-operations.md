@@ -10,6 +10,16 @@ The REST API exposes stored and inline WebAuthn assertion verification plus repl
 - Gradle dependencies installed (`./gradlew spotlessApply check` should succeed).
 - Optional: `jq` for inspecting JSON responses.
 
+## Verbose Tracing
+- All evaluation and replay endpoints accept an optional `verbose` boolean. When set to `true`, the response (or error payload) includes a `trace` object containing the operation identifier (`fido2.evaluate.inline`, `fido2.replay.stored`, etc.), request metadata, and an ordered list of steps (`resolve.credential`, `parse.cose.publicKey`, `verify.signature`, `verify.counter`, `resolve.trustAnchor`, …).
+- Example request:
+  ```bash
+  curl -s -H "Content-Type: application/json" \
+    -d '{"credentialId":"packed-es256","relyingPartyId":"example.org","origin":"https://example.org","expectedType":"webauthn.get","challenge":"tNvtqPm4a6c4ZC7a6r0N0Q","privateKey":"<JWK>","verbose":true}' \
+    http://localhost:8080/api/v1/webauthn/evaluate | jq '.trace'
+  ```
+- Traces expose raw assertions and key material, so only enable verbose mode in controlled environments. Leave the field out (or set `false`) during regular runs to keep responses minimal and sanitized.
+
 ### Start the REST Service
 From the repository root:
 ```bash

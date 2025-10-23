@@ -56,6 +56,8 @@ record WebAuthnAttestationReplayRequest(
 
         @Schema(description = "PEM encoded X.509 trust anchors to validate the attestation certificate chain")
         @JsonProperty("trustAnchors")
-        List<String> trustAnchors) {
+        List<String> trustAnchors,
+
+        @JsonProperty("verbose") Boolean verbose) {
     // DTO marker
 }

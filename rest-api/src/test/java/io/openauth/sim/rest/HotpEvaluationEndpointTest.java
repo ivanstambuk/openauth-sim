@@ -2,6 +2,7 @@ package io.openauth.sim.rest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -211,6 +212,32 @@ class HotpEvaluationEndpointTest {
         assertEquals(8, metadata.get("digits").asInt());
         assertEquals(INLINE_SHA256_COUNTER, metadata.get("previousCounter").asLong());
         assertEquals(INLINE_SHA256_COUNTER + 1, metadata.get("nextCounter").asLong());
+    }
+
+    @Test
+    @DisplayName("Stored HOTP evaluation returns verbose trace when requested")
+    void storedHotpEvaluationReturnsVerboseTrace() throws Exception {
+        credentialStore.save(storedCredential(15L));
+
+        String responseBody = mockMvc.perform(post("/api/v1/hotp/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                          {
+                            "credentialId": "%s",
+                            "verbose": true
+                          }
+                          """.formatted(CREDENTIAL_ID)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode response = MAPPER.readTree(responseBody);
+        JsonNode trace = response.get("trace");
+        assertNotNull(trace, "Expected trace payload when verbose=true");
+        assertEquals("hotp.evaluate.stored", trace.get("operation").asText());
+        assertTrue(trace.get("steps").isArray());
+        assertTrue(trace.get("steps").size() > 0, "Trace steps must not be empty");
     }
 
     private Credential storedCredential(long counter) {

@@ -1,12 +1,15 @@
 package io.openauth.sim.rest.webauthn;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.openauth.sim.rest.VerboseTracePayload;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
 
 @Schema(
         name = "WebAuthnAttestationErrorResponse",
         description = "Error payload returned when WebAuthn attestation verification fails.")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 record WebAuthnAttestationErrorResponse(
         @Schema(description = "High level status indicator for the failure", example = "invalid")
         @JsonProperty("status")
@@ -24,7 +27,9 @@ record WebAuthnAttestationErrorResponse(
         Map<String, Object> details,
 
         @Schema(description = "Telemetry metadata captured during verification") @JsonProperty("metadata")
-        Map<String, Object> metadata) {
+        Map<String, Object> metadata,
+
+        @JsonProperty("trace") VerboseTracePayload trace) {
 
     WebAuthnAttestationErrorResponse {
         details = Map.copyOf(details == null ? Map.of() : details);

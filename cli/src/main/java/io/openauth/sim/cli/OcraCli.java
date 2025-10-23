@@ -505,6 +505,9 @@ public final class OcraCli implements Callable<Integer> {
                 description = "PIN hash material if required")
         String pinHashHex;
 
+        @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the evaluation steps")
+        boolean verbose;
+
         @Override
         public Integer call() {
             String event = event("evaluate");
@@ -535,12 +538,13 @@ public final class OcraCli implements Callable<Integer> {
                                         timestamp,
                                         counter));
 
-                        EvaluationResult result = service.evaluate(command);
+                        EvaluationResult result = service.evaluate(command, verbose);
                         Map<String, String> fields = new LinkedHashMap<>();
                         fields.put("credentialId", credentialId.trim());
                         fields.put("suite", result.suite());
                         fields.put("otp", result.otp());
                         emitSuccess(event, "success", fields);
+                        result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
                         return CommandLine.ExitCode.OK;
                     }
                 }
@@ -563,12 +567,13 @@ public final class OcraCli implements Callable<Integer> {
                         counter,
                         null));
 
-                EvaluationResult result = service.evaluate(command);
+                EvaluationResult result = service.evaluate(command, verbose);
                 Map<String, String> fields = new LinkedHashMap<>();
                 fields.put("mode", "inline");
                 fields.put("suite", result.suite());
                 fields.put("otp", result.otp());
                 emitSuccess(event, "success", fields);
+                result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
                 return CommandLine.ExitCode.OK;
             } catch (EvaluationValidationException ex) {
                 return failValidation(event, ex.reasonCode(), ex.getMessage());

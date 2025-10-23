@@ -10,6 +10,11 @@ The operator console bundled with the REST API now includes a FIDO2/WebAuthn pan
 - Ensure the simulator can open its MapDB store (`data/credentials.db` by default). If you have not seeded any WebAuthn credentials, the UI provides a **Seed sample credential** button that pulls curated entries from `docs/webauthn_assertion_vectors.json`. Configure the REST property explicitly if you need to point at a legacy file such as `data/fido2-credentials.db`.
 - Use a modern browser with JavaScript enabled. The panel relies on client-side scripts for preset loading, telemetry updates, and query-parameter deep links.
 
+## Enable Verbose Tracing
+- A shared **Enable verbose tracing for the next request** toggle now appears in the console header. When enabled, the upcoming WebAuthn evaluate or replay call sends `"verbose": true` so the REST API returns a complete trace of each verification step—credential hydration, COSE key parsing, signature verification, counter checks, and trust-anchor resolution.
+- Verbose responses automatically expand the docked **Verbose trace** panel at the bottom of the console. The panel lists the operation (`fido2.evaluate.inline`, `fido2.replay.stored`, etc.), ordered steps, attributes (for example `challenge`, `relyingPartyId`, `counterBefore`, `counterAfter`, `verificationResult`), and any notes emitted by the verifier. Use **Copy trace** to grab the terminal-style output for debugging.
+- Because the trace surfaces raw assertions and credential material, disable the toggle once you have captured the data you need. The dock collapses and subsequent requests omit verbose payloads to reduce the risk of exposing sensitive buffers.
+
 Directly open the WebAuthn tab via `http://localhost:8080/ui/console?protocol=fido2`. The console keeps protocol/mode preferences in the query string (see [Persisting mode state](#persisting-mode-state)).
 
 ## Generate Stored Assertions

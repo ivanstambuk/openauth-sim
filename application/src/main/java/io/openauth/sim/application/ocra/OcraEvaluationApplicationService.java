@@ -8,6 +8,7 @@ import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentia
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.credentials.ocra.OcraTimestampSpecification;
 import io.openauth.sim.core.model.SecretEncoding;
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -29,27 +30,67 @@ public final class OcraEvaluationApplicationService {
     }
 
     public EvaluationResult evaluate(EvaluationCommand rawCommand) {
+        return evaluate(rawCommand, false);
+    }
+
+    public EvaluationResult evaluate(EvaluationCommand rawCommand, boolean verbose) {
         Objects.requireNonNull(rawCommand, "command");
         NormalizedRequest request = NormalizedRequest.from(rawCommand);
+        VerboseTrace.Builder trace = newTrace(verbose, traceOperation(request));
+        metadata(trace, "protocol", "OCRA");
+        metadata(trace, "mode", request instanceof NormalizedRequest.StoredCredential ? "stored" : "inline");
+        if (request instanceof NormalizedRequest.InlineSecret inlineRequest) {
+            metadata(trace, "suite", inlineRequest.suite());
+        }
+
+        addStep(trace, step -> step.id("normalize.request")
+                .summary("Normalize OCRA evaluation command")
+                .detail("NormalizedRequest.from")
+                .attribute("challenge", request.challenge())
+                .attribute("sessionHex", request.sessionHex())
+                .attribute("timestampHex", request.timestampHex())
+                .attribute("counter", request.counter()));
+
         validateHexInputs(request);
 
         OcraCredentialDescriptor descriptor;
         boolean credentialReference;
         if (request instanceof NormalizedRequest.StoredCredential stored) {
             descriptor = resolveDescriptor(stored.credentialId());
+            metadata(trace, "credentialId", stored.credentialId());
             credentialReference = true;
+            addStep(trace, step -> step.id("resolve.credential")
+                    .summary("Resolve stored OCRA credential")
+                    .detail("CredentialResolver.findById")
+                    .attribute("credentialId", stored.credentialId()));
         } else if (request instanceof NormalizedRequest.InlineSecret inline) {
             descriptor = createDescriptorFromInline(inline);
             credentialReference = false;
+            addStep(trace, step -> step.id("create.descriptor")
+                    .summary("Create inline OCRA descriptor")
+                    .detail("OcraCredentialFactory.createDescriptor")
+                    .attribute("identifier", inline.identifier())
+                    .attribute("suite", inline.suite()));
         } else {
             throw new IllegalStateException("Unsupported request variant: " + request);
         }
+
+        metadata(trace, "suite", descriptor.suite().value());
 
         validateChallenge(descriptor, request.challenge());
         credentialFactory.validateSessionInformation(descriptor, request.sessionHex());
         Instant referenceInstant = Instant.now(clock);
         Instant timestampInstant = resolveTimestamp(descriptor, request.timestampHex());
         credentialFactory.validateTimestamp(descriptor, timestampInstant, referenceInstant);
+
+        addStep(trace, step -> step.id("validate.inputs")
+                .summary("Validate OCRA request inputs")
+                .detail("OcraCredentialFactory validations")
+                .attribute("challenge", request.challenge())
+                .attribute("sessionHex", request.sessionHex())
+                .attribute("timestampHex", request.timestampHex())
+                .attribute("referenceInstant", referenceInstant)
+                .attribute("timestampResolved", timestampInstant));
 
         OcraResponseCalculator.OcraExecutionContext context = new OcraResponseCalculator.OcraExecutionContext(
                 request.counter(),
@@ -61,7 +102,12 @@ public final class OcraEvaluationApplicationService {
                 request.timestampHex());
 
         String otp = OcraResponseCalculator.generate(descriptor, context);
-        return new EvaluationResult(descriptor.suite().value(), otp, credentialReference, request);
+        addStep(trace, step -> step.id("generate.otp")
+                .summary("Generate OCRA response")
+                .detail("OcraResponseCalculator.generate")
+                .attribute("suite", descriptor.suite().value())
+                .attribute("otp", otp));
+        return new EvaluationResult(descriptor.suite().value(), otp, credentialReference, request, buildTrace(trace));
     }
 
     private OcraCredentialDescriptor resolveDescriptor(String credentialId) {
@@ -272,8 +318,38 @@ public final class OcraEvaluationApplicationService {
         // Marker record for resolved credential data.
     }
 
-    public record EvaluationResult(String suite, String otp, boolean credentialReference, NormalizedRequest request) {
+    private static String traceOperation(NormalizedRequest request) {
+        return request instanceof NormalizedRequest.StoredCredential ? "ocra.evaluate.stored" : "ocra.evaluate.inline";
+    }
+
+    private static VerboseTrace.Builder newTrace(boolean verbose, String operation) {
+        return verbose ? VerboseTrace.builder(operation) : null;
+    }
+
+    private static void metadata(VerboseTrace.Builder trace, String key, String value) {
+        if (trace != null && value != null) {
+            trace.withMetadata(key, value);
+        }
+    }
+
+    private static void addStep(
+            VerboseTrace.Builder trace, java.util.function.Consumer<VerboseTrace.TraceStep.Builder> configurer) {
+        if (trace != null) {
+            trace.addStep(configurer);
+        }
+    }
+
+    private static VerboseTrace buildTrace(VerboseTrace.Builder trace) {
+        return trace == null ? null : trace.build();
+    }
+
+    public record EvaluationResult(
+            String suite, String otp, boolean credentialReference, NormalizedRequest request, VerboseTrace trace) {
         // Result payload returned to callers.
+
+        public Optional<VerboseTrace> verboseTrace() {
+            return Optional.ofNullable(trace);
+        }
     }
 
     public static final class EvaluationValidationException extends RuntimeException {

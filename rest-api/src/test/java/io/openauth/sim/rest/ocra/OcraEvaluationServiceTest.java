@@ -131,7 +131,7 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service();
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "OCRA-1:HOTP-SHA1-6:QN08", "GHI", "12345678", null, null, null, null, null, null);
+                null, "OCRA-1:HOTP-SHA1-6:QN08", "GHI", "12345678", null, null, null, null, null, null, null);
 
         OcraEvaluationValidationException exception =
                 assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
@@ -157,6 +157,7 @@ class OcraEvaluationServiceTest {
                 null,
                 null,
                 "00000001",
+                null,
                 null);
 
         OcraEvaluationValidationException exception =
@@ -174,7 +175,17 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service();
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "OCRA-1:HOTP-SHA1-6:QN08", DEFAULT_SECRET_HEX, "ABCDEFGH", null, null, null, null, null, null);
+                null,
+                "OCRA-1:HOTP-SHA1-6:QN08",
+                DEFAULT_SECRET_HEX,
+                "ABCDEFGH",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         OcraEvaluationValidationException exception =
                 assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
@@ -199,6 +210,7 @@ class OcraEvaluationServiceTest {
                 null,
                 null,
                 "00000001",
+                null,
                 null);
 
         OcraEvaluationValidationException exception =
@@ -214,7 +226,17 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service();
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, DEFAULT_SUITE, DEFAULT_SECRET_HEX, DEFAULT_CHALLENGE, "ABCDEF12", null, null, null, null, null);
+                null,
+                DEFAULT_SUITE,
+                DEFAULT_SECRET_HEX,
+                DEFAULT_CHALLENGE,
+                "ABCDEF12",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         OcraEvaluationValidationException exception =
                 assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
@@ -238,6 +260,7 @@ class OcraEvaluationServiceTest {
                 null,
                 null,
                 "00000000",
+                null,
                 null);
 
         OcraEvaluationValidationException exception =
@@ -253,7 +276,7 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service();
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, DEFAULT_SUITE, DEFAULT_SECRET_HEX, "1234", null, null, null, null, null, null);
+                null, DEFAULT_SUITE, DEFAULT_SECRET_HEX, "1234", null, null, null, null, null, null, null);
 
         OcraEvaluationValidationException exception =
                 assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
@@ -283,7 +306,7 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service(store);
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                "stored-token", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null);
+                "stored-token", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null, null);
 
         OcraEvaluationResponse response = service.evaluate(request);
 
@@ -299,7 +322,7 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service(store);
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                "missing-token", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null);
+                "missing-token", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null, null);
 
         OcraEvaluationValidationException exception =
                 assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
@@ -314,7 +337,17 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service();
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "OCRA-1:HOTP-SHA1-6:C-QN08", DEFAULT_SECRET_HEX, "12345678", null, null, null, null, null, null);
+                null,
+                "OCRA-1:HOTP-SHA1-6:C-QN08",
+                DEFAULT_SECRET_HEX,
+                "12345678",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         OcraEvaluationValidationException exception =
                 assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
@@ -338,6 +371,7 @@ class OcraEvaluationServiceTest {
                 null,
                 null,
                 "ZZZZ",
+                null,
                 null);
 
         OcraEvaluationValidationException exception =
@@ -362,6 +396,7 @@ class OcraEvaluationServiceTest {
                 null,
                 "5e884898da28047151d0e56f8dc6292773603d0d",
                 null,
+                null,
                 null);
 
         OcraEvaluationValidationException exception =
@@ -377,7 +412,7 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service();
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, DEFAULT_SUITE, DEFAULT_SECRET_HEX, null, null, null, null, null, null, null);
+                null, DEFAULT_SUITE, DEFAULT_SECRET_HEX, null, null, null, null, null, null, null, null);
 
         OcraEvaluationValidationException exception =
                 assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
@@ -392,7 +427,7 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service();
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, DEFAULT_SUITE, DEFAULT_SECRET_HEX, "12345678", null, null, null, null, null, 5L);
+                null, DEFAULT_SUITE, DEFAULT_SECRET_HEX, "12345678", null, null, null, null, null, 5L, null);
 
         OcraEvaluationValidationException exception =
                 assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
@@ -416,7 +451,8 @@ class OcraEvaluationServiceTest {
                 null,
                 null,
                 null,
-                1L);
+                1L,
+                null);
 
         OcraEvaluationValidationException exception =
                 assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
@@ -440,6 +476,7 @@ class OcraEvaluationServiceTest {
                 null,
                 null,
                 null,
+                null,
                 null);
 
         OcraEvaluationValidationException exception =
@@ -454,8 +491,8 @@ class OcraEvaluationServiceTest {
     void credentialMissingFailure() {
         OcraEvaluationService service = service();
 
-        OcraEvaluationRequest request =
-                new OcraEvaluationRequest("  ", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null);
+        OcraEvaluationRequest request = new OcraEvaluationRequest(
+                "  ", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null, null);
 
         OcraEvaluationValidationException exception =
                 assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
@@ -470,7 +507,7 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service();
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                "stored-token", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null);
+                "stored-token", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null, null);
 
         OcraEvaluationValidationException exception =
                 assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
@@ -486,7 +523,7 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service(failingStore);
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                "stored-token", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null);
+                "stored-token", null, null, DEFAULT_CHALLENGE, null, null, null, null, null, null, null);
 
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> service.evaluate(request));
 
@@ -499,7 +536,7 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service();
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "  ", DEFAULT_SECRET_HEX, DEFAULT_CHALLENGE, null, null, null, null, null, null);
+                null, "  ", DEFAULT_SECRET_HEX, DEFAULT_CHALLENGE, null, null, null, null, null, null, null);
 
         OcraEvaluationValidationException exception =
                 assertThrows(OcraEvaluationValidationException.class, () -> service.evaluate(request));
@@ -523,6 +560,7 @@ class OcraEvaluationServiceTest {
                 null,
                 null,
                 "ABC",
+                null,
                 null);
 
         OcraEvaluationValidationException exception =
@@ -538,7 +576,17 @@ class OcraEvaluationServiceTest {
         OcraEvaluationService service = service();
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "OCRA-1:HOTP-SHA1-6:QC08", DEFAULT_SECRET_HEX, "!@#$%^&*", null, null, null, null, null, null);
+                null,
+                "OCRA-1:HOTP-SHA1-6:QC08",
+                DEFAULT_SECRET_HEX,
+                "!@#$%^&*",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         OcraEvaluationResponse response = service.evaluate(request);
 

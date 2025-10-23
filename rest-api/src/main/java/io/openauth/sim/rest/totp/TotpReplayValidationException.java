@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.totp;
 
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.util.Collections;
 import java.util.Map;
 
@@ -12,6 +13,7 @@ final class TotpReplayValidationException extends RuntimeException {
     private final String reasonCode;
     private final boolean sanitized;
     private final transient Map<String, Object> details;
+    private final transient VerboseTrace trace;
 
     TotpReplayValidationException(
             String telemetryId,
@@ -19,13 +21,15 @@ final class TotpReplayValidationException extends RuntimeException {
             String reasonCode,
             String message,
             boolean sanitized,
-            Map<String, Object> details) {
+            Map<String, Object> details,
+            VerboseTrace trace) {
         super(message);
         this.telemetryId = telemetryId;
         this.credentialSource = credentialSource;
         this.reasonCode = reasonCode;
         this.sanitized = sanitized;
         this.details = details == null ? Map.of() : Collections.unmodifiableMap(details);
+        this.trace = trace;
     }
 
     String telemetryId() {
@@ -46,5 +50,9 @@ final class TotpReplayValidationException extends RuntimeException {
 
     Map<String, Object> details() {
         return details;
+    }
+
+    VerboseTrace trace() {
+        return trace;
     }
 }

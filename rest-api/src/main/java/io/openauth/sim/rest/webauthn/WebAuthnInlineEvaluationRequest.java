@@ -12,6 +12,7 @@ record WebAuthnInlineEvaluationRequest(
         @JsonProperty("signatureCounter") Long signatureCounter,
         @JsonProperty("userVerificationRequired") Boolean userVerificationRequired,
         @JsonProperty("challenge") String challenge,
-        @JsonProperty("privateKey") String privateKey) {
+        @JsonProperty("privateKey") String privateKey,
+        @JsonProperty("verbose") Boolean verbose) {
     // DTO marker
 }

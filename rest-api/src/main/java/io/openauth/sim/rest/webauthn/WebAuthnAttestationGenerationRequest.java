@@ -59,6 +59,8 @@ record WebAuthnAttestationGenerationRequest(
         String seedPresetId,
 
         @Schema(description = "Set of edited fields compared to the preset") @JsonProperty("overrides")
-        List<String> overrides) {
+        List<String> overrides,
+
+        @JsonProperty("verbose") Boolean verbose) {
     // Canonical request record; no additional members required.
 }

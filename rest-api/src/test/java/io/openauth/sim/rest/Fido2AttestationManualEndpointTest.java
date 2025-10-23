@@ -153,6 +153,90 @@ class Fido2AttestationManualEndpointTest {
         assertThat(json.path("metadata").path("inputSource").asText()).isEqualTo("manual");
     }
 
+    @Test
+    @DisplayName("Manual attestation generation returns verbose trace when requested")
+    void manualAttestationReturnsVerboseTrace() throws Exception {
+        ObjectNode root = MAPPER.createObjectNode();
+        root.put("inputSource", "MANUAL");
+        WebAuthnAttestationVector vector =
+                WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
+                        .findFirst()
+                        .orElseThrow();
+        root.put("format", vector.format().label());
+        root.put("relyingPartyId", "example.org");
+        root.put("origin", "https://example.org");
+        root.put("challenge", "dGVzdC1tYW51YWwtY2hhbGxlbmdl");
+        root.put("credentialPrivateKey", vector.keyMaterial().credentialPrivateKeyJwk());
+        root.put("signingMode", "UNSIGNED");
+        root.put("verbose", true);
+
+        String response = mockMvc.perform(post("/api/v1/webauthn/attest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(root)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        JsonNode json = MAPPER.readTree(response);
+        JsonNode trace = json.get("trace");
+        assertThat(trace).isNotNull();
+        assertThat(trace.get("operation").asText()).isEqualTo("fido2.attestation.generate");
+        assertThat(trace.get("steps").isArray()).isTrue();
+        assertThat(trace.get("steps")).isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("Attestation replay returns verbose trace when requested")
+    void attestationReplayReturnsVerboseTrace() throws Exception {
+        WebAuthnAttestationVector vector =
+                WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
+                        .findFirst()
+                        .orElseThrow();
+
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.put("attestationId", vector.vectorId());
+        payload.put("format", vector.format().label());
+        payload.put("relyingPartyId", vector.relyingPartyId());
+        payload.put("origin", vector.origin());
+        payload.put(
+                "attestationObject",
+                Base64.getUrlEncoder()
+                        .withoutPadding()
+                        .encodeToString(vector.registration().attestationObject()));
+        payload.put(
+                "clientDataJson",
+                Base64.getUrlEncoder()
+                        .withoutPadding()
+                        .encodeToString(vector.registration().clientDataJson()));
+        payload.put(
+                "expectedChallenge",
+                Base64.getUrlEncoder()
+                        .withoutPadding()
+                        .encodeToString(vector.registration().challenge()));
+        List<String> anchors = certificateChainPem(vector);
+        if (!anchors.isEmpty()) {
+            var array = payload.putArray("trustAnchors");
+            anchors.forEach(array::add);
+        }
+        payload.put("verbose", true);
+
+        String response = mockMvc.perform(post("/api/v1/webauthn/attest/replay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        JsonNode json = MAPPER.readTree(response);
+        JsonNode trace = json.get("trace");
+        assertThat(trace).isNotNull();
+        assertThat(trace.get("operation").asText()).isEqualTo("fido2.attestation.verify");
+        assertThat(trace.get("steps").isArray()).isTrue();
+        assertThat(trace.get("steps")).isNotEmpty();
+    }
+
     private static List<String> certificateChainPem(WebAuthnAttestationVector vector) {
         WebAuthnAttestationVerifier verifier = new WebAuthnAttestationVerifier();
         WebAuthnAttestationVerification verification = verifier.verify(new WebAuthnAttestationRequest(

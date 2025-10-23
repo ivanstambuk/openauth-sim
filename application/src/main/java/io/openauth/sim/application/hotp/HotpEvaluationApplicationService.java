@@ -9,6 +9,7 @@ import io.openauth.sim.core.otp.hotp.HotpDescriptor;
 import io.openauth.sim.core.otp.hotp.HotpGenerator;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -30,13 +31,17 @@ public final class HotpEvaluationApplicationService {
     }
 
     public EvaluationResult evaluate(EvaluationCommand command) {
+        return evaluate(command, false);
+    }
+
+    public EvaluationResult evaluate(EvaluationCommand command, boolean verbose) {
         Objects.requireNonNull(command, "command");
 
         if (command instanceof EvaluationCommand.Stored stored) {
-            return evaluateStored(stored);
+            return evaluateStored(stored, verbose);
         }
         if (command instanceof EvaluationCommand.Inline inline) {
-            return evaluateInline(inline);
+            return evaluateInline(inline, verbose);
         }
         throw new IllegalStateException("Unsupported HOTP evaluation command: " + command);
     }
@@ -78,10 +83,15 @@ public final class HotpEvaluationApplicationService {
             Integer digits,
             String otp,
             String samplePresetKey,
-            String samplePresetLabel) {
+            String samplePresetLabel,
+            VerboseTrace trace) {
 
         public EvaluationFrame evaluationFrame(HotpTelemetryAdapter adapter, String telemetryId) {
             return new EvaluationFrame(telemetry.emit(adapter, telemetryId));
+        }
+
+        public Optional<VerboseTrace> verboseTrace() {
+            return Optional.ofNullable(trace);
         }
     }
 
@@ -120,19 +130,55 @@ public final class HotpEvaluationApplicationService {
         ERROR
     }
 
-    private EvaluationResult evaluateStored(EvaluationCommand.Stored command) {
+    private EvaluationResult evaluateStored(EvaluationCommand.Stored command, boolean verbose) {
+        VerboseTrace.Builder trace = newTrace(verbose, "hotp.evaluate.stored");
+        metadata(trace, "protocol", "HOTP");
+        metadata(trace, "mode", "stored");
+        metadata(trace, "credentialId", command.credentialId());
+
         try {
             StoredCredential storedCredential = resolveStored(command.credentialId());
             if (storedCredential == null) {
-                return notFoundResult(command.credentialId());
+                addStep(trace, step -> step.id("resolve.credential")
+                        .summary("Resolve stored HOTP credential")
+                        .detail("CredentialStore.findByName")
+                        .attribute("credentialId", command.credentialId())
+                        .attribute("found", false));
+                return notFoundResult(command.credentialId(), buildTrace(trace));
             }
+
+            addStep(trace, step -> step.id("resolve.credential")
+                    .summary("Resolve stored HOTP credential")
+                    .detail("CredentialStore.findByName")
+                    .attribute("credentialId", command.credentialId())
+                    .attribute("found", true)
+                    .attribute(
+                            "algorithm",
+                            storedCredential.descriptor().algorithm().name())
+                    .attribute("digits", storedCredential.descriptor().digits())
+                    .attribute("counter.before", storedCredential.counter()));
 
             long previousCounter = storedCredential.counter();
             String otp = HotpGenerator.generate(storedCredential.descriptor(), previousCounter);
+            addStep(trace, step -> step.id("generate.otp")
+                    .summary("Generate HOTP code")
+                    .detail("HotpGenerator.generate")
+                    .attribute(
+                            "algorithm",
+                            storedCredential.descriptor().algorithm().name())
+                    .attribute("digits", storedCredential.descriptor().digits())
+                    .attribute("counter.input", previousCounter)
+                    .attribute("otp", otp));
+
             long nextCounter;
             try {
                 nextCounter = Math.addExact(previousCounter, 1L);
             } catch (ArithmeticException ex) {
+                addStep(trace, step -> step.id("counter.increment")
+                        .summary("Increment counter")
+                        .detail("Math.addExact")
+                        .attribute("counter.before", previousCounter)
+                        .note("failure", safeMessage(ex)));
                 return validationFailure(
                         command.credentialId(),
                         true,
@@ -144,9 +190,14 @@ public final class HotpEvaluationApplicationService {
                         "counter_overflow",
                         ex.getMessage(),
                         null,
-                        null);
+                        null,
+                        buildTrace(trace));
             }
 
+            addStep(trace, step -> step.id("persist.counter")
+                    .summary("Persist incremented counter")
+                    .detail("CredentialStore.save")
+                    .attribute("counter.next", nextCounter));
             persistCounter(storedCredential.credential(), nextCounter);
             return successResult(
                     true,
@@ -158,18 +209,35 @@ public final class HotpEvaluationApplicationService {
                     nextCounter,
                     otp,
                     null,
-                    null);
+                    null,
+                    buildTrace(trace));
         } catch (IllegalArgumentException ex) {
-            return invalidMetadataResult(command.credentialId(), ex.getMessage());
+            addStep(trace, step -> step.id("resolve.credential")
+                    .summary("Resolve stored HOTP credential")
+                    .detail("CredentialStore.findByName")
+                    .attribute("credentialId", command.credentialId())
+                    .note("failure", safeMessage(ex)));
+            return invalidMetadataResult(command.credentialId(), ex.getMessage(), buildTrace(trace));
         } catch (RuntimeException ex) {
-            return unexpectedErrorResult(command.credentialId(), true, "stored", null, null, 0L, null, null, ex);
+            addStep(trace, step -> step.id("error")
+                    .summary("Unexpected error during HOTP evaluation")
+                    .detail(ex.getClass().getName())
+                    .note("message", safeMessage(ex)));
+            return unexpectedErrorResult(
+                    command.credentialId(), true, "stored", null, null, 0L, null, null, ex, buildTrace(trace));
         }
     }
 
-    private EvaluationResult evaluateInline(EvaluationCommand.Inline command) {
+    private EvaluationResult evaluateInline(EvaluationCommand.Inline command, boolean verbose) {
         Map<String, String> metadata = command.metadata();
         String presetKey = normalize(metadata.get("presetKey"));
         String presetLabel = normalize(metadata.get("presetLabel"));
+        VerboseTrace.Builder trace = newTrace(verbose, "hotp.evaluate.inline");
+        metadata(trace, "protocol", "HOTP");
+        metadata(trace, "mode", "inline");
+        if (hasText(presetKey)) {
+            metadata(trace, "presetKey", presetKey);
+        }
         try {
             Long counterValue = command.counter();
             if (counterValue == null) {
@@ -184,7 +252,8 @@ public final class HotpEvaluationApplicationService {
                         "counter_required",
                         "counter is required",
                         presetKey,
-                        presetLabel);
+                        presetLabel,
+                        buildTrace(trace));
             }
             if (!hasText(command.sharedSecretHex())) {
                 return validationFailure(
@@ -198,7 +267,8 @@ public final class HotpEvaluationApplicationService {
                         "sharedSecretHex_required",
                         "sharedSecretHex is required",
                         presetKey,
-                        presetLabel);
+                        presetLabel,
+                        buildTrace(trace));
             }
             HotpDescriptor descriptor = HotpDescriptor.create(
                     INLINE_DESCRIPTOR_NAME,
@@ -206,12 +276,32 @@ public final class HotpEvaluationApplicationService {
                     command.algorithm(),
                     command.digits());
 
+            addStep(trace, step -> step.id("normalize.input")
+                    .summary("Prepare inline HOTP request")
+                    .detail("HotpDescriptor.create")
+                    .attribute("algorithm", descriptor.algorithm().name())
+                    .attribute("digits", descriptor.digits())
+                    .attribute("counter.input", counterValue));
+
             long previousCounter = counterValue;
             String otp = HotpGenerator.generate(descriptor, previousCounter);
+            addStep(trace, step -> step.id("generate.otp")
+                    .summary("Generate HOTP code")
+                    .detail("HotpGenerator.generate")
+                    .attribute("algorithm", descriptor.algorithm().name())
+                    .attribute("digits", descriptor.digits())
+                    .attribute("counter.input", previousCounter)
+                    .attribute("otp", otp));
+
             long nextCounter;
             try {
                 nextCounter = Math.addExact(previousCounter, 1L);
             } catch (ArithmeticException ex) {
+                addStep(trace, step -> step.id("counter.increment")
+                        .summary("Increment counter")
+                        .detail("Math.addExact")
+                        .attribute("counter.before", previousCounter)
+                        .note("failure", safeMessage(ex)));
                 return validationFailure(
                         null,
                         false,
@@ -223,7 +313,8 @@ public final class HotpEvaluationApplicationService {
                         "counter_overflow",
                         ex.getMessage(),
                         presetKey,
-                        presetLabel);
+                        presetLabel,
+                        buildTrace(trace));
             }
 
             return successResult(
@@ -236,8 +327,13 @@ public final class HotpEvaluationApplicationService {
                     nextCounter,
                     otp,
                     presetKey,
-                    presetLabel);
+                    presetLabel,
+                    buildTrace(trace));
         } catch (IllegalArgumentException ex) {
+            addStep(trace, step -> step.id("normalize.input")
+                    .summary("Prepare inline HOTP request")
+                    .detail("HotpDescriptor.create")
+                    .note("failure", safeMessage(ex)));
             return validationFailure(
                     null,
                     false,
@@ -249,8 +345,13 @@ public final class HotpEvaluationApplicationService {
                     "validation_error",
                     ex.getMessage(),
                     presetKey,
-                    presetLabel);
+                    presetLabel,
+                    buildTrace(trace));
         } catch (RuntimeException ex) {
+            addStep(trace, step -> step.id("error")
+                    .summary("Unexpected error during HOTP inline evaluation")
+                    .detail(ex.getClass().getName())
+                    .note("message", safeMessage(ex)));
             return unexpectedErrorResult(
                     null,
                     false,
@@ -260,7 +361,8 @@ public final class HotpEvaluationApplicationService {
                     command.counter(),
                     presetKey,
                     presetLabel,
-                    ex);
+                    ex,
+                    buildTrace(trace));
         }
     }
 
@@ -308,7 +410,8 @@ public final class HotpEvaluationApplicationService {
             long nextCounter,
             String otp,
             String samplePresetKey,
-            String samplePresetLabel) {
+            String samplePresetLabel,
+            VerboseTrace trace) {
 
         Map<String, Object> fields = evaluationFields(
                 credentialSource,
@@ -330,7 +433,8 @@ public final class HotpEvaluationApplicationService {
                 digits,
                 otp,
                 samplePresetKey,
-                samplePresetLabel);
+                samplePresetLabel,
+                trace);
     }
 
     private EvaluationResult validationFailure(
@@ -344,7 +448,8 @@ public final class HotpEvaluationApplicationService {
             String reasonCode,
             String reason,
             String samplePresetKey,
-            String samplePresetLabel) {
+            String samplePresetLabel,
+            VerboseTrace trace) {
 
         Map<String, Object> fields = evaluationFields(
                 credentialSource,
@@ -367,10 +472,11 @@ public final class HotpEvaluationApplicationService {
                 digits,
                 null,
                 samplePresetKey,
-                samplePresetLabel);
+                samplePresetLabel,
+                trace);
     }
 
-    private EvaluationResult notFoundResult(String credentialId) {
+    private EvaluationResult notFoundResult(String credentialId, VerboseTrace trace) {
         Map<String, Object> fields = evaluationFields("stored", credentialId, null, null, 0L, 0L, null, null);
         TelemetrySignal signal = new TelemetrySignal(
                 TelemetryStatus.INVALID,
@@ -379,14 +485,14 @@ public final class HotpEvaluationApplicationService {
                 true,
                 fields,
                 null);
-        return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null, null, null);
+        return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null, null, null, trace);
     }
 
-    private EvaluationResult invalidMetadataResult(String credentialId, String reason) {
+    private EvaluationResult invalidMetadataResult(String credentialId, String reason, VerboseTrace trace) {
         Map<String, Object> fields = evaluationFields("stored", credentialId, null, null, 0L, 0L, null, null);
         TelemetrySignal signal = new TelemetrySignal(
                 TelemetryStatus.INVALID, "invalid_hotp_metadata", safeMessage(reason), true, fields, null);
-        return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null, null, null);
+        return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null, null, null, trace);
     }
 
     private EvaluationResult unexpectedErrorResult(
@@ -398,7 +504,8 @@ public final class HotpEvaluationApplicationService {
             long previousCounter,
             String samplePresetKey,
             String samplePresetLabel,
-            Throwable error) {
+            Throwable error,
+            VerboseTrace trace) {
 
         Map<String, Object> fields = evaluationFields(
                 credentialSource,
@@ -424,7 +531,8 @@ public final class HotpEvaluationApplicationService {
                 digits,
                 null,
                 samplePresetKey,
-                samplePresetLabel);
+                samplePresetLabel,
+                trace);
     }
 
     private void persistCounter(Credential credential, long nextCounter) {
@@ -461,6 +569,27 @@ public final class HotpEvaluationApplicationService {
             fields.put("inlinePresetLabel", samplePresetLabel);
         }
         return fields;
+    }
+
+    private static VerboseTrace.Builder newTrace(boolean verbose, String operation) {
+        return verbose ? VerboseTrace.builder(operation) : null;
+    }
+
+    private static void metadata(VerboseTrace.Builder trace, String key, String value) {
+        if (trace != null && value != null) {
+            trace.withMetadata(key, value);
+        }
+    }
+
+    private static void addStep(
+            VerboseTrace.Builder trace, java.util.function.Consumer<VerboseTrace.TraceStep.Builder> configurer) {
+        if (trace != null) {
+            trace.addStep(configurer);
+        }
+    }
+
+    private static VerboseTrace buildTrace(VerboseTrace.Builder trace) {
+        return trace == null ? null : trace.build();
     }
 
     private static String normalize(String value) {

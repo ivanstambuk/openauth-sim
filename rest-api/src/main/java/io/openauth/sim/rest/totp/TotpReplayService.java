@@ -8,6 +8,8 @@ import io.openauth.sim.application.totp.TotpReplayApplicationService.ReplayComma
 import io.openauth.sim.application.totp.TotpReplayApplicationService.ReplayResult;
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
+import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.rest.VerboseTracePayload;
 import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,9 +38,10 @@ class TotpReplayService {
         Objects.requireNonNull(request, "request");
         String telemetryId = nextTelemetryId();
         Mode mode = determineMode(request, telemetryId);
+        boolean verbose = Boolean.TRUE.equals(request.verbose());
 
         ReplayCommand command = buildCommand(request, mode, telemetryId);
-        ReplayResult result = applicationService.replay(command);
+        ReplayResult result = applicationService.replay(command, verbose);
         TelemetrySignal signal = result.telemetry();
 
         TelemetryFrame frame = signal.emit(TelemetryContracts.totpReplayAdapter(), telemetryId);
@@ -48,27 +51,38 @@ class TotpReplayService {
         TotpReplayMetadata metadata = buildMetadata(result, mode.source, resolvedTelemetryId, frame.fields());
 
         return switch (signal.status()) {
-            case SUCCESS -> new TotpReplayResponse("match", signal.reasonCode(), metadata);
-            case INVALID -> handleInvalid(request, signal, metadata, resolvedTelemetryId, mode, frame);
+            case SUCCESS ->
+                new TotpReplayResponse(
+                        "match",
+                        signal.reasonCode(),
+                        metadata,
+                        result.verboseTrace().map(VerboseTracePayload::from).orElse(null));
+            case INVALID -> handleInvalid(request, signal, result, metadata, resolvedTelemetryId, mode, frame);
             case ERROR ->
                 throw unexpected(
                         resolvedTelemetryId,
                         mode.source,
                         safeMessage(signal.reason()),
                         sanitizedDetails(frame.fields(), resolvedTelemetryId, mode.source),
-                        null);
+                        null,
+                        result.verboseTrace().orElse(null));
         };
     }
 
     private TotpReplayResponse handleInvalid(
             TotpReplayRequest request,
             TelemetrySignal signal,
+            ReplayResult result,
             TotpReplayMetadata metadata,
             String telemetryId,
             Mode mode,
             TelemetryFrame frame) {
         if ("otp_out_of_window".equals(signal.reasonCode())) {
-            return new TotpReplayResponse("mismatch", signal.reasonCode(), metadata);
+            return new TotpReplayResponse(
+                    "mismatch",
+                    signal.reasonCode(),
+                    metadata,
+                    result.verboseTrace().map(VerboseTracePayload::from).orElse(null));
         }
 
         Map<String, Object> details = sanitizedDetails(frame.fields(), telemetryId, mode.source);
@@ -85,7 +99,8 @@ class TotpReplayService {
                 signal.reasonCode(),
                 safeMessage(signal.reason()),
                 signal.sanitized(),
-                details);
+                details,
+                result.verboseTrace().orElse(null));
     }
 
     private ReplayCommand buildCommand(TotpReplayRequest request, Mode mode, String telemetryId) {
@@ -182,11 +197,12 @@ class TotpReplayService {
         if (hasCredentialId && hasInlineHints) {
             throw validation(
                     telemetryId,
-                    "ambiguous",
+                    "mixed",
                     "mode_ambiguous",
                     "Request mixes stored and inline replay fields",
                     true,
-                    Map.of("credentialId", request.credentialId()));
+                    Map.of("credentialId", request.credentialId()),
+                    null);
         }
         throw validation(
                 telemetryId,
@@ -194,7 +210,8 @@ class TotpReplayService {
                 "mode_unspecified",
                 "Provide either credentialId for stored replay or inline parameters",
                 true,
-                Map.of());
+                Map.of(),
+                null);
     }
 
     private TotpDriftWindow buildDriftWindow(TotpReplayRequest request, String telemetryId, String credentialSource) {
@@ -209,7 +226,8 @@ class TotpReplayService {
                     "drift_invalid",
                     ex.getMessage(),
                     true,
-                    Map.of("driftBackward", backward, "driftForward", forward));
+                    Map.of("driftBackward", backward, "driftForward", forward),
+                    null);
         }
     }
 
@@ -304,7 +322,8 @@ class TotpReplayService {
                     "algorithm_invalid",
                     ex.getMessage(),
                     true,
-                    Map.of("algorithm", algorithm));
+                    Map.of("algorithm", algorithm),
+                    null);
         }
     }
 
@@ -321,7 +340,8 @@ class TotpReplayService {
                     field + "_invalid",
                     ex.getMessage(),
                     true,
-                    Map.of(field, epochSeconds));
+                    Map.of(field, epochSeconds),
+                    null);
         }
     }
 
@@ -355,7 +375,8 @@ class TotpReplayService {
             String reasonCode,
             String message,
             boolean sanitized,
-            Map<String, Object> details) {
+            Map<String, Object> details,
+            VerboseTrace trace) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("telemetryId", telemetryId);
         payload.put("credentialSource", credentialSource);
@@ -363,12 +384,17 @@ class TotpReplayService {
             payload.putAll(details);
         }
         return new TotpReplayValidationException(
-                telemetryId, credentialSource, reasonCode, message, sanitized, payload);
+                telemetryId, credentialSource, reasonCode, message, sanitized, payload, trace);
     }
 
     private TotpReplayUnexpectedException unexpected(
-            String telemetryId, String credentialSource, String message, Map<String, Object> details, Throwable cause) {
-        return new TotpReplayUnexpectedException(telemetryId, credentialSource, message, details, cause);
+            String telemetryId,
+            String credentialSource,
+            String message,
+            Map<String, Object> details,
+            Throwable cause,
+            VerboseTrace trace) {
+        return new TotpReplayUnexpectedException(telemetryId, credentialSource, message, details, cause, trace);
     }
 
     private static Map<String, Object> sanitizedDetails(
@@ -404,7 +430,7 @@ class TotpReplayService {
         if (detailOverrides != null) {
             details.putAll(detailOverrides);
         }
-        throw validation(telemetryId, credentialSource, reasonCode, message, true, details);
+        throw validation(telemetryId, credentialSource, reasonCode, message, true, details, null);
     }
 
     private int requirePositive(
@@ -412,7 +438,7 @@ class TotpReplayService {
         if (value.longValue() > 0) {
             return value.intValue();
         }
-        throw validation(telemetryId, credentialSource, reasonCode, message, true, Map.of("value", value));
+        throw validation(telemetryId, credentialSource, reasonCode, message, true, Map.of("value", value), null);
     }
 
     private String nextTelemetryId() {

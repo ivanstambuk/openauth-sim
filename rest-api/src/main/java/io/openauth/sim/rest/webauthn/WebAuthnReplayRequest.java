@@ -17,6 +17,8 @@ record WebAuthnReplayRequest(
         @JsonProperty("expectedChallenge") String expectedChallenge,
         @JsonProperty("clientData") String clientData,
         @JsonProperty("authenticatorData") String authenticatorData,
-        @JsonProperty("signature") String signature) {
+        @JsonProperty("signature") String signature,
+        @JsonProperty("trustAnchors") java.util.List<String> trustAnchors,
+        @JsonProperty("verbose") Boolean verbose) {
     // DTO marker
 }

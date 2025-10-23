@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.hotp;
 
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,14 +13,20 @@ final class HotpEvaluationUnexpectedException extends RuntimeException {
 
     private final String telemetryId;
     private final String credentialSource;
-    private final transient Map<String, String> details;
+    private final transient Map<String, Object> details;
+    private final transient VerboseTrace trace;
 
     HotpEvaluationUnexpectedException(
-            String telemetryId, String credentialSource, String message, Map<String, String> details) {
+            String telemetryId,
+            String credentialSource,
+            String message,
+            Map<String, Object> details,
+            VerboseTrace trace) {
         super(message);
         this.telemetryId = Objects.requireNonNull(telemetryId, "telemetryId");
         this.credentialSource = credentialSource;
         this.details = details == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(details));
+        this.trace = trace;
     }
 
     String telemetryId() {
@@ -30,7 +37,11 @@ final class HotpEvaluationUnexpectedException extends RuntimeException {
         return credentialSource;
     }
 
-    Map<String, String> details() {
+    Map<String, Object> details() {
         return details;
+    }
+
+    VerboseTrace trace() {
+        return trace;
     }
 }

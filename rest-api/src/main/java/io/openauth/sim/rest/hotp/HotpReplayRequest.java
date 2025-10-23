@@ -13,7 +13,8 @@ record HotpReplayRequest(
         @JsonProperty("digits") Integer digits,
         @JsonProperty("counter") Long counter,
         @JsonProperty("otp") String otp,
-        @JsonProperty("metadata") Map<String, String> metadata) {
+        @JsonProperty("metadata") Map<String, String> metadata,
+        @JsonProperty("verbose") Boolean verbose) {
 
     // Canonical record; controller/service validate invariants.
 }

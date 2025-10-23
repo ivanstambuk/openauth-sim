@@ -10,10 +10,12 @@ import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.otp.hotp.HotpValidator;
 import io.openauth.sim.core.otp.hotp.HotpVerificationResult;
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /** Application-layer HOTP replay orchestrator (stored + inline flows, non-mutating). */
 public final class HotpReplayApplicationService {
@@ -30,13 +32,17 @@ public final class HotpReplayApplicationService {
     }
 
     public ReplayResult replay(ReplayCommand command) {
+        return replay(command, false);
+    }
+
+    public ReplayResult replay(ReplayCommand command, boolean verbose) {
         Objects.requireNonNull(command, "command");
 
         if (command instanceof ReplayCommand.Stored stored) {
-            return replayStored(stored);
+            return replayStored(stored, verbose);
         }
         if (command instanceof ReplayCommand.Inline inline) {
-            return replayInline(inline);
+            return replayInline(inline, verbose);
         }
         throw new IllegalStateException("Unsupported HOTP replay command: " + command);
     }
@@ -79,10 +85,15 @@ public final class HotpReplayApplicationService {
             long previousCounter,
             long nextCounter,
             HotpHashAlgorithm algorithm,
-            Integer digits) {
+            Integer digits,
+            VerboseTrace trace) {
 
         public ReplayFrame replayFrame(HotpTelemetryAdapter adapter, String telemetryId) {
             return new ReplayFrame(telemetry.emit(adapter, telemetryId));
+        }
+
+        public Optional<VerboseTrace> verboseTrace() {
+            return Optional.ofNullable(trace);
         }
     }
 
@@ -121,34 +132,67 @@ public final class HotpReplayApplicationService {
         ERROR
     }
 
-    private ReplayResult replayStored(ReplayCommand.Stored command) {
+    private ReplayResult replayStored(ReplayCommand.Stored command, boolean verbose) {
+        VerboseTrace.Builder trace = newTrace(verbose, "hotp.replay.stored");
+        metadata(trace, "protocol", "HOTP");
+        metadata(trace, "mode", "stored");
+        metadata(trace, "credentialId", command.credentialId());
+
         StoredCredential storedCredential = null;
         try {
             storedCredential = resolveStored(command.credentialId());
             if (storedCredential == null) {
-                return notFoundResult(command.credentialId());
+                addStep(trace, step -> step.id("resolve.credential")
+                        .summary("Resolve stored HOTP credential")
+                        .detail("CredentialStore.findByName")
+                        .attribute("credentialId", command.credentialId())
+                        .attribute("found", false));
+                return notFoundResult(command.credentialId(), buildTrace(trace));
             }
+            StoredCredential resolved = storedCredential;
+            HotpDescriptor descriptor = resolved.descriptor();
+            long counter = resolved.counter();
 
-            return replayDescriptor(
-                    storedCredential.descriptor(),
-                    command.otp(),
-                    storedCredential.counter(),
-                    true,
-                    storedCredential.descriptor().name(),
-                    "stored");
+            addStep(trace, step -> step.id("resolve.credential")
+                    .summary("Resolve stored HOTP credential")
+                    .detail("CredentialStore.findByName")
+                    .attribute("credentialId", descriptor.name())
+                    .attribute("algorithm", descriptor.algorithm().name())
+                    .attribute("digits", descriptor.digits())
+                    .attribute("counter", counter)
+                    .attribute("found", true));
+
+            return replayDescriptor(descriptor, command.otp(), counter, true, descriptor.name(), "stored", trace);
         } catch (IllegalArgumentException ex) {
-            return invalidMetadataResult(command.credentialId(), ex.getMessage());
+            addStep(trace, step -> step.id("resolve.credential")
+                    .summary("Resolve stored HOTP credential")
+                    .detail("CredentialStore.findByName")
+                    .attribute("credentialId", command.credentialId())
+                    .note("failure", safeMessage(ex)));
+            return invalidMetadataResult(command.credentialId(), ex.getMessage(), buildTrace(trace));
         } catch (RuntimeException ex) {
+            addStep(trace, step -> step.id("error")
+                    .summary("Unexpected error during stored replay")
+                    .detail(ex.getClass().getSimpleName())
+                    .note("message", safeMessage(ex)));
             long counter = storedCredential != null ? storedCredential.counter() : 0L;
             HotpHashAlgorithm algorithm =
                     storedCredential != null ? storedCredential.descriptor().algorithm() : null;
             Integer digits =
                     storedCredential != null ? storedCredential.descriptor().digits() : null;
-            return unexpectedErrorResult(command.credentialId(), true, "stored", algorithm, digits, counter, ex);
+            return unexpectedErrorResult(
+                    command.credentialId(), true, "stored", algorithm, digits, counter, ex, buildTrace(trace));
         }
     }
 
-    private ReplayResult replayInline(ReplayCommand.Inline command) {
+    private ReplayResult replayInline(ReplayCommand.Inline command, boolean verbose) {
+        VerboseTrace.Builder trace = newTrace(verbose, "hotp.replay.inline");
+        metadata(trace, "protocol", "HOTP");
+        metadata(trace, "mode", "inline");
+        Map<String, String> metadata = command.metadata();
+        if (metadata != null) {
+            metadata(trace, "metadata.size", Integer.toString(metadata.size()));
+        }
         try {
             HotpDescriptor descriptor = HotpDescriptor.create(
                     INLINE_DESCRIPTOR_NAME,
@@ -156,9 +200,20 @@ public final class HotpReplayApplicationService {
                     command.algorithm(),
                     command.digits());
 
+            addStep(trace, step -> step.id("normalize.input")
+                    .summary("Prepare inline HOTP replay descriptor")
+                    .detail("HotpDescriptor.create")
+                    .attribute("algorithm", descriptor.algorithm().name())
+                    .attribute("digits", descriptor.digits())
+                    .attribute("counter", command.counter()));
+
             return replayDescriptor(
-                    descriptor, command.otp(), command.counter(), false, INLINE_DESCRIPTOR_NAME, "inline");
+                    descriptor, command.otp(), command.counter(), false, INLINE_DESCRIPTOR_NAME, "inline", trace);
         } catch (IllegalArgumentException ex) {
+            addStep(trace, step -> step.id("normalize.input")
+                    .summary("Prepare inline HOTP replay descriptor")
+                    .detail("HotpDescriptor.create")
+                    .note("failure", safeMessage(ex)));
             return validationFailure(
                     INLINE_DESCRIPTOR_NAME,
                     false,
@@ -167,8 +222,13 @@ public final class HotpReplayApplicationService {
                     command.digits(),
                     command.counter(),
                     "validation_error",
-                    ex.getMessage());
+                    ex.getMessage(),
+                    buildTrace(trace));
         } catch (RuntimeException ex) {
+            addStep(trace, step -> step.id("error")
+                    .summary("Unexpected error during inline replay")
+                    .detail(ex.getClass().getSimpleName())
+                    .note("message", safeMessage(ex)));
             return unexpectedErrorResult(
                     INLINE_DESCRIPTOR_NAME,
                     false,
@@ -176,7 +236,8 @@ public final class HotpReplayApplicationService {
                     command.algorithm(),
                     command.digits(),
                     command.counter(),
-                    ex);
+                    ex,
+                    buildTrace(trace));
         }
     }
 
@@ -186,28 +247,49 @@ public final class HotpReplayApplicationService {
             long counter,
             boolean credentialReference,
             String credentialId,
-            String credentialSource) {
+            String credentialSource,
+            VerboseTrace.Builder trace) {
 
         try {
             HotpVerificationResult verification = HotpValidator.verify(descriptor, counter, otp);
             if (verification.valid()) {
+                addStep(trace, step -> step.id("validate.otp")
+                        .summary("Verify HOTP submission")
+                        .detail("HotpValidator.verify")
+                        .attribute("counter", counter)
+                        .attribute("otp", otp)
+                        .attribute("match", true));
                 return successResult(
                         credentialReference,
                         credentialId,
                         credentialSource,
                         descriptor.algorithm(),
                         descriptor.digits(),
-                        counter);
+                        counter,
+                        buildTrace(trace));
             }
 
+            addStep(trace, step -> step.id("validate.otp")
+                    .summary("Verify HOTP submission")
+                    .detail("HotpValidator.verify")
+                    .attribute("counter", counter)
+                    .attribute("otp", otp)
+                    .attribute("match", false)
+                    .note("failure", "otp_mismatch"));
             return mismatchResult(
                     credentialReference,
                     credentialId,
                     credentialSource,
                     descriptor.algorithm(),
                     descriptor.digits(),
-                    counter);
+                    counter,
+                    buildTrace(trace));
         } catch (IllegalArgumentException ex) {
+            addStep(trace, step -> step.id("validate.otp")
+                    .summary("Verify HOTP submission")
+                    .detail("HotpValidator.verify")
+                    .attribute("counter", counter)
+                    .note("failure", safeMessage(ex)));
             return validationFailure(
                     credentialId,
                     credentialReference,
@@ -216,8 +298,13 @@ public final class HotpReplayApplicationService {
                     descriptor.digits(),
                     counter,
                     "validation_error",
-                    ex.getMessage());
+                    ex.getMessage(),
+                    buildTrace(trace));
         } catch (RuntimeException ex) {
+            addStep(trace, step -> step.id("error")
+                    .summary("Unexpected error during HOTP replay")
+                    .detail(ex.getClass().getSimpleName())
+                    .note("message", safeMessage(ex)));
             return unexpectedErrorResult(
                     credentialId,
                     credentialReference,
@@ -225,7 +312,8 @@ public final class HotpReplayApplicationService {
                     descriptor.algorithm(),
                     descriptor.digits(),
                     counter,
-                    ex);
+                    ex,
+                    buildTrace(trace));
         }
     }
 
@@ -235,11 +323,12 @@ public final class HotpReplayApplicationService {
             String credentialSource,
             HotpHashAlgorithm algorithm,
             int digits,
-            long counter) {
+            long counter,
+            VerboseTrace trace) {
 
         Map<String, Object> fields = replayFields(credentialSource, credentialId, algorithm, digits, counter, counter);
         TelemetrySignal signal = new TelemetrySignal(TelemetryStatus.SUCCESS, "match", null, true, fields, null);
-        return new ReplayResult(signal, credentialReference, credentialId, counter, counter, algorithm, digits);
+        return new ReplayResult(signal, credentialReference, credentialId, counter, counter, algorithm, digits, trace);
     }
 
     private ReplayResult mismatchResult(
@@ -248,12 +337,13 @@ public final class HotpReplayApplicationService {
             String credentialSource,
             HotpHashAlgorithm algorithm,
             int digits,
-            long counter) {
+            long counter,
+            VerboseTrace trace) {
 
         Map<String, Object> fields = replayFields(credentialSource, credentialId, algorithm, digits, counter, counter);
         TelemetrySignal signal =
                 new TelemetrySignal(TelemetryStatus.INVALID, "otp_mismatch", "OTP mismatch", true, fields, null);
-        return new ReplayResult(signal, credentialReference, credentialId, counter, counter, algorithm, digits);
+        return new ReplayResult(signal, credentialReference, credentialId, counter, counter, algorithm, digits, trace);
     }
 
     private ReplayResult validationFailure(
@@ -264,15 +354,16 @@ public final class HotpReplayApplicationService {
             Integer digits,
             long counter,
             String reasonCode,
-            String reason) {
+            String reason,
+            VerboseTrace trace) {
 
         Map<String, Object> fields = replayFields(credentialSource, credentialId, algorithm, digits, counter, counter);
         TelemetrySignal signal =
                 new TelemetrySignal(TelemetryStatus.INVALID, reasonCode, safeMessage(reason), true, fields, null);
-        return new ReplayResult(signal, credentialReference, credentialId, counter, counter, algorithm, digits);
+        return new ReplayResult(signal, credentialReference, credentialId, counter, counter, algorithm, digits, trace);
     }
 
-    private ReplayResult notFoundResult(String credentialId) {
+    private ReplayResult notFoundResult(String credentialId, VerboseTrace trace) {
         Map<String, Object> fields = replayFields("stored", credentialId, null, null, 0L, 0L);
         TelemetrySignal signal = new TelemetrySignal(
                 TelemetryStatus.INVALID,
@@ -281,14 +372,14 @@ public final class HotpReplayApplicationService {
                 true,
                 fields,
                 null);
-        return new ReplayResult(signal, true, credentialId, 0L, 0L, null, null);
+        return new ReplayResult(signal, true, credentialId, 0L, 0L, null, null, trace);
     }
 
-    private ReplayResult invalidMetadataResult(String credentialId, String reason) {
+    private ReplayResult invalidMetadataResult(String credentialId, String reason, VerboseTrace trace) {
         Map<String, Object> fields = replayFields("stored", credentialId, null, null, 0L, 0L);
         TelemetrySignal signal = new TelemetrySignal(
                 TelemetryStatus.INVALID, "invalid_hotp_metadata", safeMessage(reason), true, fields, null);
-        return new ReplayResult(signal, true, credentialId, 0L, 0L, null, null);
+        return new ReplayResult(signal, true, credentialId, 0L, 0L, null, null, trace);
     }
 
     private ReplayResult unexpectedErrorResult(
@@ -298,7 +389,8 @@ public final class HotpReplayApplicationService {
             HotpHashAlgorithm algorithm,
             Integer digits,
             long counter,
-            Throwable error) {
+            Throwable error,
+            VerboseTrace trace) {
 
         Map<String, Object> fields = replayFields(credentialSource, credentialId, algorithm, digits, counter, counter);
         if (error != null) {
@@ -306,7 +398,7 @@ public final class HotpReplayApplicationService {
         }
         TelemetrySignal signal =
                 new TelemetrySignal(TelemetryStatus.ERROR, "unexpected_error", safeMessage(error), false, fields, null);
-        return new ReplayResult(signal, credentialReference, credentialId, counter, counter, algorithm, digits);
+        return new ReplayResult(signal, credentialReference, credentialId, counter, counter, algorithm, digits, trace);
     }
 
     private StoredCredential resolveStored(String credentialId) {
@@ -367,6 +459,26 @@ public final class HotpReplayApplicationService {
 
     private static boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private static VerboseTrace.Builder newTrace(boolean verbose, String operation) {
+        return verbose ? VerboseTrace.builder(operation) : null;
+    }
+
+    private static void metadata(VerboseTrace.Builder trace, String key, String value) {
+        if (trace != null && value != null) {
+            trace.withMetadata(key, value);
+        }
+    }
+
+    private static void addStep(VerboseTrace.Builder trace, Consumer<VerboseTrace.TraceStep.Builder> configurer) {
+        if (trace != null && configurer != null) {
+            trace.addStep(configurer);
+        }
+    }
+
+    private static VerboseTrace buildTrace(VerboseTrace.Builder trace) {
+        return trace == null ? null : trace.build();
     }
 
     private static String safeMessage(Throwable throwable) {

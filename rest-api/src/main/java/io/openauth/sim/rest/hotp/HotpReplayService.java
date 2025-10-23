@@ -9,6 +9,8 @@ import io.openauth.sim.application.telemetry.HotpTelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
+import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.rest.VerboseTracePayload;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -43,14 +45,15 @@ class HotpReplayService {
         String telemetryId = nextTelemetryId();
 
         Mode mode = determineMode(request, telemetryId);
+        boolean verbose = Boolean.TRUE.equals(request.verbose());
 
         return switch (mode) {
-            case STORED -> handleStored(request, telemetryId, mode);
-            case INLINE -> handleInline(request, telemetryId, mode);
+            case STORED -> handleStored(request, telemetryId, mode, verbose);
+            case INLINE -> handleInline(request, telemetryId, mode, verbose);
         };
     }
 
-    private HotpReplayResponse handleStored(HotpReplayRequest request, String telemetryId, Mode mode) {
+    private HotpReplayResponse handleStored(HotpReplayRequest request, String telemetryId, Mode mode, boolean verbose) {
         String credentialId = requireText(request.credentialId(), "credentialId", telemetryId, mode, null);
         String otp = requireText(request.otp(), "otp", telemetryId, mode, Map.of("credentialId", credentialId));
 
@@ -58,10 +61,10 @@ class HotpReplayService {
 
         ReplayCommand command = new ReplayCommand.Stored(credentialId, otp);
         Map<String, String> contextDetails = Map.of("credentialId", credentialId);
-        return handleResult(command, mode, telemetryId, credentialId, contextDetails);
+        return handleResult(command, mode, telemetryId, credentialId, contextDetails, verbose);
     }
 
-    private HotpReplayResponse handleInline(HotpReplayRequest request, String telemetryId, Mode mode) {
+    private HotpReplayResponse handleInline(HotpReplayRequest request, String telemetryId, Mode mode, boolean verbose) {
         Map<String, String> details = Map.of("credentialId", INLINE_REPLAY_ID);
         String secretHex = requireText(request.sharedSecretHex(), "sharedSecretHex", telemetryId, mode, details);
         HotpHashAlgorithm algorithm = parseAlgorithm(request.algorithm(), telemetryId, INLINE_REPLAY_ID, mode);
@@ -71,7 +74,7 @@ class HotpReplayService {
         ensureMetadataAbsent(request.metadata(), telemetryId, mode, INLINE_REPLAY_ID, details);
 
         ReplayCommand command = new ReplayCommand.Inline(secretHex, algorithm, digits, counter, otp, Map.of());
-        return handleResult(command, mode, telemetryId, INLINE_REPLAY_ID, details);
+        return handleResult(command, mode, telemetryId, INLINE_REPLAY_ID, details, verbose);
     }
 
     private HotpReplayResponse handleResult(
@@ -79,9 +82,10 @@ class HotpReplayService {
             Mode mode,
             String telemetryId,
             String identifier,
-            Map<String, String> contextDetails) {
+            Map<String, String> contextDetails,
+            boolean verbose) {
 
-        ReplayResult result = applicationService.replay(command);
+        ReplayResult result = applicationService.replay(command, verbose);
         TelemetrySignal signal = result.telemetry();
 
         TelemetryFrame frame = signal.emit(telemetryAdapter, telemetryId);
@@ -98,14 +102,26 @@ class HotpReplayService {
                 telemetryId);
 
         return switch (signal.status()) {
-            case SUCCESS -> new HotpReplayResponse("match", signal.reasonCode(), metadata);
+            case SUCCESS ->
+                new HotpReplayResponse(
+                        "match",
+                        signal.reasonCode(),
+                        metadata,
+                        result.verboseTrace().map(VerboseTracePayload::from).orElse(null));
             case INVALID ->
-                handleInvalid(signal, metadata, telemetryId, mode, identifier, frame.fields(), contextDetails);
-            case ERROR -> throw unexpectedError(signal, telemetryId, mode, frame.fields());
+                handleInvalid(result, signal, metadata, telemetryId, mode, identifier, frame.fields(), contextDetails);
+            case ERROR ->
+                throw unexpectedError(
+                        signal,
+                        telemetryId,
+                        mode,
+                        frame.fields(),
+                        result.verboseTrace().orElse(null));
         };
     }
 
     private HotpReplayResponse handleInvalid(
+            ReplayResult result,
             TelemetrySignal signal,
             HotpReplayMetadata metadata,
             String telemetryId,
@@ -115,10 +131,14 @@ class HotpReplayService {
             Map<String, String> contextDetails) {
 
         if ("otp_mismatch".equals(signal.reasonCode())) {
-            return new HotpReplayResponse("mismatch", signal.reasonCode(), metadata);
+            return new HotpReplayResponse(
+                    "mismatch",
+                    signal.reasonCode(),
+                    metadata,
+                    result.verboseTrace().map(VerboseTracePayload::from).orElse(null));
         }
 
-        Map<String, String> details =
+        Map<String, Object> details =
                 sanitizedDetails(fields, contextDetails, signal.sanitized(), telemetryId, mode.source);
 
         throw new HotpReplayValidationException(
@@ -128,13 +148,15 @@ class HotpReplayService {
                 signal.reasonCode(),
                 signal.sanitized(),
                 details,
-                safeMessage(signal.reason()));
+                safeMessage(signal.reason()),
+                result.verboseTrace().orElse(null));
     }
 
     private RuntimeException unexpectedError(
-            TelemetrySignal signal, String telemetryId, Mode mode, Map<String, Object> fields) {
-        Map<String, String> details = sanitizedDetails(fields, Map.of(), false, telemetryId, mode.source);
-        return new HotpReplayUnexpectedException(telemetryId, mode.source, safeMessage(signal.reason()), details);
+            TelemetrySignal signal, String telemetryId, Mode mode, Map<String, Object> fields, VerboseTrace trace) {
+        Map<String, Object> details = sanitizedDetails(fields, Map.of(), false, telemetryId, mode.source);
+        return new HotpReplayUnexpectedException(
+                telemetryId, mode.source, safeMessage(signal.reason()), details, trace);
     }
 
     private void ensureMetadataAbsent(
@@ -148,7 +170,7 @@ class HotpReplayService {
             return;
         }
 
-        Map<String, String> details = new LinkedHashMap<>(contextDetails);
+        Map<String, Object> details = new LinkedHashMap<>(contextDetails);
 
         throw new HotpReplayValidationException(
                 telemetryId,
@@ -157,7 +179,8 @@ class HotpReplayService {
                 "metadata_not_supported",
                 true,
                 details,
-                "Replay metadata is not supported for HOTP.");
+                "Replay metadata is not supported for HOTP.",
+                null);
     }
 
     private Mode determineMode(HotpReplayRequest request, String telemetryId) {
@@ -211,32 +234,44 @@ class HotpReplayService {
                 telemetryAdapter.validationFailure(telemetryId, reasonCode, message, true, telemetryFields);
         logTelemetry(Level.WARNING, frame);
 
-        Map<String, String> details =
+        Map<String, Object> details =
                 sanitizedDetails(telemetryFields, baseDetails, true, telemetryId, credentialSource);
 
         return new HotpReplayValidationException(
-                telemetryId, credentialSource, identifier, reasonCode, true, details, message);
+                telemetryId, credentialSource, identifier, reasonCode, true, details, message, null);
     }
 
-    private Map<String, String> sanitizedDetails(
+    private Map<String, Object> sanitizedDetails(
             Map<String, Object> telemetryFields,
             Map<String, String> base,
             boolean sanitized,
             String telemetryId,
             String source) {
 
-        Map<String, String> details = new LinkedHashMap<>();
+        Map<String, Object> details = new LinkedHashMap<>();
         details.put("telemetryId", telemetryId);
         details.put("credentialSource", source);
-        details.put("sanitized", Boolean.toString(sanitized));
+        details.put("sanitized", sanitized);
         if (base != null) {
-            base.forEach(details::putIfAbsent);
-        }
-        if (sanitized && telemetryFields != null) {
-            telemetryFields.forEach((key, value) -> {
+            base.forEach((key, value) -> {
                 if (value != null) {
-                    details.putIfAbsent(key, String.valueOf(value));
+                    details.putIfAbsent(key, value);
                 }
+            });
+        }
+        if (telemetryFields != null) {
+            telemetryFields.forEach((key, value) -> {
+                if (value == null) {
+                    return;
+                }
+                String lower = key.toLowerCase(Locale.ROOT);
+                if (lower.contains("secret")) {
+                    return;
+                }
+                if (!sanitized && (lower.contains("otp") || lower.contains("code"))) {
+                    return;
+                }
+                details.putIfAbsent(key, value);
             });
         }
         return details;

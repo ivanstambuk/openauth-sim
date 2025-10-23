@@ -6,6 +6,7 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.fido2.WebAuthnVerificationError;
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.security.cert.X509Certificate;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,7 +27,25 @@ public final class WebAuthnAttestationVerificationApplicationService {
     }
 
     public VerificationResult verify(VerificationCommand command) {
+        return verify(command, false);
+    }
+
+    public VerificationResult verify(VerificationCommand command, boolean verbose) {
         Objects.requireNonNull(command, "command");
+
+        VerboseTrace.Builder trace = newTrace(verbose, "fido2.attestation.verify");
+        metadata(trace, "protocol", "FIDO2");
+        metadata(trace, "format", command.format().label());
+        metadata(trace, "attestationId", command.attestationId());
+
+        addStep(trace, step -> step.id("parse.request")
+                .summary("Prepare attestation verification request")
+                .detail("VerificationCommand")
+                .attribute("relyingPartyId", command.relyingPartyId())
+                .attribute("origin", command.origin())
+                .attribute("trustAnchors", command.trustAnchors().size())
+                .attribute("trustAnchorsCached", command.trustAnchorsCached())
+                .attribute("trustAnchorSource", command.trustAnchorSource().name()));
 
         WebAuthnAttestationServiceSupport.Outcome outcome = WebAuthnAttestationServiceSupport.process(
                 verifier,
@@ -58,6 +77,26 @@ public final class WebAuthnAttestationVerificationApplicationService {
                         outcome.aaguid(),
                         data.signatureCounter()));
 
+        addStep(trace, step -> {
+            step.id("verify.attestation")
+                    .summary("Verify WebAuthn attestation object")
+                    .detail("WebAuthnAttestationServiceSupport.process")
+                    .attribute("status", outcome.status().name())
+                    .attribute("valid", outcome.success())
+                    .attribute("anchorProvided", outcome.anchorProvided())
+                    .attribute("selfAttested", outcome.selfAttestedFallback());
+            outcome.error().map(Enum::name).ifPresent(err -> step.note("error", err));
+        });
+
+        addStep(trace, step -> {
+            step.id("assemble.result")
+                    .summary("Assemble attestation verification result")
+                    .detail("VerificationResult")
+                    .attribute("valid", outcome.success())
+                    .attribute("anchorMode", outcome.anchorMode())
+                    .attribute("attestedCredential", attestedCredential.isPresent());
+        });
+
         return new VerificationResult(
                 telemetry,
                 outcome.success(),
@@ -67,7 +106,8 @@ public final class WebAuthnAttestationVerificationApplicationService {
                 outcome.selfAttestedFallback(),
                 outcome.anchorMode(),
                 command.trustAnchorsCached(),
-                command.trustAnchorWarnings());
+                command.trustAnchorWarnings(),
+                buildTrace(trace));
     }
 
     public sealed interface VerificationCommand permits VerificationCommand.Inline {
@@ -149,6 +189,27 @@ public final class WebAuthnAttestationVerificationApplicationService {
         }
     }
 
+    private static VerboseTrace.Builder newTrace(boolean verbose, String operation) {
+        return verbose ? VerboseTrace.builder(operation) : null;
+    }
+
+    private static void metadata(VerboseTrace.Builder trace, String key, String value) {
+        if (trace != null && value != null) {
+            trace.withMetadata(key, value);
+        }
+    }
+
+    private static void addStep(
+            VerboseTrace.Builder trace, java.util.function.Consumer<VerboseTrace.TraceStep.Builder> configurer) {
+        if (trace != null) {
+            trace.addStep(configurer);
+        }
+    }
+
+    private static VerboseTrace buildTrace(VerboseTrace.Builder trace) {
+        return trace == null ? null : trace.build();
+    }
+
     public record VerificationResult(
             TelemetrySignal telemetry,
             boolean valid,
@@ -158,7 +219,8 @@ public final class WebAuthnAttestationVerificationApplicationService {
             boolean selfAttestedFallback,
             String anchorMode,
             boolean trustAnchorsCached,
-            List<String> anchorWarnings) {
+            List<String> anchorWarnings,
+            VerboseTrace trace) {
 
         public VerificationResult {
             telemetry = Objects.requireNonNull(telemetry, "telemetry");
@@ -166,6 +228,10 @@ public final class WebAuthnAttestationVerificationApplicationService {
             attestedCredential = attestedCredential == null ? Optional.empty() : attestedCredential;
             anchorMode = anchorMode == null ? "" : anchorMode;
             anchorWarnings = List.copyOf(anchorWarnings == null ? List.of() : anchorWarnings);
+        }
+
+        public Optional<VerboseTrace> verboseTrace() {
+            return Optional.ofNullable(trace);
         }
     }
 

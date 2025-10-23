@@ -15,7 +15,8 @@ public record OcraEvaluationRequest(
         String serverChallenge,
         String pinHashHex,
         String timestampHex,
-        Long counter) {
+        Long counter,
+        Boolean verbose) {
 
     public OcraEvaluationRequest {
         credentialId = trimOrNull(credentialId);

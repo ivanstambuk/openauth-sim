@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.webauthn;
 
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.util.Map;
 
 final class WebAuthnEvaluationValidationException extends RuntimeException {
@@ -8,11 +9,14 @@ final class WebAuthnEvaluationValidationException extends RuntimeException {
 
     private final String reasonCode;
     private final transient Map<String, Object> details;
+    private final transient VerboseTrace trace;
 
-    WebAuthnEvaluationValidationException(String reasonCode, String message, Map<String, Object> details) {
+    WebAuthnEvaluationValidationException(
+            String reasonCode, String message, Map<String, Object> details, VerboseTrace trace) {
         super(message);
         this.reasonCode = reasonCode;
         this.details = details;
+        this.trace = trace;
     }
 
     String reasonCode() {
@@ -21,5 +25,9 @@ final class WebAuthnEvaluationValidationException extends RuntimeException {
 
     Map<String, Object> details() {
         return details;
+    }
+
+    VerboseTrace trace() {
+        return trace;
     }
 }

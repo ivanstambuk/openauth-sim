@@ -146,7 +146,8 @@ public final class OcraEvaluationForm {
                     serverChallenge,
                     pinHashHex,
                     timestampHex,
-                    counter);
+                    counter,
+                    null);
         }
         String resolvedCredentialId = Objects.requireNonNull(credentialId, "credentialId");
         return new OcraEvaluationRequest(
@@ -159,7 +160,8 @@ public final class OcraEvaluationForm {
                 serverChallenge,
                 pinHashHex,
                 timestampHex,
-                counter);
+                counter,
+                null);
     }
 
     void scrubSecrets() {

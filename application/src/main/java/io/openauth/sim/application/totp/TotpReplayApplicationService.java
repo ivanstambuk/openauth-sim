@@ -9,6 +9,7 @@ import io.openauth.sim.application.totp.TotpEvaluationApplicationService.Telemet
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.TelemetryStatus;
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -26,28 +27,36 @@ public final class TotpReplayApplicationService {
     }
 
     public ReplayResult replay(ReplayCommand command) {
+        return replay(command, false);
+    }
+
+    public ReplayResult replay(ReplayCommand command, boolean verbose) {
         Objects.requireNonNull(command, "command");
 
         if (command instanceof ReplayCommand.Stored stored) {
-            EvaluationResult result = evaluationService.evaluate(new EvaluationCommand.Stored(
-                    stored.credentialId(),
-                    stored.otp(),
-                    stored.driftWindow(),
-                    stored.evaluationInstant(),
-                    stored.timestampOverride()));
+            EvaluationResult result = evaluationService.evaluate(
+                    new EvaluationCommand.Stored(
+                            stored.credentialId(),
+                            stored.otp(),
+                            stored.driftWindow(),
+                            stored.evaluationInstant(),
+                            stored.timestampOverride()),
+                    verbose);
             return translate(result, "stored", true, stored.credentialId());
         }
 
         if (command instanceof ReplayCommand.Inline inline) {
-            EvaluationResult result = evaluationService.evaluate(new EvaluationCommand.Inline(
-                    inline.sharedSecretHex(),
-                    inline.algorithm(),
-                    inline.digits(),
-                    inline.stepDuration(),
-                    inline.otp(),
-                    inline.driftWindow(),
-                    inline.evaluationInstant(),
-                    inline.timestampOverride()));
+            EvaluationResult result = evaluationService.evaluate(
+                    new EvaluationCommand.Inline(
+                            inline.sharedSecretHex(),
+                            inline.algorithm(),
+                            inline.digits(),
+                            inline.stepDuration(),
+                            inline.otp(),
+                            inline.driftWindow(),
+                            inline.evaluationInstant(),
+                            inline.timestampOverride()),
+                    verbose);
             return translate(result, "inline", false, null);
         }
 
@@ -97,6 +106,8 @@ public final class TotpReplayApplicationService {
                         new TelemetrySignal(TelemetryStatus.ERROR, base.reasonCode(), base.reason(), true, fields);
                 };
 
+        VerboseTrace replayTrace = adaptTrace(evaluationResult, credentialSource);
+
         return new ReplayResult(
                 telemetry,
                 credentialReference,
@@ -108,7 +119,8 @@ public final class TotpReplayApplicationService {
                 evaluationResult.stepDuration(),
                 evaluationResult.driftWindow(),
                 credentialSource,
-                timestampOverrideProvided);
+                timestampOverrideProvided,
+                replayTrace);
     }
 
     public sealed interface ReplayCommand permits ReplayCommand.Stored, ReplayCommand.Inline {
@@ -171,7 +183,8 @@ public final class TotpReplayApplicationService {
             Duration stepDuration,
             TotpDriftWindow driftWindow,
             String credentialSource,
-            boolean timestampOverrideProvided) {
+            boolean timestampOverrideProvided,
+            VerboseTrace trace) {
 
         public TelemetryFrame replayFrame(String telemetryId) {
             return telemetry.emit(TelemetryContracts.totpReplayAdapter(), telemetryId);
@@ -180,5 +193,34 @@ public final class TotpReplayApplicationService {
         public TelemetryFrame replayFrame(TotpTelemetryAdapter adapter, String telemetryId) {
             return telemetry.emit(adapter, telemetryId);
         }
+
+        public Optional<VerboseTrace> verboseTrace() {
+            return Optional.ofNullable(trace);
+        }
+    }
+
+    private static VerboseTrace adaptTrace(EvaluationResult evaluationResult, String credentialSource) {
+        return evaluationResult
+                .verboseTrace()
+                .map(existing -> copyTrace(existing, "totp.replay." + credentialSource))
+                .orElse(null);
+    }
+
+    private static VerboseTrace copyTrace(VerboseTrace source, String operation) {
+        VerboseTrace.Builder builder = VerboseTrace.builder(operation);
+        source.metadata().forEach(builder::withMetadata);
+        source.steps()
+                .forEach(step -> builder.addStep(traceStep -> {
+                    traceStep.id(step.id());
+                    if (step.summary() != null) {
+                        traceStep.summary(step.summary());
+                    }
+                    if (step.detail() != null) {
+                        traceStep.detail(step.detail());
+                    }
+                    step.attributes().forEach(traceStep::attribute);
+                    step.notes().forEach(traceStep::note);
+                }));
+        return builder.build();
     }
 }

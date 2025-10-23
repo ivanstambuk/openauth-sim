@@ -1,8 +1,10 @@
 package io.openauth.sim.rest.totp;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 record TotpInlineEvaluationRequest(
         @JsonProperty("sharedSecretHex") String sharedSecretHex,
         @JsonProperty("algorithm") String algorithm,
@@ -13,6 +15,7 @@ record TotpInlineEvaluationRequest(
         @JsonProperty("timestamp") Long timestamp,
         @JsonProperty("timestampOverride") Long timestampOverride,
         @JsonProperty("otp") String otp,
-        @JsonProperty("metadata") Map<String, String> metadata) {
+        @JsonProperty("metadata") Map<String, String> metadata,
+        @JsonProperty("verbose") Boolean verbose) {
     // no members
 }

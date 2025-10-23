@@ -306,6 +306,12 @@ paths:
               $ref: "#/components/schemas/OcraVerificationRequest"
         required: true
       responses:
+        "404":
+          description: "Credential not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "422":
           description: "Verification payload failed validation"
           content:
@@ -326,12 +332,6 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "404":
-          description: "Credential not found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "200":
           description: "Verification completed"
           content:
@@ -373,12 +373,6 @@ paths:
               $ref: "#/components/schemas/OcraEvaluationRequest"
         required: true
       responses:
-        "200":
-          description: "Evaluation successful"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationResponse"
         "500":
           description: "Unexpected server error"
           content:
@@ -405,6 +399,12 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
+        "200":
+          description: "Evaluation successful"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationResponse"
   /api/v1/ocra/credentials/seed:
     post:
       tags:
@@ -438,20 +438,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
-        "400":
+        "422":
           description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayErrorResponse"
-        "404":
-          description: "Credential not found"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -471,7 +465,13 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
-        "400":
+        "200":
+          description: "Evaluation completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationResponse"
+        "422":
           description: "Validation error"
           content:
             application/json:
@@ -483,18 +483,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "404":
-          description: "Credential not found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "200":
-          description: "Evaluation completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationResponse"
   /api/v1/hotp/evaluate/inline:
     post:
       tags:
@@ -510,7 +498,13 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
-        "400":
+        "200":
+          description: "Evaluation completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationResponse"
+        "422":
           description: "Validation error"
           content:
             application/json:
@@ -522,12 +516,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "200":
-          description: "Evaluation completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationResponse"
   /api/v1/hotp/credentials/seed:
     post:
       tags:
@@ -688,6 +676,53 @@ paths:
                 $ref: "#/components/schemas/HotpStoredSampleResponse"
 components:
   schemas:
+    VerboseTracePayload:
+      type: "object"
+      properties:
+        operation:
+          type: "string"
+          description: "Stable identifier describing the traced operation (for example,\
+            \ totp.evaluate.stored)."
+        metadata:
+          type: "object"
+          additionalProperties:
+            type: "string"
+            description: "Additional metadata associated with the trace."
+          description: "Additional metadata associated with the trace."
+        steps:
+          type: "array"
+          description: "Ordered steps executed during the operation."
+          items:
+            $ref: "#/components/schemas/VerboseTraceStepPayload"
+      description: "Deterministic, ordered diagnostic trace emitted when verbose mode\
+        \ is enabled for a credential workflow."
+    VerboseTraceStepPayload:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          description: "Stable identifier that enables downstream tooling to group\
+            \ similar steps."
+        summary:
+          type: "string"
+          description: "Human-readable summary of what the step accomplished."
+        detail:
+          type: "string"
+          description: "Additional detail about the specific helper or component invoked."
+        attributes:
+          type: "object"
+          additionalProperties:
+            type: "object"
+            description: "Arbitrary attributes captured for the step."
+          description: "Arbitrary attributes captured for the step."
+        notes:
+          type: "object"
+          additionalProperties:
+            type: "string"
+            description: "Free-form notes associated with the step."
+          description: "Free-form notes associated with the step."
+      description: "Single diagnostic entry representing one action performed while\
+        \ handling the request."
     WebAuthnReplayMetadata:
       type: "object"
       properties:
@@ -720,6 +755,8 @@ components:
           type: "boolean"
         metadata:
           $ref: "#/components/schemas/WebAuthnReplayMetadata"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     WebAuthnReplayErrorResponse:
       type: "object"
       properties:
@@ -737,6 +774,8 @@ components:
           type: "object"
           additionalProperties:
             type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     WebAuthnReplayRequest:
       type: "object"
       properties:
@@ -767,6 +806,12 @@ components:
           type: "string"
         signature:
           type: "string"
+        trustAnchors:
+          type: "array"
+          items:
+            type: "string"
+        verbose:
+          type: "boolean"
     WebAuthnAssertionResponse:
       type: "object"
       properties:
@@ -806,6 +851,8 @@ components:
           $ref: "#/components/schemas/WebAuthnGeneratedAssertion"
         metadata:
           $ref: "#/components/schemas/WebAuthnEvaluationMetadata"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     WebAuthnGeneratedAssertion:
       type: "object"
       properties:
@@ -834,6 +881,8 @@ components:
           type: "object"
           additionalProperties:
             type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     WebAuthnStoredEvaluationRequest:
       type: "object"
       properties:
@@ -853,6 +902,8 @@ components:
           type: "integer"
           format: "int64"
         userVerificationRequired:
+          type: "boolean"
+        verbose:
           type: "boolean"
     WebAuthnInlineEvaluationRequest:
       type: "object"
@@ -878,6 +929,8 @@ components:
           type: "string"
         privateKey:
           type: "string"
+        verbose:
+          type: "boolean"
     SeedResponse:
       type: "object"
       properties:
@@ -996,6 +1049,8 @@ components:
           $ref: "#/components/schemas/WebAuthnAttestedCredential"
         metadata:
           $ref: "#/components/schemas/WebAuthnAttestationMetadata"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
       description: "Response payload for WebAuthn attestation verification and replay\
         \ endpoints."
     WebAuthnAttestedCredential:
@@ -1082,6 +1137,8 @@ components:
             type: "object"
             description: "Telemetry metadata captured during verification"
           description: "Telemetry metadata captured during verification"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
       description: "Error payload returned when WebAuthn attestation verification\
         \ fails."
     WebAuthnAttestationGenerationRequest:
@@ -1150,6 +1207,8 @@ components:
           items:
             type: "string"
             description: "Set of edited fields compared to the preset"
+        verbose:
+          type: "boolean"
       description: "Request payload for generating a deterministic WebAuthn attestation\
         \ object."
     WebAuthnAttestationReplayRequest:
@@ -1199,6 +1258,8 @@ components:
             type: "string"
             description: "PEM encoded X.509 trust anchors to validate the attestation\
               \ certificate chain"
+        verbose:
+          type: "boolean"
       description: "Request payload for replaying a WebAuthn attestation verification\
         \ with optional trust anchors."
     TotpReplayMetadata:
@@ -1240,6 +1301,8 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/TotpReplayMetadata"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     TotpReplayErrorResponse:
       type: "object"
       properties:
@@ -1253,6 +1316,8 @@ components:
           type: "object"
           additionalProperties:
             type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     TotpReplayRequest:
       type: "object"
       properties:
@@ -1282,6 +1347,8 @@ components:
         stepSeconds:
           type: "integer"
           format: "int64"
+        verbose:
+          type: "boolean"
     TotpEvaluationMetadata:
       type: "object"
       properties:
@@ -1321,6 +1388,8 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/TotpEvaluationMetadata"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     TotpEvaluationErrorResponse:
       type: "object"
       properties:
@@ -1334,6 +1403,8 @@ components:
           type: "object"
           additionalProperties:
             type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     TotpStoredEvaluationRequest:
       type: "object"
       properties:
@@ -1353,6 +1424,8 @@ components:
         timestampOverride:
           type: "integer"
           format: "int64"
+        verbose:
+          type: "boolean"
     TotpInlineEvaluationRequest:
       type: "object"
       properties:
@@ -1384,6 +1457,8 @@ components:
           type: "object"
           additionalProperties:
             type: "string"
+        verbose:
+          type: "boolean"
     OcraVerificationContext:
       type: "object"
       properties:
@@ -1485,15 +1560,8 @@ components:
         counter:
           type: "integer"
           format: "int64"
-    OcraEvaluationResponse:
-      type: "object"
-      properties:
-        suite:
-          type: "string"
-        otp:
-          type: "string"
-        telemetryId:
-          type: "string"
+        verbose:
+          type: "boolean"
     OcraEvaluationErrorResponse:
       type: "object"
       properties:
@@ -1505,6 +1573,19 @@ components:
           type: "object"
           additionalProperties:
             type: "string"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
+    OcraEvaluationResponse:
+      type: "object"
+      properties:
+        suite:
+          type: "string"
+        otp:
+          type: "string"
+        telemetryId:
+          type: "string"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     HotpReplayRequest:
       type: "object"
       properties:
@@ -1526,6 +1607,8 @@ components:
           type: "object"
           additionalProperties:
             type: "string"
+        verbose:
+          type: "boolean"
     HotpReplayMetadata:
       type: "object"
       properties:
@@ -1557,33 +1640,30 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/HotpReplayMetadata"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     HotpReplayErrorResponse:
       type: "object"
       properties:
-        error:
+        status:
+          type: "string"
+        reasonCode:
           type: "string"
         message:
           type: "string"
         details:
           type: "object"
           additionalProperties:
-            type: "string"
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     HotpStoredEvaluationRequest:
       type: "object"
       properties:
         credentialId:
           type: "string"
-    HotpEvaluationErrorResponse:
-      type: "object"
-      properties:
-        error:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "string"
+        verbose:
+          type: "boolean"
     HotpEvaluationMetadata:
       type: "object"
       properties:
@@ -1621,6 +1701,23 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/HotpEvaluationMetadata"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
+    HotpEvaluationErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     HotpInlineEvaluationRequest:
       type: "object"
       properties:
@@ -1638,6 +1735,8 @@ components:
           type: "object"
           additionalProperties:
             type: "string"
+        verbose:
+          type: "boolean"
     WebAuthnCredentialSummary:
       type: "object"
       properties:

@@ -6,6 +6,7 @@
   var panelTabs = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-panel-tabs"]')
     : null;
+  var verboseConsole = global.VerboseTraceConsole || null;
   var evaluateTabButton = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-panel-tab-evaluate"]')
     : null;
@@ -653,10 +654,16 @@
       return;
     }
     resetResultCard(panel);
+    if (!payload) {
+      verboseApplyResponse(null, 'info');
+      return;
+    }
     var status = payload && payload.status ? payload.status : 'unknown';
     var metadata = payload && payload.metadata ? payload.metadata : null;
     var otp = payload && payload.otp ? payload.otp : null;
     var reason = payload && payload.reasonCode ? String(payload.reasonCode).trim() : '';
+    var variant = resolveStatusVariant(status);
+    verboseApplyResponse(payload, variant === 'error' ? 'error' : 'success');
     applyStatusBadge(panel.querySelector('[data-testid="hotp-result-status"]'), status);
     var otpNode = panel.querySelector('[data-testid="hotp-result-otp"]');
     if (otpNode) {
@@ -667,7 +674,7 @@
     if (metadataNode) {
       metadataNode.textContent = formatMetadata(metadata);
     }
-    if (resolveStatusVariant(status) === 'error') {
+    if (variant === 'error') {
       var label = normalizeStatusLabel(status);
       var hint = reason ? 'Reason: ' + reason : '';
       showResultError(panel, 'Evaluation returned status: ' + label + '.', hint);
@@ -937,6 +944,61 @@
     }
   }
 
+  function verboseAttach(payload) {
+    if (!payload || typeof payload !== 'object' || !verboseConsole) {
+      return payload;
+    }
+    if (typeof verboseConsole.attachVerboseFlag === 'function') {
+      return verboseConsole.attachVerboseFlag(payload);
+    }
+    if (typeof verboseConsole.isEnabled === 'function' && verboseConsole.isEnabled()) {
+      payload.verbose = true;
+    } else if (Object.prototype.hasOwnProperty.call(payload, 'verbose')) {
+      delete payload.verbose;
+    }
+    return payload;
+  }
+
+  function verboseBeginRequest() {
+    if (!verboseConsole) {
+      return;
+    }
+    if (typeof verboseConsole.beginRequest === 'function') {
+      verboseConsole.beginRequest();
+    } else if (typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
+    }
+  }
+
+  function verboseApplyResponse(payload, variant) {
+    if (!verboseConsole) {
+      return;
+    }
+    var options = { variant: variant || 'info', protocol: 'hotp' };
+    if (typeof verboseConsole.handleResponse === 'function') {
+      verboseConsole.handleResponse(payload, options);
+    } else if (payload && payload.trace && typeof verboseConsole.renderTrace === 'function') {
+      verboseConsole.renderTrace(payload.trace, options);
+    } else if (typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
+    }
+  }
+
+  function verboseApplyError(error) {
+    if (!verboseConsole) {
+      return;
+    }
+    var payload = error && error.payload ? error.payload : null;
+    var options = { variant: 'error', protocol: 'hotp' };
+    if (typeof verboseConsole.handleError === 'function') {
+      verboseConsole.handleError(payload, options);
+    } else if (payload && payload.trace && typeof verboseConsole.renderTrace === 'function') {
+      verboseConsole.renderTrace(payload.trace, options);
+    } else if (typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
+    }
+  }
+
   function applyInlineEvaluationPreset(presetKey) {
     var preset = inlinePresetData[presetKey];
     if (!preset) {
@@ -1026,9 +1088,14 @@
     resetResultCard(replayResultPanel);
   }
 
-  function showReplayError(message) {
+  function showReplayError(message, error) {
     if (!replayResultPanel) {
       return;
+    }
+    if (typeof error !== 'undefined') {
+      verboseApplyError(error);
+    } else {
+      verboseApplyError(null);
     }
     var hint = '';
     if (replayReasonNode) {
@@ -1045,6 +1112,7 @@
 
   function renderReplayResult(payload) {
     if (!payload) {
+      verboseApplyResponse(null, 'info');
       showReplayError('Unexpected replay response.');
       return;
     }
@@ -1053,6 +1121,8 @@
     if (!status) {
       status = 'unknown';
     }
+    var variant = resolveStatusVariant(status);
+    verboseApplyResponse(payload, variant === 'error' ? 'error' : 'success');
     if (replayStatusBadge) {
       applyStatusBadge(replayStatusBadge, status);
     }
@@ -1067,7 +1137,6 @@
       replayOutcomeNode.textContent = status;
     }
     resetResultCard(replayResultPanel);
-    var variant = resolveStatusVariant(status);
     if (variant === 'error') {
       var statusLabel = normalizeStatusLabel(status);
       var hint = reason ? 'Reason: ' + reason : '';
@@ -1263,6 +1332,8 @@
     replaySubmitButton.setAttribute('disabled', 'disabled');
     hideReplayError();
     setHidden(replayResultPanel, true);
+    payload = verboseAttach(payload);
+    verboseBeginRequest();
 
     fetchDelegate(endpoint, {
       method: 'POST',
@@ -1292,8 +1363,9 @@
         renderReplayResult(parsedBody);
       })
       .catch(function (error) {
+        verboseApplyError(error);
         var message = error && error.message ? error.message : 'Unable to submit HOTP replay request.';
-        showReplayError(message);
+        showReplayError(message, error);
       })
       .finally(function () {
         replaySubmitButton.removeAttribute('disabled');
@@ -1427,6 +1499,9 @@
     hideStoredError();
     setHidden(storedResultPanel, true);
 
+    var payload = verboseAttach({ credentialId: credentialId });
+    verboseBeginRequest();
+
     fetchDelegate(storedForm.getAttribute('data-evaluate-endpoint') || '/api/v1/hotp/evaluate', {
       method: 'POST',
       headers: {
@@ -1435,7 +1510,7 @@
         'X-CSRF-TOKEN': csrfTokenFor(storedForm) || '',
       },
       credentials: 'same-origin',
-      body: JSON.stringify({ credentialId: credentialId }),
+      body: JSON.stringify(payload),
     })
       .then(function (response) {
         return response.text().then(function (bodyText) {
@@ -1456,6 +1531,7 @@
         ensureCredentials(true);
       })
       .catch(function (error) {
+        verboseApplyError(error);
         showStoredError(error && error.message ? error.message : 'Unable to evaluate credential.');
       })
       .finally(function () {
@@ -1503,6 +1579,9 @@
       payload.metadata = metadataPayload;
     }
 
+    payload = verboseAttach(payload);
+    verboseBeginRequest();
+
     fetchDelegate(inlineForm.getAttribute('data-evaluate-endpoint') || '/api/v1/hotp/evaluate/inline', {
       method: 'POST',
       headers: {
@@ -1532,6 +1611,7 @@
         renderResult(inlineResultPanel, parsedBody);
       })
       .catch(function (error) {
+        verboseApplyError(error);
         var message =
             error && error.message ? error.message : 'Unable to evaluate inline parameters.';
         var hint = error && typeof error.reason === 'string' && error.reason.trim().length > 0

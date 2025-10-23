@@ -158,6 +158,31 @@ class Fido2ReplayEndpointTest {
                 });
     }
 
+    @Test
+    @DisplayName("Inline WebAuthn replay returns verbose trace when requested")
+    void inlineReplayReturnsVerboseTrace() throws Exception {
+        Sample sample = sample(WebAuthnSignatureAlgorithm.ES256);
+        String basePayload = inlinePayload(sample, publicOnlyJwk(sample), sample.algorithm());
+        com.fasterxml.jackson.databind.node.ObjectNode payload =
+                (com.fasterxml.jackson.databind.node.ObjectNode) JSON.readTree(basePayload);
+        payload.put("verbose", true);
+
+        String response = mockMvc.perform(post("/api/v1/webauthn/replay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.writeValueAsString(payload)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = JSON.readTree(response);
+        JsonNode trace = root.get("trace");
+        assertThat(trace).isNotNull();
+        assertEquals("fido2.assertion.evaluate.inline", trace.get("operation").asText());
+        assertThat(trace.get("steps").isArray()).isTrue();
+        assertThat(trace.get("steps")).isNotEmpty();
+    }
+
     private static Sample sample(WebAuthnSignatureAlgorithm algorithm) {
         return WebAuthnGeneratorSamples.samples().stream()
                 .filter(sample -> sample.algorithm() == algorithm)

@@ -100,7 +100,7 @@ final class OperatorConsoleEndToEndTest {
         }
 
         OcraEvaluationRequest requestPayload = new OcraEvaluationRequest(
-                CREDENTIAL_ID, null, null, "SESSION01", SESSION_HEX_64, null, null, null, null, null);
+                CREDENTIAL_ID, null, null, "SESSION01", SESSION_HEX_64, null, null, null, null, null, null);
 
         HttpEntity<OcraEvaluationRequest> requestEntity = new HttpEntity<>(requestPayload, headers);
         ResponseEntity<OcraEvaluationResponse> response =

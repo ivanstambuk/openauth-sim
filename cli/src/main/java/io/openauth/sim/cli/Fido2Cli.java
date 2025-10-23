@@ -923,6 +923,11 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 description = "Authenticator signature in Base64URL form")
         String signature;
 
+        @CommandLine.Option(
+                names = "--verbose",
+                description = "Emit a detailed verbose trace of the verification steps")
+        boolean verbose;
+
         @Override
         public Integer call() {
             Map<String, Object> baseFields = new LinkedHashMap<>();
@@ -976,15 +981,17 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 WebAuthnReplayApplicationService replayService =
                         new WebAuthnReplayApplicationService(evaluationService);
 
-                ReplayResult result = replayService.replay(new ReplayCommand.Stored(
-                        credentialId,
-                        relyingPartyId,
-                        origin,
-                        expectedType,
-                        challengeBytes,
-                        clientDataBytes,
-                        authenticatorDataBytes,
-                        signatureBytes));
+                ReplayResult result = replayService.replay(
+                        new ReplayCommand.Stored(
+                                credentialId,
+                                relyingPartyId,
+                                origin,
+                                expectedType,
+                                challengeBytes,
+                                clientDataBytes,
+                                authenticatorDataBytes,
+                                signatureBytes),
+                        verbose);
                 return handleResult(result);
             } catch (IllegalArgumentException ex) {
                 return parent.failValidation(
@@ -1004,15 +1011,24 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 case SUCCESS -> {
                     TelemetryFrame frame =
                             parent.augmentReplayFrame(result, result.replayFrame(REPLAY_TELEMETRY, nextTelemetryId()));
-                    writeFrame(parent.out(), event("replay"), frame);
+                    var writer = parent.out();
+                    writeFrame(writer, event("replay"), frame);
+                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(writer, trace));
                     yield CommandLine.ExitCode.OK;
                 }
-                case INVALID -> parent.failValidation(event("replay"), signal, baseFields);
-                case ERROR ->
-                    parent.failUnexpected(
+                case INVALID -> {
+                    int exit = parent.failValidation(event("replay"), signal, baseFields);
+                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.err(), trace));
+                    yield exit;
+                }
+                case ERROR -> {
+                    int exit = parent.failUnexpected(
                             event("replay"),
                             baseFields,
                             Optional.ofNullable(signal.reason()).orElse("WebAuthn replay failed"));
+                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.err(), trace));
+                    yield exit;
+                }
             };
         }
     }

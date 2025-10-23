@@ -35,7 +35,8 @@ final class WebAuthnEvaluationServiceTest {
                 1L,
                 Boolean.FALSE,
                 challenge,
-                "{\"kty\":\"EC\",\"crv\":\"P-256\",\"d\":\"invalid\"}");
+                "{\"kty\":\"EC\",\"crv\":\"P-256\",\"d\":\"invalid\"}",
+                null);
 
         assertThatThrownBy(() -> service.evaluateInline(request))
                 .isInstanceOf(WebAuthnEvaluationValidationException.class)

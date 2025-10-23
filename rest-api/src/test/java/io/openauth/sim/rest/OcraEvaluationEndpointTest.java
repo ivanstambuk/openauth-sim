@@ -204,6 +204,64 @@ final class OcraEvaluationEndpointTest {
         }
     }
 
+    @DisplayName("Stored requests return verbose trace when requested")
+    @org.junit.jupiter.api.Test
+    void evaluateWithCredentialIdReturnsVerboseTrace() throws Exception {
+        String requestJson = """
+            {
+              "credentialId": "rest-ocra-stored",
+              "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+              "challenge": "SESSION01",
+              "sessionHex": "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567",
+              "verbose": true
+            }
+            """;
+
+        String responseBody = mockMvc.perform(post("/api/v1/ocra/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode response = MAPPER.readTree(responseBody);
+        JsonNode trace = response.get("trace");
+        assertNotNull(trace, "Expected trace payload when verbose=true");
+        assertEquals("ocra.evaluate.stored", trace.get("operation").asText());
+        assertTrue(trace.get("steps").isArray());
+        assertTrue(trace.get("steps").size() > 0, "Trace steps must not be empty");
+    }
+
+    @DisplayName("Inline requests return verbose trace when requested")
+    @org.junit.jupiter.api.Test
+    void evaluateInlineReturnsVerboseTrace() throws Exception {
+        String requestJson = """
+            {
+              "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
+              "sharedSecretHex": "3132333435363738393031323334353637383930313233343536373839303132",
+              "challenge": "SESSION01",
+              "sessionHex": "00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567",
+              "verbose": true
+            }
+            """;
+
+        String responseBody = mockMvc.perform(post("/api/v1/ocra/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode response = MAPPER.readTree(responseBody);
+        JsonNode trace = response.get("trace");
+        assertNotNull(trace, "Expected trace payload when verbose=true");
+        assertEquals("ocra.evaluate.inline", trace.get("operation").asText());
+        assertTrue(trace.get("steps").isArray());
+        assertTrue(trace.get("steps").size() > 0, "Trace steps must not be empty");
+    }
+
     @DisplayName("Missing credential reference returns descriptive error")
     @org.junit.jupiter.api.Test
     void evaluateCredentialIdNotFoundReturnsError() throws Exception {

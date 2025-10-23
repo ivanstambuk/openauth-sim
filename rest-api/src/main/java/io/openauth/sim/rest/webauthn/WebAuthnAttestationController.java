@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.webauthn;
 
+import io.openauth.sim.rest.VerboseTracePayload;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -71,23 +72,35 @@ class WebAuthnAttestationController {
     @ExceptionHandler(WebAuthnAttestationValidationException.class)
     ResponseEntity<WebAuthnAttestationErrorResponse> handleValidation(
             WebAuthnAttestationValidationException exception) {
+        VerboseTracePayload trace = exception.trace() == null ? null : VerboseTracePayload.from(exception.trace());
         WebAuthnAttestationErrorResponse body = new WebAuthnAttestationErrorResponse(
-                "invalid", exception.reasonCode(), exception.getMessage(), exception.details(), exception.metadata());
+                "invalid",
+                exception.reasonCode(),
+                exception.getMessage(),
+                exception.details(),
+                exception.metadata(),
+                trace);
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
     }
 
     @ExceptionHandler(WebAuthnAttestationUnexpectedException.class)
     ResponseEntity<WebAuthnAttestationErrorResponse> handleUnexpected(
             WebAuthnAttestationUnexpectedException exception) {
+        VerboseTracePayload trace = exception.trace() == null ? null : VerboseTracePayload.from(exception.trace());
         WebAuthnAttestationErrorResponse body = new WebAuthnAttestationErrorResponse(
-                "error", exception.reasonCode(), exception.getMessage(), java.util.Map.of(), exception.metadata());
+                "error",
+                exception.reasonCode(),
+                exception.getMessage(),
+                java.util.Map.of(),
+                exception.metadata(),
+                trace);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
     @ExceptionHandler(RuntimeException.class)
     ResponseEntity<WebAuthnAttestationErrorResponse> handleFallback(RuntimeException exception) {
         WebAuthnAttestationErrorResponse body = new WebAuthnAttestationErrorResponse(
-                "error", "attestation_failed", exception.getMessage(), java.util.Map.of(), java.util.Map.of());
+                "error", "attestation_failed", exception.getMessage(), java.util.Map.of(), java.util.Map.of(), null);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

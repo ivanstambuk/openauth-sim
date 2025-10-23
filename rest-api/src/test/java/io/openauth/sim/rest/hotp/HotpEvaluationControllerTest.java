@@ -45,10 +45,11 @@ class HotpEvaluationControllerTest {
                 null,
                 null,
                 "rest-hotp-1");
-        HotpEvaluationResponse response = new HotpEvaluationResponse("generated", "generated", vector.otp(), metadata);
+        HotpEvaluationResponse response =
+                new HotpEvaluationResponse("generated", "generated", vector.otp(), metadata, null);
         when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenReturn(response);
 
-        HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo");
+        HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo", null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -75,7 +76,8 @@ class HotpEvaluationControllerTest {
                 null,
                 null,
                 "rest-hotp-2");
-        HotpEvaluationResponse response = new HotpEvaluationResponse("generated", "generated", vector.otp(), metadata);
+        HotpEvaluationResponse response =
+                new HotpEvaluationResponse("generated", "generated", vector.otp(), metadata, null);
         when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenReturn(response);
 
         HotpInlineEvaluationRequest request = new HotpInlineEvaluationRequest(
@@ -83,7 +85,8 @@ class HotpEvaluationControllerTest {
                 vector.algorithm().name(),
                 vector.digits(),
                 vector.counter(),
-                Map.of("source", "test"));
+                Map.of("source", "test"),
+                null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate/inline")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -96,7 +99,7 @@ class HotpEvaluationControllerTest {
     }
 
     @Test
-    @DisplayName("Stored evaluation propagates credential not found as 404")
+    @DisplayName("Stored evaluation propagates credential not found as HTTP 422")
     void storedEvaluationHandlesCredentialNotFound() throws Exception {
         HotpEvaluationValidationException exception = new HotpEvaluationValidationException(
                 "rest-hotp-3",
@@ -104,24 +107,27 @@ class HotpEvaluationControllerTest {
                 "missing",
                 "credential_not_found",
                 true,
-                Map.of("credentialId", "missing"),
-                "credential missing");
+                Map.<String, Object>of("credentialId", "missing"),
+                "credential missing",
+                null);
         when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenThrow(exception);
 
-        HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("missing");
+        HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("missing", null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("invalid_input"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value("invalid_input"))
+                .andExpect(jsonPath("$.reasonCode").value("credential_not_found"))
+                .andExpect(jsonPath("$.message").value("credential missing"))
                 .andExpect(jsonPath("$.details.telemetryId").value("rest-hotp-3"))
-                .andExpect(jsonPath("$.details.reasonCode").value("credential_not_found"))
-                .andExpect(jsonPath("$.details.credentialId").value("missing"));
+                .andExpect(jsonPath("$.details.credentialId").value("missing"))
+                .andExpect(jsonPath("$.trace").doesNotExist());
     }
 
     @Test
-    @DisplayName("Stored evaluation propagates counter overflow as HTTP 400")
+    @DisplayName("Stored evaluation propagates counter overflow as HTTP 422")
     void storedEvaluationHandlesCounterOverflow() throws Exception {
         HotpEvaluationValidationException exception = new HotpEvaluationValidationException(
                 "rest-hotp-7",
@@ -129,23 +135,26 @@ class HotpEvaluationControllerTest {
                 "demo",
                 "counter_overflow",
                 true,
-                Map.of("credentialId", "demo"),
-                "counter overflow");
+                Map.<String, Object>of("credentialId", "demo"),
+                "counter overflow",
+                null);
         when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenThrow(exception);
 
-        HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo");
+        HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo", null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("invalid_input"))
-                .andExpect(jsonPath("$.details.reasonCode").value("counter_overflow"))
-                .andExpect(jsonPath("$.details.telemetryId").value("rest-hotp-7"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value("invalid_input"))
+                .andExpect(jsonPath("$.reasonCode").value("counter_overflow"))
+                .andExpect(jsonPath("$.message").value("counter overflow"))
+                .andExpect(jsonPath("$.details.telemetryId").value("rest-hotp-7"))
+                .andExpect(jsonPath("$.trace").doesNotExist());
     }
 
     @Test
-    @DisplayName("Inline evaluation propagates validation errors as HTTP 400")
+    @DisplayName("Inline evaluation propagates validation errors as HTTP 422")
     void inlineEvaluationHandlesValidationError() throws Exception {
         HotpEvaluationValidationException exception = new HotpEvaluationValidationException(
                 "rest-hotp-4",
@@ -153,22 +162,25 @@ class HotpEvaluationControllerTest {
                 null,
                 "counter_required",
                 true,
-                Map.of("field", "counter"),
-                "counter required");
+                Map.<String, Object>of("field", "counter"),
+                "counter required",
+                null);
         when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenThrow(exception);
 
         HotpJsonVector sample = vector(6, 0L);
         HotpInlineEvaluationRequest request = new HotpInlineEvaluationRequest(
-                sample.secret().asHex(), sample.algorithm().name(), sample.digits(), null, Map.of());
+                sample.secret().asHex(), sample.algorithm().name(), sample.digits(), null, Map.of(), null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate/inline")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("invalid_input"))
-                .andExpect(jsonPath("$.details.reasonCode").value("counter_required"))
-                .andExpect(jsonPath("$.details.sanitized").value("true"))
-                .andExpect(jsonPath("$.details.identifier").doesNotExist());
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value("invalid_input"))
+                .andExpect(jsonPath("$.reasonCode").value("counter_required"))
+                .andExpect(jsonPath("$.message").value("counter required"))
+                .andExpect(jsonPath("$.details.sanitized").value(true))
+                .andExpect(jsonPath("$.details.identifier").doesNotExist())
+                .andExpect(jsonPath("$.trace").doesNotExist());
     }
 
     @Test
@@ -179,13 +191,14 @@ class HotpEvaluationControllerTest {
 
         HotpJsonVector sample = vector(6, 0L);
         HotpInlineEvaluationRequest request = new HotpInlineEvaluationRequest(
-                sample.secret().asHex(), sample.algorithm().name(), sample.digits(), 0L, Map.of());
+                sample.secret().asHex(), sample.algorithm().name(), sample.digits(), 0L, Map.of(), null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate/inline")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.error").value("internal_error"))
+                .andExpect(jsonPath("$.status").value("internal_error"))
+                .andExpect(jsonPath("$.reasonCode").value("hotp_evaluation_failed"))
                 .andExpect(jsonPath("$.details.status").value("error"));
     }
 
@@ -193,38 +206,46 @@ class HotpEvaluationControllerTest {
     @DisplayName("Stored evaluation unexpected error surfaces telemetry metadata")
     void storedEvaluationHandlesCustomUnexpectedError() throws Exception {
         HotpEvaluationUnexpectedException exception =
-                new HotpEvaluationUnexpectedException("rest-hotp-5", "stored", "boom", Map.of("status", "error"));
+                new HotpEvaluationUnexpectedException("rest-hotp-5", "stored", "boom", Map.of("status", "error"), null);
         when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenThrow(exception);
 
-        HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo");
+        HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo", null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.error").value("internal_error"))
+                .andExpect(jsonPath("$.status").value("internal_error"))
+                .andExpect(jsonPath("$.reasonCode").value("hotp_evaluation_failed"))
                 .andExpect(jsonPath("$.details.status").value("error"))
                 .andExpect(jsonPath("$.details.telemetryId").value("rest-hotp-5"))
-                .andExpect(jsonPath("$.details.sanitized").value("false"));
+                .andExpect(jsonPath("$.details.sanitized").value(false));
     }
 
     @Test
     @DisplayName("Validation handler preserves sanitized flag when false")
     void inlineEvaluationHandlesUnsanitizedValidation() throws Exception {
         HotpEvaluationValidationException exception = new HotpEvaluationValidationException(
-                "rest-hotp-6", "inline", "  ", null, false, Map.of("field", "counter"), "counter required");
+                "rest-hotp-6",
+                "inline",
+                "  ",
+                null,
+                false,
+                Map.<String, Object>of("field", "counter"),
+                "counter required",
+                null);
         when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenThrow(exception);
 
         HotpJsonVector sample = vector(6, 0L);
         HotpInlineEvaluationRequest request = new HotpInlineEvaluationRequest(
-                sample.secret().asHex(), sample.algorithm().name(), sample.digits(), null, Map.of());
+                sample.secret().asHex(), sample.algorithm().name(), sample.digits(), null, Map.of(), null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate/inline")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.details.telemetryId").value("rest-hotp-6"))
-                .andExpect(jsonPath("$.details.sanitized").value("false"))
+                .andExpect(jsonPath("$.details.sanitized").value(false))
                 .andExpect(jsonPath("$.details.field").value("counter"))
                 .andExpect(jsonPath("$.details.identifier").doesNotExist());
     }

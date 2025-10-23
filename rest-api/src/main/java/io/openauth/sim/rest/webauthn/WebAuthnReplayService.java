@@ -8,6 +8,8 @@ import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService.Replay
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.rest.VerboseTracePayload;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -35,13 +37,14 @@ class WebAuthnReplayService {
     WebAuthnReplayResponse replay(WebAuthnReplayRequest request) {
         Objects.requireNonNull(request, "request");
         Mode mode = determineMode(request);
+        boolean verbose = Boolean.TRUE.equals(request.verbose());
         return switch (mode) {
-            case STORED -> handleStoredReplay(request);
-            case INLINE -> handleInlineReplay(request);
+            case STORED -> handleStoredReplay(request, verbose);
+            case INLINE -> handleInlineReplay(request, verbose);
         };
     }
 
-    private WebAuthnReplayResponse handleStoredReplay(WebAuthnReplayRequest request) {
+    private WebAuthnReplayResponse handleStoredReplay(WebAuthnReplayRequest request, boolean verbose) {
         String credentialId =
                 requireText(request.credentialId(), "credential_id_required", "Credential ID is required");
         String relyingPartyId =
@@ -54,15 +57,17 @@ class WebAuthnReplayService {
         byte[] authenticatorData = decode("authenticatorData", request.authenticatorData());
         byte[] signature = decode("signature", request.signature());
 
-        ReplayResult result = applicationService.replay(new ReplayCommand.Stored(
-                credentialId,
-                relyingPartyId,
-                origin,
-                expectedType,
-                challenge,
-                clientData,
-                authenticatorData,
-                signature));
+        ReplayResult result = applicationService.replay(
+                new ReplayCommand.Stored(
+                        credentialId,
+                        relyingPartyId,
+                        origin,
+                        expectedType,
+                        challenge,
+                        clientData,
+                        authenticatorData,
+                        signature),
+                verbose);
 
         String telemetryId = nextTelemetryId();
         TelemetryFrame frame = result.replayFrame(TelemetryContracts.fido2ReplayAdapter(), telemetryId);
@@ -74,7 +79,12 @@ class WebAuthnReplayService {
         if (result.telemetry().status() == TelemetryStatus.SUCCESS) {
             WebAuthnReplayMetadata metadata = buildMetadata(
                     result, "stored", combined, String.valueOf(combined.getOrDefault("telemetryId", telemetryId)));
-            return new WebAuthnReplayResponse("match", result.telemetry().reasonCode(), result.match(), metadata);
+            return new WebAuthnReplayResponse(
+                    "match",
+                    result.telemetry().reasonCode(),
+                    result.match(),
+                    metadata,
+                    result.verboseTrace().map(VerboseTracePayload::from).orElse(null));
         }
 
         if (result.telemetry().status() == TelemetryStatus.INVALID) {
@@ -86,18 +96,22 @@ class WebAuthnReplayService {
                     result.telemetry().reasonCode(),
                     Optional.ofNullable(result.telemetry().reason())
                             .orElse(result.telemetry().reasonCode()),
-                    details);
+                    details,
+                    result.verboseTrace().orElse(null));
         }
 
         Map<String, Object> details = sanitizedDetails(combined);
         details.put("credentialSource", "stored");
         throw unexpected(
                 "WebAuthn replay failed unexpectedly",
-                Optional.ofNullable(result.telemetry().reason()).orElse("replay_failed"),
-                details);
+                Optional.ofNullable(result.telemetry().reason())
+                        .map(IllegalStateException::new)
+                        .orElse(null),
+                details,
+                result.verboseTrace().orElse(null));
     }
 
-    private WebAuthnReplayResponse handleInlineReplay(WebAuthnReplayRequest request) {
+    private WebAuthnReplayResponse handleInlineReplay(WebAuthnReplayRequest request, boolean verbose) {
         String relyingPartyId =
                 requireText(request.relyingPartyId(), "relying_party_id_required", "Relying party ID is required");
         String origin = requireText(request.origin(), "origin_required", "Origin is required");
@@ -120,20 +134,22 @@ class WebAuthnReplayService {
         byte[] authenticatorData = decode("authenticatorData", request.authenticatorData());
         byte[] signature = decode("signature", request.signature());
 
-        ReplayResult result = applicationService.replay(new ReplayCommand.Inline(
-                request.credentialName(),
-                relyingPartyId,
-                origin,
-                expectedType,
-                credentialId,
-                publicKey,
-                signatureCounter,
-                userVerificationRequired,
-                algorithm,
-                challenge,
-                clientData,
-                authenticatorData,
-                signature));
+        ReplayResult result = applicationService.replay(
+                new ReplayCommand.Inline(
+                        request.credentialName(),
+                        relyingPartyId,
+                        origin,
+                        expectedType,
+                        credentialId,
+                        publicKey,
+                        signatureCounter,
+                        userVerificationRequired,
+                        algorithm,
+                        challenge,
+                        clientData,
+                        authenticatorData,
+                        signature),
+                verbose);
 
         String telemetryId = nextTelemetryId();
         TelemetryFrame frame = result.replayFrame(TelemetryContracts.fido2ReplayAdapter(), telemetryId);
@@ -145,7 +161,12 @@ class WebAuthnReplayService {
         if (result.telemetry().status() == TelemetryStatus.SUCCESS) {
             WebAuthnReplayMetadata metadata = buildMetadata(
                     result, "inline", combined, String.valueOf(combined.getOrDefault("telemetryId", telemetryId)));
-            return new WebAuthnReplayResponse("match", result.telemetry().reasonCode(), result.match(), metadata);
+            return new WebAuthnReplayResponse(
+                    "match",
+                    result.telemetry().reasonCode(),
+                    result.match(),
+                    metadata,
+                    result.verboseTrace().map(VerboseTracePayload::from).orElse(null));
         }
 
         if (result.telemetry().status() == TelemetryStatus.INVALID) {
@@ -157,15 +178,19 @@ class WebAuthnReplayService {
                     result.telemetry().reasonCode(),
                     Optional.ofNullable(result.telemetry().reason())
                             .orElse(result.telemetry().reasonCode()),
-                    details);
+                    details,
+                    result.verboseTrace().orElse(null));
         }
 
         Map<String, Object> details = sanitizedDetails(combined);
         details.put("credentialSource", "inline");
         throw unexpected(
                 "WebAuthn replay failed unexpectedly",
-                Optional.ofNullable(result.telemetry().reason()).orElse("replay_failed"),
-                details);
+                Optional.ofNullable(result.telemetry().reason())
+                        .map(IllegalStateException::new)
+                        .orElse(null),
+                details,
+                result.verboseTrace().orElse(null));
     }
 
     private byte[] decodePublicKey(String value, WebAuthnSignatureAlgorithm algorithm) {
@@ -337,18 +362,16 @@ class WebAuthnReplayService {
     }
 
     private static WebAuthnReplayValidationException validation(String reasonCode, String message) {
-        return validation(reasonCode, message, Map.of());
+        return validation(reasonCode, message, Map.of(), null);
     }
 
     private static WebAuthnReplayValidationException validation(
-            String reasonCode, String message, Map<String, Object> details) {
-        return new WebAuthnReplayValidationException(reasonCode, message, Map.copyOf(details));
+            String reasonCode, String message, Map<String, Object> details, VerboseTrace trace) {
+        return new WebAuthnReplayValidationException(reasonCode, message, Map.copyOf(details), trace);
     }
 
     private static WebAuthnReplayUnexpectedException unexpected(
-            String message, String reason, Map<String, Object> details) {
-        Map<String, Object> merged = new LinkedHashMap<>(details);
-        merged.putIfAbsent("reason", reason);
-        return new WebAuthnReplayUnexpectedException(message, null, Map.copyOf(merged));
+            String message, Throwable cause, Map<String, Object> details, VerboseTrace trace) {
+        return new WebAuthnReplayUnexpectedException(message, cause, Map.copyOf(details), trace);
     }
 }

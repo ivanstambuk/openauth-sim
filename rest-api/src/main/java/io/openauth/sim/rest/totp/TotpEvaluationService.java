@@ -9,6 +9,8 @@ import io.openauth.sim.application.totp.TotpEvaluationApplicationService.Telemet
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.TelemetryStatus;
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
+import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.rest.VerboseTracePayload;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -49,8 +51,9 @@ class TotpEvaluationService {
                 ? Optional.of(Instant.ofEpochSecond(request.timestampOverride()))
                 : Optional.empty();
 
+        boolean verbose = Boolean.TRUE.equals(request.verbose());
         EvaluationResult result = applicationService.evaluate(
-                new EvaluationCommand.Stored(credentialId, otp, drift, evaluationInstant, timestampOverride));
+                new EvaluationCommand.Stored(credentialId, otp, drift, evaluationInstant, timestampOverride), verbose);
         return handleResult(result, "stored");
     }
 
@@ -75,15 +78,18 @@ class TotpEvaluationService {
                 ? Optional.of(Instant.ofEpochSecond(request.timestampOverride()))
                 : Optional.empty();
 
-        EvaluationResult result = applicationService.evaluate(new EvaluationCommand.Inline(
-                secretHex,
-                algorithm,
-                digits,
-                Duration.ofSeconds(stepSeconds),
-                Optional.ofNullable(request.otp()).map(String::trim).orElse(""),
-                drift,
-                evaluationInstant,
-                timestampOverride));
+        boolean verbose = Boolean.TRUE.equals(request.verbose());
+        EvaluationResult result = applicationService.evaluate(
+                new EvaluationCommand.Inline(
+                        secretHex,
+                        algorithm,
+                        digits,
+                        Duration.ofSeconds(stepSeconds),
+                        Optional.ofNullable(request.otp()).map(String::trim).orElse(""),
+                        drift,
+                        evaluationInstant,
+                        timestampOverride),
+                verbose);
         if (!metadata.isEmpty()) {
             applyPresetMetadata(metadata, result.telemetry());
         }
@@ -99,7 +105,12 @@ class TotpEvaluationService {
         if (signal.status() == TelemetryStatus.SUCCESS) {
             TotpEvaluationMetadata metadata = buildMetadata(frame, credentialSource, result, signal.fields());
             return new TotpEvaluationResponse(
-                    signal.reasonCode(), signal.reasonCode(), result.valid(), result.otp(), metadata);
+                    signal.reasonCode(),
+                    signal.reasonCode(),
+                    result.valid(),
+                    result.otp(),
+                    metadata,
+                    result.verboseTrace().map(VerboseTracePayload::from).orElse(null));
         }
 
         if (signal.status() == TelemetryStatus.INVALID) {
@@ -107,10 +118,16 @@ class TotpEvaluationService {
             details.put("credentialSource", credentialSource);
             details.put("matchedSkewSteps", result.matchedSkewSteps());
             throw validation(
-                    signal.reasonCode(), Optional.ofNullable(signal.reason()).orElse(signal.reasonCode()), details);
+                    signal.reasonCode(),
+                    Optional.ofNullable(signal.reason()).orElse(signal.reasonCode()),
+                    details,
+                    result.verboseTrace().orElse(null));
         }
 
-        throw unexpected("TOTP evaluation failed unexpectedly", null);
+        throw unexpected(
+                "TOTP evaluation failed unexpectedly",
+                null,
+                result.verboseTrace().orElse(null));
     }
 
     private TotpEvaluationMetadata buildMetadata(
@@ -206,16 +223,16 @@ class TotpEvaluationService {
     }
 
     private TotpEvaluationValidationException validation(String reasonCode, String message) {
-        return validation(reasonCode, message, Map.of());
+        return validation(reasonCode, message, Map.of(), null);
     }
 
     private TotpEvaluationValidationException validation(
-            String reasonCode, String message, Map<String, Object> details) {
-        return new TotpEvaluationValidationException(reasonCode, message, details);
+            String reasonCode, String message, Map<String, Object> details, VerboseTrace trace) {
+        return new TotpEvaluationValidationException(reasonCode, message, details, trace);
     }
 
-    private TotpEvaluationUnexpectedException unexpected(String message, Throwable cause) {
-        return new TotpEvaluationUnexpectedException(message, cause);
+    private TotpEvaluationUnexpectedException unexpected(String message, Throwable cause, VerboseTrace trace) {
+        return new TotpEvaluationUnexpectedException(message, cause, trace);
     }
 
     private static String nextTelemetryId() {

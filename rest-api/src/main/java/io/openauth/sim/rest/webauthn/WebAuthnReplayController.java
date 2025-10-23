@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.webauthn;
 
+import io.openauth.sim.rest.VerboseTracePayload;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -48,30 +49,34 @@ class WebAuthnReplayController {
 
     @ExceptionHandler(WebAuthnReplayValidationException.class)
     ResponseEntity<WebAuthnReplayErrorResponse> handleValidation(WebAuthnReplayValidationException exception) {
+        VerboseTracePayload trace = exception.trace() == null ? null : VerboseTracePayload.from(exception.trace());
         WebAuthnReplayErrorResponse body = new WebAuthnReplayErrorResponse(
                 exception.reasonCode(),
                 exception.reasonCode(),
                 exception.getMessage(),
                 exception.details(),
-                exception.details());
+                exception.details(),
+                trace);
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
     }
 
     @ExceptionHandler(WebAuthnReplayUnexpectedException.class)
     ResponseEntity<WebAuthnReplayErrorResponse> handleUnexpected(WebAuthnReplayUnexpectedException exception) {
+        VerboseTracePayload trace = exception.trace() == null ? null : VerboseTracePayload.from(exception.trace());
         WebAuthnReplayErrorResponse body = new WebAuthnReplayErrorResponse(
                 "internal_error",
                 "webauthn_replay_failed",
                 exception.getMessage(),
                 exception.details(),
-                exception.details());
+                exception.details(),
+                trace);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
     @ExceptionHandler(RuntimeException.class)
     ResponseEntity<WebAuthnReplayErrorResponse> handleFallback(RuntimeException exception) {
         WebAuthnReplayErrorResponse body = new WebAuthnReplayErrorResponse(
-                "internal_error", "webauthn_replay_failed", exception.getMessage(), Map.of(), Map.of());
+                "internal_error", "webauthn_replay_failed", exception.getMessage(), Map.of(), Map.of(), null);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

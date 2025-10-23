@@ -1,6 +1,7 @@
 package io.openauth.sim.rest.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.model.Credential;
@@ -177,6 +178,76 @@ final class TotpOperatorUiSeleniumTest {
         assertTrue(
                 driver.findElements(By.id("totpStoredOtp")).isEmpty(),
                 "Stored evaluate form should not render an OTP input field");
+    }
+
+    @Test
+    @DisplayName("Verbose trace toggle surfaces trace panel for stored TOTP evaluation")
+    void verboseTraceToggleSurfacesTracePanelForStoredTotpEvaluation() {
+        navigateToTotpPanel();
+
+        WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
+        waitUntilAttribute(modeToggle, "data-mode", "inline");
+
+        WebElement storedToggle = driver.findElement(By.cssSelector("[data-testid='totp-mode-select-stored']"));
+        storedToggle.click();
+        waitUntilAttribute(modeToggle, "data-mode", "stored");
+
+        selectOption("totpStoredCredentialId", STORED_CREDENTIAL_ID);
+
+        var verboseCheckboxes = driver.findElements(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
+        assertFalse(verboseCheckboxes.isEmpty(), "Verbose trace checkbox should be present for TOTP evaluate panel");
+        WebElement verboseCheckbox = verboseCheckboxes.get(0);
+        assertFalse(verboseCheckbox.isSelected(), "Verbose trace should be disabled by default");
+
+        var tracePanels = driver.findElements(By.cssSelector("[data-testid='verbose-trace-panel']"));
+        assertFalse(tracePanels.isEmpty(), "Verbose trace panel container should exist");
+        WebElement tracePanel = tracePanels.get(0);
+        assertEquals(
+                "false",
+                tracePanel.getAttribute("data-trace-visible"),
+                "Trace panel should remain hidden before verbose evaluation runs");
+
+        driver.findElement(By.cssSelector("[data-testid='totp-stored-evaluate-button']"))
+                .click();
+        waitForVisible(By.cssSelector("[data-testid='totp-stored-result-panel']"));
+
+        assertEquals(
+                "false",
+                tracePanel.getAttribute("data-trace-visible"),
+                "Trace panel should stay hidden when verbose tracing is disabled");
+
+        if (!verboseCheckbox.isSelected()) {
+            verboseCheckbox.click();
+        }
+        assertTrue(verboseCheckbox.isSelected(), "Verbose trace checkbox should become selected after toggle");
+
+        // Re-select credential to guard against UI resets before triggering verbose evaluation
+        selectOption("totpStoredCredentialId", STORED_CREDENTIAL_ID);
+
+        driver.findElement(By.cssSelector("[data-testid='totp-stored-evaluate-button']"))
+                .click();
+
+        WebElement traceOperation = waitForVisible(By.cssSelector("[data-testid='verbose-trace-operation']"));
+        assertEquals(
+                "totp.evaluate.stored",
+                traceOperation.getText().trim(),
+                "Trace operation should reflect stored TOTP evaluation");
+
+        WebElement traceContent = waitForVisible(By.cssSelector("[data-testid='verbose-trace-content']"));
+        String traceText = traceContent.getText();
+        assertTrue(traceText.contains("resolve.credential"), "Trace content should include credential resolution step");
+        assertTrue(traceText.contains("generate.otp"), "Trace content should include OTP generation step");
+
+        assertEquals(
+                "true",
+                tracePanel.getAttribute("data-trace-visible"),
+                "Trace panel should mark itself visible after verbose evaluation");
+
+        assertFalse(
+                tracePanel
+                        .findElements(By.cssSelector("[data-testid='verbose-trace-copy']"))
+                        .isEmpty(),
+                "Verbose trace panel should expose a copy control");
     }
 
     @Test

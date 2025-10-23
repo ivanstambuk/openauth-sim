@@ -14,6 +14,7 @@ import io.openauth.sim.core.otp.totp.TotpValidator;
 import io.openauth.sim.core.otp.totp.TotpVerificationResult;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -42,21 +43,35 @@ public final class TotpEvaluationApplicationService {
     }
 
     public EvaluationResult evaluate(EvaluationCommand command) {
+        return evaluate(command, false);
+    }
+
+    public EvaluationResult evaluate(EvaluationCommand command, boolean verbose) {
         Objects.requireNonNull(command, "command");
         if (command instanceof EvaluationCommand.Stored stored) {
-            return evaluateStored(stored);
+            return evaluateStored(stored, verbose);
         }
         if (command instanceof EvaluationCommand.Inline inline) {
-            return evaluateInline(inline);
+            return evaluateInline(inline, verbose);
         }
         throw new IllegalStateException("Unsupported TOTP evaluation command: " + command);
     }
 
-    private EvaluationResult evaluateStored(EvaluationCommand.Stored command) {
+    private EvaluationResult evaluateStored(EvaluationCommand.Stored command, boolean verbose) {
+        VerboseTrace.Builder trace = newTrace(verbose, "totp.evaluate.stored");
+        metadata(trace, "protocol", "TOTP");
+        metadata(trace, "mode", "stored");
+        metadata(trace, "credentialId", command.credentialId());
+
         Credential credential =
                 credentialStore.findByName(command.credentialId()).orElse(null);
         if (credential == null) {
-            return credentialNotFound(command.credentialId());
+            addStep(trace, step -> step.id("resolve.credential")
+                    .summary("Resolve stored TOTP credential")
+                    .detail("CredentialStore.findByName")
+                    .attribute("credentialId", command.credentialId())
+                    .attribute("found", false));
+            return credentialNotFound(command.credentialId(), buildTrace(trace));
         }
         if (credential.type() != CredentialType.OATH_TOTP) {
             return validationFailure(
@@ -69,7 +84,8 @@ public final class TotpEvaluationApplicationService {
                     "credential_not_totp",
                     "Credential is not a TOTP entry",
                     command.timestampOverride().isPresent(),
-                    Integer.MIN_VALUE);
+                    Integer.MIN_VALUE,
+                    buildTrace(trace));
         }
 
         TotpDescriptor descriptor;
@@ -86,16 +102,33 @@ public final class TotpEvaluationApplicationService {
                     "credential_metadata_invalid",
                     ex.getMessage(),
                     command.timestampOverride().isPresent(),
-                    Integer.MIN_VALUE);
+                    Integer.MIN_VALUE,
+                    buildTrace(trace));
         }
 
         String candidateOtp = sanitizeOtp(command.otp());
         boolean validationRequested = !candidateOtp.isEmpty();
 
+        addStep(trace, step -> step.id("resolve.credential")
+                .summary("Resolve stored TOTP credential")
+                .detail("CredentialStore.findByName")
+                .attribute("credentialId", command.credentialId())
+                .attribute("algorithm", descriptor.algorithm().name())
+                .attribute("digits", descriptor.digits())
+                .attribute("stepSeconds", descriptor.stepDuration().toSeconds())
+                .attribute("drift.backward", descriptor.driftWindow().backwardSteps())
+                .attribute("drift.forward", descriptor.driftWindow().forwardSteps()));
         if (!validationRequested) {
             Instant evaluationInstant = defaultInstant(command.evaluationInstant());
             Instant generationInstant = command.timestampOverride().orElse(evaluationInstant);
             String generatedOtp = TotpGenerator.generate(descriptor, generationInstant);
+            addStep(trace, step -> step.id("generate.otp")
+                    .summary("Generate TOTP for stored credential")
+                    .detail("TotpGenerator.generate")
+                    .attribute("evaluationInstant", evaluationInstant)
+                    .attribute("generationInstant", generationInstant)
+                    .attribute("success", true)
+                    .attribute("otp", generatedOtp));
             return successResult(
                     true,
                     command.credentialId(),
@@ -106,7 +139,8 @@ public final class TotpEvaluationApplicationService {
                     0,
                     command.timestampOverride().isPresent(),
                     "generated",
-                    generatedOtp);
+                    generatedOtp,
+                    buildTrace(trace));
         }
 
         if (!isValidOtpFormat(candidateOtp, descriptor.digits())) {
@@ -120,7 +154,8 @@ public final class TotpEvaluationApplicationService {
                     "otp_invalid_format",
                     "OTP must be numeric and match the required digit length",
                     command.timestampOverride().isPresent(),
-                    Integer.MIN_VALUE);
+                    Integer.MIN_VALUE,
+                    buildTrace(trace));
         }
 
         Instant evaluationInstant = defaultInstant(command.evaluationInstant());
@@ -132,6 +167,12 @@ public final class TotpEvaluationApplicationService {
                 command.timestampOverride().orElse(null));
 
         if (verification.valid()) {
+            addStep(trace, step -> step.id("validate.otp")
+                    .summary("Validate stored credential OTP")
+                    .detail("TotpValidator.verify")
+                    .attribute("evaluationInstant", evaluationInstant)
+                    .attribute("valid", true)
+                    .attribute("matchedSkewSteps", verification.matchedSkewSteps()));
             return successResult(
                     true,
                     command.credentialId(),
@@ -142,9 +183,17 @@ public final class TotpEvaluationApplicationService {
                     verification.matchedSkewSteps(),
                     command.timestampOverride().isPresent(),
                     "validated",
-                    null);
+                    null,
+                    buildTrace(trace));
         }
 
+        addStep(trace, step -> step.id("validate.otp")
+                .summary("Validate stored credential OTP")
+                .detail("TotpValidator.verify")
+                .attribute("evaluationInstant", evaluationInstant)
+                .attribute("valid", false)
+                .attribute("matchedSkewSteps", verification.matchedSkewSteps())
+                .note("reason", "otp_out_of_window"));
         return validationFailure(
                 command.credentialId(),
                 true,
@@ -155,11 +204,16 @@ public final class TotpEvaluationApplicationService {
                 "otp_out_of_window",
                 "OTP did not match within the permitted drift window",
                 command.timestampOverride().isPresent(),
-                verification.matchedSkewSteps());
+                verification.matchedSkewSteps(),
+                buildTrace(trace));
     }
 
-    private EvaluationResult evaluateInline(EvaluationCommand.Inline command) {
+    private EvaluationResult evaluateInline(EvaluationCommand.Inline command, boolean verbose) {
         SecretMaterial secret;
+        VerboseTrace.Builder trace = newTrace(verbose, "totp.evaluate.inline");
+        metadata(trace, "protocol", "TOTP");
+        metadata(trace, "mode", "inline");
+
         try {
             secret = SecretMaterial.fromHex(command.sharedSecretHex().trim());
         } catch (IllegalArgumentException ex) {
@@ -173,7 +227,8 @@ public final class TotpEvaluationApplicationService {
                     "shared_secret_invalid",
                     ex.getMessage(),
                     command.timestampOverride().isPresent(),
-                    Integer.MIN_VALUE);
+                    Integer.MIN_VALUE,
+                    buildTrace(trace));
         }
 
         TotpDescriptor descriptor;
@@ -196,8 +251,18 @@ public final class TotpEvaluationApplicationService {
                     "validation_error",
                     ex.getMessage(),
                     command.timestampOverride().isPresent(),
-                    Integer.MIN_VALUE);
+                    Integer.MIN_VALUE,
+                    buildTrace(trace));
         }
+
+        addStep(trace, step -> step.id("normalize.input")
+                .summary("Construct inline TOTP descriptor")
+                .detail("TotpDescriptor.create")
+                .attribute("algorithm", descriptor.algorithm().name())
+                .attribute("digits", descriptor.digits())
+                .attribute("stepSeconds", descriptor.stepDuration().toSeconds())
+                .attribute("drift.backward", descriptor.driftWindow().backwardSteps())
+                .attribute("drift.forward", descriptor.driftWindow().forwardSteps()));
 
         String candidateOtp = sanitizeOtp(command.otp());
         boolean validationRequested = !candidateOtp.isEmpty();
@@ -206,6 +271,13 @@ public final class TotpEvaluationApplicationService {
             Instant evaluationInstant = defaultInstant(command.evaluationInstant());
             Instant generationInstant = command.timestampOverride().orElse(evaluationInstant);
             String generatedOtp = TotpGenerator.generate(descriptor, generationInstant);
+            addStep(trace, step -> step.id("generate.otp")
+                    .summary("Generate TOTP for inline descriptor")
+                    .detail("TotpGenerator.generate")
+                    .attribute("evaluationInstant", evaluationInstant)
+                    .attribute("generationInstant", generationInstant)
+                    .attribute("success", true)
+                    .attribute("otp", generatedOtp));
             return successResult(
                     false,
                     null,
@@ -216,7 +288,8 @@ public final class TotpEvaluationApplicationService {
                     0,
                     command.timestampOverride().isPresent(),
                     "generated",
-                    generatedOtp);
+                    generatedOtp,
+                    buildTrace(trace));
         }
 
         if (!isValidOtpFormat(candidateOtp, descriptor.digits())) {
@@ -230,7 +303,8 @@ public final class TotpEvaluationApplicationService {
                     "otp_invalid_format",
                     "OTP must be numeric and match the required digit length",
                     command.timestampOverride().isPresent(),
-                    Integer.MIN_VALUE);
+                    Integer.MIN_VALUE,
+                    buildTrace(trace));
         }
 
         Instant evaluationInstant = defaultInstant(command.evaluationInstant());
@@ -242,6 +316,12 @@ public final class TotpEvaluationApplicationService {
                 command.timestampOverride().orElse(null));
 
         if (verification.valid()) {
+            addStep(trace, step -> step.id("validate.otp")
+                    .summary("Validate inline OTP")
+                    .detail("TotpValidator.verify")
+                    .attribute("evaluationInstant", evaluationInstant)
+                    .attribute("valid", true)
+                    .attribute("matchedSkewSteps", verification.matchedSkewSteps()));
             return successResult(
                     false,
                     null,
@@ -252,9 +332,17 @@ public final class TotpEvaluationApplicationService {
                     verification.matchedSkewSteps(),
                     command.timestampOverride().isPresent(),
                     "validated",
-                    null);
+                    null,
+                    buildTrace(trace));
         }
 
+        addStep(trace, step -> step.id("validate.otp")
+                .summary("Validate inline OTP")
+                .detail("TotpValidator.verify")
+                .attribute("evaluationInstant", evaluationInstant)
+                .attribute("valid", false)
+                .attribute("matchedSkewSteps", verification.matchedSkewSteps())
+                .note("reason", "otp_out_of_window"));
         return validationFailure(
                 null,
                 false,
@@ -265,10 +353,11 @@ public final class TotpEvaluationApplicationService {
                 "otp_out_of_window",
                 "OTP did not match within the permitted drift window",
                 command.timestampOverride().isPresent(),
-                verification.matchedSkewSteps());
+                verification.matchedSkewSteps(),
+                buildTrace(trace));
     }
 
-    private EvaluationResult credentialNotFound(String credentialId) {
+    private EvaluationResult credentialNotFound(String credentialId, VerboseTrace trace) {
         return validationFailure(
                 credentialId,
                 false,
@@ -279,7 +368,8 @@ public final class TotpEvaluationApplicationService {
                 "credential_not_found",
                 "Credential not found",
                 false,
-                Integer.MIN_VALUE);
+                Integer.MIN_VALUE,
+                trace);
     }
 
     private EvaluationResult successResult(
@@ -292,7 +382,8 @@ public final class TotpEvaluationApplicationService {
             int matchedSkewSteps,
             boolean timestampOverrideProvided,
             String reasonCode,
-            String otp) {
+            String otp,
+            VerboseTrace trace) {
 
         Map<String, Object> fields = telemetryFields(
                 credentialReference,
@@ -316,7 +407,8 @@ public final class TotpEvaluationApplicationService {
                 digits,
                 stepDuration,
                 driftWindow,
-                otp);
+                otp,
+                trace);
     }
 
     private EvaluationResult validationFailure(
@@ -329,7 +421,8 @@ public final class TotpEvaluationApplicationService {
             String reasonCode,
             String reason,
             boolean timestampOverrideProvided,
-            int matchedSkewSteps) {
+            int matchedSkewSteps,
+            VerboseTrace trace) {
 
         Map<String, Object> fields = telemetryFields(
                 credentialReference,
@@ -353,7 +446,29 @@ public final class TotpEvaluationApplicationService {
                 digits,
                 stepDuration,
                 driftWindow,
-                null);
+                null,
+                trace);
+    }
+
+    private static VerboseTrace.Builder newTrace(boolean verbose, String operation) {
+        return verbose ? VerboseTrace.builder(operation) : null;
+    }
+
+    private static void metadata(VerboseTrace.Builder trace, String key, String value) {
+        if (trace != null && value != null) {
+            trace.withMetadata(key, value);
+        }
+    }
+
+    private static void addStep(
+            VerboseTrace.Builder trace, java.util.function.Consumer<VerboseTrace.TraceStep.Builder> configurer) {
+        if (trace != null) {
+            trace.addStep(configurer);
+        }
+    }
+
+    private static VerboseTrace buildTrace(VerboseTrace.Builder trace) {
+        return trace == null ? null : trace.build();
     }
 
     private Map<String, Object> telemetryFields(
@@ -452,10 +567,15 @@ public final class TotpEvaluationApplicationService {
             Integer digits,
             Duration stepDuration,
             TotpDriftWindow driftWindow,
-            String otp) {
+            String otp,
+            VerboseTrace trace) {
 
         public TelemetryFrame evaluationFrame(String telemetryId) {
             return telemetry.emit(TelemetryContracts.totpEvaluationAdapter(), telemetryId);
+        }
+
+        public Optional<VerboseTrace> verboseTrace() {
+            return Optional.ofNullable(trace);
         }
     }
 

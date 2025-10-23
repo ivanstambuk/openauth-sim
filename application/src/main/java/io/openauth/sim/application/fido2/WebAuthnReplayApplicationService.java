@@ -3,6 +3,7 @@ package io.openauth.sim.application.fido2;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.fido2.WebAuthnVerificationError;
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -18,11 +19,15 @@ public final class WebAuthnReplayApplicationService {
     }
 
     public ReplayResult replay(ReplayCommand command) {
+        return replay(command, false);
+    }
+
+    public ReplayResult replay(ReplayCommand command, boolean verbose) {
         Objects.requireNonNull(command, "command");
 
         if (command instanceof ReplayCommand.Stored stored) {
-            var evaluationResult =
-                    evaluationService.evaluate(new WebAuthnEvaluationApplicationService.EvaluationCommand.Stored(
+            var evaluationResult = evaluationService.evaluate(
+                    new WebAuthnEvaluationApplicationService.EvaluationCommand.Stored(
                             stored.credentialId(),
                             stored.relyingPartyId(),
                             stored.origin(),
@@ -30,13 +35,14 @@ public final class WebAuthnReplayApplicationService {
                             stored.expectedChallenge(),
                             stored.clientDataJson(),
                             stored.authenticatorData(),
-                            stored.signature()));
+                            stored.signature()),
+                    verbose);
             return fromEvaluation(evaluationResult, "stored");
         }
 
         if (command instanceof ReplayCommand.Inline inline) {
-            var evaluationResult =
-                    evaluationService.evaluate(new WebAuthnEvaluationApplicationService.EvaluationCommand.Inline(
+            var evaluationResult = evaluationService.evaluate(
+                    new WebAuthnEvaluationApplicationService.EvaluationCommand.Inline(
                             inline.credentialName(),
                             inline.relyingPartyId(),
                             inline.origin(),
@@ -49,7 +55,8 @@ public final class WebAuthnReplayApplicationService {
                             inline.expectedChallenge(),
                             inline.clientDataJson(),
                             inline.authenticatorData(),
-                            inline.signature()));
+                            inline.signature()),
+                    verbose);
             return fromEvaluation(evaluationResult, "inline");
         }
 
@@ -189,7 +196,8 @@ public final class WebAuthnReplayApplicationService {
             String credentialId,
             String credentialSource,
             Optional<WebAuthnVerificationError> error,
-            Map<String, Object> supplementalFields) {
+            Map<String, Object> supplementalFields,
+            VerboseTrace trace) {
 
         public ReplayResult {
             Objects.requireNonNull(telemetry, "telemetry");
@@ -202,6 +210,10 @@ public final class WebAuthnReplayApplicationService {
         public TelemetryFrame replayFrame(
                 io.openauth.sim.application.telemetry.Fido2TelemetryAdapter adapter, String telemetryId) {
             return telemetry.emit(adapter, telemetryId);
+        }
+
+        public Optional<VerboseTrace> verboseTrace() {
+            return Optional.ofNullable(trace);
         }
     }
 
@@ -219,6 +231,7 @@ public final class WebAuthnReplayApplicationService {
                 evaluationResult.credentialId(),
                 credentialSource,
                 evaluationResult.error(),
-                supplemental);
+                supplemental,
+                evaluationResult.verboseTrace().orElse(null));
     }
 }

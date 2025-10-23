@@ -30,11 +30,11 @@ class OcraEvaluationControllerTest {
     @Test
     @DisplayName("evaluate returns 200 with response payload on success")
     void evaluateReturnsResponse() throws Exception {
-        OcraEvaluationResponse response = new OcraEvaluationResponse("OCRA-1", "867530", "rest-ocra-1");
+        OcraEvaluationResponse response = new OcraEvaluationResponse("OCRA-1", "867530", "rest-ocra-1", null);
         when(service.evaluate(any(OcraEvaluationRequest.class))).thenReturn(response);
 
-        OcraEvaluationRequest request =
-                new OcraEvaluationRequest(null, "OCRA-1", "31323334", "12345678", null, null, null, null, null, null);
+        OcraEvaluationRequest request = new OcraEvaluationRequest(
+                null, "OCRA-1", "31323334", "12345678", null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/v1/ocra/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -42,7 +42,8 @@ class OcraEvaluationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.suite").value("OCRA-1"))
                 .andExpect(jsonPath("$.otp").value("867530"))
-                .andExpect(jsonPath("$.telemetryId").value("rest-ocra-1"));
+                .andExpect(jsonPath("$.telemetryId").value("rest-ocra-1"))
+                .andExpect(jsonPath("$.trace").doesNotExist());
     }
 
     @Test
@@ -55,11 +56,12 @@ class OcraEvaluationControllerTest {
                 "session_required",
                 "sessionHex is required",
                 true,
-                new IllegalArgumentException("session missing"));
+                new IllegalArgumentException("session missing"),
+                null);
         when(service.evaluate(any(OcraEvaluationRequest.class))).thenThrow(exception);
 
-        OcraEvaluationRequest request =
-                new OcraEvaluationRequest(null, "OCRA-1", "31323334", "12345678", null, null, null, null, null, null);
+        OcraEvaluationRequest request = new OcraEvaluationRequest(
+                null, "OCRA-1", "31323334", "12345678", null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/v1/ocra/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -70,7 +72,8 @@ class OcraEvaluationControllerTest {
                 .andExpect(jsonPath("$.details.telemetryId").value("rest-ocra-telemetry"))
                 .andExpect(jsonPath("$.details.reasonCode").value("session_required"))
                 .andExpect(jsonPath("$.details.field").value("sessionHex"))
-                .andExpect(jsonPath("$.details.sanitized").value("true"));
+                .andExpect(jsonPath("$.details.sanitized").value("true"))
+                .andExpect(jsonPath("$.trace").doesNotExist());
     }
 
     @Test
@@ -83,11 +86,12 @@ class OcraEvaluationControllerTest {
                 null,
                 "general failure",
                 false,
-                new IllegalArgumentException("boom"));
+                new IllegalArgumentException("boom"),
+                null);
         when(service.evaluate(any(OcraEvaluationRequest.class))).thenThrow(exception);
 
-        OcraEvaluationRequest request =
-                new OcraEvaluationRequest(null, "OCRA-1", "31323334", "12345678", null, null, null, null, null, null);
+        OcraEvaluationRequest request = new OcraEvaluationRequest(
+                null, "OCRA-1", "31323334", "12345678", null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/v1/ocra/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -96,7 +100,8 @@ class OcraEvaluationControllerTest {
                 .andExpect(jsonPath("$.details.telemetryId").value("rest-ocra-telemetry"))
                 .andExpect(jsonPath("$.details.sanitized").value("false"))
                 .andExpect(jsonPath("$.details.field").doesNotExist())
-                .andExpect(jsonPath("$.details.reasonCode").doesNotExist());
+                .andExpect(jsonPath("$.details.reasonCode").doesNotExist())
+                .andExpect(jsonPath("$.trace").doesNotExist());
     }
 
     @Test
@@ -104,8 +109,8 @@ class OcraEvaluationControllerTest {
     void evaluateHandlesUnexpectedError() throws Exception {
         when(service.evaluate(any(OcraEvaluationRequest.class))).thenThrow(new IllegalStateException("store offline"));
 
-        OcraEvaluationRequest request =
-                new OcraEvaluationRequest(null, "OCRA-1", "31323334", "12345678", null, null, null, null, null, null);
+        OcraEvaluationRequest request = new OcraEvaluationRequest(
+                null, "OCRA-1", "31323334", "12345678", null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/v1/ocra/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -113,6 +118,7 @@ class OcraEvaluationControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.error").value("internal_error"))
                 .andExpect(jsonPath("$.message").value("OCRA evaluation failed"))
-                .andExpect(jsonPath("$.details.status").value("error"));
+                .andExpect(jsonPath("$.details.status").value("error"))
+                .andExpect(jsonPath("$.trace").doesNotExist());
     }
 }

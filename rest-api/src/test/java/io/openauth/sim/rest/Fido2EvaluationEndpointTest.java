@@ -195,6 +195,96 @@ class Fido2EvaluationEndpointTest {
     }
 
     @Test
+    @DisplayName("Stored WebAuthn evaluation returns verbose trace when requested")
+    void storedEvaluationReturnsVerboseTrace() throws Exception {
+        byte[] challenge = "stored-verbose".getBytes(StandardCharsets.UTF_8);
+        byte[] credentialId = "stored-credential-trace".getBytes(StandardCharsets.UTF_8);
+
+        GenerationResult seed = generator.generate(new GenerationCommand.Inline(
+                "seed-inline-trace",
+                credentialId,
+                WebAuthnSignatureAlgorithm.ES256,
+                RELYING_PARTY_ID,
+                ORIGIN,
+                EXPECTED_TYPE,
+                1L,
+                false,
+                challenge,
+                PRIVATE_KEY_JWK));
+
+        saveCredential("stored-credential-trace", seed);
+
+        String response = mockMvc.perform(post("/api/v1/webauthn/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                          \"credentialId\": \"stored-credential-trace\",
+                          \"relyingPartyId\": \"%s\",
+                          \"origin\": \"%s\",
+                          \"expectedType\": \"%s\",
+                          \"challenge\": \"%s\",
+                          \"privateKey\": %s,
+                          \"verbose\": true
+                        }
+                        """.formatted(
+                                        RELYING_PARTY_ID,
+                                        ORIGIN,
+                                        EXPECTED_TYPE,
+                                        encode(challenge),
+                                        jsonEscape(PRIVATE_KEY_JWK))))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(response);
+        JsonNode trace = root.get("trace");
+        assertThat(trace).as("verbose trace payload required").isNotNull();
+        assertThat(trace.get("operation").asText()).isEqualTo("fido2.assertion.evaluate.stored");
+        assertThat(trace.get("steps").isArray()).isTrue();
+        assertThat(trace.get("steps")).isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("Inline WebAuthn evaluation returns verbose trace when requested")
+    void inlineEvaluationReturnsVerboseTrace() throws Exception {
+        byte[] challenge = "inline-verbose".getBytes(StandardCharsets.UTF_8);
+        byte[] credentialId = "inline-credential-trace".getBytes(StandardCharsets.UTF_8);
+
+        String response = mockMvc.perform(post("/api/v1/webauthn/evaluate/inline")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                          \"credentialId\": \"%s\",
+                          \"relyingPartyId\": \"%s\",
+                          \"origin\": \"%s\",
+                          \"algorithm\": \"ES256\",
+                          \"signatureCounter\": 0,
+                          \"userVerificationRequired\": false,
+                          \"challenge\": \"%s\",
+                          \"privateKey\": %s,
+                          \"verbose\": true
+                        }
+                        """.formatted(
+                                        encode(credentialId),
+                                        RELYING_PARTY_ID,
+                                        ORIGIN,
+                                        encode(challenge),
+                                        jsonEscape(PRIVATE_KEY_JWK))))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(response);
+        JsonNode trace = root.get("trace");
+        assertThat(trace).isNotNull();
+        assertThat(trace.get("operation").asText()).isEqualTo("fido2.assertion.evaluate.inline");
+        assertThat(trace.get("steps").isArray()).isTrue();
+        assertThat(trace.get("steps")).isNotEmpty();
+    }
+
+    @Test
     @DisplayName("Evaluate endpoints reject invalid private keys")
     void evaluateRejectsInvalidPrivateKey() throws Exception {
         mockMvc.perform(post("/api/v1/webauthn/evaluate")

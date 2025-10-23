@@ -14,7 +14,7 @@ final class HotpEvaluationValidationExceptionTest {
     @DisplayName("Details map defaults to empty when null supplied")
     void detailsDefaultToEmptyMap() {
         HotpEvaluationValidationException exception = new HotpEvaluationValidationException(
-                "telemetry-1", "stored", "demo", "credentialId_required", true, null, "credentialId missing");
+                "telemetry-1", "stored", "demo", "credentialId_required", true, null, "credentialId missing", null);
 
         assertTrue(exception.details().isEmpty());
         assertEquals("telemetry-1", exception.telemetryId());
@@ -33,8 +33,9 @@ final class HotpEvaluationValidationExceptionTest {
                 null,
                 "algorithm_invalid",
                 true,
-                Map.of("field", "algorithm"),
-                "algorithm invalid");
+                Map.<String, Object>of("field", "algorithm"),
+                "algorithm invalid",
+                null);
 
         assertThrows(
                 UnsupportedOperationException.class, () -> exception.details().put("x", "y"));

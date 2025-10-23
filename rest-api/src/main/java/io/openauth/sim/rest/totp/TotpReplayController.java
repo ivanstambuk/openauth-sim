@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.totp;
 
+import io.openauth.sim.rest.VerboseTracePayload;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -49,21 +50,29 @@ class TotpReplayController {
     @ExceptionHandler(TotpReplayValidationException.class)
     ResponseEntity<TotpReplayErrorResponse> handleValidation(TotpReplayValidationException exception) {
         TotpReplayErrorResponse body = new TotpReplayErrorResponse(
-                "invalid_input", exception.reasonCode(), exception.getMessage(), exception.details());
+                "invalid_input",
+                exception.reasonCode(),
+                exception.getMessage(),
+                exception.details(),
+                exception.trace() != null ? VerboseTracePayload.from(exception.trace()) : null);
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
     }
 
     @ExceptionHandler(TotpReplayUnexpectedException.class)
     ResponseEntity<TotpReplayErrorResponse> handleUnexpected(TotpReplayUnexpectedException exception) {
         TotpReplayErrorResponse body = new TotpReplayErrorResponse(
-                "internal_error", "totp_replay_failed", exception.getMessage(), exception.details());
+                "internal_error",
+                "totp_replay_failed",
+                exception.getMessage(),
+                exception.details(),
+                exception.trace() != null ? VerboseTracePayload.from(exception.trace()) : null);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
     @ExceptionHandler(RuntimeException.class)
     ResponseEntity<TotpReplayErrorResponse> handleFallback(RuntimeException exception) {
-        TotpReplayErrorResponse body =
-                new TotpReplayErrorResponse("internal_error", "totp_replay_failed", exception.getMessage(), Map.of());
+        TotpReplayErrorResponse body = new TotpReplayErrorResponse(
+                "internal_error", "totp_replay_failed", exception.getMessage(), Map.of(), null);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

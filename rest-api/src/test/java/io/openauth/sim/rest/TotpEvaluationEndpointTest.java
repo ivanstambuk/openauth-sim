@@ -1,6 +1,7 @@
 package io.openauth.sim.rest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -148,6 +149,40 @@ class TotpEvaluationEndpointTest {
         assertTrue(response.get("valid").asBoolean());
         assertEquals(expectedOtp, response.get("otp").asText());
         assertEquals("inline", response.get("metadata").get("credentialSource").asText());
+    }
+
+    @Test
+    @DisplayName("Stored TOTP evaluation returns verbose trace when requested")
+    void storedTotpEvaluationReturnsVerboseTrace() throws Exception {
+        TotpDescriptor descriptor = TotpDescriptor.create(
+                CREDENTIAL_ID,
+                STORED_SECRET,
+                TotpHashAlgorithm.SHA1,
+                6,
+                Duration.ofSeconds(30),
+                TotpDriftWindow.of(1, 1));
+        Credential credential = VersionedCredentialRecordMapper.toCredential(adapter.serialize(descriptor));
+        credentialStore.save(credential);
+
+        String responseBody = mockMvc.perform(post("/api/v1/totp/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                          \"credentialId\": \"%s\",
+                          \"verbose\": true
+                        }
+                        """.formatted(CREDENTIAL_ID)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode response = MAPPER.readTree(responseBody);
+        JsonNode trace = response.get("trace");
+        assertNotNull(trace, "Expected trace payload when verbose=true");
+        assertEquals("totp.evaluate.stored", trace.get("operation").asText());
+        assertTrue(trace.get("steps").isArray());
+        assertTrue(trace.get("steps").size() > 0, "Trace steps must not be empty");
     }
 
     @Test

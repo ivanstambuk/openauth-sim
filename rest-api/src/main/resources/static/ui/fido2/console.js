@@ -13,6 +13,7 @@
     return;
   }
 
+  var verboseConsole = global.VerboseTraceConsole || null;
   var TAB_EVALUATE = 'evaluate';
   var TAB_REPLAY = 'replay';
   var MODE_STORED = 'stored';
@@ -322,6 +323,61 @@
   var lastBroadcastEvaluateMode = null;
   var lastBroadcastReplayMode = null;
 
+  function verboseAttach(payload) {
+    if (!payload || typeof payload !== 'object' || !verboseConsole) {
+      return payload;
+    }
+    if (typeof verboseConsole.attachVerboseFlag === 'function') {
+      return verboseConsole.attachVerboseFlag(payload);
+    }
+    if (typeof verboseConsole.isEnabled === 'function' && verboseConsole.isEnabled()) {
+      payload.verbose = true;
+    } else if (Object.prototype.hasOwnProperty.call(payload, 'verbose')) {
+      delete payload.verbose;
+    }
+    return payload;
+  }
+
+  function verboseBeginRequest() {
+    if (!verboseConsole) {
+      return;
+    }
+    if (typeof verboseConsole.beginRequest === 'function') {
+      verboseConsole.beginRequest();
+    } else if (typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
+    }
+  }
+
+  function verboseApplyResponse(payload, variant) {
+    if (!verboseConsole) {
+      return;
+    }
+    var options = { variant: variant || 'info', protocol: 'fido2' };
+    if (typeof verboseConsole.handleResponse === 'function') {
+      verboseConsole.handleResponse(payload, options);
+    } else if (payload && payload.trace && typeof verboseConsole.renderTrace === 'function') {
+      verboseConsole.renderTrace(payload.trace, options);
+    } else if (typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
+    }
+  }
+
+  function verboseApplyError(error) {
+    if (!verboseConsole) {
+      return;
+    }
+    var payload = error && error.payload ? error.payload : null;
+    var options = { variant: 'error', protocol: 'fido2' };
+    if (typeof verboseConsole.handleError === 'function') {
+      verboseConsole.handleError(payload, options);
+    } else if (payload && payload.trace && typeof verboseConsole.renderTrace === 'function') {
+      verboseConsole.renderTrace(payload.trace, options);
+    } else if (typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
+    }
+  }
+
   var initialPanelState = readInitialPanelState();
   currentEvaluateMode = initialPanelState.evaluateMode;
   lastAssertionEvaluateMode = currentEvaluateMode;
@@ -560,6 +616,8 @@
       userVerificationRequired: uvValue,
       privateKey: elementValue(storedPrivateKeyField),
     };
+    payload = verboseAttach(payload);
+    verboseBeginRequest();
     sendJsonRequest(endpoint, payload, csrfToken(storedForm))
         .then(handleStoredEvaluationSuccess)
         .catch(handleStoredEvaluationError)
@@ -596,6 +654,8 @@
     if (activeInlineCredentialName) {
       payload.credentialName = activeInlineCredentialName;
     }
+    payload = verboseAttach(payload);
+    verboseBeginRequest();
     sendJsonRequest(endpoint, payload, csrfToken(inlineForm))
         .then(handleInlineEvaluationSuccess)
         .catch(handleInlineEvaluationError)
@@ -664,6 +724,8 @@
         payload.overrides = sourceInfo.overrides;
       }
     }
+    payload = verboseAttach(payload);
+    verboseBeginRequest();
     sendJsonRequest(endpoint, payload, csrfToken(attestationForm))
         .then(handleAttestationGenerationSuccess)
         .catch(handleAttestationGenerationError)
@@ -753,10 +815,16 @@
 
   function handleAttestationGenerationSuccess(response) {
     hideAttestationError();
+    var statusText = response && response.status ? String(response.status).trim() : 'success';
+    if (!response || typeof response !== 'object') {
+      verboseApplyResponse(null, 'success');
+    } else {
+      var variant = statusText.toLowerCase() === 'error' ? 'error' : 'success';
+      verboseApplyResponse(response, variant);
+    }
     var generated =
         response && response.generatedAttestation ? response.generatedAttestation : null;
     var metadata = response && response.metadata ? response.metadata : null;
-    var statusText = response && response.status ? String(response.status).trim() : 'success';
     if (!generated) {
       setStatusBadge(attestationStatusBadge, 'error');
       setStatusText(attestationOutcome, 'generation_failed', 'generation_failed');
@@ -782,6 +850,7 @@
   }
 
   function handleAttestationGenerationError(error) {
+    verboseApplyError(error);
     var status = resolveErrorStatus(error);
     var reason = readReasonCode(error) || 'generation_failed';
     var message = readErrorMessage(error) || 'Attestation generation failed.';
@@ -839,6 +908,8 @@
       authenticatorData: elementValue(replayAuthenticatorDataField),
       signature: elementValue(replaySignatureField),
     };
+    payload = verboseAttach(payload);
+    verboseBeginRequest();
     sendJsonRequest(endpoint, payload, csrfToken(replayForm))
         .then(handleStoredReplaySuccess)
         .catch(handleStoredReplayError)
@@ -878,6 +949,8 @@
     if (activeReplayInlineCredentialName) {
       payload.credentialName = activeReplayInlineCredentialName;
     }
+    payload = verboseAttach(payload);
+    verboseBeginRequest();
     sendJsonRequest(endpoint, payload, csrfToken(replayInlineForm))
         .then(handleInlineReplaySuccess)
         .catch(handleInlineReplayError)
@@ -911,6 +984,8 @@
     if (!payload.attestationId) {
       delete payload.attestationId;
     }
+    payload = verboseAttach(payload);
+    verboseBeginRequest();
     sendJsonRequest(endpoint, payload, csrfToken(replayAttestationForm))
         .then(handleReplayAttestationSuccess)
         .catch(handleReplayAttestationError)
@@ -920,12 +995,18 @@
   }
 
   function handleStoredEvaluationSuccess(response) {
+    if (!response || typeof response !== 'object') {
+      verboseApplyResponse(null, 'success');
+    } else {
+      verboseApplyResponse(response, 'success');
+    }
     setStoredAssertionText(formatAssertionJson(response && response.assertion));
     hasStoredEvaluationResult = true;
     refreshEvaluationResultVisibility();
   }
 
   function handleStoredEvaluationError(error) {
+    verboseApplyError(error);
     var message = formatEvaluationErrorMessage(error, 'Stored generation');
     setStoredAssertionText(sanitizeMessage(message));
     hasStoredEvaluationResult = true;
@@ -933,6 +1014,11 @@
   }
 
   function handleInlineEvaluationSuccess(response) {
+    if (!response || typeof response !== 'object') {
+      verboseApplyResponse(null, 'success');
+    } else {
+      verboseApplyResponse(response, 'success');
+    }
     setInlineGeneratedText(formatAssertionJson(response && response.assertion));
     hideInlineError();
     updateInlineTelemetry(
@@ -942,6 +1028,7 @@
   }
 
   function handleInlineEvaluationError(error) {
+    verboseApplyError(error);
     var telemetryMessage = formatEvaluationErrorMessage(error, 'Inline generation');
     var message = readErrorMessage(error) || telemetryMessage;
     var reason = readReasonCode(error);
@@ -955,6 +1042,13 @@
   function handleStoredReplaySuccess(response) {
     var status = resolveReplayStatus(response && response.status, response && response.match);
     var reason = resolveReason(response && response.reasonCode, status);
+    if (!response || typeof response !== 'object') {
+      verboseApplyResponse(null, 'info');
+    } else {
+      var statusLower = (status || '').toLowerCase();
+      var variant = statusLower === 'match' || statusLower === 'success' ? 'success' : 'error';
+      verboseApplyResponse(response, variant);
+    }
     setStatusBadge(replayStatusBadge, status);
     setStatusText(replayOutcome, status, '—');
     setStatusText(replayReason, reason, '—');
@@ -963,6 +1057,7 @@
   }
 
   function handleStoredReplayError(error) {
+    verboseApplyError(error);
     var status = resolveReplayErrorStatus(error);
     var reason = resolveReason(readReasonCode(error), status);
     setStatusBadge(replayStatusBadge, status);
@@ -975,6 +1070,13 @@
   function handleInlineReplaySuccess(response) {
     var status = resolveReplayStatus(response && response.status, response && response.match);
     var reason = resolveReason(response && response.reasonCode, status);
+    if (!response || typeof response !== 'object') {
+      verboseApplyResponse(null, 'info');
+    } else {
+      var statusLower = (status || '').toLowerCase();
+      var variant = statusLower === 'match' || statusLower === 'success' ? 'success' : 'error';
+      verboseApplyResponse(response, variant);
+    }
     setStatusBadge(replayInlineStatusBadge, status);
     setStatusText(replayInlineOutcome, status, '—');
     setStatusText(replayInlineReason, reason, '—');
@@ -983,6 +1085,7 @@
   }
 
   function handleInlineReplayError(error) {
+    verboseApplyError(error);
     var status = resolveReplayErrorStatus(error);
     var reason = resolveReason(readReasonCode(error), status);
     setStatusBadge(replayInlineStatusBadge, status);
@@ -993,8 +1096,14 @@
   }
 
   function handleReplayAttestationSuccess(response) {
-    hideReplayAttestationError();
     var status = response && response.status ? response.status : 'success';
+    if (!response || typeof response !== 'object') {
+      verboseApplyResponse(null, 'info');
+    } else {
+      var variant = String(status).toLowerCase() === 'success' ? 'success' : 'error';
+      verboseApplyResponse(response, variant);
+    }
+    hideReplayAttestationError();
     setStatusBadge(replayAttestationStatusBadge, status);
     var metadata = response && response.metadata ? response.metadata : null;
     var reason = metadataValue(metadata, 'reasonCode');
@@ -1035,6 +1144,7 @@
   }
 
   function handleReplayAttestationError(error) {
+    verboseApplyError(error);
     var message = readErrorMessage(error) || 'Attestation replay failed.';
     var reason = readReasonCode(error) || 'attestation_failed';
     setStatusBadge(replayAttestationStatusBadge, 'error');
@@ -3064,6 +3174,8 @@
       origin: elementValue(attestationStoredOriginInput),
       challenge: challenge,
     };
+    payload = verboseAttach(payload);
+    verboseBeginRequest();
     sendJsonRequest(endpoint, payload, csrfToken(attestationStoredForm))
         .then(handleAttestationGenerationSuccess)
         .catch(handleAttestationGenerationError)

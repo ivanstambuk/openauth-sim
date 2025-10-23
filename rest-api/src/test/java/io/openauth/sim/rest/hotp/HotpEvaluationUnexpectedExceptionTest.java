@@ -14,7 +14,7 @@ final class HotpEvaluationUnexpectedExceptionTest {
     @DisplayName("Details map defaults to empty and is unmodifiable")
     void detailsDefaultToEmpty() {
         HotpEvaluationUnexpectedException exception =
-                new HotpEvaluationUnexpectedException("telemetry-3", "stored", "boom", null);
+                new HotpEvaluationUnexpectedException("telemetry-3", "stored", "boom", null, null);
 
         assertEquals("telemetry-3", exception.telemetryId());
         assertEquals("stored", exception.credentialSource());
@@ -26,8 +26,8 @@ final class HotpEvaluationUnexpectedExceptionTest {
     @Test
     @DisplayName("Details map preserves provided entries")
     void detailsPreserveEntries() {
-        HotpEvaluationUnexpectedException exception =
-                new HotpEvaluationUnexpectedException("telemetry-4", "inline", "error", Map.of("status", "error"));
+        HotpEvaluationUnexpectedException exception = new HotpEvaluationUnexpectedException(
+                "telemetry-4", "inline", "error", Map.of("status", "error"), null);
 
         assertEquals("error", exception.details().get("status"));
     }

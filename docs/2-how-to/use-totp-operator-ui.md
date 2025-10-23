@@ -11,6 +11,11 @@ The operator console embedded in the REST API now exposes TOTP evaluation and re
 - Inline evaluation does not require persisted credentials, but you will need the shared secret (hex), algorithm, digit length, time-step, drift window, and OTP you want to verify.
 - RFC 6238 validation vectors now ship in `docs/totp_validation_vectors.json`; the simulator loads this catalogue for CLI, REST, and UI presets so the same fixtures remain available across interfaces.
 
+## Enable Verbose Tracing
+- The console header now exposes an **Enable verbose tracing for the next request** toggle. Leave it unchecked for the default behaviour; when you enable it, the next evaluation or replay request includes `"verbose": true` so the REST API returns a `trace` payload alongside the standard result.
+- Verbose traces contain raw secrets, intermediate buffers, and per-step attributes. The bottom **Verbose trace** dock stays hidden until a verbose response arrives, then expands into a terminal-style panel that shows the operation identifier (for example `totp.evaluate.stored`), ordered steps (`resolve.credential`, `generate.otp`, etc.), and key attributes. Use the **Copy trace** action if you need the raw text for debugging.
+- Toggle the checkbox off again when you no longer need deep instrumentation—the dock collapses automatically and subsequent requests omit the verbose flag, preventing sensitive material from surfacing unnecessarily.
+
 ## Evaluate a Stored TOTP Credential
 1. Navigate to `http://localhost:8080/ui/console?protocol=totp`. The console activates the **TOTP** protocol and selects the **Evaluate** tab with the mode toggle set to **Stored credential**.
 2. Select the stored credential from the **Credential** dropdown. If the registry is empty, choose **Seed sample credentials** to load the same SHA-1/SHA-256/SHA-512 presets available in the inline dropdown (covering both 6- and 8-digit variants). You can reseed at any time—the action is idempotent and reports when all canonical entries already exist.

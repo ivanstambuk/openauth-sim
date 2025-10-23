@@ -9,6 +9,7 @@ import io.openauth.sim.application.ocra.OcraEvaluationRequests;
 import io.openauth.sim.application.ocra.OcraInlineIdentifiers;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.rest.VerboseTracePayload;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -44,8 +45,9 @@ class OcraEvaluationService {
         CommandEnvelope envelope = null;
 
         try {
+            boolean verbose = Boolean.TRUE.equals(rawRequest.verbose());
             envelope = CommandEnvelope.from(rawRequest);
-            EvaluationResult result = applicationService.evaluate(envelope.command());
+            EvaluationResult result = applicationService.evaluate(envelope.command(), verbose);
             NormalizedRequest normalized = result.request();
             long durationMillis = toMillis(started);
 
@@ -63,7 +65,9 @@ class OcraEvaluationService {
 
             logEvaluation(Level.INFO, frame);
 
-            return new OcraEvaluationResponse(result.suite(), result.otp(), telemetryId);
+            VerboseTracePayload tracePayload =
+                    result.verboseTrace().map(VerboseTracePayload::from).orElse(null);
+            return new OcraEvaluationResponse(result.suite(), result.otp(), telemetryId, tracePayload);
         } catch (EvaluationValidationException ex) {
             long durationMillis = toMillis(started);
             FailureDetails failure = FailureDetails.from(ex);
@@ -94,7 +98,8 @@ class OcraEvaluationService {
                     failure.reasonCode(),
                     failure.message(),
                     failure.sanitized(),
-                    ex);
+                    ex,
+                    null);
         } catch (ValidationError ex) {
             long durationMillis = toMillis(started);
             FailureDetails failure = FailureDetails.from(ex);
@@ -119,7 +124,7 @@ class OcraEvaluationService {
             logEvaluation(Level.WARNING, frame);
 
             throw new OcraEvaluationValidationException(
-                    telemetryId, suite, failure.field(), failure.reasonCode(), failure.message(), true, ex);
+                    telemetryId, suite, failure.field(), failure.reasonCode(), failure.message(), true, ex, null);
         } catch (IllegalArgumentException ex) {
             long durationMillis = toMillis(started);
             FailureDetails failure = FailureDetails.fromIllegalArgument(ex.getMessage());
@@ -144,7 +149,7 @@ class OcraEvaluationService {
             logEvaluation(Level.WARNING, frame);
 
             throw new OcraEvaluationValidationException(
-                    telemetryId, suite, failure.field(), failure.reasonCode(), failure.message(), true, ex);
+                    telemetryId, suite, failure.field(), failure.reasonCode(), failure.message(), true, ex, null);
         } catch (RuntimeException ex) {
             long durationMillis = toMillis(started);
             String suite = suiteOrUnknown(envelope, rawRequest);

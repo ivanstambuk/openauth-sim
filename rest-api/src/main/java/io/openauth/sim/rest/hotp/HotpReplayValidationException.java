@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.hotp;
 
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.util.Map;
 
 /** Signals HOTP replay validation failures. */
@@ -12,7 +13,8 @@ class HotpReplayValidationException extends RuntimeException {
     private final String credentialId;
     private final String reasonCode;
     private final boolean sanitized;
-    private final transient Map<String, String> details;
+    private final transient Map<String, Object> details;
+    private final transient VerboseTrace trace;
 
     HotpReplayValidationException(
             String telemetryId,
@@ -20,15 +22,17 @@ class HotpReplayValidationException extends RuntimeException {
             String credentialId,
             String reasonCode,
             boolean sanitized,
-            Map<String, String> details,
-            String message) {
+            Map<String, Object> details,
+            String message,
+            VerboseTrace trace) {
         super(message);
         this.telemetryId = telemetryId;
         this.credentialSource = credentialSource;
         this.credentialId = credentialId;
         this.reasonCode = reasonCode;
         this.sanitized = sanitized;
-        this.details = details;
+        this.details = details == null ? Map.of() : Map.copyOf(details);
+        this.trace = trace;
     }
 
     String telemetryId() {
@@ -51,7 +55,11 @@ class HotpReplayValidationException extends RuntimeException {
         return sanitized;
     }
 
-    Map<String, String> details() {
+    Map<String, Object> details() {
         return details;
+    }
+
+    VerboseTrace trace() {
+        return trace;
     }
 }

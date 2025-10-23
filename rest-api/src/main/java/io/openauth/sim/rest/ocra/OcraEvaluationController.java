@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.ocra;
 
+import io.openauth.sim.rest.VerboseTracePayload;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -92,15 +93,16 @@ class OcraEvaluationController {
         }
         details.put("sanitized", Boolean.toString(exception.sanitized()));
 
+        VerboseTracePayload trace = exception.trace() != null ? VerboseTracePayload.from(exception.trace()) : null;
         OcraEvaluationErrorResponse body =
-                new OcraEvaluationErrorResponse("invalid_input", exception.getMessage(), details);
+                new OcraEvaluationErrorResponse("invalid_input", exception.getMessage(), details, trace);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
     @ExceptionHandler(RuntimeException.class)
     ResponseEntity<OcraEvaluationErrorResponse> handleUnexpected(RuntimeException exception) {
-        OcraEvaluationErrorResponse body =
-                new OcraEvaluationErrorResponse("internal_error", "OCRA evaluation failed", Map.of("status", "error"));
+        OcraEvaluationErrorResponse body = new OcraEvaluationErrorResponse(
+                "internal_error", "OCRA evaluation failed", Map.of("status", "error"), null);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.webauthn;
 
+import io.openauth.sim.rest.VerboseTracePayload;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -71,30 +72,34 @@ class WebAuthnEvaluationController {
 
     @ExceptionHandler(WebAuthnEvaluationValidationException.class)
     ResponseEntity<WebAuthnEvaluationErrorResponse> handleValidation(WebAuthnEvaluationValidationException exception) {
+        VerboseTracePayload trace = exception.trace() == null ? null : VerboseTracePayload.from(exception.trace());
         WebAuthnEvaluationErrorResponse body = new WebAuthnEvaluationErrorResponse(
                 exception.reasonCode(),
                 exception.reasonCode(),
                 exception.getMessage(),
                 exception.details(),
-                exception.details());
+                exception.details(),
+                trace);
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
     }
 
     @ExceptionHandler(WebAuthnEvaluationUnexpectedException.class)
     ResponseEntity<WebAuthnEvaluationErrorResponse> handleUnexpected(WebAuthnEvaluationUnexpectedException exception) {
+        VerboseTracePayload trace = exception.trace() == null ? null : VerboseTracePayload.from(exception.trace());
         WebAuthnEvaluationErrorResponse body = new WebAuthnEvaluationErrorResponse(
                 "internal_error",
                 "webauthn_evaluation_failed",
                 exception.getMessage(),
                 exception.details(),
-                exception.details());
+                exception.details(),
+                trace);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
     @ExceptionHandler(RuntimeException.class)
     ResponseEntity<WebAuthnEvaluationErrorResponse> handleFallback(RuntimeException exception) {
         WebAuthnEvaluationErrorResponse body = new WebAuthnEvaluationErrorResponse(
-                "internal_error", "webauthn_evaluation_failed", exception.getMessage(), Map.of(), Map.of());
+                "internal_error", "webauthn_evaluation_failed", exception.getMessage(), Map.of(), Map.of(), null);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

@@ -6,6 +6,8 @@ import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationS
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.rest.VerboseTracePayload;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -34,14 +36,36 @@ class WebAuthnEvaluationService {
     WebAuthnEvaluationResponse evaluateStored(WebAuthnStoredEvaluationRequest request) {
         Objects.requireNonNull(request, "request");
 
+        boolean verbose = Boolean.TRUE.equals(request.verbose());
+        VerboseTrace.Builder trace = newTrace(verbose, "fido2.assertion.evaluate.stored");
+        metadata(trace, "credentialSource", "stored");
+
         String credentialId =
                 requireText(request.credentialId(), "credential_id_required", "Credential ID is required");
+        metadata(trace, "credentialId", credentialId);
+
         String relyingPartyId =
                 request.relyingPartyId() == null ? "" : request.relyingPartyId().trim();
+        metadata(trace, "relyingPartyId", relyingPartyId);
+
         String origin = requireText(request.origin(), "origin_required", "Origin is required");
+        metadata(trace, "origin", origin);
+
         String expectedType = resolveClientDataType(request.expectedType());
+        metadata(trace, "expectedType", expectedType);
+
         byte[] challenge = decode("challenge", request.challenge());
+        addStep(trace, step -> step.id("decode.challenge")
+                .summary("Decode challenge")
+                .detail("Base64URL decode")
+                .attribute("length", challenge.length));
+
         String privateKey = requireText(request.privateKey(), "private_key_required", "Private key is required");
+        addStep(trace, step -> step.id("construct.command")
+                .summary("Construct stored evaluation command")
+                .detail("GenerationCommand.Stored")
+                .attribute("signatureCounter", request.signatureCounter())
+                .attribute("userVerificationRequired", request.userVerificationRequired()));
 
         GenerationCommand.Stored command = new GenerationCommand.Stored(
                 credentialId,
@@ -53,29 +77,56 @@ class WebAuthnEvaluationService {
                 request.signatureCounter(),
                 request.userVerificationRequired());
 
-        GenerationResult result = invokeGenerator(command);
-        return buildResponse(result, "stored");
+        GenerationResult result = invokeGenerator(command, trace);
+        addStep(trace, step -> step.id("generate.assertion")
+                .summary("Generate WebAuthn assertion")
+                .detail("WebAuthnAssertionGenerationApplicationService.generate")
+                .attribute("algorithm", result.algorithm().name())
+                .attribute("credentialReference", result.credentialReference()));
+        return buildResponse(result, "stored", buildTrace(trace));
     }
 
     WebAuthnEvaluationResponse evaluateInline(WebAuthnInlineEvaluationRequest request) {
         Objects.requireNonNull(request, "request");
 
+        boolean verbose = Boolean.TRUE.equals(request.verbose());
+        VerboseTrace.Builder trace = newTrace(verbose, "fido2.assertion.evaluate.inline");
+        metadata(trace, "credentialSource", "inline");
+
         String relyingPartyId =
                 requireText(request.relyingPartyId(), "relying_party_id_required", "Relying party ID is required");
+        metadata(trace, "relyingPartyId", relyingPartyId);
+
         String origin = requireText(request.origin(), "origin_required", "Origin is required");
+        metadata(trace, "origin", origin);
+
         String expectedType = resolveClientDataType(request.expectedType());
+        metadata(trace, "expectedType", expectedType);
+
         WebAuthnSignatureAlgorithm algorithm = parseAlgorithm(request.algorithm());
+        metadata(trace, "algorithm", algorithm.name());
+
         long signatureCounter = Optional.ofNullable(request.signatureCounter())
                 .orElseThrow(() -> validation("signature_counter_required", "Signature counter is required"));
         boolean userVerificationRequired =
                 Optional.ofNullable(request.userVerificationRequired()).orElse(false);
+
         byte[] credentialId = decode("credentialId", request.credentialId());
         byte[] challenge = decode("challenge", request.challenge());
+
         String credentialName =
                 request.credentialName() == null || request.credentialName().isBlank()
                         ? "inline"
                         : request.credentialName().trim();
+
         String privateKey = requireText(request.privateKey(), "private_key_required", "Private key is required");
+
+        addStep(trace, step -> step.id("construct.command")
+                .summary("Construct inline evaluation command")
+                .detail("GenerationCommand.Inline")
+                .attribute("credentialName", credentialName)
+                .attribute("signatureCounter", signatureCounter)
+                .attribute("userVerificationRequired", userVerificationRequired));
 
         GenerationCommand.Inline command = new GenerationCommand.Inline(
                 credentialName,
@@ -89,15 +140,50 @@ class WebAuthnEvaluationService {
                 challenge,
                 privateKey);
 
-        GenerationResult result = invokeGenerator(command);
-        return buildResponse(result, "inline");
+        GenerationResult result = invokeGenerator(command, trace);
+        addStep(trace, step -> step.id("generate.assertion")
+                .summary("Generate WebAuthn assertion")
+                .detail("WebAuthnAssertionGenerationApplicationService.generate")
+                .attribute("credentialReference", result.credentialReference()));
+        return buildResponse(result, "inline", buildTrace(trace));
     }
 
-    private GenerationResult invokeGenerator(GenerationCommand command) {
+    private static VerboseTrace.Builder newTrace(boolean verbose, String operation) {
+        return verbose ? VerboseTrace.builder(operation) : null;
+    }
+
+    private static void metadata(VerboseTrace.Builder trace, String key, String value) {
+        if (trace != null && value != null && !value.isBlank()) {
+            trace.withMetadata(key, value);
+        }
+    }
+
+    private static void addStep(
+            VerboseTrace.Builder trace, java.util.function.Consumer<VerboseTrace.TraceStep.Builder> configurer) {
+        if (trace != null) {
+            trace.addStep(configurer);
+        }
+    }
+
+    private static VerboseTrace buildTrace(VerboseTrace.Builder trace) {
+        return trace == null ? null : trace.build();
+    }
+
+    private GenerationResult invokeGenerator(GenerationCommand command, VerboseTrace.Builder trace) {
         try {
             return generator.generate(command);
         } catch (IllegalArgumentException ex) {
-            throw validation(mapGeneratorFailure(ex), ex.getMessage());
+            addStep(trace, step -> step.id("generator.failure")
+                    .summary("WebAuthn assertion generation failed")
+                    .detail("WebAuthnAssertionGenerationApplicationService.generate")
+                    .note("message", ex.getMessage()));
+            throw validation(mapGeneratorFailure(ex), ex.getMessage(), Map.of(), buildTrace(trace));
+        } catch (RuntimeException ex) {
+            addStep(trace, step -> step.id("generator.error")
+                    .summary("Unexpected error during assertion generation")
+                    .detail(ex.getClass().getName())
+                    .note("message", ex.getMessage()));
+            throw unexpected("WebAuthn assertion generation failed", ex, Map.of(), buildTrace(trace));
         }
     }
 
@@ -126,7 +212,12 @@ class WebAuthnEvaluationService {
         return "generation_failed";
     }
 
-    private WebAuthnEvaluationResponse buildResponse(GenerationResult result, String source) {
+    private static WebAuthnEvaluationUnexpectedException unexpected(
+            String message, Throwable cause, Map<String, Object> details, VerboseTrace trace) {
+        return new WebAuthnEvaluationUnexpectedException(message, cause, Map.copyOf(details), trace);
+    }
+
+    private WebAuthnEvaluationResponse buildResponse(GenerationResult result, String source, VerboseTrace trace) {
         String telemetryId = nextTelemetryId();
         Map<String, Object> telemetryFields = telemetryFields(result, source);
         TelemetryFrame frame = TelemetryContracts.fido2EvaluationAdapter()
@@ -145,7 +236,8 @@ class WebAuthnEvaluationService {
                 null);
 
         WebAuthnGeneratedAssertion assertion = buildAssertion(result);
-        return new WebAuthnEvaluationResponse("generated", assertion, metadata);
+        VerboseTracePayload tracePayload = trace == null ? null : VerboseTracePayload.from(trace);
+        return new WebAuthnEvaluationResponse("generated", assertion, metadata, tracePayload);
     }
 
     private static Map<String, Object> telemetryFields(GenerationResult result, String source) {
@@ -239,11 +331,11 @@ class WebAuthnEvaluationService {
     }
 
     private static WebAuthnEvaluationValidationException validation(String reasonCode, String message) {
-        return validation(reasonCode, message, Map.of());
+        return validation(reasonCode, message, Map.of(), null);
     }
 
     private static WebAuthnEvaluationValidationException validation(
-            String reasonCode, String message, Map<String, Object> details) {
-        return new WebAuthnEvaluationValidationException(reasonCode, message, Map.copyOf(details));
+            String reasonCode, String message, Map<String, Object> details, VerboseTrace trace) {
+        return new WebAuthnEvaluationValidationException(reasonCode, message, Map.copyOf(details), trace);
     }
 }

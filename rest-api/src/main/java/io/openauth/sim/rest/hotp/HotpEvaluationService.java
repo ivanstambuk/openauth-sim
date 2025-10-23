@@ -9,6 +9,8 @@ import io.openauth.sim.application.telemetry.HotpTelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
+import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.rest.VerboseTracePayload;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -43,7 +45,9 @@ class HotpEvaluationService {
 
         String credentialId = requireText(request.credentialId(), "credentialId", telemetryId, Mode.STORED, null);
         EvaluationCommand command = new EvaluationCommand.Stored(credentialId);
-        return handleResult(command, Mode.STORED, telemetryId, credentialId, Map.of("credentialId", credentialId));
+        boolean verbose = Boolean.TRUE.equals(request.verbose());
+        EvaluationResult result = applicationService.evaluate(command, verbose);
+        return handleResult(result, Mode.STORED, telemetryId, credentialId, Map.of("credentialId", credentialId));
     }
 
     HotpEvaluationResponse evaluateInline(HotpInlineEvaluationRequest request) {
@@ -62,17 +66,18 @@ class HotpEvaluationService {
         Map<String, String> metadata = request.metadata() == null ? Map.of() : Map.copyOf(request.metadata());
 
         EvaluationCommand command = new EvaluationCommand.Inline(secretHex, algorithm, digits, counter, metadata);
-        return handleResult(command, Mode.INLINE, telemetryId, null, Map.of());
+        boolean verbose = Boolean.TRUE.equals(request.verbose());
+        EvaluationResult result = applicationService.evaluate(command, verbose);
+        return handleResult(result, Mode.INLINE, telemetryId, null, Map.of());
     }
 
     private HotpEvaluationResponse handleResult(
-            EvaluationCommand command,
+            EvaluationResult result,
             Mode mode,
             String telemetryId,
             String identifier,
             Map<String, String> contextDetails) {
 
-        EvaluationResult result = applicationService.evaluate(command);
         TelemetrySignal signal = result.telemetry();
 
         TelemetryFrame frame = signal.emit(telemetryAdapter, telemetryId);
@@ -91,23 +96,42 @@ class HotpEvaluationService {
                 telemetryId);
 
         return switch (signal.status()) {
-            case SUCCESS -> new HotpEvaluationResponse("generated", signal.reasonCode(), result.otp(), metadata);
+            case SUCCESS ->
+                new HotpEvaluationResponse(
+                        "generated",
+                        signal.reasonCode(),
+                        result.otp(),
+                        metadata,
+                        result.verboseTrace().map(VerboseTracePayload::from).orElse(null));
             case INVALID ->
-                handleInvalid(signal, metadata, telemetryId, mode, identifier, frame.fields(), contextDetails);
-            case ERROR -> throw unexpectedError(signal, telemetryId, mode, frame.fields());
+                handleInvalid(
+                        signal,
+                        telemetryId,
+                        mode,
+                        identifier,
+                        frame.fields(),
+                        contextDetails,
+                        result.verboseTrace().orElse(null));
+            case ERROR ->
+                throw unexpectedError(
+                        signal,
+                        telemetryId,
+                        mode,
+                        frame.fields(),
+                        result.verboseTrace().orElse(null));
         };
     }
 
     private HotpEvaluationResponse handleInvalid(
             TelemetrySignal signal,
-            HotpEvaluationMetadata metadata,
             String telemetryId,
             Mode mode,
             String identifier,
             Map<String, Object> fields,
-            Map<String, String> contextDetails) {
+            Map<String, String> contextDetails,
+            VerboseTrace trace) {
 
-        Map<String, String> details =
+        Map<String, Object> details =
                 sanitizedDetails(fields, contextDetails, signal.sanitized(), telemetryId, mode.source);
 
         throw new HotpEvaluationValidationException(
@@ -117,33 +141,49 @@ class HotpEvaluationService {
                 signal.reasonCode(),
                 signal.sanitized(),
                 details,
-                safeMessage(signal.reason()));
+                safeMessage(signal.reason()),
+                trace);
     }
 
     private RuntimeException unexpectedError(
-            TelemetrySignal signal, String telemetryId, Mode mode, Map<String, Object> fields) {
-        Map<String, String> details = sanitizedDetails(fields, Map.of(), false, telemetryId, mode.source);
-        return new HotpEvaluationUnexpectedException(telemetryId, mode.source, safeMessage(signal.reason()), details);
+            TelemetrySignal signal, String telemetryId, Mode mode, Map<String, Object> fields, VerboseTrace trace) {
+        Map<String, Object> details = sanitizedDetails(fields, Map.of(), false, telemetryId, mode.source);
+        return new HotpEvaluationUnexpectedException(
+                telemetryId, mode.source, safeMessage(signal.reason()), details, trace);
     }
 
-    private Map<String, String> sanitizedDetails(
+    private Map<String, Object> sanitizedDetails(
             Map<String, Object> telemetryFields,
             Map<String, String> base,
             boolean sanitized,
             String telemetryId,
             String source) {
 
-        Map<String, String> details = new LinkedHashMap<>();
+        Map<String, Object> details = new LinkedHashMap<>();
         details.put("telemetryId", telemetryId);
         details.put("credentialSource", source);
-        details.put("sanitized", Boolean.toString(sanitized));
-        base.forEach((key, value) -> details.putIfAbsent(key, value));
-
-        if (sanitized && telemetryFields != null) {
-            telemetryFields.forEach((key, value) -> {
-                if (value != null) {
-                    details.putIfAbsent(key, String.valueOf(value));
+        details.put("sanitized", sanitized);
+        if (base != null) {
+            base.forEach((key, value) -> {
+                if (value != null && !value.isBlank()) {
+                    details.putIfAbsent(key, value);
                 }
+            });
+        }
+
+        if (telemetryFields != null) {
+            telemetryFields.forEach((key, value) -> {
+                if (value == null) {
+                    return;
+                }
+                String lower = key.toLowerCase(Locale.ROOT);
+                if (lower.contains("secret")) {
+                    return;
+                }
+                if (!sanitized && (lower.contains("otp") || lower.contains("code"))) {
+                    return;
+                }
+                details.putIfAbsent(key, value);
             });
         }
         return details;
@@ -229,10 +269,10 @@ class HotpEvaluationService {
                 telemetryAdapter.validationFailure(telemetryId, reasonCode, message, true, telemetryFields);
         logTelemetry(Level.WARNING, frame);
 
-        Map<String, String> details = sanitizedDetails(telemetryFields, baseDetails, true, telemetryId, mode.source);
+        Map<String, Object> details = sanitizedDetails(telemetryFields, baseDetails, true, telemetryId, mode.source);
 
         return new HotpEvaluationValidationException(
-                telemetryId, mode.source, credentialReference, reasonCode, true, details, message);
+                telemetryId, mode.source, credentialReference, reasonCode, true, details, message, null);
     }
 
     private static Map<String, String> mergeDetails(Map<String, String> original, String field) {

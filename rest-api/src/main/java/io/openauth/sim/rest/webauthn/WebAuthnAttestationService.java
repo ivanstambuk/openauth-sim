@@ -15,6 +15,8 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
+import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.rest.VerboseTracePayload;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
@@ -51,12 +53,26 @@ class WebAuthnAttestationService {
     WebAuthnAttestationResponse generate(WebAuthnAttestationGenerationRequest request) {
         Objects.requireNonNull(request, "request");
 
+        boolean verbose = Boolean.TRUE.equals(request.verbose());
+        VerboseTrace.Builder trace = newTrace(verbose, "fido2.attestation.generate");
+        metadata(trace, "inputSource", request.inputSource());
+        metadata(trace, "format", request.format());
+        metadata(trace, "attestationId", request.attestationId());
+        metadata(trace, "relyingPartyId", request.relyingPartyId());
+
         InputSource source = parseInputSource(request.inputSource());
         WebAuthnAttestationFormat format = parseFormat(request.format());
+
+        metadata(trace, "source", source.name().toLowerCase(java.util.Locale.ROOT));
+        metadata(trace, "formatResolved", format.label());
 
         GenerationResult result;
         if (source == InputSource.STORED) {
             String credentialId = requireText(request.credentialId(), "credential_id_required", "Credential ID");
+            addStep(trace, step -> step.id("resolve.stored.credential")
+                    .summary("Resolve stored attestation credential")
+                    .detail("CredentialStore.findByName")
+                    .attribute("credentialId", credentialId));
             byte[] challenge = decode(
                     "challenge_required",
                     "Invalid challenge (must be Base64URL)",
@@ -70,18 +86,35 @@ class WebAuthnAttestationService {
 
             try {
                 result = generationService.generate(command);
+                addStep(trace, step -> step.id("generate.attestation")
+                        .summary("Generate attestation from stored credential")
+                        .detail("WebAuthnAttestationGenerationApplicationService.generate")
+                        .attribute("credentialId", credentialId));
             } catch (IllegalArgumentException ex) {
                 String message = ex.getMessage() == null ? "Stored attestation generation failed" : ex.getMessage();
                 String reason = mapStoredGenerationReason(message);
-                throw validation(reason, message, Map.of("credentialId", credentialId));
+                addStep(trace, step -> step.id("generator.failure")
+                        .summary("Stored attestation generation failed")
+                        .detail("WebAuthnAttestationGenerationApplicationService.generate")
+                        .note("message", message));
+                throw validation(reason, message, Map.of("credentialId", credentialId), buildTrace(trace));
             } catch (Exception ex) {
+                addStep(trace, step -> step.id("generator.error")
+                        .summary("Unexpected error during stored attestation generation")
+                        .detail(ex.getClass().getName())
+                        .note("message", ex.getMessage()));
                 throw unexpected(
                         "generation_failed",
                         "Attestation generation failed: " + sanitize(ex.getMessage()),
-                        Map.of("credentialId", credentialId));
+                        Map.of("credentialId", credentialId),
+                        buildTrace(trace));
             }
         } else if (source == InputSource.PRESET) {
             String attestationId = requireText(request.attestationId(), "attestation_id_required", "Attestation ID");
+            addStep(trace, step -> step.id("resolve.preset")
+                    .summary("Resolve attestation preset")
+                    .detail("WebAuthnAttestationFixtures.vectorsFor")
+                    .attribute("attestationId", attestationId));
             String relyingPartyId =
                     requireText(request.relyingPartyId(), "relying_party_id_required", "Relying party ID");
             String origin = requireText(request.origin(), "origin_required", "Origin");
@@ -113,6 +146,11 @@ class WebAuthnAttestationService {
                     .trim();
 
             List<String> customRoots = sanitizeRoots(request.customRootCertificates());
+            addStep(trace, step -> step.id("prepare.manual")
+                    .summary("Prepare manual attestation command")
+                    .detail("GenerationCommand.Manual")
+                    .attribute("signingMode", signingMode)
+                    .attribute("customRootCount", customRoots.size()));
 
             var command = new WebAuthnAttestationGenerationApplicationService.GenerationCommand.Inline(
                     attestationId,
@@ -130,16 +168,30 @@ class WebAuthnAttestationService {
 
             try {
                 result = generationService.generate(command);
+                addStep(trace, step -> step.id("generate.attestation")
+                        .summary("Generate attestation from preset")
+                        .detail("WebAuthnAttestationGenerationApplicationService.generate")
+                        .attribute("attestationId", attestationId));
             } catch (IllegalArgumentException ex) {
+                addStep(trace, step -> step.id("generator.failure")
+                        .summary("Preset attestation generation failed")
+                        .detail("WebAuthnAttestationGenerationApplicationService.generate")
+                        .note("message", ex.getMessage()));
                 throw validation(
                         "generation_invalid",
                         ex.getMessage() == null ? "Attestation generation failed" : ex.getMessage(),
-                        Map.of("attestationId", attestationId, "format", format.label()));
+                        Map.of("attestationId", attestationId, "format", format.label()),
+                        buildTrace(trace));
             } catch (Exception ex) {
+                addStep(trace, step -> step.id("generator.error")
+                        .summary("Unexpected error during preset attestation generation")
+                        .detail(ex.getClass().getName())
+                        .note("message", ex.getMessage()));
                 throw unexpected(
                         "generation_failed",
                         "Attestation generation failed: " + sanitize(ex.getMessage()),
-                        Map.of("attestationId", attestationId, "format", format.label()));
+                        Map.of("attestationId", attestationId, "format", format.label()),
+                        buildTrace(trace));
             }
         } else {
             String relyingPartyId =
@@ -197,22 +249,41 @@ class WebAuthnAttestationService {
 
             try {
                 result = generationService.generate(command);
+                addStep(trace, step -> step.id("generate.attestation")
+                        .summary("Generate manual attestation")
+                        .detail("WebAuthnAttestationGenerationApplicationService.generate")
+                        .attribute("signingMode", mode.name()));
             } catch (IllegalArgumentException ex) {
+                addStep(trace, step -> step.id("generator.failure")
+                        .summary("Manual attestation generation failed")
+                        .detail("WebAuthnAttestationGenerationApplicationService.generate")
+                        .note("message", ex.getMessage()));
                 throw validation(
                         "generation_invalid",
                         ex.getMessage() == null ? "Attestation generation failed" : ex.getMessage(),
-                        Map.of("format", format.label(), "inputSource", "MANUAL"));
+                        Map.of("format", format.label(), "inputSource", "MANUAL"),
+                        buildTrace(trace));
             } catch (Exception ex) {
+                addStep(trace, step -> step.id("generator.error")
+                        .summary("Unexpected error during manual attestation generation")
+                        .detail(ex.getClass().getName())
+                        .note("message", ex.getMessage()));
                 throw unexpected(
                         "generation_failed",
                         "Attestation generation failed: " + sanitize(ex.getMessage()),
-                        Map.of("format", format.label(), "inputSource", "MANUAL"));
+                        Map.of("format", format.label(), "inputSource", "MANUAL"),
+                        buildTrace(trace));
             }
         }
 
         TelemetrySignal telemetry = result.telemetry();
         if (telemetry.status() != TelemetryStatus.SUCCESS) {
-            throw unexpected(telemetry.reasonCode(), "Attestation generation failed", telemetry.fields());
+            addStep(trace, step -> step.id("generation.invalid")
+                    .summary("Attestation generation invalid")
+                    .detail("Telemetry status")
+                    .attribute("status", telemetry.status().name()));
+            throw unexpected(
+                    telemetry.reasonCode(), "Attestation generation failed", telemetry.fields(), buildTrace(trace));
         }
 
         String telemetryId = nextTelemetryId(EVENT_ATTEST);
@@ -231,7 +302,10 @@ class WebAuthnAttestationService {
         WebAuthnAttestationMetadata metadata = WebAuthnAttestationMetadata.forGeneration(
                 telemetryId, telemetry.reasonCode(), format.label(), telemetry.fields(), result.certificateChainPem());
 
-        return new WebAuthnAttestationResponse("success", generated, null, metadata);
+        VerboseTrace builtTrace = buildTrace(trace);
+        VerboseTracePayload tracePayload = builtTrace == null ? null : VerboseTracePayload.from(builtTrace);
+
+        return new WebAuthnAttestationResponse("success", generated, null, metadata, tracePayload);
     }
 
     private static List<String> sanitizeRoots(List<String> roots) {
@@ -246,10 +320,19 @@ class WebAuthnAttestationService {
 
     WebAuthnAttestationResponse replay(WebAuthnAttestationReplayRequest request) {
         Objects.requireNonNull(request, "request");
+        boolean verbose = Boolean.TRUE.equals(request.verbose());
+        VerboseTrace.Builder trace = newTrace(verbose, "fido2.attestation.verify");
+        metadata(trace, "attestationId", request.attestationId());
 
         WebAuthnAttestationFormat format = parseFormat(request.format());
+        metadata(trace, "format", format.label());
         WebAuthnTrustAnchorResolver.Resolution anchorResolution =
                 trustAnchorResolver.resolvePemStrings(request.attestationId(), format, request.trustAnchors());
+        addStep(trace, step -> step.id("resolve.trustAnchors")
+                .summary("Resolve trust anchors for attestation verification")
+                .detail("WebAuthnTrustAnchorResolver.resolvePemStrings")
+                .attribute("anchorCount", anchorResolution.anchors().size())
+                .attribute("cached", anchorResolution.cached()));
         logTrustAnchorWarnings(anchorResolution.warnings());
 
         ReplayCommand.Inline command = new ReplayCommand.Inline(
@@ -265,21 +348,40 @@ class WebAuthnAttestationService {
                 anchorResolution.source(),
                 anchorResolution.metadataEntryId(),
                 anchorResolution.warnings());
+        addStep(trace, step -> step.id("prepare.replay")
+                .summary("Prepare attestation replay command")
+                .detail("ReplayCommand.Inline")
+                .attribute("anchorSource", anchorResolution.source())
+                .attribute("warnings", anchorResolution.warnings().size()));
 
         ReplayResult result;
         try {
             result = replayService.replay(command);
         } catch (IllegalArgumentException ex) {
+            addStep(trace, step -> step.id("replay.failure")
+                    .summary("Attestation replay failed")
+                    .detail("WebAuthnAttestationReplayApplicationService.replay")
+                    .note("message", ex.getMessage()));
             throw validation(
                     "replay_invalid",
                     ex.getMessage() == null ? "Attestation replay failed" : ex.getMessage(),
-                    Map.of("attestationId", command.attestationId(), "format", format.label()));
+                    Map.of("attestationId", command.attestationId(), "format", format.label()),
+                    buildTrace(trace));
         } catch (Exception ex) {
+            addStep(trace, step -> step.id("replay.error")
+                    .summary("Unexpected error during attestation replay")
+                    .detail(ex.getClass().getName())
+                    .note("message", ex.getMessage()));
             throw unexpected(
                     "replay_failed",
                     "Attestation replay failed: " + sanitize(ex.getMessage()),
-                    Map.of("attestationId", command.attestationId(), "format", format.label()));
+                    Map.of("attestationId", command.attestationId(), "format", format.label()),
+                    buildTrace(trace));
         }
+        addStep(trace, step -> step.id("verify.attestation")
+                .summary("Verify attestation")
+                .detail("WebAuthnAttestationReplayApplicationService.replay")
+                .attribute("status", result.telemetry().status().name()));
 
         io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService.TelemetrySignal telemetry =
                 result.telemetry();
@@ -296,7 +398,8 @@ class WebAuthnAttestationService {
                             .orElseThrow(() -> unexpected(
                                     "attested_credential_missing",
                                     "Attestation replay succeeded without credential metadata",
-                                    metadataFields));
+                                    metadataFields,
+                                    buildTrace(trace)));
             WebAuthnAttestedCredential attestedCredential = new WebAuthnAttestedCredential(
                     credential.relyingPartyId(),
                     credential.credentialId(),
@@ -306,7 +409,9 @@ class WebAuthnAttestationService {
                     credential.aaguid());
             WebAuthnAttestationMetadata metadata = WebAuthnAttestationMetadata.forReplay(
                     telemetryId, telemetry.reasonCode(), format.label(), metadataFields, command.trustAnchorWarnings());
-            return new WebAuthnAttestationResponse("success", null, attestedCredential, metadata);
+            VerboseTrace builtTrace = buildTrace(trace);
+            VerboseTracePayload tracePayload = builtTrace == null ? null : VerboseTracePayload.from(builtTrace);
+            return new WebAuthnAttestationResponse("success", null, attestedCredential, metadata, tracePayload);
         }
 
         if (telemetry.status()
@@ -315,13 +420,18 @@ class WebAuthnAttestationService {
             String message = Optional.ofNullable(telemetry.reason())
                     .filter(str -> !str.isBlank())
                     .orElse("Attestation replay invalid");
-            throw validation(telemetry.reasonCode(), message, metadataFields);
+            addStep(trace, step -> step.id("replay.invalid")
+                    .summary("Attestation replay invalid")
+                    .detail("Telemetry status")
+                    .note("reason", message));
+            throw validation(telemetry.reasonCode(), message, metadataFields, buildTrace(trace));
         }
 
         throw unexpected(
                 telemetry.reasonCode(),
                 Optional.ofNullable(telemetry.reason()).orElse("Attestation replay failed"),
-                metadataFields);
+                metadataFields,
+                buildTrace(trace));
     }
 
     private static WebAuthnAttestationFormat parseFormat(String format) {
@@ -334,6 +444,27 @@ class WebAuthnAttestationService {
                     "Unsupported attestation format: " + format,
                     Map.of("format", format));
         }
+    }
+
+    private static VerboseTrace.Builder newTrace(boolean verbose, String operation) {
+        return verbose ? VerboseTrace.builder(operation) : null;
+    }
+
+    private static void metadata(VerboseTrace.Builder trace, String key, String value) {
+        if (trace != null && value != null && !value.isBlank()) {
+            trace.withMetadata(key, value);
+        }
+    }
+
+    private static void addStep(
+            VerboseTrace.Builder trace, java.util.function.Consumer<VerboseTrace.TraceStep.Builder> configurer) {
+        if (trace != null) {
+            trace.addStep(configurer);
+        }
+    }
+
+    private static VerboseTrace buildTrace(VerboseTrace.Builder trace) {
+        return trace == null ? null : trace.build();
     }
 
     private static WebAuthnAttestationGenerator.SigningMode parseSigningMode(String signingMode) {
@@ -391,7 +522,11 @@ class WebAuthnAttestationService {
             case "stored" -> InputSource.STORED;
             default ->
                 throw validation(
-                        "input_source_invalid", "Unsupported input source: " + input, Map.of("inputSource", input));
+                        "input_source_invalid",
+                        "Unsupported input source: " + input,
+                        Map.of("inputSource", input),
+                        Map.of(),
+                        null);
         };
     }
 
@@ -433,12 +568,27 @@ class WebAuthnAttestationService {
 
     private static WebAuthnAttestationValidationException validation(
             String reasonCode, String message, Map<String, Object> metadata) {
-        return new WebAuthnAttestationValidationException(sanitize(reasonCode), sanitize(message), metadata, Map.of());
+        return validation(reasonCode, message, Map.of(), metadata, null);
+    }
+
+    private static WebAuthnAttestationValidationException validation(
+            String reasonCode, String message, Map<String, Object> details, VerboseTrace trace) {
+        return validation(reasonCode, message, details, Map.of(), trace);
+    }
+
+    private static WebAuthnAttestationValidationException validation(
+            String reasonCode,
+            String message,
+            Map<String, Object> details,
+            Map<String, Object> metadata,
+            VerboseTrace trace) {
+        return new WebAuthnAttestationValidationException(
+                sanitize(reasonCode), sanitize(message), details, metadata, trace);
     }
 
     private static WebAuthnAttestationUnexpectedException unexpected(
-            String reasonCode, String message, Map<String, Object> metadata) {
-        return new WebAuthnAttestationUnexpectedException(sanitize(reasonCode), sanitize(message), metadata);
+            String reasonCode, String message, Map<String, Object> metadata, VerboseTrace trace) {
+        return new WebAuthnAttestationUnexpectedException(sanitize(reasonCode), sanitize(message), metadata, trace);
     }
 
     private static WebAuthnAttestationVector requireVector(String attestationId, WebAuthnAttestationFormat format) {

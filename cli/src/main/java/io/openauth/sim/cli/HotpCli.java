@@ -271,13 +271,16 @@ public final class HotpCli implements Callable<Integer> {
                 description = "Identifier for the stored credential")
         String credentialId;
 
+        @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the evaluation steps")
+        boolean verbose;
+
         @Override
         public Integer call() {
             String event = event("evaluate");
             try (CredentialStore store = openStore()) {
                 HotpEvaluationApplicationService service = new HotpEvaluationApplicationService(store);
                 EvaluationCommand command = new EvaluationCommand.Stored(credentialId.trim());
-                EvaluationResult result = service.evaluate(command);
+                EvaluationResult result = service.evaluate(command, verbose);
                 TelemetryFrame frame = result.telemetry().emit(EVALUATION_TELEMETRY, nextTelemetryId());
                 HotpEvaluationApplicationService.TelemetryStatus status =
                         result.telemetry().status();
@@ -286,6 +289,7 @@ public final class HotpCli implements Callable<Integer> {
                 if (status == HotpEvaluationApplicationService.TelemetryStatus.SUCCESS) {
                     writer.printf(Locale.ROOT, "generatedOtp=%s%n", result.otp());
                 }
+                result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(writer, trace));
                 return switch (status) {
                     case SUCCESS -> CommandLine.ExitCode.OK;
                     case INVALID -> CommandLine.ExitCode.USAGE;

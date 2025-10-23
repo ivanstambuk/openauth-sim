@@ -2,6 +2,7 @@ package io.openauth.sim.rest.webauthn;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.openauth.sim.rest.VerboseTracePayload;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(
@@ -22,6 +23,8 @@ record WebAuthnAttestationResponse(
         WebAuthnAttestedCredential attestedCredential,
 
         @Schema(description = "Telemetry metadata describing the verification outcome") @JsonProperty("metadata")
-        WebAuthnAttestationMetadata metadata) {
+        WebAuthnAttestationMetadata metadata,
+
+        @JsonProperty("trace") VerboseTracePayload trace) {
     // DTO marker
 }

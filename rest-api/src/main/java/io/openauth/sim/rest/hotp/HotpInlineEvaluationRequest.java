@@ -11,7 +11,8 @@ record HotpInlineEvaluationRequest(
         @JsonProperty("algorithm") String algorithm,
         @JsonProperty("digits") Integer digits,
         @JsonProperty("counter") Long counter,
-        @JsonProperty("metadata") Map<String, String> metadata) {
+        @JsonProperty("metadata") Map<String, String> metadata,
+        @JsonProperty("verbose") Boolean verbose) {
 
     // Canonical record; no additional behaviour.
 }

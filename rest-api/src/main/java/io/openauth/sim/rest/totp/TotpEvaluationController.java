@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.totp;
 
+import io.openauth.sim.rest.VerboseTracePayload;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -72,7 +73,11 @@ class TotpEvaluationController {
     @ExceptionHandler(TotpEvaluationValidationException.class)
     ResponseEntity<TotpEvaluationErrorResponse> handleValidation(TotpEvaluationValidationException exception) {
         TotpEvaluationErrorResponse body = new TotpEvaluationErrorResponse(
-                "invalid_input", exception.reasonCode(), exception.getMessage(), exception.details());
+                "invalid_input",
+                exception.reasonCode(),
+                exception.getMessage(),
+                exception.details(),
+                exception.trace() != null ? VerboseTracePayload.from(exception.trace()) : null);
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
     }
 
@@ -84,14 +89,15 @@ class TotpEvaluationController {
                 exception.getMessage(),
                 Map.of(
                         "details",
-                        exception.getCause() != null ? exception.getCause().getMessage() : "n/a"));
+                        exception.getCause() != null ? exception.getCause().getMessage() : "n/a"),
+                exception.trace() != null ? VerboseTracePayload.from(exception.trace()) : null);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
     @ExceptionHandler(RuntimeException.class)
     ResponseEntity<TotpEvaluationErrorResponse> handleFallback(RuntimeException exception) {
         TotpEvaluationErrorResponse body = new TotpEvaluationErrorResponse(
-                "internal_error", "totp_evaluation_failed", exception.getMessage(), Map.of());
+                "internal_error", "totp_evaluation_failed", exception.getMessage(), Map.of(), null);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

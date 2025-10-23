@@ -3,13 +3,13 @@
 > Keep this file up to date across all active chats. Treat it as the single source of truth for in-progress workstreams so every hand-off is instant. Replace the bracketed text and prune sections you do not need.
 
 ## Meta
-- Date: 2025-10-22
+- Date: 2025-10-23
 - Primary branch: `main`
 - Other active branches: none
-- Last green commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest"` (2025-10-22) and `./gradlew --no-daemon spotlessApply` (2025-10-22); previous targeted Selenium runs for HOTP/WebAuthn/OCRA remain green from 2025-10-21. Full `./gradlew --no-daemon spotlessApply check` still pending the console documentation refresh.
-- Build status: HOTP/TOTP/WebAuthn/OCRA operator panels share ResultCard messaging; 2025-10-22 TOTP evaluate forms now surface generated OTPs exclusively via the result panel with targeted Selenium coverage.
-- Quality gate note: Targeted Selenium + spotless runs (2025-10-22) verified the TOTP evaluate-view refinement; broader coverage metrics unchanged from last full gate.
-- Outstanding git state: Feature 034 planning documents (spec/plan/tasks), roadmap entry, and session snapshot updates staged on `main` (2025-10-21); Feature 031 documentation refresh remains staged elsewhere.
+- Last green commands: `./gradlew --no-daemon spotlessApply check` (2025-10-23), `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` (2025-10-23), `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Ocra*EndpointTest"` (2025-10-23), `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*EndpointTest"` (2025-10-23), `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.VerboseTracePrinterTest"` (2025-10-23).
+- Build status: HOTP/TOTP/OCRA/WebAuthn REST endpoints emit `trace` payloads with the shared `VerboseTracePayload` schema documented in regenerated OpenAPI snapshots; operator panels continue to honour the global verbose dock and propagate verbose flags end-to-end. Additional REST/CLI unit tests now cover verbose exception handlers and CLI trace formatting, lifting branch coverage back above the 70 % target.
+- Quality gate note: Full `./gradlew --no-daemon spotlessApply check` completed successfully on 2025-10-23 with aggregated branch coverage at 70.45 % (1 645/2 335).
+- Outstanding git state: OpenAPI JSON/YAML snapshots refreshed to include verbose trace schema across HOTP/TOTP/OCRA/WebAuthn; Feature 034 documentation refresh still staged alongside roadmap/session updates from 2025-10-21.
 
 ## Workstream Summary
 | Workstream | Status | Last Increment | Next Increment | Notes |
@@ -18,6 +18,7 @@
 | Feature 028 – IDE Warning Remediation | In progress | T2810 (WebAuthn assertion lossy conversion warning) | — | Spec/plan/tasks added, Option B locked, TOTP constructors cleaned, WebAuthn attestation/REST metadata assertions updated; CLI/REST tests assert generated OTPs, Selenium suites verify inline/replay controls, full `spotlessApply check` passes; 2025-10-19 clarifications implemented (DTO extraction + SpotBugs annotation export); rest-api dependency lock refreshed to align `checker-qual` 3.51.1 with Gradle force. |
 | Feature 029 – PMD Rule Hardening | In progress | T2903 (Ruleset expansion & baseline) | T2902 – Governance sync & backlog updates | PMD toolVersion bumped to 7.17.0 with dependency locks refreshed via `--write-locks`; legacy `AssignmentInOperand` findings in CLI `MaintenanceCli`, core `CborDecoder`/`SimpleJson`, and core-ocra `OcraReplayVerifierBenchmark` have been refactored and `./gradlew --no-daemon pmdMain pmdTest` now passes; NonExhaustiveSwitch added permanently with green `pmdMain pmdTest` + `spotlessApply check`. |
 | Feature 034 – Unified Validation Feedback | In progress | I4 (Spotless/check closure) | I5 – Final review & handoff (if required) | HOTP inline/replay, TOTP replay, WebAuthn inline/attestation, and OCRA evaluate/replay flows now emit ResultCard messaging with Selenium coverage. `docs/2-how-to/use-ocra-operator-ui.md` covers the ResultCard behaviour and `./gradlew --no-daemon spotlessApply check` succeeded on 2025-10-22. |
+| Feature 035 – Evaluate & Replay Audit Tracing | In progress | T3514 (Final quality gate) | Post-T3514 review & handoff | OCRA + WebAuthn REST endpoints now emit verbose traces and share the documented `VerboseTracePayload`; new REST/CLI unit tests lock down verbose error handling and push aggregated branch coverage to 70.45 %, leaving only closure tasks/documentation review. |
 | _Reminder_ |  |  |  | Keep this table limited to active workstreams; move completed features to the roadmap instead of tracking them here. |
 
 > Open questions live exclusively in `docs/4-architecture/open-questions.md`; consult that log for any pending clarifications.
@@ -28,6 +29,7 @@
 - Additional plan: `docs/4-architecture/feature-plan-029-pmd-rule-hardening.md`
 - Additional tasks: `docs/4-architecture/tasks/feature-029-pmd-rule-hardening.md`
 - Feature 034 spec/plan/tasks: `docs/4-architecture/specs/feature-034-unified-validation-feedback.md`, `docs/4-architecture/feature-plan-034-unified-validation-feedback.md`, `docs/4-architecture/tasks/feature-034-unified-validation-feedback.md`
+- Feature 035 spec: `docs/4-architecture/specs/feature-035-evaluate-replay-audit-tracing.md`
 - Quick reference: `docs/5-operations/session-quick-reference.md`
 
 > Update this snapshot before ending each session and after significant context changes.

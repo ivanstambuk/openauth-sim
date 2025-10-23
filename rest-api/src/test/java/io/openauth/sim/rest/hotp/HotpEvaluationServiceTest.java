@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -40,16 +41,17 @@ final class HotpEvaluationServiceTest {
         TelemetrySignal signal = new TelemetrySignal(
                 TelemetryStatus.SUCCESS, "generated", null, true, Map.of("credentialSource", "stored"), null);
         EvaluationResult result =
-                new EvaluationResult(signal, true, "demo", 0L, 1L, HotpHashAlgorithm.SHA1, 6, OTP, null, null);
-        when(applicationService.evaluate(any(EvaluationCommand.Stored.class))).thenReturn(result);
+                new EvaluationResult(signal, true, "demo", 0L, 1L, HotpHashAlgorithm.SHA1, 6, OTP, null, null, null);
+        when(applicationService.evaluate(any(EvaluationCommand.Stored.class), anyBoolean()))
+                .thenReturn(result);
 
-        HotpEvaluationResponse response = service.evaluateStored(new HotpStoredEvaluationRequest("demo"));
+        HotpEvaluationResponse response = service.evaluateStored(new HotpStoredEvaluationRequest("demo", null));
 
         assertEquals("generated", response.status());
         assertEquals(OTP, response.otp());
         assertEquals("stored", response.metadata().credentialSource());
         assertEquals("demo", response.metadata().credentialId());
-        verify(applicationService).evaluate(any(EvaluationCommand.Stored.class));
+        verify(applicationService).evaluate(any(EvaluationCommand.Stored.class), anyBoolean());
     }
 
     @Test
@@ -59,16 +61,17 @@ final class HotpEvaluationServiceTest {
         fields.put("credentialSource", "inline");
         TelemetrySignal signal = new TelemetrySignal(TelemetryStatus.SUCCESS, "generated", null, true, fields, null);
         EvaluationResult result =
-                new EvaluationResult(signal, false, null, 10L, 11L, HotpHashAlgorithm.SHA1, 6, OTP, null, null);
-        when(applicationService.evaluate(any(EvaluationCommand.Inline.class))).thenReturn(result);
+                new EvaluationResult(signal, false, null, 10L, 11L, HotpHashAlgorithm.SHA1, 6, OTP, null, null, null);
+        when(applicationService.evaluate(any(EvaluationCommand.Inline.class), anyBoolean()))
+                .thenReturn(result);
 
-        HotpEvaluationResponse response = service.evaluateInline(
-                new HotpInlineEvaluationRequest("3132333435363738393031323334353637383930", "SHA1", 6, 10L, Map.of()));
+        HotpEvaluationResponse response = service.evaluateInline(new HotpInlineEvaluationRequest(
+                "3132333435363738393031323334353637383930", "SHA1", 6, 10L, Map.of(), null));
 
         assertEquals("generated", response.status());
         assertEquals(OTP, response.otp());
         assertEquals("inline", response.metadata().credentialSource());
-        verify(applicationService).evaluate(any(EvaluationCommand.Inline.class));
+        verify(applicationService).evaluate(any(EvaluationCommand.Inline.class), anyBoolean());
     }
 
     @Test
@@ -77,7 +80,7 @@ final class HotpEvaluationServiceTest {
         HotpEvaluationValidationException exception = assertThrows(
                 HotpEvaluationValidationException.class,
                 () -> service.evaluateInline(new HotpInlineEvaluationRequest(
-                        "3132333435363738393031323334353637383930", "sha999", 6, 0L, Map.of())));
+                        "3132333435363738393031323334353637383930", "sha999", 6, 0L, Map.of(), null)));
 
         assertEquals("algorithm_invalid", exception.reasonCode());
         assertEquals("algorithm", exception.details().get("field"));
@@ -90,7 +93,7 @@ final class HotpEvaluationServiceTest {
         HotpEvaluationValidationException exception = assertThrows(
                 HotpEvaluationValidationException.class,
                 () -> service.evaluateInline(new HotpInlineEvaluationRequest(
-                        "3132333435363738393031323334353637383930", "SHA1", 6, null, Map.of())));
+                        "3132333435363738393031323334353637383930", "SHA1", 6, null, Map.of(), null)));
 
         assertEquals("counter_required", exception.reasonCode());
         verifyNoInteractions(applicationService);
@@ -101,7 +104,7 @@ final class HotpEvaluationServiceTest {
     void inlineEvaluationRequiresSecret() {
         HotpEvaluationValidationException exception = assertThrows(
                 HotpEvaluationValidationException.class,
-                () -> service.evaluateInline(new HotpInlineEvaluationRequest("   ", "SHA1", 6, 0L, Map.of())));
+                () -> service.evaluateInline(new HotpInlineEvaluationRequest("   ", "SHA1", 6, 0L, Map.of(), null)));
 
         assertEquals("sharedSecretHex_required", exception.reasonCode());
         verifyNoInteractions(applicationService);
@@ -112,7 +115,7 @@ final class HotpEvaluationServiceTest {
     void storedEvaluationRequiresCredentialId() {
         HotpEvaluationValidationException exception = assertThrows(
                 HotpEvaluationValidationException.class,
-                () -> service.evaluateStored(new HotpStoredEvaluationRequest("  ")));
+                () -> service.evaluateStored(new HotpStoredEvaluationRequest("  ", null)));
 
         assertEquals("credentialId_required", exception.reasonCode());
         verifyNoInteractions(applicationService);
@@ -129,15 +132,26 @@ final class HotpEvaluationServiceTest {
                 Map.of("credentialSource", "stored"),
                 null);
         EvaluationResult result = new EvaluationResult(
-                signal, true, "demo", Long.MAX_VALUE, Long.MAX_VALUE, HotpHashAlgorithm.SHA1, 6, null, null, null);
-        when(applicationService.evaluate(any(EvaluationCommand.Stored.class))).thenReturn(result);
+                signal,
+                true,
+                "demo",
+                Long.MAX_VALUE,
+                Long.MAX_VALUE,
+                HotpHashAlgorithm.SHA1,
+                6,
+                null,
+                null,
+                null,
+                null);
+        when(applicationService.evaluate(any(EvaluationCommand.Stored.class), anyBoolean()))
+                .thenReturn(result);
 
         HotpEvaluationValidationException exception = assertThrows(
                 HotpEvaluationValidationException.class,
-                () -> service.evaluateStored(new HotpStoredEvaluationRequest("demo")));
+                () -> service.evaluateStored(new HotpStoredEvaluationRequest("demo", null)));
 
         assertEquals("counter_overflow", exception.reasonCode());
-        verify(applicationService).evaluate(any(EvaluationCommand.Stored.class));
+        verify(applicationService).evaluate(any(EvaluationCommand.Stored.class), anyBoolean());
     }
 
     @Test
@@ -146,17 +160,18 @@ final class HotpEvaluationServiceTest {
         TelemetrySignal signal = new TelemetrySignal(
                 TelemetryStatus.ERROR, "unexpected_error", "boom", false, Map.of("credentialSource", "inline"), null);
         EvaluationResult result =
-                new EvaluationResult(signal, false, null, 5L, 5L, HotpHashAlgorithm.SHA1, 6, null, null, null);
-        when(applicationService.evaluate(any(EvaluationCommand.Inline.class))).thenReturn(result);
+                new EvaluationResult(signal, false, null, 5L, 5L, HotpHashAlgorithm.SHA1, 6, null, null, null, null);
+        when(applicationService.evaluate(any(EvaluationCommand.Inline.class), anyBoolean()))
+                .thenReturn(result);
 
         HotpEvaluationUnexpectedException exception = assertThrows(
                 HotpEvaluationUnexpectedException.class,
                 () -> service.evaluateInline(new HotpInlineEvaluationRequest(
-                        "3132333435363738393031323334353637383930", "SHA1", 6, 5L, Map.of())));
+                        "3132333435363738393031323334353637383930", "SHA1", 6, 5L, Map.of(), null)));
 
         assertEquals("inline", exception.credentialSource());
-        assertEquals("false", exception.details().get("sanitized"));
+        assertEquals(Boolean.FALSE, exception.details().get("sanitized"));
         assertTrue(exception.getMessage().contains("boom"));
-        verify(applicationService).evaluate(any(EvaluationCommand.Inline.class));
+        verify(applicationService).evaluate(any(EvaluationCommand.Inline.class), anyBoolean());
     }
 }

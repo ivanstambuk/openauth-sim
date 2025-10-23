@@ -6,6 +6,7 @@
   if (!totpPanel) {
     return;
   }
+  var verboseConsole = global.VerboseTraceConsole || null;
 
   var ALLOWED_TABS = ['evaluate', 'replay'];
   var ALLOWED_MODES = ['stored', 'inline'];
@@ -191,6 +192,61 @@
       totpPanel.querySelector('#totpReplayInlineTimestampOverride');
   var replayInlineDriftBackwardInput = totpPanel.querySelector('#totpReplayInlineDriftBackward');
   var replayInlineDriftForwardInput = totpPanel.querySelector('#totpReplayInlineDriftForward');
+
+  function verboseAttach(payload) {
+    if (!payload || typeof payload !== 'object' || !verboseConsole) {
+      return payload;
+    }
+    if (typeof verboseConsole.attachVerboseFlag === 'function') {
+      return verboseConsole.attachVerboseFlag(payload);
+    }
+    if (typeof verboseConsole.isEnabled === 'function' && verboseConsole.isEnabled()) {
+      payload.verbose = true;
+    } else if (Object.prototype.hasOwnProperty.call(payload, 'verbose')) {
+      delete payload.verbose;
+    }
+    return payload;
+  }
+
+  function verboseBeginRequest() {
+    if (!verboseConsole) {
+      return;
+    }
+    if (typeof verboseConsole.beginRequest === 'function') {
+      verboseConsole.beginRequest();
+    } else if (typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
+    }
+  }
+
+  function verboseApplyResponse(payload, variant) {
+    if (!verboseConsole) {
+      return;
+    }
+    var options = { variant: variant || 'info', protocol: 'totp' };
+    if (typeof verboseConsole.handleResponse === 'function') {
+      verboseConsole.handleResponse(payload, options);
+    } else if (payload && payload.trace && typeof verboseConsole.renderTrace === 'function') {
+      verboseConsole.renderTrace(payload.trace, options);
+    } else if (typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
+    }
+  }
+
+  function verboseApplyError(error) {
+    if (!verboseConsole) {
+      return;
+    }
+    var payload = error && error.payload ? error.payload : null;
+    var options = { variant: 'error', protocol: 'totp' };
+    if (typeof verboseConsole.handleError === 'function') {
+      verboseConsole.handleError(payload, options);
+    } else if (payload && payload.trace && typeof verboseConsole.renderTrace === 'function') {
+      verboseConsole.renderTrace(payload.trace, options);
+    } else if (typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
+    }
+  }
 
   function setHidden(node, hidden) {
     if (!node) {
@@ -1114,8 +1170,10 @@
     clearStoredPanels();
     clearInlinePanels();
     if (!response || typeof response !== 'object') {
+      verboseApplyResponse(null, 'success');
       return;
     }
+    verboseApplyResponse(response, 'success');
     var metadata = response.metadata || {};
     setStatusBadge(storedStatusBadge, response.status || response.reasonCode);
     var generatedOtp = typeof response.otp === 'string' ? response.otp : '';
@@ -1127,6 +1185,7 @@
   function handleStoredError(error) {
     clearStoredPanels();
     clearInlinePanels();
+    verboseApplyError(error);
     var reason = 'unexpected_error';
     var message = 'An unexpected error occurred during evaluation.';
     if (error && error.payload) {
@@ -1148,8 +1207,10 @@
     clearInlinePanels();
     clearStoredPanels();
     if (!response || typeof response !== 'object') {
+      verboseApplyResponse(null, 'success');
       return;
     }
+    verboseApplyResponse(response, 'success');
     setStatusBadge(inlineStatusBadge, response.status || response.reasonCode);
     var generatedOtp = typeof response.otp === 'string' ? response.otp : '';
     writeText(inlineOtpValue, generatedOtp || (response.metadata && response.metadata.otp));
@@ -1160,6 +1221,7 @@
   function handleInlineError(error) {
     clearInlinePanels();
     clearStoredPanels();
+    verboseApplyError(error);
     var reason = 'unexpected_error';
     var message = 'Inline evaluation failed unexpectedly.';
     if (error && error.payload) {
@@ -1180,15 +1242,17 @@
   function handleReplaySuccess(response) {
     clearReplayPanels();
     if (!response || typeof response !== 'object') {
+      verboseApplyResponse(null, 'info');
       return;
     }
     var status = response.status || response.reasonCode || '';
     var reason = response.reasonCode || response.status || '';
+    var variant = resolveStatusVariant(status);
+    verboseApplyResponse(response, variant === 'error' ? 'error' : 'success');
     setStatusBadge(replayStatusBadge, status);
     writeText(replayReasonCode, reason || '—');
     writeText(replayOutcome, status || '—');
     resetResultCard(replayResultPanel);
-    var variant = resolveStatusVariant(status);
     if (variant === 'error') {
       var message = 'Replay request returned status: ' + resolveStatusLabel(status) + '.';
       var hint = reason ? 'Reason: ' + reason : '';
@@ -1200,6 +1264,7 @@
 
   function handleReplayError(error) {
     clearReplayPanels();
+    verboseApplyError(error);
     var reason = 'unexpected_error';
     var message = 'TOTP replay failed unexpectedly.';
     if (error && error.payload) {
@@ -1242,8 +1307,10 @@
     if (driftForward != null) {
       payload.driftForward = driftForward;
     }
+    payload = verboseAttach(payload);
     storedButton.setAttribute('disabled', 'disabled');
     clearStoredPanels();
+    verboseBeginRequest();
     postJson(endpoint, payload, csrfToken(storedForm))
       .then(handleStoredSuccess)
       .catch(handleStoredError)
@@ -1292,8 +1359,10 @@
       }
       payload.metadata = metadata;
     }
+    payload = verboseAttach(payload);
     inlineButton.setAttribute('disabled', 'disabled');
     clearInlinePanels();
+    verboseBeginRequest();
     postJson(endpoint, payload, csrfToken(inlineForm))
       .then(handleInlineSuccess)
       .catch(handleInlineError)
@@ -1327,8 +1396,10 @@
     if (driftForward != null) {
       payload.driftForward = driftForward;
     }
+    payload = verboseAttach(payload);
     replayStoredButton.setAttribute('disabled', 'disabled');
     clearReplayPanels();
+    verboseBeginRequest();
     postJson(endpoint, payload, csrfToken(replayStoredForm))
       .then(handleReplaySuccess)
       .catch(handleReplayError)
@@ -1373,6 +1444,8 @@
     }
     replayInlineButton.setAttribute('disabled', 'disabled');
     clearReplayPanels();
+    payload = verboseAttach(payload);
+    verboseBeginRequest();
     postJson(endpoint, payload, csrfToken(replayInlineForm))
       .then(handleReplaySuccess)
       .catch(handleReplayError)

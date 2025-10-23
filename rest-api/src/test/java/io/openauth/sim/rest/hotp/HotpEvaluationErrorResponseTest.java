@@ -13,7 +13,8 @@ final class HotpEvaluationErrorResponseTest {
     @Test
     @DisplayName("Details default to empty map when null provided")
     void detailsDefaultToEmptyMap() {
-        HotpEvaluationErrorResponse response = new HotpEvaluationErrorResponse("invalid", "message", null);
+        HotpEvaluationErrorResponse response =
+                new HotpEvaluationErrorResponse("invalid", "reason", "message", null, null);
 
         assertTrue(response.details().isEmpty());
     }
@@ -21,8 +22,8 @@ final class HotpEvaluationErrorResponseTest {
     @Test
     @DisplayName("Details map is defensively copied and unmodifiable")
     void detailsAreUnmodifiable() {
-        HotpEvaluationErrorResponse response =
-                new HotpEvaluationErrorResponse("invalid", "message", Map.of("field", "otp"));
+        HotpEvaluationErrorResponse response = new HotpEvaluationErrorResponse(
+                "invalid", "reason", "message", Map.<String, Object>of("field", "otp"), null);
 
         assertEquals("otp", response.details().get("field"));
         assertThrows(

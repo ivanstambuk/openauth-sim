@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.hotp;
 
+import io.openauth.sim.rest.VerboseTracePayload;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -41,15 +42,8 @@ class HotpEvaluationController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = HotpEvaluationResponse.class))),
                 @ApiResponse(
-                        responseCode = "400",
+                        responseCode = "422",
                         description = "Validation error",
-                        content =
-                                @Content(
-                                        mediaType = "application/json",
-                                        schema = @Schema(implementation = HotpEvaluationErrorResponse.class))),
-                @ApiResponse(
-                        responseCode = "404",
-                        description = "Credential not found",
                         content =
                                 @Content(
                                         mediaType = "application/json",
@@ -81,7 +75,7 @@ class HotpEvaluationController {
                                         mediaType = "application/json",
                                         schema = @Schema(implementation = HotpEvaluationResponse.class))),
                 @ApiResponse(
-                        responseCode = "400",
+                        responseCode = "422",
                         description = "Validation error",
                         content =
                                 @Content(
@@ -103,7 +97,7 @@ class HotpEvaluationController {
 
     @ExceptionHandler(HotpEvaluationValidationException.class)
     ResponseEntity<HotpEvaluationErrorResponse> handleValidation(HotpEvaluationValidationException exception) {
-        Map<String, String> details = new LinkedHashMap<>(exception.details());
+        Map<String, Object> details = new LinkedHashMap<>(exception.details());
         details.putIfAbsent("telemetryId", exception.telemetryId());
         details.putIfAbsent("credentialSource", exception.credentialSource());
         if (exception.credentialId() != null && !exception.credentialId().isBlank()) {
@@ -113,37 +107,43 @@ class HotpEvaluationController {
         if (exception.reasonCode() != null) {
             details.putIfAbsent("reasonCode", exception.reasonCode());
         }
-        details.put("sanitized", Boolean.toString(exception.sanitized()));
+        details.putIfAbsent("sanitized", exception.sanitized());
 
-        HotpEvaluationErrorResponse body =
-                new HotpEvaluationErrorResponse("invalid_input", exception.getMessage(), details);
+        HotpEvaluationErrorResponse body = new HotpEvaluationErrorResponse(
+                "invalid_input",
+                exception.reasonCode(),
+                exception.getMessage(),
+                details,
+                exception.trace() != null ? VerboseTracePayload.from(exception.trace()) : null);
 
-        HttpStatus status =
-                "credential_not_found".equals(exception.reasonCode()) ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
-        return ResponseEntity.status(status).body(body);
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
     }
 
     @ExceptionHandler(HotpEvaluationUnexpectedException.class)
     ResponseEntity<HotpEvaluationErrorResponse> handleUnexpected(HotpEvaluationUnexpectedException exception) {
-        Map<String, String> details = new LinkedHashMap<>(exception.details());
+        Map<String, Object> details = new LinkedHashMap<>(exception.details());
         details.putIfAbsent("telemetryId", exception.telemetryId());
         details.putIfAbsent("credentialSource", exception.credentialSource());
         details.put("status", "error");
-        details.putIfAbsent("sanitized", "false");
+        details.putIfAbsent("sanitized", false);
 
-        HotpEvaluationErrorResponse body =
-                new HotpEvaluationErrorResponse("internal_error", "HOTP evaluation failed", details);
+        HotpEvaluationErrorResponse body = new HotpEvaluationErrorResponse(
+                "internal_error",
+                "hotp_evaluation_failed",
+                exception.getMessage(),
+                details,
+                exception.trace() != null ? VerboseTracePayload.from(exception.trace()) : null);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
     @ExceptionHandler(RuntimeException.class)
     ResponseEntity<HotpEvaluationErrorResponse> handleFallback(RuntimeException exception) {
-        Map<String, String> details = new LinkedHashMap<>();
+        Map<String, Object> details = new LinkedHashMap<>();
         details.put("status", "error");
-        details.put("sanitized", "false");
+        details.put("sanitized", false);
 
-        HotpEvaluationErrorResponse body =
-                new HotpEvaluationErrorResponse("internal_error", "HOTP evaluation failed", details);
+        HotpEvaluationErrorResponse body = new HotpEvaluationErrorResponse(
+                "internal_error", "hotp_evaluation_failed", exception.getMessage(), details, null);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

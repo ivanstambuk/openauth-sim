@@ -10,6 +10,11 @@ The operator console embedded in the REST API now provides HOTP evaluation and r
 - Ensure the simulator can access a MapDB credential store (defaults to `data/credentials.db`). Use the CLI to import HOTP credentials if none exist.
 - The operator console now exposes a **Seed sample credentials** button in stored mode; use it to add the canonical SHA-1/6 and SHA-256/8 demo records before running drills. The CLI and REST endpoints remain available for bulk imports or cleanup.
 
+## Turn on Verbose Tracing
+- A global **Enable verbose tracing for the next request** checkbox now lives in the console header. Leave it off for regular runs; when enabled, the next HOTP evaluation or replay request sets `"verbose": true` so the REST API returns a detailed `trace` payload alongside the status and OTP data.
+- Verbose traces surface every step (`resolve.credential`, `generate.otp`, `persist.counter`, etc.) with the raw inputs and outputs that produced the result. The lower **Verbose trace** dock automatically expands when a verbose response returns, rendering the terminal-style output and exposing a **Copy trace** button for quick sharing. Because the trace includes shared secrets and counters, disable the toggle as soon as you are done inspecting the flow.
+- With verbose mode disabled, the dock collapses and subsequent requests omit the verbose flag, keeping sensitive material out of the UI and REST payload.
+
 ## Seed Canonical HOTP Credentials
 1. Navigate to `http://localhost:8080/ui/console?protocol=hotp` and confirm the **Stored credential** mode is active.
 2. Locate the **Seed sample credentials** button beneath the credential dropdown. The control appears only in stored mode.

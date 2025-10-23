@@ -472,6 +472,16 @@
           "required" : true
         },
         "responses" : {
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
           "422" : {
             "description" : "Verification payload failed validation",
             "content" : {
@@ -496,16 +506,6 @@
                       }
                     }
                   }
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
                 }
               }
             }
@@ -569,16 +569,6 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation successful",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
-                }
-              }
-            }
-          },
           "500" : {
             "description" : "Unexpected server error",
             "content" : {
@@ -613,6 +603,16 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation successful",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
                 }
               }
             }
@@ -665,17 +665,7 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
-          "400" : {
+          "422" : {
             "description" : "Validation error",
             "content" : {
               "application/json" : {
@@ -685,8 +675,8 @@
               }
             }
           },
-          "404" : {
-            "description" : "Credential not found",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -715,7 +705,17 @@
           "required" : true
         },
         "responses" : {
-          "400" : {
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                }
+              }
+            }
+          },
+          "422" : {
             "description" : "Validation error",
             "content" : {
               "application/json" : {
@@ -731,26 +731,6 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -775,7 +755,17 @@
           "required" : true
         },
         "responses" : {
-          "400" : {
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                }
+              }
+            }
+          },
+          "422" : {
             "description" : "Validation error",
             "content" : {
               "application/json" : {
@@ -791,16 +781,6 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -1043,6 +1023,65 @@
   },
   "components" : {
     "schemas" : {
+      "VerboseTracePayload" : {
+        "type" : "object",
+        "properties" : {
+          "operation" : {
+            "type" : "string",
+            "description" : "Stable identifier describing the traced operation (for example, totp.evaluate.stored)."
+          },
+          "metadata" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string",
+              "description" : "Additional metadata associated with the trace."
+            },
+            "description" : "Additional metadata associated with the trace."
+          },
+          "steps" : {
+            "type" : "array",
+            "description" : "Ordered steps executed during the operation.",
+            "items" : {
+              "$ref" : "#/components/schemas/VerboseTraceStepPayload"
+            }
+          }
+        },
+        "description" : "Deterministic, ordered diagnostic trace emitted when verbose mode is enabled for a credential workflow."
+      },
+      "VerboseTraceStepPayload" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "description" : "Stable identifier that enables downstream tooling to group similar steps."
+          },
+          "summary" : {
+            "type" : "string",
+            "description" : "Human-readable summary of what the step accomplished."
+          },
+          "detail" : {
+            "type" : "string",
+            "description" : "Additional detail about the specific helper or component invoked."
+          },
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object",
+              "description" : "Arbitrary attributes captured for the step."
+            },
+            "description" : "Arbitrary attributes captured for the step."
+          },
+          "notes" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string",
+              "description" : "Free-form notes associated with the step."
+            },
+            "description" : "Free-form notes associated with the step."
+          }
+        },
+        "description" : "Single diagnostic entry representing one action performed while handling the request."
+      },
       "WebAuthnReplayMetadata" : {
         "type" : "object",
         "properties" : {
@@ -1089,6 +1128,9 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/WebAuthnReplayMetadata"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -1115,6 +1157,9 @@
             "additionalProperties" : {
               "type" : "object"
             }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -1160,6 +1205,15 @@
           },
           "signature" : {
             "type" : "string"
+          },
+          "trustAnchors" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "verbose" : {
+            "type" : "boolean"
           }
         }
       },
@@ -1220,6 +1274,9 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/WebAuthnEvaluationMetadata"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -1263,6 +1320,9 @@
             "additionalProperties" : {
               "type" : "object"
             }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -1292,6 +1352,9 @@
             "format" : "int64"
           },
           "userVerificationRequired" : {
+            "type" : "boolean"
+          },
+          "verbose" : {
             "type" : "boolean"
           }
         }
@@ -1329,6 +1392,9 @@
           },
           "privateKey" : {
             "type" : "string"
+          },
+          "verbose" : {
+            "type" : "boolean"
           }
         }
       },
@@ -1480,6 +1546,9 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/WebAuthnAttestationMetadata"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         },
         "description" : "Response payload for WebAuthn attestation verification and replay endpoints."
@@ -1590,6 +1659,9 @@
               "description" : "Telemetry metadata captured during verification"
             },
             "description" : "Telemetry metadata captured during verification"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         },
         "description" : "Error payload returned when WebAuthn attestation verification fails."
@@ -1669,6 +1741,9 @@
               "type" : "string",
               "description" : "Set of edited fields compared to the preset"
             }
+          },
+          "verbose" : {
+            "type" : "boolean"
           }
         },
         "description" : "Request payload for generating a deterministic WebAuthn attestation object."
@@ -1719,6 +1794,9 @@
               "type" : "string",
               "description" : "PEM encoded X.509 trust anchors to validate the attestation certificate chain"
             }
+          },
+          "verbose" : {
+            "type" : "boolean"
           }
         },
         "description" : "Request payload for replaying a WebAuthn attestation verification with optional trust anchors."
@@ -1777,6 +1855,9 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/TotpReplayMetadata"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -1797,6 +1878,9 @@
             "additionalProperties" : {
               "type" : "object"
             }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -1838,6 +1922,9 @@
           "stepSeconds" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "verbose" : {
+            "type" : "boolean"
           }
         }
       },
@@ -1895,6 +1982,9 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/TotpEvaluationMetadata"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -1915,6 +2005,9 @@
             "additionalProperties" : {
               "type" : "object"
             }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -1942,6 +2035,9 @@
           "timestampOverride" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "verbose" : {
+            "type" : "boolean"
           }
         }
       },
@@ -1986,6 +2082,9 @@
             "additionalProperties" : {
               "type" : "string"
             }
+          },
+          "verbose" : {
+            "type" : "boolean"
           }
         }
       },
@@ -2139,20 +2238,9 @@
           "counter" : {
             "type" : "integer",
             "format" : "int64"
-          }
-        }
-      },
-      "OcraEvaluationResponse" : {
-        "type" : "object",
-        "properties" : {
-          "suite" : {
-            "type" : "string"
           },
-          "otp" : {
-            "type" : "string"
-          },
-          "telemetryId" : {
-            "type" : "string"
+          "verbose" : {
+            "type" : "boolean"
           }
         }
       },
@@ -2170,6 +2258,26 @@
             "additionalProperties" : {
               "type" : "string"
             }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
+      "OcraEvaluationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "suite" : {
+            "type" : "string"
+          },
+          "otp" : {
+            "type" : "string"
+          },
+          "telemetryId" : {
+            "type" : "string"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -2201,6 +2309,9 @@
             "additionalProperties" : {
               "type" : "string"
             }
+          },
+          "verbose" : {
+            "type" : "boolean"
           }
         }
       },
@@ -2247,13 +2358,19 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpReplayMetadata"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
       "HotpReplayErrorResponse" : {
         "type" : "object",
         "properties" : {
-          "error" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
             "type" : "string"
           },
           "message" : {
@@ -2262,8 +2379,11 @@
           "details" : {
             "type" : "object",
             "additionalProperties" : {
-              "type" : "string"
+              "type" : "object"
             }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -2272,23 +2392,9 @@
         "properties" : {
           "credentialId" : {
             "type" : "string"
-          }
-        }
-      },
-      "HotpEvaluationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
           },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "string"
-            }
+          "verbose" : {
+            "type" : "boolean"
           }
         }
       },
@@ -2344,6 +2450,32 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpEvaluationMetadata"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
+      "HotpEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -2369,6 +2501,9 @@
             "additionalProperties" : {
               "type" : "string"
             }
+          },
+          "verbose" : {
+            "type" : "boolean"
           }
         }
       },

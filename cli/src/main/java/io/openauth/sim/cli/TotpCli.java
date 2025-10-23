@@ -230,6 +230,9 @@ public final class TotpCli implements Callable<Integer> {
                 description = "Override timestamp supplied by the authenticator")
         Long timestampOverride;
 
+        @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the evaluation steps")
+        boolean verbose;
+
         @Override
         public Integer call() {
             TotpDriftWindow window = TotpDriftWindow.of(driftBackward, driftForward);
@@ -241,7 +244,7 @@ public final class TotpCli implements Callable<Integer> {
             try (CredentialStore store = openStore()) {
                 TotpEvaluationApplicationService service = new TotpEvaluationApplicationService(store);
                 EvaluationResult result = service.evaluate(
-                        new EvaluationCommand.Stored(credentialId, "", window, evaluationInstant, override));
+                        new EvaluationCommand.Stored(credentialId, "", window, evaluationInstant, override), verbose);
                 return handleResult(result, event("evaluate"), true);
             } catch (Exception ex) {
                 Map<String, Object> fields = new LinkedHashMap<>();
@@ -257,7 +260,9 @@ public final class TotpCli implements Callable<Integer> {
             switch (signal.status()) {
                 case SUCCESS -> {
                     TelemetryFrame frame = signal.emit(EVALUATION_TELEMETRY, nextTelemetryId());
-                    writeFrame(out(), event, addResultFields(frame, credentialReference, result));
+                    PrintWriter writer = out();
+                    writeFrame(writer, event, addResultFields(frame, credentialReference, result));
+                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(writer, trace));
                     return CommandLine.ExitCode.OK;
                 }
                 case INVALID -> {
@@ -265,18 +270,22 @@ public final class TotpCli implements Callable<Integer> {
                     fields.put("credentialReference", credentialReference);
                     fields.put("credentialId", result.credentialId());
                     fields.put("matchedSkewSteps", result.matchedSkewSteps());
-                    return failValidation(
+                    int exitCode = failValidation(
                             event,
                             signal,
                             fields,
                             Optional.ofNullable(signal.reason()).orElse(signal.reasonCode()));
+                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(err(), trace));
+                    return exitCode;
                 }
                 case ERROR -> {
                     Map<String, Object> fields = new LinkedHashMap<>();
                     fields.put("credentialReference", credentialReference);
                     fields.put("credentialId", result.credentialId());
-                    return failUnexpected(
+                    int exitCode = failUnexpected(
                             event, fields, Optional.ofNullable(signal.reason()).orElse("TOTP evaluation failed"));
+                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(err(), trace));
+                    return exitCode;
                 }
             }
             throw new IllegalStateException("Unhandled telemetry status: " + signal.status());
@@ -355,6 +364,9 @@ public final class TotpCli implements Callable<Integer> {
                 description = "Authenticator-supplied timestamp override")
         Long timestampOverride;
 
+        @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the evaluation steps")
+        boolean verbose;
+
         @Override
         public Integer call() {
             TotpHashAlgorithm hashAlgorithm = TotpHashAlgorithm.valueOf(algorithm.toUpperCase(Locale.ROOT));
@@ -366,15 +378,17 @@ public final class TotpCli implements Callable<Integer> {
 
             try (CredentialStore store = openStore()) {
                 TotpEvaluationApplicationService service = new TotpEvaluationApplicationService(store);
-                EvaluationResult result = service.evaluate(new EvaluationCommand.Inline(
-                        secretHex,
-                        hashAlgorithm,
-                        digits,
-                        Duration.ofSeconds(stepSeconds),
-                        "",
-                        window,
-                        evaluationInstant,
-                        override));
+                EvaluationResult result = service.evaluate(
+                        new EvaluationCommand.Inline(
+                                secretHex,
+                                hashAlgorithm,
+                                digits,
+                                Duration.ofSeconds(stepSeconds),
+                                "",
+                                window,
+                                evaluationInstant,
+                                override),
+                        verbose);
                 return handleResult(result, event("evaluate"));
             } catch (IllegalArgumentException ex) {
                 Map<String, Object> fields = Map.of("credentialReference", false);
@@ -395,23 +409,29 @@ public final class TotpCli implements Callable<Integer> {
             switch (signal.status()) {
                 case SUCCESS -> {
                     TelemetryFrame frame = signal.emit(EVALUATION_TELEMETRY, nextTelemetryId());
-                    writeFrame(out(), event, addResultFields(frame, result));
+                    PrintWriter writer = out();
+                    writeFrame(writer, event, addResultFields(frame, result));
+                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(writer, trace));
                     return CommandLine.ExitCode.OK;
                 }
                 case INVALID -> {
                     Map<String, Object> fields = new LinkedHashMap<>(signal.fields());
                     fields.put("credentialReference", false);
                     fields.put("matchedSkewSteps", result.matchedSkewSteps());
-                    return failValidation(
+                    int exitCode = failValidation(
                             event,
                             signal,
                             fields,
                             Optional.ofNullable(signal.reason()).orElse(signal.reasonCode()));
+                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(err(), trace));
+                    return exitCode;
                 }
                 case ERROR -> {
                     Map<String, Object> fields = Map.of("credentialReference", false);
-                    return failUnexpected(
+                    int exitCode = failUnexpected(
                             event, fields, Optional.ofNullable(signal.reason()).orElse("TOTP evaluation failed"));
+                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(err(), trace));
+                    return exitCode;
                 }
             }
             throw new IllegalStateException("Unhandled telemetry status: " + signal.status());

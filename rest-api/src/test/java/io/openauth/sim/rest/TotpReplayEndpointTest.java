@@ -3,6 +3,7 @@ package io.openauth.sim.rest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -139,6 +140,47 @@ class TotpReplayEndpointTest {
         } finally {
             deregisterTelemetryHandler(handler);
         }
+    }
+
+    @Test
+    @DisplayName("Stored TOTP replay returns verbose trace when requested")
+    void storedTotpReplayReturnsVerboseTrace() throws Exception {
+        TotpDescriptor descriptor = TotpDescriptor.create(
+                CREDENTIAL_ID,
+                STORED_SECRET,
+                TotpHashAlgorithm.SHA1,
+                6,
+                Duration.ofSeconds(30),
+                TotpDriftWindow.of(1, 1));
+        Credential credential = VersionedCredentialRecordMapper.toCredential(adapter.serialize(descriptor));
+        credentialStore.save(credential);
+
+        Instant timestamp = Instant.ofEpochSecond(1_800_000_000L);
+        String otp = TotpGenerator.generate(descriptor, timestamp);
+
+        String responseBody = mockMvc.perform(post("/api/v1/totp/replay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                          {
+                            \"credentialId\": \"%s\",
+                            \"otp\": \"%s\",
+                            \"timestamp\": %d,
+                            \"driftBackward\": 1,
+                            \"driftForward\": 1,
+                            \"verbose\": true
+                          }
+                          """.formatted(CREDENTIAL_ID, otp, timestamp.getEpochSecond())))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode response = JSON.readTree(responseBody);
+        JsonNode trace = response.get("trace");
+        assertNotNull(trace, "Expected trace payload when verbose=true");
+        assertEquals("totp.replay.stored", trace.get("operation").asText());
+        assertTrue(trace.get("steps").isArray());
+        assertTrue(trace.get("steps").size() > 0, "Trace steps must not be empty");
     }
 
     @Test

@@ -26,7 +26,8 @@ final class OcraEvaluationDtoTest {
                 " server-challenge ",
                 "   ",
                 "  0000000F  ",
-                42L);
+                42L,
+                null);
 
         assertEquals("credential-123", request.credentialId());
         assertEquals("OCRA-1:HOTP-SHA1-6:QA08", request.suite());
@@ -43,13 +44,14 @@ final class OcraEvaluationDtoTest {
     @Test
     @DisplayName("OcraEvaluationResponse trims optional fields while preserving null values")
     void responseTrimsOptionalFields() {
-        OcraEvaluationResponse response = new OcraEvaluationResponse("  OCRA-1:HOTP-SHA1-6:QA08  ", " 012345  ", null);
+        OcraEvaluationResponse response =
+                new OcraEvaluationResponse("  OCRA-1:HOTP-SHA1-6:QA08  ", " 012345  ", null, null);
 
         assertEquals("OCRA-1:HOTP-SHA1-6:QA08", response.suite());
         assertEquals("012345", response.otp());
         assertNull(response.telemetryId());
 
-        OcraEvaluationResponse nullResponse = new OcraEvaluationResponse(null, null, "  telemetry-001  ");
+        OcraEvaluationResponse nullResponse = new OcraEvaluationResponse(null, null, "  telemetry-001  ", null);
 
         assertNull(nullResponse.suite());
         assertNull(nullResponse.otp());
@@ -59,14 +61,15 @@ final class OcraEvaluationDtoTest {
     @Test
     @DisplayName("OcraEvaluationErrorResponse defaults to an empty defensive copy of details")
     void errorResponseProvidesDefensiveCopy() {
-        OcraEvaluationErrorResponse empty = new OcraEvaluationErrorResponse("invalid", "message", null);
+        OcraEvaluationErrorResponse empty = new OcraEvaluationErrorResponse("invalid", "message", null, null);
 
         assertTrue(empty.details().isEmpty());
 
         Map<String, String> mutableDetails = new HashMap<>();
         mutableDetails.put("reason", "ignored");
 
-        OcraEvaluationErrorResponse response = new OcraEvaluationErrorResponse("invalid", "message", mutableDetails);
+        OcraEvaluationErrorResponse response =
+                new OcraEvaluationErrorResponse("invalid", "message", mutableDetails, null);
 
         assertEquals(1, response.details().size());
         assertEquals("ignored", response.details().get("reason"));

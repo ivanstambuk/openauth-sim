@@ -14,6 +14,7 @@ record TotpReplayRequest(
         @JsonProperty("sharedSecretHex") String sharedSecretHex,
         @JsonProperty("algorithm") String algorithm,
         @JsonProperty("digits") Integer digits,
-        @JsonProperty("stepSeconds") Long stepSeconds) {
+        @JsonProperty("stepSeconds") Long stepSeconds,
+        @JsonProperty("verbose") Boolean verbose) {
     // canonical request record
 }

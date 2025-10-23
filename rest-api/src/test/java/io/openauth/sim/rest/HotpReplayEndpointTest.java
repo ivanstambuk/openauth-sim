@@ -3,6 +3,7 @@ package io.openauth.sim.rest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -215,14 +216,43 @@ class HotpReplayEndpointTest {
                               }
                             }
                             """.formatted(SECRET_HEX, counter, otp)))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isUnprocessableEntity())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
 
         JsonNode response = JSON.readTree(responseBody);
-        assertThat(response.path("error").asText()).isEqualTo("invalid_input");
-        assertThat(response.path("details").path("reasonCode").asText()).isEqualTo("metadata_not_supported");
+        assertThat(response.path("status").asText()).isEqualTo("invalid_input");
+        assertThat(response.path("reasonCode").asText()).isEqualTo("metadata_not_supported");
+        assertThat(response.path("trace").isMissingNode()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Stored HOTP replay returns verbose trace when requested")
+    void storedHotpReplayReturnsVerboseTrace() throws Exception {
+        credentialStore.save(storedCredential(12L));
+        String otp = generateOtp(12L);
+
+        String responseBody = mockMvc.perform(post("/api/v1/hotp/replay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                          {
+                            "credentialId": "%s",
+                            "otp": "%s",
+                            "verbose": true
+                          }
+                          """.formatted(CREDENTIAL_ID, otp)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode response = JSON.readTree(responseBody);
+        JsonNode trace = response.get("trace");
+        assertNotNull(trace, "Expected trace payload when verbose=true");
+        assertEquals("hotp.replay.stored", trace.get("operation").asText());
+        assertTrue(trace.get("steps").isArray());
+        assertTrue(trace.get("steps").size() > 0, "Trace steps must not be empty");
     }
 
     private Credential storedCredential(long counter) {
