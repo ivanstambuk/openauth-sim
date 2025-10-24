@@ -13,7 +13,7 @@ public record WebAuthnAssertionRequest(
         String expectedType) {
 
     public WebAuthnAssertionRequest {
-        Objects.requireNonNull(relyingPartyId, "relyingPartyId");
+        relyingPartyId = WebAuthnRelyingPartyId.canonicalize(Objects.requireNonNull(relyingPartyId, "relyingPartyId"));
         Objects.requireNonNull(origin, "origin");
         Objects.requireNonNull(expectedChallenge, "expectedChallenge");
         Objects.requireNonNull(clientDataJson, "clientDataJson");

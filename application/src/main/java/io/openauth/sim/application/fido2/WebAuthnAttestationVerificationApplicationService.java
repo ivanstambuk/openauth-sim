@@ -5,6 +5,7 @@ import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.fido2.CborDecoder;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.fido2.WebAuthnRelyingPartyId;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.fido2.WebAuthnVerificationError;
 import io.openauth.sim.core.trace.VerboseTrace;
@@ -31,10 +32,14 @@ public final class WebAuthnAttestationVerificationApplicationService {
 
     private final WebAuthnAttestationVerifier verifier;
     private final Fido2TelemetryAdapter telemetryAdapter;
-    private static final Pattern JSON_FIELD_PATTERN =
-            Pattern.compile("\\\"(?<key>[^\\\"]+)\\\"\\s*:\\s*\\\"(?<value>[^\\\"]*)\\\"");
     private static final Base64.Encoder BASE64_URL_ENCODER =
             Base64.getUrlEncoder().withoutPadding();
+    private static final Base64.Decoder BASE64_URL_DECODER = Base64.getUrlDecoder();
+    private static final Pattern JSON_FIELD_PATTERN =
+            Pattern.compile("\\\"(?<key>[^\\\"]+)\\\"\\s*:\\s*\\\"(?<value>[^\\\"]*)\\\"");
+    private static final Pattern TOKEN_BINDING_PATTERN = Pattern.compile("\\\"tokenBinding\\\"\\s*:\\s*\\{([^}]*)\\}");
+    private static final Pattern TOKEN_BINDING_FIELD_PATTERN =
+            Pattern.compile("\\\"(status|id)\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
 
     public WebAuthnAttestationVerificationApplicationService(
             WebAuthnAttestationVerifier verifier, Fido2TelemetryAdapter telemetryAdapter) {
@@ -53,11 +58,14 @@ public final class WebAuthnAttestationVerificationApplicationService {
         metadata(trace, "protocol", "FIDO2");
         metadata(trace, "format", command.format().label());
         metadata(trace, "attestationId", command.attestationId());
+        String submittedRpId = command.relyingPartyId();
+        String canonicalRpId = WebAuthnRelyingPartyId.canonicalize(submittedRpId);
 
         addStep(trace, step -> step.id("parse.request")
                 .summary("Prepare attestation verification request")
                 .detail("VerificationCommand")
-                .attribute("relyingPartyId", command.relyingPartyId())
+                .attribute("relyingPartyId", submittedRpId)
+                .attribute("rpId.canonical", canonicalRpId)
                 .attribute("origin", command.origin())
                 .attribute("trustAnchors", command.trustAnchors().size())
                 .attribute("trustAnchorsCached", command.trustAnchorsCached())
@@ -69,14 +77,14 @@ public final class WebAuthnAttestationVerificationApplicationService {
 
         if (trace != null) {
             addParseClientDataStep(trace, clientData, command.expectedChallenge(), command.origin());
-            addParseAuthenticatorDataStep(trace, attestationComponents, command.relyingPartyId());
+            addParseAuthenticatorDataStep(trace, attestationComponents, submittedRpId, canonicalRpId);
         }
 
         WebAuthnAttestationServiceSupport.Outcome outcome = WebAuthnAttestationServiceSupport.process(
                 verifier,
                 command.format(),
                 command.attestationId(),
-                command.relyingPartyId(),
+                canonicalRpId,
                 command.origin(),
                 command.attestationObject(),
                 command.clientDataJson(),
@@ -104,7 +112,7 @@ public final class WebAuthnAttestationVerificationApplicationService {
 
         if (trace != null) {
             addExtractAttestedCredentialStep(
-                    trace, attestationComponents, attestedCredential, command.relyingPartyId());
+                    trace, attestationComponents, attestedCredential, submittedRpId, canonicalRpId);
             byte[] clientDataHash = clientData == null ? sha256(command.clientDataJson()) : clientData.hash();
             addSignatureBaseStep(trace, attestationComponents.authData(), clientDataHash);
             addVerifySignatureStep(
@@ -250,35 +258,57 @@ public final class WebAuthnAttestationVerificationApplicationService {
         if (trace == null || clientData == null) {
             return;
         }
-        String type = clientData.type().isEmpty() ? "webauthn.create" : clientData.type();
+        String expectedType = "webauthn.create";
+        String type = clientData.type().isEmpty() ? expectedType : clientData.type();
         String challenge = clientData.challengeBase64().isEmpty() && expectedChallenge != null
                 ? base64Url(expectedChallenge)
                 : clientData.challengeBase64();
-        String resolvedOrigin = clientData.origin().isEmpty() ? safe(origin) : clientData.origin();
+        String expectedOrigin = safe(origin);
+        String resolvedOrigin = clientData.origin().isEmpty() ? expectedOrigin : clientData.origin();
+        boolean typeMatches = expectedType.equals(type);
+        boolean originMatches = expectedOrigin.isEmpty() || expectedOrigin.equals(resolvedOrigin);
 
-        addStep(trace, step -> step.id("parse.clientData")
-                .summary("Parse client data JSON")
-                .detail("clientDataJSON")
-                .spec("webauthn§6.5.1")
-                .attribute("type", type)
-                .attribute("challenge.base64url", challenge)
-                .attribute("origin", resolvedOrigin)
-                .attribute(AttributeType.JSON, "clientData.json", clientData.json())
-                .attribute("clientData.sha256", sha256Label(clientData.hash())));
+        addStep(trace, step -> {
+            step.id("parse.clientData")
+                    .summary("Parse client data JSON")
+                    .detail("clientDataJSON")
+                    .spec("webauthn§6.5.1")
+                    .attribute("type", type)
+                    .attribute("expected.type", expectedType)
+                    .attribute(AttributeType.BOOL, "type.match", typeMatches)
+                    .attribute("challenge.b64u", challenge)
+                    .attribute("challenge.decoded.len", clientData.challengeLength())
+                    .attribute("origin", resolvedOrigin)
+                    .attribute("origin.expected", expectedOrigin)
+                    .attribute(AttributeType.BOOL, "origin.match", originMatches)
+                    .attribute(AttributeType.JSON, "clientData.json", clientData.json())
+                    .attribute("clientDataHash.sha256", sha256Label(clientData.hash()))
+                    .attribute(AttributeType.BOOL, "tokenBinding.present", clientData.tokenBindingPresent());
+            clientData.tokenBindingStatusOptional().ifPresent(status -> step.attribute("tokenBinding.status", status));
+            clientData.tokenBindingIdOptional().ifPresent(id -> step.attribute("tokenBinding.id", id));
+            if (clientData.challengeDecodeFailed()) {
+                step.note("challenge.decode", "invalid_base64url");
+            }
+        });
     }
 
     private static void addParseAuthenticatorDataStep(
-            VerboseTrace.Builder trace, AttestationComponents components, String relyingPartyId) {
+            VerboseTrace.Builder trace, AttestationComponents components, String relyingPartyId, String canonicalRpId) {
         if (trace == null || !components.hasAuthData()) {
             return;
         }
-        String expectedHash = sha256Digest(safe(relyingPartyId).getBytes(StandardCharsets.UTF_8));
+        String expectedHash = sha256Digest(canonicalRpId.getBytes(StandardCharsets.UTF_8));
+        String actualHash = sha256Label(components.rpIdHash());
+        boolean hashesMatch = expectedHash.equals(actualHash);
 
         addStep(trace, step -> step.id("parse.authenticatorData")
                 .summary("Parse authenticator data")
                 .detail("authenticatorData")
                 .spec("webauthn§6.5.4")
-                .attribute("rpId.hash.hex", hex(components.rpIdHash()))
+                .attribute("rpIdHash.hex", hex(components.rpIdHash()))
+                .attribute("rpId.canonical", canonicalRpId)
+                .attribute("rpIdHash.expected", expectedHash)
+                .attribute(AttributeType.BOOL, "rpIdHash.match", hashesMatch)
                 .attribute("rpId.expected.sha256", expectedHash)
                 .attribute("flags.byte", formatByte(components.flags()))
                 .attribute("flags.userPresence", components.userPresence())
@@ -292,7 +322,8 @@ public final class WebAuthnAttestationVerificationApplicationService {
             VerboseTrace.Builder trace,
             AttestationComponents components,
             Optional<AttestedCredential> attestedCredential,
-            String relyingPartyId) {
+            String relyingPartyId,
+            String canonicalRpId) {
         if (trace == null || !components.hasAuthData()) {
             return;
         }
@@ -320,12 +351,14 @@ public final class WebAuthnAttestationVerificationApplicationService {
                     .detail("AttestationObject")
                     .spec("webauthn§7.1")
                     .attribute("relyingPartyId", rpId)
+                    .attribute("rpId.canonical", canonicalRpId)
                     .attribute("credentialId.base64url", credentialId)
                     .attribute("signatureCounter", signatureCounter)
                     .attribute("userVerificationRequired", userVerificationRequired)
                     .attribute("aaguid.hex", aaguid);
             if (algorithm != null) {
-                step.attribute("algorithm", algorithm.name());
+                step.attribute("alg", algorithm.name());
+                step.attribute("cose.alg", algorithm.coseIdentifier());
             }
         });
     }
@@ -342,8 +375,8 @@ public final class WebAuthnAttestationVerificationApplicationService {
                 .detail("authenticatorData || SHA-256(clientData)")
                 .spec("webauthn§6.5.5")
                 .attribute("authenticatorData.hex", hex(authenticatorData))
-                .attribute("clientData.hash.sha256", sha256Label(safeClientHash))
-                .attribute("signature.base.sha256", sha256Digest(payload)));
+                .attribute("clientDataHash.sha256", sha256Label(safeClientHash))
+                .attribute("signedBytes.sha256", sha256Digest(payload)));
     }
 
     private static void addVerifySignatureStep(
@@ -351,12 +384,19 @@ public final class WebAuthnAttestationVerificationApplicationService {
         if (trace == null) {
             return;
         }
-        addStep(trace, step -> step.id("verify.signature")
-                .summary("Verify attestation signature")
-                .detail("WebAuthnAttestationVerifier")
-                .spec("webauthn§6.5.5")
-                .attribute("algorithm", algorithm == null ? "" : algorithm.name())
-                .attribute("valid", valid));
+        addStep(trace, step -> {
+            step.id("verify.signature")
+                    .summary("Verify attestation signature")
+                    .detail("WebAuthnAttestationVerifier")
+                    .spec("webauthn§6.5.5")
+                    .attribute("valid", valid);
+            if (algorithm != null) {
+                step.attribute("alg", algorithm.name());
+                step.attribute("cose.alg", algorithm.coseIdentifier());
+            } else {
+                step.attribute("alg", "");
+            }
+        });
     }
 
     private static void addValidateMetadataStep(
@@ -382,8 +422,20 @@ public final class WebAuthnAttestationVerificationApplicationService {
         String type = values.getOrDefault("type", "");
         String challenge = values.getOrDefault("challenge", "");
         String origin = values.getOrDefault("origin", "");
+        TokenBinding tokenBinding = parseTokenBinding(json);
+        DecodedChallenge decodedChallenge = decodeChallenge(challenge);
         byte[] hash = sha256(jsonBytes);
-        return new TraceClientData(json, type, challenge, origin, hash);
+        return new TraceClientData(
+                json,
+                type,
+                challenge,
+                decodedChallenge.bytes(),
+                decodedChallenge.failed(),
+                origin,
+                hash,
+                tokenBinding.present(),
+                tokenBinding.status(),
+                tokenBinding.id());
     }
 
     private static AttestationComponents traceAttestation(byte[] attestationObject) {
@@ -492,6 +544,28 @@ public final class WebAuthnAttestationVerificationApplicationService {
         return values;
     }
 
+    private static TokenBinding parseTokenBinding(String json) {
+        if (json == null || json.isEmpty()) {
+            return new TokenBinding(false, "", "");
+        }
+        Matcher matcher = TOKEN_BINDING_PATTERN.matcher(json);
+        if (!matcher.find()) {
+            return new TokenBinding(false, "", "");
+        }
+        String body = matcher.group(1);
+        Matcher fieldMatcher = TOKEN_BINDING_FIELD_PATTERN.matcher(body);
+        String status = "";
+        String id = "";
+        while (fieldMatcher.find()) {
+            if ("status".equals(fieldMatcher.group(1))) {
+                status = fieldMatcher.group(2);
+            } else if ("id".equals(fieldMatcher.group(1))) {
+                id = fieldMatcher.group(2);
+            }
+        }
+        return new TokenBinding(true, status, id);
+    }
+
     private static byte[] sha256(byte[] input) {
         try {
             return MessageDigest.getInstance("SHA-256").digest(input);
@@ -519,6 +593,27 @@ public final class WebAuthnAttestationVerificationApplicationService {
         return builder.toString();
     }
 
+    private static DecodedChallenge decodeChallenge(String challenge) {
+        if (challenge == null || challenge.isBlank()) {
+            return new DecodedChallenge(new byte[0], false);
+        }
+        String trimmed = challenge.trim();
+        try {
+            String padded = padBase64Url(trimmed);
+            return new DecodedChallenge(BASE64_URL_DECODER.decode(padded), false);
+        } catch (IllegalArgumentException ex) {
+            return new DecodedChallenge(new byte[0], true);
+        }
+    }
+
+    private static String padBase64Url(String value) {
+        int remainder = value.length() % 4;
+        if (remainder == 0) {
+            return value;
+        }
+        return value + "====".substring(remainder);
+    }
+
     private static String base64Url(byte[] input) {
         if (input == null || input.length == 0) {
             return "";
@@ -535,26 +630,78 @@ public final class WebAuthnAttestationVerificationApplicationService {
     }
 
     private static String formatByte(int value) {
-        return String.format("0x%02x", value & 0xFF);
+        return String.format("%02x", value & 0xFF);
     }
 
     private static String safe(String value) {
         return value == null ? "" : value.trim();
     }
 
-    private record TraceClientData(String json, String type, String challengeBase64, String origin, byte[] hash) {
+    private record TraceClientData(
+            String json,
+            String type,
+            String challengeBase64,
+            byte[] challengeBytes,
+            boolean challengeDecodeFailed,
+            String origin,
+            byte[] hash,
+            boolean tokenBindingPresent,
+            String tokenBindingStatus,
+            String tokenBindingId) {
 
         private TraceClientData {
             json = json == null ? "" : json;
             type = type == null ? "" : type;
             challengeBase64 = challengeBase64 == null ? "" : challengeBase64;
+            challengeBytes = challengeBytes == null ? new byte[0] : challengeBytes.clone();
             origin = origin == null ? "" : origin;
             hash = hash == null ? new byte[0] : hash.clone();
+            tokenBindingStatus = tokenBindingStatus == null ? "" : tokenBindingStatus;
+            tokenBindingId = tokenBindingId == null ? "" : tokenBindingId;
         }
 
         @Override
         public byte[] hash() {
             return hash.clone();
+        }
+
+        public int challengeLength() {
+            return challengeDecodeFailed ? -1 : challengeBytes.length;
+        }
+
+        public boolean challengeDecodeFailed() {
+            return challengeDecodeFailed;
+        }
+
+        public boolean tokenBindingPresent() {
+            return tokenBindingPresent;
+        }
+
+        public Optional<String> tokenBindingStatusOptional() {
+            return tokenBindingStatus.isBlank() ? Optional.empty() : Optional.of(tokenBindingStatus);
+        }
+
+        public Optional<String> tokenBindingIdOptional() {
+            return tokenBindingId.isBlank() ? Optional.empty() : Optional.of(tokenBindingId);
+        }
+    }
+
+    private record DecodedChallenge(byte[] bytes, boolean failed) {
+
+        private DecodedChallenge {
+            bytes = bytes == null ? new byte[0] : bytes.clone();
+        }
+
+        public byte[] bytes() {
+            return bytes.clone();
+        }
+    }
+
+    private record TokenBinding(boolean present, String status, String id) {
+
+        private TokenBinding {
+            status = status == null ? "" : status;
+            id = id == null ? "" : id;
         }
     }
 

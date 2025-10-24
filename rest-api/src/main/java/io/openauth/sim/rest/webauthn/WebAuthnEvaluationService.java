@@ -78,10 +78,13 @@ class WebAuthnEvaluationService {
                 request.userVerificationRequired());
 
         GenerationResult result = invokeGenerator(command, trace);
+        metadata(trace, "alg", result.algorithm().name());
+        metadata(trace, "cose.alg", Integer.toString(result.algorithm().coseIdentifier()));
         addStep(trace, step -> step.id("generate.assertion")
                 .summary("Generate WebAuthn assertion")
                 .detail("WebAuthnAssertionGenerationApplicationService.generate")
-                .attribute("algorithm", result.algorithm().name())
+                .attribute("alg", result.algorithm().name())
+                .attribute("cose.alg", result.algorithm().coseIdentifier())
                 .attribute("credentialReference", result.credentialReference()));
         return buildResponse(result, "stored", buildTrace(trace));
     }
@@ -104,7 +107,8 @@ class WebAuthnEvaluationService {
         metadata(trace, "expectedType", expectedType);
 
         WebAuthnSignatureAlgorithm algorithm = parseAlgorithm(request.algorithm());
-        metadata(trace, "algorithm", algorithm.name());
+        metadata(trace, "alg", algorithm.name());
+        metadata(trace, "cose.alg", Integer.toString(algorithm.coseIdentifier()));
 
         long signatureCounter = Optional.ofNullable(request.signatureCounter())
                 .orElseThrow(() -> validation("signature_counter_required", "Signature counter is required"));
@@ -144,6 +148,8 @@ class WebAuthnEvaluationService {
         addStep(trace, step -> step.id("generate.assertion")
                 .summary("Generate WebAuthn assertion")
                 .detail("WebAuthnAssertionGenerationApplicationService.generate")
+                .attribute("alg", result.algorithm().name())
+                .attribute("cose.alg", result.algorithm().coseIdentifier())
                 .attribute("credentialReference", result.credentialReference()));
         return buildResponse(result, "inline", buildTrace(trace));
     }

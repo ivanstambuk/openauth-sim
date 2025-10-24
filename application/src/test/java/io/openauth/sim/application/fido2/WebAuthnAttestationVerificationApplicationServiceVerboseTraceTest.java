@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -77,7 +78,7 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
                 new WebAuthnAttestationVerificationApplicationService.VerificationCommand.Inline(
                         vector.vectorId(),
                         vector.format(),
-                        vector.relyingPartyId(),
+                        vector.relyingPartyId().toUpperCase(Locale.ROOT),
                         vector.origin(),
                         vector.registration().attestationObject(),
                         vector.registration().clientDataJson(),
@@ -97,18 +98,27 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
         assertEquals(vector.format().label(), trace.metadata().get("format"));
         assertEquals("educational", trace.metadata().get("tier"));
 
+        var parseRequest = findStep(trace, "parse.request");
         var clientDataJson = new String(vector.registration().clientDataJson(), StandardCharsets.UTF_8);
         var parseClientData = findStep(trace, "parse.clientData");
         assertEquals("webauthn§6.5.1", parseClientData.specAnchor());
         assertEquals("webauthn.create", parseClientData.attributes().get("type"));
+        assertEquals("webauthn.create", parseClientData.attributes().get("expected.type"));
+        assertEquals(Boolean.TRUE, parseClientData.attributes().get("type.match"));
         assertEquals(
                 base64Url(vector.registration().challenge()),
-                parseClientData.attributes().get("challenge.base64url"));
+                parseClientData.attributes().get("challenge.b64u"));
+        assertEquals(
+                vector.registration().challenge().length,
+                parseClientData.attributes().get("challenge.decoded.len"));
         assertEquals(vector.origin(), parseClientData.attributes().get("origin"));
+        assertEquals(vector.origin(), parseClientData.attributes().get("origin.expected"));
+        assertEquals(Boolean.TRUE, parseClientData.attributes().get("origin.match"));
         assertEquals(clientDataJson, parseClientData.attributes().get("clientData.json"));
         assertEquals(
                 sha256Digest(vector.registration().clientDataJson()),
-                parseClientData.attributes().get("clientData.sha256"));
+                parseClientData.attributes().get("clientDataHash.sha256"));
+        assertEquals(Boolean.FALSE, parseClientData.attributes().get("tokenBinding.present"));
         assertTrue(parseClientData.typedAttributes().stream()
                 .anyMatch(attr ->
                         "clientData.json".equals(attr.name()) && attr.type() == VerboseTrace.AttributeType.JSON));
@@ -117,10 +127,13 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
         var parseAuthenticatorData = findStep(trace, "parse.authenticatorData");
         assertEquals("webauthn§6.5.4", parseAuthenticatorData.specAnchor());
         assertEquals(
-                hex(attestation.rpIdHash()), parseAuthenticatorData.attributes().get("rpId.hash.hex"));
+                hex(attestation.rpIdHash()), parseAuthenticatorData.attributes().get("rpIdHash.hex"));
         assertEquals(
-                sha256Digest(vector.relyingPartyId().getBytes(StandardCharsets.UTF_8)),
-                parseAuthenticatorData.attributes().get("rpId.expected.sha256"));
+                vector.relyingPartyId(), parseAuthenticatorData.attributes().get("rpId.canonical"));
+        String expectedRpIdDigest = sha256Digest(vector.relyingPartyId().getBytes(StandardCharsets.UTF_8));
+        assertEquals(expectedRpIdDigest, parseAuthenticatorData.attributes().get("rpIdHash.expected"));
+        assertEquals(Boolean.TRUE, parseAuthenticatorData.attributes().get("rpIdHash.match"));
+        assertEquals(expectedRpIdDigest, parseAuthenticatorData.attributes().get("rpId.expected.sha256"));
         assertEquals(
                 formatByte(attestation.flags()),
                 parseAuthenticatorData.attributes().get("flags.byte"));
@@ -139,13 +152,21 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
 
         var extractCredential = findStep(trace, "extract.attestedCredential");
         assertEquals("webauthn§7.1", extractCredential.specAnchor());
+        assertEquals(
+                vector.relyingPartyId().toUpperCase(Locale.ROOT),
+                parseRequest.attributes().get("relyingPartyId"));
+        assertEquals(vector.relyingPartyId(), parseRequest.attributes().get("rpId.canonical"));
         assertEquals(vector.relyingPartyId(), extractCredential.attributes().get("relyingPartyId"));
+        assertEquals(vector.relyingPartyId(), extractCredential.attributes().get("rpId.canonical"));
         assertEquals(
                 base64Url(attestedCredential.credentialId()),
                 extractCredential.attributes().get("credentialId.base64url"));
         assertEquals(
                 attestedCredential.algorithm().name(),
-                extractCredential.attributes().get("algorithm"));
+                extractCredential.attributes().get("alg"));
+        assertEquals(
+                attestedCredential.algorithm().coseIdentifier(),
+                extractCredential.attributes().get("cose.alg"));
         assertEquals(
                 attestedCredential.signatureCounter(),
                 extractCredential.attributes().get("signatureCounter"));
@@ -160,14 +181,17 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
         byte[] signaturePayload = concat(attestation.authenticatorData(), clientDataHash);
         assertEquals(
                 hex(attestation.authenticatorData()), signatureBase.attributes().get("authenticatorData.hex"));
-        assertEquals(sha256Label(clientDataHash), signatureBase.attributes().get("clientData.hash.sha256"));
-        assertEquals(sha256Digest(signaturePayload), signatureBase.attributes().get("signature.base.sha256"));
+        assertEquals(sha256Label(clientDataHash), signatureBase.attributes().get("clientDataHash.sha256"));
+        assertEquals(sha256Digest(signaturePayload), signatureBase.attributes().get("signedBytes.sha256"));
 
         var verifySignature = findStep(trace, "verify.signature");
         assertEquals("webauthn§6.5.5", verifySignature.specAnchor());
         assertEquals(
                 attestedCredential.algorithm().name(),
-                verifySignature.attributes().get("algorithm"));
+                verifySignature.attributes().get("alg"));
+        assertEquals(
+                attestedCredential.algorithm().coseIdentifier(),
+                verifySignature.attributes().get("cose.alg"));
         assertEquals(Boolean.TRUE, verifySignature.attributes().get("valid"));
 
         var verifyAttestation = findStep(trace, "verify.attestation");
@@ -317,7 +341,7 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
     }
 
     private static String formatByte(int value) {
-        return String.format("0x%02x", value & 0xFF);
+        return String.format("%02x", value & 0xFF);
     }
 
     private static final class TestCborDecoder {

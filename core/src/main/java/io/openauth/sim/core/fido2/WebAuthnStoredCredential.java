@@ -12,7 +12,7 @@ public record WebAuthnStoredCredential(
         WebAuthnSignatureAlgorithm algorithm) {
 
     public WebAuthnStoredCredential {
-        Objects.requireNonNull(relyingPartyId, "relyingPartyId");
+        relyingPartyId = WebAuthnRelyingPartyId.canonicalize(Objects.requireNonNull(relyingPartyId, "relyingPartyId"));
         Objects.requireNonNull(credentialId, "credentialId");
         Objects.requireNonNull(publicKeyCose, "publicKeyCose");
         Objects.requireNonNull(algorithm, "algorithm");

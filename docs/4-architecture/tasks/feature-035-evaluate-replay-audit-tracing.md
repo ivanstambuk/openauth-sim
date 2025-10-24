@@ -162,3 +162,18 @@ _Last updated:_ 2025-10-22
  ☐ Add `parts.count` and `parts.order` attributes to the OCRA `assemble.message` trace step so operators can confirm concatenation ordering; reuse them across evaluation and verification traces.  
  ☐ Update application, CLI, and REST trace assertions to check the new summary fields for representative suites.  
  ☐ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Ocra*EndpointTest"`
+
+☑ **T3530 – FIDO2 canonical trace naming**  
+ ☑ Update WebAuthn assertion/attestation trace builders to emit `alg`, `cose.alg`, `rpIdHash.hex`, `clientDataHash.sha256`, `signedBytes.sha256`, and lowercased single-byte flags without `0x` prefixes.  
+ ☑ Refresh CLI, REST, and Selenium tests plus OpenAPI snapshots to expect the new field names while keeping payload ordering stable.  
+ ☑ Sync Feature 035 docs/spec/plan with the canonical naming and rerun `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest" :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest" :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test"`.
+
+☑ **T3531 – WebAuthn RP ID canonicalisation plumbing**  
+ ☑ Add failing assertions in WebAuthn verbose trace and persistence tests to expect canonical (lower-case, IDNA ASCII) relying party identifiers before hash comparison (e.g., update `WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest`, `WebAuthnEvaluationApplicationServiceVerboseTraceTest`, and relevant CLI/REST fixtures).  
+ ☑ Canonicalise RP IDs within credential descriptors, stored credential construction, and attestation/evaluation request builders so persistence and verifier paths share the normalised value.  
+ ☑ Command (red → green): `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.*"`; `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`.
+
+☑ **T3532 – WebAuthn trace match indicators**  
+ ☑ Extend failing tests to assert `rpId.canonical`, `rpIdHash.expected`, and `rpIdHash.match` attributes in attestation/assertion verbose traces across application, CLI, and REST layers before implementing the fields.  
+ ☑ Implement trace updates, propagate canonical value through metadata, and refresh fixtures/OpenAPI snapshots while keeping default (non-verbose) behaviour unchanged.  
+ ☑ Command (red → green): `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test"`; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`; `./gradlew --no-daemon spotlessApply check`.

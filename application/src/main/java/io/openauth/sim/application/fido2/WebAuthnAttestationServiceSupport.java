@@ -4,6 +4,7 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.fido2.WebAuthnRelyingPartyId;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.fido2.WebAuthnStoredCredential;
 import io.openauth.sim.core.fido2.WebAuthnVerificationError;
@@ -44,15 +45,16 @@ final class WebAuthnAttestationServiceSupport {
             String trustAnchorMetadataEntryId) {
 
         String sanitizedId = sanitize(attestationId);
-        String sanitizedRpId = sanitize(relyingPartyId);
+        String submittedRpId = sanitize(relyingPartyId);
         String sanitizedOrigin = sanitize(origin);
+        String canonicalRpId = WebAuthnRelyingPartyId.canonicalize(submittedRpId);
 
         WebAuthnAttestationRequest request = new WebAuthnAttestationRequest(
                 Objects.requireNonNull(format, "format"),
                 cloneOrEmpty(attestationObject),
                 cloneOrEmpty(clientDataJson),
                 cloneOrEmpty(expectedChallenge),
-                sanitizedRpId,
+                canonicalRpId,
                 sanitizedOrigin);
 
         WebAuthnAttestationVerification verification = verifier.verify(request);
@@ -80,7 +82,7 @@ final class WebAuthnAttestationServiceSupport {
         Map<String, Object> telemetryFields = buildTelemetryFields(
                 sanitizedId,
                 format,
-                sanitizedRpId,
+                canonicalRpId,
                 anchorProvided,
                 anchorTrusted,
                 selfAttestedFallback,

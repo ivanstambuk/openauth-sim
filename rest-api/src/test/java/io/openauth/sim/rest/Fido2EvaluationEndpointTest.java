@@ -246,6 +246,8 @@ class Fido2EvaluationEndpointTest {
         assertThat(metadata.get("credentialSource").asText()).isEqualTo("stored");
         assertThat(metadata.get("credentialId").asText()).isEqualTo("stored-credential-trace");
         assertThat(metadata.get("tier").asText()).isEqualTo("educational");
+        assertThat(metadata.get("alg").asText()).isEqualTo("ES256");
+        assertThat(metadata.get("cose.alg").asText()).isEqualTo("-7");
 
         Map<String, String> decodeAttributes = orderedAttributes(step(trace, "decode.challenge"));
         assertThat(decodeAttributes).containsEntry("length", "14");
@@ -254,7 +256,8 @@ class Fido2EvaluationEndpointTest {
         assertThat(constructAttributes).containsKeys("signatureCounter", "userVerificationRequired");
 
         Map<String, String> generateAttributes = orderedAttributes(step(trace, "generate.assertion"));
-        assertThat(generateAttributes).containsEntry("algorithm", "ES256");
+        assertThat(generateAttributes).containsEntry("alg", "ES256");
+        assertThat(generateAttributes).containsEntry("cose.alg", "-7");
         assertThat(generateAttributes).containsEntry("credentialReference", "true");
     }
 
@@ -296,11 +299,15 @@ class Fido2EvaluationEndpointTest {
         JsonNode metadata = trace.get("metadata");
         assertThat(metadata.get("credentialSource").asText()).isEqualTo("inline");
         assertThat(metadata.get("tier").asText()).isEqualTo("educational");
+        assertThat(metadata.get("alg").asText()).isEqualTo("ES256");
+        assertThat(metadata.get("cose.alg").asText()).isEqualTo("-7");
 
         Map<String, String> constructAttributes = orderedAttributes(step(trace, "construct.command"));
         assertThat(constructAttributes).containsKeys("credentialName", "signatureCounter", "userVerificationRequired");
 
         Map<String, String> generateAttributes = orderedAttributes(step(trace, "generate.assertion"));
+        assertThat(generateAttributes).containsEntry("alg", "ES256");
+        assertThat(generateAttributes).containsEntry("cose.alg", "-7");
         assertThat(generateAttributes).containsEntry("credentialReference", "false");
     }
 

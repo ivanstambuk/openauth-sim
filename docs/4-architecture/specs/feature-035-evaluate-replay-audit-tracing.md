@@ -29,6 +29,8 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
 8. 2025-10-23 – When a trace hashes sensitive inputs for auditing (shared secrets, derived keys, password digests, etc.), always compute a SHA-256 digest regardless of the underlying protocol hash family and emit it with a `sha256:` prefix (owner directive).
 9. 2025-10-23 – HOTP traces must follow the line-per-field format defined under “HOTP Trace Formatting”: one scalar per line, deterministic ordering, `step.N: <title>` headers, and secrets rendered only as hashes/lengths; support both evaluation (OTP generation) and verification (window scan) flows with the prescribed step breakdown (owner directive).
 10. 2025-10-24 – Extend OCRA verification/replay services to emit verbose traces matching the evaluation format so REST and UI facades surface stored/inline replay timelines when `verbose=true` (owner directive).
+11. 2025-10-24 – WebAuthn verbose traces must capture validated client data context (expected type/origin, challenge decoding metadata, token binding presence) while relying on existing application/service validation to reject mismatches (owner directive).
+12. 2025-10-24 – Canonicalise WebAuthn relying party identifiers (trim, IDNA to ASCII, lower-case) before hashing or persistence, and surface `rpId.canonical`, `rpIdHash.expected`, and `rpIdHash.match` fields in verbose traces for attestation and assertion workflows (owner directive).
 
 ## Requirements
 - Define a structured trace model under `core/` that can capture ordered steps, labelled intermediate values, and protocol-specific annotations while remaining extensible for future credential types.
@@ -84,6 +86,9 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
 - **WebAuthn / FIDO2** – Distinguish between attestation (`webauthn§6.4`, CTAP 2 §5) and assertion (`webauthn§7`):
   - Attestation steps: `parse.clientData` (JSON, SHA-256 hash), `parse.authenticatorData` (RP ID hash, flags map, counters), `extract.attestedCredential` (AAGUID, credential ID, COSE key breakdown), `build.signatureBase` (authData || clientDataHash), `verify.signature` (algorithm, DER/RS values, low-S flag), `validate.metadata` (trust chain, AAGUID lookup). Include extensions when present and note verification outcome.
   - Assertion steps: `parse.clientData`, `parse.authenticatorData`, `build.signatureBase`, `verify.signature`, and `evaluate.counter` (previous vs new counter, strict increment result), plus extension interpretations as applicable.
+  - Canonical naming: emit `alg` for signature algorithms (e.g., `ES256`, `ES384`, `ES512`, `RS256`), surface `cose.alg` with the numeric COSE code, prefer `rpIdHash.hex`, `clientDataHash.sha256`, and `signedBytes.sha256` keys, and render single-byte hex fields without a `0x` prefix.
+  - Canonicalise the relying party identifier before computing digests, expose the normalised value (`rpId.canonical`), surface the derived SHA-256 digest (`rpIdHash.expected`), and include a boolean comparison result (`rpIdHash.match`) so traces highlight mismatches without relying on the verifier exception alone.
+  - Client data logging: record `expected.type`, `type.match`, `challenge.b64u`, `challenge.decoded.len`, `origin.expected`, `origin.match`, and `tokenBinding.*` attributes alongside the existing JSON/hash fields to document successful validation context. Mismatches remain enforced by the application/verifier layers; traces only emit results for accepted inputs.
 - **Common presentation** – Every trace lists `operation`, `metadata`, and numbered `steps` with nested key/value lines. Each step should end with an optional `spec:` line referencing the governing section.
 
 ## Success Criteria

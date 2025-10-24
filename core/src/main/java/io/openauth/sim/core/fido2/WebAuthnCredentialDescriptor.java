@@ -24,10 +24,7 @@ public record WebAuthnCredentialDescriptor(
             throw new IllegalArgumentException("Credential name must not be blank");
         }
 
-        relyingPartyId = relyingPartyId.trim();
-        if (relyingPartyId.isEmpty()) {
-            throw new IllegalArgumentException("Relying party identifier must not be blank");
-        }
+        relyingPartyId = WebAuthnRelyingPartyId.canonicalize(relyingPartyId);
 
         credentialId = credentialId.clone();
         publicKeyCose = publicKeyCose.clone();

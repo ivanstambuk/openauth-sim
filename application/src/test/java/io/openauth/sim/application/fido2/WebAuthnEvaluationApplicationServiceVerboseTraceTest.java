@@ -19,6 +19,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,7 +50,7 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
         WebAuthnEvaluationApplicationService.EvaluationCommand.Stored command =
                 new WebAuthnEvaluationApplicationService.EvaluationCommand.Stored(
                         CREDENTIAL_ID,
-                        fixture.request().relyingPartyId(),
+                        fixture.request().relyingPartyId().toUpperCase(Locale.ROOT),
                         fixture.request().origin(),
                         fixture.request().expectedType(),
                         fixture.request().expectedChallenge(),
@@ -73,13 +74,22 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
         assertEquals(
                 fixture.request().expectedType(), parseClientData.attributes().get("type"));
         assertEquals(
+                fixture.request().expectedType(), parseClientData.attributes().get("expected.type"));
+        assertEquals(Boolean.TRUE, parseClientData.attributes().get("type.match"));
+        assertEquals(
                 base64Url(fixture.request().expectedChallenge()),
-                parseClientData.attributes().get("challenge.base64url"));
+                parseClientData.attributes().get("challenge.b64u"));
+        assertEquals(
+                fixture.request().expectedChallenge().length,
+                parseClientData.attributes().get("challenge.decoded.len"));
         assertEquals(fixture.request().origin(), parseClientData.attributes().get("origin"));
+        assertEquals(fixture.request().origin(), parseClientData.attributes().get("origin.expected"));
+        assertEquals(Boolean.TRUE, parseClientData.attributes().get("origin.match"));
         assertEquals(clientDataJson, parseClientData.attributes().get("clientData.json"));
         assertEquals(
                 sha256Digest(fixture.request().clientDataJson()),
-                parseClientData.attributes().get("clientData.sha256"));
+                parseClientData.attributes().get("clientDataHash.sha256"));
+        assertEquals(Boolean.FALSE, parseClientData.attributes().get("tokenBinding.present"));
         assertTrue(parseClientData.typedAttributes().stream()
                 .anyMatch(attr ->
                         "clientData.json".equals(attr.name()) && attr.type() == VerboseTrace.AttributeType.JSON));
@@ -89,10 +99,15 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
         assertEquals("webauthn§6.5.4", parseAuthenticatorData.specAnchor());
         assertEquals(
                 hex(authenticator.rpIdHash()),
-                parseAuthenticatorData.attributes().get("rpId.hash.hex"));
+                parseAuthenticatorData.attributes().get("rpIdHash.hex"));
         assertEquals(
-                sha256Digest(fixture.request().relyingPartyId().getBytes(StandardCharsets.UTF_8)),
-                parseAuthenticatorData.attributes().get("rpId.expected.sha256"));
+                fixture.request().relyingPartyId(),
+                parseAuthenticatorData.attributes().get("rpId.canonical"));
+        String expectedRpIdDigest =
+                sha256Digest(fixture.request().relyingPartyId().getBytes(StandardCharsets.UTF_8));
+        assertEquals(expectedRpIdDigest, parseAuthenticatorData.attributes().get("rpIdHash.expected"));
+        assertEquals(Boolean.TRUE, parseAuthenticatorData.attributes().get("rpIdHash.match"));
+        assertEquals(expectedRpIdDigest, parseAuthenticatorData.attributes().get("rpId.expected.sha256"));
         assertEquals(
                 formatByte(authenticator.flags()),
                 parseAuthenticatorData.attributes().get("flags.byte"));
@@ -131,14 +146,17 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
         assertEquals(
                 hex(fixture.request().authenticatorData()),
                 signatureBase.attributes().get("authenticatorData.hex"));
-        assertEquals(sha256Label(clientDataHash), signatureBase.attributes().get("clientData.hash.sha256"));
-        assertEquals(sha256Digest(signaturePayload), signatureBase.attributes().get("signature.base.sha256"));
+        assertEquals(sha256Label(clientDataHash), signatureBase.attributes().get("clientDataHash.sha256"));
+        assertEquals(sha256Digest(signaturePayload), signatureBase.attributes().get("signedBytes.sha256"));
 
         var verifySignature = findStep(trace, "verify.signature");
         assertEquals("webauthn§6.5.5", verifySignature.specAnchor());
         assertEquals(
                 WebAuthnSignatureAlgorithm.ES256.name(),
-                verifySignature.attributes().get("algorithm"));
+                verifySignature.attributes().get("alg"));
+        assertEquals(
+                WebAuthnSignatureAlgorithm.ES256.coseIdentifier(),
+                verifySignature.attributes().get("cose.alg"));
         assertEquals(Boolean.TRUE, verifySignature.attributes().get("valid"));
 
         var verifyAssertion = findStep(trace, "verify.assertion");
@@ -152,7 +170,7 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
         WebAuthnEvaluationApplicationService.EvaluationCommand.Inline command =
                 new WebAuthnEvaluationApplicationService.EvaluationCommand.Inline(
                         "inline-fixture",
-                        fixture.request().relyingPartyId(),
+                        fixture.request().relyingPartyId().toUpperCase(Locale.ROOT),
                         fixture.request().origin(),
                         fixture.request().expectedType(),
                         fixture.storedCredential().credentialId(),
@@ -180,23 +198,37 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
         assertEquals(
                 fixture.request().expectedType(), parseClientData.attributes().get("type"));
         assertEquals(
+                fixture.request().expectedType(), parseClientData.attributes().get("expected.type"));
+        assertEquals(Boolean.TRUE, parseClientData.attributes().get("type.match"));
+        assertEquals(
                 base64Url(fixture.request().expectedChallenge()),
-                parseClientData.attributes().get("challenge.base64url"));
+                parseClientData.attributes().get("challenge.b64u"));
+        assertEquals(
+                fixture.request().expectedChallenge().length,
+                parseClientData.attributes().get("challenge.decoded.len"));
         assertEquals(fixture.request().origin(), parseClientData.attributes().get("origin"));
+        assertEquals(fixture.request().origin(), parseClientData.attributes().get("origin.expected"));
+        assertEquals(Boolean.TRUE, parseClientData.attributes().get("origin.match"));
         assertEquals(clientDataJson, parseClientData.attributes().get("clientData.json"));
         assertEquals(
                 sha256Digest(fixture.request().clientDataJson()),
-                parseClientData.attributes().get("clientData.sha256"));
+                parseClientData.attributes().get("clientDataHash.sha256"));
+        assertEquals(Boolean.FALSE, parseClientData.attributes().get("tokenBinding.present"));
 
         var authenticator = parseAuthenticatorData(fixture.request().authenticatorData());
         var parseAuthenticatorData = findStep(trace, "parse.authenticatorData");
         assertEquals("webauthn§6.5.4", parseAuthenticatorData.specAnchor());
         assertEquals(
                 hex(authenticator.rpIdHash()),
-                parseAuthenticatorData.attributes().get("rpId.hash.hex"));
+                parseAuthenticatorData.attributes().get("rpIdHash.hex"));
         assertEquals(
-                sha256Digest(fixture.request().relyingPartyId().getBytes(StandardCharsets.UTF_8)),
-                parseAuthenticatorData.attributes().get("rpId.expected.sha256"));
+                fixture.request().relyingPartyId(),
+                parseAuthenticatorData.attributes().get("rpId.canonical"));
+        String inlineExpectedDigest =
+                sha256Digest(fixture.request().relyingPartyId().getBytes(StandardCharsets.UTF_8));
+        assertEquals(inlineExpectedDigest, parseAuthenticatorData.attributes().get("rpIdHash.expected"));
+        assertEquals(Boolean.TRUE, parseAuthenticatorData.attributes().get("rpIdHash.match"));
+        assertEquals(inlineExpectedDigest, parseAuthenticatorData.attributes().get("rpId.expected.sha256"));
         assertEquals(
                 formatByte(authenticator.flags()),
                 parseAuthenticatorData.attributes().get("flags.byte"));
@@ -220,8 +252,13 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
         var constructStep = findStep(trace, "construct.credential");
         assertEquals("webauthn§6.1", constructStep.specAnchor());
         assertEquals(
+                fixture.request().relyingPartyId(), constructStep.attributes().get("rpId.canonical"));
+        assertEquals(
                 WebAuthnSignatureAlgorithm.ES256.name(),
-                constructStep.attributes().get("algorithm"));
+                constructStep.attributes().get("alg"));
+        assertEquals(
+                WebAuthnSignatureAlgorithm.ES256.coseIdentifier(),
+                constructStep.attributes().get("cose.alg"));
         assertEquals(hex(command.publicKeyCose()), constructStep.attributes().get("publicKey.cose.hex"));
 
         var counterStep = findStep(trace, "evaluate.counter");
@@ -239,14 +276,17 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
         assertEquals(
                 hex(fixture.request().authenticatorData()),
                 signatureBase.attributes().get("authenticatorData.hex"));
-        assertEquals(sha256Label(clientDataHash), signatureBase.attributes().get("clientData.hash.sha256"));
-        assertEquals(sha256Digest(signaturePayload), signatureBase.attributes().get("signature.base.sha256"));
+        assertEquals(sha256Label(clientDataHash), signatureBase.attributes().get("clientDataHash.sha256"));
+        assertEquals(sha256Digest(signaturePayload), signatureBase.attributes().get("signedBytes.sha256"));
 
         var verifySignature = findStep(trace, "verify.signature");
         assertEquals("webauthn§6.5.5", verifySignature.specAnchor());
         assertEquals(
                 WebAuthnSignatureAlgorithm.ES256.name(),
-                verifySignature.attributes().get("algorithm"));
+                verifySignature.attributes().get("alg"));
+        assertEquals(
+                WebAuthnSignatureAlgorithm.ES256.coseIdentifier(),
+                verifySignature.attributes().get("cose.alg"));
         assertEquals(Boolean.TRUE, verifySignature.attributes().get("valid"));
 
         var verifyAssertion = findStep(trace, "verify.assertion");
@@ -371,7 +411,7 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
     }
 
     private static String formatByte(int value) {
-        return String.format("0x%02x", value & 0xFF);
+        return String.format("%02x", value & 0xFF);
     }
 
     private record ParsedAuthenticatorData(byte[] rpIdHash, int flags, long counter) {

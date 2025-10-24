@@ -16,7 +16,7 @@ public record WebAuthnAttestationRequest(
         Objects.requireNonNull(attestationObject, "attestationObject");
         Objects.requireNonNull(clientDataJson, "clientDataJson");
         Objects.requireNonNull(expectedChallenge, "expectedChallenge");
-        Objects.requireNonNull(relyingPartyId, "relyingPartyId");
+        relyingPartyId = WebAuthnRelyingPartyId.canonicalize(Objects.requireNonNull(relyingPartyId, "relyingPartyId"));
         Objects.requireNonNull(origin, "origin");
         attestationObject = attestationObject.clone();
         clientDataJson = clientDataJson.clone();

@@ -47,7 +47,7 @@ final class Fido2CliVerboseTraceTest {
                 "--credential-id",
                 "fido2-packed-es256",
                 "--relying-party-id",
-                "example.org",
+                "EXAMPLE.ORG",
                 "--origin",
                 "https://example.org",
                 "--type",
@@ -74,20 +74,34 @@ final class Fido2CliVerboseTraceTest {
         String clientDataJson = new String(fixture.request().clientDataJson(), StandardCharsets.UTF_8);
         String expectedClientDataSha256 = sha256Digest(fixture.request().clientDataJson());
         assertTrue(stdout.contains("  clientData.json = " + clientDataJson), stdout);
-        assertTrue(stdout.contains("  clientData.sha256 = " + expectedClientDataSha256), stdout);
+        assertTrue(stdout.contains("  clientDataHash.sha256 = " + expectedClientDataSha256), stdout);
+        assertTrue(
+                stdout.contains(
+                        "  challenge.b64u = " + base64Url(fixture.request().expectedChallenge())),
+                stdout);
+        assertTrue(
+                stdout.contains("  challenge.decoded.len = " + fixture.request().expectedChallenge().length), stdout);
+        assertTrue(stdout.contains("  expected.type = " + fixture.request().expectedType()), stdout);
+        assertTrue(stdout.contains("  type.match = true"), stdout);
 
         byte[] authenticatorData = fixture.request().authenticatorData();
         String rpIdHashHex = hex(Arrays.copyOf(authenticatorData, 32));
-        assertTrue(stdout.contains("  rpId.hash.hex = " + rpIdHashHex), stdout);
+        assertTrue(stdout.contains("  rpIdHash.hex = " + rpIdHashHex), stdout);
 
         String expectedRpDigest =
                 sha256Digest(fixture.request().relyingPartyId().getBytes(StandardCharsets.UTF_8));
+        assertTrue(stdout.contains("  rpId.canonical = " + fixture.request().relyingPartyId()), stdout);
+        assertTrue(stdout.contains("  rpIdHash.expected = " + expectedRpDigest), stdout);
+        assertTrue(stdout.contains("  rpIdHash.match = true"), stdout);
         assertTrue(stdout.contains("  rpId.expected.sha256 = " + expectedRpDigest), stdout);
 
         int flagsByte = authenticatorData[32] & 0xFF;
         assertTrue(stdout.contains("  flags.byte = " + formatByte(flagsByte)), stdout);
         assertTrue(stdout.contains("  flags.userPresence = true"), stdout);
         assertTrue(stdout.contains("  flags.userVerification = true"), stdout);
+        assertTrue(stdout.contains("  origin.expected = " + fixture.request().origin()), stdout);
+        assertTrue(stdout.contains("  origin.match = true"), stdout);
+        assertTrue(stdout.contains("  tokenBinding.present = false"), stdout);
 
         long storedCounter = fixture.storedCredential().signatureCounter();
         long reportedCounter = counterFromAuthenticatorData(authenticatorData);
@@ -96,8 +110,9 @@ final class Fido2CliVerboseTraceTest {
 
         byte[] clientDataHash = sha256Bytes(fixture.request().clientDataJson());
         String signatureBaseSha256 = sha256Digest(concat(authenticatorData, clientDataHash));
-        assertTrue(stdout.contains("  signature.base.sha256 = " + signatureBaseSha256), stdout);
-        assertTrue(stdout.contains("  algorithm = " + WebAuthnSignatureAlgorithm.ES256.name()), stdout);
+        assertTrue(stdout.contains("  signedBytes.sha256 = " + signatureBaseSha256), stdout);
+        assertTrue(stdout.contains("  alg = " + WebAuthnSignatureAlgorithm.ES256.name()), stdout);
+        assertTrue(stdout.contains("  cose.alg = " + WebAuthnSignatureAlgorithm.ES256.coseIdentifier()), stdout);
         assertTrue(stdout.contains("  valid = true"), stdout);
         assertTrue(stdout.contains("=== End Verbose Trace ==="), stdout);
     }
@@ -215,7 +230,7 @@ final class Fido2CliVerboseTraceTest {
     }
 
     private static String formatByte(int value) {
-        return String.format("0x%02x", value & 0xFF);
+        return String.format("%02x", value & 0xFF);
     }
 
     private static long counterFromAuthenticatorData(byte[] authenticatorData) {
@@ -226,5 +241,9 @@ final class Fido2CliVerboseTraceTest {
         byte[] combined = Arrays.copyOf(left, left.length + right.length);
         System.arraycopy(right, 0, combined, left.length, right.length);
         return combined;
+    }
+
+    private static String base64Url(byte[] value) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(value);
     }
 }

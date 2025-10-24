@@ -6,6 +6,7 @@ import io.openauth.sim.core.fido2.WebAuthnAssertionRequest;
 import io.openauth.sim.core.fido2.WebAuthnAssertionVerifier;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
+import io.openauth.sim.core.fido2.WebAuthnRelyingPartyId;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.fido2.WebAuthnStoredCredential;
 import io.openauth.sim.core.fido2.WebAuthnVerificationError;
@@ -36,10 +37,14 @@ public final class WebAuthnEvaluationApplicationService {
     private final CredentialStore credentialStore;
     private final WebAuthnAssertionVerifier verifier;
     private final WebAuthnCredentialPersistenceAdapter persistenceAdapter;
-    private static final Pattern JSON_FIELD_PATTERN =
-            Pattern.compile("\\\"(?<key>[^\\\"]+)\\\"\\s*:\\s*\\\"(?<value>[^\\\"]*)\\\"");
     private static final Base64.Encoder BASE64_URL_ENCODER =
             Base64.getUrlEncoder().withoutPadding();
+    private static final Base64.Decoder BASE64_URL_DECODER = Base64.getUrlDecoder();
+    private static final Pattern JSON_FIELD_PATTERN =
+            Pattern.compile("\\\"(?<key>[^\\\"]+)\\\"\\s*:\\s*\\\"(?<value>[^\\\"]*)\\\"");
+    private static final Pattern TOKEN_BINDING_PATTERN = Pattern.compile("\\\"tokenBinding\\\"\\s*:\\s*\\{([^}]*)\\}");
+    private static final Pattern TOKEN_BINDING_FIELD_PATTERN =
+            Pattern.compile("\\\"(status|id)\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
 
     public WebAuthnEvaluationApplicationService(
             CredentialStore credentialStore,
@@ -72,6 +77,8 @@ public final class WebAuthnEvaluationApplicationService {
         metadata(trace, "protocol", "FIDO2");
         metadata(trace, "mode", "stored");
         metadata(trace, "credentialName", command.credentialId());
+        String submittedRpId = command.relyingPartyId();
+        String canonicalRpId = WebAuthnRelyingPartyId.canonicalize(submittedRpId);
         try {
             Optional<Credential> credential = credentialStore.findByName(command.credentialId());
             if (credential.isEmpty()) {
@@ -96,7 +103,8 @@ public final class WebAuthnEvaluationApplicationService {
                     .detail("WebAuthnCredentialPersistenceAdapter.deserialize")
                     .attribute("credentialId", descriptor.name())
                     .attribute("relyingPartyId", descriptor.relyingPartyId())
-                    .attribute("algorithm", descriptor.algorithm().name()));
+                    .attribute("alg", descriptor.algorithm().name())
+                    .attribute("cose.alg", descriptor.algorithm().coseIdentifier()));
 
             WebAuthnStoredCredential storedCredential = descriptor.toStoredCredential();
             WebAuthnAssertionRequest request = toRequest(command);
@@ -108,7 +116,7 @@ public final class WebAuthnEvaluationApplicationService {
                 addParseClientDataStep(
                         trace, clientData, command.expectedType(), command.expectedChallenge(), command.origin());
                 addParseAuthenticatorDataStep(
-                        trace, authenticatorData, command.relyingPartyId(), storedCredential.signatureCounter());
+                        trace, authenticatorData, submittedRpId, canonicalRpId, storedCredential.signatureCounter());
                 addEvaluateCounterStep(trace, storedCredential.signatureCounter(), authenticatorData.counter());
             }
 
@@ -149,9 +157,11 @@ public final class WebAuthnEvaluationApplicationService {
         metadata(trace, "protocol", "FIDO2");
         metadata(trace, "mode", "inline");
         metadata(trace, "credentialName", command.credentialName());
+        String submittedRpId = command.relyingPartyId();
+        String canonicalRpId = WebAuthnRelyingPartyId.canonicalize(submittedRpId);
         try {
             WebAuthnStoredCredential storedCredential = new WebAuthnStoredCredential(
-                    command.relyingPartyId(),
+                    canonicalRpId,
                     command.credentialId(),
                     command.publicKeyCose(),
                     command.signatureCounter(),
@@ -166,9 +176,13 @@ public final class WebAuthnEvaluationApplicationService {
                 addParseClientDataStep(
                         trace, clientData, command.expectedType(), command.expectedChallenge(), command.origin());
                 addParseAuthenticatorDataStep(
-                        trace, authenticatorData, command.relyingPartyId(), command.signatureCounter());
+                        trace, authenticatorData, submittedRpId, canonicalRpId, command.signatureCounter());
                 addConstructCredentialStep(
-                        trace, command.algorithm(), command.publicKeyCose(), command.userVerificationRequired());
+                        trace,
+                        canonicalRpId,
+                        command.algorithm(),
+                        command.publicKeyCose(),
+                        command.userVerificationRequired());
                 addEvaluateCounterStep(trace, command.signatureCounter(), authenticatorData.counter());
             }
 
@@ -364,38 +378,65 @@ public final class WebAuthnEvaluationApplicationService {
         if (trace == null || clientData == null) {
             return;
         }
-        String type = clientData.type().isEmpty() ? sanitize(expectedType) : clientData.type();
+        String expectedTypeValue = sanitize(expectedType);
+        String type = clientData.type().isEmpty() ? expectedTypeValue : clientData.type();
         String challenge = clientData.challengeBase64().isEmpty() && expectedChallenge != null
                 ? base64Url(expectedChallenge)
                 : clientData.challengeBase64();
-        String resolvedOrigin = clientData.origin().isEmpty() ? sanitize(origin) : clientData.origin();
+        String expectedOriginValue = sanitize(origin);
+        String resolvedOrigin = clientData.origin().isEmpty() ? expectedOriginValue : clientData.origin();
+        boolean typeMatches = expectedTypeValue.isEmpty() || expectedTypeValue.equals(type);
+        boolean originMatches = expectedOriginValue.isEmpty() || expectedOriginValue.equals(resolvedOrigin);
 
-        addStep(trace, step -> step.id("parse.clientData")
-                .summary("Parse client data JSON")
-                .detail("clientDataJSON")
-                .spec("webauthn§6.5.1")
-                .attribute("type", type)
-                .attribute("challenge.base64url", challenge)
-                .attribute("origin", resolvedOrigin)
-                .attribute(AttributeType.JSON, "clientData.json", clientData.json())
-                .attribute("clientData.sha256", sha256Label(clientData.hash())));
+        addStep(trace, step -> {
+            step.id("parse.clientData")
+                    .summary("Parse client data JSON")
+                    .detail("clientDataJSON")
+                    .spec("webauthn§6.5.1")
+                    .attribute("type", type)
+                    .attribute("challenge.b64u", challenge)
+                    .attribute("challenge.decoded.len", clientData.challengeLength())
+                    .attribute("origin", resolvedOrigin)
+                    .attribute(AttributeType.JSON, "clientData.json", clientData.json())
+                    .attribute("clientDataHash.sha256", sha256Label(clientData.hash()))
+                    .attribute(AttributeType.BOOL, "tokenBinding.present", clientData.tokenBindingPresent());
+            if (!expectedTypeValue.isEmpty()) {
+                step.attribute("expected.type", expectedTypeValue);
+            }
+            step.attribute(AttributeType.BOOL, "type.match", typeMatches);
+            if (!expectedOriginValue.isEmpty()) {
+                step.attribute("origin.expected", expectedOriginValue);
+            }
+            step.attribute(AttributeType.BOOL, "origin.match", originMatches);
+            clientData.tokenBindingStatusOptional().ifPresent(status -> step.attribute("tokenBinding.status", status));
+            clientData.tokenBindingIdOptional().ifPresent(id -> step.attribute("tokenBinding.id", id));
+            if (clientData.challengeDecodeFailed()) {
+                step.note("challenge.decode", "invalid_base64url");
+            }
+        });
     }
 
     private static void addParseAuthenticatorDataStep(
             VerboseTrace.Builder trace,
             TraceAuthenticatorData authenticatorData,
             String relyingPartyId,
+            String canonicalRpId,
             long storedCounter) {
         if (trace == null || authenticatorData == null) {
             return;
         }
-        String expectedHash = sha256Digest(sanitize(relyingPartyId).getBytes(StandardCharsets.UTF_8));
+        String expectedHash = sha256Digest(canonicalRpId.getBytes(StandardCharsets.UTF_8));
+        String actualHash = sha256Label(authenticatorData.rpIdHash());
+        boolean hashesMatch = expectedHash.equals(actualHash);
 
         addStep(trace, step -> step.id("parse.authenticatorData")
                 .summary("Parse authenticator data")
                 .detail("authenticatorData")
                 .spec("webauthn§6.5.4")
-                .attribute("rpId.hash.hex", hex(authenticatorData.rpIdHash()))
+                .attribute("rpIdHash.hex", hex(authenticatorData.rpIdHash()))
+                .attribute("rpId.canonical", canonicalRpId)
+                .attribute("rpIdHash.expected", expectedHash)
+                .attribute(AttributeType.BOOL, "rpIdHash.match", hashesMatch)
                 .attribute("rpId.expected.sha256", expectedHash)
                 .attribute("flags.byte", formatByte(authenticatorData.flags()))
                 .attribute("flags.userPresence", authenticatorData.userPresence())
@@ -421,6 +462,7 @@ public final class WebAuthnEvaluationApplicationService {
 
     private static void addConstructCredentialStep(
             VerboseTrace.Builder trace,
+            String canonicalRpId,
             WebAuthnSignatureAlgorithm algorithm,
             byte[] publicKeyCose,
             boolean userVerificationRequired) {
@@ -431,7 +473,9 @@ public final class WebAuthnEvaluationApplicationService {
                 .summary("Construct inline credential")
                 .detail("WebAuthnStoredCredential")
                 .spec("webauthn§6.1")
-                .attribute("algorithm", algorithm.name())
+                .attribute("rpId.canonical", canonicalRpId)
+                .attribute("alg", algorithm.name())
+                .attribute("cose.alg", algorithm.coseIdentifier())
                 .attribute("publicKey.cose.hex", hex(publicKeyCose))
                 .attribute("userVerificationRequired", userVerificationRequired));
     }
@@ -447,8 +491,8 @@ public final class WebAuthnEvaluationApplicationService {
                 .detail("authenticatorData || SHA-256(clientData)")
                 .spec("webauthn§6.5.5")
                 .attribute("authenticatorData.hex", hex(authenticatorData))
-                .attribute("clientData.hash.sha256", sha256Label(clientDataHash))
-                .attribute("signature.base.sha256", sha256Digest(payload)));
+                .attribute("clientDataHash.sha256", sha256Label(clientDataHash))
+                .attribute("signedBytes.sha256", sha256Digest(payload)));
     }
 
     private static void addVerifySignatureStep(
@@ -460,7 +504,8 @@ public final class WebAuthnEvaluationApplicationService {
                 .summary("Verify signature")
                 .detail("WebAuthnAssertionVerifier.verify")
                 .spec("webauthn§6.5.5")
-                .attribute("algorithm", algorithm.name())
+                .attribute("alg", algorithm.name())
+                .attribute("cose.alg", algorithm.coseIdentifier())
                 .attribute("valid", valid));
     }
 
@@ -471,8 +516,20 @@ public final class WebAuthnEvaluationApplicationService {
         String type = values.getOrDefault("type", "");
         String challenge = values.getOrDefault("challenge", "");
         String origin = values.getOrDefault("origin", "");
+        TokenBinding tokenBinding = parseTokenBinding(json);
+        DecodedChallenge decodedChallenge = decodeChallenge(challenge);
         byte[] hash = sha256(jsonBytes);
-        return new TraceClientData(json, type, challenge, origin, hash);
+        return new TraceClientData(
+                json,
+                type,
+                challenge,
+                decodedChallenge.bytes(),
+                decodedChallenge.failed(),
+                origin,
+                hash,
+                tokenBinding.present(),
+                tokenBinding.status(),
+                tokenBinding.id());
     }
 
     private static TraceAuthenticatorData traceAuthenticatorData(byte[] authenticatorData) {
@@ -498,6 +555,28 @@ public final class WebAuthnEvaluationApplicationService {
             values.put(matcher.group("key"), matcher.group("value"));
         }
         return values;
+    }
+
+    private static TokenBinding parseTokenBinding(String json) {
+        if (json == null || json.isEmpty()) {
+            return new TokenBinding(false, "", "");
+        }
+        Matcher matcher = TOKEN_BINDING_PATTERN.matcher(json);
+        if (!matcher.find()) {
+            return new TokenBinding(false, "", "");
+        }
+        String body = matcher.group(1);
+        Matcher fieldMatcher = TOKEN_BINDING_FIELD_PATTERN.matcher(body);
+        String status = "";
+        String id = "";
+        while (fieldMatcher.find()) {
+            if ("status".equals(fieldMatcher.group(1))) {
+                status = fieldMatcher.group(2);
+            } else if ("id".equals(fieldMatcher.group(1))) {
+                id = fieldMatcher.group(2);
+            }
+        }
+        return new TokenBinding(true, status, id);
     }
 
     private static byte[] sha256(byte[] input) {
@@ -534,6 +613,27 @@ public final class WebAuthnEvaluationApplicationService {
         return BASE64_URL_ENCODER.encodeToString(input);
     }
 
+    private static DecodedChallenge decodeChallenge(String challenge) {
+        if (challenge == null || challenge.isBlank()) {
+            return new DecodedChallenge(new byte[0], false);
+        }
+        String trimmed = challenge.trim();
+        try {
+            String padded = padBase64Url(trimmed);
+            return new DecodedChallenge(BASE64_URL_DECODER.decode(padded), false);
+        } catch (IllegalArgumentException ex) {
+            return new DecodedChallenge(new byte[0], true);
+        }
+    }
+
+    private static String padBase64Url(String value) {
+        int remainder = value.length() % 4;
+        if (remainder == 0) {
+            return value;
+        }
+        return value + "====".substring(remainder);
+    }
+
     private static byte[] concat(byte[] left, byte[] right) {
         byte[] safeLeft = left == null ? new byte[0] : left;
         byte[] safeRight = right == null ? new byte[0] : right;
@@ -543,26 +643,78 @@ public final class WebAuthnEvaluationApplicationService {
     }
 
     private static String formatByte(int value) {
-        return String.format("0x%02x", value & 0xFF);
+        return String.format("%02x", value & 0xFF);
     }
 
     private static String sanitize(String value) {
         return value == null ? "" : value.trim();
     }
 
-    private record TraceClientData(String json, String type, String challengeBase64, String origin, byte[] hash) {
+    private record DecodedChallenge(byte[] bytes, boolean failed) {
+
+        private DecodedChallenge {
+            bytes = bytes == null ? new byte[0] : bytes.clone();
+        }
+
+        public byte[] bytes() {
+            return bytes.clone();
+        }
+    }
+
+    private record TokenBinding(boolean present, String status, String id) {
+
+        private TokenBinding {
+            status = status == null ? "" : status;
+            id = id == null ? "" : id;
+        }
+    }
+
+    private record TraceClientData(
+            String json,
+            String type,
+            String challengeBase64,
+            byte[] challengeBytes,
+            boolean challengeDecodeFailed,
+            String origin,
+            byte[] hash,
+            boolean tokenBindingPresent,
+            String tokenBindingStatus,
+            String tokenBindingId) {
 
         private TraceClientData {
             json = json == null ? "" : json;
             type = type == null ? "" : type;
             challengeBase64 = challengeBase64 == null ? "" : challengeBase64;
+            challengeBytes = challengeBytes == null ? new byte[0] : challengeBytes.clone();
             origin = origin == null ? "" : origin;
             hash = hash == null ? new byte[0] : hash.clone();
+            tokenBindingStatus = tokenBindingStatus == null ? "" : tokenBindingStatus;
+            tokenBindingId = tokenBindingId == null ? "" : tokenBindingId;
         }
 
         @Override
         public byte[] hash() {
             return hash.clone();
+        }
+
+        public int challengeLength() {
+            return challengeDecodeFailed ? -1 : challengeBytes.length;
+        }
+
+        public boolean challengeDecodeFailed() {
+            return challengeDecodeFailed;
+        }
+
+        public boolean tokenBindingPresent() {
+            return tokenBindingPresent;
+        }
+
+        public Optional<String> tokenBindingStatusOptional() {
+            return tokenBindingStatus.isBlank() ? Optional.empty() : Optional.of(tokenBindingStatus);
+        }
+
+        public Optional<String> tokenBindingIdOptional() {
+            return tokenBindingId.isBlank() ? Optional.empty() : Optional.of(tokenBindingId);
         }
     }
 
@@ -602,8 +754,9 @@ public final class WebAuthnEvaluationApplicationService {
 
     private static WebAuthnAssertionRequest toRequest(EvaluationCommand command) {
         if (command instanceof EvaluationCommand.Stored stored) {
+            String canonicalRpId = WebAuthnRelyingPartyId.canonicalize(stored.relyingPartyId());
             return new WebAuthnAssertionRequest(
-                    stored.relyingPartyId(),
+                    canonicalRpId,
                     stored.origin(),
                     stored.expectedChallenge(),
                     stored.clientDataJson(),
@@ -612,8 +765,9 @@ public final class WebAuthnEvaluationApplicationService {
                     stored.expectedType());
         }
         if (command instanceof EvaluationCommand.Inline inline) {
+            String canonicalRpId = WebAuthnRelyingPartyId.canonicalize(inline.relyingPartyId());
             return new WebAuthnAssertionRequest(
-                    inline.relyingPartyId(),
+                    canonicalRpId,
                     inline.origin(),
                     inline.expectedChallenge(),
                     inline.clientDataJson(),

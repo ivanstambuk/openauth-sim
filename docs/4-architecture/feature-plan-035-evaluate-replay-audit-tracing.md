@@ -146,11 +146,21 @@ _Last updated:_ 2025-10-23
     - Updated Selenium coverage (`OcraOperatorUiSeleniumTest`) to assert that stored replay surfaces `ocra.verify.stored` traces when verbose mode is enabled.
     - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliVerboseTraceTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OcraVerificationEndpointTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`.
 
-19. **I13 – Documentation & knowledge sync**
+19. **I12d – FIDO2 canonical trace naming (completed 2025-10-24)**  
+    - Aligned WebAuthn verbose traces with canonical field naming: output `alg`/`cose.alg`, rename RP/client data/signed payload hashes, and removed the `0x` prefix from single-byte fields.  
+    - Refreshed CLI/REST fixtures (including OpenAPI snapshots) and Feature 035 documentation to reflect the new vocabulary; verbose trace tests now lock the updated keys.  
+    - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2EvaluationEndpointTest"`; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`; `./gradlew --no-daemon spotlessApply check`.
+
+20. **I12e – WebAuthn RP ID canonicalisation & trace match indicators (completed 2025-10-24)**
+    - Normalised relying party identifiers (trim, IDNA to ASCII, lower-case) before persistence or verification across assertion and attestation services; updated credential descriptors, stored credential construction, and request builders to reuse the canonical value.
+    - Extended verbose traces to emit `rpId.canonical`, `rpIdHash.expected`, and `rpIdHash.match` alongside the authenticator-provided hash so operators can spot mismatches without relying solely on verifier exceptions; refreshed application/CLI/REST fixtures and OpenAPI snapshots accordingly.
+    - Commands: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.*"`; `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test"`; `./gradlew --no-daemon spotlessApply check`.
+
+21. **I13 – Documentation & knowledge sync**
     - Update CLI/REST how-to guides, operator UI docs, and knowledge map entries; ensure verbose tracing instructions are clear.
     - Command: `./gradlew --no-daemon spotlessApply`
 
-20. **I14 – Full quality gate**
+22. **I14 – Full quality gate**
     - 2025-10-23 – `./gradlew --no-daemon spotlessApply check` completed successfully after additional REST/CLI tests lifted aggregated branch coverage to 70.45 % (1 645/2 335).
 
 ## UI Layout Decision
