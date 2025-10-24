@@ -109,51 +109,6 @@
       </header>
 
       <section
-          class="verbose-trace-controls"
-          data-testid="verbose-trace-controls"
-        >
-        <label class="verbose-trace-toggle" data-testid="verbose-trace-toggle">
-          <input type="checkbox" data-testid="verbose-trace-checkbox" />
-          <span>Enable verbose tracing for the next request</span>
-        </label>
-        <p class="verbose-trace-hint">
-          Verbose traces expose raw secrets and intermediate buffers. Use only in trusted environments.
-        </p>
-      </section>
-
-      <section
-          class="verbose-trace-panel"
-          data-testid="verbose-trace-panel"
-          data-trace-visible="false"
-          data-trace-variant="info"
-          hidden="hidden"
-        >
-        <header class="verbose-trace-panel__header">
-          <h2 class="verbose-trace-panel__title">Verbose trace</h2>
-          <div class="verbose-trace-panel__actions">
-            <button
-                type="button"
-                class="verbose-trace-button"
-                data-testid="verbose-trace-copy"
-                aria-label="Copy verbose trace to clipboard"
-              >
-              Copy trace
-            </button>
-          </div>
-        </header>
-        <p class="verbose-trace-panel__operation">
-          Operation:
-          <span data-testid="verbose-trace-operation">—</span>
-        </p>
-        <details class="verbose-trace-panel__details" data-testid="verbose-trace-details">
-          <summary class="verbose-trace-panel__summary" data-testid="verbose-trace-summary">
-            Trace steps
-          </summary>
-          <pre class="verbose-trace-panel__content" data-testid="verbose-trace-content"></pre>
-        </details>
-      </section>
-
-      <section
           id="protocol-panel-ocra"
           class="protocol-panel"
           data-protocol-panel="ocra"
@@ -198,6 +153,51 @@
 
       <th:block th:replace="~{ui/totp/panel :: totpPanel(${activeProtocol}=='totp')}"></th:block>
       <th:block th:replace="~{ui/fido2/panel :: fido2Panel(${activeProtocol}=='fido2')}"></th:block>
+
+      <section
+          class="verbose-trace-controls"
+          data-testid="verbose-trace-controls"
+        >
+        <label class="verbose-trace-toggle" data-testid="verbose-trace-toggle">
+          <input type="checkbox" data-testid="verbose-trace-checkbox" />
+          <span>Enable verbose tracing for the next request</span>
+        </label>
+        <p class="verbose-trace-hint">
+          Verbose traces expose raw secrets and intermediate buffers. Use only in trusted environments.
+        </p>
+      </section>
+
+      <section
+          class="verbose-trace-panel"
+          data-testid="verbose-trace-panel"
+          data-trace-visible="false"
+          data-trace-variant="info"
+          hidden="hidden"
+        >
+        <header class="verbose-trace-panel__header">
+          <h2 class="verbose-trace-panel__title">Verbose trace</h2>
+          <div class="verbose-trace-panel__actions">
+            <button
+                type="button"
+                class="verbose-trace-button"
+                data-testid="verbose-trace-copy"
+                aria-label="Copy verbose trace to clipboard"
+              >
+              Copy trace
+            </button>
+          </div>
+        </header>
+        <p class="verbose-trace-panel__operation">
+          Operation:
+          <span data-testid="verbose-trace-operation">—</span>
+        </p>
+        <details class="verbose-trace-panel__details" data-testid="verbose-trace-details">
+          <summary class="verbose-trace-panel__summary" data-testid="verbose-trace-summary">
+            Trace steps
+          </summary>
+          <pre class="verbose-trace-panel__content" data-testid="verbose-trace-content"></pre>
+        </details>
+      </section>
 
       <section
           id="protocol-panel-emv"

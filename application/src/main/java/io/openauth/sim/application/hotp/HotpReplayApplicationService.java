@@ -1,5 +1,6 @@
 package io.openauth.sim.application.hotp;
 
+import io.openauth.sim.application.hotp.HotpTraceCalculator.HotpTraceComputation;
 import io.openauth.sim.application.telemetry.HotpTelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.model.Credential;
@@ -19,6 +20,11 @@ import java.util.function.Consumer;
 
 /** Application-layer HOTP replay orchestrator (stored + inline flows, non-mutating). */
 public final class HotpReplayApplicationService {
+
+    private static final String SPEC_HOTP_INPUT = "rfc4226§5.1";
+    private static final String SPEC_HOTP_MOD = "rfc4226§5.4";
+    private static final int DEFAULT_LOOK_AHEAD = 10;
+    private static final String SECRET_FORMAT_HEX = "hex";
 
     private static final String ATTR_ALGORITHM = "hotp.algorithm";
     private static final String ATTR_DIGITS = "hotp.digits";
@@ -76,6 +82,32 @@ public final class HotpReplayApplicationService {
                 otp = Objects.requireNonNull(otp, "otp").trim();
             }
         }
+    }
+
+    private static long safeWindowUpperBound(long counter, int lookAhead) {
+        if (lookAhead < 0) {
+            return counter;
+        }
+        long maxAllowed = Long.MAX_VALUE - lookAhead;
+        if (counter > maxAllowed) {
+            return Long.MAX_VALUE;
+        }
+        return counter + lookAhead;
+    }
+
+    private static long safeWindowLowerBound(long counter, int lookAhead) {
+        if (lookAhead < 0) {
+            return counter;
+        }
+        long minAllowed = Long.MIN_VALUE + lookAhead;
+        if (counter < minAllowed) {
+            return Long.MIN_VALUE;
+        }
+        return counter - lookAhead;
+    }
+
+    private record AttemptTrace(long counter, HotpTraceComputation computation, boolean match) {
+        // Captures a single verification attempt and whether it matched the provided OTP.
     }
 
     public record ReplayResult(
@@ -142,32 +174,27 @@ public final class HotpReplayApplicationService {
         try {
             storedCredential = resolveStored(command.credentialId());
             if (storedCredential == null) {
-                addStep(trace, step -> step.id("resolve.credential")
-                        .summary("Resolve stored HOTP credential")
+                addStep(trace, step -> step.id("normalize.input")
+                        .summary("Normalize stored HOTP replay request")
                         .detail("CredentialStore.findByName")
-                        .attribute("credentialId", command.credentialId())
-                        .attribute("found", false));
+                        .spec(SPEC_HOTP_INPUT)
+                        .attribute(VerboseTrace.AttributeType.STRING, "op", "replay.stored")
+                        .attribute(VerboseTrace.AttributeType.STRING, "credentialId", command.credentialId())
+                        .attribute(VerboseTrace.AttributeType.BOOL, "found", false));
                 return notFoundResult(command.credentialId(), buildTrace(trace));
             }
             StoredCredential resolved = storedCredential;
             HotpDescriptor descriptor = resolved.descriptor();
             long counter = resolved.counter();
 
-            addStep(trace, step -> step.id("resolve.credential")
-                    .summary("Resolve stored HOTP credential")
-                    .detail("CredentialStore.findByName")
-                    .attribute("credentialId", descriptor.name())
-                    .attribute("algorithm", descriptor.algorithm().name())
-                    .attribute("digits", descriptor.digits())
-                    .attribute("counter", counter)
-                    .attribute("found", true));
-
             return replayDescriptor(descriptor, command.otp(), counter, true, descriptor.name(), "stored", trace);
         } catch (IllegalArgumentException ex) {
-            addStep(trace, step -> step.id("resolve.credential")
-                    .summary("Resolve stored HOTP credential")
+            addStep(trace, step -> step.id("normalize.input")
+                    .summary("Normalize stored HOTP replay request")
                     .detail("CredentialStore.findByName")
-                    .attribute("credentialId", command.credentialId())
+                    .spec(SPEC_HOTP_INPUT)
+                    .attribute(VerboseTrace.AttributeType.STRING, "op", "replay.stored")
+                    .attribute(VerboseTrace.AttributeType.STRING, "credentialId", command.credentialId())
                     .note("failure", safeMessage(ex)));
             return invalidMetadataResult(command.credentialId(), ex.getMessage(), buildTrace(trace));
         } catch (RuntimeException ex) {
@@ -191,7 +218,7 @@ public final class HotpReplayApplicationService {
         metadata(trace, "mode", "inline");
         Map<String, String> metadata = command.metadata();
         if (metadata != null) {
-            metadata(trace, "metadata.size", Integer.toString(metadata.size()));
+            metadata(trace, "size", Integer.toString(metadata.size()));
         }
         try {
             HotpDescriptor descriptor = HotpDescriptor.create(
@@ -200,19 +227,14 @@ public final class HotpReplayApplicationService {
                     command.algorithm(),
                     command.digits());
 
-            addStep(trace, step -> step.id("normalize.input")
-                    .summary("Prepare inline HOTP replay descriptor")
-                    .detail("HotpDescriptor.create")
-                    .attribute("algorithm", descriptor.algorithm().name())
-                    .attribute("digits", descriptor.digits())
-                    .attribute("counter", command.counter()));
-
             return replayDescriptor(
                     descriptor, command.otp(), command.counter(), false, INLINE_DESCRIPTOR_NAME, "inline", trace);
         } catch (IllegalArgumentException ex) {
             addStep(trace, step -> step.id("normalize.input")
-                    .summary("Prepare inline HOTP replay descriptor")
+                    .summary("Normalize inline HOTP replay request")
                     .detail("HotpDescriptor.create")
+                    .spec(SPEC_HOTP_INPUT)
+                    .attribute(VerboseTrace.AttributeType.STRING, "op", "replay.inline")
                     .note("failure", safeMessage(ex)));
             return validationFailure(
                     INLINE_DESCRIPTOR_NAME,
@@ -251,31 +273,187 @@ public final class HotpReplayApplicationService {
             VerboseTrace.Builder trace) {
 
         try {
-            HotpVerificationResult verification = HotpValidator.verify(descriptor, counter, otp);
-            if (verification.valid()) {
-                addStep(trace, step -> step.id("validate.otp")
-                        .summary("Verify HOTP submission")
+            final long maxCounter = safeWindowUpperBound(counter, DEFAULT_LOOK_AHEAD);
+            final long minCounter = safeWindowLowerBound(counter, DEFAULT_LOOK_AHEAD);
+            byte[] secretBytes = descriptor.secret().value();
+            HotpVerificationResult verificationResult = HotpVerificationResult.failure(counter);
+            HotpTraceComputation matchComputation = null;
+            Long matchedCounter = null;
+            java.util.List<AttemptTrace> attempts = new java.util.ArrayList<>();
+
+            for (long candidate = counter; candidate <= maxCounter; candidate++) {
+                HotpTraceComputation computation = HotpTraceCalculator.compute(descriptor, secretBytes, candidate);
+                HotpVerificationResult candidateResult = HotpValidator.verify(descriptor, candidate, otp);
+                boolean match = candidateResult.valid();
+                attempts.add(new AttemptTrace(candidate, computation, match));
+                if (match) {
+                    verificationResult = candidateResult;
+                    matchComputation = computation;
+                    matchedCounter = candidate;
+                    break;
+                }
+            }
+
+            HotpTraceComputation baseline = attempts.isEmpty()
+                    ? HotpTraceCalculator.compute(descriptor, secretBytes, counter)
+                    : attempts.get(0).computation();
+
+            final String operationDetail = credentialReference ? "CredentialStore.findByName" : "HotpDescriptor.create";
+            final String operationCode = credentialReference ? "replay.stored" : "replay.inline";
+            String providedOtp = otp == null ? "" : otp.trim();
+
+            addStep(trace, step -> {
+                step.id("normalize.input")
+                        .summary("Normalize HOTP replay request")
+                        .detail(operationDetail)
+                        .spec(SPEC_HOTP_INPUT)
+                        .attribute(VerboseTrace.AttributeType.STRING, "op", operationCode)
+                        .attribute(
+                                VerboseTrace.AttributeType.STRING,
+                                "alg",
+                                descriptor.algorithm().name())
+                        .attribute(VerboseTrace.AttributeType.INT, "digits", descriptor.digits())
+                        .attribute(VerboseTrace.AttributeType.STRING, "otp.provided", providedOtp)
+                        .attribute(VerboseTrace.AttributeType.INT, "counter.hint", counter)
+                        .attribute(VerboseTrace.AttributeType.INT, "window", DEFAULT_LOOK_AHEAD)
+                        .attribute(VerboseTrace.AttributeType.INT, "secret.len.bytes", baseline.secretLength())
+                        .attribute(VerboseTrace.AttributeType.STRING, "secret.sha256", baseline.secretHash());
+                if (!credentialReference) {
+                    step.attribute(VerboseTrace.AttributeType.STRING, "secret.format", SECRET_FORMAT_HEX);
+                }
+                if (descriptor.algorithm() != HotpHashAlgorithm.SHA1) {
+                    step.note("non_standard_hash", descriptor.algorithm().name());
+                }
+            });
+
+            HotpTraceComputation matchDetails = matchComputation;
+            final Long matchedWindowCounter = matchedCounter;
+            addStep(trace, step -> {
+                step.id("search.window")
+                        .summary("Search HOTP verification window")
                         .detail("HotpValidator.verify")
-                        .attribute("counter", counter)
-                        .attribute("otp", otp)
-                        .attribute("match", true));
+                        .spec(SPEC_HOTP_MOD);
+                step.attribute(
+                        VerboseTrace.AttributeType.STRING, "window.range", formatWindowRange(minCounter, maxCounter));
+                step.attribute(VerboseTrace.AttributeType.STRING, "order", "ascending");
+                attempts.forEach(attempt -> {
+                    String attemptValue =
+                            attempt.computation().otpString() + (attempt.match() ? " (match=true)" : " (match=false)");
+                    step.attribute(
+                            VerboseTrace.AttributeType.STRING, "attempt." + attempt.counter() + ".otp", attemptValue);
+                });
+                if (matchDetails != null && matchedWindowCounter != null) {
+                    step.attribute(
+                            VerboseTrace.AttributeType.STRING, "match.marker.begin", "-- begin match.derivation --");
+                    step.attribute(
+                            VerboseTrace.AttributeType.INT, "match.prepare.counter.counter.int", matchedWindowCounter);
+                    step.attribute(
+                            VerboseTrace.AttributeType.HEX,
+                            "match.prepare.counter.counter.bytes.big_endian",
+                            matchDetails.counterHex());
+                    step.attribute(
+                            VerboseTrace.AttributeType.INT,
+                            "match.hmac.compute.hash.block_len",
+                            matchDetails.hashBlockLength());
+                    step.attribute(
+                            VerboseTrace.AttributeType.STRING, "match.hmac.compute.key.mode", matchDetails.keyMode());
+                    step.attribute(
+                            VerboseTrace.AttributeType.STRING,
+                            "match.hmac.compute.key'.sha256",
+                            matchDetails.keyPrimeSha256());
+                    step.attribute(
+                            VerboseTrace.AttributeType.STRING,
+                            "match.hmac.compute.ipad.byte",
+                            HotpTraceCalculator.formatByte(HotpTraceCalculator.ipadByte()));
+                    step.attribute(
+                            VerboseTrace.AttributeType.STRING,
+                            "match.hmac.compute.opad.byte",
+                            HotpTraceCalculator.formatByte(HotpTraceCalculator.opadByte()));
+                    step.attribute(
+                            VerboseTrace.AttributeType.HEX,
+                            "match.hmac.compute.inner.input",
+                            matchDetails.innerInputHex());
+                    step.attribute(
+                            VerboseTrace.AttributeType.HEX,
+                            "match.hmac.compute.inner.hash",
+                            matchDetails.innerHashHex());
+                    step.attribute(
+                            VerboseTrace.AttributeType.HEX,
+                            "match.hmac.compute.outer.input",
+                            matchDetails.outerInputHex());
+                    step.attribute(
+                            VerboseTrace.AttributeType.HEX, "match.hmac.compute.hmac.final", matchDetails.hmacHex());
+                    step.attribute(
+                            VerboseTrace.AttributeType.STRING,
+                            "match.truncate.dynamic.last.byte",
+                            matchDetails.lastByteHex());
+                    step.attribute(
+                            VerboseTrace.AttributeType.INT,
+                            "match.truncate.dynamic.offset.nibble",
+                            matchDetails.offset());
+                    step.attribute(
+                            VerboseTrace.AttributeType.HEX,
+                            "match.truncate.dynamic.slice.bytes",
+                            matchDetails.sliceHex());
+                    step.attribute(
+                            VerboseTrace.AttributeType.STRING,
+                            "match.truncate.dynamic.slice.bytes[0]_masked",
+                            matchDetails.sliceMaskedHex());
+                    step.attribute(
+                            VerboseTrace.AttributeType.INT,
+                            "match.truncate.dynamic.dbc.31bit.big_endian",
+                            matchDetails.truncatedInt());
+                    step.attribute(VerboseTrace.AttributeType.INT, "match.mod.reduce.modulus", matchDetails.modulus());
+                    step.attribute(
+                            VerboseTrace.AttributeType.INT, "match.mod.reduce.otp.decimal", matchDetails.otpDecimal());
+                    step.attribute(
+                            VerboseTrace.AttributeType.STRING,
+                            "match.mod.reduce.otp.string.leftpad",
+                            matchDetails.otpString());
+                    step.attribute(
+                            VerboseTrace.AttributeType.STRING, "match.result.output.otp", matchDetails.otpString());
+                    step.attribute(VerboseTrace.AttributeType.STRING, "match.marker.end", "-- end match.derivation --");
+                }
+            });
+
+            final boolean match =
+                    matchComputation != null && matchedWindowCounter != null && verificationResult.valid();
+            final Long decisionMatchedCounter = matchedWindowCounter;
+            final HotpVerificationResult decisionResult = verificationResult;
+            addStep(trace, step -> {
+                step.id("decision")
+                        .summary("Derive HOTP verification decision")
+                        .detail("HotpValidator.verify")
+                        .spec(SPEC_HOTP_MOD)
+                        .attribute(VerboseTrace.AttributeType.BOOL, "verify.match", match);
+                if (match) {
+                    step.attribute(VerboseTrace.AttributeType.INT, "matched.counter", decisionMatchedCounter);
+                    step.attribute(
+                            VerboseTrace.AttributeType.INT, "next.expected.counter", decisionResult.nextCounter());
+                } else {
+                    step.attribute(VerboseTrace.AttributeType.INT, "matched.counter", counter);
+                    step.attribute(VerboseTrace.AttributeType.INT, "next.expected.counter", counter);
+                    step.note("failure", "otp_mismatch");
+                }
+            });
+
+            if (match) {
+                metadata(trace, "matchedCounter", Long.toString(matchedCounter));
+                long previousCounterValue = matchedCounter != null ? matchedCounter : counter;
+                long telemetryNextCounter = safeIncrement(previousCounterValue);
+                long nextCounterValue = telemetryNextCounter;
                 return successResult(
                         credentialReference,
                         credentialId,
                         credentialSource,
                         descriptor.algorithm(),
                         descriptor.digits(),
-                        counter,
+                        previousCounterValue,
+                        nextCounterValue,
+                        telemetryNextCounter,
                         buildTrace(trace));
             }
 
-            addStep(trace, step -> step.id("validate.otp")
-                    .summary("Verify HOTP submission")
-                    .detail("HotpValidator.verify")
-                    .attribute("counter", counter)
-                    .attribute("otp", otp)
-                    .attribute("match", false)
-                    .note("failure", "otp_mismatch"));
             return mismatchResult(
                     credentialReference,
                     credentialId,
@@ -283,12 +461,13 @@ public final class HotpReplayApplicationService {
                     descriptor.algorithm(),
                     descriptor.digits(),
                     counter,
+                    credentialReference ? safeIncrement(counter) : counter,
+                    counter,
                     buildTrace(trace));
         } catch (IllegalArgumentException ex) {
-            addStep(trace, step -> step.id("validate.otp")
-                    .summary("Verify HOTP submission")
+            addStep(trace, step -> step.id("decision")
+                    .summary("Derive HOTP verification decision")
                     .detail("HotpValidator.verify")
-                    .attribute("counter", counter)
                     .note("failure", safeMessage(ex)));
             return validationFailure(
                     credentialId,
@@ -323,12 +502,16 @@ public final class HotpReplayApplicationService {
             String credentialSource,
             HotpHashAlgorithm algorithm,
             int digits,
-            long counter,
+            long previousCounter,
+            long nextCounter,
+            long telemetryNextCounter,
             VerboseTrace trace) {
 
-        Map<String, Object> fields = replayFields(credentialSource, credentialId, algorithm, digits, counter, counter);
+        Map<String, Object> fields =
+                replayFields(credentialSource, credentialId, algorithm, digits, previousCounter, telemetryNextCounter);
         TelemetrySignal signal = new TelemetrySignal(TelemetryStatus.SUCCESS, "match", null, true, fields, null);
-        return new ReplayResult(signal, credentialReference, credentialId, counter, counter, algorithm, digits, trace);
+        return new ReplayResult(
+                signal, credentialReference, credentialId, previousCounter, nextCounter, algorithm, digits, trace);
     }
 
     private ReplayResult mismatchResult(
@@ -337,13 +520,17 @@ public final class HotpReplayApplicationService {
             String credentialSource,
             HotpHashAlgorithm algorithm,
             int digits,
-            long counter,
+            long previousCounter,
+            long nextCounter,
+            long telemetryNextCounter,
             VerboseTrace trace) {
 
-        Map<String, Object> fields = replayFields(credentialSource, credentialId, algorithm, digits, counter, counter);
+        Map<String, Object> fields =
+                replayFields(credentialSource, credentialId, algorithm, digits, previousCounter, telemetryNextCounter);
         TelemetrySignal signal =
                 new TelemetrySignal(TelemetryStatus.INVALID, "otp_mismatch", "OTP mismatch", true, fields, null);
-        return new ReplayResult(signal, credentialReference, credentialId, counter, counter, algorithm, digits, trace);
+        return new ReplayResult(
+                signal, credentialReference, credentialId, previousCounter, nextCounter, algorithm, digits, trace);
     }
 
     private ReplayResult validationFailure(
@@ -455,6 +642,14 @@ public final class HotpReplayApplicationService {
         fields.put("previousCounter", previousCounter);
         fields.put("nextCounter", nextCounter);
         return fields;
+    }
+
+    private static String formatWindowRange(long lowerBound, long upperBound) {
+        return "[" + lowerBound + ", " + upperBound + "]";
+    }
+
+    private static long safeIncrement(long counter) {
+        return counter == Long.MAX_VALUE ? Long.MAX_VALUE : counter + 1L;
     }
 
     private static boolean hasText(String value) {

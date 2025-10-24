@@ -101,7 +101,7 @@ class HotpReplayEndpointTest {
             JsonNode metadata = response.get("metadata");
             assertEquals("stored", metadata.get("credentialSource").asText());
             assertEquals(10L, metadata.get("previousCounter").asLong());
-            assertEquals(10L, metadata.get("nextCounter").asLong());
+            assertEquals(11L, metadata.get("nextCounter").asLong());
             assertTrue(metadata.get("telemetryId").asText().startsWith("rest-hotp-"));
 
             assertThat(credentialStore.findByName(CREDENTIAL_ID)).isPresent();
@@ -155,7 +155,7 @@ class HotpReplayEndpointTest {
             JsonNode metadata = response.get("metadata");
             assertEquals("inline", metadata.get("credentialSource").asText());
             assertEquals(counter, metadata.get("previousCounter").asLong());
-            assertEquals(counter, metadata.get("nextCounter").asLong());
+            assertEquals(counter + 1, metadata.get("nextCounter").asLong());
             assertTrue(metadata.get("telemetryId").asText().startsWith("rest-hotp-"));
 
             assertTelemetry(

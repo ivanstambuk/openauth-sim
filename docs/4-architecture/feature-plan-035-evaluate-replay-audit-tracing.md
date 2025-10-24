@@ -2,13 +2,14 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-035-evaluate-replay-audit-tracing.md`  
 _Status:_ Draft  
-_Last updated:_ 2025-10-22
+_Last updated:_ 2025-10-23
 
 ## Vision & Success Criteria
 - Every credential evaluation/replay/attestation workflow (HOTP, TOTP, OCRA, FIDO2) exposes an opt-in verbose trace that lists each cryptographic operation, inputs, and intermediate outputs in execution order.
 - CLI, REST, and operator UI facades honour per-request verbose toggles and surface the identical trace payload with no redaction.
 - UI introduces a terminal-style panel (collapsed by default) that renders the verbose trace when requested without disrupting existing layouts.
 - Traces remain ephemeral and never land in telemetry, persisted storage, or logs; default behaviour (verbose disabled) is unchanged.
+- Trace metadata advertises the available redaction tiers (`normal`, `educational`, `lab-secrets`), with Feature 035 continuing to emit the fully detailed (`educational`) view pending a follow-up toggle implementation.
 - Full pipeline (`./gradlew spotlessApply check`) stays green after implementation.
 
 ## Scope Alignment
@@ -20,6 +21,29 @@ _Last updated:_ 2025-10-22
 - CLI commands (`cli/src/main/java/io/openauth/sim/cli/**`), REST controllers (`rest-api/src/main/java/io/openauth/sim/rest/**`), and operator UI templates/scripts (`rest-api/src/main/resources/templates/ui/**`, `static/js/**`).
 - Telemetry contracts (must remain untouched by verbose trace data).
 - Existing JSON fixtures for HOTP/TOTP/OCRA and WebAuthn sample vectors to drive deterministic trace assertions.
+
+## Trace Detail Expectations
+- **Cross-protocol format**
+  - Preserve the current human-readable layout (operation header, metadata block, numbered steps).
+  - Each step lists key/value attributes grouped by type (e.g., `hex`, `base64url`, `int`, `bool`) and ends with `spec: <anchor>` where applicable.
+  - Record `tier: educational` in the envelope so later iterations can switch tiers once toggles ship.
+  - Hash any sensitive secrets with SHA-256 and print as `sha256:<digest>` regardless of the protocol algorithm family.
+- **HOTP (RFC 4226 §5.1–§5.4)** – Output must match the mandated “step.N” format (two-space indentation, `name = value`, lowercase hex). Secrets are always hashed; refuse digits >9.
+  - *Evaluate:* emit the six ordered steps (`normalize.input`, `prepare.counter`, `hmac.compute`, `truncate.dynamic`, `mod.reduce`, `result`) with the exact field list in the spec, noting non-standard algorithms when used.
+  - *Verify:* emit `normalize.input`, `search.window` (prefix with `window.range = [counter.hint-10, counter.hint+10]` and `order = ascending`, then log attempt entries plus the expanded match derivation), and `decision` with matched/next counters. Publish the recommended counter advance (`matched + 1`) in metadata even when inline replays leave server state untouched so operators see the expected next value.
+  - CLI/REST/UI printers must keep the same deterministic ordering and comments (`-- begin match.derivation --` markers) while preserving human-readable formatting.
+- **TOTP (RFC 6238 §1.2, §4.2, Appendix B)**
+  - Prepend `derive.time-counter` (epoch, step, T value, drift window) and `evaluate.window` (per-offset results) before reusing HOTP steps.
+- **OCRA (RFC 6287 §5–§7)**
+  - `parse.suite` – raw suite, parsed fields (digits, hash, data inputs).
+  - `normalize.inputs` – counter, challenge encoding, PSHA digests, session/timestamp bytes.
+  - `assemble.message` – ordered segments with hex and overall SHA-256 hash.
+  - Conclude with HOTP-style HMAC/truncation/modulo steps.
+- **WebAuthn / FIDO2 (WebAuthn L2 §6–§7, CTAP 2 §5)**
+  - Split flows into attestation vs assertion.
+  - Shared steps: `parse.clientData`, `parse.authenticatorData`, `build.signatureBase`, `verify.signature`.
+  - Attestation adds `extract.attestedCredential` (AAGUID, credential ID, COSE key) and `validate.metadata` (trust chain, AAGUID outcome).
+  - Assertion adds `evaluate.counter` (previous vs new counter, strict increment) and surfaces extension outputs when present.
 
 ## Increment Breakdown (≤10 min each, tests-before-code)
 1. **I1 – Baseline evaluation map**
@@ -127,6 +151,7 @@ _Last updated:_ 2025-10-22
    - **Recommended choice:** Option A – Bottom dock terminal panel, because it keeps trace content legible across protocols that emit long base64/hex strings and aligns with operator expectations for console-style output. Side drawer remains viable if preserving vertical form space proves critical.
 
    - **Owner decision:** Option A approved (2025-10-22).
+   - **2025-10-23 follow-up:** Owner revised the decision: keep the verbose toggle near the bottom of the console and render the trace panel immediately after it as a continuous in-flow section (no fixed overlay).
 
 ## Evaluation Injection Map (T3501 – 2025-10-22)
 - **HOTP evaluate (`HotpEvaluationApplicationService`)** – Stored path loads `StoredCredential` then calls `HotpGenerator.generate`, persists the new counter via `persistCounter`, and emits telemetry; inline path normalises metadata and validates counter before generating OTP. Verbose trace hook should wrap descriptor resolution, generator invocation, counter bump, and persistence operations.
@@ -151,6 +176,7 @@ _Last updated:_ 2025-10-22
 ## Follow-ups
 - Revisit potential trace exporters (files/web sockets) under a future feature if persistent audit history is requested.
 - Consider formatting helpers (diff highlighting, grouping) once baseline tracing stabilises.
+- Schedule a dedicated increment to expose redaction-tier controls (CLI flag, REST/JSON contract, UI toggle) once the trace schema advertises `normal/educational/lab-secrets`.
 
 ## Analysis Gate
 - **Review date:** 2025-10-22  

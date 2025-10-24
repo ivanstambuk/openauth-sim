@@ -1,12 +1,12 @@
 package io.openauth.sim.application.hotp;
 
+import io.openauth.sim.application.hotp.HotpTraceCalculator.HotpTraceComputation;
 import io.openauth.sim.application.telemetry.HotpTelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.otp.hotp.HotpDescriptor;
-import io.openauth.sim.core.otp.hotp.HotpGenerator;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.trace.VerboseTrace;
@@ -22,7 +22,13 @@ public final class HotpEvaluationApplicationService {
     private static final String ATTR_DIGITS = "hotp.digits";
     private static final String ATTR_COUNTER = "hotp.counter";
 
+    private static final String SPEC_HOTP_INPUT = "rfc4226§5.1";
+    private static final String SPEC_HOTP_HMAC = "rfc4226§5.2";
+    private static final String SPEC_HOTP_TRUNCATE = "rfc4226§5.3";
+    private static final String SPEC_HOTP_MOD = "rfc4226§5.4";
+
     private static final String INLINE_DESCRIPTOR_NAME = "hotp-inline-request";
+    private static final String SECRET_FORMAT_HEX = "hex";
 
     private final CredentialStore credentialStore;
 
@@ -139,45 +145,95 @@ public final class HotpEvaluationApplicationService {
         try {
             StoredCredential storedCredential = resolveStored(command.credentialId());
             if (storedCredential == null) {
-                addStep(trace, step -> step.id("resolve.credential")
-                        .summary("Resolve stored HOTP credential")
+                addStep(trace, step -> step.id("normalize.input")
+                        .summary("Normalize stored HOTP credential")
                         .detail("CredentialStore.findByName")
-                        .attribute("credentialId", command.credentialId())
-                        .attribute("found", false));
+                        .spec(SPEC_HOTP_INPUT)
+                        .attribute(VerboseTrace.AttributeType.STRING, "op", "evaluate.stored")
+                        .attribute(VerboseTrace.AttributeType.STRING, "credentialId", command.credentialId())
+                        .attribute(VerboseTrace.AttributeType.BOOL, "found", false));
                 return notFoundResult(command.credentialId(), buildTrace(trace));
             }
 
-            addStep(trace, step -> step.id("resolve.credential")
-                    .summary("Resolve stored HOTP credential")
-                    .detail("CredentialStore.findByName")
-                    .attribute("credentialId", command.credentialId())
-                    .attribute("found", true)
-                    .attribute(
-                            "algorithm",
-                            storedCredential.descriptor().algorithm().name())
-                    .attribute("digits", storedCredential.descriptor().digits())
-                    .attribute("counter.before", storedCredential.counter()));
-
+            HotpDescriptor descriptor = storedCredential.descriptor();
+            SecretMaterial secretMaterial = descriptor.secret();
             long previousCounter = storedCredential.counter();
-            String otp = HotpGenerator.generate(storedCredential.descriptor(), previousCounter);
-            addStep(trace, step -> step.id("generate.otp")
-                    .summary("Generate HOTP code")
-                    .detail("HotpGenerator.generate")
+            HotpTraceComputation computation =
+                    HotpTraceCalculator.compute(descriptor, secretMaterial.value(), previousCounter);
+
+            addStep(trace, step -> {
+                step.id("normalize.input")
+                        .summary("Normalize stored HOTP credential")
+                        .detail("CredentialStore.findByName")
+                        .spec(SPEC_HOTP_INPUT)
+                        .attribute(VerboseTrace.AttributeType.STRING, "op", "evaluate.stored")
+                        .attribute(
+                                VerboseTrace.AttributeType.STRING,
+                                "alg",
+                                descriptor.algorithm().name())
+                        .attribute(VerboseTrace.AttributeType.INT, "digits", descriptor.digits())
+                        .attribute(VerboseTrace.AttributeType.INT, "counter.input", previousCounter)
+                        .attribute(VerboseTrace.AttributeType.STRING, "secret.format", SECRET_FORMAT_HEX)
+                        .attribute(VerboseTrace.AttributeType.INT, "secret.len.bytes", computation.secretLength())
+                        .attribute(VerboseTrace.AttributeType.STRING, "secret.sha256", computation.secretHash());
+                if (descriptor.algorithm() != HotpHashAlgorithm.SHA1) {
+                    step.note("non_standard_hash", descriptor.algorithm().name());
+                }
+            });
+
+            addStep(trace, step -> step.id("prepare.counter")
+                    .summary("Prepare HOTP counter for HMAC input")
+                    .detail("ByteBuffer.putLong")
+                    .spec(SPEC_HOTP_INPUT)
+                    .attribute(VerboseTrace.AttributeType.INT, "counter.int", previousCounter)
+                    .attribute(VerboseTrace.AttributeType.HEX, "counter.bytes.big_endian", computation.counterHex()));
+
+            addStep(trace, step -> step.id("hmac.compute")
+                    .summary("Compute HOTP HMAC components")
+                    .detail(descriptor.algorithm().macAlgorithm())
+                    .spec(SPEC_HOTP_HMAC)
+                    .attribute(VerboseTrace.AttributeType.INT, "hash.block_len", computation.hashBlockLength())
+                    .attribute(VerboseTrace.AttributeType.STRING, "key.mode", computation.keyMode())
+                    .attribute(VerboseTrace.AttributeType.STRING, "key'.sha256", computation.keyPrimeSha256())
                     .attribute(
-                            "algorithm",
-                            storedCredential.descriptor().algorithm().name())
-                    .attribute("digits", storedCredential.descriptor().digits())
-                    .attribute("counter.input", previousCounter)
-                    .attribute("otp", otp));
+                            VerboseTrace.AttributeType.STRING,
+                            "ipad.byte",
+                            HotpTraceCalculator.formatByte(HotpTraceCalculator.ipadByte()))
+                    .attribute(
+                            VerboseTrace.AttributeType.STRING,
+                            "opad.byte",
+                            HotpTraceCalculator.formatByte(HotpTraceCalculator.opadByte()))
+                    .attribute(VerboseTrace.AttributeType.HEX, "inner.input", computation.innerInputHex())
+                    .attribute(VerboseTrace.AttributeType.HEX, "inner.hash", computation.innerHashHex())
+                    .attribute(VerboseTrace.AttributeType.HEX, "outer.input", computation.outerInputHex())
+                    .attribute(VerboseTrace.AttributeType.HEX, "hmac.final", computation.hmacHex()));
+
+            addStep(trace, step -> step.id("truncate.dynamic")
+                    .summary("Apply dynamic truncation")
+                    .detail("RFC4226 bit extraction")
+                    .spec(SPEC_HOTP_TRUNCATE)
+                    .attribute(VerboseTrace.AttributeType.STRING, "last.byte", computation.lastByteHex())
+                    .attribute(VerboseTrace.AttributeType.INT, "offset.nibble", computation.offset())
+                    .attribute(VerboseTrace.AttributeType.HEX, "slice.bytes", computation.sliceHex())
+                    .attribute(VerboseTrace.AttributeType.STRING, "slice.bytes[0]_masked", computation.sliceMaskedHex())
+                    .attribute(VerboseTrace.AttributeType.INT, "dbc.31bit.big_endian", computation.truncatedInt()));
+
+            addStep(trace, step -> step.id("mod.reduce")
+                    .summary("Reduce truncated value to HOTP digits")
+                    .detail("binary % 10^digits")
+                    .spec(SPEC_HOTP_MOD)
+                    .attribute(VerboseTrace.AttributeType.INT, "modulus", computation.modulus())
+                    .attribute(VerboseTrace.AttributeType.INT, "otp.decimal", computation.otpDecimal())
+                    .attribute(VerboseTrace.AttributeType.STRING, "otp.string.leftpad", computation.otpString()));
 
             long nextCounter;
             try {
                 nextCounter = Math.addExact(previousCounter, 1L);
             } catch (ArithmeticException ex) {
                 addStep(trace, step -> step.id("counter.increment")
-                        .summary("Increment counter")
+                        .summary("Increment HOTP counter")
                         .detail("Math.addExact")
-                        .attribute("counter.before", previousCounter)
+                        .attribute(VerboseTrace.AttributeType.INT, "counter.before", previousCounter)
                         .note("failure", safeMessage(ex)));
                 return validationFailure(
                         command.credentialId(),
@@ -194,10 +250,12 @@ public final class HotpEvaluationApplicationService {
                         buildTrace(trace));
             }
 
-            addStep(trace, step -> step.id("persist.counter")
-                    .summary("Persist incremented counter")
-                    .detail("CredentialStore.save")
-                    .attribute("counter.next", nextCounter));
+            metadata(trace, "counter.next", Long.toString(nextCounter));
+            addStep(trace, step -> step.id("result")
+                    .summary("Emit HOTP result")
+                    .detail("Return generated OTP")
+                    .attribute(VerboseTrace.AttributeType.STRING, "output.otp", computation.otpString())
+                    .attribute(VerboseTrace.AttributeType.INT, "counter.next", nextCounter));
             persistCounter(storedCredential.credential(), nextCounter);
             return successResult(
                     true,
@@ -207,15 +265,14 @@ public final class HotpEvaluationApplicationService {
                     storedCredential.descriptor().digits(),
                     previousCounter,
                     nextCounter,
-                    otp,
+                    computation.otpString(),
                     null,
                     null,
                     buildTrace(trace));
         } catch (IllegalArgumentException ex) {
-            addStep(trace, step -> step.id("resolve.credential")
-                    .summary("Resolve stored HOTP credential")
+            addStep(trace, step -> step.id("normalize.input")
+                    .summary("Normalize stored HOTP credential")
                     .detail("CredentialStore.findByName")
-                    .attribute("credentialId", command.credentialId())
                     .note("failure", safeMessage(ex)));
             return invalidMetadataResult(command.credentialId(), ex.getMessage(), buildTrace(trace));
         } catch (RuntimeException ex) {
@@ -276,31 +333,82 @@ public final class HotpEvaluationApplicationService {
                     command.algorithm(),
                     command.digits());
 
-            addStep(trace, step -> step.id("normalize.input")
-                    .summary("Prepare inline HOTP request")
-                    .detail("HotpDescriptor.create")
-                    .attribute("algorithm", descriptor.algorithm().name())
-                    .attribute("digits", descriptor.digits())
-                    .attribute("counter.input", counterValue));
+            HotpTraceComputation computation =
+                    HotpTraceCalculator.compute(descriptor, descriptor.secret().value(), counterValue);
 
-            long previousCounter = counterValue;
-            String otp = HotpGenerator.generate(descriptor, previousCounter);
-            addStep(trace, step -> step.id("generate.otp")
-                    .summary("Generate HOTP code")
-                    .detail("HotpGenerator.generate")
-                    .attribute("algorithm", descriptor.algorithm().name())
-                    .attribute("digits", descriptor.digits())
-                    .attribute("counter.input", previousCounter)
-                    .attribute("otp", otp));
+            addStep(trace, step -> {
+                step.id("normalize.input")
+                        .summary("Normalize inline HOTP request")
+                        .detail("HotpDescriptor.create")
+                        .spec(SPEC_HOTP_INPUT)
+                        .attribute(VerboseTrace.AttributeType.STRING, "op", "evaluate.inline")
+                        .attribute(
+                                VerboseTrace.AttributeType.STRING,
+                                "alg",
+                                descriptor.algorithm().name())
+                        .attribute(VerboseTrace.AttributeType.INT, "digits", descriptor.digits())
+                        .attribute(VerboseTrace.AttributeType.INT, "counter.input", counterValue)
+                        .attribute(VerboseTrace.AttributeType.STRING, "secret.format", SECRET_FORMAT_HEX)
+                        .attribute(VerboseTrace.AttributeType.INT, "secret.len.bytes", computation.secretLength())
+                        .attribute(VerboseTrace.AttributeType.STRING, "secret.sha256", computation.secretHash());
+                if (descriptor.algorithm() != HotpHashAlgorithm.SHA1) {
+                    step.note("non_standard_hash", descriptor.algorithm().name());
+                }
+            });
+
+            addStep(trace, step -> step.id("prepare.counter")
+                    .summary("Prepare HOTP counter for HMAC input")
+                    .detail("ByteBuffer.putLong")
+                    .spec(SPEC_HOTP_INPUT)
+                    .attribute(VerboseTrace.AttributeType.INT, "counter.int", counterValue)
+                    .attribute(VerboseTrace.AttributeType.HEX, "counter.bytes.big_endian", computation.counterHex()));
+
+            addStep(trace, step -> step.id("hmac.compute")
+                    .summary("Compute HOTP HMAC components")
+                    .detail(descriptor.algorithm().macAlgorithm())
+                    .spec(SPEC_HOTP_HMAC)
+                    .attribute(VerboseTrace.AttributeType.INT, "hash.block_len", computation.hashBlockLength())
+                    .attribute(VerboseTrace.AttributeType.STRING, "key.mode", computation.keyMode())
+                    .attribute(VerboseTrace.AttributeType.STRING, "key'.sha256", computation.keyPrimeSha256())
+                    .attribute(
+                            VerboseTrace.AttributeType.STRING,
+                            "ipad.byte",
+                            HotpTraceCalculator.formatByte(HotpTraceCalculator.ipadByte()))
+                    .attribute(
+                            VerboseTrace.AttributeType.STRING,
+                            "opad.byte",
+                            HotpTraceCalculator.formatByte(HotpTraceCalculator.opadByte()))
+                    .attribute(VerboseTrace.AttributeType.HEX, "inner.input", computation.innerInputHex())
+                    .attribute(VerboseTrace.AttributeType.HEX, "inner.hash", computation.innerHashHex())
+                    .attribute(VerboseTrace.AttributeType.HEX, "outer.input", computation.outerInputHex())
+                    .attribute(VerboseTrace.AttributeType.HEX, "hmac.final", computation.hmacHex()));
+
+            addStep(trace, step -> step.id("truncate.dynamic")
+                    .summary("Apply dynamic truncation")
+                    .detail("RFC4226 bit extraction")
+                    .spec(SPEC_HOTP_TRUNCATE)
+                    .attribute(VerboseTrace.AttributeType.STRING, "last.byte", computation.lastByteHex())
+                    .attribute(VerboseTrace.AttributeType.INT, "offset.nibble", computation.offset())
+                    .attribute(VerboseTrace.AttributeType.HEX, "slice.bytes", computation.sliceHex())
+                    .attribute(VerboseTrace.AttributeType.STRING, "slice.bytes[0]_masked", computation.sliceMaskedHex())
+                    .attribute(VerboseTrace.AttributeType.INT, "dbc.31bit.big_endian", computation.truncatedInt()));
+
+            addStep(trace, step -> step.id("mod.reduce")
+                    .summary("Reduce truncated value to HOTP digits")
+                    .detail("binary % 10^digits")
+                    .spec(SPEC_HOTP_MOD)
+                    .attribute(VerboseTrace.AttributeType.INT, "modulus", computation.modulus())
+                    .attribute(VerboseTrace.AttributeType.INT, "otp.decimal", computation.otpDecimal())
+                    .attribute(VerboseTrace.AttributeType.STRING, "otp.string.leftpad", computation.otpString()));
 
             long nextCounter;
             try {
-                nextCounter = Math.addExact(previousCounter, 1L);
+                nextCounter = Math.addExact(counterValue, 1L);
             } catch (ArithmeticException ex) {
                 addStep(trace, step -> step.id("counter.increment")
-                        .summary("Increment counter")
+                        .summary("Increment HOTP counter")
                         .detail("Math.addExact")
-                        .attribute("counter.before", previousCounter)
+                        .attribute(VerboseTrace.AttributeType.INT, "counter.before", counterValue)
                         .note("failure", safeMessage(ex)));
                 return validationFailure(
                         null,
@@ -308,8 +416,8 @@ public final class HotpEvaluationApplicationService {
                         "inline",
                         descriptor.algorithm(),
                         descriptor.digits(),
-                        previousCounter,
-                        previousCounter,
+                        counterValue,
+                        counterValue,
                         "counter_overflow",
                         ex.getMessage(),
                         presetKey,
@@ -317,21 +425,26 @@ public final class HotpEvaluationApplicationService {
                         buildTrace(trace));
             }
 
+            addStep(trace, step -> step.id("result")
+                    .summary("Emit HOTP result")
+                    .detail("Return generated OTP")
+                    .attribute(VerboseTrace.AttributeType.STRING, "output.otp", computation.otpString())
+                    .attribute(VerboseTrace.AttributeType.INT, "counter.next", nextCounter));
             return successResult(
                     false,
                     null,
                     "inline",
                     descriptor.algorithm(),
                     descriptor.digits(),
-                    previousCounter,
+                    counterValue,
                     nextCounter,
-                    otp,
+                    computation.otpString(),
                     presetKey,
                     presetLabel,
                     buildTrace(trace));
         } catch (IllegalArgumentException ex) {
             addStep(trace, step -> step.id("normalize.input")
-                    .summary("Prepare inline HOTP request")
+                    .summary("Normalize inline HOTP request")
                     .detail("HotpDescriptor.create")
                     .note("failure", safeMessage(ex)));
             return validationFailure(

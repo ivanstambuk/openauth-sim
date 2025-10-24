@@ -208,6 +208,7 @@ public final class TotpReplayApplicationService {
 
     private static VerboseTrace copyTrace(VerboseTrace source, String operation) {
         VerboseTrace.Builder builder = VerboseTrace.builder(operation);
+        builder.withTier(source.tier());
         source.metadata().forEach(builder::withMetadata);
         source.steps()
                 .forEach(step -> builder.addStep(traceStep -> {
@@ -218,7 +219,12 @@ public final class TotpReplayApplicationService {
                     if (step.detail() != null) {
                         traceStep.detail(step.detail());
                     }
-                    step.attributes().forEach(traceStep::attribute);
+                    if (step.specAnchor() != null) {
+                        traceStep.spec(step.specAnchor());
+                    }
+                    step.typedAttributes()
+                            .forEach(attribute ->
+                                    traceStep.attribute(attribute.type(), attribute.name(), attribute.value()));
                     step.notes().forEach(traceStep::note);
                 }));
         return builder.build();

@@ -77,3 +77,47 @@ _Last updated:_ 2025-10-22
 
 ☑ **T3514 – Final quality gate**  
  ☑ 2025-10-23 – Executed `./gradlew --no-daemon spotlessApply check`; build completed successfully with aggregated branch coverage now at 70.45 % (1 645/2 335), closing the lingering quality gate failure.
+
+☑ **T3515 – Trace envelope + formatter extensions (red/green)**  
+ ☑ Extend `VerboseTraceTest` (core) to require tier metadata, SHA-256 secret digests, and per-step spec anchors.  
+ ☑ Extend CLI/REST/UI formatter unit tests to expect typed attribute labelling while keeping human-readable layout.  
+ ☑ Command (red): `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.trace.VerboseTraceTest"`  
+ ☑ Implement trace model changes (tier enum, spec anchors, attribute typing) plus formatter updates; rerun targeted tests to green.  
+ ☑ Command (green): `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.trace.VerboseTraceTest"`
+
+☑ **T3516 – HOTP/TOTP trace enrichment (tests-first)**  
+ ☑ Add failing application tests covering new HOTP/TOTP steps (time counter details, HMAC/truncation attributes, spec anchors).  
+ ☑ Implement HOTP/TOTP trace builders to populate the enriched attributes; rerun tests.  
+ ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.hotp.*VerboseTraceTest" --tests "io.openauth.sim.application.totp.*VerboseTraceTest"`
+
+☐ **T3517 – OCRA trace enrichment (tests-first)**  
+ ☐ Add failing application tests asserting suite parsing, message assembly segments, and SHA-256 digests.  
+ ☐ Implement OCRA trace step population and rerun tests.  
+ ☐ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`
+
+☐ **T3518 – WebAuthn attestation/assertion enrichment (tests-first)**  
+ ☐ Extend WebAuthn verbose trace tests to verify clientData/authData breakdown, signature bases, and counter evaluation attributes.  
+ ☐ Implement WebAuthn application/service trace updates; rerun tests.  
+ ☐ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.webauthn.*VerboseTraceTest"`
+
+☐ **T3519 – Facade formatting & Selenium verification**  
+ ☐ Update CLI, REST payload snapshots, and UI Selenium tests to reflect enriched trace content without switching to JSON.  
+ ☐ Commands:  
+  - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.*VerboseTraceTest"`  
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*VerboseTraceTest"`  
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*VerboseTrace*"`
+
+☐ **T3520 – Documentation & follow-up logging**  
+ ☐ Update operator/CLI/REST docs with enriched trace examples, note the tier metadata, and record the redaction-toggle follow-up.  
+ ☐ Sync knowledge map and `_current-session.md` with the enrichment outcomes.  
+ ☐ Command: `./gradlew --no-daemon spotlessApply`
+
+☑ **T3521 – HOTP evaluate trace formatting compliance**  
+ ☑ HOTP evaluation traces now emit the mandated six-step breakdown with key mode, inner/outer inputs, and padded result attributes; CLI printer/UI formatter updated for line-per-field layout with refreshed tests (`HotpEvaluationApplicationServiceVerboseTraceTest`, `HotpCliVerboseTraceTest`).  
+ ☑ REST payload + OpenAPI snapshots refreshed to surface the ordered attributes list used by the UI renderer.  
+ ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.hotp.HotpEvaluationApplicationServiceVerboseTraceTest"` & `:cli:test --tests "io.openauth.sim.cli.HotpCliVerboseTraceTest"`
+
+☑ **T3522 – HOTP verify trace expansion**  
+ ☑ Added application-level window scanning with attempt logs and match derivation reuse, propagating trace envelopes through REST/UI plus new verbose test coverage (`HotpReplayApplicationServiceVerboseTraceTest`, `HotpReplayEndpointTest`).  
+ ☑ CLI/REST telemetry expectations updated to report next-expected counter while store state remains unchanged; OpenAPI snapshots rewritten.  
+ ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.hotp.HotpReplayApplicationService*"`; `:rest-api:test --tests "io.openauth.sim.rest.HotpReplayEndpointTest"`

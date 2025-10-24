@@ -15,6 +15,9 @@ import io.openauth.sim.core.otp.totp.TotpVerificationResult;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.core.trace.VerboseTrace;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -22,11 +25,19 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 /** Application-level orchestrator for validating TOTP submissions. */
 public final class TotpEvaluationApplicationService {
 
     private static final String INLINE_DESCRIPTOR_NAME = "totp-inline-request";
+    private static final String SPEC_HOTP_INPUT = "rfc4226§5.1";
+    private static final String SPEC_HOTP_HMAC = "rfc4226§5.2";
+    private static final String SPEC_HOTP_TRUNCATE = "rfc4226§5.3";
+    private static final String SPEC_HOTP_MOD = "rfc4226§5.4";
+    private static final String SPEC_TOTP_COUNTER = "rfc6238§4.2";
+    private static final String SPEC_TOTP_WINDOW = "rfc6238§4.1";
 
     private final CredentialStore credentialStore;
     private final Clock clock;
@@ -109,26 +120,36 @@ public final class TotpEvaluationApplicationService {
         String candidateOtp = sanitizeOtp(command.otp());
         boolean validationRequested = !candidateOtp.isEmpty();
 
+        String secretHash = sha256Digest(descriptor.secret().value());
+        int stepSeconds = Math.toIntExact(descriptor.stepSeconds());
+
         addStep(trace, step -> step.id("resolve.credential")
                 .summary("Resolve stored TOTP credential")
                 .detail("CredentialStore.findByName")
-                .attribute("credentialId", command.credentialId())
-                .attribute("algorithm", descriptor.algorithm().name())
-                .attribute("digits", descriptor.digits())
-                .attribute("stepSeconds", descriptor.stepDuration().toSeconds())
-                .attribute("drift.backward", descriptor.driftWindow().backwardSteps())
-                .attribute("drift.forward", descriptor.driftWindow().forwardSteps()));
+                .spec(SPEC_HOTP_INPUT)
+                .attribute(VerboseTrace.AttributeType.STRING, "credentialId", command.credentialId())
+                .attribute(
+                        VerboseTrace.AttributeType.STRING,
+                        "algorithm",
+                        descriptor.algorithm().name())
+                .attribute(VerboseTrace.AttributeType.INT, "digits", descriptor.digits())
+                .attribute(VerboseTrace.AttributeType.INT, "stepSeconds", stepSeconds)
+                .attribute(
+                        VerboseTrace.AttributeType.INT,
+                        "drift.backward",
+                        descriptor.driftWindow().backwardSteps())
+                .attribute(
+                        VerboseTrace.AttributeType.INT,
+                        "drift.forward",
+                        descriptor.driftWindow().forwardSteps())
+                .attribute(VerboseTrace.AttributeType.STRING, "secret.hash", secretHash));
         if (!validationRequested) {
             Instant evaluationInstant = defaultInstant(command.evaluationInstant());
             Instant generationInstant = command.timestampOverride().orElse(evaluationInstant);
-            String generatedOtp = TotpGenerator.generate(descriptor, generationInstant);
-            addStep(trace, step -> step.id("generate.otp")
-                    .summary("Generate TOTP for stored credential")
-                    .detail("TotpGenerator.generate")
-                    .attribute("evaluationInstant", evaluationInstant)
-                    .attribute("generationInstant", generationInstant)
-                    .attribute("success", true)
-                    .attribute("otp", generatedOtp));
+            TotpCounter counter = deriveCounter(generationInstant, descriptor);
+            TotpComputation computation =
+                    computeTotp(descriptor, descriptor.secret().value(), counter.counter());
+            appendTotpSteps(trace, descriptor, counter, descriptor.driftWindow(), computation);
             return successResult(
                     true,
                     command.credentialId(),
@@ -139,7 +160,7 @@ public final class TotpEvaluationApplicationService {
                     0,
                     command.timestampOverride().isPresent(),
                     "generated",
-                    generatedOtp,
+                    computation.otp(),
                     buildTrace(trace));
         }
 
@@ -159,6 +180,12 @@ public final class TotpEvaluationApplicationService {
         }
 
         Instant evaluationInstant = defaultInstant(command.evaluationInstant());
+        Instant referenceInstant = command.timestampOverride().orElse(evaluationInstant);
+        TotpCounter validationCounter = deriveCounter(referenceInstant, descriptor);
+        TotpComputation validationComputation =
+                computeTotp(descriptor, descriptor.secret().value(), validationCounter.counter());
+        appendTotpSteps(trace, descriptor, validationCounter, command.driftWindow(), validationComputation);
+
         TotpVerificationResult verification = TotpValidator.verify(
                 descriptor,
                 candidateOtp,
@@ -170,9 +197,10 @@ public final class TotpEvaluationApplicationService {
             addStep(trace, step -> step.id("validate.otp")
                     .summary("Validate stored credential OTP")
                     .detail("TotpValidator.verify")
-                    .attribute("evaluationInstant", evaluationInstant)
-                    .attribute("valid", true)
-                    .attribute("matchedSkewSteps", verification.matchedSkewSteps()));
+                    .spec(SPEC_TOTP_WINDOW)
+                    .attribute(VerboseTrace.AttributeType.STRING, "evaluationInstant", evaluationInstant.toString())
+                    .attribute(VerboseTrace.AttributeType.BOOL, "valid", true)
+                    .attribute(VerboseTrace.AttributeType.INT, "matchedSkewSteps", verification.matchedSkewSteps()));
             return successResult(
                     true,
                     command.credentialId(),
@@ -190,9 +218,10 @@ public final class TotpEvaluationApplicationService {
         addStep(trace, step -> step.id("validate.otp")
                 .summary("Validate stored credential OTP")
                 .detail("TotpValidator.verify")
-                .attribute("evaluationInstant", evaluationInstant)
-                .attribute("valid", false)
-                .attribute("matchedSkewSteps", verification.matchedSkewSteps())
+                .spec(SPEC_TOTP_WINDOW)
+                .attribute(VerboseTrace.AttributeType.STRING, "evaluationInstant", evaluationInstant.toString())
+                .attribute(VerboseTrace.AttributeType.BOOL, "valid", false)
+                .attribute(VerboseTrace.AttributeType.INT, "matchedSkewSteps", verification.matchedSkewSteps())
                 .note("reason", "otp_out_of_window"));
         return validationFailure(
                 command.credentialId(),
@@ -255,14 +284,28 @@ public final class TotpEvaluationApplicationService {
                     buildTrace(trace));
         }
 
+        String inlineSecretHash = sha256Digest(descriptor.secret().value());
+        int inlineStepSeconds = Math.toIntExact(descriptor.stepSeconds());
+
         addStep(trace, step -> step.id("normalize.input")
                 .summary("Construct inline TOTP descriptor")
                 .detail("TotpDescriptor.create")
-                .attribute("algorithm", descriptor.algorithm().name())
-                .attribute("digits", descriptor.digits())
-                .attribute("stepSeconds", descriptor.stepDuration().toSeconds())
-                .attribute("drift.backward", descriptor.driftWindow().backwardSteps())
-                .attribute("drift.forward", descriptor.driftWindow().forwardSteps()));
+                .spec(SPEC_HOTP_INPUT)
+                .attribute(
+                        VerboseTrace.AttributeType.STRING,
+                        "algorithm",
+                        descriptor.algorithm().name())
+                .attribute(VerboseTrace.AttributeType.INT, "digits", descriptor.digits())
+                .attribute(VerboseTrace.AttributeType.INT, "stepSeconds", inlineStepSeconds)
+                .attribute(
+                        VerboseTrace.AttributeType.INT,
+                        "drift.backward",
+                        descriptor.driftWindow().backwardSteps())
+                .attribute(
+                        VerboseTrace.AttributeType.INT,
+                        "drift.forward",
+                        descriptor.driftWindow().forwardSteps())
+                .attribute(VerboseTrace.AttributeType.STRING, "secret.hash", inlineSecretHash));
 
         String candidateOtp = sanitizeOtp(command.otp());
         boolean validationRequested = !candidateOtp.isEmpty();
@@ -270,14 +313,10 @@ public final class TotpEvaluationApplicationService {
         if (!validationRequested) {
             Instant evaluationInstant = defaultInstant(command.evaluationInstant());
             Instant generationInstant = command.timestampOverride().orElse(evaluationInstant);
-            String generatedOtp = TotpGenerator.generate(descriptor, generationInstant);
-            addStep(trace, step -> step.id("generate.otp")
-                    .summary("Generate TOTP for inline descriptor")
-                    .detail("TotpGenerator.generate")
-                    .attribute("evaluationInstant", evaluationInstant)
-                    .attribute("generationInstant", generationInstant)
-                    .attribute("success", true)
-                    .attribute("otp", generatedOtp));
+            TotpCounter counter = deriveCounter(generationInstant, descriptor);
+            TotpComputation computation =
+                    computeTotp(descriptor, descriptor.secret().value(), counter.counter());
+            appendTotpSteps(trace, descriptor, counter, descriptor.driftWindow(), computation);
             return successResult(
                     false,
                     null,
@@ -288,7 +327,7 @@ public final class TotpEvaluationApplicationService {
                     0,
                     command.timestampOverride().isPresent(),
                     "generated",
-                    generatedOtp,
+                    computation.otp(),
                     buildTrace(trace));
         }
 
@@ -308,6 +347,12 @@ public final class TotpEvaluationApplicationService {
         }
 
         Instant evaluationInstant = defaultInstant(command.evaluationInstant());
+        Instant referenceInstant = command.timestampOverride().orElse(evaluationInstant);
+        TotpCounter inlineCounter = deriveCounter(referenceInstant, descriptor);
+        TotpComputation inlineComputation =
+                computeTotp(descriptor, descriptor.secret().value(), inlineCounter.counter());
+        appendTotpSteps(trace, descriptor, inlineCounter, descriptor.driftWindow(), inlineComputation);
+
         TotpVerificationResult verification = TotpValidator.verify(
                 descriptor,
                 candidateOtp,
@@ -319,9 +364,10 @@ public final class TotpEvaluationApplicationService {
             addStep(trace, step -> step.id("validate.otp")
                     .summary("Validate inline OTP")
                     .detail("TotpValidator.verify")
-                    .attribute("evaluationInstant", evaluationInstant)
-                    .attribute("valid", true)
-                    .attribute("matchedSkewSteps", verification.matchedSkewSteps()));
+                    .spec(SPEC_TOTP_WINDOW)
+                    .attribute(VerboseTrace.AttributeType.STRING, "evaluationInstant", evaluationInstant.toString())
+                    .attribute(VerboseTrace.AttributeType.BOOL, "valid", true)
+                    .attribute(VerboseTrace.AttributeType.INT, "matchedSkewSteps", verification.matchedSkewSteps()));
             return successResult(
                     false,
                     null,
@@ -339,9 +385,10 @@ public final class TotpEvaluationApplicationService {
         addStep(trace, step -> step.id("validate.otp")
                 .summary("Validate inline OTP")
                 .detail("TotpValidator.verify")
-                .attribute("evaluationInstant", evaluationInstant)
-                .attribute("valid", false)
-                .attribute("matchedSkewSteps", verification.matchedSkewSteps())
+                .spec(SPEC_TOTP_WINDOW)
+                .attribute(VerboseTrace.AttributeType.STRING, "evaluationInstant", evaluationInstant.toString())
+                .attribute(VerboseTrace.AttributeType.BOOL, "valid", false)
+                .attribute(VerboseTrace.AttributeType.INT, "matchedSkewSteps", verification.matchedSkewSteps())
                 .note("reason", "otp_out_of_window"));
         return validationFailure(
                 null,
@@ -502,6 +549,184 @@ public final class TotpEvaluationApplicationService {
         fields.put("timestampOverrideProvided", timestampOverrideProvided);
         fields.put("matchedSkewSteps", matchedSkewSteps);
         return fields;
+    }
+
+    private record TotpCounter(
+            long epochSeconds, long counter, long stepSeconds, long stepStartSeconds, long stepEndSeconds) {
+        // Marker record for time-counter derivation details.
+    }
+
+    private record TotpComputation(
+            long counter,
+            String counterHex,
+            String secretHash,
+            String hmacHex,
+            int offset,
+            int truncatedInt,
+            String otp) {
+        // Marker record for TOTP computation snapshot.
+    }
+
+    private static TotpCounter deriveCounter(Instant instant, TotpDescriptor descriptor) {
+        long epochSeconds = instant.getEpochSecond();
+        long stepSeconds = descriptor.stepSeconds();
+        long counter = Math.floorDiv(epochSeconds, stepSeconds);
+        long stepStart = counter * stepSeconds;
+        long stepEnd = stepStart + stepSeconds;
+        return new TotpCounter(epochSeconds, counter, stepSeconds, stepStart, stepEnd);
+    }
+
+    private static TotpComputation computeTotp(TotpDescriptor descriptor, byte[] secret, long counter) {
+        byte[] counterBytes = longToBytes(counter);
+        String counterHex = hex(counterBytes);
+        String secretHash = sha256Digest(secret);
+        byte[] hmac = hmac(descriptor.algorithm(), secret, counterBytes);
+        String hmacHex = hex(hmac);
+        int offset = dynamicOffset(hmac);
+        int truncated = dynamicBinaryCode(hmac, offset);
+        String otp = formatOtp(truncated, descriptor.digits());
+        return new TotpComputation(counter, counterHex, secretHash, hmacHex, offset, truncated, otp);
+    }
+
+    private static void appendTotpSteps(
+            VerboseTrace.Builder trace,
+            TotpDescriptor descriptor,
+            TotpCounter counter,
+            TotpDriftWindow driftWindow,
+            TotpComputation computation) {
+        addStep(trace, step -> step.id("derive.time-counter")
+                .summary("Derive TOTP counter")
+                .detail("floor((epoch - T0)/step)")
+                .spec(SPEC_TOTP_COUNTER)
+                .attribute(VerboseTrace.AttributeType.INT, "epoch.seconds", Math.toIntExact(counter.epochSeconds()))
+                .attribute(VerboseTrace.AttributeType.INT, "t0.seconds", 0)
+                .attribute(VerboseTrace.AttributeType.INT, "step.seconds", Math.toIntExact(counter.stepSeconds()))
+                .attribute(VerboseTrace.AttributeType.INT, "time.counter.int", Math.toIntExact(counter.counter()))
+                .attribute(
+                        VerboseTrace.AttributeType.STRING,
+                        "time.counter.hex",
+                        String.format("%016x", counter.counter()))
+                .attribute(
+                        VerboseTrace.AttributeType.INT,
+                        "step.start.seconds",
+                        Math.toIntExact(counter.stepStartSeconds()))
+                .attribute(
+                        VerboseTrace.AttributeType.INT, "step.end.seconds", Math.toIntExact(counter.stepEndSeconds())));
+
+        addStep(trace, step -> {
+            step.id("evaluate.window");
+            step.summary("Evaluate drift window candidates");
+            step.detail("TotpGenerator.generate");
+            step.spec(SPEC_TOTP_WINDOW);
+            step.attribute(VerboseTrace.AttributeType.INT, "skew.backward", driftWindow.backwardSteps());
+            step.attribute(VerboseTrace.AttributeType.INT, "skew.forward", driftWindow.forwardSteps());
+            for (int offset = -driftWindow.backwardSteps(); offset <= driftWindow.forwardSteps(); offset++) {
+                String offsetOtp = generateTotpForOffset(descriptor, counter.counter(), offset);
+                if (offsetOtp != null) {
+                    step.attribute(VerboseTrace.AttributeType.STRING, "offset." + offset + ".otp", offsetOtp);
+                }
+            }
+        });
+
+        addStep(trace, step -> step.id("prepare.counter")
+                .summary("Prepare HOTP counter for HMAC input")
+                .detail("ByteBuffer.putLong")
+                .spec(SPEC_HOTP_INPUT)
+                .attribute(VerboseTrace.AttributeType.INT, "counter.int", Math.toIntExact(counter.counter()))
+                .attribute(VerboseTrace.AttributeType.STRING, "counter.hex", computation.counterHex())
+                .attribute(VerboseTrace.AttributeType.STRING, "counter.bytes.hex", computation.counterHex()));
+
+        addStep(trace, step -> step.id("compute.hmac")
+                .summary("Compute TOTP HMAC")
+                .detail("Mac#doFinal")
+                .spec(SPEC_HOTP_HMAC)
+                .attribute(
+                        VerboseTrace.AttributeType.STRING,
+                        "algorithm",
+                        descriptor.algorithm().name())
+                .attribute(VerboseTrace.AttributeType.STRING, "key.hash", computation.secretHash())
+                .attribute(VerboseTrace.AttributeType.STRING, "message.hex", computation.counterHex())
+                .attribute(VerboseTrace.AttributeType.STRING, "hmac.hex", computation.hmacHex()));
+
+        addStep(trace, step -> step.id("truncate.dynamic")
+                .summary("Apply dynamic truncation")
+                .detail("RFC4226 bit extraction")
+                .spec(SPEC_HOTP_TRUNCATE)
+                .attribute(VerboseTrace.AttributeType.INT, "offset", computation.offset())
+                .attribute(VerboseTrace.AttributeType.INT, "dbc", computation.truncatedInt()));
+
+        addStep(trace, step -> step.id("mod.reduce")
+                .summary("Reduce truncated value to digits")
+                .detail("binary % 10^digits")
+                .spec(SPEC_HOTP_MOD)
+                .attribute(VerboseTrace.AttributeType.INT, "digits", descriptor.digits())
+                .attribute(VerboseTrace.AttributeType.STRING, "otp", computation.otp()));
+    }
+
+    private static String generateTotpForOffset(TotpDescriptor descriptor, long counter, int offset) {
+        long candidate = counter + offset;
+        if (candidate < 0) {
+            return null;
+        }
+        long stepSeconds = descriptor.stepSeconds();
+        Instant instant = Instant.ofEpochSecond(candidate * stepSeconds);
+        return TotpGenerator.generate(descriptor, instant);
+    }
+
+    private static byte[] longToBytes(long value) {
+        return ByteBuffer.allocate(Long.BYTES).putLong(value).array();
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte aByte : bytes) {
+            builder.append(String.format("%02x", aByte));
+        }
+        return builder.toString();
+    }
+
+    private static String sha256Digest(byte[] value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return "sha256:" + hex(digest.digest(value));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static byte[] hmac(TotpHashAlgorithm algorithm, byte[] secret, byte[] message) {
+        try {
+            Mac mac = Mac.getInstance(algorithm.macAlgorithm());
+            mac.init(new SecretKeySpec(secret, algorithm.macAlgorithm()));
+            return mac.doFinal(message);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Unable to compute TOTP HMAC", ex);
+        }
+    }
+
+    private static int dynamicOffset(byte[] hmac) {
+        return hmac[hmac.length - 1] & 0x0F;
+    }
+
+    private static int dynamicBinaryCode(byte[] hmac, int offset) {
+        return ((hmac[offset] & 0x7F) << 24)
+                | ((hmac[offset + 1] & 0xFF) << 16)
+                | ((hmac[offset + 2] & 0xFF) << 8)
+                | (hmac[offset + 3] & 0xFF);
+    }
+
+    private static String formatOtp(int truncatedInt, int digits) {
+        int modulus = decimalModulus(digits);
+        int otpValue = truncatedInt % modulus;
+        return String.format("%0" + digits + "d", otpValue);
+    }
+
+    private static int decimalModulus(int digits) {
+        int modulus = 1;
+        for (int i = 0; i < digits; i++) {
+            modulus *= 10;
+        }
+        return modulus;
     }
 
     private boolean isValidOtpFormat(String otp, int expectedDigits) {

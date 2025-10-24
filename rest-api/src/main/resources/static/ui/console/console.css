@@ -872,7 +872,7 @@ fieldset {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ocra-spacing-sm);
-  margin: var(--ocra-spacing-lg) 0 var(--ocra-spacing-md);
+  margin: var(--ocra-spacing-xl) 0 var(--ocra-spacing-md);
   padding: var(--ocra-spacing-md);
   background: rgba(14, 27, 46, 0.72);
   border: 1px solid rgba(22, 211, 243, 0.12);
@@ -904,7 +904,8 @@ fieldset {
 }
 
 .verbose-trace-panel {
-  margin-top: var(--ocra-spacing-lg);
+  margin-top: var(--ocra-spacing-md);
+  margin-bottom: var(--ocra-spacing-xxl);
   padding: var(--ocra-spacing-lg);
   background: rgba(5, 11, 22, 0.92);
   border-radius: var(--ocra-radius-lg);
@@ -1013,7 +1014,7 @@ fieldset {
   line-height: 1.5;
   color: #cbefff;
   overflow: auto;
-  max-height: 22rem;
+  max-height: 20rem;
   border: 1px solid rgba(22, 211, 243, 0.18);
   box-shadow: inset 0 0 0 1px rgba(22, 211, 243, 0.08);
 }

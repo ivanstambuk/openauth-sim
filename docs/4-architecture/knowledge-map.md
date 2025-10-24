@@ -23,6 +23,7 @@ This living map captures the explicit relationships between modules, data flows,
 - Application module now exposes `TotpEvaluationApplicationService`, generating stored/inline OTPs (and validating on replay) through the shared `CredentialStore`, emitting `totp.evaluate` telemetry via `TelemetryContracts`.
 - MapDB persistence now normalises TOTP credential attributes (algorithm, digits, step, drift windows) under schema v1 alongside existing HOTP defaults so shared stores can serve mixed protocol records.
 - REST HOTP evaluate/replay endpoints now propagate verbose trace payloads (including validation/error cases) aligned with the TOTP contract, reusing `VerboseTracePayload` for MockMvc/OpenAPI parity.
+- HOTP replay workflows now perform bounded window scanning (default look-ahead 10) and emit match-derivation traces that mirror the evaluate pipeline; ordered trace attributes surface through CLI, REST JSON (`orderedAttributes`), and the operator UI formatter.
 - REST OCRA evaluate flows plus WebAuthn evaluation/replay/attestation endpoints now share the same `VerboseTracePayload` contract, and the regenerated OpenAPI snapshots document the trace schema for cross-facade consumers.
 - CLI module now includes `TotpCli` list/evaluate commands that wrap the TOTP application service and emit `cli.totp.evaluate` telemetry without persisting secrets.
 - Core module now includes a `fido2` package where `WebAuthnAssertionVerifier` parses COSE public keys, validates client/ authenticator payloads, and produces signature-verification outcomes for downstream facades.

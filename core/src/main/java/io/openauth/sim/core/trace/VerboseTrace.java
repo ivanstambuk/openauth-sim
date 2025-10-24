@@ -13,11 +13,13 @@ public final class VerboseTrace {
 
     private final String operation;
     private final Map<String, String> metadata;
+    private final Tier tier;
     private final List<TraceStep> steps;
 
-    private VerboseTrace(String operation, Map<String, String> metadata, List<TraceStep> steps) {
+    private VerboseTrace(String operation, Map<String, String> metadata, Tier tier, List<TraceStep> steps) {
         this.operation = operation;
         this.metadata = metadata;
+        this.tier = tier;
         this.steps = steps;
     }
 
@@ -27,6 +29,10 @@ public final class VerboseTrace {
 
     public Map<String, String> metadata() {
         return metadata;
+    }
+
+    public Tier tier() {
+        return tier;
     }
 
     public List<TraceStep> steps() {
@@ -42,9 +48,15 @@ public final class VerboseTrace {
         private final String operation;
         private final Map<String, String> metadata = new LinkedHashMap<>();
         private final List<TraceStep> steps = new ArrayList<>();
+        private Tier tier = Tier.EDUCATIONAL;
 
         private Builder(String operation) {
             this.operation = sanitize(operation);
+        }
+
+        public Builder withTier(Tier tier) {
+            this.tier = Objects.requireNonNull(tier, "tier");
+            return this;
         }
 
         public Builder withMetadata(String key, String value) {
@@ -61,9 +73,11 @@ public final class VerboseTrace {
         }
 
         public VerboseTrace build() {
+            metadata.putIfAbsent("tier", tier.name().toLowerCase());
             return new VerboseTrace(
                     operation,
                     Collections.unmodifiableMap(new LinkedHashMap<>(metadata)),
+                    tier,
                     Collections.unmodifiableList(new ArrayList<>(steps)));
         }
     }
@@ -73,15 +87,25 @@ public final class VerboseTrace {
         private final String id;
         private final String summary;
         private final String detail;
+        private final String specAnchor;
         private final Map<String, Object> attributes;
+        private final List<TraceAttribute> typedAttributes;
         private final Map<String, String> notes;
 
         private TraceStep(
-                String id, String summary, String detail, Map<String, Object> attributes, Map<String, String> notes) {
+                String id,
+                String summary,
+                String detail,
+                String specAnchor,
+                Map<String, Object> attributes,
+                List<TraceAttribute> typedAttributes,
+                Map<String, String> notes) {
             this.id = id;
             this.summary = summary;
             this.detail = detail;
+            this.specAnchor = specAnchor;
             this.attributes = attributes;
+            this.typedAttributes = typedAttributes;
             this.notes = notes;
         }
 
@@ -97,8 +121,16 @@ public final class VerboseTrace {
             return detail;
         }
 
+        public String specAnchor() {
+            return specAnchor;
+        }
+
         public Map<String, Object> attributes() {
             return attributes;
+        }
+
+        public List<TraceAttribute> typedAttributes() {
+            return typedAttributes;
         }
 
         public Map<String, String> notes() {
@@ -110,7 +142,9 @@ public final class VerboseTrace {
             private String id;
             private String summary;
             private String detail;
+            private String specAnchor;
             private final Map<String, Object> attributes = new LinkedHashMap<>();
+            private final List<TraceAttribute> typedAttributes = new ArrayList<>();
             private final Map<String, String> notes = new LinkedHashMap<>();
 
             public Builder id(String id) {
@@ -128,8 +162,21 @@ public final class VerboseTrace {
                 return this;
             }
 
+            public Builder spec(String anchor) {
+                this.specAnchor = sanitize(anchor);
+                return this;
+            }
+
             public Builder attribute(String key, Object value) {
-                attributes.put(sanitize(key), Objects.requireNonNullElse(value, ""));
+                return attribute(AttributeType.STRING, key, value);
+            }
+
+            public Builder attribute(AttributeType type, String key, Object value) {
+                AttributeType attributeType = Objects.requireNonNull(type, "type");
+                String sanitizedKey = sanitize(key);
+                Object sanitizedValue = Objects.requireNonNullElse(value, "");
+                attributes.put(sanitizedKey, sanitizedValue);
+                typedAttributes.add(new TraceAttribute(attributeType, sanitizedKey, sanitizedValue));
                 return this;
             }
 
@@ -144,9 +191,45 @@ public final class VerboseTrace {
                         builtId,
                         summary,
                         detail,
+                        specAnchor,
                         Collections.unmodifiableMap(new LinkedHashMap<>(attributes)),
+                        Collections.unmodifiableList(new ArrayList<>(typedAttributes)),
                         Collections.unmodifiableMap(new LinkedHashMap<>(notes)));
             }
+        }
+    }
+
+    public enum Tier {
+        NORMAL,
+        EDUCATIONAL,
+        LAB_SECRETS
+    }
+
+    public enum AttributeType {
+        STRING("string"),
+        INT("int"),
+        HEX("hex"),
+        BASE64URL("base64url"),
+        BOOL("bool"),
+        JSON("json"),
+        BYTES("bytes");
+
+        private final String label;
+
+        AttributeType(String label) {
+            this.label = label;
+        }
+
+        public String label() {
+            return label;
+        }
+    }
+
+    public record TraceAttribute(AttributeType type, String name, Object value) {
+        public TraceAttribute {
+            Objects.requireNonNull(type, "type");
+            Objects.requireNonNull(name, "name");
+            Objects.requireNonNull(value, "value");
         }
     }
 

@@ -83,7 +83,7 @@
       return value.toISOString();
     }
     if (typeof value === 'object') {
-      var keys = Object.keys(value).sort();
+      var keys = Object.keys(value);
       var parts = [];
       keys.forEach(function (key) {
         parts.push(key + '=' + stringifyValue(value[key]));
@@ -99,31 +99,55 @@
     }
     var lines = [];
     var stepId = step.id ? String(step.id) : 'step_' + (index + 1);
-    var detail = step.detail ? String(step.detail) : '';
     var summary = step.summary ? String(step.summary) : '';
-    var header = (index + 1) + '. ' + stepId;
-    if (detail) {
-      header += ' — ' + detail;
-    } else if (summary) {
-      header += ' — ' + summary;
-    }
+    var detail = step.detail ? String(step.detail) : '';
+    var spec = step.spec ? String(step.spec) : '';
+    var header = 'step.' + (index + 1) + ': ' + stepId;
     lines.push(header);
-    var attributes = step.attributes && typeof step.attributes === 'object' ? step.attributes : null;
-    if (attributes) {
-      var attributeKeys = Object.keys(attributes).sort();
-      attributeKeys.forEach(function (key) {
-        lines.push('    ' + key + ': ' + stringifyValue(attributes[key]));
+    if (summary) {
+      lines.push('  summary = ' + summary);
+    }
+    if (detail) {
+      lines.push('  detail = ' + detail);
+    }
+    if (spec) {
+      lines.push('  spec = ' + spec);
+    }
+    var orderedAttributes = Array.isArray(step.orderedAttributes) ? step.orderedAttributes : null;
+    if (orderedAttributes && orderedAttributes.length > 0) {
+      orderedAttributes.forEach(function (entry) {
+        if (!entry || typeof entry !== 'object') {
+          return;
+        }
+        var name = entry.name ? String(entry.name) : '';
+        if (!name) {
+          return;
+        }
+        lines.push('  ' + name + ' = ' + stringifyValue(entry.value));
       });
+    } else {
+      var attributes = step.attributes && typeof step.attributes === 'object' ? step.attributes : null;
+      if (attributes) {
+        var attributeKeys = Object.keys(attributes);
+        attributeKeys.forEach(function (key) {
+          var bucket = attributes[key];
+          if (bucket && typeof bucket === 'object' && !Array.isArray(bucket)) {
+            var bucketKeys = Object.keys(bucket);
+            bucketKeys.forEach(function (attributeName) {
+              lines.push('  ' + attributeName + ' = ' + stringifyValue(bucket[attributeName]));
+            });
+          } else {
+            lines.push('  ' + key + ' = ' + stringifyValue(bucket));
+          }
+        });
+      }
     }
     var notes = step.notes && typeof step.notes === 'object' ? step.notes : null;
     if (notes) {
-      var noteKeys = Object.keys(notes).sort();
-      if (noteKeys.length > 0) {
-        lines.push('    notes:');
-        noteKeys.forEach(function (key) {
-          lines.push('      ' + key + ': ' + stringifyValue(notes[key]));
-        });
-      }
+      var noteKeys = Object.keys(notes);
+      noteKeys.forEach(function (key) {
+        lines.push('  note.' + key + ' = ' + stringifyValue(notes[key]));
+      });
     }
     return lines.join('\n');
   }
@@ -134,22 +158,20 @@
     }
     var lines = [];
     var operation = trace.operation ? String(trace.operation) : 'unknown';
-    lines.push('operation: ' + operation);
+    lines.push('operation = ' + operation);
 
     var metadata = trace.metadata && typeof trace.metadata === 'object' ? trace.metadata : null;
     if (metadata) {
-      var metadataKeys = Object.keys(metadata).sort();
+      var metadataKeys = Object.keys(metadata);
       if (metadataKeys.length > 0) {
-        lines.push('metadata:');
         metadataKeys.forEach(function (key) {
-          lines.push('  ' + key + ': ' + stringifyValue(metadata[key]));
+          lines.push('metadata.' + key + ' = ' + stringifyValue(metadata[key]));
         });
       }
     }
 
     var steps = Array.isArray(trace.steps) ? trace.steps : [];
     if (steps.length > 0) {
-      lines.push('steps:');
       steps.forEach(function (step, index) {
         lines.push(formatStep(step, index));
       });

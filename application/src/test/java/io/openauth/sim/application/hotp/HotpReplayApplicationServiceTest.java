@@ -57,14 +57,14 @@ final class HotpReplayApplicationServiceTest {
         assertTrue(result.telemetry().sanitized());
         assertTrue(result.credentialReference());
         assertEquals(counter, result.previousCounter());
-        assertEquals(counter, result.nextCounter());
+        assertEquals(counter + 1, result.nextCounter());
 
         Credential persisted = store.findByName(CREDENTIAL_ID).orElseThrow();
         assertEquals(Long.toString(counter), persisted.attributes().get("hotp.counter"));
 
         TelemetryFrame frame = result.telemetry()
                 .emit(TelemetryContracts.hotpReplayAdapter(), TelemetryContractTestSupport.telemetryId());
-        TelemetryContractTestSupport.assertHotpReplaySuccessFrame(frame, "stored", counter);
+        TelemetryContractTestSupport.assertHotpReplaySuccessFrame(frame, "stored", counter, counter + 1);
     }
 
     @Test
@@ -79,7 +79,7 @@ final class HotpReplayApplicationServiceTest {
         assertEquals("otp_mismatch", result.telemetry().reasonCode());
         assertTrue(result.telemetry().sanitized());
         assertEquals(counter, result.previousCounter());
-        assertEquals(counter, result.nextCounter());
+        assertEquals(counter + 1, result.nextCounter());
 
         Credential persisted = store.findByName(CREDENTIAL_ID).orElseThrow();
         assertEquals(Long.toString(counter), persisted.attributes().get("hotp.counter"));
@@ -115,12 +115,12 @@ final class HotpReplayApplicationServiceTest {
         assertEquals(TelemetryStatus.SUCCESS, result.telemetry().status());
         assertFalse(result.credentialReference());
         assertEquals(counter, result.previousCounter());
-        assertEquals(counter, result.nextCounter());
+        assertEquals(counter + 1, result.nextCounter());
         assertTrue(store.findAll().isEmpty());
 
         TelemetryFrame frame = result.telemetry()
                 .emit(TelemetryContracts.hotpReplayAdapter(), TelemetryContractTestSupport.telemetryId());
-        TelemetryContractTestSupport.assertHotpReplaySuccessFrame(frame, "inline", counter);
+        TelemetryContractTestSupport.assertHotpReplaySuccessFrame(frame, "inline", counter, counter + 1);
     }
 
     @Test

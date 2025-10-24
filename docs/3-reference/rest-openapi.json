@@ -472,16 +472,6 @@
           "required" : true
         },
         "responses" : {
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Verification payload failed validation",
             "content" : {
@@ -539,6 +529,16 @@
               }
             }
           },
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
@@ -569,12 +569,12 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected server error",
+          "200" : {
+            "description" : "Evaluation successful",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
                 }
               }
             }
@@ -607,12 +607,12 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation successful",
+          "500" : {
+            "description" : "Unexpected server error",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
                 }
               }
             }
@@ -655,22 +655,22 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Replay completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Replay completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayResponse"
                 }
               }
             }
@@ -705,12 +705,12 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation completed",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -725,12 +725,12 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
+          "200" : {
+            "description" : "Evaluation completed",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -755,12 +755,12 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation completed",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -775,12 +775,12 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
+          "200" : {
+            "description" : "Evaluation completed",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -1023,6 +1023,24 @@
   },
   "components" : {
     "schemas" : {
+      "VerboseTraceAttributePayload" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "description" : "Attribute type (string, int, hex, etc.)."
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "Attribute name."
+          },
+          "value" : {
+            "type" : "string",
+            "description" : "Formatted attribute value."
+          }
+        },
+        "description" : "Ordered attribute entry describing a captured value for a verbose trace step."
+      },
       "VerboseTracePayload" : {
         "type" : "object",
         "properties" : {
@@ -1063,13 +1081,24 @@
             "type" : "string",
             "description" : "Additional detail about the specific helper or component invoked."
           },
+          "spec" : {
+            "type" : "string",
+            "description" : "Reference to the governing specification section when applicable."
+          },
           "attributes" : {
             "type" : "object",
             "additionalProperties" : {
               "type" : "object",
-              "description" : "Arbitrary attributes captured for the step."
+              "description" : "Arbitrary attributes captured for the step, grouped by attribute type."
             },
-            "description" : "Arbitrary attributes captured for the step."
+            "description" : "Arbitrary attributes captured for the step, grouped by attribute type."
+          },
+          "orderedAttributes" : {
+            "type" : "array",
+            "description" : "Ordered attribute entries preserved in capture order.",
+            "items" : {
+              "$ref" : "#/components/schemas/VerboseTraceAttributePayload"
+            }
           },
           "notes" : {
             "type" : "object",
@@ -2244,6 +2273,23 @@
           }
         }
       },
+      "OcraEvaluationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "suite" : {
+            "type" : "string"
+          },
+          "otp" : {
+            "type" : "string"
+          },
+          "telemetryId" : {
+            "type" : "string"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
       "OcraEvaluationErrorResponse" : {
         "type" : "object",
         "properties" : {
@@ -2258,23 +2304,6 @@
             "additionalProperties" : {
               "type" : "string"
             }
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
-      "OcraEvaluationResponse" : {
-        "type" : "object",
-        "properties" : {
-          "suite" : {
-            "type" : "string"
-          },
-          "otp" : {
-            "type" : "string"
-          },
-          "telemetryId" : {
-            "type" : "string"
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"
@@ -2312,6 +2341,29 @@
           },
           "verbose" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "HotpReplayErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -2364,7 +2416,18 @@
           }
         }
       },
-      "HotpReplayErrorResponse" : {
+      "HotpStoredEvaluationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "credentialId" : {
+            "type" : "string"
+          },
+          "verbose" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "HotpEvaluationErrorResponse" : {
         "type" : "object",
         "properties" : {
           "status" : {
@@ -2384,17 +2447,6 @@
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
-      "HotpStoredEvaluationRequest" : {
-        "type" : "object",
-        "properties" : {
-          "credentialId" : {
-            "type" : "string"
-          },
-          "verbose" : {
-            "type" : "boolean"
           }
         }
       },
@@ -2450,29 +2502,6 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpEvaluationMetadata"
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
-      "HotpEvaluationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "type" : "string"
-          },
-          "reasonCode" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"

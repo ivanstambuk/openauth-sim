@@ -72,8 +72,10 @@ final class TotpCliVerboseTraceTest {
         assertTrue(stdout.contains("=== Verbose Trace ==="), stdout);
         assertTrue(stdout.contains("operation=totp.evaluate.stored"), stdout);
         assertTrue(stdout.contains("metadata.mode=stored"), stdout);
+        assertTrue(stdout.contains("metadata.tier=educational"), stdout);
         assertTrue(stdout.contains("metadata.credentialId=" + CREDENTIAL_ID), stdout);
-        assertTrue(stdout.contains("generate.otp"), stdout);
+        assertTrue(stdout.contains("derive.time-counter"), stdout);
+        assertTrue(stdout.contains("mod.reduce"), stdout);
         assertTrue(stdout.contains("=== End Verbose Trace ==="), stdout);
     }
 
@@ -141,7 +143,8 @@ final class TotpCliVerboseTraceTest {
         assertTrue(stdout.contains("operation=totp.evaluate.inline"), stdout);
         assertTrue(stdout.contains("metadata.mode=inline"), stdout);
         assertTrue(stdout.contains("normalize.input"), stdout);
-        assertTrue(stdout.contains("generate.otp"), stdout);
+        assertTrue(stdout.contains("derive.time-counter"), stdout);
+        assertTrue(stdout.contains("mod.reduce"), stdout);
 
         String expectedOtp = TotpGenerator.generate(
                 TotpDescriptor.create(

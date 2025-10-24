@@ -24,6 +24,10 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
 3. 2025-10-22 – Traces must include full, unmasked cryptographic details (secrets, hash rounds, bit-level buffers) so humans can understand how each algorithm behaves. Additional protocol-specific detail proposals are welcome if necessary (owner directive).
 4. 2025-10-22 – Traces remain ephemeral per invocation and may be discarded immediately after returning to the operator (owner directive).
 5. 2025-10-22 – Verbose tracing is activated with per-request toggles (flags, UI controls); no global configuration switch is permitted (owner directive).
+6. 2025-10-23 – Verbose trace UI must live inline below the operator forms: keep the “Enable verbose tracing” controls near the bottom of the console and render the trace panel immediately after them (no fixed/overlay behaviour) (owner directive).
+7. 2025-10-23 – The trace model must support redaction tiers (`normal`, `educational`, `lab-secrets`) so future increments can dial how much sensitive material is emitted; Feature 035 will expose the existing full-detail behaviour (effectively `educational`) and log the available tiers without implementing toggle surfaces yet (owner directive).
+8. 2025-10-23 – When a trace hashes sensitive inputs for auditing (shared secrets, derived keys, password digests, etc.), always compute a SHA-256 digest regardless of the underlying protocol hash family and emit it with a `sha256:` prefix (owner directive).
+9. 2025-10-23 – HOTP traces must follow the line-per-field format defined under “HOTP Trace Formatting”: one scalar per line, deterministic ordering, `step.N: <title>` headers, and secrets rendered only as hashes/lengths; support both evaluation (OTP generation) and verification (window scan) flows with the prescribed step breakdown (owner directive).
 
 ## Requirements
 - Define a structured trace model under `core/` that can capture ordered steps, labelled intermediate values, and protocol-specific annotations while remaining extensible for future credential types.
@@ -38,6 +42,8 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
 - Add automated coverage (unit/integration tests per facade) that verifies traces materialise only when verbose mode is enabled and that representative steps appear for each protocol.
 - Update operator/user documentation describing how to enable verbose tracing across CLI, REST, and UI channels.
 - Define canonical operation identifiers per protocol (e.g., `hotp.evaluate.stored`, `totp.evaluate.inline`, `ocra.evaluate.inline`, `fido2.assertion.evaluate.stored`, `fido2.attestation.verify`) and reuse step identifiers such as `resolve.credential`, `generate.otp`, `verify.attestation`, and `assemble.result` so traces stay comparable across facades.
+- Extend the trace envelope to annotate the effective redaction tier (`normal`, `educational`, `lab-secrets`) even though tier toggles will land in a follow-up; Feature 035 continues to emit the full detail set under the `educational` label.
+- Enrich each trace step with structured attributes (e.g., `hex`, `base64url`, `int`, `bool`) while preserving the existing human-readable formatting and add spec anchors (for example `spec: rfc4226§5.3`) so operators can jump back to the governing standards.
 
 ## Telemetry & Security Considerations
 - Verbose traces must bypass existing telemetry redaction; however, they must remain isolated from telemetry sinks to avoid accidental leakage. Document this constraint in module comments and reviewer guidance.
@@ -52,6 +58,28 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
 - Existing DTOs and response contracts will expand; coordinate schema updates across CLI/REST/UI tests.
 - Trace model should balance expressiveness with performance to avoid significant overhead when verbose mode is active.
 - Future protocols must be able to extend the trace model without breaking existing consumers; consider sealed interfaces or builder patterns.
+
+## Trace Content Baseline
+- **HOTP (RFC 4226)** – Produce line-per-field, step-numbered traces with the exact structure below. All secrets remain hashed; digits must be ≤9 and counters rendered as unsigned 64-bit big-endian bytes.
+  - *Evaluate / generate:*  
+    `step.1: normalize.input` (fields: `op`, `alg` with non-standard note when applicable, `digits`, `counter.input`, `secret.format`, `secret.len.bytes`, `secret.sha256`; `spec: rfc4226§5.1`).  
+    `step.2: prepare.counter` (`counter.int`, `counter.bytes.big_endian`; `spec: rfc4226§5.1`).  
+    `step.3: hmac.compute` (`hash.block_len`, `key.mode`, `key'.sha256`, `ipad.byte`, `opad.byte`, `inner.input`, `inner.hash`, `outer.input`, `hmac.final`; `spec: rfc4226§5.2`).  
+    `step.4: truncate.dynamic` (`last.byte`, `offset.nibble`, `slice.bytes`, `slice.bytes[0]_masked`, `dbc.31bit.big_endian`; `spec: rfc4226§5.3`).  
+    `step.5: mod.reduce` (`modulus`, `otp.decimal`, `otp.string.leftpad`; `spec: rfc4226§5.4`).  
+    `step.6: result` (`output.otp`).  
+  - *Verify / window search:*  
+    `step.1: normalize.input` (`op`, `alg`, `digits`, `otp.provided`, `counter.hint`, `window`, `secret.len.bytes`, `secret.sha256`; `spec: rfc4226§5.1`).  
+    `step.2: search.window` – emit `window.range = [counter.hint-10, counter.hint+10]` and `order = ascending` ahead of the attempt listings, then log `attempt.<counter>.otp` lines (match=false) for non-matching counters and expand the matching attempt inside `-- begin match.derivation --` / `-- end match.derivation --` using the evaluate steps 2–5; `spec: rfc4226§5.4`.  
+    `step.3: decision` (`verify.match`, `matched.counter`, `next.expected.counter`).  
+    When a match is found, surface the recommended next counter (`matched.counter + 1`) in metadata/telemetry even if the replay request does not mutate persisted state (inline submissions still advertise the incremented value for operator guidance).  
+  - CLI/REST/UI renderers must maintain two-space indentation, `name = value` formatting, explicit endianness labels, and lowercase hex (per formatting rules).
+- **TOTP (RFC 6238)** – Reuse HOTP steps, preceded by `derive.time-counter` (epoch, step, drift window, computed counter `T`, `rfc6238§4.2`) and `evaluate.window` (enumerated offsets and results, `rfc6238§4.1`). Emit SHA-256 hashes for secrets and highlight algorithm variants (SHA-1/256/512) with spec anchors `rfc6238§1.2`.
+- **OCRA (RFC 6287)** – Include `parse.suite` (raw suite, parsed components, `rfc6287§5.1`), `normalize.inputs` (counter/QA/QN/QH handling, PSHA digests, session/timestamp, `rfc6287§5.2`), `assemble.message` (ordered parts with hex, overall SHA-256 hash of the concatenation, `rfc6287§6`), followed by `compute.hmac`, `truncate.dynamic`, and `mod.reduce` mirroring HOTP with anchor `rfc6287§7`.
+- **WebAuthn / FIDO2** – Distinguish between attestation (`webauthn§6.4`, CTAP 2 §5) and assertion (`webauthn§7`):
+  - Attestation steps: `parse.clientData` (JSON, SHA-256 hash), `parse.authenticatorData` (RP ID hash, flags map, counters), `extract.attestedCredential` (AAGUID, credential ID, COSE key breakdown), `build.signatureBase` (authData || clientDataHash), `verify.signature` (algorithm, DER/RS values, low-S flag), `validate.metadata` (trust chain, AAGUID lookup). Include extensions when present and note verification outcome.
+  - Assertion steps: `parse.clientData`, `parse.authenticatorData`, `build.signatureBase`, `verify.signature`, and `evaluate.counter` (previous vs new counter, strict increment result), plus extension interpretations as applicable.
+- **Common presentation** – Every trace lists `operation`, `metadata`, and numbered `steps` with nested key/value lines. Each step should end with an optional `spec:` line referencing the governing section.
 
 ## Success Criteria
 - All relevant flows expose deterministic, step-by-step traces when verbose mode is enabled and remain unchanged otherwise.

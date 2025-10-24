@@ -40,10 +40,18 @@ final class HotpCliVerboseTraceTest {
         assertTrue(stdout.contains("operation=hotp.evaluate.stored"), stdout);
         assertTrue(stdout.contains("metadata.protocol=HOTP"), stdout);
         assertTrue(stdout.contains("metadata.mode=stored"), stdout);
+        assertTrue(stdout.contains("metadata.tier=educational"), stdout);
         assertTrue(stdout.contains("metadata.credentialId=" + CREDENTIAL_ID), stdout);
+        assertTrue(stdout.contains("metadata.counter.next=1"), stdout);
         assertTrue(stdout.toLowerCase(Locale.ROOT).contains("step"), stdout);
-        assertTrue(stdout.contains("resolve.credential"), stdout);
-        assertTrue(stdout.contains("generate.otp"), stdout);
+        assertTrue(stdout.contains("step.1: normalize.input"), stdout);
+        assertTrue(stdout.contains("  op = evaluate.stored"), stdout);
+        assertTrue(stdout.contains("step.2: prepare.counter"), stdout);
+        assertTrue(stdout.contains("step.3: hmac.compute"), stdout);
+        assertTrue(stdout.contains("step.4: truncate.dynamic"), stdout);
+        assertTrue(stdout.contains("step.5: mod.reduce"), stdout);
+        assertTrue(stdout.contains("step.6: result"), stdout);
+        assertTrue(stdout.contains("  output.otp = "), stdout);
     }
 
     @Test

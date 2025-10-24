@@ -140,9 +140,15 @@ public final class TelemetryContractTestSupport {
         assertFrame(frame, HOTP_ISSUANCE_EVENT, "issued", "issued", true, hotpIssuanceSuccessFields());
     }
 
-    public static void assertHotpReplaySuccessFrame(TelemetryFrame frame, String credentialSource, long counter) {
+    public static void assertHotpReplaySuccessFrame(
+            TelemetryFrame frame, String credentialSource, long previousCounter, long nextCounter) {
         assertFrame(
-                frame, HOTP_REPLAY_EVENT, "success", "match", true, hotpReplayFields(credentialSource, counter, null));
+                frame,
+                HOTP_REPLAY_EVENT,
+                "success",
+                "match",
+                true,
+                hotpReplayFields(credentialSource, previousCounter, nextCounter, null));
     }
 
     public static void assertHotpReplayValidationFrame(
@@ -153,7 +159,7 @@ public final class TelemetryContractTestSupport {
                 "invalid",
                 "otp_mismatch",
                 sanitized,
-                hotpReplayFields(credentialSource, counter, "OTP mismatch"));
+                hotpReplayFields(credentialSource, counter, counter, "OTP mismatch"));
     }
 
     public static void assertHotpReplayErrorFrame(TelemetryFrame frame, String credentialSource, long counter) {
@@ -163,7 +169,7 @@ public final class TelemetryContractTestSupport {
                 "error",
                 "unexpected_error",
                 false,
-                hotpReplayFields(credentialSource, counter, "java.lang.IllegalStateException: boom"));
+                hotpReplayFields(credentialSource, counter, counter, "java.lang.IllegalStateException: boom"));
     }
 
     public static void assertTotpReplaySuccessFrame(
@@ -242,14 +248,15 @@ public final class TelemetryContractTestSupport {
         assertFrame(frame, TOTP_SAMPLE_EVENT, "sampled", "sampled", true, totpSampleFields());
     }
 
-    private static Map<String, Object> hotpReplayFields(String credentialSource, long counter, String reason) {
+    private static Map<String, Object> hotpReplayFields(
+            String credentialSource, long previousCounter, long nextCounter, String reason) {
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("credentialSource", credentialSource);
         fields.put("credentialId", "inline".equals(credentialSource) ? HOTP_INLINE_REPLAY_ID : "hotp-credential");
         fields.put("hashAlgorithm", "SHA1");
         fields.put("digits", 6);
-        fields.put("previousCounter", counter);
-        fields.put("nextCounter", counter);
+        fields.put("previousCounter", previousCounter);
+        fields.put("nextCounter", nextCounter);
         if (reason != null) {
             fields.put("reason", reason);
         }

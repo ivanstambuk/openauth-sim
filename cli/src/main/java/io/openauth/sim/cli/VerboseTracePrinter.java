@@ -24,16 +24,21 @@ final class VerboseTracePrinter {
         List<VerboseTrace.TraceStep> steps = trace.steps();
         for (int index = 0; index < steps.size(); index++) {
             VerboseTrace.TraceStep step = steps.get(index);
-            String prefix = "step." + (index + 1);
-            writer.println(prefix + ".id=" + step.id());
+            writer.println("step." + (index + 1) + ": " + step.id());
             if (hasText(step.summary())) {
-                writer.println(prefix + ".summary=" + step.summary());
+                writer.println("  summary = " + step.summary());
             }
             if (hasText(step.detail())) {
-                writer.println(prefix + ".detail=" + step.detail());
+                writer.println("  detail = " + step.detail());
             }
-            step.attributes().forEach((key, value) -> writer.println(prefix + ".attr." + key + "=" + format(value)));
-            step.notes().forEach((key, value) -> writer.println(prefix + ".note." + key + "=" + value));
+            if (hasText(step.specAnchor())) {
+                writer.println("  spec = " + step.specAnchor());
+            }
+            step.typedAttributes().forEach(attribute -> {
+                String key = attribute.name();
+                writer.println("  " + key + " = " + format(attribute.value()));
+            });
+            step.notes().forEach((key, value) -> writer.println("  note." + key + " = " + value));
         }
 
         writer.println("=== End Verbose Trace ===");

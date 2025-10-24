@@ -236,7 +236,9 @@ final class TotpOperatorUiSeleniumTest {
         WebElement traceContent = waitForVisible(By.cssSelector("[data-testid='verbose-trace-content']"));
         String traceText = traceContent.getText();
         assertTrue(traceText.contains("resolve.credential"), "Trace content should include credential resolution step");
-        assertTrue(traceText.contains("generate.otp"), "Trace content should include OTP generation step");
+        assertTrue(
+                traceText.contains("derive.time-counter"), "Trace content should include time-counter derivation step");
+        assertTrue(traceText.contains("mod.reduce"), "Trace content should include modulo reduction step");
 
         assertEquals(
                 "true",
