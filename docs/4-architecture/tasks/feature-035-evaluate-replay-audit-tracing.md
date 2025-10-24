@@ -177,3 +177,8 @@ _Last updated:_ 2025-10-22
  ☑ Extend failing tests to assert `rpId.canonical`, `rpIdHash.expected`, and `rpIdHash.match` attributes in attestation/assertion verbose traces across application, CLI, and REST layers before implementing the fields.  
  ☑ Implement trace updates, propagate canonical value through metadata, and refresh fixtures/OpenAPI snapshots while keeping default (non-verbose) behaviour unchanged.  
  ☑ Command (red → green): `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test"`; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`; `./gradlew --no-daemon spotlessApply check`.
+
+☑ **T3533 – WebAuthn flag map & UV policy trace**  
+ ☑ Extend WebAuthn assertion/attestation verbose trace tests (application + CLI) to expect `flags.bits.*`, `userVerificationRequired`, and `uv.policy.ok` attributes before wiring the implementation.  
+ ☑ Update verbose trace builders and CLI output to emit the full flag map (UP/RFU1/UV/BE/BS/RFU2/AT/ED) plus the policy guard, ensuring attestation surfaces the policy attributes once credential metadata is available.  
+ ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`; final `./gradlew --no-daemon spotlessApply check`.

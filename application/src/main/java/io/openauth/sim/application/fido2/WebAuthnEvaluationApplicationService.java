@@ -116,7 +116,12 @@ public final class WebAuthnEvaluationApplicationService {
                 addParseClientDataStep(
                         trace, clientData, command.expectedType(), command.expectedChallenge(), command.origin());
                 addParseAuthenticatorDataStep(
-                        trace, authenticatorData, submittedRpId, canonicalRpId, storedCredential.signatureCounter());
+                        trace,
+                        authenticatorData,
+                        submittedRpId,
+                        canonicalRpId,
+                        storedCredential.signatureCounter(),
+                        storedCredential.userVerificationRequired());
                 addEvaluateCounterStep(trace, storedCredential.signatureCounter(), authenticatorData.counter());
             }
 
@@ -176,7 +181,12 @@ public final class WebAuthnEvaluationApplicationService {
                 addParseClientDataStep(
                         trace, clientData, command.expectedType(), command.expectedChallenge(), command.origin());
                 addParseAuthenticatorDataStep(
-                        trace, authenticatorData, submittedRpId, canonicalRpId, command.signatureCounter());
+                        trace,
+                        authenticatorData,
+                        submittedRpId,
+                        canonicalRpId,
+                        command.signatureCounter(),
+                        command.userVerificationRequired());
                 addConstructCredentialStep(
                         trace,
                         canonicalRpId,
@@ -421,30 +431,42 @@ public final class WebAuthnEvaluationApplicationService {
             TraceAuthenticatorData authenticatorData,
             String relyingPartyId,
             String canonicalRpId,
-            long storedCounter) {
+            long storedCounter,
+            Boolean userVerificationRequired) {
         if (trace == null || authenticatorData == null) {
             return;
         }
         String expectedHash = sha256Digest(canonicalRpId.getBytes(StandardCharsets.UTF_8));
         String actualHash = sha256Label(authenticatorData.rpIdHash());
         boolean hashesMatch = expectedHash.equals(actualHash);
+        boolean userVerificationFlag = authenticatorData.userVerification();
 
-        addStep(trace, step -> step.id("parse.authenticatorData")
-                .summary("Parse authenticator data")
-                .detail("authenticatorData")
-                .spec("webauthn§6.5.4")
-                .attribute("rpIdHash.hex", hex(authenticatorData.rpIdHash()))
-                .attribute("rpId.canonical", canonicalRpId)
-                .attribute("rpIdHash.expected", expectedHash)
-                .attribute(AttributeType.BOOL, "rpIdHash.match", hashesMatch)
-                .attribute("rpId.expected.sha256", expectedHash)
-                .attribute("flags.byte", formatByte(authenticatorData.flags()))
-                .attribute("flags.userPresence", authenticatorData.userPresence())
-                .attribute("flags.userVerification", authenticatorData.userVerification())
-                .attribute("flags.attestedCredentialData", authenticatorData.attestedCredentialData())
-                .attribute("flags.extensionDataIncluded", authenticatorData.extensionDataIncluded())
-                .attribute("counter.stored", storedCounter)
-                .attribute("counter.reported", authenticatorData.counter()));
+        addStep(trace, step -> {
+            step.id("parse.authenticatorData")
+                    .summary("Parse authenticator data")
+                    .detail("authenticatorData")
+                    .spec("webauthn§6.5.4")
+                    .attribute("rpIdHash.hex", hex(authenticatorData.rpIdHash()))
+                    .attribute("rpId.canonical", canonicalRpId)
+                    .attribute("rpIdHash.expected", expectedHash)
+                    .attribute(AttributeType.BOOL, "rpIdHash.match", hashesMatch)
+                    .attribute("rpId.expected.sha256", expectedHash)
+                    .attribute("flags.byte", formatByte(authenticatorData.flags()))
+                    .attribute(AttributeType.BOOL, "flags.bits.UP", authenticatorData.userPresence())
+                    .attribute(AttributeType.BOOL, "flags.bits.RFU1", authenticatorData.reservedBitRfu1())
+                    .attribute(AttributeType.BOOL, "flags.bits.UV", userVerificationFlag)
+                    .attribute(AttributeType.BOOL, "flags.bits.BE", authenticatorData.backupEligible())
+                    .attribute(AttributeType.BOOL, "flags.bits.BS", authenticatorData.backupState())
+                    .attribute(AttributeType.BOOL, "flags.bits.RFU2", authenticatorData.reservedBitRfu2())
+                    .attribute(AttributeType.BOOL, "flags.bits.AT", authenticatorData.attestedCredentialData())
+                    .attribute(AttributeType.BOOL, "flags.bits.ED", authenticatorData.extensionDataIncluded())
+                    .attribute("counter.stored", storedCounter)
+                    .attribute("counter.reported", authenticatorData.counter());
+            if (userVerificationRequired != null) {
+                step.attribute(AttributeType.BOOL, "userVerificationRequired", userVerificationRequired);
+                step.attribute(AttributeType.BOOL, "uv.policy.ok", !userVerificationRequired || userVerificationFlag);
+            }
+        });
     }
 
     private static void addEvaluateCounterStep(VerboseTrace.Builder trace, long previousCounter, long reportedCounter) {
@@ -739,8 +761,24 @@ public final class WebAuthnEvaluationApplicationService {
             return (flags & 0x01) != 0;
         }
 
+        boolean reservedBitRfu1() {
+            return (flags & 0x02) != 0;
+        }
+
         boolean userVerification() {
             return (flags & 0x04) != 0;
+        }
+
+        boolean backupEligible() {
+            return (flags & 0x08) != 0;
+        }
+
+        boolean backupState() {
+            return (flags & 0x10) != 0;
+        }
+
+        boolean reservedBitRfu2() {
+            return (flags & 0x20) != 0;
         }
 
         boolean attestedCredentialData() {

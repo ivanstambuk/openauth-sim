@@ -138,16 +138,33 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
                 formatByte(attestation.flags()),
                 parseAuthenticatorData.attributes().get("flags.byte"));
         assertEquals(
-                attestation.userPresence(), parseAuthenticatorData.attributes().get("flags.userPresence"));
+                attestation.userPresence(), parseAuthenticatorData.attributes().get("flags.bits.UP"));
+        assertEquals(
+                attestation.reservedBitRfu1(),
+                parseAuthenticatorData.attributes().get("flags.bits.RFU1"));
         assertEquals(
                 attestation.userVerification(),
-                parseAuthenticatorData.attributes().get("flags.userVerification"));
+                parseAuthenticatorData.attributes().get("flags.bits.UV"));
+        assertEquals(
+                attestation.backupEligible(),
+                parseAuthenticatorData.attributes().get("flags.bits.BE"));
+        assertEquals(
+                attestation.backupState(), parseAuthenticatorData.attributes().get("flags.bits.BS"));
+        assertEquals(
+                attestation.reservedBitRfu2(),
+                parseAuthenticatorData.attributes().get("flags.bits.RFU2"));
         assertEquals(
                 attestation.attestedCredentialData(),
-                parseAuthenticatorData.attributes().get("flags.attestedCredentialData"));
+                parseAuthenticatorData.attributes().get("flags.bits.AT"));
         assertEquals(
                 attestation.extensionDataIncluded(),
-                parseAuthenticatorData.attributes().get("flags.extensionDataIncluded"));
+                parseAuthenticatorData.attributes().get("flags.bits.ED"));
+        assertEquals(
+                attestedCredential.userVerificationRequired(),
+                parseAuthenticatorData.attributes().get("userVerificationRequired"));
+        assertEquals(
+                !attestedCredential.userVerificationRequired() || attestation.userVerification(),
+                parseAuthenticatorData.attributes().get("uv.policy.ok"));
         assertEquals(attestation.counter(), parseAuthenticatorData.attributes().get("counter.reported"));
 
         var extractCredential = findStep(trace, "extract.attestedCredential");
@@ -515,8 +532,24 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
             return (flags & 0x01) != 0;
         }
 
+        boolean reservedBitRfu1() {
+            return (flags & 0x02) != 0;
+        }
+
         boolean userVerification() {
             return (flags & 0x04) != 0;
+        }
+
+        boolean backupEligible() {
+            return (flags & 0x08) != 0;
+        }
+
+        boolean backupState() {
+            return (flags & 0x10) != 0;
+        }
+
+        boolean reservedBitRfu2() {
+            return (flags & 0x20) != 0;
         }
 
         boolean attestedCredentialData() {

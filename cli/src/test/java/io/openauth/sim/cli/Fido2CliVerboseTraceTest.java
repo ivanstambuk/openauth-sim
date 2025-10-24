@@ -97,8 +97,18 @@ final class Fido2CliVerboseTraceTest {
 
         int flagsByte = authenticatorData[32] & 0xFF;
         assertTrue(stdout.contains("  flags.byte = " + formatByte(flagsByte)), stdout);
-        assertTrue(stdout.contains("  flags.userPresence = true"), stdout);
-        assertTrue(stdout.contains("  flags.userVerification = true"), stdout);
+        assertTrue(stdout.contains("  flags.bits.UP = " + String.valueOf((flagsByte & 0x01) != 0)), stdout);
+        assertTrue(stdout.contains("  flags.bits.RFU1 = " + String.valueOf((flagsByte & 0x02) != 0)), stdout);
+        assertTrue(stdout.contains("  flags.bits.UV = " + String.valueOf((flagsByte & 0x04) != 0)), stdout);
+        assertTrue(stdout.contains("  flags.bits.BE = " + String.valueOf((flagsByte & 0x08) != 0)), stdout);
+        assertTrue(stdout.contains("  flags.bits.BS = " + String.valueOf((flagsByte & 0x10) != 0)), stdout);
+        assertTrue(stdout.contains("  flags.bits.RFU2 = " + String.valueOf((flagsByte & 0x20) != 0)), stdout);
+        assertTrue(stdout.contains("  flags.bits.AT = " + String.valueOf((flagsByte & 0x40) != 0)), stdout);
+        assertTrue(stdout.contains("  flags.bits.ED = " + String.valueOf((flagsByte & 0x80) != 0)), stdout);
+        boolean userVerificationRequired = fixture.storedCredential().userVerificationRequired();
+        assertTrue(stdout.contains("  userVerificationRequired = " + String.valueOf(userVerificationRequired)), stdout);
+        boolean uvPolicyOk = !userVerificationRequired || (flagsByte & 0x04) != 0;
+        assertTrue(stdout.contains("  uv.policy.ok = " + String.valueOf(uvPolicyOk)), stdout);
         assertTrue(stdout.contains("  origin.expected = " + fixture.request().origin()), stdout);
         assertTrue(stdout.contains("  origin.match = true"), stdout);
         assertTrue(stdout.contains("  tokenBinding.present = false"), stdout);

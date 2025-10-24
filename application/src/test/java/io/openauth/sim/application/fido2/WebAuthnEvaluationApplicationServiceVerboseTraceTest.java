@@ -113,16 +113,33 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
                 parseAuthenticatorData.attributes().get("flags.byte"));
         assertEquals(
                 authenticator.userPresence(),
-                parseAuthenticatorData.attributes().get("flags.userPresence"));
+                parseAuthenticatorData.attributes().get("flags.bits.UP"));
+        assertEquals(
+                authenticator.reservedBitRfu1(),
+                parseAuthenticatorData.attributes().get("flags.bits.RFU1"));
         assertEquals(
                 authenticator.userVerification(),
-                parseAuthenticatorData.attributes().get("flags.userVerification"));
+                parseAuthenticatorData.attributes().get("flags.bits.UV"));
+        assertEquals(
+                authenticator.backupEligible(),
+                parseAuthenticatorData.attributes().get("flags.bits.BE"));
+        assertEquals(
+                authenticator.backupState(), parseAuthenticatorData.attributes().get("flags.bits.BS"));
+        assertEquals(
+                authenticator.reservedBitRfu2(),
+                parseAuthenticatorData.attributes().get("flags.bits.RFU2"));
         assertEquals(
                 authenticator.attestedCredentialData(),
-                parseAuthenticatorData.attributes().get("flags.attestedCredentialData"));
+                parseAuthenticatorData.attributes().get("flags.bits.AT"));
         assertEquals(
                 authenticator.extensionDataIncluded(),
-                parseAuthenticatorData.attributes().get("flags.extensionDataIncluded"));
+                parseAuthenticatorData.attributes().get("flags.bits.ED"));
+        assertEquals(
+                fixture.storedCredential().userVerificationRequired(),
+                parseAuthenticatorData.attributes().get("userVerificationRequired"));
+        assertEquals(
+                !fixture.storedCredential().userVerificationRequired() || authenticator.userVerification(),
+                parseAuthenticatorData.attributes().get("uv.policy.ok"));
         assertEquals(
                 fixture.storedCredential().signatureCounter(),
                 parseAuthenticatorData.attributes().get("counter.stored"));
@@ -234,16 +251,33 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
                 parseAuthenticatorData.attributes().get("flags.byte"));
         assertEquals(
                 authenticator.userPresence(),
-                parseAuthenticatorData.attributes().get("flags.userPresence"));
+                parseAuthenticatorData.attributes().get("flags.bits.UP"));
+        assertEquals(
+                authenticator.reservedBitRfu1(),
+                parseAuthenticatorData.attributes().get("flags.bits.RFU1"));
         assertEquals(
                 authenticator.userVerification(),
-                parseAuthenticatorData.attributes().get("flags.userVerification"));
+                parseAuthenticatorData.attributes().get("flags.bits.UV"));
+        assertEquals(
+                authenticator.backupEligible(),
+                parseAuthenticatorData.attributes().get("flags.bits.BE"));
+        assertEquals(
+                authenticator.backupState(), parseAuthenticatorData.attributes().get("flags.bits.BS"));
+        assertEquals(
+                authenticator.reservedBitRfu2(),
+                parseAuthenticatorData.attributes().get("flags.bits.RFU2"));
         assertEquals(
                 authenticator.attestedCredentialData(),
-                parseAuthenticatorData.attributes().get("flags.attestedCredentialData"));
+                parseAuthenticatorData.attributes().get("flags.bits.AT"));
         assertEquals(
                 authenticator.extensionDataIncluded(),
-                parseAuthenticatorData.attributes().get("flags.extensionDataIncluded"));
+                parseAuthenticatorData.attributes().get("flags.bits.ED"));
+        assertEquals(
+                command.userVerificationRequired(),
+                parseAuthenticatorData.attributes().get("userVerificationRequired"));
+        assertEquals(
+                !command.userVerificationRequired() || authenticator.userVerification(),
+                parseAuthenticatorData.attributes().get("uv.policy.ok"));
         assertEquals(
                 command.signatureCounter(), parseAuthenticatorData.attributes().get("counter.stored"));
         assertEquals(
@@ -429,8 +463,24 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
             return (flags & 0x01) != 0;
         }
 
+        boolean reservedBitRfu1() {
+            return (flags & 0x02) != 0;
+        }
+
         boolean userVerification() {
             return (flags & 0x04) != 0;
+        }
+
+        boolean backupEligible() {
+            return (flags & 0x08) != 0;
+        }
+
+        boolean backupState() {
+            return (flags & 0x10) != 0;
+        }
+
+        boolean reservedBitRfu2() {
+            return (flags & 0x20) != 0;
         }
 
         boolean attestedCredentialData() {

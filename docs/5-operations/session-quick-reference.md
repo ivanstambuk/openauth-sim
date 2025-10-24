@@ -11,6 +11,11 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 - [ ] Check `docs/_current-session.md` for the active snapshot; refresh it with today’s status before you hand off.
 - [ ] Confirm whether the user granted a compatibility exception; default is no fallbacks for any facade unless explicitly requested.
 
+## Commit Protocol Reminder
+- When the user says “commit” or “commit and push,” stage the entire repository (`git add -A`), review every staged change inside `docs/4-architecture/`, and extract the feature IDs plus document updates from those diffs.
+- Build the Conventional Commit message from that review, listing every affected specification, plan, or task even if earlier sessions produced the changes; skip additional confirmation prompts.
+- Run the managed hooks (`git commit` with repo policy) and push to the tracking branch immediately after the hooks succeed.
+
 ## Handoff Prompt Template
 ```
 You’re resuming work on [project/workstream identifier]. Core context:

@@ -77,7 +77,6 @@ public final class WebAuthnAttestationVerificationApplicationService {
 
         if (trace != null) {
             addParseClientDataStep(trace, clientData, command.expectedChallenge(), command.origin());
-            addParseAuthenticatorDataStep(trace, attestationComponents, submittedRpId, canonicalRpId);
         }
 
         WebAuthnAttestationServiceSupport.Outcome outcome = WebAuthnAttestationServiceSupport.process(
@@ -111,6 +110,11 @@ public final class WebAuthnAttestationVerificationApplicationService {
                         data.signatureCounter()));
 
         if (trace != null) {
+            Boolean userVerificationRequired = attestedCredential
+                    .map(AttestedCredential::userVerificationRequired)
+                    .orElse(null);
+            addParseAuthenticatorDataStep(
+                    trace, attestationComponents, submittedRpId, canonicalRpId, userVerificationRequired);
             addExtractAttestedCredentialStep(
                     trace, attestationComponents, attestedCredential, submittedRpId, canonicalRpId);
             byte[] clientDataHash = clientData == null ? sha256(command.clientDataJson()) : clientData.hash();
@@ -293,29 +297,44 @@ public final class WebAuthnAttestationVerificationApplicationService {
     }
 
     private static void addParseAuthenticatorDataStep(
-            VerboseTrace.Builder trace, AttestationComponents components, String relyingPartyId, String canonicalRpId) {
+            VerboseTrace.Builder trace,
+            AttestationComponents components,
+            String relyingPartyId,
+            String canonicalRpId,
+            Boolean userVerificationRequired) {
         if (trace == null || !components.hasAuthData()) {
             return;
         }
         String expectedHash = sha256Digest(canonicalRpId.getBytes(StandardCharsets.UTF_8));
         String actualHash = sha256Label(components.rpIdHash());
         boolean hashesMatch = expectedHash.equals(actualHash);
+        boolean userVerificationFlag = components.userVerification();
 
-        addStep(trace, step -> step.id("parse.authenticatorData")
-                .summary("Parse authenticator data")
-                .detail("authenticatorData")
-                .spec("webauthn§6.5.4")
-                .attribute("rpIdHash.hex", hex(components.rpIdHash()))
-                .attribute("rpId.canonical", canonicalRpId)
-                .attribute("rpIdHash.expected", expectedHash)
-                .attribute(AttributeType.BOOL, "rpIdHash.match", hashesMatch)
-                .attribute("rpId.expected.sha256", expectedHash)
-                .attribute("flags.byte", formatByte(components.flags()))
-                .attribute("flags.userPresence", components.userPresence())
-                .attribute("flags.userVerification", components.userVerification())
-                .attribute("flags.attestedCredentialData", components.attestedCredentialData())
-                .attribute("flags.extensionDataIncluded", components.extensionDataIncluded())
-                .attribute("counter.reported", components.counter()));
+        addStep(trace, step -> {
+            step.id("parse.authenticatorData")
+                    .summary("Parse authenticator data")
+                    .detail("authenticatorData")
+                    .spec("webauthn§6.5.4")
+                    .attribute("rpIdHash.hex", hex(components.rpIdHash()))
+                    .attribute("rpId.canonical", canonicalRpId)
+                    .attribute("rpIdHash.expected", expectedHash)
+                    .attribute(AttributeType.BOOL, "rpIdHash.match", hashesMatch)
+                    .attribute("rpId.expected.sha256", expectedHash)
+                    .attribute("flags.byte", formatByte(components.flags()))
+                    .attribute(AttributeType.BOOL, "flags.bits.UP", components.userPresence())
+                    .attribute(AttributeType.BOOL, "flags.bits.RFU1", components.reservedBitRfu1())
+                    .attribute(AttributeType.BOOL, "flags.bits.UV", userVerificationFlag)
+                    .attribute(AttributeType.BOOL, "flags.bits.BE", components.backupEligible())
+                    .attribute(AttributeType.BOOL, "flags.bits.BS", components.backupState())
+                    .attribute(AttributeType.BOOL, "flags.bits.RFU2", components.reservedBitRfu2())
+                    .attribute(AttributeType.BOOL, "flags.bits.AT", components.attestedCredentialData())
+                    .attribute(AttributeType.BOOL, "flags.bits.ED", components.extensionDataIncluded())
+                    .attribute("counter.reported", components.counter());
+            if (userVerificationRequired != null) {
+                step.attribute(AttributeType.BOOL, "userVerificationRequired", userVerificationRequired);
+                step.attribute(AttributeType.BOOL, "uv.policy.ok", !userVerificationRequired || userVerificationFlag);
+            }
+        });
     }
 
     private static void addExtractAttestedCredentialStep(
@@ -744,8 +763,24 @@ public final class WebAuthnAttestationVerificationApplicationService {
             return (flags & 0x01) != 0;
         }
 
+        boolean reservedBitRfu1() {
+            return (flags & 0x02) != 0;
+        }
+
         boolean userVerification() {
             return (flags & 0x04) != 0;
+        }
+
+        boolean backupEligible() {
+            return (flags & 0x08) != 0;
+        }
+
+        boolean backupState() {
+            return (flags & 0x10) != 0;
+        }
+
+        boolean reservedBitRfu2() {
+            return (flags & 0x20) != 0;
         }
 
         boolean attestedCredentialData() {

@@ -203,6 +203,7 @@ _Last updated:_ 2025-10-23
 ## Follow-ups
 - Revisit potential trace exporters (files/web sockets) under a future feature if persistent audit history is requested.
 - Consider formatting helpers (diff highlighting, grouping) once baseline tracing stabilises.
+- 2025-10-24 – Completed T3533 to replace WebAuthn authenticator flag outputs with a full `flags.bits.*` map plus `userVerificationRequired` / `uv.policy.ok` attributes, driven by failing tests ahead of implementation.
 - Schedule a dedicated increment to expose redaction-tier controls (CLI flag, REST/JSON contract, UI toggle) once the trace schema advertises `normal/educational/lab-secrets`.
 
 ## Analysis Gate
