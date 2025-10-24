@@ -12,9 +12,8 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 - [ ] Confirm whether the user granted a compatibility exception; default is no fallbacks for any facade unless explicitly requested.
 
 ## Commit Protocol Reminder
-- When the user says “commit” or “commit and push,” stage the entire repository (`git add -A`), review every staged change inside `docs/4-architecture/`, and extract the feature IDs plus document updates from those diffs.
-- Build the Conventional Commit message from that review, listing every affected specification, plan, or task even if earlier sessions produced the changes; skip additional confirmation prompts.
-- Run the managed hooks (`git commit` with repo policy) and push to the tracking branch immediately after the hooks succeed.
+- When the user says “commit” or “commit and push,” stage the entire repository (`git add -A`) and rely on the managed hooks to run the quality pipeline.
+- Diff the staged changes under `docs/4-architecture/` to extract the feature identifiers you touched and add those IDs to the commit body (no per-file bullets), then push immediately once the hooks succeed.
 
 ## Handoff Prompt Template
 ```
