@@ -12,6 +12,7 @@ import io.openauth.sim.application.ocra.OcraVerificationApplicationService.Verif
 import io.openauth.sim.application.ocra.OcraVerificationRequests;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.rest.VerboseTracePayload;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
@@ -54,7 +55,7 @@ class OcraVerificationService {
 
         try {
             envelope = CommandEnvelope.from(rawRequest);
-            VerificationResult result = applicationService.verify(envelope.command());
+            VerificationResult result = applicationService.verify(envelope.command(), envelope.verbose());
             long durationMillis = toMillis(started);
             VerificationLogPayload payload = null;
 
@@ -97,7 +98,9 @@ class OcraVerificationService {
                     (String) payload.fields().getOrDefault("outcome", "unknown"));
 
             String status = result.status() == VerificationStatus.MATCH ? "match" : "mismatch";
-            return new OcraVerificationResponse(status, reasonCodeFor(result.reason()), metadata);
+            VerboseTracePayload tracePayload =
+                    result.verboseTrace().map(VerboseTracePayload::from).orElse(null);
+            return new OcraVerificationResponse(status, reasonCodeFor(result.reason()), metadata, tracePayload);
         } catch (VerificationValidationException ex) {
             long durationMillis = toMillis(started);
             VerificationLogPayload payload =
@@ -413,7 +416,11 @@ class OcraVerificationService {
     }
 
     private record CommandEnvelope(
-            VerificationCommand command, NormalizedRequest normalized, String credentialSource, String otp) {
+            VerificationCommand command,
+            NormalizedRequest normalized,
+            String credentialSource,
+            String otp,
+            boolean verbose) {
 
         static CommandEnvelope from(OcraVerificationRequest request) {
             if (request.otp() == null || request.otp().isBlank()) {
@@ -422,6 +429,7 @@ class OcraVerificationService {
             boolean hasCredential =
                     request.credentialId() != null && !request.credentialId().isBlank();
             boolean hasInline = request.inlineCredential() != null;
+            boolean verbose = Boolean.TRUE.equals(request.verbose());
 
             if (hasCredential && hasInline) {
                 throw new ValidationError(
@@ -447,7 +455,7 @@ class OcraVerificationService {
                         ctx.timestampHex(),
                         ctx.counter()));
                 NormalizedRequest normalized = OcraVerificationApplicationService.NormalizedRequest.from(command);
-                return new CommandEnvelope(command, normalized, "stored", request.otp());
+                return new CommandEnvelope(command, normalized, "stored", request.otp(), verbose);
             }
 
             OcraVerificationInlineCredential inline = request.inlineCredential();
@@ -473,7 +481,7 @@ class OcraVerificationService {
                     ctx.counter(),
                     null));
             NormalizedRequest normalized = OcraVerificationApplicationService.NormalizedRequest.from(command);
-            return new CommandEnvelope(command, normalized, "inline", request.otp());
+            return new CommandEnvelope(command, normalized, "inline", request.otp(), verbose);
         }
     }
 

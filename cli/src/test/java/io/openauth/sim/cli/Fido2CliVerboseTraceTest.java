@@ -14,8 +14,12 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Base64;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -65,6 +69,36 @@ final class Fido2CliVerboseTraceTest {
         assertTrue(stdout.contains("metadata.mode=stored"), stdout);
         assertTrue(stdout.contains("resolve.credential"), stdout);
         assertTrue(stdout.contains("verify.assertion"), stdout);
+        assertTrue(stdout.contains("metadata.tier=educational"), stdout);
+
+        String clientDataJson = new String(fixture.request().clientDataJson(), StandardCharsets.UTF_8);
+        String expectedClientDataSha256 = sha256Digest(fixture.request().clientDataJson());
+        assertTrue(stdout.contains("  clientData.json = " + clientDataJson), stdout);
+        assertTrue(stdout.contains("  clientData.sha256 = " + expectedClientDataSha256), stdout);
+
+        byte[] authenticatorData = fixture.request().authenticatorData();
+        String rpIdHashHex = hex(Arrays.copyOf(authenticatorData, 32));
+        assertTrue(stdout.contains("  rpId.hash.hex = " + rpIdHashHex), stdout);
+
+        String expectedRpDigest =
+                sha256Digest(fixture.request().relyingPartyId().getBytes(StandardCharsets.UTF_8));
+        assertTrue(stdout.contains("  rpId.expected.sha256 = " + expectedRpDigest), stdout);
+
+        int flagsByte = authenticatorData[32] & 0xFF;
+        assertTrue(stdout.contains("  flags.byte = " + formatByte(flagsByte)), stdout);
+        assertTrue(stdout.contains("  flags.userPresence = true"), stdout);
+        assertTrue(stdout.contains("  flags.userVerification = true"), stdout);
+
+        long storedCounter = fixture.storedCredential().signatureCounter();
+        long reportedCounter = counterFromAuthenticatorData(authenticatorData);
+        assertTrue(stdout.contains("  counter.stored = " + storedCounter), stdout);
+        assertTrue(stdout.contains("  counter.reported = " + reportedCounter), stdout);
+
+        byte[] clientDataHash = sha256Bytes(fixture.request().clientDataJson());
+        String signatureBaseSha256 = sha256Digest(concat(authenticatorData, clientDataHash));
+        assertTrue(stdout.contains("  signature.base.sha256 = " + signatureBaseSha256), stdout);
+        assertTrue(stdout.contains("  algorithm = " + WebAuthnSignatureAlgorithm.ES256.name()), stdout);
+        assertTrue(stdout.contains("  valid = true"), stdout);
         assertTrue(stdout.contains("=== End Verbose Trace ==="), stdout);
     }
 
@@ -158,5 +192,39 @@ final class Fido2CliVerboseTraceTest {
                 store.save(credential);
             }
         }
+    }
+
+    private static String sha256Digest(byte[] input) {
+        return "sha256:" + hex(sha256Bytes(input));
+    }
+
+    private static byte[] sha256Bytes(byte[] input) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(input);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format("%02x", value));
+        }
+        return builder.toString();
+    }
+
+    private static String formatByte(int value) {
+        return String.format("0x%02x", value & 0xFF);
+    }
+
+    private static long counterFromAuthenticatorData(byte[] authenticatorData) {
+        return ByteBuffer.wrap(authenticatorData, 33, 4).getInt() & 0xFFFFFFFFL;
+    }
+
+    private static byte[] concat(byte[] left, byte[] right) {
+        byte[] combined = Arrays.copyOf(left, left.length + right.length);
+        System.arraycopy(right, 0, combined, left.length, right.length);
+        return combined;
     }
 }

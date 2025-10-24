@@ -239,6 +239,9 @@ final class TotpOperatorUiSeleniumTest {
         assertTrue(
                 traceText.contains("derive.time-counter"), "Trace content should include time-counter derivation step");
         assertTrue(traceText.contains("mod.reduce"), "Trace content should include modulo reduction step");
+        assertTrue(traceText.contains("secret.hash = sha256:"), "Trace should surface hashed secret material");
+        assertTrue(traceText.contains("time.counter.hex = "), "Trace should export the computed time counter in hex");
+        assertTrue(traceText.contains("otp ="), "Trace should expose the evaluated OTP value");
 
         assertEquals(
                 "true",

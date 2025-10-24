@@ -18,10 +18,12 @@ import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -229,8 +231,37 @@ final class OcraEvaluationEndpointTest {
         JsonNode trace = response.get("trace");
         assertNotNull(trace, "Expected trace payload when verbose=true");
         assertEquals("ocra.evaluate.stored", trace.get("operation").asText());
-        assertTrue(trace.get("steps").isArray());
-        assertTrue(trace.get("steps").size() > 0, "Trace steps must not be empty");
+
+        JsonNode metadata = trace.get("metadata");
+        assertEquals("OCRA", metadata.get("protocol").asText());
+        assertEquals("stored", metadata.get("mode").asText());
+        assertEquals("educational", metadata.get("tier").asText());
+
+        Map<String, String> parseSuite = orderedAttributes(step(trace, "parse.suite"));
+        assertTrue(parseSuite.containsKey("suite.value"));
+        assertTrue(parseSuite.containsKey("crypto.hash"));
+
+        Map<String, String> normalize = orderedAttributes(step(trace, "normalize.inputs"));
+        assertTrue(normalize.containsKey("secret.hash"));
+        assertTrue(normalize.get("secret.hash").startsWith("sha256:"));
+        assertTrue(normalize.containsKey("question.hex"));
+
+        Map<String, String> assemble = orderedAttributes(step(trace, "assemble.message"));
+        assertTrue(assemble.containsKey("message.sha256"));
+        assertEquals(
+                String.valueOf("OCRA-1:HOTP-SHA256-8:QA08-S064".getBytes(StandardCharsets.US_ASCII).length),
+                assemble.get("segment.0.suite.len.bytes"));
+        assertEquals("1", assemble.get("segment.1.separator.len.bytes"));
+        assertEquals(
+                String.valueOf(assemble.get("segment.3.question").length() / 2),
+                assemble.get("segment.3.question.len.bytes"));
+        assertEquals(String.valueOf(assemble.get("message.hex").length() / 2), assemble.get("message.len.bytes"));
+        assertEquals("4", assemble.get("parts.count"));
+        assertEquals("[suite, sep, question, session]", assemble.get("parts.order"));
+
+        Map<String, String> hmac = orderedAttributes(step(trace, "compute.hmac"));
+        assertTrue(hmac.containsKey("hmac.hex"));
+        assertEquals("HMAC-SHA-256", hmac.get("alg"));
     }
 
     @DisplayName("Inline requests return verbose trace when requested")
@@ -258,8 +289,30 @@ final class OcraEvaluationEndpointTest {
         JsonNode trace = response.get("trace");
         assertNotNull(trace, "Expected trace payload when verbose=true");
         assertEquals("ocra.evaluate.inline", trace.get("operation").asText());
-        assertTrue(trace.get("steps").isArray());
-        assertTrue(trace.get("steps").size() > 0, "Trace steps must not be empty");
+
+        JsonNode metadata = trace.get("metadata");
+        assertEquals("inline", metadata.get("mode").asText());
+        assertEquals("educational", metadata.get("tier").asText());
+
+        Map<String, String> normalize = orderedAttributes(step(trace, "normalize.inputs"));
+        assertTrue(normalize.containsKey("secret.hash"));
+
+        Map<String, String> assemble = orderedAttributes(step(trace, "assemble.message"));
+        assertTrue(assemble.containsKey("message.sha256"));
+        assertEquals(
+                String.valueOf("OCRA-1:HOTP-SHA256-8:QA08-S064".getBytes(StandardCharsets.US_ASCII).length),
+                assemble.get("segment.0.suite.len.bytes"));
+        assertEquals("1", assemble.get("segment.1.separator.len.bytes"));
+        assertEquals(
+                String.valueOf(assemble.get("segment.3.question").length() / 2),
+                assemble.get("segment.3.question.len.bytes"));
+        assertEquals(String.valueOf(assemble.get("message.hex").length() / 2), assemble.get("message.len.bytes"));
+        assertEquals("4", assemble.get("parts.count"));
+        assertEquals("[suite, sep, question, session]", assemble.get("parts.order"));
+
+        Map<String, String> hmac = orderedAttributes(step(trace, "compute.hmac"));
+        assertTrue(hmac.containsKey("hmac.hex"));
+        assertEquals("HMAC-SHA-256", hmac.get("alg"));
     }
 
     @DisplayName("Missing credential reference returns descriptive error")
@@ -579,5 +632,23 @@ final class OcraEvaluationEndpointTest {
             }
         }
         throw new AssertionError("Telemetry event missing reasonCode/sanitized attributes: " + handler.records());
+    }
+
+    private static JsonNode step(JsonNode trace, String id) {
+        for (JsonNode step : trace.withArray("steps")) {
+            if (id.equals(step.get("id").asText())) {
+                return step;
+            }
+        }
+        throw new AssertionError("Missing trace step: " + id);
+    }
+
+    private static Map<String, String> orderedAttributes(JsonNode step) {
+        Map<String, String> attributes = new LinkedHashMap<>();
+        for (JsonNode attribute : step.withArray("orderedAttributes")) {
+            attributes.put(
+                    attribute.get("name").asText(), attribute.get("value").asText());
+        }
+        return attributes;
     }
 }

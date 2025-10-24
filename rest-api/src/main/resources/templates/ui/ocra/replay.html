@@ -314,6 +314,82 @@
         var presetMap = Object.create(null);
         var lastBroadcastReplayMode = null;
         var initialReplayMode = window.__ocraReplayInitialMode;
+        function verboseConsoleRef() {
+          return window.VerboseTraceConsole || null;
+        }
+
+        function verboseAttach(payload) {
+          if (!payload || typeof payload !== 'object') {
+            return payload;
+          }
+          var consoleRef = verboseConsoleRef();
+          if (consoleRef && typeof consoleRef.attachVerboseFlag === 'function') {
+            return consoleRef.attachVerboseFlag(payload);
+          }
+          if (consoleRef && typeof consoleRef.isEnabled === 'function') {
+            if (consoleRef.isEnabled()) {
+              payload.verbose = true;
+            } else if (Object.prototype.hasOwnProperty.call(payload, 'verbose')) {
+              delete payload.verbose;
+            }
+            return payload;
+          }
+          if (Object.prototype.hasOwnProperty.call(payload, 'verbose')) {
+            delete payload.verbose;
+          }
+          return payload;
+        }
+
+        function verboseBeginRequest() {
+          var consoleRef = verboseConsoleRef();
+          if (!consoleRef) {
+            return;
+          }
+          if (typeof consoleRef.beginRequest === 'function') {
+            consoleRef.beginRequest();
+          } else if (typeof consoleRef.clearTrace === 'function') {
+            consoleRef.clearTrace();
+          }
+        }
+
+        function verboseApplyResponse(payload, variant) {
+          var consoleRef = verboseConsoleRef();
+          if (!consoleRef) {
+            return;
+          }
+          var options = { variant: variant || 'info', protocol: 'ocra' };
+          if (typeof consoleRef.handleResponse === 'function') {
+            consoleRef.handleResponse(payload, options);
+            return;
+          }
+          if (payload && payload.trace && typeof consoleRef.renderTrace === 'function') {
+            consoleRef.renderTrace(payload.trace, options);
+            return;
+          }
+          if (typeof consoleRef.clearTrace === 'function') {
+            consoleRef.clearTrace();
+          }
+        }
+
+        function verboseApplyError(error) {
+          var consoleRef = verboseConsoleRef();
+          if (!consoleRef) {
+            return;
+          }
+          var payload = error && error.payload ? error.payload : null;
+          var options = { variant: 'error', protocol: 'ocra' };
+          if (typeof consoleRef.handleError === 'function') {
+            consoleRef.handleError(payload, options);
+            return;
+          }
+          if (payload && payload.trace && typeof consoleRef.renderTrace === 'function') {
+            consoleRef.renderTrace(payload.trace, options);
+            return;
+          }
+          if (typeof consoleRef.clearTrace === 'function') {
+            consoleRef.clearTrace();
+          }
+        }
         if (!initialReplayMode) {
           try {
             var replaySearchParams = new window.URLSearchParams(window.location.search || '');
@@ -1236,6 +1312,7 @@
 
         function renderSuccess(body, fallbackMode) {
           if (!body) {
+            verboseApplyResponse(null, 'info');
             return null;
           }
           var statusText = (body.status || 'unknown').toString();
@@ -1247,6 +1324,8 @@
           var telemetryId = fallback(metadata.telemetryId, 'n/a');
           var credentialSource = fallback(metadata.credentialSource, mode);
           var fingerprint = fallback(metadata.contextFingerprint, 'unavailable');
+          var variant = statusText && statusText.toLowerCase() === 'match' ? 'success' : 'error';
+          verboseApplyResponse(body, variant);
           applyStatusBadge(statusText);
           setTelemetryField(reasonCodeValue, reasonCode);
           setTelemetryField(outcomeValue, outcome);
@@ -1304,6 +1383,11 @@
               'Reason: ' + reasonLabel + '. Sanitized: ' + sanitized + '.' + suffix;
           showResultError(resultPanel, reason, hint);
           var reasonCodeValue = specificReason || (statusValue === 'error' ? 'unexpected_error' : 'validation_failure');
+          var errorPayload = {
+            payload: body || null,
+            status: statusValue,
+          };
+          verboseApplyError(errorPayload);
           return {
             telemetryId: telemetryId,
             status: statusValue,
@@ -1363,7 +1447,8 @@
           setBusy(true);
           var selected = form.querySelector('input[name="replayMode"]:checked');
           var mode = selected ? selected.value : 'stored';
-          var payload = buildPayload(mode);
+          verboseBeginRequest();
+          var payload = verboseAttach(buildPayload(mode));
           var headers = {
             Accept: 'application/json',
             'Content-Type': 'application/json',

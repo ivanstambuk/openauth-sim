@@ -20,6 +20,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import org.junit.jupiter.api.Tag;
@@ -76,6 +78,11 @@ final class TotpCliVerboseTraceTest {
         assertTrue(stdout.contains("metadata.credentialId=" + CREDENTIAL_ID), stdout);
         assertTrue(stdout.contains("derive.time-counter"), stdout);
         assertTrue(stdout.contains("mod.reduce"), stdout);
+        String expectedSecretHash = sha256Digest(STORED_VECTOR.secret().value());
+        assertTrue(stdout.contains("  secret.hash = " + expectedSecretHash), stdout);
+        long counter = timestamp.getEpochSecond() / STORED_VECTOR.stepDuration().getSeconds();
+        assertTrue(stdout.contains("  time.counter.int = " + counter), stdout);
+        assertTrue(stdout.contains("  time.counter.hex = " + String.format("%016x", counter)), stdout);
         assertTrue(stdout.contains("=== End Verbose Trace ==="), stdout);
     }
 
@@ -145,6 +152,8 @@ final class TotpCliVerboseTraceTest {
         assertTrue(stdout.contains("normalize.input"), stdout);
         assertTrue(stdout.contains("derive.time-counter"), stdout);
         assertTrue(stdout.contains("mod.reduce"), stdout);
+        String inlineSecretHash = sha256Digest(INLINE_SECRET.value());
+        assertTrue(stdout.contains("  secret.hash = " + inlineSecretHash), stdout);
 
         String expectedOtp = TotpGenerator.generate(
                 TotpDescriptor.create(
@@ -200,5 +209,22 @@ final class TotpCliVerboseTraceTest {
                 store.save(credential);
             }
         }
+    }
+
+    private static String sha256Digest(byte[] input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return "sha256:" + toHex(digest.digest(input));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static String toHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format("%02x", value));
+        }
+        return builder.toString();
     }
 }

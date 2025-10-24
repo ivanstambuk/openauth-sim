@@ -54,7 +54,7 @@ final class HotpReplayApplicationServiceVerboseTraceTest {
         VerboseTrace.TraceStep normalize = findStep(trace, "normalize.input");
         assertEquals("rfc4226§5.1", normalize.specAnchor());
         assertEquals("replay.stored", normalize.attributes().get("op"));
-        assertEquals(ALGORITHM.name(), normalize.attributes().get("alg"));
+        assertEquals(ALGORITHM.traceLabel(), normalize.attributes().get("alg"));
         assertEquals(DIGITS, normalize.attributes().get("digits"));
         assertEquals(otp, normalize.attributes().get("otp.provided"));
         assertEquals(counter, normalize.attributes().get("counter.hint"));
@@ -68,6 +68,7 @@ final class HotpReplayApplicationServiceVerboseTraceTest {
                 "[" + (counter - 10) + ", " + (counter + 10) + "]",
                 search.attributes().get("window.range"));
         assertEquals("ascending", search.attributes().get("order"));
+        assertEquals(ALGORITHM.traceLabel(), search.attributes().get("match.hmac.compute.detail"));
         assertTrue(search.attributes().containsKey("attempt." + counter + ".otp"));
         assertTrue(search.attributes().get("match.marker.begin").toString().contains("-- begin match.derivation --"));
         assertTrue(search.attributes().containsKey("match.mod.reduce.otp.string.leftpad"));

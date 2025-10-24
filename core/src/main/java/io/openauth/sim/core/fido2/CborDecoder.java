@@ -11,7 +11,7 @@ import java.util.Map;
  * Minimal CBOR decoder supporting the subset of types required for WebAuthn fixtures (unsigned and
  * negative integers, byte strings, UTF-8 strings, arrays, and maps).
  */
-final class CborDecoder {
+public final class CborDecoder {
 
     private final byte[] data;
     private int index;
@@ -20,7 +20,7 @@ final class CborDecoder {
         this.data = data;
     }
 
-    static Object decode(byte[] data) throws GeneralSecurityException {
+    public static Object decode(byte[] data) throws GeneralSecurityException {
         CborDecoder decoder = new CborDecoder(data);
         Object result = decoder.readData();
         decoder.ensureFullyConsumed();

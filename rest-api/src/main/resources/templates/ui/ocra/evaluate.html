@@ -581,6 +581,82 @@
           pin_hash_not_permitted: 'PIN hash is not permitted for the selected suite.',
           missing_required: 'A required field is missing for the selected suite.',
         });
+        function verboseConsoleRef() {
+          return window.VerboseTraceConsole || null;
+        }
+
+        function verboseAttach(payload) {
+          if (!payload || typeof payload !== 'object') {
+            return payload;
+          }
+          const consoleRef = verboseConsoleRef();
+          if (consoleRef && typeof consoleRef.attachVerboseFlag === 'function') {
+            return consoleRef.attachVerboseFlag(payload);
+          }
+          if (consoleRef && typeof consoleRef.isEnabled === 'function') {
+            if (consoleRef.isEnabled()) {
+              payload.verbose = true;
+            } else if (Object.prototype.hasOwnProperty.call(payload, 'verbose')) {
+              delete payload.verbose;
+            }
+            return payload;
+          }
+          if (Object.prototype.hasOwnProperty.call(payload, 'verbose')) {
+            delete payload.verbose;
+          }
+          return payload;
+        }
+
+        function verboseBeginRequest() {
+          const consoleRef = verboseConsoleRef();
+          if (!consoleRef) {
+            return;
+          }
+          if (typeof consoleRef.beginRequest === 'function') {
+            consoleRef.beginRequest();
+          } else if (typeof consoleRef.clearTrace === 'function') {
+            consoleRef.clearTrace();
+          }
+        }
+
+        function verboseApplyResponse(payload, variant) {
+          const consoleRef = verboseConsoleRef();
+          if (!consoleRef) {
+            return;
+          }
+          const options = { variant: variant || 'info', protocol: 'ocra' };
+          if (typeof consoleRef.handleResponse === 'function') {
+            consoleRef.handleResponse(payload, options);
+            return;
+          }
+          if (payload && payload.trace && typeof consoleRef.renderTrace === 'function') {
+            consoleRef.renderTrace(payload.trace, options);
+            return;
+          }
+          if (typeof consoleRef.clearTrace === 'function') {
+            consoleRef.clearTrace();
+          }
+        }
+
+        function verboseApplyError(error) {
+          const consoleRef = verboseConsoleRef();
+          if (!consoleRef) {
+            return;
+          }
+          const payload = error && error.payload ? error.payload : null;
+          const options = { variant: 'error', protocol: 'ocra' };
+          if (typeof consoleRef.handleError === 'function') {
+            consoleRef.handleError(payload, options);
+            return;
+          }
+          if (payload && payload.trace && typeof consoleRef.renderTrace === 'function') {
+            consoleRef.renderTrace(payload.trace, options);
+            return;
+          }
+          if (typeof consoleRef.clearTrace === 'function') {
+            consoleRef.clearTrace();
+          }
+        }
         const inlineModeRadio = document.getElementById('mode-inline');
         const suiteInput = document.getElementById('suite');
         const sharedSecretInput = document.getElementById('sharedSecretHex');
@@ -1911,6 +1987,8 @@
         }
 
         function renderSuccess(body, payload) {
+          const tracePayload = body && typeof body === 'object' ? body : null;
+          verboseApplyResponse(tracePayload, 'success');
           applyStatusBadge(statusValue, 'Success');
           setTextContent(otpValue, body && body.otp ? body.otp : '');
           resetResultPanel(resultPanel);
@@ -1947,6 +2025,11 @@
         }
 
         function renderError(body) {
+          const errorPayload = {
+            payload: body || null,
+            status: body && typeof body.status === 'string' ? body.status : 'error',
+          };
+          verboseApplyError(errorPayload);
           const derived = deriveErrorMessage(body);
           applyStatusBadge(statusValue, 'Error');
           setTextContent(otpValue, '—');
@@ -1999,7 +2082,8 @@
           refreshTimestampBeforeSubmit();
           clearPanels();
           setBusy(true);
-          const payload = buildPayload();
+          verboseBeginRequest();
+          const payload = verboseAttach(buildPayload());
           const csrfInput = form ? form.querySelector('input[name="_csrf"]') : null;
           const csrfToken = csrfInput && typeof csrfInput.value === 'string' ? csrfInput.value : '';
           const headers = {

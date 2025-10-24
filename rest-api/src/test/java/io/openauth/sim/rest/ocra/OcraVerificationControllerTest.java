@@ -36,7 +36,7 @@ class OcraVerificationControllerTest {
         OcraVerificationMetadata metadata = new OcraVerificationMetadata(
                 "stored", "stored", "OCRA-1:HOTP-SHA1-6:QN08", 6, 12, "hash-value", "rest-ocra-verify-1", "match");
         when(service.verify(any(OcraVerificationRequest.class), any(OcraVerificationAuditContext.class)))
-                .thenReturn(new OcraVerificationResponse("match", "match", metadata));
+                .thenReturn(new OcraVerificationResponse("match", "match", metadata, null));
 
         mockMvc.perform(post("/api/v1/ocra/verify")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -57,7 +57,7 @@ class OcraVerificationControllerTest {
         OcraVerificationMetadata metadata = new OcraVerificationMetadata(
                 "stored", "stored", "OCRA-1:HOTP-SHA1-6:QN08", 6, 18, "hash-value", "rest-ocra-verify-2", "mismatch");
         when(service.verify(any(OcraVerificationRequest.class), any(OcraVerificationAuditContext.class)))
-                .thenReturn(new OcraVerificationResponse("mismatch", "strict_mismatch", metadata));
+                .thenReturn(new OcraVerificationResponse("mismatch", "strict_mismatch", metadata, null));
 
         mockMvc.perform(post("/api/v1/ocra/verify")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -154,7 +154,7 @@ class OcraVerificationControllerTest {
         org.mockito.ArgumentCaptor<OcraVerificationAuditContext> captor =
                 org.mockito.ArgumentCaptor.forClass(OcraVerificationAuditContext.class);
         when(service.verify(any(OcraVerificationRequest.class), captor.capture()))
-                .thenReturn(new OcraVerificationResponse("match", "match", metadata));
+                .thenReturn(new OcraVerificationResponse("match", "match", metadata, null));
 
         mockMvc.perform(post("/api/v1/ocra/verify")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -194,7 +194,7 @@ class OcraVerificationControllerTest {
         org.mockito.ArgumentCaptor<OcraVerificationAuditContext> captor =
                 org.mockito.ArgumentCaptor.forClass(OcraVerificationAuditContext.class);
         when(service.verify(any(OcraVerificationRequest.class), captor.capture()))
-                .thenReturn(new OcraVerificationResponse("match", "match", metadata));
+                .thenReturn(new OcraVerificationResponse("match", "match", metadata, null));
 
         mockMvc.perform(post("/api/v1/ocra/verify")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -221,7 +221,7 @@ class OcraVerificationControllerTest {
         org.mockito.ArgumentCaptor<OcraVerificationAuditContext> captor =
                 org.mockito.ArgumentCaptor.forClass(OcraVerificationAuditContext.class);
         when(service.verify(any(OcraVerificationRequest.class), captor.capture()))
-                .thenReturn(new OcraVerificationResponse("match", "match", metadata));
+                .thenReturn(new OcraVerificationResponse("match", "match", metadata, null));
 
         mockMvc.perform(post("/api/v1/ocra/verify")
                         .contentType(MediaType.APPLICATION_JSON)

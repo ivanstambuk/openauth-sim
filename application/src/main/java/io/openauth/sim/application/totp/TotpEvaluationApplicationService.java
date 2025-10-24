@@ -38,6 +38,7 @@ public final class TotpEvaluationApplicationService {
     private static final String SPEC_HOTP_MOD = "rfc4226§5.4";
     private static final String SPEC_TOTP_COUNTER = "rfc6238§4.2";
     private static final String SPEC_TOTP_WINDOW = "rfc6238§4.1";
+    private static final String SPEC_TOTP_INPUT = "rfc6238§1,§2";
 
     private final CredentialStore credentialStore;
     private final Clock clock;
@@ -126,12 +127,12 @@ public final class TotpEvaluationApplicationService {
         addStep(trace, step -> step.id("resolve.credential")
                 .summary("Resolve stored TOTP credential")
                 .detail("CredentialStore.findByName")
-                .spec(SPEC_HOTP_INPUT)
+                .spec(SPEC_TOTP_INPUT)
                 .attribute(VerboseTrace.AttributeType.STRING, "credentialId", command.credentialId())
                 .attribute(
                         VerboseTrace.AttributeType.STRING,
-                        "algorithm",
-                        descriptor.algorithm().name())
+                        "alg",
+                        descriptor.algorithm().traceLabel())
                 .attribute(VerboseTrace.AttributeType.INT, "digits", descriptor.digits())
                 .attribute(VerboseTrace.AttributeType.INT, "stepSeconds", stepSeconds)
                 .attribute(
@@ -290,11 +291,11 @@ public final class TotpEvaluationApplicationService {
         addStep(trace, step -> step.id("normalize.input")
                 .summary("Construct inline TOTP descriptor")
                 .detail("TotpDescriptor.create")
-                .spec(SPEC_HOTP_INPUT)
+                .spec(SPEC_TOTP_INPUT)
                 .attribute(
                         VerboseTrace.AttributeType.STRING,
-                        "algorithm",
-                        descriptor.algorithm().name())
+                        "alg",
+                        descriptor.algorithm().traceLabel())
                 .attribute(VerboseTrace.AttributeType.INT, "digits", descriptor.digits())
                 .attribute(VerboseTrace.AttributeType.INT, "stepSeconds", inlineStepSeconds)
                 .attribute(
@@ -638,12 +639,12 @@ public final class TotpEvaluationApplicationService {
 
         addStep(trace, step -> step.id("compute.hmac")
                 .summary("Compute TOTP HMAC")
-                .detail("Mac#doFinal")
+                .detail(descriptor.algorithm().traceLabel())
                 .spec(SPEC_HOTP_HMAC)
                 .attribute(
                         VerboseTrace.AttributeType.STRING,
-                        "algorithm",
-                        descriptor.algorithm().name())
+                        "alg",
+                        descriptor.algorithm().traceLabel())
                 .attribute(VerboseTrace.AttributeType.STRING, "key.hash", computation.secretHash())
                 .attribute(VerboseTrace.AttributeType.STRING, "message.hex", computation.counterHex())
                 .attribute(VerboseTrace.AttributeType.STRING, "hmac.hex", computation.hmacHex()));
@@ -653,7 +654,7 @@ public final class TotpEvaluationApplicationService {
                 .detail("RFC4226 bit extraction")
                 .spec(SPEC_HOTP_TRUNCATE)
                 .attribute(VerboseTrace.AttributeType.INT, "offset", computation.offset())
-                .attribute(VerboseTrace.AttributeType.INT, "dbc", computation.truncatedInt()));
+                .attribute(VerboseTrace.AttributeType.INT, "dynamic_binary_code", computation.truncatedInt()));
 
         addStep(trace, step -> step.id("mod.reduce")
                 .summary("Reduce truncated value to digits")

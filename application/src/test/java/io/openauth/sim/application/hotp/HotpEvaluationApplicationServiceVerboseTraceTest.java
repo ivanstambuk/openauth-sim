@@ -75,7 +75,7 @@ final class HotpEvaluationApplicationServiceVerboseTraceTest {
         var normalize = findStep(trace, "normalize.input");
         assertEquals("rfc4226§5.1", normalize.specAnchor());
         assertEquals("evaluate.stored", normalize.attributes().get("op"));
-        assertEquals(HotpHashAlgorithm.SHA1.name(), normalize.attributes().get("alg"));
+        assertEquals(HotpHashAlgorithm.SHA1.traceLabel(), normalize.attributes().get("alg"));
         assertEquals(6, normalize.attributes().get("digits"));
         assertEquals(7L, normalize.attributes().get("counter.input"));
         assertEquals("hex", normalize.attributes().get("secret.format"));
@@ -89,6 +89,7 @@ final class HotpEvaluationApplicationServiceVerboseTraceTest {
 
         var compute = findStep(trace, "hmac.compute");
         assertEquals("rfc4226§5.2", compute.specAnchor());
+        assertEquals(HotpHashAlgorithm.SHA1.traceLabel(), compute.detail());
         assertEquals(blockLength, compute.attributes().get("hash.block_len"));
         assertEquals("padded", compute.attributes().get("key.mode"));
         assertEquals(keyPrimeSha256, compute.attributes().get("key'.sha256"));
@@ -105,7 +106,7 @@ final class HotpEvaluationApplicationServiceVerboseTraceTest {
         assertEquals(offset, truncate.attributes().get("offset.nibble"));
         assertEquals(hex(slice), truncate.attributes().get("slice.bytes"));
         assertEquals(formatByte((byte) (slice[0] & 0x7F)), truncate.attributes().get("slice.bytes[0]_masked"));
-        assertEquals(dbc, truncate.attributes().get("dbc.31bit.big_endian"));
+        assertEquals(dbc, truncate.attributes().get("dynamic_binary_code.31bit.big_endian"));
 
         var reduce = findStep(trace, "mod.reduce");
         assertEquals("rfc4226§5.4", reduce.specAnchor());

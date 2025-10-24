@@ -46,7 +46,8 @@ class OcraVerificationServiceTest {
         OcraVerificationService service = service();
         OcraVerificationInlineCredential inline = inlineCredential();
         OcraVerificationContext invalidContext = new OcraVerificationContext("ABC", null, null, null, null, null, null);
-        OcraVerificationRequest request = new OcraVerificationRequest(buildMatchingOtp(), null, inline, invalidContext);
+        OcraVerificationRequest request =
+                new OcraVerificationRequest(buildMatchingOtp(), null, inline, invalidContext, Boolean.FALSE);
 
         OcraVerificationValidationException exception = assertThrows(
                 OcraVerificationValidationException.class,
@@ -100,7 +101,8 @@ class OcraVerificationServiceTest {
     @DisplayName("otp omission surfaces otp_missing validation error")
     void otpMissingValidation() {
         OcraVerificationService service = service();
-        OcraVerificationRequest request = new OcraVerificationRequest(null, null, inlineCredential(), context());
+        OcraVerificationRequest request =
+                new OcraVerificationRequest(null, null, inlineCredential(), context(), Boolean.FALSE);
 
         OcraVerificationValidationException exception = assertThrows(
                 OcraVerificationValidationException.class,
@@ -115,7 +117,8 @@ class OcraVerificationServiceTest {
     void inlineSuiteMissingValidation() {
         OcraVerificationService service = service();
         OcraVerificationInlineCredential inlineCredential = new OcraVerificationInlineCredential("   ", "31323334");
-        OcraVerificationRequest request = new OcraVerificationRequest("123456", null, inlineCredential, context());
+        OcraVerificationRequest request =
+                new OcraVerificationRequest("123456", null, inlineCredential, context(), Boolean.FALSE);
 
         OcraVerificationValidationException exception = assertThrows(
                 OcraVerificationValidationException.class,
@@ -131,7 +134,8 @@ class OcraVerificationServiceTest {
         OcraVerificationService service = service();
         OcraVerificationInlineCredential inlineCredential =
                 new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", "   ");
-        OcraVerificationRequest request = new OcraVerificationRequest("123456", null, inlineCredential, context());
+        OcraVerificationRequest request =
+                new OcraVerificationRequest("123456", null, inlineCredential, context(), Boolean.FALSE);
 
         OcraVerificationValidationException exception = assertThrows(
                 OcraVerificationValidationException.class,
@@ -153,7 +157,7 @@ class OcraVerificationServiceTest {
         OcraVerificationService service = service(store);
 
         OcraVerificationRequest request =
-                new OcraVerificationRequest(buildMatchingOtp(), descriptor.name(), null, context());
+                new OcraVerificationRequest(buildMatchingOtp(), descriptor.name(), null, context(), Boolean.FALSE);
         OcraVerificationResponse response =
                 service.verify(request, new OcraVerificationAuditContext("req-stored", null, "operator"));
 
@@ -185,7 +189,7 @@ class OcraVerificationServiceTest {
         OcraVerificationInlineCredential inline =
                 new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", DEFAULT_SECRET_HEX);
         OcraVerificationRequest request =
-                new OcraVerificationRequest(buildMatchingOtp(), "stored-token", inline, context());
+                new OcraVerificationRequest(buildMatchingOtp(), "stored-token", inline, context(), Boolean.FALSE);
 
         OcraVerificationValidationException exception = assertThrows(
                 OcraVerificationValidationException.class,
@@ -199,7 +203,8 @@ class OcraVerificationServiceTest {
     @DisplayName("missing stored and inline payload surfaces credential_missing")
     void missingStoredAndInlineCredential() {
         OcraVerificationService service = service();
-        OcraVerificationRequest request = new OcraVerificationRequest(buildMatchingOtp(), null, null, context());
+        OcraVerificationRequest request =
+                new OcraVerificationRequest(buildMatchingOtp(), null, null, context(), Boolean.FALSE);
 
         OcraVerificationValidationException exception = assertThrows(
                 OcraVerificationValidationException.class,
@@ -319,7 +324,7 @@ class OcraVerificationServiceTest {
         OcraVerificationContext invalidContext =
                 new OcraVerificationContext("12345678", null, null, null, "00FF", null, null);
         OcraVerificationRequest request =
-                new OcraVerificationRequest(buildMatchingOtp(), descriptor.name(), null, invalidContext);
+                new OcraVerificationRequest(buildMatchingOtp(), descriptor.name(), null, invalidContext, Boolean.FALSE);
 
         OcraVerificationValidationException exception = assertThrows(
                 OcraVerificationValidationException.class,
@@ -343,11 +348,11 @@ class OcraVerificationServiceTest {
     }
 
     private OcraVerificationRequest inlineRequest(String otp) {
-        return new OcraVerificationRequest(otp, null, inlineCredential(), context());
+        return new OcraVerificationRequest(otp, null, inlineCredential(), context(), Boolean.FALSE);
     }
 
     private OcraVerificationRequest storedRequest(String credentialId) {
-        return new OcraVerificationRequest("123456", credentialId, null, context());
+        return new OcraVerificationRequest("123456", credentialId, null, context(), Boolean.FALSE);
     }
 
     private OcraVerificationInlineCredential inlineCredential() {

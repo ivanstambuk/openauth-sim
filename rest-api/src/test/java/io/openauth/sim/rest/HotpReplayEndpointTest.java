@@ -251,8 +251,27 @@ class HotpReplayEndpointTest {
         JsonNode trace = response.get("trace");
         assertNotNull(trace, "Expected trace payload when verbose=true");
         assertEquals("hotp.replay.stored", trace.get("operation").asText());
-        assertTrue(trace.get("steps").isArray());
-        assertTrue(trace.get("steps").size() > 0, "Trace steps must not be empty");
+
+        JsonNode metadata = trace.get("metadata");
+        assertEquals("HOTP", metadata.get("protocol").asText());
+        assertEquals("stored", metadata.get("mode").asText());
+        assertEquals("rest-hotp-replay", metadata.get("credentialId").asText());
+        assertEquals("12", metadata.get("matchedCounter").asText());
+        assertEquals("educational", metadata.get("tier").asText());
+
+        Map<String, String> normalizeAttributes = orderedAttributes(step(trace, "normalize.input"));
+        assertTrue(normalizeAttributes.containsKey("secret.sha256"));
+        assertTrue(normalizeAttributes.get("secret.sha256").startsWith("sha256:"), "Expected SHA-256 secret hash");
+        assertTrue(normalizeAttributes.containsKey("otp.provided"));
+
+        Map<String, String> searchAttributes = orderedAttributes(step(trace, "search.window"));
+        assertTrue(searchAttributes.containsKey("match.hmac.compute.key'.sha256"));
+        assertTrue(searchAttributes.get("match.hmac.compute.key'.sha256").startsWith("sha256:"));
+        assertTrue(searchAttributes.containsKey("match.mod.reduce.otp.string.leftpad"));
+
+        Map<String, String> decisionAttributes = orderedAttributes(step(trace, "decision"));
+        assertTrue(decisionAttributes.containsKey("verify.match"));
+        assertEquals("true", decisionAttributes.get("verify.match"));
     }
 
     private Credential storedCredential(long counter) {
@@ -278,6 +297,24 @@ class HotpReplayEndpointTest {
 
     private static void deregisterTelemetryHandler(TestLogHandler handler) {
         TELEMETRY_LOGGER.removeHandler(handler);
+    }
+
+    private static JsonNode step(JsonNode trace, String id) {
+        for (JsonNode step : trace.withArray("steps")) {
+            if (id.equals(step.get("id").asText())) {
+                return step;
+            }
+        }
+        throw new AssertionError("Missing trace step: " + id);
+    }
+
+    private static Map<String, String> orderedAttributes(JsonNode step) {
+        Map<String, String> attributes = new LinkedHashMap<>();
+        for (JsonNode attribute : step.withArray("orderedAttributes")) {
+            attributes.put(
+                    attribute.get("name").asText(), attribute.get("value").asText());
+        }
+        return attributes;
     }
 
     private static void assertTelemetry(TestLogHandler handler, java.util.function.Predicate<LogRecord> predicate) {

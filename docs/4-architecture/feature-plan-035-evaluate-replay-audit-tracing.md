@@ -38,6 +38,9 @@ _Last updated:_ 2025-10-23
   - `parse.suite` – raw suite, parsed fields (digits, hash, data inputs).
   - `normalize.inputs` – counter, challenge encoding, PSHA digests, session/timestamp bytes.
   - `assemble.message` – ordered segments with hex and overall SHA-256 hash.
+  - Emit explicit `len.bytes` attributes for every `segment.*` entry and for the concatenated message (`message.len.bytes`) so padding mistakes surface instantly (added 2025-10-24).
+  - Expose canonical HMAC identifier via `alg = HMAC-SHA-*` on OCRA trace steps; mirror the canonical name in `compute.hmac` detail and cite `rfc2104` alongside `rfc6287§7` (added 2025-10-24).
+  - Summarise message integrity with `parts.count` and `parts.order` so operators can confirm the concatenation sequence at a glance (added 2025-10-24).
   - Conclude with HOTP-style HMAC/truncation/modulo steps.
 - **WebAuthn / FIDO2 (WebAuthn L2 §6–§7, CTAP 2 §5)**
   - Split flows into attestation vs assertion.
@@ -129,11 +132,25 @@ _Last updated:_ 2025-10-23
     - Implement toggle, REST integration, and terminal-style panel with scroll/copy affordances adhering to the chosen layout.
     - Command: targeted Selenium suites from I11 + `./gradlew --no-daemon :rest-api:test`
 
-17. **I13 – Documentation & knowledge sync**
+17. **I12b – OCRA operator verbose wiring**
+    - Update OCRA evaluate/replay panel scripts to delegate request/response handling through `VerboseTraceConsole`, mirroring the HOTP/TOTP integration so verbose traces render in the shared console panel.
+    - Add Selenium coverage that toggles verbose mode for OCRA evaluate and replay, asserts the trace output appears, and remains hidden when disabled. Introduce a dedicated `OcraOperatorUiSeleniumTest` (or extend existing suite).
+        - Exercise stored evaluate + replay happy paths with verbose enabled, plus a replay request with verbose disabled to assert the console remains hidden.
+        - Capture the pre-wiring failure by running the new Selenium test before modifying the UI scripts.
+    - 2025-10-24 – Updated `ui/ocra/evaluate.js`/`replay.js` to attach the verbose flag, pipe responses through `VerboseTraceConsole`, and verified `OcraOperatorUiSeleniumTest` alongside `Ocra*EndpointTest`; replay assertions tolerate trace-less responses while still validating verbose flag propagation.
+    - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest"` (new) plus existing OCRA endpoint suites.
+
+18. **I12c – OCRA verification verbose instrumentation (completed 2025-10-24)**
+    - Added replay-focused verbose trace tests (stored + inline) and implemented trace generation inside `OcraVerificationApplicationService`, reusing the existing evaluation trace builder to document suite parsing, input normalisation, message assembly, HMAC, truncation, modulo reduction, and OTP comparison.
+    - Propagated verbose traces through REST (`OcraVerificationEndpoint`/`OcraVerificationResponse`), CLI (`--verbose` verify flag), and operator UI panels; regenerated OpenAPI snapshots to document the new `verbose` request field and `trace` response payload.
+    - Updated Selenium coverage (`OcraOperatorUiSeleniumTest`) to assert that stored replay surfaces `ocra.verify.stored` traces when verbose mode is enabled.
+    - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliVerboseTraceTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OcraVerificationEndpointTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`.
+
+19. **I13 – Documentation & knowledge sync**
     - Update CLI/REST how-to guides, operator UI docs, and knowledge map entries; ensure verbose tracing instructions are clear.
     - Command: `./gradlew --no-daemon spotlessApply`
 
-18. **I14 – Full quality gate**
+20. **I14 – Full quality gate**
     - 2025-10-23 – `./gradlew --no-daemon spotlessApply check` completed successfully after additional REST/CLI tests lifted aggregated branch coverage to 70.45 % (1 645/2 335).
 
 ## UI Layout Decision

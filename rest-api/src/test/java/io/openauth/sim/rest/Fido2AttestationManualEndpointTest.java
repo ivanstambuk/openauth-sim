@@ -17,7 +17,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -182,8 +184,13 @@ class Fido2AttestationManualEndpointTest {
         JsonNode trace = json.get("trace");
         assertThat(trace).isNotNull();
         assertThat(trace.get("operation").asText()).isEqualTo("fido2.attestation.generate");
-        assertThat(trace.get("steps").isArray()).isTrue();
-        assertThat(trace.get("steps")).isNotEmpty();
+
+        JsonNode metadata = trace.get("metadata");
+        assertThat(metadata.get("format").asText()).isEqualTo("packed");
+        assertThat(metadata.get("tier").asText()).isEqualTo("educational");
+
+        Map<String, String> generateAttributes = orderedAttributes(step(trace, "generate.attestation"));
+        assertThat(generateAttributes).containsEntry("signingMode", "UNSIGNED");
     }
 
     @Test
@@ -233,8 +240,37 @@ class Fido2AttestationManualEndpointTest {
         JsonNode trace = json.get("trace");
         assertThat(trace).isNotNull();
         assertThat(trace.get("operation").asText()).isEqualTo("fido2.attestation.verify");
-        assertThat(trace.get("steps").isArray()).isTrue();
-        assertThat(trace.get("steps")).isNotEmpty();
+
+        JsonNode metadata = trace.get("metadata");
+        assertThat(metadata.get("format").asText()).isEqualTo("packed");
+        assertThat(metadata.get("tier").asText()).isEqualTo("educational");
+
+        Map<String, String> anchorAttributes = orderedAttributes(step(trace, "resolve.trustAnchors"));
+        assertThat(anchorAttributes).containsEntry("anchorCount", "1");
+
+        Map<String, String> prepareAttributes = orderedAttributes(step(trace, "prepare.replay"));
+        assertThat(prepareAttributes).containsEntry("anchorSource", "COMBINED");
+
+        Map<String, String> verifyAttributes = orderedAttributes(step(trace, "verify.attestation"));
+        assertThat(verifyAttributes).containsEntry("status", "SUCCESS");
+    }
+
+    private static JsonNode step(JsonNode trace, String id) {
+        for (JsonNode step : trace.withArray("steps")) {
+            if (id.equals(step.get("id").asText())) {
+                return step;
+            }
+        }
+        throw new AssertionError("Missing trace step: " + id);
+    }
+
+    private static Map<String, String> orderedAttributes(JsonNode step) {
+        Map<String, String> attributes = new LinkedHashMap<>();
+        for (JsonNode attribute : step.withArray("orderedAttributes")) {
+            attributes.put(
+                    attribute.get("name").asText(), attribute.get("value").asText());
+        }
+        return attributes;
     }
 
     private static List<String> certificateChainPem(WebAuthnAttestationVector vector) {

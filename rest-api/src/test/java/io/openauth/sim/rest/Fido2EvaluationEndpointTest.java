@@ -241,8 +241,21 @@ class Fido2EvaluationEndpointTest {
         JsonNode trace = root.get("trace");
         assertThat(trace).as("verbose trace payload required").isNotNull();
         assertThat(trace.get("operation").asText()).isEqualTo("fido2.assertion.evaluate.stored");
-        assertThat(trace.get("steps").isArray()).isTrue();
-        assertThat(trace.get("steps")).isNotEmpty();
+
+        JsonNode metadata = trace.get("metadata");
+        assertThat(metadata.get("credentialSource").asText()).isEqualTo("stored");
+        assertThat(metadata.get("credentialId").asText()).isEqualTo("stored-credential-trace");
+        assertThat(metadata.get("tier").asText()).isEqualTo("educational");
+
+        Map<String, String> decodeAttributes = orderedAttributes(step(trace, "decode.challenge"));
+        assertThat(decodeAttributes).containsEntry("length", "14");
+
+        Map<String, String> constructAttributes = orderedAttributes(step(trace, "construct.command"));
+        assertThat(constructAttributes).containsKeys("signatureCounter", "userVerificationRequired");
+
+        Map<String, String> generateAttributes = orderedAttributes(step(trace, "generate.assertion"));
+        assertThat(generateAttributes).containsEntry("algorithm", "ES256");
+        assertThat(generateAttributes).containsEntry("credentialReference", "true");
     }
 
     @Test
@@ -280,8 +293,15 @@ class Fido2EvaluationEndpointTest {
         JsonNode trace = root.get("trace");
         assertThat(trace).isNotNull();
         assertThat(trace.get("operation").asText()).isEqualTo("fido2.assertion.evaluate.inline");
-        assertThat(trace.get("steps").isArray()).isTrue();
-        assertThat(trace.get("steps")).isNotEmpty();
+        JsonNode metadata = trace.get("metadata");
+        assertThat(metadata.get("credentialSource").asText()).isEqualTo("inline");
+        assertThat(metadata.get("tier").asText()).isEqualTo("educational");
+
+        Map<String, String> constructAttributes = orderedAttributes(step(trace, "construct.command"));
+        assertThat(constructAttributes).containsKeys("credentialName", "signatureCounter", "userVerificationRequired");
+
+        Map<String, String> generateAttributes = orderedAttributes(step(trace, "generate.assertion"));
+        assertThat(generateAttributes).containsEntry("credentialReference", "false");
     }
 
     @Test
@@ -315,6 +335,24 @@ class Fido2EvaluationEndpointTest {
 
         Credential credential = VersionedCredentialRecordMapper.toCredential(persistenceAdapter.serialize(descriptor));
         credentialStore.save(credential);
+    }
+
+    private static JsonNode step(JsonNode trace, String id) {
+        for (JsonNode step : trace.withArray("steps")) {
+            if (id.equals(step.get("id").asText())) {
+                return step;
+            }
+        }
+        throw new AssertionError("Missing trace step: " + id);
+    }
+
+    private static Map<String, String> orderedAttributes(JsonNode step) {
+        Map<String, String> attributes = new LinkedHashMap<>();
+        for (JsonNode attribute : step.withArray("orderedAttributes")) {
+            attributes.put(
+                    attribute.get("name").asText(), attribute.get("value").asText());
+        }
+        return attributes;
     }
 
     private static String encode(byte[] value) {

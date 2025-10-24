@@ -71,9 +71,9 @@ final class TotpEvaluationApplicationServiceVerboseTraceTest {
         assertEquals(CREDENTIAL_ID, trace.metadata().get("credentialId"));
 
         VerboseTrace.TraceStep resolve = findStep(trace, "resolve.credential");
-        assertEquals("rfc4226§5.1", resolve.specAnchor());
+        assertEquals("rfc6238§1,§2", resolve.specAnchor());
         assertEquals(CREDENTIAL_ID, resolve.attributes().get("credentialId"));
-        assertEquals(TotpHashAlgorithm.SHA1.name(), resolve.attributes().get("algorithm"));
+        assertEquals(TotpHashAlgorithm.SHA1.traceLabel(), resolve.attributes().get("alg"));
         assertEquals(6, resolve.attributes().get("digits"));
         assertEquals(STEP.getSeconds(), longAttr(resolve, "stepSeconds"));
         assertEquals(DRIFT.backwardSteps(), longAttr(resolve, "drift.backward"));
@@ -110,13 +110,15 @@ final class TotpEvaluationApplicationServiceVerboseTraceTest {
 
         VerboseTrace.TraceStep compute = findStep(trace, "compute.hmac");
         assertEquals("rfc4226§5.2", compute.specAnchor());
+        assertEquals(TotpHashAlgorithm.SHA1.traceLabel(), compute.detail());
+        assertEquals(TotpHashAlgorithm.SHA1.traceLabel(), compute.attributes().get("alg"));
         assertEquals(counterHex, compute.attributes().get("message.hex"));
         assertEquals(hmacHex, compute.attributes().get("hmac.hex"));
 
         VerboseTrace.TraceStep truncate = findStep(trace, "truncate.dynamic");
         assertEquals("rfc4226§5.3", truncate.specAnchor());
         assertEquals(offset, truncate.attributes().get("offset"));
-        assertEquals(dbc, truncate.attributes().get("dbc"));
+        assertEquals(dbc, truncate.attributes().get("dynamic_binary_code"));
 
         VerboseTrace.TraceStep reduce = findStep(trace, "mod.reduce");
         assertEquals("rfc4226§5.4", reduce.specAnchor());
@@ -149,8 +151,9 @@ final class TotpEvaluationApplicationServiceVerboseTraceTest {
         assertEquals("inline", trace.metadata().get("mode"));
 
         VerboseTrace.TraceStep normalize = findStep(trace, "normalize.input");
-        assertEquals("rfc4226§5.1", normalize.specAnchor());
-        assertEquals(TotpHashAlgorithm.SHA256.name(), normalize.attributes().get("algorithm"));
+        assertEquals("rfc6238§1,§2", normalize.specAnchor());
+        assertEquals(
+                TotpHashAlgorithm.SHA256.traceLabel(), normalize.attributes().get("alg"));
         assertEquals(8, longAttr(normalize, "digits"));
         assertEquals(sha256Digest(SECRET.value()), normalize.attributes().get("secret.hash"));
 
@@ -162,6 +165,8 @@ final class TotpEvaluationApplicationServiceVerboseTraceTest {
         assertEquals(counter, longAttr(derive, "time.counter.int"));
 
         VerboseTrace.TraceStep compute = findStep(trace, "compute.hmac");
+        assertEquals(TotpHashAlgorithm.SHA256.traceLabel(), compute.detail());
+        assertEquals(TotpHashAlgorithm.SHA256.traceLabel(), compute.attributes().get("alg"));
         assertEquals(hmacHex, compute.attributes().get("hmac.hex"));
 
         VerboseTrace.TraceStep validate = findStep(trace, "validate.otp");

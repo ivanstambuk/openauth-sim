@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -19,6 +20,8 @@ import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -128,6 +131,117 @@ final class OcraVerificationEndpointTest {
     }
 
     @Test
+    @DisplayName("Stored replay returns verbose trace when requested")
+    void storedReplayReturnsVerboseTrace() throws Exception {
+        String responseBody = mockMvc.perform(post("/api/v1/ocra/verify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(storedReplayRequest(EXPECTED_OTP, true)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode response = JSON.readTree(responseBody);
+        JsonNode trace = response.get("trace");
+        assertNotNull(trace, "trace payload must be present when verbose=true");
+        assertEquals("ocra.verify.stored", trace.get("operation").asText());
+
+        JsonNode traceMetadata = trace.get("metadata");
+        assertEquals("OCRA", traceMetadata.get("protocol").asText());
+        assertEquals("stored", traceMetadata.get("mode").asText());
+        assertEquals("educational", traceMetadata.get("tier").asText());
+        assertEquals(STORED_CREDENTIAL_ID, traceMetadata.get("credentialId").asText());
+
+        Map<String, String> normalize = orderedAttributes(traceStep(trace, "normalize.inputs"));
+        assertTrue(normalize.containsKey("secret.hash"), "secret hash should be present in normalize.inputs");
+        assertTrue(
+                normalize.containsKey("question.hex"), "question normalization should expose question.hex attribute");
+        assertFalse(normalize.get("question.hex").isBlank(), "question.hex should not be blank");
+
+        Map<String, String> assemble = orderedAttributes(traceStep(trace, "assemble.message"));
+        assertEquals(
+                String.valueOf(SUITE.getBytes(StandardCharsets.US_ASCII).length),
+                assemble.get("segment.0.suite.len.bytes"),
+                "suite length should match ASCII byte count");
+        assertEquals("1", assemble.get("segment.1.separator.len.bytes"), "separator length should be 1 byte");
+        assertEquals(
+                String.valueOf(assemble.get("segment.3.question").length() / 2),
+                assemble.get("segment.3.question.len.bytes"),
+                "question length should match padded hex length");
+        assertEquals(
+                String.valueOf(assemble.get("message.hex").length() / 2),
+                assemble.get("message.len.bytes"),
+                "message length should match concatenated hex length");
+        assertEquals("4", assemble.get("parts.count"));
+        assertEquals("[suite, sep, question, session]", assemble.get("parts.order"));
+
+        Map<String, String> compare = orderedAttributes(traceStep(trace, "compare.expected"));
+        assertEquals(EXPECTED_OTP, compare.get("compare.expected"));
+        assertEquals(EXPECTED_OTP, compare.get("compare.supplied"));
+        assertEquals("true", compare.get("compare.match"));
+
+        Map<String, String> hmac = orderedAttributes(traceStep(trace, "compute.hmac"));
+        assertTrue(hmac.containsKey("alg"), () -> "missing alg in compute.hmac attributes: " + hmac);
+        assertEquals("HMAC-SHA-256", hmac.get("alg"), () -> "compute.hmac attributes: " + hmac);
+        assertTrue(hmac.containsKey("hmac.hex"), () -> "missing hmac.hex in compute.hmac attributes: " + hmac);
+        assertFalse(hmac.get("hmac.hex").isBlank(), "hmac.hex should be populated");
+    }
+
+    @Test
+    @DisplayName("Inline replay returns verbose trace when requested")
+    void inlineReplayReturnsVerboseTrace() throws Exception {
+        String responseBody = mockMvc.perform(post("/api/v1/ocra/verify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(inlineReplayRequest(EXPECTED_OTP, true)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode response = JSON.readTree(responseBody);
+        JsonNode trace = response.get("trace");
+        assertNotNull(trace, "trace payload must be present when verbose=true");
+        assertEquals("ocra.verify.inline", trace.get("operation").asText());
+
+        JsonNode traceMetadata = trace.get("metadata");
+        assertEquals("OCRA", traceMetadata.get("protocol").asText());
+        assertEquals("inline", traceMetadata.get("mode").asText());
+        assertEquals("educational", traceMetadata.get("tier").asText());
+        assertEquals(SUITE, traceMetadata.get("suite").asText());
+
+        Map<String, String> createDescriptor = orderedAttributes(traceStep(trace, "create.descriptor"));
+        assertEquals(traceMetadata.get("credentialId").asText(), createDescriptor.get("identifier"));
+
+        Map<String, String> assemble = orderedAttributes(traceStep(trace, "assemble.message"));
+        assertEquals(
+                String.valueOf(SUITE.getBytes(StandardCharsets.US_ASCII).length),
+                assemble.get("segment.0.suite.len.bytes"),
+                "suite length should match ASCII byte count");
+        assertEquals("1", assemble.get("segment.1.separator.len.bytes"), "separator length should be 1 byte");
+        assertEquals(
+                String.valueOf(assemble.get("segment.3.question").length() / 2),
+                assemble.get("segment.3.question.len.bytes"),
+                "question length should match padded hex length");
+        assertEquals(
+                String.valueOf(assemble.get("message.hex").length() / 2),
+                assemble.get("message.len.bytes"),
+                "message length should match concatenated hex length");
+        assertEquals("4", assemble.get("parts.count"));
+        assertEquals("[suite, sep, question, session]", assemble.get("parts.order"));
+
+        Map<String, String> compare = orderedAttributes(traceStep(trace, "compare.expected"));
+        assertEquals(EXPECTED_OTP, compare.get("compare.expected"));
+        assertEquals(EXPECTED_OTP, compare.get("compare.supplied"));
+        assertEquals("true", compare.get("compare.match"));
+
+        Map<String, String> hmac = orderedAttributes(traceStep(trace, "compute.hmac"));
+        assertTrue(hmac.containsKey("alg"), () -> "missing alg in compute.hmac attributes: " + hmac);
+        assertEquals("HMAC-SHA-256", hmac.get("alg"), () -> "compute.hmac attributes: " + hmac);
+        assertTrue(hmac.containsKey("hmac.hex"), () -> "missing hmac.hex in compute.hmac attributes: " + hmac);
+        assertFalse(hmac.get("hmac.hex").isBlank(), "hmac.hex should be populated");
+    }
+
+    @Test
     @DisplayName("Stored replay validation failure returns 422 with mode-aware telemetry")
     void storedReplayValidationFailure() throws Exception {
         TestLogHandler handler = registerTelemetryHandler();
@@ -158,6 +272,10 @@ final class OcraVerificationEndpointTest {
     }
 
     private static String storedReplayRequest(String otp) {
+        return storedReplayRequest(otp, false);
+    }
+
+    private static String storedReplayRequest(String otp, boolean verbose) {
         return """
         {
           "otp": "%s",
@@ -165,12 +283,17 @@ final class OcraVerificationEndpointTest {
           "context": {
             "challenge": "%s",
             "sessionHex": "%s"
-          }
+          },
+          "verbose": %s
         }
-        """.formatted(otp, STORED_CREDENTIAL_ID, CHALLENGE, SESSION_HEX);
+        """.formatted(otp, STORED_CREDENTIAL_ID, CHALLENGE, SESSION_HEX, Boolean.toString(verbose));
     }
 
     private static String inlineReplayRequest(String otp) {
+        return inlineReplayRequest(otp, false);
+    }
+
+    private static String inlineReplayRequest(String otp, boolean verbose) {
         return """
         {
           "otp": "%s",
@@ -181,9 +304,10 @@ final class OcraVerificationEndpointTest {
           "context": {
             "challenge": "%s",
             "sessionHex": "%s"
-          }
+          },
+          "verbose": %s
         }
-        """.formatted(otp, SUITE, SHARED_SECRET_HEX, CHALLENGE, SESSION_HEX);
+        """.formatted(otp, SUITE, SHARED_SECRET_HEX, CHALLENGE, SESSION_HEX, Boolean.toString(verbose));
     }
 
     private static TestLogHandler registerTelemetryHandler() {
@@ -225,6 +349,24 @@ final class OcraVerificationEndpointTest {
                         .map(message -> message.toLowerCase(Locale.ROOT))
                         .anyMatch(message -> message.contains(lower)),
                 () -> "OTP leaked in telemetry: " + handler.records());
+    }
+
+    private static JsonNode traceStep(JsonNode trace, String id) {
+        for (JsonNode step : trace.withArray("steps")) {
+            if (id.equals(step.get("id").asText())) {
+                return step;
+            }
+        }
+        throw new AssertionError("Missing trace step: " + id);
+    }
+
+    private static Map<String, String> orderedAttributes(JsonNode step) {
+        Map<String, String> attributes = new LinkedHashMap<>();
+        for (JsonNode attribute : step.withArray("orderedAttributes")) {
+            attributes.put(
+                    attribute.get("name").asText(), attribute.get("value").asText());
+        }
+        return attributes;
     }
 
     private static final class TestLogHandler extends Handler {

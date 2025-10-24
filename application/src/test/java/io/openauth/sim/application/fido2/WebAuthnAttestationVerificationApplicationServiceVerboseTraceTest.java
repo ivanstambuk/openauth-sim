@@ -10,9 +10,21 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.fido2.WebAuthnStoredCredential;
 import io.openauth.sim.core.fido2.WebAuthnVerificationError;
+import io.openauth.sim.core.trace.VerboseTrace;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +33,8 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
 
     private WebAuthnAttestationVerificationApplicationService service;
     private WebAuthnAttestationVector vector;
+    private WebAuthnAttestationVerification verification;
+    private WebAuthnStoredCredential attestedCredential;
     private List<X509Certificate> trustAnchors;
 
     @BeforeEach
@@ -32,7 +46,10 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
                 .findFirst()
                 .orElseThrow();
 
-        WebAuthnAttestationVerification verification = new WebAuthnAttestationVerifier().verify(toRequest(vector));
+        verification = new WebAuthnAttestationVerifier().verify(toRequest(vector));
+        attestedCredential = verification
+                .attestedCredential()
+                .orElseThrow(() -> new IllegalStateException("Attested credential missing in fixture"));
         trustAnchors = verification.certificateChain().isEmpty()
                 ? List.of()
                 : List.of(verification
@@ -78,10 +95,94 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
         assertEquals("fido2.attestation.verify", trace.operation());
         assertEquals("FIDO2", trace.metadata().get("protocol"));
         assertEquals(vector.format().label(), trace.metadata().get("format"));
+        assertEquals("educational", trace.metadata().get("tier"));
 
-        assertTrue(trace.steps().stream().anyMatch(step -> "parse.request".equals(step.id())));
-        assertTrue(trace.steps().stream().anyMatch(step -> "verify.attestation".equals(step.id())));
-        assertTrue(trace.steps().stream().anyMatch(step -> "assemble.result".equals(step.id())));
+        var clientDataJson = new String(vector.registration().clientDataJson(), StandardCharsets.UTF_8);
+        var parseClientData = findStep(trace, "parse.clientData");
+        assertEquals("webauthn§6.5.1", parseClientData.specAnchor());
+        assertEquals("webauthn.create", parseClientData.attributes().get("type"));
+        assertEquals(
+                base64Url(vector.registration().challenge()),
+                parseClientData.attributes().get("challenge.base64url"));
+        assertEquals(vector.origin(), parseClientData.attributes().get("origin"));
+        assertEquals(clientDataJson, parseClientData.attributes().get("clientData.json"));
+        assertEquals(
+                sha256Digest(vector.registration().clientDataJson()),
+                parseClientData.attributes().get("clientData.sha256"));
+        assertTrue(parseClientData.typedAttributes().stream()
+                .anyMatch(attr ->
+                        "clientData.json".equals(attr.name()) && attr.type() == VerboseTrace.AttributeType.JSON));
+
+        var attestation = decodeAttestation(vector.registration().attestationObject());
+        var parseAuthenticatorData = findStep(trace, "parse.authenticatorData");
+        assertEquals("webauthn§6.5.4", parseAuthenticatorData.specAnchor());
+        assertEquals(
+                hex(attestation.rpIdHash()), parseAuthenticatorData.attributes().get("rpId.hash.hex"));
+        assertEquals(
+                sha256Digest(vector.relyingPartyId().getBytes(StandardCharsets.UTF_8)),
+                parseAuthenticatorData.attributes().get("rpId.expected.sha256"));
+        assertEquals(
+                formatByte(attestation.flags()),
+                parseAuthenticatorData.attributes().get("flags.byte"));
+        assertEquals(
+                attestation.userPresence(), parseAuthenticatorData.attributes().get("flags.userPresence"));
+        assertEquals(
+                attestation.userVerification(),
+                parseAuthenticatorData.attributes().get("flags.userVerification"));
+        assertEquals(
+                attestation.attestedCredentialData(),
+                parseAuthenticatorData.attributes().get("flags.attestedCredentialData"));
+        assertEquals(
+                attestation.extensionDataIncluded(),
+                parseAuthenticatorData.attributes().get("flags.extensionDataIncluded"));
+        assertEquals(attestation.counter(), parseAuthenticatorData.attributes().get("counter.reported"));
+
+        var extractCredential = findStep(trace, "extract.attestedCredential");
+        assertEquals("webauthn§7.1", extractCredential.specAnchor());
+        assertEquals(vector.relyingPartyId(), extractCredential.attributes().get("relyingPartyId"));
+        assertEquals(
+                base64Url(attestedCredential.credentialId()),
+                extractCredential.attributes().get("credentialId.base64url"));
+        assertEquals(
+                attestedCredential.algorithm().name(),
+                extractCredential.attributes().get("algorithm"));
+        assertEquals(
+                attestedCredential.signatureCounter(),
+                extractCredential.attributes().get("signatureCounter"));
+        assertEquals(
+                attestedCredential.userVerificationRequired(),
+                extractCredential.attributes().get("userVerificationRequired"));
+        assertEquals(hex(attestation.aaguid()), extractCredential.attributes().get("aaguid.hex"));
+
+        var signatureBase = findStep(trace, "build.signatureBase");
+        assertEquals("webauthn§6.5.5", signatureBase.specAnchor());
+        byte[] clientDataHash = sha256(vector.registration().clientDataJson());
+        byte[] signaturePayload = concat(attestation.authenticatorData(), clientDataHash);
+        assertEquals(
+                hex(attestation.authenticatorData()), signatureBase.attributes().get("authenticatorData.hex"));
+        assertEquals(sha256Label(clientDataHash), signatureBase.attributes().get("clientData.hash.sha256"));
+        assertEquals(sha256Digest(signaturePayload), signatureBase.attributes().get("signature.base.sha256"));
+
+        var verifySignature = findStep(trace, "verify.signature");
+        assertEquals("webauthn§6.5.5", verifySignature.specAnchor());
+        assertEquals(
+                attestedCredential.algorithm().name(),
+                verifySignature.attributes().get("algorithm"));
+        assertEquals(Boolean.TRUE, verifySignature.attributes().get("valid"));
+
+        var verifyAttestation = findStep(trace, "verify.attestation");
+        assertEquals("webauthn§7.2", verifyAttestation.specAnchor());
+        assertEquals(Boolean.TRUE, verifyAttestation.attributes().get("valid"));
+
+        var validateMetadata = findStep(trace, "validate.metadata");
+        assertEquals("webauthn§7.2", validateMetadata.specAnchor());
+        assertEquals(Boolean.TRUE, validateMetadata.attributes().get("anchorProvided"));
+        assertEquals(Boolean.FALSE, validateMetadata.attributes().get("selfAttested"));
+        assertEquals(trustAnchors.size(), validateMetadata.attributes().get("trustAnchors.provided"));
+        assertEquals(
+                verification.certificateChain().size(),
+                validateMetadata.attributes().get("certificateChain.length"));
+        assertEquals("fresh", validateMetadata.attributes().get("anchorMode"));
     }
 
     @Test
@@ -134,5 +235,272 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
                 .anyMatch(step -> "verify.attestation".equals(step.id())
                         && Boolean.FALSE.equals(step.attributes().get("valid"))));
         assertEquals(Optional.of(WebAuthnVerificationError.CLIENT_DATA_CHALLENGE_MISMATCH), result.error());
+    }
+
+    private static VerboseTrace.TraceStep findStep(VerboseTrace trace, String id) {
+        return trace.steps().stream()
+                .filter(step -> id.equals(step.id()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Missing trace step: " + id));
+    }
+
+    private static ParsedAttestationData decodeAttestation(byte[] attestationObject) {
+        Object decoded = TestCborDecoder.decode(attestationObject);
+        if (!(decoded instanceof Map<?, ?> rawMap)) {
+            throw new IllegalStateException("Attestation object did not decode to a CBOR map");
+        }
+        Map<String, Object> map = new LinkedHashMap<>(rawMap.size());
+        for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+            map.put(String.valueOf(entry.getKey()), entry.getValue());
+        }
+        Object authDataNode = map.get("authData");
+        if (!(authDataNode instanceof byte[] authData)) {
+            throw new IllegalStateException("Attestation object missing authData");
+        }
+        return parseAuthData(authData);
+    }
+
+    private static ParsedAttestationData parseAuthData(byte[] authData) {
+        if (authData.length < 37) {
+            throw new IllegalArgumentException("Authenticator data must be at least 37 bytes");
+        }
+        ByteBuffer buffer = ByteBuffer.wrap(authData).order(ByteOrder.BIG_ENDIAN);
+        byte[] rpIdHash = new byte[32];
+        buffer.get(rpIdHash);
+        int flags = buffer.get() & 0xFF;
+        long counter = buffer.getInt() & 0xFFFFFFFFL;
+        byte[] aaguid = new byte[16];
+        buffer.get(aaguid);
+        int credentialIdLength = Short.toUnsignedInt(buffer.getShort());
+        if (buffer.remaining() < credentialIdLength) {
+            throw new IllegalArgumentException("Credential ID truncated in authenticator data");
+        }
+        byte[] credentialId = new byte[credentialIdLength];
+        buffer.get(credentialId);
+        byte[] credentialPublicKey = new byte[buffer.remaining()];
+        buffer.get(credentialPublicKey);
+        return new ParsedAttestationData(authData, rpIdHash, flags, counter, aaguid, credentialId, credentialPublicKey);
+    }
+
+    private static String base64Url(byte[] input) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(input);
+    }
+
+    private static byte[] sha256(byte[] input) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(input);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static String sha256Digest(byte[] input) {
+        return sha256Label(sha256(input));
+    }
+
+    private static String sha256Label(byte[] digest) {
+        return "sha256:" + hex(digest);
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format("%02x", value));
+        }
+        return builder.toString();
+    }
+
+    private static byte[] concat(byte[] first, byte[] second) {
+        byte[] combined = Arrays.copyOf(first, first.length + second.length);
+        System.arraycopy(second, 0, combined, first.length, second.length);
+        return combined;
+    }
+
+    private static String formatByte(int value) {
+        return String.format("0x%02x", value & 0xFF);
+    }
+
+    private static final class TestCborDecoder {
+
+        private final byte[] data;
+        private int index;
+
+        private TestCborDecoder(byte[] data) {
+            this.data = data;
+        }
+
+        static Object decode(byte[] data) {
+            try {
+                TestCborDecoder decoder = new TestCborDecoder(data);
+                Object result = decoder.readData();
+                decoder.ensureFullyConsumed();
+                return result;
+            } catch (GeneralSecurityException ex) {
+                throw new IllegalStateException("Invalid CBOR payload", ex);
+            }
+        }
+
+        private void ensureFullyConsumed() throws GeneralSecurityException {
+            if (index != data.length) {
+                throw new GeneralSecurityException("Unexpected trailing CBOR data");
+            }
+        }
+
+        private Object readData() throws GeneralSecurityException {
+            int initial = readUnsignedByte();
+            int majorType = initial >>> 5;
+            int additional = initial & 0x1F;
+
+            return switch (majorType) {
+                case 0 -> readLength(additional);
+                case 1 -> -1 - readLength(additional);
+                case 2 -> readByteString(additional);
+                case 3 -> readTextString(additional);
+                case 4 -> readArray(additional);
+                case 5 -> readMap(additional);
+                case 6 -> {
+                    readLength(additional);
+                    yield readData();
+                }
+                case 7 -> readSimpleValue(additional);
+                default -> throw new GeneralSecurityException("Unsupported CBOR major type: " + majorType);
+            };
+        }
+
+        private byte[] readByteString(int additionalInfo) throws GeneralSecurityException {
+            int length = (int) readLength(additionalInfo);
+            byte[] value = new byte[length];
+            System.arraycopy(data, index, value, 0, length);
+            index += length;
+            return value;
+        }
+
+        private String readTextString(int additionalInfo) throws GeneralSecurityException {
+            int length = (int) readLength(additionalInfo);
+            String value = new String(data, index, length, StandardCharsets.UTF_8);
+            index += length;
+            return value;
+        }
+
+        private java.util.List<Object> readArray(int additionalInfo) throws GeneralSecurityException {
+            int length = (int) readLength(additionalInfo);
+            java.util.List<Object> list = new java.util.ArrayList<>(length);
+            for (int i = 0; i < length; i++) {
+                list.add(readData());
+            }
+            return list;
+        }
+
+        private Map<Object, Object> readMap(int additionalInfo) throws GeneralSecurityException {
+            int length = (int) readLength(additionalInfo);
+            Map<Object, Object> map = new LinkedHashMap<>(length);
+            for (int i = 0; i < length; i++) {
+                Object key = readData();
+                Object value = readData();
+                map.put(key, value);
+            }
+            return map;
+        }
+
+        private Object readSimpleValue(int additionalInfo) throws GeneralSecurityException {
+            return switch (additionalInfo) {
+                case 20 -> Boolean.FALSE;
+                case 21 -> Boolean.TRUE;
+                case 22 -> null;
+                case 23 -> throw new GeneralSecurityException("Unsupported CBOR simple value: undefined");
+                case 24 -> {
+                    int value = readUnsignedByte();
+                    yield (long) value;
+                }
+                case 25, 26, 27 -> throw new GeneralSecurityException("Floating-point CBOR values unsupported");
+                case 31 -> throw new GeneralSecurityException("Indefinite-length items are unsupported");
+                default -> throw new GeneralSecurityException("Unsupported CBOR simple value: " + additionalInfo);
+            };
+        }
+
+        private long readLength(int additionalInfo) throws GeneralSecurityException {
+            if (additionalInfo < 24) {
+                return additionalInfo;
+            }
+            int lengthBytes =
+                    switch (additionalInfo) {
+                        case 24 -> 1;
+                        case 25 -> 2;
+                        case 26 -> 4;
+                        case 27 -> 8;
+                        default ->
+                            throw new GeneralSecurityException("Unsupported CBOR length specifier: " + additionalInfo);
+                    };
+            long value = 0;
+            for (int i = 0; i < lengthBytes; i++) {
+                value = (value << 8) | readUnsignedByte();
+            }
+            return value;
+        }
+
+        private int readUnsignedByte() {
+            int result = data[index] & 0xFF;
+            index++;
+            return result;
+        }
+    }
+
+    private record ParsedAttestationData(
+            byte[] authenticatorData,
+            byte[] rpIdHash,
+            int flags,
+            long counter,
+            byte[] aaguid,
+            byte[] credentialId,
+            byte[] credentialPublicKey) {
+
+        private ParsedAttestationData {
+            authenticatorData = authenticatorData == null ? new byte[0] : authenticatorData.clone();
+            rpIdHash = rpIdHash == null ? new byte[0] : rpIdHash.clone();
+            aaguid = aaguid == null ? new byte[0] : aaguid.clone();
+            credentialId = credentialId == null ? new byte[0] : credentialId.clone();
+            credentialPublicKey = credentialPublicKey == null ? new byte[0] : credentialPublicKey.clone();
+        }
+
+        @Override
+        public byte[] authenticatorData() {
+            return authenticatorData.clone();
+        }
+
+        @Override
+        public byte[] rpIdHash() {
+            return rpIdHash.clone();
+        }
+
+        @Override
+        public byte[] aaguid() {
+            return aaguid.clone();
+        }
+
+        @Override
+        public byte[] credentialId() {
+            return credentialId.clone();
+        }
+
+        @Override
+        public byte[] credentialPublicKey() {
+            return credentialPublicKey.clone();
+        }
+
+        boolean userPresence() {
+            return (flags & 0x01) != 0;
+        }
+
+        boolean userVerification() {
+            return (flags & 0x04) != 0;
+        }
+
+        boolean attestedCredentialData() {
+            return (flags & 0x40) != 0;
+        }
+
+        boolean extensionDataIncluded() {
+            return (flags & 0x80) != 0;
+        }
     }
 }

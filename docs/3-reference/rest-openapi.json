@@ -472,6 +472,26 @@
           "required" : true
         },
         "responses" : {
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
           "422" : {
             "description" : "Verification payload failed validation",
             "content" : {
@@ -525,26 +545,6 @@
                       }
                     }
                   }
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
                 }
               }
             }
@@ -655,16 +655,6 @@
           "required" : true
         },
         "responses" : {
-          "422" : {
-            "description" : "Validation error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
           "200" : {
             "description" : "Replay completed",
             "content" : {
@@ -677,6 +667,16 @@
           },
           "500" : {
             "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -705,6 +705,16 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                }
+              }
+            }
+          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
@@ -721,16 +731,6 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -755,6 +755,16 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                }
+              }
+            }
+          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
@@ -771,16 +781,6 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -2169,6 +2169,9 @@
           },
           "context" : {
             "$ref" : "#/components/schemas/OcraVerificationContext"
+          },
+          "verbose" : {
+            "type" : "boolean"
           }
         }
       },
@@ -2231,6 +2234,9 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/OcraVerificationMetadata"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -2344,29 +2350,6 @@
           }
         }
       },
-      "HotpReplayErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "type" : "string"
-          },
-          "reasonCode" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
       "HotpReplayMetadata" : {
         "type" : "object",
         "properties" : {
@@ -2416,18 +2399,7 @@
           }
         }
       },
-      "HotpStoredEvaluationRequest" : {
-        "type" : "object",
-        "properties" : {
-          "credentialId" : {
-            "type" : "string"
-          },
-          "verbose" : {
-            "type" : "boolean"
-          }
-        }
-      },
-      "HotpEvaluationErrorResponse" : {
+      "HotpReplayErrorResponse" : {
         "type" : "object",
         "properties" : {
           "status" : {
@@ -2447,6 +2419,17 @@
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
+      "HotpStoredEvaluationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "credentialId" : {
+            "type" : "string"
+          },
+          "verbose" : {
+            "type" : "boolean"
           }
         }
       },
@@ -2502,6 +2485,29 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpEvaluationMetadata"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
+      "HotpEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"

@@ -14,11 +14,21 @@ import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.core.trace.VerboseTrace.AttributeType;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Application-level coordinator for WebAuthn assertion verification + telemetry emission. */
 public final class WebAuthnEvaluationApplicationService {
@@ -26,6 +36,10 @@ public final class WebAuthnEvaluationApplicationService {
     private final CredentialStore credentialStore;
     private final WebAuthnAssertionVerifier verifier;
     private final WebAuthnCredentialPersistenceAdapter persistenceAdapter;
+    private static final Pattern JSON_FIELD_PATTERN =
+            Pattern.compile("\\\"(?<key>[^\\\"]+)\\\"\\s*:\\s*\\\"(?<value>[^\\\"]*)\\\"");
+    private static final Base64.Encoder BASE64_URL_ENCODER =
+            Base64.getUrlEncoder().withoutPadding();
 
     public WebAuthnEvaluationApplicationService(
             CredentialStore credentialStore,
@@ -85,7 +99,25 @@ public final class WebAuthnEvaluationApplicationService {
                     .attribute("algorithm", descriptor.algorithm().name()));
 
             WebAuthnStoredCredential storedCredential = descriptor.toStoredCredential();
-            WebAuthnVerificationResult verification = verifier.verify(storedCredential, toRequest(command));
+            WebAuthnAssertionRequest request = toRequest(command);
+            TraceClientData clientData = trace == null ? null : traceClientData(command.clientDataJson());
+            TraceAuthenticatorData authenticatorData =
+                    trace == null ? null : traceAuthenticatorData(command.authenticatorData());
+
+            if (trace != null) {
+                addParseClientDataStep(
+                        trace, clientData, command.expectedType(), command.expectedChallenge(), command.origin());
+                addParseAuthenticatorDataStep(
+                        trace, authenticatorData, command.relyingPartyId(), storedCredential.signatureCounter());
+                addEvaluateCounterStep(trace, storedCredential.signatureCounter(), authenticatorData.counter());
+            }
+
+            WebAuthnVerificationResult verification = verifier.verify(storedCredential, request);
+
+            if (trace != null) {
+                addSignatureBaseStep(trace, authenticatorData.raw(), clientData.hash());
+                addVerifySignatureStep(trace, descriptor.algorithm(), verification.success());
+            }
 
             return buildVerificationResult(
                     verification,
@@ -116,6 +148,7 @@ public final class WebAuthnEvaluationApplicationService {
         VerboseTrace.Builder trace = newTrace(verbose, "fido2.assertion.evaluate.inline");
         metadata(trace, "protocol", "FIDO2");
         metadata(trace, "mode", "inline");
+        metadata(trace, "credentialName", command.credentialName());
         try {
             WebAuthnStoredCredential storedCredential = new WebAuthnStoredCredential(
                     command.relyingPartyId(),
@@ -125,14 +158,26 @@ public final class WebAuthnEvaluationApplicationService {
                     command.userVerificationRequired(),
                     command.algorithm());
 
-            addStep(trace, step -> step.id("construct.credential")
-                    .summary("Construct inline credential")
-                    .detail("WebAuthnStoredCredential")
-                    .attribute("relyingPartyId", command.relyingPartyId())
-                    .attribute("algorithm", command.algorithm().name())
-                    .attribute("userVerificationRequired", command.userVerificationRequired()));
+            TraceClientData clientData = trace == null ? null : traceClientData(command.clientDataJson());
+            TraceAuthenticatorData authenticatorData =
+                    trace == null ? null : traceAuthenticatorData(command.authenticatorData());
+
+            if (trace != null) {
+                addParseClientDataStep(
+                        trace, clientData, command.expectedType(), command.expectedChallenge(), command.origin());
+                addParseAuthenticatorDataStep(
+                        trace, authenticatorData, command.relyingPartyId(), command.signatureCounter());
+                addConstructCredentialStep(
+                        trace, command.algorithm(), command.publicKeyCose(), command.userVerificationRequired());
+                addEvaluateCounterStep(trace, command.signatureCounter(), authenticatorData.counter());
+            }
 
             WebAuthnVerificationResult verification = verifier.verify(storedCredential, toRequest(command));
+
+            if (trace != null) {
+                addSignatureBaseStep(trace, authenticatorData.raw(), clientData.hash());
+                addVerifySignatureStep(trace, command.algorithm(), verification.success());
+            }
 
             return buildVerificationResult(
                     verification,
@@ -271,6 +316,7 @@ public final class WebAuthnEvaluationApplicationService {
             step.id("verify.assertion")
                     .summary("Verify WebAuthn assertion")
                     .detail("WebAuthnAssertionVerifier.verify")
+                    .spec("webauthn§7.2")
                     .attribute("credentialSource", credentialSource)
                     .attribute("valid", success);
             error.map(Enum::name).ifPresent(err -> step.note("error", err));
@@ -307,6 +353,251 @@ public final class WebAuthnEvaluationApplicationService {
 
     private static VerboseTrace buildTrace(VerboseTrace.Builder trace) {
         return trace == null ? null : trace.build();
+    }
+
+    private static void addParseClientDataStep(
+            VerboseTrace.Builder trace,
+            TraceClientData clientData,
+            String expectedType,
+            byte[] expectedChallenge,
+            String origin) {
+        if (trace == null || clientData == null) {
+            return;
+        }
+        String type = clientData.type().isEmpty() ? sanitize(expectedType) : clientData.type();
+        String challenge = clientData.challengeBase64().isEmpty() && expectedChallenge != null
+                ? base64Url(expectedChallenge)
+                : clientData.challengeBase64();
+        String resolvedOrigin = clientData.origin().isEmpty() ? sanitize(origin) : clientData.origin();
+
+        addStep(trace, step -> step.id("parse.clientData")
+                .summary("Parse client data JSON")
+                .detail("clientDataJSON")
+                .spec("webauthn§6.5.1")
+                .attribute("type", type)
+                .attribute("challenge.base64url", challenge)
+                .attribute("origin", resolvedOrigin)
+                .attribute(AttributeType.JSON, "clientData.json", clientData.json())
+                .attribute("clientData.sha256", sha256Label(clientData.hash())));
+    }
+
+    private static void addParseAuthenticatorDataStep(
+            VerboseTrace.Builder trace,
+            TraceAuthenticatorData authenticatorData,
+            String relyingPartyId,
+            long storedCounter) {
+        if (trace == null || authenticatorData == null) {
+            return;
+        }
+        String expectedHash = sha256Digest(sanitize(relyingPartyId).getBytes(StandardCharsets.UTF_8));
+
+        addStep(trace, step -> step.id("parse.authenticatorData")
+                .summary("Parse authenticator data")
+                .detail("authenticatorData")
+                .spec("webauthn§6.5.4")
+                .attribute("rpId.hash.hex", hex(authenticatorData.rpIdHash()))
+                .attribute("rpId.expected.sha256", expectedHash)
+                .attribute("flags.byte", formatByte(authenticatorData.flags()))
+                .attribute("flags.userPresence", authenticatorData.userPresence())
+                .attribute("flags.userVerification", authenticatorData.userVerification())
+                .attribute("flags.attestedCredentialData", authenticatorData.attestedCredentialData())
+                .attribute("flags.extensionDataIncluded", authenticatorData.extensionDataIncluded())
+                .attribute("counter.stored", storedCounter)
+                .attribute("counter.reported", authenticatorData.counter()));
+    }
+
+    private static void addEvaluateCounterStep(VerboseTrace.Builder trace, long previousCounter, long reportedCounter) {
+        if (trace == null) {
+            return;
+        }
+        addStep(trace, step -> step.id("evaluate.counter")
+                .summary("Evaluate authenticator counter")
+                .detail("counter comparison")
+                .spec("webauthn§6.5.4")
+                .attribute("counter.previous", previousCounter)
+                .attribute("counter.reported", reportedCounter)
+                .attribute("counter.incremented", reportedCounter > previousCounter));
+    }
+
+    private static void addConstructCredentialStep(
+            VerboseTrace.Builder trace,
+            WebAuthnSignatureAlgorithm algorithm,
+            byte[] publicKeyCose,
+            boolean userVerificationRequired) {
+        if (trace == null) {
+            return;
+        }
+        addStep(trace, step -> step.id("construct.credential")
+                .summary("Construct inline credential")
+                .detail("WebAuthnStoredCredential")
+                .spec("webauthn§6.1")
+                .attribute("algorithm", algorithm.name())
+                .attribute("publicKey.cose.hex", hex(publicKeyCose))
+                .attribute("userVerificationRequired", userVerificationRequired));
+    }
+
+    private static void addSignatureBaseStep(
+            VerboseTrace.Builder trace, byte[] authenticatorData, byte[] clientDataHash) {
+        if (trace == null) {
+            return;
+        }
+        byte[] payload = concat(authenticatorData, clientDataHash);
+        addStep(trace, step -> step.id("build.signatureBase")
+                .summary("Build signature payload")
+                .detail("authenticatorData || SHA-256(clientData)")
+                .spec("webauthn§6.5.5")
+                .attribute("authenticatorData.hex", hex(authenticatorData))
+                .attribute("clientData.hash.sha256", sha256Label(clientDataHash))
+                .attribute("signature.base.sha256", sha256Digest(payload)));
+    }
+
+    private static void addVerifySignatureStep(
+            VerboseTrace.Builder trace, WebAuthnSignatureAlgorithm algorithm, boolean valid) {
+        if (trace == null) {
+            return;
+        }
+        addStep(trace, step -> step.id("verify.signature")
+                .summary("Verify signature")
+                .detail("WebAuthnAssertionVerifier.verify")
+                .spec("webauthn§6.5.5")
+                .attribute("algorithm", algorithm.name())
+                .attribute("valid", valid));
+    }
+
+    private static TraceClientData traceClientData(byte[] clientDataJson) {
+        byte[] jsonBytes = clientDataJson == null ? new byte[0] : clientDataJson.clone();
+        String json = new String(jsonBytes, StandardCharsets.UTF_8);
+        Map<String, String> values = extractJsonValues(json);
+        String type = values.getOrDefault("type", "");
+        String challenge = values.getOrDefault("challenge", "");
+        String origin = values.getOrDefault("origin", "");
+        byte[] hash = sha256(jsonBytes);
+        return new TraceClientData(json, type, challenge, origin, hash);
+    }
+
+    private static TraceAuthenticatorData traceAuthenticatorData(byte[] authenticatorData) {
+        byte[] raw = authenticatorData == null ? new byte[0] : authenticatorData.clone();
+        if (raw.length < 37) {
+            return new TraceAuthenticatorData(raw, new byte[0], 0, 0L);
+        }
+        ByteBuffer buffer = ByteBuffer.wrap(raw).order(ByteOrder.BIG_ENDIAN);
+        byte[] rpIdHash = new byte[32];
+        buffer.get(rpIdHash);
+        int flags = buffer.get() & 0xFF;
+        long counter = buffer.getInt() & 0xFFFFFFFFL;
+        return new TraceAuthenticatorData(raw, rpIdHash, flags, counter);
+    }
+
+    private static Map<String, String> extractJsonValues(String json) {
+        Map<String, String> values = new LinkedHashMap<>();
+        if (json == null || json.isEmpty()) {
+            return values;
+        }
+        Matcher matcher = JSON_FIELD_PATTERN.matcher(json);
+        while (matcher.find()) {
+            values.put(matcher.group("key"), matcher.group("value"));
+        }
+        return values;
+    }
+
+    private static byte[] sha256(byte[] input) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(input);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static String sha256Label(byte[] digest) {
+        return "sha256:" + hex(digest);
+    }
+
+    private static String sha256Digest(byte[] input) {
+        return sha256Label(sha256(input));
+    }
+
+    private static String hex(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format("%02x", value));
+        }
+        return builder.toString();
+    }
+
+    private static String base64Url(byte[] input) {
+        if (input == null || input.length == 0) {
+            return "";
+        }
+        return BASE64_URL_ENCODER.encodeToString(input);
+    }
+
+    private static byte[] concat(byte[] left, byte[] right) {
+        byte[] safeLeft = left == null ? new byte[0] : left;
+        byte[] safeRight = right == null ? new byte[0] : right;
+        byte[] combined = Arrays.copyOf(safeLeft, safeLeft.length + safeRight.length);
+        System.arraycopy(safeRight, 0, combined, safeLeft.length, safeRight.length);
+        return combined;
+    }
+
+    private static String formatByte(int value) {
+        return String.format("0x%02x", value & 0xFF);
+    }
+
+    private static String sanitize(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private record TraceClientData(String json, String type, String challengeBase64, String origin, byte[] hash) {
+
+        private TraceClientData {
+            json = json == null ? "" : json;
+            type = type == null ? "" : type;
+            challengeBase64 = challengeBase64 == null ? "" : challengeBase64;
+            origin = origin == null ? "" : origin;
+            hash = hash == null ? new byte[0] : hash.clone();
+        }
+
+        @Override
+        public byte[] hash() {
+            return hash.clone();
+        }
+    }
+
+    private record TraceAuthenticatorData(byte[] raw, byte[] rpIdHash, int flags, long counter) {
+
+        private TraceAuthenticatorData {
+            raw = raw == null ? new byte[0] : raw.clone();
+            rpIdHash = rpIdHash == null ? new byte[0] : rpIdHash.clone();
+        }
+
+        @Override
+        public byte[] raw() {
+            return raw.clone();
+        }
+
+        @Override
+        public byte[] rpIdHash() {
+            return rpIdHash.clone();
+        }
+
+        boolean userPresence() {
+            return (flags & 0x01) != 0;
+        }
+
+        boolean userVerification() {
+            return (flags & 0x04) != 0;
+        }
+
+        boolean attestedCredentialData() {
+            return (flags & 0x40) != 0;
+        }
+
+        boolean extensionDataIncluded() {
+            return (flags & 0x80) != 0;
+        }
     }
 
     private static WebAuthnAssertionRequest toRequest(EvaluationCommand command) {

@@ -654,6 +654,11 @@ public final class OcraCli implements Callable<Integer> {
                 description = "PIN hash material if required")
         String pinHashHex;
 
+        @CommandLine.Option(
+                names = "--verbose",
+                description = "Emit a detailed verbose trace of the verification steps")
+        boolean verbose;
+
         @Override
         public Integer call() {
             String event = event("verify");
@@ -690,13 +695,15 @@ public final class OcraCli implements Callable<Integer> {
                                         pinHashHex,
                                         timestamp,
                                         counter));
-                        VerificationResult result = service.verify(command);
+                        VerificationResult result = service.verify(command, verbose);
 
                         Map<String, String> fields = new LinkedHashMap<>();
                         fields.put("credentialSource", "stored");
                         fields.put("credentialId", result.credentialId());
                         fields.put("suite", result.suite());
-                        return handleResult(event, result, fields);
+                        int exitCode = handleResult(event, result, fields);
+                        result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
+                        return exitCode;
                     }
                 }
 
@@ -725,10 +732,12 @@ public final class OcraCli implements Callable<Integer> {
                         counter,
                         null));
 
-                VerificationResult result = service.verify(command);
+                VerificationResult result = service.verify(command, verbose);
                 fields.put("suite", result.suite());
                 fields.put("descriptor", result.credentialId());
-                return handleResult(event, result, fields);
+                int exitCode = handleResult(event, result, fields);
+                result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
+                return exitCode;
 
             } catch (IllegalArgumentException ex) {
                 return failValidation(event, "validation_error", ex.getMessage());

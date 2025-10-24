@@ -22,6 +22,7 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -179,8 +180,27 @@ class TotpReplayEndpointTest {
         JsonNode trace = response.get("trace");
         assertNotNull(trace, "Expected trace payload when verbose=true");
         assertEquals("totp.replay.stored", trace.get("operation").asText());
-        assertTrue(trace.get("steps").isArray());
-        assertTrue(trace.get("steps").size() > 0, "Trace steps must not be empty");
+
+        JsonNode metadata = trace.get("metadata");
+        assertEquals("TOTP", metadata.get("protocol").asText());
+        assertEquals("stored", metadata.get("mode").asText());
+        assertEquals("educational", metadata.get("tier").asText());
+
+        var resolveAttributes = orderedAttributes(step(trace, "resolve.credential"));
+        assertTrue(resolveAttributes.containsKey("credentialId"));
+        assertTrue(resolveAttributes.containsKey("secret.hash"));
+        assertTrue(
+                resolveAttributes.get("secret.hash").startsWith("sha256:"), "Secret hash should expose sha256 digest");
+
+        var deriveAttributes = orderedAttributes(step(trace, "derive.time-counter"));
+        assertTrue(deriveAttributes.containsKey("time.counter.hex"));
+        assertTrue(deriveAttributes.containsKey("epoch.seconds"));
+
+        var computeAttributes = orderedAttributes(step(trace, "compute.hmac"));
+        assertTrue(computeAttributes.containsKey("hmac.hex"));
+
+        var reduceAttributes = orderedAttributes(step(trace, "mod.reduce"));
+        assertTrue(reduceAttributes.containsKey("otp"));
     }
 
     @Test
@@ -290,6 +310,24 @@ class TotpReplayEndpointTest {
 
     private static void deregisterTelemetryHandler(TestLogHandler handler) {
         TELEMETRY_LOGGER.removeHandler(handler);
+    }
+
+    private static JsonNode step(JsonNode trace, String id) {
+        for (JsonNode step : trace.withArray("steps")) {
+            if (id.equals(step.get("id").asText())) {
+                return step;
+            }
+        }
+        throw new AssertionError("Missing trace step: " + id);
+    }
+
+    private static Map<String, String> orderedAttributes(JsonNode step) {
+        Map<String, String> attributes = new LinkedHashMap<>();
+        for (JsonNode attribute : step.withArray("orderedAttributes")) {
+            attributes.put(
+                    attribute.get("name").asText(), attribute.get("value").asText());
+        }
+        return attributes;
     }
 
     private static void assertTelemetry(TestLogHandler handler, java.util.function.Predicate<LogRecord> filter) {

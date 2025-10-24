@@ -90,27 +90,48 @@ _Last updated:_ 2025-10-22
  ☑ Implement HOTP/TOTP trace builders to populate the enriched attributes; rerun tests.  
  ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.hotp.*VerboseTraceTest" --tests "io.openauth.sim.application.totp.*VerboseTraceTest"`
 
-☐ **T3517 – OCRA trace enrichment (tests-first)**  
- ☐ Add failing application tests asserting suite parsing, message assembly segments, and SHA-256 digests.  
- ☐ Implement OCRA trace step population and rerun tests.  
- ☐ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`
+☑ **T3517 – OCRA trace enrichment (tests-first)**
+ ☑ Add failing application tests asserting suite parsing, message assembly segments, and SHA-256 digests. (2025-10-23 – `OcraEvaluationApplicationServiceVerboseTraceTest` now covers suite parsing, message assembly, and digest expectations.)
+ ☑ Implement OCRA trace step population and rerun tests. (2025-10-23 – application service emits `parse.suite`/`normalize.inputs`/`assemble.message`/`compute.hmac`/`truncate.dynamic`/`mod.reduce`; CLI verbose expectations updated.)
+ ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`
 
-☐ **T3518 – WebAuthn attestation/assertion enrichment (tests-first)**  
- ☐ Extend WebAuthn verbose trace tests to verify clientData/authData breakdown, signature bases, and counter evaluation attributes.  
- ☐ Implement WebAuthn application/service trace updates; rerun tests.  
- ☐ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.webauthn.*VerboseTraceTest"`
+☑ **T3518 – WebAuthn attestation/assertion enrichment (tests-first)**  
+ ☑ Extend WebAuthn verbose trace tests to verify `parse.clientData`, `parse.authenticatorData`, `build.signatureBase`, and `evaluate.counter` step attributes (decoded JSON, RP ID hash, flags/counters, and SHA-256 signature-base digest). *(2025-10-24 – assertions extended across evaluation + attestation suites and captured expected fields before implementation)*  
+ ☑ Implement WebAuthn application/service trace updates; rerun tests. *(2025-10-24 – enrichment implemented for assertion + attestation services, verbose traces now emit the new steps)*  
+ ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`
 
-☐ **T3519 – Facade formatting & Selenium verification**  
- ☐ Update CLI, REST payload snapshots, and UI Selenium tests to reflect enriched trace content without switching to JSON.  
- ☐ Commands:  
+☑ **T3519 – Facade formatting & Selenium verification**  
+ ☑ Refined CLI verbose trace assertions across HOTP/TOTP/OCRA/FIDO2 to lock SHA-256 hashes, counter derivations, and WebAuthn signature-base digests; REST endpoint tests now inspect ordered attribute payloads for evaluation/replay/attestation slices; operator UI Selenium suite verifies the rendered trace includes hashed secrets, time counters, and OTP output.  
+ ☑ Commands:  
   - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.*VerboseTraceTest"`  
-  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*VerboseTraceTest"`  
-  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*VerboseTrace*"`
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2EvaluationEndpointTest"`  
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.TotpReplayEndpointTest"`  
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.HotpReplayEndpointTest"`  
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OcraEvaluationEndpointTest"`  
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationManualEndpointTest"`  
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest"`
+
+☑ **T3523 – HOTP trace canonical algorithm labels**  
+ ☑ Swapped HOTP verbose trace `alg` values and HMAC step details to canonical `HMAC-SHA-*` labels, added match derivation detail attribute, and flipped the `non_standard_hash` note to a boolean flag.  
+ ☑ Tests: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.hotp.*VerboseTraceTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliErrorHandlingTest.importCommandValidationFailure"` (ensured clean MapDB lock before rerun), `./gradlew --no-daemon spotlessApply check`.
 
 ☐ **T3520 – Documentation & follow-up logging**  
  ☐ Update operator/CLI/REST docs with enriched trace examples, note the tier metadata, and record the redaction-toggle follow-up.  
- ☐ Sync knowledge map and `_current-session.md` with the enrichment outcomes.  
- ☐ Command: `./gradlew --no-daemon spotlessApply`
+☑ Sync knowledge map and `_current-session.md` with the enrichment outcomes.  
+☑ Command: `./gradlew --no-daemon spotlessApply`
+
+☑ **T3524 – OCRA operator console verbose integration**  
+ ☑ Update `ui/ocra/evaluate` and `ui/ocra/replay` scripts to route payloads through `VerboseTraceConsole`, attaching the verbose flag and rendering returned traces in the shared console panel.  
+ ☑ Add Selenium coverage for verbose-enabled OCRA evaluate and replay flows; ensure traces remain absent when the toggle is off.  
+  ☑ New `OcraOperatorUiSeleniumTest` exercises stored evaluate/replay with verbose enabled, verifies the verbose flag on outbound payloads, and asserts the console remains hidden when responses omit trace data.  
+  ☑ Captured pre-change failure with `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest"` before wiring the UI.  
+ ☑ Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Ocra*EndpointTest"`
+
+☑ **T3525 – OCRA verification verbose trace implementation**  
+ ☑ Added dedicated stored/inline replay verbose trace tests (`application/src/test/java/io/openauth/sim/application/ocra/OcraVerificationApplicationServiceVerboseTraceTest.java`).  
+ ☑ Enhanced `OcraVerificationApplicationService` to build verification traces (normalize/resolve/assemble/hmac/truncate/mod/compare) and propagate them through REST/CLI/UI responses without mutating `OcraReplayVerifier`.  
+ ☑ Extended REST (`OcraVerificationEndpointTest`), CLI (`OcraCliVerboseTraceTest`), and Selenium (`OcraOperatorUiSeleniumTest`) suites to assert verbose replay behaviour and rendering.  
+ ☑ Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliVerboseTraceTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OcraVerificationEndpointTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OcraOperatorUiSeleniumTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`
 
 ☑ **T3521 – HOTP evaluate trace formatting compliance**  
  ☑ HOTP evaluation traces now emit the mandated six-step breakdown with key mode, inner/outer inputs, and padded result attributes; CLI printer/UI formatter updated for line-per-field layout with refreshed tests (`HotpEvaluationApplicationServiceVerboseTraceTest`, `HotpCliVerboseTraceTest`).  
@@ -121,3 +142,23 @@ _Last updated:_ 2025-10-22
  ☑ Added application-level window scanning with attempt logs and match derivation reuse, propagating trace envelopes through REST/UI plus new verbose test coverage (`HotpReplayApplicationServiceVerboseTraceTest`, `HotpReplayEndpointTest`).  
  ☑ CLI/REST telemetry expectations updated to report next-expected counter while store state remains unchanged; OpenAPI snapshots rewritten.  
  ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.hotp.HotpReplayApplicationService*"`; `:rest-api:test --tests "io.openauth.sim.rest.HotpReplayEndpointTest"`
+
+☑ **T3526 – OCRA segment length metadata**  
+ ☑ Extend `OcraEvaluationApplicationService` and `OcraVerificationApplicationService` trace builders to publish `segment.*.len.bytes` and `message.len.bytes` attributes.  
+ ☑ Update application, CLI, and REST verbose trace tests to assert representative length fields for stored/inline evaluate and replay flows (UI Selenium coverage unchanged).  
+ ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Ocra*EndpointTest"`; `./gradlew --no-daemon spotlessApply check`
+
+☑ **T3527 – OCRA canonical HMAC labels**  
+ ☑ Rename OCRA verbose trace algorithm fields to `alg = HMAC-SHA-*`, update `compute.hmac` step detail/spec anchors, and ensure dual citation of RFC 6287 §7 and RFC 2104.  
+ ☑ Refresh application, CLI, and REST verbose trace assertions to expect the new `alg` key/value while keeping formatting stable.  
+ ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Ocra*EndpointTest"`; `./gradlew --no-daemon spotlessApply check`
+
+☐ **T3528 – OCRA truncation tier gating**  
+ ☐ Introduce helper that emits dynamic truncation attributes (digest length, slice bytes, pre-mask value, mask constant, masked dbc) only for `educational`/`lab-secrets` tiers, ensuring the future `normal` tier can suppress the extra metadata without code duplication.  
+ ☐ Document the tier-specific behaviour in trace spec/tests ahead of the tier-toggle rollout so implementation work can hook into the helper later.  
+ ☐ Command (placeholder): `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"` once tier helper lands.
+
+☐ **T3529 – OCRA message integrity summary**  
+ ☐ Add `parts.count` and `parts.order` attributes to the OCRA `assemble.message` trace step so operators can confirm concatenation ordering; reuse them across evaluation and verification traces.  
+ ☐ Update application, CLI, and REST trace assertions to check the new summary fields for representative suites.  
+ ☐ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Ocra*EndpointTest"`

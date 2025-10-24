@@ -23,4 +23,13 @@ public enum TotpHashAlgorithm {
     public int minimumSecretLengthBytes() {
         return minimumSecretLengthBytes;
     }
+
+    /** Canonical HMAC label used in verbose trace output. */
+    public String traceLabel() {
+        return switch (this) {
+            case SHA1 -> "HMAC-SHA-1";
+            case SHA256 -> "HMAC-SHA-256";
+            case SHA512 -> "HMAC-SHA-512";
+        };
+    }
 }

@@ -170,14 +170,14 @@ public final class HotpEvaluationApplicationService {
                         .attribute(
                                 VerboseTrace.AttributeType.STRING,
                                 "alg",
-                                descriptor.algorithm().name())
+                                descriptor.algorithm().traceLabel())
                         .attribute(VerboseTrace.AttributeType.INT, "digits", descriptor.digits())
                         .attribute(VerboseTrace.AttributeType.INT, "counter.input", previousCounter)
                         .attribute(VerboseTrace.AttributeType.STRING, "secret.format", SECRET_FORMAT_HEX)
                         .attribute(VerboseTrace.AttributeType.INT, "secret.len.bytes", computation.secretLength())
                         .attribute(VerboseTrace.AttributeType.STRING, "secret.sha256", computation.secretHash());
                 if (descriptor.algorithm() != HotpHashAlgorithm.SHA1) {
-                    step.note("non_standard_hash", descriptor.algorithm().name());
+                    step.note("non_standard_hash", Boolean.toString(true));
                 }
             });
 
@@ -190,7 +190,7 @@ public final class HotpEvaluationApplicationService {
 
             addStep(trace, step -> step.id("hmac.compute")
                     .summary("Compute HOTP HMAC components")
-                    .detail(descriptor.algorithm().macAlgorithm())
+                    .detail(descriptor.algorithm().traceLabel())
                     .spec(SPEC_HOTP_HMAC)
                     .attribute(VerboseTrace.AttributeType.INT, "hash.block_len", computation.hashBlockLength())
                     .attribute(VerboseTrace.AttributeType.STRING, "key.mode", computation.keyMode())
@@ -216,7 +216,10 @@ public final class HotpEvaluationApplicationService {
                     .attribute(VerboseTrace.AttributeType.INT, "offset.nibble", computation.offset())
                     .attribute(VerboseTrace.AttributeType.HEX, "slice.bytes", computation.sliceHex())
                     .attribute(VerboseTrace.AttributeType.STRING, "slice.bytes[0]_masked", computation.sliceMaskedHex())
-                    .attribute(VerboseTrace.AttributeType.INT, "dbc.31bit.big_endian", computation.truncatedInt()));
+                    .attribute(
+                            VerboseTrace.AttributeType.INT,
+                            "dynamic_binary_code.31bit.big_endian",
+                            computation.truncatedInt()));
 
             addStep(trace, step -> step.id("mod.reduce")
                     .summary("Reduce truncated value to HOTP digits")
@@ -345,14 +348,14 @@ public final class HotpEvaluationApplicationService {
                         .attribute(
                                 VerboseTrace.AttributeType.STRING,
                                 "alg",
-                                descriptor.algorithm().name())
+                                descriptor.algorithm().traceLabel())
                         .attribute(VerboseTrace.AttributeType.INT, "digits", descriptor.digits())
                         .attribute(VerboseTrace.AttributeType.INT, "counter.input", counterValue)
                         .attribute(VerboseTrace.AttributeType.STRING, "secret.format", SECRET_FORMAT_HEX)
                         .attribute(VerboseTrace.AttributeType.INT, "secret.len.bytes", computation.secretLength())
                         .attribute(VerboseTrace.AttributeType.STRING, "secret.sha256", computation.secretHash());
                 if (descriptor.algorithm() != HotpHashAlgorithm.SHA1) {
-                    step.note("non_standard_hash", descriptor.algorithm().name());
+                    step.note("non_standard_hash", Boolean.toString(true));
                 }
             });
 
@@ -365,7 +368,7 @@ public final class HotpEvaluationApplicationService {
 
             addStep(trace, step -> step.id("hmac.compute")
                     .summary("Compute HOTP HMAC components")
-                    .detail(descriptor.algorithm().macAlgorithm())
+                    .detail(descriptor.algorithm().traceLabel())
                     .spec(SPEC_HOTP_HMAC)
                     .attribute(VerboseTrace.AttributeType.INT, "hash.block_len", computation.hashBlockLength())
                     .attribute(VerboseTrace.AttributeType.STRING, "key.mode", computation.keyMode())
@@ -391,7 +394,10 @@ public final class HotpEvaluationApplicationService {
                     .attribute(VerboseTrace.AttributeType.INT, "offset.nibble", computation.offset())
                     .attribute(VerboseTrace.AttributeType.HEX, "slice.bytes", computation.sliceHex())
                     .attribute(VerboseTrace.AttributeType.STRING, "slice.bytes[0]_masked", computation.sliceMaskedHex())
-                    .attribute(VerboseTrace.AttributeType.INT, "dbc.31bit.big_endian", computation.truncatedInt()));
+                    .attribute(
+                            VerboseTrace.AttributeType.INT,
+                            "dynamic_binary_code.31bit.big_endian",
+                            computation.truncatedInt()));
 
             addStep(trace, step -> step.id("mod.reduce")
                     .summary("Reduce truncated value to HOTP digits")

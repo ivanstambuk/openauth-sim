@@ -28,6 +28,7 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
 7. 2025-10-23 – The trace model must support redaction tiers (`normal`, `educational`, `lab-secrets`) so future increments can dial how much sensitive material is emitted; Feature 035 will expose the existing full-detail behaviour (effectively `educational`) and log the available tiers without implementing toggle surfaces yet (owner directive).
 8. 2025-10-23 – When a trace hashes sensitive inputs for auditing (shared secrets, derived keys, password digests, etc.), always compute a SHA-256 digest regardless of the underlying protocol hash family and emit it with a `sha256:` prefix (owner directive).
 9. 2025-10-23 – HOTP traces must follow the line-per-field format defined under “HOTP Trace Formatting”: one scalar per line, deterministic ordering, `step.N: <title>` headers, and secrets rendered only as hashes/lengths; support both evaluation (OTP generation) and verification (window scan) flows with the prescribed step breakdown (owner directive).
+10. 2025-10-24 – Extend OCRA verification/replay services to emit verbose traces matching the evaluation format so REST and UI facades surface stored/inline replay timelines when `verbose=true` (owner directive).
 
 ## Requirements
 - Define a structured trace model under `core/` that can capture ordered steps, labelled intermediate values, and protocol-specific annotations while remaining extensible for future credential types.
@@ -36,6 +37,7 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
   - CLI: add a `--verbose` (or comparable) option per relevant command, emitting the trace to stdout after the primary result while preserving current exit codes.
   - REST: accept a boolean (or enum) verbose field within request DTOs; include a `trace` payload in the JSON response when requested.
   - Operator UI: provide a per-request control (e.g., toggle or checkbox) that requests verbose mode from REST, and render the returned trace in an interactive panel that mimics a terminal log (collapsed by default).
+- Expand OCRA verification/replay application services to generate verbose traces (stored and inline workflows), returning them through REST/CLI/UI responses so replay consumers receive the same step-by-step view as evaluation.
 - Deliver at least two concrete UI layout proposals for the trace panel (e.g., bottom dock, side drawer) as part of the feature plan and record the accepted option under `## Clarifications` before implementation.
 - Maintain ordering between the algorithm’s execution steps and the trace output so users can follow the computation sequentially.
 - Ensure traces are never written to disk, logged through telemetry, or otherwise persisted outside their immediate response plumbing.
@@ -65,7 +67,7 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
     `step.1: normalize.input` (fields: `op`, `alg` with non-standard note when applicable, `digits`, `counter.input`, `secret.format`, `secret.len.bytes`, `secret.sha256`; `spec: rfc4226§5.1`).  
     `step.2: prepare.counter` (`counter.int`, `counter.bytes.big_endian`; `spec: rfc4226§5.1`).  
     `step.3: hmac.compute` (`hash.block_len`, `key.mode`, `key'.sha256`, `ipad.byte`, `opad.byte`, `inner.input`, `inner.hash`, `outer.input`, `hmac.final`; `spec: rfc4226§5.2`).  
-    `step.4: truncate.dynamic` (`last.byte`, `offset.nibble`, `slice.bytes`, `slice.bytes[0]_masked`, `dbc.31bit.big_endian`; `spec: rfc4226§5.3`).  
+    `step.4: truncate.dynamic` (`last.byte`, `offset.nibble`, `slice.bytes`, `slice.bytes[0]_masked`, `dynamic_binary_code.31bit.big_endian`; `spec: rfc4226§5.3`).  
     `step.5: mod.reduce` (`modulus`, `otp.decimal`, `otp.string.leftpad`; `spec: rfc4226§5.4`).  
     `step.6: result` (`output.otp`).  
   - *Verify / window search:*  
@@ -75,7 +77,10 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
     When a match is found, surface the recommended next counter (`matched.counter + 1`) in metadata/telemetry even if the replay request does not mutate persisted state (inline submissions still advertise the incremented value for operator guidance).  
   - CLI/REST/UI renderers must maintain two-space indentation, `name = value` formatting, explicit endianness labels, and lowercase hex (per formatting rules).
 - **TOTP (RFC 6238)** – Reuse HOTP steps, preceded by `derive.time-counter` (epoch, step, drift window, computed counter `T`, `rfc6238§4.2`) and `evaluate.window` (enumerated offsets and results, `rfc6238§4.1`). Emit SHA-256 hashes for secrets and highlight algorithm variants (SHA-1/256/512) with spec anchors `rfc6238§1.2`.
-- **OCRA (RFC 6287)** – Include `parse.suite` (raw suite, parsed components, `rfc6287§5.1`), `normalize.inputs` (counter/QA/QN/QH handling, PSHA digests, session/timestamp, `rfc6287§5.2`), `assemble.message` (ordered parts with hex, overall SHA-256 hash of the concatenation, `rfc6287§6`), followed by `compute.hmac`, `truncate.dynamic`, and `mod.reduce` mirroring HOTP with anchor `rfc6287§7`.
+- **OCRA (RFC 6287)** – Include `parse.suite` (raw suite, parsed components, `rfc6287§5.1`), `normalize.inputs` (counter/QA/QN/QH handling, PSHA digests, session/timestamp, `rfc6287§5.2`), `assemble.message` (ordered parts with hex, overall SHA-256 hash of the concatenation, `rfc6287§6`), followed by `compute.hmac`, `truncate.dynamic`, and `mod.reduce` mirroring HOTP with anchor `rfc6287§7`; verification/replay traces append `compare.expected` capturing expected vs supplied OTP values and the match decision.
+- For every OCRA `assemble.message` step, surface a `len.bytes` attribute for each segment (`segment.N.*.len.bytes`) as well as the concatenated payload (`message.len.bytes`) so operators can validate padding and normalization alongside the hex data (owner directive, 2025-10-24).
+- OCRA trace steps must label the HMAC family using the canonical `alg = HMAC-SHA-*` field; the `compute.hmac` step detail should echo the same canonical name and cite both `rfc6287§7` and `rfc2104` for clarity (owner directive, 2025-10-24).
+- Dynamic truncation metadata (digest length, slice bytes, pre-mask integer, mask constant, masked value) will live under the `educational` and `lab-secrets` tiers; when the `normal` tier ships it must omit these attributes by default while the shared helper handles tier-based filtering (owner directive, 2025-10-24).
 - **WebAuthn / FIDO2** – Distinguish between attestation (`webauthn§6.4`, CTAP 2 §5) and assertion (`webauthn§7`):
   - Attestation steps: `parse.clientData` (JSON, SHA-256 hash), `parse.authenticatorData` (RP ID hash, flags map, counters), `extract.attestedCredential` (AAGUID, credential ID, COSE key breakdown), `build.signatureBase` (authData || clientDataHash), `verify.signature` (algorithm, DER/RS values, low-S flag), `validate.metadata` (trust chain, AAGUID lookup). Include extensions when present and note verification outcome.
   - Assertion steps: `parse.clientData`, `parse.authenticatorData`, `build.signatureBase`, `verify.signature`, and `evaluate.counter` (previous vs new counter, strict increment result), plus extension interpretations as applicable.

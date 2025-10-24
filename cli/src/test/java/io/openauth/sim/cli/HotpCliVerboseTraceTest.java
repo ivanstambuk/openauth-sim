@@ -4,12 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.otp.hotp.HotpJsonVectorFixtures;
 import io.openauth.sim.core.otp.hotp.HotpJsonVectorFixtures.HotpJsonVector;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Locale;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -51,7 +56,25 @@ final class HotpCliVerboseTraceTest {
         assertTrue(stdout.contains("step.4: truncate.dynamic"), stdout);
         assertTrue(stdout.contains("step.5: mod.reduce"), stdout);
         assertTrue(stdout.contains("step.6: result"), stdout);
-        assertTrue(stdout.contains("  output.otp = "), stdout);
+        String secretSha256 = sha256Digest(vector.secret().value());
+        long counter = vector.counter();
+        byte[] counterBytes = longBytes(counter);
+        String counterHex = hex(counterBytes);
+        String keyPrimeSha256 = sha256Digest(paddedKey(vector));
+        byte[] computedInnerHash = innerHash(vector, counterBytes);
+        byte[] hmac = computeHmac(vector, counterBytes, computedInnerHash);
+        int hmacOffset = offset(hmac);
+        byte[] slice = Arrays.copyOfRange(hmac, hmacOffset, hmacOffset + 4);
+        int dbc = dynamicBinaryCode(slice);
+        assertTrue(stdout.contains("  secret.sha256 = " + secretSha256), stdout);
+        assertTrue(stdout.contains("  counter.bytes.big_endian = " + counterHex), stdout);
+        assertTrue(stdout.contains("  key'.sha256 = " + keyPrimeSha256), stdout);
+        assertTrue(stdout.contains("  inner.hash = " + hex(computedInnerHash)), stdout);
+        assertTrue(stdout.contains("  hmac.final = " + hex(hmac)), stdout);
+        assertTrue(stdout.contains("  slice.bytes = " + hex(slice)), stdout);
+        assertTrue(stdout.contains("  dynamic_binary_code.31bit.big_endian = " + dbc), stdout);
+        assertTrue(stdout.contains("  last.byte = " + formatByte(hmac[hmac.length - 1])), stdout);
+        assertTrue(stdout.contains("  output.otp = " + vector.otp()), stdout);
     }
 
     @Test
@@ -131,5 +154,98 @@ final class HotpCliVerboseTraceTest {
                         "Failed to import HOTP vector: exitCode=" + exitCode + " stderr=" + stderr());
             }
         }
+    }
+
+    private static String sha256Digest(byte[] input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return "sha256:" + hex(digest.digest(input));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static byte[] longBytes(long value) {
+        return ByteBuffer.allocate(Long.BYTES).putLong(value).array();
+    }
+
+    private static byte[] paddedKey(HotpJsonVector vector) {
+        int blockLength = blockLength(vector.algorithm());
+        byte[] key = new byte[blockLength];
+        byte[] source = vector.secret().value();
+        System.arraycopy(source, 0, key, 0, Math.min(source.length, key.length));
+        return key;
+    }
+
+    private static byte[] innerHash(HotpJsonVector vector, byte[] counterBytes) {
+        byte[] paddedKey = paddedKey(vector);
+        byte[] innerPad = xorWith(paddedKey, (byte) 0x36);
+        byte[] innerInput = concat(innerPad, counterBytes);
+        return shaDigest(digestAlgorithm(vector.algorithm()), innerInput);
+    }
+
+    private static byte[] computeHmac(HotpJsonVector vector, byte[] counterBytes, byte[] innerHash) {
+        byte[] paddedKey = paddedKey(vector);
+        byte[] outerPad = xorWith(paddedKey, (byte) 0x5c);
+        byte[] outerInput = concat(outerPad, innerHash);
+        return shaDigest(digestAlgorithm(vector.algorithm()), outerInput);
+    }
+
+    private static int offset(byte[] hmac) {
+        return hmac[hmac.length - 1] & 0x0F;
+    }
+
+    private static int dynamicBinaryCode(byte[] slice) {
+        return ((slice[0] & 0x7F) << 24) | ((slice[1] & 0xFF) << 16) | ((slice[2] & 0xFF) << 8) | (slice[3] & 0xFF);
+    }
+
+    private static byte[] xorWith(byte[] input, byte padByte) {
+        byte[] result = Arrays.copyOf(input, input.length);
+        for (int index = 0; index < result.length; index++) {
+            result[index] = (byte) (result[index] ^ padByte);
+        }
+        return result;
+    }
+
+    private static byte[] concat(byte[] left, byte[] right) {
+        byte[] result = Arrays.copyOf(left, left.length + right.length);
+        System.arraycopy(right, 0, result, left.length, right.length);
+        return result;
+    }
+
+    private static byte[] shaDigest(String algorithm, byte[] input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance(algorithm);
+            return digest.digest(input);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("Unsupported digest algorithm: " + algorithm, ex);
+        }
+    }
+
+    private static int blockLength(HotpHashAlgorithm algorithm) {
+        return switch (algorithm) {
+            case SHA1, SHA256 -> 64;
+            case SHA512 -> 128;
+        };
+    }
+
+    private static String digestAlgorithm(HotpHashAlgorithm algorithm) {
+        return switch (algorithm) {
+            case SHA1 -> "SHA-1";
+            case SHA256 -> "SHA-256";
+            case SHA512 -> "SHA-512";
+        };
+    }
+
+    private static String formatByte(byte value) {
+        return String.format("0x%02x", value & 0xFF);
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {
+            builder.append(String.format("%02x", b));
+        }
+        return builder.toString();
     }
 }

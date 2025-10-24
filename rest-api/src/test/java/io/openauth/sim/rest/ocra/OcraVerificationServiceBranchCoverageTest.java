@@ -37,7 +37,7 @@ class OcraVerificationServiceBranchCoverageTest {
         OcraVerificationContext invalidContext =
                 new OcraVerificationContext("12345678", null, null, null, "00FF", null, null);
         OcraVerificationRequest request =
-                new OcraVerificationRequest(buildMatchingOtp(), descriptor.name(), null, invalidContext);
+                new OcraVerificationRequest(buildMatchingOtp(), descriptor.name(), null, invalidContext, Boolean.FALSE);
 
         OcraVerificationValidationException exception = assertThrows(
                 OcraVerificationValidationException.class,
@@ -88,7 +88,7 @@ class OcraVerificationServiceBranchCoverageTest {
     }
 
     private OcraVerificationRequest storedRequest(String credentialId) {
-        return new OcraVerificationRequest("123456", credentialId, null, context());
+        return new OcraVerificationRequest("123456", credentialId, null, context(), Boolean.FALSE);
     }
 
     private OcraVerificationContext context() {

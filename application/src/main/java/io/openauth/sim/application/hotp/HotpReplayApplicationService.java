@@ -311,7 +311,7 @@ public final class HotpReplayApplicationService {
                         .attribute(
                                 VerboseTrace.AttributeType.STRING,
                                 "alg",
-                                descriptor.algorithm().name())
+                                descriptor.algorithm().traceLabel())
                         .attribute(VerboseTrace.AttributeType.INT, "digits", descriptor.digits())
                         .attribute(VerboseTrace.AttributeType.STRING, "otp.provided", providedOtp)
                         .attribute(VerboseTrace.AttributeType.INT, "counter.hint", counter)
@@ -322,7 +322,7 @@ public final class HotpReplayApplicationService {
                     step.attribute(VerboseTrace.AttributeType.STRING, "secret.format", SECRET_FORMAT_HEX);
                 }
                 if (descriptor.algorithm() != HotpHashAlgorithm.SHA1) {
-                    step.note("non_standard_hash", descriptor.algorithm().name());
+                    step.note("non_standard_hash", Boolean.toString(true));
                 }
             });
 
@@ -343,6 +343,10 @@ public final class HotpReplayApplicationService {
                             VerboseTrace.AttributeType.STRING, "attempt." + attempt.counter() + ".otp", attemptValue);
                 });
                 if (matchDetails != null && matchedWindowCounter != null) {
+                    step.attribute(
+                            VerboseTrace.AttributeType.STRING,
+                            "match.hmac.compute.detail",
+                            descriptor.algorithm().traceLabel());
                     step.attribute(
                             VerboseTrace.AttributeType.STRING, "match.marker.begin", "-- begin match.derivation --");
                     step.attribute(
@@ -401,7 +405,7 @@ public final class HotpReplayApplicationService {
                             matchDetails.sliceMaskedHex());
                     step.attribute(
                             VerboseTrace.AttributeType.INT,
-                            "match.truncate.dynamic.dbc.31bit.big_endian",
+                            "match.truncate.dynamic.dynamic_binary_code.31bit.big_endian",
                             matchDetails.truncatedInt());
                     step.attribute(VerboseTrace.AttributeType.INT, "match.mod.reduce.modulus", matchDetails.modulus());
                     step.attribute(

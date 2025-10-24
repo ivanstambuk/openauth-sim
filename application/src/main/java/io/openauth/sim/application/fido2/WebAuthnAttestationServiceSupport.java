@@ -62,6 +62,7 @@ final class WebAuthnAttestationServiceSupport {
         boolean success = result.success();
 
         List<X509Certificate> certificateChain = verification.certificateChain();
+        int certificateChainLength = certificateChain.size();
         boolean anchorProvided = trustAnchors != null && !trustAnchors.isEmpty();
         boolean anchorTrusted =
                 anchorProvided && !certificateChain.isEmpty() && matchesAnchor(certificateChain, trustAnchors);
@@ -126,6 +127,7 @@ final class WebAuthnAttestationServiceSupport {
                 credential,
                 aaguid,
                 anchorProvided,
+                certificateChainLength,
                 selfAttestedFallback,
                 telemetryFields,
                 anchorMode(anchorProvided, trustAnchorsCached, anchorTrusted));
@@ -290,6 +292,7 @@ final class WebAuthnAttestationServiceSupport {
             Optional<CredentialData> credential,
             String aaguid,
             boolean anchorProvided,
+            int certificateChainLength,
             boolean selfAttestedFallback,
             Map<String, Object> telemetryFields,
             String anchorMode) {

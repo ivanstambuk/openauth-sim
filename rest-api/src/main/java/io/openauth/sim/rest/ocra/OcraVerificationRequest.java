@@ -8,6 +8,7 @@ record OcraVerificationRequest(
         @JsonProperty("otp") String otp,
         @JsonProperty("credentialId") String credentialId,
         @JsonProperty("inlineCredential") OcraVerificationInlineCredential inlineCredential,
-        @JsonProperty("context") OcraVerificationContext context) {
+        @JsonProperty("context") OcraVerificationContext context,
+        @JsonProperty("verbose") Boolean verbose) {
     // Payload contract only; behaviour defined in OcraVerificationService.
 }
