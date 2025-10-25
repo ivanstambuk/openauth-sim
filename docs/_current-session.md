@@ -9,6 +9,7 @@
 - Last green commands: `./gradlew --no-daemon jacocoCoverageVerification` (2025-10-25), `./gradlew --no-daemon checkstyleMain checkstyleTest` (2025-10-25), `./gradlew --no-daemon spotlessApply check` (2025-10-25), `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test"` (2025-10-25), `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` (2025-10-25).
 - Build status: Coverage dip traced to new `SignatureInspector` fallback branches; added malformed-signature tests and normalised helper records so lint passes (`jacocoCoverageVerification`, `checkstyleMain/checkstyleTest`, and full `spotlessApply check` all green on 2025-10-25).
 - Quality gate note: `./gradlew --no-daemon spotlessApply check` completed successfully on 2025-10-25 after normalising record declarations that previously tripped Checkstyle/PMD.
+- Commit-hook trial: Completed 2025-10-25 by staging this docs update, running `./gradlew --no-daemon spotlessApply check`, and committing with `CODEX_CMD="codex exec --model gpt-5-codex --sandbox read-only --skip-git-repo-check --color never"` to exercise the Python-backed `githooks/commit-msg`.
 - Outstanding git state: Feature 035 documentation/tasks updated (T3529/T3540 closed); next focus is Feature 036 tier helper groundwork.
 
 ## Workstream Summary
