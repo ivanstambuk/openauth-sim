@@ -13,6 +13,7 @@ import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.core.trace.VerboseTrace;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -293,7 +294,24 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
         assertEquals(
                 WebAuthnSignatureAlgorithm.ES256.coseIdentifier(),
                 constructStep.attributes().get("cose.alg"));
+        assertEquals(
+                WebAuthnSignatureAlgorithm.ES256.name(),
+                constructStep.attributes().get("cose.alg.name"));
         assertEquals(hex(command.publicKeyCose()), constructStep.attributes().get("publicKey.cose.hex"));
+        Map<Integer, Object> cose = decodeCoseMap(command.publicKeyCose());
+        int coseKeyType = requireInt(cose, 1);
+        assertEquals(coseKeyType, constructStep.attributes().get("cose.kty"));
+        assertEquals(coseKeyTypeName(coseKeyType), constructStep.attributes().get("cose.kty.name"));
+        int coseCurve = requireInt(cose, -1);
+        assertEquals(coseCurve, constructStep.attributes().get("cose.crv"));
+        assertEquals(coseCurveName(coseCurve), constructStep.attributes().get("cose.crv.name"));
+        byte[] coseX = requireBytes(cose, -2);
+        byte[] coseY = requireBytes(cose, -3);
+        assertEquals(base64Url(coseX), constructStep.attributes().get("cose.x.b64u"));
+        assertEquals(base64Url(coseY), constructStep.attributes().get("cose.y.b64u"));
+        assertEquals(
+                jwkThumbprint(ecJwkFields(coseCurveName(coseCurve), coseX, coseY)),
+                constructStep.attributes().get("publicKey.jwk.thumbprint.sha256"));
 
         var counterStep = findStep(trace, "evaluate.counter");
         assertEquals("webauthn§6.5.4", counterStep.specAnchor());
@@ -490,5 +508,95 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
         boolean extensionDataIncluded() {
             return (flags & 0x80) != 0;
         }
+    }
+
+    private static Map<Integer, Object> decodeCoseMap(byte[] coseKey) {
+        try {
+            Object decoded = io.openauth.sim.core.fido2.CborDecoder.decode(coseKey);
+            if (!(decoded instanceof Map<?, ?> raw)) {
+                throw new IllegalArgumentException("COSE key is not a CBOR map");
+            }
+            return raw.entrySet().stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                            entry -> ((Number) entry.getKey()).intValue(),
+                            Map.Entry::getValue,
+                            (a, b) -> b,
+                            java.util.LinkedHashMap::new));
+        } catch (Exception ex) {
+            throw new IllegalStateException("Failed to decode COSE key", ex);
+        }
+    }
+
+    private static int requireInt(Map<Integer, Object> cose, int key) {
+        Object value = cose.get(key);
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        throw new IllegalArgumentException("Missing integer field " + key);
+    }
+
+    private static byte[] requireBytes(Map<Integer, Object> cose, int key) {
+        Object value = cose.get(key);
+        if (value instanceof byte[] bytes) {
+            return bytes;
+        }
+        if (value instanceof BigInteger bigInteger) {
+            return bigInteger.toByteArray();
+        }
+        throw new IllegalArgumentException("Missing byte field " + key);
+    }
+
+    private static String coseKeyTypeName(int keyType) {
+        return switch (keyType) {
+            case 1 -> "OKP";
+            case 2 -> "EC2";
+            case 3 -> "RSA";
+            default -> "UNKNOWN";
+        };
+    }
+
+    private static String coseCurveName(int curve) {
+        return switch (curve) {
+            case 1 -> "P-256";
+            case 2 -> "P-384";
+            case 3 -> "P-521";
+            case 6 -> "Ed25519";
+            default -> "UNKNOWN";
+        };
+    }
+
+    private static Map<String, String> ecJwkFields(String curve, byte[] x, byte[] y) {
+        Map<String, String> fields = new java.util.LinkedHashMap<>();
+        fields.put("crv", curve);
+        fields.put("kty", "EC");
+        fields.put("x", base64Url(x));
+        fields.put("y", base64Url(y));
+        return fields;
+    }
+
+    private static String jwkThumbprint(Map<String, String> fields) {
+        StringBuilder json = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, String> entry : fields.entrySet()) {
+            if (!first) {
+                json.append(',');
+            }
+            first = false;
+            json.append('"')
+                    .append(entry.getKey())
+                    .append('"')
+                    .append(':')
+                    .append('"')
+                    .append(entry.getValue())
+                    .append('"');
+        }
+        json.append('}');
+        byte[] digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256").digest(json.toString().getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
     }
 }

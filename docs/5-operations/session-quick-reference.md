@@ -13,7 +13,7 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 
 ## Commit Protocol Reminder
 - When the user says “commit” or “commit and push,” stage the entire repository (`git add -A`) and rely on the managed hooks to run the quality pipeline.
-- Diff the staged changes under `docs/4-architecture/` to extract the feature identifiers you touched and add those IDs to the commit body (no per-file bullets), then push immediately once the hooks succeed.
+- Skim the staged changes under `docs/4-architecture/` so you know which specs/plans/tasks moved, then commit with a single-line conventional subject that summarises the change (no feature listings) and push as soon as the hooks succeed.
 
 ## Handoff Prompt Template
 ```

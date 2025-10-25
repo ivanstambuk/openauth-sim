@@ -3,6 +3,8 @@ package io.openauth.sim.application.fido2;
 import io.openauth.sim.application.telemetry.Fido2TelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.fido2.CborDecoder;
+import io.openauth.sim.core.fido2.CoseKeyInspector;
+import io.openauth.sim.core.fido2.CoseKeyInspector.CoseKeyDetails;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import io.openauth.sim.core.fido2.WebAuthnRelyingPartyId;
@@ -378,6 +380,34 @@ public final class WebAuthnAttestationVerificationApplicationService {
             if (algorithm != null) {
                 step.attribute("alg", algorithm.name());
                 step.attribute("cose.alg", algorithm.coseIdentifier());
+                step.attribute("cose.alg.name", algorithm.name());
+            }
+            byte[] publicKeyCose = components.credentialPublicKey();
+            if (publicKeyCose != null && publicKeyCose.length > 0) {
+                try {
+                    CoseKeyDetails details = CoseKeyInspector.inspect(publicKeyCose, algorithm);
+                    step.attribute("cose.kty", details.keyType());
+                    step.attribute("cose.kty.name", details.keyTypeName());
+                    details.curve().ifPresent(value -> step.attribute("cose.crv", value));
+                    details.curveName().ifPresent(value -> step.attribute("cose.crv.name", value));
+                    details.xCoordinateBase64Url()
+                            .ifPresent(value ->
+                                    step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.x.b64u", value));
+                    details.yCoordinateBase64Url()
+                            .ifPresent(value ->
+                                    step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.y.b64u", value));
+                    details.modulusBase64Url()
+                            .ifPresent(value ->
+                                    step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.n.b64u", value));
+                    details.exponentBase64Url()
+                            .ifPresent(value ->
+                                    step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.e.b64u", value));
+                    details.jwkThumbprintSha256()
+                            .ifPresent(value -> step.attribute(
+                                    VerboseTrace.AttributeType.BASE64URL, "publicKey.jwk.thumbprint.sha256", value));
+                } catch (GeneralSecurityException ex) {
+                    step.note("coseDecodeError", ex.getMessage());
+                }
             }
         });
     }
@@ -412,6 +442,7 @@ public final class WebAuthnAttestationVerificationApplicationService {
             if (algorithm != null) {
                 step.attribute("alg", algorithm.name());
                 step.attribute("cose.alg", algorithm.coseIdentifier());
+                step.attribute("cose.alg.name", algorithm.name());
             } else {
                 step.attribute("alg", "");
             }

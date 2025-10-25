@@ -1,7 +1,7 @@
 # Feature 035 – Evaluate & Replay Audit Tracing
 
 _Status: Proposed_  
-_Last updated: 2025-10-22_
+_Last updated: 2025-10-25_
 
 ## Overview
 Introduce a deterministic, operator-facing audit trace for every credential-evaluation workflow across the simulator. When an operator enables verbose tracing for a request, the system must emit a step-by-step account of each cryptographic operation—down to intermediate buffers and bit-level mutations—so humans can study how the algorithm arrived at the final outcome. Traces are ephemeral (bound to the request that generated them) but must be available through all facades (CLI, REST, operator UI) and future protocols without additional infrastructure work.
@@ -31,6 +31,8 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
 10. 2025-10-24 – Extend OCRA verification/replay services to emit verbose traces matching the evaluation format so REST and UI facades surface stored/inline replay timelines when `verbose=true` (owner directive).
 11. 2025-10-24 – WebAuthn verbose traces must capture validated client data context (expected type/origin, challenge decoding metadata, token binding presence) while relying on existing application/service validation to reject mismatches (owner directive).
 12. 2025-10-24 – Canonicalise WebAuthn relying party identifiers (trim, IDNA to ASCII, lower-case) before hashing or persistence, and surface `rpId.canonical`, `rpIdHash.expected`, and `rpIdHash.match` fields in verbose traces for attestation and assertion workflows (owner directive).
+13. 2025-10-25 – WebAuthn verbose traces must decode the COSE public key map and surface key metadata (`cose.kty`, `cose.kty.name`, `cose.alg.name`, curve identifiers, and base64url-encoded coordinates/modulus/exponent) alongside the existing `publicKey.cose.hex` field so auditors can inspect structured key material (owner directive).
+14. 2025-10-25 – Compute the RFC 7638 JWK thumbprint for each WebAuthn credential public key and expose it as `publicKey.jwk.thumbprint.sha256` within verbose traces to provide a stable key identifier (owner directive).
 
 ## Requirements
 - Define a structured trace model under `core/` that can capture ordered steps, labelled intermediate values, and protocol-specific annotations while remaining extensible for future credential types.
@@ -89,6 +91,8 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
   - Canonical naming: emit `alg` for signature algorithms (e.g., `ES256`, `ES384`, `ES512`, `RS256`), surface `cose.alg` with the numeric COSE code, prefer `rpIdHash.hex`, `clientDataHash.sha256`, and `signedBytes.sha256` keys, and render single-byte hex fields without a `0x` prefix.
   - Authenticator data logging: expose a `flags.bits.*` map alongside the raw `flags.byte`, covering `UP`, `RFU1`, `UV`, `BE`, `BS`, `RFU2`, `AT`, and `ED`, and record the relying-party policy via `userVerificationRequired` plus a derived `uv.policy.ok = (!userVerificationRequired) || flags.bits.UV` attribute.
   - Canonicalise the relying party identifier before computing digests, expose the normalised value (`rpId.canonical`), surface the derived SHA-256 digest (`rpIdHash.expected`), and include a boolean comparison result (`rpIdHash.match`) so traces highlight mismatches without relying on the verifier exception alone.
+  - COSE key decoding: surface the decoded key metadata for every algorithm by emitting `cose.kty`, `cose.kty.name`, and `cose.alg.name`, plus curve identifiers (`cose.crv`, `cose.crv.name`) and coordinate/modulus/exponent values encoded as base64url (e.g., `cose.x.b64u`, `cose.y.b64u`, `cose.n.b64u`, `cose.e.b64u`) while retaining the raw hex dump for parity.
+  - Public key identification: derive the RFC 7638 JWK thumbprint for the credential public key and expose it as `publicKey.jwk.thumbprint.sha256` alongside the decoded COSE fields so traces provide a stable identifier for cross-facade comparisons.
   - Client data logging: record `expected.type`, `type.match`, `challenge.b64u`, `challenge.decoded.len`, `origin.expected`, `origin.match`, and `tokenBinding.*` attributes alongside the existing JSON/hash fields to document successful validation context. Mismatches remain enforced by the application/verifier layers; traces only emit results for accepted inputs.
 - **Common presentation** – Every trace lists `operation`, `metadata`, and numbered `steps` with nested key/value lines. Each step should end with an optional `spec:` line referencing the governing section.
 

@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-035-evaluate-replay-audit-tracing.md`  
 _Status:_ Draft  
-_Last updated:_ 2025-10-23
+_Last updated:_ 2025-10-25
 
 ## Vision & Success Criteria
 - Every credential evaluation/replay/attestation workflow (HOTP, TOTP, OCRA, FIDO2) exposes an opt-in verbose trace that lists each cryptographic operation, inputs, and intermediate outputs in execution order.
@@ -47,6 +47,9 @@ _Last updated:_ 2025-10-23
   - Shared steps: `parse.clientData`, `parse.authenticatorData`, `build.signatureBase`, `verify.signature`.
   - Attestation adds `extract.attestedCredential` (AAGUID, credential ID, COSE key) and `validate.metadata` (trust chain, AAGUID outcome).
   - Assertion adds `evaluate.counter` (previous vs new counter, strict increment) and surfaces extension outputs when present.
+  - Canonicalise the relying party identifier before computing digests, expose the normalised value (`rpId.canonical`), surface the derived SHA-256 digest (`rpIdHash.expected`), and include a boolean comparison result (`rpIdHash.match`) so traces highlight mismatches without relying on the verifier exception alone.
+  - COSE key decoding: surface the decoded key metadata for every algorithm by emitting `cose.kty`, `cose.kty.name`, and `cose.alg.name`, plus curve identifiers (`cose.crv`, `cose.crv.name`) and coordinate/modulus/exponent values encoded as base64url (e.g., `cose.x.b64u`, `cose.y.b64u`, `cose.n.b64u`, `cose.e.b64u`) while retaining the raw hex dump for parity.
+  - Public key identification: derive the RFC 7638 JWK thumbprint for the credential public key and expose it as `publicKey.jwk.thumbprint.sha256` alongside the decoded COSE fields so traces provide a stable identifier for cross-facade comparisons.
 
 ## Increment Breakdown (≤10 min each, tests-before-code)
 1. **I1 – Baseline evaluation map**
@@ -152,6 +155,13 @@ _Last updated:_ 2025-10-23
     - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2EvaluationEndpointTest"`; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`; `./gradlew --no-daemon spotlessApply check`.
 
 20. **I12e – WebAuthn RP ID canonicalisation & trace match indicators (completed 2025-10-24)**
+    - Normalised relying party identifiers (trim, IDNA to ASCII, lower-case) before persistence or verification across assertion and attestation services; updated credential descriptors, stored credential construction, and request builders to reuse the canonical value and refreshed verbose trace assertions across application/CLI/REST flows to expect `rpId.canonical`, `rpIdHash.expected`, and `rpIdHash.match`.
+    - Commands: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.*"`; `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`.
+
+21. **I12f – WebAuthn COSE key decode & thumbprint (pending)**
+    - Expand verbose trace expectations (application/CLI/REST) to cover decoded COSE metadata and RFC 7638 thumbprint outputs across EC, RSA, PS256, and EdDSA fixtures before wiring the implementation.
+    - Introduce a shared helper that exposes COSE key attributes and thumbprint generation for trace builders, ensuring failures fall back to the existing hex payload with a descriptive note.
+    - Update trace builders, CLI printers, REST DTOs, and OpenAPI snapshots to surface `cose.*` attributes and `publicKey.jwk.thumbprint.sha256`; rerun the FIDO2 verbose suites and finish with `./gradlew --no-daemon spotlessApply check`.
     - Normalised relying party identifiers (trim, IDNA to ASCII, lower-case) before persistence or verification across assertion and attestation services; updated credential descriptors, stored credential construction, and request builders to reuse the canonical value.
     - Extended verbose traces to emit `rpId.canonical`, `rpIdHash.expected`, and `rpIdHash.match` alongside the authenticator-provided hash so operators can spot mismatches without relying solely on verifier exceptions; refreshed application/CLI/REST fixtures and OpenAPI snapshots accordingly.
     - Commands: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.*"`; `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test"`; `./gradlew --no-daemon spotlessApply check`.

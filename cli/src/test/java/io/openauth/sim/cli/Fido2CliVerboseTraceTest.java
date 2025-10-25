@@ -14,6 +14,7 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -21,6 +22,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -123,6 +126,29 @@ final class Fido2CliVerboseTraceTest {
         assertTrue(stdout.contains("  signedBytes.sha256 = " + signatureBaseSha256), stdout);
         assertTrue(stdout.contains("  alg = " + WebAuthnSignatureAlgorithm.ES256.name()), stdout);
         assertTrue(stdout.contains("  cose.alg = " + WebAuthnSignatureAlgorithm.ES256.coseIdentifier()), stdout);
+        assertTrue(stdout.contains("  cose.alg.name = " + WebAuthnSignatureAlgorithm.ES256.name()), stdout);
+        Map<Integer, Object> cose = decodeCoseMap(fixture.storedCredential().publicKeyCose());
+        int coseKeyType = requireInt(cose, 1);
+        assertTrue(stdout.contains("  cose.kty = " + coseKeyType), stdout);
+        assertTrue(stdout.contains("  cose.kty.name = " + coseKeyTypeName(coseKeyType)), stdout);
+        if (cose.containsKey(-1)) {
+            int curve = requireInt(cose, -1);
+            assertTrue(stdout.contains("  cose.crv = " + curve), stdout);
+            assertTrue(stdout.contains("  cose.crv.name = " + coseCurveName(curve)), stdout);
+        }
+        if (cose.containsKey(-2)) {
+            String xB64 = base64Url(requireBytes(cose, -2));
+            assertTrue(stdout.contains("  cose.x.b64u = " + xB64), stdout);
+        }
+        if (cose.containsKey(-3)) {
+            String yB64 = base64Url(requireBytes(cose, -3));
+            assertTrue(stdout.contains("  cose.y.b64u = " + yB64), stdout);
+        }
+        Map<String, String> jwkFields = jwkFieldsForThumbprint(coseKeyType, cose);
+        if (!jwkFields.isEmpty()) {
+            String thumbprint = jwkThumbprint(jwkFields);
+            assertTrue(stdout.contains("  publicKey.jwk.thumbprint.sha256 = " + thumbprint), stdout);
+        }
         assertTrue(stdout.contains("  valid = true"), stdout);
         assertTrue(stdout.contains("=== End Verbose Trace ==="), stdout);
     }
@@ -255,5 +281,114 @@ final class Fido2CliVerboseTraceTest {
 
     private static String base64Url(byte[] value) {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(value);
+    }
+
+    private static Map<Integer, Object> decodeCoseMap(byte[] coseKey) {
+        try {
+            Object decoded = io.openauth.sim.core.fido2.CborDecoder.decode(coseKey);
+            if (!(decoded instanceof Map<?, ?> raw)) {
+                throw new IllegalArgumentException("COSE key is not a CBOR map");
+            }
+            Map<Integer, Object> result = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : raw.entrySet()) {
+                if (!(entry.getKey() instanceof Number number)) {
+                    throw new IllegalArgumentException("COSE key contains non-integer identifiers");
+                }
+                result.put(number.intValue(), entry.getValue());
+            }
+            return result;
+        } catch (Exception ex) {
+            throw new IllegalStateException("Failed to decode COSE key", ex);
+        }
+    }
+
+    private static int requireInt(Map<Integer, Object> map, int key) {
+        Object value = map.get(key);
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        throw new IllegalArgumentException("Missing integer field " + key);
+    }
+
+    private static byte[] requireBytes(Map<Integer, Object> map, int key) {
+        Object value = map.get(key);
+        if (value instanceof byte[] bytes) {
+            return bytes;
+        }
+        if (value instanceof BigInteger bigInteger) {
+            return bigInteger.toByteArray();
+        }
+        throw new IllegalArgumentException("Missing byte field " + key);
+    }
+
+    private static String coseKeyTypeName(int keyType) {
+        return switch (keyType) {
+            case 1 -> "OKP";
+            case 2 -> "EC2";
+            case 3 -> "RSA";
+            default -> "UNKNOWN";
+        };
+    }
+
+    private static String coseCurveName(int curve) {
+        return switch (curve) {
+            case 1 -> "P-256";
+            case 2 -> "P-384";
+            case 3 -> "P-521";
+            case 6 -> "Ed25519";
+            default -> "UNKNOWN";
+        };
+    }
+
+    private static Map<String, String> jwkFieldsForThumbprint(int keyType, Map<Integer, Object> cose) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        switch (keyType) {
+            case 2 -> {
+                int curve = requireInt(cose, -1);
+                fields.put("crv", coseCurveName(curve));
+                fields.put("kty", "EC");
+                fields.put("x", base64Url(requireBytes(cose, -2)));
+                fields.put("y", base64Url(requireBytes(cose, -3)));
+            }
+            case 3 -> {
+                fields.put("e", base64Url(requireBytes(cose, -2)));
+                fields.put("kty", "RSA");
+                fields.put("n", base64Url(requireBytes(cose, -1)));
+            }
+            case 1 -> {
+                int curve = requireInt(cose, -1);
+                fields.put("crv", coseCurveName(curve));
+                fields.put("kty", "OKP");
+                fields.put("x", base64Url(requireBytes(cose, -2)));
+            }
+            default -> {
+                // Unsupported type
+            }
+        }
+        return fields;
+    }
+
+    private static String jwkThumbprint(Map<String, String> fields) {
+        if (fields.isEmpty()) {
+            return "";
+        }
+        StringBuilder json = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, String> entry : fields.entrySet()) {
+            if (!first) {
+                json.append(',');
+            }
+            first = false;
+            json.append('"')
+                    .append(entry.getKey())
+                    .append('"')
+                    .append(':')
+                    .append('"')
+                    .append(entry.getValue())
+                    .append('"');
+        }
+        json.append('}');
+        byte[] digest = sha256Bytes(json.toString().getBytes(StandardCharsets.UTF_8));
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
     }
 }

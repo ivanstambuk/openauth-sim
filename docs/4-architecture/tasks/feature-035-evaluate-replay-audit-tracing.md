@@ -2,7 +2,7 @@
 
 _Linked plan:_ `docs/4-architecture/feature-plan-035-evaluate-replay-audit-tracing.md`  
 _Status:_ Draft  
-_Last updated:_ 2025-10-22
+_Last updated:_ 2025-10-25
 
 ☑ **T3501 – Map evaluation injection points**  
  ☑ Review HOTP/TOTP/OCRA/FIDO2 evaluate, replay, and attest services to document hook locations (2025-10-22 – captured in feature plan “Evaluation Injection Map”).  
@@ -182,3 +182,9 @@ _Last updated:_ 2025-10-22
  ☑ Extend WebAuthn assertion/attestation verbose trace tests (application + CLI) to expect `flags.bits.*`, `userVerificationRequired`, and `uv.policy.ok` attributes before wiring the implementation.  
  ☑ Update verbose trace builders and CLI output to emit the full flag map (UP/RFU1/UV/BE/BS/RFU2/AT/ED) plus the policy guard, ensuring attestation surfaces the policy attributes once credential metadata is available.  
  ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`; final `./gradlew --no-daemon spotlessApply check`.
+
+
+☑ **T3534 – WebAuthn COSE key decode & thumbprint trace**
+	☑ Added failing verbose trace assertions across application, CLI, and REST suites (including stored/inline flows) to expect decoded COSE metadata (`cose.kty`, `cose.kty.name`, `cose.alg.name`, curve identifiers, base64url coordinates/modulus/exponent) and the RFC 7638 thumbprint.
+	☑ Introduced `core/fido2/CoseKeyInspector` to expose COSE key attribute decoding + thumbprint generation; integrated into WebAuthn evaluation/attestation trace builders while preserving the existing hex output.
+	☑ Updated trace builders, CLI output, REST DTO traces, and OpenAPI snapshot to emit the new attributes; commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationServiceVerboseTraceTest"`, `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2EvaluationEndpointTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationManualEndpointTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, final `./gradlew --no-daemon spotlessApply check`.

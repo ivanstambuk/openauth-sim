@@ -5,9 +5,12 @@ import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationS
 import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationService.GenerationResult;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.core.fido2.CoseKeyInspector;
+import io.openauth.sim.core.fido2.CoseKeyInspector.CoseKeyDetails;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.trace.VerboseTrace;
 import io.openauth.sim.rest.VerboseTracePayload;
+import java.security.GeneralSecurityException;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -80,12 +83,18 @@ class WebAuthnEvaluationService {
         GenerationResult result = invokeGenerator(command, trace);
         metadata(trace, "alg", result.algorithm().name());
         metadata(trace, "cose.alg", Integer.toString(result.algorithm().coseIdentifier()));
-        addStep(trace, step -> step.id("generate.assertion")
-                .summary("Generate WebAuthn assertion")
-                .detail("WebAuthnAssertionGenerationApplicationService.generate")
-                .attribute("alg", result.algorithm().name())
-                .attribute("cose.alg", result.algorithm().coseIdentifier())
-                .attribute("credentialReference", result.credentialReference()));
+        metadata(trace, "cose.alg.name", result.algorithm().name());
+        Optional<CoseKeyDetails> coseDetails = inspectPublicKey(result.publicKeyCose(), result.algorithm());
+        addStep(trace, step -> {
+            step.id("generate.assertion")
+                    .summary("Generate WebAuthn assertion")
+                    .detail("WebAuthnAssertionGenerationApplicationService.generate")
+                    .attribute("alg", result.algorithm().name())
+                    .attribute("cose.alg", result.algorithm().coseIdentifier())
+                    .attribute("cose.alg.name", result.algorithm().name())
+                    .attribute("credentialReference", result.credentialReference());
+            coseDetails.ifPresent(details -> appendCoseAttributes(step, details));
+        });
         return buildResponse(result, "stored", buildTrace(trace));
     }
 
@@ -109,6 +118,7 @@ class WebAuthnEvaluationService {
         WebAuthnSignatureAlgorithm algorithm = parseAlgorithm(request.algorithm());
         metadata(trace, "alg", algorithm.name());
         metadata(trace, "cose.alg", Integer.toString(algorithm.coseIdentifier()));
+        metadata(trace, "cose.alg.name", algorithm.name());
 
         long signatureCounter = Optional.ofNullable(request.signatureCounter())
                 .orElseThrow(() -> validation("signature_counter_required", "Signature counter is required"));
@@ -145,13 +155,48 @@ class WebAuthnEvaluationService {
                 privateKey);
 
         GenerationResult result = invokeGenerator(command, trace);
-        addStep(trace, step -> step.id("generate.assertion")
-                .summary("Generate WebAuthn assertion")
-                .detail("WebAuthnAssertionGenerationApplicationService.generate")
-                .attribute("alg", result.algorithm().name())
-                .attribute("cose.alg", result.algorithm().coseIdentifier())
-                .attribute("credentialReference", result.credentialReference()));
+        Optional<CoseKeyDetails> coseDetails = inspectPublicKey(result.publicKeyCose(), result.algorithm());
+        addStep(trace, step -> {
+            step.id("generate.assertion")
+                    .summary("Generate WebAuthn assertion")
+                    .detail("WebAuthnAssertionGenerationApplicationService.generate")
+                    .attribute("alg", result.algorithm().name())
+                    .attribute("cose.alg", result.algorithm().coseIdentifier())
+                    .attribute("cose.alg.name", result.algorithm().name())
+                    .attribute("credentialReference", result.credentialReference());
+            coseDetails.ifPresent(details -> appendCoseAttributes(step, details));
+        });
         return buildResponse(result, "inline", buildTrace(trace));
+    }
+
+    private static Optional<CoseKeyDetails> inspectPublicKey(
+            byte[] publicKeyCose, WebAuthnSignatureAlgorithm algorithm) {
+        if (publicKeyCose == null || publicKeyCose.length == 0) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(CoseKeyInspector.inspect(publicKeyCose, algorithm));
+        } catch (GeneralSecurityException ex) {
+            return Optional.empty();
+        }
+    }
+
+    private static void appendCoseAttributes(VerboseTrace.TraceStep.Builder step, CoseKeyDetails details) {
+        step.attribute("cose.kty", details.keyType());
+        step.attribute("cose.kty.name", details.keyTypeName());
+        details.curve().ifPresent(value -> step.attribute("cose.crv", value));
+        details.curveName().ifPresent(value -> step.attribute("cose.crv.name", value));
+        details.xCoordinateBase64Url()
+                .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.x.b64u", value));
+        details.yCoordinateBase64Url()
+                .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.y.b64u", value));
+        details.modulusBase64Url()
+                .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.n.b64u", value));
+        details.exponentBase64Url()
+                .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.e.b64u", value));
+        details.jwkThumbprintSha256()
+                .ifPresent(value ->
+                        step.attribute(VerboseTrace.AttributeType.BASE64URL, "publicKey.jwk.thumbprint.sha256", value));
     }
 
     private static VerboseTrace.Builder newTrace(boolean verbose, String operation) {

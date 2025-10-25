@@ -2,6 +2,8 @@ package io.openauth.sim.application.fido2;
 
 import io.openauth.sim.application.telemetry.Fido2TelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.core.fido2.CoseKeyInspector;
+import io.openauth.sim.core.fido2.CoseKeyInspector.CoseKeyDetails;
 import io.openauth.sim.core.fido2.WebAuthnAssertionRequest;
 import io.openauth.sim.core.fido2.WebAuthnAssertionVerifier;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
@@ -19,6 +21,7 @@ import io.openauth.sim.core.trace.VerboseTrace.AttributeType;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -121,6 +124,12 @@ public final class WebAuthnEvaluationApplicationService {
                         submittedRpId,
                         canonicalRpId,
                         storedCredential.signatureCounter(),
+                        storedCredential.userVerificationRequired());
+                addConstructCredentialStep(
+                        trace,
+                        canonicalRpId,
+                        descriptor.algorithm(),
+                        storedCredential.publicKeyCose(),
                         storedCredential.userVerificationRequired());
                 addEvaluateCounterStep(trace, storedCredential.signatureCounter(), authenticatorData.counter());
             }
@@ -491,15 +500,38 @@ public final class WebAuthnEvaluationApplicationService {
         if (trace == null) {
             return;
         }
-        addStep(trace, step -> step.id("construct.credential")
-                .summary("Construct inline credential")
-                .detail("WebAuthnStoredCredential")
-                .spec("webauthn§6.1")
-                .attribute("rpId.canonical", canonicalRpId)
-                .attribute("alg", algorithm.name())
-                .attribute("cose.alg", algorithm.coseIdentifier())
-                .attribute("publicKey.cose.hex", hex(publicKeyCose))
-                .attribute("userVerificationRequired", userVerificationRequired));
+        addStep(trace, step -> {
+            step.id("construct.credential")
+                    .summary("Construct inline credential")
+                    .detail("WebAuthnStoredCredential")
+                    .spec("webauthn§6.1")
+                    .attribute("rpId.canonical", canonicalRpId)
+                    .attribute("alg", algorithm.name())
+                    .attribute("cose.alg", algorithm.coseIdentifier())
+                    .attribute("cose.alg.name", algorithm.name())
+                    .attribute("publicKey.cose.hex", hex(publicKeyCose))
+                    .attribute("userVerificationRequired", userVerificationRequired);
+            try {
+                CoseKeyDetails details = CoseKeyInspector.inspect(publicKeyCose, algorithm);
+                step.attribute("cose.kty", details.keyType());
+                step.attribute("cose.kty.name", details.keyTypeName());
+                details.curve().ifPresent(value -> step.attribute("cose.crv", value));
+                details.curveName().ifPresent(value -> step.attribute("cose.crv.name", value));
+                details.xCoordinateBase64Url()
+                        .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.x.b64u", value));
+                details.yCoordinateBase64Url()
+                        .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.y.b64u", value));
+                details.modulusBase64Url()
+                        .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.n.b64u", value));
+                details.exponentBase64Url()
+                        .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.e.b64u", value));
+                details.jwkThumbprintSha256()
+                        .ifPresent(value -> step.attribute(
+                                VerboseTrace.AttributeType.BASE64URL, "publicKey.jwk.thumbprint.sha256", value));
+            } catch (GeneralSecurityException ex) {
+                step.note("coseDecodeError", ex.getMessage());
+            }
+        });
     }
 
     private static void addSignatureBaseStep(
@@ -528,6 +560,7 @@ public final class WebAuthnEvaluationApplicationService {
                 .spec("webauthn§6.5.5")
                 .attribute("alg", algorithm.name())
                 .attribute("cose.alg", algorithm.coseIdentifier())
+                .attribute("cose.alg.name", algorithm.name())
                 .attribute("valid", valid));
     }
 
