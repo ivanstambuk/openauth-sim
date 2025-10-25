@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.core.fido2.SignatureInspector;
+import io.openauth.sim.core.fido2.SignatureInspector.EcdsaSignatureDetails;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnFixtures;
 import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
@@ -133,6 +135,9 @@ final class Fido2CliVerboseTraceTest {
         assertTrue(stdout.contains("  alg = " + WebAuthnSignatureAlgorithm.ES256.name()), stdout);
         assertTrue(stdout.contains("  cose.alg = " + WebAuthnSignatureAlgorithm.ES256.coseIdentifier()), stdout);
         assertTrue(stdout.contains("  cose.alg.name = " + WebAuthnSignatureAlgorithm.ES256.name()), stdout);
+        assertTrue(
+                stdout.contains("  sig.der.b64u = " + encode(fixture.request().signature())), stdout);
+        assertTrue(stdout.contains("  sig.der.len = " + fixture.request().signature().length), stdout);
         Map<Integer, Object> cose = decodeCoseMap(fixture.storedCredential().publicKeyCose());
         int coseKeyType = requireInt(cose, 1);
         assertTrue(stdout.contains("  cose.kty = " + coseKeyType), stdout);
@@ -155,6 +160,13 @@ final class Fido2CliVerboseTraceTest {
             String thumbprint = jwkThumbprint(jwkFields);
             assertTrue(stdout.contains("  publicKey.jwk.thumbprint.sha256 = " + thumbprint), stdout);
         }
+        EcdsaSignatureDetails ecdsaDetails = SignatureInspector.inspect(
+                        WebAuthnSignatureAlgorithm.ES256, fixture.request().signature())
+                .ecdsa()
+                .orElseThrow();
+        assertTrue(stdout.contains("  ecdsa.lowS = " + ecdsaDetails.lowS()), stdout);
+        assertTrue(stdout.contains("  policy.lowS.enforced = false"), stdout);
+        assertTrue(stdout.contains("  verify.ok = true"), stdout);
         assertTrue(stdout.contains("  valid = true"), stdout);
         assertTrue(stdout.contains("=== End Verbose Trace ==="), stdout);
     }

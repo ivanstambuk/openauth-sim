@@ -7,13 +7,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.openauth.sim.core.fido2.CborDecoder;
+import io.openauth.sim.core.fido2.SignatureInspector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
@@ -253,6 +257,29 @@ class Fido2AttestationManualEndpointTest {
 
         Map<String, String> verifyAttributes = orderedAttributes(step(trace, "verify.attestation"));
         assertThat(verifyAttributes).containsEntry("status", "SUCCESS");
+
+        Map<String, String> verifySignature = orderedAttributes(step(trace, "verify.signature"));
+        byte[] attestationSignature =
+                extractAttestationSignature(vector.registration().attestationObject());
+        WebAuthnSignatureAlgorithm algorithm = vector.algorithm();
+        SignatureInspector.SignatureDetails signatureDetails =
+                SignatureInspector.inspect(algorithm, attestationSignature);
+        String signaturePrefix = signatureDetails.ecdsa().isPresent() ? "sig.der" : "sig.raw";
+
+        assertThat(verifySignature)
+                .containsEntry("alg", algorithm.name())
+                .containsEntry("cose.alg", String.valueOf(algorithm.coseIdentifier()))
+                .containsEntry("cose.alg.name", algorithm.name())
+                .containsEntry("valid", "true")
+                .containsEntry("verify.ok", "true")
+                .containsEntry("policy.lowS.enforced", "false")
+                .containsEntry(signaturePrefix + ".b64u", signatureDetails.base64Url())
+                .containsEntry(signaturePrefix + ".len", String.valueOf(signatureDetails.length()));
+
+        signatureDetails.ecdsa().ifPresent(ecdsa -> assertThat(verifySignature)
+                .containsEntry("ecdsa.r.hex", ecdsa.rHex())
+                .containsEntry("ecdsa.s.hex", ecdsa.sHex())
+                .containsEntry("ecdsa.lowS", String.valueOf(ecdsa.lowS())));
     }
 
     private static JsonNode step(JsonNode trace, String id) {
@@ -271,6 +298,26 @@ class Fido2AttestationManualEndpointTest {
                     attribute.get("name").asText(), attribute.get("value").asText());
         }
         return attributes;
+    }
+
+    private static byte[] extractAttestationSignature(byte[] attestationObject) {
+        try {
+            Object decoded = CborDecoder.decode(attestationObject);
+            if (!(decoded instanceof Map<?, ?> root)) {
+                throw new IllegalStateException("Attestation object must be a CBOR map");
+            }
+            Object attStmtObject = root.get("attStmt");
+            if (!(attStmtObject instanceof Map<?, ?> attStmt)) {
+                throw new IllegalStateException("Attestation statement missing");
+            }
+            Object signature = attStmt.get("sig");
+            if (signature instanceof byte[] bytes) {
+                return bytes;
+            }
+            throw new IllegalStateException("Attestation statement missing signature");
+        } catch (GeneralSecurityException ex) {
+            throw new IllegalStateException("Unable to decode attestation object", ex);
+        }
     }
 
     private static List<String> certificateChainPem(WebAuthnAttestationVector vector) {

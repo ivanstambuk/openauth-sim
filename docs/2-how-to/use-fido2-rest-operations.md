@@ -19,6 +19,7 @@ The REST API exposes stored and inline WebAuthn assertion verification plus repl
     http://localhost:8080/api/v1/webauthn/evaluate | jq '.trace'
   ```
 - Traces expose raw assertions and key material, so only enable verbose mode in controlled environments. Leave the field out (or set `false`) during regular runs to keep responses minimal and sanitized.
+- `verify.signature` steps now spell out the inspected signature payload: `sig.der.b64u` + `sig.der.len` (or `sig.raw.*` for RSA/EdDSA), ECDSA component breakdown (`ecdsa.r.hex`, `ecdsa.s.hex`, `ecdsa.lowS`), low-S policy enforcement (`policy.lowS.enforced` + `error.lowS` note when tripped), algorithm metadata (`alg`, `cose.alg`, `cose.alg.name`), and the mirrored verdict flags (`valid`, `verify.ok`). RSA/PS256 traces add `rsa.padding`, `rsa.hash`, and `rsa.pss.salt.len`, while EdDSA emits the raw signature hex. Use these fields to reconcile OpenAuth outputs with external verifiers without re-parsing DER by hand.
 
 ### Start the REST Service
 From the repository root:

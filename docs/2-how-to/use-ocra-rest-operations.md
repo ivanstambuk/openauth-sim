@@ -154,6 +154,13 @@ Verification emits `event=rest.ocra.verify` with hashed payloads (`otpHash`, `co
 ### 4.5 Failure drills
 Issue a request with an intentionally altered counter, timestamp, or OTP to rehearse `strict_mismatch` handling. Terminate requests at the operator UI or CLI once the telemetry confirms the mismatch path is logged.
 
+### 4.6 Read verbose trace message integrity summaries
+Set `"verbose": true` on evaluate or verify calls to receive a `trace` block in the response. The `assemble.message` step now includes a summary of the concatenated OCRA payload so you can audit ordering at a glance:
+- `parts.count` reports how many segments were stitched together (suite token, separators, question bytes, session/timestamp data, etc.).
+- `parts.order` lists the segment identifiers in the exact concatenation sequence.
+
+These helpers accompany the existing per-segment length metadata (`segment.*.len.bytes`) and the overall `message.len.bytes` field, making it easier to spot missing inputs or misordered context without scrolling through full hex dumps.
+
 
 ## 5. Navigate the Operator UI (`GET /ui/console`)
 The REST service also hosts an operator UI that consumes the same endpoints via asynchronous fetch calls. Access it at `http://localhost:8080/ui/console` to validate JSON requests interactively before automating them in your tooling.

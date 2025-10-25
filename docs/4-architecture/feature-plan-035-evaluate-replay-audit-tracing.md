@@ -52,6 +52,7 @@ _Last updated:_ 2025-10-25
   - `build.signatureBase` should record buffer lengths for `authenticatorData`, `clientDataHash`, and the concatenated payload (`signedBytes.len.bytes`), output the concatenated bytes as a HEX attribute (`signedBytes.hex`), and provide a condensed preview (`signedBytes.preview`) that shows the first 16 and last 16 bytes separated by an ellipsis to accelerate manual comparisons.
   - COSE key decoding: surface the decoded key metadata for every algorithm by emitting `cose.kty`, `cose.kty.name`, and `cose.alg.name`, plus curve identifiers (`cose.crv`, `cose.crv.name`) and coordinate/modulus/exponent values encoded as base64url (e.g., `cose.x.b64u`, `cose.y.b64u`, `cose.n.b64u`, `cose.e.b64u`) while retaining the raw hex dump for parity.
   - Public key identification: derive the RFC 7638 JWK thumbprint for the credential public key and expose it as `publicKey.jwk.thumbprint.sha256` alongside the decoded COSE fields so traces provide a stable identifier for cross-facade comparisons.
+  - Signature inspection: emit raw signature encodings and algorithm metadata in the `verify.signature` step. For ECDSA algorithms (`ES256`, `ES384`, `ES512`), unwrap DER signatures into `sig.der.b64u`, `sig.der.len`, `ecdsa.r.hex`, and `ecdsa.s.hex`, compute `ecdsa.lowS`, and surface `policy.lowS.enforced` alongside both `valid` and a new `verify.ok` mirror. For RSA algorithms (`RS256`, `PS256`), expose `sig.raw.b64u`, `sig.raw.len`, `rsa.padding`, `rsa.hash`, `rsa.pss.salt.len` (when applicable), and `key.bits`. For EdDSA, provide `sig.raw.b64u`, `sig.raw.len`, and a hex dump. Detect descriptor/COSE algorithm mismatches and annotate with `error.alg_mismatch` before aborting verification. Low-S enforcement is governed by a new `WebAuthnSignaturePolicy` (default observe-only) so traces always explain whether enforcement affected the outcome.
 
 ## Increment Breakdown (≤10 min each, tests-before-code)
 1. **I1 – Baseline evaluation map**
@@ -174,6 +175,29 @@ _Last updated:_ 2025-10-25
 
 22. **I14 – Full quality gate**
     - 2025-10-23 – `./gradlew --no-daemon spotlessApply check` completed successfully after additional REST/CLI tests lifted aggregated branch coverage to 70.45 % (1 645/2 335).
+
+23. **I15 – WebAuthn signature inspection tests (fail first)**
+    - Extend verbose trace suites (core/application/CLI/REST) to expect algorithm-specific signature attributes: DER/base64url encodings, `ecdsa.r.hex`, `ecdsa.s.hex`, `ecdsa.lowS`, RSA padding/hash metadata, EdDSA raw signatures, and a mirrored `verify.ok` flag. Add failure coverage for metadata/COSE algorithm mismatches and low-S violations when policy is enabled.
+    - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test"`, `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.*"` (expected red until implementation).
+    - 2025-10-25 – Completed: Application verbose trace suites now assert signature encodings/low-S state (including enforced-mode failure), CLI trace assertions capture the new fields, core tests cover inspector semantics, and REST attestation replay exposes the same signature payloads via the new controller step.
+
+24. **I16 – Signature inspector implementation (green)**
+    - Introduce a core `SignatureInspector` (or equivalent helper) that parses ECDSA DER payloads into R/S components, computes low-S against curve order (P-256/P-384/P-521), and surfaces raw base64url encodings plus lengths for each algorithm. Update WebAuthn assertion/attestation services to populate the new trace attributes and propagate `verify.ok` while keeping legacy `valid`.
+    - Commands: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.SignatureInspectorTest"`, `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`.
+    - 2025-10-25 – Completed: `SignatureInspector` delivers DER parsing for ECDSA, RSA metadata extraction, and EdDSA raw reporting; integrated into evaluation/attestation services with dedicated unit coverage.
+
+25. **I17 – Low-S policy wiring**
+    - Add a `WebAuthnSignaturePolicy` with configuration hook (default observe-only) to determine whether high-S signatures trigger verifier failure. Ensure traces emit `policy.lowS.enforced` and raise `error.lowS` when enforcement blocks verification. Cover policy toggles with dedicated tests.
+    - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*PolicyTest"`, `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.*"`.
+    - 2025-10-25 – Completed: Policy now enforces low-S when enabled, emits trace annotations, and fails verification with `error.lowS`; high-S regression tests added for stored/inline assertion flows.
+
+26. **I18 – Facade + documentation sync**
+    - REST WebAuthn replay/attestation endpoints now assert the signature trace schema and expose `verify.signature` via `WebAuthnAttestationService`; refreshed FIDO2 REST how-to guidance and knowledge map to document the new fields (CLI/UI printers already covered by earlier increments). Attempted full `spotlessApply check`, which timed out after five minutes because of pre-existing Checkstyle/PMD findings in the SignatureInspector suites.
+    - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, attempted `./gradlew --no-daemon spotlessApply check` (timeout after 300 s; see session log).
+
+27. **I19 – Coverage regression + lint follow-up**
+    - 2025-10-25 – Coverage dipped to 69 % after introducing `SignatureInspector` decode fallbacks that only execute on malformed signatures. Extended application and REST verbose-trace tests to assert `signature.decode.error` notes and low-S enforcement, then re-ran `./gradlew --no-daemon jacocoCoverageVerification` to confirm aggregated line/branch coverage ≥0.70.
+    - 2025-10-25 – Palantir formatting collapsed empty record declarations, tripping Checkstyle’s `WhitespaceAround` rule. Normalised helper records (core + application tests) with explicit bodies so `./gradlew --no-daemon checkstyleMain checkstyleTest` and the full `./gradlew --no-daemon spotlessApply check` pipeline now pass.
 
 ## UI Layout Decision
 

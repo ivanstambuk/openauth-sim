@@ -5,6 +5,7 @@ import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.fido2.CborDecoder;
 import io.openauth.sim.core.fido2.CoseKeyInspector;
 import io.openauth.sim.core.fido2.CoseKeyInspector.CoseKeyDetails;
+import io.openauth.sim.core.fido2.SignatureInspector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import io.openauth.sim.core.fido2.WebAuthnRelyingPartyId;
@@ -12,6 +13,7 @@ import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.fido2.WebAuthnVerificationError;
 import io.openauth.sim.core.trace.VerboseTrace;
 import io.openauth.sim.core.trace.VerboseTrace.AttributeType;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -34,6 +36,7 @@ public final class WebAuthnAttestationVerificationApplicationService {
 
     private final WebAuthnAttestationVerifier verifier;
     private final Fido2TelemetryAdapter telemetryAdapter;
+    private final WebAuthnSignaturePolicy signaturePolicy;
     private static final Base64.Encoder BASE64_URL_ENCODER =
             Base64.getUrlEncoder().withoutPadding();
     private static final Base64.Decoder BASE64_URL_DECODER = Base64.getUrlDecoder();
@@ -45,8 +48,16 @@ public final class WebAuthnAttestationVerificationApplicationService {
 
     public WebAuthnAttestationVerificationApplicationService(
             WebAuthnAttestationVerifier verifier, Fido2TelemetryAdapter telemetryAdapter) {
+        this(verifier, telemetryAdapter, WebAuthnSignaturePolicy.observeOnly());
+    }
+
+    public WebAuthnAttestationVerificationApplicationService(
+            WebAuthnAttestationVerifier verifier,
+            Fido2TelemetryAdapter telemetryAdapter,
+            WebAuthnSignaturePolicy signaturePolicy) {
         this.verifier = Objects.requireNonNull(verifier, "verifier");
         this.telemetryAdapter = Objects.requireNonNull(telemetryAdapter, "telemetryAdapter");
+        this.signaturePolicy = Objects.requireNonNull(signaturePolicy, "signaturePolicy");
     }
 
     public VerificationResult verify(VerificationCommand command) {
@@ -95,13 +106,6 @@ public final class WebAuthnAttestationVerificationApplicationService {
                 command.trustAnchorsCached(),
                 command.trustAnchorMetadataEntryId());
 
-        TelemetrySignal telemetry = new TelemetrySignal(
-                toTelemetryStatus(outcome.status()),
-                outcome.reasonCode(),
-                outcome.reason(),
-                true,
-                outcome.telemetryFields());
-
         Optional<AttestedCredential> attestedCredential = outcome.credential()
                 .map(data -> new AttestedCredential(
                         data.relyingPartyId(),
@@ -111,18 +115,75 @@ public final class WebAuthnAttestationVerificationApplicationService {
                         outcome.aaguid(),
                         data.signatureCounter()));
 
+        WebAuthnSignatureAlgorithm algorithm = resolveAlgorithm(attestedCredential, attestationComponents);
+        CoseKeyDetails keyDetails = addExtractAttestedCredentialStep(
+                trace, attestationComponents, attestedCredential, submittedRpId, canonicalRpId, algorithm);
+        byte[] signatureBytes = extractAttestationSignature(command.attestationObject());
+        SignatureInspector.SignatureDetails signatureDetails = null;
+        String signatureDecodeError = null;
+        if (algorithm != null) {
+            try {
+                signatureDetails = SignatureInspector.inspect(algorithm, signatureBytes);
+            } catch (IllegalArgumentException ex) {
+                signatureDecodeError = ex.getMessage();
+                signatureDetails = SignatureInspector.SignatureDetails.raw(signatureBytes);
+            }
+        }
+        boolean algorithmMatches =
+                algorithm == null || keyDetails == null || keyDetails.coseAlgorithm() == algorithm.coseIdentifier();
+        Integer rsaKeyBits = rsaKeyBits(keyDetails);
+        boolean lowSEnforced = signaturePolicy.enforceLowS();
+        boolean lowSValid = signatureDetails == null
+                || signatureDetails
+                        .ecdsa()
+                        .map(SignatureInspector.EcdsaSignatureDetails::lowS)
+                        .orElse(true);
+
         if (trace != null) {
             Boolean userVerificationRequired = attestedCredential
                     .map(AttestedCredential::userVerificationRequired)
                     .orElse(null);
             addParseAuthenticatorDataStep(
                     trace, attestationComponents, submittedRpId, canonicalRpId, userVerificationRequired);
-            addExtractAttestedCredentialStep(
-                    trace, attestationComponents, attestedCredential, submittedRpId, canonicalRpId);
             byte[] clientDataHash = clientData == null ? sha256(command.clientDataJson()) : clientData.hash();
             addSignatureBaseStep(trace, attestationComponents.authData(), clientDataHash);
+        }
+
+        boolean success = outcome.success();
+        Optional<WebAuthnVerificationError> error = outcome.error();
+        if (lowSEnforced && !lowSValid) {
+            success = false;
+            error = Optional.of(WebAuthnVerificationError.SIGNATURE_INVALID);
+        }
+
+        TelemetrySignal telemetry = lowSEnforced && !lowSValid
+                ? new TelemetrySignal(
+                        TelemetryStatus.INVALID,
+                        "signature_invalid",
+                        "ECDSA signature violates low-S policy",
+                        true,
+                        outcome.telemetryFields())
+                : new TelemetrySignal(
+                        toTelemetryStatus(outcome.status()),
+                        outcome.reasonCode(),
+                        outcome.reason(),
+                        true,
+                        outcome.telemetryFields());
+
+        boolean finalSuccess = success;
+        Optional<WebAuthnVerificationError> finalError = error;
+
+        if (trace != null && signatureDetails != null && algorithm != null) {
             addVerifySignatureStep(
-                    trace, resolveAlgorithm(attestedCredential, attestationComponents), outcome.success());
+                    trace,
+                    algorithm,
+                    signatureBytes,
+                    signatureDetails,
+                    signatureDecodeError,
+                    success,
+                    lowSEnforced,
+                    algorithmMatches,
+                    rsaKeyBits);
         }
 
         addStep(trace, step -> {
@@ -131,8 +192,8 @@ public final class WebAuthnAttestationVerificationApplicationService {
                     .detail("WebAuthnAttestationServiceSupport.process")
                     .spec("webauthn§7.2")
                     .attribute("status", outcome.status().name())
-                    .attribute("valid", outcome.success());
-            outcome.error().map(Enum::name).ifPresent(err -> step.note("error", err));
+                    .attribute("valid", finalSuccess);
+            finalError.map(Enum::name).ifPresent(err -> step.note("error", err));
         });
 
         addValidateMetadataStep(trace, outcome, command.trustAnchors().size());
@@ -141,15 +202,15 @@ public final class WebAuthnAttestationVerificationApplicationService {
             step.id("assemble.result")
                     .summary("Assemble attestation verification result")
                     .detail("VerificationResult")
-                    .attribute("valid", outcome.success())
+                    .attribute("valid", finalSuccess)
                     .attribute("anchorMode", outcome.anchorMode())
                     .attribute("attestedCredential", attestedCredential.isPresent());
         });
 
         return new VerificationResult(
                 telemetry,
-                outcome.success(),
-                outcome.error(),
+                success,
+                error,
                 attestedCredential,
                 outcome.anchorProvided(),
                 outcome.selfAttestedFallback(),
@@ -339,14 +400,24 @@ public final class WebAuthnAttestationVerificationApplicationService {
         });
     }
 
-    private static void addExtractAttestedCredentialStep(
+    private static CoseKeyDetails addExtractAttestedCredentialStep(
             VerboseTrace.Builder trace,
             AttestationComponents components,
             Optional<AttestedCredential> attestedCredential,
             String relyingPartyId,
-            String canonicalRpId) {
+            String canonicalRpId,
+            WebAuthnSignatureAlgorithm algorithm) {
+        CoseKeyDetails details = null;
+        String decodeError = null;
+        if (components.hasAuthData() && algorithm != null) {
+            try {
+                details = CoseKeyInspector.inspect(components.credentialPublicKey(), algorithm);
+            } catch (GeneralSecurityException ex) {
+                decodeError = ex.getMessage();
+            }
+        }
         if (trace == null || !components.hasAuthData()) {
-            return;
+            return details;
         }
         String rpId = attestedCredential
                 .map(AttestedCredential::relyingPartyId)
@@ -356,7 +427,6 @@ public final class WebAuthnAttestationVerificationApplicationService {
                 .map(AttestedCredential::credentialId)
                 .filter(s -> !s.isBlank())
                 .orElseGet(() -> base64Url(components.credentialId()));
-        WebAuthnSignatureAlgorithm algorithm = resolveAlgorithm(attestedCredential, components);
         long signatureCounter =
                 attestedCredential.map(AttestedCredential::signatureCounter).orElse(components.counter());
         boolean userVerificationRequired = attestedCredential
@@ -366,6 +436,8 @@ public final class WebAuthnAttestationVerificationApplicationService {
                 ? components.aaguidHex()
                 : safe(attestedCredential.map(AttestedCredential::aaguid).orElse(""));
 
+        CoseKeyDetails finalDetails = details;
+        String finalDecodeError = decodeError;
         addStep(trace, step -> {
             step.id("extract.attestedCredential")
                     .summary("Extract attested credential metadata")
@@ -382,34 +454,32 @@ public final class WebAuthnAttestationVerificationApplicationService {
                 step.attribute("cose.alg", algorithm.coseIdentifier());
                 step.attribute("cose.alg.name", algorithm.name());
             }
-            byte[] publicKeyCose = components.credentialPublicKey();
-            if (publicKeyCose != null && publicKeyCose.length > 0) {
-                try {
-                    CoseKeyDetails details = CoseKeyInspector.inspect(publicKeyCose, algorithm);
-                    step.attribute("cose.kty", details.keyType());
-                    step.attribute("cose.kty.name", details.keyTypeName());
-                    details.curve().ifPresent(value -> step.attribute("cose.crv", value));
-                    details.curveName().ifPresent(value -> step.attribute("cose.crv.name", value));
-                    details.xCoordinateBase64Url()
-                            .ifPresent(value ->
-                                    step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.x.b64u", value));
-                    details.yCoordinateBase64Url()
-                            .ifPresent(value ->
-                                    step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.y.b64u", value));
-                    details.modulusBase64Url()
-                            .ifPresent(value ->
-                                    step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.n.b64u", value));
-                    details.exponentBase64Url()
-                            .ifPresent(value ->
-                                    step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.e.b64u", value));
-                    details.jwkThumbprintSha256()
-                            .ifPresent(value -> step.attribute(
-                                    VerboseTrace.AttributeType.BASE64URL, "publicKey.jwk.thumbprint.sha256", value));
-                } catch (GeneralSecurityException ex) {
-                    step.note("coseDecodeError", ex.getMessage());
-                }
+            if (finalDetails != null) {
+                step.attribute("cose.kty", finalDetails.keyType());
+                step.attribute("cose.kty.name", finalDetails.keyTypeName());
+                finalDetails.curve().ifPresent(value -> step.attribute("cose.crv", value));
+                finalDetails.curveName().ifPresent(value -> step.attribute("cose.crv.name", value));
+                finalDetails
+                        .xCoordinateBase64Url()
+                        .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.x.b64u", value));
+                finalDetails
+                        .yCoordinateBase64Url()
+                        .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.y.b64u", value));
+                finalDetails
+                        .modulusBase64Url()
+                        .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.n.b64u", value));
+                finalDetails
+                        .exponentBase64Url()
+                        .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.e.b64u", value));
+                finalDetails
+                        .jwkThumbprintSha256()
+                        .ifPresent(value -> step.attribute(
+                                VerboseTrace.AttributeType.BASE64URL, "publicKey.jwk.thumbprint.sha256", value));
+            } else if (finalDecodeError != null) {
+                step.note("coseDecodeError", finalDecodeError);
             }
         });
+        return details;
     }
 
     private static void addSignatureBaseStep(
@@ -434,22 +504,68 @@ public final class WebAuthnAttestationVerificationApplicationService {
     }
 
     private static void addVerifySignatureStep(
-            VerboseTrace.Builder trace, WebAuthnSignatureAlgorithm algorithm, boolean valid) {
+            VerboseTrace.Builder trace,
+            WebAuthnSignatureAlgorithm algorithm,
+            byte[] signature,
+            SignatureInspector.SignatureDetails details,
+            String decodeError,
+            boolean valid,
+            boolean lowSEnforced,
+            boolean algorithmMatches,
+            Integer rsaKeyBits) {
         if (trace == null) {
             return;
         }
+        byte[] safeSignature = signature == null ? new byte[0] : signature;
         addStep(trace, step -> {
             step.id("verify.signature")
                     .summary("Verify attestation signature")
                     .detail("WebAuthnAttestationVerifier")
                     .spec("webauthn§6.5.5")
-                    .attribute("valid", valid);
+                    .attribute("valid", valid)
+                    .attribute("verify.ok", valid)
+                    .attribute("policy.lowS.enforced", lowSEnforced);
             if (algorithm != null) {
                 step.attribute("alg", algorithm.name());
                 step.attribute("cose.alg", algorithm.coseIdentifier());
                 step.attribute("cose.alg.name", algorithm.name());
             } else {
                 step.attribute("alg", "");
+            }
+            boolean lowSValid = true;
+            if (details != null) {
+                String prefix = details.encoding() == SignatureInspector.SignatureEncoding.DER ? "sig.der" : "sig.raw";
+                step.attribute(prefix + ".b64u", details.base64Url());
+                step.attribute(AttributeType.INT, prefix + ".len", details.length());
+                if (details.encoding() == SignatureInspector.SignatureEncoding.RAW) {
+                    step.attribute(AttributeType.HEX, prefix + ".hex", hex(safeSignature));
+                }
+                var ecdsaDetails = details.ecdsa();
+                lowSValid = ecdsaDetails
+                        .map(SignatureInspector.EcdsaSignatureDetails::lowS)
+                        .orElse(true);
+                ecdsaDetails.ifPresent(ecdsa -> {
+                    step.attribute("ecdsa.r.hex", ecdsa.rHex());
+                    step.attribute("ecdsa.s.hex", ecdsa.sHex());
+                    step.attribute("ecdsa.lowS", ecdsa.lowS());
+                });
+                details.rsa().ifPresent(rsa -> {
+                    step.attribute("rsa.padding", rsa.padding());
+                    step.attribute("rsa.hash", rsa.hash());
+                    rsa.pssSaltLength().ifPresent(len -> step.attribute(AttributeType.INT, "rsa.pss.salt.len", len));
+                    if (rsaKeyBits != null) {
+                        step.attribute(AttributeType.INT, "key.bits", rsaKeyBits);
+                    }
+                });
+            }
+            if (lowSEnforced && !lowSValid) {
+                step.note("error.lowS", "ECDSA signature violates low-S policy");
+            }
+            if (!algorithmMatches) {
+                step.note("error.alg_mismatch", "COSE algorithm differs from attested metadata");
+            }
+            if (decodeError != null && !decodeError.isBlank()) {
+                step.note("signature.decode.error", decodeError);
             }
         });
     }
@@ -491,6 +607,34 @@ public final class WebAuthnAttestationVerificationApplicationService {
                 tokenBinding.present(),
                 tokenBinding.status(),
                 tokenBinding.id());
+    }
+
+    private static byte[] extractAttestationSignature(byte[] attestationObject) {
+        if (attestationObject == null || attestationObject.length == 0) {
+            return new byte[0];
+        }
+        try {
+            Object decoded = CborDecoder.decode(attestationObject);
+            if (!(decoded instanceof Map<?, ?> rawMap)) {
+                return new byte[0];
+            }
+            Map<String, Object> map = new LinkedHashMap<>(rawMap.size());
+            for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+                map.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+            Object attStmtNode = map.get("attStmt");
+            if (!(attStmtNode instanceof Map<?, ?> rawAttStmt)) {
+                return new byte[0];
+            }
+            for (Map.Entry<?, ?> entry : rawAttStmt.entrySet()) {
+                if ("sig".equals(String.valueOf(entry.getKey())) && entry.getValue() instanceof byte[] bytes) {
+                    return bytes;
+                }
+            }
+            return new byte[0];
+        } catch (GeneralSecurityException ex) {
+            return new byte[0];
+        }
     }
 
     private static AttestationComponents traceAttestation(byte[] attestationObject) {
@@ -693,6 +837,16 @@ public final class WebAuthnAttestationVerificationApplicationService {
         byte[] combined = Arrays.copyOf(safeLeft, safeLeft.length + safeRight.length);
         System.arraycopy(safeRight, 0, combined, safeLeft.length, safeRight.length);
         return combined;
+    }
+
+    private static Integer rsaKeyBits(CoseKeyDetails details) {
+        if (details == null) {
+            return null;
+        }
+        return details.modulusBase64Url()
+                .map(BASE64_URL_DECODER::decode)
+                .map(bytes -> new BigInteger(1, bytes).bitLength())
+                .orElse(null);
     }
 
     private static String formatByte(int value) {

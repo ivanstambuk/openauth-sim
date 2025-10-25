@@ -1,6 +1,7 @@
 package io.openauth.sim.application.fido2;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.fido2.WebAuthnAssertionVerifier;
@@ -9,6 +10,7 @@ import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
 import io.openauth.sim.core.fido2.WebAuthnFixtures;
 import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import io.openauth.sim.core.fido2.WebAuthnVerificationError;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
@@ -30,6 +32,13 @@ import org.junit.jupiter.api.Test;
 final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
 
     private static final String CREDENTIAL_ID = "fido2-trace-credential";
+    private static final BigInteger P256_ORDER =
+            new BigInteger("FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551", 16);
+    private static final BigInteger P384_ORDER = new BigInteger(
+            "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC7634D81F4372DDF581A0DB248B0A77AECEC196ACCC52973", 16);
+    private static final BigInteger P521_ORDER = new BigInteger(
+            "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+            16);
 
     private WebAuthnFixture fixture;
     private InMemoryCredentialStore credentialStore;
@@ -183,11 +192,88 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
                 WebAuthnSignatureAlgorithm.ES256.coseIdentifier(),
                 verifySignature.attributes().get("cose.alg"));
         assertEquals(Boolean.TRUE, verifySignature.attributes().get("valid"));
+        assertEquals(Boolean.TRUE, verifySignature.attributes().get("verify.ok"));
+        assertEquals(Boolean.FALSE, verifySignature.attributes().get("policy.lowS.enforced"));
+        assertEquals(
+                base64Url(fixture.request().signature()),
+                verifySignature.attributes().get("sig.der.b64u"));
+        Number signatureLength = (Number) verifySignature.attributes().get("sig.der.len");
+        assertEquals(fixture.request().signature().length, signatureLength.intValue());
+        EcdsaComponents inlineComponents =
+                parseEcdsaSignature(fixture.request().signature(), WebAuthnSignatureAlgorithm.ES256);
+        assertEquals(inlineComponents.rHex(), verifySignature.attributes().get("ecdsa.r.hex"));
+        assertEquals(inlineComponents.sHex(), verifySignature.attributes().get("ecdsa.s.hex"));
+        assertEquals(inlineComponents.lowS(), verifySignature.attributes().get("ecdsa.lowS"));
 
         var verifyAssertion = findStep(trace, "verify.assertion");
         assertEquals("webauthn§7.2", verifyAssertion.specAnchor());
         assertEquals("stored", verifyAssertion.attributes().get("credentialSource"));
         assertEquals(Boolean.TRUE, verifyAssertion.attributes().get("valid"));
+    }
+
+    @Test
+    void storedEvaluationRejectsHighSSignatureWhenPolicyEnforced() {
+        saveFixtureCredential();
+        WebAuthnEvaluationApplicationService policyService = new WebAuthnEvaluationApplicationService(
+                credentialStore,
+                new WebAuthnAssertionVerifier(),
+                persistenceAdapter,
+                WebAuthnSignaturePolicy.enforceLowSPolicy());
+
+        byte[] highSignature = toHighSSignature(fixture.request().signature(), WebAuthnSignatureAlgorithm.ES256);
+
+        WebAuthnEvaluationApplicationService.EvaluationCommand.Stored command =
+                new WebAuthnEvaluationApplicationService.EvaluationCommand.Stored(
+                        CREDENTIAL_ID,
+                        fixture.request().relyingPartyId().toUpperCase(Locale.ROOT),
+                        fixture.request().origin(),
+                        fixture.request().expectedType(),
+                        fixture.request().expectedChallenge(),
+                        fixture.request().clientDataJson(),
+                        fixture.request().authenticatorData(),
+                        highSignature);
+
+        WebAuthnEvaluationApplicationService.EvaluationResult result = policyService.evaluate(command, true);
+
+        assertFalse(result.valid());
+        assertEquals(Optional.of(WebAuthnVerificationError.SIGNATURE_INVALID), result.error());
+        VerboseTrace trace = result.verboseTrace().orElseThrow();
+        var verifySignature = findStep(trace, "verify.signature");
+        assertEquals(Boolean.TRUE, verifySignature.attributes().get("policy.lowS.enforced"));
+        assertEquals(Boolean.FALSE, verifySignature.attributes().get("ecdsa.lowS"));
+        assertEquals(Boolean.FALSE, verifySignature.attributes().get("valid"));
+        assertEquals(Boolean.FALSE, verifySignature.attributes().get("verify.ok"));
+        assertTrue(verifySignature.notes().containsKey("error.lowS"));
+    }
+
+    @Test
+    void storedEvaluationWithMalformedSignatureRecordsDecodeError() {
+        saveFixtureCredential();
+        byte[] malformedSignature = new byte[] {0x01, 0x02, 0x03};
+
+        WebAuthnEvaluationApplicationService.EvaluationCommand.Stored command =
+                new WebAuthnEvaluationApplicationService.EvaluationCommand.Stored(
+                        CREDENTIAL_ID,
+                        fixture.request().relyingPartyId().toUpperCase(Locale.ROOT),
+                        fixture.request().origin(),
+                        fixture.request().expectedType(),
+                        fixture.request().expectedChallenge(),
+                        fixture.request().clientDataJson(),
+                        fixture.request().authenticatorData(),
+                        malformedSignature);
+
+        WebAuthnEvaluationApplicationService.EvaluationResult result = service.evaluate(command, true);
+
+        assertFalse(result.valid());
+        assertEquals(Optional.of(WebAuthnVerificationError.SIGNATURE_INVALID), result.error());
+        VerboseTrace trace = result.verboseTrace().orElseThrow();
+        var verifySignature = findStep(trace, "verify.signature");
+        assertEquals(Boolean.FALSE, verifySignature.attributes().get("valid"));
+        assertEquals(Boolean.FALSE, verifySignature.attributes().get("verify.ok"));
+        assertEquals(base64Url(malformedSignature), verifySignature.attributes().get("sig.raw.b64u"));
+        Number rawLength = (Number) verifySignature.attributes().get("sig.raw.len");
+        assertEquals(malformedSignature.length, rawLength.intValue());
+        assertTrue(verifySignature.notes().containsKey("signature.decode.error"));
     }
 
     @Test
@@ -362,6 +448,40 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
     }
 
     @Test
+    void inlineEvaluationWithMalformedSignatureRecordsDecodeError() {
+        byte[] malformedSignature = new byte[] {0x10};
+
+        WebAuthnEvaluationApplicationService.EvaluationCommand.Inline command =
+                new WebAuthnEvaluationApplicationService.EvaluationCommand.Inline(
+                        "inline-malformed",
+                        fixture.request().relyingPartyId().toUpperCase(Locale.ROOT),
+                        fixture.request().origin(),
+                        fixture.request().expectedType(),
+                        fixture.storedCredential().credentialId(),
+                        fixture.storedCredential().publicKeyCose(),
+                        fixture.storedCredential().signatureCounter(),
+                        fixture.storedCredential().userVerificationRequired(),
+                        WebAuthnSignatureAlgorithm.ES256,
+                        fixture.request().expectedChallenge(),
+                        fixture.request().clientDataJson(),
+                        fixture.request().authenticatorData(),
+                        malformedSignature);
+
+        WebAuthnEvaluationApplicationService.EvaluationResult result = service.evaluate(command, true);
+
+        assertFalse(result.valid());
+        assertEquals(Optional.of(WebAuthnVerificationError.SIGNATURE_INVALID), result.error());
+        VerboseTrace trace = result.verboseTrace().orElseThrow();
+        var verifySignature = findStep(trace, "verify.signature");
+        assertEquals(Boolean.FALSE, verifySignature.attributes().get("valid"));
+        assertEquals(Boolean.FALSE, verifySignature.attributes().get("verify.ok"));
+        assertEquals(base64Url(malformedSignature), verifySignature.attributes().get("sig.raw.b64u"));
+        Number rawLength = (Number) verifySignature.attributes().get("sig.raw.len");
+        assertEquals(malformedSignature.length, rawLength.intValue());
+        assertTrue(verifySignature.notes().containsKey("signature.decode.error"));
+    }
+
+    @Test
     void verboseDisabledLeavesTraceEmpty() {
         saveFixtureCredential();
         WebAuthnEvaluationApplicationService.EvaluationCommand.Stored command =
@@ -429,6 +549,163 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
                 .filter(step -> id.equals(step.id()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Missing trace step: " + id));
+    }
+
+    @SuppressWarnings("PMD.AssignmentInOperand")
+    private static EcdsaComponents parseEcdsaSignature(byte[] derSignature, WebAuthnSignatureAlgorithm algorithm) {
+        int offset = 0;
+        if (derSignature.length < 8 || derSignature[offset++] != 0x30) {
+            throw new IllegalArgumentException("ECDSA signature must be a DER sequence");
+        }
+        LengthResult sequence = readLength(derSignature, offset);
+        offset = sequence.nextOffset();
+        if (offset + sequence.length() > derSignature.length) {
+            throw new IllegalArgumentException("ECDSA signature truncated");
+        }
+        if (derSignature[offset++] != 0x02) {
+            throw new IllegalArgumentException("ECDSA signature missing R integer");
+        }
+        LengthResult rLength = readLength(derSignature, offset);
+        offset = rLength.nextOffset();
+        byte[] r = Arrays.copyOfRange(derSignature, offset, offset + rLength.length());
+        offset += rLength.length();
+        if (derSignature[offset++] != 0x02) {
+            throw new IllegalArgumentException("ECDSA signature missing S integer");
+        }
+        LengthResult sLength = readLength(derSignature, offset);
+        offset = sLength.nextOffset();
+        byte[] s = Arrays.copyOfRange(derSignature, offset, offset + sLength.length());
+
+        byte[] normalizedR = stripLeadingZeros(r);
+        byte[] normalizedS = stripLeadingZeros(s);
+        BigInteger sValue = new BigInteger(1, normalizedS);
+        boolean lowS = isLowS(algorithm, sValue);
+        return new EcdsaComponents(normalizedR, normalizedS, hex(normalizedR), hex(normalizedS), lowS, sValue);
+    }
+
+    @SuppressWarnings("PMD.AssignmentInOperand")
+    private static LengthResult readLength(byte[] der, int offset) {
+        int first = der[offset++] & 0xFF;
+        if ((first & 0x80) == 0) {
+            return new LengthResult(first, offset);
+        }
+        int byteCount = first & 0x7F;
+        if (byteCount == 0 || byteCount > 4) {
+            throw new IllegalArgumentException("Unsupported DER length encoding");
+        }
+        int length = 0;
+        for (int i = 0; i < byteCount; i++) {
+            length = (length << 8) | (der[offset++] & 0xFF);
+        }
+        return new LengthResult(length, offset);
+    }
+
+    private static byte[] stripLeadingZeros(byte[] value) {
+        int index = 0;
+        while (index < value.length - 1 && value[index] == 0) {
+            index++;
+        }
+        return Arrays.copyOfRange(value, index, value.length);
+    }
+
+    private static boolean isLowS(WebAuthnSignatureAlgorithm algorithm, BigInteger s) {
+        BigInteger order =
+                switch (algorithm) {
+                    case ES256 -> P256_ORDER;
+                    case ES384 -> P384_ORDER;
+                    case ES512 -> P521_ORDER;
+                    default -> null;
+                };
+        if (order == null) {
+            return true;
+        }
+        return s.compareTo(order.shiftRight(1)) <= 0;
+    }
+
+    private static byte[] toHighSSignature(byte[] signature, WebAuthnSignatureAlgorithm algorithm) {
+        EcdsaComponents components = parseEcdsaSignature(signature, algorithm);
+        BigInteger order = orderFor(algorithm);
+        if (order == null) {
+            return signature.clone();
+        }
+        BigInteger s = components.sValue();
+        BigInteger highS = order.subtract(s).add(BigInteger.ONE);
+        if (highS.compareTo(order) >= 0) {
+            highS = order.subtract(BigInteger.ONE);
+        }
+        if (highS.compareTo(order.shiftRight(1)) <= 0) {
+            highS = order.subtract(BigInteger.ONE);
+        }
+        byte[] rBytes = components.rBytes();
+        byte[] sBytes = toUnsigned(highS);
+        return encodeDerSignature(rBytes, sBytes);
+    }
+
+    private static BigInteger orderFor(WebAuthnSignatureAlgorithm algorithm) {
+        return switch (algorithm) {
+            case ES256 -> P256_ORDER;
+            case ES384 -> P384_ORDER;
+            case ES512 -> P521_ORDER;
+            default -> null;
+        };
+    }
+
+    private static byte[] toUnsigned(BigInteger value) {
+        byte[] bytes = value.toByteArray();
+        byte[] normalized = stripLeadingZeros(bytes);
+        return normalized.length == 0 ? new byte[] {0} : normalized;
+    }
+
+    private static byte[] encodeDerSignature(byte[] rBytes, byte[] sBytes) {
+        byte[] encodedR = encodeDerInteger(rBytes);
+        byte[] encodedS = encodeDerInteger(sBytes);
+        int payloadLength = encodedR.length + encodedS.length;
+        byte[] lengthBytes = encodeDerLength(payloadLength);
+        byte[] sequence = new byte[1 + lengthBytes.length + payloadLength];
+        sequence[0] = 0x30;
+        System.arraycopy(lengthBytes, 0, sequence, 1, lengthBytes.length);
+        System.arraycopy(encodedR, 0, sequence, 1 + lengthBytes.length, encodedR.length);
+        System.arraycopy(encodedS, 0, sequence, 1 + lengthBytes.length + encodedR.length, encodedS.length);
+        return sequence;
+    }
+
+    private static byte[] encodeDerInteger(byte[] value) {
+        byte[] normalized = stripLeadingZeros(value);
+        boolean needsPadding = normalized.length == 0 || (normalized[0] & 0x80) != 0;
+        int valueLength = normalized.length + (needsPadding ? 1 : 0);
+        byte[] lengthBytes = encodeDerLength(valueLength);
+        byte[] result = new byte[1 + lengthBytes.length + valueLength];
+        result[0] = 0x02;
+        System.arraycopy(lengthBytes, 0, result, 1, lengthBytes.length);
+        int offset = 1 + lengthBytes.length;
+        if (needsPadding) {
+            result[offset] = 0x00;
+            offset++;
+        }
+        System.arraycopy(normalized, 0, result, offset, normalized.length);
+        return result;
+    }
+
+    private static byte[] encodeDerLength(int length) {
+        if (length < 0x80) {
+            return new byte[] {(byte) length};
+        }
+        byte[] bytes = BigInteger.valueOf(length).toByteArray();
+        byte[] normalized = stripLeadingZeros(bytes);
+        byte prefix = (byte) (0x80 | normalized.length);
+        byte[] result = new byte[1 + normalized.length];
+        result[0] = prefix;
+        System.arraycopy(normalized, 0, result, 1, normalized.length);
+        return result;
+    }
+
+    private record LengthResult(int length, int nextOffset) {
+        // Represents the parsed DER length and cursor location for helper assertions.
+    }
+
+    private record EcdsaComponents(
+            byte[] rBytes, byte[] sBytes, String rHex, String sHex, boolean lowS, BigInteger sValue) {
+        // Captures derived ECDSA values used to craft high-S signatures for test coverage.
     }
 
     private static ParsedAuthenticatorData parseAuthenticatorData(byte[] authenticatorData) {

@@ -10,6 +10,7 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.fido2.WebAuthnStoredCredential;
 import io.openauth.sim.core.fido2.WebAuthnVerificationError;
 import io.openauth.sim.core.trace.VerboseTrace;
@@ -32,6 +33,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
+
+    private static final BigInteger P256_ORDER =
+            new BigInteger("FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551", 16);
+    private static final BigInteger P384_ORDER = new BigInteger(
+            "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC7634D81F4372DDF581A0DB248B0A77AECEC196ACCC52973", 16);
+    private static final BigInteger P521_ORDER = new BigInteger(
+            "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+            16);
 
     private WebAuthnAttestationVerificationApplicationService service;
     private WebAuthnAttestationVector vector;
@@ -245,6 +254,20 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
                 attestedCredential.algorithm().coseIdentifier(),
                 verifySignature.attributes().get("cose.alg"));
         assertEquals(Boolean.TRUE, verifySignature.attributes().get("valid"));
+        assertEquals(Boolean.TRUE, verifySignature.attributes().get("verify.ok"));
+        assertEquals(Boolean.FALSE, verifySignature.attributes().get("policy.lowS.enforced"));
+        byte[] attestationSignature =
+                extractAttestationSignature(vector.registration().attestationObject());
+        assertEquals(
+                base64Url(attestationSignature), verifySignature.attributes().get("sig.der.b64u"));
+        Number signatureLength = (Number) verifySignature.attributes().get("sig.der.len");
+        assertEquals(attestationSignature.length, signatureLength.intValue());
+        if (attestedCredential.algorithm().name().startsWith("ES")) {
+            EcdsaComponents components = parseEcdsaSignature(attestationSignature, attestedCredential.algorithm());
+            assertEquals(components.rHex(), verifySignature.attributes().get("ecdsa.r.hex"));
+            assertEquals(components.sHex(), verifySignature.attributes().get("ecdsa.s.hex"));
+            assertEquals(components.lowS(), verifySignature.attributes().get("ecdsa.lowS"));
+        }
 
         var verifyAttestation = findStep(trace, "verify.attestation");
         assertEquals("webauthn§7.2", verifyAttestation.specAnchor());
@@ -259,6 +282,41 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
                 verification.certificateChain().size(),
                 validateMetadata.attributes().get("certificateChain.length"));
         assertEquals("fresh", validateMetadata.attributes().get("anchorMode"));
+    }
+
+    @Test
+    void attestationVerificationWithMalformedSignatureRecordsDecodeError() {
+        byte[] tamperedObject = vector.registration().attestationObject().clone();
+        byte[] signature = extractAttestationSignature(tamperedObject);
+        int offset = indexOf(tamperedObject, signature);
+        if (offset < 0) {
+            throw new AssertionError("Signature bytes not found in attestation object");
+        }
+        tamperedObject[offset] ^= 0x7F;
+
+        WebAuthnAttestationVerificationApplicationService.VerificationCommand.Inline command =
+                new WebAuthnAttestationVerificationApplicationService.VerificationCommand.Inline(
+                        vector.vectorId(),
+                        vector.format(),
+                        vector.relyingPartyId().toUpperCase(Locale.ROOT),
+                        vector.origin(),
+                        tamperedObject,
+                        vector.registration().clientDataJson(),
+                        vector.registration().challenge(),
+                        trustAnchors,
+                        false,
+                        WebAuthnTrustAnchorResolver.Source.MANUAL,
+                        null,
+                        List.of());
+
+        WebAuthnAttestationVerificationApplicationService.VerificationResult result = service.verify(command, true);
+
+        assertEquals(Optional.of(WebAuthnVerificationError.SIGNATURE_INVALID), result.error());
+        VerboseTrace trace = result.verboseTrace().orElseThrow();
+        var verifySignature = findStep(trace, "verify.signature");
+        assertEquals(Boolean.FALSE, verifySignature.attributes().get("valid"));
+        assertEquals(Boolean.FALSE, verifySignature.attributes().get("verify.ok"));
+        assertTrue(verifySignature.notes().containsKey("signature.decode.error"));
     }
 
     @Test
@@ -406,6 +464,112 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
         return String.format("%02x", value & 0xFF);
     }
 
+    private static byte[] extractAttestationSignature(byte[] attestationObject) {
+        Object decoded = TestCborDecoder.decode(attestationObject);
+        if (!(decoded instanceof Map<?, ?> map)) {
+            throw new IllegalStateException("Attestation object did not decode to a CBOR map");
+        }
+        Object attStmtNode = map.get("attStmt");
+        if (!(attStmtNode instanceof Map<?, ?> attStmt)) {
+            throw new IllegalStateException("Attestation statement missing");
+        }
+        Object signatureNode = attStmt.get("sig");
+        if (signatureNode instanceof byte[] signature) {
+            return signature;
+        }
+        throw new IllegalStateException("Attestation statement missing signature");
+    }
+
+    private static int indexOf(byte[] haystack, byte[] needle) {
+        if (needle.length == 0 || needle.length > haystack.length) {
+            return -1;
+        }
+        int matchIndex = -1;
+        for (int i = 0; i <= haystack.length - needle.length && matchIndex < 0; i++) {
+            boolean matches = true;
+            for (int j = 0; j < needle.length; j++) {
+                if (haystack[i + j] != needle[j]) {
+                    matches = false;
+                    break;
+                }
+            }
+            if (matches) {
+                matchIndex = i;
+            }
+        }
+        return matchIndex;
+    }
+
+    @SuppressWarnings("PMD.AssignmentInOperand")
+    private static EcdsaComponents parseEcdsaSignature(byte[] derSignature, WebAuthnSignatureAlgorithm algorithm) {
+        int offset = 0;
+        if (derSignature.length < 8 || derSignature[offset++] != 0x30) {
+            throw new IllegalArgumentException("ECDSA signature must be a DER sequence");
+        }
+        LengthResult sequence = readLength(derSignature, offset);
+        offset = sequence.nextOffset();
+        if (offset + sequence.length() > derSignature.length) {
+            throw new IllegalArgumentException("ECDSA signature truncated");
+        }
+        if (derSignature[offset++] != 0x02) {
+            throw new IllegalArgumentException("ECDSA signature missing R integer");
+        }
+        LengthResult rLength = readLength(derSignature, offset);
+        offset = rLength.nextOffset();
+        byte[] r = Arrays.copyOfRange(derSignature, offset, offset + rLength.length());
+        offset += rLength.length();
+        if (derSignature[offset++] != 0x02) {
+            throw new IllegalArgumentException("ECDSA signature missing S integer");
+        }
+        LengthResult sLength = readLength(derSignature, offset);
+        offset = sLength.nextOffset();
+        byte[] s = Arrays.copyOfRange(derSignature, offset, offset + sLength.length());
+        byte[] normalizedR = stripLeadingZeros(r);
+        byte[] normalizedS = stripLeadingZeros(s);
+        BigInteger sValue = new BigInteger(1, normalizedS);
+        boolean lowS = isLowS(algorithm, sValue);
+        return new EcdsaComponents(hex(normalizedR), hex(normalizedS), lowS);
+    }
+
+    @SuppressWarnings("PMD.AssignmentInOperand")
+    private static LengthResult readLength(byte[] der, int offset) {
+        int first = der[offset++] & 0xFF;
+        if ((first & 0x80) == 0) {
+            return new LengthResult(first, offset);
+        }
+        int byteCount = first & 0x7F;
+        if (byteCount == 0 || byteCount > 4) {
+            throw new IllegalArgumentException("Unsupported DER length encoding");
+        }
+        int length = 0;
+        for (int i = 0; i < byteCount; i++) {
+            length = (length << 8) | (der[offset++] & 0xFF);
+        }
+        return new LengthResult(length, offset);
+    }
+
+    private static byte[] stripLeadingZeros(byte[] value) {
+        int index = 0;
+        while (index < value.length - 1 && value[index] == 0) {
+            index++;
+        }
+        return Arrays.copyOfRange(value, index, value.length);
+    }
+
+    private static boolean isLowS(WebAuthnSignatureAlgorithm algorithm, BigInteger s) {
+        BigInteger order =
+                switch (algorithm) {
+                    case ES256 -> P256_ORDER;
+                    case ES384 -> P384_ORDER;
+                    case ES512 -> P521_ORDER;
+                    default -> null;
+                };
+        if (order == null) {
+            return true;
+        }
+        return s.compareTo(order.shiftRight(1)) <= 0;
+    }
+
     private static Map<Integer, Object> decodeCoseMap(byte[] coseKey) {
         try {
             Object decoded = io.openauth.sim.core.fido2.CborDecoder.decode(coseKey);
@@ -423,6 +587,14 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
         } catch (GeneralSecurityException ex) {
             throw new IllegalStateException("Failed to decode COSE key", ex);
         }
+    }
+
+    private record LengthResult(int length, int nextOffset) {
+        // Represents the parsed DER length and cursor location for helper assertions.
+    }
+
+    private record EcdsaComponents(String rHex, String sHex, boolean lowS) {
+        // Stores expected ECDSA components used when validating low-S handling.
     }
 
     private static int requireInt(Map<Integer, Object> map, int key) {

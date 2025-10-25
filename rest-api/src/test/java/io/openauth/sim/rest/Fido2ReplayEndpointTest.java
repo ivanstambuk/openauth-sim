@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples;
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples.Sample;
+import io.openauth.sim.core.fido2.SignatureInspector;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.core.store.CredentialStore;
@@ -50,6 +51,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class Fido2ReplayEndpointTest {
 
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
 
     @Autowired
     private MockMvc mockMvc;
@@ -181,6 +183,78 @@ class Fido2ReplayEndpointTest {
         assertEquals("fido2.assertion.evaluate.inline", trace.get("operation").asText());
         assertThat(trace.get("steps").isArray()).isTrue();
         assertThat(trace.get("steps")).isNotEmpty();
+
+        Map<String, String> verifySignature = orderedAttributes(step(trace, "verify.signature"));
+        SignatureInspector.SignatureDetails signatureDetails =
+                SignatureInspector.inspect(sample.algorithm(), sample.signature());
+        String signaturePrefix = signatureDetails.ecdsa().isPresent() ? "sig.der" : "sig.raw";
+
+        assertThat(verifySignature)
+                .containsEntry("alg", sample.algorithm().name())
+                .containsEntry("cose.alg", String.valueOf(sample.algorithm().coseIdentifier()))
+                .containsEntry("cose.alg.name", sample.algorithm().name())
+                .containsEntry("valid", "true")
+                .containsEntry("verify.ok", "true")
+                .containsEntry("policy.lowS.enforced", "false")
+                .containsEntry(signaturePrefix + ".b64u", signatureDetails.base64Url())
+                .containsEntry(signaturePrefix + ".len", String.valueOf(signatureDetails.length()));
+
+        signatureDetails.ecdsa().ifPresent(ecdsa -> assertThat(verifySignature)
+                .containsEntry("ecdsa.r.hex", ecdsa.rHex())
+                .containsEntry("ecdsa.s.hex", ecdsa.sHex())
+                .containsEntry("ecdsa.lowS", String.valueOf(ecdsa.lowS())));
+    }
+
+    @Test
+    @DisplayName("Inline WebAuthn replay surfaces signature decode errors")
+    void inlineReplayNotesSignatureDecodeError() throws Exception {
+        Sample sample = sample(WebAuthnSignatureAlgorithm.ES256);
+        String basePayload = inlinePayload(sample, publicOnlyJwk(sample), sample.algorithm());
+        com.fasterxml.jackson.databind.node.ObjectNode payload =
+                (com.fasterxml.jackson.databind.node.ObjectNode) JSON.readTree(basePayload);
+        byte[] malformedSignature = new byte[] {0x01, 0x02};
+        payload.put("signature", URL_ENCODER.encodeToString(malformedSignature));
+        payload.put("verbose", true);
+
+        String response = mockMvc.perform(post("/api/v1/webauthn/replay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = JSON.readTree(response);
+        assertThat(root.get("status").asText()).isEqualTo("signature_invalid");
+        assertThat(root.get("reasonCode").asText()).isEqualTo("signature_invalid");
+        JsonNode trace = root.get("trace");
+        assertThat(trace).isNotNull();
+
+        Map<String, String> verifySignature = orderedAttributes(step(trace, "verify.signature"));
+        assertThat(verifySignature)
+                .containsEntry("valid", "false")
+                .containsEntry("verify.ok", "false")
+                .containsEntry("sig.raw.b64u", URL_ENCODER.encodeToString(malformedSignature));
+        JsonNode notes = step(trace, "verify.signature").path("notes");
+        assertThat(notes.has("signature.decode.error")).isTrue();
+    }
+
+    private static JsonNode step(JsonNode trace, String id) {
+        for (JsonNode step : trace.withArray("steps")) {
+            if (id.equals(step.get("id").asText())) {
+                return step;
+            }
+        }
+        throw new AssertionError("Missing trace step: " + id);
+    }
+
+    private static Map<String, String> orderedAttributes(JsonNode step) {
+        Map<String, String> attributes = new LinkedHashMap<>();
+        for (JsonNode attribute : step.withArray("orderedAttributes")) {
+            attributes.put(
+                    attribute.get("name").asText(), attribute.get("value").asText());
+        }
+        return attributes;
     }
 
     private static Sample sample(WebAuthnSignatureAlgorithm algorithm) {

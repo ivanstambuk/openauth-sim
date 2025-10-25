@@ -4,6 +4,7 @@ import io.openauth.sim.application.telemetry.Fido2TelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.fido2.CoseKeyInspector;
 import io.openauth.sim.core.fido2.CoseKeyInspector.CoseKeyDetails;
+import io.openauth.sim.core.fido2.SignatureInspector;
 import io.openauth.sim.core.fido2.WebAuthnAssertionRequest;
 import io.openauth.sim.core.fido2.WebAuthnAssertionVerifier;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
@@ -18,6 +19,7 @@ import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.core.trace.VerboseTrace;
 import io.openauth.sim.core.trace.VerboseTrace.AttributeType;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -40,6 +42,7 @@ public final class WebAuthnEvaluationApplicationService {
     private final CredentialStore credentialStore;
     private final WebAuthnAssertionVerifier verifier;
     private final WebAuthnCredentialPersistenceAdapter persistenceAdapter;
+    private final WebAuthnSignaturePolicy signaturePolicy;
     private static final Base64.Encoder BASE64_URL_ENCODER =
             Base64.getUrlEncoder().withoutPadding();
     private static final Base64.Decoder BASE64_URL_DECODER = Base64.getUrlDecoder();
@@ -53,9 +56,18 @@ public final class WebAuthnEvaluationApplicationService {
             CredentialStore credentialStore,
             WebAuthnAssertionVerifier verifier,
             WebAuthnCredentialPersistenceAdapter persistenceAdapter) {
+        this(credentialStore, verifier, persistenceAdapter, WebAuthnSignaturePolicy.observeOnly());
+    }
+
+    public WebAuthnEvaluationApplicationService(
+            CredentialStore credentialStore,
+            WebAuthnAssertionVerifier verifier,
+            WebAuthnCredentialPersistenceAdapter persistenceAdapter,
+            WebAuthnSignaturePolicy signaturePolicy) {
         this.credentialStore = Objects.requireNonNull(credentialStore, "credentialStore");
         this.verifier = Objects.requireNonNull(verifier, "verifier");
         this.persistenceAdapter = Objects.requireNonNull(persistenceAdapter, "persistenceAdapter");
+        this.signaturePolicy = Objects.requireNonNull(signaturePolicy, "signaturePolicy");
     }
 
     public EvaluationResult evaluate(EvaluationCommand command) {
@@ -125,20 +137,80 @@ public final class WebAuthnEvaluationApplicationService {
                         canonicalRpId,
                         storedCredential.signatureCounter(),
                         storedCredential.userVerificationRequired());
-                addConstructCredentialStep(
-                        trace,
-                        canonicalRpId,
-                        descriptor.algorithm(),
-                        storedCredential.publicKeyCose(),
-                        storedCredential.userVerificationRequired());
+            }
+
+            CoseKeyDetails keyDetails = addConstructCredentialStep(
+                    trace,
+                    canonicalRpId,
+                    descriptor.algorithm(),
+                    storedCredential.publicKeyCose(),
+                    storedCredential.userVerificationRequired());
+
+            if (trace != null) {
                 addEvaluateCounterStep(trace, storedCredential.signatureCounter(), authenticatorData.counter());
+            }
+
+            SignatureInspector.SignatureDetails signatureDetails;
+            String signatureDecodeError = null;
+            try {
+                signatureDetails = SignatureInspector.inspect(descriptor.algorithm(), command.signature());
+            } catch (IllegalArgumentException ex) {
+                signatureDecodeError = ex.getMessage();
+                signatureDetails = SignatureInspector.SignatureDetails.raw(command.signature());
+            }
+            boolean algorithmMatches = keyDetails == null
+                    || keyDetails.coseAlgorithm() == descriptor.algorithm().coseIdentifier();
+            Integer rsaKeyBits = rsaKeyBits(keyDetails);
+            boolean lowSEnforced = signaturePolicy.enforceLowS();
+            boolean lowSValid = signatureDetails
+                    .ecdsa()
+                    .map(SignatureInspector.EcdsaSignatureDetails::lowS)
+                    .orElse(true);
+
+            if (trace != null) {
+                addSignatureBaseStep(trace, authenticatorData.raw(), clientData.hash());
+            }
+
+            if (lowSEnforced && !lowSValid) {
+                if (trace != null) {
+                    addVerifySignatureStep(
+                            trace,
+                            descriptor.algorithm(),
+                            command.signature(),
+                            signatureDetails,
+                            signatureDecodeError,
+                            false,
+                            true,
+                            algorithmMatches,
+                            rsaKeyBits);
+                }
+                WebAuthnVerificationResult failure = WebAuthnVerificationResult.failure(
+                        WebAuthnVerificationError.SIGNATURE_INVALID, "ECDSA signature violates low-S policy");
+                return buildVerificationResult(
+                        failure,
+                        true,
+                        descriptor.name(),
+                        descriptor.relyingPartyId(),
+                        command.origin(),
+                        descriptor.algorithm(),
+                        descriptor.userVerificationRequired(),
+                        "stored",
+                        trace);
             }
 
             WebAuthnVerificationResult verification = verifier.verify(storedCredential, request);
 
             if (trace != null) {
-                addSignatureBaseStep(trace, authenticatorData.raw(), clientData.hash());
-                addVerifySignatureStep(trace, descriptor.algorithm(), verification.success());
+                addVerifySignatureStep(
+                        trace,
+                        descriptor.algorithm(),
+                        command.signature(),
+                        signatureDetails,
+                        signatureDecodeError,
+                        verification.success(),
+                        lowSEnforced,
+                        algorithmMatches,
+                        rsaKeyBits);
             }
 
             return buildVerificationResult(
@@ -196,20 +268,80 @@ public final class WebAuthnEvaluationApplicationService {
                         canonicalRpId,
                         command.signatureCounter(),
                         command.userVerificationRequired());
-                addConstructCredentialStep(
-                        trace,
-                        canonicalRpId,
-                        command.algorithm(),
-                        command.publicKeyCose(),
-                        command.userVerificationRequired());
+            }
+
+            CoseKeyDetails keyDetails = addConstructCredentialStep(
+                    trace,
+                    canonicalRpId,
+                    command.algorithm(),
+                    command.publicKeyCose(),
+                    command.userVerificationRequired());
+
+            if (trace != null) {
                 addEvaluateCounterStep(trace, command.signatureCounter(), authenticatorData.counter());
+            }
+
+            SignatureInspector.SignatureDetails signatureDetails;
+            String signatureDecodeError = null;
+            try {
+                signatureDetails = SignatureInspector.inspect(command.algorithm(), command.signature());
+            } catch (IllegalArgumentException ex) {
+                signatureDecodeError = ex.getMessage();
+                signatureDetails = SignatureInspector.SignatureDetails.raw(command.signature());
+            }
+            boolean algorithmMatches = keyDetails == null
+                    || keyDetails.coseAlgorithm() == command.algorithm().coseIdentifier();
+            Integer rsaKeyBits = rsaKeyBits(keyDetails);
+            boolean lowSEnforced = signaturePolicy.enforceLowS();
+            boolean lowSValid = signatureDetails
+                    .ecdsa()
+                    .map(SignatureInspector.EcdsaSignatureDetails::lowS)
+                    .orElse(true);
+
+            if (trace != null) {
+                addSignatureBaseStep(trace, authenticatorData.raw(), clientData.hash());
+            }
+
+            if (lowSEnforced && !lowSValid) {
+                if (trace != null) {
+                    addVerifySignatureStep(
+                            trace,
+                            command.algorithm(),
+                            command.signature(),
+                            signatureDetails,
+                            signatureDecodeError,
+                            false,
+                            true,
+                            algorithmMatches,
+                            rsaKeyBits);
+                }
+                WebAuthnVerificationResult failure = WebAuthnVerificationResult.failure(
+                        WebAuthnVerificationError.SIGNATURE_INVALID, "ECDSA signature violates low-S policy");
+                return buildVerificationResult(
+                        failure,
+                        false,
+                        null,
+                        command.relyingPartyId(),
+                        command.origin(),
+                        command.algorithm(),
+                        command.userVerificationRequired(),
+                        "inline",
+                        trace);
             }
 
             WebAuthnVerificationResult verification = verifier.verify(storedCredential, toRequest(command));
 
             if (trace != null) {
-                addSignatureBaseStep(trace, authenticatorData.raw(), clientData.hash());
-                addVerifySignatureStep(trace, command.algorithm(), verification.success());
+                addVerifySignatureStep(
+                        trace,
+                        command.algorithm(),
+                        command.signature(),
+                        signatureDetails,
+                        signatureDecodeError,
+                        verification.success(),
+                        lowSEnforced,
+                        algorithmMatches,
+                        rsaKeyBits);
             }
 
             return buildVerificationResult(
@@ -491,47 +623,64 @@ public final class WebAuthnEvaluationApplicationService {
                 .attribute("counter.incremented", reportedCounter > previousCounter));
     }
 
-    private static void addConstructCredentialStep(
+    private static CoseKeyDetails addConstructCredentialStep(
             VerboseTrace.Builder trace,
             String canonicalRpId,
             WebAuthnSignatureAlgorithm algorithm,
             byte[] publicKeyCose,
             boolean userVerificationRequired) {
-        if (trace == null) {
-            return;
+        CoseKeyDetails details = null;
+        String decodeError = null;
+        try {
+            details = CoseKeyInspector.inspect(publicKeyCose, algorithm);
+        } catch (GeneralSecurityException ex) {
+            decodeError = ex.getMessage();
         }
-        addStep(trace, step -> {
-            step.id("construct.credential")
-                    .summary("Construct inline credential")
-                    .detail("WebAuthnStoredCredential")
-                    .spec("webauthn§6.1")
-                    .attribute("rpId.canonical", canonicalRpId)
-                    .attribute("alg", algorithm.name())
-                    .attribute("cose.alg", algorithm.coseIdentifier())
-                    .attribute("cose.alg.name", algorithm.name())
-                    .attribute("publicKey.cose.hex", hex(publicKeyCose))
-                    .attribute("userVerificationRequired", userVerificationRequired);
-            try {
-                CoseKeyDetails details = CoseKeyInspector.inspect(publicKeyCose, algorithm);
-                step.attribute("cose.kty", details.keyType());
-                step.attribute("cose.kty.name", details.keyTypeName());
-                details.curve().ifPresent(value -> step.attribute("cose.crv", value));
-                details.curveName().ifPresent(value -> step.attribute("cose.crv.name", value));
-                details.xCoordinateBase64Url()
-                        .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.x.b64u", value));
-                details.yCoordinateBase64Url()
-                        .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.y.b64u", value));
-                details.modulusBase64Url()
-                        .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.n.b64u", value));
-                details.exponentBase64Url()
-                        .ifPresent(value -> step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.e.b64u", value));
-                details.jwkThumbprintSha256()
-                        .ifPresent(value -> step.attribute(
-                                VerboseTrace.AttributeType.BASE64URL, "publicKey.jwk.thumbprint.sha256", value));
-            } catch (GeneralSecurityException ex) {
-                step.note("coseDecodeError", ex.getMessage());
-            }
-        });
+        if (trace != null) {
+            CoseKeyDetails finalDetails = details;
+            String finalDecodeError = decodeError;
+            addStep(trace, step -> {
+                step.id("construct.credential")
+                        .summary("Construct inline credential")
+                        .detail("WebAuthnStoredCredential")
+                        .spec("webauthn§6.1")
+                        .attribute("rpId.canonical", canonicalRpId)
+                        .attribute("alg", algorithm.name())
+                        .attribute("cose.alg", algorithm.coseIdentifier())
+                        .attribute("cose.alg.name", algorithm.name())
+                        .attribute("publicKey.cose.hex", hex(publicKeyCose))
+                        .attribute("userVerificationRequired", userVerificationRequired);
+                if (finalDetails != null) {
+                    step.attribute("cose.kty", finalDetails.keyType());
+                    step.attribute("cose.kty.name", finalDetails.keyTypeName());
+                    finalDetails.curve().ifPresent(value -> step.attribute("cose.crv", value));
+                    finalDetails.curveName().ifPresent(value -> step.attribute("cose.crv.name", value));
+                    finalDetails
+                            .xCoordinateBase64Url()
+                            .ifPresent(value ->
+                                    step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.x.b64u", value));
+                    finalDetails
+                            .yCoordinateBase64Url()
+                            .ifPresent(value ->
+                                    step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.y.b64u", value));
+                    finalDetails
+                            .modulusBase64Url()
+                            .ifPresent(value ->
+                                    step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.n.b64u", value));
+                    finalDetails
+                            .exponentBase64Url()
+                            .ifPresent(value ->
+                                    step.attribute(VerboseTrace.AttributeType.BASE64URL, "cose.e.b64u", value));
+                    finalDetails
+                            .jwkThumbprintSha256()
+                            .ifPresent(value -> step.attribute(
+                                    VerboseTrace.AttributeType.BASE64URL, "publicKey.jwk.thumbprint.sha256", value));
+                } else if (finalDecodeError != null) {
+                    step.note("coseDecodeError", finalDecodeError);
+                }
+            });
+        }
+        return details;
     }
 
     private static void addSignatureBaseStep(
@@ -557,18 +706,67 @@ public final class WebAuthnEvaluationApplicationService {
     }
 
     private static void addVerifySignatureStep(
-            VerboseTrace.Builder trace, WebAuthnSignatureAlgorithm algorithm, boolean valid) {
+            VerboseTrace.Builder trace,
+            WebAuthnSignatureAlgorithm algorithm,
+            byte[] signature,
+            SignatureInspector.SignatureDetails details,
+            String decodeError,
+            boolean valid,
+            boolean lowSEnforced,
+            boolean algorithmMatches,
+            Integer rsaKeyBits) {
         if (trace == null) {
             return;
         }
-        addStep(trace, step -> step.id("verify.signature")
-                .summary("Verify signature")
-                .detail("WebAuthnAssertionVerifier.verify")
-                .spec("webauthn§6.5.5")
-                .attribute("alg", algorithm.name())
-                .attribute("cose.alg", algorithm.coseIdentifier())
-                .attribute("cose.alg.name", algorithm.name())
-                .attribute("valid", valid));
+        byte[] safeSignature = signature == null ? new byte[0] : signature;
+        addStep(trace, step -> {
+            step.id("verify.signature")
+                    .summary("Verify signature")
+                    .detail("WebAuthnAssertionVerifier.verify")
+                    .spec("webauthn§6.5.5")
+                    .attribute("alg", algorithm.name())
+                    .attribute("cose.alg", algorithm.coseIdentifier())
+                    .attribute("cose.alg.name", algorithm.name())
+                    .attribute("valid", valid)
+                    .attribute("verify.ok", valid)
+                    .attribute("policy.lowS.enforced", lowSEnforced);
+
+            String prefix = details.encoding() == SignatureInspector.SignatureEncoding.DER ? "sig.der" : "sig.raw";
+            step.attribute(prefix + ".b64u", details.base64Url());
+            step.attribute(VerboseTrace.AttributeType.INT, prefix + ".len", details.length());
+            if (details.encoding() == SignatureInspector.SignatureEncoding.RAW) {
+                step.attribute(VerboseTrace.AttributeType.HEX, prefix + ".hex", hex(safeSignature));
+            }
+
+            boolean lowSValid = true;
+            if (details.ecdsa().isPresent()) {
+                SignatureInspector.EcdsaSignatureDetails ecdsa = details.ecdsa().orElseThrow();
+                step.attribute("ecdsa.r.hex", ecdsa.rHex());
+                step.attribute("ecdsa.s.hex", ecdsa.sHex());
+                step.attribute("ecdsa.lowS", ecdsa.lowS());
+                lowSValid = ecdsa.lowS();
+            }
+
+            details.rsa().ifPresent(rsa -> {
+                step.attribute("rsa.padding", rsa.padding());
+                step.attribute("rsa.hash", rsa.hash());
+                rsa.pssSaltLength()
+                        .ifPresent(len -> step.attribute(VerboseTrace.AttributeType.INT, "rsa.pss.salt.len", len));
+                if (rsaKeyBits != null) {
+                    step.attribute(VerboseTrace.AttributeType.INT, "key.bits", rsaKeyBits);
+                }
+            });
+
+            if (lowSEnforced && !lowSValid) {
+                step.note("error.lowS", "ECDSA signature violates low-S policy");
+            }
+            if (!algorithmMatches) {
+                step.note("error.alg_mismatch", "COSE algorithm differs from descriptor metadata");
+            }
+            if (decodeError != null && !decodeError.isBlank()) {
+                step.note("signature.decode.error", decodeError);
+            }
+        });
     }
 
     private static TraceClientData traceClientData(byte[] clientDataJson) {
@@ -713,6 +911,16 @@ public final class WebAuthnEvaluationApplicationService {
         byte[] combined = Arrays.copyOf(safeLeft, safeLeft.length + safeRight.length);
         System.arraycopy(safeRight, 0, combined, safeLeft.length, safeRight.length);
         return combined;
+    }
+
+    private static Integer rsaKeyBits(CoseKeyDetails details) {
+        if (details == null) {
+            return null;
+        }
+        return details.modulusBase64Url()
+                .map(BASE64_URL_DECODER::decode)
+                .map(bytes -> new BigInteger(1, bytes).bitLength())
+                .orElse(null);
     }
 
     private static String formatByte(int value) {

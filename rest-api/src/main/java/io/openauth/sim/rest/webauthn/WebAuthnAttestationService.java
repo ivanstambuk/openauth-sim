@@ -11,11 +11,15 @@ import io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationSer
 import io.openauth.sim.application.fido2.WebAuthnTrustAnchorResolver;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.core.fido2.CborDecoder;
+import io.openauth.sim.core.fido2.SignatureInspector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.core.trace.VerboseTrace.AttributeType;
 import io.openauth.sim.rest.VerboseTracePayload;
 import java.util.Base64;
 import java.util.List;
@@ -378,13 +382,26 @@ class WebAuthnAttestationService {
                     Map.of("attestationId", command.attestationId(), "format", format.label()),
                     buildTrace(trace));
         }
+        var replayTelemetry = result.telemetry();
+        Optional<io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService.AttestedCredential>
+                attestedCredential = result.attestedCredential();
+        if (trace != null) {
+            attestedCredential.ifPresent(credential -> extractAttestationSignature(command.attestationObject())
+                    .ifPresent(signatureBytes -> addVerifySignatureStep(
+                            trace,
+                            credential.algorithm(),
+                            signatureBytes,
+                            replayTelemetry.status()
+                                    == io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService
+                                            .TelemetryStatus.SUCCESS)));
+        }
         addStep(trace, step -> step.id("verify.attestation")
                 .summary("Verify attestation")
                 .detail("WebAuthnAttestationReplayApplicationService.replay")
-                .attribute("status", result.telemetry().status().name()));
+                .attribute("status", replayTelemetry.status().name()));
 
         io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService.TelemetrySignal telemetry =
-                result.telemetry();
+                replayTelemetry;
         String telemetryId = nextTelemetryId(EVENT_ATTEST_REPLAY);
         TelemetryFrame frame = telemetry.emit(TelemetryContracts.fido2AttestReplayAdapter(), telemetryId);
         logTelemetry(frame, EVENT_ATTEST_REPLAY);
@@ -394,13 +411,12 @@ class WebAuthnAttestationService {
                 == io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService.TelemetryStatus
                         .SUCCESS) {
             io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService.AttestedCredential
-                    credential = result.attestedCredential()
-                            .orElseThrow(() -> unexpected(
-                                    "attested_credential_missing",
-                                    "Attestation replay succeeded without credential metadata",
-                                    metadataFields,
-                                    buildTrace(trace)));
-            WebAuthnAttestedCredential attestedCredential = new WebAuthnAttestedCredential(
+                    credential = attestedCredential.orElseThrow(() -> unexpected(
+                    "attested_credential_missing",
+                    "Attestation replay succeeded without credential metadata",
+                    metadataFields,
+                    buildTrace(trace)));
+            WebAuthnAttestedCredential responseCredential = new WebAuthnAttestedCredential(
                     credential.relyingPartyId(),
                     credential.credentialId(),
                     credential.algorithm().label(),
@@ -411,7 +427,7 @@ class WebAuthnAttestationService {
                     telemetryId, telemetry.reasonCode(), format.label(), metadataFields, command.trustAnchorWarnings());
             VerboseTrace builtTrace = buildTrace(trace);
             VerboseTracePayload tracePayload = builtTrace == null ? null : VerboseTracePayload.from(builtTrace);
-            return new WebAuthnAttestationResponse("success", null, attestedCredential, metadata, tracePayload);
+            return new WebAuthnAttestationResponse("success", null, responseCredential, metadata, tracePayload);
         }
 
         if (telemetry.status()
@@ -465,6 +481,86 @@ class WebAuthnAttestationService {
 
     private static VerboseTrace buildTrace(VerboseTrace.Builder trace) {
         return trace == null ? null : trace.build();
+    }
+
+    private static void addVerifySignatureStep(
+            VerboseTrace.Builder trace, WebAuthnSignatureAlgorithm algorithm, byte[] signatureBytes, boolean valid) {
+        if (trace == null || algorithm == null || signatureBytes == null || signatureBytes.length == 0) {
+            return;
+        }
+        SignatureInspector.SignatureDetails details;
+        String decodeError = null;
+        try {
+            details = SignatureInspector.inspect(algorithm, signatureBytes);
+        } catch (IllegalArgumentException ex) {
+            decodeError = ex.getMessage();
+            details = SignatureInspector.SignatureDetails.raw(signatureBytes);
+        }
+        String prefix = details.encoding() == SignatureInspector.SignatureEncoding.DER ? "sig.der" : "sig.raw";
+        final SignatureInspector.SignatureDetails traceDetails = details;
+        final String traceDecodeError = decodeError;
+        final byte[] safeSignature = signatureBytes.clone();
+        addStep(trace, step -> {
+            step.id("verify.signature")
+                    .summary("Verify attestation signature")
+                    .detail("WebAuthnAttestationVerifier")
+                    .spec("webauthn§6.5.5")
+                    .attribute("alg", algorithm.name())
+                    .attribute("cose.alg", algorithm.coseIdentifier())
+                    .attribute("cose.alg.name", algorithm.name())
+                    .attribute("valid", valid)
+                    .attribute("verify.ok", valid)
+                    .attribute("policy.lowS.enforced", false)
+                    .attribute(prefix + ".b64u", traceDetails.base64Url())
+                    .attribute(AttributeType.INT, prefix + ".len", traceDetails.length());
+            if (traceDetails.encoding() == SignatureInspector.SignatureEncoding.RAW) {
+                step.attribute(AttributeType.HEX, prefix + ".hex", hex(safeSignature));
+            }
+            traceDetails.ecdsa().ifPresent(ecdsa -> {
+                step.attribute("ecdsa.r.hex", ecdsa.rHex());
+                step.attribute("ecdsa.s.hex", ecdsa.sHex());
+                step.attribute("ecdsa.lowS", ecdsa.lowS());
+            });
+            traceDetails.rsa().ifPresent(rsa -> {
+                step.attribute("rsa.padding", rsa.padding());
+                step.attribute("rsa.hash", rsa.hash());
+                rsa.pssSaltLength().ifPresent(len -> step.attribute(AttributeType.INT, "rsa.pss.salt.len", len));
+            });
+            if (traceDecodeError != null && !traceDecodeError.isBlank()) {
+                step.note("signature.decode.error", traceDecodeError);
+            }
+        });
+    }
+
+    private static Optional<byte[]> extractAttestationSignature(byte[] attestationObject) {
+        if (attestationObject == null || attestationObject.length == 0) {
+            return Optional.empty();
+        }
+        try {
+            Object decoded = CborDecoder.decode(attestationObject);
+            if (!(decoded instanceof Map<?, ?> root)) {
+                return Optional.empty();
+            }
+            Object attStmt = root.get("attStmt");
+            if (!(attStmt instanceof Map<?, ?> attStmtMap)) {
+                return Optional.empty();
+            }
+            Object signature = attStmtMap.get("sig");
+            if (signature instanceof byte[] bytes) {
+                return Optional.of(bytes);
+            }
+        } catch (java.security.GeneralSecurityException ex) {
+            return Optional.empty();
+        }
+        return Optional.empty();
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format("%02x", value));
+        }
+        return builder.toString();
     }
 
     private static WebAuthnAttestationGenerator.SigningMode parseSigningMode(String signingMode) {

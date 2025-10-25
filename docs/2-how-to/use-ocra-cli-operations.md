@@ -100,6 +100,13 @@ Every run emits `event=cli.ocra.verify` with hashed payloads (`otpHash`, `contex
 - If both `--credential-id` and `--secret` are set, you receive `reasonCode=credential_conflict`.
 - Timestamp or counter drift is never corrected—re-submit with the precise historical values from your logs.
 
+### 4.5 Inspect verbose trace message integrity
+Add `--verbose` to `evaluate` or `verify` commands to print the full trace. The OCRA `assemble.message` step now surfaces:
+- `parts.count` – total segments in the concatenated payload.
+- `parts.order` – the ordered list of segment identifiers.
+
+Pair these summaries with the existing `segment.*.len.bytes` attributes when auditing custom suite definitions or troubleshooting failed inspections.
+
 
 ## 5. Delete a Credential
 ```bash

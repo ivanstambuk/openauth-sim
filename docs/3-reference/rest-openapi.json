@@ -472,26 +472,6 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
           "200" : {
             "description" : "Verification completed",
             "content" : {
@@ -521,6 +501,16 @@
               }
             }
           },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
           "422" : {
             "description" : "Verification payload failed validation",
             "content" : {
@@ -545,6 +535,16 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
                 }
               }
             }
@@ -705,16 +705,6 @@
           "required" : true
         },
         "responses" : {
-          "422" : {
-            "description" : "Validation error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
@@ -731,6 +721,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -755,16 +755,6 @@
           "required" : true
         },
         "responses" : {
-          "422" : {
-            "description" : "Validation error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
@@ -781,6 +771,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -2175,23 +2175,6 @@
           }
         }
       },
-      "OcraVerificationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          }
-        }
-      },
       "OcraVerificationMetadata" : {
         "type" : "object",
         "properties" : {
@@ -2237,6 +2220,23 @@
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
+      "OcraVerificationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
           }
         }
       },

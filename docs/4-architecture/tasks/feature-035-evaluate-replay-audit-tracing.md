@@ -153,10 +153,10 @@ _Last updated:_ 2025-10-25
  ☑ Refresh application, CLI, and REST verbose trace assertions to expect the new `alg` key/value while keeping formatting stable.  
  ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Ocra*EndpointTest"`; `./gradlew --no-daemon spotlessApply check`
 
-☐ **T3529 – OCRA message integrity summary**  
- ☐ Add `parts.count` and `parts.order` attributes to the OCRA `assemble.message` trace step so operators can confirm concatenation ordering; reuse them across evaluation and verification traces.  
- ☐ Update application, CLI, and REST trace assertions to check the new summary fields for representative suites.  
- ☐ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Ocra*EndpointTest"`
+☑ **T3529 – OCRA message integrity summary**  
+ ☑ Added `parts.count` and `parts.order` attributes to OCRA `assemble.message` traces across application/CLI/REST suites (2025-10-24 – tests now assert the summaries alongside length metadata).  
+ ☑ Updated operator documentation (CLI + REST how-tos) and the Feature 035 specification to explain the new integrity summary fields for auditors (2025-10-25).  
+ ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Ocra*EndpointTest"`
 
 ☑ **T3530 – FIDO2 canonical trace naming**  
  ☑ Update WebAuthn assertion/attestation trace builders to emit `alg`, `cose.alg`, `rpIdHash.hex`, `clientDataHash.sha256`, `signedBytes.sha256`, and lowercased single-byte flags without `0x` prefixes.  
@@ -193,3 +193,20 @@ _Last updated:_ 2025-10-25
 	☑ Extend WebAuthn verbose trace application tests (evaluation + attestation) and CLI trace expectations to require `authenticatorData.len.bytes`, `clientDataHash.len.bytes`, `signedBytes.hex`, `signedBytes.len.bytes`, and `signedBytes.preview`.
 	☑ Update WebAuthn verbose trace builders to populate the new attributes with typed entries (INT for lengths, HEX for concatenated bytes) and introduce a helper that renders the preview (first/last 16 bytes with ellipsis).
 	☑ Re-run targeted suites: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest" :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`, then refresh documentation/session snapshot as needed.
+
+☑ **T3537 – WebAuthn signature inspection tests (red)**
+	☑ Extended `WebAuthnEvaluationApplicationServiceVerboseTraceTest` and `WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest` to validate signature trace fields, including DER/Base64 encodings, R/S hex components, low-S status, and new policy/validation flags. Added CLI coverage to assert human-readable traces contain the new attributes.
+	☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`.
+
+☑ **T3538 – Signature inspector implementation (green)**
+	☑ Introduced `SignatureInspector` with DER parsing, low-S detection for ES256/384/512, RSA metadata helpers, and base64url exports. Integrated the helper into assertion/attestation trace builders and added unit coverage in `SignatureInspectorTest`.
+	☑ Command: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.SignatureInspectorTest"`; `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`.
+
+☑ **T3539 – Low-S policy wiring & enforcement**
+	☑ Added `WebAuthnSignaturePolicy`, defaulting to observe-only, and plumbed enforcement through assertion and attestation services. Traces now emit `policy.lowS.enforced`; high-S signatures trigger `error.lowS`, `verify.ok=false`, and fail verification when the policy is enabled. Added tests exercising enforced-mode behavior with synthetic high-S signatures.
+	☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`.
+
+☑ **T3540 – Facade + documentation sync**
+	☑ 2025-10-25 – Extended REST WebAuthn replay/attestation tests to assert the new `verify.signature` schema, taught `WebAuthnAttestationService` to emit signature inspection steps, and refreshed FIDO2 REST how-to + knowledge map entries. CLI/UI already reflected the attributes from previous increments, so no renderer changes were required.
+	☑ Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test"`; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`; attempted `./gradlew --no-daemon spotlessApply check` (timed out after 5 min due to pre-existing Checkstyle/PMD findings in SignatureInspector suites).
+	☑ 2025-10-25 – Follow-up: coverage regression traced to unexecuted `SignatureInspector` fallback branches; added malformed-signature tests across application/REST suites and re-ran `./gradlew --no-daemon jacocoCoverageVerification` (green at 85 % line / 70 % branch). Normalised empty record declarations to satisfy Checkstyle’s `WhitespaceAround` and confirmed `./gradlew --no-daemon checkstyleMain checkstyleTest` plus `./gradlew --no-daemon spotlessApply check` now succeed.
