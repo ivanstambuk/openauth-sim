@@ -13,7 +13,7 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 
 ## Commit Protocol Reminder
 - When the user says “commit” or “commit and push,” stage the entire repository (`git add -A`) and rely on the managed hooks to run the quality pipeline.
-- Skim the staged changes under `docs/4-architecture/` so you know which specs/plans/tasks moved, then commit with a single-line conventional subject that summarises the change (no feature listings) and push as soon as the hooks succeed.
+- Stage the entire repository (`git add -A`), obtain a Conventional Commit message via your assistant tooling that satisfies gitlint and includes a `Spec impact:` body line whenever docs and code change together (the default helper is `./tools/codex-commit-review.sh`), then commit with that output and push as soon as the hooks succeed.
 
 ## Handoff Prompt Template
 ```

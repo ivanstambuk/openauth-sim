@@ -4,8 +4,7 @@ set -euo pipefail
 log() { echo "[commit-msg] $*" >&2; }
 die() { log "$*"; exit 1; }
 require_command() {
-  local binary=$1
-  local guidance=$2
+  local binary=$1 guidance=$2
   command -v "$binary" >/dev/null 2>&1 || die "$guidance"
 }
 
