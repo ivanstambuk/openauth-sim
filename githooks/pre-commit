@@ -28,6 +28,19 @@ human_readable_size() {
   fi
 }
 
+ensure_open_questions_guardrail() {
+  local file="$ROOT_DIR/docs/4-architecture/open-questions.md"
+  [[ -f $file ]] || return
+
+  local resolved_lines
+  resolved_lines=$(grep -nE '\|\s*[Rr]esolved\s*\|' "$file" || true)
+  if [[ -n $resolved_lines ]]; then
+    log "Resolved entries remain in '$file'; remove them before committing."
+    printf '%s\n' "$resolved_lines" >&2
+    die "Open questions log must only list active items (Status == Open)."
+  fi
+}
+
 
 run_gradle_with_retry() {
   local description=$1
@@ -84,6 +97,8 @@ collect_staged_files() {
     log "No staged changes detected; skipping hook."
     exit 0
   fi
+
+  ensure_open_questions_guardrail
 }
 
 validate_environment() {

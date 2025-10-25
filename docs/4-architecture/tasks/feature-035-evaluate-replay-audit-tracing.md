@@ -193,3 +193,8 @@ _Last updated:_ 2025-10-25
 	☑ Add Selenium coverage that proves the verbose trace panel clears when switching protocols, evaluation/replay tabs, or inline/stored modes.
 	☑ Update operator console scripts (core `console.js`, HOTP/TOTP/FIDO2 panels, and OCRA inline handlers) to call `VerboseTraceConsole.clearTrace()` whenever these context changes occur.
 	☑ Command: `./gradlew --no-daemon spotlessApply check`.
+
+☑ **T3536 – WebAuthn signature base length & preview metadata**
+	☑ Extend WebAuthn verbose trace application tests (evaluation + attestation) and CLI trace expectations to require `authenticatorData.len.bytes`, `clientDataHash.len.bytes`, `signedBytes.hex`, `signedBytes.len.bytes`, and `signedBytes.preview`.
+	☑ Update WebAuthn verbose trace builders to populate the new attributes with typed entries (INT for lengths, HEX for concatenated bytes) and introduce a helper that renders the preview (first/last 16 bytes with ellipsis).
+	☑ Re-run targeted suites: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest" :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`, then refresh documentation/session snapshot as needed.

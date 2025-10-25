@@ -2,6 +2,8 @@
 
 Use this file to capture outstanding questions or ambiguities before starting work. Limit each feature to a maximum of five high-impact questions per the clarification gate. Delete a row as soon as its question is resolved and ensure the answer is captured in the referenced spec/plan/ADR before removal. Each entry should include:
 
+> **Guardrail:** This table may only contain rows whose status is `Open`. If you resolve a question, remove the row immediately (record the answer in the referenced spec/plan/ADR).
+
 - **Date** the question was raised
 - **Context** (feature plan / file / task)
 - **Question**
@@ -11,65 +13,4 @@ Use this file to capture outstanding questions or ambiguities before starting wo
 When communicating options to the user—whether resolving an open question or proposing a general approach—enumerate them alphabetically (A, B, C …), include pros and cons for each, and call out the recommended choice with supporting rationale before requesting a decision.
 
 | Date | Context | Question | Status | Resolution |
-| 2025-10-24 | Feature 035 – Evaluate & Replay Audit Tracing | When should we implement the verbose-trace redaction tiers (`normal` / `educational` / `lab-secrets`) and ship the tier toggles? | Resolved | Owner chose Option B (2025-10-24): defer tier toggles to a follow-up feature; document scope split in roadmap/plan before new work begins. |
-| 2025-10-21 | Feature 024 – FIDO2 assertion inline form | Increase the “Authenticator private key (JWK or PEM/PKCS#8)” textarea height so the default content displays without a vertical scrollbar while leaving attestation inputs unchanged. | Resolved | Clarification received 2025-10-21; scope limited to assertion inline form. |
-| 2025-10-21 | Feature 033 – Operator console naming alignment | The user asked to “implement this all” after we identified several naming cleanups; can you confirm the exact scope (controller rename, telemetry endpoint updates, bean/test refresh) and which feature/specification should govern it? | Resolved | Spec `feature-033-operator-console-naming-alignment.md` (2025-10-21) – Option B approved: perform comprehensive rename + telemetry alignment. |
-| 2025-10-19 | Feature 029 – PMD Rule Hardening | Should enabling `category/java/bestpractices.xml/NonExhaustiveSwitch` fall under Feature 029’s scope (requiring a spec update) or remain a one-off dry-run experiment outside the specification? | Resolved | Spec `feature-029-pmd-rule-hardening.md` (2025-10-19) – Option A approved: govern NonExhaustiveSwitch within Feature 029. |
-| 2025-10-19 | Feature 029 – PMD Rule Hardening | For the NonExhaustiveSwitch dry run, should PMD scan the entire codebase or only specific modules (for example, domain/service layers)? | Resolved | Spec `feature-029-pmd-rule-hardening.md` (2025-10-19) – Option A approved: run the dry run across the full codebase. |
-| 2025-10-19 | Feature 028 – IDE warning remediation | How should we eliminate the `WebAuthnAssertionResponse` auxiliary-class compiler warning: extract the record into its own source file, nest it inside `WebAuthnGeneratedAssertion`, or adjust usage elsewhere? | Resolved | Spec `feature-028-ide-warning-remediation.md` (2025-10-19) – Option A approved: extract the record into its own source file. |
-| 2025-10-19 | Feature 028 – IDE warning remediation | How should we address the missing `@SuppressFBWarnings` annotation type warning emitted from the `application` module when other modules compile against it (e.g., promote the dependency to `compileOnlyApi`/`implementation`, replace the annotation, or pursue another strategy)? | Resolved | Spec `feature-028-ide-warning-remediation.md` (2025-10-19) – Option A approved: promote `spotbugs-annotations` to the exported compile classpath. |
-| 2025-10-18 | Feature 028 – IDE warning remediation | Should we limit the cleanup to the warnings listed in the IDE snapshot and remove unused locals/constants where necessary, or would you prefer we retain those placeholders and instead add assertions/usages to preserve intent? | Resolved | Spec `feature-028-ide-warning-remediation.md` (2025-10-18) – Option B approved: strengthen assertions/usages rather than removing placeholders. |
-| 2025-10-17 | Feature 026 – lint follow-up | How should we resolve the outstanding Checkstyle/PMD violations: strictly by updating source/tests to comply, or may we adjust the rule configurations if justified? | Resolved | Spec `feature-026-fido2-attestation-support.md` (2025-10-17) – Option A confirmed: fix code to satisfy existing rules. |
-| 2025-10-17 | Feature 026 – attestation UI results | Should the Evaluate result panel continue showing Attestation ID / Format / Signing mode, or can we rely on the input summary on the left? | Resolved | Spec `feature-026-fido2-attestation-support.md` (2025-10-17) – remove redundant metadata from result card. |
-| 2025-10-17 | Feature 026 – manual generation inputs | For Manual mode, do we require an explicit AAGUID or default a deterministic synthetic per format? | Resolved | Option B approved: default deterministic per format with optional override. Spec updated 2025-10-17 under “Clarifications – Manual Mode Decisions”. |
-| 2025-10-17 | Feature 026 – custom-root chain length | For Manual + CUSTOM_ROOT signing, enforce chain length ≥1 or root+leaf minimum? | Resolved | Option B approved: require ≥1 certificate. Spec updated 2025-10-17. |
-| 2025-10-17 | Feature 026 – UI affordance | Should we add a visible “Copy preset ID” link next to the preset selector? | Resolved | Option A approved: add copy link. Spec updated 2025-10-17. |
-| 2025-10-17 | Feature 026 – CLI parity | Should CLI accept `--input-source=manual` mirroring REST? | Resolved | Option A approved: support CLI parity. Spec updated 2025-10-17. |
-| 2025-10-17 | Feature 026 – algorithm inference | In Manual mode, infer algorithm from key or require an explicit field? | Resolved | Option B approved: infer from credential key; error if undecidable. Spec updated 2025-10-17. |
-| 2025-10-18 | Feature 026 – manual credential ID override | Should Manual generation auto-generate credential IDs, allow operator overrides, and how should overrides be validated? | Resolved | Spec `feature-026-fido2-attestation-support.md` (2025-10-18) – server generates random Base64URL IDs; optional override accepts Base64URL, rejects malformed values, blanks fall back to random. |
-| 2025-10-18 | Feature 026 – preset key representation | When surfacing attestation preset key material in UI/CLI/REST, should we present compact single-line JWK JSON or a pretty-printed multi-line variant? | Resolved | Spec `feature-026-fido2-attestation-support.md` (2025-10-18) – Option B confirmed: pretty-printed multi-line JWK payloads. |
-| 2025-10-18 | Feature 026 – legacy Base64URL inputs | Do we need to continue accepting legacy Base64URL attestation private-key inputs for backwards compatibility, or can we reject them now that JWK/PEM support is in place? | Resolved | Spec `feature-026-fido2-attestation-support.md` (2025-10-18) – Option B confirmed: drop Base64URL-only inputs; require JWK or PEM/PKCS#8. |
-| 2025-10-18 | Feature 026 – attestation result payload | Should we continue emitting `attestationId` in REST/CLI/UI JSON responses, or restrict it to internal telemetry only? | Resolved | Spec `feature-026-fido2-attestation-support.md` (2025-10-18) – drop from user-facing JSON, retain for telemetry. |
-| 2025-10-18 | Feature 027 – unified credential store naming | Which inclusive default filename should all facades adopt for the shared credential store? | Resolved | Spec `feature-027-unified-credential-store.md` (2025-10-18, updated 2025-10-19) – use `credentials.db`; legacy fallback removed per owner directive. |
-| 2025-10-19 | Feature 028 – IDE warning remediation | How should we remediate the new compiler warnings: mark the REST exception `details/metadata` maps as transient, refactor to guaranteed-serializable payloads, or pursue another strategy that aligns with Feature 028 scope? | Resolved | Spec `feature-028-ide-warning-remediation.md` (2025-10-19) – Option A approved: mark REST exception map fields transient. |
-
-## Feature 026 – Pending Question Details (2025-10-17)
-
-1. Manual AAGUID defaulting vs explicit input
-   - Options:
-     - A) Require explicit AAGUID input in Manual mode.
-     - B) Default a deterministic synthetic AAGUID per selected format, allow optional override.
-   - Pros/Cons:
-     - A) Precise and realistic, but increases UI/REST/CLI friction and validation paths.
-     - B) Smooth defaults and deterministic cross-layer behavior; needs clear docs labeling.
-   - Recommended: B (deterministic default with optional override).
-
-2. Manual + CUSTOM_ROOT: minimum certificate chain length
-   - Options:
-     - A) Enforce root+leaf minimum (≥2 certificates).
-     - B) Enforce chain length ≥1 (at least one PEM certificate required).
-   - Pros/Cons:
-     - A) Encourages realistic chains; more validation surface.
-     - B) Simpler validation; supports single-root tests.
-   - Recommended: B (≥1 certificate required).
-
-3. UI affordance: “Copy preset ID” next to preset selector
-   - Options: A) Add the copy link; B) Skip for now.
-   - Pros/Cons:
-     - A) Low effort; improves debugging and CLI/REST parity workflows.
-     - B) Slightly simpler UI; worse discoverability.
-   - Recommended: A (add copy link).
-
-4. CLI parity for Manual mode
-   - Options: A) Support `--input-source=manual` mirroring REST; B) Defer.
-   - Pros/Cons:
-     - A) Consistent UX across facades; clearer docs/examples.
-     - B) Less work now; inconsistent UX.
-   - Recommended: A (support CLI parity).
-
-5. Manual algorithm selection: infer vs explicit
-   - Options: A) Require explicit `algorithm` field; B) Infer from credential key.
-   - Pros/Cons:
-     - A) No guesswork, but redundant input and more validation.
-     - B) Simpler inputs; aligns with verifier behavior; error if undecidable.
-   - Recommended: B (infer from key).
+<!-- Add new rows below with Status set to Open only. Remove the row once resolved. -->

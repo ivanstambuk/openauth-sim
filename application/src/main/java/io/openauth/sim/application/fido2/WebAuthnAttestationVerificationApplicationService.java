@@ -424,7 +424,12 @@ public final class WebAuthnAttestationVerificationApplicationService {
                 .detail("authenticatorData || SHA-256(clientData)")
                 .spec("webauthn§6.5.5")
                 .attribute("authenticatorData.hex", hex(authenticatorData))
+                .attribute(AttributeType.INT, "authenticatorData.len.bytes", authenticatorData.length)
                 .attribute("clientDataHash.sha256", sha256Label(safeClientHash))
+                .attribute(AttributeType.INT, "clientDataHash.len.bytes", safeClientHash.length)
+                .attribute(AttributeType.HEX, "signedBytes.hex", hex(payload))
+                .attribute(AttributeType.INT, "signedBytes.len.bytes", payload.length)
+                .attribute("signedBytes.preview", previewHex(payload))
                 .attribute("signedBytes.sha256", sha256Digest(payload)));
     }
 
@@ -641,6 +646,17 @@ public final class WebAuthnAttestationVerificationApplicationService {
             builder.append(String.format("%02x", value));
         }
         return builder.toString();
+    }
+
+    private static String previewHex(byte[] bytes) {
+        byte[] safeBytes = bytes == null ? new byte[0] : bytes;
+        if (safeBytes.length <= 32) {
+            return hex(safeBytes);
+        }
+        int previewLength = Math.min(16, safeBytes.length);
+        byte[] head = Arrays.copyOfRange(safeBytes, 0, previewLength);
+        byte[] tail = Arrays.copyOfRange(safeBytes, safeBytes.length - previewLength, safeBytes.length);
+        return hex(head) + "…" + hex(tail);
     }
 
     private static DecodedChallenge decodeChallenge(String challenge) {

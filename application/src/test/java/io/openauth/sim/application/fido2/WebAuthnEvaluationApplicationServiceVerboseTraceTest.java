@@ -164,7 +164,14 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
         assertEquals(
                 hex(fixture.request().authenticatorData()),
                 signatureBase.attributes().get("authenticatorData.hex"));
+        assertEquals(
+                fixture.request().authenticatorData().length,
+                signatureBase.attributes().get("authenticatorData.len.bytes"));
         assertEquals(sha256Label(clientDataHash), signatureBase.attributes().get("clientDataHash.sha256"));
+        assertEquals(clientDataHash.length, signatureBase.attributes().get("clientDataHash.len.bytes"));
+        assertEquals(hex(signaturePayload), signatureBase.attributes().get("signedBytes.hex"));
+        assertEquals(signaturePayload.length, signatureBase.attributes().get("signedBytes.len.bytes"));
+        assertEquals(previewHex(signaturePayload), signatureBase.attributes().get("signedBytes.preview"));
         assertEquals(sha256Digest(signaturePayload), signatureBase.attributes().get("signedBytes.sha256"));
 
         var verifySignature = findStep(trace, "verify.signature");
@@ -328,7 +335,14 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
         assertEquals(
                 hex(fixture.request().authenticatorData()),
                 signatureBase.attributes().get("authenticatorData.hex"));
+        assertEquals(
+                fixture.request().authenticatorData().length,
+                signatureBase.attributes().get("authenticatorData.len.bytes"));
         assertEquals(sha256Label(clientDataHash), signatureBase.attributes().get("clientDataHash.sha256"));
+        assertEquals(clientDataHash.length, signatureBase.attributes().get("clientDataHash.len.bytes"));
+        assertEquals(hex(signaturePayload), signatureBase.attributes().get("signedBytes.hex"));
+        assertEquals(signaturePayload.length, signatureBase.attributes().get("signedBytes.len.bytes"));
+        assertEquals(previewHex(signaturePayload), signatureBase.attributes().get("signedBytes.preview"));
         assertEquals(sha256Digest(signaturePayload), signatureBase.attributes().get("signedBytes.sha256"));
 
         var verifySignature = findStep(trace, "verify.signature");
@@ -454,6 +468,16 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
             builder.append(String.format("%02x", value));
         }
         return builder.toString();
+    }
+
+    private static String previewHex(byte[] bytes) {
+        if (bytes.length <= 32) {
+            return hex(bytes);
+        }
+        int previewLength = Math.min(16, bytes.length);
+        byte[] head = Arrays.copyOfRange(bytes, 0, previewLength);
+        byte[] tail = Arrays.copyOfRange(bytes, bytes.length - previewLength, bytes.length);
+        return hex(head) + "…" + hex(tail);
     }
 
     private static byte[] concat(byte[] left, byte[] right) {

@@ -122,7 +122,13 @@ final class Fido2CliVerboseTraceTest {
         assertTrue(stdout.contains("  counter.reported = " + reportedCounter), stdout);
 
         byte[] clientDataHash = sha256Bytes(fixture.request().clientDataJson());
-        String signatureBaseSha256 = sha256Digest(concat(authenticatorData, clientDataHash));
+        byte[] signaturePayload = concat(authenticatorData, clientDataHash);
+        String signatureBaseSha256 = sha256Digest(signaturePayload);
+        assertTrue(stdout.contains("  authenticatorData.len.bytes = " + authenticatorData.length), stdout);
+        assertTrue(stdout.contains("  clientDataHash.len.bytes = " + clientDataHash.length), stdout);
+        assertTrue(stdout.contains("  signedBytes.hex = " + hex(signaturePayload)), stdout);
+        assertTrue(stdout.contains("  signedBytes.len.bytes = " + signaturePayload.length), stdout);
+        assertTrue(stdout.contains("  signedBytes.preview = " + previewHex(signaturePayload)), stdout);
         assertTrue(stdout.contains("  signedBytes.sha256 = " + signatureBaseSha256), stdout);
         assertTrue(stdout.contains("  alg = " + WebAuthnSignatureAlgorithm.ES256.name()), stdout);
         assertTrue(stdout.contains("  cose.alg = " + WebAuthnSignatureAlgorithm.ES256.coseIdentifier()), stdout);
@@ -263,6 +269,16 @@ final class Fido2CliVerboseTraceTest {
             builder.append(String.format("%02x", value));
         }
         return builder.toString();
+    }
+
+    private static String previewHex(byte[] bytes) {
+        if (bytes.length <= 32) {
+            return hex(bytes);
+        }
+        int previewLength = Math.min(16, bytes.length);
+        byte[] head = Arrays.copyOfRange(bytes, 0, previewLength);
+        byte[] tail = Arrays.copyOfRange(bytes, bytes.length - previewLength, bytes.length);
+        return hex(head) + "…" + hex(tail);
     }
 
     private static String formatByte(int value) {

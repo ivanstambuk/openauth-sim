@@ -539,13 +539,20 @@ public final class WebAuthnEvaluationApplicationService {
         if (trace == null) {
             return;
         }
-        byte[] payload = concat(authenticatorData, clientDataHash);
+        byte[] safeAuthenticatorData = authenticatorData == null ? new byte[0] : authenticatorData;
+        byte[] safeClientHash = clientDataHash == null ? sha256(new byte[0]) : clientDataHash;
+        byte[] payload = concat(safeAuthenticatorData, safeClientHash);
         addStep(trace, step -> step.id("build.signatureBase")
                 .summary("Build signature payload")
                 .detail("authenticatorData || SHA-256(clientData)")
                 .spec("webauthn§6.5.5")
-                .attribute("authenticatorData.hex", hex(authenticatorData))
-                .attribute("clientDataHash.sha256", sha256Label(clientDataHash))
+                .attribute("authenticatorData.hex", hex(safeAuthenticatorData))
+                .attribute(VerboseTrace.AttributeType.INT, "authenticatorData.len.bytes", safeAuthenticatorData.length)
+                .attribute("clientDataHash.sha256", sha256Label(safeClientHash))
+                .attribute(VerboseTrace.AttributeType.INT, "clientDataHash.len.bytes", safeClientHash.length)
+                .attribute(VerboseTrace.AttributeType.HEX, "signedBytes.hex", hex(payload))
+                .attribute(VerboseTrace.AttributeType.INT, "signedBytes.len.bytes", payload.length)
+                .attribute("signedBytes.preview", previewHex(payload))
                 .attribute("signedBytes.sha256", sha256Digest(payload)));
     }
 
@@ -659,6 +666,17 @@ public final class WebAuthnEvaluationApplicationService {
             builder.append(String.format("%02x", value));
         }
         return builder.toString();
+    }
+
+    private static String previewHex(byte[] bytes) {
+        byte[] safeBytes = bytes == null ? new byte[0] : bytes;
+        if (safeBytes.length <= 32) {
+            return hex(safeBytes);
+        }
+        int previewLength = Math.min(16, safeBytes.length);
+        byte[] head = Arrays.copyOfRange(safeBytes, 0, previewLength);
+        byte[] tail = Arrays.copyOfRange(safeBytes, safeBytes.length - previewLength, safeBytes.length);
+        return hex(head) + "…" + hex(tail);
     }
 
     private static String base64Url(byte[] input) {
