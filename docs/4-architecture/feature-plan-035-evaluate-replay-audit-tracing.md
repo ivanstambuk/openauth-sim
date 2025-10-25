@@ -9,7 +9,7 @@ _Last updated:_ 2025-10-25
 - CLI, REST, and operator UI facades honour per-request verbose toggles and surface the identical trace payload with no redaction.
 - UI introduces a terminal-style panel (collapsed by default) that renders the verbose trace when requested without disrupting existing layouts.
 - Traces remain ephemeral and never land in telemetry, persisted storage, or logs; default behaviour (verbose disabled) is unchanged.
-- Trace metadata advertises the available redaction tiers (`normal`, `educational`, `lab-secrets`), with Feature 035 continuing to emit the fully detailed (`educational`) view pending a follow-up toggle implementation.
+- Trace metadata advertises the available redaction tiers (`normal`, `educational`, `lab-secrets`), with Feature 035 continuing to emit the fully detailed (`educational`) view; all tier filtering work now shifts to Feature 036.
 - Full pipeline (`./gradlew spotlessApply check`) stays green after implementation.
 
 ## Scope Alignment
@@ -26,7 +26,7 @@ _Last updated:_ 2025-10-25
 - **Cross-protocol format**
   - Preserve the current human-readable layout (operation header, metadata block, numbered steps).
   - Each step lists key/value attributes grouped by type (e.g., `hex`, `base64url`, `int`, `bool`) and ends with `spec: <anchor>` where applicable.
-  - Record `tier: educational` in the envelope so later iterations can switch tiers once toggles ship.
+  - Record `tier: educational` in the envelope while tier selection helpers are delivered under Feature 036.
   - Hash any sensitive secrets with SHA-256 and print as `sha256:<digest>` regardless of the protocol algorithm family.
   - When an operator changes protocol tabs or toggles between evaluate/replay or inline/stored modes, the verbose trace panel must clear immediately so traces remain scoped to the initiating request (Option B, approved 2025-10-25).
 - **HOTP (RFC 4226 §5.1–§5.4)** – Output must match the mandated “step.N” format (two-space indentation, `name = value`, lowercase hex). Secrets are always hashed; refuse digits >9.
@@ -216,7 +216,7 @@ _Last updated:_ 2025-10-25
 - Revisit potential trace exporters (files/web sockets) under a future feature if persistent audit history is requested.
 - Consider formatting helpers (diff highlighting, grouping) once baseline tracing stabilises.
 - 2025-10-24 – Completed T3533 to replace WebAuthn authenticator flag outputs with a full `flags.bits.*` map plus `userVerificationRequired` / `uv.policy.ok` attributes, driven by failing tests ahead of implementation.
-- Schedule a dedicated increment to expose redaction-tier controls (CLI flag, REST/JSON contract, UI toggle) once the trace schema advertises `normal/educational/lab-secrets`.
+- Track redaction-tier controls (CLI flag, REST/JSON contract, UI toggle) within Feature 036 once the shared helper lands.
 
 ## Analysis Gate
 - **Review date:** 2025-10-22  

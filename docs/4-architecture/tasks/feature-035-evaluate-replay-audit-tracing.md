@@ -153,11 +153,6 @@ _Last updated:_ 2025-10-25
  ☑ Refresh application, CLI, and REST verbose trace assertions to expect the new `alg` key/value while keeping formatting stable.  
  ☑ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Ocra*EndpointTest"`; `./gradlew --no-daemon spotlessApply check`
 
-☐ **T3528 – OCRA truncation tier gating**  
- ☐ Introduce helper that emits dynamic truncation attributes (digest length, slice bytes, pre-mask value, mask constant, masked dbc) only for `educational`/`lab-secrets` tiers, ensuring the future `normal` tier can suppress the extra metadata without code duplication.  
- ☐ Document the tier-specific behaviour in trace spec/tests ahead of the tier-toggle rollout so implementation work can hook into the helper later.  
- ☐ Command (placeholder): `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.ocra.*VerboseTraceTest"` once tier helper lands.
-
 ☐ **T3529 – OCRA message integrity summary**  
  ☐ Add `parts.count` and `parts.order` attributes to the OCRA `assemble.message` trace step so operators can confirm concatenation ordering; reuse them across evaluation and verification traces.  
  ☐ Update application, CLI, and REST trace assertions to check the new summary fields for representative suites.  
