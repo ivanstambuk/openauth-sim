@@ -28,6 +28,7 @@ _Last updated:_ 2025-10-25
   - Each step lists key/value attributes grouped by type (e.g., `hex`, `base64url`, `int`, `bool`) and ends with `spec: <anchor>` where applicable.
   - Record `tier: educational` in the envelope so later iterations can switch tiers once toggles ship.
   - Hash any sensitive secrets with SHA-256 and print as `sha256:<digest>` regardless of the protocol algorithm family.
+  - When an operator changes protocol tabs or toggles between evaluate/replay or inline/stored modes, the verbose trace panel must clear immediately so traces remain scoped to the initiating request (Option B, approved 2025-10-25).
 - **HOTP (RFC 4226 §5.1–§5.4)** – Output must match the mandated “step.N” format (two-space indentation, `name = value`, lowercase hex). Secrets are always hashed; refuse digits >9.
   - *Evaluate:* emit the six ordered steps (`normalize.input`, `prepare.counter`, `hmac.compute`, `truncate.dynamic`, `mod.reduce`, `result`) with the exact field list in the spec, noting non-standard algorithms when used.
   - *Verify:* emit `normalize.input`, `search.window` (prefix with `window.range = [counter.hint-10, counter.hint+10]` and `order = ascending`, then log attempt entries plus the expanded match derivation), and `decision` with matched/next counters. Publish the recommended counter advance (`matched + 1`) in metadata even when inline replays leave server state untouched so operators see the expected next value.

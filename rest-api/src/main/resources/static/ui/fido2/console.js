@@ -59,6 +59,11 @@
       inlineResultPanel
           ? inlineResultPanel.querySelector('[data-testid="fido2-inline-generated-json"]')
           : null;
+  function clearVerboseTrace() {
+    if (verboseConsole && typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
+    }
+  }
   var inlineTelemetry =
       inlineResultPanel
           ? inlineResultPanel.querySelector('[data-testid="fido2-inline-telemetry"]')
@@ -1303,6 +1308,7 @@
     toggleTabButton(replayTabButton, tab === TAB_REPLAY);
     toggleSection(evaluatePanel, tab === TAB_EVALUATE);
     toggleSection(replayPanel, tab === TAB_REPLAY);
+    clearVerboseTrace();
     if (tab === TAB_EVALUATE) {
       setEvaluateMode(currentEvaluateMode, mergeOptions(options, { broadcast: false, force: true }));
     } else {
@@ -1347,6 +1353,7 @@
       refreshInlineCounterAfterPreset();
     }
     updateEvaluateButtonCopy();
+    clearVerboseTrace();
     dispatchEvaluateModeChange(mode, options);
   }
 
@@ -1382,6 +1389,7 @@
     }
     refreshReplayResultVisibility();
     updateReplayButtonCopy();
+    clearVerboseTrace();
     dispatchReplayModeChange(mode, options);
   }
 
@@ -1411,6 +1419,7 @@
     if (mode === MODE_STORED) {
       applyAttestationStoredSelection(activeStoredCredentialId || null);
     }
+    clearVerboseTrace();
   }
 
   function setReplayCeremony(ceremony, options) {
@@ -1437,6 +1446,7 @@
     toggleNodeList(replayAssertionViews, ceremony === CEREMONY_ASSERTION);
     toggleNodeList(replayAttestationViews, ceremony === CEREMONY_ATTESTATION);
     refreshReplayResultVisibility();
+    clearVerboseTrace();
     if (!options || options.broadcast !== false) {
       dispatchReplayModeChange(currentReplayMode, options);
     }
@@ -1470,6 +1480,7 @@
     refreshEvaluationResultVisibility();
     toggleSeedActions();
     toggleAttestationSeedActions();
+    clearVerboseTrace();
     if (!options || options.broadcast !== false) {
       dispatchEvaluateModeChange(currentEvaluateMode, options);
     }

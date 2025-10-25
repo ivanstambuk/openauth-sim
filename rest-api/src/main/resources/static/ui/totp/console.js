@@ -8,6 +8,12 @@
   }
   var verboseConsole = global.VerboseTraceConsole || null;
 
+  function clearVerboseTrace() {
+    if (verboseConsole && typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
+    }
+  }
+
   var ALLOWED_TABS = ['evaluate', 'replay'];
   var ALLOWED_MODES = ['stored', 'inline'];
 
@@ -1010,6 +1016,7 @@
       return;
     }
     currentTab = normalized;
+    clearVerboseTrace();
 
     if (evaluateTabButton) {
       evaluateTabButton.classList.toggle('mode-pill--active', normalized === 'evaluate');
@@ -1038,6 +1045,7 @@
       return;
     }
     currentMode = normalized;
+    clearVerboseTrace();
     if (modeToggle) {
       modeToggle.setAttribute('data-mode', normalized);
     }
@@ -1079,6 +1087,7 @@
       return;
     }
     currentReplayMode = normalized;
+    clearVerboseTrace();
     if (replayModeToggle) {
       replayModeToggle.setAttribute('data-mode', normalized);
     }

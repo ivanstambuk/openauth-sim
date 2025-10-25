@@ -300,6 +300,58 @@ final class OcraOperatorUiSeleniumTest {
         assertEquals("Match", statusBadge.getText().trim(), "Replay result should report match outcome");
     }
 
+    @Test
+    @DisplayName("Switching protocols clears verbose trace panel content")
+    void switchingProtocolsClearsVerboseTracePanelContent() {
+        navigateToOcraPanel();
+
+        WebElement modeToggle = waitFor(By.cssSelector("[data-testid='ocra-mode-toggle']"));
+        waitUntilAttribute(modeToggle, "data-mode", "evaluate");
+
+        WebElement storedOption = waitFor(By.id("mode-credential"));
+        if (!storedOption.isSelected()) {
+            storedOption.click();
+        }
+
+        waitForCredentialOptions();
+        selectOption(By.id("credentialId"), STORED_CREDENTIAL_ID);
+
+        WebElement challengeInput = waitFor(By.id("challenge"));
+        challengeInput.clear();
+        challengeInput.sendKeys(STORED_CHALLENGE);
+
+        WebElement verboseCheckbox = waitFor(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
+        if (!verboseCheckbox.isSelected()) {
+            verboseCheckbox.click();
+        }
+        assertTrue(verboseCheckbox.isSelected(), "Verbose trace toggle should be selected before evaluation");
+
+        WebElement evaluateButton = waitFor(By.cssSelector("[data-testid='ocra-evaluate-button']"));
+        evaluateButton.click();
+
+        WebElement tracePanel = waitForVisible(By.cssSelector("[data-testid='verbose-trace-panel']"));
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(d -> "true".equals(tracePanel.getAttribute("data-trace-visible")));
+
+        WebElement traceOperation = waitForVisible(By.cssSelector("[data-testid='verbose-trace-operation']"));
+        assertEquals(
+                "ocra.evaluate.stored",
+                traceOperation.getText().trim(),
+                "Trace operation should reflect stored OCRA evaluation");
+
+        WebElement traceContent = waitForVisible(By.cssSelector("[data-testid='verbose-trace-content']"));
+        assertFalse(traceContent.getText().isEmpty(), "Trace content should populate before switching protocols");
+
+        WebElement totpTab = waitFor(By.cssSelector("[data-protocol-tab='totp']"));
+        totpTab.click();
+        waitUntilClassContains(totpTab, "protocol-tab--active");
+
+        waitForVisible(By.cssSelector("[data-testid='totp-mode-toggle']"));
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(d -> "false".equals(tracePanel.getAttribute("data-trace-visible")));
+        assertTrue(traceContent.getText().isEmpty(), "Trace content should clear after switching to the TOTP panel");
+    }
+
     private void navigateToOcraPanel() {
         driver.get("http://localhost:" + port + "/ui/console?protocol=ocra");
         waitFor(By.cssSelector("[data-testid='protocol-tab-ocra']"));
@@ -347,6 +399,17 @@ final class OcraOperatorUiSeleniumTest {
     private WebElement waitForVisible(By locator) {
         return new WebDriverWait(driver, Duration.ofSeconds(5))
                 .until(ExpectedConditions.visibilityOfElementLocated(locator));
+    }
+
+    private void waitUntilClassContains(WebElement element, String requiredClass) {
+        new WebDriverWait(driver, Duration.ofSeconds(5)).until(driverRef -> {
+            try {
+                String classAttr = element.getAttribute("class");
+                return classAttr != null && classAttr.contains(requiredClass);
+            } catch (StaleElementReferenceException ex) {
+                return false;
+            }
+        });
     }
 
     private void waitUntilAttribute(WebElement element, String attribute, String expectedValue) {

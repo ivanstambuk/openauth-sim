@@ -4,6 +4,7 @@
   var documentRef = global.document;
   var protocolTabs = Array.prototype.slice.call(documentRef.querySelectorAll('[data-protocol-tab]'));
   var protocolPanels = Array.prototype.slice.call(documentRef.querySelectorAll('[data-protocol-panel]'));
+  var verboseConsole = global.VerboseTraceConsole || null;
   var fido2Panel = documentRef.querySelector("[data-protocol-panel='fido2']");
   var hotpPanel = documentRef.querySelector("[data-protocol-panel='hotp']");
   var totpPanel = documentRef.querySelector("[data-protocol-panel='totp']");
@@ -45,6 +46,12 @@
     var activeProtocolAttr = operatorConsoleRoot.getAttribute('data-active-protocol');
     if (activeProtocolAttr && allowedProtocols.has(activeProtocolAttr)) {
       currentProtocol = activeProtocolAttr;
+    }
+  }
+
+  function clearVerboseTracePanel() {
+    if (verboseConsole && typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
     }
   }
 
@@ -101,18 +108,26 @@
     if (!modeToggle) {
       return;
     }
+    var previousMode = modeToggle.getAttribute('data-mode') || '';
     modeToggle.setAttribute('data-mode', mode);
     var isEvaluate = mode === 'evaluate';
     toggleButtonState(evaluateButton, isEvaluate);
     toggleButtonState(replayButton, !isEvaluate);
     setPanelVisibility(evaluatePanel, !isEvaluate);
     setPanelVisibility(replayPanel, isEvaluate);
+    if (previousMode !== mode) {
+      clearVerboseTracePanel();
+    }
     rememberTab('ocra', mode);
   }
 
   function setActiveProtocol(protocol, ocraMode, options) {
     options = options || {};
+    var previousProtocol = currentProtocol;
     currentProtocol = protocol;
+    if (previousProtocol !== protocol) {
+      clearVerboseTracePanel();
+    }
     
 
 protocolTabs.forEach(function (tab) {

@@ -696,6 +696,10 @@
           options = options || {};
           var selected = form.querySelector('input[name="replayMode"]:checked');
           var mode = selected ? selected.value : 'inline';
+          var consoleRef = verboseConsoleRef();
+          if (consoleRef && typeof consoleRef.clearTrace === 'function') {
+            consoleRef.clearTrace();
+          }
           if (mode === 'stored') {
             show(storedSection);
             hide(inlineSection);

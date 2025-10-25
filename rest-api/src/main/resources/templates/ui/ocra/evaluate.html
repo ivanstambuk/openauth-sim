@@ -707,6 +707,10 @@
           if (!selected) {
             return;
           }
+          const consoleRef = verboseConsoleRef();
+          if (consoleRef && typeof consoleRef.clearTrace === 'function') {
+            consoleRef.clearTrace();
+          }
           const inlineActive = selected.value === 'inline';
           sections.forEach(function (section) {
             const active = section.getAttribute('data-mode-section') === selected.value;

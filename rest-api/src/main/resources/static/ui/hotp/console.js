@@ -31,9 +31,14 @@
   var storedForm = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-stored-form"]')
     : null;
-  var inlineForm = hotpPanel
-    ? hotpPanel.querySelector('[data-testid="hotp-inline-form"]')
-    : null;
+var inlineForm = hotpPanel
+  ? hotpPanel.querySelector('[data-testid="hotp-inline-form"]')
+  : null;
+  function clearVerboseTrace() {
+    if (verboseConsole && typeof verboseConsole.clearTrace === 'function') {
+      verboseConsole.clearTrace();
+    }
+  }
   var inlinePresetContainer = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-inline-preset"]')
     : null;
@@ -799,6 +804,9 @@
       toggleTabState(replayTabButton, desired === 'replay');
       setHidden(evaluatePanelContainer, desired !== 'evaluate');
       setHidden(replayPanelContainer, desired !== 'replay');
+      clearVerboseTrace();
+    } else if (nextOptions.force === true) {
+      clearVerboseTrace();
     }
 
     if (nextOptions.skipUrlSync !== true) {
@@ -1233,6 +1241,7 @@
     if (!options || options.broadcast !== false) {
       dispatchHotpReplayModeChange(normalized, options);
     }
+    clearVerboseTrace();
   }
 
   function dispatchHotpTabChange(tab, options) {
@@ -1376,6 +1385,7 @@
     if (!modeToggle) {
       return;
     }
+    var previousMode = modeToggle.getAttribute('data-mode') || '';
     modeToggle.setAttribute('data-mode', mode);
     var storedActive = mode === 'stored';
     var storedRadio = modeToggle.querySelector('[data-testid="hotp-mode-select-stored"]');
@@ -1404,6 +1414,9 @@
     } else {
       hideStoredError();
       setHidden(storedResultPanel, true);
+    }
+    if (previousMode !== mode) {
+      clearVerboseTrace();
     }
   }
 

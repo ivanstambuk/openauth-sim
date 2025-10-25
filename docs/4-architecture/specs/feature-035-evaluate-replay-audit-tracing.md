@@ -33,6 +33,7 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
 12. 2025-10-24 – Canonicalise WebAuthn relying party identifiers (trim, IDNA to ASCII, lower-case) before hashing or persistence, and surface `rpId.canonical`, `rpIdHash.expected`, and `rpIdHash.match` fields in verbose traces for attestation and assertion workflows (owner directive).
 13. 2025-10-25 – WebAuthn verbose traces must decode the COSE public key map and surface key metadata (`cose.kty`, `cose.kty.name`, `cose.alg.name`, curve identifiers, and base64url-encoded coordinates/modulus/exponent) alongside the existing `publicKey.cose.hex` field so auditors can inspect structured key material (owner directive).
 14. 2025-10-25 – Compute the RFC 7638 JWK thumbprint for each WebAuthn credential public key and expose it as `publicKey.jwk.thumbprint.sha256` within verbose traces to provide a stable key identifier (owner directive).
+15. 2025-10-25 – Operator console must clear the verbose trace panel whenever protocols, evaluation/replay tabs, or inline/stored modes change so traces remain scoped to the initiating request (owner directive; Option B selected).
 
 ## Requirements
 - Define a structured trace model under `core/` that can capture ordered steps, labelled intermediate values, and protocol-specific annotations while remaining extensible for future credential types.

@@ -253,6 +253,13 @@ final class TotpOperatorUiSeleniumTest {
                         .findElements(By.cssSelector("[data-testid='verbose-trace-copy']"))
                         .isEmpty(),
                 "Verbose trace panel should expose a copy control");
+
+        WebElement inlineToggle = driver.findElement(By.cssSelector("[data-testid='totp-mode-select-inline']"));
+        inlineToggle.click();
+        waitUntilAttribute(modeToggle, "data-mode", "inline");
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(d -> "false".equals(tracePanel.getAttribute("data-trace-visible")));
+        assertTrue(traceContent.getText().isEmpty(), "Trace content should reset after switching TOTP evaluation mode");
     }
 
     @Test
