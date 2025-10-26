@@ -256,6 +256,8 @@ class Fido2EvaluationEndpointTest {
 
         Map<String, String> constructAttributes = orderedAttributes(step(trace, "construct.command"));
         assertThat(constructAttributes).containsKeys("signatureCounter", "userVerificationRequired");
+        assertThat(constructAttributes).containsEntry("signatureCounter", "1");
+        assertThat(constructAttributes).containsEntry("userVerificationRequired", "false");
 
         Map<String, String> generateAttributes = orderedAttributes(step(trace, "generate.assertion"));
         assertThat(generateAttributes).containsEntry("alg", "ES256");

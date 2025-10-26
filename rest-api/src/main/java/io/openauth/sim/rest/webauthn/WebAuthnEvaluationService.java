@@ -64,11 +64,6 @@ class WebAuthnEvaluationService {
                 .attribute("length", challenge.length));
 
         String privateKey = requireText(request.privateKey(), "private_key_required", "Private key is required");
-        addStep(trace, step -> step.id("construct.command")
-                .summary("Construct stored evaluation command")
-                .detail("GenerationCommand.Stored")
-                .attribute("signatureCounter", request.signatureCounter())
-                .attribute("userVerificationRequired", request.userVerificationRequired()));
 
         GenerationCommand.Stored command = new GenerationCommand.Stored(
                 credentialId,
@@ -81,6 +76,14 @@ class WebAuthnEvaluationService {
                 request.userVerificationRequired());
 
         GenerationResult result = invokeGenerator(command, trace);
+        long signatureCounter = Optional.ofNullable(request.signatureCounter()).orElse(result.signatureCounter());
+        boolean userVerificationRequired =
+                Optional.ofNullable(request.userVerificationRequired()).orElse(result.userVerificationRequired());
+        addStep(trace, step -> step.id("construct.command")
+                .summary("Construct stored evaluation command")
+                .detail("GenerationCommand.Stored")
+                .attribute("signatureCounter", signatureCounter)
+                .attribute("userVerificationRequired", userVerificationRequired));
         metadata(trace, "alg", result.algorithm().name());
         metadata(trace, "cose.alg", Integer.toString(result.algorithm().coseIdentifier()));
         metadata(trace, "cose.alg.name", result.algorithm().name());
