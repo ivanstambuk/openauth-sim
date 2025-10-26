@@ -217,6 +217,12 @@ _Last updated:_ 2025-10-26
     - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationServiceTest"`, `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationServiceManualTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2EvaluationEndpointTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, `./gradlew --no-daemon spotlessApply check`.
     - Status: Completed.
 
+32. **I24 – WebAuthn stored credential ordering alignment (Option A)**
+    - Update REST stored credential directory sorting to prefer `WebAuthnSignatureAlgorithm` enumeration order (ES256 → ES384 → ES512 → RS256 → PS256 → EdDSA) ahead of label/ID fallbacks so server responses mirror inline sample ordering. Mirror the same ordering helper in operator-console JavaScript when rendering stored credential dropdowns to keep UI selections stable even if external callers reorder results.
+    - Refresh Selenium UI expectations if ordering-sensitive assertions exist, and ensure REST controller/unit tests cover the new comparator behaviour.
+    - Commands: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.*"` (sanity), `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.WebAuthnCredentialDirectoryControllerTest"` (add coverage), `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`; finish with `./gradlew --no-daemon spotlessApply check`.
+    - Status: Completed (2025-10-26 – REST comparator, UI helper, Selenium expectation updated; new controller unit test added).
+
 ## UI Layout Decision
 
 1. Trace panel placement (2025-10-22)

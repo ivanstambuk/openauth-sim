@@ -331,8 +331,11 @@ final class Fido2OperatorUiSeleniumTest {
         System.out.println("Stored credential option labels: " + optionLabels);
 
         List<String> expectedLabels = Fido2OperatorSampleData.seedDefinitions().stream()
-                .sorted(Comparator.comparing(
-                        Fido2OperatorSampleData.SeedDefinition::credentialId, String::compareToIgnoreCase))
+                .sorted(Comparator.comparingInt((Fido2OperatorSampleData.SeedDefinition definition) ->
+                                definition.algorithm().ordinal())
+                        .thenComparing(Fido2OperatorSampleData.SeedDefinition::label, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(
+                                Fido2OperatorSampleData.SeedDefinition::credentialId, String.CASE_INSENSITIVE_ORDER))
                 .map(Fido2OperatorSampleData.SeedDefinition::label)
                 .toList();
 

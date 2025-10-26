@@ -21,6 +21,8 @@
   var CEREMONY_ASSERTION = 'assertion';
   var CEREMONY_ATTESTATION = 'attestation';
 
+  var ALGORITHM_SEQUENCE = ['ES256', 'ES384', 'ES512', 'RS256', 'PS256', 'EdDSA'];
+
   var CLIENT_DATA_TYPE = 'webauthn.get';
   var tabContainer = panel.querySelector('[data-testid="fido2-panel-tabs"]');
   var evaluateTabButton = panel.querySelector('[data-testid="fido2-panel-tab-evaluate"]');
@@ -2741,6 +2743,64 @@
     }
   }
 
+  function coerceAlgorithmLabel(value) {
+    if (value == null) {
+      return '';
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'object') {
+      if (typeof value.name === 'string') {
+        return value.name;
+      }
+      if (typeof value.label === 'string') {
+        return value.label;
+      }
+    }
+    return String(value);
+  }
+
+  function compareCredentialSummaries(a, b) {
+    var rankA = algorithmSortKey(coerceAlgorithmLabel(a && a.algorithm));
+    var rankB = algorithmSortKey(coerceAlgorithmLabel(b && b.algorithm));
+    if (rankA !== rankB) {
+      return rankA - rankB;
+    }
+    var labelA = normalizeLowercase(a && a.label);
+    var labelB = normalizeLowercase(b && b.label);
+    if (labelA !== labelB) {
+      return labelA.localeCompare(labelB);
+    }
+    var idA = normalizeLowercase(a && a.id);
+    var idB = normalizeLowercase(b && b.id);
+    return idA.localeCompare(idB);
+  }
+
+  function normalizeLowercase(value) {
+    if (!value || typeof value !== 'string') {
+      return '';
+    }
+    return value.trim().toLowerCase();
+  }
+
+  function algorithmSortKey(algorithm) {
+    if (!algorithm || typeof algorithm !== 'string') {
+      return ALGORITHM_SEQUENCE.length;
+    }
+    var normalized = algorithm.trim();
+    if (!normalized) {
+      return ALGORITHM_SEQUENCE.length;
+    }
+    var upper = normalized.toUpperCase();
+    for (var index = 0; index < ALGORITHM_SEQUENCE.length; index += 1) {
+      if (ALGORITHM_SEQUENCE[index].toUpperCase() === upper) {
+        return index;
+      }
+    }
+    return ALGORITHM_SEQUENCE.length;
+  }
+
   function addPlaceholderOption(select, label) {
     var option = documentRef.createElement('option');
     option.value = '';
@@ -2778,19 +2838,19 @@
     clearSelect(select);
     addPlaceholderOption(select, 'Select a stored credential');
     var ordered = Array.isArray(credentials)
-            ? credentials.slice().sort(function (a, b) {
-                var idA = a && a.id ? a.id.toLowerCase() : '';
-                var idB = b && b.id ? b.id.toLowerCase() : '';
-                return idA.localeCompare(idB);
-              })
+            ? credentials.slice().sort(compareCredentialSummaries)
             : [];
     ordered.forEach(function (summary) {
       var option = documentRef.createElement('option');
       option.value = summary.id;
       option.textContent = summary.label || summary.id;
+      var algorithmLabel = coerceAlgorithmLabel(summary.algorithm);
+      if (algorithmLabel) {
+        option.setAttribute('data-algorithm', algorithmLabel);
+      }
       select.appendChild(option);
     });
-    var hasCredentials = credentials.length > 0;
+    var hasCredentials = ordered.length > 0;
     select.disabled = !hasCredentials;
     var desired = '';
     if (activeStoredCredentialId && elementHasOption(select, activeStoredCredentialId)) {
@@ -2809,6 +2869,7 @@
       return {
         id: definition.credentialId,
         label: definition.label || definition.credentialId,
+        algorithm: coerceAlgorithmLabel(definition.algorithm),
       };
     });
     populateSelectWithSummaries(attestationStoredCredentialSelect, summaries);
@@ -2819,11 +2880,7 @@
       return;
     }
     var ordered = Array.isArray(summaries)
-            ? summaries.slice().sort(function (a, b) {
-                var idA = a && a.id ? a.id.toLowerCase() : '';
-                var idB = b && b.id ? b.id.toLowerCase() : '';
-                return idA.localeCompare(idB);
-              })
+            ? summaries.slice().sort(compareCredentialSummaries)
             : [];
     clearSelect(select);
     addPlaceholderOption(select, select === attestationStoredCredentialSelect
@@ -2836,6 +2893,10 @@
       var option = documentRef.createElement('option');
       option.value = summary.id;
       option.textContent = summary.label || summary.id;
+      var summaryAlgorithm = coerceAlgorithmLabel(summary.algorithm);
+      if (summaryAlgorithm) {
+        option.setAttribute('data-algorithm', summaryAlgorithm);
+      }
       select.appendChild(option);
     });
     select.disabled = select.options.length <= 1;

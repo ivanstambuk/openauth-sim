@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.webauthn;
 
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.store.CredentialStore;
@@ -25,8 +26,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/api/v1/webauthn", produces = MediaType.APPLICATION_JSON_VALUE)
 final class WebAuthnCredentialDirectoryController {
 
-    private static final Comparator<WebAuthnCredentialSummary> SUMMARY_COMPARATOR =
-            Comparator.comparing(WebAuthnCredentialSummary::id, String.CASE_INSENSITIVE_ORDER);
+    private static final Comparator<WebAuthnCredentialSummary> SUMMARY_COMPARATOR = Comparator.comparingInt(
+                    WebAuthnCredentialDirectoryController::algorithmSortKey)
+            .thenComparing(WebAuthnCredentialSummary::label, String.CASE_INSENSITIVE_ORDER)
+            .thenComparing(WebAuthnCredentialSummary::id, String.CASE_INSENSITIVE_ORDER);
+
+    private static final int UNKNOWN_ALGORITHM_RANK = WebAuthnSignatureAlgorithm.values().length;
 
     private static final String ATTR_RP_ID = "fido2.rpId";
     private static final String ATTR_ALGORITHM = "fido2.algorithm";
@@ -103,6 +108,24 @@ final class WebAuthnCredentialDirectoryController {
                 attributes.getOrDefault(ATTR_RP_ID, ""),
                 attributes.getOrDefault(ATTR_ALGORITHM, ""),
                 uvRequired);
+    }
+
+    private static int algorithmSortKey(WebAuthnCredentialSummary summary) {
+        if (summary == null) {
+            return UNKNOWN_ALGORITHM_RANK;
+        }
+        return algorithmSortKeyFromLabel(summary.algorithm());
+    }
+
+    private static int algorithmSortKeyFromLabel(String algorithm) {
+        if (!StringUtils.hasText(algorithm)) {
+            return UNKNOWN_ALGORITHM_RANK;
+        }
+        try {
+            return WebAuthnSignatureAlgorithm.fromLabel(algorithm).ordinal();
+        } catch (IllegalArgumentException ex) {
+            return UNKNOWN_ALGORITHM_RANK;
+        }
     }
 
     private static String buildLabel(String id, String algorithm) {
