@@ -18,6 +18,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
@@ -25,7 +27,9 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPrivateKeySpec;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -117,6 +121,72 @@ class Fido2AttestationEndpointTest {
         for (int index = 0; index < EXPECTED_CERTIFICATE_CHAIN_PEM.size(); index++) {
             assertThat(certificateChainPem.get(index).asText()).isEqualTo(EXPECTED_CERTIFICATE_CHAIN_PEM.get(index));
         }
+    }
+
+    @Test
+    @DisplayName("Preset attestation generation returns verbose trace when requested")
+    void generatePresetAttestationReturnsVerboseTrace() throws Exception {
+        ObjectNode payload = (ObjectNode) MAPPER.readTree(generationPayload("SELF_SIGNED", false));
+        payload.put("verbose", true);
+
+        String response = mockMvc.perform(post("/api/v1/webauthn/attest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        JsonNode root = MAPPER.readTree(response);
+        assertThat(root.get("status").asText()).isEqualTo("success");
+        JsonNode trace = root.get("trace");
+        assertThat(trace).isNotNull();
+        assertThat(trace.get("operation").asText()).isEqualTo("fido2.attestation.generate");
+
+        Map<String, String> buildClientData = orderedAttributes(step(trace, "build.clientData"));
+        JsonNode clientDataNode =
+                root.path("generatedAttestation").path("response").path("clientDataJSON");
+        assertThat(clientDataNode.isMissingNode() || clientDataNode.isNull())
+                .as("clientDataJson missing in response: %s", response)
+                .isFalse();
+        byte[] clientDataJson = Base64.getUrlDecoder().decode(clientDataNode.asText());
+        String reportedClientDataDigest = buildClientData.get("clientData.sha256");
+        String expectedClientDataDigest = labeledSha256(clientDataJson);
+        assertThat(reportedClientDataDigest)
+                .as("clientData.sha256 missing in trace step")
+                .isNotNull();
+        assertThat(reportedClientDataDigest).isEqualToIgnoringCase(expectedClientDataDigest);
+        assertThat(buildClientData.get("challenge.b64u")).isEqualTo(EXPECTED_CHALLENGE);
+        assertThat(buildClientData.get("tokenBinding.present")).isEqualTo("false");
+
+        Map<String, String> buildAuthenticatorData = orderedAttributes(step(trace, "build.authenticatorData"));
+        assertThat(buildAuthenticatorData).containsKey("authenticatorData.len.bytes");
+        assertThat(buildAuthenticatorData).containsKey("authenticatorData.hex");
+        assertThat(buildAuthenticatorData).containsKey("rpIdHash.expected");
+
+        Map<String, String> buildSignatureBase = orderedAttributes(step(trace, "build.signatureBase"));
+        assertThat(buildSignatureBase).containsKey("signedBytes.sha256");
+        assertThat(buildSignatureBase).containsKey("clientDataHash.sha256");
+
+        Map<String, String> generateSignature = orderedAttributes(step(trace, "generate.signature"));
+        assertThat(generateSignature).containsEntry("alg", VECTOR.algorithm().name());
+        String reportedPrivateKeyDigest = generateSignature.get("privateKey.sha256");
+        assertThat(reportedPrivateKeyDigest)
+                .as("privateKey.sha256 missing in trace step")
+                .isNotNull();
+        assertThat(reportedPrivateKeyDigest)
+                .isEqualToIgnoringCase(labeledSha256(
+                        payload.get("attestationPrivateKey").asText().getBytes(StandardCharsets.UTF_8)));
+
+        Map<String, String> composeAttestation = orderedAttributes(step(trace, "compose.attestationObject"));
+        assertThat(composeAttestation).containsEntry("fmt", VECTOR.format().label());
+        JsonNode attestationObjectNode =
+                root.path("generatedAttestation").path("response").path("attestationObject");
+        assertThat(attestationObjectNode.isMissingNode() || attestationObjectNode.isNull())
+                .as("attestationObject missing in response: %s", response)
+                .isFalse();
+        byte[] attestationObject = Base64.getUrlDecoder().decode(attestationObjectNode.asText());
+        assertThat(composeAttestation.get("attObj.sha256")).isEqualToIgnoringCase(labeledSha256(attestationObject));
     }
 
     @Test
@@ -419,6 +489,45 @@ class Fido2AttestationEndpointTest {
                         vector.relyingPartyId(),
                         vector.origin()))
                 .certificateChain();
+    }
+
+    private static Map<String, String> orderedAttributes(JsonNode step) {
+        Map<String, String> attributes = new LinkedHashMap<>();
+        for (JsonNode attribute : step.withArray("orderedAttributes")) {
+            attributes.put(
+                    attribute.get("name").asText(), attribute.get("value").asText());
+        }
+        return attributes;
+    }
+
+    private static JsonNode step(JsonNode trace, String targetId) {
+        for (JsonNode candidate : trace.withArray("steps")) {
+            if (targetId.equals(candidate.get("id").asText())) {
+                return candidate;
+            }
+        }
+        throw new AssertionError("Missing verbose trace step: " + targetId);
+    }
+
+    private static String sha256Digest(byte[] input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return hex(digest.digest(input));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 digest unavailable", ex);
+        }
+    }
+
+    private static String labeledSha256(byte[] input) {
+        return "sha256:" + sha256Digest(input);
+    }
+
+    private static String hex(byte[] data) {
+        StringBuilder builder = new StringBuilder(data.length * 2);
+        for (byte value : data) {
+            builder.append(String.format("%02x", value));
+        }
+        return builder.toString();
     }
 
     private static String encode(byte[] value) {

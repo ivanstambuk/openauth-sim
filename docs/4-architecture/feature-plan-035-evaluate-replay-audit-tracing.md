@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-035-evaluate-replay-audit-tracing.md`  
 _Status:_ Draft  
-_Last updated:_ 2025-10-25
+_Last updated:_ 2025-10-26
 
 ## Vision & Success Criteria
 - Every credential evaluation/replay/attestation workflow (HOTP, TOTP, OCRA, FIDO2) exposes an opt-in verbose trace that lists each cryptographic operation, inputs, and intermediate outputs in execution order.
@@ -205,6 +205,16 @@ _Last updated:_ 2025-10-25
     - Update WebAuthn trace builders, DTOs, CLI/REST/UI presenters, and OpenAPI artefacts to satisfy the new step/field expectations. Ensure the console clears traces on context switch and preserve low-S policy/extension logic.
     - 2025-10-26 – Implemented verification-trace append for REST attestation replay, set default token-binding metadata, propagated signed-bytes previews, refreshed CLI/REST/UI expectations, and pruned legacy signature helpers.
     - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest" :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest" :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test" :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`; `./gradlew --no-daemon spotlessApply check`.
+    - Status: Completed.
+
+30. **I22 – WebAuthn generation trace tests (fail first)**
+    - 2025-10-26 – Added failing assertions to application generation suites (assertion + attestation), CLI `fido2 evaluate` verbose runs, REST evaluation/attestation endpoints, and Selenium UI flows demanding `build.clientData`, `build.authenticatorData`, `build.signatureBase`, `generate.signature`, and `compose.attestationObject` (attestation) with SHA-256 hashes for sensitive material. All new tests are red pending I23 implementation.
+    - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationServiceTest"`; `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationServiceManualTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`.
+    - Status: Completed (tests red by design).
+
+31. **I23 – WebAuthn generation trace implementation (green)**
+    - 2025-10-26 – Implemented verbose trace builders for assertion/attestation generation (client data, authenticator data, signature base, and signature steps), ensured SHA-256 placeholders cover private keys and attestation CBOR, and wired the optional trace through CLI `fido2 evaluate[--verbose]`, REST evaluation/attestation endpoints, and the operator UI panel. Selenium and REST tests now assert the hashes derived from the actual response payloads rather than fixture baselines.
+    - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationServiceTest"`, `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationServiceManualTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2EvaluationEndpointTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, `./gradlew --no-daemon spotlessApply check`.
     - Status: Completed.
 
 ## UI Layout Decision

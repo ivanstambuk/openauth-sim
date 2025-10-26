@@ -34,6 +34,7 @@ import io.openauth.sim.core.fido2.WebAuthnJsonVectorFixtures.WebAuthnJsonVector;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.support.ProjectPaths;
+import io.openauth.sim.core.trace.VerboseTrace;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -52,6 +53,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import picocli.CommandLine;
@@ -433,12 +435,15 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 .forEach(message -> writer.println("warning=trust_anchor " + message));
     }
 
-    private int emitGenerationSuccess(GenerationResult result, String credentialSource) {
+    private int emitGenerationSuccess(GenerationResult result, String credentialSource, VerboseTrace verboseTrace) {
         out().println(formatPublicKeyCredentialJson(result));
         Map<String, Object> fields = generatorTelemetryFields(result, credentialSource);
         TelemetryFrame frame =
                 EVALUATION_TELEMETRY.status("success", nextTelemetryId(), "generated", true, null, fields);
         writeFrame(out(), event("evaluate"), frame);
+        if (verboseTrace != null) {
+            VerboseTracePrinter.print(out(), verboseTrace);
+        }
         return CommandLine.ExitCode.OK;
     }
 
@@ -503,6 +508,39 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         merged.putAll(result.supplementalFields());
         result.error().ifPresent(error -> merged.put("error", error.name().toLowerCase(Locale.US)));
         return new TelemetryFrame(frame.event(), frame.status(), frame.sanitized(), merged);
+    }
+
+    private static VerboseTrace buildGenerationTrace(
+            String operation, Consumer<VerboseTrace.Builder> metadataConfigurer, Optional<VerboseTrace> source) {
+        VerboseTrace.Builder builder = VerboseTrace.builder(operation);
+        source.ifPresent(trace -> appendTrace(builder, trace));
+        if (metadataConfigurer != null) {
+            metadataConfigurer.accept(builder);
+        }
+        return builder.build();
+    }
+
+    private static void appendTrace(VerboseTrace.Builder builder, VerboseTrace source) {
+        if (builder == null || source == null) {
+            return;
+        }
+        for (VerboseTrace.TraceStep step : source.steps()) {
+            builder.addStep(copy -> {
+                copy.id(step.id());
+                if (hasText(step.summary())) {
+                    copy.summary(step.summary());
+                }
+                if (hasText(step.detail())) {
+                    copy.detail(step.detail());
+                }
+                if (hasText(step.specAnchor())) {
+                    copy.spec(step.specAnchor());
+                }
+                step.typedAttributes()
+                        .forEach(attribute -> copy.attribute(attribute.type(), attribute.name(), attribute.value()));
+                step.notes().forEach(copy::note);
+            });
+        }
     }
 
     @CommandLine.Command(name = "evaluate", description = "Generate a WebAuthn assertion using a stored credential.")
@@ -575,6 +613,9 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 description = "Path to a file containing the authenticator private key (JWK or PEM/PKCS#8)")
         Path privateKeyFile;
 
+        @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the generation steps")
+        boolean verbose;
+
         @Override
         public Integer call() {
             Map<String, Object> baseFields = new LinkedHashMap<>();
@@ -638,16 +679,28 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
             try (CredentialStore store = parent.openStore()) {
                 WebAuthnAssertionGenerationApplicationService generator = parent.createGeneratorService(store);
-                GenerationResult result = generator.generate(new GenerationCommand.Stored(
-                        credentialId,
-                        relyingPartyId,
-                        origin,
-                        expectedType,
-                        challengeBytes,
-                        resolvedPrivateKey,
-                        signatureCounter,
-                        userVerificationRequired));
-                return parent.emitGenerationSuccess(result, "stored");
+                GenerationResult result = generator.generate(
+                        new GenerationCommand.Stored(
+                                credentialId,
+                                relyingPartyId,
+                                origin,
+                                expectedType,
+                                challengeBytes,
+                                resolvedPrivateKey,
+                                signatureCounter,
+                                userVerificationRequired),
+                        verbose);
+                VerboseTrace verboseTrace = verbose
+                        ? buildGenerationTrace(
+                                "fido2.assertion.evaluate.stored",
+                                builder -> {
+                                    builder.withMetadata("mode", "stored");
+                                    builder.withMetadata("credentialReference", "true");
+                                    builder.withMetadata("credentialId", credentialId);
+                                },
+                                result.verboseTrace())
+                        : null;
+                return parent.emitGenerationSuccess(result, "stored", verboseTrace);
             } catch (IllegalArgumentException ex) {
                 String message = ex.getMessage() == null ? "Generation failed" : ex.getMessage();
                 String reason = message.toLowerCase(Locale.US).contains("private key")
@@ -749,6 +802,9 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 description = "Path to a file containing the authenticator private key (JWK or PEM/PKCS#8)")
         Path privateKeyFile;
 
+        @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the generation steps")
+        boolean verbose;
+
         @Override
         public Integer call() {
             Map<String, Object> baseFields = new LinkedHashMap<>();
@@ -829,18 +885,30 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
             try {
                 WebAuthnAssertionGenerationApplicationService generator = parent.createInlineGeneratorService();
-                GenerationResult result = generator.generate(new GenerationCommand.Inline(
-                        credentialName,
-                        credentialIdBytes,
-                        parsedAlgorithm,
-                        relyingPartyId,
-                        origin,
-                        expectedType,
-                        signatureCounter,
-                        requireUv,
-                        challengeBytes,
-                        resolvedPrivateKey));
-                return parent.emitGenerationSuccess(result, "inline");
+                GenerationResult result = generator.generate(
+                        new GenerationCommand.Inline(
+                                credentialName,
+                                credentialIdBytes,
+                                parsedAlgorithm,
+                                relyingPartyId,
+                                origin,
+                                expectedType,
+                                signatureCounter,
+                                requireUv,
+                                challengeBytes,
+                                resolvedPrivateKey),
+                        verbose);
+                VerboseTrace verboseTrace = verbose
+                        ? buildGenerationTrace(
+                                "fido2.assertion.evaluate.inline",
+                                builder -> {
+                                    builder.withMetadata("mode", "inline");
+                                    builder.withMetadata("credentialReference", "false");
+                                    builder.withMetadata("credentialName", credentialName);
+                                },
+                                result.verboseTrace())
+                        : null;
+                return parent.emitGenerationSuccess(result, "inline", verboseTrace);
             } catch (IllegalArgumentException ex) {
                 String message = ex.getMessage() == null ? "Generation failed" : ex.getMessage();
                 String reason = message.toLowerCase(Locale.US).contains("private key")

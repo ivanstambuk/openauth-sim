@@ -84,6 +84,9 @@ class WebAuthnEvaluationService {
                 .detail("GenerationCommand.Stored")
                 .attribute("signatureCounter", signatureCounter)
                 .attribute("userVerificationRequired", userVerificationRequired));
+        if (trace != null) {
+            result.verboseTrace().ifPresent(generatorTrace -> appendTrace(trace, generatorTrace));
+        }
         metadata(trace, "alg", result.algorithm().name());
         metadata(trace, "cose.alg", Integer.toString(result.algorithm().coseIdentifier()));
         metadata(trace, "cose.alg.name", result.algorithm().name());
@@ -158,6 +161,9 @@ class WebAuthnEvaluationService {
                 privateKey);
 
         GenerationResult result = invokeGenerator(command, trace);
+        if (trace != null) {
+            result.verboseTrace().ifPresent(generatorTrace -> appendTrace(trace, generatorTrace));
+        }
         Optional<CoseKeyDetails> coseDetails = inspectPublicKey(result.publicKeyCose(), result.algorithm());
         addStep(trace, step -> {
             step.id("generate.assertion")
@@ -223,9 +229,32 @@ class WebAuthnEvaluationService {
         return trace == null ? null : trace.build();
     }
 
+    private static void appendTrace(VerboseTrace.Builder builder, VerboseTrace source) {
+        if (builder == null || source == null) {
+            return;
+        }
+        for (VerboseTrace.TraceStep step : source.steps()) {
+            builder.addStep(copy -> {
+                copy.id(step.id());
+                if (step.summary() != null && !step.summary().isBlank()) {
+                    copy.summary(step.summary());
+                }
+                if (step.detail() != null && !step.detail().isBlank()) {
+                    copy.detail(step.detail());
+                }
+                if (step.specAnchor() != null && !step.specAnchor().isBlank()) {
+                    copy.spec(step.specAnchor());
+                }
+                step.typedAttributes()
+                        .forEach(attribute -> copy.attribute(attribute.type(), attribute.name(), attribute.value()));
+                step.notes().forEach(copy::note);
+            });
+        }
+    }
+
     private GenerationResult invokeGenerator(GenerationCommand command, VerboseTrace.Builder trace) {
         try {
-            return generator.generate(command);
+            return generator.generate(command, trace != null);
         } catch (IllegalArgumentException ex) {
             addStep(trace, step -> step.id("generator.failure")
                     .summary("WebAuthn assertion generation failed")

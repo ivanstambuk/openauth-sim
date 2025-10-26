@@ -200,6 +200,55 @@ final class Fido2OperatorUiSeleniumTest {
     }
 
     @Test
+    @DisplayName("Stored WebAuthn generation verbose trace lists build steps")
+    void storedGenerationVerboseTraceListsBuildSteps() {
+        navigateToWebAuthnPanel();
+
+        WebElement storedRadio = waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+        storedRadio.click();
+        waitUntilAttribute(By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
+
+        WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
+        if (seedButton.isDisplayed() && seedButton.isEnabled()) {
+            seedButton.click();
+            waitForNonBlankText(By.cssSelector("[data-testid='fido2-seed-status']"));
+        }
+        waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
+        Select credentialSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
+        credentialSelect.selectByValue(STORED_CREDENTIAL_ID);
+        awaitValue(By.id("fido2StoredChallenge"), value -> value != null && !value.isBlank());
+        awaitValue(
+                By.cssSelector("[data-testid='fido2-stored-private-key']"),
+                value -> value != null && value.contains("\"kty\""));
+
+        WebElement verboseCheckbox = waitFor(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
+        if (!verboseCheckbox.isSelected()) {
+            verboseCheckbox.click();
+        }
+
+        WebElement submitButton = waitFor(By.cssSelector("[data-testid='fido2-evaluate-stored-submit']"));
+        submitButton.click();
+
+        By storedAssertionSelector = By.cssSelector("[data-testid='fido2-generated-assertion-json']");
+        awaitText(storedAssertionSelector, text -> text.contains("\"type\": \"public-key\""));
+
+        WebElement tracePanel = waitFor(By.cssSelector("[data-testid='verbose-trace-panel']"));
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(webDriver -> "true".equals(tracePanel.getAttribute("data-trace-visible")));
+        WebElement traceOperation = waitFor(By.cssSelector("[data-testid='verbose-trace-operation']"));
+        assertThat(traceOperation.getText().trim()).isEqualTo("fido2.assertion.evaluate.stored");
+
+        WebElement traceContent = waitFor(By.cssSelector("[data-testid='verbose-trace-content']"));
+        String traceText = traceContent.getText();
+        assertThat(traceText).contains("build.clientData");
+        assertThat(traceText).contains("build.authenticatorData");
+        assertThat(traceText).contains("build.signatureBase");
+        assertThat(traceText).contains("generate.signature");
+        assertThat(traceText).contains("  clientData.sha256 = ");
+        assertThat(traceText).contains("  privateKey.sha256 = ");
+    }
+
+    @Test
     @DisplayName("Stored credential dropdown uses stacked styling with dark background")
     void storedCredentialDropdownUsesStackedStyling() {
         navigateToWebAuthnPanel();
@@ -617,6 +666,54 @@ final class Fido2OperatorUiSeleniumTest {
 
         assertThat(driver.findElements(By.cssSelector("[data-testid='fido2-attestation-telemetry']")))
                 .isEmpty();
+    }
+
+    @Test
+    @DisplayName("Attestation generation verbose trace lists build steps")
+    void attestationGenerationVerboseTraceListsBuildSteps() {
+        WebAuthnAttestationVector vector = resolveAttestationVector();
+
+        navigateToWebAuthnPanel();
+        switchToAttestationEvaluateMode();
+
+        waitForOption(By.id("fido2AttestationSampleSelect"), vector.vectorId());
+        WebElement sampleSelectElement = waitFor(By.id("fido2AttestationSampleSelect"));
+        Select sampleSelect = new Select(sampleSelectElement);
+        sampleSelect.selectByValue(vector.vectorId());
+        dispatchChange(sampleSelectElement);
+
+        awaitValue(By.id("fido2AttestationCredentialKey"), value -> value != null && value.contains("\"kty\""));
+        awaitValue(By.id("fido2AttestationPrivateKey"), value -> value != null && value.contains("\"kty\""));
+
+        WebElement verboseCheckbox = waitFor(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
+        if (!verboseCheckbox.isSelected()) {
+            verboseCheckbox.click();
+        }
+
+        WebElement generateButton = waitFor(By.cssSelector("[data-testid='fido2-attestation-submit']"));
+        generateButton.click();
+
+        By statusSelector = By.cssSelector("[data-testid='fido2-attestation-status']");
+        awaitText(
+                statusSelector,
+                text -> text != null && !text.trim().isEmpty() && !"pending".equalsIgnoreCase(text.trim()));
+
+        WebElement tracePanel = waitFor(By.cssSelector("[data-testid='verbose-trace-panel']"));
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(webDriver -> "true".equals(tracePanel.getAttribute("data-trace-visible")));
+        WebElement traceOperation = waitFor(By.cssSelector("[data-testid='verbose-trace-operation']"));
+        assertThat(traceOperation.getText().trim()).isEqualTo("fido2.attestation.generate");
+
+        WebElement traceContent = waitFor(By.cssSelector("[data-testid='verbose-trace-content']"));
+        String traceText = traceContent.getText();
+        assertThat(traceText).contains("build.clientData");
+        assertThat(traceText).contains("build.authenticatorData");
+        assertThat(traceText).contains("build.signatureBase");
+        assertThat(traceText).contains("generate.signature");
+        assertThat(traceText).contains("compose.attestationObject");
+        assertThat(traceText).contains("  clientData.sha256 = ");
+        assertThat(traceText).contains("  privateKey.sha256 = ");
+        assertThat(traceText).contains("  attObj.sha256 = ");
     }
 
     @Test

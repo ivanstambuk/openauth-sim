@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService.GenerationResult;
 import io.openauth.sim.application.telemetry.Fido2TelemetryAdapter;
@@ -15,12 +16,15 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.SigningMode;
 import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.trace.VerboseTrace;
+import java.lang.reflect.Method;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -154,6 +158,66 @@ final class WebAuthnAttestationGenerationApplicationServiceManualTest {
         assertEquals("example.org", result.telemetry().fields().get("relyingPartyId"));
         assertEquals(expectedAaguid, result.telemetry().fields().get("aaguid"));
         assertEquals(expectedFingerprint, result.telemetry().fields().get("certificateFingerprint"));
+    }
+
+    @Test
+    void manualAttestationExposesVerboseTraceSteps() throws Exception {
+        WebAuthnAttestationVector vector =
+                WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
+                        .findFirst()
+                        .orElseThrow();
+        byte[] challenge = vector.registration().challenge();
+
+        var command = new WebAuthnAttestationGenerationApplicationService.GenerationCommand.Manual(
+                vector.format(),
+                vector.relyingPartyId(),
+                vector.origin(),
+                challenge,
+                vector.keyMaterial().credentialPrivateKeyJwk(),
+                vector.keyMaterial().attestationPrivateKeyJwk(),
+                vector.keyMaterial().attestationCertificateSerialBase64Url(),
+                SigningMode.SELF_SIGNED,
+                List.of(),
+                "preset",
+                "sample-001",
+                List.of());
+
+        Method generateVerbose;
+        try {
+            generateVerbose = WebAuthnAttestationGenerationApplicationService.class.getMethod(
+                    "generate", WebAuthnAttestationGenerationApplicationService.GenerationCommand.class, boolean.class);
+        } catch (NoSuchMethodException ex) {
+            fail("Feature 035 requires WebAuthnAttestationGenerationApplicationService.generate(command, verbose) "
+                    + "to return generation traces when verbose mode is enabled.");
+            return;
+        }
+
+        Object result = generateVerbose.invoke(service, command, true);
+        Method verboseTraceMethod;
+        try {
+            verboseTraceMethod = result.getClass().getMethod("verboseTrace");
+        } catch (NoSuchMethodException ex) {
+            fail("WebAuthn attestation generation results must expose verboseTrace() to describe build steps.");
+            return;
+        }
+
+        @SuppressWarnings("unchecked")
+        Optional<VerboseTrace> trace = (Optional<VerboseTrace>) verboseTraceMethod.invoke(result);
+        assertTrue(trace.isPresent(), "Verbose trace should be populated when verbose=true");
+        VerboseTrace verboseTrace = trace.orElseThrow();
+        assertEquals("fido2.attestation.generate", verboseTrace.operation());
+        assertNotNull(findStep(verboseTrace, "build.clientData"));
+        assertNotNull(findStep(verboseTrace, "build.authenticatorData"));
+        assertNotNull(findStep(verboseTrace, "build.signatureBase"));
+        assertNotNull(findStep(verboseTrace, "generate.signature"));
+        assertNotNull(findStep(verboseTrace, "compose.attestationObject"));
+    }
+
+    private static VerboseTrace.TraceStep findStep(VerboseTrace trace, String id) {
+        return trace.steps().stream()
+                .filter(step -> id.equals(step.id()))
+                .findFirst()
+                .orElse(null);
     }
 
     @Test

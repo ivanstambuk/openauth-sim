@@ -16,10 +16,12 @@ import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
@@ -52,6 +54,103 @@ final class Fido2CliVerboseTraceTest {
 
     @TempDir
     Path tempDir;
+
+    @Test
+    void evaluateStoredEmitsGenerationTrace() throws Exception {
+        Path database = tempDir.resolve("fido2-evaluate-stored-trace.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
+        harness.save("fido2-trace-stored", fixture, WebAuthnSignatureAlgorithm.ES256);
+
+        Path privateKeyFile = tempDir.resolve("trace-private-key.json");
+        Files.writeString(privateKeyFile, fixture.credentialPrivateKeyJwk(), StandardCharsets.UTF_8);
+
+        int exitCode = harness.execute(
+                "evaluate",
+                "--credential-id",
+                "fido2-trace-stored",
+                "--relying-party-id",
+                "example.org",
+                "--origin",
+                "https://example.org",
+                "--type",
+                fixture.request().expectedType(),
+                "--challenge",
+                encode(fixture.request().expectedChallenge()),
+                "--signature-counter",
+                Long.toString(fixture.storedCredential().signatureCounter()),
+                "--user-verification-required",
+                Boolean.toString(fixture.storedCredential().userVerificationRequired()),
+                "--private-key-file",
+                privateKeyFile.toString(),
+                "--verbose");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("operation=fido2.assertion.evaluate.stored"), stdout);
+        String firstLine = stdout.split("\\R", 2)[0].trim();
+        String clientDataEncoded = extractJsonField(firstLine, "clientDataJSON");
+        byte[] clientDataBytes = Base64.getUrlDecoder().decode(clientDataEncoded);
+        assertTrue(stdout.contains("build.clientData"), stdout);
+        assertTrue(stdout.contains("build.authenticatorData"), stdout);
+        assertTrue(stdout.contains("build.signatureBase"), stdout);
+        assertTrue(stdout.contains("generate.signature"), stdout);
+        String clientDataDigest = attributeValue(stdout, "clientData.sha256");
+        assertEquals(sha256Digest(clientDataBytes), clientDataDigest, stdout);
+        String expectedPrivateDigest = digestPrivateKey(privateKeyFile);
+        String actualPrivateDigest = attributeValue(stdout, "privateKey.sha256");
+        assertEquals(expectedPrivateDigest, actualPrivateDigest, stdout);
+    }
+
+    @Test
+    void evaluateInlineEmitsGenerationTrace() throws Exception {
+        Path database = tempDir.resolve("fido2-evaluate-inline-trace.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
+
+        Path privateKeyFile = tempDir.resolve("trace-inline-private-key.json");
+        Files.writeString(privateKeyFile, fixture.credentialPrivateKeyJwk(), StandardCharsets.UTF_8);
+
+        int exitCode = harness.execute(
+                "evaluate-inline",
+                "--relying-party-id",
+                "example.org",
+                "--origin",
+                "https://example.org",
+                "--type",
+                fixture.request().expectedType(),
+                "--credential-id",
+                encode(fixture.storedCredential().credentialId()),
+                "--signature-counter",
+                Long.toString(fixture.storedCredential().signatureCounter()),
+                "--user-verification-required",
+                Boolean.toString(fixture.storedCredential().userVerificationRequired()),
+                "--algorithm",
+                fixture.algorithm().name(),
+                "--challenge",
+                encode(fixture.request().expectedChallenge()),
+                "--private-key-file",
+                privateKeyFile.toString(),
+                "--verbose");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("operation=fido2.assertion.evaluate.inline"), stdout);
+        String inlineFirstLine = stdout.split("\\R", 2)[0].trim();
+        String inlineClientDataEncoded = extractJsonField(inlineFirstLine, "clientDataJSON");
+        byte[] inlineClientDataBytes = Base64.getUrlDecoder().decode(inlineClientDataEncoded);
+        assertTrue(stdout.contains("build.clientData"), stdout);
+        assertTrue(stdout.contains("build.authenticatorData"), stdout);
+        assertTrue(stdout.contains("build.signatureBase"), stdout);
+        assertTrue(stdout.contains("generate.signature"), stdout);
+        String inlineClientDataDigest = attributeValue(stdout, "clientData.sha256");
+        assertEquals(sha256Digest(inlineClientDataBytes), inlineClientDataDigest, stdout);
+        String inlineExpectedDigest = digestPrivateKey(privateKeyFile);
+        String inlineActualDigest = attributeValue(stdout, "privateKey.sha256");
+        assertEquals(inlineExpectedDigest, inlineActualDigest, stdout);
+    }
 
     @Test
     void replayStoredEmitsVerboseTrace() throws Exception {
@@ -330,6 +429,37 @@ final class Fido2CliVerboseTraceTest {
 
     private static String sha256Digest(byte[] input) {
         return "sha256:" + hex(sha256Bytes(input));
+    }
+
+    private static String digestPrivateKey(Path privateKeyFile) throws IOException {
+        String content =
+                Files.readString(privateKeyFile, StandardCharsets.UTF_8).trim();
+        return sha256Digest(content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String attributeValue(String stdout, String attributeName) {
+        String prefix = attributeName + " = ";
+        for (String line : stdout.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith(prefix)) {
+                return trimmed.substring(prefix.length());
+            }
+        }
+        return "";
+    }
+
+    private static String extractJsonField(String json, String field) {
+        String pattern = "\"" + field + "\":\"";
+        int start = json.indexOf(pattern);
+        if (start < 0) {
+            return "";
+        }
+        start += pattern.length();
+        int end = json.indexOf('"', start);
+        if (end < 0) {
+            return "";
+        }
+        return json.substring(start, end);
     }
 
     private static byte[] sha256Bytes(byte[] input) {

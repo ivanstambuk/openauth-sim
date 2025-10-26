@@ -2,6 +2,7 @@ package io.openauth.sim.application.fido2;
 
 import io.openauth.sim.application.telemetry.Fido2TelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.core.fido2.CborDecoder;
 import io.openauth.sim.core.fido2.WebAuthnAttestationCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
@@ -10,21 +11,31 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.SigningMode;
 import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.fido2.WebAuthnAuthenticatorDataParser;
+import io.openauth.sim.core.fido2.WebAuthnAuthenticatorDataParser.ParsedAuthenticatorData;
 import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
+import io.openauth.sim.core.fido2.WebAuthnRelyingPartyId;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.core.trace.VerboseTrace.AttributeType;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /** Application service that generates WebAuthn attestation payloads with sanitized telemetry. */
 public final class WebAuthnAttestationGenerationApplicationService {
@@ -62,7 +73,16 @@ public final class WebAuthnAttestationGenerationApplicationService {
     }
 
     public GenerationResult generate(GenerationCommand command) {
+        return generate(command, false);
+    }
+
+    public GenerationResult generate(GenerationCommand command, boolean verbose) {
         Objects.requireNonNull(command, "command");
+        VerboseTrace.Builder trace = newTrace(verbose, "fido2.attestation.generate");
+        metadata(trace, "inputSource", command.inputSource().name().toLowerCase(Locale.ROOT));
+        metadata(trace, "format", command.format().label());
+        metadata(trace, "attestationId", command.attestationId());
+        metadata(trace, "relyingPartyId", command.relyingPartyId());
         WebAuthnAttestationGenerator.GenerationResult generatorResult;
         boolean manualSource;
         GenerationCommand telemetryCommand = command;
@@ -81,8 +101,11 @@ public final class WebAuthnAttestationGenerationApplicationService {
         String effectiveRelyingPartyId = command.relyingPartyId();
         String effectiveOrigin = command.origin();
         byte[] effectiveChallenge = command.challenge().clone();
+        WebAuthnSignatureAlgorithm traceAlgorithm = null;
+        String traceAttestationPrivateKey = command.attestationPrivateKeyBase64Url();
 
         if (command instanceof GenerationCommand.Stored stored) {
+            metadata(trace, "mode", "stored");
             if (credentialStore == null || persistenceAdapter == null) {
                 throw new IllegalStateException("Stored attestation generation requires a credential store");
             }
@@ -164,7 +187,10 @@ public final class WebAuthnAttestationGenerationApplicationService {
                     telemetryCustomRoots,
                     telemetryCustomRootSource,
                     inputSource);
+            traceAlgorithm = descriptor.credentialDescriptor().algorithm();
+            traceAttestationPrivateKey = stored.attestationPrivateKeyBase64Url();
         } else if (command instanceof GenerationCommand.Inline inline) {
+            metadata(trace, "mode", "preset");
             manualSource = false;
             WebAuthnAttestationVector vector = WebAuthnAttestationSamples.require(inline.attestationId());
             WebAuthnSignatureAlgorithm algorithm = vector.algorithm();
@@ -202,9 +228,12 @@ public final class WebAuthnAttestationGenerationApplicationService {
             effectiveRelyingPartyId = inline.relyingPartyId();
             effectiveOrigin = inline.origin();
             effectiveChallenge = inline.challenge().clone();
+            traceAlgorithm = algorithm;
+            traceAttestationPrivateKey = inline.attestationPrivateKeyBase64Url();
         } else {
             manualSource = true;
             GenerationCommand.Manual manual = (GenerationCommand.Manual) command;
+            metadata(trace, "mode", "manual");
             WebAuthnPrivateKeyParser.ParsedKey credentialKey;
             try {
                 WebAuthnSignatureAlgorithm inferredAlgorithm =
@@ -245,6 +274,25 @@ public final class WebAuthnAttestationGenerationApplicationService {
             effectiveRelyingPartyId = manual.relyingPartyId();
             effectiveOrigin = manual.origin();
             effectiveChallenge = manual.challenge().clone();
+            traceAttestationPrivateKey = manual.attestationPrivateKeyBase64Url();
+            try {
+                traceAlgorithm = WebAuthnPrivateKeyParser.inferAlgorithm(manual.credentialPrivateKeyBase64Url());
+            } catch (GeneralSecurityException ex) {
+                traceAlgorithm = null;
+            }
+        }
+
+        if (trace != null) {
+            metadata(trace, "signingMode", telemetrySigningMode.name().toLowerCase(Locale.ROOT));
+            metadata(trace, "signatureIncluded", Boolean.toString(generatorResult.signatureIncluded()));
+            populateAttestationTrace(
+                    trace,
+                    effectiveRelyingPartyId,
+                    effectiveOrigin,
+                    generatorResult,
+                    traceAlgorithm,
+                    telemetrySigningMode,
+                    traceAttestationPrivateKey);
         }
 
         GeneratedAttestation.Response responsePayload = new GeneratedAttestation.Response(
@@ -307,7 +355,8 @@ public final class WebAuthnAttestationGenerationApplicationService {
 
         TelemetrySignal telemetry = new SuccessTelemetrySignal(Map.copyOf(telemetryFields), telemetryAdapter);
 
-        return new GenerationResult(attestation, telemetry, certificateChain);
+        VerboseTrace builtTrace = buildTrace(trace);
+        return new GenerationResult(attestation, telemetry, certificateChain, Optional.ofNullable(builtTrace));
     }
 
     /** Marker interface for generation commands. */
@@ -507,9 +556,13 @@ public final class WebAuthnAttestationGenerationApplicationService {
 
     /** Result payload for attestation generation requests. */
     public record GenerationResult(
-            GeneratedAttestation attestation, TelemetrySignal telemetry, List<String> certificateChainPem) {
+            GeneratedAttestation attestation,
+            TelemetrySignal telemetry,
+            List<String> certificateChainPem,
+            Optional<VerboseTrace> verboseTrace) {
         public GenerationResult {
             certificateChainPem = certificateChainPem == null ? List.of() : List.copyOf(certificateChainPem);
+            verboseTrace = verboseTrace == null ? Optional.empty() : verboseTrace;
         }
     }
 
@@ -648,6 +701,318 @@ public final class WebAuthnAttestationGenerationApplicationService {
             case UNSIGNED -> "unsigned";
             case CUSTOM_ROOT -> "custom_root";
         };
+    }
+
+    private static VerboseTrace.Builder newTrace(boolean verbose, String operation) {
+        return verbose ? VerboseTrace.builder(operation) : null;
+    }
+
+    private static void metadata(VerboseTrace.Builder trace, String key, String value) {
+        if (trace != null && hasText(key) && hasText(value)) {
+            trace.withMetadata(key, value);
+        }
+    }
+
+    private static void addStep(
+            VerboseTrace.Builder trace, java.util.function.Consumer<VerboseTrace.TraceStep.Builder> configurer) {
+        if (trace != null) {
+            trace.addStep(configurer);
+        }
+    }
+
+    private static VerboseTrace buildTrace(VerboseTrace.Builder trace) {
+        return trace == null ? null : trace.build();
+    }
+
+    private static void populateAttestationTrace(
+            VerboseTrace.Builder trace,
+            String relyingPartyId,
+            String origin,
+            WebAuthnAttestationGenerator.GenerationResult generatorResult,
+            WebAuthnSignatureAlgorithm algorithm,
+            SigningMode signingMode,
+            String attestationPrivateKeyRaw) {
+        if (trace == null || generatorResult == null) {
+            return;
+        }
+        byte[] clientDataJson = safeBytes(generatorResult.clientDataJson());
+        byte[] expectedChallenge = safeBytes(generatorResult.expectedChallenge());
+        addAttestationClientDataStep(trace, clientDataJson, expectedChallenge, origin);
+
+        AttestationComponents components = extractAttestationComponents(generatorResult.attestationObject());
+        addAttestationAuthenticatorDataStep(trace, relyingPartyId, components.authenticatorData());
+        addSignatureBaseStep(trace, components.authenticatorData(), clientDataJson);
+        addAttestationSignatureStep(
+                trace,
+                algorithm,
+                signingMode,
+                attestationPrivateKeyRaw,
+                generatorResult.signatureIncluded(),
+                components.signature());
+        addComposeAttestationStep(trace, generatorResult.format(), generatorResult.attestationObject());
+    }
+
+    private static void addAttestationClientDataStep(
+            VerboseTrace.Builder trace, byte[] clientDataJson, byte[] challenge, String origin) {
+        if (trace == null) {
+            return;
+        }
+        byte[] safeClientData = safeBytes(clientDataJson);
+        String json = new String(safeClientData, StandardCharsets.UTF_8);
+        Map<String, Object> parsed = parseJsonObject(json);
+        String type = stringValue(parsed.get("type"));
+        String resolvedOrigin = hasText(origin) ? origin : stringValue(parsed.get("origin"));
+        boolean tokenBindingPresent =
+                parsed.get("tokenBinding") instanceof Map<?, ?> tokenBinding && !tokenBinding.isEmpty();
+
+        String challengeBase64 = base64Url(challenge);
+        int computedLength;
+        try {
+            computedLength =
+                    challengeBase64.isEmpty() ? 0 : Base64.getUrlDecoder().decode(challengeBase64).length;
+        } catch (IllegalArgumentException ex) {
+            computedLength = 0;
+        }
+        final int challengeLength = computedLength;
+
+        addStep(trace, step -> step.id("build.clientData")
+                .summary("Construct clientDataJSON payload")
+                .detail("clientDataJSON")
+                .spec("webauthn§7.1")
+                .attribute("type", type)
+                .attribute(AttributeType.BASE64URL, "challenge.b64u", challengeBase64)
+                .attribute(AttributeType.INT, "challenge.decoded.len", challengeLength)
+                .attribute("origin", resolvedOrigin)
+                .attribute(AttributeType.JSON, "clientData.json", json)
+                .attribute("clientData.sha256", sha256Digest(safeClientData))
+                .attribute(AttributeType.BOOL, "tokenBinding.present", tokenBindingPresent));
+    }
+
+    private static Map<String, Object> parseJsonObject(String json) {
+        if (!hasText(json)) {
+            return Map.of();
+        }
+        try {
+            Object parsed = SimpleJson.parse(json);
+            if (parsed instanceof Map<?, ?> raw) {
+                Map<String, Object> result = new LinkedHashMap<>();
+                raw.forEach((key, value) -> result.put(String.valueOf(key), value));
+                return result;
+            }
+        } catch (Exception ignored) {
+            // ignore malformed JSON for trace purposes
+        }
+        return Map.of();
+    }
+
+    private static String stringValue(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    private static void addAttestationAuthenticatorDataStep(
+            VerboseTrace.Builder trace, String relyingPartyId, byte[] authenticatorData) {
+        if (trace == null) {
+            return;
+        }
+        byte[] safeAuthData = safeBytes(authenticatorData);
+        ParsedAuthenticatorData parsed = WebAuthnAuthenticatorDataParser.parse(safeAuthData);
+        String calculatedCanonical;
+        try {
+            calculatedCanonical = WebAuthnRelyingPartyId.canonicalize(relyingPartyId);
+        } catch (IllegalArgumentException ex) {
+            calculatedCanonical = relyingPartyId == null ? "" : relyingPartyId.trim();
+        }
+        final String canonicalRpId = calculatedCanonical;
+        byte[] expectedHashBytes = sha256(canonicalRpId.getBytes(StandardCharsets.UTF_8));
+        String expectedHash = sha256Hex(expectedHashBytes);
+        boolean hashesMatch = Arrays.equals(parsed.rpIdHash(), expectedHashBytes);
+
+        addStep(trace, step -> {
+            step.id("build.authenticatorData")
+                    .summary("Construct authenticator data")
+                    .detail("authenticatorData")
+                    .spec("webauthn§6.5.4")
+                    .attribute(AttributeType.INT, "authenticatorData.len.bytes", safeAuthData.length)
+                    .attribute(AttributeType.HEX, "authenticatorData.hex", safeAuthData)
+                    .attribute(AttributeType.HEX, "rpIdHash.hex", parsed.rpIdHash())
+                    .attribute("rpId.canonical", canonicalRpId)
+                    .attribute("rpIdHash.expected", expectedHash)
+                    .attribute(AttributeType.BOOL, "rpIdHash.match", hashesMatch)
+                    .attribute("flags.byte", formatByte(parsed.flags()))
+                    .attribute(AttributeType.BOOL, "flags.bits.UP", (parsed.flags() & 0x01) != 0)
+                    .attribute(AttributeType.BOOL, "flags.bits.UV", (parsed.flags() & 0x04) != 0)
+                    .attribute(AttributeType.BOOL, "flags.bits.AT", (parsed.flags() & 0x40) != 0)
+                    .attribute(AttributeType.BOOL, "flags.bits.ED", (parsed.flags() & 0x80) != 0)
+                    .attribute(AttributeType.INT, "counter", parsed.counter());
+        });
+    }
+
+    private static void addSignatureBaseStep(
+            VerboseTrace.Builder trace, byte[] authenticatorData, byte[] clientDataJson) {
+        if (trace == null) {
+            return;
+        }
+        byte[] safeAuthData = safeBytes(authenticatorData);
+        byte[] clientHash = sha256(clientDataJson);
+        byte[] signedPayload = concat(safeAuthData, clientHash);
+
+        addStep(trace, step -> step.id("build.signatureBase")
+                .summary("Concatenate authenticator data and clientData hash")
+                .detail("authenticatorData || SHA-256(clientData)")
+                .attribute(AttributeType.INT, "authenticatorData.len.bytes", safeAuthData.length)
+                .attribute(AttributeType.INT, "clientDataHash.len.bytes", clientHash.length)
+                .attribute("clientDataHash.sha256", sha256Hex(clientHash))
+                .attribute("signedBytes.sha256", sha256Digest(signedPayload))
+                .attribute("signedBytes.preview", previewHex(signedPayload)));
+    }
+
+    private static void addAttestationSignatureStep(
+            VerboseTrace.Builder trace,
+            WebAuthnSignatureAlgorithm algorithm,
+            SigningMode signingMode,
+            String attestationPrivateKeyRaw,
+            boolean signatureIncluded,
+            byte[] signature) {
+        if (trace == null) {
+            return;
+        }
+        addStep(trace, step -> {
+            step.id("generate.signature")
+                    .summary("Sign attestation statement")
+                    .detail("Attestation signing")
+                    .attribute("signingMode", signingMode.name().toLowerCase(Locale.ROOT))
+                    .attribute(AttributeType.BOOL, "signatureIncluded", signatureIncluded);
+            if (algorithm != null) {
+                step.attribute("alg", algorithm.name());
+                step.attribute("alg.label", algorithm.label());
+            }
+            if (hasText(attestationPrivateKeyRaw)) {
+                step.attribute(
+                        "privateKey.sha256", sha256Digest(attestationPrivateKeyRaw.getBytes(StandardCharsets.UTF_8)));
+            }
+            step.attribute(AttributeType.INT, "signature.len.bytes", signature == null ? 0 : signature.length);
+        });
+    }
+
+    private static void addComposeAttestationStep(
+            VerboseTrace.Builder trace, WebAuthnAttestationFormat format, byte[] attestationObject) {
+        if (trace == null) {
+            return;
+        }
+        byte[] safeObject = safeBytes(attestationObject);
+        addStep(trace, step -> step.id("compose.attestationObject")
+                .summary("Compose attestation object")
+                .detail("CBOR encode attestation")
+                .spec("webauthn§6.5.2")
+                .attribute("fmt", format.label())
+                .attribute(AttributeType.INT, "attObj.len.bytes", safeObject.length)
+                .attribute("attObj.sha256", sha256Digest(safeObject)));
+    }
+
+    private static AttestationComponents extractAttestationComponents(byte[] attestationObject) {
+        byte[] safeObject = safeBytes(attestationObject);
+        if (safeObject.length == 0) {
+            return AttestationComponents.empty();
+        }
+        try {
+            Object decoded = CborDecoder.decode(safeObject);
+            if (!(decoded instanceof Map<?, ?> rawMap)) {
+                return AttestationComponents.empty();
+            }
+            Map<String, Object> map = new LinkedHashMap<>();
+            rawMap.forEach((key, value) -> map.put(String.valueOf(key), value));
+            byte[] authData = toByteArray(map.get("authData"));
+            Map<String, Object> attStmt = toMap(map.get("attStmt"));
+            byte[] signature = toByteArray(attStmt.get("sig"));
+            return new AttestationComponents(authData, signature);
+        } catch (GeneralSecurityException ex) {
+            return AttestationComponents.empty();
+        }
+    }
+
+    private static byte[] toByteArray(Object value) {
+        if (value instanceof byte[] bytes) {
+            return bytes;
+        }
+        return new byte[0];
+    }
+
+    private static Map<String, Object> toMap(Object value) {
+        if (value instanceof Map<?, ?> raw) {
+            Map<String, Object> map = new LinkedHashMap<>();
+            raw.forEach((key, entry) -> map.put(String.valueOf(key), entry));
+            return map;
+        }
+        return Map.of();
+    }
+
+    private static byte[] safeBytes(byte[] input) {
+        return input == null ? new byte[0] : input.clone();
+    }
+
+    private static String base64Url(byte[] input) {
+        byte[] safe = safeBytes(input);
+        if (safe.length == 0) {
+            return "";
+        }
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(safe);
+    }
+
+    private static byte[] sha256(byte[] input) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(input == null ? new byte[0] : input.clone());
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static String sha256Digest(byte[] input) {
+        return "sha256:" + hex(sha256(input));
+    }
+
+    private static String sha256Hex(byte[] digestBytes) {
+        return "sha256:" + hex(safeBytes(digestBytes));
+    }
+
+    private static String previewHex(byte[] bytes) {
+        byte[] safe = safeBytes(bytes);
+        if (safe.length <= 32) {
+            return hex(safe);
+        }
+        int preview = Math.min(16, safe.length);
+        byte[] head = Arrays.copyOfRange(safe, 0, preview);
+        byte[] tail = Arrays.copyOfRange(safe, safe.length - preview, safe.length);
+        return hex(head) + "…" + hex(tail);
+    }
+
+    private static byte[] concat(byte[] left, byte[] right) {
+        byte[] safeLeft = safeBytes(left);
+        byte[] safeRight = safeBytes(right);
+        byte[] combined = Arrays.copyOf(safeLeft, safeLeft.length + safeRight.length);
+        System.arraycopy(safeRight, 0, combined, safeLeft.length, safeRight.length);
+        return combined;
+    }
+
+    private static String formatByte(int value) {
+        return String.format("%02x", value & 0xFF);
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private record AttestationComponents(byte[] authenticatorData, byte[] signature) {
+        private static AttestationComponents empty() {
+            return new AttestationComponents(new byte[0], new byte[0]);
+        }
+
+        public byte[] authenticatorData() {
+            return safeBytes(authenticatorData);
+        }
+
+        public byte[] signature() {
+            return safeBytes(signature);
+        }
     }
 
     private static String normalize(String value) {

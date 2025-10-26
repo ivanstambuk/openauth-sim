@@ -90,7 +90,7 @@ class WebAuthnAttestationService {
                     credentialId.trim(), format, relyingPartyId, origin, challenge);
 
             try {
-                result = generationService.generate(command);
+                result = generationService.generate(command, trace != null);
                 addStep(trace, step -> step.id("generate.attestation")
                         .summary("Generate attestation from stored credential")
                         .detail("WebAuthnAttestationGenerationApplicationService.generate")
@@ -172,7 +172,7 @@ class WebAuthnAttestationService {
                     WebAuthnAttestationGenerationApplicationService.GenerationCommand.InputSource.PRESET);
 
             try {
-                result = generationService.generate(command);
+                result = generationService.generate(command, trace != null);
                 addStep(trace, step -> step.id("generate.attestation")
                         .summary("Generate attestation from preset")
                         .detail("WebAuthnAttestationGenerationApplicationService.generate")
@@ -253,7 +253,7 @@ class WebAuthnAttestationService {
                     request.overrides() == null ? List.of() : List.copyOf(request.overrides()));
 
             try {
-                result = generationService.generate(command);
+                result = generationService.generate(command, trace != null);
                 addStep(trace, step -> step.id("generate.attestation")
                         .summary("Generate manual attestation")
                         .detail("WebAuthnAttestationGenerationApplicationService.generate")
@@ -279,6 +279,10 @@ class WebAuthnAttestationService {
                         Map.of("format", format.label(), "inputSource", "MANUAL"),
                         buildTrace(trace));
             }
+        }
+
+        if (trace != null) {
+            result.verboseTrace().ifPresent(generatorTrace -> appendTrace(trace, generatorTrace));
         }
 
         TelemetrySignal telemetry = result.telemetry();

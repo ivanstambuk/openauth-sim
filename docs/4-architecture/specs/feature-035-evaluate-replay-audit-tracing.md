@@ -1,7 +1,7 @@
 # Feature 035 – Evaluate & Replay Audit Tracing
 
 _Status: Proposed_  
-_Last updated: 2025-10-25_
+_Last updated: 2025-10-26_
 
 ## Overview
 Introduce a deterministic, operator-facing audit trace for every credential-evaluation workflow across the simulator. When an operator enables verbose tracing for a request, the system must emit a step-by-step account of each cryptographic operation—down to intermediate buffers and bit-level mutations—so humans can study how the algorithm arrived at the final outcome. Traces are ephemeral (bound to the request that generated them) but must be available through all facades (CLI, REST, operator UI) and future protocols without additional infrastructure work.
@@ -37,6 +37,8 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
 16. 2025-10-25 – Operator console must clear the verbose trace panel whenever protocols, evaluation/replay tabs, or inline/stored modes change so traces remain scoped to the initiating request (owner directive; Option B selected).
 17. 2025-10-25 – Adopt Option A for WebAuthn extension handling: always record a `parse.extensions` trace step. When `flags.bits.ED = true`, decode authenticator extension data, emit `extensions.present = true` plus the raw CBOR hex, and surface known fields (`ext.credProps.rk`, `ext.credProtect.policy`, `ext.largeBlobKey.b64u`, `ext.hmac-secret`) while logging unknown entries under a generic map. When `flags.bits.ED = false`, surface `extensions.present = false` with empty decoded fields. Assertion and attestation traces must share the decoding helper so all facades present identical extension metadata (owner directive).
 18. 2025-10-26 – Stored WebAuthn evaluation traces must populate `construct.command` with the effective `userVerificationRequired` value even when the request omits an override, mirroring the descriptor policy so operators see the enforced requirement (owner directive; Option B selected).
+19. 2025-10-26 – WebAuthn assertion *generation* flows (stored and inline) must emit verbose trace steps that decompose the constructed `clientDataJSON`, `authenticatorData`, and signature payload so operators can inspect generation inputs without performing a replay. Continue hashing secrets per Clarification 8 and surface the same metadata across CLI, REST, and UI facades (owner directive).
+20. 2025-10-26 – WebAuthn attestation generation must expose parallel verbose trace detail (CBOR attestation object structure, hashed client data, authenticator data/attested credential fields, and signature payload) while preserving hashing rules and making the information available on every facade that already supports verbose tracing (owner directive).
 
 ## Requirements
 - Define a structured trace model under `core/` that can capture ordered steps, labelled intermediate values, and protocol-specific annotations while remaining extensible for future credential types.
@@ -104,6 +106,15 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
     `step.validate.metadata` – capture `attestationType` (`Self`, `Basic`, `AttCA`), `trustPath` classification (`none|leaf|chain`), `chain.valid`, `root.anchor`, `aaguid.metadata = known|unknown`, and summarise extension- and policy-related outcomes.
   - *Assertion steps*  
     `step.parse.clientData` and `step.parse.authenticatorData` mirror the attestation fields, followed by `step.parse.extensions`, `step.build.signatureBase`, `step.verify.signature`, and `step.evaluate.counter` (prior counter, new counter, increment verdict). Include `policy.lowS.enforced`/`ecdsa.lowS` status and the same algorithm-specific metadata used for attestation.
+  - *Assertion generation (stored & inline evaluate flows)*  
+    Extend the existing generation trace (currently `decode.challenge` → `construct.command` → `generate.assertion`) with additional steps shared across CLI/REST/UI:  
+    `step.build.clientData` – record resolved type/origin, the Base64URL challenge, decoded length, SHA-256 digest (`clientData.sha256`), and a `clientData.json` preview while omitting raw secrets; hash any underlying JWK/private material before emission.  
+    `step.build.authenticatorData` – capture canonicalised relying party ID (`rpId.canonical`), `rpIdHash.expected`, `rpIdHash.hex`, the computed flags byte plus `flags.bits.*`, the chosen signature counter, and toggles such as `userVerificationRequired`.  
+    `step.build.signatureBase` – reuse the verification schema (`authenticatorData.len.bytes`, `clientDataHash.len.bytes`, `signedBytes.len.bytes`, `signedBytes.hex`, `signedBytes.preview`, `signedBytes.sha256`) to show exactly what will be signed.  
+    `step.generate.signature` – surface algorithm metadata (`alg`, `cose.alg`, `cose.alg.name`), the generated signature in the same encoding that `generate.assertion` returns (DER for ECDSA, raw for EdDSA, etc.), and derived statistics (`sig.der.len`/`sig.raw.len`, `ecdsa.r.hex`, `ecdsa.s.hex`, `rsa.padding`, `rsa.hash`, `key.bits`). Keep a `secret.sha256` placeholder for any private key bytes that influenced the result rather than logging the raw key. These steps must appear for both stored and inline generation so operators never need to rerun replay for inspection.
+  - *Attestation generation*  
+    Insert parallel steps before `generate.attestation`:  
+    `step.build.clientData` (same schema as assertion), `step.build.authenticatorData` (including attested credential data when available: `aaguid`, `credId.b64u`, `credId.len.bytes`, COSE metadata, and `publicKey.jwk.thumbprint.sha256`), `step.compose.attestationObject` (document the CBOR map structure with hashed payload previews: `attObj.cbor.hex`, `attObj.sha256`, `fmt`, `authData.len.bytes`, `attStmt.alg`, certificate chain digest summaries), and `step.build.signatureBase` / `step.generate.signature` mirroring the assertion generation rules. Ensure all sensitive material (private keys, seed secrets) is represented via SHA-256 labels per Clarification 8.
   - Signed-byte reporting must continue to expose full hex plus `signedBytes.sha256` even when previews are supplied, ensuring reproductions remain possible without re-running the operation.
   - When operators toggle between inline/stored, assertion/attestation, or disable verbose mode, facades must clear any previously rendered WebAuthn trace so stale buffers never mingle with the next request.
   - Field naming rules from other protocols still apply: lowercase hex, explicit byte-length attributes, and deterministic indentation with `name = value` formatting so CLI, REST, and UI traces stay machine-friendly.

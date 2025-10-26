@@ -1,11 +1,16 @@
 package io.openauth.sim.application.fido2;
 
+import io.openauth.sim.core.fido2.WebAuthnAuthenticatorDataParser;
+import io.openauth.sim.core.fido2.WebAuthnAuthenticatorDataParser.ParsedAuthenticatorData;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
+import io.openauth.sim.core.fido2.WebAuthnRelyingPartyId;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.core.trace.VerboseTrace.AttributeType;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +18,7 @@ import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
@@ -36,12 +42,14 @@ import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * Generates WebAuthn assertion payloads from authenticator inputs (challenge, private key, etc.).
@@ -74,19 +82,27 @@ public final class WebAuthnAssertionGenerationApplicationService {
     }
 
     public GenerationResult generate(GenerationCommand command) {
+        return generate(command, false);
+    }
+
+    public GenerationResult generate(GenerationCommand command, boolean verbose) {
         Objects.requireNonNull(command, "command");
 
         if (command instanceof GenerationCommand.Stored stored) {
-            return generateStored(stored);
+            return generateStored(stored, verbose);
         }
         if (command instanceof GenerationCommand.Inline inline) {
-            return generateInline(inline);
+            return generateInline(inline, verbose);
         }
 
         throw new IllegalArgumentException("Unsupported WebAuthn generation command: " + command);
     }
 
-    private GenerationResult generateInline(GenerationCommand.Inline command) {
+    private static VerboseTrace buildTrace(VerboseTrace.Builder trace) {
+        return trace == null ? null : trace.build();
+    }
+
+    private GenerationResult generateInline(GenerationCommand.Inline command, boolean verbose) {
         try {
             KeyMaterial keyMaterial = parsePrivateKey(command.privateKey(), command.algorithm());
             byte[] challenge = command.challenge().clone();
@@ -97,26 +113,43 @@ public final class WebAuthnAssertionGenerationApplicationService {
             byte[] signature =
                     signAssertion(command.algorithm(), keyMaterial.privateKey(), authenticatorData, clientDataJson);
 
-            return new GenerationResult(
-                    command.credentialName(),
-                    command.credentialId(),
-                    challenge,
+            AssertionArtifacts artifacts = buildArtifacts(
+                    command,
+                    keyMaterial,
                     clientDataJson,
                     authenticatorData,
                     signature,
-                    keyMaterial.publicKeyCose(),
+                    challenge,
+                    command.privateKey(),
+                    verbose,
+                    "fido2.assertion.generate.inline",
+                    trace -> {
+                        trace.withMetadata("mode", "inline");
+                        trace.withMetadata("credentialReference", "false");
+                        trace.withMetadata("credentialName", command.credentialName());
+                    });
+
+            return new GenerationResult(
+                    command.credentialName(),
+                    command.credentialId(),
+                    command.challenge().clone(),
+                    artifacts.clientDataJson(),
+                    artifacts.authenticatorData(),
+                    artifacts.signature(),
+                    artifacts.publicKeyCose(),
                     command.algorithm(),
                     command.signatureCounter(),
                     command.userVerificationRequired(),
                     false,
                     command.relyingPartyId(),
-                    command.origin());
+                    command.origin(),
+                    Optional.ofNullable(artifacts.trace()));
         } catch (GeneralSecurityException ex) {
             throw new IllegalArgumentException("Unable to generate WebAuthn assertion: " + ex.getMessage(), ex);
         }
     }
 
-    private GenerationResult generateStored(GenerationCommand.Stored command) {
+    private GenerationResult generateStored(GenerationCommand.Stored command, boolean verbose) {
         if (credentialStore == null || persistenceAdapter == null) {
             throw new IllegalStateException("Stored assertion generation requires a credential store");
         }
@@ -149,21 +182,59 @@ public final class WebAuthnAssertionGenerationApplicationService {
                 command.challenge(),
                 command.privateKey());
 
-        GenerationResult inlineResult = generateInline(inline);
+        KeyMaterial keyMaterial;
+        try {
+            keyMaterial = parsePrivateKey(command.privateKey(), descriptor.algorithm());
+        } catch (GeneralSecurityException ex) {
+            throw new IllegalArgumentException("Unable to parse private key: " + ex.getMessage(), ex);
+        }
+
+        byte[] clientDataJson = createClientDataJson(inline.expectedType(), inline.challenge(), inline.origin());
+        byte[] authenticatorData;
+        try {
+            authenticatorData = buildAuthenticatorData(
+                    inline.relyingPartyId(), inline.signatureCounter(), inline.userVerificationRequired());
+        } catch (GeneralSecurityException ex) {
+            throw new IllegalArgumentException("Unable to generate WebAuthn assertion: " + ex.getMessage(), ex);
+        }
+        byte[] signature;
+        try {
+            signature = signAssertion(inline.algorithm(), keyMaterial.privateKey(), authenticatorData, clientDataJson);
+        } catch (GeneralSecurityException ex) {
+            throw new IllegalArgumentException("Unable to generate WebAuthn assertion: " + ex.getMessage(), ex);
+        }
+
+        AssertionArtifacts artifacts = buildArtifacts(
+                inline,
+                keyMaterial,
+                clientDataJson,
+                authenticatorData,
+                signature,
+                inline.challenge(),
+                command.privateKey(),
+                verbose,
+                "fido2.assertion.generate.stored",
+                trace -> {
+                    trace.withMetadata("mode", "stored");
+                    trace.withMetadata("credentialReference", "true");
+                    trace.withMetadata("credentialId", descriptor.name());
+                });
+
         return new GenerationResult(
                 descriptor.name(),
                 descriptor.credentialId(),
                 command.challenge().clone(),
-                inlineResult.clientDataJson(),
-                inlineResult.authenticatorData(),
-                inlineResult.signature(),
-                inlineResult.publicKeyCose(),
-                inlineResult.algorithm(),
+                artifacts.clientDataJson(),
+                artifacts.authenticatorData(),
+                artifacts.signature(),
+                artifacts.publicKeyCose(),
+                inline.algorithm(),
                 signatureCounter,
                 userVerificationRequired,
                 true,
                 descriptor.relyingPartyId(),
-                command.origin());
+                command.origin(),
+                Optional.ofNullable(artifacts.trace()));
     }
 
     private static byte[] createClientDataJson(String type, byte[] challenge, String origin) {
@@ -224,6 +295,196 @@ public final class WebAuthnAssertionGenerationApplicationService {
         }
         signature.update(signedPayload);
         return signature.sign();
+    }
+
+    private AssertionArtifacts buildArtifacts(
+            GenerationCommand.Inline command,
+            KeyMaterial keyMaterial,
+            byte[] clientDataJson,
+            byte[] authenticatorData,
+            byte[] signature,
+            byte[] challenge,
+            String privateKeyRaw,
+            boolean verbose,
+            String operation,
+            Consumer<VerboseTrace.Builder> metadataConfigurer) {
+        VerboseTrace.Builder trace = newTrace(verbose, operation);
+        if (trace != null && metadataConfigurer != null) {
+            metadataConfigurer.accept(trace);
+        }
+
+        addBuildClientDataStep(trace, command.expectedType(), challenge, clientDataJson, command.origin());
+        addBuildAuthenticatorDataStep(
+                trace, command.relyingPartyId(), authenticatorData, command.userVerificationRequired());
+        addSignatureBaseStep(trace, authenticatorData, clientDataJson);
+        addGenerateSignatureStep(trace, command.algorithm(), privateKeyRaw, signature);
+
+        return new AssertionArtifacts(
+                clientDataJson, authenticatorData, signature, keyMaterial.publicKeyCose(), buildTrace(trace));
+    }
+
+    private static VerboseTrace.Builder newTrace(boolean verbose, String operation) {
+        return verbose ? VerboseTrace.builder(operation) : null;
+    }
+
+    private static void addBuildClientDataStep(
+            VerboseTrace.Builder trace, String expectedType, byte[] challenge, byte[] clientDataJson, String origin) {
+        if (trace == null) {
+            return;
+        }
+
+        byte[] safeChallenge = challenge == null ? new byte[0] : challenge.clone();
+        byte[] safeClientData = clientDataJson == null ? new byte[0] : clientDataJson.clone();
+        String clientDataString = new String(safeClientData, StandardCharsets.UTF_8);
+
+        String challengeBase64 = base64Url(safeChallenge);
+        int computedLength;
+        try {
+            computedLength = safeChallenge.length > 0 ? URL_DECODER.decode(challengeBase64).length : 0;
+        } catch (IllegalArgumentException ex) {
+            computedLength = 0;
+        }
+        final int challengeLength = computedLength;
+
+        trace.addStep(step -> step.id("build.clientData")
+                .summary("Construct clientDataJSON payload")
+                .detail("clientDataJSON")
+                .spec("webauthn§6.5.1")
+                .attribute("type", sanitize(expectedType))
+                .attribute(AttributeType.BASE64URL, "challenge.b64u", challengeBase64)
+                .attribute(AttributeType.INT, "challenge.decoded.len", challengeLength)
+                .attribute("origin", sanitize(origin))
+                .attribute(AttributeType.JSON, "clientData.json", clientDataString)
+                .attribute("clientData.sha256", sha256Digest(safeClientData))
+                .attribute(AttributeType.BOOL, "tokenBinding.present", Boolean.FALSE));
+    }
+
+    private static void addBuildAuthenticatorDataStep(
+            VerboseTrace.Builder trace,
+            String relyingPartyId,
+            byte[] authenticatorData,
+            boolean userVerificationRequired) {
+        if (trace == null) {
+            return;
+        }
+        byte[] safeData = authenticatorData == null ? new byte[0] : authenticatorData.clone();
+        ParsedAuthenticatorData parsed = WebAuthnAuthenticatorDataParser.parse(safeData);
+        String canonicalRpId = canonicalizeRpId(relyingPartyId);
+        byte[] expectedHashBytes = sha256(canonicalRpId.getBytes(StandardCharsets.UTF_8));
+        String expectedHash = sha256Hex(expectedHashBytes);
+        boolean hashesMatch = Arrays.equals(parsed.rpIdHash(), expectedHashBytes);
+
+        trace.addStep(step -> {
+            step.id("build.authenticatorData")
+                    .summary("Construct authenticator data")
+                    .detail("authenticatorData")
+                    .spec("webauthn§6.5.4")
+                    .attribute(AttributeType.INT, "authenticatorData.len.bytes", safeData.length)
+                    .attribute(AttributeType.HEX, "authenticatorData.hex", safeData)
+                    .attribute(AttributeType.HEX, "rpIdHash.hex", parsed.rpIdHash())
+                    .attribute("rpId.canonical", canonicalRpId)
+                    .attribute("rpIdHash.expected", expectedHash)
+                    .attribute(AttributeType.BOOL, "rpIdHash.match", hashesMatch)
+                    .attribute(AttributeType.STRING, "flags.byte", formatByte(parsed.flags()))
+                    .attribute(AttributeType.BOOL, "flags.bits.UP", (parsed.flags() & 0x01) != 0)
+                    .attribute(AttributeType.BOOL, "flags.bits.UV", (parsed.flags() & 0x04) != 0)
+                    .attribute(AttributeType.BOOL, "flags.bits.AT", (parsed.flags() & 0x40) != 0)
+                    .attribute(AttributeType.BOOL, "flags.bits.ED", (parsed.flags() & 0x80) != 0)
+                    .attribute(AttributeType.INT, "counter", parsed.counter());
+            step.attribute(AttributeType.BOOL, "userVerificationRequired", userVerificationRequired);
+            step.attribute(
+                    AttributeType.BOOL, "uv.policy.ok", !userVerificationRequired || (parsed.flags() & 0x04) != 0);
+        });
+    }
+
+    private static void addSignatureBaseStep(
+            VerboseTrace.Builder trace, byte[] authenticatorData, byte[] clientDataJson) {
+        if (trace == null) {
+            return;
+        }
+        byte[] safeAuthData = authenticatorData == null ? new byte[0] : authenticatorData.clone();
+        byte[] clientHash = sha256(clientDataJson == null ? new byte[0] : clientDataJson.clone());
+        byte[] signedPayload = concat(safeAuthData, clientHash);
+
+        trace.addStep(step -> step.id("build.signatureBase")
+                .summary("Concatenate authenticator data and clientData hash")
+                .detail("authenticatorData || SHA-256(clientData)")
+                .attribute(AttributeType.INT, "authenticatorData.len.bytes", safeAuthData.length)
+                .attribute("clientDataHash.sha256", sha256Hex(clientHash))
+                .attribute(AttributeType.INT, "clientDataHash.len.bytes", clientHash.length)
+                .attribute("signedBytes.sha256", sha256Digest(signedPayload))
+                .attribute("signedBytes.preview", previewHex(signedPayload)));
+    }
+
+    private static void addGenerateSignatureStep(
+            VerboseTrace.Builder trace, WebAuthnSignatureAlgorithm algorithm, String privateKeyRaw, byte[] signature) {
+        if (trace == null) {
+            return;
+        }
+        String privateKey = privateKeyRaw == null ? "" : privateKeyRaw;
+        byte[] safeSignature = signature == null ? new byte[0] : signature.clone();
+        trace.addStep(step -> step.id("generate.signature")
+                .summary("Generate assertion signature")
+                .detail("Signature.sign")
+                .attribute("alg", algorithm.label())
+                .attribute("alg.name", algorithm.name())
+                .attribute("privateKey.sha256", sha256Digest(privateKey.getBytes(StandardCharsets.UTF_8)))
+                .attribute(AttributeType.INT, "signature.len.bytes", safeSignature.length));
+    }
+
+    private static String canonicalizeRpId(String relyingPartyId) {
+        try {
+            return WebAuthnRelyingPartyId.canonicalize(relyingPartyId == null ? "" : relyingPartyId);
+        } catch (IllegalArgumentException ex) {
+            return sanitize(relyingPartyId);
+        }
+    }
+
+    private static byte[] sha256(byte[] input) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(input);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static String sha256Digest(byte[] input) {
+        return "sha256:" + hex(sha256(input));
+    }
+
+    private static String sha256Hex(byte[] digestBytes) {
+        return "sha256:" + hex(digestBytes == null ? new byte[0] : digestBytes);
+    }
+
+    private static String base64Url(byte[] input) {
+        if (input == null || input.length == 0) {
+            return "";
+        }
+        return URL_ENCODER.encodeToString(input);
+    }
+
+    private static String hex(byte[] bytes) {
+        byte[] safe = bytes == null ? new byte[0] : bytes;
+        StringBuilder builder = new StringBuilder(safe.length * 2);
+        for (byte value : safe) {
+            builder.append(String.format("%02x", value));
+        }
+        return builder.toString();
+    }
+
+    private static String previewHex(byte[] bytes) {
+        byte[] safe = bytes == null ? new byte[0] : bytes;
+        if (safe.length <= 32) {
+            return hex(safe);
+        }
+        int preview = Math.min(16, safe.length);
+        byte[] head = Arrays.copyOfRange(safe, 0, preview);
+        byte[] tail = Arrays.copyOfRange(safe, safe.length - preview, safe.length);
+        return hex(head) + "…" + hex(tail);
+    }
+
+    private static String formatByte(int value) {
+        return String.format("%02x", value & 0xFF);
     }
 
     private static Signature signatureFor(WebAuthnSignatureAlgorithm algorithm) throws GeneralSecurityException {
@@ -670,6 +931,21 @@ public final class WebAuthnAssertionGenerationApplicationService {
         }
     }
 
+    private record AssertionArtifacts(
+            byte[] clientDataJson,
+            byte[] authenticatorData,
+            byte[] signature,
+            byte[] publicKeyCose,
+            VerboseTrace trace) {
+
+        private AssertionArtifacts {
+            clientDataJson = clientDataJson == null ? new byte[0] : clientDataJson.clone();
+            authenticatorData = authenticatorData == null ? new byte[0] : authenticatorData.clone();
+            signature = signature == null ? new byte[0] : signature.clone();
+            publicKeyCose = publicKeyCose == null ? new byte[0] : publicKeyCose.clone();
+        }
+    }
+
     public record GenerationResult(
             String credentialName,
             byte[] credentialId,
@@ -683,7 +959,8 @@ public final class WebAuthnAssertionGenerationApplicationService {
             boolean userVerificationRequired,
             boolean credentialReference,
             String relyingPartyId,
-            String origin) {
+            String origin,
+            Optional<VerboseTrace> verboseTrace) {
 
         public GenerationResult {
             credentialName = Objects.requireNonNull(credentialName, "credentialName");
@@ -696,6 +973,7 @@ public final class WebAuthnAssertionGenerationApplicationService {
             algorithm = Objects.requireNonNull(algorithm, "algorithm");
             relyingPartyId = Objects.requireNonNull(relyingPartyId, "relyingPartyId");
             origin = Objects.requireNonNull(origin, "origin");
+            verboseTrace = verboseTrace == null ? Optional.empty() : verboseTrace;
         }
     }
 
