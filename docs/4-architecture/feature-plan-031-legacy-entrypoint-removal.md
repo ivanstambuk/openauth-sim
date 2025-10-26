@@ -10,7 +10,7 @@ _Last reviewed: 2025-10-21_
 - Downstream considerations: CLI telemetry consumers, operator console automation scripts, Selenium test harness
 
 ## Intent
-Retire the Java/JavaScript compatibility branches so there is a single telemetry format, router state contract, and networking pathway across all facades. This plan sequences test-first removal in ≤10 minute increments to keep the build green while we excise the legacy affordances.
+Retire the Java/JavaScript compatibility branches so there is a single telemetry format, router state contract, and networking pathway across all facades. This plan sequences test-first removal in ≤30 minute increments to keep the build green while we excise the legacy affordances.
 
 ## Current Status
 - Specification drafted 2025-10-19 and promoted to complete on 2025-10-21 after reconfirming T3101–T3108 outcomes and documentation updates.

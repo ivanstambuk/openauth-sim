@@ -45,12 +45,12 @@ _All clarifications captured in the specification have been resolved; no additio
   | `io.openauth.sim.core.store.ocra..` | `core-ocra` |
 - R1408 – Refresh documentation (AGENTS, how-to guides), knowledge map, and run `./gradlew spotlessApply check` + `qualityGate`; record metrics. ☑ (2025-10-02 – Updated AGENTS, persistence/REST how-to guides, telemetry snapshot, and re-ran spotless/quality gate post-doc edits.)
 
-Ensure each increment stays within ≤10 minutes, following test-first cadence where applicable.
+Ensure each increment stays within ≤30 minutes, following test-first cadence where applicable.
 
 ## Checklist Before Implementation
 - [x] Specification clarifications resolved and logged.
 - [x] Open questions tracked/cleared (update `docs/4-architecture/open-questions.md` if any arise).
-- [x] Tasks ordered with tests before code, each ≤10 minutes.
+- [x] Tasks ordered with tests before code, each ≤30 minutes.
 - [x] Tooling readiness documented.
 - [x] Analysis gate run before implementation commences.
 

@@ -11,4 +11,4 @@ _Last updated: 2025-10-01_
 | T103 | Execute `./gradlew spotlessApply check` and capture results in the feature plan. | CEM-002, CEM-NFR-001 | ✅ (2025-10-01) |
 | T104 | Update documentation (plan/tasks/spec status) and close related open question. | CEM-001–CEM-003 | ✅ (2025-10-01) |
 
-Keep increments ≤10 minutes and prefer test-first adjustments where applicable.
+Keep increments ≤30 minutes and prefer test-first adjustments where applicable.

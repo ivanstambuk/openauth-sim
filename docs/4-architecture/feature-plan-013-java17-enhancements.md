@@ -14,7 +14,7 @@ Apply targeted Java 17 features across the CLI and REST OCRA modules to improve 
 
 ## Proposed Increments
 - R1301 – Register Feature 013 in roadmap knowledge artefacts and capture baseline context.
-- R1302 – Update `docs/4-architecture/tasks/feature-013-java17-enhancements.md` with ≤10 minute increments.
+- R1302 – Update `docs/4-architecture/tasks/feature-013-java17-enhancements.md` with ≤30 minute increments.
 - R1303 – Run `docs/5-operations/analysis-gate-checklist.md` and document outcomes here.
 - R1304 – Introduce sealed CLI command hierarchy with supporting tests (test-first cadence).
   - Completed 2025-10-01 – `OcraCli.AbstractOcraCommand` sealed with explicit permit list, tests updated to assert sealing and to use production subcommands.
@@ -36,7 +36,7 @@ Update increment statuses and timestamps as work completes.
 ## Checklist Before Implementation
 - [x] Specification clarifications resolved (Feature 013 spec).
 - [x] Open questions logged/cleared for Feature 013 (none required; log remains empty as of 2025-10-01).
-- [x] Tasks mapped to requirements with ≤10 minute increments in test-first order.
+- [x] Tasks mapped to requirements with ≤30 minute increments in test-first order.
 - [x] Planned work honours constitutional guardrails (spec-first, clarification gate satisfied, test-first strategy, documentation sync, dependency freeze).
 - [x] Tooling readiness documented (commands, expected runtime, environment notes).
 

@@ -18,4 +18,4 @@ _Last updated: 2025-10-02_
 | T1110 | Update `AGENTS.md` with anti-reflection guidance and link to spec/guard instructions. | REF-003 | ✅ (2025-10-01) |
 | T1111 | Update knowledge map/roadmap entries, run `./gradlew spotlessApply check`, and record outcomes in plan notes. | REF-001–REF-004 | ✅ (2025-10-01) |
 
-Ensure each task completes within ≤10 minutes and prioritise test-first execution where applicable.
+Ensure each task completes within ≤30 minutes and prioritise test-first execution where applicable.

@@ -14,4 +14,4 @@ _Last updated: 2025-10-03_
 | T1506 | Add PMD `UnusedPrivateField`, address violations (e.g., remove unused constants), rerun `./gradlew :rest-api:pmdTest` and `./gradlew check`. | SB-004 | ✅ (2025-10-03 – Rule added to PMD ruleset, removed `PIN_SUITE`, `:rest-api:pmdTest` green) |
 | T1507 | Add PMD `UnusedPrivateMethod`, remove dead helpers (e.g., `inlineCredential()`), rerun `./gradlew :rest-api:pmdTest` and `./gradlew check`. | SB-004 | ✅ (2025-10-03 – Rule enforced; commands rerun, no violations) |
 
-Update the status column as tasks complete, keeping each increment ≤10 minutes and sequencing validation commands before code implementation when feasible.
+Update the status column as tasks complete, keeping each increment ≤30 minutes and sequencing validation commands before code implementation when feasible.

@@ -23,7 +23,7 @@ Eliminate reflection-based access across the OpenAuth Simulator codebase, improv
 | ID | Requirement | Target |
 |----|-------------|--------|
 | REF-NFR-001 | Maintainability | Refactors should minimise API churn; any new seams must be documented and covered by tests. |
-| REF-NFR-002 | Developer Feedback | Reflection guard executes within existing `./gradlew qualityGate` runtime budget (≤10 minutes) or pre-commit checks complete within acceptable latency (<30s). |
+| REF-NFR-002 | Developer Feedback | Reflection guard executes within existing `./gradlew qualityGate` runtime budget (≤30 minutes) or pre-commit checks complete within acceptable latency (<30s). |
 | REF-NFR-003 | Traceability | All exceptions to the anti-reflection policy require explicit documentation in specs/ADRs with rationale. |
 
 ## Test Strategy

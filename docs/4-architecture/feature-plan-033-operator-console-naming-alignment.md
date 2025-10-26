@@ -20,7 +20,7 @@ _Last updated:_ 2025-10-21
 - Selenium and unit tests targeting the operator console (`rest-api/src/test/java/io/openauth/sim/rest/ui/`).
 - Documentation: knowledge map, current session snapshot, prior feature plans referencing the legacy names.
 
-## Increment Breakdown (≤10 minutes each)
+## Increment Breakdown (≤30 minutes each)
 1. **I1 – Documentation setup**  
    - Add Feature 033 plan/tasks and update `docs/_current-session.md` with the new workstream.  
    - Confirm clarification Option B is recorded in the spec and mark the open question as “Resolved”.
@@ -53,4 +53,4 @@ _Last updated:_ 2025-10-21
 
 ## Checkpoints
 - Run the analysis gate checklist once plan/tasks are in sync.
-- Maintain ≤10 minute increments, ensuring every change lands with a passing `spotlessApply check`.
+- Maintain ≤30 minute increments, ensuring every change lands with a passing `spotlessApply check`.

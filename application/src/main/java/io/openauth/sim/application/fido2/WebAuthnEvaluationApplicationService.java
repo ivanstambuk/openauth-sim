@@ -7,8 +7,12 @@ import io.openauth.sim.core.fido2.CoseKeyInspector.CoseKeyDetails;
 import io.openauth.sim.core.fido2.SignatureInspector;
 import io.openauth.sim.core.fido2.WebAuthnAssertionRequest;
 import io.openauth.sim.core.fido2.WebAuthnAssertionVerifier;
+import io.openauth.sim.core.fido2.WebAuthnAuthenticatorDataParser;
+import io.openauth.sim.core.fido2.WebAuthnAuthenticatorDataParser.ParsedAuthenticatorData;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
+import io.openauth.sim.core.fido2.WebAuthnExtensionDecoder;
+import io.openauth.sim.core.fido2.WebAuthnExtensionDecoder.ParsedExtensions;
 import io.openauth.sim.core.fido2.WebAuthnRelyingPartyId;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.fido2.WebAuthnStoredCredential;
@@ -20,8 +24,6 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.core.trace.VerboseTrace;
 import io.openauth.sim.core.trace.VerboseTrace.AttributeType;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
@@ -137,6 +139,7 @@ public final class WebAuthnEvaluationApplicationService {
                         canonicalRpId,
                         storedCredential.signatureCounter(),
                         storedCredential.userVerificationRequired());
+                addParseExtensionsStep(trace, authenticatorData);
             }
 
             CoseKeyDetails keyDetails = addConstructCredentialStep(
@@ -268,6 +271,7 @@ public final class WebAuthnEvaluationApplicationService {
                         canonicalRpId,
                         command.signatureCounter(),
                         command.userVerificationRequired());
+                addParseExtensionsStep(trace, authenticatorData);
             }
 
             CoseKeyDetails keyDetails = addConstructCredentialStep(
@@ -610,6 +614,45 @@ public final class WebAuthnEvaluationApplicationService {
         });
     }
 
+    private static void addParseExtensionsStep(VerboseTrace.Builder trace, TraceAuthenticatorData authenticatorData) {
+        if (trace == null || authenticatorData == null) {
+            return;
+        }
+        boolean extensionFlag = authenticatorData.extensionDataIncluded();
+        byte[] extensions = authenticatorData.extensions();
+        ParsedExtensions decoded = WebAuthnExtensionDecoder.decode(extensions);
+        boolean present =
+                extensionFlag && extensions.length > 0 && decoded.error().isEmpty();
+        String extensionsHex = present ? hex(extensions) : "";
+
+        addStep(trace, step -> {
+            step.id("parse.extensions")
+                    .summary("Decode authenticator extensions")
+                    .detail("authenticator extensions")
+                    .spec("webauthn§6.5.5")
+                    .attribute(AttributeType.BOOL, "extensions.present", present)
+                    .attribute("extensions.cbor.hex", extensionsHex);
+
+            if (decoded.residentKey().isPresent()) {
+                step.attribute(
+                        AttributeType.BOOL,
+                        "ext.credProps.rk",
+                        decoded.residentKey().get());
+            }
+            decoded.credProtectPolicy().ifPresent(value -> step.attribute("ext.credProtect.policy", value));
+            decoded.largeBlobKeyBase64().ifPresent(value -> step.attribute("ext.largeBlobKey.b64u", value));
+            decoded.hmacSecretState().ifPresent(value -> step.attribute("ext.hmac-secret", value));
+            decoded.unknownEntries()
+                    .forEach((key, value) -> step.attribute("extensions.unknown." + key, String.valueOf(value)));
+
+            decoded.error().ifPresent(message -> step.note("extensions.decode.error", message));
+            if (extensionFlag && !present && decoded.error().isEmpty()) {
+                step.note("extensions.decode", "empty");
+            }
+            authenticatorData.extensionParseError().ifPresent(message -> step.note("extensions.parse.error", message));
+        });
+    }
+
     private static void addEvaluateCounterStep(VerboseTrace.Builder trace, long previousCounter, long reportedCounter) {
         if (trace == null) {
             return;
@@ -793,16 +836,14 @@ public final class WebAuthnEvaluationApplicationService {
     }
 
     private static TraceAuthenticatorData traceAuthenticatorData(byte[] authenticatorData) {
-        byte[] raw = authenticatorData == null ? new byte[0] : authenticatorData.clone();
-        if (raw.length < 37) {
-            return new TraceAuthenticatorData(raw, new byte[0], 0, 0L);
-        }
-        ByteBuffer buffer = ByteBuffer.wrap(raw).order(ByteOrder.BIG_ENDIAN);
-        byte[] rpIdHash = new byte[32];
-        buffer.get(rpIdHash);
-        int flags = buffer.get() & 0xFF;
-        long counter = buffer.getInt() & 0xFFFFFFFFL;
-        return new TraceAuthenticatorData(raw, rpIdHash, flags, counter);
+        ParsedAuthenticatorData parsed = WebAuthnAuthenticatorDataParser.parse(authenticatorData);
+        return new TraceAuthenticatorData(
+                parsed.raw(),
+                parsed.rpIdHash(),
+                parsed.flags(),
+                parsed.counter(),
+                parsed.extensions(),
+                parsed.extensionsError().orElse(null));
     }
 
     private static Map<String, String> extractJsonValues(String json) {
@@ -999,11 +1040,14 @@ public final class WebAuthnEvaluationApplicationService {
         }
     }
 
-    private record TraceAuthenticatorData(byte[] raw, byte[] rpIdHash, int flags, long counter) {
+    private record TraceAuthenticatorData(
+            byte[] raw, byte[] rpIdHash, int flags, long counter, byte[] extensions, String extensionError) {
 
         private TraceAuthenticatorData {
             raw = raw == null ? new byte[0] : raw.clone();
             rpIdHash = rpIdHash == null ? new byte[0] : rpIdHash.clone();
+            extensions = extensions == null ? new byte[0] : extensions.clone();
+            extensionError = extensionError == null ? "" : extensionError;
         }
 
         @Override
@@ -1014,6 +1058,15 @@ public final class WebAuthnEvaluationApplicationService {
         @Override
         public byte[] rpIdHash() {
             return rpIdHash.clone();
+        }
+
+        @Override
+        public byte[] extensions() {
+            return extensions.clone();
+        }
+
+        Optional<String> extensionParseError() {
+            return extensionError.isBlank() ? Optional.empty() : Optional.of(extensionError);
         }
 
         boolean userPresence() {

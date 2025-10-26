@@ -13,7 +13,7 @@ Move the project build tooling from Gradle 8.10 to 9.1.0 while keeping all modul
 - Java 17 is already the enforced toolchain across modules; Gradle 9 maintains Java 17 as the minimum, so no JDK updates are required.
 - Reproducible archive defaults in Gradle 9 may change artifact ordering, so generated assets (OpenAPI snapshots, docs zips) must be checked after upgrading.
 
-## Increment Breakdown (≤10 minutes each)
+## Increment Breakdown (≤30 minutes each)
 1. **I1 – Governance setup**  
    - Create spec, plan, and tasks artefacts for Feature 030.  
    - Update roadmap and current session snapshot to reflect the new workstream.  
@@ -42,7 +42,7 @@ Move the project build tooling from Gradle 8.10 to 9.1.0 while keeping all modul
    - _Status: Completed 2025-10-19 – No snapshot or artefact diffs detected after the upgrade; roadmap, tasks checklist, and current-session snapshot already reflect the completed increments._
 
 ## Analysis Gate
-- 2025-10-19 – Checklist completed. Specification, plan, and tasks align; no open questions outstanding; tasks map to ≤10-minute increments with tests sequenced before implementation; commands (`./gradlew --warning-mode=all clean check`, `./gradlew wrapper --gradle-version 9.1.0 --distribution-type bin`, `./gradlew --configuration-cache help`) documented; principles and tooling guardrails remain satisfied.
+- 2025-10-19 – Checklist completed. Specification, plan, and tasks align; no open questions outstanding; tasks map to ≤30-minute increments with tests sequenced before implementation; commands (`./gradlew --warning-mode=all clean check`, `./gradlew wrapper --gradle-version 9.1.0 --distribution-type bin`, `./gradlew --configuration-cache help`) documented; principles and tooling guardrails remain satisfied.
 
 ## Dependencies
 - Requires stable Java 17 environment (`JAVA_HOME`) and existing Gradle wrapper installation.  

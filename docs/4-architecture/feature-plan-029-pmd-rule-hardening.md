@@ -19,7 +19,7 @@ _Last updated:_ 2025-10-19
 - Law-of-Demeter whitelist resource (new file under `config/pmd/`) consumed by the PMD plugin.
 - Documentation touchpoints: `AGENTS.md`, `docs/5-operations/analysis-gate-checklist.md`, and any contributor how-to guides referencing lint workflows.
 
-## Increment Breakdown (≤10 minutes each)
+## Increment Breakdown (≤30 minutes each)
 1. **I1 – PMD 7 upgrade baseline**  
    - Bump the PMD toolVersion in `gradle/libs.versions.toml` / `build.gradle.kts` and verify Gradle compatibility (PMD 7 requires Gradle ≥8.6; workspace currently uses 8.10).  
    - Run `./gradlew --no-daemon pmdMain pmdTest` to capture migration fallout (rule name changes, reporting format shifts) before enabling additional rules.  

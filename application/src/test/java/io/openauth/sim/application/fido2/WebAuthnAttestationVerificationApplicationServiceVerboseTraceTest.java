@@ -177,6 +177,11 @@ final class WebAuthnAttestationVerificationApplicationServiceVerboseTraceTest {
                 parseAuthenticatorData.attributes().get("uv.policy.ok"));
         assertEquals(attestation.counter(), parseAuthenticatorData.attributes().get("counter.reported"));
 
+        var parseExtensions = findStep(trace, "parse.extensions");
+        assertEquals("webauthn§6.5.5", parseExtensions.specAnchor());
+        assertEquals(Boolean.FALSE, parseExtensions.attributes().get("extensions.present"));
+        assertEquals("", parseExtensions.attributes().get("extensions.cbor.hex"));
+
         var extractCredential = findStep(trace, "extract.attestedCredential");
         assertEquals("webauthn§7.1", extractCredential.specAnchor());
         assertEquals(

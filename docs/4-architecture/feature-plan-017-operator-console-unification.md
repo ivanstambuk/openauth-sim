@@ -41,7 +41,7 @@ Reference specification: `docs/4-architecture/specs/feature-017-operator-console
 - ☑ R1723 – Update UI scripts/styles to flag zero-added results with warning styling while keeping failures red, then rerun `./gradlew :rest-api:test`. (2025-10-04 – Added warning color token + severity handling; `./gradlew :rest-api:test spotlessApply check` passed.)
 - ☑ R1724 – Relocate the shared operator console stylesheet to `/ui/console/console.css`, adjust Thymeleaf templates, JS fetchers, Selenium helpers, and rerun `./gradlew spotlessApply check`. (2025-10-15 – Stylesheet moved, references updated, quality gate rerun.)
 
-Each increment must stay within ≤10 minutes, lead with tests, and capture notes/telemetry adjustments in this plan as work proceeds.
+Each increment must stay within ≤30 minutes, lead with tests, and capture notes/telemetry adjustments in this plan as work proceeds.
 
 ## Checklist Before Implementation
 - [x] Specification created with clarifications logged.
@@ -90,6 +90,6 @@ Use this section to log telemetry schema additions, performance observations, an
 - [x] Specification completeness – Feature 017 spec documents objectives, functional/non-functional requirements, and captures the latest clarifications (2025-10-03 approvals).
 - [x] Open questions review – `docs/4-architecture/open-questions.md` has no entries for Feature 017.
 - [x] Plan alignment – Plan references the Feature 017 spec and tasks checklist; success criteria mirror OCU-001…OCU-005.
-- [x] Tasks coverage – Tasks T1701–T1706 map to requirements, with tests preceding implementation and ≤10 min scope.
+- [x] Tasks coverage – Tasks T1701–T1706 map to requirements, with tests preceding implementation and ≤30 min scope.
 - [x] Constitution compliance – Work keeps to existing modules, honors spec-first/test-first, and does not introduce new dependencies.
 - [x] Tooling readiness – Plan cites `./gradlew :rest-api:test spotlessApply check`; SpotBugs dead-state enforcement stays active via root `check` invocation.

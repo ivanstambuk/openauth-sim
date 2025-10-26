@@ -3,7 +3,7 @@
 _Status: In Progress_
 _Last updated: 2025-10-04_
 
-## Tasks (≤10 min each)
+## Tasks (≤30 min each)
 - [x] T1601 – Extend Selenium/system suite with failing scenarios for replay navigation + stored credential success path. (_2025-10-03_)
 - [x] T1602 – Add Selenium/system coverage for inline replay success and validation-error paths (expect red until implementation). (_2025-10-03_)
 - [x] T1603 – Introduce MockMvc/WebTestClient tests for replay controller forwarding, covering stored/inline payloads and error handling. (_2025-10-03_)

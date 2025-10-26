@@ -20,7 +20,7 @@ _Last updated:_ 2025-10-12
 - Selenium suites in `rest-api/src/test/java/io/openauth/sim/rest/ui/`.
 - Operator how-to docs under `docs/2-how-to/`.
 
-## Increment Breakdown (≤10 min each)
+## Increment Breakdown (≤30 min each)
 1. **I1 – HOTP presets rename**
    - Update `HotpOperatorSampleData`, `hotp/console.js`, and Thymeleaf templates with the new label format.
    - Refresh HOTP Selenium tests and docs.

@@ -26,7 +26,7 @@ _Last updated:_ 2025-10-21
 - Telemetry contracts must extend `TelemetryContracts` without breaking existing assertion events.
 - Trust anchor handling must accept inline PEM bundles and prepare for optional MDS-sourced metadata without introducing external network calls.
 
-## Increment Breakdown (≤10 min each)
+## Increment Breakdown (≤30 min each)
 _2025-10-19 – T2628 closed: fixture key material now ships as structured JWK objects, the core loader derives canonical scalars from the JWK `d` field, CLI/REST/UI inputs reject legacy Base64-only keys, and `./gradlew spotlessApply check` verified the change. Manual-mode increments (T2618–T2622) remain next up._
 1. **I1 – Fixture + test scaffolding**  
    - Convert targeted W3C and synthetic attestation vectors into per-format JSON fixtures under `docs/webauthn_attestation/` (`packed.json`, `fido-u2f.json`, `tpm.json`, `android-key.json`).  
@@ -249,7 +249,7 @@ _2025-10-19 – T2628 closed: fixture key material now ships as structured JWK o
 - **Open questions review** – No open entries remain for Feature 026 in `open-questions.md`.
 - **Plan alignment** – Stored-mode increments (I26–I30) now implemented across application, CLI, REST, and operator UI; dependencies and success criteria mirror the revised specification.
 - **Tasks coverage** – Tasks checklist reflects completed stored-mode work (T2633–T2635) with verification commands recorded.
-- **Constitution compliance** – Spec-first, clarification gate, and test-first expectations remain in force; newly added increments continue the ≤10-minute cadence with failing tests staged ahead of code.
+- **Constitution compliance** – Spec-first, clarification gate, and test-first expectations remain in force; newly added increments continue the ≤30-minute cadence with failing tests staged ahead of code.
 - **Tooling readiness** – Existing commands remain valid; add targeted `:infra-persistence:test`, stored-mode CLI/REST tests, and Selenium stored-mode specs to the baseline before coding.
 - **Outcome** – Gate reopened for the stored-mode scope; proceed with I26–I30 only after tasks/spec/plan stay in sync and failing tests are staged.
 

@@ -13,16 +13,30 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.AlgorithmParameters;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.MessageDigest;
+import java.security.PrivateKey;
+import java.security.Signature;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPrivateKeySpec;
+import java.security.spec.InvalidKeySpecException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -62,6 +76,10 @@ final class Fido2OperatorUiSeleniumTest {
     private static final String STORED_CREDENTIAL_ID = "packed-es256";
     private static final List<String> CANONICAL_ATTESTATION_SEED_IDS = canonicalAttestationSeedIds();
     private static final WebAuthnAttestationVerifier ATTESTATION_VERIFIER = new WebAuthnAttestationVerifier();
+    private static final String EXTENSIONS_CBOR_HEX =
+            "a4696372656450726f7073a162726bf56a6372656450726f74656374a166706f6c696379026c6c61726765426c6f624b657958200102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f206b686d61632d736563726574f5";
+    private static final byte[] EXTENSIONS_CBOR = hexToBytes(EXTENSIONS_CBOR_HEX);
+    private static final String LARGE_BLOB_KEY_B64U = "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA";
 
     @TempDir
     static Path tempDir;
@@ -1282,7 +1300,7 @@ final class Fido2OperatorUiSeleniumTest {
         awaitVisible(By.cssSelector("[data-testid='fido2-replay-inline-result']"));
         awaitText(
                 By.cssSelector("[data-testid='fido2-replay-inline-result'] [data-testid='fido2-replay-inline-status']"),
-                text -> !"pending".equalsIgnoreCase(text));
+                text -> text != null && !text.isBlank() && !"pending".equalsIgnoreCase(text));
 
         WebElement status = driver.findElement(By.cssSelector(
                 "[data-testid='fido2-replay-inline-result'] [data-testid='fido2-replay-inline-status']"));
@@ -1295,6 +1313,91 @@ final class Fido2OperatorUiSeleniumTest {
                 "[data-testid='fido2-replay-inline-result'] [data-testid='fido2-replay-inline-outcome']"));
         assertThat(reason.getText()).isEqualToIgnoringCase("match");
         assertThat(outcome.getText()).isEqualToIgnoringCase("match");
+    }
+
+    @Test
+    @DisplayName("Verbose trace surfaces WebAuthn extension metadata for inline replay")
+    void verboseTraceSurfacesExtensionMetadataForInlineReplay() throws Exception {
+        navigateToWebAuthnPanel();
+
+        switchToReplayTab();
+
+        WebElement inlineRadio = waitFor(By.cssSelector("[data-testid='fido2-replay-mode-select-inline']"));
+        inlineRadio.click();
+        waitUntilAttribute(By.cssSelector("[data-testid='fido2-replay-mode-toggle']"), "data-mode", "inline");
+
+        By sampleSelectSelector = By.id("fido2ReplayInlineSampleSelect");
+        new WebDriverWait(driver, Duration.ofSeconds(3))
+                .until(ExpectedConditions.elementToBeClickable(sampleSelectSelector));
+        WebElement sampleElement = driver.findElement(sampleSelectSelector);
+        Select sampleSelect = new Select(sampleElement);
+        boolean hasSample = sampleSelect.getOptions().stream()
+                .anyMatch(option -> STORED_CREDENTIAL_ID.equals(option.getAttribute("value")));
+        if (!hasSample) {
+            throw new IllegalStateException("Missing inline sample option for " + STORED_CREDENTIAL_ID);
+        }
+        sampleSelect.selectByValue(STORED_CREDENTIAL_ID);
+        dispatchChange(sampleElement);
+
+        awaitValue(By.id("fido2ReplayInlineAuthenticatorData"), value -> value != null && !value.isBlank());
+        awaitValue(By.id("fido2ReplayInlineSignature"), value -> value != null && !value.isBlank());
+
+        Sample sample = WebAuthnGeneratorSamples.findByKey(STORED_CREDENTIAL_ID)
+                .orElseThrow(() -> new IllegalStateException("Missing generator sample " + STORED_CREDENTIAL_ID));
+
+        byte[] extendedAuthenticator = extendAuthenticatorData(sample.authenticatorData(), EXTENSIONS_CBOR);
+        byte[] signature = signAssertion(
+                sample.privateKeyJwk(), sample.algorithm(), extendedAuthenticator, sample.clientDataJson());
+
+        String extendedAuthenticatorBase64 = URL_ENCODER.encodeToString(extendedAuthenticator);
+        String signatureBase64 = URL_ENCODER.encodeToString(signature);
+
+        List<WebElement> verboseCheckboxes =
+                driver.findElements(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
+        assertThat(verboseCheckboxes).isNotEmpty();
+        WebElement verboseCheckbox = verboseCheckboxes.get(0);
+        if (!verboseCheckbox.isSelected()) {
+            verboseCheckbox.click();
+        }
+        assertThat(verboseCheckbox.isSelected())
+                .as("Verbose trace checkbox should be enabled before replay submission")
+                .isTrue();
+
+        setFieldValue(By.id("fido2ReplayInlineAuthenticatorData"), extendedAuthenticatorBase64);
+        setFieldValue(By.id("fido2ReplayInlineSignature"), signatureBase64);
+
+        awaitValue(By.id("fido2ReplayInlineAuthenticatorData"), value -> extendedAuthenticatorBase64.equals(value));
+        awaitValue(By.id("fido2ReplayInlineSignature"), value -> signatureBase64.equals(value));
+
+        WebElement submitButton = waitFor(By.cssSelector("[data-testid='fido2-replay-inline-submit']"));
+        submitButton.click();
+
+        By inlineStatusSelector =
+                By.cssSelector("[data-testid='fido2-replay-inline-result'] [data-testid='fido2-replay-inline-status']");
+        awaitText(inlineStatusSelector, text -> !text.isBlank() && !"pending".equalsIgnoreCase(text));
+        WebElement status = waitFor(inlineStatusSelector);
+        assertThat(status.getText()).isEqualToIgnoringCase("match");
+
+        WebElement tracePanel = waitFor(By.cssSelector("[data-testid='verbose-trace-panel']"));
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(webDriver -> "true".equals(tracePanel.getAttribute("data-trace-visible")));
+        assertThat(tracePanel.getAttribute("data-trace-visible")).isEqualTo("true");
+
+        WebElement traceOperation = waitFor(By.cssSelector("[data-testid='verbose-trace-operation']"));
+        assertThat(traceOperation.getText().trim()).isEqualTo("fido2.assertion.evaluate.inline");
+
+        WebElement traceContent = waitFor(By.cssSelector("[data-testid='verbose-trace-content']"));
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(webDriver -> traceContent.getText().contains("ext.hmac-secret = requested"));
+
+        String traceText = traceContent.getText();
+        assertThat(traceText).contains("parse.extensions");
+        assertThat(traceText).contains("  extensions.present = true");
+        assertThat(traceText).contains("  extensions.cbor.hex = " + EXTENSIONS_CBOR_HEX);
+        assertThat(traceText).contains("  ext.credProps.rk = true");
+        assertThat(traceText).contains("  ext.credProtect.policy = required");
+        assertThat(traceText).contains("  ext.largeBlobKey.b64u = " + LARGE_BLOB_KEY_B64U);
+        assertThat(traceText).contains("  ext.hmac-secret = requested");
     }
 
     @Test
@@ -1519,6 +1622,127 @@ final class Fido2OperatorUiSeleniumTest {
                 serialized.updatedAt());
 
         credentialStore.save(persisted);
+    }
+
+    private static byte[] extendAuthenticatorData(byte[] authenticatorData, byte[] extensions) {
+        byte[] original = authenticatorData == null ? new byte[0] : authenticatorData;
+        if (original.length < 33) {
+            throw new IllegalArgumentException("Authenticator data must include RP ID hash and flags");
+        }
+        byte[] extended = Arrays.copyOf(original, original.length + extensions.length);
+        extended[32] = (byte) (extended[32] | 0x80);
+        System.arraycopy(extensions, 0, extended, original.length, extensions.length);
+        return extended;
+    }
+
+    private static byte[] signAssertion(
+            String privateKeyJwk,
+            WebAuthnSignatureAlgorithm algorithm,
+            byte[] authenticatorData,
+            byte[] clientDataJson) {
+        try {
+            PrivateKey privateKey = privateKeyFromJwk(privateKeyJwk, algorithm);
+            Signature signature = signatureFor(algorithm);
+            signature.initSign(privateKey);
+            byte[] clientDataHash = MessageDigest.getInstance("SHA-256").digest(clientDataJson);
+            signature.update(concat(authenticatorData, clientDataHash));
+            return signature.sign();
+        } catch (GeneralSecurityException ex) {
+            throw new IllegalStateException("Unable to sign assertion with extensions", ex);
+        }
+    }
+
+    private static PrivateKey privateKeyFromJwk(String jwk, WebAuthnSignatureAlgorithm algorithm)
+            throws GeneralSecurityException {
+        Map<String, Object> map = parseJwk(jwk);
+        String curve = requireString(map, "crv");
+        if (!curve.equalsIgnoreCase(namedCurveLabel(algorithm))) {
+            throw new IllegalArgumentException(
+                    "JWK curve " + curve + " does not match expected " + namedCurveLabel(algorithm));
+        }
+        AlgorithmParameters parameters = AlgorithmParameters.getInstance("EC");
+        parameters.init(new ECGenParameterSpec(curveName(algorithm)));
+        ECParameterSpec parameterSpec = parameters.getParameterSpec(ECParameterSpec.class);
+        byte[] scalar = decodeField(map, "d");
+        ECPrivateKeySpec keySpec = new ECPrivateKeySpec(new BigInteger(1, scalar), parameterSpec);
+        try {
+            return KeyFactory.getInstance("EC").generatePrivate(keySpec);
+        } catch (InvalidKeySpecException ex) {
+            throw new GeneralSecurityException("Unable to materialise EC private key from JWK", ex);
+        }
+    }
+
+    private static Map<String, Object> parseJwk(String jwk) {
+        Object parsed = SimpleJson.parse(jwk);
+        if (!(parsed instanceof Map<?, ?> map)) {
+            throw new IllegalStateException("Expected JSON object for JWK");
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        map.forEach((key, value) -> result.put(String.valueOf(key), value));
+        return result;
+    }
+
+    private static byte[] decodeField(Map<String, Object> jwk, String field) {
+        Object value = jwk.get(field);
+        if (!(value instanceof String str) || str.isBlank()) {
+            throw new IllegalStateException("Missing JWK field: " + field);
+        }
+        return Base64.getUrlDecoder().decode(str);
+    }
+
+    private static Signature signatureFor(WebAuthnSignatureAlgorithm algorithm) throws GeneralSecurityException {
+        return switch (algorithm) {
+            case ES256 -> Signature.getInstance("SHA256withECDSA");
+            case ES384 -> Signature.getInstance("SHA384withECDSA");
+            case ES512 -> Signature.getInstance("SHA512withECDSA");
+            case RS256 -> Signature.getInstance("SHA256withRSA");
+            case PS256 -> Signature.getInstance("RSASSA-PSS");
+            case EDDSA -> Signature.getInstance("Ed25519");
+        };
+    }
+
+    private static byte[] concat(byte[] left, byte[] right) {
+        byte[] combined = Arrays.copyOf(left, left.length + right.length);
+        System.arraycopy(right, 0, combined, left.length, right.length);
+        return combined;
+    }
+
+    private static String requireString(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value instanceof String str && !str.isBlank()) {
+            return str;
+        }
+        throw new IllegalArgumentException("Missing JWK field: " + key);
+    }
+
+    private static String namedCurveLabel(WebAuthnSignatureAlgorithm algorithm) {
+        return switch (algorithm) {
+            case ES256 -> "P-256";
+            case ES384 -> "P-384";
+            case ES512 -> "P-521";
+            case RS256, PS256, EDDSA ->
+                throw new IllegalArgumentException("Unsupported algorithm for EC curve: " + algorithm);
+        };
+    }
+
+    private static String curveName(WebAuthnSignatureAlgorithm algorithm) {
+        return switch (algorithm) {
+            case ES256 -> "secp256r1";
+            case ES384 -> "secp384r1";
+            case ES512 -> "secp521r1";
+            default -> throw new IllegalArgumentException("Unsupported EC algorithm for PEM conversion: " + algorithm);
+        };
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        if (hex == null || hex.length() % 2 != 0) {
+            throw new IllegalArgumentException("Hex string must have even length");
+        }
+        byte[] bytes = new byte[hex.length() / 2];
+        for (int index = 0; index < hex.length(); index += 2) {
+            bytes[index / 2] = (byte) Integer.parseInt(hex.substring(index, index + 2), 16);
+        }
+        return bytes;
     }
 
     private void navigateToWebAuthnPanel() {

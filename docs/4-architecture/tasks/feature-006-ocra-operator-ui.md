@@ -5,7 +5,7 @@ _Last updated: 2025-10-12_
 
 ## Execution Notes
 - Specification: `docs/4-architecture/specs/feature-006-ocra-operator-ui.md`.
-- Keep each task ≤10 minutes; commit after every passing build.
+- Keep each task ≤30 minutes; commit after every passing build.
 - Follow test-first cadence: add/extend MVC tests before implementing controllers/templates.
 - Capture telemetry/logging decisions in plan/spec if adjustments arise.
 - 2025-09-29: Fetch submission flow implemented with tests + polyfill; Selenium coverage updated; docs refreshed to describe JS-only workflow.

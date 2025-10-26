@@ -25,7 +25,7 @@ _Last updated:_ 2025-10-15
 - Core verification suites must continue to execute against both datasets (`webauthn_w3c_vectors.json` + `webauthn_assertion_vectors.json`) so fixture parity is enforced independently of UI preferences.
 - JSON bundle stores high-entropy payloads as 16-character base64url segments to satisfy gitleaks; ingest utilities must join segments before verification.
 
-## Increment Breakdown (≤10 min each)
+## Increment Breakdown (≤30 min each)
 Each increment stages failing tests first, drives implementation to green, and runs `./gradlew spotlessApply check`.
 
 1. **I1 – Fixture bootstrap (tests only)**  

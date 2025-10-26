@@ -7,7 +7,7 @@ _Last updated: 2025-09-28_
 - Follow the specification in `docs/4-architecture/specs/feature-002-persistence-hardening.md`.
 - Work remains within the `CredentialStore` abstraction; new public APIs require explicit approval.
 - Maintain secret redaction in all logs/metrics and ensure benchmarks do not persist sensitive data.
-- Keep increments ≤10 minutes, run `./gradlew spotlessApply check`, and record benchmark outputs in the feature plan.
+- Keep increments ≤30 minutes, run `./gradlew spotlessApply check`, and record benchmark outputs in the feature plan.
 
 ## Phase 0 – Foundations
 | ID | Task | Related Requirements | Parallel? |

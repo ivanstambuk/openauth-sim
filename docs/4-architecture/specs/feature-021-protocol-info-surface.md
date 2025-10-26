@@ -8,7 +8,7 @@ Introduce an "Info" drawer for every protocol tab in the operator console so use
 
 ## Clarifications
 - 2025-10-04 – Drawer target width fixed at 520 px to satisfy the "open further to the left" requirement (user directive).
-- 2025-10-04 – Implementation must follow existing operating procedures (spec/plan/tasks, ≤10 minute increments, Gradle checks, no new prompts/docs outside feature scope) (user directive).
+- 2025-10-04 – Implementation must follow existing operating procedures (spec/plan/tasks, ≤30 minute increments, Gradle checks, no new prompts/docs outside feature scope) (user directive).
 - 2025-10-04 – The supplied prompt serves as the UX/content baseline; all requirements listed there must appear in this feature’s deliverables (user directive).
 - 2025-10-04 – React wrapper requirement removed; ship vanilla DOM API integration guidance instead of a React component (user directive).
 - 2025-10-04 – Size monitoring is out of scope; ship embeddable assets without minification/gzip checks (user directive).

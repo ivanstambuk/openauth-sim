@@ -26,7 +26,7 @@ _Last updated: 2025-10-02_
 | T1418 | Create `core-ocra` module, move OCRA descriptors/registry/migrations, and update dependent module wiring. | AH-004 | ✅ (2025-10-02 – `core-ocra` module established, ocra sources/tests relocated, builder helper added, CLI/REST/UI wired.) |
 | T1419 | Refresh root Gradle (settings, PIT/Jacoco) and ArchUnit rules; run `architectureTest` before `qualityGate`. | AH-004, AH-NFR-001 | ✅ (2025-10-02 – Added `core-ocra` to aggregated coverage/PIT, architecture guard green, `qualityGate` (branches 90.42 %, lines 96.91 %, PIT 91 %) passes.) |
 
-Update this checklist after each increment, ensuring tasks remain ≤10 minutes and tests precede implementation work.
+Update this checklist after each increment, ensuring tasks remain ≤30 minutes and tests precede implementation work.
 
 ### Planning Notes – T1408/T1409 (2025-10-02)
 - Create `TelemetryContractArchitectureTest` in `core-architecture-tests` that currently fails, asserting CLI/REST/UI depend only on `application.telemetry` adapters rather than bespoke loggers.

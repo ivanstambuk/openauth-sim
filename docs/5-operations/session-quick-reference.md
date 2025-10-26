@@ -25,7 +25,7 @@ You’re resuming work on [project/workstream identifier]. Core context:
 - Pending scope: [next planned increments/tasks], including failing tests to stage, implementation goals, telemetry/observability requirements, and documentation updates.
 - Git state: [branch], staged files [list or “clean”], outstanding TODOs [if any].
 - Next steps you should take now: [ordered checklist, e.g., “1. Stage failing tests for … 2. Implement … 3. Update docs …”].
-- Reminders: keep increments ≤10 minutes, update docs (spec/plan/tasks/roadmap), run `./gradlew --no-daemon spotlessApply check` before commits, capture telemetry/trust-anchor decisions (if relevant), and document open questions in `docs/4-architecture/open-questions.md`.
+- Reminders: keep increments ≤30 minutes, update docs (spec/plan/tasks/roadmap), run `./gradlew --no-daemon spotlessApply check` before commits, capture telemetry/trust-anchor decisions (if relevant), and document open questions in `docs/4-architecture/open-questions.md`.
 ```
     
 > Tip: Retros for new sessions should paste the filled template into the opening message so successors inherit complete context.

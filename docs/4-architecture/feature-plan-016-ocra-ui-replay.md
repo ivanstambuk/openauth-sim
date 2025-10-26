@@ -37,7 +37,7 @@ Reference specification: `docs/4-architecture/specs/feature-016-ocra-ui-replay.m
 - ☑ R1618 – Refresh documentation/knowledge map/spec entries for the button removal and rerun targeted tests + `spotlessApply check`. (2025-10-04 – Docs/specs updated; replay Selenium + spotless/check rerun.)
 - ☑ R1619 – Remove the replay metadata "Mode" row (retain reason/outcome), update UI/JS/tests, and rerun `./gradlew :rest-api:test spotlessApply check`. (2025-10-04 – Mode row removed; reason/outcome retained with tests and quality gate rerun.)
 
-Each increment should take ≤10 minutes and finish with the relevant tests red→green before moving on.
+Each increment should take ≤30 minutes and finish with the relevant tests red→green before moving on.
 
 ## Checklist Before Implementation
 - [x] Specification updated with clarifications and requirements (`feature-016-ocra-ui-replay.md`).

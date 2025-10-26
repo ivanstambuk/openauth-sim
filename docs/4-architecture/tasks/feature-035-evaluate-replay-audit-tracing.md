@@ -118,6 +118,25 @@ _Last updated:_ 2025-10-25
 ☐ **T3520 – Documentation & follow-up logging**  
  ☐ Update operator/CLI/REST docs with enriched trace examples, note the tier metadata, and record the redaction-toggle follow-up.  
 ☑ Sync knowledge map and `_current-session.md` with the enrichment outcomes.  
+
+☐ **T3541 – WebAuthn extensions trace tests (red)**  
+ ☐ Extend application verbose trace suites (assertion + attestation) with fixtures where `flags.bits.ED = true` capturing `parse.extensions` step, `extensions.present`, raw CBOR hex, and decoded attributes (`ext.credProps.rk`, `ext.credProtect.policy`, `ext.largeBlobKey.b64u`, `ext.hmac-secret`).  
+ ☐ Propagate expectations to CLI verbose trace tests and REST endpoint JSON assertions; update operator UI Selenium snapshot to require the new fields.  
+ ☐ Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest" :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest" :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test" --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` (expected red).
+ ☑ 2025-10-25 – CLI (`Fido2CliVerboseTraceTest`) and REST (`Fido2ReplayEndpointTest`) suites now assert the presence of `parse.extensions` with decoded credProps/credProtect/largeBlob/hmac-secret metadata.  
+ ☑ 2025-10-25 – UI Selenium (`Fido2OperatorUiSeleniumTest.verboseTraceSurfacesExtensionMetadataForInlineReplay`) verifies verbose inline replay surfaces `parse.extensions` with credProps/credProtect/largeBlob/hmac-secret attributes; remains red pending shared parser implementation.
+
+☐ **T3542 – WebAuthn extensions parsing & trace implementation (green)**  
+	☐ Share a reusable authenticator-data parser that exposes extension CBOR bytes for assertion and attestation flows; decode known extension keys into typed values while capturing unknown entries.  
+	☐ Implement the `parse.extensions` trace step in application services and update CLI/REST trace formatter ordering; ensure unknown entries surface under `extensions.unknown` or similar map.  
+	☑ Adjusted Selenium inline replay coverage to wait for non-pending badge text (eliminating the race with the fetch response) so the existing UI update is asserted reliably.  
+		- Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2ReplayEndpointTest.inlineReplayWithExtensionsReturnsExtensionMetadata"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.verboseTraceSurfacesExtensionMetadataForInlineReplay"`
+	☐ Rerun targeted suites until green: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.*" :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest" :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest" :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test"`.
+
+☐ **T3543 – Facade documentation & trace sample sync**  
+ ☐ Refresh REST/CLI/operator UI guides with extension-aware trace snippets; regenerate OpenAPI snapshots if payload schema changes.  
+ ☐ Update `_current-session.md`, feature plan, and knowledge map with extension-handling notes; complete T3520 if documentation overlap resolves.  
+ ☐ Execute `./gradlew --no-daemon spotlessApply check` and annotate commands in plan/task logs.
 ☑ Command: `./gradlew --no-daemon spotlessApply`
 
 ☑ **T3524 – OCRA operator console verbose integration**  

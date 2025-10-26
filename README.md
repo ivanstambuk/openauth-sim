@@ -38,7 +38,7 @@ The default build disables Error Prone for now because plugin 3.1.0 and recent E
 
 ### Conventions
 
-- All contributions happen in small, self-contained steps (&lt;10 minutes), each followed by `spotlessApply check` and a conventional commit.
+- All contributions happen in small, self-contained steps (&lt;30 minutes), each followed by `spotlessApply check` and a conventional commit.
 - Tests must either pass or be explicitly disabled with a follow-up issue/ADR explaining the deferral.
 - Secrets and credential material are injected through the API/CLI/REST layers (no static configuration files). Persistence is MapDB on-disk with in-memory caching; future adapters can be added behind `CredentialStore`.
 

@@ -10,6 +10,7 @@ import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnFixtures;
 import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
@@ -20,8 +21,17 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.AlgorithmParameters;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPrivateKeySpec;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -35,6 +45,10 @@ import picocli.CommandLine;
 final class Fido2CliVerboseTraceTest {
 
     private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
+    private static final String EXTENSIONS_CBOR_HEX =
+            "a4696372656450726f7073a162726bf56a6372656450726f74656374a166706f6c696379026c6c61726765426c6f624b657958200102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f206b686d61632d736563726574f5";
+    private static final byte[] EXTENSIONS_CBOR = hexToBytes(EXTENSIONS_CBOR_HEX);
+    private static final String LARGE_BLOB_KEY_B64U = "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA";
 
     @TempDir
     Path tempDir;
@@ -122,6 +136,8 @@ final class Fido2CliVerboseTraceTest {
         long reportedCounter = counterFromAuthenticatorData(authenticatorData);
         assertTrue(stdout.contains("  counter.stored = " + storedCounter), stdout);
         assertTrue(stdout.contains("  counter.reported = " + reportedCounter), stdout);
+        assertTrue(stdout.contains("  extensions.present = false"), stdout);
+        assertTrue(stdout.contains("  extensions.cbor.hex = "), stdout);
 
         byte[] clientDataHash = sha256Bytes(fixture.request().clientDataJson());
         byte[] signaturePayload = concat(authenticatorData, clientDataHash);
@@ -169,6 +185,53 @@ final class Fido2CliVerboseTraceTest {
         assertTrue(stdout.contains("  verify.ok = true"), stdout);
         assertTrue(stdout.contains("  valid = true"), stdout);
         assertTrue(stdout.contains("=== End Verbose Trace ==="), stdout);
+    }
+
+    @Test
+    void replayStoredEmitsExtensionDetailsWhenPresent() throws Exception {
+        Path database = tempDir.resolve("fido2-extensions.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
+        harness.save("fido2-packed-es256", fixture, WebAuthnSignatureAlgorithm.ES256);
+
+        byte[] extendedAuthenticatorData =
+                extendAuthenticatorData(fixture.request().authenticatorData(), EXTENSIONS_CBOR);
+        byte[] signature = signAssertion(
+                fixture.credentialPrivateKeyJwk(),
+                fixture.algorithm(),
+                extendedAuthenticatorData,
+                fixture.request().clientDataJson());
+
+        int exitCode = harness.execute(
+                "replay",
+                "--credential-id",
+                "fido2-packed-es256",
+                "--relying-party-id",
+                "example.org",
+                "--origin",
+                "https://example.org",
+                "--type",
+                fixture.request().expectedType(),
+                "--expected-challenge",
+                encode(fixture.request().expectedChallenge()),
+                "--client-data",
+                encode(fixture.request().clientDataJson()),
+                "--authenticator-data",
+                encode(extendedAuthenticatorData),
+                "--signature",
+                encode(signature),
+                "--verbose");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("parse.extensions"), stdout);
+        assertTrue(stdout.contains("  extensions.present = true"), stdout);
+        assertTrue(stdout.contains("  extensions.cbor.hex = " + EXTENSIONS_CBOR_HEX), stdout);
+        assertTrue(stdout.contains("  ext.credProps.rk = true"), stdout);
+        assertTrue(stdout.contains("  ext.credProtect.policy = required"), stdout);
+        assertTrue(stdout.contains("  ext.largeBlobKey.b64u = " + LARGE_BLOB_KEY_B64U), stdout);
+        assertTrue(stdout.contains("  ext.hmac-secret = requested"), stdout);
     }
 
     @Test
@@ -347,6 +410,111 @@ final class Fido2CliVerboseTraceTest {
             return bigInteger.toByteArray();
         }
         throw new IllegalArgumentException("Missing byte field " + key);
+    }
+
+    private static byte[] extendAuthenticatorData(byte[] authenticatorData, byte[] extensions) {
+        byte[] original = authenticatorData == null ? new byte[0] : authenticatorData;
+        if (original.length < 33) {
+            throw new IllegalArgumentException("Authenticator data must contain RP ID hash and flags");
+        }
+        byte[] extended = Arrays.copyOf(original, original.length + extensions.length);
+        extended[32] = (byte) (extended[32] | 0x80);
+        System.arraycopy(extensions, 0, extended, original.length, extensions.length);
+        return extended;
+    }
+
+    private static byte[] signAssertion(
+            String privateKeyJwk,
+            WebAuthnSignatureAlgorithm algorithm,
+            byte[] authenticatorData,
+            byte[] clientDataJson) {
+        try {
+            PrivateKey privateKey = privateKeyFromJwk(privateKeyJwk, algorithm);
+            Signature signature = signatureFor(algorithm);
+            signature.initSign(privateKey);
+            byte[] clientDataHash = sha256Bytes(clientDataJson);
+            byte[] payload = concat(authenticatorData, clientDataHash);
+            signature.update(payload);
+            return signature.sign();
+        } catch (GeneralSecurityException ex) {
+            throw new IllegalStateException("Unable to sign assertion with extensions", ex);
+        }
+    }
+
+    private static PrivateKey privateKeyFromJwk(String jwk, WebAuthnSignatureAlgorithm algorithm)
+            throws GeneralSecurityException {
+        Object parsed = SimpleJson.parse(jwk);
+        if (!(parsed instanceof Map<?, ?> rawMap)) {
+            throw new IllegalArgumentException("JWK must be a JSON object");
+        }
+        Map<String, Object> map = new LinkedHashMap<>();
+        rawMap.forEach((key, value) -> map.put(String.valueOf(key), value));
+        String d = requireString(map, "d");
+        String curve = requireString(map, "crv");
+        if (!curve.equalsIgnoreCase(namedCurveLabel(algorithm))) {
+            throw new IllegalArgumentException(
+                    "JWK curve " + curve + " does not match expected " + namedCurveLabel(algorithm));
+        }
+        AlgorithmParameters parameters = AlgorithmParameters.getInstance("EC");
+        parameters.init(new ECGenParameterSpec(curveName(algorithm)));
+        ECParameterSpec parameterSpec = parameters.getParameterSpec(ECParameterSpec.class);
+        byte[] scalar = Base64.getUrlDecoder().decode(d);
+        ECPrivateKeySpec keySpec = new ECPrivateKeySpec(new BigInteger(1, scalar), parameterSpec);
+        try {
+            return KeyFactory.getInstance("EC").generatePrivate(keySpec);
+        } catch (InvalidKeySpecException ex) {
+            throw new GeneralSecurityException("Unable to materialise EC private key from JWK", ex);
+        }
+    }
+
+    private static Signature signatureFor(WebAuthnSignatureAlgorithm algorithm) throws GeneralSecurityException {
+        return switch (algorithm) {
+            case ES256 -> Signature.getInstance("SHA256withECDSA");
+            case ES384 -> Signature.getInstance("SHA384withECDSA");
+            case ES512 -> Signature.getInstance("SHA512withECDSA");
+            case RS256 -> Signature.getInstance("SHA256withRSA");
+            case PS256 -> Signature.getInstance("RSASSA-PSS");
+            case EDDSA -> Signature.getInstance("Ed25519");
+        };
+    }
+
+    private static String curveName(WebAuthnSignatureAlgorithm algorithm) {
+        return switch (algorithm) {
+            case ES256 -> "secp256r1";
+            case ES384 -> "secp384r1";
+            case ES512 -> "secp521r1";
+            case RS256, PS256, EDDSA ->
+                throw new IllegalArgumentException("Unsupported algorithm for EC curve: " + algorithm);
+        };
+    }
+
+    private static String namedCurveLabel(WebAuthnSignatureAlgorithm algorithm) {
+        return switch (algorithm) {
+            case ES256 -> "P-256";
+            case ES384 -> "P-384";
+            case ES512 -> "P-521";
+            case RS256, PS256, EDDSA ->
+                throw new IllegalArgumentException("Unsupported algorithm for EC curve: " + algorithm);
+        };
+    }
+
+    private static String requireString(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value instanceof String string && !string.isBlank()) {
+            return string;
+        }
+        throw new IllegalArgumentException("Missing JWK field: " + key);
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        if (hex == null || hex.length() % 2 != 0) {
+            throw new IllegalArgumentException("Hex string must have even length");
+        }
+        byte[] bytes = new byte[hex.length() / 2];
+        for (int i = 0; i < hex.length(); i += 2) {
+            bytes[i / 2] = (byte) Integer.parseInt(hex.substring(i, i + 2), 16);
+        }
+        return bytes;
     }
 
     private static String coseKeyTypeName(int keyType) {

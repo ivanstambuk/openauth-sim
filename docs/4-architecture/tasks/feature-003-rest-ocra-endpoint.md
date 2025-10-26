@@ -5,7 +5,7 @@ _Last updated: 2025-09-30_
 
 ## Execution Notes
 - Follow the specification in `docs/4-architecture/specs/feature-003-rest-ocra-evaluation-endpoint.md`.
-- Keep each task ≤10 minutes and commit after every passing `./gradlew spotlessApply check`.
+- Keep each task ≤30 minutes and commit after every passing `./gradlew spotlessApply check`.
 - Drive development test-first: add failing integration/unit coverage before wiring the endpoint.
 - Maintain log/telemetry redaction; assert via tests before shipping.
 

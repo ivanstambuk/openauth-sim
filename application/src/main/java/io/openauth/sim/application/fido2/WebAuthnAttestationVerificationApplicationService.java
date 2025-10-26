@@ -8,14 +8,17 @@ import io.openauth.sim.core.fido2.CoseKeyInspector.CoseKeyDetails;
 import io.openauth.sim.core.fido2.SignatureInspector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
+import io.openauth.sim.core.fido2.WebAuthnAuthenticatorDataParser;
+import io.openauth.sim.core.fido2.WebAuthnAuthenticatorDataParser.AttestedCredentialData;
+import io.openauth.sim.core.fido2.WebAuthnAuthenticatorDataParser.ParsedAuthenticatorData;
+import io.openauth.sim.core.fido2.WebAuthnExtensionDecoder;
+import io.openauth.sim.core.fido2.WebAuthnExtensionDecoder.ParsedExtensions;
 import io.openauth.sim.core.fido2.WebAuthnRelyingPartyId;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.fido2.WebAuthnVerificationError;
 import io.openauth.sim.core.trace.VerboseTrace;
 import io.openauth.sim.core.trace.VerboseTrace.AttributeType;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
@@ -145,6 +148,7 @@ public final class WebAuthnAttestationVerificationApplicationService {
                     .orElse(null);
             addParseAuthenticatorDataStep(
                     trace, attestationComponents, submittedRpId, canonicalRpId, userVerificationRequired);
+            addParseExtensionsStep(trace, attestationComponents);
             byte[] clientDataHash = clientData == null ? sha256(command.clientDataJson()) : clientData.hash();
             addSignatureBaseStep(trace, attestationComponents.authData(), clientDataHash);
         }
@@ -400,6 +404,40 @@ public final class WebAuthnAttestationVerificationApplicationService {
         });
     }
 
+    private static void addParseExtensionsStep(VerboseTrace.Builder trace, AttestationComponents components) {
+        if (trace == null || !components.hasAuthData()) {
+            return;
+        }
+        boolean extensionFlag = components.extensionDataIncluded();
+        byte[] extensions = components.extensions();
+        ParsedExtensions decoded = WebAuthnExtensionDecoder.decode(extensions);
+        boolean present =
+                extensionFlag && extensions.length > 0 && decoded.error().isEmpty();
+        String extensionsHex = present ? hex(extensions) : "";
+
+        addStep(trace, step -> {
+            step.id("parse.extensions")
+                    .summary("Decode authenticator extensions")
+                    .detail("authenticator extensions")
+                    .spec("webauthn§6.5.5")
+                    .attribute(AttributeType.BOOL, "extensions.present", present)
+                    .attribute("extensions.cbor.hex", extensionsHex);
+
+            decoded.residentKey().ifPresent(value -> step.attribute(AttributeType.BOOL, "ext.credProps.rk", value));
+            decoded.credProtectPolicy().ifPresent(value -> step.attribute("ext.credProtect.policy", value));
+            decoded.largeBlobKeyBase64().ifPresent(value -> step.attribute("ext.largeBlobKey.b64u", value));
+            decoded.hmacSecretState().ifPresent(value -> step.attribute("ext.hmac-secret", value));
+            decoded.unknownEntries()
+                    .forEach((key, value) -> step.attribute("extensions.unknown." + key, String.valueOf(value)));
+
+            decoded.error().ifPresent(message -> step.note("extensions.decode.error", message));
+            if (extensionFlag && !present && decoded.error().isEmpty()) {
+                step.note("extensions.decode", "empty");
+            }
+            components.extensionParseError().ifPresent(message -> step.note("extensions.parse.error", message));
+        });
+    }
+
     private static CoseKeyDetails addExtractAttestedCredentialStep(
             VerboseTrace.Builder trace,
             AttestationComponents components,
@@ -478,6 +516,9 @@ public final class WebAuthnAttestationVerificationApplicationService {
             } else if (finalDecodeError != null) {
                 step.note("coseDecodeError", finalDecodeError);
             }
+            components
+                    .attestedCredentialParseError()
+                    .ifPresent(message -> step.note("attestedCredential.parse.error", message));
         });
         return details;
     }
@@ -661,39 +702,13 @@ public final class WebAuthnAttestationVerificationApplicationService {
     }
 
     private static AttestationComponents parseAuthData(byte[] authData) {
-        if (authData == null || authData.length < 37) {
-            return AttestationComponents.empty();
-        }
-        ByteBuffer buffer = ByteBuffer.wrap(authData).order(ByteOrder.BIG_ENDIAN);
-        byte[] rpIdHash = new byte[32];
-        buffer.get(rpIdHash);
-        int flags = buffer.get() & 0xFF;
-        long counter = buffer.getInt() & 0xFFFFFFFFL;
-        byte[] aaguid = new byte[16];
-        byte[] credentialId;
-        byte[] credentialPublicKey;
-
-        if ((flags & 0x40) != 0) {
-            if (buffer.remaining() < 18) {
-                return new AttestationComponents(
-                        authData, rpIdHash, flags, counter, new byte[0], new byte[0], new byte[0]);
-            }
-            buffer.get(aaguid);
-            int credentialIdLength = Short.toUnsignedInt(buffer.getShort());
-            if (buffer.remaining() < credentialIdLength) {
-                return new AttestationComponents(authData, rpIdHash, flags, counter, aaguid, new byte[0], new byte[0]);
-            }
-            credentialId = new byte[credentialIdLength];
-            buffer.get(credentialId);
-            credentialPublicKey = new byte[buffer.remaining()];
-            buffer.get(credentialPublicKey);
-        } else {
-            credentialId = new byte[0];
-            credentialPublicKey = new byte[buffer.remaining()];
-            buffer.get(credentialPublicKey);
-        }
-
-        return new AttestationComponents(authData, rpIdHash, flags, counter, aaguid, credentialId, credentialPublicKey);
+        ParsedAuthenticatorData parsed = WebAuthnAuthenticatorDataParser.parse(authData);
+        Optional<AttestedCredentialData> attested = parsed.attestedCredential();
+        byte[] aaguid = attested.map(AttestedCredentialData::aaguid).orElse(new byte[0]);
+        byte[] credentialId = attested.map(AttestedCredentialData::credentialId).orElse(new byte[0]);
+        byte[] credentialPublicKey =
+                attested.map(AttestedCredentialData::credentialPublicKey).orElse(new byte[0]);
+        return new AttestationComponents(parsed, aaguid, credentialId, credentialPublicKey);
     }
 
     private static WebAuthnSignatureAlgorithm resolveAlgorithm(
@@ -926,78 +941,92 @@ public final class WebAuthnAttestationVerificationApplicationService {
     }
 
     private record AttestationComponents(
-            byte[] authData,
-            byte[] rpIdHash,
-            int flags,
-            long counter,
-            byte[] aaguid,
-            byte[] credentialId,
-            byte[] credentialPublicKey) {
+            ParsedAuthenticatorData parsed, byte[] aaguid, byte[] credentialId, byte[] credentialPublicKey) {
 
         private AttestationComponents {
-            authData = authData == null ? new byte[0] : authData.clone();
-            rpIdHash = rpIdHash == null ? new byte[0] : rpIdHash.clone();
+            parsed = parsed == null ? WebAuthnAuthenticatorDataParser.parse(new byte[0]) : parsed;
             aaguid = aaguid == null ? new byte[0] : aaguid.clone();
             credentialId = credentialId == null ? new byte[0] : credentialId.clone();
             credentialPublicKey = credentialPublicKey == null ? new byte[0] : credentialPublicKey.clone();
         }
 
         static AttestationComponents empty() {
-            return new AttestationComponents(new byte[0], new byte[0], 0, 0L, new byte[0], new byte[0], new byte[0]);
+            return new AttestationComponents(
+                    WebAuthnAuthenticatorDataParser.parse(new byte[0]), new byte[0], new byte[0], new byte[0]);
         }
 
         boolean hasAuthData() {
-            return authData.length > 0;
+            return parsed.raw().length > 0;
         }
 
-        @Override
         public byte[] authData() {
-            return authData.clone();
+            return parsed.raw().clone();
         }
 
-        @Override
         public byte[] rpIdHash() {
-            return rpIdHash.clone();
+            return parsed.rpIdHash().clone();
+        }
+
+        int flags() {
+            return parsed.flags();
+        }
+
+        long counter() {
+            return parsed.counter();
         }
 
         boolean userPresence() {
-            return (flags & 0x01) != 0;
+            return parsed.userPresence();
         }
 
         boolean reservedBitRfu1() {
-            return (flags & 0x02) != 0;
+            return parsed.reservedBitRfu1();
         }
 
         boolean userVerification() {
-            return (flags & 0x04) != 0;
+            return parsed.userVerification();
         }
 
         boolean backupEligible() {
-            return (flags & 0x08) != 0;
+            return parsed.backupEligible();
         }
 
         boolean backupState() {
-            return (flags & 0x10) != 0;
+            return parsed.backupState();
         }
 
         boolean reservedBitRfu2() {
-            return (flags & 0x20) != 0;
+            return parsed.reservedBitRfu2();
         }
 
         boolean attestedCredentialData() {
-            return (flags & 0x40) != 0;
+            return parsed.attestedCredentialDataIncluded();
         }
 
         boolean extensionDataIncluded() {
-            return (flags & 0x80) != 0;
+            return parsed.extensionDataIncluded();
         }
 
+        @Override
         public byte[] credentialId() {
             return credentialId.clone();
         }
 
+        @Override
         public byte[] credentialPublicKey() {
             return credentialPublicKey.clone();
+        }
+
+        public byte[] extensions() {
+            return parsed.extensions().clone();
+        }
+
+        Optional<String> extensionParseError() {
+            return parsed.extensionsError();
+        }
+
+        Optional<String> attestedCredentialParseError() {
+            return parsed.attestedCredentialError();
         }
 
         String aaguidHex() {

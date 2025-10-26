@@ -27,12 +27,12 @@ Reference specification: `docs/4-architecture/specs/feature-011-reflection-polic
 - R1109 – Refresh documentation (`AGENTS.md`, plan/spec notes) describing the policy and guard usage. ☑ (2025-10-01 – AGENTS now documents no-reflection policy referencing Feature 011)
 - R1110 – Update knowledge map with new seams/automation, run `./gradlew spotlessApply check`, and record metrics. ☑ (2025-10-01 – knowledge map extended; `spotlessApply check` + `reflectionScan` green)
 
-Update increment statuses/date stamps as work progresses; ensure each increment stays within a ≤10 minute change window.
+Update increment statuses/date stamps as work progresses; ensure each increment stays within a ≤30 minute change window.
 
 ## Checklist Before Implementation
 - [x] Specification clarifications resolved (see Clarifications section).
 - [x] Open questions logged/cleared for Feature 011.
-- [x] Tasks mapped to requirements with ≤10 minute increments in test-first order.
+- [x] Tasks mapped to requirements with ≤30 minute increments in test-first order.
 - [x] Planned work aligns with constitutional principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
 - [x] Tooling readiness captured (commands, expected runtime, environment notes).
 
@@ -48,7 +48,7 @@ Checklist executed per `docs/5-operations/analysis-gate-checklist.md`.
 - Specification complete with objectives, requirements, clarifications (Feature 011 spec lines 1–47).
 - Open questions log clear for Feature 011 (docs/4-architecture/open-questions.md).
 - Plan references correct spec/tasks; success criteria align with REF-001–REF-004.
-- Tasks cover all functional requirements, sequenced tests before implementation, ≤10 minute increments.
+- Tasks cover all functional requirements, sequenced tests before implementation, ≤30 minute increments.
 - Work honours constitution guardrails (spec-first, clarification gate satisfied, test-first increments, documentation sync plan, no new dependencies).
 - Tooling readiness documented above (`qualityGate`, targeted ArchUnit/scan tasks).
 

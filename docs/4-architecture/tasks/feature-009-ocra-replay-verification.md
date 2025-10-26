@@ -5,7 +5,7 @@ _Last updated: 2025-10-01_
 
 ## Execution Notes
 - Specification: `docs/4-architecture/specs/feature-009-ocra-replay-verification.md`.
-- Keep each task ≤10 minutes; write failing tests before production code.
+- Keep each task ≤30 minutes; write failing tests before production code.
 - CLI/REST increments should capture telemetry assertions to satisfy ORV-NFR-001.
 - Performance measurement plan required before closure (benchmark script or documented manual run).
 

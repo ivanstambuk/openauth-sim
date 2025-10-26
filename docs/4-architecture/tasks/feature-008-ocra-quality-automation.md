@@ -5,7 +5,7 @@ _Last updated: 2025-10-01_
 
 ## Execution Notes
 - Specification: `docs/4-architecture/specs/feature-008-ocra-quality-automation.md`.
-- Keep each task ≤10 minutes; run failing checks/tests first to drive implementation.
+- Keep each task ≤30 minutes; run failing checks/tests first to drive implementation.
 - Record report locations and runtime observations in plan notes for future tuning.
 - Follow-up: add targeted tests so PIT can cover `OcraChallengeFormat`/`OcraCredentialFactory` and extend mutation guard to CLI/REST facades without exclusions.
 - Use `-Ppit.skip=true` with `./gradlew qualityGate` when mutation analysis needs to be skipped locally (documented runtime ≈27s with skip vs ≈1m56 full gate).

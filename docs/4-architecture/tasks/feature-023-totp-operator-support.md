@@ -3,7 +3,7 @@
 _Status: Complete_
 _Last updated: 2025-10-18_
 
-## Tasks (≤10 min each)
+## Tasks (≤30 min each)
 - ☑ T2301 – Add failing core unit tests for TOTP generator/validator covering SHA-1/SHA-256/SHA-512, 6/8 digits, time-step conversion, and drift window limits. (_2025-10-08 – RFC 6238 vectors + drift scenarios added; `./gradlew :core:test` red as expected._)
 - ☑ T2302 – Implement core TOTP domain logic to satisfy T2301 and extend ArchUnit/mutation coverage if needed. (_2025-10-08 – Implemented descriptor/hash enum/generator/validator/drift window/result; `./gradlew :core:test` green._)
 - ☑ T2303 – Add failing persistence integration tests ensuring TOTP descriptors coexist with HOTP/OCRA entries via `CredentialStoreFactory`. (_2025-10-08 – `CredentialStoreFactoryTotpIntegrationTest` added; `./gradlew :infra-persistence:test --tests \"...TotpIntegrationTest\"` failed before persistence updates._)

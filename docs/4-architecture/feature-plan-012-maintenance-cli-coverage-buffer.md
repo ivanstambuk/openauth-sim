@@ -23,7 +23,7 @@ Reference specification: `docs/4-architecture/specs/feature-012-maintenance-cli-
 - C1206 – Implement corrupted database verification test covering maintenance failure branches.
 - C1207 – Implement supplementary branch coverage tests (parent-null path, OCRA short help, blank required parameters).
 
-Document actual completion dates inline once each increment finishes; ensure every increment stays within a ≤10 minute window.
+Document actual completion dates inline once each increment finishes; ensure every increment stays within a ≤30 minute window.
 
 ## Checklist Before Implementation
 - [x] Specification clarifications captured (2025-10-01).

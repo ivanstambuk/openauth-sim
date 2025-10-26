@@ -12,7 +12,7 @@ Deliver a seamless transition to the shared `credentials.db` default across all 
 - Documentation and knowledge artefacts assume the OCRA-specific filename for cross-facade sharing.
 - Operators with pre-populated OCRA/TOTP/HOTP/FIDO2 stores must now rename or explicitly configure their database paths; no automated migration is provided.
 
-## Increment Breakdown (≤10 minutes each)
+## Increment Breakdown (≤30 minutes each)
 1. **I1 – Documentation & governance sync**
    - Update the roadmap, knowledge map, and current-session snapshot to reference Feature 027.
    - Capture the resolved clarification (new default name) in the specification and open-questions log.

@@ -5,7 +5,7 @@ _Last updated: 2025-09-28_
 
 ## Execution Notes
 - Follow the specification in `docs/4-architecture/specs/feature-005-cli-ocra-operations.md`.
-- Keep each task ≤10 minutes; commit after every passing build.
+- Keep each task ≤30 minutes; commit after every passing build.
 - Drive test-first: add CLI command tests before implementation.
 
 ## Tasks

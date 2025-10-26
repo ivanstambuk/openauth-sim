@@ -21,16 +21,17 @@ public final class CborDecoder {
     }
 
     public static Object decode(byte[] data) throws GeneralSecurityException {
-        CborDecoder decoder = new CborDecoder(data);
-        Object result = decoder.readData();
-        decoder.ensureFullyConsumed();
-        return result;
-    }
-
-    private void ensureFullyConsumed() throws GeneralSecurityException {
-        if (index != data.length) {
+        Decoded decoded = decodePartial(data);
+        if (decoded.consumed() != data.length) {
             throw new GeneralSecurityException("Unexpected trailing CBOR data");
         }
+        return decoded.value();
+    }
+
+    public static Decoded decodePartial(byte[] data) throws GeneralSecurityException {
+        CborDecoder decoder = new CborDecoder(data);
+        Object result = decoder.readData();
+        return new Decoded(result, decoder.index);
     }
 
     private Object readData() throws GeneralSecurityException {
@@ -139,5 +140,9 @@ public final class CborDecoder {
         int unsignedByte = data[index] & 0xFF;
         index++;
         return unsignedByte;
+    }
+
+    public record Decoded(Object value, int consumed) {
+        // Marker record; canonical accessors declared implicitly.
     }
 }

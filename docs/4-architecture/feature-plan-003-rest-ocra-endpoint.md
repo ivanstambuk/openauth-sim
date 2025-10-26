@@ -15,7 +15,7 @@ Reference specification: `docs/4-architecture/specs/feature-003-rest-ocra-evalua
 - OpenAPI documentation (via SpringDoc `/v3/api-docs`) and operator how-to references describe the endpoint contract and sample payloads, with both JSON and YAML snapshots checked into `docs/3-reference/`.
 
 ## Task Tracker
-- Detailed increments live in `docs/4-architecture/tasks/feature-003-rest-ocra-endpoint.md`. Keep each task ≤10 minutes and commit after every green build.
+- Detailed increments live in `docs/4-architecture/tasks/feature-003-rest-ocra-endpoint.md`. Keep each task ≤30 minutes and commit after every green build.
 - Record `./gradlew spotlessApply check` outputs and analysis gate evaluations in this plan as work progresses.
 - Initial scope covers synchronous evaluation only; follow-up tickets will address persistence-backed credential lookup and authentication.
 

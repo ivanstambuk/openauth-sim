@@ -3,7 +3,7 @@
 _Status: In Progress_
 _Last updated: 2025-10-15_
 
-## Tasks (≤10 min each)
+## Tasks (≤30 min each)
 - ☑ T2201 – Add failing HOTP generator/validator unit tests covering counter rollover, digit length variants, and secret bounds.
 - ☑ T2202 – Implement HOTP domain logic to satisfy T2201 and extend mutation/ArchUnit coverage.
 - ☑ T2203 – Add failing MapDB integration tests mixing OCRA + HOTP credentials via `CredentialStoreFactory`.

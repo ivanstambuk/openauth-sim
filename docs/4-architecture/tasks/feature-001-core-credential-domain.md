@@ -6,7 +6,7 @@ _Last updated: 2025-09-28_
 ## Execution Notes
 - Follow the specification in `docs/4-architecture/specs/feature-001-core-credential-domain.md`.
 - Scope covers only the OCRA credential domain; additional protocol packages will launch via new features/specifications.
-- Keep each task to ≤10 minutes of focused work and commit after completing one task cluster.
+- Keep each task to ≤30 minutes of focused work and commit after completing one task cluster.
 - Tests precede implementations; mark tasks as complete (`[x]`) as they ship.
 - Use this checklist with the analysis gate before coding.
 

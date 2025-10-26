@@ -19,7 +19,7 @@ _Last updated:_ 2025-10-19
 - Managed Git hooks under `githooks/` (especially `pre-commit`).
 - Contributor documentation (`AGENTS.md`, `CONTRIBUTING.md`, formatting how-to sections) and knowledge artefacts that discuss formatter policy.
 
-## Increment Breakdown (≤10 minutes each)
+## Increment Breakdown (≤30 minutes each)
 1. **I1 – Planning artefacts & backlog sync**  
    - Add Feature 032 plan and tasks documents, update `docs/_current-session.md`, and remove the open formatter question now that Option B is approved.  
    - _2025-10-19 – Spec created and clarification resolved; plan and tasks in progress._

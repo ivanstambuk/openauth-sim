@@ -38,7 +38,7 @@ This constitution establishes the non-negotiable operating principles for the Op
 
 ### Principle 4 – Documentation Sync & Traceability
 - Mirror every approved change across roadmap, feature plans, tasks, knowledge map, and runbooks as needed.
-- Maintain per-feature `tasks.md` files that decompose work into ≤10 minute increments, reference spec requirements, and sequence tests before code.
+- Maintain per-feature `tasks.md` files that decompose work into ≤30 minute increments, reference spec requirements, and sequence tests before code.
 - Log self-review notes and tool usage back into the relevant plan or runbook to preserve provenance.
 
 ### Principle 5 – Controlled Dependencies & Security

@@ -14,7 +14,7 @@ Implement the protocol info drawer/modal across the operator console, deliver em
 - Accessibility and performance requirements remain scoped to existing performance/security/maintainability targets (PIS-NFR-002 — PIS-NFR-004).
 - `./gradlew spotlessApply check` and targeted module tests pass after each increment.
 
-## Proposed Increments (≤10 minutes each)
+## Proposed Increments (≤30 minutes each)
 - ☑ R2110 – Capture failing Selenium test covering trigger aria attributes, keyboard shortcuts, drawer open/close, and per-protocol switching (apply to UI test suite).
 - ☑ R2111 – Added JS-driven Selenium assertions covering ProtocolInfo API exposure, schema/escaping guarantees, persistence keys, and CustomEvents (currently red pending implementation).
 - ☑ R2112 – Implemented protocol info triggers, drawer/modal scaffolding, and schema-driven rendering (all protocols) to satisfy new Selenium coverage.

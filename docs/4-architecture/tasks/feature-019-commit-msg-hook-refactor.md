@@ -16,5 +16,5 @@ _Last updated: 2025-10-04_
 | T1908 | Restrict Spotless retry to exact stale-cache message and log retry success/failure. | CMH-004B | ✅ (2025-10-04 – Updated retry helper to match the exact signature and log success/failure.) |
 | T1909 | Warm configuration cache via `./gradlew --no-daemon help --configuration-cache` once per pre-commit run. | CMH-004C | ✅ (2025-10-04 – Added warm step using retry helper before other Gradle tasks.) |
 
-Update the status column as tasks complete, keeping each increment ≤10 minutes and sequencing validation commands before code whenever feasible.
+Update the status column as tasks complete, keeping each increment ≤30 minutes and sequencing validation commands before code whenever feasible.
 

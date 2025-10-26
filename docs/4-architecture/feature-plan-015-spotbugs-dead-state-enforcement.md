@@ -26,7 +26,7 @@ Reference specification: `docs/4-architecture/specs/feature-015-spotbugs-dead-st
 - R1506 – Add PMD `UnusedPrivateField`, remediate violations (e.g., `PIN_SUITE`), and rerun `pmdMain`/`pmdTest`. ☑ (2025-10-03 – Added rule to PMD ruleset, removed unused `PIN_SUITE`, `:rest-api:pmdTest` passes)
 - R1507 – Enable PMD `UnusedPrivateMethod`, clean up unused helpers (e.g., `inlineCredential()`), rerun `pmdMain`/`pmdTest`. ☑ (2025-10-03 – Rule active, no violations after cleanup; reran `:rest-api:pmdTest` and root `check`.)
 
-Each increment should take ≤10 minutes with tests preceding implementation where applicable.
+Each increment should take ≤30 minutes with tests preceding implementation where applicable.
 
 ## Checklist Before Implementation
 - [x] Specification drafted with clarifications.

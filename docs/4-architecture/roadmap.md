@@ -7,7 +7,7 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 ## Guiding Principles
 
 - Prioritise core cryptographic capabilities and deterministic emulator behaviour before user-facing interfaces.
-- Maintain incremental delivery: break every workstream into self-contained changes taking &lt;= 10 minutes each, with a passing build after every step.
+- Maintain incremental delivery: break every workstream into self-contained changes taking &lt;= 30 minutes each, with a passing build after every step.
 - Persist all context (plans, ADRs, follow-up actions) in `docs/` so sessions remain stateless.
 
 ## High-Level Workstreams

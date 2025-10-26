@@ -13,7 +13,7 @@ Eliminate the IDE diagnostics reported on 2025-10-18 by strengthening assertions
 - Core FIDO2 verification and WebAuthn replay services decode metadata that should be leveraged for assertions/coverage but currently is not.
 - The IDE snapshot targets specific files; broader static analysis has not been requested for this increment.
 
-## Increment Breakdown (≤10 minutes each)
+## Increment Breakdown (≤30 minutes each)
 1. **I1 – Governance sync and documentation updates**  
    - Create spec/plan/tasks entries for Feature 028.  
    - Update roadmap and current-session snapshot; capture the accepted clarification in the spec.  

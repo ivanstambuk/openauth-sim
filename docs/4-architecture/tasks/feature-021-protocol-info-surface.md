@@ -3,7 +3,7 @@
 _Status: Completed_
 _Last updated: 2025-10-04_
 
-## Tasks (≤10 min each)
+## Tasks (≤30 min each)
 - [x] T2110 – Extend Selenium suite with failing tests for info trigger accessibility, keyboard shortcuts, drawer/modal toggles, and protocol switching.
 - [x] T2111 – Add JS unit tests covering data schema parsing, escaping, persistence keys, and CustomEvent emissions (fails until persistence + events implemented).
 - [x] T2112 – Implement protocol info triggers, drawer/modal scaffolding, and schema-driven rendering driven by JSON sample data.

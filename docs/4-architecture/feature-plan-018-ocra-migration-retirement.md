@@ -18,7 +18,7 @@ Reference specification: `docs/4-architecture/specs/feature-018-ocra-migration-r
 - ☑ R1802 – Remove `OcraRecordSchemaV0ToV1Migration`, adjust `OcraStoreMigrations`, and clean up references across modules.
 - ☑ R1803 – Refresh documentation (knowledge map, how-to guide, roadmap/plan notes) and rerun full Gradle checks.
 
-Each increment must stay within ≤10 minutes, lead with tests where possible, and log notes/telemetry adjustments below as work progresses.
+Each increment must stay within ≤30 minutes, lead with tests where possible, and log notes/telemetry adjustments below as work progresses.
 
 ## Checklist Before Implementation
 - [x] Specification created with clarifications logged.

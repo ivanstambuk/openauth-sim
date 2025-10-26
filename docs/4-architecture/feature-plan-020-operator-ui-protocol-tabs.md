@@ -20,7 +20,7 @@ Reference specification: `docs/4-architecture/specs/feature-020-operator-ui-prot
 - ☑ R2002 – Update the Thymeleaf template and console script to render the new tab order, placeholder panels, and protocol keys; update supporting tests and rerun `./gradlew :rest-api:test`.
 - ☑ R2003 – Refresh roadmap (and knowledge map if needed) to reflect the new workstreams, remove the catch-all milestone, document changes, and rerun `./gradlew spotlessApply check`.
 
-Each increment should complete within ≤10 minutes and end with a green build for the affected modules.
+Each increment should complete within ≤30 minutes and end with a green build for the affected modules.
 
 ## Checklist Before Implementation
 - [x] Specification created with clarifications recorded.

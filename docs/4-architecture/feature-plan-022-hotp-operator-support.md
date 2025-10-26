@@ -74,7 +74,7 @@ Reference specification: `docs/4-architecture/specs/feature-022-hotp-operator-su
 - ☑ R2279 – Added failing Selenium regression comparing the "Load a sample vector" label/select offsets between HOTP Evaluate and Replay tabs (Replay baseline) via `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeleniumTest.sampleVectorLabelAlignsWithReplay"` – run on 2025-10-07 and observed a 12px delta prior to UI changes.
 - ☑ R2280 – Updated HOTP Evaluate template/CSS to remove the extra inline form padding, refreshed Selenium expectations, reran `./gradlew :rest-api:test --tests "io.openauth.sim.rest.ui.HotpOperatorUiSeleniumTest"`, and closed with `./gradlew spotlessApply check` (all green 2025-10-07).
 
-Each increment must complete within ≤10 minutes, lead with tests where practicable, and record tooling outcomes below.
+Each increment must complete within ≤30 minutes, lead with tests where practicable, and record tooling outcomes below.
 
 ## Checklist Before Implementation
 - [x] Specification created with clarifications recorded.

@@ -57,14 +57,14 @@ Reference specification: `docs/4-architecture/specs/feature-008-ocra-quality-aut
 ## Checklist Before Implementation
 - [x] Specification created with clarifications captured.
 - [x] Open questions resolved and removed from `docs/4-architecture/open-questions.md`.
-- [x] Tasks checklist mirrors plan increments with ≤10 minute steps and verification-first ordering.
+- [x] Tasks checklist mirrors plan increments with ≤30 minute steps and verification-first ordering.
 - [x] Analysis gate checklist completed and logged below.
 
 ## Analysis Gate (TBD)
 - [x] Specification populated with objectives, requirements, clarifications.
 - [x] Open questions log clear for Feature 008.
 - [x] Feature plan references correct spec/tasks and aligns success criteria.
-- [x] Tasks map to functional requirements with ≤10 minute increments and tests preceding implementation.
+- [x] Tasks map to functional requirements with ≤30 minute increments and tests preceding implementation.
 - [x] Planned work respects constitution principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
 - [x] Tooling readiness noted (`./gradlew qualityGate` expected runtime, PIT configuration details).
 
@@ -111,7 +111,7 @@ Document the outcome and proceed only once all boxes are checked.
 - 2025-09-30 – Q132d execution: Exercised `OcraEvaluationService` defensive helpers (timestamp <1s, overflow guard, challenge-optional suites, `requireHex` fallbacks, flag helpers, and `FailureDetails` defaults) via targeted unit tests. Service branch coverage now sits at ≈97.6% and project totals moved to 94.76% line / 84.08% branch (Jacoco aggregated report 2025-09-30 23:29 UTC).
 - 2025-09-30 – Q132 execution: Added coverage fixtures for descriptor/persistence/telemetry helpers and REST controllers, lifting aggregated coverage to 96.99% line / 90.24% branch (Jacoco aggregated report 2025-09-30 23:36 UTC). Raised Jacoco thresholds to 0.90/0.90 and reran `./gradlew qualityGate` (PASS, mutation score ≈95%).
 - 2025-10-01 – Q115: Ran `./gradlew qualityGate` (PASS, 1s, configuration cache reused) to reconfirm thresholds post-test expansion; aggregated coverage now 97.05% line / 90.24% branch and mutation score 91.83% (236 killed / 21 survived+no_coverage). Reports remain under `build/reports/jacoco/aggregated/` and `core/build/reports/pitest/`; prior follow-up cleared in plan/tasks.
-- Consider PIT incremental modes and target filters to keep runtime under 10 minutes.
+- Consider PIT incremental modes and target filters to keep runtime under 30 minutes.
 - Evaluate existing GitHub Actions caching (Gradle + PIT) to mitigate CI duration.
 - When documenting thresholds, include rationale so future adjustments remain auditable.
 

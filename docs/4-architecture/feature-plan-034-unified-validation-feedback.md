@@ -19,7 +19,7 @@ _Last updated:_ 2025-10-21
 - Requires Selenium updates in `Fido2OperatorUiSeleniumTest`, `OcraOperatorUiSeleniumTest`, `TotpOperatorUiSeleniumTest`, etc.
 - Documentation touchpoints: operator console how-to under `docs/2-how-to/`.
 
-## Increment Breakdown (≤10 min each)
+## Increment Breakdown (≤30 min each)
 1. **I1 – Audit existing result panels**
    - Catalogue current result-card toggling logic per ceremony; note hidden states and message placeholders.
    - Command: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"` (dry run).

@@ -5,7 +5,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 ## Before You Code
 - **Clarify ambiguity first.** Do not plan or implement until every requirement is understood. Ask the user, record unresolved items in `docs/4-architecture/open-questions.md`, and wait for answers. Capture accepted answers in the relevant specification under `## Clarifications`.
   - Whenever you present alternative approaches—whether for open questions or general solution proposals—precede each clarification with a numbered heading (1., 2., …) and enumerate options alphabetically (A, B, C …); include pros and cons for each option and state the recommended choice (with rationale) before requesting a decision.
-- **Work in small steps.** Deliver self-contained changes that finish in ≤10 minutes, run `./gradlew spotlessApply check`, and commit with a conventional message.
+- **Work in small steps.** Deliver self-contained changes that finish in ≤30 minutes, run `./gradlew spotlessApply check`, and commit with a conventional message.
 - **Confirm prerequisites.** Ensure `JAVA_HOME` points to a Java 17 JDK before invoking Gradle or Git hooks.
 - **Hook guard.** Verify `git config core.hooksPath githooks` before staging changes; reapply the setting after fresh clones or tool resets so the managed pre-commit hook and `commit-msg` gitlint gate both execute.
 - **Prime the knowledge map.** Skim `docs/4-architecture/knowledge-map.md` and the up-to-date module snapshot in `docs/architecture-graph.json` before planning so new work reinforces the architectural relationships already captured there.
@@ -14,7 +14,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - Start every feature by updating or creating its specification in `docs/4-architecture/specs/`.
 - Use up to five high-impact clarification questions per feature; log them in `docs/4-architecture/open-questions.md` and record resolutions in the spec.
 - Generate or refresh the feature plan (`docs/4-architecture/feature-plan-*.md`) only after the specification is current and clarifications resolved.
-- Maintain a per-feature tasks checklist under `docs/4-architecture/tasks/` that mirrors the plan, orders tests before code, and keeps increments ≤10 minutes.
+- Maintain a per-feature tasks checklist under `docs/4-architecture/tasks/` that mirrors the plan, orders tests before code, and keeps increments ≤30 minutes.
 - When revising a specification, only document fallback or compatibility behaviour if the user explicitly asked for it; if instructions are unclear, pause and request confirmation instead of assuming a fallback.
 - Run the analysis gate in `docs/5-operations/analysis-gate-checklist.md` once spec, plan, and tasks agree; address findings before implementation.
 
@@ -61,7 +61,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - **Quality gates.** Track upcoming additions for contract tests, mutation analysis, and security/“red-team prompt” suites in the plans until automated jobs exist.
 
 ## After Completing Work
-- Treat “completing work” as finishing any self-contained increment (≤10 minutes) within an active feature. The checklist below fires after every increment that ends with a passing build.
+- Treat “completing work” as finishing any self-contained increment (≤30 minutes) within an active feature. The checklist below fires after every increment that ends with a passing build.
 - Verify `./gradlew spotlessApply check` passes.
 - Update/close entries in `docs/4-architecture/open-questions.md`.
 - Remove or mark feature plans as complete when the work ships.

@@ -20,7 +20,7 @@ Use this checklist after a feature's specification, plan, and tasks exist but be
    - [ ] Dependencies and success criteria match the specification wording.
 4. **Tasks coverage**
    - [ ] Every functional requirement maps to at least one task.
-   - [ ] Tasks sequence tests before implementation and keep increments ≤10 minutes.
+   - [ ] Tasks sequence tests before implementation and keep increments ≤30 minutes.
    - [ ] Planned tests enumerate the success, validation, and failure branches with failing cases queued before implementation begins.
 5. **Constitution compliance**
    - [ ] No planned work violates principles (spec-first, clarification gate, test-first, documentation sync, dependency control).

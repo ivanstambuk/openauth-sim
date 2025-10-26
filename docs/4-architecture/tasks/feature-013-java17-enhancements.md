@@ -7,7 +7,7 @@ _Last updated: 2025-10-01_
 | ID | Task | Related Requirements | Status |
 |----|------|----------------------|--------|
 | T1301 | Add roadmap entry and baseline notes for Feature 013. | J17-CLI-001, J17-REST-002, J17-DOC-003 | ✅ (2025-10-01) |
-| T1302 | Document ≤10 minute increments in this task list and verify no open questions needed. | J17-CLI-001, J17-REST-002, J17-DOC-003 | ✅ (2025-10-01) |
+| T1302 | Document ≤30 minute increments in this task list and verify no open questions needed. | J17-CLI-001, J17-REST-002, J17-DOC-003 | ✅ (2025-10-01) |
 | T1303 | Execute analysis gate checklist; capture tooling readiness details in feature plan. | J17-CLI-001–J17-DOC-003 | ✅ (2025-10-01) |
 | T1304 | Write failing CLI test (or adjust existing ones) expecting sealed hierarchy behaviour, then implement sealed declaration. | J17-CLI-001 | ✅ (2025-10-01) |
 | T1305 | Update REST evaluation service tests to assume sealed request variants, refactor implementation accordingly. | J17-REST-002 | ✅ (2025-10-01) |

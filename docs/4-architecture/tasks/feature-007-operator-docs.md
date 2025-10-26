@@ -5,7 +5,7 @@ _Last updated: 2025-09-30_
 
 ## Execution Notes
 - Specification: `docs/4-architecture/specs/feature-007-operator-docs.md`.
-- Keep each task ≤10 minutes and commit after `./gradlew spotlessApply check` passes.
+- Keep each task ≤30 minutes and commit after `./gradlew spotlessApply check` passes.
 - Use existing CLI/REST artefacts to verify command syntax and endpoint snapshots before finalising prose.
 - Update roadmap and knowledge map once documentation is published.
 

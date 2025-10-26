@@ -5,7 +5,7 @@ _Last updated: 2025-09-28_
 
 ## Execution Notes
 - Follow the specification in `docs/4-architecture/specs/feature-004-rest-ocra-credential-resolution.md`.
-- Keep each task ≤10 minutes; commit after every passing `./gradlew spotlessApply check`.
+- Keep each task ≤30 minutes; commit after every passing `./gradlew spotlessApply check`.
 - Drive development test-first for new behaviours.
 
 ## Tasks

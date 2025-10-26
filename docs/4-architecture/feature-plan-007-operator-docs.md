@@ -26,14 +26,14 @@ Reference specification: `docs/4-architecture/specs/feature-007-operator-docs.md
 ## Checklist Before Implementation
 - [x] Specification created with clarified scope and requirements.
 - [x] Open questions resolved and removed from `docs/4-architecture/open-questions.md` once captured in spec.
-- [x] Tasks checklist mirrors the increments above with ≤10 minute steps and sequences verification before commits.
+- [x] Tasks checklist mirrors the increments above with ≤30 minute steps and sequences verification before commits.
 - [x] Analysis gate (docs/5-operations/analysis-gate-checklist.md) updated once tasks are ready.
 
 ## Analysis Gate (2025-09-30)
 - [x] Specification populated with objectives, requirements, clarifications (≤5 questions satisfied).
 - [x] Open questions log clear for Feature 007.
 - [x] Feature plan references correct spec/tasks and aligns dependencies/success criteria.
-- [x] Tasks map to every functional requirement with ≤10 minute increments and verification sequencing.
+- [x] Tasks map to every functional requirement with ≤30 minute increments and verification sequencing.
 - [x] Planned work respects constitution principles (spec-first, clarification gate, documentation sync, dependency control).
 - [x] Tooling readiness noted (`./gradlew spotlessApply check` before each commit).
 

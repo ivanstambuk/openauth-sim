@@ -27,7 +27,7 @@ Reference specification: `docs/4-architecture/specs/feature-019-commit-msg-hook-
 - ☑ R1904 – Add repository `.gitlint`, update documentation, and validate gitlint enforcement against allowed/disallowed commit messages.
 - ☑ R1905 – Wire gitlint into CI so pushes/PRs fail on non-compliant commit messages.
 
-Each increment must stay within ≤10 minutes, lead with tests where possible (manual hook invocations), and log outcomes below.
+Each increment must stay within ≤30 minutes, lead with tests where possible (manual hook invocations), and log outcomes below.
 
 ## Checklist Before Implementation
 - [x] Specification drafted with clarifications logged.

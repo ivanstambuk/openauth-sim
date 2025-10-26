@@ -40,7 +40,7 @@ Reference specification: `docs/4-architecture/specs/feature-009-ocra-replay-veri
 - [x] Specification clarifications resolved (see Clarifications section).
 - [x] Open questions log clear for Feature 009.
 - [x] Feature plan references correct specification and aligns success criteria.
-- [x] Tasks map to functional requirements with ≤10 minute increments prioritising tests first.
+- [x] Tasks map to functional requirements with ≤30 minute increments prioritising tests first.
 - [x] Planned work respects constitution principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
 - [x] Tooling readiness noted with expected commands (`./gradlew qualityGate`, module-specific tasks).
 
@@ -49,7 +49,7 @@ Checklist executed per `docs/5-operations/analysis-gate-checklist.md`.
 
 - Specification complete with objectives, requirements, clarifications (ORV-001–ORV-005, ORV-NFR-001–NFR-003).
 - Open questions log contains no Feature 009 entries.
-- Plan/Tasks cross-reference specification and maintain ≤10 minute, test-first increments (R901–R915).
+- Plan/Tasks cross-reference specification and maintain ≤30 minute, test-first increments (R901–R915).
 - Work respects constitution guardrails (spec-first, clarification gate, test-first, documentation sync, dependency control).
 - Tooling readiness documented (`./gradlew qualityGate`, module tasks, PIT skip guidance).
 No blockers identified; proceed to design increments R903–R905.

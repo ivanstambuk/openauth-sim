@@ -2475,12 +2475,15 @@
 
   function resolveReplayStatus(status, match) {
     if (status) {
-      return String(status).trim();
+      var normalized = String(status).trim();
+      if (normalized) {
+        return normalized;
+      }
     }
-    if (match === true) {
+    if (match === true || String(match).toLowerCase() === 'true') {
       return 'match';
     }
-    if (match === false) {
+    if (match === false || String(match).toLowerCase() === 'false') {
       return 'mismatch';
     }
     return 'unknown';

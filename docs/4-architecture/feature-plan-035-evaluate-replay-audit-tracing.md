@@ -54,7 +54,7 @@ _Last updated:_ 2025-10-25
   - Public key identification: derive the RFC 7638 JWK thumbprint for the credential public key and expose it as `publicKey.jwk.thumbprint.sha256` alongside the decoded COSE fields so traces provide a stable identifier for cross-facade comparisons.
   - Signature inspection: emit raw signature encodings and algorithm metadata in the `verify.signature` step. For ECDSA algorithms (`ES256`, `ES384`, `ES512`), unwrap DER signatures into `sig.der.b64u`, `sig.der.len`, `ecdsa.r.hex`, and `ecdsa.s.hex`, compute `ecdsa.lowS`, and surface `policy.lowS.enforced` alongside both `valid` and a new `verify.ok` mirror. For RSA algorithms (`RS256`, `PS256`), expose `sig.raw.b64u`, `sig.raw.len`, `rsa.padding`, `rsa.hash`, `rsa.pss.salt.len` (when applicable), and `key.bits`. For EdDSA, provide `sig.raw.b64u`, `sig.raw.len`, and a hex dump. Detect descriptor/COSE algorithm mismatches and annotate with `error.alg_mismatch` before aborting verification. Low-S enforcement is governed by a new `WebAuthnSignaturePolicy` (default observe-only) so traces always explain whether enforcement affected the outcome.
 
-## Increment Breakdown (≤10 min each, tests-before-code)
+## Increment Breakdown (≤30 min each, tests-before-code)
 1. **I1 – Baseline evaluation map**
    - Catalogue injection points for HOTP/TOTP/OCRA/FIDO2 evaluate/replay/attest services; note where traces should attach.
    - Command: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.*EvaluationApplicationServiceTest"`
@@ -241,8 +241,19 @@ _Last updated:_ 2025-10-25
 - Consider formatting helpers (diff highlighting, grouping) once baseline tracing stabilises.
 - 2025-10-24 – Completed T3533 to replace WebAuthn authenticator flag outputs with a full `flags.bits.*` map plus `userVerificationRequired` / `uv.policy.ok` attributes, driven by failing tests ahead of implementation.
 - Track redaction-tier controls (CLI flag, REST/JSON contract, UI toggle) within Feature 036 once the shared helper lands.
+- **2025-10-25 – WebAuthn extension handling options**  
+  - **Option A – Decode and log full extension payloads (selected).** Parse the authenticator `extensions` CBOR when `flags.bits.ED = true`, emit a dedicated `parse.extensions` step with `extensions.present`, raw CBOR hex, and normalised attributes for `credProps.rk`, `credProtect.policy`, `largeBlobKey`, and `hmac-secret`. Surface unknown entries in a generic map for operator awareness.  
+  - **Option B – Presence flag only.** Record `extensions.present` without decoding payloads, deferring detailed metadata.  
+  - **Option C – Defer handling.** Leave extensions unreported and rely on future work.  
+  - **Recommendation:** Option A chosen for parity with risk-analysis needs and to align with Specification Clarification 17.  
+  - **Next increments:**  
+    1. Stage failing tests across application/CLI/REST/UI asserting the new `parse.extensions` step and decoded attributes.  
+       - 2025-10-25 – Application/CLI/REST suites now assert `parse.extensions`; operator UI Selenium coverage verifies verbose inline replay surfaces credProps/credProtect/largeBlobKey/hmac-secret attributes (still red pending parser).  
+       - 2025-10-25 – Reproduction showed the Selenium assertion racing the fetch call; updated UI tests now wait for a non-blank status (`pending` excluded) before asserting the badge so the existing UI update logic can be observed reliably.  
+    2. Share a reusable authenticator-data parser that exposes extension bytes for both assertion and attestation flows; update trace builders/formatters accordingly.  
+    3. Refresh documentation (REST/CLI/UI guides, trace examples) once traces emit the new metadata; rerun `./gradlew --no-daemon spotlessApply check`.
 
 ## Analysis Gate
 - **Review date:** 2025-10-22  
-- **Checklist outcome:** Pass – specification requirements and clarifications captured; no open questions remain; tasks map to every requirement with tests staged before implementation; increments respect ≤10 minute guidance and maintain straight-line control flow; documented commands cover targeted module tests plus final `spotlessApply check`; SpotBugs guardrails remain in force with no planned exemptions.  
+- **Checklist outcome:** Pass – specification requirements and clarifications captured; no open questions remain; tasks map to every requirement with tests staged before implementation; increments respect ≤30 minute guidance and maintain straight-line control flow; documented commands cover targeted module tests plus final `spotlessApply check`; SpotBugs guardrails remain in force with no planned exemptions.  
 - **Follow-ups:** Proceed to UI layout option write-up (I10) before implementation.

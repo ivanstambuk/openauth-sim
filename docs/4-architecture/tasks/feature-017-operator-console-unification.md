@@ -3,7 +3,7 @@
 _Status: Draft_
 _Last updated: 2025-10-04_
 
-## Tasks (≤10 min each)
+## Tasks (≤30 min each)
 - [x] T1701 – Add Selenium coverage expecting unified operator console route with protocol tabs (fails until implementation).
 - [x] T1702 – Update existing Selenium suites to exercise `/ui/console` while preserving regression coverage.
 - [x] T1703 – Implement unified Thymeleaf template/fragment structure and routing updates; re-run `./gradlew :rest-api:test` (OCRA tab only).

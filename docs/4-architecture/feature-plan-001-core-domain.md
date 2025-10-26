@@ -89,7 +89,7 @@ Reference specification: `docs/4-architecture/specs/feature-001-core-credential-
   - Specification objectives, FR/NFR tables, and clarifications are populated and current (including per-protocol packaging cadence).
   - Open questions log shows no blocking entries for this feature.
   - Plan references the correct spec/tasks and mirrors success criteria and dependencies.
-- Task list covers FR-001–FR-009/NFRs with tests scheduled ahead of implementation work and ≤10 minute increments.
+- Task list covers FR-001–FR-009/NFRs with tests scheduled ahead of implementation work and ≤30 minute increments.
   - Planned work remains compliant with constitution principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
   - Tooling readiness captured (`./gradlew spotlessApply check`) and this analysis record stored here.
   - Outcome: PASS – proceed to test design (Phase 1 tasks).
