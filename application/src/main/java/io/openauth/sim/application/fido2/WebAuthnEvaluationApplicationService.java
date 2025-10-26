@@ -544,6 +544,10 @@ public final class WebAuthnEvaluationApplicationService {
         boolean originMatches = expectedOriginValue.isEmpty() || expectedOriginValue.equals(resolvedOrigin);
 
         addStep(trace, step -> {
+            String tokenBindingStatus = clientData
+                    .tokenBindingStatusOptional()
+                    .orElseGet(() -> clientData.tokenBindingPresent() ? "" : "not_present");
+            String tokenBindingId = clientData.tokenBindingIdOptional().orElse("");
             step.id("parse.clientData")
                     .summary("Parse client data JSON")
                     .detail("clientDataJSON")
@@ -563,8 +567,8 @@ public final class WebAuthnEvaluationApplicationService {
                 step.attribute("origin.expected", expectedOriginValue);
             }
             step.attribute(AttributeType.BOOL, "origin.match", originMatches);
-            clientData.tokenBindingStatusOptional().ifPresent(status -> step.attribute("tokenBinding.status", status));
-            clientData.tokenBindingIdOptional().ifPresent(id -> step.attribute("tokenBinding.id", id));
+            step.attribute("tokenBinding.status", tokenBindingStatus);
+            step.attribute("tokenBinding.id", tokenBindingId);
             if (clientData.challengeDecodeFailed()) {
                 step.note("challenge.decode", "invalid_base64url");
             }

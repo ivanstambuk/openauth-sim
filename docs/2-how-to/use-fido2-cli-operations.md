@@ -97,6 +97,27 @@ Replays run the same verification logic without mutating counters—use them for
 
 Replay output reports whether the supplied assertion matches the stored credential (`credentialSource=stored`, `match=true`) and surfaces sanitized errors (for example `reason=mismatch`) when verification fails.
 
+## Inspect Verbose Traces & Extensions
+- Append `--verbose` to any `fido2` evaluate, replay, or attestation command to print the ordered verbose trace immediately after the JSON payload. The trace mirrors the REST/UI response and is the canonical view for debugging.
+- WebAuthn traces now include a dedicated `parse.extensions` step whenever the authenticator reports extension data (`flags.bits.ED = true`). The step lists:
+  - `extensions.present` plus the raw CBOR hex string (`extensions.cbor.hex`).
+  - Decoded metadata for known extensions: `ext.credProps.rk`, `ext.credProtect.policy`, `ext.largeBlobKey.b64u`, and `ext.hmac-secret`.
+  - Any additional keys under `extensions.unknown.<name>` so vendor-specific fields stay visible without breaking schema expectations.
+- Example (truncated) replay output:
+  ```
+  === Verbose Trace ===
+  operation=fido2.assertion.evaluate.stored
+  ...
+  step.02: parse.extensions (webauthn§6.5.5)
+    extensions.present = true
+    extensions.cbor.hex = a4696372656450726f7073...
+    ext.credProps.rk = true
+    ext.credProtect.policy = required
+    ext.hmac-secret = requested
+    ext.largeBlobKey.b64u = AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA
+  ```
+- When the authenticator omits extensions, the step still appears with `extensions.present = false` so scripts can rely on a stable structure. Because the trace contains raw assertion material, enable `--verbose` only in controlled environments and clear captured data once you finish troubleshooting.
+
 ## Generate WebAuthn Attestations
 Attestation generation accepts fixture identifiers from the JSON bundles in `docs/webauthn_attestation/`. Provide the challenge straight from the dataset and pass the authenticator private keys as JWK or PEM/PKCS#8; the CLI normalises either representation before invoking the generator. The command emits sanitized telemetry that records the format, signing mode, certificate-chain count, and whether custom roots were supplied. Preset runs are the default (`--input-source preset`), so you only need to provide the preset metadata and signing mode.
 

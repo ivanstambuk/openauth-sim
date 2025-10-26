@@ -43,16 +43,12 @@ _Last updated:_ 2025-10-25
   - Expose canonical HMAC identifier via `alg = HMAC-SHA-*` on OCRA trace steps; mirror the canonical name in `compute.hmac` detail and cite `rfc2104` alongside `rfc6287§7` (added 2025-10-24).
   - Summarise message integrity with `parts.count` and `parts.order` so operators can confirm the concatenation sequence at a glance (added 2025-10-24).
   - Conclude with HOTP-style HMAC/truncation/modulo steps.
-- **WebAuthn / FIDO2 (WebAuthn L2 §6–§7, CTAP 2 §5)**
-  - Split flows into attestation vs assertion.
-  - Shared steps: `parse.clientData`, `parse.authenticatorData`, `build.signatureBase`, `verify.signature`.
-  - Attestation adds `extract.attestedCredential` (AAGUID, credential ID, COSE key) and `validate.metadata` (trust chain, AAGUID outcome).
-  - Assertion adds `evaluate.counter` (previous vs new counter, strict increment) and surfaces extension outputs when present.
-  - Canonicalise the relying party identifier before computing digests, expose the normalised value (`rpId.canonical`), surface the derived SHA-256 digest (`rpIdHash.expected`), and include a boolean comparison result (`rpIdHash.match`) so traces highlight mismatches without relying on the verifier exception alone.
-  - `build.signatureBase` should record buffer lengths for `authenticatorData`, `clientDataHash`, and the concatenated payload (`signedBytes.len.bytes`), output the concatenated bytes as a HEX attribute (`signedBytes.hex`), and provide a condensed preview (`signedBytes.preview`) that shows the first 16 and last 16 bytes separated by an ellipsis to accelerate manual comparisons.
-  - COSE key decoding: surface the decoded key metadata for every algorithm by emitting `cose.kty`, `cose.kty.name`, and `cose.alg.name`, plus curve identifiers (`cose.crv`, `cose.crv.name`) and coordinate/modulus/exponent values encoded as base64url (e.g., `cose.x.b64u`, `cose.y.b64u`, `cose.n.b64u`, `cose.e.b64u`) while retaining the raw hex dump for parity.
-  - Public key identification: derive the RFC 7638 JWK thumbprint for the credential public key and expose it as `publicKey.jwk.thumbprint.sha256` alongside the decoded COSE fields so traces provide a stable identifier for cross-facade comparisons.
-  - Signature inspection: emit raw signature encodings and algorithm metadata in the `verify.signature` step. For ECDSA algorithms (`ES256`, `ES384`, `ES512`), unwrap DER signatures into `sig.der.b64u`, `sig.der.len`, `ecdsa.r.hex`, and `ecdsa.s.hex`, compute `ecdsa.lowS`, and surface `policy.lowS.enforced` alongside both `valid` and a new `verify.ok` mirror. For RSA algorithms (`RS256`, `PS256`), expose `sig.raw.b64u`, `sig.raw.len`, `rsa.padding`, `rsa.hash`, `rsa.pss.salt.len` (when applicable), and `key.bits`. For EdDSA, provide `sig.raw.b64u`, `sig.raw.len`, and a hex dump. Detect descriptor/COSE algorithm mismatches and annotate with `error.alg_mismatch` before aborting verification. Low-S enforcement is governed by a new `WebAuthnSignaturePolicy` (default observe-only) so traces always explain whether enforcement affected the outcome.
+- **WebAuthn / FIDO2 (WebAuthn L2 §6–§7, CTAP 2 §5)** – reframe trace sequencing so humans and downstream automation see the full attestation/assertion story:
+  - *Attestation path:* `step.parse.clientData` (raw JSON, `clientDataHash.sha256`, expected vs. actual `type`/`origin`, challenge metadata, token binding status/id), `step.parse.authenticatorData` (RP hash, `rpId.canonical`, `rpIdHash.expected`, `rpIdHash.match`, flag byte plus `flags.bits.{UP,RFU1,UV,BE,BS,RFU2,AT,ED}`, counters), `step.extract.attestedCredential` (AAGUID, credential ID + length, decoded COSE summary with `cose.kty`, `cose.kty.name`, `cose.alg`, `cose.alg.name`, `cose.crv`, `cose.crv.name`, coordinate/modulus/exponent base64url fields, `publicKey.cose.hex`, `publicKey.jwk.thumbprint.sha256`), `step.parse.extensions` (presence flag, raw CBOR hex, decoded credProps/credProtect/largeBlobKey/hmac-secret fields, stash unknown entries), `step.build.signatureBase` (component byte lengths, `signedBytes.hex`, `signedBytes.preview`, `signedBytes.sha256`), `step.verify.signature` (algorithm IDs, `verify.sig`, `verify.ok`, per-algorithm metadata including ECDSA DER parts and low-S policy status, RSA padding/hash + salt length, EdDSA raw output, `error.alg_mismatch` detection), and `step.validate.metadata` (attestation type, trust path, chain verdict, anchor, metadata/AAGUID lookup, extension/policy summary).
+  - *Assertion path:* mirror `step.parse.clientData`, `step.parse.authenticatorData`, and `step.parse.extensions`, reuse `step.build.signatureBase` and `step.verify.signature`, then finish with `step.evaluate.counter` documenting previous counter, observed counter, increment verdict, and any enforcement outcome.
+  - Signed-byte reporting and RP canonicalisation remain mandatory even when previews are present; always retain the full hex plus SHA-256 digest so operators can reproduce the signature base.
+  - UI/CLI/REST facades must clear existing WebAuthn traces when operators toggle protocol tabs, stored vs. inline inputs, or verbose mode to prevent stale payloads from leaking into the next interaction.
+  - Continue applying lowercase hex, explicit byte-length attributes, and deterministic two-space indentation with `name = value` formatting so machine parsing stays trivial without sacrificing readability.
 
 ## Increment Breakdown (≤30 min each, tests-before-code)
 1. **I1 – Baseline evaluation map**
@@ -199,6 +195,18 @@ _Last updated:_ 2025-10-25
     - 2025-10-25 – Coverage dipped to 69 % after introducing `SignatureInspector` decode fallbacks that only execute on malformed signatures. Extended application and REST verbose-trace tests to assert `signature.decode.error` notes and low-S enforcement, then re-ran `./gradlew --no-daemon jacocoCoverageVerification` to confirm aggregated line/branch coverage ≥0.70.
     - 2025-10-25 – Palantir formatting collapsed empty record declarations, tripping Checkstyle’s `WhitespaceAround` rule. Normalised helper records (core + application tests) with explicit bodies so `./gradlew --no-daemon checkstyleMain checkstyleTest` and the full `./gradlew --no-daemon spotlessApply check` pipeline now pass.
 
+28. **I20 – WebAuthn trace step restructure tests (fail first)**
+    - Add failing assertions across core/application/CLI/REST/UI suites to demand the new WebAuthn structure: `step.parse.clientData`, `step.parse.authenticatorData`, `step.extract.attestedCredential`, `step.parse.extensions`, enriched token-binding/RP metadata, signed-bytes previews, and per-algorithm signature attributes.
+    - Commands: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.*"`; `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest"`; `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test"`; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`.
+    - 2025-10-26 – Application/CLI/REST/UI suites now assert the new step IDs plus token-binding, RP hash, and signed-bytes preview metadata; builds sit red pending I21 implementation.
+    - Status: Completed (tests red by design).
+
+29. **I21 – WebAuthn trace step restructure implementation (green)**
+    - Update WebAuthn trace builders, DTOs, CLI/REST/UI presenters, and OpenAPI artefacts to satisfy the new step/field expectations. Ensure the console clears traces on context switch and preserve low-S policy/extension logic.
+    - 2025-10-26 – Implemented verification-trace append for REST attestation replay, set default token-binding metadata, propagated signed-bytes previews, refreshed CLI/REST/UI expectations, and pruned legacy signature helpers.
+    - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.*VerboseTraceTest" :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest" :rest-api:test --tests "io.openauth.sim.rest.Fido2*Test" :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`; `./gradlew --no-daemon spotlessApply check`.
+    - Status: Completed.
+
 ## UI Layout Decision
 
 1. Trace panel placement (2025-10-22)
@@ -251,7 +259,9 @@ _Last updated:_ 2025-10-25
        - 2025-10-25 – Application/CLI/REST suites now assert `parse.extensions`; operator UI Selenium coverage verifies verbose inline replay surfaces credProps/credProtect/largeBlobKey/hmac-secret attributes (still red pending parser).  
        - 2025-10-25 – Reproduction showed the Selenium assertion racing the fetch call; updated UI tests now wait for a non-blank status (`pending` excluded) before asserting the badge so the existing UI update logic can be observed reliably.  
     2. Share a reusable authenticator-data parser that exposes extension bytes for both assertion and attestation flows; update trace builders/formatters accordingly.  
+       - 2025-10-26 – `WebAuthnAuthenticatorDataParser` now normalises authenticator data (flags, counters, extensions) and feeds `WebAuthnExtensionDecoder` so application/CLI/REST traces log decoded metadata plus unknown entries under `extensions.unknown.*`.  
     3. Refresh documentation (REST/CLI/UI guides, trace examples) once traces emit the new metadata; rerun `./gradlew --no-daemon spotlessApply check`.
+       - 2025-10-26 – Updated `use-fido2-cli-operations.md`, `use-fido2-rest-operations.md`, and `use-fido2-operator-ui.md` with extension-aware trace snippets; reran `./gradlew --no-daemon spotlessApply check` (green, no OpenAPI changes required).
 
 ## Analysis Gate
 - **Review date:** 2025-10-22  

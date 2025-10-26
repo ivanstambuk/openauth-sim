@@ -195,8 +195,35 @@ class Fido2ReplayEndpointTest {
         assertThat(trace.get("steps").isArray()).isTrue();
         assertThat(trace.get("steps")).isNotEmpty();
 
+        Map<String, String> clientData = orderedAttributes(step(trace, "parse.clientData"));
+        assertThat(clientData)
+                .containsEntry("expected.type", sample.expectedType())
+                .containsEntry("type.match", "true")
+                .containsEntry("origin.expected", sample.origin())
+                .containsEntry("origin.match", "true")
+                .containsEntry("challenge.b64u", sample.challengeBase64Url())
+                .containsEntry("challenge.decoded.len", String.valueOf(sample.challenge().length))
+                .containsEntry("tokenBinding.status", "not_present")
+                .containsEntry("tokenBinding.id", "");
+
+        Map<String, String> authenticatorData = orderedAttributes(step(trace, "parse.authenticatorData"));
+        assertThat(authenticatorData)
+                .containsEntry("rpId.canonical", sample.relyingPartyId())
+                .containsKey("rpIdHash.hex")
+                .containsKey("rpIdHash.expected")
+                .containsKey("rpIdHash.match");
+
         Map<String, String> extensions = orderedAttributes(step(trace, "parse.extensions"));
         assertThat(extensions).containsEntry("extensions.present", "false").containsEntry("extensions.cbor.hex", "");
+
+        Map<String, String> signatureBase = orderedAttributes(step(trace, "build.signatureBase"));
+        assertThat(signatureBase).containsKey("signedBytes.preview");
+
+        Map<String, String> counter = orderedAttributes(step(trace, "evaluate.counter"));
+        assertThat(counter)
+                .containsKey("counter.previous")
+                .containsKey("counter.reported")
+                .containsKey("counter.incremented");
 
         Map<String, String> verifySignature = orderedAttributes(step(trace, "verify.signature"));
         SignatureInspector.SignatureDetails signatureDetails =
@@ -246,6 +273,15 @@ class Fido2ReplayEndpointTest {
         JsonNode trace = root.get("trace");
         assertThat(trace).isNotNull();
         assertThat(root.get("status").asText()).isEqualTo("match");
+        Map<String, String> clientData = orderedAttributes(step(trace, "parse.clientData"));
+        assertThat(clientData)
+                .containsEntry("expected.type", sample.expectedType())
+                .containsEntry("origin.expected", sample.origin())
+                .containsEntry("type.match", "true")
+                .containsEntry("origin.match", "true")
+                .containsEntry("tokenBinding.status", "not_present")
+                .containsEntry("tokenBinding.id", "");
+
         Map<String, String> extensions = orderedAttributes(step(trace, "parse.extensions"));
         assertThat(extensions)
                 .containsEntry("extensions.present", "true")

@@ -501,8 +501,8 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
+          "404" : {
+            "description" : "Credential not found",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -539,8 +539,8 @@
               }
             }
           },
-          "404" : {
-            "description" : "Credential not found",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -655,6 +655,16 @@
           "required" : true
         },
         "responses" : {
+          "422" : {
+            "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
           "200" : {
             "description" : "Replay completed",
             "content" : {
@@ -667,16 +677,6 @@
           },
           "500" : {
             "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
-          "422" : {
-            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -705,6 +705,16 @@
           "required" : true
         },
         "responses" : {
+          "422" : {
+            "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
@@ -721,16 +731,6 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
-          "422" : {
-            "description" : "Validation error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -755,6 +755,16 @@
           "required" : true
         },
         "responses" : {
+          "422" : {
+            "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
@@ -771,16 +781,6 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
-          "422" : {
-            "description" : "Validation error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
                 }
               }
             }
@@ -2350,6 +2350,29 @@
           }
         }
       },
+      "HotpReplayErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
       "HotpReplayMetadata" : {
         "type" : "object",
         "properties" : {
@@ -2393,29 +2416,6 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpReplayMetadata"
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
-      "HotpReplayErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "type" : "string"
-          },
-          "reasonCode" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"

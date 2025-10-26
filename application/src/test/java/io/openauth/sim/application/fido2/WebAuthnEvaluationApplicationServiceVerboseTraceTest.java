@@ -115,6 +115,8 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
                 sha256Digest(fixture.request().clientDataJson()),
                 parseClientData.attributes().get("clientDataHash.sha256"));
         assertEquals(Boolean.FALSE, parseClientData.attributes().get("tokenBinding.present"));
+        assertEquals("not_present", parseClientData.attributes().get("tokenBinding.status"));
+        assertEquals("", parseClientData.attributes().get("tokenBinding.id"));
         assertTrue(parseClientData.typedAttributes().stream()
                 .anyMatch(attr ->
                         "clientData.json".equals(attr.name()) && attr.type() == VerboseTrace.AttributeType.JSON));
@@ -381,6 +383,8 @@ final class WebAuthnEvaluationApplicationServiceVerboseTraceTest {
                 sha256Digest(fixture.request().clientDataJson()),
                 parseClientData.attributes().get("clientDataHash.sha256"));
         assertEquals(Boolean.FALSE, parseClientData.attributes().get("tokenBinding.present"));
+        assertEquals("not_present", parseClientData.attributes().get("tokenBinding.status"));
+        assertEquals("", parseClientData.attributes().get("tokenBinding.id"));
 
         var authenticator = parseAuthenticatorData(fixture.request().authenticatorData());
         var parseAuthenticatorData = findStep(trace, "parse.authenticatorData");

@@ -131,6 +131,8 @@ final class Fido2CliVerboseTraceTest {
         assertTrue(stdout.contains("  origin.expected = " + fixture.request().origin()), stdout);
         assertTrue(stdout.contains("  origin.match = true"), stdout);
         assertTrue(stdout.contains("  tokenBinding.present = false"), stdout);
+        assertTrue(stdout.contains("  tokenBinding.status = "), stdout);
+        assertTrue(stdout.contains("  tokenBinding.id = "), stdout);
 
         long storedCounter = fixture.storedCredential().signatureCounter();
         long reportedCounter = counterFromAuthenticatorData(authenticatorData);

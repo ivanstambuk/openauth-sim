@@ -327,8 +327,8 @@ paths:
                       contextFingerprint: "Base64URL-Hash"
                       telemetryId: "rest-ocra-verify-<uuid>"
                       outcome: "match"
-        "500":
-          description: "Unexpected error"
+        "404":
+          description: "Credential not found"
           content:
             application/json:
               schema:
@@ -353,8 +353,8 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "404":
-          description: "Credential not found"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -432,6 +432,12 @@ paths:
               $ref: "#/components/schemas/HotpReplayRequest"
         required: true
       responses:
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
         "200":
           description: "Replay completed"
           content:
@@ -440,12 +446,6 @@ paths:
                 $ref: "#/components/schemas/HotpReplayResponse"
         "500":
           description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
-        "422":
-          description: "Validation error"
           content:
             application/json:
               schema:
@@ -465,6 +465,12 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -477,12 +483,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
   /api/v1/hotp/evaluate/inline:
     post:
       tags:
@@ -498,6 +498,12 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -510,12 +516,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
   /api/v1/hotp/credentials/seed:
     post:
       tags:
@@ -1637,6 +1637,21 @@ components:
             type: "string"
         verbose:
           type: "boolean"
+    HotpReplayErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     HotpReplayMetadata:
       type: "object"
       properties:
@@ -1668,21 +1683,6 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/HotpReplayMetadata"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
-    HotpReplayErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
     HotpStoredEvaluationRequest:

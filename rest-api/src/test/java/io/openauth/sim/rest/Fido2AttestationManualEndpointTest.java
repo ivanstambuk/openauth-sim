@@ -249,11 +249,32 @@ class Fido2AttestationManualEndpointTest {
         assertThat(metadata.get("format").asText()).isEqualTo("packed");
         assertThat(metadata.get("tier").asText()).isEqualTo("educational");
 
+        Map<String, String> clientData = orderedAttributes(step(trace, "parse.clientData"));
+        assertThat(clientData)
+                .containsKey("expected.type")
+                .containsKey("type.match")
+                .containsKey("origin.expected")
+                .containsKey("origin.match")
+                .containsKey("challenge.b64u")
+                .containsEntry("tokenBinding.status", "not_present")
+                .containsEntry("tokenBinding.id", "");
+
+        Map<String, String> authenticator = orderedAttributes(step(trace, "parse.authenticatorData"));
+        assertThat(authenticator)
+                .containsKey("rpIdHash.hex")
+                .containsKey("rpIdHash.expected")
+                .containsKey("rpIdHash.match")
+                .containsKey("flags.bits.UP")
+                .containsKey("flags.bits.ED");
+
         Map<String, String> anchorAttributes = orderedAttributes(step(trace, "resolve.trustAnchors"));
         assertThat(anchorAttributes).containsEntry("anchorCount", "1");
 
         Map<String, String> prepareAttributes = orderedAttributes(step(trace, "prepare.replay"));
         assertThat(prepareAttributes).containsEntry("anchorSource", "COMBINED");
+
+        Map<String, String> signatureBase = orderedAttributes(step(trace, "build.signatureBase"));
+        assertThat(signatureBase).containsKey("signedBytes.preview");
 
         Map<String, String> verifyAttributes = orderedAttributes(step(trace, "verify.attestation"));
         assertThat(verifyAttributes).containsEntry("status", "SUCCESS");

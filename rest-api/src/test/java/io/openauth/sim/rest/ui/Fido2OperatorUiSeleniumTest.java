@@ -1391,6 +1391,14 @@ final class Fido2OperatorUiSeleniumTest {
                 .until(webDriver -> traceContent.getText().contains("ext.hmac-secret = requested"));
 
         String traceText = traceContent.getText();
+        assertThat(traceText).contains("parse.clientData");
+        assertThat(traceText).contains("parse.authenticatorData");
+        assertThat(traceText).contains("build.signatureBase");
+        assertThat(traceText).contains("verify.signature");
+        assertThat(traceText).contains("evaluate.counter");
+        assertThat(traceText).contains("  tokenBinding.status = ");
+        assertThat(traceText).contains("  tokenBinding.id = ");
+        assertThat(traceText).contains("  signedBytes.preview = ");
         assertThat(traceText).contains("parse.extensions");
         assertThat(traceText).contains("  extensions.present = true");
         assertThat(traceText).contains("  extensions.cbor.hex = " + EXTENSIONS_CBOR_HEX);
