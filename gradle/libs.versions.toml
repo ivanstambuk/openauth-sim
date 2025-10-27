@@ -12,7 +12,7 @@ mockito = "5.11.0"
 picocli = "4.7.7"
 spotbugs = "4.8.3"
 springBoot = "3.3.4"
-springdoc = "2.4.0"
+springdoc = "2.8.13"
 seleniumHtmlUnitDriver = "4.13.0"
 
 [libraries]
