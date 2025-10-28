@@ -308,8 +308,7 @@ _2025-10-26 – Scope reopened to deliver stored attestation replay affordances 
 41. **I41 – Stored replay read-only styling parity**  
     - Extend the operator console stylesheet so read-only textarea fields (stored challenge, attestationObject, clientDataJSON) share the muted, non-interactive treatment applied to other locked inputs, preventing them from appearing editable.  
     - Verification: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"` and full `./gradlew --no-daemon spotlessApply check`.  
-    - _2025-10-28 – Implemented canonical-name seeding updates and refreshed application/REST tests; both targeted suites now pass with shared credential IDs._  
-    - _2025-10-28 – Attestation seeding now preserves the original assertion credential secret while layering stored payload attributes; `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationSeedServiceTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationSeedTest"`, and `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationSeedEndpointTest"` all green._
+    - _2025-10-28 – Updated `console.css` so stored replay textareas inherit the read-only palette, confirmed the UI diff locally, and reran the targeted Selenium scenario plus full `spotlessApply check`._  
 
 41. **I41 – Synthetic PS256 packed attestation fixture**  
     - Clarify specification and docs so the synthetic PS256 packed fixture is part of the curated seed catalogue (see 2025-10-28 clarification).  
