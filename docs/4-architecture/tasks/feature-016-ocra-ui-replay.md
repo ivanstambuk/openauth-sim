@@ -18,7 +18,7 @@ _Last updated: 2025-10-04_
 - [x] T1612 – Update replay JS + Selenium suites so selecting a preset populates OTP and succeeds on submission; rerun `./gradlew :rest-api:test spotlessApply check`. (_2025-10-03_)
 - [x] T1613 – Align replay result card styling with evaluation console (status emphasis and telemetry list) plus UI test refinements. (_2025-10-03_)
 
-Update this checklist as increments complete; keep tests ahead of implementation to maintain VDD cadence.
+Update this checklist as increments complete; keep tests ahead of implementation to maintain SDD cadence.
 - [x] T1614 – Add failing Selenium coverage asserting inline auto-fill button populates preset data in replay mode. (_2025-10-04_)
 - [x] T1615 – Implement inline auto-fill control (template + JS), ensure presets apply suite/secret/context/OTP, and rerun Selenium + `./gradlew spotlessApply check`. (_2025-10-04_)
 - [x] T1616 – Update operator UI docs/telemetry guidance for the new auto-fill feature and rerun quality gate commands. (_2025-10-04_)

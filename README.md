@@ -42,6 +42,16 @@ The default build disables Error Prone for now because plugin 3.1.0 and recent E
 - Tests must either pass or be explicitly disabled with a follow-up issue/ADR explaining the deferral.
 - Secrets and credential material are injected through the API/CLI/REST layers (no static configuration files). Persistence is MapDB on-disk with in-memory caching; future adapters can be added behind `CredentialStore`.
 
+### Specification-Driven Development (SDD)
+
+The project runs on Specification-Driven Development: specifications lead every change, executable tests capture behaviour before code, and only then do we plan and implement tasks. The working rhythm is:
+1. Draft or update the feature specification (see `docs/4-architecture/specs/`).
+2. Capture expected behaviour as failing tests or executable specifications.
+3. Break the work into ≤30 minute tasks that reference the spec and staged tests.
+4. Implement the smallest viable increment, keeping specs, plans, and docs in sync.
+
+For more background, see the [GitHub Spec Kit guidance](https://github.com/github/spec-kit/blob/main/spec-driven.md) and the detailed agent workflow in `AGENTS.md`.
+
 ## Documentation
 
 Long-form documentation lives in `/docs`:

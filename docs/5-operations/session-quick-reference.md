@@ -31,6 +31,7 @@ You’re resuming work on [project/workstream identifier]. Core context:
 > Tip: Retros for new sessions should paste the filled template into the opening message so successors inherit complete context.
 
 ## Reminders
+- Specification-Driven Development governs every change: verify the spec is current, stage failing tests, then execute the plan.
 - Never document or implement fallback paths in specs, plans, or code without explicit user approval.
 
 ## Common Command Snippets

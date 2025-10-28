@@ -26,11 +26,12 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 > Quick reference: See `docs/5-operations/session-quick-reference.md` for the Session Kickoff Checklist and handoff prompt template.
 - Maintain `docs/_current-session.md` as the single live snapshot across active chats; always review/update it before closing a session.
 
-## VDD Feedback Loops
+## SDD Feedback Loops
+- Specification-Driven Development (SDD) is the default cadence. Anchor every increment in an explicit specification, aligned with the [GitHub Spec Kit reference](https://github.com/github/spec-kit/blob/main/spec-driven.md).
 - **Update specs before code.** For every task, refresh the relevant feature plan and note open questions; only move forward once the plan reflects the desired change.
 - **Test-first cadence.** Write or extend executable specifications (unit, behaviour, or scenario tests) ahead of implementation, confirm they fail, and then drive code to green before refactoring.
 - **Branch coverage upfront.** When outlining a feature, list the expected success, validation, and failure branches and add thin failing tests for each path before writing implementation code so coverage grows organically.
-- **Reflection checkpoint.** After loops close, record lessons, coverage deltas, and follow-ups back into the feature plan or roadmap to keep the vibe-driven history auditable.
+- **Reflection checkpoint.** After loops close, record lessons, coverage deltas, and follow-ups back into the feature plan or roadmap to keep the spec-driven history auditable.
 
 ## During Implementation
 - **Sync context to disk.** Update the roadmap (`docs/4-architecture/roadmap.md`), feature specs, feature plans, and tasks documents as progress is made. Use ADRs only for final decisions.

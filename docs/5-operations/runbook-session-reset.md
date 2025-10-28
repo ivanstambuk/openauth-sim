@@ -15,6 +15,7 @@ Immediate actions:
 6. Review the per-feature tasks in `docs/4-architecture/tasks/`.
 7. Check `docs/4-architecture/open-questions.md` for unresolved clarifications.
 8. Consult `docs/_current-session.md` for the latest workstream snapshot; update it as you discover new status.
+9. Reconfirm the Specification-Driven Development cadence: spec updates lead, failing tests follow, then tasks and implementation proceed.
 
 Diagnosis tree:
 - If open questions exist, prepare a clarification request before planning.
