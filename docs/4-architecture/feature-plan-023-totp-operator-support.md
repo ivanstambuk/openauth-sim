@@ -20,6 +20,7 @@ Reference specification: `docs/4-architecture/specs/feature-023-totp-operator-su
 - 2025-10-12 – Inline preset catalogue expanded with RFC 6238 SHA-256 and SHA-512 8-digit samples (labelled with the RFC suffix) plus plain-labelled 6-digit truncations for UI parity across algorithms.
 - 2025-10-13 – TOTP evaluation result cards drop telemetry and drift metadata in favour of the HOTP/OCRA presentation (evaluation heading + OTP + status badge).
 - 2025-10-13 – Stored credential seeding now provisions the same SHA-1/SHA-256/SHA-512 presets (6/8-digit, 30s step) exposed in the inline dropdown so operators see identical labels across modes.
+- 2025-10-28 – Operator UI parity update: adopt “Use current Unix seconds” toggles with “Reset to now” helpers across TOTP evaluate/replay inline and stored forms, quantising timestamps to the active step while leaving HOTP forms unchanged.
 
 ## Proposed Increments
 - ☑ R2301 – Add failing core unit tests for TOTP generator/validator covering algorithm/digit permutations, time-step conversion, and drift window boundaries. (_2025-10-08 – Introduced RFC 6238 vectors and drift scenarios; `./gradlew :core:test` failed on missing TOTP domain classes._)

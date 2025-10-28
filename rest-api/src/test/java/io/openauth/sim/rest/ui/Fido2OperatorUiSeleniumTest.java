@@ -946,7 +946,8 @@ final class Fido2OperatorUiSeleniumTest {
         long initialValue = Long.parseLong(counterInput.getAttribute("value"));
         assertThat(initialValue).isGreaterThan(0L);
 
-        WebElement toggleCluster = waitFor(By.cssSelector(".field-group--counter-toggle"));
+        WebElement inlineCounterToggle = waitFor(By.cssSelector("[data-testid='fido2-inline-counter-toggle']"));
+        WebElement toggleCluster = inlineCounterToggle.findElement(By.xpath(".."));
         assertThat(toggleCluster.getAttribute("class")).contains("field-group--checkbox");
         List<WebElement> clusterChildren = toggleCluster.findElements(By.xpath("./*"));
         assertThat(clusterChildren).hasSize(3);

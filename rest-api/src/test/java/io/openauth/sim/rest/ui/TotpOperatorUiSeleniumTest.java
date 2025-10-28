@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -151,6 +152,12 @@ final class TotpOperatorUiSeleniumTest {
 
         selectOption("totpStoredCredentialId", STORED_CREDENTIAL_ID);
 
+        WebElement storedTimestampAuto =
+                driver.findElement(By.cssSelector("[data-testid='totp-stored-timestamp-toggle']"));
+        if (storedTimestampAuto.isSelected()) {
+            storedTimestampAuto.click();
+            waitUntilCondition(() -> !storedTimestampAuto.isSelected());
+        }
         WebElement timestampInput = driver.findElement(By.id("totpStoredTimestamp"));
         timestampInput.clear();
         timestampInput.sendKeys(Long.toString(STORED_TIMESTAMP.getEpochSecond()));
@@ -263,6 +270,141 @@ final class TotpOperatorUiSeleniumTest {
     }
 
     @Test
+    @DisplayName("TOTP timestamp auto-fill controls quantise to the active step across panels")
+    void totpAutoFillTimestampControls() {
+        navigateToTotpPanel();
+
+        WebElement inlineToggle = waitFor(By.cssSelector("[data-testid='totp-inline-timestamp-toggle']"));
+        WebElement inlineTimestamp = driver.findElement(By.id("totpInlineTimestamp"));
+        waitUntilValuePopulated(inlineTimestamp);
+        assertTrue(inlineToggle.isSelected(), "Inline evaluate auto-fill toggle should default to on");
+        assertTrue(
+                isReadOnly(inlineTimestamp), "Inline evaluate timestamp should be read-only when auto-fill is enabled");
+
+        long inlineStep = Long.parseLong(
+                driver.findElement(By.id("totpInlineStepSeconds")).getAttribute("value"));
+        long inlineValue = readLongValue(inlineTimestamp);
+        assertQuantisedToCurrentStep(inlineValue, inlineStep);
+
+        inlineToggle.click();
+        waitUntilCondition(() -> !inlineToggle.isSelected());
+        assertFalse(
+                isReadOnly(inlineTimestamp),
+                "Inline evaluate timestamp should become editable when auto-fill is disabled");
+        inlineTimestamp.clear();
+        inlineTimestamp.sendKeys("12345");
+        assertEquals("12345", inlineTimestamp.getAttribute("value"));
+
+        inlineToggle.click();
+        waitUntilCondition(inlineToggle::isSelected);
+        assertTrue(
+                isReadOnly(inlineTimestamp),
+                "Inline evaluate timestamp should be read-only once auto-fill is re-enabled");
+        waitUntilCondition(() -> !"12345".equals(inlineTimestamp.getAttribute("value")));
+        inlineValue = readLongValue(inlineTimestamp);
+        assertQuantisedToCurrentStep(inlineValue, inlineStep);
+
+        WebElement modeToggle = driver.findElement(By.cssSelector("[data-testid='totp-mode-toggle']"));
+        WebElement storedRadio = driver.findElement(By.cssSelector("[data-testid='totp-mode-select-stored']"));
+        storedRadio.click();
+        waitUntilAttribute(modeToggle, "data-mode", "stored");
+        selectOption("totpStoredCredentialId", STORED_CREDENTIAL_ID);
+        waitUntilSelectValue(By.id("totpStoredCredentialId"), STORED_CREDENTIAL_ID);
+
+        WebElement storedToggle = waitFor(By.cssSelector("[data-testid='totp-stored-timestamp-toggle']"));
+        WebElement storedTimestamp = driver.findElement(By.id("totpStoredTimestamp"));
+        waitUntilValuePopulated(storedTimestamp);
+        assertTrue(storedToggle.isSelected(), "Stored evaluate auto-fill toggle should default to on");
+        assertTrue(isReadOnly(storedTimestamp), "Stored evaluate timestamp should be read-only with auto-fill enabled");
+
+        long storedStep = STORED_DESCRIPTOR.stepSeconds();
+        long storedValue = readLongValue(storedTimestamp);
+        assertQuantisedToCurrentStep(storedValue, storedStep);
+
+        storedToggle.click();
+        waitUntilCondition(() -> !storedToggle.isSelected());
+        assertFalse(
+                isReadOnly(storedTimestamp),
+                "Stored evaluate timestamp should become editable when auto-fill is disabled");
+        storedTimestamp.clear();
+        storedTimestamp.sendKeys("42");
+        assertEquals("42", storedTimestamp.getAttribute("value"));
+
+        storedToggle.click();
+        waitUntilCondition(storedToggle::isSelected);
+        assertTrue(
+                isReadOnly(storedTimestamp),
+                "Stored evaluate timestamp should be read-only once auto-fill is re-enabled");
+        waitUntilCondition(() -> !"42".equals(storedTimestamp.getAttribute("value")));
+        storedValue = readLongValue(storedTimestamp);
+        assertQuantisedToCurrentStep(storedValue, storedStep);
+
+        WebElement replayTab = driver.findElement(By.cssSelector("[data-testid='totp-panel-tab-replay']"));
+        replayTab.click();
+        waitUntilUrlContains("tab=replay");
+
+        WebElement replayModeToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
+        waitUntilAttribute(replayModeToggle, "data-mode", "stored");
+
+        selectOption("totpReplayStoredCredentialId", STORED_CREDENTIAL_ID);
+        waitUntilSelectValue(By.id("totpReplayStoredCredentialId"), STORED_CREDENTIAL_ID);
+        waitUntilFieldValue(By.id("totpReplayStoredTimestamp"), Long.toString(STORED_TIMESTAMP.getEpochSecond()));
+        WebElement replayStoredToggle = waitFor(By.cssSelector("[data-testid='totp-replay-stored-timestamp-toggle']"));
+        WebElement replayStoredTimestamp = driver.findElement(By.id("totpReplayStoredTimestamp"));
+        assertFalse(
+                replayStoredToggle.isSelected(),
+                "Stored replay auto-fill toggle should default to off to preserve seeded sample data");
+        assertFalse(
+                isReadOnly(replayStoredTimestamp),
+                "Stored replay timestamp should be editable while auto-fill is disabled");
+        assertEquals(Long.toString(STORED_TIMESTAMP.getEpochSecond()), replayStoredTimestamp.getAttribute("value"));
+
+        replayStoredToggle.click();
+        waitUntilCondition(replayStoredToggle::isSelected);
+        waitUntilCondition(() -> isReadOnly(replayStoredTimestamp));
+        waitUntilCondition(() ->
+                !Long.toString(STORED_TIMESTAMP.getEpochSecond()).equals(replayStoredTimestamp.getAttribute("value")));
+        long replayStoredValue = readLongValue(replayStoredTimestamp);
+        assertQuantisedToCurrentStep(replayStoredValue, storedStep);
+
+        replayStoredToggle.click();
+        waitUntilCondition(() -> !replayStoredToggle.isSelected());
+        assertFalse(isReadOnly(replayStoredTimestamp));
+
+        WebElement replayInlineRadio =
+                driver.findElement(By.cssSelector("[data-testid='totp-replay-mode-select-inline']"));
+        replayInlineRadio.click();
+        waitUntilAttribute(replayModeToggle, "data-mode", "inline");
+
+        selectOption("totpReplayInlinePreset", INLINE_SAMPLE_PRESET_KEY);
+        waitUntilSelectValue(By.id("totpReplayInlinePreset"), INLINE_SAMPLE_PRESET_KEY);
+        waitUntilFieldValue(
+                By.id("totpReplayInlineTimestamp"), Long.toString(INLINE_SAMPLE_TIMESTAMP.getEpochSecond()));
+        WebElement replayInlineToggle = waitFor(By.cssSelector("[data-testid='totp-replay-inline-timestamp-toggle']"));
+        WebElement replayInlineTimestamp = driver.findElement(By.id("totpReplayInlineTimestamp"));
+        assertFalse(
+                replayInlineToggle.isSelected(),
+                "Inline replay auto-fill toggle should default to off to retain preset timestamp data");
+        assertFalse(isReadOnly(replayInlineTimestamp));
+        assertEquals(
+                Long.toString(INLINE_SAMPLE_TIMESTAMP.getEpochSecond()), replayInlineTimestamp.getAttribute("value"));
+
+        replayInlineToggle.click();
+        waitUntilCondition(replayInlineToggle::isSelected);
+        waitUntilCondition(() -> isReadOnly(replayInlineTimestamp));
+        waitUntilCondition(() -> !Long.toString(INLINE_SAMPLE_TIMESTAMP.getEpochSecond())
+                .equals(replayInlineTimestamp.getAttribute("value")));
+        long replayInlineValue = readLongValue(replayInlineTimestamp);
+        long inlineReplayStep = Long.parseLong(
+                driver.findElement(By.id("totpReplayInlineStepSeconds")).getAttribute("value"));
+        assertQuantisedToCurrentStep(replayInlineValue, inlineReplayStep);
+
+        replayInlineToggle.click();
+        waitUntilCondition(() -> !replayInlineToggle.isSelected());
+        assertFalse(isReadOnly(replayInlineTimestamp));
+    }
+
+    @Test
     @DisplayName("TOTP evaluate tab defaults to inline parameters mode")
     void totpEvaluateDefaultsToInline() {
         navigateToTotpPanel();
@@ -306,6 +448,12 @@ final class TotpOperatorUiSeleniumTest {
         driftForward.clear();
         driftForward.sendKeys("1");
 
+        WebElement inlineTimestampAuto =
+                driver.findElement(By.cssSelector("[data-testid='totp-inline-timestamp-toggle']"));
+        if (inlineTimestampAuto.isSelected()) {
+            inlineTimestampAuto.click();
+            waitUntilCondition(() -> !inlineTimestampAuto.isSelected());
+        }
         WebElement timestampInput = driver.findElement(By.id("totpInlineTimestamp"));
         timestampInput.clear();
         timestampInput.sendKeys(Long.toString(INLINE_TIMESTAMP.getEpochSecond()));
@@ -376,7 +524,9 @@ final class TotpOperatorUiSeleniumTest {
         assertEquals(Long.toString(INLINE_SAMPLE_DESCRIPTOR.stepSeconds()), stepField.getAttribute("value"));
 
         WebElement timestampField = driver.findElement(By.id("totpInlineTimestamp"));
-        assertEquals(Long.toString(INLINE_SAMPLE_TIMESTAMP.getEpochSecond()), timestampField.getAttribute("value"));
+        long presetStepSeconds = INLINE_SAMPLE_DESCRIPTOR.stepSeconds();
+        long autoFilledTimestamp = readLongValue(timestampField);
+        assertQuantisedToCurrentStep(autoFilledTimestamp, presetStepSeconds);
 
         assertTrue(
                 driver.findElements(By.id("totpInlineOtp")).isEmpty(),
@@ -921,6 +1071,52 @@ final class TotpOperatorUiSeleniumTest {
                 return false;
             }
         });
+    }
+
+    private void waitUntilCondition(BooleanSupplier condition) {
+        new WebDriverWait(driver, Duration.ofSeconds(5)).until(driver1 -> {
+            try {
+                return condition.getAsBoolean();
+            } catch (Exception ex) {
+                return false;
+            }
+        });
+    }
+
+    private void waitUntilValuePopulated(WebElement element) {
+        new WebDriverWait(driver, Duration.ofSeconds(5)).until(driver1 -> {
+            try {
+                String value = element.getAttribute("value");
+                return value != null && !value.isBlank();
+            } catch (StaleElementReferenceException ex) {
+                return false;
+            }
+        });
+    }
+
+    private boolean isReadOnly(WebElement element) {
+        String attr = element.getAttribute("readonly");
+        if (attr != null) {
+            return true;
+        }
+        String property = element.getDomProperty("readOnly");
+        if (property == null) {
+            return false;
+        }
+        return Boolean.parseBoolean(property);
+    }
+
+    private long readLongValue(WebElement element) {
+        return Long.parseLong(element.getAttribute("value"));
+    }
+
+    private void assertQuantisedToCurrentStep(long timestamp, long stepSeconds) {
+        assertEquals(0L, timestamp % stepSeconds, "Timestamp should align to the TOTP step boundary");
+        long now = Instant.now().getEpochSecond();
+        long difference = Math.abs(now - timestamp);
+        assertTrue(
+                difference <= stepSeconds,
+                "Timestamp should be within one step of the current time (difference=" + difference + ")");
     }
 
     private boolean hasCssClass(WebElement element, String className) {

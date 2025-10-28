@@ -76,6 +76,10 @@
   var storedOtpValue = storedResultPanel
     ? storedResultPanel.querySelector('[data-testid="totp-result-otp"]')
     : null;
+  var storedTimestampInput = totpPanel.querySelector('#totpStoredTimestamp');
+  var storedTimestampToggle = totpPanel.querySelector('[data-testid="totp-stored-timestamp-toggle"]');
+  var storedTimestampResetButton =
+      totpPanel.querySelector('[data-testid="totp-stored-timestamp-reset"]');
 
   var seedDefinitionsPayload = [];
   if (seedDefinitionNode && seedDefinitionNode.textContent) {
@@ -149,6 +153,9 @@
   var inlineStepInput = totpPanel.querySelector('#totpInlineStepSeconds');
   var inlineTimestampInput = totpPanel.querySelector('#totpInlineTimestamp');
   var inlineTimestampOverrideInput = totpPanel.querySelector('#totpInlineTimestampOverride');
+  var inlineTimestampToggle = totpPanel.querySelector('[data-testid="totp-inline-timestamp-toggle"]');
+  var inlineTimestampResetButton =
+      totpPanel.querySelector('[data-testid="totp-inline-timestamp-reset"]');
   var inlineDriftBackwardInput = totpPanel.querySelector('#totpInlineDriftBackward');
   var inlineDriftForwardInput = totpPanel.querySelector('#totpInlineDriftForward');
 
@@ -166,6 +173,10 @@
   var replayStoredTimestampInput = totpPanel.querySelector('#totpReplayStoredTimestamp');
   var replayStoredTimestampOverrideInput =
       totpPanel.querySelector('#totpReplayStoredTimestampOverride');
+  var replayStoredTimestampToggle =
+      totpPanel.querySelector('[data-testid="totp-replay-stored-timestamp-toggle"]');
+  var replayStoredTimestampResetButton =
+      totpPanel.querySelector('[data-testid="totp-replay-stored-timestamp-reset"]');
   var replayStoredDriftBackwardInput =
       totpPanel.querySelector('#totpReplayStoredDriftBackward');
   var replayStoredDriftForwardInput =
@@ -196,6 +207,10 @@
   var replayInlineTimestampInput = totpPanel.querySelector('#totpReplayInlineTimestamp');
   var replayInlineTimestampOverrideInput =
       totpPanel.querySelector('#totpReplayInlineTimestampOverride');
+  var replayInlineTimestampToggle =
+      totpPanel.querySelector('[data-testid="totp-replay-inline-timestamp-toggle"]');
+  var replayInlineTimestampResetButton =
+      totpPanel.querySelector('[data-testid="totp-replay-inline-timestamp-reset"]');
   var replayInlineDriftBackwardInput = totpPanel.querySelector('#totpReplayInlineDriftBackward');
   var replayInlineDriftForwardInput = totpPanel.querySelector('#totpReplayInlineDriftForward');
 
@@ -355,8 +370,16 @@
           typeof preset.stepSeconds === 'number' ? String(preset.stepSeconds) : '';
     }
     if (inlineTimestampInput) {
-      inlineTimestampInput.value =
-          typeof preset.timestamp === 'number' ? String(preset.timestamp) : '';
+      if (typeof preset.timestamp === 'number') {
+        inlineTimestampInput.value = String(preset.timestamp);
+      } else if (typeof preset.timestamp === 'string') {
+        inlineTimestampInput.value = preset.timestamp.trim();
+      } else {
+        inlineTimestampInput.value = '';
+      }
+      if (inlineTimestampToggle && inlineTimestampToggle.checked) {
+        refreshInlineTimestampSnapshot();
+      }
     }
     if (inlineTimestampOverrideInput) {
       inlineTimestampOverrideInput.value = '';
@@ -404,8 +427,16 @@
       replayInlineOtpInput.value = preset.otp || '';
     }
     if (replayInlineTimestampInput) {
-      replayInlineTimestampInput.value =
-          typeof preset.timestamp === 'number' ? String(preset.timestamp) : '';
+      if (typeof preset.timestamp === 'number') {
+        replayInlineTimestampInput.value = String(preset.timestamp);
+      } else if (typeof preset.timestamp === 'string') {
+        replayInlineTimestampInput.value = preset.timestamp.trim();
+      } else {
+        replayInlineTimestampInput.value = '';
+      }
+      if (replayInlineTimestampToggle && replayInlineTimestampToggle.checked) {
+        refreshReplayInlineTimestampSnapshot();
+      }
     }
     if (replayInlineTimestampOverrideInput) {
       replayInlineTimestampOverrideInput.value = '';
@@ -470,6 +501,145 @@
   }
 
   renderInlinePresetOptions();
+
+  function parseStepSeconds(value, fallback) {
+    var parsed = parseInt(typeof value === 'string' ? value : '', 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      return parsed;
+    }
+    return fallback;
+  }
+
+  function currentUnixSeconds() {
+    return Math.floor(Date.now() / 1000);
+  }
+
+  function quantiseTimestamp(stepSeconds) {
+    var nowSeconds = currentUnixSeconds();
+    if (!stepSeconds || stepSeconds <= 0) {
+      return nowSeconds;
+    }
+    return Math.floor(nowSeconds / stepSeconds) * stepSeconds;
+  }
+
+  function selectedStepSeconds(select) {
+    if (!select || typeof select.selectedIndex !== 'number') {
+      return 30;
+    }
+    var option = select.options && select.options.length > 0
+        ? select.options[select.selectedIndex]
+        : null;
+    if (!option) {
+      return 30;
+    }
+    return parseStepSeconds(option.getAttribute('data-step-seconds'), 30);
+  }
+
+  function inlineStepSeconds() {
+    return parseStepSeconds(inlineStepInput ? inlineStepInput.value : null, 30);
+  }
+
+  function storedStepSeconds() {
+    return selectedStepSeconds(storedSelect);
+  }
+
+  function replayInlineStepSeconds() {
+    return parseStepSeconds(replayInlineStepInput ? replayInlineStepInput.value : null, 30);
+  }
+
+  function replayStoredStepSeconds() {
+    return selectedStepSeconds(replayStoredSelect);
+  }
+
+  function updateTimestampField(input, stepSeconds) {
+    if (!input) {
+      return null;
+    }
+    var snapshot = quantiseTimestamp(stepSeconds);
+    input.value = String(snapshot);
+    return snapshot;
+  }
+
+  function refreshInlineTimestampSnapshot() {
+    return updateTimestampField(inlineTimestampInput, inlineStepSeconds());
+  }
+
+  function refreshStoredTimestampSnapshot() {
+    return updateTimestampField(storedTimestampInput, storedStepSeconds());
+  }
+
+  function refreshReplayStoredTimestampSnapshot() {
+    return updateTimestampField(replayStoredTimestampInput, replayStoredStepSeconds());
+  }
+
+  function refreshReplayInlineTimestampSnapshot() {
+    return updateTimestampField(replayInlineTimestampInput, replayInlineStepSeconds());
+  }
+
+  function setReadOnlyFlag(input, readOnly) {
+    if (!input) {
+      return;
+    }
+    if (readOnly) {
+      input.setAttribute('readonly', 'readonly');
+    } else {
+      input.removeAttribute('readonly');
+    }
+    input.readOnly = Boolean(readOnly);
+  }
+
+  function syncInlineTimestampAutoFill() {
+    if (!inlineTimestampInput || !inlineTimestampToggle) {
+      return;
+    }
+    if (inlineTimestampToggle.checked) {
+      setReadOnlyFlag(inlineTimestampInput, true);
+      refreshInlineTimestampSnapshot();
+    } else {
+      setReadOnlyFlag(inlineTimestampInput, false);
+    }
+  }
+
+  function syncStoredTimestampAutoFill() {
+    if (!storedTimestampInput || !storedTimestampToggle) {
+      return;
+    }
+    if (storedTimestampToggle.checked) {
+      setReadOnlyFlag(storedTimestampInput, true);
+      refreshStoredTimestampSnapshot();
+    } else {
+      setReadOnlyFlag(storedTimestampInput, false);
+    }
+  }
+
+  function syncReplayStoredTimestampAutoFill() {
+    if (!replayStoredTimestampInput || !replayStoredTimestampToggle) {
+      return;
+    }
+    if (replayStoredTimestampToggle.checked) {
+      setReadOnlyFlag(replayStoredTimestampInput, true);
+      refreshReplayStoredTimestampSnapshot();
+    } else {
+      setReadOnlyFlag(replayStoredTimestampInput, false);
+    }
+  }
+
+  function syncReplayInlineTimestampAutoFill() {
+    if (!replayInlineTimestampInput || !replayInlineTimestampToggle) {
+      return;
+    }
+    if (replayInlineTimestampToggle.checked) {
+      setReadOnlyFlag(replayInlineTimestampInput, true);
+      refreshReplayInlineTimestampSnapshot();
+    } else {
+      setReadOnlyFlag(replayInlineTimestampInput, false);
+    }
+  }
+
+  syncInlineTimestampAutoFill();
+  syncStoredTimestampAutoFill();
+  syncReplayStoredTimestampAutoFill();
+  syncReplayInlineTimestampAutoFill();
 
   function setSeedStatus(message, severity) {
     if (!seedStatus) {
@@ -756,6 +926,9 @@
           } else {
             replayStoredDriftForwardInput.value = '';
           }
+        }
+        if (replayStoredTimestampToggle && replayStoredTimestampToggle.checked) {
+          refreshReplayStoredTimestampSnapshot();
         }
         var metadata = payload.metadata && typeof payload.metadata === 'object'
           ? payload.metadata
@@ -1064,11 +1237,19 @@
       clearStoredPanels();
     }
     if (normalized === 'stored') {
+      syncStoredTimestampAutoFill();
+    } else {
+      syncInlineTimestampAutoFill();
+    }
+    if (normalized === 'stored') {
       ensureStoredCredentials(options && options.force === true)
         .then(function () {
           var credentialId = (replayStoredSelect && replayStoredSelect.value || '').trim();
           if (credentialId) {
             applyReplayStoredSample(credentialId);
+          }
+          if (storedTimestampToggle && storedTimestampToggle.checked) {
+            refreshStoredTimestampSnapshot();
           }
         })
         .catch(function () {
@@ -1101,9 +1282,20 @@
     setHidden(replayInlineSection, normalized !== 'inline');
     syncReplaySampleActions();
     if (normalized === 'stored') {
-      ensureStoredCredentials(options && options.force === true).catch(function () {
-        // ignore load errors; status message already updated
-      });
+      syncReplayStoredTimestampAutoFill();
+    } else {
+      syncReplayInlineTimestampAutoFill();
+    }
+    if (normalized === 'stored') {
+      ensureStoredCredentials(options && options.force === true)
+        .then(function () {
+          if (replayStoredTimestampToggle && replayStoredTimestampToggle.checked) {
+            refreshReplayStoredTimestampSnapshot();
+          }
+        })
+        .catch(function () {
+          // ignore load errors; status message already updated
+        });
     }
     dispatchReplayModeChange(normalized, options);
   }
@@ -1556,6 +1748,13 @@
       }
     });
   }
+  if (storedSelect) {
+    storedSelect.addEventListener('change', function () {
+      if (storedTimestampToggle && storedTimestampToggle.checked) {
+        refreshStoredTimestampSnapshot();
+      }
+    });
+  }
   if (inlineRadio) {
     inlineRadio.addEventListener('change', function () {
       if (inlineRadio.checked) {
@@ -1584,6 +1783,28 @@
         return;
       }
       applyInlineEvaluationPreset(key);
+    });
+  }
+  if (inlineTimestampToggle) {
+    inlineTimestampToggle.addEventListener('change', function () {
+      syncInlineTimestampAutoFill();
+    });
+  }
+  if (inlineTimestampResetButton) {
+    inlineTimestampResetButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (inlineTimestampToggle && inlineTimestampToggle.checked) {
+        refreshInlineTimestampSnapshot();
+      } else {
+        updateTimestampField(inlineTimestampInput, inlineStepSeconds());
+      }
+    });
+  }
+  if (inlineStepInput) {
+    inlineStepInput.addEventListener('change', function () {
+      if (inlineTimestampToggle && inlineTimestampToggle.checked) {
+        refreshInlineTimestampSnapshot();
+      }
     });
   }
   if (inlineButton) {
@@ -1629,9 +1850,41 @@
       }
       if (!credentialId) {
         setReplaySampleStatus('', null);
+        syncReplayStoredTimestampAutoFill();
         return;
       }
       applyReplayStoredSample(credentialId);
+      syncReplayStoredTimestampAutoFill();
+    });
+  }
+  if (storedTimestampToggle) {
+    storedTimestampToggle.addEventListener('change', function () {
+      syncStoredTimestampAutoFill();
+    });
+  }
+  if (storedTimestampResetButton) {
+    storedTimestampResetButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (storedTimestampToggle && storedTimestampToggle.checked) {
+        refreshStoredTimestampSnapshot();
+      } else {
+        updateTimestampField(storedTimestampInput, storedStepSeconds());
+      }
+    });
+  }
+  if (replayStoredTimestampToggle) {
+    replayStoredTimestampToggle.addEventListener('change', function () {
+      syncReplayStoredTimestampAutoFill();
+    });
+  }
+  if (replayStoredTimestampResetButton) {
+    replayStoredTimestampResetButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (replayStoredTimestampToggle && replayStoredTimestampToggle.checked) {
+        refreshReplayStoredTimestampSnapshot();
+      } else {
+        updateTimestampField(replayStoredTimestampInput, replayStoredStepSeconds());
+      }
     });
   }
   if (replayStoredButton) {
@@ -1649,6 +1902,28 @@
         return;
       }
       applyReplayInlinePreset(key);
+    });
+  }
+  if (replayInlineTimestampToggle) {
+    replayInlineTimestampToggle.addEventListener('change', function () {
+      syncReplayInlineTimestampAutoFill();
+    });
+  }
+  if (replayInlineTimestampResetButton) {
+    replayInlineTimestampResetButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (replayInlineTimestampToggle && replayInlineTimestampToggle.checked) {
+        refreshReplayInlineTimestampSnapshot();
+      } else {
+        updateTimestampField(replayInlineTimestampInput, replayInlineStepSeconds());
+      }
+    });
+  }
+  if (replayInlineStepInput) {
+    replayInlineStepInput.addEventListener('change', function () {
+      if (replayInlineTimestampToggle && replayInlineTimestampToggle.checked) {
+        refreshReplayInlineTimestampSnapshot();
+      }
     });
   }
   if (replayInlineButton) {

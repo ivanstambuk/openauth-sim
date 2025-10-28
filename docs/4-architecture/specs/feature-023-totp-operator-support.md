@@ -43,6 +43,8 @@ Deliver RFC 6238 TOTP capabilities across the simulator so operators can validat
 - 2025-10-18 – Inline evaluation mirrors stored behaviour by generating the OTP from the provided parameters. Replay is the only flow that accepts operator-entered OTPs and reports match/mismatch outcomes (owner directive).
 - 2025-10-18 – Evaluation responses use `status=generated`, include the generated OTP, and emit telemetry without exposing secret material; replay retains its existing semantics (owner directive).
 - 2025-10-22 – Evaluation forms no longer render OTP input fields; generated codes surface exclusively in the ResultCard so TOTP mirrors HOTP/OCRA/FIDO2 UX (owner directive).
+- 2025-10-28 – Operator console TOTP panels adopt FIDO2-style “Use current Unix seconds” toggles (with “Reset to now” helpers) across evaluate/replay inline and stored modes; HOTP panels remain manual to avoid counter confusion (user approved Option A).
+- 2025-10-28 – Auto-filled timestamps quantise to the active TOTP step window before populating fields so generated OTPs align with time-step counters by default (user approved Option A).
 
 ## Functional Requirements
 | ID | Requirement | Acceptance Signal |

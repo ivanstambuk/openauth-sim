@@ -171,7 +171,24 @@
                         inputmode="numeric"
                         min="0"
                         step="1"
+                        readonly="readonly"
                       />
+                      <div class="field-group field-group--checkbox field-group--counter-toggle">
+                        <input
+                          type="checkbox"
+                          id="totpStoredTimestampAuto"
+                          checked="checked"
+                          data-testid="totp-stored-timestamp-toggle"
+                        />
+                        <label for="totpStoredTimestampAuto">Use current Unix seconds</label>
+                        <button
+                          type="button"
+                          class="button-secondary"
+                          data-testid="totp-stored-timestamp-reset"
+                        >
+                          Reset to now
+                        </button>
+                      </div>
                     </div>
                     <div class="field-group">
                       <label for="totpStoredTimestampOverride">Timestamp override</label>
@@ -317,7 +334,24 @@
                         inputmode="numeric"
                         min="0"
                         step="1"
+                        readonly="readonly"
                       />
+                      <div class="field-group field-group--checkbox field-group--counter-toggle">
+                        <input
+                          type="checkbox"
+                          id="totpInlineTimestampAuto"
+                          checked="checked"
+                          data-testid="totp-inline-timestamp-toggle"
+                        />
+                        <label for="totpInlineTimestampAuto">Use current Unix seconds</label>
+                        <button
+                          type="button"
+                          class="button-secondary"
+                          data-testid="totp-inline-timestamp-reset"
+                        >
+                          Reset to now
+                        </button>
+                      </div>
                     </div>
                     <div class="field-group">
                       <label for="totpInlineTimestampOverride">Timestamp override</label>
@@ -568,6 +602,21 @@
                         min="0"
                         step="1"
                       />
+                      <div class="field-group field-group--checkbox field-group--counter-toggle">
+                        <input
+                          type="checkbox"
+                          id="totpReplayStoredTimestampAuto"
+                          data-testid="totp-replay-stored-timestamp-toggle"
+                        />
+                        <label for="totpReplayStoredTimestampAuto">Use current Unix seconds</label>
+                        <button
+                          type="button"
+                          class="button-secondary"
+                          data-testid="totp-replay-stored-timestamp-reset"
+                        >
+                          Reset to now
+                        </button>
+                      </div>
                     </div>
                     <div class="field-group">
                       <label for="totpReplayStoredTimestampOverride">Timestamp override</label>
@@ -721,6 +770,21 @@
                         min="0"
                         step="1"
                       />
+                      <div class="field-group field-group--checkbox field-group--counter-toggle">
+                        <input
+                          type="checkbox"
+                          id="totpReplayInlineTimestampAuto"
+                          data-testid="totp-replay-inline-timestamp-toggle"
+                        />
+                        <label for="totpReplayInlineTimestampAuto">Use current Unix seconds</label>
+                        <button
+                          type="button"
+                          class="button-secondary"
+                          data-testid="totp-replay-inline-timestamp-reset"
+                        >
+                          Reset to now
+                        </button>
+                      </div>
                     </div>
                     <div class="field-group">
                       <label for="totpReplayInlineTimestampOverride">Timestamp override</label>

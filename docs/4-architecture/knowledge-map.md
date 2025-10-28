@@ -134,6 +134,7 @@ This living map captures the explicit relationships between modules, data flows,
 - How-to catalogue documents the Appendix B Java workflow for generating new OCRA test vectors, keeping domain/UI fixtures aligned with the draft reference implementation.
 - Operator documentation suite under `docs/2-how-to` now includes REST, CLI, and Java integration guides that point operators to shared MapDB defaults and Swagger UI entry points.
 - OCRA replay & verification flows (Feature 009) now extend CLI and REST facades with strict OTP verification using stored or inline credentials while emitting hashed OTP telemetry for audit purposes; shipped 2025-10-01 with shared `core.ocra.verify` instrumentation.
+- Operator console TOTP evaluate and replay panels now expose **Use current Unix seconds** toggles (with reset helpers) so operators can snap timestamps to the console clock’s current step; JavaScript quantises the epoch seconds according to each credential’s step size while keeping manual overrides available when toggles are cleared.
 
 ## Open Items
 | Date | Topic | Question | Status | Follow-up |
