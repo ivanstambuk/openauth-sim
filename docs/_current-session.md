@@ -2,19 +2,19 @@
 
 > Keep this file up to date across all active chats. Treat it as the single source of truth for in-progress workstreams so every hand-off is instant. Replace the bracketed text and prune sections you do not need.
 
-## Meta
-- Date: 2025-10-26
+- Date: 2025-10-28
 - Primary branch: `main`
 - Other active branches: none
-- Last green commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationServiceTest"`, `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationServiceManualTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliVerboseTraceTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2EvaluationEndpointTest"` `--tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"` `--tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, `./gradlew --no-daemon spotlessApply check` (all on 2025-10-26).
-- Build status: WebAuthn generation traces now emit the expanded verbose steps across application/CLI/REST/UI; full `spotlessApply check` completed after the implementation tests passed on 2025-10-26. OpenAPI snapshots unchanged.
-- Quality gate note: `./gradlew --no-daemon spotlessApply check` completed successfully on 2025-10-26 after documentation refresh (T3543); no OpenAPI snapshot changes were required.
+- Last green commands: `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check` (2025-10-28), `./gradlew --no-daemon jacocoAggregatedReport` (2025-10-28), `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"` (2025-10-28), `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.VerboseTracePayloadTest"` (2025-10-28), `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` (2025-10-27).
+- Build status: Synthetic PS256 packed fixture ships across docs and seeders, PS256 stored credentials hydrate automatically, and full CLI/REST/UI suites (including Selenium) are green.
+- Quality gate note: `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check` completed successfully on 2025-10-28 alongside doc updates.
 - Commit workflow update (2025-10-25): `githooks/commit-msg` now runs gitlint only; agents must use automated tooling to supply a Conventional Commit message (with a `Spec impact:` body when docs and code change together). `./tools/codex-commit-review.sh` remains the default helper (defaults to `codex exec --model gpt-5-codex --sandbox read-only --skip-git-repo-check --color never`).
-- Outstanding git state: Feature 035 docs/tasks updated through T3545 (trace restructure complete); Feature 036 tier helper groundwork remains the next focus.
+- Outstanding git state: Synthetic PS256 fixture + seeding/test fallbacks, CLI/REST/UI doc updates, stored replay dropdown wait fix (spec/plan/tasks + Selenium), and roadmap/knowledge map edits staged locally; Feature 035 docs/tasks updated through T3545 (trace restructure complete); Feature 036 tier helper groundwork remains the next focus.
 
 ## Workstream Summary
 | Workstream | Status | Last Increment | Next Increment | Notes |
 |------------|--------|----------------|----------------|-------|
+| Feature 026 – Stored Replay & UI Cleanup | Complete | I42 (Stored replay dropdown stabilisation) | — | Selenium stored replay flow now waits for credential hydration before selecting options; PS256 fixture seeding remains in place and doc suites refreshed. Ready for owner sign-off. |
 | Feature 027 – Unified Credential Store Naming | In progress | T2704 (Documentation refresh and migration guidance) | TBD – Track operator adoption of the unified file; add migration FAQ if support requests surface | Factory/CLI/REST defaults anchored to `credentials.db`; legacy fallback checks removed, docs now instruct manual migration for existing stores. |
 | Feature 028 – IDE Warning Remediation | In progress | T2810 (WebAuthn assertion lossy conversion warning) | — | Spec/plan/tasks added, Option B locked, TOTP constructors cleaned, WebAuthn attestation/REST metadata assertions updated; CLI/REST tests assert generated OTPs, Selenium suites verify inline/replay controls, full `spotlessApply check` passes; 2025-10-19 clarifications implemented (DTO extraction + SpotBugs annotation export); rest-api dependency lock refreshed to align `checker-qual` 3.51.1 with Gradle force. |
 | Feature 029 – PMD Rule Hardening | In progress | T2903 (Ruleset expansion & baseline) | T2902 – Governance sync & backlog updates | PMD toolVersion bumped to 7.17.0 with dependency locks refreshed via `--write-locks`; legacy `AssignmentInOperand` findings in CLI `MaintenanceCli`, core `CborDecoder`/`SimpleJson`, and core-ocra `OcraReplayVerifierBenchmark` have been refactored and `./gradlew --no-daemon pmdMain pmdTest` now passes; NonExhaustiveSwitch added permanently with green `pmdMain pmdTest` + `spotlessApply check`. |

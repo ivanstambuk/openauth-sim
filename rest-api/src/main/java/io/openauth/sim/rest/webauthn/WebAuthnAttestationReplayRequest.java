@@ -8,6 +8,19 @@ import java.util.List;
         name = "WebAuthnAttestationReplayRequest",
         description = "Request payload for replaying a WebAuthn attestation verification with optional trust anchors.")
 record WebAuthnAttestationReplayRequest(
+        @Schema(
+                description = "Input source selection",
+                example = "STORED",
+                allowableValues = {"PRESET", "MANUAL", "STORED"})
+        @JsonProperty("inputSource")
+        String inputSource,
+
+        @Schema(
+                description = "Stored credential identifier (required for stored input source)",
+                example = "stored-packed-es256")
+        @JsonProperty("credentialId")
+        String credentialId,
+
         @Schema(description = "Identifier echoed back in telemetry metadata", example = "w3c-packed-es256")
         @JsonProperty("attestationId")
         String attestationId,

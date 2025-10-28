@@ -4,9 +4,9 @@ import io.openauth.sim.application.fido2.WebAuthnAttestationSamples;
 import io.openauth.sim.application.fido2.WebAuthnAttestationSeedService;
 import io.openauth.sim.application.fido2.WebAuthnAttestationSeedService.SeedCommand;
 import io.openauth.sim.application.fido2.WebAuthnAttestationSeedService.SeedResult;
+import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples;
 import io.openauth.sim.core.fido2.WebAuthnAttestationCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
-import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.SigningMode;
 import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
@@ -15,13 +15,15 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnFixtures;
 import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.fido2.WebAuthnStoredCredential;
 import io.openauth.sim.core.store.CredentialStore;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
-import java.util.LinkedHashSet;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -57,36 +59,44 @@ final class WebAuthnAttestationSeedController {
 
     private static List<SeedCommand> buildSeedCommands() {
         WebAuthnAttestationGenerator generator = new WebAuthnAttestationGenerator();
-        Set<WebAuthnAttestationFormat> formats = new LinkedHashSet<>();
+        Set<WebAuthnSignatureAlgorithm> algorithms = EnumSet.noneOf(WebAuthnSignatureAlgorithm.class);
         List<SeedCommand> commands = new ArrayList<>();
         for (WebAuthnAttestationVector vector : WebAuthnAttestationSamples.vectors()) {
-            if (formats.add(vector.format())) {
-                WebAuthnFixture fixture = resolveFixture(vector);
-                commands.add(buildSeedCommand(generator, fixture, vector));
+            if (algorithms.add(vector.algorithm())) {
+                Optional<WebAuthnStoredCredential> stored = resolveStoredCredential(vector);
+                if (stored.isEmpty()) {
+                    algorithms.remove(vector.algorithm());
+                    continue;
+                }
+                commands.add(buildSeedCommand(generator, stored.get(), vector));
             }
         }
         return List.copyOf(commands);
     }
 
     private static SeedCommand buildSeedCommand(
-            WebAuthnAttestationGenerator generator, WebAuthnFixture fixture, WebAuthnAttestationVector vector) {
+            WebAuthnAttestationGenerator generator,
+            WebAuthnStoredCredential storedCredential,
+            WebAuthnAttestationVector vector) {
         try {
-            return buildSeedCommandWithGenerator(generator, fixture, vector);
+            return buildSeedCommandWithGenerator(generator, storedCredential, vector);
         } catch (IllegalArgumentException ex) {
-            return buildSeedCommandFromFixture(fixture, vector);
+            return buildSeedCommandFromStoredCredential(storedCredential, vector);
         }
     }
 
     private static SeedCommand buildSeedCommandWithGenerator(
-            WebAuthnAttestationGenerator generator, WebAuthnFixture fixture, WebAuthnAttestationVector vector) {
+            WebAuthnAttestationGenerator generator,
+            WebAuthnStoredCredential storedCredential,
+            WebAuthnAttestationVector vector) {
         WebAuthnCredentialDescriptor credentialDescriptor = WebAuthnCredentialDescriptor.builder()
                 .name(vector.vectorId())
-                .relyingPartyId(fixture.storedCredential().relyingPartyId())
-                .credentialId(fixture.storedCredential().credentialId())
-                .publicKeyCose(fixture.storedCredential().publicKeyCose())
-                .signatureCounter(fixture.storedCredential().signatureCounter())
-                .userVerificationRequired(fixture.storedCredential().userVerificationRequired())
-                .algorithm(fixture.algorithm())
+                .relyingPartyId(storedCredential.relyingPartyId())
+                .credentialId(storedCredential.credentialId())
+                .publicKeyCose(storedCredential.publicKeyCose())
+                .signatureCounter(storedCredential.signatureCounter())
+                .userVerificationRequired(storedCredential.userVerificationRequired())
+                .algorithm(storedCredential.algorithm())
                 .build();
 
         WebAuthnAttestationGenerator.GenerationResult generationResult =
@@ -124,8 +134,8 @@ final class WebAuthnAttestationSeedController {
                 vector.registration().challenge());
     }
 
-    private static SeedCommand buildSeedCommandFromFixture(
-            WebAuthnFixture fallbackFixture, WebAuthnAttestationVector vector) {
+    private static SeedCommand buildSeedCommandFromStoredCredential(
+            WebAuthnStoredCredential fallbackCredential, WebAuthnAttestationVector vector) {
         WebAuthnAttestationVerifier verifier = new WebAuthnAttestationVerifier();
         WebAuthnAttestationVerification verification = verifier.verify(new WebAuthnAttestationRequest(
                 vector.format(),
@@ -136,7 +146,7 @@ final class WebAuthnAttestationSeedController {
                 vector.origin()));
 
         WebAuthnStoredCredential attestedCredential =
-                verification.attestedCredential().orElseGet(() -> fallbackFixture.storedCredential());
+                verification.attestedCredential().orElse(fallbackCredential);
 
         WebAuthnCredentialDescriptor credentialDescriptor = WebAuthnCredentialDescriptor.builder()
                 .name(vector.vectorId())
@@ -192,9 +202,19 @@ final class WebAuthnAttestationSeedController {
         }
     }
 
-    private static WebAuthnFixture resolveFixture(WebAuthnAttestationVector vector) {
-        return findFixture(vector)
-                .orElseThrow(() -> new IllegalStateException("Missing fixture for " + vector.vectorId()));
+    private static Optional<WebAuthnStoredCredential> resolveStoredCredential(WebAuthnAttestationVector vector) {
+        Optional<WebAuthnStoredCredential> fromFixture = findFixture(vector).map(WebAuthnFixture::storedCredential);
+        if (fromFixture.isPresent()) {
+            return fromFixture;
+        }
+        return resolveGeneratorSample(vector)
+                .map(sample -> new WebAuthnStoredCredential(
+                        sample.relyingPartyId(),
+                        sample.credentialId(),
+                        sample.publicKeyCose(),
+                        sample.signatureCounter(),
+                        sample.userVerificationRequired(),
+                        sample.algorithm()));
     }
 
     private static Optional<WebAuthnFixture> findFixture(WebAuthnAttestationVector vector) {
@@ -216,6 +236,16 @@ final class WebAuthnAttestationSeedController {
         return WebAuthnFixtures.w3cFixtures().stream()
                 .filter(candidate -> candidate.algorithm().equals(vector.algorithm()))
                 .findFirst();
+    }
+
+    private static Optional<WebAuthnGeneratorSamples.Sample> resolveGeneratorSample(WebAuthnAttestationVector vector) {
+        return WebAuthnGeneratorSamples.samples().stream()
+                .filter(sample -> Arrays.equals(
+                        sample.credentialId(), vector.registration().credentialId()))
+                .findFirst()
+                .or(() -> WebAuthnGeneratorSamples.samples().stream()
+                        .filter(sample -> sample.algorithm() == vector.algorithm())
+                        .findFirst());
     }
 
     record SeedResponse(int addedCount, List<String> addedCredentialIds) {

@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.webauthn;
 
+import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
@@ -35,8 +36,9 @@ final class WebAuthnCredentialDirectoryController {
 
     private static final String ATTR_RP_ID = "fido2.rpId";
     private static final String ATTR_ALGORITHM = "fido2.algorithm";
-    private static final String ATTR_LABEL = "fido2.metadata.label";
+    private static final String ATTR_LABEL = WebAuthnCredentialPersistenceAdapter.ATTR_METADATA_LABEL;
     private static final String ATTR_UV_REQUIRED = "fido2.userVerificationRequired";
+    private static final String ATTR_ATTESTATION_CHALLENGE = "fido2.attestation.stored.expectedChallenge";
 
     private final CredentialStore credentialStore;
 
@@ -101,13 +103,15 @@ final class WebAuthnCredentialDirectoryController {
                 .filter(StringUtils::hasText)
                 .orElse(buildLabel(credential.name(), attributes.get(ATTR_ALGORITHM)));
         boolean uvRequired = Boolean.parseBoolean(attributes.getOrDefault(ATTR_UV_REQUIRED, "false"));
+        String attestationChallenge = attributes.getOrDefault(ATTR_ATTESTATION_CHALLENGE, "");
 
         return new WebAuthnCredentialSummary(
                 credential.name(),
                 label,
                 attributes.getOrDefault(ATTR_RP_ID, ""),
                 attributes.getOrDefault(ATTR_ALGORITHM, ""),
-                uvRequired);
+                uvRequired,
+                attestationChallenge);
     }
 
     private static int algorithmSortKey(WebAuthnCredentialSummary summary) {
@@ -140,7 +144,12 @@ final class WebAuthnCredentialDirectoryController {
     }
 
     record WebAuthnCredentialSummary(
-            String id, String label, String relyingPartyId, String algorithm, boolean userVerification) {
+            String id,
+            String label,
+            String relyingPartyId,
+            String algorithm,
+            boolean userVerification,
+            String attestationChallenge) {
 
         WebAuthnCredentialSummary {
             Objects.requireNonNull(id, "id");

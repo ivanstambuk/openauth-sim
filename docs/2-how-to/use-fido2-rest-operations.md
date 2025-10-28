@@ -1,7 +1,7 @@
 # Operate the FIDO2/WebAuthn REST API
 
 _Status: Draft_  
-_Last updated: 2025-10-14_
+_Last updated: 2025-10-27_
 
 The REST API exposes stored and inline WebAuthn assertion verification plus replay diagnostics and sample data feeds for the operator console. This guide walks through seeding the canonical credentials, validating assertions, replaying submissions, and tapping into the JSON vector catalogue that powers every facade.
 
@@ -190,9 +190,53 @@ curl -s \
 
 All formats are interchangeable; choose whichever is easiest to export from your tooling. Replay responses include `match` (`true`/`false`), `credentialSource` (`stored` or `inline`), and sanitized error metadata. Mismatches remain HTTP 200 so you can diagnose incidents without triggering error handling.
 
+## Replay Attestations (`POST /api/v1/webauthn/attest/replay`)
+Stored and inline attestation replays share the same endpoint. Set `inputSource` to control how the backend resolves payloads:
+
+- `PRESET` (default): hydrate the attestation by supplying `attestationId` (preset key) and allow the API to load the canonical payload from fixtures.
+- `MANUAL`: provide attestation metadata and payload fields inline (`relyingPartyId`, `origin`, `expectedChallenge`, `attestationObject`, `clientDataJson`) along with optional PEM trust anchors.
+- `STORED`: reference a credential persisted in MapDB using `credentialId`. Stored mode requires only the identifier and `format`; the service loads the persisted attestation object, client data, challenge, and certificate chain.
+
+### Inline or preset attestation replay
+```bash
+curl -s \
+  -H "Content-Type: application/json" \
+  -d '{
+        "inputSource": "PRESET",
+        "format": "packed",
+        "attestationId": "w3c-packed-es256",
+        "relyingPartyId": "example.org",
+        "origin": "https://example.org",
+        "expectedChallenge": "wRhKX934BF4T3Ef1S2H1pla2ZrWQGPFthw6SVumVIBI",
+        "attestationObject": "<attestationObject-b64u>",
+        "clientDataJson": "<clientDataJSON-b64u>",
+        "trustAnchors": ["-----BEGIN CERTIFICATE-----..."]
+      }' \
+  http://localhost:8080/api/v1/webauthn/attest/replay | jq
+```
+
+### Stored attestation replay
+```bash
+curl -s \
+  -H "Content-Type: application/json" \
+  -d '{
+        "inputSource": "STORED",
+        "format": "packed",
+        "credentialId": "stored-packed-es256"
+      }' \
+  http://localhost:8080/api/v1/webauthn/attest/replay | jq
+```
+
+Stored mode rejects inline trust anchors—persisted credentials already include their certificate chains—so the API returns `reasonCode=stored_trust_anchor_unsupported` when `trustAnchors` is provided. Successful responses echo sanitized metadata (attestation format, relying-party ID, anchor provenance), while telemetry frames include `storedCredentialId` for analytics. Failure responses map common scenarios to distinct reason codes (`stored_credential_not_found`, `stored_attestation_required`, `stored_attestation_missing_attribute`, `stored_attestation_invalid`).
+
+> Rerunning `/api/v1/webauthn/attestations/seed` after seeding the canonical credentials merely enriches each assertion record—attestation metadata is layered onto the existing entry and the original credential secret stays intact, so you will not see duplicate IDs in `/api/v1/webauthn/credentials`.
+
+> 2025-10-28 – The packed seed set now includes `synthetic-packed-ps256`, ensuring PS256 stored credentials receive the curated cross-origin challenge without manual updates.
+
 ## Telemetry & Troubleshooting
 - Stored requests emit `event=rest.fido2.evaluate` with `status=generated`, the sanitized telemetry id, `credentialReference`, `relyingPartyId`, `algorithm`, and `userVerificationRequired`. Inline requests emit the same event but omit credential references.
 - Replay requests emit `event=rest.fido2.replay` and surface `match`, `credentialSource`, and `reason` fields (`mismatch`, `signature_invalid`, etc.).
+- Attestation replays emit `event=rest.fido2.attestReplay`; expect `inputSource`, `storedCredentialId` (for stored mode), anchor hints (`anchorProvided`, `anchorTrusted`, `anchorSource`), and the outcome reason (`match`, `stored_attestation_required`, ...). Enable the verbose flag when you need the full trace.
 - HTTP 422 responses always include a `telemetryId` for correlation plus a `reasonCode` such as `credential_not_found`, `origin_mismatch`, `signature_counter_regressed`, or `invalid_payload`. HTTP 500 responses strip secret material and default to `reasonCode=webauthn_evaluation_failed` / `webauthn_replay_failed`.
 - Need fresh payloads? Call `/api/v1/webauthn/credentials/{credentialId}/sample` after seeding (swap `{credentialId}` with any generator preset key), or read from `docs/webauthn_assertion_vectors.json` if you want inline-only vectors that are not part of the curated seed set.
 

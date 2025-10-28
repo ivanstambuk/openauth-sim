@@ -1,7 +1,7 @@
 # Feature 026 – FIDO2/WebAuthn Attestation Support
 
-_Status: Complete_  
-_Last updated: 2025-10-21_
+_Status: In progress_  
+_Last updated: 2025-10-28_
 
 ## Overview
 Extend the simulator so it can generate and verify WebAuthn authenticator attestations in addition to assertions. The feature will deliver a full-stack slice—core attestation helpers, application services, CLI flows, REST endpoints, and operator UI affordances—so operators can exercise registration-style ceremonies alongside the existing assertion evaluation tooling. This iteration also introduces stored attestation credential workflows backed by the shared MapDB store so presets can be seeded once and reused across CLI/REST/UI experiences.
@@ -11,9 +11,15 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - 2025-10-12 – Support packed, FIDO-U2F, TPM, and Android Key attestation formats on day one. (User directive.)
 - 2025-10-12 – Accept authenticator private keys as either JWK or PEM/PKCS#8 inputs when generating attestations, auto-detecting the format. (User approved Option A.)
 - 2025-10-12 – Fixture coverage should combine W3C WebAuthn Level 3 attestation examples with the synthetic JSON bundle, mirroring the current assertion strategy. (User approved Option B.)
-- 2025-10-20 – Operator UI Evaluate flows expose Preset, Manual, and Stored radio options for attestation generation. Stored mode reuses the assertion-style credential list, while Manual preserves inline overrides; Replay continues to mirror the same selector. (User approved Option B.)
+- 2025-10-20 – Operator UI Evaluate flows expose Preset, Manual, and Stored radio options for attestation generation. Stored mode reuses the assertion-style credential list, while Manual preserves inline overrides. (User approved Option B.)
+- 2025-10-26 – Remove the attestation identifier text input from the attestation replay UI; telemetry correlation relies on preset metadata or stored credential identifiers instead. (User directive.)
+- 2025-10-27 – Attestation replay exposes Manual (editable inline payloads) and Stored (MapDB-backed) modes; Manual must include a “Load a sample vector” helper that hydrates inline fields with curated attestation fixtures for parity with assertion replay. (User directive.)
+- 2025-10-27 – Stored attestation replay must surface attestationObject, clientDataJSON, and expectedChallenge as read-only fields (matching manual form layout) that auto-populate when a stored credential is selected. (User approved Option A.)
+- 2025-10-27 – Operator UI stored attestation selectors must display algorithm/W3C section labels (for example, “ES256 (W3C 16.1.6)”) instead of raw vector identifiers (`w3c-packed-es256`). (User directive.)
+- 2025-10-27 – Assertion and attestation seeders must converge on a single stored credential per fixture: attestation seeding enriches the existing assertion record with attestation payload attributes instead of persisting a duplicate entry. (User directive.)
 - 2025-10-20 – Provide an operator “Seed stored attestation credentials” action that populates curated W3C/synthetic fixtures into the shared credential store so Stored mode is immediately useful during demos. (User approved Option B.)
 - 2025-10-20 – Stored attestation credentials persist in the shared `CredentialStore` (MapDB) alongside assertion entries, making them available to CLI, REST, and UI facades. Seeding and retrieval flow through the existing MapDB-backed persistence adapters rather than ad-hoc in-memory catalogs. (User approved Option B.)
+- 2025-10-28 – Introduce a synthetic packed PS256 attestation vector so stored attestation seeding hydrates PS256 credentials without manual challenge entry. (User approved Option A.)
 - 2025-10-16 – Attestation verification must support both self-attested flows (no trust anchors provided) and full trust-path validation. Provide optional trust anchor bundles via CLI/REST parameters and an operator UI text area upload; plan for Metadata Service (MDS) ingestion to supply default anchors. Absence of anchors should fall back to self-signed acceptance with warnings.
 - 2025-10-16 – Attestation certificate chains will be supplied by fixtures or operator-provided anchors; no additional subject/issuer authoring UI is required for this feature slice.
 - 2025-10-16 – Telemetry should include attestation format, RP ID, authenticator AAGUID, certificate SHA-256 fingerprint, and outcome while redacting attestation statements, raw certificates, and private keys. (User selected Option B.)
@@ -63,8 +69,9 @@ Extend the simulator so it can generate and verify WebAuthn authenticator attest
 - Response: continue to return `generatedAttestation` and `metadata`, but trim the nested `response` payload to only `clientDataJSON` and `attestationObject`. Remove `attestationId` from user-facing JSON while preserving it inside telemetry fields for preset tracking, trust-anchor resolution, and replay. Telemetry adds `inputSource`, optional `seedPresetId`, and `overrides` (set of changed fields) when applicable.
 
 ## UI Adjustments
-- Hide the visible Attestation ID field. Keep a hidden `presetId` input that JS fills from the preset dropdown.
+- Remove any user-facing attestation identifier fields from the attestation forms. When a preset is selected, capture its identifier through hidden metadata so telemetry still tags preset runs; replay flows rely on stored credential IDs or backend-generated identifiers.
 - Add implicit auto-switch to Manual mode when edited fields diverge from the selected preset; visually indicate the mode near the Generate button.
+- Ensure the attestation replay tab mirrors the Preset / Manual / Stored selector and, when stored mode is active, populate fields directly from MapDB metadata without exposing an attestation identifier input.
 
 ## Success Criteria (additions)
 - Manual mode produces valid attestation payloads across the four formats without relying on fixtures.
@@ -81,11 +88,11 @@ None – the Manual-mode (2025-10-17/2025-10-18) and Stored-mode (2025-10-20) qu
 ## Success Criteria
 - Core attestation helpers validate and emit attestation objects for the supported formats, with unit tests covering happy-path and failure cases (invalid signature, RP mismatch, unsupported alg).
 - Application services surface sanitized telemetry (`fido2.attest` and `fido2.attestReplay`) and reuse existing redaction policies.
-- CLI and REST interfaces expose generation and replay commands/endpoints with comprehensive coverage (MockMvc, Picocli, documentation snapshots) and accept `inputSource` values of PRESET, MANUAL, and STORED.
+- CLI and REST interfaces expose generation and replay commands/endpoints with comprehensive coverage (MockMvc, Picocli, documentation snapshots); generation accepts `inputSource` values of PRESET, MANUAL, and STORED, and attestation replay supports inline payloads plus `inputSource=STORED` to resolve persisted descriptors.
 - Stored attestation generation pulls credentials from the shared MapDB-backed `CredentialStore`, enforcing the same validation contracts as stored assertions and propagating telemetry for `seedPresetId`/`overrides`/`inputSource`.
 - Provide a deterministic seeding workflow (application service + UI control + CLI/REST parity) that installs curated attestation credentials into the store, is safe to re-run, and surfaces success/failure telemetry.
 - CLI attestation generation must honour the three input sources: default to PRESET, accept `--input-source=manual` for override flows, and support `--input-source=stored` plus selectors that mirror the assertion CLI semantics (e.g., `--credential-id`) to resolve existing entries. Manual runs enforce required fields (format, relying-party ID, origin, challenge, credential private key), infer algorithms from supplied keys, and reject `attestationId` except when echoing preset metadata for telemetry.
-- Operator UI displays an attestation-specific form, toggles cleanly between assertion and attestation workflows, surfaces Preset/Manual/Stored radio options, and renders result cards with copy/download affordances. Stored mode lists MapDB-backed credentials and includes a seed control to populate curated attestation presets.
+- Operator UI displays an attestation-specific form, toggles cleanly between assertion and attestation workflows, surfaces Preset/Manual/Stored radio options for both generation and replay, removes user-facing attestation identifier inputs, and renders result cards with copy/download affordances. Stored mode lists MapDB-backed credentials, includes a seed control to populate curated attestation presets, and exercises stored replay paths via Selenium coverage.
 - Trust-anchor aware verification accepts optional anchor bundles (UI upload, CLI/REST parameter) and clearly reports when validation falls back to self-attested evaluation.
 - Fixture loaders/tests ingest W3C and synthetic attestation data, ensuring multi-format coverage in both generation and replay flows.
 - `./gradlew spotlessApply check` and targeted suites (`:core:test`, `:application:test`, `:cli:test`, `:rest-api:test`) remain green after each increment.
@@ -119,15 +126,25 @@ Capture `inputSource`, optional `seedPresetId`, and `overrides` (set of edited f
 - Stored attestation credentials reside in the shared MapDB-backed `CredentialStore` and reuse the `WebAuthnCredentialPersistenceAdapter` schema with attestation metadata (format, signing mode, origin, certificate chain, custom roots, private keys).
 - A dedicated `WebAuthnAttestationSeedService` seeds one curated descriptor per supported attestation format when absent, storing the generated `attestationObject`, `clientDataJSON`, and `expectedChallenge` under `fido2.attestation.stored.*` attributes so replay flows can execute without recomputing payloads.
 - Seeding must be idempotent: subsequent runs skip existing identifiers and return only the credentials added during the current invocation.
+- When a stored assertion credential already exists for a fixture (e.g., seeded via the assertion workflow), attestation seeding updates that record in-place with attestation metadata instead of writing a second MapDB row.
 - Application services emit telemetry fields for the attestation input source (`preset`, `manual`, `stored`), include `storedCredentialId` when applicable, and retain existing metadata (`generationMode`, `certificateChainCount`, `customRootCount`, `seedPresetId`, `overrides`).
 - CLI:
   - `fido2 attest --input-source=stored` requires `--credential-id` and `--challenge`, reuses optional relying-party/origin overrides (validation ensures matches when provided), and relays telemetry for stored usage.
+  - `fido2 attest-replay --input-source=stored` resolves MapDB-backed descriptors, reuses persisted attestationObject/clientDataJSON/expectedChallenge values, and accepts the same trust-anchor parameters as inline replay.
   - `fido2 seed-attestations` invokes the seed service against the configured credential store, printing the list of identifiers seeded or noting that all curated entries already exist.
+    - Stored attestation seeds reuse the canonical assertion credential identifier; rerunning the command after assertion seeding simply enriches the existing record without altering its stored credential secret.
 - REST API:
   - `POST /api/v1/webauthn/attest` accepts `inputSource=STORED`, enforces `credentialId` + Base64URL `challenge`, applies optional relying-party/origin overrides, and exposes telemetry metadata (including `inputSource` and `storedCredentialId`) in the response.
-  - `POST /api/v1/webauthn/attestations/seed` seeds curated attestation descriptors and returns `{addedCount, addedCredentialIds}`.
+  - `POST /api/v1/webauthn/attest/replay` accepts inline payloads or `inputSource=STORED`; stored submissions require `credentialId`, automatically hydrate attestation artifacts from persistence, and honour trust-anchor parameters.
+- `POST /api/v1/webauthn/attestations/seed` seeds curated attestation descriptors and returns `{addedCount, addedCredentialIds}`.
+    - When canonical assertion credentials already exist, the seed endpoint enriches the existing record in place—preserving the stored credential secret/metadata while layering attestation payload attributes—so no duplicate entries appear in dropdowns or directory listings.
+    - The synthetic packed PS256 attestation fixture must be included in the curated seed set until W3C publishes an official PS256 example.
   - `GET /api/v1/webauthn/attestations/{id}` publishes stored attestation metadata (format, relying party, origin, signing mode, certificate chain) for the operator UI.
 - Operator UI:
-  - The attestation Evaluate form renders Preset / Manual / Stored radio buttons. Stored mode hides manual input areas, lists stored credential options, requests a Base64URL challenge, and posts to the REST endpoint.
+  - The attestation Evaluate form renders Preset / Manual / Stored radio buttons. Stored generation hides manual input areas, lists stored credential options, requests a Base64URL challenge when applicable, and submits directly to the REST endpoints without exposing attestation identifier inputs.
+  - The attestation Replay form offers Manual / Stored radio buttons. Manual mode presents fully editable inline parameters (format, relying party metadata, attestation payloads, trust anchors); Stored mode hydrates read-only values (relying party, origin, expected challenge, attestationObject, clientDataJSON) from persistence and submits without trust-anchor inputs.
+  - Stored attestation selectors hydrate asynchronously from the shared credential store; UI logic (and Selenium coverage) must wait for the targeted credential option to materialise before attempting selection so tests remain stable against slow persistence startups.
+- Stored attestation dropdown labels mirror assertion naming (algorithm + W3C section when available) regardless of the underlying credential identifier.
+- The curated seed catalogue now includes the synthetic `synthetic-packed-ps256` fixture (RSA-PSS) so PS256 credentials hydrate with a deterministic challenge; seeding logic falls back to generator presets whenever a W3C attestation vector is unavailable.
   - A “Seed attestation credentials” control calls `/api/v1/webauthn/attestations/seed`, refreshes the selector, and surfaces status messaging (success, already-present, unavailable).
-  - Selenium coverage verifies stored mode visibility, selector population after seeding, and validation when credential IDs are missing.
+  - Selenium coverage verifies stored mode visibility across evaluate and replay flows, selector population after seeding, validation when credential IDs are missing, and the absence of user-facing attestation identifier fields.

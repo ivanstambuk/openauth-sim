@@ -239,3 +239,70 @@ _Last updated:_ 2025-10-21
 	☑ Implement fixture-driven seed workflow, expose it via CLI (`seed-attestations`), REST (`POST /api/v1/webauthn/attestations/seed`), and operator UI control, update documentation/knowledge map/roadmap, and ensure telemetry captures seeding results.  
 		_2025-10-21 – Application seed service promotes canonical stored fixtures (including persisted attestation payloads) and CLI/REST commands surface idempotent output; operator UI now offers stored-mode seeding and selectors for attestation credentials. Targeted suites + full `:rest-api:test` and `spotlessApply check` run green._  
 	• Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationSeedServiceTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationSeedTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationSeedEndpointTest" --tests "io.openauth.sim.rest.Fido2AttestationStoredEndpointTest" --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, Selenium stored seed suite, and `./gradlew --no-daemon spotlessApply check`.  
+
+☑ **T2636 – Stored attestation replay test scaffolding**  
+	☑ Extend application (`WebAuthnAttestationReplayStoredTest`), CLI (`Fido2CliAttestationReplayStoredTest`), and REST (`Fido2AttestationReplayStoredEndpointTest`) suites to cover `inputSource=stored` replay flows; record expected red runs before implementation.  
+	☑ Add Selenium coverage (`Fido2OperatorUiSeleniumTest.attestationReplayStoredMode`) asserting Manual/Stored toggles, stored credential selection, challenge validation, and absence of the attestation identifier field.  
+		_2025-10-27 - Stored replay scaffolding now green across application/CLI/REST/Selenium suites after wiring stored input handling; HtmlUnit flow waits for metadata hydration before submit._  
+	• Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationReplayStoredTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationReplayStoredTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationReplayStoredEndpointTest" --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredMode"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` (green as of 2025-10-27).  
+
+☑ **T2637 – Stored attestation replay implementation**  
+	☑ Implement REST `inputSource=STORED` replay handling (DTO validation, service/controller branches), CLI flag plumbing, and telemetry enrichment mirroring stored generation reason codes.  
+		- CLI: introduce `--input-source` on `attest-replay`, require `--credential-id` in stored mode, reuse trust-anchor parsing for inline mode, and delegate to `ReplayCommand.Stored` so telemetry carries `storedCredentialId`.  
+		- REST: extend `WebAuthnAttestationReplayRequest` with `inputSource` + `credentialId`, branch in `WebAuthnAttestationService.replay` to construct stored commands without demanding inline payload fields, and refresh OpenAPI documents to advertise the new schema/validation.  
+		- UI: align with stored replay toggle (covered under T2638) but ensure API responds with stored challenge/clientData/attestationObject to hydrate Selenium expectations.  
+	☑ Drive T2636 tests green, refresh OpenAPI snapshots, and document any new reason codes.  
+		_2025-10-27 - CLI `attest-replay` now supports `--input-source stored` + `--credential-id`, REST payloads accept `inputSource`/`credentialId`, metadata returns stored challenge, and OpenAPI snapshots capture the new schema/reason codes._  
+	• Commands: Targeted module suites plus `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  
+
+☑ **T2638 – Operator UI stored replay & identifier removal**  
+	☑ Update `panel.html`/`console.js` to surface stored replay, hydrate fields via `/api/v1/webauthn/attestations/{id}`, and remove the user-facing attestation identifier input.  
+	☑ Extend Selenium + controller tests to verify stored replay submissions, trust-anchor messaging, and the missing identifier field across evaluate/replay panels.  
+		_2025-10-27 - Stored replay form renders read-only RP/origin/challenge/format fields, submit button remains enabled, and Selenium verifies stored submissions alongside identifier removal._  
+	• Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredMode" --tests "io.openauth.sim.rest.Fido2AttestationStoredOperatorControllerTest"`, `./gradlew --no-daemon spotlessApply check`.  
+
+☑ **T2639 – Documentation & telemetry sync**  
+	☑ Update how-to guides, knowledge map, and roadmap with stored replay guidance and UI field removal; capture telemetry sample frames.  
+	☑ Run full regression (`./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`) and note lessons in this task file/plan.  
+		_2025-10-27 - Updated CLI/REST/operator UI how-tos, roadmap, and knowledge map with stored attestation replay details; full suite (:application:test :cli:test :rest-api:test spotlessApply check) now green with refreshed OpenAPI snapshots._  
+
+☑ **T2640 – Attestation replay sample loader parity**  
+	☑ Add failing Selenium coverage asserting the attestation replay inline form renders a “Load a sample vector” selector and hydrates inline fields from curated fixtures.  
+	☑ Reintroduce the preset dropdown and console wiring (without restoring the Preset radio mode), verify stored mode remains unaffected, and rerun targeted + full gradle checks.  
+		_2025-10-27 – Added `attestationReplayInlineSampleLoadsPreset` Selenium spec (red), restored the inline preset selector + JS handlers using attestation vector metadata, and refreshed targeted/UI + full Gradle suites (all green)._  
+	• Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayInlineSampleLoadsPreset"`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  
+
+☑ **T2641 – Stored replay payload display**  
+	☑ Added failing Selenium spec `attestationReplayStoredModeDisplaysPersistedPayloads` (superseding placeholder name) to require read-only `attestationObject`/`clientDataJSON` hydration for stored attestation replay.  
+	☑ Updated `panel.html` and `console.js` to render read-only payload text areas and populate them from `/api/v1/webauthn/attestations/{id}` metadata, mirroring manual replay layout without enabling edits.  
+	• Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  
+
+☑ **T2642 – Stored replay challenge hydration fix**  
+	☑ Exercised application Selenium coverage to enforce non-empty stored replay challenge values and wired console metadata helpers to clear/set challenge, attestationObject, and clientData from MapDB response payloads.  
+	☑ Confirmed application service contract still guards missing payload attributes (no code change required) while UI hydration now relies on persisted metadata before inline vector fallbacks.  
+	• Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationReplayStoredTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  
+
+☑ **T2643 – Stored attestation label normalization**  
+	☑ Add failing unit/UI tests asserting stored attestation dropdown entries render algorithm/W3C labels instead of raw vector identifiers.  
+	☑ Persist `fido2.metadata.label` when seeding attestation credentials and update console label resolution to fall back to curated labels when metadata is absent.  
+		_2025-10-28 – Application and CLI seeding tests now assert canonical labels, Selenium verifies stored dropdown text, and console formatting prefers curated metadata while retaining algorithm/format fallbacks. Added REST `VerboseTracePayloadTest` to lock hex formatting and prevent Jacoco regressions._  
+	• Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationSeedServiceTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationSeedTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredLabels" --tests "io.openauth.sim.rest.VerboseTracePayloadTest"`, `./gradlew --no-daemon jacocoAggregatedReport`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  
+
+☑ **T2644 – Unified stored credential seeding**  
+	☑ Stage failing application + REST/UI tests that seed assertion credentials first, run the attestation seeder, and assert only one credential record remains with both assertion and attestation attributes populated.  
+	☑ Implement seeding changes so attestation workflows update existing credentials rather than persisting duplicates, update documentation/how-to guidance, and refresh OpenAPI snapshots if needed.  
+	• Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnAttestationSeedServiceTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationSeedTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationSeedEndpointTest"` (followed by `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`).  
+	 _2025-10-28 – Attestation seeding now preserves the canonical assertion credential secret while layering stored attestation payload attributes; CLI/REST seeding flows stay idempotent and no duplicate dropdown entries surface._  
+
+☑ **T2645 – Synthetic PS256 attestation fixture**  
+    ☑ Record the 2025-10-28 clarification in the spec/plan/tasks noting the synthetic packed PS256 fixture requirement.  
+    ☑ Add failing tests: `WebAuthnAttestationFixturesTest` (core), `WebAuthnAttestationSeedServiceTest` (application), `Fido2CliAttestationSeedTest` (CLI), and REST seed + Selenium stored attestation specs to require PS256 metadata/challenge hydration.  
+    ☑ Author the synthetic packed PS256 attestation entry under `docs/webauthn_attestation/packed.json`, regenerate any fixture indexes, and update seeding/UI logic until staged tests pass.  
+    ☑ Update operator/CLI/REST how-to guidance once the fixture is live, then run `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  
+    _2025-10-28 – Added `synthetic-packed-ps256` to the packed attestation catalogue with deterministic RSA-PSS material, updated core/application/CLI/REST/Selenium tests to demand the new preset, and taught seeders to derive stored metadata from generator samples when no W3C fixture exists. Operator/CLI/REST how-tos now call out the PS256 preset._  
+    • Commands: `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`
+
+☑ **T2646 – Stored replay dropdown stabilisation**  
+    ☑ Update Selenium stored replay coverage to wait for the target credential option before selection, preventing `IllegalStateException` when MapDB hydration lags.  
+    ☑ Run `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"` and full `./gradlew --no-daemon spotlessApply check`.  
+    _2025-10-28 – Reused the `waitForOption` helper ahead of selecting stored attestation credentials, reran the targeted Selenium test, and completed the full spotless/check pipeline._  

@@ -7,25 +7,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openauth.sim.application.fido2.WebAuthnAttestationSamples;
-import io.openauth.sim.core.fido2.WebAuthnAttestationCredentialDescriptor;
+import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
-import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
-import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
-import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.GenerationResult;
-import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator.SigningMode;
-import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
-import io.openauth.sim.core.fido2.WebAuthnFixtures;
-import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
+import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
-import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,6 +45,7 @@ final class Fido2AttestationSeedEndpointTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final List<WebAuthnAttestationVector> CANONICAL_VECTORS = selectCanonicalVectors();
+    private static final String ATTR_ATTESTATION_ENABLED = "fido2.attestation.enabled";
 
     @Autowired
     private MockMvc mockMvc;
@@ -81,31 +77,34 @@ final class Fido2AttestationSeedEndpointTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         JsonNode root = MAPPER.readTree(response);
-        assertThat(root.get("addedCount").asInt()).isEqualTo(CANONICAL_VECTORS.size());
+        List<String> expectedNames = expectedSeededCredentialNames();
+        int expectedCanonicalCount = expectedNames.size();
+        assertThat(root.get("addedCount").asInt()).isEqualTo(expectedCanonicalCount);
         JsonNode addedIds = root.get("addedCredentialIds");
         assertThat(addedIds).isNotNull();
-        assertThat(addedIds.size()).isEqualTo(CANONICAL_VECTORS.size());
+        List<String> added = new ArrayList<>();
+        addedIds.forEach(node -> added.add(node.asText()));
+        expectedNames = expectedNames.stream().sorted().toList();
+        assertThat(added).containsExactlyInAnyOrderElementsOf(expectedNames);
 
         List<String> persisted = credentialStore.findAll().stream()
                 .map(Credential::name)
                 .sorted()
                 .toList();
-        List<String> expected = CANONICAL_VECTORS.stream()
-                .map(WebAuthnAttestationVector::vectorId)
-                .sorted()
-                .toList();
-        assertThat(persisted).isEqualTo(expected);
+        assertThat(persisted).isEqualTo(expectedNames);
+        assertThat(persisted).allMatch(name -> !name.startsWith("w3c-"));
+
+        credentialStore.findAll().forEach(credential -> assertThat(credential.attributes())
+                .containsEntry(ATTR_ATTESTATION_ENABLED, "true"));
     }
 
     @Test
     @DisplayName("Skips seeding when stored attestation credentials already exist")
     void skipsExistingStoredAttestations() throws Exception {
-        for (WebAuthnAttestationVector vector : CANONICAL_VECTORS) {
-            StoredAttestationSeed seed = StoredAttestationSeed.fromVector(vector);
-            credentialStore.save(VersionedCredentialRecordMapper.toCredential(
-                    new io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter()
-                            .serializeAttestation(seed.descriptor())));
-        }
+        mockMvc.perform(post("/api/v1/webauthn/attestations/seed")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk());
 
         String response = mockMvc.perform(post("/api/v1/webauthn/attestations/seed")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -118,12 +117,94 @@ final class Fido2AttestationSeedEndpointTest {
         JsonNode root = MAPPER.readTree(response);
         assertThat(root.get("addedCount").asInt()).isZero();
         assertThat(root.get("addedCredentialIds").size()).isZero();
+
+        List<String> persisted = credentialStore.findAll().stream()
+                .map(Credential::name)
+                .sorted()
+                .toList();
+        List<String> expectedNames =
+                expectedSeededCredentialNames().stream().sorted().toList();
+        assertThat(persisted).isEqualTo(expectedNames);
+    }
+
+    @Test
+    @DisplayName("Enriches canonical assertion credentials without creating duplicates")
+    void updatesCanonicalAssertionCredentials() throws Exception {
+        mockMvc.perform(post("/api/v1/webauthn/credentials/seed")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk());
+
+        String response = mockMvc.perform(post("/api/v1/webauthn/attestations/seed")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        JsonNode root = MAPPER.readTree(response);
+        assertThat(root.get("addedCount").asInt()).isZero();
+        assertThat(root.get("addedCredentialIds").size()).isZero();
+
+        Map<String, Credential> credentialsByName = credentialStore.findAll().stream()
+                .collect(Collectors.toMap(Credential::name, credential -> credential));
+
+        List<String> expectedNames = WebAuthnGeneratorSamples.samples().stream()
+                .map(WebAuthnGeneratorSamples.Sample::key)
+                .toList();
+        assertThat(credentialsByName.keySet()).containsExactlyInAnyOrderElementsOf(expectedNames);
+
+        for (WebAuthnAttestationVector vector : CANONICAL_VECTORS) {
+            String canonicalName = resolveSample(vector).key();
+            Credential credential = credentialsByName.get(canonicalName);
+            assertThat(credential).isNotNull();
+            assertThat(credential.attributes())
+                    .containsEntry(ATTR_ATTESTATION_ENABLED, "true")
+                    .containsKey("fido2.attestation.stored.attestationObject")
+                    .containsKey("fido2.attestation.stored.clientDataJson")
+                    .containsKey("fido2.attestation.stored.expectedChallenge");
+        }
+    }
+
+    @Test
+    @DisplayName("Canonical attestation catalogue exposes synthetic packed PS256 vector")
+    void canonicalCatalogueIncludesSyntheticPackedPs256() {
+        boolean present =
+                CANONICAL_VECTORS.stream().anyMatch(vector -> "synthetic-packed-ps256".equals(vector.vectorId()));
+
+        assertThat(present)
+                .as("synthetic-packed-ps256 should be part of canonical stored attestation seeds")
+                .isTrue();
+    }
+
+    @Test
+    @DisplayName("Seeds PS256 stored attestation challenge metadata")
+    void seedsPs256StoredChallenge() throws Exception {
+        WebAuthnAttestationVector ps256Vector = WebAuthnAttestationSamples.vectors().stream()
+                .filter(vector -> "synthetic-packed-ps256".equals(vector.vectorId()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Expected synthetic-packed-ps256 attestation vector"));
+        String expectedCredentialName = resolveSample(ps256Vector).key();
+        String expectedChallenge = java.util.Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(ps256Vector.registration().challenge());
+
+        mockMvc.perform(post("/api/v1/webauthn/attestations/seed")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk());
+
+        Credential stored = credentialStore
+                .findByName(expectedCredentialName)
+                .orElseThrow(() -> new AssertionError("Expected PS256 stored credential to be present"));
+        assertThat(stored.attributes()).containsEntry("fido2.attestation.stored.expectedChallenge", expectedChallenge);
     }
 
     private static List<WebAuthnAttestationVector> selectCanonicalVectors() {
-        Set<WebAuthnAttestationFormat> formats = new LinkedHashSet<>();
+        Set<WebAuthnSignatureAlgorithm> algorithms = new LinkedHashSet<>();
         return WebAuthnAttestationSamples.vectors().stream()
-                .filter(vector -> formats.add(vector.format()))
+                .filter(vector -> algorithms.add(vector.algorithm()))
                 .toList();
     }
 
@@ -170,75 +251,25 @@ final class Fido2AttestationSeedEndpointTest {
         }
     }
 
-    private record StoredAttestationSeed(WebAuthnAttestationCredentialDescriptor descriptor) {
+    private static WebAuthnGeneratorSamples.Sample resolveSample(WebAuthnAttestationVector vector) {
+        return WebAuthnGeneratorSamples.samples().stream()
+                .filter(sample -> Arrays.equals(
+                        sample.credentialId(), vector.registration().credentialId()))
+                .findFirst()
+                .or(() -> WebAuthnGeneratorSamples.samples().stream()
+                        .filter(sample -> sample.algorithm() == vector.algorithm())
+                        .findFirst())
+                .orElseThrow(() -> new IllegalStateException("Missing generator sample for " + vector.vectorId()));
+    }
 
-        static StoredAttestationSeed fromVector(WebAuthnAttestationVector vector) {
-            WebAuthnFixture fixture = resolveFixture(vector);
-
-            WebAuthnCredentialDescriptor credentialDescriptor = WebAuthnCredentialDescriptor.builder()
-                    .name(vector.vectorId())
-                    .relyingPartyId(fixture.storedCredential().relyingPartyId())
-                    .credentialId(fixture.storedCredential().credentialId())
-                    .publicKeyCose(fixture.storedCredential().publicKeyCose())
-                    .signatureCounter(fixture.storedCredential().signatureCounter())
-                    .userVerificationRequired(fixture.storedCredential().userVerificationRequired())
-                    .algorithm(fixture.algorithm())
-                    .build();
-
-            WebAuthnAttestationGenerator generator = new WebAuthnAttestationGenerator();
-            GenerationResult generationResult =
-                    generator.generate(new WebAuthnAttestationGenerator.GenerationCommand.Manual(
-                            vector.format(),
-                            vector.relyingPartyId(),
-                            vector.origin(),
-                            vector.registration().challenge(),
-                            vector.keyMaterial().credentialPrivateKeyBase64Url(),
-                            vector.keyMaterial().attestationPrivateKeyBase64Url(),
-                            vector.keyMaterial().attestationCertificateSerialBase64Url(),
-                            SigningMode.SELF_SIGNED,
-                            List.of()));
-
-            WebAuthnAttestationCredentialDescriptor descriptor = WebAuthnAttestationCredentialDescriptor.builder()
-                    .name(vector.vectorId())
-                    .format(vector.format())
-                    .signingMode(SigningMode.SELF_SIGNED)
-                    .credentialDescriptor(credentialDescriptor)
-                    .relyingPartyId(vector.relyingPartyId())
-                    .origin(vector.origin())
-                    .attestationId(vector.vectorId())
-                    .credentialPrivateKeyBase64Url(vector.keyMaterial().credentialPrivateKeyBase64Url())
-                    .attestationPrivateKeyBase64Url(vector.keyMaterial().attestationPrivateKeyBase64Url())
-                    .attestationCertificateSerialBase64Url(vector.keyMaterial().attestationCertificateSerialBase64Url())
-                    .certificateChainPem(generationResult.certificateChainPem())
-                    .customRootCertificatesPem(List.of())
-                    .build();
-            return new StoredAttestationSeed(descriptor);
-        }
-
-        private static WebAuthnFixture resolveFixture(WebAuthnAttestationVector vector) {
-            return findFixture(vector)
-                    .orElseThrow(() -> new IllegalStateException("Missing stored fixture for " + vector.vectorId()));
-        }
-
-        private static Optional<WebAuthnFixture> findFixture(WebAuthnAttestationVector vector) {
-            Optional<WebAuthnFixture> exact = WebAuthnFixtures.w3cFixtures().stream()
-                    .filter(candidate -> candidate.id().equals(vector.vectorId()))
-                    .findFirst();
-            if (exact.isPresent()) {
-                return exact;
+    private static List<String> expectedSeededCredentialNames() {
+        Set<WebAuthnSignatureAlgorithm> algorithms = new LinkedHashSet<>();
+        List<String> names = new ArrayList<>();
+        for (WebAuthnAttestationVector vector : WebAuthnAttestationSamples.vectors()) {
+            if (algorithms.add(vector.algorithm())) {
+                names.add(resolveSample(vector).key());
             }
-            if (vector.vectorId().startsWith("w3c-")) {
-                String trimmed = vector.vectorId().substring(4);
-                exact = WebAuthnFixtures.w3cFixtures().stream()
-                        .filter(candidate -> candidate.id().equals(trimmed))
-                        .findFirst();
-                if (exact.isPresent()) {
-                    return exact;
-                }
-            }
-            return WebAuthnFixtures.w3cFixtures().stream()
-                    .filter(candidate -> candidate.algorithm().equals(vector.algorithm()))
-                    .findFirst();
         }
+        return List.copyOf(names);
     }
 }

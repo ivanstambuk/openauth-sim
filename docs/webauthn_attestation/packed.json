@@ -191,5 +191,42 @@
       },
       "attestation_cert_serial_b64u": "bjkfI_VxUNx6EtrRjytDrQ"
     }
+  },
+  {
+    "vector_id": "synthetic-packed-ps256",
+    "format": "packed",
+    "algorithm": "PS256",
+    "w3c_section": "Synthetic",
+    "title": "Synthetic Packed Attestation with PS256 Credential",
+    "rpId": "example.com",
+    "origin": "https://example.com",
+    "registration": {
+      "challenge_b64u": "GJChjb-tR5TQxH8cpqYmI3SSw9LbQw5WLrBJKk1Reok",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiR0pDaGpiLXRSNVRReEg4Y3BxWW1JM1NTdzlMYlF3NVdMckJKS2sxUmVvayIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5jb20iLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+      "attestationObject_b64u": "o2NmbXRmcGFja2VkaGF1dGhEYXRhWQFmo3mm9u6vuaVeN4wRgDTidR5oL6ufLTCrE9ISVYbOGUdBAAAAAD5TiQeDIDYKPZzuBpHVGHIAIIx_HAkIbf4kJU6sjDtRqLu2yHe0zblvCPkeHVfX2zQLpCFDAQABIFkBAMOyT0m3Cd7c_xwshcW2KL3HeIlcazhNccDxmwaUf9vU7zjnQ8JSUVnM4oncuEzdWFnSi_QYEdT9oUVgjDMkv8HtwnjTMkKEyMAKaH0_Kh2BA1-dasM_0-SQOP3SlfZoB5RDlYYpmBxKV1-0UARbBoGKgV-5buCy28vdWpndtU1K-1NlANqBJSBYQ8inZ67lwcPhlOXKCUaCJYV0kBmWhlyhlsZGaRP3RcNaVL5PuShEUmhF2EXS2kTSclJ0gvJvhtezCCBlErwprfoXlRBMwt6i0Y5OGr4-8WfqnPOzM5otQOe_TPRibnGi_BPOLznCJCwh9aUQ5R1jVETg8N2X_-kBAwM4JGdhdHRTdG10omNhbGc4JGNzaWdZAQCgURizvUjPL48_3eY3bGh3DtFradALRhjNHeJn9mZvOB2wLCLCUApeVwIG4PCryJH8txAMeaTpho0zbdunuJCaDWdv9fqOXrK8LgY0BaP1gn12VL6izPkKg67CWjEoPdvSMHE2Jo0AH_dmqmTYSF5TY33a98w0upRSO_MaWOPgLyect9DUmk_idRjgmsIDXfu3GLNdzavbxiJbjlIljMay4SswBndD704zqWfYoSWZ1SSnmqjvxZtZ9SfOh8aFeUXOvOR7ARGgse-aUZaJ9HbnnoY3URVKHxWB6JvacbYiogW5fgP3MyQvDE2fVVtnfeMzwaBfVQhZovpqwPue9DIJ",
+      "credentialId_b64u": "jH8cCQht_iQlTqyMO1Gou7bId7TNuW8I-R4dV9fbNAs",
+      "aaguid_b64u": "PlOJB4MgNgo9nO4GkdUYcg"
+    },
+    "authentication": {
+      "challenge_b64u": "GJChjb-tR5TQxH8cpqYmI3SSw9LbQw5WLrBJKk1Reok",
+      "clientDataJSON_b64u": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiR0pDaGpiLXRSNVRReEg4Y3BxWW1JM1NTdzlMYlF3NVdMckJKS2sxUmVvayIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5jb20iLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+      "authenticatorData_b64u": "o3mm9u6vuaVeN4wRgDTidR5oL6ufLTCrE9ISVYbOGUcBAAAAAA",
+      "signature_b64u": "hNL-uiahjQCE6H9Ke8XG9JJNJF5HalDzi0fOXnsH765LgfKdaUvrS1n4Cxa_IjEdqWq73ejIDtf0VIGvnIkZrS7roefzTx45DIbTOEHpyXOH5erqaMiOpzNS1n6VZgma6TUJLfbVpx4AWGARTp3BGrk5soFsu4m0QW4XFRIF29IQd_E5_fRhFWsT5lT2umZcSJSPJRZnA7-_cOpXejDCEqD1sEC6tWZa2BhTdDfRjtlrN1TAZCUtLhSsnfCEEgFh2cbfvPA-MSiBDBuyo6gME-gfkGhY5MFJ0gxEJZynENr-F6UCp4mDMZg7VCQeMbg8p6PIr0jNCg3IUur-KU6jnw"
+    },
+    "key_material": {
+      "credential_private_key": {
+        "kty": "RSA",
+        "n": "w7JPSbcJ3tz_HCyFxbYovcd4iVxrOE1xwPGbBpR_29TvOOdDwlJRWcziidy4TN1YWdKL9BgR1P2hRWCMMyS_we3CeNMyQoTIwApofT8qHYEDX51qwz_T5JA4_dKV9mgHlEOVhimYHEpXX7RQBFsGgYqBX7lu4LLby91amd21TUr7U2UA2oElIFhDyKdnruXBw-GU5coJRoIlhXSQGZaGXKGWxkZpE_dFw1pUvk-5KERSaEXYRdLaRNJyUnSC8m-G17MIIGUSvCmt-heVEEzC3qLRjk4avj7xZ-qc87Mzmi1A579M9GJucaL8E84vOcIkLCH1pRDlHWNURODw3Zf_6Q",
+        "e": "AQAB",
+        "d": "RitKaMkb3fBp_OUt9i2RwDKk0sPzohWKwz8eciaPDfj06fdqgWPYzZU8aWheIRmA03w-OIDk6_UhfWnX-4Kiy1uATqiTrexEuy9ANiCO7lNTLVaZcHcTeDIKbWCz6s10YkI1fAywAPzbBXL2-gjVdV9_ch5gVmtrilbNZLxthM_MEHTNk523zAL556stwUxqLJ1vVmRkPEiALdVEHYebEtC54hPJy567TDxIr9TfXiNukQwq-BjTRaUty72VUhBykeNlF4_gWe_Xzr91c6LSD8n-GuFdRbLiaArVSEhREXkSoAQHpA1ELJFb5Ni-EAMgOL_oLfz8Bui5GNENYchrHQ"
+      },
+      "attestation_private_key": {
+        "kty": "RSA",
+        "n": "w7JPSbcJ3tz_HCyFxbYovcd4iVxrOE1xwPGbBpR_29TvOOdDwlJRWcziidy4TN1YWdKL9BgR1P2hRWCMMyS_we3CeNMyQoTIwApofT8qHYEDX51qwz_T5JA4_dKV9mgHlEOVhimYHEpXX7RQBFsGgYqBX7lu4LLby91amd21TUr7U2UA2oElIFhDyKdnruXBw-GU5coJRoIlhXSQGZaGXKGWxkZpE_dFw1pUvk-5KERSaEXYRdLaRNJyUnSC8m-G17MIIGUSvCmt-heVEEzC3qLRjk4avj7xZ-qc87Mzmi1A579M9GJucaL8E84vOcIkLCH1pRDlHWNURODw3Zf_6Q",
+        "e": "AQAB",
+        "d": "RitKaMkb3fBp_OUt9i2RwDKk0sPzohWKwz8eciaPDfj06fdqgWPYzZU8aWheIRmA03w-OIDk6_UhfWnX-4Kiy1uATqiTrexEuy9ANiCO7lNTLVaZcHcTeDIKbWCz6s10YkI1fAywAPzbBXL2-gjVdV9_ch5gVmtrilbNZLxthM_MEHTNk523zAL556stwUxqLJ1vVmRkPEiALdVEHYebEtC54hPJy567TDxIr9TfXiNukQwq-BjTRaUty72VUhBykeNlF4_gWe_Xzr91c6LSD8n-GuFdRbLiaArVSEhREXkSoAQHpA1ELJFb5Ni-EAMgOL_oLfz8Bui5GNENYchrHQ"
+      },
+      "attestation_cert_serial_b64u": "ZgrBrNtDH29cQQ"
+    }
   }
 ]

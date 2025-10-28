@@ -147,8 +147,8 @@ record WebAuthnAttestationMetadata(
                 null, // customRootCount
                 null, // customRootSource
                 null, // generationMode
-                null, // inputSource
-                null, // storedCredentialId
+                asString(telemetryFields.get("inputSource")),
+                asString(telemetryFields.get("storedCredentialId")),
                 null, // certificateChainCount
                 null); // certificateChainPem
     }

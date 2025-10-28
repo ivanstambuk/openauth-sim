@@ -1,7 +1,7 @@
 # Use the FIDO2/WebAuthn Operator UI
 
 _Status: Draft_  
-_Last updated: 2025-10-14_
+_Last updated: 2025-10-27_
 
 The operator console bundled with the REST API now includes a FIDO2/WebAuthn panel alongside the existing HOTP, TOTP, and OCRA tooling. This guide shows you how to seed demo credentials, generate WebAuthn assertions from stored or inline inputs, replay submissions without mutating counters, and interpret the sanitized telemetry that surfaces after each action.
 
@@ -21,7 +21,7 @@ Directly open the WebAuthn tab via `http://localhost:8080/ui/console?protocol=fi
 ## Generate Stored Assertions
 1. Navigate to the WebAuthn panel. The Evaluate tab now defaults to **Inline** mode; switch the radio selector to **Stored credential** when you want to operate on registry entries.
 2. If the credential dropdown is empty, click **Seed sample credential**. The action loads one representative credential per supported signature algorithm (ES256/ES384/ES512, RS256, PS256, Ed25519) plus the canonical W3C §16 `packed-es256` fixture. Seeding is idempotent; a banner reports whether new entries were added.
-3. Select a credential from **Stored credential**. Labels now follow the `<algorithm> (source)` pattern—for example `ES256 (W3C 16.1.1)` or `PS256`. The console auto-populates the challenge and authenticator private key (JWK) with the curated preset linked to that entry; re-select the placeholder (`Select a stored credential`) whenever you want to clear the fields and start over.
+3. Select a credential from **Stored credential**. Labels now follow the `<algorithm> (source)` pattern—for example `ES256 (W3C 16.1.1)` or `PS256`. The console auto-populates the challenge and authenticator private key (JWK) with the curated preset linked to that entry; re-select the placeholder (`Select a stored credential`) whenever you want to clear the fields and start over. The PS256 entry resolves to the synthetic `synthetic-packed-ps256` fixture so the cross-origin challenge is always present without manual edits.
 4. Adjust the relying-party ID, origin, challenge, or private key if you need to simulate alternate inputs. Signature-counter and UV overrides are optional—leave them blank to reuse the stored values.
 5. Press **Generate stored assertion**. The result panel renders the signed `PublicKeyCredential` JSON. If generation fails (for example an invalid private key), the JSON area shows `Generation failed.` so you know the payload is unusable; sanitized telemetry remains available from server logs.
 
@@ -39,6 +39,19 @@ Directly open the WebAuthn tab via `http://localhost:8080/ui/console?protocol=fi
 
 Inline replay follows the same shape: switch the mode selector to **Inline**, load a sample, tweak fields as needed, and submit. Telemetry reports `credentialSource=inline` while keeping Base64URL material redacted.
 
+## Replay Stored Attestations
+1. With the **Replay** tab active, click **Attestation**. The console locks the ceremony to attestation-specific inputs and hides assertion-only controls.
+2. Select the **Stored credential** radio. If you have not seeded attestation credentials yet, run **Seed stored attestation credentials** on the Evaluate tab first (the action is idempotent).
+3. Choose a credential from the dropdown. The console fetches `/api/v1/webauthn/attestations/{id}` and `/api/v1/webauthn/credentials/{id}/sample`, then hydrates the relying-party ID, origin, challenge, and attestation format into read-only fields. The stored challenge mirrors what the CLI and REST facades expect, so you cannot accidentally modify it inline.
+4. Click **Replay stored attestation**. The submit button stays enabled while metadata loads; the result panel surfaces `event=rest.fido2.attestReplay`, `inputSource=stored`, `storedCredentialId`, and the attestation reason code (for example `match`, `stored_credential_not_found`, or `stored_attestation_required`). Stored mode always relies on the persisted certificate chain, so the UI does not expose a trust-anchor textarea here.
+
+> Rerunning **Seed attestation credentials** simply layers attestation payloads onto the existing assertion entry so the dropdown never duplicates identifiers; the canonical credential secret and metadata stay intact.
+
+
+## Replay Inline Attestations
+1. Switch the attestation mode selector to **Preset** or **Manual**. Preset mode pre-fills vectors from `WebAuthnAttestationSamples`; manual mode lets you paste your own Base64URL attestation object, client-data JSON, and optional PEM trust anchors.
+2. Adjust the relying-party metadata as needed, provide trust anchors when you want to enforce a specific root, and submit. The result panel mirrors the telemetry emitted by the REST API and highlights whether anchors matched the stored certificates (`anchorTrusted`) or the verifier fell back to self-attestation.
+
 ## Persisting Mode State
 - Deep links: use the shared query parameters to open specific states (for example `http://localhost:8080/ui/console?protocol=fido2&tab=evaluate&mode=inline` or `...&tab=replay&mode=stored`). Legacy links that specify `fido2Mode` still resolve for backward compatibility.
 - History integration: changing modes emits `operator:fido2-mode-changed` events, updates the shared `mode` (and `tab` when switching between Evaluate/Replay) in the query string, and pushes new history entries so the browser back/forward buttons restore your selection; older history entries containing `fido2Mode` continue to hydrate correctly.
@@ -46,6 +59,7 @@ Inline replay follows the same shape: switch the mode selector to **Inline**, lo
 
 ## Telemetry & Troubleshooting
 - Stored and inline generations emit sanitized telemetry frames (`event=rest.fido2.evaluate`). Inline mode still mirrors the telemetry id in the UI; stored mode omits the summary to keep the panel focused on the generated assertion while leaving telemetry accessible in server logs.
+- Attestation replays emit `event=rest.fido2.attestReplay` with `inputSource` (inline/preset/stored), `storedCredentialId` when applicable, and anchor metadata (`anchorProvided`, `anchorTrusted`, `anchorSource`). Stored replays reuse the persisted certificate chain, so supplying trust anchors triggers `stored_trust_anchor_unsupported`.
 - Sample loading is local to the console. Seeding continues to call `/api/v1/webauthn/credentials/seed`; network failures surface in the inline status banner with a sanitized error message.
 - If you change presets, the console clears the previous payload and telemetry so you do not accidentally reuse stale data.
 - If you add additional fixtures, update `Fido2OperatorSampleData.inlineVectors()` so the curated subset stays concise—exactly one sample per algorithm. The CLI/REST facades always expose the complete catalogue via `fido2 vectors` and the WebAuthn REST endpoints.

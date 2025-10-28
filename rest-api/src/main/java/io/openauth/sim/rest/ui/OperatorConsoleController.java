@@ -177,6 +177,9 @@ final class OperatorConsoleController {
         descriptor.put("label", buildAttestationLabel(vector));
         descriptor.put(
                 "challengeBase64Url", encodeBase64Url(vector.registration().challenge()));
+        descriptor.put("clientDataJson", encodeBase64Url(vector.registration().clientDataJson()));
+        descriptor.put(
+                "attestationObject", encodeBase64Url(vector.registration().attestationObject()));
         descriptor.put("credentialPrivateKey", vector.keyMaterial().credentialPrivateKeyJwk());
         descriptor.put("attestationPrivateKey", vector.keyMaterial().attestationPrivateKeyJwk());
         descriptor.put("attestationCertificateSerial", vector.keyMaterial().attestationCertificateSerialBase64Url());

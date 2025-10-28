@@ -42,6 +42,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -1614,11 +1615,25 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     static final class AttestReplayCommand extends AbstractFido2Command {
 
         @CommandLine.Option(
+                names = "--input-source",
+                defaultValue = "inline",
+                paramLabel = "<source>",
+                description = "Input source (inline or stored)")
+        String inputSource;
+
+        @CommandLine.Option(
                 names = "--format",
                 defaultValue = "",
                 paramLabel = "<format>",
                 description = "Attestation statement format (packed, fido-u2f, tpm, android-key)")
         String format;
+
+        @CommandLine.Option(
+                names = "--credential-id",
+                defaultValue = "",
+                paramLabel = "<id>",
+                description = "Stored credential identifier (required for stored mode)")
+        String credentialId;
 
         @CommandLine.Option(
                 names = "--attestation-id",
@@ -1678,6 +1693,19 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 baseFields.put("format", format);
             }
 
+            InputSource source;
+            try {
+                source = parseInputSource(inputSource);
+            } catch (IllegalArgumentException ex) {
+                return parent.failValidation(
+                        event("attestReplay"),
+                        ATTEST_REPLAY_TELEMETRY,
+                        "input_source_invalid",
+                        ex.getMessage(),
+                        Map.copyOf(baseFields));
+            }
+            baseFields.put("inputSource", source.name().toLowerCase(Locale.ROOT));
+
             if (!hasText(format)) {
                 return parent.failValidation(
                         event("attestReplay"),
@@ -1698,6 +1726,86 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                         ex.getMessage(),
                         Map.copyOf(baseFields));
             }
+
+            return switch (source) {
+                case STORED -> replayStored(attestationFormat, baseFields);
+                case INLINE -> replayInline(attestationFormat, baseFields);
+            };
+        }
+
+        private Integer replayStored(WebAuthnAttestationFormat attestationFormat, Map<String, Object> baseFields) {
+            if (trustAnchorFiles != null && !trustAnchorFiles.isEmpty()) {
+                return parent.failValidation(
+                        event("attestReplay"),
+                        ATTEST_REPLAY_TELEMETRY,
+                        "stored_trust_anchor_unsupported",
+                        "Stored attestation replay relies on persisted certificate chains; remove --trust-anchor-file.",
+                        Map.copyOf(baseFields));
+            }
+
+            if (!hasText(credentialId)) {
+                return parent.failValidation(
+                        event("attestReplay"),
+                        ATTEST_REPLAY_TELEMETRY,
+                        "credential_id_required",
+                        "--credential-id is required for stored mode",
+                        Map.copyOf(baseFields));
+            }
+
+            String storedId = credentialId.trim();
+            baseFields.put("storedCredentialId", storedId);
+            baseFields.put("credentialId", storedId);
+
+            try (CredentialStore store = parent.openStore()) {
+                WebAuthnAttestationReplayApplicationService service = new WebAuthnAttestationReplayApplicationService(
+                        parent.attestationVerifier, ATTEST_REPLAY_TELEMETRY, store, parent.persistenceAdapter);
+
+                WebAuthnAttestationReplayApplicationService.ReplayResult result;
+                try {
+                    result = service.replay(new WebAuthnAttestationReplayApplicationService.ReplayCommand.Stored(
+                            storedId, attestationFormat));
+                } catch (IllegalArgumentException ex) {
+                    String rawMessage = ex.getMessage() == null ? "Stored attestation replay failed" : ex.getMessage();
+                    String message = sanitizeMessage(rawMessage);
+                    String reason = mapStoredReplayReason(rawMessage);
+                    return parent.failValidation(
+                            event("attestReplay"), ATTEST_REPLAY_TELEMETRY, reason, message, Map.copyOf(baseFields));
+                } catch (Exception ex) {
+                    return parent.failUnexpected(
+                            event("attestReplay"),
+                            ATTEST_REPLAY_TELEMETRY,
+                            Map.copyOf(baseFields),
+                            "Attestation replay failed: " + sanitizeMessage(ex.getMessage()));
+                }
+
+                WebAuthnAttestationReplayApplicationService.TelemetrySignal telemetry = result.telemetry();
+                TelemetryFrame frame = mergeTelemetryFrame(
+                        telemetry.emit(ATTEST_REPLAY_TELEMETRY, nextTelemetryId()), Map.copyOf(baseFields));
+
+                return switch (telemetry.status()) {
+                    case SUCCESS -> {
+                        writeFrame(out(), event("attestReplay"), frame);
+                        yield CommandLine.ExitCode.OK;
+                    }
+                    case INVALID -> {
+                        writeFrame(err(), event("attestReplay"), frame);
+                        yield CommandLine.ExitCode.USAGE;
+                    }
+                    case ERROR -> {
+                        writeFrame(err(), event("attestReplay"), frame);
+                        yield CommandLine.ExitCode.SOFTWARE;
+                    }
+                };
+            } catch (Exception ex) {
+                return parent.failUnexpected(
+                        event("attestReplay"),
+                        ATTEST_REPLAY_TELEMETRY,
+                        Map.copyOf(baseFields),
+                        "Attestation replay failed: " + sanitizeMessage(ex.getMessage()));
+            }
+        }
+
+        private Integer replayInline(WebAuthnAttestationFormat attestationFormat, Map<String, Object> baseFields) {
 
             if (!hasText(relyingPartyId) || !hasText(origin)) {
                 return parent.failValidation(
@@ -1791,6 +1899,48 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             }
             return CommandLine.ExitCode.SOFTWARE;
         }
+
+        private static InputSource parseInputSource(String value) {
+            if (value == null || value.isBlank()) {
+                return InputSource.INLINE;
+            }
+            String normalized = value.trim().toLowerCase(Locale.ROOT);
+            return switch (normalized) {
+                case "inline" -> InputSource.INLINE;
+                case "stored" -> InputSource.STORED;
+                default ->
+                    throw new IllegalArgumentException(
+                            "Unsupported input source: " + value + " (expected inline or stored)");
+            };
+        }
+
+        private static String mapStoredReplayReason(String message) {
+            if (message == null || message.isBlank()) {
+                return "replay_failed";
+            }
+            String normalized = message.toLowerCase(Locale.US);
+            if (normalized.contains("not found")) {
+                return "stored_credential_not_found";
+            }
+            if (normalized.contains("attestation metadata")) {
+                return "stored_attestation_required";
+            }
+            if (normalized.contains("missing required attribute")) {
+                return "stored_attestation_missing_attribute";
+            }
+            if (normalized.contains("base64")) {
+                return "stored_attestation_invalid";
+            }
+            if (normalized.contains("credential store")) {
+                return "stored_attestation_required";
+            }
+            return "replay_failed";
+        }
+
+        private enum InputSource {
+            INLINE,
+            STORED
+        }
     }
 
     @CommandLine.Command(
@@ -1833,17 +1983,17 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
         private static List<WebAuthnAttestationVector> selectCanonicalVectors() {
             WebAuthnAttestationGenerator generator = new WebAuthnAttestationGenerator();
-            Set<WebAuthnAttestationFormat> formats = new LinkedHashSet<>();
+            Set<WebAuthnSignatureAlgorithm> algorithms = new LinkedHashSet<>();
             List<WebAuthnAttestationVector> selected = new ArrayList<>();
             for (WebAuthnAttestationVector vector : WebAuthnAttestationSamples.vectors()) {
-                if (formats.add(vector.format())) {
+                if (algorithms.add(vector.algorithm())) {
                     Optional<WebAuthnFixtures.WebAuthnFixture> fixture = findFixture(vector);
-                    if (fixture.isEmpty()) {
-                        formats.remove(vector.format());
+                    if (fixture.isEmpty() && resolveGeneratorSample(vector).isEmpty()) {
+                        algorithms.remove(vector.algorithm());
                         continue;
                     }
                     if (!isInlineCompatible(generator, vector)) {
-                        formats.remove(vector.format());
+                        algorithms.remove(vector.algorithm());
                         continue;
                     }
                     selected.add(vector);
@@ -1856,17 +2006,34 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             WebAuthnAttestationGenerator generator = new WebAuthnAttestationGenerator();
             List<SeedCommand> commands = new ArrayList<>(vectors.size());
             for (WebAuthnAttestationVector vector : vectors) {
-                WebAuthnFixtures.WebAuthnFixture fixture = resolveFixture(vector);
-
-                WebAuthnCredentialDescriptor credentialDescriptor = WebAuthnCredentialDescriptor.builder()
-                        .name(vector.vectorId())
-                        .relyingPartyId(fixture.storedCredential().relyingPartyId())
-                        .credentialId(fixture.storedCredential().credentialId())
-                        .publicKeyCose(fixture.storedCredential().publicKeyCose())
-                        .signatureCounter(fixture.storedCredential().signatureCounter())
-                        .userVerificationRequired(fixture.storedCredential().userVerificationRequired())
-                        .algorithm(fixture.algorithm())
-                        .build();
+                Optional<WebAuthnFixtures.WebAuthnFixture> fixture = findFixture(vector);
+                WebAuthnCredentialDescriptor credentialDescriptor;
+                if (fixture.isPresent()) {
+                    WebAuthnFixtures.WebAuthnFixture resolved = fixture.get();
+                    credentialDescriptor = WebAuthnCredentialDescriptor.builder()
+                            .name(vector.vectorId())
+                            .relyingPartyId(resolved.storedCredential().relyingPartyId())
+                            .credentialId(resolved.storedCredential().credentialId())
+                            .publicKeyCose(resolved.storedCredential().publicKeyCose())
+                            .signatureCounter(resolved.storedCredential().signatureCounter())
+                            .userVerificationRequired(
+                                    resolved.storedCredential().userVerificationRequired())
+                            .algorithm(resolved.algorithm())
+                            .build();
+                } else {
+                    Sample sample = resolveGeneratorSample(vector)
+                            .orElseThrow(() -> new IllegalStateException(
+                                    "Missing fixture or generator sample for " + vector.vectorId()));
+                    credentialDescriptor = WebAuthnCredentialDescriptor.builder()
+                            .name(vector.vectorId())
+                            .relyingPartyId(sample.relyingPartyId())
+                            .credentialId(sample.credentialId())
+                            .publicKeyCose(sample.publicKeyCose())
+                            .signatureCounter(sample.signatureCounter())
+                            .userVerificationRequired(sample.userVerificationRequired())
+                            .algorithm(sample.algorithm())
+                            .build();
+                }
 
                 WebAuthnAttestationGenerator.GenerationResult generationResult =
                         generator.generate(new WebAuthnAttestationGenerator.GenerationCommand.Inline(
@@ -1918,9 +2085,14 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                     .findFirst();
         }
 
-        private static WebAuthnFixtures.WebAuthnFixture resolveFixture(WebAuthnAttestationVector vector) {
-            return findFixture(vector)
-                    .orElseThrow(() -> new IllegalStateException("Missing fixture for " + vector.vectorId()));
+        private static Optional<Sample> resolveGeneratorSample(WebAuthnAttestationVector vector) {
+            return WebAuthnGeneratorSamples.samples().stream()
+                    .filter(sample -> Arrays.equals(
+                            sample.credentialId(), vector.registration().credentialId()))
+                    .findFirst()
+                    .or(() -> WebAuthnGeneratorSamples.samples().stream()
+                            .filter(sample -> sample.algorithm() == vector.algorithm())
+                            .findFirst());
         }
 
         private static boolean isInlineCompatible(

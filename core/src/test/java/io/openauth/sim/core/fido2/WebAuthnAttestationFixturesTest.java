@@ -1,6 +1,7 @@
 package io.openauth.sim.core.fido2;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,6 +39,18 @@ class WebAuthnAttestationFixturesTest {
                 () -> assertFalse(vector.registration().clientDataJson().length == 0, "clientDataJSON"),
                 () -> assertFalse(vector.registration().challenge().length == 0, "challenge"),
                 () -> assertNotNull(vector.keyMaterial(), "key material"));
+    }
+
+    @Test
+    void exposesSyntheticPackedPs256Fixture() {
+        WebAuthnAttestationVector vector = WebAuthnAttestationFixtures.findById("synthetic-packed-ps256")
+                .orElseThrow(() -> new AssertionError("Expected synthetic-packed-ps256 fixture to be present"));
+
+        assertEquals(
+                WebAuthnSignatureAlgorithm.PS256,
+                vector.algorithm(),
+                "synthetic-packed-ps256 should advertise PS256 algorithm");
+        assertEquals(WebAuthnAttestationFormat.PACKED, vector.format(), "fixture format");
     }
 
     private static Stream<WebAuthnAttestationVector> vectors() {

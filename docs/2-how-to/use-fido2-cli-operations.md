@@ -160,10 +160,14 @@ Manual mode skips presets entirely. Pass `--input-source manual` and supply the 
 The manual output mirrors the preset flow but the telemetry frame now includes `inputSource=manual`, optional `seedPresetId`, and any `overrides` you recorded.
 
 ## Replay Attestation Verification
-`fido2 attest-replay` mirrors the attestation verification flow and remains available for deterministic replays and incident drills. Supply the same Base64URL fields and optional trust anchors extracted from the generated payload:
+`fido2 attest-replay` mirrors the attestation verification flow and now supports both inline payloads and stored credentials. Pick the input mode that matches your workflow:
+
+### Inline replay
+Supply the same Base64URL fields and optional trust anchors extracted from the generated payload (inline is still the default input source):
 
 ```bash
 ./gradlew --quiet :cli:run --args="fido2 attest-replay \
+  --input-source inline \
   --format packed \
   --attestation-id w3c-packed-es256 \
   --relying-party-id example.org \
@@ -175,6 +179,22 @@ The manual output mirrors the preset flow but the telemetry frame now includes `
 ```
 
 The replay output reports whether the supplied anchors matched the attestation chain (`anchorTrusted=true/false`) and keeps the telemetry footprint in sync with the REST and UI facades.
+
+### Stored replay
+After seeding credentials (`fido2 seed-attestations` or the REST/UI seed controls), replay a stored attestation with the identifier returned by the seed step:
+
+```bash
+./gradlew --quiet :cli:run --args="fido2 attest-replay \
+  --input-source stored \
+  --format packed \
+  --credential-id stored-packed-es256"
+```
+
+Stored mode pulls the attestation payload, challenge, and relying-party metadata directly from the MapDB store, so inline trust anchors are rejected (`stored_trust_anchor_unsupported`). Telemetry includes `inputSource=stored`, the `storedCredentialId`, and stored-specific reason codes such as `stored_credential_not_found` or `stored_attestation_required`.
+
+> Rerunning `fido2 seed-attestations` after seeding the canonical assertion presets does not create duplicates—the attestation workflow enriches the existing credential in place and preserves the original credential secret/metadata.
+
+> 2025-10-28 – The curated seed catalogue now includes the synthetic `synthetic-packed-ps256` preset so PS256 credentials hydrate with a deterministic cross-origin challenge without manual input.
 
 ## Browse the JSON Vector Catalogue
 The `vectors` subcommand prints the full assertion catalogue (`docs/webauthn_assertion_vectors.json`) followed by the attestation datasets from `docs/webauthn_attestation/*.json` so every facade stays in sync:

@@ -7,7 +7,6 @@ import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicatio
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService.TelemetryStatus;
 import io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService.ReplayCommand;
-import io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService.ReplayResult;
 import io.openauth.sim.application.fido2.WebAuthnAttestationVerificationApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnAttestationVerificationApplicationService.VerificationCommand;
 import io.openauth.sim.application.fido2.WebAuthnTrustAnchorResolver;
@@ -332,118 +331,171 @@ class WebAuthnAttestationService {
         boolean verbose = Boolean.TRUE.equals(request.verbose());
         VerboseTrace.Builder trace = newTrace(verbose, "fido2.attestation.verify");
         metadata(trace, "attestationId", request.attestationId());
+        metadata(trace, "inputSource", request.inputSource());
+
+        InputSource source = parseInputSource(request.inputSource());
+        metadata(trace, "inputSourceResolved", source.name().toLowerCase(Locale.ROOT));
 
         WebAuthnAttestationFormat format = parseFormat(request.format());
         metadata(trace, "format", format.label());
-        WebAuthnTrustAnchorResolver.Resolution anchorResolution =
-                trustAnchorResolver.resolvePemStrings(request.attestationId(), format, request.trustAnchors());
-        addStep(trace, step -> step.id("resolve.trustAnchors")
-                .summary("Resolve trust anchors for attestation verification")
-                .detail("WebAuthnTrustAnchorResolver.resolvePemStrings")
-                .attribute("anchorCount", anchorResolution.anchors().size())
-                .attribute("cached", anchorResolution.cached()));
-        logTrustAnchorWarnings(anchorResolution.warnings());
 
-        ReplayCommand.Inline command = new ReplayCommand.Inline(
-                sanitize(request.attestationId()),
-                format,
-                requireText(request.relyingPartyId(), "relying_party_id_required", "Relying party ID"),
-                requireText(request.origin(), "origin_required", "Origin"),
-                decode("attestation_object_required", "Invalid attestation object", request.attestationObject()),
-                decode("client_data_required", "Invalid clientDataJSON", request.clientDataJson()),
-                decode("expected_challenge_required", "Invalid challenge", request.expectedChallenge()),
-                anchorResolution.anchors(),
-                anchorResolution.cached(),
-                anchorResolution.source(),
-                anchorResolution.metadataEntryId(),
-                anchorResolution.warnings());
-        addStep(trace, step -> step.id("prepare.replay")
-                .summary("Prepare attestation replay command")
-                .detail("ReplayCommand.Inline")
-                .attribute("anchorSource", anchorResolution.source())
-                .attribute("warnings", anchorResolution.warnings().size()));
-
+        WebAuthnAttestationReplayApplicationService.ReplayResult result;
+        WebAuthnAttestationReplayApplicationService.ReplayCommand.Inline inlineCommand = null;
         VerboseTrace verificationTrace = null;
-        ReplayResult result;
-        try {
-            result = replayService.replay(command);
-            if (verbose) {
-                try {
-                    VerificationCommand.Inline verificationCommand = toVerificationCommand(command);
-                    verificationTrace = verificationService
-                            .verify(verificationCommand, true)
-                            .verboseTrace()
-                            .orElse(null);
-                } catch (Exception ex) {
-                    addStep(trace, step -> step.id("verification.trace.error")
-                            .summary("Unable to generate verification trace")
-                            .detail(ex.getClass().getSimpleName())
-                            .note("message", sanitize(ex.getMessage())));
-                }
+
+        if (source == InputSource.STORED) {
+            String credentialId = requireText(request.credentialId(), "credential_id_required", "Credential ID");
+            metadata(trace, "storedCredentialId", credentialId);
+
+            if (request.trustAnchors() != null && !request.trustAnchors().isEmpty()) {
+                addStep(trace, step -> step.id("stored.trustAnchors.unsupported")
+                        .summary("Stored replay does not accept inline trust anchors")
+                        .detail("trustAnchors provided for stored input")
+                        .attribute("count", request.trustAnchors().size()));
+                throw validation(
+                        "stored_trust_anchor_unsupported",
+                        "Stored attestation replay relies on persisted certificate chains; omit trust anchors.",
+                        Map.of("credentialId", credentialId, "format", format.label()),
+                        buildTrace(trace));
             }
-        } catch (IllegalArgumentException ex) {
-            addStep(trace, step -> step.id("replay.failure")
-                    .summary("Attestation replay failed")
-                    .detail("WebAuthnAttestationReplayApplicationService.replay")
-                    .note("message", ex.getMessage()));
-            throw validation(
-                    "replay_invalid",
-                    ex.getMessage() == null ? "Attestation replay failed" : ex.getMessage(),
-                    Map.of("attestationId", command.attestationId(), "format", format.label()),
-                    buildTrace(trace));
-        } catch (Exception ex) {
-            addStep(trace, step -> step.id("replay.error")
-                    .summary("Unexpected error during attestation replay")
-                    .detail(ex.getClass().getName())
-                    .note("message", ex.getMessage()));
-            throw unexpected(
-                    "replay_failed",
-                    "Attestation replay failed: " + sanitize(ex.getMessage()),
-                    Map.of("attestationId", command.attestationId(), "format", format.label()),
-                    buildTrace(trace));
+
+            addStep(trace, step -> step.id("resolve.stored.credential")
+                    .summary("Resolve stored attestation credential")
+                    .detail("CredentialStore.findByName")
+                    .attribute("credentialId", credentialId));
+
+            try {
+                result = replayService.replay(
+                        new WebAuthnAttestationReplayApplicationService.ReplayCommand.Stored(credentialId, format));
+            } catch (IllegalArgumentException ex) {
+                String sanitizedMessage = sanitize(ex.getMessage());
+                String message = sanitizedMessage.isBlank() ? "Stored attestation replay failed" : sanitizedMessage;
+                addStep(trace, step -> step.id("replay.failure")
+                        .summary("Attestation replay failed")
+                        .detail("WebAuthnAttestationReplayApplicationService.replay")
+                        .note("message", message));
+                throw validation(
+                        mapStoredReplayReason(message),
+                        message,
+                        Map.of("credentialId", credentialId, "format", format.label()),
+                        buildTrace(trace));
+            } catch (Exception ex) {
+                addStep(trace, step -> step.id("replay.error")
+                        .summary("Unexpected error during attestation replay")
+                        .detail(ex.getClass().getName())
+                        .note("message", ex.getMessage()));
+                throw unexpected(
+                        "replay_failed",
+                        "Attestation replay failed: " + sanitize(ex.getMessage()),
+                        Map.of("credentialId", credentialId, "format", format.label()),
+                        buildTrace(trace));
+            }
+        } else {
+            WebAuthnTrustAnchorResolver.Resolution anchorResolution =
+                    trustAnchorResolver.resolvePemStrings(request.attestationId(), format, request.trustAnchors());
+            addStep(trace, step -> step.id("resolve.trustAnchors")
+                    .summary("Resolve trust anchors for attestation verification")
+                    .detail("WebAuthnTrustAnchorResolver.resolvePemStrings")
+                    .attribute("anchorCount", anchorResolution.anchors().size())
+                    .attribute("cached", anchorResolution.cached()));
+            logTrustAnchorWarnings(anchorResolution.warnings());
+
+            inlineCommand = new WebAuthnAttestationReplayApplicationService.ReplayCommand.Inline(
+                    sanitize(request.attestationId()),
+                    format,
+                    requireText(request.relyingPartyId(), "relying_party_id_required", "Relying party ID"),
+                    requireText(request.origin(), "origin_required", "Origin"),
+                    decode("attestation_object_required", "Invalid attestation object", request.attestationObject()),
+                    decode("client_data_required", "Invalid clientDataJSON", request.clientDataJson()),
+                    decode("expected_challenge_required", "Invalid challenge", request.expectedChallenge()),
+                    anchorResolution.anchors(),
+                    anchorResolution.cached(),
+                    anchorResolution.source(),
+                    anchorResolution.metadataEntryId(),
+                    anchorResolution.warnings());
+
+            addStep(trace, step -> step.id("prepare.replay")
+                    .summary("Prepare attestation replay command")
+                    .detail("ReplayCommand.Inline")
+                    .attribute("anchorSource", anchorResolution.source())
+                    .attribute("warnings", anchorResolution.warnings().size()));
+
+            try {
+                result = replayService.replay(inlineCommand);
+                if (verbose) {
+                    try {
+                        VerificationCommand.Inline verificationCommand = toVerificationCommand(inlineCommand);
+                        verificationTrace = verificationService
+                                .verify(verificationCommand, true)
+                                .verboseTrace()
+                                .orElse(null);
+                    } catch (Exception ex) {
+                        addStep(trace, step -> step.id("verification.trace.error")
+                                .summary("Unable to generate verification trace")
+                                .detail(ex.getClass().getSimpleName())
+                                .note("message", sanitize(ex.getMessage())));
+                    }
+                }
+            } catch (IllegalArgumentException ex) {
+                addStep(trace, step -> step.id("replay.failure")
+                        .summary("Attestation replay failed")
+                        .detail("WebAuthnAttestationReplayApplicationService.replay")
+                        .note("message", ex.getMessage()));
+                throw validation(
+                        "replay_invalid",
+                        ex.getMessage() == null ? "Attestation replay failed" : ex.getMessage(),
+                        Map.of("attestationId", inlineCommand.attestationId(), "format", format.label()),
+                        buildTrace(trace));
+            } catch (Exception ex) {
+                addStep(trace, step -> step.id("replay.error")
+                        .summary("Unexpected error during attestation replay")
+                        .detail(ex.getClass().getName())
+                        .note("message", ex.getMessage()));
+                throw unexpected(
+                        "replay_failed",
+                        "Attestation replay failed: " + sanitize(ex.getMessage()),
+                        Map.of("attestationId", inlineCommand.attestationId(), "format", format.label()),
+                        buildTrace(trace));
+            }
         }
+
         appendTrace(trace, verificationTrace);
         var replayTelemetry = result.telemetry();
-        Optional<io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService.AttestedCredential>
-                attestedCredential = result.attestedCredential();
+        Optional<WebAuthnAttestationReplayApplicationService.AttestedCredential> attestedCredential =
+                result.attestedCredential();
         addStep(trace, step -> step.id("verify.attestation")
                 .summary("Verify attestation")
                 .detail("WebAuthnAttestationReplayApplicationService.replay")
                 .attribute("status", replayTelemetry.status().name()));
 
-        io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService.TelemetrySignal telemetry =
-                replayTelemetry;
+        WebAuthnAttestationReplayApplicationService.TelemetrySignal telemetry = replayTelemetry;
         String telemetryId = nextTelemetryId(EVENT_ATTEST_REPLAY);
         TelemetryFrame frame = telemetry.emit(TelemetryContracts.fido2AttestReplayAdapter(), telemetryId);
         logTelemetry(frame, EVENT_ATTEST_REPLAY);
         Map<String, Object> metadataFields = Map.copyOf(frame.fields());
 
-        if (telemetry.status()
-                == io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService.TelemetryStatus
-                        .SUCCESS) {
-            io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService.AttestedCredential
-                    credential = attestedCredential.orElseThrow(() -> unexpected(
-                    "attested_credential_missing",
-                    "Attestation replay succeeded without credential metadata",
-                    metadataFields,
-                    buildTrace(trace)));
+        if (telemetry.status() == WebAuthnAttestationReplayApplicationService.TelemetryStatus.SUCCESS) {
+            WebAuthnAttestationReplayApplicationService.AttestedCredential credential =
+                    attestedCredential.orElseThrow(() -> unexpected(
+                            "attested_credential_missing",
+                            "Attestation replay succeeded without credential metadata",
+                            metadataFields,
+                            buildTrace(trace)));
             WebAuthnAttestedCredential responseCredential = new WebAuthnAttestedCredential(
                     credential.relyingPartyId(),
                     credential.credentialId(),
-                    credential.algorithm().label(),
+                    credential.algorithm().label().toLowerCase(Locale.ROOT),
                     credential.userVerificationRequired(),
                     credential.signatureCounter(),
                     credential.aaguid());
             WebAuthnAttestationMetadata metadata = WebAuthnAttestationMetadata.forReplay(
-                    telemetryId, telemetry.reasonCode(), format.label(), metadataFields, command.trustAnchorWarnings());
+                    telemetryId, telemetry.reasonCode(), format.label(), metadataFields, result.anchorWarnings());
             VerboseTrace builtTrace = buildTrace(trace);
             VerboseTracePayload tracePayload = builtTrace == null ? null : VerboseTracePayload.from(builtTrace);
             return new WebAuthnAttestationResponse("success", null, responseCredential, metadata, tracePayload);
         }
 
-        if (telemetry.status()
-                == io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService.TelemetryStatus
-                        .INVALID) {
+        if (telemetry.status() == WebAuthnAttestationReplayApplicationService.TelemetryStatus.INVALID) {
             String message = Optional.ofNullable(telemetry.reason())
                     .filter(str -> !str.isBlank())
                     .orElse("Attestation replay invalid");
@@ -574,6 +626,23 @@ class WebAuthnAttestationService {
             return "stored_relying_party_mismatch";
         }
         return "generation_failed";
+    }
+
+    private static String mapStoredReplayReason(String message) {
+        String normalized = sanitize(message).toLowerCase(Locale.ROOT);
+        if (normalized.contains("not found")) {
+            return "stored_credential_not_found";
+        }
+        if (normalized.contains("attestation metadata")) {
+            return "stored_attestation_required";
+        }
+        if (normalized.contains("missing required attribute")) {
+            return "stored_attestation_missing_attribute";
+        }
+        if (normalized.contains("base64")) {
+            return "stored_attestation_invalid";
+        }
+        return "replay_invalid";
     }
 
     private enum InputSource {

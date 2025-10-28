@@ -27,6 +27,7 @@ public final class WebAuthnCredentialPersistenceAdapter
     static final String ATTR_UV_REQUIRED = "fido2.userVerificationRequired";
     static final String ATTR_ALGORITHM = "fido2.algorithm";
     static final String ATTR_ALGORITHM_COSE = "fido2.algorithm.cose";
+    public static final String ATTR_METADATA_LABEL = "fido2.metadata.label";
     static final String ATTR_ATTESTATION_ENABLED = "fido2.attestation.enabled";
     static final String ATTR_ATTESTATION_VERSION = "fido2.attestation.version";
     static final String ATTR_ATTESTATION_FORMAT = "fido2.attestation.format";

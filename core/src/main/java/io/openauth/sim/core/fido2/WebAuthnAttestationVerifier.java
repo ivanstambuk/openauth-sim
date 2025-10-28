@@ -386,7 +386,7 @@ public final class WebAuthnAttestationVerifier {
             case ES256, ES384, ES512 ->
                 Signature.getInstance("SHA" + algorithm.label().substring(2) + "withECDSA");
             case RS256 -> Signature.getInstance("SHA256withRSA");
-            case PS256 -> Signature.getInstance("SHA256withRSAandMGF1");
+            case PS256 -> Signature.getInstance("RSASSA-PSS");
             case EDDSA -> Signature.getInstance("Ed25519");
         };
     }

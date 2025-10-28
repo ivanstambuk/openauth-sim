@@ -20,6 +20,9 @@
   var MODE_INLINE = 'inline';
   var CEREMONY_ASSERTION = 'assertion';
   var CEREMONY_ATTESTATION = 'attestation';
+  var SOURCE_PRESET = 'preset';
+  var SOURCE_MANUAL = 'manual';
+  var SOURCE_STORED = 'stored';
 
   var ALGORITHM_SEQUENCE = ['ES256', 'ES384', 'ES512', 'RS256', 'PS256', 'EdDSA'];
 
@@ -208,10 +211,22 @@
   var replayInlineSampleSelect =
       panel.querySelector('#fido2ReplayInlineSampleSelect');
 
+  var replayAttestationModeToggle =
+      panel.querySelector('[data-testid="fido2-replay-attestation-mode-toggle"]');
+  var replayAttestationManualOption =
+      replayAttestationModeToggle
+          ? replayAttestationModeToggle.querySelector('[data-testid="fido2-replay-attestation-mode-select-manual"]')
+          : null;
+  var replayAttestationStoredOption =
+      replayAttestationModeToggle
+          ? replayAttestationModeToggle.querySelector('[data-testid="fido2-replay-attestation-mode-select-stored"]')
+          : null;
+  var replayAttestationInlineSection =
+      panel.querySelector('[data-testid="fido2-replay-attestation-inline-section"]');
+  var replayAttestationStoredSection =
+      panel.querySelector('[data-testid="fido2-replay-attestation-stored-section"]');
   var replayAttestationForm =
       panel.querySelector('[data-testid="fido2-replay-attestation-form"]');
-  var replayAttestationIdField =
-      panel.querySelector('#fido2ReplayAttestationId');
   var replayAttestationFormatSelect =
       panel.querySelector('#fido2ReplayAttestationFormat');
   var replayAttestationRpInput =
@@ -228,6 +243,26 @@
       panel.querySelector('#fido2ReplayAttestationTrustAnchors');
   var replayAttestationSubmitButton =
       panel.querySelector('[data-testid="fido2-replay-attestation-submit"]');
+  var replayAttestationSampleSelect =
+      panel.querySelector('#fido2ReplayAttestationSampleSelect');
+  var replayAttestationStoredForm =
+      panel.querySelector('[data-testid="fido2-replay-attestation-stored-form"]');
+  var replayAttestationStoredCredentialSelect =
+      panel.querySelector('#fido2ReplayAttestationStoredCredentialId');
+  var replayAttestationStoredRpInput =
+      panel.querySelector('#fido2ReplayAttestationStoredRpId');
+  var replayAttestationStoredOriginInput =
+      panel.querySelector('#fido2ReplayAttestationStoredOrigin');
+  var replayAttestationStoredChallengeField =
+      panel.querySelector('#fido2ReplayAttestationStoredChallenge');
+  var replayAttestationStoredAttestationObjectField =
+      panel.querySelector('#fido2ReplayAttestationStoredAttestationObject');
+  var replayAttestationStoredClientDataField =
+      panel.querySelector('#fido2ReplayAttestationStoredClientData');
+  var replayAttestationStoredFormatInput =
+      panel.querySelector('#fido2ReplayAttestationStoredFormat');
+  var replayAttestationStoredSubmitButton =
+      panel.querySelector('[data-testid="fido2-replay-attestation-stored-submit"]');
   var replayAttestationResultPanel =
       panel.querySelector('[data-testid="fido2-replay-attestation-result"]');
   var replayAttestationStatusBadge =
@@ -326,6 +361,8 @@
   var currentReplayCeremony = CEREMONY_ASSERTION;
   var lastReplayAssertionMode = MODE_INLINE;
   var currentAttestationMode = MODE_INLINE;
+  var currentReplayAttestationSource = SOURCE_MANUAL;
+  var lastReplayAttestationSource = SOURCE_MANUAL;
   var lastBroadcastTab = null;
   var lastBroadcastEvaluateMode = null;
   var lastBroadcastReplayMode = null;
@@ -512,6 +549,11 @@
       applyReplayInlineSample(replayInlineSampleSelect.value);
     });
   }
+  if (replayAttestationSampleSelect) {
+    replayAttestationSampleSelect.addEventListener('change', function () {
+      applyReplayAttestationSample(replayAttestationSampleSelect.value);
+    });
+  }
 
   if (evaluateStoredButton) {
     evaluateStoredButton.addEventListener('click', function (event) {
@@ -571,8 +613,49 @@
   if (replayAttestationSubmitButton) {
     replayAttestationSubmitButton.addEventListener('click', function (event) {
       event.preventDefault();
-      submitReplayAttestation();
+      submitAttestationReplay();
     });
+  }
+  if (replayAttestationStoredSubmitButton) {
+    replayAttestationStoredSubmitButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      submitStoredAttestationReplay();
+    });
+  }
+  if (replayAttestationManualOption) {
+    replayAttestationManualOption.addEventListener('change', function () {
+      if (replayAttestationManualOption.checked) {
+        setReplayAttestationSource(SOURCE_MANUAL, { broadcast: true });
+      }
+    });
+  }
+  if (replayAttestationStoredOption) {
+    replayAttestationStoredOption.addEventListener('change', function () {
+      if (replayAttestationStoredOption.checked) {
+        setReplayAttestationSource(SOURCE_STORED, { broadcast: true });
+      }
+    });
+  }
+  if (replayAttestationStoredCredentialSelect) {
+    replayAttestationStoredCredentialSelect.addEventListener('change', function () {
+      setActiveStoredCredential(replayAttestationStoredCredentialSelect.value, { force: true });
+      updateReplayAttestationStoredFields(replayAttestationStoredCredentialSelect.value);
+    });
+  }
+  [
+    replayAttestationRpInput,
+    replayAttestationOriginInput,
+    replayAttestationChallengeField,
+    replayAttestationClientDataField,
+    replayAttestationObjectField,
+    replayAttestationTrustAnchorsField,
+  ].forEach(function (element) {
+    if (element) {
+      element.addEventListener('input', ensureReplayAttestationManual);
+    }
+  });
+  if (replayAttestationFormatSelect) {
+    replayAttestationFormatSelect.addEventListener('change', ensureReplayAttestationManual);
   }
   if (attestationSubmitButton) {
     attestationSubmitButton.addEventListener('click', function (event) {
@@ -582,6 +665,7 @@
   }
   setCeremony(CEREMONY_ASSERTION, { broadcast: false, force: true });
   setReplayCeremony(CEREMONY_ASSERTION, { broadcast: false, force: true });
+  setReplayAttestationSource(currentReplayAttestationSource, { broadcast: false, force: true });
   setEvaluateMode(currentEvaluateMode, { broadcast: false, force: true });
   setReplayMode(currentReplayMode, { broadcast: false, force: true });
   preloadStoredCredentialSelects();
@@ -592,6 +676,7 @@
   setActiveStoredCredential(activeStoredCredentialId, { force: true });
   applyInlineSample(inlineSampleSelect && inlineSampleSelect.value);
   applyAttestationSample(attestationSampleSelect && attestationSampleSelect.value);
+  applyReplayAttestationSample(replayAttestationSampleSelect && replayAttestationSampleSelect.value);
 
   function submitStoredEvaluation() {
     if (!storedForm || !evaluateStoredButton) {
@@ -966,7 +1051,7 @@
         });
   }
 
-  function submitReplayAttestation() {
+  function submitAttestationReplay() {
     if (!replayAttestationForm || !replayAttestationSubmitButton) {
       return;
     }
@@ -976,21 +1061,74 @@
           { status: 0, payload: { reasonCode: 'endpoint_unavailable', message: 'Attestation replay endpoint unavailable.' } });
       return;
     }
+    var format = elementValue(replayAttestationFormatSelect);
+    if (!format) {
+      handleReplayAttestationError({
+        status: 422,
+        payload: {
+          reasonCode: 'format_required',
+          message: 'Select an attestation format before replaying.',
+        },
+      });
+      return;
+    }
+    var relyingPartyId = elementValue(replayAttestationRpInput);
+    var origin = elementValue(replayAttestationOriginInput);
+    if (!relyingPartyId || !origin) {
+      handleReplayAttestationError({
+        status: 422,
+        payload: {
+          reasonCode: 'relying_party_required',
+          message: 'Provide a relying party ID and origin for attestation replay.',
+        },
+      });
+      return;
+    }
+    var challenge = elementValue(replayAttestationChallengeField);
+    if (!challenge) {
+      handleReplayAttestationError({
+        status: 422,
+        payload: {
+          reasonCode: 'challenge_required',
+          message: 'Provide a Base64URL challenge for attestation replay.',
+        },
+      });
+      return;
+    }
+    var clientData = elementValue(replayAttestationClientDataField);
+    if (!clientData) {
+      handleReplayAttestationError({
+        status: 422,
+        payload: {
+          reasonCode: 'client_data_required',
+          message: 'Provide a clientDataJSON payload for attestation replay.',
+        },
+      });
+      return;
+    }
+    var attestationObject = elementValue(replayAttestationObjectField);
+    if (!attestationObject) {
+      handleReplayAttestationError({
+        status: 422,
+        payload: {
+          reasonCode: 'attestation_object_required',
+          message: 'Provide an attestation object for replay.',
+        },
+      });
+      return;
+    }
     replayAttestationSubmitButton.setAttribute('disabled', 'disabled');
     pendingReplayAttestationResult();
     var payload = {
-      attestationId: elementValue(replayAttestationIdField) || undefined,
-      format: elementValue(replayAttestationFormatSelect),
-      relyingPartyId: elementValue(replayAttestationRpInput),
-      origin: elementValue(replayAttestationOriginInput),
-      expectedChallenge: elementValue(replayAttestationChallengeField),
-      clientDataJson: elementValue(replayAttestationClientDataField),
-      attestationObject: elementValue(replayAttestationObjectField),
+      inputSource: 'MANUAL',
+      format: format,
+      relyingPartyId: relyingPartyId,
+      origin: origin,
+      expectedChallenge: challenge,
+      clientDataJson: clientData,
+      attestationObject: attestationObject,
       trustAnchors: normaliseTrustAnchors(elementValue(replayAttestationTrustAnchorsField)),
     };
-    if (!payload.attestationId) {
-      delete payload.attestationId;
-    }
     payload = verboseAttach(payload);
     verboseBeginRequest();
     sendJsonRequest(endpoint, payload, csrfToken(replayAttestationForm))
@@ -998,6 +1136,56 @@
         .catch(handleReplayAttestationError)
         .finally(function () {
           replayAttestationSubmitButton.removeAttribute('disabled');
+        });
+  }
+
+  function submitStoredAttestationReplay() {
+    if (!replayAttestationStoredForm || !replayAttestationStoredSubmitButton) {
+      return;
+    }
+    var endpoint =
+        replayAttestationStoredForm.getAttribute('data-attestation-replay-endpoint');
+    if (!endpoint) {
+      handleReplayAttestationError(
+          { status: 0, payload: { reasonCode: 'endpoint_unavailable', message: 'Attestation replay endpoint unavailable.' } });
+      return;
+    }
+    var credentialId = elementValue(replayAttestationStoredCredentialSelect);
+    if (!credentialId) {
+      handleReplayAttestationError({
+        status: 422,
+        payload: {
+          reasonCode: 'credential_id_required',
+          message: 'Select a stored attestation credential before replaying.',
+        },
+      });
+      return;
+    }
+    var format = elementValue(replayAttestationStoredFormatInput);
+    if (!format) {
+      handleReplayAttestationError({
+        status: 422,
+        payload: {
+          reasonCode: 'stored_attestation_required',
+          message: 'Stored attestation metadata unavailable; seed attestation credentials first.',
+        },
+      });
+      return;
+    }
+    replayAttestationStoredSubmitButton.setAttribute('disabled', 'disabled');
+    pendingReplayAttestationResult();
+    var payload = {
+      inputSource: 'STORED',
+      credentialId: credentialId,
+      format: format,
+    };
+    payload = verboseAttach(payload);
+    verboseBeginRequest();
+    sendJsonRequest(endpoint, payload, csrfToken(replayAttestationStoredForm))
+        .then(handleReplayAttestationSuccess)
+        .catch(handleReplayAttestationError)
+        .finally(function () {
+          replayAttestationStoredSubmitButton.removeAttribute('disabled');
         });
   }
 
@@ -1424,6 +1612,53 @@
     clearVerboseTrace();
   }
 
+  function setReplayAttestationSource(source, options) {
+    if (source !== SOURCE_MANUAL && source !== SOURCE_STORED) {
+      source = SOURCE_MANUAL;
+    }
+    if (!options || !options.force) {
+      if (currentReplayAttestationSource === source) {
+        return;
+      }
+    }
+    currentReplayAttestationSource = source;
+    lastReplayAttestationSource = source;
+    if (replayAttestationModeToggle) {
+      replayAttestationModeToggle.setAttribute('data-mode', source);
+    }
+    if (replayAttestationManualOption) {
+      replayAttestationManualOption.checked = source === SOURCE_MANUAL;
+    }
+    if (replayAttestationStoredOption) {
+      replayAttestationStoredOption.checked = source === SOURCE_STORED;
+    }
+    toggleSection(replayAttestationInlineSection, source === SOURCE_MANUAL);
+    toggleSection(replayAttestationStoredSection, source === SOURCE_STORED);
+    if (source === SOURCE_STORED) {
+      var targetCredential =
+          replayAttestationStoredCredentialSelect
+              ? replayAttestationStoredCredentialSelect.value
+              : activeStoredCredentialId;
+      setActiveStoredCredential(targetCredential || activeStoredCredentialId || '', { force: true });
+      updateReplayAttestationStoredFields(targetCredential || activeStoredCredentialId || '');
+    } else {
+      updateReplayAttestationStoredFields('');
+      applyReplayAttestationSample(
+          replayAttestationSampleSelect ? replayAttestationSampleSelect.value : '');
+    }
+    pendingReplayAttestationResult();
+    clearVerboseTrace();
+  }
+
+  function ensureReplayAttestationManual() {
+    if (currentReplayCeremony !== CEREMONY_ATTESTATION) {
+      return;
+    }
+    if (currentReplayAttestationSource !== SOURCE_MANUAL) {
+      setReplayAttestationSource(SOURCE_MANUAL, { broadcast: true });
+    }
+  }
+
   function setReplayCeremony(ceremony, options) {
     if (ceremony !== CEREMONY_ASSERTION && ceremony !== CEREMONY_ATTESTATION) {
       return;
@@ -1442,6 +1677,7 @@
     if (ceremony === CEREMONY_ATTESTATION) {
       lockReplayModeForAttestationReplay();
       pendingReplayAttestationResult();
+      setReplayAttestationSource(currentReplayAttestationSource, { broadcast: false, force: true });
     } else {
       unlockReplayModeForAttestationReplay();
     }
@@ -1688,6 +1924,8 @@
         replayStoredButton, 'data-stored-label', 'Replay stored assertion');
     applyButtonLabel(
         replayAttestationSubmitButton, 'data-attestation-label', 'Replay attestation');
+    applyButtonLabel(
+        replayAttestationStoredSubmitButton, 'data-stored-label', 'Replay stored attestation');
   }
 
   function refreshEvaluationResultVisibility() {
@@ -1731,6 +1969,7 @@
       updateCredentialSelect(storedCredentialSelect, credentials);
       updateCredentialSelect(replayCredentialSelect, credentials);
       updateCredentialSelect(attestationStoredCredentialSelect, credentials);
+      updateCredentialSelect(replayAttestationStoredCredentialSelect, credentials);
       toggleSeedActions();
       toggleAttestationSeedActions();
       var nextActive = activeStoredCredentialId;
@@ -1741,7 +1980,9 @@
         && (!replayCredentialSelect
             || !elementHasOption(replayCredentialSelect, nextActive))
         && (!attestationStoredCredentialSelect
-            || !elementHasOption(attestationStoredCredentialSelect, nextActive))) {
+            || !elementHasOption(attestationStoredCredentialSelect, nextActive))
+        && (!replayAttestationStoredCredentialSelect
+            || !elementHasOption(replayAttestationStoredCredentialSelect, nextActive))) {
         nextActive = '';
       }
       setActiveStoredCredential(nextActive, { force: true });
@@ -1752,32 +1993,94 @@
   function setActiveStoredCredential(credentialId, options) {
     var normalized =
         typeof credentialId === 'string' ? credentialId.trim() : '';
-    if (
-      normalized
-      && (!storedCredentialSelect
-          || !elementHasOption(storedCredentialSelect, normalized))
-      && (!replayCredentialSelect
-          || !elementHasOption(replayCredentialSelect, normalized))
-      && (!attestationStoredCredentialSelect
-          || !elementHasOption(attestationStoredCredentialSelect, normalized))) {
-      normalized = '';
-    }
-    var shouldSync = options && options.force === true;
-    if (normalized !== activeStoredCredentialId) {
-      activeStoredCredentialId = normalized;
+  if (
+    normalized
+    && (!storedCredentialSelect
+        || !elementHasOption(storedCredentialSelect, normalized))
+    && (!replayCredentialSelect
+        || !elementHasOption(replayCredentialSelect, normalized))
+    && (!attestationStoredCredentialSelect
+        || !elementHasOption(attestationStoredCredentialSelect, normalized))
+    && (!replayAttestationStoredCredentialSelect
+        || !elementHasOption(replayAttestationStoredCredentialSelect, normalized))) {
+    normalized = '';
+  }
+  var shouldSync = options && options.force === true;
+  if (normalized !== activeStoredCredentialId) {
+    activeStoredCredentialId = normalized;
       shouldSync = true;
     }
-    suppressStoredCredentialSync = true;
-    syncStoredSelectValue(storedCredentialSelect, normalized);
-    syncStoredSelectValue(replayCredentialSelect, normalized);
-    syncStoredSelectValue(attestationStoredCredentialSelect, normalized);
-    suppressStoredCredentialSync = false;
-    if (shouldSync) {
-      applyStoredSample(normalized || null);
-      applyStoredReplaySamples(normalized || null);
-    }
-    applyAttestationStoredSelection(normalized || null);
+  suppressStoredCredentialSync = true;
+  syncStoredSelectValue(storedCredentialSelect, normalized);
+  syncStoredSelectValue(replayCredentialSelect, normalized);
+  syncStoredSelectValue(attestationStoredCredentialSelect, normalized);
+  syncStoredSelectValue(replayAttestationStoredCredentialSelect, normalized);
+  suppressStoredCredentialSync = false;
+  if (shouldSync) {
+    applyStoredSample(normalized || null);
+    applyStoredReplaySamples(normalized || null);
   }
+  applyAttestationStoredSelection(normalized || null);
+  updateReplayAttestationStoredFields(normalized || null);
+}
+
+function updateReplayAttestationStoredFields(credentialId) {
+  if (!replayAttestationStoredChallengeField) {
+    return;
+  }
+  if (!credentialId) {
+    setValue(replayAttestationStoredRpInput, '');
+    setValue(replayAttestationStoredOriginInput, '');
+    setValue(replayAttestationStoredChallengeField, '');
+    replayAttestationStoredChallengeField.value = '';
+    replayAttestationStoredChallengeField.setAttribute('value', '');
+    setValue(replayAttestationStoredFormatInput, '');
+    if (replayAttestationStoredAttestationObjectField) {
+      setValue(replayAttestationStoredAttestationObjectField, '');
+    }
+    if (replayAttestationStoredClientDataField) {
+      setValue(replayAttestationStoredClientDataField, '');
+    }
+    return;
+  }
+  if (replayAttestationStoredAttestationObjectField) {
+    setValue(replayAttestationStoredAttestationObjectField, '');
+  }
+  if (replayAttestationStoredClientDataField) {
+    setValue(replayAttestationStoredClientDataField, '');
+  }
+  var definition = findSeedDefinition(credentialId);
+  var metadata = definition ? definition.metadata : null;
+  var optionChallenge = '';
+  if (replayAttestationStoredCredentialSelect) {
+    var selectedOption = replayAttestationStoredCredentialSelect.options[
+        replayAttestationStoredCredentialSelect.selectedIndex];
+    if (selectedOption) {
+      optionChallenge = selectedOption.getAttribute('data-attestation-challenge') || '';
+    }
+  }
+  var vectorKey =
+      metadataValue(metadata, 'attestationId')
+          || metadataValue(metadata, 'presetKey')
+          || metadataValue(metadata, 'vectorId');
+  var vector = vectorKey && attestationVectorIndex
+      ? attestationVectorIndex[vectorKey] || null
+      : null;
+  var relyingPartyId = definition ? definition.relyingPartyId : null;
+  var origin = vector && vector.origin ? vector.origin : 'https://example.org';
+  var challenge = optionChallenge
+      || (vector && vector.challengeBase64Url ? vector.challengeBase64Url : '')
+      || metadataValue(metadata, 'challengeBase64Url')
+      || '';
+  var format = metadataValue(metadata, 'attestationFormat')
+      || (vector && vector.format) || '';
+  setValue(replayAttestationStoredRpInput, relyingPartyId || 'example.org');
+  setValue(replayAttestationStoredOriginInput, origin || 'https://example.org');
+  setValue(replayAttestationStoredChallengeField, challenge || '');
+  replayAttestationStoredChallengeField.value = challenge || '';
+  replayAttestationStoredChallengeField.setAttribute('value', challenge || '');
+  setValue(replayAttestationStoredFormatInput, format || '');
+}
 
   function syncStoredSelectValue(select, credentialId) {
     if (!select) {
@@ -1939,6 +2242,42 @@
       attestationSampleSelect.value = vector.vectorId;
     }
     pendingAttestationResult();
+  }
+
+  function applyReplayAttestationSample(vectorId) {
+    if (!attestationVectorIndex) {
+      return;
+    }
+    var vector = vectorId ? attestationVectorIndex[vectorId] : null;
+    if (!vector) {
+      setValue(replayAttestationFormatSelect, 'packed');
+      setValue(replayAttestationRpInput, 'example.org');
+      setValue(replayAttestationOriginInput, 'https://example.org');
+      setValue(replayAttestationChallengeField, '');
+      setValue(replayAttestationClientDataField, '');
+      setValue(replayAttestationObjectField, '');
+      if (replayAttestationTrustAnchorsField) {
+        setValue(replayAttestationTrustAnchorsField, '');
+      }
+      if (replayAttestationSampleSelect) {
+        replayAttestationSampleSelect.value = '';
+      }
+      pendingReplayAttestationResult();
+      return;
+    }
+    setValue(replayAttestationFormatSelect, vector.format || 'packed');
+    setValue(replayAttestationRpInput, vector.relyingPartyId || 'example.org');
+    setValue(replayAttestationOriginInput, vector.origin || 'https://example.org');
+    setValue(replayAttestationChallengeField, vector.challengeBase64Url || '');
+    setValue(replayAttestationClientDataField, vector.clientDataJson || '');
+    setValue(replayAttestationObjectField, vector.attestationObject || '');
+    if (replayAttestationTrustAnchorsField) {
+      setValue(replayAttestationTrustAnchorsField, '');
+    }
+    if (replayAttestationSampleSelect && vector.vectorId) {
+      replayAttestationSampleSelect.value = vector.vectorId;
+    }
+    pendingReplayAttestationResult();
   }
 
   function clearAttestationFields() {
@@ -2715,31 +3054,53 @@
   }
 
   function populateAttestationVectorOptions() {
-    if (!attestationSampleSelect) {
-      return;
-    }
-    clearSelect(attestationSampleSelect);
-    addPlaceholderOption(attestationSampleSelect, 'Select a vector');
     var vectors = Array.isArray(attestationVectors) ? attestationVectors : [];
+    if (attestationSampleSelect) {
+      clearSelect(attestationSampleSelect);
+      addPlaceholderOption(attestationSampleSelect, 'Select a vector');
+    }
+    if (replayAttestationSampleSelect) {
+      clearSelect(replayAttestationSampleSelect);
+      addPlaceholderOption(replayAttestationSampleSelect, 'Select a vector');
+    }
     for (var index = 0; index < vectors.length; index += 1) {
       var vector = vectors[index];
       if (!vector || !vector.vectorId) {
         continue;
       }
-      var option = documentRef.createElement('option');
-      option.value = vector.vectorId;
-      option.textContent = vector.label || vector.vectorId;
-      if (vector.format) {
-        option.setAttribute('data-format', vector.format);
+      if (attestationSampleSelect) {
+        var evaluateOption = documentRef.createElement('option');
+        evaluateOption.value = vector.vectorId;
+        evaluateOption.textContent = vector.label || vector.vectorId;
+        if (vector.format) {
+          evaluateOption.setAttribute('data-format', vector.format);
+        }
+        if (vector.algorithm) {
+          evaluateOption.setAttribute('data-algorithm', vector.algorithm);
+        }
+        attestationSampleSelect.appendChild(evaluateOption);
       }
-      if (vector.algorithm) {
-        option.setAttribute('data-algorithm', vector.algorithm);
+      if (replayAttestationSampleSelect) {
+        var replayOption = documentRef.createElement('option');
+        replayOption.value = vector.vectorId;
+        replayOption.textContent = vector.label || vector.vectorId;
+        if (vector.format) {
+          replayOption.setAttribute('data-format', vector.format);
+        }
+        if (vector.algorithm) {
+          replayOption.setAttribute('data-algorithm', vector.algorithm);
+        }
+        replayAttestationSampleSelect.appendChild(replayOption);
       }
-      attestationSampleSelect.appendChild(option);
     }
-    enableSelect(attestationSampleSelect);
-    if (vectors.length > 0) {
-      attestationSampleSelect.value = vectors[0].vectorId;
+    if (attestationSampleSelect) {
+      enableSelect(attestationSampleSelect);
+      if (vectors.length > 0) {
+        attestationSampleSelect.value = vectors[0].vectorId;
+      }
+    }
+    if (replayAttestationSampleSelect) {
+      enableSelect(replayAttestationSampleSelect);
     }
   }
 
@@ -2759,6 +3120,62 @@
       }
     }
     return String(value);
+  }
+
+  function resolveStoredCredentialLabel(credentialId, label, algorithm) {
+    var preferred = normalizeStoredCredentialLabel(label, credentialId);
+    if (preferred) {
+      return preferred;
+    }
+    var resolvedAlgorithm = coerceAlgorithmLabel(algorithm).trim();
+    var vector = attestationVectorIndex ? attestationVectorIndex[credentialId] || null : null;
+    if (!resolvedAlgorithm && vector && vector.algorithm) {
+      resolvedAlgorithm = coerceAlgorithmLabel(vector.algorithm).trim();
+    }
+    var definition = findSeedDefinition(credentialId);
+    if (!resolvedAlgorithm && definition && definition.algorithm) {
+      resolvedAlgorithm = coerceAlgorithmLabel(definition.algorithm).trim();
+    }
+    var section = '';
+    if (vector && typeof vector.w3cSection === 'string') {
+      section = vector.w3cSection.trim();
+    }
+    if (!section && definition) {
+      section = (metadataValue(definition.metadata, 'w3cSection')
+              || metadataValue(definition.metadata, 'section')
+              || '')
+          .trim();
+    }
+    if (section && resolvedAlgorithm) {
+      return resolvedAlgorithm + ' (W3C ' + section + ')';
+    }
+    if (resolvedAlgorithm) {
+      return resolvedAlgorithm;
+    }
+    if (vector && typeof vector.label === 'string' && vector.label.trim()) {
+      return vector.label.trim();
+    }
+    if (definition && typeof definition.label === 'string' && definition.label.trim()) {
+      return definition.label.trim();
+    }
+    return credentialId;
+  }
+
+  function normalizeStoredCredentialLabel(label, credentialId) {
+    if (typeof label !== 'string') {
+      return '';
+    }
+    var trimmed = label.trim();
+    if (!trimmed) {
+      return '';
+    }
+    if (typeof credentialId === 'string' && trimmed.toLowerCase() === credentialId.toLowerCase()) {
+      return '';
+    }
+    if (trimmed.toLowerCase().startsWith('w3c-')) {
+      return '';
+    }
+    return trimmed;
   }
 
   function compareCredentialSummaries(a, b) {
@@ -2840,13 +3257,16 @@
     var ordered = Array.isArray(credentials)
             ? credentials.slice().sort(compareCredentialSummaries)
             : [];
-    ordered.forEach(function (summary) {
+  ordered.forEach(function (summary) {
       var option = documentRef.createElement('option');
       option.value = summary.id;
-      option.textContent = summary.label || summary.id;
+      option.textContent = resolveStoredCredentialLabel(summary.id, summary.label, summary.algorithm);
       var algorithmLabel = coerceAlgorithmLabel(summary.algorithm);
       if (algorithmLabel) {
         option.setAttribute('data-algorithm', algorithmLabel);
+      }
+      if (summary.attestationChallenge) {
+        option.setAttribute('data-attestation-challenge', summary.attestationChallenge);
       }
       select.appendChild(option);
     });
@@ -2892,7 +3312,7 @@
       }
       var option = documentRef.createElement('option');
       option.value = summary.id;
-      option.textContent = summary.label || summary.id;
+      option.textContent = resolveStoredCredentialLabel(summary.id, summary.label, summary.algorithm);
       var summaryAlgorithm = coerceAlgorithmLabel(summary.algorithm);
       if (summaryAlgorithm) {
         option.setAttribute('data-algorithm', summaryAlgorithm);
@@ -3297,8 +3717,13 @@
       clearAttestationStoredFields();
       return;
     }
-    var endpointTemplate =
-        attestationStoredForm.getAttribute('data-attestation-metadata-endpoint');
+    var endpointTemplate = attestationStoredForm
+        ? attestationStoredForm.getAttribute('data-attestation-metadata-endpoint')
+        : null;
+    if (!endpointTemplate && replayAttestationStoredForm) {
+      endpointTemplate = replayAttestationStoredForm.getAttribute(
+          'data-attestation-metadata-endpoint');
+    }
     if (!endpointTemplate) {
       populateAttestationStoredFields(credentialId, null);
       return;
@@ -3320,12 +3745,39 @@
     setValue(attestationStoredOriginInput, '');
     setValue(attestationStoredChallengeField, '');
     setValue(attestationStoredFormatInput, '');
+    if (replayAttestationStoredRpInput) {
+      setValue(replayAttestationStoredRpInput, '');
+    }
+    if (replayAttestationStoredOriginInput) {
+      setValue(replayAttestationStoredOriginInput, '');
+    }
+    if (replayAttestationStoredChallengeField) {
+      setValue(replayAttestationStoredChallengeField, '');
+    }
+    if (replayAttestationStoredFormatInput) {
+      setValue(replayAttestationStoredFormatInput, '');
+    }
   }
 
   function populateAttestationStoredFields(credentialId, metadata) {
     var vector = null;
-    if (credentialId && attestationVectorIndex) {
-      vector = attestationVectorIndex[credentialId] || null;
+    var vectorKey = null;
+    if (metadata && metadata.attestationId) {
+      vectorKey = metadata.attestationId;
+    }
+    if (!vectorKey) {
+      var definition = findSeedDefinition(credentialId);
+      if (definition) {
+        vectorKey = metadataValue(definition.metadata, 'presetKey')
+            || metadataValue(definition.metadata, 'vectorId')
+            || metadataValue(definition.metadata, 'attestationId');
+      }
+    }
+    if (!vectorKey && credentialId && attestationVectorIndex) {
+      vectorKey = credentialId;
+    }
+    if (vectorKey && attestationVectorIndex) {
+      vector = attestationVectorIndex[vectorKey] || null;
     }
     var relyingPartyId = metadata && metadata.relyingPartyId
         ? metadata.relyingPartyId
@@ -3333,17 +3785,41 @@
     var origin = metadata && metadata.origin
         ? metadata.origin
         : vector && vector.origin ? vector.origin : 'https://example.org';
-    var challenge = metadata && metadata.challenge
-        ? metadata.challenge
-        : vector && vector.challengeBase64Url ? vector.challengeBase64Url : '';
-    var format = metadata && metadata.format
-        ? metadata.format
-        : vector && vector.format ? vector.format : '';
+  var challenge = metadata && metadata.challenge
+      ? metadata.challenge
+      : vector && vector.challengeBase64Url ? vector.challengeBase64Url : '';
+  var format = metadata && metadata.format
+      ? metadata.format
+      : vector && vector.format ? vector.format : '';
+  var attestationObject =
+      metadata && metadata.attestationObject ? metadata.attestationObject : '';
+  var clientData =
+      metadata && metadata.clientDataJson ? metadata.clientDataJson : '';
 
-    setValue(attestationStoredRpInput, relyingPartyId || '');
-    setValue(attestationStoredOriginInput, origin || '');
-    setValue(attestationStoredChallengeField, challenge || '');
-    setValue(attestationStoredFormatInput, format || '');
+  setValue(attestationStoredRpInput, relyingPartyId || '');
+  setValue(attestationStoredOriginInput, origin || '');
+  setValue(attestationStoredChallengeField, challenge || '');
+  setValue(attestationStoredFormatInput, format || '');
+    if (replayAttestationStoredRpInput) {
+      setValue(replayAttestationStoredRpInput, relyingPartyId || '');
+    }
+    if (replayAttestationStoredOriginInput) {
+      setValue(replayAttestationStoredOriginInput, origin || '');
+    }
+    if (replayAttestationStoredChallengeField) {
+    setValue(replayAttestationStoredChallengeField, challenge || '');
+    replayAttestationStoredChallengeField.value = challenge || '';
+    replayAttestationStoredChallengeField.setAttribute('value', challenge || '');
+  }
+  if (replayAttestationStoredFormatInput) {
+    setValue(replayAttestationStoredFormatInput, format || '');
+  }
+  if (replayAttestationStoredAttestationObjectField) {
+    setValue(replayAttestationStoredAttestationObjectField, attestationObject || '');
+  }
+  if (replayAttestationStoredClientDataField) {
+    setValue(replayAttestationStoredClientDataField, clientData || '');
+  }
   }
 
   function resolveAddedCount(payload) {
