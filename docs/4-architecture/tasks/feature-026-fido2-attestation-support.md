@@ -306,3 +306,9 @@ _Last updated:_ 2025-10-21
     ☑ Update Selenium stored replay coverage to wait for the target credential option before selection, preventing `IllegalStateException` when MapDB hydration lags.  
     ☑ Run `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"` and full `./gradlew --no-daemon spotlessApply check`.  
     _2025-10-28 – Reused the `waitForOption` helper ahead of selecting stored attestation credentials, reran the targeted Selenium test, and completed the full spotless/check pipeline._  
+
+☑ **T2647 – Stored replay read-only styling parity**  
+    ☑ Update the Feature 026 spec/plan to require muted styling for read-only stored attestation fields.  
+    ☑ Extend `console.css` so read-only textarea elements adopt the same disabled background/cursor treatment used for readonly inputs, keeping stored replay payloads visibly locked.  
+    ☑ Run `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"` and full `./gradlew --no-daemon spotlessApply check`.  
+    _2025-10-28 – Added UI styling requirement to spec/plan, updated `console.css` so stored replay textareas inherit the read-only palette, visually confirming the change and rerunning full spotless/check (includes Selenium scenario) to ensure regressions stay green._  

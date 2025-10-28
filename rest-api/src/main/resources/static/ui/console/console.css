@@ -634,7 +634,10 @@ fieldset {
   box-shadow: 0 0 0 1px var(--ocra-color-outline);
 }
 
-.field-grid input[readonly] {
+.field-grid input[readonly],
+.field-grid textarea[readonly],
+.field-group input[readonly],
+.field-group textarea[readonly] {
   color: var(--ocra-color-text-muted);
   background: rgba(12, 29, 48, 0.7);
   cursor: not-allowed;
