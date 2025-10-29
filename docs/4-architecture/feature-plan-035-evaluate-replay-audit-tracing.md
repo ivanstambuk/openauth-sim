@@ -1,8 +1,8 @@
 # Feature Plan 035 – Evaluate & Replay Audit Tracing
 
 _Linked specification:_ `docs/4-architecture/specs/feature-035-evaluate-replay-audit-tracing.md`  
-_Status:_ Draft  
-_Last updated:_ 2025-10-26
+_Status:_ Complete  
+_Last updated:_ 2025-10-29
 
 ## Vision & Success Criteria
 - Every credential evaluation/replay/attestation workflow (HOTP, TOTP, OCRA, FIDO2) exposes an opt-in verbose trace that lists each cryptographic operation, inputs, and intermediate outputs in execution order.
@@ -276,8 +276,12 @@ _Last updated:_ 2025-10-26
        - 2025-10-25 – Reproduction showed the Selenium assertion racing the fetch call; updated UI tests now wait for a non-blank status (`pending` excluded) before asserting the badge so the existing UI update logic can be observed reliably.  
     2. Share a reusable authenticator-data parser that exposes extension bytes for both assertion and attestation flows; update trace builders/formatters accordingly.  
        - 2025-10-26 – `WebAuthnAuthenticatorDataParser` now normalises authenticator data (flags, counters, extensions) and feeds `WebAuthnExtensionDecoder` so application/CLI/REST traces log decoded metadata plus unknown entries under `extensions.unknown.*`.  
-    3. Refresh documentation (REST/CLI/UI guides, trace examples) once traces emit the new metadata; rerun `./gradlew --no-daemon spotlessApply check`.
+    3. Refresh documentation (REST/CLI/UI guides, trace examples) once traces emit the new metadata; rerun `./gradlew --no-daemon spotlessApply check`.  
        - 2025-10-26 – Updated `use-fido2-cli-operations.md`, `use-fido2-rest-operations.md`, and `use-fido2-operator-ui.md` with extension-aware trace snippets; reran `./gradlew --no-daemon spotlessApply check` (green, no OpenAPI changes required).
+
+## Completion Notes
+- 2025-10-26 – Increments I1–I24 delivered verbose tracing across HOTP, TOTP, OCRA, and WebAuthn with module, REST, CLI, and Selenium suites green plus regenerated OpenAPI artefacts.
+- 2025-10-29 – Documentation, roadmap, and knowledge map updates landed; Feature 035 plan closed with remaining work tracked under Feature 036 tier controls.
 
 ## Analysis Gate
 - **Review date:** 2025-10-22  

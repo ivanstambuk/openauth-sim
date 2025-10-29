@@ -1,7 +1,7 @@
 # Architecture Knowledge Map
 
 _Status: Draft_
-_Last updated: 2025-10-21_
+_Last updated: 2025-10-29_
 
 This living map captures the explicit relationships between modules, data flows, and external interfaces so future agents can reason about change impact quickly. Update it after every iteration that introduces or modifies a component, dependency, or contract.
 
@@ -33,10 +33,11 @@ This living map captures the explicit relationships between modules, data flows,
 - Application module now provides `TotpSeedApplicationService`, with REST facades (`TotpCredentialSeedService`/`TotpCredentialDirectoryController`) exposing `/api/v1/totp/credentials/seed` and `/api/v1/totp/credentials`; operator console seed controls consume `TotpOperatorSampleData` to bootstrap demo credentials and emit `totp.seed` telemetry.
 - Core WebAuthn package now exposes `WebAuthnFixtures`, lifting W3C §16 sample vectors (ES256 plus newly consolidated ES384/ES512/RS256/Ed25519 in `docs/webauthn_w3c_vectors.json`) into main scope so application, CLI, REST, and UI layers can share consistent seed/preset data without duplicating decoding logic; generator presets now derive JWK material from the same fixtures while the synthetic `synthetic-packed-ps256` bundle covers PS256 until the specification publishes an official fixture.
 - Core WebAuthn utilities now expose `SignatureInspector`, decoding COSE/DER signatures (ECDSA/RSA/EdDSA) into structured trace metadata; application services consume it alongside `WebAuthnSignaturePolicy` to emit low-S enforcement state across verbose traces.
+- WebAuthn stored credential directory endpoints and operator console dropdowns now share a canonical algorithm ordering helper (ES256 -> ES384 -> ES512 -> RS256 -> PS256 -> EdDSA) so REST responses, CLI listings, and UI selectors remain deterministic for verbose trace comparisons and audit reviews.
 - docs/ocra_validation_vectors.json now centralises RFC 6287 Appendix C OCRA vectors and feeds `OcraJsonVectorFixtures`, keeping core/CLI/REST/operator UI presets in sync while leaving draft-only suites in `OcraDraftHotpVariantsVectorFixtures`.
 - Operator console HOTP, TOTP, OCRA, and WebAuthn panels now route invalid REST responses through the shared `ResultCard` helper so inline/replay/attestation workflows surface status messages and hints consistently; Selenium suites guard the new messaging paths.
 - OCRA operator evaluate/replay panels attach verbose requests to the shared `VerboseTraceConsole`, rendering traces when REST responses include them while preserving hidden defaults when no trace is returned; Selenium coverage (`OcraOperatorUiSeleniumTest`) verifies verbose flag propagation.
-- Operator console now provides a global verbose-trace toggle and terminal-style dock that forwards HOTP/TOTP/WebAuthn evaluation/replay calls with the REST `verbose` flag, renders `VerboseTracePayload` steps (operation, metadata, ordered trace entries), and hides the panel automatically when verbose mode is disabled to avoid leaking secrets by default.
+- Operator console now provides a global verbose-trace toggle and terminal-style dock that forwards HOTP/TOTP/WebAuthn evaluation/replay calls with the REST `verbose` flag, renders `VerboseTracePayload` steps (operation, metadata, ordered trace entries), hides the panel automatically when verbose mode is disabled, and clears stale traces whenever operators switch protocols, modes, or stored/inline contexts.
 - Core FIDO2 package now includes a `WebAuthnCredentialPersistenceAdapter` that serialises relying-party metadata, COSE public keys, and counters into MapDB schema v1 so downstream CLI/REST/UI facades can retrieve `WebAuthnCredentialDescriptor` entries alongside HOTP/TOTP/OCRA records.
 - Application module now exposes `WebAuthnEvaluationApplicationService` and `WebAuthnReplayApplicationService`, resolving MapDB-backed descriptors through the persistence adapter, delegating to the core verifier, and emitting sanitized `fido2.evaluate`/`fido2.replay` telemetry ahead of facade wiring.
 - Application module now introduces `WebAuthnAttestationVerificationApplicationService` and `WebAuthnAttestationReplayApplicationService`, layering trust-anchor enforcement and sanitized `fido2.attest`/`fido2.attestReplay` telemetry on top of the core attestation verifier for inline attestation workflows.

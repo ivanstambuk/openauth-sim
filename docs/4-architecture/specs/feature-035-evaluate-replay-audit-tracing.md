@@ -1,7 +1,7 @@
 # Feature 035 – Evaluate & Replay Audit Tracing
 
-_Status: Proposed_  
-_Last updated: 2025-10-26_
+_Status: Accepted_  
+_Last updated: 2025-10-29_
 
 ## Overview
 Introduce a deterministic, operator-facing audit trace for every credential-evaluation workflow across the simulator. When an operator enables verbose tracing for a request, the system must emit a step-by-step account of each cryptographic operation—down to intermediate buffers and bit-level mutations—so humans can study how the algorithm arrived at the final outcome. Traces are ephemeral (bound to the request that generated them) but must be available through all facades (CLI, REST, operator UI) and future protocols without additional infrastructure work.
@@ -126,6 +126,12 @@ Introduce a deterministic, operator-facing audit trace for every credential-eval
 - Automated tests confirm presence/absence of traces across facades and validate key step contents.
 - Documentation, knowledge map, and roadmap entries reflect the new verbose tracing capability.
 - `./gradlew spotlessApply check` completes successfully after implementation.
+
+## Completion Notes
+- 2025-10-22 – Core trace model, application verbose plumbing, CLI flags, and REST verbose payloads shipped with module suites (`./gradlew --no-daemon :core:test`, `:application:test`, `:cli:test`, `:rest-api:test`) covering HOTP, TOTP, OCRA, and WebAuthn flows.
+- 2025-10-24 – WebAuthn verbose traces gained canonical metadata (RP ID normalisation, signature inspection, COSE key decoding) alongside refreshed OpenAPI snapshots and Selenium coverage for the operator console.
+- 2025-10-26 – Stored credential ordering and UI trace presentation aligned across protocols; full `./gradlew --no-daemon spotlessApply check` confirmed the feature ready for hand-off.
+- 2025-10-29 – Specification accepted; tier-control follow-up continues under Feature 036 with verbose tracing fully operational.
 
 ## Rollout & Future Work
 - Evaluate adding reusable visualisations (e.g., diff views, highlight toggles) once the initial terminal-style panel ships.

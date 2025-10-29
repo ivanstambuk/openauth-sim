@@ -1,8 +1,8 @@
 # Feature 035 Tasks – Evaluate & Replay Audit Tracing
 
 _Linked plan:_ `docs/4-architecture/feature-plan-035-evaluate-replay-audit-tracing.md`  
-_Status:_ Draft  
-_Last updated:_ 2025-10-26
+_Status:_ Complete  
+_Last updated:_ 2025-10-29
 
 ☑ **T3501 – Map evaluation injection points**  
  ☑ Review HOTP/TOTP/OCRA/FIDO2 evaluate, replay, and attest services to document hook locations (2025-10-22 – captured in feature plan “Evaluation Injection Map”).  
@@ -115,9 +115,9 @@ _Last updated:_ 2025-10-26
  ☑ Swapped HOTP verbose trace `alg` values and HMAC step details to canonical `HMAC-SHA-*` labels, added match derivation detail attribute, and flipped the `non_standard_hash` note to a boolean flag.  
  ☑ Tests: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.hotp.*VerboseTraceTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliErrorHandlingTest.importCommandValidationFailure"` (ensured clean MapDB lock before rerun), `./gradlew --no-daemon spotlessApply check`.
 
-☐ **T3520 – Documentation & follow-up logging**  
- ☐ Update operator/CLI/REST docs with enriched trace examples, note the tier metadata, and record the redaction-toggle follow-up.  
-☑ Sync knowledge map and `_current-session.md` with the enrichment outcomes.  
+☑ **T3520 – Documentation & follow-up logging**  
+ ☑ Update operator/CLI/REST docs with enriched trace examples, note the tier metadata, and record the redaction-toggle follow-up (2025-10-26 – guides refreshed; Feature 036 holds tier helper follow-up).  
+ ☑ Sync knowledge map and `_current-session.md` with the enrichment outcomes (2025-10-29 – roadmap, knowledge map, and session snapshot capture verbose trace completion).  
 
 ☑ **T3541 – WebAuthn extensions trace tests (red)**  
  ☑ 2025-10-26 – Extended application verbose trace suites (assertion + attestation) with extension-enabled fixtures and verified `parse.extensions` captures raw CBOR plus decoded credProps/credProtect/largeBlob/hmac-secret attributes.  

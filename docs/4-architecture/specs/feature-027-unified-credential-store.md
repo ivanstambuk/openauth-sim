@@ -1,7 +1,7 @@
 # Feature 027 – Unified Credential Store Naming
 
-_Status: Proposed_  
-_Last updated: 2025-10-19_
+_Status: Accepted_  
+_Last updated: 2025-10-29_
 
 ## Overview
 Align all simulator facades on a single default MapDB credential store file so multi-protocol operators can share persisted credentials without manual path overrides. The change replaces legacy protocol-specific filenames (for example `ocra-credentials.db`) with an inclusive default (`credentials.db`). Legacy filename detection is removed; future builds create or use the unified file exclusively unless an explicit path is supplied.
@@ -37,3 +37,7 @@ Align all simulator facades on a single default MapDB credential store file so m
 - Document the change in `docs/2-how-to/configure-persistence-profiles.md`, highlighting the need to rename or reconfigure legacy files manually.
 - Note the unified filename in release notes and update the knowledge map so future workstream planning recognises the shared persistence surface.
 - Remove the fallback probes from code and roadmap; track manual migration guidance only.
+
+## Completion Notes
+- 2025-10-19 – Persistence factory, CLI/REST defaults, and regression suites updated to enforce the unified `credentials.db` default with manual migration guidance; `./gradlew --no-daemon :infra-persistence:test :cli:test :rest-api:test spotlessApply check` executed successfully.
+- 2025-10-29 – Documentation, roadmap, knowledge map, and session snapshot confirm the shared default, with no pending follow-ups.

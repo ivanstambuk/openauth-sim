@@ -1,8 +1,8 @@
 # Feature Plan 027 – Unified Credential Store Naming
 
 _Linked specification:_ `docs/4-architecture/specs/feature-027-unified-credential-store.md`  
-_Status:_ In Progress  
-_Last updated:_ 2025-10-19
+_Status:_ Complete  
+_Last updated:_ 2025-10-29
 
 ## Objective
 Deliver a seamless transition to the shared `credentials.db` default across all simulator facades while retiring compatibility shims for legacy protocol-specific database files.
@@ -50,3 +50,7 @@ Deliver a seamless transition to the shared `credentials.db` default across all 
 ## Validation
 - Execute `./gradlew --no-daemon :infra-persistence:test :cli:test :rest-api:test spotlessApply check`.
 - Manual smoke test: launch CLI/REST without explicit database path to confirm the new default file is created and reused after restart; repeat with a legacy file by explicitly pointing the configuration at it to verify manual migration guidance.
+
+## Completion Notes
+- 2025-10-19 – I1–I4 delivered factory updates, CLI/REST defaults, regression coverage, and documentation guidance; validation stack executed (`./gradlew --no-daemon :infra-persistence:test :cli:test :rest-api:test spotlessApply check`).
+- 2025-10-29 – Documentation artefacts (roadmap, knowledge map, how-to guides) verified in sync; plan closed with no outstanding increments.

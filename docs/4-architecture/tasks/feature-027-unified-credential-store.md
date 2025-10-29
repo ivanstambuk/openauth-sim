@@ -1,8 +1,8 @@
 # Feature 027 Tasks – Unified Credential Store Naming
 
 _Linked plan:_ `docs/4-architecture/feature-plan-027-unified-credential-store.md`  
-_Status:_ In Progress  
-_Last updated:_ 2025-10-19
+_Status:_ Complete  
+_Last updated:_ 2025-10-29
 
 ☑ **T2701 – Governance sync**
   ☑ Update roadmap with Feature 027 entry and reference the new spec/plan/tasks.  

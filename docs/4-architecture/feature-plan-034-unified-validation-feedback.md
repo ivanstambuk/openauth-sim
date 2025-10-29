@@ -1,8 +1,8 @@
 # Feature Plan 034 – Unified Validation Feedback Surfaces
 
 _Linked specification:_ `docs/4-architecture/specs/feature-034-unified-validation-feedback.md`  
-_Status:_ Draft  
-_Last updated:_ 2025-10-21
+_Status:_ Complete  
+_Last updated:_ 2025-10-29
 
 ## Vision & Success Criteria
 - Result cards across all operator-console ceremonies (OCRA, HOTP, TOTP, WebAuthn assertion, WebAuthn attestation) surface validation error messages returned by the application/REST APIs.
@@ -59,3 +59,8 @@ _Last updated:_ 2025-10-21
 ## Follow-ups
 - Update knowledge map once helper lands.
 - Consider future enhancement for field-level inline errors if required.
+
+## Completion Notes
+- 2025-10-21 – Result-card helper rolled out across OCRA, HOTP, TOTP, and WebAuthn ceremonies with Selenium guardrails covering mismatch scenarios.
+- 2025-10-22 – Documentation refreshed and `./gradlew --no-daemon spotlessApply check` completed successfully, satisfying the closure criteria.
+- 2025-10-29 – Plan marked complete; no remaining tasks pending analysis gate.

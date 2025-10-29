@@ -1,7 +1,7 @@
 # Feature 034 – Unified Validation Feedback Surfaces
 
-_Status: Proposed_  
-_Last updated: 2025-10-20_
+_Status: Accepted_  
+_Last updated: 2025-10-29_
 
 ## Overview
 Ensure every operator-console workflow (existing and future) renders service validation failures in a consistent, visible location. When the underlying application/REST APIs return `status=invalid` responses, the UI should unhide the result card and surface the API-supplied `message` content without requiring the operator to inspect logs or browser dev tools. The change applies to all current authentication ceremonies (OCRA, HOTP, TOTP, WebAuthn assertion, WebAuthn attestation) and establishes a reusable pattern that future flows can adopt with minimal wiring.
@@ -38,6 +38,11 @@ Ensure every operator-console workflow (existing and future) renders service val
 - Selenium suites include failing-then-passing scenarios for each flow verifying result-card visibility and message text.
 - Documentation (how-to guides, help text) reflects the new behaviour.
 - `./gradlew spotlessApply check` remains green after implementation.
+
+## Completion Notes
+- 2025-10-21 – All operator-console ceremonies (OCRA, HOTP, TOTP, WebAuthn assertion, WebAuthn attestation) now use the shared result-card helper and expose validation messaging; Selenium suites (`./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"`) assert the messaging for success and failure paths.
+- 2025-10-22 – Operator console documentation (`docs/2-how-to/use-ocra-operator-ui.md`) updated to explain the unified feedback pattern and full pipeline `./gradlew --no-daemon spotlessApply check` confirmed green.
+- 2025-10-29 – Specification accepted with no outstanding follow-ups; future ceremonies inherit the helper by default.
 
 ## Rollout & Future Work
 - Update onboarding docs to mention the unified validation pattern.
