@@ -125,11 +125,11 @@ public final class WebAuthnEvaluationApplicationService {
 
             WebAuthnStoredCredential storedCredential = descriptor.toStoredCredential();
             WebAuthnAssertionRequest request = toRequest(command);
-            TraceClientData clientData = trace == null ? null : traceClientData(command.clientDataJson());
-            TraceAuthenticatorData authenticatorData =
-                    trace == null ? null : traceAuthenticatorData(command.authenticatorData());
-
+            TraceClientData clientData;
+            TraceAuthenticatorData authenticatorData;
             if (trace != null) {
+                clientData = traceClientData(command.clientDataJson());
+                authenticatorData = traceAuthenticatorData(command.authenticatorData());
                 addParseClientDataStep(
                         trace, clientData, command.expectedType(), command.expectedChallenge(), command.origin());
                 addParseAuthenticatorDataStep(
@@ -140,6 +140,9 @@ public final class WebAuthnEvaluationApplicationService {
                         storedCredential.signatureCounter(),
                         storedCredential.userVerificationRequired());
                 addParseExtensionsStep(trace, authenticatorData);
+            } else {
+                clientData = null;
+                authenticatorData = null;
             }
 
             CoseKeyDetails keyDetails = addConstructCredentialStep(
@@ -149,7 +152,7 @@ public final class WebAuthnEvaluationApplicationService {
                     storedCredential.publicKeyCose(),
                     storedCredential.userVerificationRequired());
 
-            if (trace != null) {
+            if (trace != null && authenticatorData != null) {
                 addEvaluateCounterStep(trace, storedCredential.signatureCounter(), authenticatorData.counter());
             }
 
@@ -170,7 +173,7 @@ public final class WebAuthnEvaluationApplicationService {
                     .map(SignatureInspector.EcdsaSignatureDetails::lowS)
                     .orElse(true);
 
-            if (trace != null) {
+            if (trace != null && authenticatorData != null && clientData != null) {
                 addSignatureBaseStep(trace, authenticatorData.raw(), clientData.hash());
             }
 
@@ -257,11 +260,11 @@ public final class WebAuthnEvaluationApplicationService {
                     command.userVerificationRequired(),
                     command.algorithm());
 
-            TraceClientData clientData = trace == null ? null : traceClientData(command.clientDataJson());
-            TraceAuthenticatorData authenticatorData =
-                    trace == null ? null : traceAuthenticatorData(command.authenticatorData());
-
+            TraceClientData clientData;
+            TraceAuthenticatorData authenticatorData;
             if (trace != null) {
+                clientData = traceClientData(command.clientDataJson());
+                authenticatorData = traceAuthenticatorData(command.authenticatorData());
                 addParseClientDataStep(
                         trace, clientData, command.expectedType(), command.expectedChallenge(), command.origin());
                 addParseAuthenticatorDataStep(
@@ -272,6 +275,9 @@ public final class WebAuthnEvaluationApplicationService {
                         command.signatureCounter(),
                         command.userVerificationRequired());
                 addParseExtensionsStep(trace, authenticatorData);
+            } else {
+                clientData = null;
+                authenticatorData = null;
             }
 
             CoseKeyDetails keyDetails = addConstructCredentialStep(
@@ -281,7 +287,7 @@ public final class WebAuthnEvaluationApplicationService {
                     command.publicKeyCose(),
                     command.userVerificationRequired());
 
-            if (trace != null) {
+            if (trace != null && authenticatorData != null) {
                 addEvaluateCounterStep(trace, command.signatureCounter(), authenticatorData.counter());
             }
 
@@ -302,7 +308,7 @@ public final class WebAuthnEvaluationApplicationService {
                     .map(SignatureInspector.EcdsaSignatureDetails::lowS)
                     .orElse(true);
 
-            if (trace != null) {
+            if (trace != null && authenticatorData != null && clientData != null) {
                 addSignatureBaseStep(trace, authenticatorData.raw(), clientData.hash());
             }
 

@@ -60,7 +60,6 @@ public final class WebAuthnAttestationReplayApplicationService {
     public ReplayResult replay(ReplayCommand command) {
         Objects.requireNonNull(command, "command");
 
-        ReplayCommand telemetryCommand = command;
         String telemetryInputSource = "inline";
         String telemetryStoredCredentialId = null;
 
@@ -104,7 +103,6 @@ public final class WebAuthnAttestationReplayApplicationService {
                     List.of());
 
             command = inline;
-            telemetryCommand = inline;
             telemetryInputSource = "stored";
             telemetryStoredCredentialId = descriptor.name();
         }

@@ -154,6 +154,12 @@ final class Fido2OperatorUiSeleniumTest {
                 .orElseThrow(() -> new AssertionError("PS256 generator preset unavailable"));
         String ps256Key = ps256Sample.key();
         String expectedChallenge = ps256Sample.challengeBase64Url();
+        assertThat(vector.algorithm())
+                .as("PS256 attestation vector uses PS256 algorithm")
+                .isEqualTo(WebAuthnSignatureAlgorithm.PS256);
+        assertThat(URL_ENCODER.encodeToString(vector.registration().challenge()))
+                .as("PS256 attestation fixture provides a challenge")
+                .isNotBlank();
 
         navigateToWebAuthnPanel();
 

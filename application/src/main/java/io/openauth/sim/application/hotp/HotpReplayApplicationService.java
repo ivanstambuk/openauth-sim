@@ -442,8 +442,10 @@ public final class HotpReplayApplicationService {
             });
 
             if (match) {
-                metadata(trace, "matchedCounter", Long.toString(matchedCounter));
-                long previousCounterValue = matchedCounter != null ? matchedCounter : counter;
+                String matchedCounterLabel =
+                        matchedCounter != null ? matchedCounter.toString() : Long.toString(counter);
+                metadata(trace, "matchedCounter", matchedCounterLabel);
+                long previousCounterValue = matchedCounter != null ? matchedCounter.longValue() : counter;
                 long telemetryNextCounter = safeIncrement(previousCounterValue);
                 long nextCounterValue = telemetryNextCounter;
                 return successResult(

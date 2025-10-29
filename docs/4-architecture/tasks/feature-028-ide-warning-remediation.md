@@ -44,3 +44,9 @@ _Last updated:_ 2025-10-18
 ☑ **T2810 – WebAuthn assertion lossy conversion warning**  
   ☑ Update `WebAuthnAssertionVerifierTest` to avoid implicit int-to-byte conversions during XOR.  
   ☑ Execute `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAssertionVerifierTest"`.
+
+☑ **T2811 – WebAuthn replay/HOTP telemetry diagnostics**  
+  ☑ Drop the unused `telemetryCommand` variable in `WebAuthnAttestationReplayApplicationService` and confirm telemetry output remains unchanged.  
+  ☑ Guard `WebAuthnEvaluationApplicationService` trace helpers against null dereference warnings by populating authenticator/client data only inside trace blocks.  
+  ☑ Prevent HOTP matched counter auto-unboxing by supplying a safe fallback and assert the PS256 Selenium fixture to remove the unused local.  
+  ☑ Run `./gradlew --no-daemon spotlessApply check`.

@@ -62,6 +62,13 @@ Eliminate the IDE diagnostics reported on 2025-10-18 by strengthening assertions
    - Execute `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAssertionVerifierTest"`.  
    - _2025-10-19 – Completed: test now assigns an explicit byte-masked value; targeted `:core:test` run passed._
 
+10. **I10 – WebAuthn replay/HOTP telemetry diagnostics (2025-10-29)**  
+    - Remove the unused `telemetryCommand` local in `WebAuthnAttestationReplayApplicationService` while keeping telemetry payload fields intact.  
+    - Ensure `WebAuthnEvaluationApplicationService` trace helpers only dereference authenticator/client data when present to satisfy nullability analysis.  
+    - Safely surface HOTP matched counters without auto-unboxing `null` values and assert PS256 fixture usage inside `Fido2OperatorUiSeleniumTest`.  
+    - Re-run `./gradlew --no-daemon spotlessApply check` to confirm the IDE diagnostics clear.  
+    - _2025-10-29 – Completed: telemetry replay command removed, trace parsing wrapped in trace-only branch, HOTP metadata guards add safe fallbacks, Selenium now asserts PS256 fixture algorithm/challenge presence, and full `spotlessApply check` succeeded._
+
 ## Dependencies
 - Application, core, CLI, and REST modules share telemetry and verification helpers; assertions must respect existing contracts.
 - Selenium tests rely on deterministic UI IDs; ensure selectors remain stable when adding assertions.

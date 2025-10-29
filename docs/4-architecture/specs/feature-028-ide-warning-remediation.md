@@ -1,7 +1,7 @@
 # Feature 028 – IDE Warning Remediation
 
 _Status: In Progress_  
-_Last updated: 2025-10-18_
+_Last updated: 2025-10-29_
 
 ## Overview
 Resolve the outstanding IDE diagnostics captured on 2025-10-18 by tightening assertions and usages across application, core, CLI, REST, and UI test code. The goal is to eliminate dead assignments and unused locals without masking potential regressions, keeping the codebase warning-free while reinforcing test intent.
@@ -11,6 +11,7 @@ Resolve the outstanding IDE diagnostics captured on 2025-10-18 by tightening ass
 - Remove redundant assignments in record canonical constructors while preserving optional semantics for evaluation timestamps.
 - Maintain current functional behaviour for TOTP evaluation/replay, WebAuthn verification, CLI flows, and Selenium scenarios.
 - Keep documentation artefacts (spec/plan/tasks/current session/roadmap) aligned with the remediation effort.
+- Guard WebAuthn replay/evaluation flows against nullability regressions while keeping telemetry fields accurate; ensure Selenium fixtures continue asserting seeded attestation coverage.
 
 ## Non-Goals
 - Introducing new functional behaviour beyond the assertions required to justify existing variables.
@@ -30,6 +31,8 @@ Resolve the outstanding IDE diagnostics captured on 2025-10-18 by tightening ass
 - **CLI (TotpCliTest)** – Assert descriptor properties rather than retaining an unused variable, confirming the inline descriptor still matches expectations.
 - **Tests (REST/Selenium)** – Convert unused locals/fields (`attestation`, `inlineSection`, `evaluateSelect`, `replaySelect`, `resultPanel`, etc.) into explicit assertions about element visibility or response payloads.
 - **Testing utilities** – Remove obsolete `@SuppressWarnings("unchecked")` where generics are now inferred correctly.
+- **Application (WebAuthn replay/evaluation)** – Remove unused telemetry locals, harden trace helpers against null references, and preserve auto-boxing safety when surfacing HOTP verification counters.
+- **Tests (FIDO2 operator Selenium)** – Assert seeded attestation vectors directly instead of keeping unused locals so the fixture lookup continues to validate PS256 availability.
 
 ## Test Strategy
 - `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.totp.*"`
