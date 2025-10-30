@@ -1,7 +1,7 @@
 # Feature 028 – IDE Warning Remediation
 
-_Status: In Progress_  
-_Last updated: 2025-10-29_
+_Status: Complete_  
+_Last updated: 2025-10-30_
 
 ## Overview
 Resolve the outstanding IDE diagnostics captured on 2025-10-18 by tightening assertions and usages across application, core, CLI, REST, and UI test code. The goal is to eliminate dead assignments and unused locals without masking potential regressions, keeping the codebase warning-free while reinforcing test intent.
@@ -46,3 +46,4 @@ Resolve the outstanding IDE diagnostics captured on 2025-10-18 by tightening ass
 - Track remediation progress via the linked feature plan and tasks checklist; update `docs/_current-session.md` after each increment.
 - Capture any new assertions or telemetry field checks in the relevant how-to guides if operator-facing behaviour changes.
 - Monitor IDE diagnostics post-change to confirm the warning list is clear; document residual issues (if any) as follow-up tasks in the roadmap.
+- 2025-10-30 – IDE inspections across core/application/REST/UI modules report no remaining warnings; feature closed with no follow-up actions.

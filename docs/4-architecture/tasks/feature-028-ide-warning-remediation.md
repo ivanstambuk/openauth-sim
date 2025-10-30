@@ -1,8 +1,8 @@
 # Feature 028 Tasks – IDE Warning Remediation
 
 _Linked plan:_ `docs/4-architecture/feature-plan-028-ide-warning-remediation.md`  
-_Status:_ In Progress  
-_Last updated:_ 2025-10-18
+_Status:_ Complete  
+_Last updated:_ 2025-10-30
 
 ☑ **T2801 – Governance sync**  
   ☑ Create spec/plan/tasks files and capture Option B clarification in the spec.  
@@ -50,3 +50,5 @@ _Last updated:_ 2025-10-18
   ☑ Guard `WebAuthnEvaluationApplicationService` trace helpers against null dereference warnings by populating authenticator/client data only inside trace blocks.  
   ☑ Prevent HOTP matched counter auto-unboxing by supplying a safe fallback and assert the PS256 Selenium fixture to remove the unused local.  
   ☑ Run `./gradlew --no-daemon spotlessApply check`.
+  
+2025-10-30 – IDE verification complete; no further remediation items remain.

@@ -1,8 +1,8 @@
 # Feature Plan 028 – IDE Warning Remediation
 
 _Linked specification:_ `docs/4-architecture/specs/feature-028-ide-warning-remediation.md`  
-_Status:_ In Progress  
-_Last updated:_ 2025-10-18
+_Status:_ Complete  
+_Last updated:_ 2025-10-30
 
 ## Objective
 Eliminate the IDE diagnostics reported on 2025-10-18 by strengthening assertions/usages where variables were previously unused and by removing redundant assignments, while keeping module behaviour unchanged.
@@ -83,3 +83,4 @@ Eliminate the IDE diagnostics reported on 2025-10-18 by strengthening assertions
 ## Validation
 - Run targeted Gradle commands per increment and finish with the full `spotlessApply check`.
 - Confirm IDE inspection no longer reports the original warnings.
+- 2025-10-30 – Final IDE sweep across active modules showed no diagnostics; no additional remediation required.
