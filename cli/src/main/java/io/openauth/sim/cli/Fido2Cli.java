@@ -418,11 +418,34 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     }
 
     private WebAuthnTrustAnchorResolver.Resolution resolveTrustAnchors(
-            String attestationId, WebAuthnAttestationFormat format, List<Path> files) {
-        if (files == null || files.isEmpty()) {
-            return trustAnchorResolver.resolveFiles(attestationId, format, List.of());
+            String attestationId, WebAuthnAttestationFormat format, List<String> metadataAnchors, List<Path> files) {
+        List<String> metadataIds = metadataAnchors == null
+                ? List.of()
+                : metadataAnchors.stream()
+                        .filter(Objects::nonNull)
+                        .map(String::trim)
+                        .filter(value -> !value.isEmpty())
+                        .toList();
+
+        List<String> pemBlocks = new ArrayList<>();
+        if (files != null) {
+            for (Path path : files) {
+                if (path == null) {
+                    continue;
+                }
+                try {
+                    String data = Files.readString(path);
+                    if (data != null && !data.isBlank()) {
+                        pemBlocks.add(data);
+                    }
+                } catch (IOException ex) {
+                    throw new IllegalArgumentException(
+                            "Unable to read trust anchor file " + path + ": " + ex.getMessage(), ex);
+                }
+            }
         }
-        return trustAnchorResolver.resolveFiles(attestationId, format, files);
+
+        return trustAnchorResolver.resolve(attestationId, format, metadataIds, pemBlocks);
     }
 
     private void emitTrustAnchorWarnings(List<String> warnings) {
@@ -1683,6 +1706,12 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 description = "PEM encoded trust anchor certificate (repeat for multiple anchors)")
         List<Path> trustAnchorFiles;
 
+        @CommandLine.Option(
+                names = "--metadata-anchor",
+                paramLabel = "<entryId>",
+                description = "Curated metadata entry identifier supplying trust anchors (repeat for multiple entries)")
+        List<String> metadataAnchorIds;
+
         @Override
         public Integer call() {
             Map<String, Object> baseFields = new LinkedHashMap<>();
@@ -1691,6 +1720,9 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             }
             if (hasText(format)) {
                 baseFields.put("format", format);
+            }
+            if (metadataAnchorIds != null && !metadataAnchorIds.isEmpty()) {
+                baseFields.put("metadataAnchorIds", metadataAnchorIds);
             }
 
             InputSource source;
@@ -1734,6 +1766,14 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         }
 
         private Integer replayStored(WebAuthnAttestationFormat attestationFormat, Map<String, Object> baseFields) {
+            if (metadataAnchorIds != null && !metadataAnchorIds.isEmpty()) {
+                return parent.failValidation(
+                        event("attestReplay"),
+                        ATTEST_REPLAY_TELEMETRY,
+                        "stored_metadata_anchor_unsupported",
+                        "Stored attestation replay relies on persisted certificate chains; remove --metadata-anchor.",
+                        Map.copyOf(baseFields));
+            }
             if (trustAnchorFiles != null && !trustAnchorFiles.isEmpty()) {
                 return parent.failValidation(
                         event("attestReplay"),
@@ -1842,15 +1882,18 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             }
 
             WebAuthnTrustAnchorResolver.Resolution anchorResolution =
-                    parent.resolveTrustAnchors(attestationId, attestationFormat, trustAnchorFiles);
+                    parent.resolveTrustAnchors(attestationId, attestationFormat, metadataAnchorIds, trustAnchorFiles);
             parent.emitTrustAnchorWarnings(anchorResolution.warnings());
             List<X509Certificate> trustAnchors = anchorResolution.anchors();
 
             if (!trustAnchors.isEmpty()) {
                 baseFields.put("trustAnchorCount", trustAnchors.size());
                 baseFields.put("trustAnchorMode", anchorResolution.cached() ? "cached" : "fresh");
-                if (anchorResolution.metadataEntryId() != null) {
-                    baseFields.put("anchorMetadataEntry", anchorResolution.metadataEntryId());
+                if (!anchorResolution.metadataEntryIds().isEmpty()) {
+                    baseFields.put("metadataAnchorIds", anchorResolution.metadataEntryIds());
+                    baseFields.put(
+                            "anchorMetadataEntry",
+                            anchorResolution.metadataEntryIds().get(0));
                 }
             }
 
@@ -1869,7 +1912,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                         trustAnchors,
                         anchorResolution.cached(),
                         anchorResolution.source(),
-                        anchorResolution.metadataEntryId(),
+                        anchorResolution.metadataEntryIds(),
                         anchorResolution.warnings()));
             } catch (Exception ex) {
                 return parent.failUnexpected(

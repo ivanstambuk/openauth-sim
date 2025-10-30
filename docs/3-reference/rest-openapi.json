@@ -472,6 +472,16 @@
           "required" : true
         },
         "responses" : {
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
           "200" : {
             "description" : "Verification completed",
             "content" : {
@@ -501,8 +511,8 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
+          "404" : {
+            "description" : "Credential not found",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -538,16 +548,6 @@
                 }
               }
             }
-          },
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
           }
         }
       }
@@ -569,26 +569,6 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation successful",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected server error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
-                }
-              }
-            }
-          },
           "400" : {
             "description" : "Invalid request payload",
             "content" : {
@@ -613,6 +593,26 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation successful",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
                 }
               }
             }
@@ -655,12 +655,12 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Replay completed",
+          "422" : {
+            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayResponse"
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
                 }
               }
             }
@@ -675,12 +675,12 @@
               }
             }
           },
-          "422" : {
-            "description" : "Validation error",
+          "200" : {
+            "description" : "Replay completed",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                  "$ref" : "#/components/schemas/HotpReplayResponse"
                 }
               }
             }
@@ -705,6 +705,16 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                }
+              }
+            }
+          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
@@ -721,16 +731,6 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -755,6 +755,16 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
+                }
+              }
+            }
+          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
@@ -771,16 +781,6 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -1504,6 +1504,16 @@
             "description" : "Offline metadata entry leveraged when resolving trust anchors",
             "example" : "mds-w3c-packed-es256"
           },
+          "metadataAnchorIds" : {
+            "type" : "array",
+            "description" : "Curated metadata entry identifiers resolved for trust anchors",
+            "example" : [ "mds-w3c-packed-es256" ],
+            "items" : {
+              "type" : "string",
+              "description" : "Curated metadata entry identifiers resolved for trust anchors",
+              "example" : "[\"mds-w3c-packed-es256\"]"
+            }
+          },
           "anchorWarnings" : {
             "type" : "array",
             "description" : "Warnings generated while processing trust anchors",
@@ -1826,6 +1836,16 @@
             "type" : "string",
             "description" : "Expected challenge encoded as Base64URL",
             "example" : "wRhKX934BF4T3Ef1S2H1pla2ZrWQGPFthw6SVumVIBI"
+          },
+          "metadataAnchorIds" : {
+            "type" : "array",
+            "description" : "Curated metadata entry identifiers supplying trust anchors",
+            "example" : [ "mds-w3c-packed-es256" ],
+            "items" : {
+              "type" : "string",
+              "description" : "Curated metadata entry identifiers supplying trust anchors",
+              "example" : "[\"mds-w3c-packed-es256\"]"
+            }
           },
           "trustAnchors" : {
             "type" : "array",
@@ -2186,6 +2206,23 @@
           }
         }
       },
+      "OcraVerificationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
       "OcraVerificationMetadata" : {
         "type" : "object",
         "properties" : {
@@ -2234,23 +2271,6 @@
           }
         }
       },
-      "OcraVerificationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          }
-        }
-      },
       "OcraEvaluationRequest" : {
         "type" : "object",
         "properties" : {
@@ -2290,23 +2310,6 @@
           }
         }
       },
-      "OcraEvaluationResponse" : {
-        "type" : "object",
-        "properties" : {
-          "suite" : {
-            "type" : "string"
-          },
-          "otp" : {
-            "type" : "string"
-          },
-          "telemetryId" : {
-            "type" : "string"
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
       "OcraEvaluationErrorResponse" : {
         "type" : "object",
         "properties" : {
@@ -2321,6 +2324,23 @@
             "additionalProperties" : {
               "type" : "string"
             }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
+      "OcraEvaluationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "suite" : {
+            "type" : "string"
+          },
+          "otp" : {
+            "type" : "string"
+          },
+          "telemetryId" : {
+            "type" : "string"
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"
@@ -2358,6 +2378,29 @@
           },
           "verbose" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "HotpReplayErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -2410,29 +2453,6 @@
           }
         }
       },
-      "HotpReplayErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "type" : "string"
-          },
-          "reasonCode" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
       "HotpStoredEvaluationRequest" : {
         "type" : "object",
         "properties" : {
@@ -2441,29 +2461,6 @@
           },
           "verbose" : {
             "type" : "boolean"
-          }
-        }
-      },
-      "HotpEvaluationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "type" : "string"
-          },
-          "reasonCode" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -2519,6 +2516,29 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpEvaluationMetadata"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
+      "HotpEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"

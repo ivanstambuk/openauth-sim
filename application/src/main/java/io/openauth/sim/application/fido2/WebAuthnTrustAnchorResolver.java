@@ -34,14 +34,23 @@ public final class WebAuthnTrustAnchorResolver {
     private static final Map<String, MetadataAnchors> METADATA_INDEX = buildMetadataIndex();
     private final Map<String, CachedAnchors> cache = new ConcurrentHashMap<>();
 
+    public Resolution resolve(
+            String attestationId,
+            WebAuthnAttestationFormat format,
+            List<String> metadataEntryIds,
+            List<String> pemBlocks) {
+        List<String> normalisedMetadataIds = normaliseMetadataInputs(metadataEntryIds);
+        return resolveAnchors(attestationId, format, normalisedMetadataIds, normalisePemInputs(pemBlocks), List.of());
+    }
+
     public Resolution resolvePemStrings(String attestationId, WebAuthnAttestationFormat format, List<String> inputs) {
         List<String> normalised = normalisePemInputs(inputs);
-        return resolveAnchors(attestationId, format, normalised, List.of());
+        return resolveAnchors(attestationId, format, List.of(), normalised, List.of());
     }
 
     public Resolution resolveFiles(String attestationId, WebAuthnAttestationFormat format, List<Path> paths) {
         if (paths == null || paths.isEmpty()) {
-            return resolveAnchors(attestationId, format, List.of(), List.of());
+            return resolveAnchors(attestationId, format, List.of(), List.of(), List.of());
         }
 
         List<String> pemBlocks = new ArrayList<>();
@@ -61,26 +70,26 @@ public final class WebAuthnTrustAnchorResolver {
                 warnings.add("Unable to read trust anchor file " + path + ": " + ex.getMessage());
             }
         }
-        return resolveAnchors(attestationId, format, normalisePemInputs(pemBlocks), warnings);
+        return resolveAnchors(attestationId, format, List.of(), normalisePemInputs(pemBlocks), warnings);
     }
 
     private Resolution resolveAnchors(
             String attestationId,
             WebAuthnAttestationFormat format,
+            List<String> metadataEntryIds,
             List<String> pemBlocks,
             List<String> additionalWarnings) {
-
-        MetadataAnchors metadataAnchors = lookupMetadata(attestationId, format);
+        MetadataSelection metadataSelection = selectMetadata(attestationId, format, metadataEntryIds);
         ParseResult manual = parseManualAnchors(pemBlocks);
 
         List<String> warnings = new ArrayList<>(additionalWarnings);
         warnings.addAll(manual.warnings());
+        warnings.addAll(metadataSelection.warnings());
 
-        boolean metadataProvided =
-                metadataAnchors != null && !metadataAnchors.anchors().isEmpty();
+        boolean metadataProvided = metadataSelection.hasEntries();
         boolean manualProvided = !manual.anchors().isEmpty();
 
-        List<X509Certificate> combinedAnchors = combineAnchors(metadataAnchors, manual.anchors());
+        List<X509Certificate> combinedAnchors = combineAnchors(metadataSelection.anchors(), manual.anchors());
 
         Source source;
         if (metadataProvided && manualProvided) {
@@ -104,12 +113,46 @@ public final class WebAuthnTrustAnchorResolver {
             cached = false;
         }
 
-        return new Resolution(
-                combinedAnchors,
-                cached,
-                source,
-                metadataAnchors == null ? null : metadataAnchors.entryId(),
-                List.copyOf(warnings));
+        return new Resolution(combinedAnchors, cached, source, metadataSelection.entryIds(), List.copyOf(warnings));
+    }
+
+    private MetadataSelection selectMetadata(
+            String attestationId, WebAuthnAttestationFormat format, List<String> metadataEntryIds) {
+        List<X509Certificate> anchors = new ArrayList<>();
+        List<String> resolvedEntryIds = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+
+        if (metadataEntryIds != null) {
+            for (String metadataId : metadataEntryIds) {
+                MetadataAnchors entry = lookupMetadataById(metadataId, format);
+                if (entry == null) {
+                    warnings.add("Metadata entry " + metadataId + " not found for format "
+                            + (format == null ? "<any>" : format.label()));
+                    continue;
+                }
+                appendMetadataEntry(anchors, resolvedEntryIds, entry);
+            }
+        }
+
+        if (anchors.isEmpty()) {
+            MetadataAnchors fallback = lookupMetadata(attestationId, format);
+            if (fallback != null) {
+                appendMetadataEntry(anchors, resolvedEntryIds, fallback);
+            }
+        }
+
+        return new MetadataSelection(List.copyOf(anchors), List.copyOf(resolvedEntryIds), List.copyOf(warnings));
+    }
+
+    private static void appendMetadataEntry(
+            List<X509Certificate> anchors, List<String> resolvedEntryIds, MetadataAnchors entry) {
+        if (entry.anchors().isEmpty()) {
+            return;
+        }
+        anchors.addAll(entry.anchors());
+        if (!resolvedEntryIds.contains(entry.entryId())) {
+            resolvedEntryIds.add(entry.entryId());
+        }
     }
 
     private ParseResult parseManualAnchors(List<String> pemBlocks) {
@@ -152,12 +195,10 @@ public final class WebAuthnTrustAnchorResolver {
     }
 
     private static List<X509Certificate> combineAnchors(
-            MetadataAnchors metadataAnchors, List<X509Certificate> manualAnchors) {
+            List<X509Certificate> metadataAnchors, List<X509Certificate> manualAnchors) {
         Map<String, X509Certificate> combined = new LinkedHashMap<>();
-        if (metadataAnchors != null) {
-            for (X509Certificate anchor : metadataAnchors.anchors()) {
-                combined.putIfAbsent(certificateKey(anchor), anchor);
-            }
+        for (X509Certificate anchor : metadataAnchors) {
+            combined.putIfAbsent(certificateKey(anchor), anchor);
         }
         for (X509Certificate anchor : manualAnchors) {
             combined.putIfAbsent(certificateKey(anchor), anchor);
@@ -190,6 +231,23 @@ public final class WebAuthnTrustAnchorResolver {
         return List.copyOf(normalised);
     }
 
+    private static List<String> normaliseMetadataInputs(List<String> inputs) {
+        if (inputs == null || inputs.isEmpty()) {
+            return List.of();
+        }
+        List<String> normalised = new ArrayList<>(inputs.size());
+        for (String input : inputs) {
+            if (input == null) {
+                continue;
+            }
+            String trimmed = input.trim();
+            if (!trimmed.isEmpty()) {
+                normalised.add(trimmed);
+            }
+        }
+        return List.copyOf(normalised);
+    }
+
     private static MetadataAnchors lookupMetadata(String attestationId, WebAuthnAttestationFormat format) {
         if (attestationId == null || attestationId.isBlank()) {
             return null;
@@ -206,6 +264,20 @@ public final class WebAuthnTrustAnchorResolver {
             return entry;
         }
         return null;
+    }
+
+    private static MetadataAnchors lookupMetadataById(String metadataId, WebAuthnAttestationFormat format) {
+        if (metadataId == null || metadataId.isBlank()) {
+            return null;
+        }
+        String normalised = normaliseKey(metadataId);
+        if (format != null) {
+            MetadataAnchors byFormat = METADATA_INDEX.get(formattedKey(normalised, format));
+            if (byFormat != null) {
+                return byFormat;
+            }
+        }
+        return METADATA_INDEX.get(normalised);
     }
 
     private static Map<String, MetadataAnchors> buildMetadataIndex() {
@@ -316,14 +388,14 @@ public final class WebAuthnTrustAnchorResolver {
             List<X509Certificate> anchors,
             boolean cached,
             Source source,
-            String metadataEntryId,
+            List<String> metadataEntryIds,
             List<String> warnings) {
 
         public Resolution {
             anchors = List.copyOf(Objects.requireNonNull(anchors, "anchors"));
             source = Objects.requireNonNull(source, "source");
+            metadataEntryIds = metadataEntryIds == null ? List.of() : List.copyOf(metadataEntryIds);
             warnings = Collections.unmodifiableList(new ArrayList<>(warnings));
-            metadataEntryId = metadataEntryId == null || metadataEntryId.isBlank() ? null : metadataEntryId;
         }
 
         public boolean hasAnchors() {
@@ -332,6 +404,13 @@ public final class WebAuthnTrustAnchorResolver {
 
         public boolean metadataProvided() {
             return source == Source.METADATA || source == Source.COMBINED;
+        }
+    }
+
+    private record MetadataSelection(List<X509Certificate> anchors, List<String> entryIds, List<String> warnings) {
+
+        boolean hasEntries() {
+            return !anchors.isEmpty();
         }
     }
 

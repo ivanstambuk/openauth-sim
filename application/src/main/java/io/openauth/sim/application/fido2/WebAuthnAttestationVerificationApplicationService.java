@@ -107,7 +107,7 @@ public final class WebAuthnAttestationVerificationApplicationService {
                 command.trustAnchors(),
                 command.trustAnchorSource(),
                 command.trustAnchorsCached(),
-                command.trustAnchorMetadataEntryId());
+                command.trustAnchorMetadataEntryIds());
 
         Optional<AttestedCredential> attestedCredential = outcome.credential()
                 .map(data -> new AttestedCredential(
@@ -246,7 +246,7 @@ public final class WebAuthnAttestationVerificationApplicationService {
 
         WebAuthnTrustAnchorResolver.Source trustAnchorSource();
 
-        String trustAnchorMetadataEntryId();
+        List<String> trustAnchorMetadataEntryIds();
 
         List<String> trustAnchorWarnings();
 
@@ -261,7 +261,7 @@ public final class WebAuthnAttestationVerificationApplicationService {
                 List<X509Certificate> trustAnchors,
                 boolean trustAnchorsCached,
                 WebAuthnTrustAnchorResolver.Source trustAnchorSource,
-                String trustAnchorMetadataEntryId,
+                List<String> trustAnchorMetadataEntryIds,
                 List<String> trustAnchorWarnings)
                 implements VerificationCommand {
 
@@ -275,9 +275,8 @@ public final class WebAuthnAttestationVerificationApplicationService {
                 expectedChallenge = expectedChallenge == null ? new byte[0] : expectedChallenge.clone();
                 trustAnchors = List.copyOf(trustAnchors == null ? List.of() : trustAnchors);
                 trustAnchorSource = Objects.requireNonNull(trustAnchorSource, "trustAnchorSource");
-                trustAnchorMetadataEntryId = trustAnchorMetadataEntryId == null || trustAnchorMetadataEntryId.isBlank()
-                        ? null
-                        : trustAnchorMetadataEntryId.trim();
+                trustAnchorMetadataEntryIds =
+                        trustAnchorMetadataEntryIds == null ? List.of() : List.copyOf(trustAnchorMetadataEntryIds);
                 trustAnchorWarnings = List.copyOf(trustAnchorWarnings == null ? List.of() : trustAnchorWarnings);
             }
 

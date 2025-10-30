@@ -42,7 +42,7 @@ final class WebAuthnAttestationServiceSupport {
             List<X509Certificate> trustAnchors,
             WebAuthnTrustAnchorResolver.Source trustAnchorSource,
             boolean trustAnchorsCached,
-            String trustAnchorMetadataEntryId) {
+            List<String> trustAnchorMetadataEntryIds) {
 
         String sanitizedId = sanitize(attestationId);
         String submittedRpId = sanitize(relyingPartyId);
@@ -61,19 +61,20 @@ final class WebAuthnAttestationServiceSupport {
 
         WebAuthnVerificationResult result = verification.result();
         Optional<WebAuthnVerificationError> error = result.error();
-        boolean success = result.success();
+        boolean verificationSuccess = result.success();
 
         List<X509Certificate> certificateChain = verification.certificateChain();
         int certificateChainLength = certificateChain.size();
         boolean anchorProvided = trustAnchors != null && !trustAnchors.isEmpty();
         boolean anchorTrusted =
                 anchorProvided && !certificateChain.isEmpty() && matchesAnchor(certificateChain, trustAnchors);
-        boolean selfAttestedFallback = success && (!anchorProvided || certificateChain.isEmpty() || !anchorTrusted);
+        boolean selfAttestedFallback = verificationSuccess && !anchorProvided;
+        boolean accepted = verificationSuccess && (!anchorProvided || anchorTrusted);
 
         WebAuthnTrustAnchorResolver.Source source =
                 trustAnchorSource == null ? WebAuthnTrustAnchorResolver.Source.NONE : trustAnchorSource;
         String anchorSource =
-                determineAnchorSource(source, success, anchorProvided, anchorTrusted, selfAttestedFallback);
+                determineAnchorSource(source, verificationSuccess, anchorProvided, anchorTrusted, selfAttestedFallback);
         String aaguid = formatAaguid(verification.aaguid());
 
         Optional<CredentialData> credential =
@@ -93,27 +94,25 @@ final class WebAuthnAttestationServiceSupport {
                 certificateChain,
                 credential,
                 error,
-                trustAnchorMetadataEntryId);
+                trustAnchorMetadataEntryIds);
 
         Status status;
         String reasonCode;
         String reason;
 
-        if (success) {
+        if (accepted) {
             status = Status.SUCCESS;
             if (selfAttestedFallback) {
-                if (anchorProvided && !anchorTrusted) {
-                    reasonCode = "anchor_mismatch";
-                    reason =
-                            "Trust anchors did not match attestation certificate chain; accepted self-attested attestation.";
-                } else {
-                    reasonCode = "self_attested";
-                    reason = "No trust anchors supplied; accepted self-attested attestation.";
-                }
+                reasonCode = "self_attested";
+                reason = "No trust anchors supplied; accepted self-attested attestation.";
             } else {
                 reasonCode = "match";
                 reason = null;
             }
+        } else if (verificationSuccess && anchorProvided) {
+            status = Status.INVALID;
+            reasonCode = "anchor_mismatch";
+            reason = "Trust anchors did not match the attestation certificate chain.";
         } else {
             status = Status.INVALID;
             reasonCode = error.map(err -> err.name().toLowerCase(Locale.US)).orElse("verification_failed");
@@ -124,7 +123,7 @@ final class WebAuthnAttestationServiceSupport {
                 status,
                 reasonCode,
                 reason,
-                success,
+                accepted,
                 error,
                 credential,
                 aaguid,
@@ -158,7 +157,7 @@ final class WebAuthnAttestationServiceSupport {
             List<X509Certificate> certificateChain,
             Optional<CredentialData> credential,
             Optional<WebAuthnVerificationError> error,
-            String metadataEntryId) {
+            List<String> metadataEntryIds) {
 
         Map<String, Object> fields = new LinkedHashMap<>();
         if (!attestationId.isEmpty()) {
@@ -176,8 +175,12 @@ final class WebAuthnAttestationServiceSupport {
         if (anchorProvided) {
             fields.put("anchorMode", anchorMode(anchorProvided, trustAnchorsCached, anchorTrusted));
         }
-        if (metadataEntryId != null && !metadataEntryId.isBlank()) {
-            fields.put("anchorMetadataEntry", metadataEntryId);
+        if (metadataEntryIds != null && !metadataEntryIds.isEmpty()) {
+            fields.put("metadataAnchorIds", List.copyOf(metadataEntryIds));
+            String primaryEntry = metadataEntryIds.get(0);
+            if (primaryEntry != null && !primaryEntry.isBlank()) {
+                fields.put("anchorMetadataEntry", primaryEntry);
+            }
         }
 
         credential.ifPresent(data -> {

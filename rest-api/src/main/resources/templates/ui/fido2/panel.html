@@ -1202,11 +1202,16 @@
                     aria-label="Inline WebAuthn attestation replay form"
                   >
                   <form
-                      data-testid="fido2-replay-attestation-form"
-                      class="evaluation-form"
-                      th:attr="data-attestation-replay-endpoint=${fido2AttestationReplayEndpoint}"
-                    >
+                    data-testid="fido2-replay-attestation-form"
+                    class="evaluation-form"
+                    th:attr="data-attestation-replay-endpoint=${fido2AttestationReplayEndpoint}"
+                  >
                     <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+                    <script
+                        type="application/json"
+                        id="fido2-attestation-metadata-entries"
+                        th:utext="${fido2AttestationMetadataEntriesJson}"
+                      ></script>
                     <div class="inline-preset" data-testid="fido2-replay-attestation-preset">
                       <label for="fido2ReplayAttestationSampleSelect">Load a sample vector</label>
                       <select
@@ -1278,6 +1283,21 @@
                           rows="8"
                           spellcheck="false"
                         ></textarea>
+                    </div>
+                    <div class="field-group field-group--stacked">
+                      <label for="fido2ReplayAttestationMetadataAnchors">Curated metadata anchors</label>
+                      <select
+                          id="fido2ReplayAttestationMetadataAnchors"
+                          name="metadataAnchorIds"
+                          data-testid="fido2-replay-attestation-metadata-anchors"
+                          multiple="multiple"
+                          size="6"
+                          disabled="disabled"
+                        >
+                      </select>
+                      <p class="hint" data-testid="fido2-replay-attestation-metadata-summary">
+                        No curated anchors selected.
+                      </p>
                     </div>
                     <div class="field-group field-group--stacked">
                       <label for="fido2ReplayAttestationTrustAnchors">Trust anchors (PEM bundle, optional)</label>

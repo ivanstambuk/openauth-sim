@@ -17,7 +17,9 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationRequest;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerification;
 import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import io.openauth.sim.core.fido2.WebAuthnVerificationError;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
@@ -25,6 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 final class WebAuthnAttestationReplayApplicationServiceTest {
@@ -57,8 +60,9 @@ final class WebAuthnAttestationReplayApplicationServiceTest {
 
     @Test
     void replayAttestationEmitsReplayTelemetry() {
+        String attestationId = "";
         ReplayCommand.Inline command = new ReplayCommand.Inline(
-                vector.vectorId(),
+                attestationId,
                 vector.format(),
                 vector.relyingPartyId(),
                 vector.origin(),
@@ -98,6 +102,38 @@ final class WebAuthnAttestationReplayApplicationServiceTest {
 
         assertEquals(
                 expectedCredentialId, result.attestedCredential().orElseThrow().credentialId());
+    }
+
+    @Test
+    @DisplayName("Attestation replay rejects mismatched trust anchors")
+    void replayRejectsMismatchedAnchors() {
+        X509Certificate referenceAnchor = trustAnchors.get(trustAnchors.size() - 1);
+        X509Certificate mismatchedAnchor = mismatchedTrustAnchor(referenceAnchor);
+
+        ReplayCommand.Inline command = new ReplayCommand.Inline(
+                vector.vectorId(),
+                vector.format(),
+                vector.relyingPartyId(),
+                vector.origin(),
+                vector.registration().attestationObject(),
+                vector.registration().clientDataJson(),
+                vector.registration().challenge(),
+                List.of(mismatchedAnchor),
+                false,
+                WebAuthnTrustAnchorResolver.Source.MANUAL,
+                null,
+                List.of());
+
+        ReplayResult result = service.replay(command);
+
+        assertFalse(result.valid());
+        assertTrue(result.error().isEmpty());
+        assertTrue(result.anchorProvided());
+        assertFalse(result.selfAttestedFallback());
+
+        TelemetrySignal telemetry = result.telemetry();
+        assertEquals(TelemetryStatus.INVALID, telemetry.status());
+        assertEquals("anchor_mismatch", telemetry.reasonCode());
     }
 
     @Test
@@ -152,5 +188,28 @@ final class WebAuthnAttestationReplayApplicationServiceTest {
                         hex.substring(12, 16),
                         hex.substring(16, 20),
                         hex.substring(20));
+    }
+
+    private static X509Certificate mismatchedTrustAnchor(X509Certificate reference) {
+        for (WebAuthnAttestationFormat format : WebAuthnAttestationFormat.values()) {
+            for (WebAuthnAttestationVector candidate : WebAuthnAttestationFixtures.vectorsFor(format)) {
+                WebAuthnAttestationVerification verification =
+                        new WebAuthnAttestationVerifier().verify(toRequest(candidate));
+                if (verification.certificateChain().isEmpty()) {
+                    continue;
+                }
+                X509Certificate candidateRoot = verification
+                        .certificateChain()
+                        .get(verification.certificateChain().size() - 1);
+                try {
+                    if (!Arrays.equals(candidateRoot.getEncoded(), reference.getEncoded())) {
+                        return candidateRoot;
+                    }
+                } catch (CertificateEncodingException ex) {
+                    throw new IllegalStateException("Unable to compare trust anchors", ex);
+                }
+            }
+        }
+        throw new IllegalStateException("Unable to locate mismatched trust anchor");
     }
 }

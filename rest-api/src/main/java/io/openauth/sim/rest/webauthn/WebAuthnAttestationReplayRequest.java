@@ -67,6 +67,12 @@ record WebAuthnAttestationReplayRequest(
         @JsonProperty("expectedChallenge")
         String expectedChallenge,
 
+        @Schema(
+                description = "Curated metadata entry identifiers supplying trust anchors",
+                example = "[\"mds-w3c-packed-es256\"]")
+        @JsonProperty("metadataAnchorIds")
+        List<String> metadataAnchorIds,
+
         @Schema(description = "PEM encoded X.509 trust anchors to validate the attestation certificate chain")
         @JsonProperty("trustAnchors")
         List<String> trustAnchors,

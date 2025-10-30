@@ -306,6 +306,12 @@ paths:
               $ref: "#/components/schemas/OcraVerificationRequest"
         required: true
       responses:
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "200":
           description: "Verification completed"
           content:
@@ -327,8 +333,8 @@ paths:
                       contextFingerprint: "Base64URL-Hash"
                       telemetryId: "rest-ocra-verify-<uuid>"
                       outcome: "match"
-        "500":
-          description: "Unexpected error"
+        "404":
+          description: "Credential not found"
           content:
             application/json:
               schema:
@@ -353,12 +359,6 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "404":
-          description: "Credential not found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
   /api/v1/ocra/evaluate:
     post:
       tags:
@@ -373,18 +373,6 @@ paths:
               $ref: "#/components/schemas/OcraEvaluationRequest"
         required: true
       responses:
-        "200":
-          description: "Evaluation successful"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationResponse"
-        "500":
-          description: "Unexpected server error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
         "400":
           description: "Invalid request payload"
           content:
@@ -405,6 +393,18 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
+        "200":
+          description: "Evaluation successful"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationResponse"
+        "500":
+          description: "Unexpected server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
   /api/v1/ocra/credentials/seed:
     post:
       tags:
@@ -432,24 +432,24 @@ paths:
               $ref: "#/components/schemas/HotpReplayRequest"
         required: true
       responses:
-        "200":
-          description: "Replay completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
         "422":
           description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "200":
+          description: "Replay completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayResponse"
   /api/v1/hotp/evaluate:
     post:
       tags:
@@ -465,6 +465,12 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
+        "200":
+          description: "Evaluation completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -477,12 +483,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "200":
-          description: "Evaluation completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationResponse"
   /api/v1/hotp/evaluate/inline:
     post:
       tags:
@@ -498,6 +498,12 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
+        "200":
+          description: "Evaluation completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -510,12 +516,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "200":
-          description: "Evaluation completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationResponse"
   /api/v1/hotp/credentials/seed:
     post:
       tags:
@@ -1017,6 +1017,15 @@ components:
           type: "string"
           description: "Offline metadata entry leveraged when resolving trust anchors"
           example: "mds-w3c-packed-es256"
+        metadataAnchorIds:
+          type: "array"
+          description: "Curated metadata entry identifiers resolved for trust anchors"
+          example:
+          - "mds-w3c-packed-es256"
+          items:
+            type: "string"
+            description: "Curated metadata entry identifiers resolved for trust anchors"
+            example: "[\"mds-w3c-packed-es256\"]"
         anchorWarnings:
           type: "array"
           description: "Warnings generated while processing trust anchors"
@@ -1286,6 +1295,15 @@ components:
           type: "string"
           description: "Expected challenge encoded as Base64URL"
           example: "wRhKX934BF4T3Ef1S2H1pla2ZrWQGPFthw6SVumVIBI"
+        metadataAnchorIds:
+          type: "array"
+          description: "Curated metadata entry identifiers supplying trust anchors"
+          example:
+          - "mds-w3c-packed-es256"
+          items:
+            type: "string"
+            description: "Curated metadata entry identifiers supplying trust anchors"
+            example: "[\"mds-w3c-packed-es256\"]"
         trustAnchors:
           type: "array"
           description: "PEM encoded X.509 trust anchors to validate the attestation\
@@ -1533,6 +1551,17 @@ components:
           $ref: "#/components/schemas/OcraVerificationContext"
         verbose:
           type: "boolean"
+    OcraVerificationErrorResponse:
+      type: "object"
+      properties:
+        error:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
     OcraVerificationMetadata:
       type: "object"
       properties:
@@ -1565,17 +1594,6 @@ components:
           $ref: "#/components/schemas/OcraVerificationMetadata"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
-    OcraVerificationErrorResponse:
-      type: "object"
-      properties:
-        error:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
     OcraEvaluationRequest:
       type: "object"
       properties:
@@ -1602,17 +1620,6 @@ components:
           format: "int64"
         verbose:
           type: "boolean"
-    OcraEvaluationResponse:
-      type: "object"
-      properties:
-        suite:
-          type: "string"
-        otp:
-          type: "string"
-        telemetryId:
-          type: "string"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
     OcraEvaluationErrorResponse:
       type: "object"
       properties:
@@ -1624,6 +1631,17 @@ components:
           type: "object"
           additionalProperties:
             type: "string"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
+    OcraEvaluationResponse:
+      type: "object"
+      properties:
+        suite:
+          type: "string"
+        otp:
+          type: "string"
+        telemetryId:
+          type: "string"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
     HotpReplayRequest:
@@ -1649,6 +1667,21 @@ components:
             type: "string"
         verbose:
           type: "boolean"
+    HotpReplayErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     HotpReplayMetadata:
       type: "object"
       properties:
@@ -1682,21 +1715,6 @@ components:
           $ref: "#/components/schemas/HotpReplayMetadata"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
-    HotpReplayErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
     HotpStoredEvaluationRequest:
       type: "object"
       properties:
@@ -1704,21 +1722,6 @@ components:
           type: "string"
         verbose:
           type: "boolean"
-    HotpEvaluationErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
     HotpEvaluationMetadata:
       type: "object"
       properties:
@@ -1756,6 +1759,21 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/HotpEvaluationMetadata"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
+    HotpEvaluationErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
     HotpInlineEvaluationRequest:

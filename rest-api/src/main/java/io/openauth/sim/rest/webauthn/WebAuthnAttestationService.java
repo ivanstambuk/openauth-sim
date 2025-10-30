@@ -326,6 +326,16 @@ class WebAuthnAttestationService {
                         .toList();
     }
 
+    private static List<String> sanitizeMetadataAnchors(List<String> metadataAnchors) {
+        return metadataAnchors == null
+                ? List.of()
+                : metadataAnchors.stream()
+                        .filter(Objects::nonNull)
+                        .map(String::trim)
+                        .filter(value -> !value.isEmpty())
+                        .toList();
+    }
+
     WebAuthnAttestationResponse replay(WebAuthnAttestationReplayRequest request) {
         Objects.requireNonNull(request, "request");
         boolean verbose = Boolean.TRUE.equals(request.verbose());
@@ -343,6 +353,11 @@ class WebAuthnAttestationService {
         WebAuthnAttestationReplayApplicationService.ReplayCommand.Inline inlineCommand = null;
         VerboseTrace verificationTrace = null;
 
+        List<String> metadataAnchors = sanitizeMetadataAnchors(request.metadataAnchorIds());
+        if (!metadataAnchors.isEmpty()) {
+            metadata(trace, "metadataAnchorIds", String.join(",", metadataAnchors));
+        }
+
         if (source == InputSource.STORED) {
             String credentialId = requireText(request.credentialId(), "credential_id_required", "Credential ID");
             metadata(trace, "storedCredentialId", credentialId);
@@ -355,6 +370,18 @@ class WebAuthnAttestationService {
                 throw validation(
                         "stored_trust_anchor_unsupported",
                         "Stored attestation replay relies on persisted certificate chains; omit trust anchors.",
+                        Map.of("credentialId", credentialId, "format", format.label()),
+                        buildTrace(trace));
+            }
+
+            if (!metadataAnchors.isEmpty()) {
+                addStep(trace, step -> step.id("stored.metadataAnchors.unsupported")
+                        .summary("Stored replay does not accept metadata anchors")
+                        .detail("metadataAnchorIds provided for stored input")
+                        .attribute("count", metadataAnchors.size()));
+                throw validation(
+                        "stored_metadata_anchor_unsupported",
+                        "Stored attestation replay relies on persisted certificate chains; omit metadata anchors.",
                         Map.of("credentialId", credentialId, "format", format.label()),
                         buildTrace(trace));
             }
@@ -391,13 +418,16 @@ class WebAuthnAttestationService {
                         buildTrace(trace));
             }
         } else {
-            WebAuthnTrustAnchorResolver.Resolution anchorResolution =
-                    trustAnchorResolver.resolvePemStrings(request.attestationId(), format, request.trustAnchors());
+            WebAuthnTrustAnchorResolver.Resolution anchorResolution = trustAnchorResolver.resolve(
+                    request.attestationId(), format, metadataAnchors, request.trustAnchors());
             addStep(trace, step -> step.id("resolve.trustAnchors")
                     .summary("Resolve trust anchors for attestation verification")
-                    .detail("WebAuthnTrustAnchorResolver.resolvePemStrings")
+                    .detail("WebAuthnTrustAnchorResolver.resolve")
                     .attribute("anchorCount", anchorResolution.anchors().size())
-                    .attribute("cached", anchorResolution.cached()));
+                    .attribute("cached", anchorResolution.cached())
+                    .attribute(
+                            "metadataAnchors",
+                            anchorResolution.metadataEntryIds().size()));
             logTrustAnchorWarnings(anchorResolution.warnings());
 
             inlineCommand = new WebAuthnAttestationReplayApplicationService.ReplayCommand.Inline(
@@ -411,7 +441,7 @@ class WebAuthnAttestationService {
                     anchorResolution.anchors(),
                     anchorResolution.cached(),
                     anchorResolution.source(),
-                    anchorResolution.metadataEntryId(),
+                    anchorResolution.metadataEntryIds(),
                     anchorResolution.warnings());
 
             addStep(trace, step -> step.id("prepare.replay")
@@ -558,7 +588,7 @@ class WebAuthnAttestationService {
                 command.trustAnchors(),
                 command.trustAnchorsCached(),
                 command.trustAnchorSource(),
-                command.trustAnchorMetadataEntryId(),
+                command.trustAnchorMetadataEntryIds(),
                 command.trustAnchorWarnings());
     }
 

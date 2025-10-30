@@ -324,6 +324,13 @@ _2025-10-26 – Scope reopened to deliver stored attestation replay affordances 
     - Verification: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"` followed by full `./gradlew --no-daemon spotlessApply check`.  
     - _2025-10-28 – Implemented the wait using the shared helper, reran the targeted Selenium scenario, and revalidated the full spotless/check pipeline._  
 
+43. **I43 – Curated trust anchor selector**  
+    - CLI now accepts repeatable `--metadata-anchor` flags, forwarding the identifier list to the resolver and surfacing it in telemetry (`metadataAnchorIds` + `anchorMetadataEntry`); the staged Picocli test covers success output.  
+    - REST replay requests accept `metadataAnchorIds` arrays, wiring the values into resolver calls and response metadata; controller unit test verifies the payload is forwarded and the response serialises the identifier list.  
+    - Operator console manual replay includes a format-filtered multi-select with selection summary, posting only metadata entry ids while keeping the PEM textarea for custom anchors; Selenium coverage confirms rendering and filtering.  
+    - Sample vector loads now leave curated anchors unselected by default while flagging recommended entries in the summary so inline verification still exercises the self-attested baseline unless operators opt in.  
+    - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnTrustAnchorResolverMetadataTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationReplayMetadataAnchorsTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.webauthn.Fido2AttestationReplayMetadataAnchorTest" --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayManualMetadataAnchors" --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayInlineSampleLoadsPreset"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  
+
 ## Analysis Gate (2025-10-20)
 - **Specification completeness** – Updated 2025-10-27 to capture Preset/Manual/Stored evaluate inputs (with replay simplified to Manual/Stored), MapDB-backed persistence, and curated seeding controls; clarifications document the owner’s Option B selections and follow-on directives.
 - **Open questions review** – No open entries remain for Feature 026 in `open-questions.md`.

@@ -59,6 +59,12 @@ record WebAuthnAttestationMetadata(
         @JsonProperty("anchorMetadataEntry")
         String anchorMetadataEntry,
 
+        @Schema(
+                description = "Curated metadata entry identifiers resolved for trust anchors",
+                example = "[\"mds-w3c-packed-es256\"]")
+        @JsonProperty("metadataAnchorIds")
+        List<String> metadataAnchorIds,
+
         @Schema(description = "Warnings generated while processing trust anchors") @JsonProperty("anchorWarnings")
         List<String> anchorWarnings,
 
@@ -99,6 +105,8 @@ record WebAuthnAttestationMetadata(
             String attestationFormat,
             Map<String, Object> telemetryFields,
             List<String> certificateChainPem) {
+        List<String> metadataAnchorIds = asStringList(telemetryFields.get("metadataAnchorIds"));
+
         return new WebAuthnAttestationMetadata(
                 telemetryId,
                 reasonCode,
@@ -112,6 +120,7 @@ record WebAuthnAttestationMetadata(
                 asString(telemetryFields.get("certificateFingerprint")),
                 asString(telemetryFields.get("aaguid")),
                 asString(telemetryFields.get("anchorMetadataEntry")),
+                metadataAnchorIds.isEmpty() ? null : List.copyOf(metadataAnchorIds),
                 List.of(),
                 asBoolean(telemetryFields.get("signatureIncluded")),
                 asInteger(telemetryFields.get("customRootCount")),
@@ -129,6 +138,8 @@ record WebAuthnAttestationMetadata(
             String attestationFormat,
             Map<String, Object> telemetryFields,
             List<String> anchorWarnings) {
+        List<String> metadataAnchorIds = asStringList(telemetryFields.get("metadataAnchorIds"));
+
         return new WebAuthnAttestationMetadata(
                 telemetryId,
                 reasonCode,
@@ -142,6 +153,7 @@ record WebAuthnAttestationMetadata(
                 asString(telemetryFields.get("certificateFingerprint")),
                 asString(telemetryFields.get("aaguid")),
                 asString(telemetryFields.get("anchorMetadataEntry")),
+                metadataAnchorIds.isEmpty() ? null : List.copyOf(metadataAnchorIds),
                 anchorWarnings == null ? List.of() : List.copyOf(anchorWarnings),
                 null, // signatureIncluded
                 null, // customRootCount
@@ -185,5 +197,16 @@ record WebAuthnAttestationMetadata(
             }
         }
         return null;
+    }
+
+    private static List<String> asStringList(Object value) {
+        if (value instanceof List<?> list && !list.isEmpty()) {
+            return list.stream()
+                    .filter(item -> item instanceof String str && !str.isBlank())
+                    .map(item -> ((String) item).trim())
+                    .filter(str -> !str.isEmpty())
+                    .toList();
+        }
+        return List.of();
     }
 }

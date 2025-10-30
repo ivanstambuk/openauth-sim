@@ -99,7 +99,7 @@ public final class WebAuthnAttestationReplayApplicationService {
                     trustAnchors,
                     false,
                     WebAuthnTrustAnchorResolver.Source.MANUAL,
-                    null,
+                    List.of(),
                     List.of());
 
             command = inline;
@@ -119,7 +119,7 @@ public final class WebAuthnAttestationReplayApplicationService {
                 command.trustAnchors(),
                 command.trustAnchorSource(),
                 command.trustAnchorsCached(),
-                command.trustAnchorMetadataEntryId());
+                command.trustAnchorMetadataEntryIds());
 
         Map<String, Object> telemetryFields = new LinkedHashMap<>(outcome.telemetryFields());
         telemetryFields.put("inputSource", telemetryInputSource);
@@ -173,7 +173,7 @@ public final class WebAuthnAttestationReplayApplicationService {
 
         WebAuthnTrustAnchorResolver.Source trustAnchorSource();
 
-        String trustAnchorMetadataEntryId();
+        List<String> trustAnchorMetadataEntryIds();
 
         List<String> trustAnchorWarnings();
 
@@ -188,7 +188,7 @@ public final class WebAuthnAttestationReplayApplicationService {
                 List<X509Certificate> trustAnchors,
                 boolean trustAnchorsCached,
                 WebAuthnTrustAnchorResolver.Source trustAnchorSource,
-                String trustAnchorMetadataEntryId,
+                List<String> trustAnchorMetadataEntryIds,
                 List<String> trustAnchorWarnings)
                 implements ReplayCommand {
 
@@ -202,9 +202,8 @@ public final class WebAuthnAttestationReplayApplicationService {
                 expectedChallenge = expectedChallenge == null ? new byte[0] : expectedChallenge.clone();
                 trustAnchors = List.copyOf(trustAnchors == null ? List.of() : trustAnchors);
                 trustAnchorSource = Objects.requireNonNull(trustAnchorSource, "trustAnchorSource");
-                trustAnchorMetadataEntryId = trustAnchorMetadataEntryId == null || trustAnchorMetadataEntryId.isBlank()
-                        ? null
-                        : trustAnchorMetadataEntryId.trim();
+                trustAnchorMetadataEntryIds =
+                        trustAnchorMetadataEntryIds == null ? List.of() : List.copyOf(trustAnchorMetadataEntryIds);
                 trustAnchorWarnings = List.copyOf(trustAnchorWarnings == null ? List.of() : trustAnchorWarnings);
             }
 
@@ -291,8 +290,8 @@ public final class WebAuthnAttestationReplayApplicationService {
             }
 
             @Override
-            public String trustAnchorMetadataEntryId() {
-                return null;
+            public List<String> trustAnchorMetadataEntryIds() {
+                return List.of();
             }
 
             @Override

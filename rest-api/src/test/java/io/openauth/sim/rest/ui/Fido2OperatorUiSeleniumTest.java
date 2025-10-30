@@ -1286,6 +1286,27 @@ final class Fido2OperatorUiSeleniumTest {
     }
 
     @Test
+    @DisplayName("Attestation replay manual mode lists curated metadata anchors")
+    void attestationReplayManualMetadataAnchors() {
+        navigateToWebAuthnPanel();
+        switchToAttestationReplayMode();
+
+        WebElement manualToggle =
+                waitFor(By.cssSelector("[data-testid='fido2-replay-attestation-mode-select-manual']"));
+        manualToggle.click();
+        waitUntilAttribute(
+                By.cssSelector("[data-testid='fido2-replay-attestation-mode-toggle']"), "data-mode", "manual");
+
+        WebElement metadataAnchorMultiSelect =
+                waitFor(By.cssSelector("[data-testid='fido2-replay-attestation-metadata-anchors']"));
+        assertThat(metadataAnchorMultiSelect.getTagName()).isEqualToIgnoringCase("select");
+        List<WebElement> options = new Select(metadataAnchorMultiSelect).getOptions();
+        assertThat(options)
+                .as("Expected curated metadata options to be present")
+                .anyMatch(option -> option.getText().toLowerCase(Locale.ROOT).contains("packed"));
+    }
+
+    @Test
     @DisplayName("Attestation replay stored mode replays persisted credentials without identifier input")
     void attestationReplayStoredModeReplaysPersistedCredentials() {
         clearCredentialStore();

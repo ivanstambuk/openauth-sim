@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -303,6 +304,47 @@ class Fido2AttestationManualEndpointTest {
                 .containsEntry("ecdsa.lowS", String.valueOf(ecdsa.lowS())));
     }
 
+    @Test
+    @DisplayName("Attestation replay rejects mismatched trust anchors")
+    void attestationReplayRejectsMismatchedAnchors() throws Exception {
+        WebAuthnAttestationVector vector =
+                WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
+                        .findFirst()
+                        .orElseThrow();
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.put("attestationId", "");
+        payload.put("format", vector.format().label());
+        payload.put("relyingPartyId", vector.relyingPartyId());
+        payload.put("origin", vector.origin());
+        payload.put(
+                "attestationObject",
+                Base64.getUrlEncoder()
+                        .withoutPadding()
+                        .encodeToString(vector.registration().attestationObject()));
+        payload.put(
+                "clientDataJson",
+                Base64.getUrlEncoder()
+                        .withoutPadding()
+                        .encodeToString(vector.registration().clientDataJson()));
+        payload.put(
+                "expectedChallenge",
+                Base64.getUrlEncoder()
+                        .withoutPadding()
+                        .encodeToString(vector.registration().challenge()));
+        String mismatchedAnchorPem = mismatchedTrustAnchorPem(vector);
+        payload.putArray("trustAnchors").add(mismatchedAnchorPem);
+
+        String response = mockMvc.perform(post("/api/v1/webauthn/attest/replay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+
+        assertThat(response).contains("\"reasonCode\":\"anchor_mismatch\"");
+    }
+
     private static JsonNode step(JsonNode trace, String id) {
         for (JsonNode step : trace.withArray("steps")) {
             if (id.equals(step.get("id").asText())) {
@@ -370,5 +412,36 @@ class Fido2AttestationManualEndpointTest {
     private static String toPem(X509Certificate certificate) throws CertificateEncodingException {
         String encoded = Base64.getMimeEncoder(64, new byte[] {'\n'}).encodeToString(certificate.getEncoded());
         return "-----BEGIN CERTIFICATE-----\n" + encoded + "\n-----END CERTIFICATE-----\n";
+    }
+
+    private static String mismatchedTrustAnchorPem(WebAuthnAttestationVector reference)
+            throws CertificateEncodingException {
+        X509Certificate referenceRoot = rootCertificate(reference);
+        for (WebAuthnAttestationFormat format : WebAuthnAttestationFormat.values()) {
+            for (WebAuthnAttestationVector candidate : WebAuthnAttestationFixtures.vectorsFor(format)) {
+                X509Certificate candidateRoot = rootCertificate(candidate);
+                if (!Arrays.equals(candidateRoot.getEncoded(), referenceRoot.getEncoded())) {
+                    return toPem(candidateRoot);
+                }
+            }
+        }
+        throw new IllegalStateException("Unable to locate mismatched trust anchor");
+    }
+
+    private static X509Certificate rootCertificate(WebAuthnAttestationVector vector) {
+        WebAuthnAttestationVerification verification = new WebAuthnAttestationVerifier()
+                .verify(new WebAuthnAttestationRequest(
+                        vector.format(),
+                        vector.registration().attestationObject(),
+                        vector.registration().clientDataJson(),
+                        vector.registration().challenge(),
+                        vector.relyingPartyId(),
+                        vector.origin()));
+        if (verification.certificateChain().isEmpty()) {
+            throw new IllegalStateException("Attestation fixture missing certificate chain: " + vector.vectorId());
+        }
+        return verification
+                .certificateChain()
+                .get(verification.certificateChain().size() - 1);
     }
 }

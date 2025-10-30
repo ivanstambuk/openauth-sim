@@ -241,6 +241,10 @@
       panel.querySelector('#fido2ReplayAttestationObject');
   var replayAttestationTrustAnchorsField =
       panel.querySelector('#fido2ReplayAttestationTrustAnchors');
+  var replayAttestationMetadataSelect =
+      panel.querySelector('#fido2ReplayAttestationMetadataAnchors');
+  var replayAttestationMetadataSummary =
+      panel.querySelector('[data-testid="fido2-replay-attestation-metadata-summary"]');
   var replayAttestationSubmitButton =
       panel.querySelector('[data-testid="fido2-replay-attestation-submit"]');
   var replayAttestationSampleSelect =
@@ -285,6 +289,7 @@
   var replayAttestationViews =
       panel.querySelectorAll('[data-replay-ceremony-view="attestation"]');
   var attestationVectorsNode = panel.querySelector('#fido2-attestation-vectors');
+  var metadataEntriesNode = panel.querySelector('#fido2-attestation-metadata-entries');
   var attestationForm =
       panel.querySelector('[data-testid="fido2-attestation-form"]');
   var attestationSampleSelect = panel.querySelector('#fido2AttestationSampleSelect');
@@ -327,8 +332,13 @@
   var seedDefinitions = parseJson(seedDefinitionsNode);
   var inlineVectors = parseJson(inlineVectorsNode);
   var attestationVectors = parseJson(attestationVectorsNode);
+  var attestationMetadataEntries = parseJson(metadataEntriesNode);
   var inlineVectorIndex = createInlineVectorIndex(inlineVectors);
   var attestationVectorIndex = createAttestationVectorIndex(attestationVectors);
+  var metadataLookup = createMetadataEntryLookup(attestationMetadataEntries);
+  var metadataEntriesByFormat = metadataLookup.byFormat;
+  var metadataEntryIndex = metadataLookup.index;
+  var recommendedMetadataAnchors = [];
   var activeInlineCredentialName = null;
   var activeReplayInlineCredentialName = null;
   var inlineCounterSnapshotSeconds = null;
@@ -340,6 +350,7 @@
   removeNode(seedDefinitionsNode);
   removeNode(inlineVectorsNode);
   removeNode(attestationVectorsNode);
+  removeNode(metadataEntriesNode);
 
   var evaluateStoredModeOption = findModeOption(evaluateStoredRadio);
   var evaluateInlineModeOption = findModeOption(evaluateInlineRadio);
@@ -349,6 +360,7 @@
   pendingReplayAttestationResult();
   populateInlineSampleOptions();
   populateAttestationVectorOptions();
+  refreshReplayAttestationMetadataOptions({ selected: [] });
   refreshStoredCredentials();
   initializeInlineCounter();
   initializeStoredCounter();
@@ -655,7 +667,17 @@
     }
   });
   if (replayAttestationFormatSelect) {
-    replayAttestationFormatSelect.addEventListener('change', ensureReplayAttestationManual);
+    replayAttestationFormatSelect.addEventListener('change', function () {
+      ensureReplayAttestationManual();
+      recommendedMetadataAnchors = [];
+      refreshReplayAttestationMetadataOptions();
+    });
+  }
+  if (replayAttestationMetadataSelect) {
+    replayAttestationMetadataSelect.addEventListener('change', function () {
+      ensureReplayAttestationManual();
+      updateReplayAttestationMetadataSummary();
+    });
   }
   if (attestationSubmitButton) {
     attestationSubmitButton.addEventListener('click', function (event) {
@@ -1129,6 +1151,10 @@
       attestationObject: attestationObject,
       trustAnchors: normaliseTrustAnchors(elementValue(replayAttestationTrustAnchorsField)),
     };
+    var metadataAnchorIds = selectedMetadataAnchors();
+    if (metadataAnchorIds.length > 0) {
+      payload.metadataAnchorIds = metadataAnchorIds;
+    }
     payload = verboseAttach(payload);
     verboseBeginRequest();
     sendJsonRequest(endpoint, payload, csrfToken(replayAttestationForm))
@@ -2250,6 +2276,7 @@ function updateReplayAttestationStoredFields(credentialId) {
     }
     var vector = vectorId ? attestationVectorIndex[vectorId] : null;
     if (!vector) {
+      recommendedMetadataAnchors = [];
       setValue(replayAttestationFormatSelect, 'packed');
       setValue(replayAttestationRpInput, 'example.org');
       setValue(replayAttestationOriginInput, 'https://example.org');
@@ -2262,10 +2289,13 @@ function updateReplayAttestationStoredFields(credentialId) {
       if (replayAttestationSampleSelect) {
         replayAttestationSampleSelect.value = '';
       }
+      refreshReplayAttestationMetadataOptions({ selected: [] });
       pendingReplayAttestationResult();
       return;
     }
+    recommendedMetadataAnchors = metadataAnchorsForVector(vector);
     setValue(replayAttestationFormatSelect, vector.format || 'packed');
+    refreshReplayAttestationMetadataOptions({ selected: [] });
     setValue(replayAttestationRpInput, vector.relyingPartyId || 'example.org');
     setValue(replayAttestationOriginInput, vector.origin || 'https://example.org');
     setValue(replayAttestationChallengeField, vector.challengeBase64Url || '');
@@ -3882,6 +3912,162 @@ function updateReplayAttestationStoredFields(credentialId) {
     });
     return index;
   }
+
+  function createMetadataEntryLookup(entries) {
+    var byFormat = {};
+    var index = {};
+    if (Array.isArray(entries)) {
+      entries.forEach(function (entry) {
+        if (!entry || !entry.entryId || !entry.format) {
+          return;
+        }
+        var descriptor = {
+          entryId: String(entry.entryId),
+          format: String(entry.format),
+          label: entry.label ? String(entry.label) : String(entry.entryId),
+          description: entry.description ? String(entry.description) : '',
+          vectorIds: Array.isArray(entry.vectorIds)
+              ? entry.vectorIds
+                  .map(function (id) {
+                    return typeof id === 'string' ? id : null;
+                  })
+                  .filter(function (id) {
+                    return id && id.trim().length > 0;
+                  })
+              : [],
+        };
+        index[descriptor.entryId] = descriptor;
+        if (!byFormat[descriptor.format]) {
+          byFormat[descriptor.format] = [];
+        }
+        byFormat[descriptor.format].push(descriptor);
+      });
+    }
+    Object.keys(byFormat).forEach(function (format) {
+      byFormat[format].sort(function (left, right) {
+        var leftLabel = (left.label || left.entryId).toLowerCase();
+        var rightLabel = (right.label || right.entryId).toLowerCase();
+        if (leftLabel < rightLabel) {
+          return -1;
+        }
+        if (leftLabel > rightLabel) {
+          return 1;
+        }
+        return 0;
+      });
+    });
+    return { byFormat: byFormat, index: index };
+  }
+
+  function selectedMetadataAnchors() {
+    if (!replayAttestationMetadataSelect || !replayAttestationMetadataSelect.options) {
+      return [];
+    }
+    var selected = [];
+    Array.prototype.forEach.call(replayAttestationMetadataSelect.options, function (option) {
+      if (option && option.selected && option.value) {
+        selected.push(option.value);
+      }
+    });
+    return selected;
+  }
+
+  function metadataAnchorsForVector(vector) {
+    if (!vector || !vector.vectorId || !metadataEntryIndex) {
+      return [];
+    }
+    var vectorId = String(vector.vectorId);
+    var format = vector.format ? String(vector.format) : null;
+    var matches = [];
+    Object.keys(metadataEntryIndex).forEach(function (entryId) {
+      var entry = metadataEntryIndex[entryId];
+      if (!entry || !Array.isArray(entry.vectorIds)) {
+        return;
+      }
+      if (format && entry.format !== format) {
+        return;
+      }
+      if (entry.vectorIds.indexOf(vectorId) !== -1) {
+        matches.push(entry.entryId);
+      }
+    });
+    return matches;
+  }
+
+  function refreshReplayAttestationMetadataOptions(options) {
+    if (!replayAttestationMetadataSelect) {
+      return;
+    }
+    var format = elementValue(replayAttestationFormatSelect) || 'packed';
+    var available = metadataEntriesByFormat && metadataEntriesByFormat[format]
+        ? metadataEntriesByFormat[format]
+        : [];
+    var preferredSelection = options && Array.isArray(options.selected)
+        ? options.selected.slice()
+        : selectedMetadataAnchors();
+    var filteredSelection = preferredSelection.filter(function (entryId) {
+      var entry = metadataEntryIndex ? metadataEntryIndex[entryId] : null;
+      return entry && entry.format === format;
+    });
+
+    while (replayAttestationMetadataSelect.options.length > 0) {
+      replayAttestationMetadataSelect.remove(0);
+    }
+
+    available.forEach(function (entry) {
+      var option = documentRef.createElement('option');
+      option.value = entry.entryId;
+      option.textContent = entry.label || entry.entryId;
+      if (filteredSelection.indexOf(entry.entryId) !== -1) {
+        option.selected = true;
+      }
+      replayAttestationMetadataSelect.appendChild(option);
+    });
+
+    replayAttestationMetadataSelect.disabled = available.length === 0;
+    updateReplayAttestationMetadataSummary();
+  }
+
+  function updateReplayAttestationMetadataSummary() {
+    if (!replayAttestationMetadataSummary) {
+      return;
+    }
+    var selected = selectedMetadataAnchors();
+    if (!selected.length) {
+      if (recommendedMetadataAnchors && recommendedMetadataAnchors.length) {
+        var recommendedLabels = recommendedMetadataAnchors
+            .map(function (entryId) {
+              var entry = metadataEntryIndex ? metadataEntryIndex[entryId] : null;
+              if (entry && entry.label) {
+                return entry.label;
+              }
+              if (entry && entry.entryId) {
+                return entry.entryId;
+              }
+              return null;
+            })
+            .filter(function (label) {
+              return label && label.trim().length > 0;
+            });
+        if (recommendedLabels.length) {
+          replayAttestationMetadataSummary.textContent =
+              'No curated anchors selected. Recommended: ' + recommendedLabels.join(', ') + '.';
+          return;
+        }
+      }
+      replayAttestationMetadataSummary.textContent = 'No curated anchors selected.';
+      return;
+    }
+    var labels = selected.map(function (entryId) {
+      var entry = metadataEntryIndex ? metadataEntryIndex[entryId] : null;
+      if (entry && entry.label) {
+        return entry.label;
+      }
+      return entryId;
+    });
+    replayAttestationMetadataSummary.textContent = 'Selected: ' + labels.join(', ');
+  }
+
 
   function resolveInlineVector(key) {
     if (!key) {

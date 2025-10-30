@@ -1,8 +1,8 @@
 # Feature 026 Tasks – FIDO2/WebAuthn Attestation Support
 
 _Linked plan:_ `docs/4-architecture/feature-plan-026-fido2-attestation-support.md`  
-_Status:_ Complete  
-_Last updated:_ 2025-10-21
+_Status:_ In progress  
+_Last updated:_ 2025-10-30
 
 ☑ **T2601 – Fixture scaffolding**  
  ☑ Convert selected W3C Level 3 attestation examples and synthetic fixtures into JSON assets under `docs/`.  
@@ -311,4 +311,17 @@ _Last updated:_ 2025-10-21
     ☑ Update the Feature 026 spec/plan to require muted styling for read-only stored attestation fields.  
     ☑ Extend `console.css` so read-only textarea elements adopt the same disabled background/cursor treatment used for readonly inputs, keeping stored replay payloads visibly locked.  
     ☑ Run `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"` and full `./gradlew --no-daemon spotlessApply check`.  
-    _2025-10-28 – Added UI styling requirement to spec/plan, updated `console.css` so stored replay textareas inherit the read-only palette, visually confirming the change and rerunning full spotless/check (includes Selenium scenario) to ensure regressions stay green._  
+    _2025-10-28 – Added UI styling requirement to spec/plan, updated `console.css` so stored replay textareas inherit the read-only palette, visually confirming the change and rerunning full spotless/check (includes Selenium scenario) to ensure regressions stay green._   
+
+☑ **T2648 – Curated trust anchor selector**  
+    ☑ Stage failing coverage: extend application tests for metadata id resolution, add CLI replay spec covering `--metadata-anchor` multi-select, REST unit test expecting `metadataAnchorIds`, and a Selenium scenario verifying the filtered multi-select plus selection summary.  
+        _2025-10-30 – `WebAuthnTrustAnchorResolverMetadataTest` (application) exercises metadata-id selections and combined manual anchors; now green via `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnTrustAnchorResolverMetadataTest"`._  
+        _2025-10-30 – `Fido2CliAttestationReplayMetadataAnchorsTest` validates repeatable `--metadata-anchor` behaviour; green via `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationReplayMetadataAnchorsTest"`._  
+        _2025-10-30 – `io.openauth.sim.rest.webauthn.Fido2AttestationReplayMetadataAnchorTest` verifies the controller forwards identifier arrays and echoes them in metadata; green via `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.webauthn.Fido2AttestationReplayMetadataAnchorTest"`._  
+        _2025-10-30 – Selenium scenario `Fido2OperatorUiSeleniumTest.attestationReplayManualMetadataAnchors` confirms the filtered multi-select rendering; green via `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayManualMetadataAnchors"`._  
+    ☑ Implement metadata-id plumbing across CLI/REST/UI: accept metadata entry identifiers alongside PEM bundles, update `WebAuthnTrustAnchorResolver` call sites, render the format-filtered multi-select, and ensure telemetry records selected metadata ids.  
+        _2025-10-30 – Resolver now merges curated selections with manual PEM bundles while exposing identifier lists to telemetry; CLI/REST request paths reject metadata anchors for stored replay and surface selection counts in traces._  
+        _2025-10-30 – Operator UI keeps curated anchors unselected on vector load, highlights recommended entries in the summary, and preserves the PEM textarea for manual roots; Selenium verifies manual replay plus inline sample flows._  
+    ☑ Regenerate OpenAPI snapshots, refresh CLI/operator documentation, and rerun the full quality gate (`./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`).  
+        _2025-10-30 – Snapshot regenerated with `metadataAnchorIds` schema, documentation entries synced via feature plan updates, and full `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check` recorded with a green result._  
+    • Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnTrustAnchorResolverMetadataTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliAttestationReplayMetadataAnchorsTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.webauthn.Fido2AttestationReplayMetadataAnchorTest" --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayManualMetadataAnchors" --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayInlineSampleLoadsPreset"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  

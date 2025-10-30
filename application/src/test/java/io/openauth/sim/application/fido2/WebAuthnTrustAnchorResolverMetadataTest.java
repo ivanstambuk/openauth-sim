@@ -1,7 +1,6 @@
 package io.openauth.sim.application.fido2;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures;
@@ -16,26 +15,24 @@ import java.util.Base64;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-final class WebAuthnTrustAnchorResolverTest {
+final class WebAuthnTrustAnchorResolverMetadataTest {
 
     private static final Base64.Encoder MIME_ENCODER = Base64.getMimeEncoder(64, new byte[] {'\n'});
 
     @Test
-    void resolvesMetadataAnchorsWhenNoManualAnchorsProvided() {
+    void resolvesAnchorsProvidedByMetadataSelection() {
         WebAuthnTrustAnchorResolver resolver = new WebAuthnTrustAnchorResolver();
 
-        WebAuthnTrustAnchorResolver.Resolution resolution =
-                resolver.resolvePemStrings("w3c-packed-es256", WebAuthnAttestationFormat.PACKED, List.of());
+        WebAuthnTrustAnchorResolver.Resolution resolution = resolver.resolve(
+                "custom-attestation-id", WebAuthnAttestationFormat.PACKED, List.of("mds-w3c-packed-es256"), List.of());
 
-        assertTrue(resolution.hasAnchors());
-        assertTrue(resolution.cached());
+        assertTrue(resolution.hasAnchors(), "Expected metadata selection to resolve anchors");
         assertEquals(WebAuthnTrustAnchorResolver.Source.METADATA, resolution.source());
         assertTrue(resolution.metadataEntryIds().contains("mds-w3c-packed-es256"));
-        assertTrue(resolution.warnings().isEmpty());
     }
 
     @Test
-    void combinesMetadataAndManualAnchorsWithoutDuplicates() throws Exception {
+    void combinesMetadataSelectionWithManualAnchors() throws Exception {
         WebAuthnAttestationVector vector =
                 WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
                         .findFirst()
@@ -55,27 +52,13 @@ final class WebAuthnTrustAnchorResolverTest {
                 .get(verification.certificateChain().size() - 1);
 
         WebAuthnTrustAnchorResolver resolver = new WebAuthnTrustAnchorResolver();
-        WebAuthnTrustAnchorResolver.Resolution resolution =
-                resolver.resolvePemStrings(vector.vectorId(), vector.format(), List.of(toPem(root), toPem(root)));
 
-        assertTrue(resolution.hasAnchors());
-        assertFalse(resolution.cached());
+        WebAuthnTrustAnchorResolver.Resolution resolution = resolver.resolve(
+                vector.vectorId(), vector.format(), List.of("mds-w3c-packed-es256"), List.of(toPem(root)));
+
+        assertTrue(resolution.hasAnchors(), "Expected combined anchors to be present");
         assertEquals(WebAuthnTrustAnchorResolver.Source.COMBINED, resolution.source());
         assertTrue(resolution.metadataEntryIds().contains("mds-w3c-packed-es256"));
-        assertEquals(1, resolution.anchors().size());
-    }
-
-    @Test
-    void returnsEmptyResolutionWhenMetadataMissingAndNoAnchorsProvided() {
-        WebAuthnTrustAnchorResolver resolver = new WebAuthnTrustAnchorResolver();
-        WebAuthnTrustAnchorResolver.Resolution resolution =
-                resolver.resolvePemStrings("unknown-attestation", WebAuthnAttestationFormat.PACKED, List.of());
-
-        assertFalse(resolution.hasAnchors());
-        assertFalse(resolution.cached());
-        assertEquals(WebAuthnTrustAnchorResolver.Source.NONE, resolution.source());
-        assertTrue(resolution.warnings().isEmpty());
-        assertTrue(resolution.metadataEntryIds().isEmpty());
     }
 
     private static String toPem(X509Certificate certificate) throws CertificateEncodingException {

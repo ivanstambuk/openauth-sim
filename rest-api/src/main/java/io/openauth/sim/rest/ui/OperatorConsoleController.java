@@ -3,6 +3,7 @@ package io.openauth.sim.rest.ui;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openauth.sim.application.fido2.WebAuthnAttestationSamples;
+import io.openauth.sim.application.fido2.WebAuthnMetadataCatalogue;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -88,6 +89,7 @@ final class OperatorConsoleController {
         model.addAttribute("fido2InlineVectorsJson", serializeFido2InlineVectors());
         model.addAttribute("fido2InlineVectors", Fido2OperatorSampleData.inlineVectors());
         model.addAttribute("fido2AttestationVectorsJson", serializeFido2AttestationVectors());
+        model.addAttribute("fido2AttestationMetadataEntriesJson", serializeFido2MetadataEntries());
         model.addAttribute("fido2AttestationEndpoint", "/api/v1/webauthn/attest");
         model.addAttribute("fido2AttestationReplayEndpoint", "/api/v1/webauthn/attest/replay");
         model.addAttribute("fido2AttestationSeedEndpoint", "/api/v1/webauthn/attestations/seed");
@@ -164,6 +166,17 @@ final class OperatorConsoleController {
         }
     }
 
+    private String serializeFido2MetadataEntries() {
+        try {
+            List<Map<String, Object>> payload = WebAuthnMetadataCatalogue.entries().stream()
+                    .map(OperatorConsoleController::describeMetadataEntry)
+                    .toList();
+            return objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Unable to render FIDO2 metadata entries", ex);
+        }
+    }
+
     private static Map<String, Object> describeAttestationVector(WebAuthnAttestationVector vector) {
         Map<String, Object> descriptor = new java.util.LinkedHashMap<>();
         descriptor.put("vectorId", vector.vectorId());
@@ -215,6 +228,32 @@ final class OperatorConsoleController {
             suffix.append(", ").append(descriptor);
         }
         return prefix + " (" + suffix + ")";
+    }
+
+    private static Map<String, Object> describeMetadataEntry(WebAuthnMetadataCatalogue.WebAuthnMetadataEntry entry) {
+        Map<String, Object> descriptor = new java.util.LinkedHashMap<>();
+        descriptor.put("entryId", entry.entryId());
+        descriptor.put("format", entry.attestationFormat().label());
+        descriptor.put("label", buildMetadataEntryLabel(entry));
+        descriptor.put("description", entry.description());
+        descriptor.put("aaguid", entry.aaguid().toString());
+        descriptor.put(
+                "vectorIds",
+                entry.sources().stream()
+                        .map(WebAuthnMetadataCatalogue.MetadataSource::vectorId)
+                        .filter(StringUtils::hasText)
+                        .distinct()
+                        .toList());
+        return descriptor;
+    }
+
+    private static String buildMetadataEntryLabel(WebAuthnMetadataCatalogue.WebAuthnMetadataEntry entry) {
+        String base = safeTrim(entry.description());
+        if (base.isBlank()) {
+            base = entry.entryId();
+        }
+        String format = safeTrim(entry.attestationFormat().label());
+        return base + " (" + (format.isBlank() ? "unknown-format" : format) + ")";
     }
 
     private static String safeTrim(String value) {

@@ -19,6 +19,7 @@ import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import io.openauth.sim.core.fido2.WebAuthnVerificationError;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -27,6 +28,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 final class WebAuthnAttestationVerificationApplicationServiceTest {
@@ -70,8 +72,9 @@ final class WebAuthnAttestationVerificationApplicationServiceTest {
 
     @Test
     void inlineAttestationWithTrustAnchorsEmitsSanitizedTelemetry() {
+        String attestationId = "";
         VerificationCommand.Inline command = new VerificationCommand.Inline(
-                vector.vectorId(),
+                attestationId,
                 vector.format(),
                 vector.relyingPartyId(),
                 vector.origin(),
@@ -159,6 +162,38 @@ final class WebAuthnAttestationVerificationApplicationServiceTest {
     }
 
     @Test
+    @DisplayName("Attestation verification rejects mismatched trust anchors")
+    void attestationRejectsMismatchedAnchors() {
+        X509Certificate referenceAnchor = trustAnchors.get(trustAnchors.size() - 1);
+        X509Certificate mismatchedAnchor = mismatchedTrustAnchor(referenceAnchor);
+
+        VerificationCommand.Inline command = new VerificationCommand.Inline(
+                vector.vectorId(),
+                vector.format(),
+                vector.relyingPartyId(),
+                vector.origin(),
+                vector.registration().attestationObject(),
+                vector.registration().clientDataJson(),
+                vector.registration().challenge(),
+                List.of(mismatchedAnchor),
+                false,
+                WebAuthnTrustAnchorResolver.Source.MANUAL,
+                null,
+                List.of());
+
+        WebAuthnAttestationVerificationApplicationService.VerificationResult result = service.verify(command);
+
+        assertFalse(result.valid());
+        assertTrue(result.error().isEmpty());
+        assertTrue(result.anchorProvided());
+        assertFalse(result.selfAttestedFallback());
+
+        TelemetrySignal telemetry = result.telemetry();
+        assertEquals(TelemetryStatus.INVALID, telemetry.status());
+        assertEquals("anchor_mismatch", telemetry.reasonCode());
+    }
+
+    @Test
     void attestationRejectsChallengeMismatch() {
         byte[] tamperedChallenge = vector.registration().challenge().clone();
         tamperedChallenge[0] ^= 0x01;
@@ -223,5 +258,28 @@ final class WebAuthnAttestationVerificationApplicationServiceTest {
         } catch (NoSuchAlgorithmException | java.security.cert.CertificateEncodingException ex) {
             throw new IllegalStateException("Unable to compute certificate fingerprint", ex);
         }
+    }
+
+    private static X509Certificate mismatchedTrustAnchor(X509Certificate reference) {
+        for (WebAuthnAttestationFormat format : WebAuthnAttestationFormat.values()) {
+            for (WebAuthnAttestationVector candidate : WebAuthnAttestationFixtures.vectorsFor(format)) {
+                WebAuthnAttestationVerification verification =
+                        new WebAuthnAttestationVerifier().verify(toRequest(candidate));
+                if (verification.certificateChain().isEmpty()) {
+                    continue;
+                }
+                X509Certificate candidateRoot = verification
+                        .certificateChain()
+                        .get(verification.certificateChain().size() - 1);
+                try {
+                    if (!MessageDigest.isEqual(candidateRoot.getEncoded(), reference.getEncoded())) {
+                        return candidateRoot;
+                    }
+                } catch (CertificateEncodingException ex) {
+                    throw new IllegalStateException("Unable to compare trust anchors", ex);
+                }
+            }
+        }
+        throw new IllegalStateException("Unable to locate mismatched trust anchor");
     }
 }
