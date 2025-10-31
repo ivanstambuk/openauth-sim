@@ -1,7 +1,7 @@
 # Feature 027 – Unified Credential Store Naming
 
-_Status: Accepted_  
-_Last updated: 2025-10-29_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Align all simulator facades on a single default MapDB credential store file so multi-protocol operators can share persisted credentials without manual path overrides. The change replaces legacy protocol-specific filenames (for example `ocra-credentials.db`) with an inclusive default (`credentials.db`). Legacy filename detection is removed; future builds create or use the unified file exclusively unless an explicit path is supplied.

@@ -1,7 +1,7 @@
 # Feature Plan 012 – Maintenance CLI Coverage Buffer
 
-_Status: Draft_
-_Last updated: 2025-10-01_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Objective
 Produce an actionable hotspot analysis for Maintenance CLI coverage, ensuring the aggregated Jacoco buffer stays above 0.90 line/branch while identifying recommended tests for upcoming work. This increment stops short of code changes and establishes the evidence base for follow-up implementation.

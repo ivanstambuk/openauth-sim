@@ -1,7 +1,7 @@
 # Feature 012 – Maintenance CLI Coverage Buffer
 
-_Status: Draft_
-_Last updated: 2025-10-06_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Analyse Maintenance CLI code paths to confirm the Jacoco aggregated coverage buffer remains above 90% for both line and branch counters, and recommend targeted tests that preserve the buffer as new functionality lands. This feature first captured an evidence-backed hotspot report and now implements targeted Maintenance CLI tests to preserve the ≥0.90 Jacoco buffer. As of 2025-10-06 the enforcement gate is temporarily relaxed to ≥0.70 for both counters to accelerate HOTP delivery; the roadmap workstream added in the same update commits to restoring the 0.90 buffer once the feature set stabilises.

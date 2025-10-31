@@ -1,7 +1,7 @@
 # Feature Plan 005 – CLI OCRA Operations
 
-_Status: Draft_
-_Last updated: 2025-09-28_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Objective
 Bring the CLI facade to parity with the REST endpoint for OCRA by adding commands to import, list, delete, and evaluate credentials. Evaluation must support both credential-id lookup and inline secret parameters, reusing persistence and validation rules established in Features 003/004.

@@ -1,7 +1,7 @@
 # Feature 034 – Unified Validation Feedback Surfaces
 
-_Status: Accepted_  
-_Last updated: 2025-10-29_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Ensure every operator-console workflow (existing and future) renders service validation failures in a consistent, visible location. When the underlying application/REST APIs return `status=invalid` responses, the UI should unhide the result card and surface the API-supplied `message` content without requiring the operator to inspect logs or browser dev tools. The change applies to all current authentication ceremonies (OCRA, HOTP, TOTP, WebAuthn assertion, WebAuthn attestation) and establishes a reusable pattern that future flows can adopt with minimal wiring.

@@ -1,7 +1,7 @@
 # Feature 008 – OCRA Quality Automation
 
-_Status: Draft_
-_Last updated: 2025-09-30_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Establish automated quality gates for the OpenAuth Simulator’s OCRA stack so architecture boundaries remain enforced and behavioural regressions are detected early. This feature introduces boundary-verification rules and mutation/coverage thresholds that run both locally via Gradle and remotely in GitHub Actions. The workstream prioritises sustainable automation guardrails before introducing broader QA artefacts like visual badges or security scanning suites.

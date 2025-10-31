@@ -1,7 +1,7 @@
 # Feature Plan 017 – Operator Console Unification
 
-_Status: Draft_
-_Last updated: 2025-10-04_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Objective
 Unify the operator UI into a single dark-themed console with protocol tabs, retain OCRA evaluation and replay functionality, and stay within the existing Thymeleaf + vanilla JS stack.

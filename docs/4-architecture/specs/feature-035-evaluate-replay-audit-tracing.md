@@ -1,7 +1,7 @@
 # Feature 035 – Evaluate & Replay Audit Tracing
 
-_Status: Accepted_  
-_Last updated: 2025-10-29_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Introduce a deterministic, operator-facing audit trace for every credential-evaluation workflow across the simulator. When an operator enables verbose tracing for a request, the system must emit a step-by-step account of each cryptographic operation—down to intermediate buffers and bit-level mutations—so humans can study how the algorithm arrived at the final outcome. Traces are ephemeral (bound to the request that generated them) but must be available through all facades (CLI, REST, operator UI) and future protocols without additional infrastructure work.

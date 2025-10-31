@@ -1,7 +1,7 @@
 # Feature Plan 009 – OCRA Replay & Verification
 
-_Status: Draft_
-_Last updated: 2025-10-01_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Objective
 Enable operators and automated systems to verify previously generated OCRA one-time passwords (OTPs) against stored or inline credentials without regenerating new values. The feature must provide strict verification (no tolerance windows), expose CLI and REST interfaces, and emit audit-ready telemetry for non-repudiation.

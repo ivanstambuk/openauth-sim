@@ -1,7 +1,7 @@
 # Feature Plan 003 – REST OCRA Evaluation Endpoint
 
-_Status: In progress_
-_Last updated: 2025-09-30_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Objective
 Expose a synchronous REST endpoint under `/api/v1/ocra/evaluate` that reuses the core `OcraResponseCalculator` to compute session-aware OTPs for RFC 6287 suites. The feature delivers automated coverage for the S064/S128/S256/S512 fixtures already validated through the CLI, ensuring REST clients receive identical responses with secrets redacted.

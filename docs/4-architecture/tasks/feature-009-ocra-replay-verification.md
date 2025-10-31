@@ -1,7 +1,7 @@
 # Feature 009 – OCRA Replay & Verification Tasks
 
-_Status: Draft_
-_Last updated: 2025-10-01_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Execution Notes
 - Specification: `docs/4-architecture/specs/feature-009-ocra-replay-verification.md`.

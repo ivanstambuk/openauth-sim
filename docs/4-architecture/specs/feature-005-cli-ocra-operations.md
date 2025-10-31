@@ -1,7 +1,7 @@
 # Feature 005 – CLI OCRA Operations Specification
 
-_Status: Draft_
-_Last updated: 2025-09-28_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Extend the CLI facade so operators can manage and evaluate OCRA credentials end-to-end from the command line. The tool should support importing descriptors into the persistence layer, listing/querying stored OCRA credentials, deleting them, and computing OTPs using either stored descriptors (by name) or inline secret material. Behaviour, validation, and telemetry should mirror the REST facade where applicable.

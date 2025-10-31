@@ -1,8 +1,8 @@
 # Feature Plan 032 – Palantir Formatter Adoption
 
 _Linked specification:_ `docs/4-architecture/specs/feature-032-palantir-formatter-adoption.md`  
-_Status:_ Planned  
-_Last updated:_ 2025-10-19
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Vision & Success Criteria
 - Adopt Palantir Java Format 2.78.0 as the canonical formatter across Spotless, managed Git hooks, and IDE guidance without breaking the build.

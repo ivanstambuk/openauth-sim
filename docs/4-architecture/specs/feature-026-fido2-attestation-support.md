@@ -1,7 +1,7 @@
 # Feature 026 – FIDO2/WebAuthn Attestation Support
 
-_Status: In progress_  
-_Last updated: 2025-10-28_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Extend the simulator so it can generate and verify WebAuthn authenticator attestations in addition to assertions. The feature will deliver a full-stack slice—core attestation helpers, application services, CLI flows, REST endpoints, and operator UI affordances—so operators can exercise registration-style ceremonies alongside the existing assertion evaluation tooling. This iteration also introduces stored attestation credential workflows backed by the shared MapDB store so presets can be seeded once and reused across CLI/REST/UI experiences.

@@ -1,8 +1,8 @@
 # Feature 032 Tasks – Palantir Formatter Adoption
 
 _Linked plan:_ `docs/4-architecture/feature-plan-032-palantir-formatter-adoption.md`  
-_Status:_ Planned  
-_Last updated:_ 2025-10-19
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ☑ **T3201 – Planning artefacts & backlog sync**  
   ☑ Draft Feature 032 plan and tasks documents; log the workstream in `docs/_current-session.md`.  

@@ -1,7 +1,7 @@
 # Feature Plan 004 – REST OCRA Credential Resolution
 
-_Status: Draft_
-_Last updated: 2025-09-28_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Objective
 Enable `/api/v1/ocra/evaluate` to resolve credential descriptors from persistence when a caller supplies `credentialId`, while preserving the existing inline secret mode for ad-hoc usage. The plan delivers mutually exclusive payload handling, descriptor lookup, and updated documentation/telemetry.

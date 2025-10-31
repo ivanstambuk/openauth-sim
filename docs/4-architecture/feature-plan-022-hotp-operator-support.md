@@ -1,7 +1,7 @@
 # Feature Plan 022 – HOTP Operator Support
 
-_Status: In Progress_
-_Last updated: 2025-10-15_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Objective
 Implement end-to-end HOTP flows (core domain, shared persistence, telemetry, CLI, REST) so operators can manage HOTP credentials alongside OCRA while reusing the existing schema-v1 storage baseline.

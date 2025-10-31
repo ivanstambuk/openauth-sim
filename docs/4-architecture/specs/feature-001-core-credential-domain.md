@@ -1,7 +1,7 @@
 # Feature 001 – Core Credential Domain Specification
 
-_Status: Draft_
-_Last updated: 2025-09-28_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Design an OCRA-focused credential domain inside the `core` module that normalises RFC 6287 credential descriptors, shared secret material, and evaluation helpers for downstream facades. The scope of Feature 001 is limited to OCRA; future protocol packages (FIDO2, EUDI wallets, EMV/CAP, generic credentials) will be delivered through separate specifications once prioritised. The domain must provide deterministic validation and transformation logic so CLI, REST, and UI surfaces consume OCRA data without duplicating cryptographic rules.

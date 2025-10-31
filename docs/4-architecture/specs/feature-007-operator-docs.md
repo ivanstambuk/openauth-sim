@@ -1,7 +1,7 @@
 # Feature 007 – Operator-Facing Documentation Suite
 
-_Status: Draft_
-_Last updated: 2025-09-30_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Operators need a consolidated, human-friendly guide that explains how to work with the OpenAuth Simulator without reading internal architecture notes or code. This feature delivers a documentation suite that teaches operators how to drive the simulator through Java-based external applications, the command-line interface, and the REST API, while keeping the README aligned with the capabilities that ship today. The effort will restructure existing how-to content so operators can complete common OATH-OCRA tasks end-to-end: generate OTPs, replay assertions, and audit stored credentials.

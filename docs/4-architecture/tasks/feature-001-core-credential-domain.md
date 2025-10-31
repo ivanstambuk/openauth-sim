@@ -1,7 +1,7 @@
 # Feature 001 – Core Credential Domain Tasks
 
-_Status: In progress_
-_Last updated: 2025-09-28_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Execution Notes
 - Follow the specification in `docs/4-architecture/specs/feature-001-core-credential-domain.md`.

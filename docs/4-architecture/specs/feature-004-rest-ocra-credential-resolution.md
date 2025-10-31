@@ -1,7 +1,7 @@
 # Feature 004 – REST OCRA Credential Resolution Specification
 
-_Status: Accepted_
-_Last updated: 2025-09-28_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Extend the `/api/v1/ocra/evaluate` endpoint so callers can either reference a persisted OCRA credential by identifier or continue supplying raw secret material inline. The service must load descriptors from the core persistence layer when a credential reference is provided, preserve existing inline behaviour for ad-hoc requests, and enforce mutually exclusive payload semantics with descriptive reason codes.

@@ -1,7 +1,7 @@
 # Feature 017 – Operator Console Unification
 
-_Status: Draft_
-_Last updated: 2025-10-04_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Deliver a single dark-themed operator console that unifies OCRA evaluation and replay workflows while establishing protocol tabs for future facades (FIDO2/WebAuthn, EMV/CAP). The console retains the existing Spring Boot + Thymeleaf + vanilla JS stack, removes surplus whitespace, and keeps OCRA as the only fully interactive protocol while the others surface disabled previews until their implementations arrive.

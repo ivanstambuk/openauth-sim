@@ -1,7 +1,7 @@
 # Feature 004 – REST OCRA Credential Resolution Tasks
 
-_Status: Draft_
-_Last updated: 2025-09-28_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Execution Notes
 - Follow the specification in `docs/4-architecture/specs/feature-004-rest-ocra-credential-resolution.md`.

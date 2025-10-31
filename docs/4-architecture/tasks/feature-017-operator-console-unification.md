@@ -1,7 +1,7 @@
 # Feature 017 – Task Checklist
 
-_Status: Draft_
-_Last updated: 2025-10-04_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Tasks (≤30 min each)
 - [x] T1701 – Add Selenium coverage expecting unified operator console route with protocol tabs (fails until implementation).

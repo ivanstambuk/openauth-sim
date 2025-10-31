@@ -1,7 +1,7 @@
 # Feature 021 – Protocol Info Surface
 
-_Status: Draft_
-_Last updated: 2025-10-04_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Introduce an "Info" drawer for every protocol tab in the operator console so users can access detailed guidance without leaving the UI. The surface mirrors the previously supplied prompt while aligning with OpenAuth Simulator’s workflow: specification-first execution, test-driven increments, and documentation/telemetry governance. The feature delivers drawer + modal UX, reusable embeddable assets, a React integration, and operational documentation.

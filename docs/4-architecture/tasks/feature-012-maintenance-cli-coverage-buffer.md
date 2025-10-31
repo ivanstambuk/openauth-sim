@@ -1,7 +1,7 @@
 # Feature 012 – Maintenance CLI Coverage Buffer Tasks
 
-_Status: Draft_
-_Last updated: 2025-10-01_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Tasks
 | ID | Task | Related Requirements | Status |
