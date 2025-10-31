@@ -1,7 +1,7 @@
 # Feature Plan 006 – OCRA Operator UI
 
-_Status: In progress_
-_Last updated: 2025-10-12_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Objective
 Ship a server-rendered operator UI (hosted inside the Spring Boot `rest-api` module) that lets humans execute OCRA evaluations by calling the existing REST endpoints. The UI must respect sanitized telemetry practices, mirror REST validation semantics, and provide an accessible form-driven experience focused on evaluation scenarios.

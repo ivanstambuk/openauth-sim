@@ -1,8 +1,8 @@
 # Feature 026 Tasks – FIDO2/WebAuthn Attestation Support
 
 _Linked plan:_ `docs/4-architecture/feature-plan-026-fido2-attestation-support.md`  
-_Status:_ In progress  
-_Last updated:_ 2025-10-30
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ☑ **T2601 – Fixture scaffolding**  
  ☑ Convert selected W3C Level 3 attestation examples and synthetic fixtures into JSON assets under `docs/`.  

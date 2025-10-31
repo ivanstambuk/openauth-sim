@@ -1,7 +1,7 @@
 # Feature 006 – OCRA Operator UI Specification
 
-_Status: Draft_
-_Last updated: 2025-10-12_
+_Status:_ Complete  
+_Last updated:_ 2025-10-31
 
 ## Overview
 Deliver an operator-facing UI that allows manual OCRA evaluation without relying on the CLI. The experience will be hosted within the existing Spring Boot `rest-api` module as server-rendered pages, consume the published REST endpoints, and surface sanitized telemetry so operators can troubleshoot requests quickly. This first increment focuses on evaluation flows; credential lifecycle management remains CLI-only until future workstreams extend the REST surface.
