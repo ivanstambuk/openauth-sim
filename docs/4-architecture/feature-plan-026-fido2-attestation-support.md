@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-026-fido2-attestation-support.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-10-28
+_Last updated:_ 2025-10-31
 
 ## Vision & Success Criteria
 - Provide end-to-end attestation generation and verification across core, application services, CLI, REST API, and operator UI, mirroring the existing assertion workflow.
@@ -336,6 +336,9 @@ _2025-10-26 – Scope reopened to deliver stored attestation replay affordances 
     - Extend stored attestation metadata responses with `trustAnchorSummaries`, preferring curated metadata display names and falling back to certificate subjects when no metadata entry is available; cover the new field in controller/unit tests.  
     - Render the summary in the operator console stored replay panel (read-only), update Selenium coverage, and rerun `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"` plus the full `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  
     _2025-10-31 – Documentation refreshed, REST metadata now surfaces `trustAnchorSummaries` with metadata-description and certificate-subject fallbacks, operator console renders the read-only textarea, Selenium coverage extended, OpenAPI snapshots regenerated, and the full Gradle suite completed._  
+
+## Closure Notes
+- 2025-10-31 – Feature accepted after validating stored replay trust-anchor summaries across REST/UI facades and rerunning the full Gradle suite. Roadmap, tasks, and session snapshot updated to mark the workstream complete.
 
 ## Analysis Gate (2025-10-20)
 - **Specification completeness** – Updated 2025-10-27 to capture Preset/Manual/Stored evaluate inputs (with replay simplified to Manual/Stored), MapDB-backed persistence, and curated seeding controls; clarifications document the owner’s Option B selections and follow-on directives.
