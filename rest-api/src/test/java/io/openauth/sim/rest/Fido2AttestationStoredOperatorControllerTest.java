@@ -20,8 +20,18 @@ import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -83,6 +93,11 @@ class Fido2AttestationStoredOperatorControllerTest {
         assertThat(root.get("signingMode").asText()).isEqualTo("self_signed");
         assertThat(root.get("certificateChainPem").size())
                 .isEqualTo(seed.certificateChainPem().size());
+        JsonNode anchorSummaries = root.get("trustAnchorSummaries");
+        assertThat(anchorSummaries).isNotNull();
+        assertThat(anchorSummaries.isArray()).isTrue();
+        assertThat(anchorSummaries)
+                .anySatisfy(node -> assertThat(node.asText()).isEqualTo("W3C Packed ES256 Sample Authenticator"));
     }
 
     @Test
@@ -92,7 +107,32 @@ class Fido2AttestationStoredOperatorControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    @DisplayName("Operator API falls back to certificate subjects when metadata is unavailable")
+    void storedAttestationMetadataSubjectFallback() throws Exception {
+        StoredAttestationSeed seed = savePackedSeed("stored-packed-es256-fallback", "custom-packed-es256");
+
+        String response = mockMvc.perform(get("/api/v1/webauthn/attestations/{id}", seed.credentialName()))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(response);
+        JsonNode summaries = root.get("trustAnchorSummaries");
+        assertThat(summaries).isNotNull();
+        assertThat(summaries.isArray()).isTrue();
+
+        List<String> expectedSubjects = extractCertificateSubjects(seed.certificateChainPem());
+        assertThat(expectedSubjects).isNotEmpty();
+        assertThat(summaries).anySatisfy(node -> assertThat(expectedSubjects).contains(node.asText()));
+    }
+
     private StoredAttestationSeed savePackedSeed(String credentialName) {
+        return savePackedSeed(credentialName, "w3c-packed-es256");
+    }
+
+    private StoredAttestationSeed savePackedSeed(String credentialName, String attestationId) {
         WebAuthnAttestationVector vector =
                 WebAuthnAttestationFixtures.vectorsFor(WebAuthnAttestationFormat.PACKED).stream()
                         .findFirst()
@@ -129,7 +169,7 @@ class Fido2AttestationStoredOperatorControllerTest {
                 .credentialDescriptor(credentialDescriptor)
                 .relyingPartyId(vector.relyingPartyId())
                 .origin(vector.origin())
-                .attestationId(vector.vectorId())
+                .attestationId(attestationId)
                 .credentialPrivateKeyBase64Url(vector.keyMaterial().credentialPrivateKeyBase64Url())
                 .attestationPrivateKeyBase64Url(vector.keyMaterial().attestationPrivateKeyBase64Url())
                 .attestationCertificateSerialBase64Url(vector.keyMaterial().attestationCertificateSerialBase64Url())
@@ -143,7 +183,7 @@ class Fido2AttestationStoredOperatorControllerTest {
 
         return new StoredAttestationSeed(
                 credentialName,
-                vector.vectorId(),
+                attestationId,
                 vector.format(),
                 vector.relyingPartyId(),
                 vector.origin(),
@@ -158,6 +198,50 @@ class Fido2AttestationStoredOperatorControllerTest {
             String origin,
             List<String> certificateChainPem) {
         // test seed DTO
+    }
+
+    private static List<String> extractCertificateSubjects(List<String> certificateChainPem)
+            throws CertificateException {
+        CertificateFactory factory = CertificateFactory.getInstance("X.509");
+        List<String> subjects = new ArrayList<>();
+        for (String pem : certificateChainPem) {
+            if (pem == null || pem.isBlank()) {
+                continue;
+            }
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(pem.getBytes(StandardCharsets.UTF_8));
+            Collection<? extends java.security.cert.Certificate> certificates =
+                    factory.generateCertificates(inputStream);
+            for (java.security.cert.Certificate certificate : certificates) {
+                if (certificate instanceof X509Certificate x509) {
+                    subjects.add(displayName(x509));
+                }
+            }
+        }
+        return subjects;
+    }
+
+    private static String displayName(X509Certificate certificate) {
+        String subject = certificate.getSubjectX500Principal().getName();
+        String commonName = extractCommonName(subject);
+        return commonName != null && !commonName.isBlank() ? commonName : subject;
+    }
+
+    private static String extractCommonName(String subject) {
+        if (subject == null || subject.isBlank()) {
+            return null;
+        }
+        try {
+            LdapName ldapName = new LdapName(subject);
+            for (Rdn rdn : ldapName.getRdns()) {
+                if ("CN".equalsIgnoreCase(rdn.getType())) {
+                    Object value = rdn.getValue();
+                    return value == null ? null : value.toString();
+                }
+            }
+        } catch (InvalidNameException ignored) {
+            // Fall back to the full subject string when parsing fails.
+        }
+        return null;
     }
 
     @TestConfiguration

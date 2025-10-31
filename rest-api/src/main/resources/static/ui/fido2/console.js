@@ -259,6 +259,8 @@
       panel.querySelector('#fido2ReplayAttestationStoredOrigin');
   var replayAttestationStoredChallengeField =
       panel.querySelector('#fido2ReplayAttestationStoredChallenge');
+  var replayAttestationStoredTrustAnchorsField =
+      panel.querySelector('#fido2ReplayAttestationStoredTrustAnchors');
   var replayAttestationStoredAttestationObjectField =
       panel.querySelector('#fido2ReplayAttestationStoredAttestationObject');
   var replayAttestationStoredClientDataField =
@@ -2061,6 +2063,9 @@ function updateReplayAttestationStoredFields(credentialId) {
     replayAttestationStoredChallengeField.value = '';
     replayAttestationStoredChallengeField.setAttribute('value', '');
     setValue(replayAttestationStoredFormatInput, '');
+    if (replayAttestationStoredTrustAnchorsField) {
+      setValue(replayAttestationStoredTrustAnchorsField, '');
+    }
     if (replayAttestationStoredAttestationObjectField) {
       setValue(replayAttestationStoredAttestationObjectField, '');
     }
@@ -2074,6 +2079,9 @@ function updateReplayAttestationStoredFields(credentialId) {
   }
   if (replayAttestationStoredClientDataField) {
     setValue(replayAttestationStoredClientDataField, '');
+  }
+  if (replayAttestationStoredTrustAnchorsField) {
+    setValue(replayAttestationStoredTrustAnchorsField, '');
   }
   var definition = findSeedDefinition(credentialId);
   var metadata = definition ? definition.metadata : null;
@@ -3781,12 +3789,15 @@ function updateReplayAttestationStoredFields(credentialId) {
     if (replayAttestationStoredOriginInput) {
       setValue(replayAttestationStoredOriginInput, '');
     }
-    if (replayAttestationStoredChallengeField) {
-      setValue(replayAttestationStoredChallengeField, '');
-    }
-    if (replayAttestationStoredFormatInput) {
-      setValue(replayAttestationStoredFormatInput, '');
-    }
+  if (replayAttestationStoredChallengeField) {
+    setValue(replayAttestationStoredChallengeField, '');
+  }
+  if (replayAttestationStoredFormatInput) {
+    setValue(replayAttestationStoredFormatInput, '');
+  }
+  if (replayAttestationStoredTrustAnchorsField) {
+    setValue(replayAttestationStoredTrustAnchorsField, '');
+  }
   }
 
   function populateAttestationStoredFields(credentialId, metadata) {
@@ -3825,6 +3836,16 @@ function updateReplayAttestationStoredFields(credentialId) {
       metadata && metadata.attestationObject ? metadata.attestationObject : '';
   var clientData =
       metadata && metadata.clientDataJson ? metadata.clientDataJson : '';
+  var trustAnchors = Array.isArray(metadata && metadata.trustAnchorSummaries)
+      ? metadata.trustAnchorSummaries
+          .map(function (value) {
+            return typeof value === 'string' ? value.trim() : '';
+          })
+          .filter(function (value) {
+            return value.length > 0;
+          })
+      : [];
+  var trustAnchorText = trustAnchors.join('\n');
 
   setValue(attestationStoredRpInput, relyingPartyId || '');
   setValue(attestationStoredOriginInput, origin || '');
@@ -3849,6 +3870,9 @@ function updateReplayAttestationStoredFields(credentialId) {
   }
   if (replayAttestationStoredClientDataField) {
     setValue(replayAttestationStoredClientDataField, clientData || '');
+  }
+  if (replayAttestationStoredTrustAnchorsField) {
+    setValue(replayAttestationStoredTrustAnchorsField, trustAnchorText);
   }
   }
 

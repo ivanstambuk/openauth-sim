@@ -1424,6 +1424,13 @@ final class Fido2OperatorUiSeleniumTest {
                 By.id("fido2ReplayAttestationStoredChallenge"),
                 value -> value != null && value.equals(expectation.challenge()));
 
+        By trustAnchorSelector = By.id("fido2ReplayAttestationStoredTrustAnchors");
+        WebElement trustAnchorField = waitFor(trustAnchorSelector);
+        assertThat(trustAnchorField.getAttribute("readonly")).isNotNull();
+        awaitValue(
+                trustAnchorSelector,
+                value -> value != null && !value.isBlank() && value.contains("Sample Authenticator"));
+
         By attestationObjectSelector = By.id("fido2ReplayAttestationStoredAttestationObject");
         WebElement attestationObjectField = waitFor(attestationObjectSelector);
         assertThat(attestationObjectField.getAttribute("readonly")).isNotNull();

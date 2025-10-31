@@ -373,6 +373,18 @@ paths:
               $ref: "#/components/schemas/OcraEvaluationRequest"
         required: true
       responses:
+        "500":
+          description: "Unexpected server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
+        "200":
+          description: "Evaluation successful"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationResponse"
         "400":
           description: "Invalid request payload"
           content:
@@ -393,18 +405,6 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "200":
-          description: "Evaluation successful"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationResponse"
-        "500":
-          description: "Unexpected server error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
   /api/v1/ocra/credentials/seed:
     post:
       tags:
@@ -438,18 +438,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayErrorResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
         "200":
           description: "Replay completed"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
   /api/v1/hotp/evaluate:
     post:
       tags:
@@ -471,14 +471,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "500":
-          description: "Unexpected error"
+        "422":
+          description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "422":
-          description: "Validation error"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -504,14 +504,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "500":
-          description: "Unexpected error"
+        "422":
+          description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "422":
-          description: "Validation error"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -1845,6 +1845,10 @@ components:
         signingMode:
           type: "string"
         certificateChainPem:
+          type: "array"
+          items:
+            type: "string"
+        trustAnchorSummaries:
           type: "array"
           items:
             type: "string"
