@@ -57,10 +57,13 @@ final class OcraEvaluationApplicationServiceVerboseTraceTest {
     void storedEvaluationWithVerboseCapturesTrace() {
         OcraEvaluationApplicationService.EvaluationCommand.Stored command =
                 new OcraEvaluationApplicationService.EvaluationCommand.Stored(
-                        "stored-ocra", CHALLENGE, "", "", "", "", "", null);
+                        "stored-ocra", CHALLENGE, "", "", "", "", "", null, 0, 0);
 
         OcraEvaluationApplicationService.EvaluationResult result = service.evaluate(command, true);
 
+        assertEquals(1, result.previews().size());
+        assertEquals(0, result.previews().get(0).delta());
+        assertEquals(result.otp(), result.previews().get(0).otp());
         assertTrue(result.verboseTrace().isPresent());
         VerboseTrace trace = result.verboseTrace().orElseThrow();
 
@@ -125,10 +128,13 @@ final class OcraEvaluationApplicationServiceVerboseTraceTest {
     void inlineEvaluationWithVerboseCapturesTrace() {
         OcraEvaluationApplicationService.EvaluationCommand.Inline command =
                 new OcraEvaluationApplicationService.EvaluationCommand.Inline(
-                        "inline-ocra", SUITE_VALUE, SHARED_SECRET, CHALLENGE, "", "", "", "", "", null, null);
+                        "inline-ocra", SUITE_VALUE, SHARED_SECRET, CHALLENGE, "", "", "", "", "", null, null, 0, 0);
 
         OcraEvaluationApplicationService.EvaluationResult result = service.evaluate(command, true);
 
+        assertEquals(1, result.previews().size());
+        assertEquals(0, result.previews().get(0).delta());
+        assertEquals(result.otp(), result.previews().get(0).otp());
         assertTrue(result.verboseTrace().isPresent());
         VerboseTrace trace = result.verboseTrace().orElseThrow();
 
@@ -160,7 +166,7 @@ final class OcraEvaluationApplicationServiceVerboseTraceTest {
     void verboseDisabledLeavesTraceEmpty() {
         OcraEvaluationApplicationService.EvaluationCommand.Stored command =
                 new OcraEvaluationApplicationService.EvaluationCommand.Stored(
-                        "stored-ocra", CHALLENGE, "", "", "", "", "", null);
+                        "stored-ocra", CHALLENGE, "", "", "", "", "", null, 0, 0);
 
         OcraEvaluationApplicationService.EvaluationResult result = service.evaluate(command);
 

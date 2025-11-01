@@ -1,9 +1,9 @@
 # Feature 038 Tasks – Evaluation Result Preview Table
 
-_Status: Planned_  
+_Status: In progress_  
 _Last updated: 2025-11-01_
 
-- [ ] T3801 – REST evaluation previews: extend HOTP/TOTP/OCRA requests/responses with `window.backward`/`window.forward`, remove evaluation drift fields, add ordered `previews` array, update integration tests, regenerate OpenAPI snapshots. _(In progress 2025-11-01)_  
-- [ ] T3802 – Application/CLI propagation: expose preview window data via application services, remove evaluation drift options, adjust CLI human/JSON outputs, add unit snapshots.  
-- [ ] T3803 – Operator UI result card: render table in card, add evaluation window inputs while keeping replay drift controls, apply accent bar to Δ = 0 row, expand Selenium coverage (offsets 0/0 and 2/4).  
-- [ ] T3804 – Accessibility & documentation: confirm accent highlight passes accessibility checks, update operator how-to guides, knowledge map, and roadmap state.
+- [x] T3801 – REST evaluation previews: extend HOTP/TOTP/OCRA requests/responses with `window.backward`/`window.forward`, remove evaluation drift fields, add ordered `previews` array, update integration tests, regenerate OpenAPI snapshots. _(Completed 2025-11-02 – REST DTOs updated, OpenAPI snapshot regenerated, placeholder preview rows emitted pending application wiring)_  
+- [x] T3802 – Application/CLI propagation: expose preview window data via application services, remove evaluation drift options, adjust CLI human/JSON outputs, add unit snapshots. _(Completed 2025-11-01 – CLI window flags/output implemented for HOTP/TOTP/OCRA with preview table formatter; unit suites refreshed and `./gradlew --no-daemon :cli:test` plus `./gradlew --no-daemon spotlessApply check` executed.)_  
+- [x] T3803 – Operator UI result card: render table in card, add evaluation window inputs while keeping replay drift controls, apply accent bar to Δ = 0 row, expand Selenium coverage (offsets 0/0 and 2/4). _(Completed 2025-11-01 – HOTP/TOTP/OCRA evaluation panels now render preview tables with protocol accent styling, stored/inline forms expose `Preview window offsets` controls, shared console CSS updated, Selenium suite refreshed; `./gradlew --no-daemon :rest-api:test :ui:test` executed.)_  
+- [x] T3804 – Accessibility & documentation: corrected preview table alignment with inset highlight, confirmed accessibility review, extended Selenium assertions, refreshed operator how-to docs, and synced roadmap/knowledge map. _(Completed 2025-11-01 – Δ = 0 accent now inline without extra column; how-to guides and architecture docs updated; `./gradlew --no-daemon :rest-api:test` and `./gradlew --no-daemon spotlessApply check` executed.)_

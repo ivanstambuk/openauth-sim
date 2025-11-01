@@ -527,6 +527,20 @@ public final class OcraCli implements Callable<Integer> {
                 description = "PIN hash material if required")
         String pinHashHex;
 
+        @CommandLine.Option(
+                names = {"--window-backward"},
+                paramLabel = "<steps>",
+                defaultValue = "0",
+                description = "Preview window size before the evaluated OTP")
+        int windowBackward;
+
+        @CommandLine.Option(
+                names = {"--window-forward"},
+                paramLabel = "<steps>",
+                defaultValue = "0",
+                description = "Preview window size after the evaluated OTP")
+        int windowForward;
+
         @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the evaluation steps")
         boolean verbose;
 
@@ -561,7 +575,9 @@ public final class OcraCli implements Callable<Integer> {
                                         serverChallenge,
                                         pinHashHex,
                                         timestamp,
-                                        counter));
+                                        counter,
+                                        windowBackward,
+                                        windowForward));
 
                         EvaluationResult result = service.evaluate(command, verbose);
                         Map<String, String> fields = new LinkedHashMap<>();
@@ -569,6 +585,7 @@ public final class OcraCli implements Callable<Integer> {
                         fields.put("suite", result.suite());
                         fields.put("otp", result.otp());
                         emitSuccess(event, "success", fields);
+                        OtpPreviewTableFormatter.print(out(), result.previews());
                         result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
                         return CommandLine.ExitCode.OK;
                     }
@@ -591,7 +608,9 @@ public final class OcraCli implements Callable<Integer> {
                         pinHashHex,
                         timestamp,
                         counter,
-                        null));
+                        null,
+                        windowBackward,
+                        windowForward));
 
                 EvaluationResult result = service.evaluate(command, verbose);
                 Map<String, String> fields = new LinkedHashMap<>();
@@ -599,6 +618,7 @@ public final class OcraCli implements Callable<Integer> {
                 fields.put("suite", result.suite());
                 fields.put("otp", result.otp());
                 emitSuccess(event, "success", fields);
+                OtpPreviewTableFormatter.print(out(), result.previews());
                 result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
                 return CommandLine.ExitCode.OK;
             } catch (IllegalArgumentException ex) {

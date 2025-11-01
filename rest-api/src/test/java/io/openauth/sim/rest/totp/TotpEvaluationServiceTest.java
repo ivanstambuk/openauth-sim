@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.openauth.sim.application.preview.OtpPreview;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.EvaluationCommand;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.EvaluationResult;
@@ -15,8 +16,10 @@ import io.openauth.sim.application.totp.TotpEvaluationApplicationService.Telemet
 import io.openauth.sim.core.encoding.Base32SecretCodec;
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
+import io.openauth.sim.rest.EvaluationWindowRequest;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +44,7 @@ final class TotpEvaluationServiceTest {
         Map<String, Object> telemetryFields = new LinkedHashMap<>();
         telemetryFields.put("credentialSource", "inline");
         TelemetrySignal signal = new TelemetrySignal(TelemetryStatus.SUCCESS, "generated", null, true, telemetryFields);
+        List<OtpPreview> previews = List.of(new OtpPreview("000000", 0, "654321"));
         EvaluationResult result = new EvaluationResult(
                 signal,
                 false,
@@ -52,18 +56,33 @@ final class TotpEvaluationServiceTest {
                 Duration.ofSeconds(30),
                 TotpDriftWindow.of(1, 1),
                 "654321",
+                previews,
                 null);
         when(applicationService.evaluate(any(EvaluationCommand.Inline.class), anyBoolean()))
                 .thenReturn(result);
 
         String base32 = "MFRGGZDFMZTWQ2LK";
         TotpInlineEvaluationRequest request = new TotpInlineEvaluationRequest(
-                null, base32, "SHA1", 6, 30L, 1, 1, null, null, "", Map.of(), Boolean.FALSE);
+                null,
+                base32,
+                "SHA1",
+                6,
+                30L,
+                new EvaluationWindowRequest(1, 1),
+                null,
+                null,
+                "",
+                Map.of(),
+                Boolean.FALSE);
 
         TotpEvaluationResponse response = service.evaluateInline(request);
 
         assertEquals("generated", response.status());
         assertEquals("inline", response.metadata().credentialSource());
+        assertEquals(1, response.previews().size());
+        assertEquals(0, response.previews().get(0).delta());
+        assertEquals("000000", response.previews().get(0).counter());
+        assertEquals("654321", response.previews().get(0).otp());
 
         ArgumentCaptor<EvaluationCommand.Inline> captor = ArgumentCaptor.forClass(EvaluationCommand.Inline.class);
         verify(applicationService).evaluate(captor.capture(), anyBoolean());
@@ -74,7 +93,17 @@ final class TotpEvaluationServiceTest {
     @DisplayName("Inline evaluation rejects invalid Base32 secrets")
     void inlineEvaluationRejectsInvalidBase32Secrets() {
         TotpInlineEvaluationRequest request = new TotpInlineEvaluationRequest(
-                null, "!!!!", "SHA1", 6, 30L, 1, 1, null, null, "", Map.of(), Boolean.FALSE);
+                null,
+                "!!!!",
+                "SHA1",
+                6,
+                30L,
+                new EvaluationWindowRequest(1, 1),
+                null,
+                null,
+                "",
+                Map.of(),
+                Boolean.FALSE);
 
         TotpEvaluationValidationException exception =
                 assertThrows(TotpEvaluationValidationException.class, () -> service.evaluateInline(request));

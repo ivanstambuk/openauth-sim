@@ -88,9 +88,9 @@ final class TotpCliTest {
                 CREDENTIAL_ID,
                 "--timestamp",
                 Long.toString(timestamp.getEpochSecond()),
-                "--drift-backward",
+                "--window-backward",
                 "1",
-                "--drift-forward",
+                "--window-forward",
                 "1");
 
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
@@ -100,6 +100,10 @@ final class TotpCliTest {
         assertTrue(stdout.contains("credentialReference=true"));
         assertTrue(stdout.contains("matchedSkewSteps=0"));
         assertTrue(stdout.contains("otp="), "generated OTP should be printed in the evaluation frame");
+        assertTrue(stdout.contains("Preview window:"), () -> "stdout:\n" + stdout);
+        assertTrue(stdout.contains("[0]"), "preview output should highlight delta 0");
+        assertTrue(stdout.contains("+1"), "preview output should include forward delta");
+        assertTrue(stdout.contains("-1"), "preview output should include backward delta");
 
         // Store should remain unchanged (no mutation for TOTP validation).
         try (CredentialStore store = CredentialStoreFactory.openFileStore(database)) {
@@ -127,10 +131,6 @@ final class TotpCliTest {
                 "8",
                 "--step-seconds",
                 "60",
-                "--drift-backward",
-                "0",
-                "--drift-forward",
-                "0",
                 "--timestamp",
                 Long.toString(issuedAt.getEpochSecond()));
 
@@ -140,6 +140,8 @@ final class TotpCliTest {
         assertTrue(stdout.contains("credentialReference=false"));
         assertTrue(stdout.contains("reasonCode=generated"));
         assertTrue(stdout.contains("otp="));
+        assertTrue(stdout.contains("Preview window:"), () -> "stdout:\n" + stdout);
+        assertTrue(stdout.contains("[0]"), () -> "stdout:\n" + stdout);
 
         String expectedOtp = TotpGenerator.generate(inlineDescriptor, issuedAt);
         String actualOtp = extractOtp(stdout);
@@ -165,10 +167,6 @@ final class TotpCliTest {
                 "8",
                 "--step-seconds",
                 "60",
-                "--drift-backward",
-                "0",
-                "--drift-forward",
-                "0",
                 "--timestamp",
                 Long.toString(issuedAt.getEpochSecond()));
 
@@ -178,6 +176,8 @@ final class TotpCliTest {
         assertTrue(stdout.contains("credentialReference=false"));
         String expectedOtp = TotpGenerator.generate(inlineDescriptor, issuedAt);
         assertEquals(expectedOtp, extractOtp(stdout));
+        assertTrue(stdout.contains("Preview window:"), () -> "stdout:\n" + stdout);
+        assertTrue(stdout.contains("[0]"), () -> "stdout:\n" + stdout);
     }
 
     @Test
@@ -253,9 +253,18 @@ final class TotpCliTest {
     private static String extractOtp(String stdout) {
         int otpIndex = stdout.indexOf("otp=");
         assertTrue(otpIndex >= 0, "OTP not found in CLI output:\n" + stdout);
-        int endIndex = stdout.indexOf(' ', otpIndex);
-        if (endIndex == -1) {
-            endIndex = stdout.length();
+        int endIndex = stdout.length();
+        int spaceIndex = stdout.indexOf(' ', otpIndex);
+        if (spaceIndex != -1) {
+            endIndex = Math.min(endIndex, spaceIndex);
+        }
+        int newlineIndex = stdout.indexOf('\n', otpIndex);
+        if (newlineIndex != -1) {
+            endIndex = Math.min(endIndex, newlineIndex);
+        }
+        int carriageReturnIndex = stdout.indexOf('\r', otpIndex);
+        if (carriageReturnIndex != -1) {
+            endIndex = Math.min(endIndex, carriageReturnIndex);
         }
         return stdout.substring(otpIndex + 4, endIndex).trim();
     }

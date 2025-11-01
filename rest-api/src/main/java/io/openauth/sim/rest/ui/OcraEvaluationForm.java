@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.ui;
 
+import io.openauth.sim.rest.EvaluationWindowRequest;
 import io.openauth.sim.rest.ocra.OcraEvaluationRequest;
 import java.util.Objects;
 
@@ -157,6 +158,7 @@ public final class OcraEvaluationForm {
                     pinHashHex,
                     timestampHex,
                     counter,
+                    new EvaluationWindowRequest(0, 0),
                     null);
         }
         String resolvedCredentialId = Objects.requireNonNull(credentialId, "credentialId");
@@ -172,6 +174,7 @@ public final class OcraEvaluationForm {
                 pinHashHex,
                 timestampHex,
                 counter,
+                new EvaluationWindowRequest(0, 0),
                 null);
     }
 

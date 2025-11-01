@@ -312,6 +312,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OcraVerificationErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
+        "422":
+          description: "Verification payload failed validation"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
+              examples:
+                Missing context:
+                  summary: "Validation failure"
+                  description: "Missing context"
+                  value:
+                    error: "invalid_input"
+                    message: "sessionHex is required"
+                    details:
+                      telemetryId: "rest-ocra-verify-<uuid>"
+                      status: "invalid"
+                      suite: "OCRA-1:HOTP-SHA256-8:QA08-S064"
+                      field: "sessionHex"
+                      reasonCode: "session_required"
+                      sanitized: "true"
         "200":
           description: "Verification completed"
           content:
@@ -333,32 +359,6 @@ paths:
                       contextFingerprint: "Base64URL-Hash"
                       telemetryId: "rest-ocra-verify-<uuid>"
                       outcome: "match"
-        "422":
-          description: "Verification payload failed validation"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
-              examples:
-                Missing context:
-                  summary: "Validation failure"
-                  description: "Missing context"
-                  value:
-                    error: "invalid_input"
-                    message: "sessionHex is required"
-                    details:
-                      telemetryId: "rest-ocra-verify-<uuid>"
-                      status: "invalid"
-                      suite: "OCRA-1:HOTP-SHA256-8:QA08-S064"
-                      field: "sessionHex"
-                      reasonCode: "session_required"
-                      sanitized: "true"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
   /api/v1/ocra/evaluate:
     post:
       tags:
@@ -373,12 +373,6 @@ paths:
               $ref: "#/components/schemas/OcraEvaluationRequest"
         required: true
       responses:
-        "200":
-          description: "Evaluation successful"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationResponse"
         "400":
           description: "Invalid request payload"
           content:
@@ -399,6 +393,12 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
+        "200":
+          description: "Evaluation successful"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationResponse"
         "500":
           description: "Unexpected server error"
           content:
@@ -465,12 +465,6 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -483,6 +477,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
   /api/v1/hotp/evaluate/inline:
     post:
       tags:
@@ -498,12 +498,6 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -516,6 +510,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
   /api/v1/hotp/credentials/seed:
     post:
       tags:
@@ -1405,6 +1405,16 @@ components:
           format: "int64"
         verbose:
           type: "boolean"
+    OtpPreviewResponse:
+      type: "object"
+      properties:
+        counter:
+          type: "string"
+        delta:
+          type: "integer"
+          format: "int32"
+        otp:
+          type: "string"
     TotpEvaluationMetadata:
       type: "object"
       properties:
@@ -1442,6 +1452,10 @@ components:
           type: "boolean"
         otp:
           type: "string"
+        previews:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OtpPreviewResponse"
         metadata:
           $ref: "#/components/schemas/TotpEvaluationMetadata"
         trace:
@@ -1461,6 +1475,15 @@ components:
             type: "object"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
+    EvaluationWindowRequest:
+      type: "object"
+      properties:
+        backward:
+          type: "integer"
+          format: "int32"
+        forward:
+          type: "integer"
+          format: "int32"
     TotpStoredEvaluationRequest:
       type: "object"
       properties:
@@ -1471,12 +1494,8 @@ components:
         timestamp:
           type: "integer"
           format: "int64"
-        driftBackward:
-          type: "integer"
-          format: "int32"
-        driftForward:
-          type: "integer"
-          format: "int32"
+        window:
+          $ref: "#/components/schemas/EvaluationWindowRequest"
         timestampOverride:
           type: "integer"
           format: "int64"
@@ -1497,12 +1516,8 @@ components:
         stepSeconds:
           type: "integer"
           format: "int64"
-        driftBackward:
-          type: "integer"
-          format: "int32"
-        driftForward:
-          type: "integer"
-          format: "int32"
+        window:
+          $ref: "#/components/schemas/EvaluationWindowRequest"
         timestamp:
           type: "integer"
           format: "int64"
@@ -1628,17 +1643,8 @@ components:
           format: "int64"
         verbose:
           type: "boolean"
-    OcraEvaluationResponse:
-      type: "object"
-      properties:
-        suite:
-          type: "string"
-        otp:
-          type: "string"
-        telemetryId:
-          type: "string"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
+        window:
+          $ref: "#/components/schemas/EvaluationWindowRequest"
     OcraEvaluationErrorResponse:
       type: "object"
       properties:
@@ -1650,6 +1656,21 @@ components:
           type: "object"
           additionalProperties:
             type: "string"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
+    OcraEvaluationResponse:
+      type: "object"
+      properties:
+        suite:
+          type: "string"
+        otp:
+          type: "string"
+        telemetryId:
+          type: "string"
+        previews:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OtpPreviewResponse"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
     HotpReplayRequest:
@@ -1730,6 +1751,8 @@ components:
       properties:
         credentialId:
           type: "string"
+        window:
+          $ref: "#/components/schemas/EvaluationWindowRequest"
         verbose:
           type: "boolean"
     HotpEvaluationErrorResponse:
@@ -1782,6 +1805,10 @@ components:
           type: "string"
         otp:
           type: "string"
+        previews:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OtpPreviewResponse"
         metadata:
           $ref: "#/components/schemas/HotpEvaluationMetadata"
         trace:
@@ -1798,6 +1825,8 @@ components:
         digits:
           type: "integer"
           format: "int32"
+        window:
+          $ref: "#/components/schemas/EvaluationWindowRequest"
         counter:
           type: "integer"
           format: "int64"

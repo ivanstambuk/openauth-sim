@@ -2,6 +2,8 @@ package io.openauth.sim.rest.ocra;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.openauth.sim.rest.EvaluationWindowRequest;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -17,6 +19,7 @@ public record OcraEvaluationRequest(
         String pinHashHex,
         String timestampHex,
         Long counter,
+        @JsonProperty("window") EvaluationWindowRequest window,
         Boolean verbose) {
 
     public OcraEvaluationRequest {

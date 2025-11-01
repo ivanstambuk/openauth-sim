@@ -10,9 +10,12 @@ import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.rest.EvaluationWindowRequest;
+import io.openauth.sim.rest.OtpPreviewResponse;
 import io.openauth.sim.rest.VerboseTracePayload;
 import io.openauth.sim.rest.support.InlineSecretInput;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -45,10 +48,19 @@ class HotpEvaluationService {
         String telemetryId = nextTelemetryId();
 
         String credentialId = requireText(request.credentialId(), "credentialId", telemetryId, Mode.STORED, null);
-        EvaluationCommand command = new EvaluationCommand.Stored(credentialId);
+        EvaluationWindowRequest window = sanitizeWindow(request.window());
+        EvaluationCommand command =
+                new EvaluationCommand.Stored(credentialId, window.backwardOrDefault(0), window.forwardOrDefault(0));
         boolean verbose = Boolean.TRUE.equals(request.verbose());
         EvaluationResult result = applicationService.evaluate(command, verbose);
-        return handleResult(result, Mode.STORED, telemetryId, credentialId, Map.of("credentialId", credentialId));
+        Map<String, String> context = Map.of(
+                "credentialId",
+                credentialId,
+                "windowBackward",
+                Integer.toString(window.backwardOrDefault(0)),
+                "windowForward",
+                Integer.toString(window.forwardOrDefault(0)));
+        return handleResult(result, Mode.STORED, telemetryId, credentialId, context, window);
     }
 
     HotpEvaluationResponse evaluateInline(HotpInlineEvaluationRequest request) {
@@ -84,10 +96,25 @@ class HotpEvaluationService {
         long counter = requireCounter(request.counter(), telemetryId);
         Map<String, String> metadata = request.metadata() == null ? Map.of() : Map.copyOf(request.metadata());
 
-        EvaluationCommand command = new EvaluationCommand.Inline(secretHex, algorithm, digits, counter, metadata);
+        EvaluationWindowRequest window = sanitizeWindow(request.window());
+        EvaluationCommand command = new EvaluationCommand.Inline(
+                secretHex,
+                algorithm,
+                digits,
+                counter,
+                metadata,
+                window.backwardOrDefault(0),
+                window.forwardOrDefault(0));
         boolean verbose = Boolean.TRUE.equals(request.verbose());
         EvaluationResult result = applicationService.evaluate(command, verbose);
-        return handleResult(result, Mode.INLINE, telemetryId, null, Map.of());
+        Map<String, String> contextDetails = Map.of(
+                "counter",
+                Long.toString(counter),
+                "windowBackward",
+                Integer.toString(window.backwardOrDefault(0)),
+                "windowForward",
+                Integer.toString(window.forwardOrDefault(0)));
+        return handleResult(result, Mode.INLINE, telemetryId, null, contextDetails, window);
     }
 
     private HotpEvaluationResponse handleResult(
@@ -95,7 +122,8 @@ class HotpEvaluationService {
             Mode mode,
             String telemetryId,
             String identifier,
-            Map<String, String> contextDetails) {
+            Map<String, String> contextDetails,
+            EvaluationWindowRequest window) {
 
         TelemetrySignal signal = result.telemetry();
 
@@ -115,13 +143,18 @@ class HotpEvaluationService {
                 telemetryId);
 
         return switch (signal.status()) {
-            case SUCCESS ->
-                new HotpEvaluationResponse(
+            case SUCCESS -> {
+                List<OtpPreviewResponse> previews = result.previews().stream()
+                        .map(entry -> new OtpPreviewResponse(entry.counter(), entry.delta(), entry.otp()))
+                        .toList();
+                yield new HotpEvaluationResponse(
                         "generated",
                         signal.reasonCode(),
                         result.otp(),
+                        previews,
                         metadata,
                         result.verboseTrace().map(VerboseTracePayload::from).orElse(null));
+            }
             case INVALID ->
                 handleInvalid(
                         signal,
@@ -267,6 +300,15 @@ class HotpEvaluationService {
                     "algorithm_invalid",
                     Map.of("field", "algorithm"));
         }
+    }
+
+    private EvaluationWindowRequest sanitizeWindow(EvaluationWindowRequest request) {
+        if (request == null) {
+            return new EvaluationWindowRequest(0, 0);
+        }
+        int backward = request.backwardOrDefault(0);
+        int forward = request.forwardOrDefault(0);
+        return new EvaluationWindowRequest(backward, forward);
     }
 
     private HotpEvaluationValidationException validationFailure(

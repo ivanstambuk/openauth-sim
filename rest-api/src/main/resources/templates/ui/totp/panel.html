@@ -202,35 +202,46 @@
                       />
                     </div>
                   </div>
+                  <p class="field-legend" id="totpStoredWindowLegend">
+                    Preview window offsets
+                  </p>
                   <div
-                      class="field-grid totp-drift-grid"
-                      data-testid="totp-stored-drift-grid"
+                      class="field-grid preview-offset-grid"
+                      aria-labelledby="totpStoredWindowLegend"
+                      data-testid="totp-stored-window-grid"
                     >
                     <div class="field-group">
-                      <label for="totpStoredDriftBackward">Drift backward (steps)</label>
+                      <label for="totpStoredWindowBackward">Backward steps</label>
                       <input
-                        id="totpStoredDriftBackward"
-                        name="driftBackward"
+                        id="totpStoredWindowBackward"
+                        name="windowBackward"
                         type="number"
                         inputmode="numeric"
                         min="0"
                         step="1"
-                        value="1"
+                        value="0"
+                        aria-describedby="totpStoredWindowHint"
+                        data-testid="totp-stored-window-backward"
                       />
                     </div>
                     <div class="field-group">
-                      <label for="totpStoredDriftForward">Drift forward (steps)</label>
+                      <label for="totpStoredWindowForward">Forward steps</label>
                       <input
-                        id="totpStoredDriftForward"
-                        name="driftForward"
+                        id="totpStoredWindowForward"
+                        name="windowForward"
                         type="number"
                         inputmode="numeric"
                         min="0"
                         step="1"
-                        value="1"
+                        value="0"
+                        aria-describedby="totpStoredWindowHint"
+                        data-testid="totp-stored-window-forward"
                       />
                     </div>
                   </div>
+                  <p class="hint" id="totpStoredWindowHint">
+                    Include neighbouring OTPs before and after the evaluated entry.
+                  </p>
 
                   <button
                     type="button"
@@ -412,35 +423,46 @@
                       />
                     </div>
                   </div>
+                  <p class="field-legend" id="totpInlineWindowLegend">
+                    Preview window offsets
+                  </p>
                   <div
-                      class="field-grid totp-drift-grid"
-                      data-testid="totp-inline-drift-grid"
+                      class="field-grid preview-offset-grid"
+                      aria-labelledby="totpInlineWindowLegend"
+                      data-testid="totp-inline-window-grid"
                     >
                     <div class="field-group">
-                      <label for="totpInlineDriftBackward">Drift backward (steps)</label>
+                      <label for="totpInlineWindowBackward">Backward steps</label>
                       <input
-                        id="totpInlineDriftBackward"
-                        name="driftBackward"
+                        id="totpInlineWindowBackward"
+                        name="windowBackward"
                         type="number"
                         inputmode="numeric"
                         min="0"
                         step="1"
-                        value="1"
+                        value="0"
+                        aria-describedby="totpInlineWindowHint"
+                        data-testid="totp-inline-window-backward"
                       />
                     </div>
                     <div class="field-group">
-                      <label for="totpInlineDriftForward">Drift forward (steps)</label>
+                      <label for="totpInlineWindowForward">Forward steps</label>
                       <input
-                        id="totpInlineDriftForward"
-                        name="driftForward"
+                        id="totpInlineWindowForward"
+                        name="windowForward"
                         type="number"
                         inputmode="numeric"
                         min="0"
                         step="1"
-                        value="1"
+                        value="0"
+                        aria-describedby="totpInlineWindowHint"
+                        data-testid="totp-inline-window-forward"
                       />
                     </div>
                   </div>
+                  <p class="hint" id="totpInlineWindowHint">
+                    Include neighbouring OTPs before and after the evaluated entry.
+                  </p>
 
                   <button
                     type="button"
@@ -462,10 +484,30 @@
                   hidden="hidden"
                 >
                 <h3 id="totp-stored-result-heading">Evaluation result</h3>
-                <p class="result-inline" data-testid="totp-stored-otp-row">
-                  OTP:
-                  <strong data-testid="totp-result-otp">—</strong>
-                </p>
+                <div
+                    class="result-preview"
+                    data-result-preview
+                    data-preview-accent="totp"
+                    data-testid="totp-stored-preview"
+                    hidden="hidden"
+                    aria-hidden="true"
+                  >
+                  <table class="result-preview__table" data-testid="totp-stored-preview-table">
+                    <caption class="visually-hidden">
+                      Preview of neighbouring OTP values around the evaluated result.
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" class="result-preview__heading result-preview__heading--counter">Counter</th>
+                        <th scope="col" class="result-preview__heading result-preview__heading--delta">
+                          <abbr title="Delta">Δ</abbr>
+                        </th>
+                        <th scope="col" class="result-preview__heading result-preview__heading--otp">OTP</th>
+                      </tr>
+                    </thead>
+                    <tbody data-result-preview-body data-testid="totp-stored-preview-body"></tbody>
+                  </table>
+                </div>
                 <dl class="result-metadata">
                   <div class="result-row">
                     <dt>Status</dt>
@@ -496,10 +538,30 @@
                   hidden="hidden"
                 >
                 <h3 id="totp-inline-result-heading">Evaluation result</h3>
-                <p class="result-inline" data-testid="totp-inline-otp-row">
-                  OTP:
-                  <strong data-testid="totp-result-otp">—</strong>
-                </p>
+                <div
+                    class="result-preview"
+                    data-result-preview
+                    data-preview-accent="totp"
+                    data-testid="totp-inline-preview"
+                    hidden="hidden"
+                    aria-hidden="true"
+                  >
+                  <table class="result-preview__table" data-testid="totp-inline-preview-table">
+                    <caption class="visually-hidden">
+                      Preview of neighbouring OTP values around the evaluated result.
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" class="result-preview__heading result-preview__heading--counter">Counter</th>
+                        <th scope="col" class="result-preview__heading result-preview__heading--delta">
+                          <abbr title="Delta">Δ</abbr>
+                        </th>
+                        <th scope="col" class="result-preview__heading result-preview__heading--otp">OTP</th>
+                      </tr>
+                    </thead>
+                    <tbody data-result-preview-body data-testid="totp-inline-preview-body"></tbody>
+                  </table>
+                </div>
                 <dl class="result-metadata">
                   <div class="result-row">
                     <dt>Status</dt>

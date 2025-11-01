@@ -912,14 +912,36 @@ final class HotpOperatorUiSeleniumTest {
     }
 
     private void assertResultRowsMatchExpectations(WebElement resultPanel, String expectedOtp) {
-        WebElement otpRow = resultPanel.findElement(By.cssSelector(".result-inline"));
-        String otpRowText = otpRow.getText().trim().replaceAll("\\s+", " ");
-        if (!otpRowText.startsWith("OTP:")) {
-            throw new AssertionError("Expected OTP row to start with 'OTP:'");
+        List<WebElement> previewTables = resultPanel.findElements(By.cssSelector("[data-testid$='preview-table']"));
+        if (previewTables.size() != 1) {
+            throw new AssertionError("Expected exactly one preview table in HOTP result panel");
         }
-        WebElement otpValueNode = otpRow.findElement(By.tagName("strong"));
-        if (!expectedOtp.equals(otpValueNode.getText().trim())) {
-            throw new AssertionError("Expected OTP row value to match generated OTP");
+        WebElement previewTable = previewTables.get(0);
+        List<WebElement> previewRows = previewTable.findElements(By.cssSelector("tbody tr"));
+        if (previewRows.isEmpty()) {
+            throw new AssertionError("Expected preview table to contain at least one row");
+        }
+        WebElement activeRow = previewTable.findElement(By.cssSelector("tbody tr[data-delta='0']"));
+        if (activeRow == null) {
+            throw new AssertionError("Expected preview table to expose a Δ = 0 row");
+        }
+        String deltaClass = activeRow.getAttribute("class");
+        if (deltaClass == null || !deltaClass.contains("result-preview__row--active")) {
+            throw new AssertionError("Evaluated preview row should carry active styling class");
+        }
+        String deltaText = activeRow
+                .findElement(By.cssSelector(".result-preview__cell--delta"))
+                .getText()
+                .trim();
+        if (!"0".equals(deltaText)) {
+            throw new AssertionError("Expected Δ cell for evaluated row to display zero");
+        }
+        String otpValue = activeRow
+                .findElement(By.cssSelector(".result-preview__cell--otp"))
+                .getText()
+                .replace(" ", "");
+        if (!expectedOtp.equals(otpValue)) {
+            throw new AssertionError("Expected evaluated preview row OTP to match generated OTP");
         }
 
         List<WebElement> rows = resultPanel.findElements(By.cssSelector(".result-metadata .result-row"));
@@ -947,6 +969,9 @@ final class HotpOperatorUiSeleniumTest {
             throw new AssertionError("Expected Status badge to carry success styling");
         }
 
+        if (!resultPanel.findElements(By.cssSelector(".result-inline")).isEmpty()) {
+            throw new AssertionError("Legacy inline OTP row should not be present in HOTP result panel");
+        }
         if (!resultPanel
                 .findElements(By.cssSelector("[data-testid='hotp-result-metadata']"))
                 .isEmpty()) {

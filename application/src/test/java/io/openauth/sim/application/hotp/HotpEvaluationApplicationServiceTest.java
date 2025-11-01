@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.EvaluationCommand;
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.EvaluationResult;
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.TelemetryStatus;
+import io.openauth.sim.application.preview.OtpPreview;
 import io.openauth.sim.application.telemetry.TelemetryContractTestSupport;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
@@ -44,7 +45,7 @@ final class HotpEvaluationApplicationServiceTest {
         Credential credential = Credential.create(CREDENTIAL_ID, CredentialType.OATH_HOTP, SECRET, attributes(0L));
         store.save(credential);
 
-        EvaluationResult result = service.evaluate(new EvaluationCommand.Stored(CREDENTIAL_ID));
+        EvaluationResult result = service.evaluate(new EvaluationCommand.Stored(CREDENTIAL_ID, 0, 2));
 
         assertEquals(TelemetryStatus.SUCCESS, result.telemetry().status());
         assertEquals("generated", result.telemetry().reasonCode());
@@ -54,6 +55,16 @@ final class HotpEvaluationApplicationServiceTest {
         assertTrue(result.credentialReference());
         assertEquals(CREDENTIAL_ID, result.credentialId());
         assertNotNull(result.otp());
+
+        List<OtpPreview> previews = result.previews();
+        assertEquals(3, previews.size());
+        assertEquals(List.of(0, 1, 2), previews.stream().map(OtpPreview::delta).toList());
+        assertEquals("000000", previews.get(0).counter());
+        OtpPreview center = previews.stream()
+                .filter(entry -> entry.delta() == 0)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(result.otp(), center.otp());
 
         Credential persisted = store.findByName(CREDENTIAL_ID).orElseThrow();
         assertEquals("1", persisted.attributes().get("hotp.counter"));
@@ -65,7 +76,7 @@ final class HotpEvaluationApplicationServiceTest {
 
     @Test
     void evaluateStoredCredentialNotFoundProducesInvalidTelemetry() {
-        EvaluationResult result = service.evaluate(new EvaluationCommand.Stored("missing"));
+        EvaluationResult result = service.evaluate(new EvaluationCommand.Stored("missing", 0, 0));
 
         assertEquals(TelemetryStatus.INVALID, result.telemetry().status());
         assertEquals("credential_not_found", result.telemetry().reasonCode());
@@ -73,6 +84,7 @@ final class HotpEvaluationApplicationServiceTest {
         assertEquals(0L, result.previousCounter());
         assertEquals(0L, result.nextCounter());
         assertEquals(null, result.otp());
+        assertTrue(result.previews().isEmpty());
     }
 
     @Test
@@ -81,13 +93,14 @@ final class HotpEvaluationApplicationServiceTest {
                 Credential.create(CREDENTIAL_ID, CredentialType.OATH_HOTP, SECRET, attributes(Long.MAX_VALUE));
         store.save(credential);
 
-        EvaluationResult result = service.evaluate(new EvaluationCommand.Stored(CREDENTIAL_ID));
+        EvaluationResult result = service.evaluate(new EvaluationCommand.Stored(CREDENTIAL_ID, 1, 0));
 
         assertEquals(TelemetryStatus.INVALID, result.telemetry().status());
         assertEquals("counter_overflow", result.telemetry().reasonCode());
         assertEquals(Long.MAX_VALUE, result.previousCounter());
         assertEquals(Long.MAX_VALUE, result.nextCounter());
         assertEquals(null, result.otp());
+        assertTrue(result.previews().isEmpty());
 
         Credential persisted = store.findByName(CREDENTIAL_ID).orElseThrow();
         assertEquals(Long.toString(Long.MAX_VALUE), persisted.attributes().get("hotp.counter"));
@@ -96,7 +109,7 @@ final class HotpEvaluationApplicationServiceTest {
     @Test
     void evaluateInlineCredentialGeneratesOtpWithoutPersisting() {
         EvaluationCommand.Inline command =
-                new EvaluationCommand.Inline(SECRET.asHex(), ALGORITHM, DIGITS, 5L, Map.of("source", "test"));
+                new EvaluationCommand.Inline(SECRET.asHex(), ALGORITHM, DIGITS, 5L, Map.of("source", "test"), 1, 1);
 
         EvaluationResult result = service.evaluate(command);
 
@@ -109,12 +122,24 @@ final class HotpEvaluationApplicationServiceTest {
         assertEquals(null, result.credentialId());
         assertTrue(store.findAll().isEmpty());
         assertNotNull(result.otp());
+
+        List<OtpPreview> inlinePreviews = result.previews();
+        assertEquals(3, inlinePreviews.size());
+        assertEquals(
+                List.of(-1, 0, 1),
+                inlinePreviews.stream().map(OtpPreview::delta).toList());
+        OtpPreview inlineCenter = inlinePreviews.stream()
+                .filter(entry -> entry.delta() == 0)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(result.otp(), inlineCenter.otp());
+        assertEquals("000005", inlineCenter.counter());
     }
 
     @Test
     void evaluateInlineRequiresCounter() {
         EvaluationCommand.Inline command =
-                new EvaluationCommand.Inline(SECRET.asHex(), ALGORITHM, DIGITS, null, Map.of());
+                new EvaluationCommand.Inline(SECRET.asHex(), ALGORITHM, DIGITS, null, Map.of(), 0, 0);
 
         EvaluationResult result = service.evaluate(command);
 
@@ -122,11 +147,12 @@ final class HotpEvaluationApplicationServiceTest {
         assertEquals("counter_required", result.telemetry().reasonCode());
         assertEquals(0L, result.previousCounter());
         assertEquals(0L, result.nextCounter());
+        assertTrue(result.previews().isEmpty());
     }
 
     @Test
     void evaluateInlineRequiresSecret() {
-        EvaluationCommand.Inline command = new EvaluationCommand.Inline("   ", ALGORITHM, DIGITS, 0L, Map.of());
+        EvaluationCommand.Inline command = new EvaluationCommand.Inline("   ", ALGORITHM, DIGITS, 0L, Map.of(), 0, 0);
 
         EvaluationResult result = service.evaluate(command);
 
@@ -135,6 +161,7 @@ final class HotpEvaluationApplicationServiceTest {
         assertTrue(result.telemetry().sanitized());
         assertEquals(0L, result.previousCounter());
         assertEquals(0L, result.nextCounter());
+        assertTrue(result.previews().isEmpty());
     }
 
     @Test
@@ -143,7 +170,7 @@ final class HotpEvaluationApplicationServiceTest {
                 "presetKey", "seeded-demo-sha256",
                 "presetLabel", "SHA-256, 8 digits");
         EvaluationCommand.Inline command =
-                new EvaluationCommand.Inline(SECRET.asHex(), HotpHashAlgorithm.SHA256, 8, 5L, metadata);
+                new EvaluationCommand.Inline(SECRET.asHex(), HotpHashAlgorithm.SHA256, 8, 5L, metadata, 0, 1);
 
         EvaluationResult result = service.evaluate(command);
 
@@ -154,12 +181,14 @@ final class HotpEvaluationApplicationServiceTest {
         assertEquals("SHA-256, 8 digits", result.telemetry().fields().get("inlinePresetLabel"));
         assertEquals("SHA256", result.telemetry().fields().get("hashAlgorithm"));
         assertEquals(8, result.telemetry().fields().get("digits"));
+        assertEquals(
+                List.of(0, 1), result.previews().stream().map(OtpPreview::delta).toList());
     }
 
     @Test
     void evaluateInlineCounterOverflowReturnsValidationFailure() {
         EvaluationCommand.Inline command =
-                new EvaluationCommand.Inline(SECRET.asHex(), ALGORITHM, DIGITS, Long.MAX_VALUE, Map.of());
+                new EvaluationCommand.Inline(SECRET.asHex(), ALGORITHM, DIGITS, Long.MAX_VALUE, Map.of(), 0, 0);
 
         EvaluationResult result = service.evaluate(command);
 
@@ -168,6 +197,7 @@ final class HotpEvaluationApplicationServiceTest {
         assertEquals(Long.MAX_VALUE, result.previousCounter());
         assertEquals(Long.MAX_VALUE, result.nextCounter());
         assertEquals(null, result.otp());
+        assertTrue(result.previews().isEmpty());
     }
 
     private static Map<String, String> attributes(long counter) {

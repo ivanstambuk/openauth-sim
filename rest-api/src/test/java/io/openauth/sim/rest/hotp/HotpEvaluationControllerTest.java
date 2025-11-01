@@ -9,6 +9,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openauth.sim.core.otp.hotp.HotpJsonVectorFixtures;
 import io.openauth.sim.core.otp.hotp.HotpJsonVectorFixtures.HotpJsonVector;
+import io.openauth.sim.rest.EvaluationWindowRequest;
+import io.openauth.sim.rest.OtpPreviewResponse;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,11 +48,14 @@ class HotpEvaluationControllerTest {
                 null,
                 null,
                 "rest-hotp-1");
+        List<OtpPreviewResponse> previews = List.of(
+                new OtpPreviewResponse("000099", -1, "123456"), new OtpPreviewResponse("000100", 0, vector.otp()));
         HotpEvaluationResponse response =
-                new HotpEvaluationResponse("generated", "generated", vector.otp(), metadata, null);
+                new HotpEvaluationResponse("generated", "generated", vector.otp(), previews, metadata, null);
         when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenReturn(response);
 
-        HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo", null);
+        HotpStoredEvaluationRequest request =
+                new HotpStoredEvaluationRequest("demo", new EvaluationWindowRequest(0, 0), null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -58,7 +64,11 @@ class HotpEvaluationControllerTest {
                 .andExpect(jsonPath("$.status").value("generated"))
                 .andExpect(jsonPath("$.otp").value(vector.otp()))
                 .andExpect(jsonPath("$.metadata.credentialSource").value("stored"))
-                .andExpect(jsonPath("$.metadata.telemetryId").value("rest-hotp-1"));
+                .andExpect(jsonPath("$.metadata.telemetryId").value("rest-hotp-1"))
+                .andExpect(jsonPath("$.previews[0].delta").value(-1))
+                .andExpect(jsonPath("$.previews[0].counter").value("000099"))
+                .andExpect(jsonPath("$.previews[1].delta").value(0))
+                .andExpect(jsonPath("$.previews[1].otp").value(vector.otp()));
     }
 
     @Test
@@ -76,8 +86,10 @@ class HotpEvaluationControllerTest {
                 null,
                 null,
                 "rest-hotp-2");
+        List<OtpPreviewResponse> previews = List.of(
+                new OtpPreviewResponse("000005", 0, vector.otp()), new OtpPreviewResponse("000006", 1, "222222"));
         HotpEvaluationResponse response =
-                new HotpEvaluationResponse("generated", "generated", vector.otp(), metadata, null);
+                new HotpEvaluationResponse("generated", "generated", vector.otp(), previews, metadata, null);
         when(service.evaluateInline(any(HotpInlineEvaluationRequest.class))).thenReturn(response);
 
         HotpInlineEvaluationRequest request = new HotpInlineEvaluationRequest(
@@ -85,6 +97,7 @@ class HotpEvaluationControllerTest {
                 null,
                 vector.algorithm().name(),
                 vector.digits(),
+                new EvaluationWindowRequest(0, 0),
                 vector.counter(),
                 Map.of("source", "test"),
                 null);
@@ -96,7 +109,11 @@ class HotpEvaluationControllerTest {
                 .andExpect(jsonPath("$.status").value("generated"))
                 .andExpect(jsonPath("$.otp").value(vector.otp()))
                 .andExpect(jsonPath("$.metadata.credentialSource").value("inline"))
-                .andExpect(jsonPath("$.metadata.credentialId").doesNotExist());
+                .andExpect(jsonPath("$.metadata.credentialId").doesNotExist())
+                .andExpect(jsonPath("$.previews[0].delta").value(0))
+                .andExpect(jsonPath("$.previews[0].counter").value("000005"))
+                .andExpect(jsonPath("$.previews[1].delta").value(1))
+                .andExpect(jsonPath("$.previews[1].otp").value("222222"));
     }
 
     @Test
@@ -113,7 +130,8 @@ class HotpEvaluationControllerTest {
                 null);
         when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenThrow(exception);
 
-        HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("missing", null);
+        HotpStoredEvaluationRequest request =
+                new HotpStoredEvaluationRequest("missing", new EvaluationWindowRequest(0, 0), null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -141,7 +159,8 @@ class HotpEvaluationControllerTest {
                 null);
         when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenThrow(exception);
 
-        HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo", null);
+        HotpStoredEvaluationRequest request =
+                new HotpStoredEvaluationRequest("demo", new EvaluationWindowRequest(0, 0), null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -170,7 +189,14 @@ class HotpEvaluationControllerTest {
 
         HotpJsonVector sample = vector(6, 0L);
         HotpInlineEvaluationRequest request = new HotpInlineEvaluationRequest(
-                sample.secret().asHex(), null, sample.algorithm().name(), sample.digits(), null, Map.of(), null);
+                sample.secret().asHex(),
+                null,
+                sample.algorithm().name(),
+                sample.digits(),
+                new EvaluationWindowRequest(0, 0),
+                null,
+                Map.of(),
+                null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate/inline")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -192,7 +218,14 @@ class HotpEvaluationControllerTest {
 
         HotpJsonVector sample = vector(6, 0L);
         HotpInlineEvaluationRequest request = new HotpInlineEvaluationRequest(
-                sample.secret().asHex(), null, sample.algorithm().name(), sample.digits(), 0L, Map.of(), null);
+                sample.secret().asHex(),
+                null,
+                sample.algorithm().name(),
+                sample.digits(),
+                new EvaluationWindowRequest(0, 0),
+                0L,
+                Map.of(),
+                null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate/inline")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -210,7 +243,8 @@ class HotpEvaluationControllerTest {
                 new HotpEvaluationUnexpectedException("rest-hotp-5", "stored", "boom", Map.of("status", "error"), null);
         when(service.evaluateStored(any(HotpStoredEvaluationRequest.class))).thenThrow(exception);
 
-        HotpStoredEvaluationRequest request = new HotpStoredEvaluationRequest("demo", null);
+        HotpStoredEvaluationRequest request =
+                new HotpStoredEvaluationRequest("demo", new EvaluationWindowRequest(0, 0), null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -239,7 +273,14 @@ class HotpEvaluationControllerTest {
 
         HotpJsonVector sample = vector(6, 0L);
         HotpInlineEvaluationRequest request = new HotpInlineEvaluationRequest(
-                sample.secret().asHex(), null, sample.algorithm().name(), sample.digits(), null, Map.of(), null);
+                sample.secret().asHex(),
+                null,
+                sample.algorithm().name(),
+                sample.digits(),
+                new EvaluationWindowRequest(0, 0),
+                null,
+                Map.of(),
+                null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate/inline")
                         .contentType(MediaType.APPLICATION_JSON)

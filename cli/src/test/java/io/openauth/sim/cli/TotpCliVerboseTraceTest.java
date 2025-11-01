@@ -63,9 +63,9 @@ final class TotpCliVerboseTraceTest {
                 CREDENTIAL_ID,
                 "--timestamp",
                 Long.toString(timestamp.getEpochSecond()),
-                "--drift-backward",
+                "--window-backward",
                 Integer.toString(STORED_VECTOR.driftBackwardSteps()),
-                "--drift-forward",
+                "--window-forward",
                 Integer.toString(STORED_VECTOR.driftForwardSteps()),
                 "--verbose");
 
@@ -108,9 +108,9 @@ final class TotpCliVerboseTraceTest {
                 CREDENTIAL_ID,
                 "--timestamp",
                 Long.toString(timestamp.getEpochSecond()),
-                "--drift-backward",
+                "--window-backward",
                 Integer.toString(STORED_VECTOR.driftBackwardSteps()),
-                "--drift-forward",
+                "--window-forward",
                 Integer.toString(STORED_VECTOR.driftForwardSteps()));
 
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
@@ -136,9 +136,9 @@ final class TotpCliVerboseTraceTest {
                 "8",
                 "--step-seconds",
                 "60",
-                "--drift-backward",
+                "--window-backward",
                 "0",
-                "--drift-forward",
+                "--window-forward",
                 "0",
                 "--timestamp",
                 Long.toString(issuedAt.getEpochSecond()),

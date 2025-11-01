@@ -10,11 +10,14 @@ import io.openauth.sim.application.totp.TotpEvaluationApplicationService.Telemet
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
 import io.openauth.sim.core.trace.VerboseTrace;
+import io.openauth.sim.rest.EvaluationWindowRequest;
+import io.openauth.sim.rest.OtpPreviewResponse;
 import io.openauth.sim.rest.VerboseTracePayload;
 import io.openauth.sim.rest.support.InlineSecretInput;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -44,9 +47,7 @@ class TotpEvaluationService {
                 .filter(code -> !code.isEmpty())
                 .orElse("");
 
-        TotpDriftWindow drift = TotpDriftWindow.of(
-                Optional.ofNullable(request.driftBackward()).orElse(1),
-                Optional.ofNullable(request.driftForward()).orElse(1));
+        TotpDriftWindow drift = resolveWindow(request.window());
         Instant evaluationInstant = request.timestamp() != null ? Instant.ofEpochSecond(request.timestamp()) : null;
         Optional<Instant> timestampOverride = request.timestampOverride() != null
                 ? Optional.of(Instant.ofEpochSecond(request.timestampOverride()))
@@ -79,9 +80,7 @@ class TotpEvaluationService {
                 .orElse(TotpHashAlgorithm.SHA1);
         int digits = Optional.ofNullable(request.digits()).orElse(6);
         long stepSeconds = Optional.ofNullable(request.stepSeconds()).orElse(30L);
-        TotpDriftWindow drift = TotpDriftWindow.of(
-                Optional.ofNullable(request.driftBackward()).orElse(1),
-                Optional.ofNullable(request.driftForward()).orElse(1));
+        TotpDriftWindow drift = resolveWindow(request.window());
         Instant evaluationInstant = request.timestamp() != null ? Instant.ofEpochSecond(request.timestamp()) : null;
         Optional<Instant> timestampOverride = request.timestampOverride() != null
                 ? Optional.of(Instant.ofEpochSecond(request.timestampOverride()))
@@ -113,11 +112,15 @@ class TotpEvaluationService {
 
         if (signal.status() == TelemetryStatus.SUCCESS) {
             TotpEvaluationMetadata metadata = buildMetadata(frame, credentialSource, result, signal.fields());
+            List<OtpPreviewResponse> previews = result.previews().stream()
+                    .map(entry -> new OtpPreviewResponse(entry.counter(), entry.delta(), entry.otp()))
+                    .toList();
             return new TotpEvaluationResponse(
                     signal.reasonCode(),
                     signal.reasonCode(),
                     result.valid(),
                     result.otp(),
+                    previews,
                     metadata,
                     result.verboseTrace().map(VerboseTracePayload::from).orElse(null));
         }
@@ -211,6 +214,15 @@ class TotpEvaluationService {
             }
         });
         return sanitized.isEmpty() ? Map.of() : sanitized;
+    }
+
+    private static TotpDriftWindow resolveWindow(EvaluationWindowRequest request) {
+        if (request == null) {
+            return TotpDriftWindow.of(1, 1);
+        }
+        int backward = request.backwardOrDefault(1);
+        int forward = request.forwardOrDefault(1);
+        return TotpDriftWindow.of(backward, forward);
     }
 
     private void applyPresetMetadata(Map<String, String> metadata, TelemetrySignal signal) {

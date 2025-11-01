@@ -7,6 +7,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.openauth.sim.rest.EvaluationWindowRequest;
+import io.openauth.sim.rest.OtpPreviewResponse;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +33,25 @@ class OcraEvaluationControllerTest {
     @Test
     @DisplayName("evaluate returns 200 with response payload on success")
     void evaluateReturnsResponse() throws Exception {
-        OcraEvaluationResponse response = new OcraEvaluationResponse("OCRA-1", "867530", "rest-ocra-1", null);
+        List<OtpPreviewResponse> previews =
+                List.of(new OtpPreviewResponse("000123", -1, "123456"), new OtpPreviewResponse("000124", 0, "867530"));
+        OcraEvaluationResponse response = new OcraEvaluationResponse("OCRA-1", "867530", "rest-ocra-1", previews, null);
         when(service.evaluate(any(OcraEvaluationRequest.class))).thenReturn(response);
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "OCRA-1", "31323334", null, "12345678", null, null, null, null, null, null, null);
+                null,
+                "OCRA-1",
+                "31323334",
+                null,
+                "12345678",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new EvaluationWindowRequest(0, 0),
+                null);
 
         mockMvc.perform(post("/api/v1/ocra/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -43,6 +60,8 @@ class OcraEvaluationControllerTest {
                 .andExpect(jsonPath("$.suite").value("OCRA-1"))
                 .andExpect(jsonPath("$.otp").value("867530"))
                 .andExpect(jsonPath("$.telemetryId").value("rest-ocra-1"))
+                .andExpect(jsonPath("$.previews[0].delta").value(-1))
+                .andExpect(jsonPath("$.previews[1].otp").value("867530"))
                 .andExpect(jsonPath("$.trace").doesNotExist());
     }
 
@@ -61,7 +80,19 @@ class OcraEvaluationControllerTest {
         when(service.evaluate(any(OcraEvaluationRequest.class))).thenThrow(exception);
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "OCRA-1", "31323334", null, "12345678", null, null, null, null, null, null, null);
+                null,
+                "OCRA-1",
+                "31323334",
+                null,
+                "12345678",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new EvaluationWindowRequest(0, 0),
+                null);
 
         mockMvc.perform(post("/api/v1/ocra/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -91,7 +122,19 @@ class OcraEvaluationControllerTest {
         when(service.evaluate(any(OcraEvaluationRequest.class))).thenThrow(exception);
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "OCRA-1", "31323334", null, "12345678", null, null, null, null, null, null, null);
+                null,
+                "OCRA-1",
+                "31323334",
+                null,
+                "12345678",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new EvaluationWindowRequest(0, 0),
+                null);
 
         mockMvc.perform(post("/api/v1/ocra/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -110,7 +153,19 @@ class OcraEvaluationControllerTest {
         when(service.evaluate(any(OcraEvaluationRequest.class))).thenThrow(new IllegalStateException("store offline"));
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "OCRA-1", "31323334", null, "12345678", null, null, null, null, null, null, null);
+                null,
+                "OCRA-1",
+                "31323334",
+                null,
+                "12345678",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new EvaluationWindowRequest(0, 0),
+                null);
 
         mockMvc.perform(post("/api/v1/ocra/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -601,7 +601,17 @@ class OcraCliTest {
 
         String challenge = "12345678";
         int exitCode = harness.execute(
-                "evaluate", "--suite", DEFAULT_SUITE, "--secret", DEFAULT_SECRET_HEX, "--challenge", challenge);
+                "evaluate",
+                "--suite",
+                DEFAULT_SUITE,
+                "--secret",
+                DEFAULT_SECRET_HEX,
+                "--challenge",
+                challenge,
+                "--window-backward",
+                "1",
+                "--window-forward",
+                "1");
 
         assertEquals(CommandLine.ExitCode.OK, exitCode);
 
@@ -616,6 +626,8 @@ class OcraCliTest {
 
         assertEquals(expectedOtp, otp);
         assertTrue(stdout.contains("mode=inline"));
+        assertTrue(stdout.contains("Preview window:"), () -> "stdout:\n" + stdout);
+        assertTrue(stdout.contains("[0]"), () -> "stdout:\n" + stdout);
         Map<String, String> telemetry = telemetryLine(stdout, "cli.ocra.evaluate");
         assertEquals("success", telemetry.get("status"));
         assertEquals("success", telemetry.get("reasonCode"));
@@ -637,11 +649,17 @@ class OcraCliTest {
                 "--credential-id",
                 "alpha",
                 "--challenge",
-                "12345678");
+                "12345678",
+                "--window-backward",
+                "1",
+                "--window-forward",
+                "1");
 
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         String stdout = harness.stdout();
         assertTrue(stdout.contains("credentialId=alpha"));
+        assertTrue(stdout.contains("Preview window:"), () -> "stdout:\n" + stdout);
+        assertTrue(stdout.contains("[0]"), () -> "stdout:\n" + stdout);
         Map<String, String> telemetry = telemetryLine(stdout, "cli.ocra.evaluate");
         assertEquals("success", telemetry.get("status"));
         assertEquals("success", telemetry.get("reasonCode"));

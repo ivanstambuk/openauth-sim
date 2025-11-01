@@ -140,6 +140,7 @@ This living map captures the explicit relationships between modules, data flows,
 - Operator console TOTP evaluate and replay panels now expose **Use current Unix seconds** toggles (with reset helpers) so operators can snap timestamps to the console clock’s current step; JavaScript quantises the epoch seconds according to each credential’s step size while keeping manual overrides available when toggles are cleared.
 - Core-shared now ships `Base32SecretCodec`, converting Base32 secrets into uppercase hex for HOTP/TOTP/OCRA flows; REST facades call it through `InlineSecretInput` so telemetry and persistence stay hex-only even when operators submit Base32 payloads.
 - Operator console inline HOTP/TOTP/OCRA panels now share `static/ui/shared/secret-fields.js`, synchronising Base32 and hex inputs client-side while enforcing single-encoding submissions that match REST validation feedback.
+- Operator console evaluation result cards render three-column preview tables with centred Δ headers and protocol-tinted Δ = 0 accents; accessibility audit confirmed the bold/accent pairing remains perceivable without colour reliance.
 
 ## Open Items
 | Date | Topic | Question | Status | Follow-up |

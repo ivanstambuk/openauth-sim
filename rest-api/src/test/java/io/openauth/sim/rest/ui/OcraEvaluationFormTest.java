@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.rest.EvaluationWindowRequest;
 import io.openauth.sim.rest.ocra.OcraEvaluationRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,7 @@ class OcraEvaluationFormTest {
                         "PIN",
                         "00000001",
                         42L,
+                        new EvaluationWindowRequest(0, 0),
                         null),
                 request);
     }
@@ -78,6 +80,7 @@ class OcraEvaluationFormTest {
                         "PIN",
                         "00000002",
                         7L,
+                        new EvaluationWindowRequest(0, 0),
                         null),
                 request);
     }

@@ -506,6 +506,45 @@
             </div>
           </section>
 
+          <p class="field-legend" id="ocraWindowLegend">Preview window offsets</p>
+          <div
+              class="field-grid preview-offset-grid"
+              aria-labelledby="ocraWindowLegend"
+              data-testid="ocra-window-grid"
+            >
+            <div class="field-group">
+              <label for="ocraWindowBackward">Backward steps</label>
+              <input
+                id="ocraWindowBackward"
+                name="windowBackward"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                step="1"
+                value="0"
+                aria-describedby="ocraWindowHint"
+                data-testid="ocra-window-backward"
+              />
+            </div>
+            <div class="field-group">
+              <label for="ocraWindowForward">Forward steps</label>
+              <input
+                id="ocraWindowForward"
+                name="windowForward"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                step="1"
+                value="0"
+                aria-describedby="ocraWindowHint"
+                data-testid="ocra-window-forward"
+              />
+            </div>
+          </div>
+          <p class="hint" id="ocraWindowHint">
+            Display neighbouring responses before and after the evaluated result.
+          </p>
+
             <button
               type="button"
               class="button-primary"
@@ -526,10 +565,30 @@
               class="result-panel"
             >
               <h2 id="result-heading">Evaluation result</h2>
-              <p class="result-inline" data-testid="ocra-otp">
-                OTP:
-                <strong data-testid="ocra-otp-value"></strong>
-              </p>
+              <div
+                  class="result-preview"
+                  data-result-preview
+                  data-preview-accent="ocra"
+                  data-testid="ocra-preview"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
+                <table class="result-preview__table" data-testid="ocra-preview-table">
+                  <caption class="visually-hidden">
+                    Preview of neighbouring OCRA responses around the evaluated result.
+                  </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" class="result-preview__heading result-preview__heading--counter">Counter</th>
+                        <th scope="col" class="result-preview__heading result-preview__heading--delta">
+                          <abbr title="Delta">Δ</abbr>
+                        </th>
+                        <th scope="col" class="result-preview__heading result-preview__heading--otp">OTP</th>
+                      </tr>
+                    </thead>
+                  <tbody data-result-preview-body data-testid="ocra-preview-body"></tbody>
+                </table>
+              </div>
               <dl data-testid="ocra-telemetry-summary" class="result-metadata">
                 <div class="result-row">
                   <dt>Status</dt>
@@ -767,11 +826,16 @@
           timestampAutofillToggle ? timestampAutofillToggle.checked : false;
         let lastTimestampAutofillIso = null;
         const counterInput = document.getElementById('counter');
+        const windowBackwardInput = document.getElementById('ocraWindowBackward');
+        const windowForwardInput = document.getElementById('ocraWindowForward');
         const advancedToggle = document.querySelector('[data-testid="ocra-advanced-toggle"]');
         const advancedPanel = document.querySelector('[data-testid="ocra-advanced-panel"]');
         const resultPanel = document.querySelector('[data-testid="ocra-result-panel"]');
         const statusValue = document.querySelector('[data-testid="ocra-status-value"]');
-        const otpValue = document.querySelector('[data-testid="ocra-otp-value"]');
+        const previewContainer = document.querySelector('[data-testid="ocra-preview"]');
+        const previewBody = previewContainer
+          ? previewContainer.querySelector('[data-result-preview-body]')
+          : null;
         const builderVersion = document.getElementById('builderVersion');
         const builderAlgorithm = document.getElementById('builderAlgorithm');
         const builderDigits = document.getElementById('builderDigits');
@@ -1567,6 +1631,108 @@
           node.textContent = value || '';
         }
 
+        function normalisePreviewValue(value) {
+          if (value == null) {
+            return '—';
+          }
+          var text = String(value).trim();
+          return text.length ? text : '—';
+        }
+
+        function normaliseDelta(value) {
+          if (typeof value === 'number' && isFinite(value)) {
+            return value;
+          }
+          var parsed = parseInt(typeof value === 'string' ? value : '', 10);
+          return isNaN(parsed) ? null : parsed;
+        }
+
+        function formatDelta(delta) {
+          var normalized = normaliseDelta(delta);
+          if (normalized == null) {
+            return '—';
+          }
+          if (normalized > 0) {
+            return '+' + normalized;
+          }
+          return String(normalized);
+        }
+
+        function formatDeltaLabel(delta) {
+          var normalized = normaliseDelta(delta);
+          if (normalized == null) {
+            return 'Delta unavailable';
+          }
+          if (normalized === 0) {
+            return 'Delta zero';
+          }
+          if (normalized > 0) {
+            return 'Delta plus ' + normalized;
+          }
+          return 'Delta minus ' + Math.abs(normalized);
+        }
+
+        function clearPreview() {
+          if (!previewContainer || !previewBody) {
+            return;
+          }
+          while (previewBody.firstChild) {
+            previewBody.removeChild(previewBody.firstChild);
+          }
+          previewContainer.setAttribute('hidden', 'hidden');
+          previewContainer.setAttribute('aria-hidden', 'true');
+        }
+
+        function renderPreview(previews, fallback) {
+          if (!previewContainer || !previewBody) {
+            return;
+          }
+          clearPreview();
+          var entries = Array.isArray(previews) ? previews.slice() : [];
+          if (!entries.length && fallback) {
+            entries.push({
+              counter: fallback.counter || null,
+              delta: 0,
+              otp: fallback.otp || null,
+            });
+          }
+          entries.forEach(function (entry) {
+            var row = document.createElement('tr');
+            row.className = 'result-preview__row';
+            var deltaValue = normaliseDelta(entry && entry.delta != null ? entry.delta : 0);
+            if (deltaValue != null) {
+              row.setAttribute('data-delta', String(deltaValue));
+            }
+            if (deltaValue === 0) {
+              row.classList.add('result-preview__row--active');
+            }
+
+            var counterCell = document.createElement('th');
+            counterCell.scope = 'row';
+            counterCell.className = 'result-preview__cell result-preview__cell--counter';
+            counterCell.textContent = normalisePreviewValue(entry && entry.counter);
+            row.appendChild(counterCell);
+
+            var deltaCell = document.createElement('td');
+            deltaCell.className = 'result-preview__cell result-preview__cell--delta';
+            var displayDelta = formatDelta(deltaValue);
+            deltaCell.textContent = displayDelta;
+            deltaCell.setAttribute('aria-label', formatDeltaLabel(deltaValue));
+            row.appendChild(deltaCell);
+
+            var otpCell = document.createElement('td');
+            otpCell.className = 'result-preview__cell result-preview__cell--otp';
+            otpCell.textContent = normalisePreviewValue(entry && entry.otp);
+            row.appendChild(otpCell);
+
+            previewBody.appendChild(row);
+          });
+          if (entries.length > 0) {
+            previewContainer.removeAttribute('hidden');
+            previewContainer.setAttribute('aria-hidden', 'false');
+          }
+        }
+
         function applyStatusBadge(node, status) {
           if (!node) {
             return;
@@ -1695,7 +1861,10 @@
           hideResultPanel(resultPanel);
           resetResultPanel(resultPanel);
           setTextContent(statusValue, '');
-          setTextContent(otpValue, '');
+          if (statusValue) {
+            statusValue.className = 'status-badge';
+          }
+          clearPreview();
         }
 
         function toTrimmedValue(input) {
@@ -2017,6 +2186,24 @@
           updateBuilderPreview();
         }
 
+        function attachPreviewWindow(payload) {
+          if (!payload || typeof payload !== 'object') {
+            return;
+          }
+          var windowPayload = { };
+          var backwardValue = windowBackwardInput ? parseInt(windowBackwardInput.value, 10) : NaN;
+          if (!Number.isNaN(backwardValue) && backwardValue >= 0) {
+            windowPayload.backward = backwardValue;
+          }
+          var forwardValue = windowForwardInput ? parseInt(windowForwardInput.value, 10) : NaN;
+          if (!Number.isNaN(forwardValue) && forwardValue >= 0) {
+            windowPayload.forward = forwardValue;
+          }
+          if (Object.keys(windowPayload).length > 0) {
+            payload.window = windowPayload;
+          }
+        }
+
         function buildPayload() {
           var payload = { };
           var selectedMode = document.querySelector('input[name="mode"]:checked');
@@ -2080,6 +2267,7 @@
           if (counterValue !== null) {
             payload.counter = counterValue;
           }
+          attachPreviewWindow(payload);
           return payload;
         }
 
@@ -2116,9 +2304,16 @@
         function renderSuccess(body, payload) {
           const tracePayload = body && typeof body === 'object' ? body : null;
           verboseApplyResponse(tracePayload, 'success');
-          applyStatusBadge(statusValue, 'Success');
-          setTextContent(otpValue, body && body.otp ? body.otp : '');
           resetResultPanel(resultPanel);
+          var statusLabel = body && typeof body.status === 'string' ? body.status : 'Success';
+          applyStatusBadge(statusValue, statusLabel);
+          var fallback = {
+            otp: body && body.otp ? body.otp : '',
+            counter: payload && Object.prototype.hasOwnProperty.call(payload, 'counter')
+              ? payload.counter
+              : null,
+          };
+          renderPreview(body && body.previews, fallback);
           showResultPanel(resultPanel);
         }
 
@@ -2158,8 +2353,9 @@
           };
           verboseApplyError(errorPayload);
           const derived = deriveErrorMessage(body);
-          applyStatusBadge(statusValue, 'Error');
-          setTextContent(otpValue, '—');
+          var statusLabel = body && typeof body.status === 'string' ? body.status : 'Error';
+          applyStatusBadge(statusValue, statusLabel);
+          clearPreview();
           showResultError(resultPanel, derived.primary, derived.secondary);
         }
 

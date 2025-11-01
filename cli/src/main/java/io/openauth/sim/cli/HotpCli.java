@@ -271,6 +271,20 @@ public final class HotpCli implements Callable<Integer> {
                 description = "Identifier for the stored credential")
         String credentialId;
 
+        @CommandLine.Option(
+                names = "--window-backward",
+                paramLabel = "<steps>",
+                defaultValue = "0",
+                description = "Preview window size before the evaluated OTP")
+        int windowBackward;
+
+        @CommandLine.Option(
+                names = "--window-forward",
+                paramLabel = "<steps>",
+                defaultValue = "0",
+                description = "Preview window size after the evaluated OTP")
+        int windowForward;
+
         @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the evaluation steps")
         boolean verbose;
 
@@ -279,7 +293,8 @@ public final class HotpCli implements Callable<Integer> {
             String event = event("evaluate");
             try (CredentialStore store = openStore()) {
                 HotpEvaluationApplicationService service = new HotpEvaluationApplicationService(store);
-                EvaluationCommand command = new EvaluationCommand.Stored(credentialId.trim());
+                EvaluationCommand command =
+                        new EvaluationCommand.Stored(credentialId.trim(), windowBackward, windowForward);
                 EvaluationResult result = service.evaluate(command, verbose);
                 TelemetryFrame frame = result.telemetry().emit(EVALUATION_TELEMETRY, nextTelemetryId());
                 HotpEvaluationApplicationService.TelemetryStatus status =
@@ -287,6 +302,7 @@ public final class HotpCli implements Callable<Integer> {
                 PrintWriter writer = status == HotpEvaluationApplicationService.TelemetryStatus.SUCCESS ? out() : err();
                 writeFrame(writer, event, frame);
                 if (status == HotpEvaluationApplicationService.TelemetryStatus.SUCCESS) {
+                    OtpPreviewTableFormatter.print(writer, result.previews());
                     writer.printf(Locale.ROOT, "generatedOtp=%s%n", result.otp());
                 }
                 result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(writer, trace));

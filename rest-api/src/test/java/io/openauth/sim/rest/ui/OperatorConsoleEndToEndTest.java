@@ -10,6 +10,7 @@ import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.rest.EvaluationWindowRequest;
 import io.openauth.sim.rest.ocra.OcraEvaluationRequest;
 import io.openauth.sim.rest.ocra.OcraEvaluationResponse;
 import java.nio.file.Path;
@@ -100,7 +101,19 @@ final class OperatorConsoleEndToEndTest {
         }
 
         OcraEvaluationRequest requestPayload = new OcraEvaluationRequest(
-                CREDENTIAL_ID, null, null, null, "SESSION01", SESSION_HEX_64, null, null, null, null, null, null);
+                CREDENTIAL_ID,
+                null,
+                null,
+                null,
+                "SESSION01",
+                SESSION_HEX_64,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new EvaluationWindowRequest(0, 0),
+                null);
 
         HttpEntity<OcraEvaluationRequest> requestEntity = new HttpEntity<>(requestPayload, headers);
         ResponseEntity<OcraEvaluationResponse> response =

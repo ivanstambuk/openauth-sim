@@ -868,6 +868,109 @@ fieldset {
   align-items: end;
 }
 
+.preview-offset-grid {
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  align-items: end;
+}
+
+.field-legend {
+  margin: var(--ocra-spacing-md) 0 var(--ocra-spacing-xs);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ocra-color-text-muted);
+}
+
+.result-preview {
+  margin-top: var(--ocra-spacing-md);
+  border: 1px solid rgba(22, 211, 243, 0.16);
+  border-radius: var(--ocra-radius-md);
+  overflow-x: auto;
+}
+
+.result-preview__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+.result-preview__table thead {
+  background: rgba(22, 211, 243, 0.05);
+}
+
+.result-preview__table th,
+.result-preview__table td {
+  padding: 0.45rem 0.85rem;
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+.result-preview__table th {
+  color: var(--ocra-color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+}
+
+.result-preview__heading--delta {
+  text-align: center;
+}
+
+.result-preview__cell {
+  position: relative;
+}
+
+.result-preview__cell--counter {
+  font-family: var(--ocra-font-family-mono);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.result-preview__cell--delta {
+  text-align: center;
+  font-family: var(--ocra-font-family-mono);
+  letter-spacing: 0.08em;
+  min-width: 4rem;
+}
+
+.result-preview__cell--otp {
+  font-family: var(--ocra-font-family-mono);
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+.result-preview__table tbody th,
+.result-preview__table tbody td {
+  border-top: 1px solid rgba(22, 211, 243, 0.08);
+}
+
+.result-preview__table tbody tr:first-child th,
+.result-preview__table tbody tr:first-child td {
+  border-top: none;
+}
+
+.result-preview__row {
+  position: relative;
+  box-shadow: inset 0 0 0 0 transparent;
+}
+
+.result-preview__row--active {
+  font-weight: 600;
+  box-shadow: inset 0.3rem 0 0 var(--ocra-color-primary);
+}
+
+[data-preview-accent='hotp'] .result-preview__row--active {
+  box-shadow: inset 0.3rem 0 0 var(--ocra-color-warning);
+}
+
+[data-preview-accent='totp'] .result-preview__row--active {
+  box-shadow: inset 0.3rem 0 0 var(--ocra-color-primary);
+}
+
+[data-preview-accent='ocra'] .result-preview__row--active {
+  box-shadow: inset 0.3rem 0 0 var(--ocra-color-primary-accent);
+}
+
 .result-row {
   display: flex;
   justify-content: space-between;

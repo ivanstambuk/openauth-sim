@@ -92,8 +92,10 @@ class TotpEvaluationEndpointTest {
                         {
                           "credentialId": "%s",
                           "timestamp": %d,
-                          "driftBackward": 1,
-                          "driftForward": 1
+                          "window": {
+                            "backward": 1,
+                            "forward": 1
+                          }
                         }
                         """.formatted(CREDENTIAL_ID, timestamp.getEpochSecond())))
                 .andExpect(status().isOk())
@@ -116,6 +118,30 @@ class TotpEvaluationEndpointTest {
         assertEquals(1, metadata.get("driftBackwardSteps").asInt());
         assertEquals(1, metadata.get("driftForwardSteps").asInt());
         assertTrue(metadata.get("telemetryId").asText().startsWith("rest-totp-"));
+
+        JsonNode previews = response.get("previews");
+        assertEquals(3, previews.size());
+        long stepSeconds = descriptor.stepSeconds();
+        long baseCounter = Math.floorDiv(timestamp.getEpochSecond(), stepSeconds);
+        assertEquals(-1, previews.get(0).get("delta").asInt());
+        assertEquals(
+                String.format("%06d", baseCounter - 1),
+                previews.get(0).get("counter").asText());
+        assertEquals(
+                TotpGenerator.generate(descriptor, timestamp.minusSeconds(stepSeconds)),
+                previews.get(0).get("otp").asText());
+        assertEquals(0, previews.get(1).get("delta").asInt());
+        assertEquals(
+                String.format("%06d", baseCounter),
+                previews.get(1).get("counter").asText());
+        assertEquals(expectedOtp, previews.get(1).get("otp").asText());
+        assertEquals(1, previews.get(2).get("delta").asInt());
+        assertEquals(
+                String.format("%06d", baseCounter + 1),
+                previews.get(2).get("counter").asText());
+        assertEquals(
+                TotpGenerator.generate(descriptor, timestamp.plusSeconds(stepSeconds)),
+                previews.get(2).get("otp").asText());
     }
 
     @Test
@@ -134,8 +160,10 @@ class TotpEvaluationEndpointTest {
                           "algorithm": "SHA512",
                           "digits": 8,
                           "stepSeconds": 60,
-                          "driftBackward": 1,
-                          "driftForward": 1,
+                          "window": {
+                            "backward": 1,
+                            "forward": 1
+                          },
                           "timestamp": %d
                         }
                         """.formatted(INLINE_SECRET.asHex(), issuedAt.getEpochSecond())))
@@ -150,6 +178,30 @@ class TotpEvaluationEndpointTest {
         assertTrue(response.get("valid").asBoolean());
         assertEquals(expectedOtp, response.get("otp").asText());
         assertEquals("inline", response.get("metadata").get("credentialSource").asText());
+
+        JsonNode previews = response.get("previews");
+        assertEquals(3, previews.size());
+        long stepSeconds = descriptor.stepSeconds();
+        long baseCounter = Math.floorDiv(issuedAt.getEpochSecond(), stepSeconds);
+        assertEquals(-1, previews.get(0).get("delta").asInt());
+        assertEquals(
+                String.format("%06d", baseCounter - 1),
+                previews.get(0).get("counter").asText());
+        assertEquals(
+                TotpGenerator.generate(descriptor, issuedAt.minusSeconds(stepSeconds)),
+                previews.get(0).get("otp").asText());
+        assertEquals(0, previews.get(1).get("delta").asInt());
+        assertEquals(
+                String.format("%06d", baseCounter),
+                previews.get(1).get("counter").asText());
+        assertEquals(expectedOtp, previews.get(1).get("otp").asText());
+        assertEquals(1, previews.get(2).get("delta").asInt());
+        assertEquals(
+                String.format("%06d", baseCounter + 1),
+                previews.get(2).get("counter").asText());
+        assertEquals(
+                TotpGenerator.generate(descriptor, issuedAt.plusSeconds(stepSeconds)),
+                previews.get(2).get("otp").asText());
     }
 
     @Test
@@ -175,8 +227,10 @@ class TotpEvaluationEndpointTest {
                           "algorithm": "SHA1",
                           "digits": 6,
                           "stepSeconds": 30,
-                          "driftBackward": 1,
-                          "driftForward": 1,
+                          "window": {
+                            "backward": 1,
+                            "forward": 1
+                          },
                           "timestamp": %d
                         }
                         """.formatted(base32, timestamp.getEpochSecond())))
@@ -285,8 +339,10 @@ class TotpEvaluationEndpointTest {
         {
           "credentialId": "%s",
           "otp": "abc123",
-          "driftBackward": 1,
-          "driftForward": 1
+          "window": {
+            "backward": 1,
+            "forward": 1
+          }
         }
         """.formatted(CREDENTIAL_ID);
 

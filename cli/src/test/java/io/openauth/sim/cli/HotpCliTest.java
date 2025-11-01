@@ -43,13 +43,17 @@ final class HotpCliTest {
         assertTrue(listOutput.toLowerCase(Locale.ROOT).contains("sha1"));
 
         CommandHarness evaluateHarness = harness(databasePath);
-        int evaluateExit = evaluateHarness.execute("evaluate", "--credential-id", CREDENTIAL_ID);
+        int evaluateExit = evaluateHarness.execute(
+                "evaluate", "--credential-id", CREDENTIAL_ID, "--window-backward", "1", "--window-forward", "2");
         assertEquals(CommandLine.ExitCode.OK, evaluateExit, evaluateHarness.stderr());
         String evaluateOutput = evaluateHarness.stdout();
         assertTrue(evaluateOutput.contains("event=cli.hotp.evaluate"));
         assertTrue(evaluateOutput.contains("previousCounter=0"));
         assertTrue(evaluateOutput.contains("nextCounter=1"));
         assertTrue(evaluateOutput.contains("generatedOtp=" + otpForCounter(0)));
+        assertTrue(evaluateOutput.contains("Preview window:"), () -> "stdout:\n" + evaluateOutput);
+        assertTrue(evaluateOutput.contains("[0]"), () -> "stdout:\n" + evaluateOutput);
+        assertTrue(evaluateOutput.contains("+2"), () -> "stdout:\n" + evaluateOutput);
 
         try (CredentialStore store = CredentialStoreFactory.openFileStore(databasePath)) {
             Credential credential = store.findByName(CREDENTIAL_ID).orElseThrow();

@@ -1,5 +1,6 @@
 package io.openauth.sim.application.ocra;
 
+import io.openauth.sim.application.preview.OtpPreview;
 import io.openauth.sim.core.credentials.ocra.OcraChallengeFormat;
 import io.openauth.sim.core.credentials.ocra.OcraChallengeQuestion;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
@@ -290,7 +291,11 @@ public final class OcraEvaluationApplicationService {
                     .attribute(AttributeType.STRING, "otp", otp));
         }
 
-        return new EvaluationResult(descriptor.suite().value(), otp, credentialReference, request, buildTrace(trace));
+        List<OtpPreview> previews =
+                buildPreview(descriptor, request, rawCommand.windowBackward(), rawCommand.windowForward(), otp);
+
+        return new EvaluationResult(
+                descriptor.suite().value(), otp, credentialReference, request, previews, buildTrace(trace));
     }
 
     private OcraCredentialDescriptor resolveDescriptor(String credentialId) {
@@ -313,6 +318,87 @@ public final class OcraEvaluationApplicationService {
                 request.allowedDrift(),
                 Map.of("source", "shared"));
         return credentialFactory.createDescriptor(credentialRequest);
+    }
+
+    private List<OtpPreview> buildPreview(
+            OcraCredentialDescriptor descriptor,
+            NormalizedRequest request,
+            int windowBackward,
+            int windowForward,
+            String centerOtp) {
+        if (windowBackward < 0 || windowForward < 0) {
+            return List.of(OtpPreview.centerOnly(centerOtp));
+        }
+
+        boolean hasCounter = request.counter() != null;
+        TimestampPreviewContext timestampContext = resolveTimestampContext(descriptor, request.timestampHex());
+        if (!hasCounter && timestampContext == null) {
+            return List.of(OtpPreview.centerOnly(centerOtp));
+        }
+
+        long baseCounter = hasCounter ? request.counter() : 0L;
+        List<OtpPreview> previews = new ArrayList<>();
+        for (int delta = -windowBackward; delta <= windowForward; delta++) {
+            Long candidateCounter = hasCounter ? baseCounter + delta : null;
+            if (candidateCounter != null && candidateCounter < 0) {
+                continue;
+            }
+            String candidateTimestampHex =
+                    timestampContext != null ? timestampContext.hexForDelta(delta) : request.timestampHex();
+            if (timestampContext != null && candidateTimestampHex == null) {
+                continue;
+            }
+            String candidateOtp = (delta == 0)
+                    ? centerOtp
+                    : generatePreviewOtp(descriptor, request, candidateCounter, candidateTimestampHex);
+            String label = null;
+            if (candidateCounter != null) {
+                label = formatCounter(candidateCounter);
+            } else if (timestampContext != null) {
+                label = candidateTimestampHex;
+            }
+            previews.add(OtpPreview.forCounter(label, delta, candidateOtp));
+        }
+        if (previews.isEmpty()) {
+            return List.of(OtpPreview.centerOnly(centerOtp));
+        }
+        return List.copyOf(previews);
+    }
+
+    private String generatePreviewOtp(
+            OcraCredentialDescriptor descriptor, NormalizedRequest request, Long counter, String timestampHex) {
+        OcraResponseCalculator.OcraExecutionContext context = new OcraResponseCalculator.OcraExecutionContext(
+                counter,
+                request.challenge(),
+                request.sessionHex(),
+                request.clientChallenge(),
+                request.serverChallenge(),
+                request.pinHashHex(),
+                timestampHex);
+        return OcraResponseCalculator.generate(descriptor, context);
+    }
+
+    private static TimestampPreviewContext resolveTimestampContext(
+            OcraCredentialDescriptor descriptor, String timestampHex) {
+        if (!hasText(timestampHex)) {
+            return null;
+        }
+        Optional<OcraTimestampSpecification> specification =
+                descriptor.suite().dataInput().timestamp();
+        if (specification.isEmpty()) {
+            return null;
+        }
+        try {
+            long steps = Long.parseUnsignedLong(timestampHex, 16);
+            boolean uppercase = timestampHex.equals(timestampHex.toUpperCase(Locale.ROOT));
+            return new TimestampPreviewContext(steps, timestampHex.length(), uppercase, timestampHex);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private static String formatCounter(long counter) {
+        return String.format(Locale.ROOT, "%06d", counter);
     }
 
     private static void validateChallenge(OcraCredentialDescriptor descriptor, String challenge) {
@@ -403,6 +489,10 @@ public final class OcraEvaluationApplicationService {
         };
     }
 
+    private static int sanitizeWindow(int value) {
+        return Math.max(0, value);
+    }
+
     private static boolean isHexCharacter(int ch) {
         char value = Character.toUpperCase((char) ch);
         return (value >= '0' && value <= '9') || (value >= 'A' && value <= 'F');
@@ -453,6 +543,10 @@ public final class OcraEvaluationApplicationService {
 
         Long counter();
 
+        int windowBackward();
+
+        int windowForward();
+
         record Stored(
                 String credentialId,
                 String challenge,
@@ -461,12 +555,16 @@ public final class OcraEvaluationApplicationService {
                 String serverChallenge,
                 String pinHashHex,
                 String timestampHex,
-                Long counter)
+                Long counter,
+                int windowBackward,
+                int windowForward)
                 implements EvaluationCommand {
 
             public Stored {
                 credentialId =
                         Objects.requireNonNull(credentialId, "credentialId").trim();
+                windowBackward = sanitizeWindow(windowBackward);
+                windowForward = sanitizeWindow(windowForward);
             }
         }
 
@@ -481,7 +579,9 @@ public final class OcraEvaluationApplicationService {
                 String pinHashHex,
                 String timestampHex,
                 Long counter,
-                Duration allowedDrift)
+                Duration allowedDrift,
+                int windowBackward,
+                int windowForward)
                 implements EvaluationCommand {
 
             public Inline {
@@ -489,6 +589,8 @@ public final class OcraEvaluationApplicationService {
                 suite = Objects.requireNonNull(suite, "suite").trim();
                 sharedSecretHex = Objects.requireNonNull(sharedSecretHex, "sharedSecretHex")
                         .trim();
+                windowBackward = sanitizeWindow(windowBackward);
+                windowForward = sanitizeWindow(windowForward);
             }
         }
     }
@@ -527,7 +629,12 @@ public final class OcraEvaluationApplicationService {
     }
 
     public record EvaluationResult(
-            String suite, String otp, boolean credentialReference, NormalizedRequest request, VerboseTrace trace) {
+            String suite,
+            String otp,
+            boolean credentialReference,
+            NormalizedRequest request,
+            List<OtpPreview> previews,
+            VerboseTrace trace) {
         // Result payload returned to callers.
 
         public Optional<VerboseTrace> verboseTrace() {
@@ -876,6 +983,23 @@ public final class OcraEvaluationApplicationService {
                     "session information exceeds declared length of " + specification.lengthBytes() + " bytes");
         }
         return leftPad(normalized, targetLength, '0');
+    }
+
+    private record TimestampPreviewContext(long baseSteps, int hexLength, boolean uppercase, String originalHex) {
+
+        String hexForDelta(int delta) {
+            long candidate;
+            try {
+                candidate = Math.addExact(baseSteps, delta);
+            } catch (ArithmeticException ex) {
+                return null;
+            }
+            if (candidate < 0) {
+                return null;
+            }
+            String formatted = String.format(Locale.ROOT, "%0" + hexLength + "x", candidate);
+            return uppercase ? formatted.toUpperCase(Locale.ROOT) : formatted;
+        }
     }
 
     static record OcraTraceData(

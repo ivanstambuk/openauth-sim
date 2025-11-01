@@ -212,18 +212,18 @@ public final class TotpCli implements Callable<Integer> {
         Long timestamp;
 
         @CommandLine.Option(
-                names = "--drift-backward",
+                names = "--window-backward",
                 paramLabel = "<steps>",
-                defaultValue = "1",
-                description = "Permitted backward time-step drift")
-        int driftBackward;
+                defaultValue = "0",
+                description = "Preview window size before the evaluated OTP")
+        int windowBackward;
 
         @CommandLine.Option(
-                names = "--drift-forward",
+                names = "--window-forward",
                 paramLabel = "<steps>",
-                defaultValue = "1",
-                description = "Permitted forward time-step drift")
-        int driftForward;
+                defaultValue = "0",
+                description = "Preview window size after the evaluated OTP")
+        int windowForward;
 
         @CommandLine.Option(
                 names = "--timestamp-override",
@@ -236,7 +236,7 @@ public final class TotpCli implements Callable<Integer> {
 
         @Override
         public Integer call() {
-            TotpDriftWindow window = TotpDriftWindow.of(driftBackward, driftForward);
+            TotpDriftWindow window = TotpDriftWindow.of(windowBackward, windowForward);
             Instant evaluationInstant = timestamp != null ? Instant.ofEpochSecond(timestamp) : null;
             Optional<Instant> override = timestampOverride != null
                     ? Optional.of(Instant.ofEpochSecond(timestampOverride))
@@ -263,6 +263,7 @@ public final class TotpCli implements Callable<Integer> {
                     TelemetryFrame frame = signal.emit(EVALUATION_TELEMETRY, nextTelemetryId());
                     PrintWriter writer = out();
                     writeFrame(writer, event, addResultFields(frame, credentialReference, result));
+                    OtpPreviewTableFormatter.print(writer, result.previews());
                     result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(writer, trace));
                     return CommandLine.ExitCode.OK;
                 }
@@ -342,18 +343,18 @@ public final class TotpCli implements Callable<Integer> {
         long stepSeconds;
 
         @CommandLine.Option(
-                names = "--drift-backward",
-                defaultValue = "1",
+                names = "--window-backward",
+                defaultValue = "0",
                 paramLabel = "<steps>",
-                description = "Permitted backward drift steps")
-        int driftBackward;
+                description = "Preview window size before the evaluated OTP")
+        int windowBackward;
 
         @CommandLine.Option(
-                names = "--drift-forward",
-                defaultValue = "1",
+                names = "--window-forward",
+                defaultValue = "0",
                 paramLabel = "<steps>",
-                description = "Permitted forward drift steps")
-        int driftForward;
+                description = "Preview window size after the evaluated OTP")
+        int windowForward;
 
         @CommandLine.Option(
                 names = "--timestamp",
@@ -373,7 +374,7 @@ public final class TotpCli implements Callable<Integer> {
         @Override
         public Integer call() {
             TotpHashAlgorithm hashAlgorithm = TotpHashAlgorithm.valueOf(algorithm.toUpperCase(Locale.ROOT));
-            TotpDriftWindow window = TotpDriftWindow.of(driftBackward, driftForward);
+            TotpDriftWindow window = TotpDriftWindow.of(windowBackward, windowForward);
             Instant evaluationInstant = timestamp != null ? Instant.ofEpochSecond(timestamp) : null;
             Optional<Instant> override = timestampOverride != null
                     ? Optional.of(Instant.ofEpochSecond(timestampOverride))
@@ -416,6 +417,7 @@ public final class TotpCli implements Callable<Integer> {
                     TelemetryFrame frame = signal.emit(EVALUATION_TELEMETRY, nextTelemetryId());
                     PrintWriter writer = out();
                     writeFrame(writer, event, addResultFields(frame, result));
+                    OtpPreviewTableFormatter.print(writer, result.previews());
                     result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(writer, trace));
                     return CommandLine.ExitCode.OK;
                 }

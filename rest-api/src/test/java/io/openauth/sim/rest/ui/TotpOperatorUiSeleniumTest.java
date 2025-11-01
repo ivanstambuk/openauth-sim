@@ -167,22 +167,59 @@ final class TotpOperatorUiSeleniumTest {
         timestampInput.clear();
         timestampInput.sendKeys(Long.toString(STORED_TIMESTAMP.getEpochSecond()));
 
-        WebElement driftBackward = driver.findElement(By.id("totpStoredDriftBackward"));
-        driftBackward.clear();
-        driftBackward.sendKeys("1");
+        WebElement windowBackward = driver.findElement(By.id("totpStoredWindowBackward"));
+        windowBackward.clear();
+        windowBackward.sendKeys("1");
 
-        WebElement driftForward = driver.findElement(By.id("totpStoredDriftForward"));
-        driftForward.clear();
-        driftForward.sendKeys("1");
+        WebElement windowForward = driver.findElement(By.id("totpStoredWindowForward"));
+        windowForward.clear();
+        windowForward.sendKeys("1");
 
         driver.findElement(By.cssSelector("[data-testid='totp-stored-evaluate-button']"))
                 .click();
 
         WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='totp-stored-result-panel']"));
-        String panelText = resultPanel.getText();
-        assertTrue(panelText.contains("OTP"), "Stored TOTP result should display the evaluated OTP label");
-        WebElement otpValue = resultPanel.findElement(By.cssSelector("[data-testid='totp-result-otp']"));
-        assertEquals(EXPECTED_STORED_OTP, otpValue.getText().trim());
+        WebElement previewTable = resultPanel.findElement(By.cssSelector("[data-testid='totp-stored-preview-table']"));
+        List<WebElement> headerCells = previewTable.findElements(By.cssSelector("thead th"));
+        assertEquals(3, headerCells.size(), "Preview table should expose exactly three columns");
+        assertTrue(
+                headerCells.get(0).getAttribute("class").contains("result-preview__heading--counter"),
+                "Counter heading should carry the counter heading class");
+        assertTrue(
+                headerCells.get(1).getAttribute("class").contains("result-preview__heading--delta"),
+                "Δ heading should carry the delta heading class");
+        assertEquals("Δ", headerCells.get(1).getText().trim(), "Δ heading should render the delta glyph");
+        assertTrue(
+                headerCells.get(2).getAttribute("class").contains("result-preview__heading--otp"),
+                "OTP heading should carry the OTP heading class");
+        List<String> headerLabels = headerCells.stream()
+                .map(cell -> cell.getText().trim().toLowerCase(Locale.US))
+                .collect(Collectors.toList());
+        assertEquals("counter", headerLabels.get(0));
+        assertEquals("otp", headerLabels.get(2));
+        assertFalse(
+                previewTable.findElements(By.cssSelector("tbody tr")).isEmpty(),
+                "Stored preview table should render at least one row");
+        List<WebElement> previewRows = previewTable.findElements(By.cssSelector("tbody tr"));
+        assertTrue(
+                previewRows.size() >= 3,
+                "Preview table should contain evaluated row plus backward/forward entries when offsets > 0");
+        WebElement activeRow = previewTable.findElement(By.cssSelector("tbody tr[data-delta='0']"));
+        assertTrue(
+                activeRow.getAttribute("class").contains("result-preview__row--active"),
+                "Δ = 0 row should carry the active preview styling");
+        assertEquals(
+                "0",
+                activeRow
+                        .findElement(By.cssSelector(".result-preview__cell--delta"))
+                        .getText()
+                        .trim(),
+                "Δ cell should render zero for the evaluated row");
+        String otpText = activeRow
+                .findElement(By.cssSelector(".result-preview__cell--otp"))
+                .getText()
+                .replace(" ", "");
+        assertEquals(EXPECTED_STORED_OTP, otpText);
 
         WebElement statusBadge = resultPanel.findElement(By.cssSelector("[data-testid='totp-result-status']"));
         assertEquals("success", statusBadge.getText().trim().toLowerCase());
@@ -446,13 +483,13 @@ final class TotpOperatorUiSeleniumTest {
         stepInput.clear();
         stepInput.sendKeys("60");
 
-        WebElement driftBackward = driver.findElement(By.id("totpInlineDriftBackward"));
-        driftBackward.clear();
-        driftBackward.sendKeys("1");
+        WebElement windowBackward = driver.findElement(By.id("totpInlineWindowBackward"));
+        windowBackward.clear();
+        windowBackward.sendKeys("1");
 
-        WebElement driftForward = driver.findElement(By.id("totpInlineDriftForward"));
-        driftForward.clear();
-        driftForward.sendKeys("1");
+        WebElement windowForward = driver.findElement(By.id("totpInlineWindowForward"));
+        windowForward.clear();
+        windowForward.sendKeys("1");
 
         WebElement inlineTimestampAuto =
                 driver.findElement(By.cssSelector("[data-testid='totp-inline-timestamp-toggle']"));
@@ -472,8 +509,20 @@ final class TotpOperatorUiSeleniumTest {
                 .click();
 
         WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='totp-inline-result-panel']"));
-        WebElement otpValue = resultPanel.findElement(By.cssSelector("[data-testid='totp-result-otp']"));
-        assertEquals(INLINE_EXPECTED_OTP, otpValue.getText().trim());
+        WebElement previewTable = resultPanel.findElement(By.cssSelector("[data-testid='totp-inline-preview-table']"));
+        WebElement activeRow = previewTable.findElement(By.cssSelector("tbody tr[data-delta='0']"));
+        String renderedOtp = activeRow
+                .findElement(By.cssSelector(".result-preview__cell--otp"))
+                .getText()
+                .replace(" ", "");
+        assertEquals(INLINE_EXPECTED_OTP, renderedOtp);
+        assertEquals(
+                "0",
+                activeRow
+                        .findElement(By.cssSelector(".result-preview__cell--delta"))
+                        .getText()
+                        .trim(),
+                "Δ column should display zero for the evaluated entry");
         WebElement statusBadge = resultPanel.findElement(By.cssSelector("[data-testid='totp-inline-result-status']"));
         assertEquals("success", statusBadge.getText().trim().toLowerCase());
 
@@ -512,13 +561,13 @@ final class TotpOperatorUiSeleniumTest {
         stepInput.clear();
         stepInput.sendKeys("60");
 
-        WebElement driftBackward = driver.findElement(By.id("totpInlineDriftBackward"));
-        driftBackward.clear();
-        driftBackward.sendKeys("1");
+        WebElement windowBackward = driver.findElement(By.id("totpInlineWindowBackward"));
+        windowBackward.clear();
+        windowBackward.sendKeys("1");
 
-        WebElement driftForward = driver.findElement(By.id("totpInlineDriftForward"));
-        driftForward.clear();
-        driftForward.sendKeys("1");
+        WebElement windowForward = driver.findElement(By.id("totpInlineWindowForward"));
+        windowForward.clear();
+        windowForward.sendKeys("1");
 
         WebElement inlineTimestampAuto =
                 driver.findElement(By.cssSelector("[data-testid='totp-inline-timestamp-toggle']"));
@@ -537,8 +586,13 @@ final class TotpOperatorUiSeleniumTest {
                 .click();
 
         WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='totp-inline-result-panel']"));
-        WebElement otpValue = resultPanel.findElement(By.cssSelector("[data-testid='totp-result-otp']"));
-        assertEquals(INLINE_EXPECTED_OTP, otpValue.getText().trim());
+        WebElement previewTable = resultPanel.findElement(By.cssSelector("[data-testid='totp-inline-preview-table']"));
+        WebElement activeRow = previewTable.findElement(By.cssSelector("tbody tr[data-delta='0']"));
+        String renderedOtp = activeRow
+                .findElement(By.cssSelector(".result-preview__cell--otp"))
+                .getText()
+                .replace(" ", "");
+        assertEquals(INLINE_EXPECTED_OTP, renderedOtp);
     }
 
     @Test
@@ -749,15 +803,15 @@ final class TotpOperatorUiSeleniumTest {
                 driver.findElements(By.id("totpInlineOtp")).isEmpty(),
                 "Inline evaluate form should not render an OTP input field when presets apply");
 
-        WebElement driftBackward = driver.findElement(By.id("totpInlineDriftBackward"));
+        WebElement windowBackward = driver.findElement(By.id("totpInlineWindowBackward"));
         assertEquals(
                 Integer.toString(INLINE_SAMPLE_DESCRIPTOR.driftWindow().backwardSteps()),
-                driftBackward.getAttribute("value"));
+                windowBackward.getAttribute("value"));
 
-        WebElement driftForward = driver.findElement(By.id("totpInlineDriftForward"));
+        WebElement windowForward = driver.findElement(By.id("totpInlineWindowForward"));
         assertEquals(
                 Integer.toString(INLINE_SAMPLE_DESCRIPTOR.driftWindow().forwardSteps()),
-                driftForward.getAttribute("value"));
+                windowForward.getAttribute("value"));
 
         WebElement inlineSection = inlinePanel.findElement(By.tagName("form"));
         assertEquals("totp-inline-form", inlineSection.getAttribute("data-testid"));
@@ -884,14 +938,14 @@ final class TotpOperatorUiSeleniumTest {
     }
 
     @Test
-    @DisplayName("TOTP drift controls align on a single row across modes")
-    void totpDriftControlsAlignOnSingleRowAcrossModes() {
+    @DisplayName("TOTP preview window controls align on a single row across modes")
+    void totpPreviewWindowControlsAlignOnSingleRowAcrossModes() {
         navigateToTotpPanel();
 
-        WebElement storedDriftGrid = waitFor(By.cssSelector("[data-testid='totp-stored-drift-grid']"));
-        WebElement storedBackward = storedDriftGrid.findElement(By.cssSelector("#totpStoredDriftBackward"));
-        WebElement storedForward = storedDriftGrid.findElement(By.cssSelector("#totpStoredDriftForward"));
-        assertSameRow("evaluate stored drift controls", storedBackward, storedForward);
+        WebElement storedWindowGrid = waitFor(By.cssSelector("[data-testid='totp-stored-window-grid']"));
+        WebElement storedBackward = storedWindowGrid.findElement(By.cssSelector("#totpStoredWindowBackward"));
+        WebElement storedForward = storedWindowGrid.findElement(By.cssSelector("#totpStoredWindowForward"));
+        assertSameRow("evaluate stored preview window controls", storedBackward, storedForward);
 
         WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
         WebElement inlineModeToggle = driver.findElement(By.cssSelector("[data-testid='totp-mode-select-inline']"));
@@ -899,10 +953,10 @@ final class TotpOperatorUiSeleniumTest {
         waitUntilAttribute(modeToggle, "data-mode", "inline");
         waitForVisible(By.cssSelector("[data-testid='totp-inline-panel']"));
 
-        WebElement inlineDriftGrid = waitFor(By.cssSelector("[data-testid='totp-inline-drift-grid']"));
-        WebElement inlineBackward = inlineDriftGrid.findElement(By.cssSelector("#totpInlineDriftBackward"));
-        WebElement inlineForward = inlineDriftGrid.findElement(By.cssSelector("#totpInlineDriftForward"));
-        assertSameRow("evaluate inline drift controls", inlineBackward, inlineForward);
+        WebElement inlineWindowGrid = waitFor(By.cssSelector("[data-testid='totp-inline-window-grid']"));
+        WebElement inlineBackward = inlineWindowGrid.findElement(By.cssSelector("#totpInlineWindowBackward"));
+        WebElement inlineForward = inlineWindowGrid.findElement(By.cssSelector("#totpInlineWindowForward"));
+        assertSameRow("evaluate inline preview window controls", inlineBackward, inlineForward);
 
         switchToReplayTab();
 

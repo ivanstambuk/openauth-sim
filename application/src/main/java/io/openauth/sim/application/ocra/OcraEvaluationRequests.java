@@ -20,7 +20,9 @@ public final class OcraEvaluationRequests {
                 trim(inputs.serverChallenge()),
                 trim(inputs.pinHashHex()),
                 trim(inputs.timestampHex()),
-                inputs.counter());
+                inputs.counter(),
+                inputs.windowBackward(),
+                inputs.windowForward());
     }
 
     public static EvaluationCommand inline(InlineInputs inputs) {
@@ -36,7 +38,9 @@ public final class OcraEvaluationRequests {
                 normalizeHex(inputs.pinHashHex(), "pinHashHex"),
                 normalizeHex(inputs.timestampHex(), "timestampHex"),
                 inputs.counter(),
-                inputs.allowedDrift());
+                inputs.allowedDrift(),
+                inputs.windowBackward(),
+                inputs.windowForward());
     }
 
     private static String trim(String value) {
@@ -71,7 +75,9 @@ public final class OcraEvaluationRequests {
             String serverChallenge,
             String pinHashHex,
             String timestampHex,
-            Long counter) {
+            Long counter,
+            int windowBackward,
+            int windowForward) {
         // Data carrier for stored OCRA evaluation inputs.
     }
 
@@ -86,7 +92,9 @@ public final class OcraEvaluationRequests {
             String pinHashHex,
             String timestampHex,
             Long counter,
-            Duration allowedDrift) {
+            Duration allowedDrift,
+            int windowBackward,
+            int windowForward) {
         // Data carrier for inline OCRA evaluation inputs.
     }
 }

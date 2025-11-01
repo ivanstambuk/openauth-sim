@@ -1,6 +1,6 @@
 # Feature 038 – Evaluation Result Preview Table
 
-_Status: Draft_  
+_Status: Completed_  
 _Last updated: 2025-11-01_
 
 ## Overview
@@ -12,6 +12,8 @@ Extend HOTP, TOTP, and OCRA evaluation responses so operators can see the evalua
 - 2025-11-01 – When offsets are both zero, render a single-row table with Δ = 0 so the evaluated OTP still appears in tabular form (operator directive).  
 - 2025-11-01 – CLI flows should mirror the REST payload ordering when the window feature ships; they may opt-in with the same flags delivered in Feature 037 (owner directive).  
 - 2025-11-02 – Evaluation screens introduce dedicated “Preview window offsets” controls on HOTP/TOTP/OCRA; drift inputs are removed from evaluation flows and retained exclusively on replay/validation forms (owner directive).
+- 2025-11-02 – Treat T3801 REST window DTO deltas as the working baseline for T3802; no clean-tree reset required before application/CLI propagation (owner directive).
+- 2025-11-01 – Accessibility review verified that the Δ = 0 row remains perceivable via bold weight plus inset accent; accent bars render inside the existing table grid without introducing additional columns (operator acceptance).
 
 ## Requirements
 

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.application.preview.OtpPreview;
 import io.openauth.sim.application.telemetry.TelemetryContractTestSupport;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.core.model.Credential;
@@ -88,6 +89,17 @@ final class TotpEvaluationApplicationServiceTest {
                 frame.fields().containsKey("otp"),
                 "telemetry must not leak generated OTP values; they belong in the response only");
         assertEquals(expectedOtp.length(), result.digits(), "digits metadata should align with generated OTP length");
+
+        List<OtpPreview> previews = result.previews();
+        assertEquals(3, previews.size(), "preview window should include backward/forward offsets");
+        assertEquals(List.of(-1, 0, 1), previews.stream().map(OtpPreview::delta).toList());
+        OtpPreview center = previews.stream()
+                .filter(entry -> entry.delta() == 0)
+                .findFirst()
+                .orElseThrow();
+        long expectedCounter = Math.floorDiv(evaluationInstant.getEpochSecond(), descriptor.stepSeconds());
+        assertEquals(String.format("%06d", expectedCounter), center.counter());
+        assertEquals(expectedOtp, center.otp());
     }
 
     @Test
@@ -115,6 +127,15 @@ final class TotpEvaluationApplicationServiceTest {
         assertEquals("generated", result.telemetry().reasonCode());
         assertFalse(result.credentialReference());
         assertTrue(result.valid());
+
+        List<OtpPreview> previews = result.previews();
+        assertEquals(3, previews.size());
+        assertEquals(List.of(-1, 0, 1), previews.stream().map(OtpPreview::delta).toList());
+        OtpPreview center = previews.stream()
+                .filter(entry -> entry.delta() == 0)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(result.otp(), center.otp());
     }
 
     @Test
@@ -146,6 +167,7 @@ final class TotpEvaluationApplicationServiceTest {
         assertFalse(result.valid());
         assertFalse(result.credentialReference());
         assertEquals(Integer.MIN_VALUE, result.matchedSkewSteps());
+        assertTrue(result.previews().isEmpty());
     }
 
     private static final class InMemoryCredentialStore implements CredentialStore {

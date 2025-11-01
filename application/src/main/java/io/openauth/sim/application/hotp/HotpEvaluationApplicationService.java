@@ -1,16 +1,21 @@
 package io.openauth.sim.application.hotp;
 
 import io.openauth.sim.application.hotp.HotpTraceCalculator.HotpTraceComputation;
+import io.openauth.sim.application.preview.OtpPreview;
 import io.openauth.sim.application.telemetry.HotpTelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.otp.hotp.HotpDescriptor;
+import io.openauth.sim.core.otp.hotp.HotpGenerator;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.trace.VerboseTrace;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -54,11 +59,17 @@ public final class HotpEvaluationApplicationService {
 
     public sealed interface EvaluationCommand permits EvaluationCommand.Stored, EvaluationCommand.Inline {
 
-        record Stored(String credentialId) implements EvaluationCommand {
+        int windowBackward();
+
+        int windowForward();
+
+        record Stored(String credentialId, int windowBackward, int windowForward) implements EvaluationCommand {
 
             public Stored {
                 credentialId =
                         Objects.requireNonNull(credentialId, "credentialId").trim();
+                windowBackward = sanitizeWindow(windowBackward);
+                windowForward = sanitizeWindow(windowForward);
             }
         }
 
@@ -67,7 +78,9 @@ public final class HotpEvaluationApplicationService {
                 HotpHashAlgorithm algorithm,
                 int digits,
                 Long counter,
-                Map<String, String> metadata)
+                Map<String, String> metadata,
+                int windowBackward,
+                int windowForward)
                 implements EvaluationCommand {
 
             public Inline {
@@ -75,6 +88,8 @@ public final class HotpEvaluationApplicationService {
                         .trim();
                 algorithm = Objects.requireNonNull(algorithm, "algorithm");
                 metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+                windowBackward = sanitizeWindow(windowBackward);
+                windowForward = sanitizeWindow(windowForward);
             }
         }
     }
@@ -90,6 +105,7 @@ public final class HotpEvaluationApplicationService {
             String otp,
             String samplePresetKey,
             String samplePresetLabel,
+            List<OtpPreview> previews,
             VerboseTrace trace) {
 
         public EvaluationFrame evaluationFrame(HotpTelemetryAdapter adapter, String telemetryId) {
@@ -259,6 +275,8 @@ public final class HotpEvaluationApplicationService {
                     .detail("Return generated OTP")
                     .attribute(VerboseTrace.AttributeType.STRING, "output.otp", computation.otpString())
                     .attribute(VerboseTrace.AttributeType.INT, "counter.next", nextCounter));
+            List<OtpPreview> previews = buildPreview(
+                    storedCredential.descriptor(), previousCounter, command.windowBackward(), command.windowForward());
             persistCounter(storedCredential.credential(), nextCounter);
             return successResult(
                     true,
@@ -271,6 +289,7 @@ public final class HotpEvaluationApplicationService {
                     computation.otpString(),
                     null,
                     null,
+                    previews,
                     buildTrace(trace));
         } catch (IllegalArgumentException ex) {
             addStep(trace, step -> step.id("normalize.input")
@@ -436,6 +455,8 @@ public final class HotpEvaluationApplicationService {
                     .detail("Return generated OTP")
                     .attribute(VerboseTrace.AttributeType.STRING, "output.otp", computation.otpString())
                     .attribute(VerboseTrace.AttributeType.INT, "counter.next", nextCounter));
+            List<OtpPreview> previews =
+                    buildPreview(descriptor, counterValue, command.windowBackward(), command.windowForward());
             return successResult(
                     false,
                     null,
@@ -447,6 +468,7 @@ public final class HotpEvaluationApplicationService {
                     computation.otpString(),
                     presetKey,
                     presetLabel,
+                    previews,
                     buildTrace(trace));
         } catch (IllegalArgumentException ex) {
             addStep(trace, step -> step.id("normalize.input")
@@ -530,6 +552,7 @@ public final class HotpEvaluationApplicationService {
             String otp,
             String samplePresetKey,
             String samplePresetLabel,
+            List<OtpPreview> previews,
             VerboseTrace trace) {
 
         Map<String, Object> fields = evaluationFields(
@@ -553,6 +576,7 @@ public final class HotpEvaluationApplicationService {
                 otp,
                 samplePresetKey,
                 samplePresetLabel,
+                List.copyOf(previews),
                 trace);
     }
 
@@ -592,6 +616,7 @@ public final class HotpEvaluationApplicationService {
                 null,
                 samplePresetKey,
                 samplePresetLabel,
+                List.of(),
                 trace);
     }
 
@@ -604,14 +629,14 @@ public final class HotpEvaluationApplicationService {
                 true,
                 fields,
                 null);
-        return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null, null, null, trace);
+        return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null, null, null, List.of(), trace);
     }
 
     private EvaluationResult invalidMetadataResult(String credentialId, String reason, VerboseTrace trace) {
         Map<String, Object> fields = evaluationFields("stored", credentialId, null, null, 0L, 0L, null, null);
         TelemetrySignal signal = new TelemetrySignal(
                 TelemetryStatus.INVALID, "invalid_hotp_metadata", safeMessage(reason), true, fields, null);
-        return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null, null, null, trace);
+        return new EvaluationResult(signal, true, credentialId, 0L, 0L, null, null, null, null, null, List.of(), trace);
     }
 
     private EvaluationResult unexpectedErrorResult(
@@ -651,6 +676,7 @@ public final class HotpEvaluationApplicationService {
                 null,
                 samplePresetKey,
                 samplePresetLabel,
+                List.of(),
                 trace);
     }
 
@@ -658,6 +684,27 @@ public final class HotpEvaluationApplicationService {
         Map<String, String> updated = new LinkedHashMap<>(credential.attributes());
         updated.put(ATTR_COUNTER, Long.toString(nextCounter));
         credentialStore.save(credential.withAttributes(updated));
+    }
+
+    private static List<OtpPreview> buildPreview(
+            HotpDescriptor descriptor, long centerCounter, int windowBackward, int windowForward) {
+        if (descriptor == null) {
+            return List.of();
+        }
+        List<OtpPreview> previews = new ArrayList<>();
+        for (int delta = -windowBackward; delta <= windowForward; delta++) {
+            long candidate = centerCounter + delta;
+            if (candidate < 0) {
+                continue;
+            }
+            String otp = HotpGenerator.generate(descriptor, candidate);
+            previews.add(OtpPreview.forCounter(formatCounter(candidate), delta, otp));
+        }
+        return previews.isEmpty() ? List.of() : List.copyOf(previews);
+    }
+
+    private static String formatCounter(long counter) {
+        return String.format(Locale.ROOT, "%06d", counter);
     }
 
     private static Map<String, Object> evaluationFields(
@@ -717,6 +764,10 @@ public final class HotpEvaluationApplicationService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static int sanitizeWindow(int value) {
+        return Math.max(0, value);
     }
 
     private static boolean hasText(String value) {

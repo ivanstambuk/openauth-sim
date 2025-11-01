@@ -179,12 +179,17 @@ final class OperatorConsoleSeleniumTest {
                     + (errorText == null ? "" : errorText));
         }
 
-        WebElement otpElement = resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp']"));
         String expectedOtp = computeExpectedOtp(sample, submittedTimestamp);
         if (!scenario.requiresDynamicTimestamp() && sample.getExpectedOtp() != null) {
             assertThat(expectedOtp).isEqualTo(sample.getExpectedOtp());
         }
-        assertThat(otpElement.getText()).contains(expectedOtp);
+        WebElement previewTable = resultPanel.findElement(By.cssSelector("[data-testid='ocra-preview-table']"));
+        WebElement activeRow = previewTable.findElement(By.cssSelector("tbody tr[data-delta='0']"));
+        String previewOtp = activeRow
+                .findElement(By.cssSelector(".result-preview__cell--otp"))
+                .getText()
+                .replace(" ", "");
+        assertThat(previewOtp).isEqualTo(expectedOtp);
         WebElement statusBadge = resultPanel.findElement(By.cssSelector("[data-testid='ocra-status-value']"));
         assertStatusBadge(statusBadge);
         assertThat(resultPanel.findElements(By.cssSelector("[data-testid='ocra-sanitized-flag']")))
@@ -360,9 +365,12 @@ final class OperatorConsoleSeleniumTest {
                 .as("Result hint should remain hidden for successful evaluation")
                 .isNotNull();
 
-        String otpText = resultPanel
-                .findElement(By.cssSelector("[data-testid='ocra-otp-value']"))
-                .getText();
+        WebElement previewTable = resultPanel.findElement(By.cssSelector("[data-testid='ocra-preview-table']"));
+        WebElement activeRow = previewTable.findElement(By.cssSelector("tbody tr[data-delta='0']"));
+        String otpText = activeRow
+                .findElement(By.cssSelector(".result-preview__cell--otp"))
+                .getText()
+                .replace(" ", "");
         assertThat(otpText).isNotBlank().matches("\\d{4,10}");
     }
 
@@ -465,8 +473,13 @@ final class OperatorConsoleSeleniumTest {
                         By.cssSelector("[data-testid='ocra-result-panel']")));
         assertThat(resultPanel.getAttribute("hidden")).isNull();
 
-        WebElement otpElement = resultPanel.findElement(By.cssSelector("[data-testid='ocra-otp']"));
-        assertThat(otpElement.getText()).contains(QA_SAMPLE.getExpectedOtp());
+        WebElement previewTable = resultPanel.findElement(By.cssSelector("[data-testid='ocra-preview-table']"));
+        WebElement activeRow = previewTable.findElement(By.cssSelector("tbody tr[data-delta='0']"));
+        String previewOtp = activeRow
+                .findElement(By.cssSelector(".result-preview__cell--otp"))
+                .getText()
+                .replace(" ", "");
+        assertThat(previewOtp).isEqualTo(QA_SAMPLE.getExpectedOtp());
         WebElement metadata = resultPanel.findElement(By.cssSelector("[data-testid='ocra-telemetry-summary']"));
         WebElement statusBadge = metadata.findElement(By.cssSelector("[data-testid='ocra-status-value']"));
         assertStatusBadge(statusBadge);

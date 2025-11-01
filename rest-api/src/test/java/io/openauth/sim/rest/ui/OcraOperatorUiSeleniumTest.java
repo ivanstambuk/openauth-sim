@@ -197,8 +197,14 @@ final class OcraOperatorUiSeleniumTest {
                 tracePanel.getAttribute("data-trace-visible"),
                 "Trace panel should report visible state after verbose evaluation");
 
-        WebElement otpValue = waitFor(By.cssSelector("[data-testid='ocra-otp-value']"));
-        assertEquals(EXPECTED_OTP, otpValue.getText().trim(), "Result panel should surface the evaluated OTP");
+        WebElement resultPanel = waitFor(By.cssSelector("[data-testid='ocra-result-panel']"));
+        WebElement previewTable = resultPanel.findElement(By.cssSelector("[data-testid='ocra-preview-table']"));
+        WebElement activeRow = previewTable.findElement(By.cssSelector("tbody tr[data-delta='0']"));
+        String otpText = activeRow
+                .findElement(By.cssSelector(".result-preview__cell--otp"))
+                .getText()
+                .replace(" ", "");
+        assertEquals(EXPECTED_OTP, otpText, "Result preview table should surface the evaluated OTP");
     }
 
     @Test

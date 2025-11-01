@@ -37,7 +37,7 @@ final class HotpEvaluationApplicationServiceVerboseTraceTest {
         SecretMaterial secret = SecretMaterial.fromHex("3132333435363738393031323334353637383930");
         credentialStore.save(Credential.create("otp-001", CredentialType.OATH_HOTP, secret, attributes(7L)));
 
-        var command = new HotpEvaluationApplicationService.EvaluationCommand.Stored("otp-001");
+        var command = new HotpEvaluationApplicationService.EvaluationCommand.Stored("otp-001", 1, 1);
 
         var verboseResult = service.evaluate(command, true);
         assertTrue(verboseResult.verboseTrace().isPresent(), "expected verbose trace when enabled");
@@ -122,7 +122,7 @@ final class HotpEvaluationApplicationServiceVerboseTraceTest {
     @Test
     void verboseDisabledLeavesTraceEmpty() {
         var command = new HotpEvaluationApplicationService.EvaluationCommand.Inline(
-                "3132333435363738393031323334353637383930", HotpHashAlgorithm.SHA1, 6, 1L, Map.of());
+                "3132333435363738393031323334353637383930", HotpHashAlgorithm.SHA1, 6, 1L, Map.of(), 0, 0);
 
         var result = service.evaluate(command, false);
         assertTrue(result.verboseTrace().isEmpty(), "trace should be absent when verbose flag is disabled");

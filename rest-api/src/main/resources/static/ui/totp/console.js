@@ -73,13 +73,18 @@
   var storedStatusBadge = storedResultPanel
     ? storedResultPanel.querySelector('[data-testid="totp-result-status"]')
     : null;
-  var storedOtpValue = storedResultPanel
-    ? storedResultPanel.querySelector('[data-testid="totp-result-otp"]')
+  var storedPreviewContainer = storedResultPanel
+    ? storedResultPanel.querySelector('[data-result-preview]')
+    : null;
+  var storedPreviewBody = storedResultPanel
+    ? storedResultPanel.querySelector('[data-result-preview-body]')
     : null;
   var storedTimestampInput = totpPanel.querySelector('#totpStoredTimestamp');
   var storedTimestampToggle = totpPanel.querySelector('[data-testid="totp-stored-timestamp-toggle"]');
   var storedTimestampResetButton =
       totpPanel.querySelector('[data-testid="totp-stored-timestamp-reset"]');
+  var storedWindowBackwardInput = totpPanel.querySelector('#totpStoredWindowBackward');
+  var storedWindowForwardInput = totpPanel.querySelector('#totpStoredWindowForward');
 
   var seedDefinitionsPayload = [];
   if (seedDefinitionNode && seedDefinitionNode.textContent) {
@@ -110,8 +115,11 @@
   var inlineStatusBadge = inlineResultPanel
     ? inlineResultPanel.querySelector('[data-testid="totp-inline-result-status"]')
     : null;
-  var inlineOtpValue = inlineResultPanel
-    ? inlineResultPanel.querySelector('[data-testid="totp-result-otp"]')
+  var inlinePreviewContainer = inlineResultPanel
+    ? inlineResultPanel.querySelector('[data-result-preview]')
+    : null;
+  var inlinePreviewBody = inlineResultPanel
+    ? inlineResultPanel.querySelector('[data-result-preview-body]')
     : null;
 
   var inlinePresetContainer = totpPanel.querySelector('[data-testid="totp-inline-preset"]');
@@ -186,8 +194,8 @@
   var inlineTimestampToggle = totpPanel.querySelector('[data-testid="totp-inline-timestamp-toggle"]');
   var inlineTimestampResetButton =
       totpPanel.querySelector('[data-testid="totp-inline-timestamp-reset"]');
-  var inlineDriftBackwardInput = totpPanel.querySelector('#totpInlineDriftBackward');
-  var inlineDriftForwardInput = totpPanel.querySelector('#totpInlineDriftForward');
+  var inlineWindowBackwardInput = totpPanel.querySelector('#totpInlineWindowBackward');
+  var inlineWindowForwardInput = totpPanel.querySelector('#totpInlineWindowForward');
 
   var replayModeToggle = totpPanel.querySelector('[data-testid="totp-replay-mode-toggle"]');
   var replayStoredRadio = totpPanel.querySelector('[data-testid="totp-replay-mode-select-stored"]');
@@ -383,6 +391,109 @@
     node.textContent = value == null ? '—' : String(value);
   }
 
+  function normalisePreviewValue(value) {
+    if (value == null) {
+      return '—';
+    }
+    var text = String(value).trim();
+    return text.length ? text : '—';
+  }
+
+  function normaliseDelta(value) {
+    if (typeof value === 'number' && isFinite(value)) {
+      return value;
+    }
+    var parsed = parseInt(typeof value === 'string' ? value : '', 10);
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  function formatDeltaLabel(delta) {
+    var normalized = normaliseDelta(delta);
+    if (normalized == null) {
+      return 'Delta unavailable';
+    }
+    if (normalized === 0) {
+      return 'Delta zero';
+    }
+    if (normalized > 0) {
+      return 'Delta plus ' + normalized;
+    }
+    return 'Delta minus ' + Math.abs(normalized);
+  }
+
+  function formatDelta(delta) {
+    var normalized = normaliseDelta(delta);
+    if (normalized == null) {
+      return '—';
+    }
+    if (normalized > 0) {
+      return '+' + normalized;
+    }
+    return String(normalized);
+  }
+
+  function clearPreview(previewContainer, previewBody) {
+    if (previewBody) {
+      while (previewBody.firstChild) {
+        previewBody.removeChild(previewBody.firstChild);
+      }
+    }
+    if (previewContainer) {
+      previewContainer.setAttribute('hidden', 'hidden');
+      previewContainer.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function renderPreview(previewContainer, previewBody, previews, fallback) {
+    if (!previewBody || !previewContainer) {
+      return;
+    }
+    clearPreview(previewContainer, previewBody);
+    var entries = Array.isArray(previews) ? previews.slice() : [];
+    if (!entries.length && fallback) {
+      entries.push({
+        counter: fallback.counter || null,
+        delta: 0,
+        otp: fallback.otp || null,
+      });
+    }
+    entries.forEach(function (entry) {
+      var row = documentRef.createElement('tr');
+      row.className = 'result-preview__row';
+      var deltaValue = normaliseDelta(entry && entry.delta != null ? entry.delta : 0);
+      if (deltaValue === 0) {
+        row.classList.add('result-preview__row--active');
+      }
+      if (deltaValue != null) {
+        row.setAttribute('data-delta', String(deltaValue));
+      }
+
+      var counterCell = documentRef.createElement('th');
+      counterCell.scope = 'row';
+      counterCell.className = 'result-preview__cell result-preview__cell--counter';
+      counterCell.textContent = normalisePreviewValue(entry && entry.counter);
+      row.appendChild(counterCell);
+
+      var deltaCell = documentRef.createElement('td');
+      deltaCell.className = 'result-preview__cell result-preview__cell--delta';
+      var displayDelta = formatDelta(deltaValue);
+      deltaCell.textContent = displayDelta;
+      deltaCell.setAttribute('aria-label', formatDeltaLabel(deltaValue));
+      row.appendChild(deltaCell);
+
+      var otpCell = documentRef.createElement('td');
+      otpCell.className = 'result-preview__cell result-preview__cell--otp';
+      otpCell.textContent = normalisePreviewValue(entry && entry.otp);
+      row.appendChild(otpCell);
+
+      previewBody.appendChild(row);
+    });
+    if (entries.length > 0) {
+      previewContainer.removeAttribute('hidden');
+      previewContainer.setAttribute('aria-hidden', 'false');
+    }
+  }
+
   function setPresetApplied(container, key) {
     if (!container) {
       return;
@@ -447,17 +558,23 @@
     if (inlineTimestampOverrideInput) {
       inlineTimestampOverrideInput.value = '';
     }
-    if (inlineDriftBackwardInput) {
-      inlineDriftBackwardInput.value =
-          typeof preset.driftBackwardSteps === 'number'
-              ? String(preset.driftBackwardSteps)
-              : '';
+    if (inlineWindowBackwardInput) {
+      var presetBackward =
+          typeof preset.previewBackwardSteps === 'number'
+              ? preset.previewBackwardSteps
+              : typeof preset.driftBackwardSteps === 'number'
+                  ? preset.driftBackwardSteps
+                  : 0;
+      inlineWindowBackwardInput.value = String(Math.max(0, presetBackward));
     }
-    if (inlineDriftForwardInput) {
-      inlineDriftForwardInput.value =
-          typeof preset.driftForwardSteps === 'number'
-              ? String(preset.driftForwardSteps)
-              : '';
+    if (inlineWindowForwardInput) {
+      var presetForward =
+          typeof preset.previewForwardSteps === 'number'
+              ? preset.previewForwardSteps
+              : typeof preset.driftForwardSteps === 'number'
+                  ? preset.driftForwardSteps
+                  : 0;
+      inlineWindowForwardInput.value = String(Math.max(0, presetForward));
     }
     setInlinePresetTracking(presetKey, preset.label || preset.key || presetKey);
     clearInlinePanels();
@@ -1367,11 +1484,13 @@
 
   function clearStoredPanels() {
     resetResultCard(storedResultPanel);
+    clearPreview(storedPreviewContainer, storedPreviewBody);
     setHidden(storedResultPanel, true);
   }
 
   function clearInlinePanels() {
     resetResultCard(inlineResultPanel);
+    clearPreview(inlinePreviewContainer, inlinePreviewBody);
     setHidden(inlineResultPanel, true);
   }
 
@@ -1443,7 +1562,11 @@
     var metadata = response.metadata || {};
     setStatusBadge(storedStatusBadge, response.status || response.reasonCode);
     var generatedOtp = typeof response.otp === 'string' ? response.otp : '';
-    writeText(storedOtpValue, generatedOtp || metadata.otp || '—');
+    renderPreview(
+        storedPreviewContainer,
+        storedPreviewBody,
+        response.previews,
+        { otp: generatedOtp || metadata.otp || '—' });
     resetResultCard(storedResultPanel);
     setHidden(storedResultPanel, false);
   }
@@ -1465,7 +1588,6 @@
       message = 'Evaluation failed with status ' + error.status + '.';
     }
     setStatusBadge(storedStatusBadge, 'error');
-    writeText(storedOtpValue, '—');
     showResultError(storedResultPanel, message, 'Reason: ' + reason);
   }
 
@@ -1479,7 +1601,11 @@
     verboseApplyResponse(response, 'success');
     setStatusBadge(inlineStatusBadge, response.status || response.reasonCode);
     var generatedOtp = typeof response.otp === 'string' ? response.otp : '';
-    writeText(inlineOtpValue, generatedOtp || (response.metadata && response.metadata.otp));
+    renderPreview(
+        inlinePreviewContainer,
+        inlinePreviewBody,
+        response.previews,
+        { otp: generatedOtp || (response.metadata && response.metadata.otp) });
     resetResultCard(inlineResultPanel);
     setHidden(inlineResultPanel, false);
   }
@@ -1501,7 +1627,6 @@
       message = 'Inline evaluation failed with status ' + error.status + '.';
     }
     setStatusBadge(inlineStatusBadge, 'error');
-    writeText(inlineOtpValue, '—');
     showResultError(inlineResultPanel, message, 'Reason: ' + reason);
   }
 
@@ -1549,6 +1674,27 @@
     showResultError(replayResultPanel, message, 'Reason: ' + reason);
   }
 
+  function attachPreviewWindow(payload, backwardValue, forwardValue) {
+    if (!payload || typeof payload !== 'object') {
+      return;
+    }
+    var backward = toInteger(backwardValue);
+    var forward = toInteger(forwardValue);
+    var window = {};
+    var hasWindow = false;
+    if (typeof backward === 'number') {
+      window.backward = backward;
+      hasWindow = true;
+    }
+    if (typeof forward === 'number') {
+      window.forward = forward;
+      hasWindow = true;
+    }
+    if (hasWindow) {
+      payload.window = window;
+    }
+  }
+
   function evaluateStored() {
     if (!storedForm || !storedButton) {
       return;
@@ -1559,20 +1705,14 @@
     };
     var timestamp = toInteger(valueOf('#totpStoredTimestamp'));
     var timestampOverride = toInteger(valueOf('#totpStoredTimestampOverride'));
-    var driftBackward = toInteger(valueOf('#totpStoredDriftBackward'));
-    var driftForward = toInteger(valueOf('#totpStoredDriftForward'));
     if (timestamp != null) {
       payload.timestamp = timestamp;
     }
     if (timestampOverride != null) {
       payload.timestampOverride = timestampOverride;
     }
-    if (driftBackward != null) {
-      payload.driftBackward = driftBackward;
-    }
-    if (driftForward != null) {
-      payload.driftForward = driftForward;
-    }
+    attachPreviewWindow(
+        payload, valueOf('#totpStoredWindowBackward'), valueOf('#totpStoredWindowForward'));
     payload = verboseAttach(payload);
     storedButton.setAttribute('disabled', 'disabled');
     clearStoredPanels();
@@ -1614,8 +1754,6 @@
     }
     var digits = toInteger(valueOf('#totpInlineDigits'));
     var stepSeconds = toInteger(valueOf('#totpInlineStepSeconds'));
-    var driftBackward = toInteger(valueOf('#totpInlineDriftBackward'));
-    var driftForward = toInteger(valueOf('#totpInlineDriftForward'));
     var timestamp = toInteger(valueOf('#totpInlineTimestamp'));
     var timestampOverride = toInteger(valueOf('#totpInlineTimestampOverride'));
     if (digits != null) {
@@ -1624,12 +1762,8 @@
     if (stepSeconds != null) {
       payload.stepSeconds = stepSeconds;
     }
-    if (driftBackward != null) {
-      payload.driftBackward = driftBackward;
-    }
-    if (driftForward != null) {
-      payload.driftForward = driftForward;
-    }
+    attachPreviewWindow(
+        payload, valueOf('#totpInlineWindowBackward'), valueOf('#totpInlineWindowForward'));
     if (timestamp != null) {
       payload.timestamp = timestamp;
     }

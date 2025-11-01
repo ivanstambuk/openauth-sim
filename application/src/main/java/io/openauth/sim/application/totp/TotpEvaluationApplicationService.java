@@ -1,5 +1,6 @@
 package io.openauth.sim.application.totp;
 
+import io.openauth.sim.application.preview.OtpPreview;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.model.Credential;
@@ -21,7 +22,10 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -151,6 +155,7 @@ public final class TotpEvaluationApplicationService {
             TotpComputation computation =
                     computeTotp(descriptor, descriptor.secret().value(), counter.counter());
             appendTotpSteps(trace, descriptor, counter, descriptor.driftWindow(), computation);
+            List<OtpPreview> previews = buildPreview(descriptor, command.driftWindow(), counter.counter());
             return successResult(
                     true,
                     command.credentialId(),
@@ -162,6 +167,7 @@ public final class TotpEvaluationApplicationService {
                     command.timestampOverride().isPresent(),
                     "generated",
                     computation.otp(),
+                    previews,
                     buildTrace(trace));
         }
 
@@ -202,6 +208,7 @@ public final class TotpEvaluationApplicationService {
                     .attribute(VerboseTrace.AttributeType.STRING, "evaluationInstant", evaluationInstant.toString())
                     .attribute(VerboseTrace.AttributeType.BOOL, "valid", true)
                     .attribute(VerboseTrace.AttributeType.INT, "matchedSkewSteps", verification.matchedSkewSteps()));
+            List<OtpPreview> previews = buildPreview(descriptor, command.driftWindow(), validationCounter.counter());
             return successResult(
                     true,
                     command.credentialId(),
@@ -213,6 +220,7 @@ public final class TotpEvaluationApplicationService {
                     command.timestampOverride().isPresent(),
                     "validated",
                     null,
+                    previews,
                     buildTrace(trace));
         }
 
@@ -318,6 +326,7 @@ public final class TotpEvaluationApplicationService {
             TotpComputation computation =
                     computeTotp(descriptor, descriptor.secret().value(), counter.counter());
             appendTotpSteps(trace, descriptor, counter, descriptor.driftWindow(), computation);
+            List<OtpPreview> previews = buildPreview(descriptor, command.driftWindow(), counter.counter());
             return successResult(
                     false,
                     null,
@@ -329,6 +338,7 @@ public final class TotpEvaluationApplicationService {
                     command.timestampOverride().isPresent(),
                     "generated",
                     computation.otp(),
+                    previews,
                     buildTrace(trace));
         }
 
@@ -369,6 +379,7 @@ public final class TotpEvaluationApplicationService {
                     .attribute(VerboseTrace.AttributeType.STRING, "evaluationInstant", evaluationInstant.toString())
                     .attribute(VerboseTrace.AttributeType.BOOL, "valid", true)
                     .attribute(VerboseTrace.AttributeType.INT, "matchedSkewSteps", verification.matchedSkewSteps()));
+            List<OtpPreview> previews = buildPreview(descriptor, command.driftWindow(), inlineCounter.counter());
             return successResult(
                     false,
                     null,
@@ -380,6 +391,7 @@ public final class TotpEvaluationApplicationService {
                     command.timestampOverride().isPresent(),
                     "validated",
                     null,
+                    previews,
                     buildTrace(trace));
         }
 
@@ -431,6 +443,7 @@ public final class TotpEvaluationApplicationService {
             boolean timestampOverrideProvided,
             String reasonCode,
             String otp,
+            List<OtpPreview> previews,
             VerboseTrace trace) {
 
         Map<String, Object> fields = telemetryFields(
@@ -456,6 +469,7 @@ public final class TotpEvaluationApplicationService {
                 stepDuration,
                 driftWindow,
                 otp,
+                List.copyOf(previews),
                 trace);
     }
 
@@ -495,6 +509,7 @@ public final class TotpEvaluationApplicationService {
                 stepDuration,
                 driftWindow,
                 null,
+                List.of(),
                 trace);
     }
 
@@ -664,6 +679,25 @@ public final class TotpEvaluationApplicationService {
                 .attribute(VerboseTrace.AttributeType.STRING, "otp", computation.otp()));
     }
 
+    private static List<OtpPreview> buildPreview(TotpDescriptor descriptor, TotpDriftWindow window, long baseCounter) {
+        if (descriptor == null || window == null) {
+            return List.of();
+        }
+        List<OtpPreview> previews = new ArrayList<>();
+        for (int delta = -window.backwardSteps(); delta <= window.forwardSteps(); delta++) {
+            long candidate = baseCounter + delta;
+            if (candidate < 0) {
+                continue;
+            }
+            String otp = generateTotpForOffset(descriptor, baseCounter, delta);
+            if (otp == null) {
+                continue;
+            }
+            previews.add(OtpPreview.forCounter(formatCounter(candidate), delta, otp));
+        }
+        return previews.isEmpty() ? List.of() : List.copyOf(previews);
+    }
+
     private static String generateTotpForOffset(TotpDescriptor descriptor, long counter, int offset) {
         long candidate = counter + offset;
         if (candidate < 0) {
@@ -672,6 +706,10 @@ public final class TotpEvaluationApplicationService {
         long stepSeconds = descriptor.stepSeconds();
         Instant instant = Instant.ofEpochSecond(candidate * stepSeconds);
         return TotpGenerator.generate(descriptor, instant);
+    }
+
+    private static String formatCounter(long counter) {
+        return String.format(Locale.ROOT, "%06d", counter);
     }
 
     private static byte[] longToBytes(long value) {
@@ -794,6 +832,7 @@ public final class TotpEvaluationApplicationService {
             Duration stepDuration,
             TotpDriftWindow driftWindow,
             String otp,
+            List<OtpPreview> previews,
             VerboseTrace trace) {
 
         public TelemetryFrame evaluationFrame(String telemetryId) {

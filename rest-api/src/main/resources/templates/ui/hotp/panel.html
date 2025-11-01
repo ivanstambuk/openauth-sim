@@ -230,6 +230,47 @@
                     </div>
                   </div>
 
+                  <p class="field-legend" id="hotpInlineWindowLegend">
+                    Preview window offsets
+                  </p>
+                  <div
+                      class="field-grid preview-offset-grid"
+                      aria-labelledby="hotpInlineWindowLegend"
+                      data-testid="hotp-inline-window-grid"
+                    >
+                    <div class="field-group">
+                      <label for="hotpInlineWindowBackward">Backward steps</label>
+                      <input
+                        id="hotpInlineWindowBackward"
+                        name="windowBackward"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="0"
+                        aria-describedby="hotpInlineWindowHint"
+                        data-testid="hotp-inline-window-backward"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="hotpInlineWindowForward">Forward steps</label>
+                      <input
+                        id="hotpInlineWindowForward"
+                        name="windowForward"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="0"
+                        aria-describedby="hotpInlineWindowHint"
+                        data-testid="hotp-inline-window-forward"
+                      />
+                    </div>
+                  </div>
+                  <p class="hint" id="hotpInlineWindowHint">
+                    Show nearby OTPs around the evaluated counter value.
+                  </p>
+
                   <button
                     type="button"
                     class="button-primary"
@@ -307,6 +348,46 @@
                       </p>
                     </div>
                   </div>
+                  <p class="field-legend" id="hotpStoredWindowLegend">
+                    Preview window offsets
+                  </p>
+                  <div
+                      class="field-grid preview-offset-grid"
+                      aria-labelledby="hotpStoredWindowLegend"
+                      data-testid="hotp-stored-window-grid"
+                    >
+                    <div class="field-group">
+                      <label for="hotpStoredWindowBackward">Backward steps</label>
+                      <input
+                        id="hotpStoredWindowBackward"
+                        name="windowBackward"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="0"
+                        aria-describedby="hotpStoredWindowHint"
+                        data-testid="hotp-stored-window-backward"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label for="hotpStoredWindowForward">Forward steps</label>
+                      <input
+                        id="hotpStoredWindowForward"
+                        name="windowForward"
+                        type="number"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        value="0"
+                        aria-describedby="hotpStoredWindowHint"
+                        data-testid="hotp-stored-window-forward"
+                      />
+                    </div>
+                  </div>
+                  <p class="hint" id="hotpStoredWindowHint">
+                    Choose how many counters on either side appear in the preview table.
+                  </p>
                   <button
                     type="button"
                     class="button-primary"
@@ -328,10 +409,30 @@
                 <h3 id="hotp-inline-result-heading" data-testid="hotp-result-heading">
                   Evaluation result
                 </h3>
-                <p class="result-inline" data-testid="hotp-inline-otp-row">
-                  OTP:
-                  <strong data-testid="hotp-result-otp">—</strong>
-                </p>
+                <div
+                    class="result-preview"
+                    data-result-preview
+                    data-preview-accent="hotp"
+                    data-testid="hotp-inline-preview"
+                    hidden="hidden"
+                    aria-hidden="true"
+                  >
+                  <table class="result-preview__table" data-testid="hotp-inline-preview-table">
+                    <caption class="visually-hidden">
+                      Preview of neighbouring OTP values around the evaluated counter.
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" class="result-preview__heading result-preview__heading--counter">Counter</th>
+                        <th scope="col" class="result-preview__heading result-preview__heading--delta">
+                          <abbr title="Delta">Δ</abbr>
+                        </th>
+                        <th scope="col" class="result-preview__heading result-preview__heading--otp">OTP</th>
+                      </tr>
+                    </thead>
+                    <tbody data-result-preview-body data-testid="hotp-inline-preview-body"></tbody>
+                  </table>
+                </div>
                 <dl class="result-metadata">
                   <div class="result-row">
                     <dt>Status</dt>
@@ -361,10 +462,30 @@
                   hidden="hidden"
                 >
                 <h3 id="hotp-stored-result-heading">Evaluation result</h3>
-                <p class="result-inline" data-testid="hotp-stored-otp-row">
-                  OTP:
-                  <strong data-testid="hotp-result-otp">—</strong>
-                </p>
+                <div
+                    class="result-preview"
+                    data-result-preview
+                    data-preview-accent="hotp"
+                    data-testid="hotp-stored-preview"
+                    hidden="hidden"
+                    aria-hidden="true"
+                  >
+                  <table class="result-preview__table" data-testid="hotp-stored-preview-table">
+                    <caption class="visually-hidden">
+                      Preview of neighbouring OTP values around the evaluated counter.
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" class="result-preview__heading result-preview__heading--counter">Counter</th>
+                        <th scope="col" class="result-preview__heading result-preview__heading--delta">
+                          <abbr title="Delta">Δ</abbr>
+                        </th>
+                        <th scope="col" class="result-preview__heading result-preview__heading--otp">OTP</th>
+                      </tr>
+                    </thead>
+                    <tbody data-result-preview-body data-testid="hotp-stored-preview-body"></tbody>
+                  </table>
+                </div>
                 <dl class="result-metadata">
                   <div class="result-row">
                     <dt>Status</dt>

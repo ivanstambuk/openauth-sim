@@ -6,7 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.rest.EvaluationWindowRequest;
+import io.openauth.sim.rest.OtpPreviewResponse;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,6 +31,7 @@ final class OcraEvaluationDtoTest {
                 "   ",
                 "  0000000F  ",
                 42L,
+                new EvaluationWindowRequest(2, 3),
                 null);
 
         assertEquals("credential-123", request.credentialId());
@@ -45,14 +49,19 @@ final class OcraEvaluationDtoTest {
     @Test
     @DisplayName("OcraEvaluationResponse trims optional fields while preserving null values")
     void responseTrimsOptionalFields() {
-        OcraEvaluationResponse response =
-                new OcraEvaluationResponse("  OCRA-1:HOTP-SHA1-6:QA08  ", " 012345  ", null, null);
+        OcraEvaluationResponse response = new OcraEvaluationResponse(
+                "  OCRA-1:HOTP-SHA1-6:QA08  ",
+                " 012345  ",
+                null,
+                List.of(new OtpPreviewResponse("000001", -1, "111111"), new OtpPreviewResponse("000002", 0, "012345")),
+                null);
 
         assertEquals("OCRA-1:HOTP-SHA1-6:QA08", response.suite());
         assertEquals("012345", response.otp());
         assertNull(response.telemetryId());
 
-        OcraEvaluationResponse nullResponse = new OcraEvaluationResponse(null, null, "  telemetry-001  ", null);
+        OcraEvaluationResponse nullResponse = new OcraEvaluationResponse(
+                null, null, "  telemetry-001  ", List.of(new OtpPreviewResponse("000003", 0, "000000")), null);
 
         assertNull(nullResponse.suite());
         assertNull(nullResponse.otp());

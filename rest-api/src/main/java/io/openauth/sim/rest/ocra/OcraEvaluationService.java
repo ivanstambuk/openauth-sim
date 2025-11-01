@@ -9,10 +9,13 @@ import io.openauth.sim.application.ocra.OcraEvaluationRequests;
 import io.openauth.sim.application.ocra.OcraInlineIdentifiers;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.rest.EvaluationWindowRequest;
+import io.openauth.sim.rest.OtpPreviewResponse;
 import io.openauth.sim.rest.VerboseTracePayload;
 import io.openauth.sim.rest.support.InlineSecretInput;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -68,7 +71,10 @@ class OcraEvaluationService {
 
             VerboseTracePayload tracePayload =
                     result.verboseTrace().map(VerboseTracePayload::from).orElse(null);
-            return new OcraEvaluationResponse(result.suite(), result.otp(), telemetryId, tracePayload);
+            List<OtpPreviewResponse> previews = result.previews().stream()
+                    .map(entry -> new OtpPreviewResponse(entry.counter(), entry.delta(), entry.otp()))
+                    .toList();
+            return new OcraEvaluationResponse(result.suite(), result.otp(), telemetryId, previews, tracePayload);
         } catch (EvaluationValidationException ex) {
             long durationMillis = toMillis(started);
             FailureDetails failure = FailureDetails.from(ex);
@@ -308,6 +314,9 @@ class OcraEvaluationService {
             }
 
             if (hasCredential) {
+                EvaluationWindowRequest window = request.window();
+                int windowBackward = window != null ? window.backwardOrDefault(0) : 0;
+                int windowForward = window != null ? window.forwardOrDefault(0) : 0;
                 EvaluationCommand command = OcraEvaluationRequests.stored(new OcraEvaluationRequests.StoredInputs(
                         request.credentialId(),
                         request.challenge(),
@@ -316,7 +325,9 @@ class OcraEvaluationService {
                         request.serverChallenge(),
                         request.pinHashHex(),
                         request.timestampHex(),
-                        request.counter()));
+                        request.counter(),
+                        windowBackward,
+                        windowForward));
                 NormalizedRequest normalized = OcraEvaluationApplicationService.NormalizedRequest.from(command);
                 return new CommandEnvelope(command, normalized, true, request.suite());
             }
@@ -340,6 +351,9 @@ class OcraEvaluationService {
                     message -> new ValidationError("sharedSecretBase32", "shared_secret_base32_invalid", message));
 
             String identifier = inlineIdentifier(suite, secretHex);
+            EvaluationWindowRequest window = request.window();
+            int windowBackward = window != null ? window.backwardOrDefault(0) : 0;
+            int windowForward = window != null ? window.forwardOrDefault(0) : 0;
             EvaluationCommand command = OcraEvaluationRequests.inline(new OcraEvaluationRequests.InlineInputs(
                     identifier,
                     suite,
@@ -351,7 +365,9 @@ class OcraEvaluationService {
                     request.pinHashHex(),
                     request.timestampHex(),
                     request.counter(),
-                    null));
+                    null,
+                    windowBackward,
+                    windowForward));
             NormalizedRequest normalized = OcraEvaluationApplicationService.NormalizedRequest.from(command);
             return new CommandEnvelope(command, normalized, false, suite);
         }

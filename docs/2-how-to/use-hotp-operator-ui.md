@@ -1,7 +1,7 @@
 # Use the HOTP Operator UI
 
 _Status: Draft_
-_Last updated: 2025-10-31_
+_Last updated: 2025-11-01_
 
 The operator console embedded in the REST API now provides HOTP evaluation and replay tooling alongside the existing OCRA flows. This guide walks through evaluating stored credentials, running inline checks, replaying observed OTPs without mutating counters, and interpreting telemetry identifiers.
 
@@ -29,13 +29,13 @@ The operator console embedded in the REST API now provides HOTP evaluation and r
 ## Evaluate a Stored HOTP Credential
 1. Open `http://localhost:8080/ui/console?protocol=hotp` and select the **HOTP** tab if it is not already active.
 2. The console fetches stored HOTP credentials from `/api/v1/hotp/credentials`. Choose an entry from the **Credential** dropdown; labels include hash algorithm and digit length for quick reference.
-3. Select **Evaluate stored credential** to generate the next OTP without providing any additional input. The UI renders the generated OTP, counter progression, algorithm, and telemetry identifier in the result panel.
-4. Validation errors (counter overflow, missing credential) appear in the error panel with sanitized messaging; counters are not mutated when evaluation fails.
+3. Adjust the **Preview window offsets** (backward/forward) to determine how many counters around the active value should appear in the preview table. Leave both fields at `0` for the single Δ = 0 entry or expand the window to surface neighbouring OTPs for comparison.
+4. Select **Evaluate stored credential** to generate the next OTP set. The result panel renders a three-column table (`Counter`, `Δ`, `OTP`) with the Δ = 0 row bolded and accented in the HOTP palette, alongside the status badge and telemetry identifier. Validation errors (counter overflow, missing credential) appear in the error panel with sanitized messaging; counters are not mutated when evaluation fails.
 
 ## Run Inline HOTP Checks
-1. Switch the evaluation mode toggle to **Inline parameters**; the inline form appears immediately. Use **Load a sample vector** to populate curated data—`SHA-1, 6 digits (RFC 4226)` mirrors the reference vector, while the remaining presets cover SHA-1/8 digits, SHA-256 (6 and 8 digits), and SHA-512 (6 and 8 digits). Each inline preset now has an identically configured stored credential seeded from the previous step so you can compare stored and inline flows side-by-side. You can still provide your own secret, algorithm, digit length, and counter manually. The shared-secret row now exposes both a **Base32** and **Hex** input; paste either encoding and the UI automatically synchronises the companion field (Base32 ⇄ hex) so REST requests always receive the canonical hexadecimal payload.
-2. Choose **Evaluate inline parameters** to call `/api/v1/hotp/evaluate/inline` without mutating stored credentials. The response contains the generated OTP, the previous/next counter values, and telemetry metadata. Supplying both encodings is rejected with the same `shared_secret_conflict` validation response used by the REST endpoint, keeping UI feedback aligned with the contract.
-3. Inline evaluation metadata now includes the selected preset key/label when you launch the request from a sample vector, making it easier to trace automated drills in downstream logs.
+1. Switch the evaluation mode toggle to **Inline parameters**; the inline form appears immediately. Use **Load a sample vector** to populate curated data—`SHA-1, 6 digits (RFC 4226)` mirrors the reference vector, while the remaining presets cover SHA-1/8 digits, SHA-256 (6 and 8 digits), and SHA-512 (6 and 8 digits). Each inline preset has an identically configured stored credential seeded from the previous step so you can compare stored and inline flows side-by-side. You can still supply your own identifier, counter, shared secret, algorithm, and digit length manually. The shared-secret row exposes both **Base32** and **Hex** inputs; paste either encoding and the UI automatically synchronises the companion field (Base32 ⇄ hex) so REST requests always receive the canonical hexadecimal payload.
+2. Configure the counter value, optional metadata, and **Preview window offsets** to control how many neighbouring OTPs will display in the result. Supplying both secret encodings is rejected with the `shared_secret_conflict` validation response used by the REST endpoint, keeping UI feedback aligned with the contract.
+3. Choose **Evaluate inline parameters** to call `/api/v1/hotp/evaluate/inline` without mutating stored credentials. The result card renders the preview table (with Δ = 0 highlighted) plus the status badge and telemetry metadata, and inline evaluations continue to report the preset key/label when you launch the request from a sample vector.
 
 ## Replay Observed HOTP OTPs
 1. Activate the **Replay** pill within the HOTP tab to load the replay form. The console defaults to **Stored** mode and surfaces a CSRF-aware form bound to `/api/v1/hotp/replay`.

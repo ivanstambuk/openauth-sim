@@ -55,6 +55,12 @@ var inlineForm = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-stored-status"]')
     : null;
   var storedSelect = hotpPanel ? hotpPanel.querySelector('#hotpStoredCredentialId') : null;
+  var storedWindowBackwardInput = hotpPanel
+    ? hotpPanel.querySelector('#hotpStoredWindowBackward')
+    : null;
+  var storedWindowForwardInput = hotpPanel
+    ? hotpPanel.querySelector('#hotpStoredWindowForward')
+    : null;
   var inlineSecretField = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-inline-shared-secret"]')
     : null;
@@ -66,6 +72,12 @@ var inlineForm = hotpPanel
     : null;
   var inlineDigitsInput = hotpPanel ? hotpPanel.querySelector('#hotpInlineDigits') : null;
   var inlineCounterInput = hotpPanel ? hotpPanel.querySelector('#hotpInlineCounter') : null;
+  var inlineWindowBackwardInput = hotpPanel
+    ? hotpPanel.querySelector('#hotpInlineWindowBackward')
+    : null;
+  var inlineWindowForwardInput = hotpPanel
+    ? hotpPanel.querySelector('#hotpInlineWindowForward')
+    : null;
   var storedButton = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-stored-evaluate-button"]')
     : null;
@@ -716,11 +728,159 @@ var inlineForm = hotpPanel
     statusNode.textContent = label;
   }
 
+  function normalisePreviewValue(value) {
+    if (value == null) {
+      return '—';
+    }
+    var text = String(value).trim();
+    return text.length ? text : '—';
+  }
+
+  function normaliseDelta(value) {
+    if (typeof value === 'number' && isFinite(value)) {
+      return value;
+    }
+    var parsed = parseInt(typeof value === 'string' ? value : '', 10);
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  function formatDelta(delta) {
+    var normalized = normaliseDelta(delta);
+    if (normalized == null) {
+      return '—';
+    }
+    if (normalized > 0) {
+      return '+' + normalized;
+    }
+    return String(normalized);
+  }
+
+  function formatDeltaLabel(delta) {
+    var normalized = normaliseDelta(delta);
+    if (normalized == null) {
+      return 'Delta unavailable';
+    }
+    if (normalized === 0) {
+      return 'Delta zero';
+    }
+    if (normalized > 0) {
+      return 'Delta plus ' + normalized;
+    }
+    return 'Delta minus ' + Math.abs(normalized);
+  }
+
+  function clearPreviewFor(panel) {
+    if (!panel) {
+      return;
+    }
+    var container = panel.querySelector('[data-result-preview]');
+    var body = container ? container.querySelector('[data-result-preview-body]') : null;
+    if (body) {
+      while (body.firstChild) {
+        body.removeChild(body.firstChild);
+      }
+    }
+    if (container) {
+      container.setAttribute('hidden', 'hidden');
+      container.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function renderPreviewFor(panel, previews, fallback) {
+    if (!panel) {
+      return;
+    }
+    var container = panel.querySelector('[data-result-preview]');
+    var body = container ? container.querySelector('[data-result-preview-body]') : null;
+    if (!container || !body) {
+      return;
+    }
+    while (body.firstChild) {
+      body.removeChild(body.firstChild);
+    }
+    var entries = Array.isArray(previews) ? previews.slice() : [];
+    if (!entries.length && fallback) {
+      entries.push({
+        counter: fallback.counter || null,
+        delta: 0,
+        otp: fallback.otp || null,
+      });
+    }
+    entries.forEach(function (entry) {
+      var row = documentRef.createElement('tr');
+      row.className = 'result-preview__row';
+      var deltaValue = normaliseDelta(entry && entry.delta != null ? entry.delta : 0);
+      if (deltaValue != null) {
+        row.setAttribute('data-delta', String(deltaValue));
+      }
+      if (deltaValue === 0) {
+        row.classList.add('result-preview__row--active');
+      }
+
+      var counterCell = documentRef.createElement('th');
+      counterCell.scope = 'row';
+      counterCell.className = 'result-preview__cell result-preview__cell--counter';
+      counterCell.textContent = normalisePreviewValue(entry && entry.counter);
+      row.appendChild(counterCell);
+
+      var deltaCell = documentRef.createElement('td');
+      deltaCell.className = 'result-preview__cell result-preview__cell--delta';
+      var displayDelta = formatDelta(deltaValue);
+      deltaCell.textContent = displayDelta;
+      deltaCell.setAttribute('aria-label', formatDeltaLabel(deltaValue));
+      row.appendChild(deltaCell);
+
+      var otpCell = documentRef.createElement('td');
+      otpCell.className = 'result-preview__cell result-preview__cell--otp';
+      otpCell.textContent = normalisePreviewValue(entry && entry.otp);
+      row.appendChild(otpCell);
+
+      body.appendChild(row);
+    });
+    if (entries.length > 0) {
+      container.removeAttribute('hidden');
+      container.setAttribute('aria-hidden', 'false');
+    } else {
+      container.setAttribute('hidden', 'hidden');
+      container.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function readWindowValue(input) {
+    if (!input || typeof input.value !== 'string') {
+      return null;
+    }
+    var parsed = parseInt(input.value, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      return null;
+    }
+    return parsed;
+  }
+
+  function attachPreviewWindow(payload, backwardInput, forwardInput) {
+    if (!payload || typeof payload !== 'object') {
+      return;
+    }
+    var windowPayload = {};
+    var backward = readWindowValue(backwardInput);
+    var forward = readWindowValue(forwardInput);
+    if (backward != null) {
+      windowPayload.backward = backward;
+    }
+    if (forward != null) {
+      windowPayload.forward = forward;
+    }
+    if (Object.keys(windowPayload).length > 0) {
+      payload.window = windowPayload;
+    }
+  }
+
   function renderResult(panel, payload) {
     if (!panel) {
       return;
     }
     resetResultCard(panel);
+    clearPreviewFor(panel);
     if (!payload) {
       verboseApplyResponse(null, 'info');
       return;
@@ -732,11 +892,6 @@ var inlineForm = hotpPanel
     var variant = resolveStatusVariant(status);
     verboseApplyResponse(payload, variant === 'error' ? 'error' : 'success');
     applyStatusBadge(panel.querySelector('[data-testid="hotp-result-status"]'), status);
-    var otpNode = panel.querySelector('[data-testid="hotp-result-otp"]');
-    if (otpNode) {
-      var normalizedOtp = otp && otp.trim().length > 0 ? otp.trim() : '—';
-      otpNode.textContent = normalizedOtp;
-    }
     var metadataNode = panel.querySelector('[data-testid="hotp-result-metadata"]');
     if (metadataNode) {
       metadataNode.textContent = formatMetadata(metadata);
@@ -745,10 +900,9 @@ var inlineForm = hotpPanel
       var label = normalizeStatusLabel(status);
       var hint = reason ? 'Reason: ' + reason : '';
       showResultError(panel, 'Evaluation returned status: ' + label + '.', hint);
-      if (otpNode) {
-        otpNode.textContent = '—';
-      }
+      clearPreviewFor(panel);
     } else {
+      renderPreviewFor(panel, payload && payload.previews, { otp: otp });
       setHidden(panel, false);
     }
   }
@@ -1088,6 +1242,24 @@ var inlineForm = hotpPanel
     if (inlineCounterInput && typeof preset.counter === 'number') {
       inlineCounterInput.value = String(preset.counter);
     }
+    if (inlineWindowBackwardInput) {
+      var backward =
+          typeof preset.previewBackwardSteps === 'number'
+              ? preset.previewBackwardSteps
+              : typeof preset.driftBackwardSteps === 'number'
+                  ? preset.driftBackwardSteps
+                  : 0;
+      inlineWindowBackwardInput.value = String(Math.max(0, backward));
+    }
+    if (inlineWindowForwardInput) {
+      var forward =
+          typeof preset.previewForwardSteps === 'number'
+              ? preset.previewForwardSteps
+              : typeof preset.driftForwardSteps === 'number'
+                  ? preset.driftForwardSteps
+                  : 0;
+      inlineWindowForwardInput.value = String(Math.max(0, forward));
+    }
     if (inlinePresetContainer) {
       inlinePresetContainer.setAttribute('data-preset-applied', presetKey);
     }
@@ -1225,10 +1397,7 @@ var inlineForm = hotpPanel
       return;
     }
     applyStatusBadge(storedResultPanel.querySelector('[data-testid="hotp-result-status"]'), 'error');
-    var otpNode = storedResultPanel.querySelector('[data-testid="hotp-result-otp"]');
-    if (otpNode) {
-      otpNode.textContent = '—';
-    }
+    clearPreviewFor(storedResultPanel);
     showResultError(storedResultPanel, message || 'Stored credential evaluation failed.');
   }
 
@@ -1244,10 +1413,7 @@ var inlineForm = hotpPanel
       return;
     }
     applyStatusBadge(inlineResultPanel.querySelector('[data-testid="hotp-result-status"]'), 'error');
-    var otpNode = inlineResultPanel.querySelector('[data-testid="hotp-result-otp"]');
-    if (otpNode) {
-      otpNode.textContent = '—';
-    }
+    clearPreviewFor(inlineResultPanel);
     var normalizedMessage =
         typeof message === 'string' && message.trim().length > 0 ? message.trim() : 'Inline evaluation failed.';
     var options = {};
@@ -1588,8 +1754,11 @@ var inlineForm = hotpPanel
     storedButton.setAttribute('disabled', 'disabled');
     hideStoredError();
     setHidden(storedResultPanel, true);
+    clearPreviewFor(storedResultPanel);
 
-    var payload = verboseAttach({ credentialId: credentialId });
+    var payload = { credentialId: credentialId };
+    attachPreviewWindow(payload, storedWindowBackwardInput, storedWindowForwardInput);
+    payload = verboseAttach(payload);
     verboseBeginRequest();
 
     fetchDelegate(storedForm.getAttribute('data-evaluate-endpoint') || '/api/v1/hotp/evaluate', {
@@ -1666,6 +1835,7 @@ var inlineForm = hotpPanel
     inlineButton.setAttribute('disabled', 'disabled');
     hideInlineError();
     setHidden(inlineResultPanel, true);
+    clearPreviewFor(inlineResultPanel);
 
     var payload = Object.assign({}, secretPayload, {
       algorithm: inlineAlgorithmSelect ? inlineAlgorithmSelect.value : 'SHA1',
@@ -1681,6 +1851,7 @@ var inlineForm = hotpPanel
       payload.metadata = metadataPayload;
     }
 
+    attachPreviewWindow(payload, inlineWindowBackwardInput, inlineWindowForwardInput);
     payload = verboseAttach(payload);
     verboseBeginRequest();
 

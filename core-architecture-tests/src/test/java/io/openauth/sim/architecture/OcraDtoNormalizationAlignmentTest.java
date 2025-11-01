@@ -18,9 +18,18 @@ final class OcraDtoNormalizationAlignmentTest {
         String pinHex = " aaff ";
         String timestampHex = " 1a2b ";
         var restCommand = OcraEvaluationRequests.stored(new OcraEvaluationRequests.StoredInputs(
-                " stored-credential ", " challenge ", " session ", " client ", " server ", pinHex, timestampHex, 5L));
+                " stored-credential ",
+                " challenge ",
+                " session ",
+                " client ",
+                " server ",
+                pinHex,
+                timestampHex,
+                5L,
+                0,
+                0));
         var cliCommand = OcraEvaluationRequests.stored(new OcraEvaluationRequests.StoredInputs(
-                "stored-credential", "challenge", "session", "client", "server", pinHex, timestampHex, 5L));
+                "stored-credential", "challenge", "session", "client", "server", pinHex, timestampHex, 5L, 0, 0));
 
         var restNormalized = (OcraEvaluationApplicationService.NormalizedRequest.StoredCredential)
                 OcraEvaluationApplicationService.NormalizedRequest.from(restCommand);
@@ -52,7 +61,9 @@ final class OcraDtoNormalizationAlignmentTest {
                 pinHex,
                 timestampHex,
                 7L,
-                Duration.ofSeconds(30)));
+                Duration.ofSeconds(30),
+                0,
+                0));
         var restCommand = OcraEvaluationRequests.inline(new OcraEvaluationRequests.InlineInputs(
                 sharedInlineIdentifier(suite, secret),
                 suite,
@@ -64,7 +75,9 @@ final class OcraDtoNormalizationAlignmentTest {
                 pinHex,
                 timestampHex,
                 7L,
-                Duration.ofSeconds(30)));
+                Duration.ofSeconds(30),
+                0,
+                0));
 
         var cliNormalized = (OcraEvaluationApplicationService.NormalizedRequest.InlineSecret)
                 OcraEvaluationApplicationService.NormalizedRequest.from(cliCommand);

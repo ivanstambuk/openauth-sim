@@ -1,7 +1,7 @@
 # How-To: Use the OCRA Operator UI
 
 _Status: Draft_
-_Last updated: 2025-10-31_
+_Last updated: 2025-11-01_
 
 The operator UI provides a browser-based workflow for running OCRA evaluations and replaying
 previous OTP submissions against the REST facade without exposing shared secrets in logs or
@@ -32,8 +32,9 @@ The mode toggle is keyboard-accessible and announces which section is visible. J
 ### Supplying Request Parameters
 - Inline mode requires the suite and shared secret. Provide the secret in Base32 or hex—supplying both is rejected with the REST contract’s `shared_secret_conflict` reason code. An optional PIN hash field supports suite variants that expect it.
 - Request parameters (challenge, client/server challenge, session, timestamp, counter) map one-to-one with `POST /api/v1/ocra/evaluate`. Leave fields blank to accept backend defaults. The counter field is automatically populated when you select the C-QH64 preset so results match the documented test vectors. Stored credential mode can auto-populate required fields; the UI clears values the selected suite forbids so you avoid validation conflicts.
+- Both inline and stored evaluations expose **Preview window offsets** (backward/forward). The values control how many neighbouring OTPs appear around the evaluated Δ = 0 entry. Leaving both fields at `0` renders a single-row table; increasing them surfaces additional counter/context combinations so operators can inspect near misses without re-running the flow.
 - Shared secrets remain visible after each evaluation so you can iterate on the same test data during verification. Clear the field manually if you need to hide the value. The fetch handler still clears the optional PIN hash field once the REST call completes.
-- Every evaluation shares the unified **ResultCard** helper with the HOTP, TOTP, and WebAuthn panels. As soon as the REST API returns a response, the card becomes visible: successes reset any messaging, while validation failures inject the REST-supplied message and hint so the operator never has to hunt through logs.
+- Every evaluation shares the unified **ResultCard** helper with the HOTP, TOTP, and WebAuthn panels. Successful responses now render a three-column preview table (`Counter`, `Δ`, `OTP`) above the status badge; the Δ = 0 row is bolded and accented in the OCRA palette for accessibility, and the table appears even when both offsets remain at zero. Validation failures inject the REST-supplied message and hint so the operator never has to hunt through logs.
 
 ## Running Replays (Replay Mode)
 1. Click the **Replay** toggle inside the OCRA panel. The evaluation form hides while the replay fields become visible in-place.
