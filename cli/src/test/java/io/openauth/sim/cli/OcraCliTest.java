@@ -43,6 +43,7 @@ class OcraCliTest {
 
     private static final String DEFAULT_SECRET_HEX =
             INLINE_VECTOR.secret().asHex().toUpperCase(Locale.ROOT);
+    private static final String DEFAULT_SECRET_BASE32 = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
     private static final String DEFAULT_SUITE = INLINE_VECTOR.suite();
     private static final String VERIFY_SUITE_COUNTER = STORED_VECTOR.suite();
     private static final String VERIFY_SECRET_HEX_COUNTER =
@@ -143,6 +144,68 @@ class OcraCliTest {
         assertEquals("match", telemetry.get("reasonCode"));
         assertEquals("inline", telemetry.get("credentialSource"));
         assertEquals("true", telemetry.get("sanitized"));
+    }
+
+    @Test
+    @DisplayName("verify command accepts inline Base32 shared secrets")
+    void verifyInlineCredentialMatchWithBase32() {
+        OcraCredentialDescriptor descriptor = new OcraCredentialFactory()
+                .createDescriptor(new OcraCredentialRequest(
+                        "inline-verify-base32",
+                        DEFAULT_SUITE,
+                        DEFAULT_SECRET_HEX,
+                        SecretEncoding.HEX,
+                        null,
+                        null,
+                        null,
+                        Map.of("source", "cli-inline")));
+
+        String expectedOtp = OcraResponseCalculator.generate(
+                descriptor, new OcraExecutionContext(null, VERIFY_CHALLENGE_NUMERIC, null, null, null, null, null));
+
+        CommandHarness harness = CommandHarness.create();
+        int exitCode = harness.execute(
+                "verify",
+                "--suite",
+                DEFAULT_SUITE,
+                "--secret-base32",
+                DEFAULT_SECRET_BASE32,
+                "--otp",
+                expectedOtp,
+                "--challenge",
+                VERIFY_CHALLENGE_NUMERIC);
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String output = harness.stdout() + harness.stderr();
+        Map<String, String> telemetry = telemetryLine(output, "cli.ocra.verify");
+        assertEquals("match", telemetry.get("status"));
+        assertEquals("match", telemetry.get("reasonCode"));
+        assertEquals("inline", telemetry.get("credentialSource"));
+    }
+
+    @Test
+    @DisplayName("verify command rejects mixed hex and Base32 secrets for inline mode")
+    void verifyInlineCredentialRejectsSecretConflicts() {
+        CommandHarness harness = CommandHarness.create();
+        int exitCode = harness.execute(
+                "verify",
+                "--suite",
+                DEFAULT_SUITE,
+                "--secret",
+                DEFAULT_SECRET_HEX,
+                "--secret-base32",
+                DEFAULT_SECRET_BASE32,
+                "--otp",
+                "12345678",
+                "--challenge",
+                VERIFY_CHALLENGE_NUMERIC);
+
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode);
+        String stderr = harness.stderr();
+        assertTrue(stderr.contains("event=cli.ocra.verify"));
+        assertTrue(
+                stderr.contains("Provide either --secret or --secret-base32"),
+                () -> "stderr missing exclusivity hint:\n" + stderr);
     }
 
     @Test

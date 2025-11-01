@@ -12,6 +12,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 
 ## Specification Pipeline
 - Start every feature by updating or creating its specification in `docs/4-architecture/specs/`.
+- For any new UI feature or modification, include an ASCII mock-up in the specification (see `docs/4-architecture/spec-guidelines/ui-ascii-mockups.md`).
 - Use up to five high-impact clarification questions per feature; log them in `docs/4-architecture/open-questions.md` and record resolutions in the spec.
 - Generate or refresh the feature plan (`docs/4-architecture/feature-plan-*.md`) only after the specification is current and clarifications resolved.
 - Maintain a per-feature tasks checklist under `docs/4-architecture/tasks/` that mirrors the plan, orders tests before code, and keeps increments ≤30 minutes.

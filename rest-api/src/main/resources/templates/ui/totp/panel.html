@@ -274,16 +274,63 @@
                       Selecting a preset auto-fills inline parameters with illustrative data.
                     </p>
                   </div>
-                  <div class="field-grid">
-                    <div class="field-group">
-                      <label for="totpInlineSecretHex">Shared secret (hex)</label>
-                      <textarea
-                        id="totpInlineSecretHex"
-                        name="sharedSecretHex"
-                        rows="3"
-                        required="required"
-                      ></textarea>
+                  <div
+                    class="field-group field-group--stacked field-group--shared-secret"
+                    data-secret-field
+                    data-testid="totp-inline-shared-secret"
+                  >
+                    <label for="totpInlineSharedSecret">Shared secret</label>
+                    <div
+                      class="secret-field-toolbar"
+                      data-secret-mode-toggle
+                      data-testid="totp-inline-secret-toolbar"
+                    >
+                      <span class="secret-field-toolbar__label">Mode:</span>
+                      <div class="secret-field-toolbar__buttons" role="group" aria-label="Shared secret encoding">
+                        <button
+                          type="button"
+                          class="mode-pill mode-pill--active"
+                          data-secret-mode-button="hex"
+                          data-testid="totp-inline-secret-mode-hex"
+                        >
+                          Hex
+                        </button>
+                        <button
+                          type="button"
+                          class="mode-pill"
+                          data-secret-mode-button="base32"
+                          data-testid="totp-inline-secret-mode-base32"
+                        >
+                          Base32
+                        </button>
+                      </div>
+                      <span
+                        class="hint secret-field-toolbar__length"
+                        data-secret-length
+                        data-testid="totp-inline-secret-length"
+                        aria-live="polite"
+                      >
+                        Length: —
+                      </span>
                     </div>
+                    <textarea
+                      id="totpInlineSharedSecret"
+                      name="sharedSecretHex"
+                      rows="3"
+                      autocomplete="off"
+                      spellcheck="false"
+                      data-secret-input
+                      data-testid="totp-inline-secret-input"
+                    ></textarea>
+                    <p
+                      class="hint"
+                      data-secret-message
+                      data-testid="totp-inline-secret-message"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      ↔ Converts automatically when you switch modes.
+                    </p>
                   </div>
                   <div
                       class="field-grid totp-inline-parameter-grid"
@@ -698,16 +745,63 @@
                       Presets auto-fill inline replay inputs with curated sample data.
                     </p>
                   </div>
-                  <div class="field-grid">
-                    <div class="field-group">
-                      <label for="totpReplayInlineSecretHex">Shared secret (hex)</label>
-                      <textarea
-                        id="totpReplayInlineSecretHex"
-                        name="sharedSecretHex"
-                        rows="3"
-                        required="required"
-                      ></textarea>
+                  <div
+                    class="field-group field-group--stacked field-group--shared-secret"
+                    data-secret-field
+                    data-testid="totp-replay-inline-shared-secret"
+                  >
+                    <label for="totpReplayInlineSharedSecret">Shared secret</label>
+                    <div
+                      class="secret-field-toolbar"
+                      data-secret-mode-toggle
+                      data-testid="totp-replay-inline-secret-toolbar"
+                    >
+                      <span class="secret-field-toolbar__label">Mode:</span>
+                      <div class="secret-field-toolbar__buttons" role="group" aria-label="Shared secret encoding">
+                        <button
+                          type="button"
+                          class="mode-pill mode-pill--active"
+                          data-secret-mode-button="hex"
+                          data-testid="totp-replay-inline-secret-mode-hex"
+                        >
+                          Hex
+                        </button>
+                        <button
+                          type="button"
+                          class="mode-pill"
+                          data-secret-mode-button="base32"
+                          data-testid="totp-replay-inline-secret-mode-base32"
+                        >
+                          Base32
+                        </button>
+                      </div>
+                      <span
+                        class="hint secret-field-toolbar__length"
+                        data-secret-length
+                        data-testid="totp-replay-inline-secret-length"
+                        aria-live="polite"
+                      >
+                        Length: —
+                      </span>
                     </div>
+                    <textarea
+                      id="totpReplayInlineSharedSecret"
+                      name="sharedSecretHex"
+                      rows="3"
+                      autocomplete="off"
+                      spellcheck="false"
+                      data-secret-input
+                      data-testid="totp-replay-inline-secret-input"
+                    ></textarea>
+                    <p
+                      class="hint"
+                      data-secret-message
+                      data-testid="totp-replay-inline-secret-message"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      ↔ Converts automatically when you switch modes.
+                    </p>
                   </div>
                   <div
                       class="field-grid totp-inline-parameter-grid"

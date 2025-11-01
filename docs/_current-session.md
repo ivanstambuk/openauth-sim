@@ -2,13 +2,14 @@
 
 > Keep this file up to date across all active chats. Treat it as the single source of truth for in-progress workstreams so every hand-off is instant. Replace the bracketed text and prune sections you do not need.
 
-- Date: 2025-10-31
+- Date: 2025-11-01
 - Primary branch: `main`
 - Other active branches: none
-- Last green commands: `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` (2025-10-31), `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check` (2025-10-31).
-- Build status: Stored attestation metadata now returns trust-anchor summaries (metadata descriptions or certificate subjects), operator UI renders the read-only textarea, and full CLI/REST/UI suites (including Selenium) plus formatting checks are green after regeneration of OpenAPI snapshots.
-- Latest closure: Feature 026 – FIDO2/WebAuthn Attestation Support accepted 2025-10-31 after trust-anchor summaries were validated and the full Gradle suite reran. Feature 028 – IDE Warning Remediation closed 2025-10-30.
-- Quality gate note: `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check` completed successfully on 2025-10-31 after adding stored trust-anchor summaries, refreshing Selenium coverage, and regenerating OpenAPI snapshots.
+- Last green commands: `./gradlew --no-daemon :rest-api:test :ui:test` (2025-11-01), `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` (2025-10-31), `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` (2025-10-31).
+- Build status: Feature 037 shared-secret polish (T3707) wrapped; `./gradlew --no-daemon :rest-api:test :ui:test` remains green with refreshed Selenium assertions. Full quality suite last ran 2025-10-31; rerun before the next broad change if needed.
+- Handoff note (2025-11-01): Feature 037 is complete and ready to archive; next priority defaults back to Feature 029 PMD hardening backlog (T2902) unless new scope arrives.
+- Latest closure: Feature 037 – Base32 Inline Secret Support closed 2025-11-01 after dynamic shared-secret messaging shipped and `./gradlew --no-daemon :rest-api:test :ui:test` passed. Feature 026 – FIDO2/WebAuthn Attestation Support accepted 2025-10-31 after trust-anchor summaries were validated and the full Gradle suite reran. Feature 028 – IDE Warning Remediation closed 2025-10-30.
+- Quality gate note: `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` completed successfully on 2025-10-31 after converting `Base32SecretCodecTest` to JUnit assertions and syncing documentation.
 - Commit workflow update (2025-10-25): `githooks/commit-msg` now runs gitlint only; agents must use automated tooling to supply a Conventional Commit message (with a `Spec impact:` body when docs and code change together). `./tools/codex-commit-review.sh` remains the default helper (defaults to `codex exec --model gpt-5-codex --sandbox read-only --skip-git-repo-check --color never`).
 - Outstanding git state: Feature 034/035 documentation sync prepared this session (spec/plan/tasks + roadmap + knowledge map); Feature 027 specs/plans/tasks marked complete; Feature 036 tier helper groundwork remains the next focus.
 

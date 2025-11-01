@@ -11,6 +11,7 @@ import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.trace.VerboseTrace;
 import io.openauth.sim.rest.VerboseTracePayload;
+import io.openauth.sim.rest.support.InlineSecretInput;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -66,7 +67,30 @@ class HotpReplayService {
 
     private HotpReplayResponse handleInline(HotpReplayRequest request, String telemetryId, Mode mode, boolean verbose) {
         Map<String, String> details = Map.of("credentialId", INLINE_REPLAY_ID);
-        String secretHex = requireText(request.sharedSecretHex(), "sharedSecretHex", telemetryId, mode, details);
+        String secretHex = InlineSecretInput.resolveHex(
+                request.sharedSecretHex(),
+                request.sharedSecretBase32(),
+                () -> validationFailure(
+                        telemetryId,
+                        mode.source,
+                        INLINE_REPLAY_ID,
+                        "sharedSecret is required",
+                        "shared_secret_required",
+                        mergeDetails(details, "sharedSecret")),
+                () -> validationFailure(
+                        telemetryId,
+                        mode.source,
+                        INLINE_REPLAY_ID,
+                        "Provide either sharedSecretHex or sharedSecretBase32, not both",
+                        "shared_secret_conflict",
+                        mergeDetails(details, "sharedSecret")),
+                message -> validationFailure(
+                        telemetryId,
+                        mode.source,
+                        INLINE_REPLAY_ID,
+                        message,
+                        "shared_secret_base32_invalid",
+                        mergeDetails(details, "sharedSecretBase32")));
         HotpHashAlgorithm algorithm = parseAlgorithm(request.algorithm(), telemetryId, INLINE_REPLAY_ID, mode);
         int digits = requireDigits(request.digits(), telemetryId, INLINE_REPLAY_ID, mode);
         long counter = requireCounter(request.counter(), telemetryId, INLINE_REPLAY_ID, mode);
@@ -185,7 +209,7 @@ class HotpReplayService {
 
     private Mode determineMode(HotpReplayRequest request, String telemetryId) {
         boolean hasCredentialId = hasText(request.credentialId());
-        boolean hasSecret = hasText(request.sharedSecretHex());
+        boolean hasSecret = InlineSecretInput.hasSecret(request.sharedSecretHex(), request.sharedSecretBase32());
         boolean hasAlgorithm = hasText(request.algorithm());
         boolean hasDigits = request.digits() != null;
         boolean hasCounter = request.counter() != null;

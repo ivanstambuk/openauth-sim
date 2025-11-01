@@ -34,7 +34,7 @@ class OcraEvaluationControllerTest {
         when(service.evaluate(any(OcraEvaluationRequest.class))).thenReturn(response);
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "OCRA-1", "31323334", "12345678", null, null, null, null, null, null, null);
+                null, "OCRA-1", "31323334", null, "12345678", null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/v1/ocra/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -61,7 +61,7 @@ class OcraEvaluationControllerTest {
         when(service.evaluate(any(OcraEvaluationRequest.class))).thenThrow(exception);
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "OCRA-1", "31323334", "12345678", null, null, null, null, null, null, null);
+                null, "OCRA-1", "31323334", null, "12345678", null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/v1/ocra/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -91,7 +91,7 @@ class OcraEvaluationControllerTest {
         when(service.evaluate(any(OcraEvaluationRequest.class))).thenThrow(exception);
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "OCRA-1", "31323334", "12345678", null, null, null, null, null, null, null);
+                null, "OCRA-1", "31323334", null, "12345678", null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/v1/ocra/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -110,7 +110,7 @@ class OcraEvaluationControllerTest {
         when(service.evaluate(any(OcraEvaluationRequest.class))).thenThrow(new IllegalStateException("store offline"));
 
         OcraEvaluationRequest request = new OcraEvaluationRequest(
-                null, "OCRA-1", "31323334", "12345678", null, null, null, null, null, null, null);
+                null, "OCRA-1", "31323334", null, "12345678", null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/v1/ocra/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)

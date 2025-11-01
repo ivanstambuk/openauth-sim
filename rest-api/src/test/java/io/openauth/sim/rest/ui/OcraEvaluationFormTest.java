@@ -18,6 +18,7 @@ class OcraEvaluationFormTest {
         form.setMode("inline");
         form.setSuite("  OCRA-1:HOTP-SHA1-6:QN08  ");
         form.setSharedSecretHex(" 31323334 ");
+        form.setSharedSecretBase32(" jbswy3dpeb3w64tmmq====== ");
         form.setChallenge(" 12345678 ");
         form.setSessionHex("  AAFF  ");
         form.setClientChallenge(" CLIENT ");
@@ -34,6 +35,7 @@ class OcraEvaluationFormTest {
                         null,
                         "OCRA-1:HOTP-SHA1-6:QN08",
                         "31323334",
+                        "jbswy3dpeb3w64tmmq======",
                         "12345678",
                         "AAFF",
                         "CLIENT",
@@ -68,6 +70,7 @@ class OcraEvaluationFormTest {
                         "cred-123",
                         "OCRA-1:HOTP-SHA1-6:QN08",
                         null,
+                        null,
                         "12345678",
                         "AA",
                         "CLIENT",
@@ -94,11 +97,13 @@ class OcraEvaluationFormTest {
         OcraEvaluationForm form = new OcraEvaluationForm();
         form.setPinHashHex("PIN");
         form.setSharedSecretHex("ABC");
+        form.setSharedSecretBase32("JBSWY3DPEB3W64TMMQ======");
 
         form.scrubSecrets();
 
         assertNull(form.getPinHashHex());
         assertEquals("ABC", form.getSharedSecretHex());
+        assertEquals("JBSWY3DPEB3W64TMMQ======", form.getSharedSecretBase32());
     }
 
     @Test

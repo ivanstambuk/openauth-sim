@@ -8,6 +8,7 @@ import io.openauth.sim.application.totp.TotpEvaluationApplicationService.Evaluat
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.EvaluationResult;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.TelemetrySignal;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.TelemetryStatus;
+import io.openauth.sim.core.encoding.Base32SecretCodec;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
@@ -310,12 +311,14 @@ public final class TotpCli implements Callable<Integer> {
             description = "Generate an inline TOTP code without referencing stored credentials.")
     static final class EvaluateInlineCommand extends AbstractTotpCommand {
 
-        @CommandLine.Option(
-                names = "--secret",
-                required = true,
-                paramLabel = "<hex>",
-                description = "Shared secret in hex")
+        @CommandLine.Option(names = "--secret", paramLabel = "<hex>", description = "Shared secret in hexadecimal")
         String secretHex;
+
+        @CommandLine.Option(
+                names = "--secret-base32",
+                paramLabel = "<base32>",
+                description = "Shared secret in Base32 (RFC 4648)")
+        String secretBase32;
 
         @CommandLine.Option(
                 names = "--algorithm",
@@ -375,21 +378,23 @@ public final class TotpCli implements Callable<Integer> {
             Optional<Instant> override = timestampOverride != null
                     ? Optional.of(Instant.ofEpochSecond(timestampOverride))
                     : Optional.empty();
-
-            try (CredentialStore store = openStore()) {
-                TotpEvaluationApplicationService service = new TotpEvaluationApplicationService(store);
-                EvaluationResult result = service.evaluate(
-                        new EvaluationCommand.Inline(
-                                secretHex,
-                                hashAlgorithm,
-                                digits,
-                                Duration.ofSeconds(stepSeconds),
-                                "",
-                                window,
-                                evaluationInstant,
-                                override),
-                        verbose);
-                return handleResult(result, event("evaluate"));
+            try {
+                String resolvedSecretHex = resolveSecret(secretHex, secretBase32);
+                try (CredentialStore store = openStore()) {
+                    TotpEvaluationApplicationService service = new TotpEvaluationApplicationService(store);
+                    EvaluationResult result = service.evaluate(
+                            new EvaluationCommand.Inline(
+                                    resolvedSecretHex,
+                                    hashAlgorithm,
+                                    digits,
+                                    Duration.ofSeconds(stepSeconds),
+                                    "",
+                                    window,
+                                    evaluationInstant,
+                                    override),
+                            verbose);
+                    return handleResult(result, event("evaluate"));
+                }
             } catch (IllegalArgumentException ex) {
                 Map<String, Object> fields = Map.of("credentialReference", false);
                 return failValidation(
@@ -447,6 +452,25 @@ public final class TotpCli implements Callable<Integer> {
                 merged.put("otp", result.otp());
             }
             return new TelemetryFrame(frame.event(), frame.status(), frame.sanitized(), merged);
+        }
+
+        private static String resolveSecret(String secretHex, String secretBase32) {
+            boolean hasHex = hasText(secretHex);
+            boolean hasBase32 = hasText(secretBase32);
+            if (hasHex && hasBase32) {
+                throw new IllegalArgumentException("Provide either --secret or --secret-base32");
+            }
+            if (!hasHex && !hasBase32) {
+                throw new IllegalArgumentException("Provide either --secret or --secret-base32");
+            }
+            if (hasBase32) {
+                return Base32SecretCodec.toUpperHex(secretBase32);
+            }
+            return secretHex.trim();
+        }
+
+        private static boolean hasText(String value) {
+            return value != null && !value.isBlank();
         }
     }
 }

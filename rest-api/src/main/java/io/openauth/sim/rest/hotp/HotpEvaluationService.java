@@ -11,6 +11,7 @@ import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.trace.VerboseTrace;
 import io.openauth.sim.rest.VerboseTracePayload;
+import io.openauth.sim.rest.support.InlineSecretInput;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -54,12 +55,30 @@ class HotpEvaluationService {
         Objects.requireNonNull(request, "request");
         String telemetryId = nextTelemetryId();
 
-        String secretHex = requireText(
+        String secretHex = InlineSecretInput.resolveHex(
                 request.sharedSecretHex(),
-                "sharedSecretHex",
-                telemetryId,
-                Mode.INLINE,
-                Map.of("field", "sharedSecretHex"));
+                request.sharedSecretBase32(),
+                () -> validationFailure(
+                        telemetryId,
+                        Mode.INLINE,
+                        null,
+                        "sharedSecret is required",
+                        "shared_secret_required",
+                        Map.of("field", "sharedSecret")),
+                () -> validationFailure(
+                        telemetryId,
+                        Mode.INLINE,
+                        null,
+                        "Provide either sharedSecretHex or sharedSecretBase32, not both",
+                        "shared_secret_conflict",
+                        Map.of("field", "sharedSecret")),
+                message -> validationFailure(
+                        telemetryId,
+                        Mode.INLINE,
+                        null,
+                        message,
+                        "shared_secret_base32_invalid",
+                        Map.of("field", "sharedSecretBase32")));
         HotpHashAlgorithm algorithm = parseAlgorithm(request.algorithm(), telemetryId);
         int digits = requireDigits(request.digits(), telemetryId);
         long counter = requireCounter(request.counter(), telemetryId);

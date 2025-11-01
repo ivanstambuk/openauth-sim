@@ -30,7 +30,7 @@ class HotpReplayControllerTest {
     @Test
     @DisplayName("Replay delegates to service and returns the response body")
     void replayDelegatesToService() {
-        HotpReplayRequest request = new HotpReplayRequest("cred-1", null, null, null, null, "123456", null, null);
+        HotpReplayRequest request = new HotpReplayRequest("cred-1", null, null, null, null, null, "123456", null, null);
         HotpReplayResponse expected = new HotpReplayResponse(
                 "match",
                 "match",

@@ -6,6 +6,7 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 - [ ] Run `git status -sb` to review branch, staged changes, and repo cleanliness.
 - [ ] Confirm environment prerequisites: `JAVA_HOME` points to a Java 17 JDK and `git config core.hooksPath` returns `githooks`.
 - [ ] Review current context: latest roadmap entry, active specification, feature plan, tasks checklist, and `docs/4-architecture/open-questions.md`.
+- [ ] If scope introduces or modifies UI, confirm the spec includes an ASCII mock-up (`docs/4-architecture/spec-guidelines/ui-ascii-mockups.md`).
 - [ ] If the last build is stale or after syncing, run `./gradlew --no-daemon spotlessApply check` to ensure the baseline is green (capture or resolve any failures before proceeding).
 - [ ] Before running long Gradle workflows (`spotlessApply check`, `qualityGate`, full commits), set CLI tool timeouts to ≥600 s so the run doesn’t terminate mid-pipeline.
 - [ ] Check `docs/_current-session.md` for the active snapshot; refresh it with today’s status before you hand off.

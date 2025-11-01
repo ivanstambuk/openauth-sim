@@ -10,6 +10,7 @@ import io.openauth.sim.core.store.CredentialStore;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +40,7 @@ final class HotpOperatorUiSeleniumTest {
 
     private static final String STORED_CREDENTIAL_ID = "ui-hotp-demo";
     private static final String SECRET_HEX = "3132333435363738393031323334353637383930";
+    private static final String SECRET_BASE32 = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
     private static final int DIGITS = 6;
     private static final long INITIAL_COUNTER = 0L;
     private static final String INLINE_SHA1_PRESET_KEY = "seeded-demo-sha1";
@@ -49,6 +51,7 @@ final class HotpOperatorUiSeleniumTest {
     private static final String INLINE_SHA512_6_PRESET_KEY = "seeded-demo-sha512-6";
     private static final int INLINE_SHA256_DIGITS = 8;
     private static final long INLINE_SHA256_COUNTER = 5L;
+    private static final String SHARED_SECRET_HINT = "↔ Converts automatically when you switch modes.";
     private static final HotpDescriptor DESCRIPTOR = HotpDescriptor.create(
             STORED_CREDENTIAL_ID, SecretMaterial.fromHex(SECRET_HEX), HotpHashAlgorithm.SHA1, DIGITS);
     private static final String EXPECTED_STORED_OTP = HotpGenerator.generate(DESCRIPTOR, INITIAL_COUNTER);
@@ -360,19 +363,18 @@ final class HotpOperatorUiSeleniumTest {
     }
 
     @Test
-    @DisplayName("HOTP inline invalid payload surfaces ResultCard message")
-    void hotpInlineInvalidPayloadSurfacesMessage() {
+    @DisplayName("HOTP inline invalid digits surface ResultCard validation message")
+    void hotpInlineInvalidDigitsSurfaceMessage() {
         navigateToHotpPanel();
         assertHotpInlineDefaultState();
 
-        WebElement secretInput = new WebDriverWait(driver, Duration.ofSeconds(5))
-                .until(ExpectedConditions.visibilityOfElementLocated(By.id("hotpInlineSecretHex")));
-        secretInput.clear();
-        secretInput.sendKeys("invalid-secret");
+        SharedSecretField sharedSecret = hotpInlineSharedSecret();
+        sharedSecret.setSecret(SECRET_HEX.toLowerCase(Locale.ROOT));
+        sharedSecret.waitUntilValueEquals(SECRET_HEX);
 
         WebElement digitsInput = driver.findElement(By.id("hotpInlineDigits"));
         digitsInput.clear();
-        digitsInput.sendKeys("6");
+        digitsInput.sendKeys("5");
 
         WebElement counterInput = driver.findElement(By.id("hotpInlineCounter"));
         counterInput.clear();
@@ -523,7 +525,8 @@ final class HotpOperatorUiSeleniumTest {
 
         inlinePresetSelect.selectByValue(INLINE_SHA256_PRESET_KEY);
 
-        WebElement secretField = driver.findElement(By.id("hotpInlineSecretHex"));
+        SharedSecretField sharedSecret = hotpInlineSharedSecret();
+        WebElement secretField = sharedSecret.textarea();
         WebElement algorithmField = driver.findElement(By.id("hotpInlineAlgorithm"));
         WebElement digitsField = driver.findElement(By.id("hotpInlineDigits"));
         WebElement counterField = driver.findElement(By.id("hotpInlineCounter"));
@@ -568,6 +571,233 @@ final class HotpOperatorUiSeleniumTest {
         }
 
         assertResultRowsMatchExpectations(resultPanel, EXPECTED_INLINE_SHA256_OTP);
+    }
+
+    @Test
+    @DisplayName("Inline HOTP evaluation accepts Base32 shared secrets")
+    void inlineHotpEvaluationAcceptsBase32Secret() {
+        navigateToHotpPanel();
+
+        driver.findElement(By.cssSelector("[data-testid='hotp-mode-select-inline']"))
+                .click();
+
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector("[data-testid='hotp-inline-evaluation-panel']")));
+
+        SharedSecretField sharedSecret = hotpInlineSharedSecret();
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+        sharedSecret.setSecret(SECRET_BASE32.toLowerCase(Locale.ROOT));
+        sharedSecret.waitUntilValueEquals(SECRET_BASE32);
+        if (!"sharedSecretBase32".equals(sharedSecret.submissionName())) {
+            throw new AssertionError("Base32 mode should submit sharedSecretBase32 payloads");
+        }
+
+        sharedSecret.switchTo(SharedSecretField.Mode.HEX);
+        sharedSecret.waitUntilValueEquals(SECRET_HEX);
+        if (!"sharedSecretHex".equals(sharedSecret.submissionName())) {
+            throw new AssertionError("Hex mode should submit sharedSecretHex payloads");
+        }
+
+        // Submit in Base32 mode to ensure server receives the alternate encoding.
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+        Select algorithmSelect = new Select(driver.findElement(By.id("hotpInlineAlgorithm")));
+        algorithmSelect.selectByValue("SHA256");
+
+        WebElement digitsField = driver.findElement(By.id("hotpInlineDigits"));
+        digitsField.clear();
+        digitsField.sendKeys(Integer.toString(INLINE_SHA256_DIGITS));
+
+        WebElement counterField = driver.findElement(By.id("hotpInlineCounter"));
+        counterField.clear();
+        counterField.sendKeys(Long.toString(INLINE_SHA256_COUNTER));
+
+        driver.findElement(By.cssSelector("button[data-testid='hotp-inline-evaluate-button']"))
+                .click();
+
+        WebElement resultPanel = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector("[data-testid='hotp-inline-result-panel']")));
+
+        assertResultRowsMatchExpectations(resultPanel, EXPECTED_INLINE_SHA256_OTP);
+    }
+
+    @Test
+    @DisplayName("Inline HOTP secret toggle round-trips between Hex and Base32 modes")
+    void inlineHotpSecretToggleRoundTrips() {
+        navigateToHotpPanel();
+
+        driver.findElement(By.cssSelector("[data-testid='hotp-mode-select-inline']"))
+                .click();
+
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector("[data-testid='hotp-inline-evaluation-panel']")));
+
+        SharedSecretField sharedSecret = hotpInlineSharedSecret();
+        sharedSecret.setSecret(SECRET_HEX.toLowerCase(Locale.ROOT));
+        if (!"sharedSecretHex".equals(sharedSecret.submissionName())) {
+            throw new AssertionError("Hex mode should retain the sharedSecretHex payload name");
+        }
+
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+        sharedSecret.waitUntilValueEquals(SECRET_BASE32);
+        if (!"sharedSecretBase32".equals(sharedSecret.submissionName())) {
+            throw new AssertionError("Base32 mode should switch submission payload name to sharedSecretBase32");
+        }
+
+        sharedSecret.switchTo(SharedSecretField.Mode.HEX);
+        sharedSecret.waitUntilValueEquals(SECRET_HEX);
+        if (!"sharedSecretHex".equals(sharedSecret.submissionName())) {
+            throw new AssertionError("Hex mode should restore sharedSecretHex submission payload name");
+        }
+    }
+
+    @Test
+    @DisplayName("Inline HOTP shared secret message updates on conversion errors")
+    void inlineHotpSharedSecretMessageUpdatesOnErrors() {
+        navigateToHotpPanel();
+        assertHotpInlineDefaultState();
+
+        SharedSecretField sharedSecret = hotpInlineSharedSecret();
+        if (!SHARED_SECRET_HINT.equals(sharedSecret.message())) {
+            throw new AssertionError("Expected inline HOTP shared secret hint to default to conversion copy but saw '"
+                    + sharedSecret.message()
+                    + "'");
+        }
+
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+        new WebDriverWait(driver, Duration.ofSeconds(5)).until(d -> SHARED_SECRET_HINT.equals(sharedSecret.message()));
+
+        sharedSecret.setSecret("INVALID#");
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(d -> "error".equalsIgnoreCase(sharedSecret.messageState()));
+        String errorCopy = sharedSecret.message();
+        if (!errorCopy.startsWith("⚠ ")) {
+            throw new AssertionError("Expected conversion error prefix but saw '" + errorCopy + "'");
+        }
+        if (!errorCopy.contains("Base32 values may only contain A-Z and 2-7 characters.")) {
+            throw new AssertionError("Expected Base32 validation guidance but saw '" + errorCopy + "'");
+        }
+
+        sharedSecret.setSecret(SECRET_BASE32);
+        sharedSecret.waitUntilValueEquals(SECRET_BASE32);
+        new WebDriverWait(driver, Duration.ofSeconds(5)).until(d -> SHARED_SECRET_HINT.equals(sharedSecret.message()));
+        if (!sharedSecret.messageState().isEmpty()) {
+            throw new AssertionError("Expected inline HOTP message state to reset after valid conversion");
+        }
+    }
+
+    @Test
+    @DisplayName("Inline HOTP evaluation surfaces conversion validation when Base32 input is malformed")
+    void inlineHotpEvaluationDisplaysConversionValidation() {
+        navigateToHotpPanel();
+
+        driver.findElement(By.cssSelector("[data-testid='hotp-mode-select-inline']"))
+                .click();
+
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector("[data-testid='hotp-inline-evaluation-panel']")));
+
+        SharedSecretField sharedSecret = hotpInlineSharedSecret();
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+        sharedSecret.setSecret(SECRET_BASE32.toLowerCase(Locale.ROOT));
+        sharedSecret.waitUntilValueEquals(SECRET_BASE32);
+        injectSecretConflict("/api/v1/hotp/evaluate/inline", SECRET_HEX, SECRET_BASE32);
+
+        driver.findElement(By.cssSelector("[data-testid='hotp-inline-evaluate-button']"))
+                .click();
+
+        WebElement resultPanel = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector("[data-testid='hotp-inline-result-panel']")));
+        WebElement messageNode = resultPanel.findElement(By.cssSelector("[data-result-message]"));
+        waitUntilTextPopulated(messageNode);
+        String messageCopy = messageNode.getText().trim();
+        if (!messageCopy.contains("Provide either sharedSecretHex or sharedSecretBase32")) {
+            throw new AssertionError("Expected conflict validation message but found: " + messageCopy);
+        }
+    }
+
+    @Test
+    @DisplayName("Inline HOTP replay accepts Base32 shared secrets")
+    void inlineHotpReplayAcceptsBase32Secret() {
+        navigateToHotpPanel();
+
+        WebElement replayTab = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.elementToBeClickable(
+                        By.cssSelector("[data-testid='hotp-panel-tab-replay']")));
+        replayTab.click();
+
+        WebElement modeToggle = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.presenceOfElementLocated(
+                        By.cssSelector("[data-testid='hotp-replay-mode-toggle']")));
+        WebElement inlineToggle =
+                modeToggle.findElement(By.cssSelector("[data-testid='hotp-replay-mode-select-inline']"));
+        inlineToggle.click();
+
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.attributeToBe(modeToggle, "data-mode", "inline"));
+
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector("[data-testid='hotp-replay-inline-panel']")));
+
+        SharedSecretField sharedSecret = hotpReplaySharedSecret();
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+        sharedSecret.setSecret(SECRET_BASE32.toLowerCase(Locale.ROOT));
+        sharedSecret.waitUntilValueEquals(SECRET_BASE32);
+        if (!"sharedSecretBase32".equals(sharedSecret.submissionName())) {
+            throw new AssertionError("Base32 mode should submit sharedSecretBase32 payloads during replay");
+        }
+
+        sharedSecret.switchTo(SharedSecretField.Mode.HEX);
+        sharedSecret.waitUntilValueEquals(SECRET_HEX);
+        if (!"sharedSecretHex".equals(sharedSecret.submissionName())) {
+            throw new AssertionError("Hex mode should restore sharedSecretHex payload name during replay");
+        }
+
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+
+        Select algorithmSelect = new Select(driver.findElement(By.id("hotpReplayInlineAlgorithm")));
+        algorithmSelect.selectByValue("SHA256");
+
+        WebElement digitsField = driver.findElement(By.id("hotpReplayInlineDigits"));
+        digitsField.clear();
+        digitsField.sendKeys(Integer.toString(INLINE_SHA256_DIGITS));
+
+        WebElement counterField = driver.findElement(By.id("hotpReplayInlineCounter"));
+        counterField.clear();
+        counterField.sendKeys(Long.toString(INLINE_SHA256_COUNTER));
+
+        WebElement otpField = driver.findElement(By.id("hotpReplayInlineOtp"));
+        otpField.clear();
+        otpField.sendKeys(EXPECTED_INLINE_SHA256_OTP);
+
+        driver.findElement(By.cssSelector("[data-testid='hotp-replay-submit']")).click();
+
+        WebElement resultPanel = new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector("[data-testid='hotp-replay-result']")));
+
+        WebElement statusBadge = resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-status']"));
+        waitUntilTextPopulated(statusBadge);
+        if (!"match".equalsIgnoreCase(statusBadge.getText().trim())) {
+            throw new AssertionError("Expected HOTP replay status to be Match but was " + statusBadge.getText());
+        }
+
+        WebElement reasonNode = resultPanel.findElement(By.cssSelector("[data-testid='hotp-replay-reason-code']"));
+        waitUntilTextPopulated(reasonNode);
+        if (!"match".equalsIgnoreCase(reasonNode.getText().trim())) {
+            throw new AssertionError("Expected HOTP replay reason code to be match but was " + reasonNode.getText());
+        }
+
+        WebElement hintNode = resultPanel.findElement(By.cssSelector("[data-result-hint]"));
+        if (hintNode.getText() != null && !hintNode.getText().trim().isEmpty()) {
+            throw new AssertionError(
+                    "Successful HOTP replay should not surface an error hint but found \"" + hintNode.getText() + "\"");
+        }
     }
 
     private WebElement assertHotpInlineDefaultState() {
@@ -644,6 +874,43 @@ final class HotpOperatorUiSeleniumTest {
         throw new AssertionError("Status column should expose at least one visible child panel");
     }
 
+    private SharedSecretField hotpInlineSharedSecret() {
+        return new SharedSecretField(driver, By.cssSelector("[data-testid='hotp-inline-shared-secret']"));
+    }
+
+    private SharedSecretField hotpReplaySharedSecret() {
+        return new SharedSecretField(driver, By.cssSelector("[data-testid='hotp-replay-inline-shared-secret']"));
+    }
+
+    private void injectSecretConflict(String endpointFragment, String hexValue, String base32Value) {
+        ((JavascriptExecutor) driver)
+                .executeScript(
+                        "(function(fragment, hex, base32) {"
+                                + "window.__hotpSecretConflict = window.__hotpSecretConflict || {};"
+                                + "if (window.__hotpSecretConflict[fragment]) { return; }"
+                                + "var originalFetch = window.fetch;"
+                                + "window.fetch = function(input, init) {"
+                                + "  if (typeof input === 'string' && input.indexOf(fragment) !== -1 && init && typeof init.body === 'string') {"
+                                + "    try {"
+                                + "      var payload = JSON.parse(init.body);"
+                                + "      if (!payload.sharedSecretHex) { payload.sharedSecretHex = hex; }"
+                                + "      if (!payload.sharedSecretBase32) { payload.sharedSecretBase32 = base32; }"
+                                + "      init.body = JSON.stringify(payload);"
+                                + "    } catch (error) {"
+                                + "      if (window.console && typeof window.console.warn === 'function') {"
+                                + "        window.console.warn('Failed to inject conflicting secrets', error);"
+                                + "      }"
+                                + "    }"
+                                + "  }"
+                                + "  return originalFetch.call(this, input, init);"
+                                + "};"
+                                + "window.__hotpSecretConflict[fragment] = true;"
+                                + "}(arguments[0], arguments[1], arguments[2]));",
+                        endpointFragment,
+                        hexValue,
+                        base32Value);
+    }
+
     private void assertResultRowsMatchExpectations(WebElement resultPanel, String expectedOtp) {
         WebElement otpRow = resultPanel.findElement(By.cssSelector(".result-inline"));
         String otpRowText = otpRow.getText().trim().replaceAll("\\s+", " ");
@@ -686,7 +953,6 @@ final class HotpOperatorUiSeleniumTest {
             throw new AssertionError("HOTP result panel should not render additional metadata copy");
         }
     }
-
     private void waitUntilTextPopulated(WebElement element) {
         new WebDriverWait(driver, Duration.ofSeconds(5)).until(webDriver -> {
             try {

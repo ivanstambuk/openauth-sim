@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriverException;
@@ -62,6 +64,8 @@ final class TotpOperatorUiSeleniumTest {
 
     private static final SecretMaterial INLINE_SECRET =
             SecretMaterial.fromStringUtf8("1234567890123456789012345678901234567890123456789012345678901234");
+    private static final String INLINE_SECRET_BASE32 =
+            "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNA=";
     private static final TotpDescriptor INLINE_DESCRIPTOR = TotpDescriptor.create(
             "inline-demo",
             INLINE_SECRET,
@@ -91,6 +95,7 @@ final class TotpOperatorUiSeleniumTest {
             "inline-rfc6238-sha512-6",
             "inline-rfc6238-sha512-8",
             "inline-ui-totp-demo");
+    private static final String SHARED_SECRET_HINT = "↔ Converts automatically when you switch modes.";
 
     @TempDir
     static Path tempDir;
@@ -426,9 +431,10 @@ final class TotpOperatorUiSeleniumTest {
         inlineToggle.click();
         waitUntilAttribute(modeToggle, "data-mode", "inline");
 
-        WebElement secretInput = driver.findElement(By.id("totpInlineSecretHex"));
-        secretInput.clear();
-        secretInput.sendKeys(INLINE_SECRET.asHex());
+        SharedSecretField sharedSecret = totpInlineSharedSecret();
+        sharedSecret.setSecret(INLINE_SECRET.asHex().toLowerCase(Locale.ROOT));
+        sharedSecret.waitUntilValueEquals(INLINE_SECRET.asHex());
+        assertEquals("sharedSecretHex", sharedSecret.submissionName());
 
         selectOption("totpInlineAlgorithm", "SHA512");
 
@@ -477,6 +483,216 @@ final class TotpOperatorUiSeleniumTest {
     }
 
     @Test
+    @DisplayName("Inline TOTP evaluation accepts Base32 shared secrets")
+    void inlineTotpEvaluationAcceptsBase32Secret() {
+        navigateToTotpPanel();
+
+        WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
+        WebElement inlineToggle = driver.findElement(By.cssSelector("[data-testid='totp-mode-select-inline']"));
+        inlineToggle.click();
+        waitUntilAttribute(modeToggle, "data-mode", "inline");
+
+        SharedSecretField sharedSecret = totpInlineSharedSecret();
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+        sharedSecret.setSecret(INLINE_SECRET_BASE32.toLowerCase(Locale.ROOT));
+        sharedSecret.waitUntilValueEquals(INLINE_SECRET_BASE32);
+        assertEquals("sharedSecretBase32", sharedSecret.submissionName());
+
+        sharedSecret.switchTo(SharedSecretField.Mode.HEX);
+        sharedSecret.waitUntilValueEquals(INLINE_SECRET.asHex());
+        assertEquals("sharedSecretHex", sharedSecret.submissionName());
+
+        selectOption("totpInlineAlgorithm", "SHA512");
+
+        WebElement digitsInput = driver.findElement(By.id("totpInlineDigits"));
+        digitsInput.clear();
+        digitsInput.sendKeys("8");
+
+        WebElement stepInput = driver.findElement(By.id("totpInlineStepSeconds"));
+        stepInput.clear();
+        stepInput.sendKeys("60");
+
+        WebElement driftBackward = driver.findElement(By.id("totpInlineDriftBackward"));
+        driftBackward.clear();
+        driftBackward.sendKeys("1");
+
+        WebElement driftForward = driver.findElement(By.id("totpInlineDriftForward"));
+        driftForward.clear();
+        driftForward.sendKeys("1");
+
+        WebElement inlineTimestampAuto =
+                driver.findElement(By.cssSelector("[data-testid='totp-inline-timestamp-toggle']"));
+        if (inlineTimestampAuto.isSelected()) {
+            inlineTimestampAuto.click();
+            waitUntilCondition(() -> !inlineTimestampAuto.isSelected());
+        }
+
+        WebElement timestampInput = driver.findElement(By.id("totpInlineTimestamp"));
+        timestampInput.clear();
+        timestampInput.sendKeys(Long.toString(INLINE_TIMESTAMP.getEpochSecond()));
+
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+
+        driver.findElement(By.cssSelector("[data-testid='totp-inline-evaluate-button']"))
+                .click();
+
+        WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='totp-inline-result-panel']"));
+        WebElement otpValue = resultPanel.findElement(By.cssSelector("[data-testid='totp-result-otp']"));
+        assertEquals(INLINE_EXPECTED_OTP, otpValue.getText().trim());
+    }
+
+    @Test
+    @DisplayName("Inline TOTP secret toggle round-trips between Hex and Base32 modes")
+    void inlineTotpSecretToggleRoundTrips() {
+        navigateToTotpPanel();
+
+        WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
+        WebElement inlineToggle = driver.findElement(By.cssSelector("[data-testid='totp-mode-select-inline']"));
+        inlineToggle.click();
+        waitUntilAttribute(modeToggle, "data-mode", "inline");
+
+        SharedSecretField sharedSecret = totpInlineSharedSecret();
+        sharedSecret.setSecret(INLINE_SECRET.asHex().toLowerCase(Locale.ROOT));
+        sharedSecret.waitUntilValueEquals(INLINE_SECRET.asHex());
+        assertEquals("sharedSecretHex", sharedSecret.submissionName());
+
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+        sharedSecret.waitUntilValueEquals(INLINE_SECRET_BASE32);
+        assertEquals("sharedSecretBase32", sharedSecret.submissionName());
+
+        sharedSecret.switchTo(SharedSecretField.Mode.HEX);
+        sharedSecret.waitUntilValueEquals(INLINE_SECRET.asHex());
+        assertEquals("sharedSecretHex", sharedSecret.submissionName());
+    }
+
+    @Test
+    @DisplayName("Inline TOTP shared secret message updates on conversion errors")
+    void inlineTotpSharedSecretMessageUpdatesOnErrors() {
+        navigateToTotpPanel();
+
+        WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
+        WebElement inlineToggle = driver.findElement(By.cssSelector("[data-testid='totp-mode-select-inline']"));
+        inlineToggle.click();
+        waitUntilAttribute(modeToggle, "data-mode", "inline");
+
+        SharedSecretField sharedSecret = totpInlineSharedSecret();
+        assertEquals(SHARED_SECRET_HINT, sharedSecret.message());
+
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+        waitUntilCondition(() -> SHARED_SECRET_HINT.equals(sharedSecret.message()));
+
+        sharedSecret.setSecret("INVALID#");
+        waitUntilCondition(() -> "error".equalsIgnoreCase(sharedSecret.messageState()));
+        String errorCopy = sharedSecret.message();
+        assertTrue(errorCopy.startsWith("⚠ "), () -> "Expected inline conversion error prefix but saw: " + errorCopy);
+        assertTrue(
+                errorCopy.contains("Base32 values may only contain A-Z and 2-7 characters."),
+                () -> "Unexpected conversion error message: " + errorCopy);
+
+        sharedSecret.setSecret(INLINE_SECRET_BASE32);
+        sharedSecret.waitUntilValueEquals(INLINE_SECRET_BASE32);
+        waitUntilCondition(() -> SHARED_SECRET_HINT.equals(sharedSecret.message()));
+        assertEquals("", sharedSecret.messageState());
+    }
+
+    @Test
+    @DisplayName("Inline TOTP shared secret surfaces validation for invalid Base32 input")
+    void inlineTotpSharedSecretValidationSurfacesErrors() {
+        navigateToTotpPanel();
+
+        WebElement modeToggle = waitFor(By.cssSelector("[data-testid='totp-mode-toggle']"));
+        WebElement inlineToggle = driver.findElement(By.cssSelector("[data-testid='totp-mode-select-inline']"));
+        inlineToggle.click();
+        waitUntilAttribute(modeToggle, "data-mode", "inline");
+
+        SharedSecretField sharedSecret = totpInlineSharedSecret();
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+        sharedSecret.setSecret(INLINE_SECRET_BASE32.toLowerCase(Locale.ROOT));
+        sharedSecret.waitUntilValueEquals(INLINE_SECRET_BASE32);
+
+        injectSecretConflict("/api/v1/totp/evaluate/inline", INLINE_SECRET.asHex(), INLINE_SECRET_BASE32);
+
+        driver.findElement(By.cssSelector("[data-testid='totp-inline-evaluate-button']"))
+                .click();
+
+        WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='totp-inline-result-panel']"));
+        WebElement messageNode = resultPanel.findElement(By.cssSelector("[data-result-message]"));
+        waitUntilTextPopulated(messageNode);
+        String messageCopy = messageNode.getText();
+        assertTrue(
+                messageCopy.contains("Provide either sharedSecretHex or sharedSecretBase32"),
+                () -> "Expected conflict validation message but saw: " + messageCopy);
+    }
+
+    @Test
+    @DisplayName("Inline TOTP replay accepts Base32 shared secrets")
+    void inlineTotpReplayAcceptsBase32Secret() {
+        navigateToTotpPanel();
+        switchToReplayTab();
+        waitUntilUrlContains("tab=replay");
+
+        WebElement replayToggle = waitFor(By.cssSelector("[data-testid='totp-replay-mode-toggle']"));
+        WebElement inlineToggle = driver.findElement(By.cssSelector("[data-testid='totp-replay-mode-select-inline']"));
+        inlineToggle.click();
+        waitUntilAttribute(replayToggle, "data-mode", "inline");
+
+        SharedSecretField sharedSecret = totpReplaySharedSecret();
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+        sharedSecret.setSecret(INLINE_SECRET_BASE32.toLowerCase(Locale.ROOT));
+        sharedSecret.waitUntilValueEquals(INLINE_SECRET_BASE32);
+        assertEquals("sharedSecretBase32", sharedSecret.submissionName());
+
+        sharedSecret.switchTo(SharedSecretField.Mode.HEX);
+        sharedSecret.waitUntilValueEquals(INLINE_SECRET.asHex());
+        assertEquals("sharedSecretHex", sharedSecret.submissionName());
+
+        sharedSecret.switchTo(SharedSecretField.Mode.BASE32);
+
+        selectOption("totpReplayInlineAlgorithm", "SHA512");
+
+        WebElement digitsInput = driver.findElement(By.id("totpReplayInlineDigits"));
+        digitsInput.clear();
+        digitsInput.sendKeys("8");
+
+        WebElement stepInput = driver.findElement(By.id("totpReplayInlineStepSeconds"));
+        stepInput.clear();
+        stepInput.sendKeys("60");
+
+        WebElement driftBackward = driver.findElement(By.id("totpReplayInlineDriftBackward"));
+        driftBackward.clear();
+        driftBackward.sendKeys("0");
+
+        WebElement driftForward = driver.findElement(By.id("totpReplayInlineDriftForward"));
+        driftForward.clear();
+        driftForward.sendKeys("0");
+
+        WebElement timestampInput = driver.findElement(By.id("totpReplayInlineTimestamp"));
+        timestampInput.clear();
+        timestampInput.sendKeys(Long.toString(INLINE_TIMESTAMP.getEpochSecond()));
+
+        WebElement otpInput = driver.findElement(By.id("totpReplayInlineOtp"));
+        otpInput.clear();
+        otpInput.sendKeys(INLINE_EXPECTED_OTP);
+
+        WebElement replayButton = driver.findElement(By.cssSelector("[data-testid='totp-replay-inline-submit']"));
+        replayButton.click();
+
+        WebElement resultPanel = waitForVisible(By.cssSelector("[data-testid='totp-replay-result-panel']"));
+        WebElement statusBadge = resultPanel.findElement(By.cssSelector("[data-testid='totp-replay-status']"));
+        waitUntilTextPopulated(statusBadge);
+        assertEquals("match", statusBadge.getText().trim().toLowerCase());
+
+        WebElement reasonNode = resultPanel.findElement(By.cssSelector("[data-testid='totp-replay-reason-code']"));
+        waitUntilTextPopulated(reasonNode);
+        assertEquals("match", reasonNode.getText().trim().toLowerCase());
+
+        WebElement hintNode = resultPanel.findElement(By.cssSelector("[data-result-hint]"));
+        assertTrue(
+                hintNode.getText() == null || hintNode.getText().trim().isEmpty(),
+                "Successful replay should not render error hints");
+    }
+
+    @Test
     @DisplayName("Inline TOTP evaluate preset populates sample vector inputs")
     void totpInlineSamplePresetPopulatesForm() {
         navigateToTotpPanel();
@@ -508,8 +724,9 @@ final class TotpOperatorUiSeleniumTest {
 
         presetSelect.selectByValue(INLINE_SAMPLE_PRESET_KEY);
 
-        WebElement secretField = driver.findElement(By.id("totpInlineSecretHex"));
-        assertEquals(INLINE_SAMPLE_SECRET.asHex(), secretField.getAttribute("value"));
+        SharedSecretField presetSecret = totpInlineSharedSecret();
+        presetSecret.waitUntilValueEquals(INLINE_SAMPLE_SECRET.asHex());
+        assertEquals("sharedSecretHex", presetSecret.submissionName());
 
         Select algorithmSelect = new Select(driver.findElement(By.id("totpInlineAlgorithm")));
         String algorithmValue = algorithmSelect.getFirstSelectedOption() == null
@@ -633,8 +850,9 @@ final class TotpOperatorUiSeleniumTest {
 
         presetSelect.selectByValue(INLINE_SAMPLE_PRESET_KEY);
 
-        WebElement secretField = driver.findElement(By.id("totpReplayInlineSecretHex"));
-        assertEquals(INLINE_SAMPLE_SECRET.asHex(), secretField.getAttribute("value"));
+        SharedSecretField replaySharedSecret = totpReplaySharedSecret();
+        replaySharedSecret.waitUntilValueEquals(INLINE_SAMPLE_SECRET.asHex());
+        assertEquals("sharedSecretHex", replaySharedSecret.submissionName());
 
         Select algorithmSelect = new Select(driver.findElement(By.id("totpReplayInlineAlgorithm")));
         String algorithmValue = algorithmSelect.getFirstSelectedOption() == null
@@ -884,9 +1102,10 @@ final class TotpOperatorUiSeleniumTest {
         inlineToggle.click();
         waitUntilAttribute(replayToggle, "data-mode", "inline");
 
-        WebElement secretInput = driver.findElement(By.id("totpReplayInlineSecretHex"));
-        secretInput.clear();
-        secretInput.sendKeys(INLINE_SECRET.asHex());
+        SharedSecretField mismatchSharedSecret = totpReplaySharedSecret();
+        mismatchSharedSecret.setSecret(INLINE_SECRET.asHex().toLowerCase(Locale.ROOT));
+        mismatchSharedSecret.waitUntilValueEquals(INLINE_SECRET.asHex());
+        assertEquals("sharedSecretHex", mismatchSharedSecret.submissionName());
 
         selectOption("totpReplayInlineAlgorithm", "SHA512");
 
@@ -1130,6 +1349,43 @@ final class TotpOperatorUiSeleniumTest {
             }
         }
         return false;
+    }
+
+    private SharedSecretField totpInlineSharedSecret() {
+        return new SharedSecretField(driver, By.cssSelector("[data-testid='totp-inline-shared-secret']"));
+    }
+
+    private SharedSecretField totpReplaySharedSecret() {
+        return new SharedSecretField(driver, By.cssSelector("[data-testid='totp-replay-inline-shared-secret']"));
+    }
+
+    private void injectSecretConflict(String endpointFragment, String hexValue, String base32Value) {
+        ((JavascriptExecutor) driver)
+                .executeScript(
+                        "(function(fragment, hex, base32) {"
+                                + "window.__totpSecretConflict = window.__totpSecretConflict || {};"
+                                + "if (window.__totpSecretConflict[fragment]) { return; }"
+                                + "var originalFetch = window.fetch;"
+                                + "window.fetch = function(input, init) {"
+                                + "  if (typeof input === 'string' && input.indexOf(fragment) !== -1 && init && typeof init.body === 'string') {"
+                                + "    try {"
+                                + "      var payload = JSON.parse(init.body);"
+                                + "      if (!payload.sharedSecretHex) { payload.sharedSecretHex = hex; }"
+                                + "      if (!payload.sharedSecretBase32) { payload.sharedSecretBase32 = base32; }"
+                                + "      init.body = JSON.stringify(payload);"
+                                + "    } catch (error) {"
+                                + "      if (window.console && typeof window.console.warn === 'function') {"
+                                + "        window.console.warn('Failed to inject conflicting secrets', error);"
+                                + "      }"
+                                + "    }"
+                                + "  }"
+                                + "  return originalFetch.call(this, input, init);"
+                                + "};"
+                                + "window.__totpSecretConflict[fragment] = true;"
+                                + "}(arguments[0], arguments[1], arguments[2]));",
+                        endpointFragment,
+                        hexValue,
+                        base32Value);
     }
 
     private void selectOption(String selectId, String value) {

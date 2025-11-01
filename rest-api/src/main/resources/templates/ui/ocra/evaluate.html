@@ -279,18 +279,67 @@
                   data-inline-required="true"
                 />
               </div>
-              <div>
-                <label for="sharedSecretHex">Shared Secret (hex)</label>
-                <input
-                  id="sharedSecretHex"
+              <div
+                class="field-group field-group--stacked field-group--shared-secret"
+                data-secret-field
+                data-testid="ocra-inline-shared-secret"
+                th:attr="data-secret-initial-base32=${form.sharedSecretBase32}"
+              >
+                <label for="ocraSharedSecret">Shared secret</label>
+                <div
+                  class="secret-field-toolbar"
+                  data-secret-mode-toggle
+                  data-testid="ocra-inline-secret-toolbar"
+                >
+                  <span class="secret-field-toolbar__label">Mode:</span>
+                  <div class="secret-field-toolbar__buttons" role="group" aria-label="Shared secret encoding">
+                    <button
+                      type="button"
+                      class="mode-pill mode-pill--active"
+                      data-secret-mode-button="hex"
+                      data-testid="ocra-inline-secret-mode-hex"
+                    >
+                      Hex
+                    </button>
+                    <button
+                      type="button"
+                      class="mode-pill"
+                      data-secret-mode-button="base32"
+                      data-testid="ocra-inline-secret-mode-base32"
+                    >
+                      Base32
+                    </button>
+                  </div>
+                  <span
+                    class="hint secret-field-toolbar__length"
+                    data-secret-length
+                    data-testid="ocra-inline-secret-length"
+                    aria-live="polite"
+                  >
+                    Length: —
+                  </span>
+                </div>
+                <textarea
+                  id="ocraSharedSecret"
                   name="sharedSecretHex"
-                  type="text"
+                  rows="3"
                   autocomplete="off"
-                  th:value="${form.sharedSecretHex}"
-                  placeholder="Hex encoded secret"
+                  spellcheck="false"
+                  th:text="${form.sharedSecretHex}"
                   th:attr="required=${form.inlineMode} ? 'required' : null"
                   data-inline-required="true"
-                />
+                  data-secret-input
+                  data-testid="ocra-inline-secret-input"
+                ></textarea>
+                <p
+                  class="hint"
+                  data-secret-message
+                  data-testid="ocra-inline-secret-message"
+                  role="status"
+                  aria-live="polite"
+                >
+                  ↔ Converts automatically when you switch modes.
+                </p>
               </div>
               <div>
                 <label for="pinHashHex">PIN hash (hex, optional)</label>
@@ -659,7 +708,52 @@
         }
         const inlineModeRadio = document.getElementById('mode-inline');
         const suiteInput = document.getElementById('suite');
-        const sharedSecretInput = document.getElementById('sharedSecretHex');
+        const sharedSecretField = document.querySelector('[data-testid="ocra-inline-shared-secret"]');
+        const sharedSecretInput = sharedSecretField
+          ? sharedSecretField.querySelector('[data-secret-input]')
+          : null;
+        const sharedSecretMessageNode = sharedSecretField
+          ? sharedSecretField.querySelector('[data-secret-message]')
+          : null;
+        let secretFieldController = null;
+        const initializeSecretFieldController = function () {
+          if (secretFieldController || !sharedSecretField || !sharedSecretInput || !window.SecretFieldBridge) {
+            return;
+          }
+          const controller = window.SecretFieldBridge.create({
+            container: sharedSecretField,
+            textarea: sharedSecretInput,
+            modeToggle: sharedSecretField
+              ? sharedSecretField.querySelector('[data-secret-mode-toggle]')
+              : null,
+            modeButtons: sharedSecretField
+              ? {
+                  hex: sharedSecretField.querySelector('[data-secret-mode-button="hex"]'),
+                  base32: sharedSecretField.querySelector('[data-secret-mode-button="base32"]')
+                }
+              : null,
+            lengthNode: sharedSecretField
+              ? sharedSecretField.querySelector('[data-secret-length]')
+              : null,
+            messageNode: sharedSecretMessageNode,
+            defaultMessage: sharedSecretMessageNode && sharedSecretMessageNode.textContent
+              ? sharedSecretMessageNode.textContent.trim()
+              : '↔ Converts automatically when you switch modes.',
+            errorPrefix: '⚠ ',
+            requiredMessage: 'Shared secret is required for inline evaluation.'
+          });
+          if (!controller) {
+            return;
+          }
+          secretFieldController = controller;
+          const initialBase32 = sharedSecretField.getAttribute('data-secret-initial-base32');
+          if (initialBase32 && initialBase32.trim().length > 0) {
+            sharedSecretInput.value = initialBase32.trim();
+            secretFieldController.switchMode('base32');
+          }
+        };
+        initializeSecretFieldController();
+        window.addEventListener('load', initializeSecretFieldController);
         const challengeInput = document.getElementById('challenge');
         const sessionInput = document.getElementById('sessionHex');
         const clientChallengeInput = document.getElementById('clientChallenge');
@@ -723,12 +817,23 @@
             }
           });
           inlineRequired.forEach(function (input) {
+            if (!input) {
+              return;
+            }
+            var optionalSecret = input.hasAttribute('data-optional-secret');
             if (inlineActive) {
-              input.setAttribute('required', 'required');
               input.removeAttribute('disabled');
+              if (!optionalSecret) {
+                input.setAttribute('required', 'required');
+              } else {
+                input.removeAttribute('required');
+              }
             } else {
               input.removeAttribute('required');
               input.setAttribute('disabled', 'disabled');
+              if (optionalSecret) {
+                input.removeAttribute('required');
+              }
             }
           });
           credentialRequired.forEach(function (input) {
@@ -1421,8 +1526,11 @@
           if (suiteInput) {
             suiteInput.value = sample && sample.suite ? sample.suite : '';
           }
-          if (sharedSecretInput) {
-            sharedSecretInput.value = sample && sample.sharedSecretHex ? sample.sharedSecretHex : '';
+          var presetSecret = sample && sample.sharedSecretHex ? sample.sharedSecretHex : '';
+          if (secretFieldController) {
+            secretFieldController.applyPreset(presetSecret);
+          } else if (sharedSecretInput) {
+            sharedSecretInput.value = presetSecret;
           }
           if (challengeInput) {
             challengeInput.value = sample && sample.challenge ? sample.challenge : '';
@@ -1865,8 +1973,12 @@
           if (suiteInput) {
             suiteInput.value = state.suite;
           }
-          if (builderGeneratedSecret && sharedSecretInput) {
-            sharedSecretInput.value = builderGeneratedSecret;
+          if (builderGeneratedSecret) {
+            if (secretFieldController) {
+              secretFieldController.applyPreset(builderGeneratedSecret);
+            } else if (sharedSecretInput) {
+              sharedSecretInput.value = builderGeneratedSecret;
+            }
           }
           autoFillTimestampForCurrentSuite('');
           updateTimestampAutofillUi();
@@ -1920,12 +2032,23 @@
             }
           } else {
             var inlineSuite = toTrimmedValue(suiteInput);
-            var secretValue = toTrimmedValue(sharedSecretInput);
             if (inlineSuite) {
               payload.suite = inlineSuite;
             }
-            if (secretValue) {
-              payload.sharedSecretHex = secretValue;
+            if (secretFieldController) {
+              if (!secretFieldController.validate()) {
+                return null;
+              }
+              var inlineSecretPayload = secretFieldController.payload() || { };
+              if (Object.keys(inlineSecretPayload).length === 0) {
+                return null;
+              }
+              Object.assign(payload, inlineSecretPayload);
+            } else {
+              var secretValue = toTrimmedValue(sharedSecretInput);
+              if (secretValue) {
+                payload.sharedSecretHex = secretValue;
+              }
             }
           }
 
@@ -2087,7 +2210,12 @@
           clearPanels();
           setBusy(true);
           verboseBeginRequest();
-          const payload = verboseAttach(buildPayload());
+          const rawPayload = buildPayload();
+          if (!rawPayload) {
+            setBusy(false);
+            return;
+          }
+          const payload = verboseAttach(rawPayload);
           const csrfInput = form ? form.querySelector('input[name="_csrf"]') : null;
           const csrfToken = csrfInput && typeof csrfInput.value === 'string' ? csrfInput.value : '';
           const headers = {

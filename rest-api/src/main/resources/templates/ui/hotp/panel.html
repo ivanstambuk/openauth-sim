@@ -125,18 +125,64 @@
                       Selecting a preset auto-fills the inline fields with illustrative data.
                     </p>
                   </div>
-                  <div class="field-grid">
-                    <div class="field-group">
-                      <label for="hotpInlineSecretHex">Shared secret (hex)</label>
-                      <textarea
-                        id="hotpInlineSecretHex"
-                        name="sharedSecretHex"
-                        rows="3"
-                        required="required"
-                        spellcheck="false"
-                        autocapitalize="none"
-                      ></textarea>
+                  <div
+                    class="field-group field-group--stacked field-group--shared-secret"
+                    data-secret-field
+                    data-testid="hotp-inline-shared-secret"
+                  >
+                    <label for="hotpInlineSharedSecret">Shared secret</label>
+                    <div
+                      class="secret-field-toolbar"
+                      data-secret-mode-toggle
+                      data-testid="hotp-inline-secret-toolbar"
+                    >
+                      <span class="secret-field-toolbar__label">Mode:</span>
+                      <div class="secret-field-toolbar__buttons" role="group" aria-label="Shared secret encoding">
+                        <button
+                          type="button"
+                          class="mode-pill mode-pill--active"
+                          data-secret-mode-button="hex"
+                          data-testid="hotp-inline-secret-mode-hex"
+                        >
+                          Hex
+                        </button>
+                        <button
+                          type="button"
+                          class="mode-pill"
+                          data-secret-mode-button="base32"
+                          data-testid="hotp-inline-secret-mode-base32"
+                        >
+                          Base32
+                        </button>
+                      </div>
+                      <span
+                        class="hint secret-field-toolbar__length"
+                        data-secret-length
+                        data-testid="hotp-inline-secret-length"
+                        aria-live="polite"
+                      >
+                        Length: —
+                      </span>
                     </div>
+                    <textarea
+                      id="hotpInlineSharedSecret"
+                      name="sharedSecretHex"
+                      rows="3"
+                      spellcheck="false"
+                      autocapitalize="none"
+                      autocomplete="off"
+                      data-secret-input
+                      data-testid="hotp-inline-secret-input"
+                    ></textarea>
+                    <p
+                      class="hint"
+                      data-secret-message
+                      data-testid="hotp-inline-secret-message"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      ↔ Converts automatically when you switch modes.
+                    </p>
                   </div>
 
                   <div
@@ -493,18 +539,65 @@
                     aria-hidden="true"
                     aria-label="Inline replay inputs"
                   >
-                  <div class="field-grid">
-                    <div class="field-group">
-                      <label for="hotpReplayInlineSecretHex">Shared secret (hex)</label>
-                      <textarea
-                        id="hotpReplayInlineSecretHex"
-                        name="sharedSecretHex"
-                        rows="3"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        data-inline-required="true"
-                      ></textarea>
+                  <div
+                    class="field-group field-group--stacked field-group--shared-secret"
+                    data-secret-field
+                    data-testid="hotp-replay-inline-shared-secret"
+                  >
+                    <label for="hotpReplayInlineSharedSecret">Shared secret</label>
+                    <div
+                      class="secret-field-toolbar"
+                      data-secret-mode-toggle
+                      data-testid="hotp-replay-inline-secret-toolbar"
+                    >
+                      <span class="secret-field-toolbar__label">Mode:</span>
+                      <div class="secret-field-toolbar__buttons" role="group" aria-label="Shared secret encoding">
+                        <button
+                          type="button"
+                          class="mode-pill mode-pill--active"
+                          data-secret-mode-button="hex"
+                          data-testid="hotp-replay-inline-secret-mode-hex"
+                        >
+                          Hex
+                        </button>
+                        <button
+                          type="button"
+                          class="mode-pill"
+                          data-secret-mode-button="base32"
+                          data-testid="hotp-replay-inline-secret-mode-base32"
+                        >
+                          Base32
+                        </button>
+                      </div>
+                      <span
+                        class="hint secret-field-toolbar__length"
+                        data-secret-length
+                        data-testid="hotp-replay-inline-secret-length"
+                        aria-live="polite"
+                      >
+                        Length: —
+                      </span>
                     </div>
+                    <textarea
+                      id="hotpReplayInlineSharedSecret"
+                      name="sharedSecretHex"
+                      rows="3"
+                      spellcheck="false"
+                      autocapitalize="none"
+                      autocomplete="off"
+                      data-inline-required="true"
+                      data-secret-input
+                      data-testid="hotp-replay-inline-secret-input"
+                    ></textarea>
+                    <p
+                      class="hint"
+                      data-secret-message
+                      data-testid="hotp-replay-inline-secret-message"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      ↔ Converts automatically when you switch modes.
+                    </p>
                   </div>
                   <div
                     class="field-grid hotp-inline-parameter-grid"

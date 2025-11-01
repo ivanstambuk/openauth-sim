@@ -12,6 +12,7 @@ record TotpReplayRequest(
         @JsonProperty("driftBackward") Integer driftBackward,
         @JsonProperty("driftForward") Integer driftForward,
         @JsonProperty("sharedSecretHex") String sharedSecretHex,
+        @JsonProperty("sharedSecretBase32") String sharedSecretBase32,
         @JsonProperty("algorithm") String algorithm,
         @JsonProperty("digits") Integer digits,
         @JsonProperty("stepSeconds") Long stepSeconds,

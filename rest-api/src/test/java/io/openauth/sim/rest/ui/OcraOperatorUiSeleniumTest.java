@@ -17,6 +17,7 @@ import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +49,11 @@ final class OcraOperatorUiSeleniumTest {
     private static final String STORED_CREDENTIAL_ID = "ui-ocra-selenium";
     private static final String STORED_SUITE = "OCRA-1:HOTP-SHA1-6:QA08";
     private static final String STORED_SECRET_HEX = "3132333435363738393031323334353637383930";
+    private static final String STORED_SECRET_BASE32 = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
     private static final String STORED_CHALLENGE = "12345678";
+    private static final String INLINE_SHARED_SECRET_HINT = "↔ Converts automatically when you switch modes.";
+    private static final String REPLAY_SHARED_SECRET_HINT =
+            "↔ Converts automatically when you switch modes. Secrets remain redacted in telemetry.";
 
     private static final OcraCredentialFactory CREDENTIAL_FACTORY = new OcraCredentialFactory();
     private static final OcraCredentialPersistenceAdapter PERSISTENCE_ADAPTER = new OcraCredentialPersistenceAdapter();
@@ -197,6 +202,73 @@ final class OcraOperatorUiSeleniumTest {
     }
 
     @Test
+    @DisplayName("Inline OCRA shared secret exposes Hex/Base32 toggle controls")
+    void inlineOcraSharedSecretToggleControlsPresent() {
+        navigateToOcraPanel();
+
+        WebElement modeToggle = waitFor(By.cssSelector("[data-testid='ocra-mode-toggle']"));
+        waitUntilAttribute(modeToggle, "data-mode", "evaluate");
+
+        WebElement inlineRadio = waitFor(By.id("mode-inline"));
+        inlineRadio.click();
+        new WebDriverWait(driver, Duration.ofSeconds(5)).until(d -> inlineRadio.isSelected());
+
+        WebElement suiteField = waitFor(By.id("suite"));
+        suiteField.clear();
+        suiteField.sendKeys(STORED_SUITE);
+
+        SharedSecretField sharedSecret = ocraInlineSharedSecret();
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(d -> sharedSecret.container().getAttribute("hidden") == null);
+        String submissionName = sharedSecret.submissionName();
+        assertTrue(
+                submissionName != null && !submissionName.isBlank(),
+                "Shared secret textarea should advertise a submission name");
+
+        sharedSecret.container().findElement(By.cssSelector("[data-secret-mode-button='hex']"));
+        sharedSecret.container().findElement(By.cssSelector("[data-secret-mode-button='base32']"));
+    }
+
+    @Test
+    @DisplayName("Inline OCRA shared secret message updates on conversion errors")
+    void inlineOcraSharedSecretMessageUpdatesOnErrors() {
+        navigateToOcraPanel();
+
+        WebElement modeToggle = waitFor(By.cssSelector("[data-testid='ocra-mode-toggle']"));
+        waitUntilAttribute(modeToggle, "data-mode", "evaluate");
+
+        WebElement inlineRadio = waitFor(By.id("mode-inline"));
+        if (!inlineRadio.isSelected()) {
+            inlineRadio.click();
+            new WebDriverWait(driver, Duration.ofSeconds(5)).until(d -> inlineRadio.isSelected());
+        }
+
+        WebElement suiteField = waitFor(By.id("suite"));
+        suiteField.clear();
+        suiteField.sendKeys(STORED_SUITE);
+
+        SharedSecretField sharedSecret = ocraInlineSharedSecret();
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(d -> sharedSecret.container().getAttribute("hidden") == null);
+
+        assertEquals(INLINE_SHARED_SECRET_HINT, sharedSecret.message(), "Inline shared secret should default to hint");
+
+        sharedSecret.setSecret("123");
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(d -> sharedSecret.message().contains("Hex values must contain an even number of characters."));
+        String errorCopy = sharedSecret.message();
+        assertTrue(errorCopy.startsWith("⚠ "), () -> "Expected conversion error prefix but saw: " + errorCopy);
+        assertTrue(
+                errorCopy.contains("Hex values must contain an even number of characters."),
+                () -> "Unexpected conversion guidance copy: " + errorCopy);
+
+        sharedSecret.setSecret(STORED_SECRET_HEX.toLowerCase(Locale.ROOT));
+        sharedSecret.waitUntilValueEquals(STORED_SECRET_HEX);
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(d -> INLINE_SHARED_SECRET_HINT.equals(sharedSecret.message()));
+    }
+
+    @Test
     @DisplayName("Verbose trace surfaces for stored OCRA replay when enabled")
     void verboseTraceSurfacesForStoredOcraReplay() {
         navigateToOcraPanel();
@@ -301,6 +373,39 @@ final class OcraOperatorUiSeleniumTest {
     }
 
     @Test
+    @DisplayName("Inline OCRA replay shared secret exposes Hex/Base32 toggle controls")
+    void inlineOcraReplaySharedSecretToggleControlsPresent() {
+        navigateToOcraPanel();
+
+        WebElement modeToggle = waitFor(By.cssSelector("[data-testid='ocra-mode-toggle']"));
+        waitUntilAttribute(modeToggle, "data-mode", "evaluate");
+
+        WebElement replayPill = waitFor(By.cssSelector("[data-testid='ocra-mode-select-replay']"));
+        replayPill.click();
+        waitUntilAttribute(modeToggle, "data-mode", "replay");
+
+        WebElement inlineRadio = waitFor(By.id("replayModeInline"));
+        inlineRadio.click();
+        new WebDriverWait(driver, Duration.ofSeconds(5)).until(d -> inlineRadio.isSelected());
+
+        waitForElementEnabled(By.id("replaySuite"));
+        WebElement suiteField = driver.findElement(By.id("replaySuite"));
+        suiteField.clear();
+        suiteField.sendKeys(STORED_SUITE);
+
+        SharedSecretField replaySecret = ocraReplaySharedSecret();
+        new WebDriverWait(driver, Duration.ofSeconds(5))
+                .until(d -> replaySecret.container().getAttribute("hidden") == null);
+        replaySecret.container().findElement(By.cssSelector("[data-secret-mode-button='hex']"));
+        replaySecret.container().findElement(By.cssSelector("[data-secret-mode-button='base32']"));
+        assertEquals(
+                REPLAY_SHARED_SECRET_HINT,
+                replaySecret.message(),
+                "Replay shared secret should surface sanitized conversion hint by default");
+        assertEquals("", replaySecret.messageState(), "Replay shared secret should not start in an error state");
+    }
+
+    @Test
     @DisplayName("Switching protocols clears verbose trace panel content")
     void switchingProtocolsClearsVerboseTracePanelContent() {
         navigateToOcraPanel();
@@ -399,6 +504,14 @@ final class OcraOperatorUiSeleniumTest {
     private WebElement waitForVisible(By locator) {
         return new WebDriverWait(driver, Duration.ofSeconds(5))
                 .until(ExpectedConditions.visibilityOfElementLocated(locator));
+    }
+
+    private SharedSecretField ocraInlineSharedSecret() {
+        return new SharedSecretField(driver, By.cssSelector("[data-testid='ocra-inline-shared-secret']"));
+    }
+
+    private SharedSecretField ocraReplaySharedSecret() {
+        return new SharedSecretField(driver, By.cssSelector("[data-testid='ocra-replay-inline-shared-secret']"));
     }
 
     private void waitUntilClassContains(WebElement element, String requiredClass) {

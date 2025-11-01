@@ -1,7 +1,7 @@
 # Architecture Knowledge Map
 
 _Status: Draft_
-_Last updated: 2025-10-29_
+_Last updated: 2025-10-31_
 
 This living map captures the explicit relationships between modules, data flows, and external interfaces so future agents can reason about change impact quickly. Update it after every iteration that introduces or modifies a component, dependency, or contract.
 
@@ -138,6 +138,8 @@ This living map captures the explicit relationships between modules, data flows,
 - Operator documentation suite under `docs/2-how-to` now includes REST, CLI, and Java integration guides that point operators to shared MapDB defaults and Swagger UI entry points.
 - OCRA replay & verification flows (Feature 009) now extend CLI and REST facades with strict OTP verification using stored or inline credentials while emitting hashed OTP telemetry for audit purposes; shipped 2025-10-01 with shared `core.ocra.verify` instrumentation.
 - Operator console TOTP evaluate and replay panels now expose **Use current Unix seconds** toggles (with reset helpers) so operators can snap timestamps to the console clock’s current step; JavaScript quantises the epoch seconds according to each credential’s step size while keeping manual overrides available when toggles are cleared.
+- Core-shared now ships `Base32SecretCodec`, converting Base32 secrets into uppercase hex for HOTP/TOTP/OCRA flows; REST facades call it through `InlineSecretInput` so telemetry and persistence stay hex-only even when operators submit Base32 payloads.
+- Operator console inline HOTP/TOTP/OCRA panels now share `static/ui/shared/secret-fields.js`, synchronising Base32 and hex inputs client-side while enforcing single-encoding submissions that match REST validation feedback.
 
 ## Open Items
 | Date | Topic | Question | Status | Follow-up |

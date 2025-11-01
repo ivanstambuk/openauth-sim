@@ -255,7 +255,7 @@ final class OperatorConsoleReplaySeleniumTest {
 
         waitForElementEnabled(By.cssSelector("select[data-testid='replay-inline-policy-select']"));
         waitForElementEnabled(By.id("replaySuite"));
-        waitForElementEnabled(By.id("replaySharedSecretHex"));
+        consoleReplaySharedSecret().container();
         waitForElementEnabled(By.id("replayOtp"));
         waitForElementEnabled(By.id("replayChallenge"));
 
@@ -301,8 +301,8 @@ final class OperatorConsoleReplaySeleniumTest {
         assertThat(autoOtp).isNotBlank();
         assertThat(driver.findElement(By.id("replaySuite")).getAttribute("value"))
                 .isEqualTo(STORED_SUITE);
-        assertThat(driver.findElement(By.id("replaySharedSecretHex")).getAttribute("value"))
-                .isEqualTo(STORED_SECRET_HEX);
+        SharedSecretField replaySharedSecret = consoleReplaySharedSecret();
+        replaySharedSecret.waitUntilValueEquals(STORED_SECRET_HEX);
         assertThat(driver.findElement(By.id("replayChallenge")).getAttribute("value"))
                 .isEqualTo(STORED_CHALLENGE);
 
@@ -362,10 +362,11 @@ final class OperatorConsoleReplaySeleniumTest {
         waitForBackgroundJavaScript();
 
         waitForElementEnabled(By.id("replaySuite"));
-        waitForElementEnabled(By.id("replaySharedSecretHex"));
+        consoleReplaySharedSecret().container();
         waitForElementEnabled(By.id("replayChallenge"));
         driver.findElement(By.id("replaySuite")).sendKeys(STORED_SUITE);
-        driver.findElement(By.id("replaySharedSecretHex")).sendKeys(STORED_SECRET_HEX);
+        SharedSecretField validationSecret = consoleReplaySharedSecret();
+        validationSecret.setSecret(STORED_SECRET_HEX);
         driver.findElement(By.id("replayChallenge")).sendKeys(STORED_CHALLENGE);
 
         driver.findElement(By.cssSelector("button[data-testid='ocra-replay-submit']"))
@@ -393,8 +394,8 @@ final class OperatorConsoleReplaySeleniumTest {
         assertThat(messageText).isNotBlank();
         assertThat(hintText).contains("reason:").contains("otp");
 
-        WebElement secretField = driver.findElement(By.id("replaySharedSecretHex"));
-        assertThat(secretField.getAttribute("value")).isEqualTo(STORED_SECRET_HEX);
+        SharedSecretField preservedSecret = consoleReplaySharedSecret();
+        preservedSecret.waitUntilValueEquals(STORED_SECRET_HEX);
     }
 
     @Test
@@ -458,6 +459,10 @@ final class OperatorConsoleReplaySeleniumTest {
 
     private void waitForBackgroundJavaScript() {
         driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
+    }
+
+    private SharedSecretField consoleReplaySharedSecret() {
+        return new SharedSecretField(driver, By.cssSelector("[data-testid='ocra-replay-inline-shared-secret']"));
     }
 
     private JsonNode awaitReplayResponse() {

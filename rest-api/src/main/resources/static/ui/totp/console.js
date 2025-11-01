@@ -147,7 +147,37 @@
   }
   var inlinePresetActiveKey = '';
   var inlinePresetActiveLabel = '';
-  var inlineSecretInput = totpPanel.querySelector('#totpInlineSecretHex');
+  var inlineSecretField = totpPanel.querySelector('[data-testid="totp-inline-shared-secret"]');
+  var inlineSecretInput = inlineSecretField
+    ? inlineSecretField.querySelector('[data-secret-input]')
+    : null;
+  var inlineSecretMessageNode = inlineSecretField
+    ? inlineSecretField.querySelector('[data-secret-message]')
+    : null;
+  var inlineSecretController = global.SecretFieldBridge && inlineSecretInput
+    ? global.SecretFieldBridge.create({
+        container: inlineSecretField,
+        textarea: inlineSecretInput,
+        modeToggle: inlineSecretField
+          ? inlineSecretField.querySelector('[data-secret-mode-toggle]')
+          : null,
+        modeButtons: inlineSecretField
+          ? {
+              hex: inlineSecretField.querySelector('[data-secret-mode-button="hex"]'),
+              base32: inlineSecretField.querySelector('[data-secret-mode-button="base32"]')
+            }
+          : null,
+        lengthNode: inlineSecretField
+          ? inlineSecretField.querySelector('[data-secret-length]')
+          : null,
+        messageNode: inlineSecretMessageNode,
+        defaultMessage: inlineSecretMessageNode && inlineSecretMessageNode.textContent
+          ? inlineSecretMessageNode.textContent.trim()
+          : '↔ Converts automatically when you switch modes.',
+        errorPrefix: '⚠ ',
+        requiredMessage: 'Shared secret is required for inline evaluation'
+      })
+    : null;
   var inlineAlgorithmSelect = totpPanel.querySelector('#totpInlineAlgorithm');
   var inlineDigitsInput = totpPanel.querySelector('#totpInlineDigits');
   var inlineStepInput = totpPanel.querySelector('#totpInlineStepSeconds');
@@ -199,7 +229,38 @@
   var sampleEndpointBase = replayStoredForm
     ? replayStoredForm.getAttribute('data-sample-endpoint')
     : null;
-  var replayInlineSecretInput = totpPanel.querySelector('#totpReplayInlineSecretHex');
+  var replayInlineSecretField =
+      totpPanel.querySelector('[data-testid="totp-replay-inline-shared-secret"]');
+  var replayInlineSecretInput = replayInlineSecretField
+    ? replayInlineSecretField.querySelector('[data-secret-input]')
+    : null;
+  var replayInlineSecretMessageNode = replayInlineSecretField
+    ? replayInlineSecretField.querySelector('[data-secret-message]')
+    : null;
+  var replayInlineSecretController = global.SecretFieldBridge && replayInlineSecretInput
+    ? global.SecretFieldBridge.create({
+        container: replayInlineSecretField,
+        textarea: replayInlineSecretInput,
+        modeToggle: replayInlineSecretField
+          ? replayInlineSecretField.querySelector('[data-secret-mode-toggle]')
+          : null,
+        modeButtons: replayInlineSecretField
+          ? {
+              hex: replayInlineSecretField.querySelector('[data-secret-mode-button="hex"]'),
+              base32: replayInlineSecretField.querySelector('[data-secret-mode-button="base32"]')
+            }
+          : null,
+        lengthNode: replayInlineSecretField
+          ? replayInlineSecretField.querySelector('[data-secret-length]')
+          : null,
+        messageNode: replayInlineSecretMessageNode,
+        defaultMessage: replayInlineSecretMessageNode && replayInlineSecretMessageNode.textContent
+          ? replayInlineSecretMessageNode.textContent.trim()
+          : '↔ Converts automatically when you switch modes.',
+        errorPrefix: '⚠ ',
+        requiredMessage: 'Shared secret is required for inline replay'
+      })
+    : null;
   var replayInlineAlgorithmSelect = totpPanel.querySelector('#totpReplayInlineAlgorithm');
   var replayInlineDigitsInput = totpPanel.querySelector('#totpReplayInlineDigits');
   var replayInlineStepInput = totpPanel.querySelector('#totpReplayInlineStepSeconds');
@@ -355,7 +416,9 @@
     if (inlinePresetSelect && inlinePresetSelect.value !== presetKey) {
       inlinePresetSelect.value = presetKey;
     }
-    if (inlineSecretInput) {
+    if (inlineSecretController) {
+      inlineSecretController.applyPreset(preset.sharedSecretHex || '');
+    } else if (inlineSecretInput) {
       inlineSecretInput.value = preset.sharedSecretHex || '';
     }
     if (inlineAlgorithmSelect && preset.algorithm) {
@@ -409,7 +472,9 @@
     if (replayInlinePresetSelect && replayInlinePresetSelect.value !== presetKey) {
       replayInlinePresetSelect.value = presetKey;
     }
-    if (replayInlineSecretInput) {
+    if (replayInlineSecretController) {
+      replayInlineSecretController.applyPreset(preset.sharedSecretHex || '');
+    } else if (replayInlineSecretInput) {
       replayInlineSecretInput.value = preset.sharedSecretHex || '';
     }
     if (replayInlineAlgorithmSelect && preset.algorithm) {
@@ -1526,9 +1591,27 @@
     }
     var endpoint = inlineForm.getAttribute('data-evaluate-endpoint');
     var payload = {
-      sharedSecretHex: valueOf('#totpInlineSecretHex'),
       algorithm: valueOf('#totpInlineAlgorithm'),
     };
+    if (inlineSecretController) {
+      if (!inlineSecretController.validate()) {
+        return;
+      }
+      var secretPayload = inlineSecretController.payload();
+      if (!secretPayload || Object.keys(secretPayload).length === 0) {
+        return;
+      }
+      Object.assign(payload, secretPayload);
+    } else {
+      var secretHex = valueOf('#totpInlineSharedSecret');
+      if (!secretHex) {
+        if (inlineSecretInput) {
+          inlineSecretInput.focus();
+        }
+        return;
+      }
+      payload.sharedSecretHex = secretHex;
+    }
     var digits = toInteger(valueOf('#totpInlineDigits'));
     var stepSeconds = toInteger(valueOf('#totpInlineStepSeconds'));
     var driftBackward = toInteger(valueOf('#totpInlineDriftBackward'));
@@ -1615,10 +1698,28 @@
     }
     var endpoint = replayInlineForm.getAttribute('data-replay-endpoint');
     var payload = {
-      sharedSecretHex: valueOf('#totpReplayInlineSecretHex'),
       algorithm: valueOf('#totpReplayInlineAlgorithm'),
       otp: valueOf('#totpReplayInlineOtp'),
     };
+    if (replayInlineSecretController) {
+      if (!replayInlineSecretController.validate()) {
+        return;
+      }
+      var secretPayload = replayInlineSecretController.payload();
+      if (!secretPayload || Object.keys(secretPayload).length === 0) {
+        return;
+      }
+      Object.assign(payload, secretPayload);
+    } else {
+      var replaySecretHex = valueOf('#totpReplayInlineSharedSecret');
+      if (!replaySecretHex) {
+        if (replayInlineSecretInput) {
+          replayInlineSecretInput.focus();
+        }
+        return;
+      }
+      payload.sharedSecretHex = replaySecretHex;
+    }
     var digits = toInteger(valueOf('#totpReplayInlineDigits'));
     var stepSeconds = toInteger(valueOf('#totpReplayInlineStepSeconds'));
     var driftBackward = toInteger(valueOf('#totpReplayInlineDriftBackward'));

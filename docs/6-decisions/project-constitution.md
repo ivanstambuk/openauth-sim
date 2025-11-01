@@ -40,6 +40,7 @@ This constitution establishes the non-negotiable operating principles for the Op
 - Mirror every approved change across roadmap, feature plans, tasks, knowledge map, and runbooks as needed.
 - Maintain per-feature `tasks.md` files that decompose work into ≤30 minute increments, reference spec requirements, and sequence tests before code.
 - Log self-review notes and tool usage back into the relevant plan or runbook to preserve provenance.
+- For any UI-facing feature or modification, include ASCII mock-ups directly in the governing specification per `docs/4-architecture/spec-guidelines/ui-ascii-mockups.md`.
 
 ### Principle 5 – Controlled Dependencies & Security
 - Add or upgrade dependencies only with explicit owner approval and record the rationale in the feature plan.

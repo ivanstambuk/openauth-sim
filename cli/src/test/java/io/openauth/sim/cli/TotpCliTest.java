@@ -35,6 +35,8 @@ final class TotpCliTest {
             TotpJsonVectorFixtures.getById("rfc6238_sha1_digits6_t1111111111");
     private static final SecretMaterial INLINE_SECRET =
             SecretMaterial.fromStringUtf8("1234567890123456789012345678901234567890123456789012345678901234");
+    private static final String INLINE_SECRET_BASE32 =
+            "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNA=";
 
     @TempDir
     Path tempDir;
@@ -142,6 +144,66 @@ final class TotpCliTest {
         String expectedOtp = TotpGenerator.generate(inlineDescriptor, issuedAt);
         String actualOtp = extractOtp(stdout);
         assertEquals(expectedOtp, actualOtp, "CLI should emit the generated OTP");
+    }
+
+    @Test
+    void evaluateInlineSupportsBase32Secrets() throws Exception {
+        Path database = tempDir.resolve("totp-base32.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        TotpDescriptor inlineDescriptor = TotpDescriptor.create(
+                "inline", INLINE_SECRET, TotpHashAlgorithm.SHA512, 8, Duration.ofSeconds(60), TotpDriftWindow.of(0, 0));
+        Instant issuedAt = Instant.ofEpochSecond(1_234_567_890L);
+
+        int exitCode = harness.execute(
+                "evaluate-inline",
+                "--secret-base32",
+                INLINE_SECRET_BASE32,
+                "--algorithm",
+                "SHA512",
+                "--digits",
+                "8",
+                "--step-seconds",
+                "60",
+                "--drift-backward",
+                "0",
+                "--drift-forward",
+                "0",
+                "--timestamp",
+                Long.toString(issuedAt.getEpochSecond()));
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("event=cli.totp.evaluate status=success"));
+        assertTrue(stdout.contains("credentialReference=false"));
+        String expectedOtp = TotpGenerator.generate(inlineDescriptor, issuedAt);
+        assertEquals(expectedOtp, extractOtp(stdout));
+    }
+
+    @Test
+    void evaluateInlineRejectsHexAndBase32Combination() {
+        Path database = tempDir.resolve("totp-conflict.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        int exitCode = harness.execute(
+                "evaluate-inline",
+                "--secret",
+                INLINE_SECRET.asHex(),
+                "--secret-base32",
+                INLINE_SECRET_BASE32,
+                "--algorithm",
+                "SHA1",
+                "--digits",
+                "6",
+                "--step-seconds",
+                "30");
+
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode);
+        String stderr = harness.stderr();
+        assertTrue(stderr.contains("event=cli.totp.evaluate status=invalid"));
+        assertTrue(
+                stderr.contains("Provide either --secret or --secret-base32"),
+                () -> "stderr did not include exclusivity hint:\n" + stderr);
     }
 
     private static final class CommandHarness {

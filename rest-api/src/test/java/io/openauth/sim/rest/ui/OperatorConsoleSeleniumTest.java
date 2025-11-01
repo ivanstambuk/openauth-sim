@@ -139,7 +139,9 @@ final class OperatorConsoleSeleniumTest {
         waitForBackgroundJavaScript();
 
         assertValueWithWait(By.id("suite"), sample.getSuite());
-        assertValueWithWait(By.id("sharedSecretHex"), sample.getSharedSecretHex());
+        SharedSecretField sharedSecret = consoleInlineSharedSecret();
+        sharedSecret.waitUntilValueEquals(sample.getSharedSecretHex());
+        assertThat(sharedSecret.submissionName()).isEqualTo("sharedSecretHex");
         assertValueWithWait(By.id("challenge"), sample.getChallenge());
         assertValueWithWait(By.id("clientChallenge"), sample.getClientChallenge());
         assertValueWithWait(By.id("serverChallenge"), sample.getServerChallenge());
@@ -191,7 +193,8 @@ final class OperatorConsoleSeleniumTest {
         WebElement hintNode = resultPanel.findElement(By.cssSelector("[data-result-hint]"));
         assertThat(messageNode.getAttribute("hidden")).isNotNull();
         assertThat(hintNode.getAttribute("hidden")).isNotNull();
-        assertValueWithWait(By.id("sharedSecretHex"), sample.getSharedSecretHex());
+        SharedSecretField finalSharedSecret = consoleInlineSharedSecret();
+        finalSharedSecret.waitUntilValueEquals(sample.getSharedSecretHex());
         assertThat(credentialSection.getAttribute("hidden")).isNotNull();
     }
 
@@ -560,7 +563,8 @@ final class OperatorConsoleSeleniumTest {
 
         applyButton.click();
         waitForBackgroundJavaScript();
-        assertValueWithWait(By.id("sharedSecretHex"), generatedSecret);
+        SharedSecretField builderSharedSecret = consoleInlineSharedSecret();
+        builderSharedSecret.waitUntilValueEquals(generatedSecret);
     }
 
     @Test
@@ -976,6 +980,10 @@ final class OperatorConsoleSeleniumTest {
                                 + " if (el) { el.value = arguments[1] || ''; }",
                         elementId,
                         value);
+    }
+
+    private SharedSecretField consoleInlineSharedSecret() {
+        return new SharedSecretField(driver, By.cssSelector("[data-testid='ocra-inline-shared-secret']"));
     }
 
     private boolean isDisabled(String elementId) {

@@ -20,6 +20,7 @@ final class OcraEvaluationDtoTest {
                 "  credential-123  ",
                 "  OCRA-1:HOTP-SHA1-6:QA08  ",
                 "  313233  ",
+                null,
                 "  12345678  ",
                 "   ",
                 null,

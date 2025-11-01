@@ -8,6 +8,7 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpInlineEvaluationRequest(
         @JsonProperty("sharedSecretHex") String sharedSecretHex,
+        @JsonProperty("sharedSecretBase32") String sharedSecretBase32,
         @JsonProperty("algorithm") String algorithm,
         @JsonProperty("digits") Integer digits,
         @JsonProperty("counter") Long counter,

@@ -11,6 +11,7 @@ import io.openauth.sim.core.otp.totp.TotpDriftWindow;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
 import io.openauth.sim.core.trace.VerboseTrace;
 import io.openauth.sim.rest.VerboseTracePayload;
+import io.openauth.sim.rest.support.InlineSecretInput;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -58,10 +59,18 @@ class TotpEvaluationService {
     }
 
     TotpEvaluationResponse evaluateInline(TotpInlineEvaluationRequest request) {
-        String secretHex = Optional.ofNullable(request.sharedSecretHex())
-                .map(String::trim)
-                .filter(value -> !value.isEmpty())
-                .orElseThrow(() -> validation("shared_secret_required", "Shared secret is required"));
+        String secretHex = InlineSecretInput.resolveHex(
+                request.sharedSecretHex(),
+                request.sharedSecretBase32(),
+                () -> validation(
+                        "shared_secret_required", "Shared secret is required", Map.of("field", "sharedSecret"), null),
+                () -> validation(
+                        "shared_secret_conflict",
+                        "Provide either sharedSecretHex or sharedSecretBase32, not both",
+                        Map.of("field", "sharedSecret"),
+                        null),
+                message -> validation(
+                        "shared_secret_base32_invalid", message, Map.of("field", "sharedSecretBase32"), null));
         Map<String, String> metadata = sanitizeMetadata(request.metadata());
 
         TotpHashAlgorithm algorithm = Optional.ofNullable(request.algorithm())

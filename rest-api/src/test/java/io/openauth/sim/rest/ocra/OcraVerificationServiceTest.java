@@ -3,6 +3,7 @@ package io.openauth.sim.rest.ocra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.application.ocra.OcraCredentialResolvers;
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 class OcraVerificationServiceTest {
     private static final String DEFAULT_SECRET_HEX = "31323334353637383930313233343536";
+    private static final String DEFAULT_SECRET_BASE32 = "GEZDGNBVGY3TQOJQGEZDGNBVGY======";
 
     private final TestHandler handler = new TestHandler();
     private final Logger logger = Logger.getLogger("io.openauth.sim.rest.ocra.telemetry");
@@ -82,6 +84,23 @@ class OcraVerificationServiceTest {
     }
 
     @Test
+    @DisplayName("inline verification accepts Base32 shared secrets")
+    void inlineVerificationAcceptsBase32Secret() {
+        OcraVerificationService service = service();
+        OcraVerificationInlineCredential inlineCredential =
+                new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", null, DEFAULT_SECRET_BASE32);
+        OcraVerificationRequest request =
+                new OcraVerificationRequest(buildMatchingOtp(), null, inlineCredential, context(), Boolean.FALSE);
+        OcraVerificationAuditContext auditContext = new OcraVerificationAuditContext("req-inline-base32", null, null);
+
+        OcraVerificationResponse response = service.verify(request, auditContext);
+
+        assertEquals("match", response.status());
+        assertEquals("match", response.reasonCode());
+        assertEquals("inline", response.metadata().credentialSource());
+    }
+
+    @Test
     @DisplayName("inline verification mismatch reports strict mismatch")
     void inlineVerificationMismatch() {
         OcraVerificationService service = service();
@@ -116,7 +135,8 @@ class OcraVerificationServiceTest {
     @DisplayName("inline credential missing suite surfaces suite_missing")
     void inlineSuiteMissingValidation() {
         OcraVerificationService service = service();
-        OcraVerificationInlineCredential inlineCredential = new OcraVerificationInlineCredential("   ", "31323334");
+        OcraVerificationInlineCredential inlineCredential =
+                new OcraVerificationInlineCredential("   ", "31323334", null);
         OcraVerificationRequest request =
                 new OcraVerificationRequest("123456", null, inlineCredential, context(), Boolean.FALSE);
 
@@ -133,7 +153,7 @@ class OcraVerificationServiceTest {
     void inlineSecretMissingValidation() {
         OcraVerificationService service = service();
         OcraVerificationInlineCredential inlineCredential =
-                new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", "   ");
+                new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", "   ", null);
         OcraVerificationRequest request =
                 new OcraVerificationRequest("123456", null, inlineCredential, context(), Boolean.FALSE);
 
@@ -143,6 +163,24 @@ class OcraVerificationServiceTest {
 
         assertEquals("shared_secret_missing", exception.reasonCode());
         assertTelemetryMessageContains("reasonCode=shared_secret_missing");
+    }
+
+    @Test
+    @DisplayName("inline credential rejects invalid Base32 secrets")
+    void inlineSecretInvalidBase32Validation() {
+        OcraVerificationService service = service();
+        OcraVerificationInlineCredential inlineCredential =
+                new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", null, "!!!!");
+        OcraVerificationRequest request =
+                new OcraVerificationRequest("123456", null, inlineCredential, context(), Boolean.FALSE);
+
+        OcraVerificationValidationException exception = assertThrows(
+                OcraVerificationValidationException.class,
+                () -> service.verify(request, new OcraVerificationAuditContext("req-secret-invalid", null, null)));
+
+        assertEquals("shared_secret_base32_invalid", exception.reasonCode());
+        assertEquals("sharedSecretBase32", exception.field());
+        assertTrue(exception.sanitized());
     }
 
     @Test
@@ -187,7 +225,7 @@ class OcraVerificationServiceTest {
     void storedAndInlineConflict() {
         OcraVerificationService service = service();
         OcraVerificationInlineCredential inline =
-                new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", DEFAULT_SECRET_HEX);
+                new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", DEFAULT_SECRET_HEX, null);
         OcraVerificationRequest request =
                 new OcraVerificationRequest(buildMatchingOtp(), "stored-token", inline, context(), Boolean.FALSE);
 
@@ -356,7 +394,8 @@ class OcraVerificationServiceTest {
     }
 
     private OcraVerificationInlineCredential inlineCredential() {
-        return new OcraVerificationInlineCredential("OCRA-1:HOTP-SHA1-6:QN08", "31323334353637383930313233343536");
+        return new OcraVerificationInlineCredential(
+                "OCRA-1:HOTP-SHA1-6:QN08", "31323334353637383930313233343536", null);
     }
 
     private OcraVerificationContext context() {

@@ -13,6 +13,7 @@ import io.openauth.sim.application.ocra.OcraVerificationRequests;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.rest.VerboseTracePayload;
+import io.openauth.sim.rest.support.InlineSecretInput;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
@@ -411,8 +412,8 @@ class OcraVerificationService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private static String inlineIdentifier(OcraVerificationInlineCredential inline) {
-        return OcraInlineIdentifiers.sharedIdentifier(inline.suite(), inline.sharedSecretHex());
+    private static String inlineIdentifier(String suite, String secretHex) {
+        return OcraInlineIdentifiers.sharedIdentifier(suite, secretHex);
     }
 
     private record CommandEnvelope(
@@ -462,15 +463,29 @@ class OcraVerificationService {
             if (inline.suite() == null || inline.suite().isBlank()) {
                 throw new ValidationError("suite", "suite_missing", "suite is required for inline mode");
             }
-            if (inline.sharedSecretHex() == null || inline.sharedSecretHex().isBlank()) {
+            if (!InlineSecretInput.hasSecret(inline.sharedSecretHex(), inline.sharedSecretBase32())) {
                 throw new ValidationError(
-                        "sharedSecretHex", "shared_secret_missing", "sharedSecretHex is required for inline mode");
+                        "sharedSecret",
+                        "shared_secret_missing",
+                        "sharedSecretHex or sharedSecretBase32 is required for inline mode");
             }
+            String resolvedSecret = InlineSecretInput.resolveHex(
+                    inline.sharedSecretHex(),
+                    inline.sharedSecretBase32(),
+                    () -> new ValidationError(
+                            "sharedSecret",
+                            "shared_secret_missing",
+                            "sharedSecretHex or sharedSecretBase32 is required for inline mode"),
+                    () -> new ValidationError(
+                            "sharedSecret",
+                            "shared_secret_conflict",
+                            "Provide either sharedSecretHex or sharedSecretBase32, not both"),
+                    message -> new ValidationError("sharedSecretBase32", "shared_secret_base32_invalid", message));
             VerificationContext ctx = fallbackContext(request, inline.suite(), "inline");
             VerificationCommand command = OcraVerificationRequests.inline(new OcraVerificationRequests.InlineInputs(
-                    inlineIdentifier(inline),
+                    inlineIdentifier(inline.suite(), resolvedSecret),
                     inline.suite(),
-                    inline.sharedSecretHex(),
+                    resolvedSecret,
                     request.otp(),
                     ctx.challenge(),
                     ctx.clientChallenge(),

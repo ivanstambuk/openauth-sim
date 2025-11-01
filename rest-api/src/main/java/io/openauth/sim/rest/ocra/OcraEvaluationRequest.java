@@ -9,6 +9,7 @@ public record OcraEvaluationRequest(
         String credentialId,
         String suite,
         String sharedSecretHex,
+        String sharedSecretBase32,
         String challenge,
         String sessionHex,
         String clientChallenge,
@@ -22,6 +23,7 @@ public record OcraEvaluationRequest(
         credentialId = trimOrNull(credentialId);
         suite = trimOrNull(suite);
         sharedSecretHex = trimOrNull(sharedSecretHex);
+        sharedSecretBase32 = trimOrNull(sharedSecretBase32);
         challenge = trimOrNull(challenge);
         sessionHex = trimOrNull(sessionHex);
         clientChallenge = trimOrNull(clientChallenge);

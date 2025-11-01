@@ -55,7 +55,15 @@ var inlineForm = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-stored-status"]')
     : null;
   var storedSelect = hotpPanel ? hotpPanel.querySelector('#hotpStoredCredentialId') : null;
-  var inlineSecretInput = hotpPanel ? hotpPanel.querySelector('#hotpInlineSecretHex') : null;
+  var inlineSecretField = hotpPanel
+    ? hotpPanel.querySelector('[data-testid="hotp-inline-shared-secret"]')
+    : null;
+  var inlineSecretInput = inlineSecretField
+    ? inlineSecretField.querySelector('[data-secret-input]')
+    : null;
+  var inlineSecretMessageNode = inlineSecretField
+    ? inlineSecretField.querySelector('[data-secret-message]')
+    : null;
   var inlineDigitsInput = hotpPanel ? hotpPanel.querySelector('#hotpInlineDigits') : null;
   var inlineCounterInput = hotpPanel ? hotpPanel.querySelector('#hotpInlineCounter') : null;
   var storedButton = hotpPanel
@@ -156,8 +164,14 @@ var inlineForm = hotpPanel
   var replaySampleStatus = replayForm
     ? replayForm.querySelector('[data-testid="hotp-replay-sample-status"]')
     : null;
-  var replayInlineSecretInput = replayForm
-    ? replayForm.querySelector('#hotpReplayInlineSecretHex')
+  var replayInlineSecretField = replayForm
+    ? replayForm.querySelector('[data-testid="hotp-replay-inline-shared-secret"]')
+    : null;
+  var replayInlineSecretInput = replayInlineSecretField
+    ? replayInlineSecretField.querySelector('[data-secret-input]')
+    : null;
+  var replayInlineSecretMessageNode = replayInlineSecretField
+    ? replayInlineSecretField.querySelector('[data-secret-message]')
     : null;
   var replayInlineAlgorithmSelect = replayForm
     ? replayForm.querySelector('#hotpReplayInlineAlgorithm')
@@ -170,6 +184,54 @@ var inlineForm = hotpPanel
     : null;
   var replayInlineOtpInput = replayForm
     ? replayForm.querySelector('#hotpReplayInlineOtp')
+    : null;
+  var inlineSecretController = global.SecretFieldBridge && inlineSecretInput
+    ? global.SecretFieldBridge.create({
+        container: inlineSecretField,
+        textarea: inlineSecretInput,
+        modeToggle: inlineSecretField
+          ? inlineSecretField.querySelector('[data-secret-mode-toggle]')
+          : null,
+        modeButtons: inlineSecretField
+          ? {
+              hex: inlineSecretField.querySelector('[data-secret-mode-button="hex"]'),
+              base32: inlineSecretField.querySelector('[data-secret-mode-button="base32"]')
+            }
+          : null,
+        lengthNode: inlineSecretField
+          ? inlineSecretField.querySelector('[data-secret-length]')
+          : null,
+        messageNode: inlineSecretMessageNode,
+        defaultMessage: inlineSecretMessageNode && inlineSecretMessageNode.textContent
+          ? inlineSecretMessageNode.textContent.trim()
+          : '↔ Converts automatically when you switch modes.',
+        errorPrefix: '⚠ ',
+        requiredMessage: 'Provide the HOTP shared secret.'
+      })
+    : null;
+  var replayInlineSecretController = global.SecretFieldBridge && replayInlineSecretInput
+    ? global.SecretFieldBridge.create({
+        container: replayInlineSecretField,
+        textarea: replayInlineSecretInput,
+        modeToggle: replayInlineSecretField
+          ? replayInlineSecretField.querySelector('[data-secret-mode-toggle]')
+          : null,
+        modeButtons: replayInlineSecretField
+          ? {
+              hex: replayInlineSecretField.querySelector('[data-secret-mode-button="hex"]'),
+              base32: replayInlineSecretField.querySelector('[data-secret-mode-button="base32"]')
+            }
+          : null,
+        lengthNode: replayInlineSecretField
+          ? replayInlineSecretField.querySelector('[data-secret-length]')
+          : null,
+        messageNode: replayInlineSecretMessageNode,
+        defaultMessage: replayInlineSecretMessageNode && replayInlineSecretMessageNode.textContent
+          ? replayInlineSecretMessageNode.textContent.trim()
+          : '↔ Converts automatically when you switch modes.',
+        errorPrefix: '⚠ ',
+        requiredMessage: 'Provide the HOTP shared secret for replay.'
+      })
     : null;
   var replayResultPanel = hotpPanel
     ? hotpPanel.querySelector('[data-testid="hotp-replay-result"]')
@@ -1012,7 +1074,9 @@ var inlineForm = hotpPanel
     if (!preset) {
       return;
     }
-    if (inlineSecretInput && typeof preset.sharedSecretHex === 'string') {
+    if (inlineSecretController && typeof preset.sharedSecretHex === 'string') {
+      inlineSecretController.applyPreset(preset.sharedSecretHex);
+    } else if (inlineSecretInput && typeof preset.sharedSecretHex === 'string') {
       inlineSecretInput.value = preset.sharedSecretHex;
     }
     if (inlineAlgorithmSelect && preset.algorithm) {
@@ -1068,7 +1132,9 @@ var inlineForm = hotpPanel
     if (!preset) {
       return;
     }
-    if (replayInlineSecretInput) {
+    if (replayInlineSecretController) {
+      replayInlineSecretController.applyPreset(preset.sharedSecretHex || '');
+    } else if (replayInlineSecretInput) {
       replayInlineSecretInput.value = preset.sharedSecretHex || '';
     }
     if (replayInlineAlgorithmSelect) {
@@ -1305,25 +1371,36 @@ var inlineForm = hotpPanel
     var endpoint = replayForm.getAttribute('data-replay-endpoint') || '/api/v1/hotp/replay';
     var payload;
 
-    if (mode === 'inline') {
-      var secret = replayInlineSecretInput ? replayInlineSecretInput.value.trim() : '';
+  if (mode === 'inline') {
       var algorithm = replayInlineAlgorithmSelect ? replayInlineAlgorithmSelect.value : 'SHA1';
       var digits = replayInlineDigitsInput ? parseInt(replayInlineDigitsInput.value, 10) : NaN;
       var counter = replayInlineCounterInput ? parseInt(replayInlineCounterInput.value, 10) : NaN;
       var otp = replayInlineOtpInput ? replayInlineOtpInput.value.trim() : '';
+      var secretPayloadInline = {};
 
-      if (!secret || !otp || Number.isNaN(digits) || Number.isNaN(counter)) {
+      if (replayInlineSecretController) {
+        if (!replayInlineSecretController.validate()) {
+          return;
+        }
+        secretPayloadInline = replayInlineSecretController.payload() || {};
+      } else {
+        var inlineSecretFallback = replayInlineSecretInput ? replayInlineSecretInput.value.trim() : '';
+        if (inlineSecretFallback) {
+          secretPayloadInline.sharedSecretHex = inlineSecretFallback;
+        }
+      }
+
+      if ((!secretPayloadInline || Object.keys(secretPayloadInline).length === 0) || !otp || Number.isNaN(digits) || Number.isNaN(counter)) {
         showReplayError('Inline replay requires secret, digits, counter, and OTP values.');
         return;
       }
 
-      payload = {
-        sharedSecretHex: secret,
+      payload = Object.assign({}, secretPayloadInline, {
         algorithm: algorithm || 'SHA1',
         digits: digits,
         counter: counter,
         otp: otp,
-      };
+      });
     } else {
       var credentialId = replayStoredSelect ? replayStoredSelect.value.trim() : '';
       var storedOtp = replayStoredOtpInput ? replayStoredOtpInput.value.trim() : '';
@@ -1556,13 +1633,26 @@ var inlineForm = hotpPanel
     if (!inlineForm || !inlineButton) {
       return;
     }
-    var secret = inlineSecretInput ? inlineSecretInput.value : '';
+    var secretPayload = {};
     var digits = inlineDigitsInput ? parseInt(inlineDigitsInput.value, 10) : NaN;
     var counter = inlineCounterInput ? parseInt(inlineCounterInput.value, 10) : NaN;
 
-    if (!secret || secret.trim().length === 0) {
-      showInlineError('Provide the HOTP shared secret (hex encoded).');
-      return;
+    if (inlineSecretController) {
+      if (!inlineSecretController.validate()) {
+        return;
+      }
+      secretPayload = inlineSecretController.payload() || {};
+      if (Object.keys(secretPayload).length === 0) {
+        showInlineError('Provide the HOTP shared secret (hex or Base32).');
+        return;
+      }
+    } else {
+      var secret = inlineSecretInput ? inlineSecretInput.value : '';
+      if (!secret || secret.trim().length === 0) {
+        showInlineError('Provide the HOTP shared secret (hex encoded).');
+        return;
+      }
+      secretPayload.sharedSecretHex = secret.trim();
     }
     if (Number.isNaN(digits)) {
       showInlineError('Digits must be between 6 and 8.');
@@ -1577,12 +1667,11 @@ var inlineForm = hotpPanel
     hideInlineError();
     setHidden(inlineResultPanel, true);
 
-    var payload = {
-      sharedSecretHex: secret.trim(),
+    var payload = Object.assign({}, secretPayload, {
       algorithm: inlineAlgorithmSelect ? inlineAlgorithmSelect.value : 'SHA1',
       digits: digits,
       counter: counter,
-    };
+    });
 
     if (inlinePresetActiveKey) {
       var metadataPayload = { presetKey: inlinePresetActiveKey };

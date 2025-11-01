@@ -14,12 +14,14 @@ import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.Evaluat
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.EvaluationResult;
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.TelemetrySignal;
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.TelemetryStatus;
+import io.openauth.sim.core.encoding.Base32SecretCodec;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 final class HotpEvaluationServiceTest {
@@ -66,7 +68,7 @@ final class HotpEvaluationServiceTest {
                 .thenReturn(result);
 
         HotpEvaluationResponse response = service.evaluateInline(new HotpInlineEvaluationRequest(
-                "3132333435363738393031323334353637383930", "SHA1", 6, 10L, Map.of(), null));
+                "3132333435363738393031323334353637383930", null, "SHA1", 6, 10L, Map.of(), null));
 
         assertEquals("generated", response.status());
         assertEquals(OTP, response.otp());
@@ -75,12 +77,31 @@ final class HotpEvaluationServiceTest {
     }
 
     @Test
+    @DisplayName("Inline evaluation accepts Base32 shared secrets")
+    void inlineEvaluationAcceptsBase32Secrets() {
+        Map<String, Object> fields = new LinkedHashMap<>();
+        fields.put("credentialSource", "inline");
+        TelemetrySignal signal = new TelemetrySignal(TelemetryStatus.SUCCESS, "generated", null, true, fields, null);
+        EvaluationResult result =
+                new EvaluationResult(signal, false, null, 10L, 11L, HotpHashAlgorithm.SHA1, 6, OTP, null, null, null);
+        when(applicationService.evaluate(any(EvaluationCommand.Inline.class), anyBoolean()))
+                .thenReturn(result);
+
+        String base32 = "MFRGGZDFMZTWQ2LK"; // RFC 3548 example
+        service.evaluateInline(new HotpInlineEvaluationRequest(null, base32, "SHA1", 6, 10L, Map.of(), null));
+
+        ArgumentCaptor<EvaluationCommand.Inline> captor = ArgumentCaptor.forClass(EvaluationCommand.Inline.class);
+        verify(applicationService).evaluate(captor.capture(), anyBoolean());
+        assertEquals(Base32SecretCodec.toUpperHex(base32), captor.getValue().sharedSecretHex());
+    }
+
+    @Test
     @DisplayName("Inline evaluation rejects unknown algorithms with sanitized details")
     void inlineEvaluationRejectsUnknownAlgorithm() {
         HotpEvaluationValidationException exception = assertThrows(
                 HotpEvaluationValidationException.class,
                 () -> service.evaluateInline(new HotpInlineEvaluationRequest(
-                        "3132333435363738393031323334353637383930", "sha999", 6, 0L, Map.of(), null)));
+                        "3132333435363738393031323334353637383930", null, "sha999", 6, 0L, Map.of(), null)));
 
         assertEquals("algorithm_invalid", exception.reasonCode());
         assertEquals("algorithm", exception.details().get("field"));
@@ -93,7 +114,7 @@ final class HotpEvaluationServiceTest {
         HotpEvaluationValidationException exception = assertThrows(
                 HotpEvaluationValidationException.class,
                 () -> service.evaluateInline(new HotpInlineEvaluationRequest(
-                        "3132333435363738393031323334353637383930", "SHA1", 6, null, Map.of(), null)));
+                        "3132333435363738393031323334353637383930", null, "SHA1", 6, null, Map.of(), null)));
 
         assertEquals("counter_required", exception.reasonCode());
         verifyNoInteractions(applicationService);
@@ -104,9 +125,34 @@ final class HotpEvaluationServiceTest {
     void inlineEvaluationRequiresSecret() {
         HotpEvaluationValidationException exception = assertThrows(
                 HotpEvaluationValidationException.class,
-                () -> service.evaluateInline(new HotpInlineEvaluationRequest("   ", "SHA1", 6, 0L, Map.of(), null)));
+                () -> service.evaluateInline(
+                        new HotpInlineEvaluationRequest("   ", null, "SHA1", 6, 0L, Map.of(), null)));
 
-        assertEquals("sharedSecretHex_required", exception.reasonCode());
+        assertEquals("shared_secret_required", exception.reasonCode());
+        verifyNoInteractions(applicationService);
+    }
+
+    @Test
+    @DisplayName("Inline evaluation rejects conflicting secret encodings")
+    void inlineEvaluationRejectsSecretConflicts() {
+        HotpEvaluationValidationException exception = assertThrows(
+                HotpEvaluationValidationException.class,
+                () -> service.evaluateInline(new HotpInlineEvaluationRequest(
+                        "31323334", "MFRGGZDFMZTWQ2LK", "SHA1", 6, 0L, Map.of(), null)));
+
+        assertEquals("shared_secret_conflict", exception.reasonCode());
+        verifyNoInteractions(applicationService);
+    }
+
+    @Test
+    @DisplayName("Inline evaluation rejects invalid Base32 secrets")
+    void inlineEvaluationRejectsInvalidBase32() {
+        HotpEvaluationValidationException exception = assertThrows(
+                HotpEvaluationValidationException.class,
+                () -> service.evaluateInline(
+                        new HotpInlineEvaluationRequest(null, "!!!!", "SHA1", 6, 0L, Map.of(), null)));
+
+        assertEquals("shared_secret_base32_invalid", exception.reasonCode());
         verifyNoInteractions(applicationService);
     }
 
@@ -167,7 +213,7 @@ final class HotpEvaluationServiceTest {
         HotpEvaluationUnexpectedException exception = assertThrows(
                 HotpEvaluationUnexpectedException.class,
                 () -> service.evaluateInline(new HotpInlineEvaluationRequest(
-                        "3132333435363738393031323334353637383930", "SHA1", 6, 5L, Map.of(), null)));
+                        "3132333435363738393031323334353637383930", null, "SHA1", 6, 5L, Map.of(), null)));
 
         assertEquals("inline", exception.credentialSource());
         assertEquals(Boolean.FALSE, exception.details().get("sanitized"));

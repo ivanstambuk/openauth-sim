@@ -9,6 +9,7 @@ import java.util.Map;
 record HotpReplayRequest(
         @JsonProperty("credentialId") String credentialId,
         @JsonProperty("sharedSecretHex") String sharedSecretHex,
+        @JsonProperty("sharedSecretBase32") String sharedSecretBase32,
         @JsonProperty("algorithm") String algorithm,
         @JsonProperty("digits") Integer digits,
         @JsonProperty("counter") Long counter,

@@ -10,6 +10,7 @@ import io.openauth.sim.core.otp.totp.TotpDriftWindow;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
 import io.openauth.sim.core.trace.VerboseTrace;
 import io.openauth.sim.rest.VerboseTracePayload;
+import io.openauth.sim.rest.support.InlineSecretInput;
 import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.Instant;
@@ -135,13 +136,33 @@ class TotpReplayService {
     }
 
     private ReplayCommand buildInlineCommand(TotpReplayRequest request, String telemetryId, String credentialSource) {
-        String secretHex = requireText(
+        String secretHex = InlineSecretInput.resolveHex(
                 request.sharedSecretHex(),
-                "shared_secret_required",
-                "Shared secret is required",
-                telemetryId,
-                credentialSource,
-                Map.of("field", "sharedSecretHex"));
+                request.sharedSecretBase32(),
+                () -> validation(
+                        telemetryId,
+                        credentialSource,
+                        "shared_secret_required",
+                        "Shared secret is required",
+                        true,
+                        Map.of("field", "sharedSecret"),
+                        null),
+                () -> validation(
+                        telemetryId,
+                        credentialSource,
+                        "shared_secret_conflict",
+                        "Provide either sharedSecretHex or sharedSecretBase32, not both",
+                        true,
+                        Map.of("field", "sharedSecret"),
+                        null),
+                message -> validation(
+                        telemetryId,
+                        credentialSource,
+                        "shared_secret_base32_invalid",
+                        message,
+                        true,
+                        Map.of("field", "sharedSecretBase32"),
+                        null));
         String otp = requireText(
                 request.otp(),
                 "otp_required",
@@ -184,7 +205,7 @@ class TotpReplayService {
 
     private Mode determineMode(TotpReplayRequest request, String telemetryId) {
         boolean hasCredentialId = hasText(request.credentialId());
-        boolean hasSecret = hasText(request.sharedSecretHex());
+        boolean hasSecret = InlineSecretInput.hasSecret(request.sharedSecretHex(), request.sharedSecretBase32());
         boolean hasInlineHints =
                 hasSecret || request.algorithm() != null || request.digits() != null || request.stepSeconds() != null;
 

@@ -12,6 +12,7 @@ public final class OcraEvaluationForm {
     private String credentialId;
     private String suite;
     private String sharedSecretHex;
+    private String sharedSecretBase32;
     private String challenge;
     private String sessionHex;
     private String clientChallenge;
@@ -60,6 +61,14 @@ public final class OcraEvaluationForm {
 
     public void setSharedSecretHex(String sharedSecretHex) {
         this.sharedSecretHex = trimOrNull(sharedSecretHex);
+    }
+
+    public String getSharedSecretBase32() {
+        return sharedSecretBase32;
+    }
+
+    public void setSharedSecretBase32(String sharedSecretBase32) {
+        this.sharedSecretBase32 = trimOrNull(sharedSecretBase32);
     }
 
     public String getChallenge() {
@@ -140,6 +149,7 @@ public final class OcraEvaluationForm {
                     null,
                     suite,
                     sharedSecretHex,
+                    sharedSecretBase32,
                     challenge,
                     sessionHex,
                     clientChallenge,
@@ -153,6 +163,7 @@ public final class OcraEvaluationForm {
         return new OcraEvaluationRequest(
                 resolvedCredentialId,
                 suite,
+                null,
                 null,
                 challenge,
                 sessionHex,

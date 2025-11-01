@@ -7,6 +7,7 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record TotpInlineEvaluationRequest(
         @JsonProperty("sharedSecretHex") String sharedSecretHex,
+        @JsonProperty("sharedSecretBase32") String sharedSecretBase32,
         @JsonProperty("algorithm") String algorithm,
         @JsonProperty("digits") Integer digits,
         @JsonProperty("stepSeconds") Long stepSeconds,

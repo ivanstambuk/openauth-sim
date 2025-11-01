@@ -138,16 +138,63 @@
                     <label for="replaySuite">OCRA suite</label>
                     <input id="replaySuite" data-inline-required="true" type="text" disabled />
                   </div>
-                  <div>
-                    <label for="replaySharedSecretHex">Shared secret (hex)</label>
+                  <div
+                    class="field-group field-group--stacked field-group--shared-secret"
+                    data-secret-field
+                    data-testid="ocra-replay-inline-shared-secret"
+                  >
+                    <label for="replaySharedSecret">Shared secret</label>
+                    <div
+                      class="secret-field-toolbar"
+                      data-secret-mode-toggle
+                      data-testid="ocra-replay-inline-secret-toolbar"
+                    >
+                      <span class="secret-field-toolbar__label">Mode:</span>
+                      <div class="secret-field-toolbar__buttons" role="group" aria-label="Shared secret encoding">
+                        <button
+                          type="button"
+                          class="mode-pill mode-pill--active"
+                          data-secret-mode-button="hex"
+                          data-testid="ocra-replay-inline-secret-mode-hex"
+                        >
+                          Hex
+                        </button>
+                        <button
+                          type="button"
+                          class="mode-pill"
+                          data-secret-mode-button="base32"
+                          data-testid="ocra-replay-inline-secret-mode-base32"
+                        >
+                          Base32
+                        </button>
+                      </div>
+                      <span
+                        class="hint secret-field-toolbar__length"
+                        data-secret-length
+                        data-testid="ocra-replay-inline-secret-length"
+                        aria-live="polite"
+                      >
+                        Length: —
+                      </span>
+                    </div>
                     <textarea
-                      id="replaySharedSecretHex"
+                      id="replaySharedSecret"
                       data-inline-required="true"
                       rows="3"
                       spellcheck="false"
                       disabled
+                      data-secret-input
+                      data-testid="ocra-replay-inline-secret-input"
                     ></textarea>
-                    <p class="hint">Secrets are sanitized before rendering telemetry details.</p>
+                    <p
+                      class="hint"
+                      data-secret-message
+                      data-testid="ocra-replay-inline-secret-message"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      ↔ Converts automatically when you switch modes. Secrets remain redacted in telemetry.
+                    </p>
                   </div>
                 </div>
               </section>
@@ -286,7 +333,47 @@
         var serverChallengeInput = doc.getElementById('replayServerChallenge');
         var pinHashInput = doc.getElementById('replayPinHashHex');
         var suiteInput = doc.getElementById('replaySuite');
-        var secretInput = doc.getElementById('replaySharedSecretHex');
+        var secretField = doc.querySelector('[data-testid="ocra-replay-inline-shared-secret"]');
+        var secretInput = secretField
+          ? secretField.querySelector('[data-secret-input]')
+          : null;
+        var secretMessageNode = secretField
+          ? secretField.querySelector('[data-secret-message]')
+          : null;
+        var secretFieldController = null;
+        var initializeReplaySecretController = function () {
+          if (secretFieldController || !secretField || !secretInput || !window.SecretFieldBridge) {
+            return;
+          }
+          var controller = window.SecretFieldBridge.create({
+            container: secretField,
+            textarea: secretInput,
+            modeToggle: secretField
+              ? secretField.querySelector('[data-secret-mode-toggle]')
+              : null,
+            modeButtons: secretField
+              ? {
+                  hex: secretField.querySelector('[data-secret-mode-button="hex"]'),
+                  base32: secretField.querySelector('[data-secret-mode-button="base32"]')
+                }
+              : null,
+            lengthNode: secretField
+              ? secretField.querySelector('[data-secret-length]')
+              : null,
+            messageNode: secretMessageNode,
+            defaultMessage: secretMessageNode && secretMessageNode.textContent
+              ? secretMessageNode.textContent.trim()
+              : '↔ Converts automatically when you switch modes.',
+            errorPrefix: '⚠ ',
+            requiredMessage: 'Shared secret is required for inline verification.'
+          });
+          if (!controller) {
+            return;
+          }
+          secretFieldController = controller;
+        };
+        initializeReplaySecretController();
+        window.addEventListener('load', initializeReplaySecretController);
         var submitButton = form.querySelector('[data-testid="ocra-replay-submit"]');
         var advancedToggle = doc.querySelector('[data-testid="replay-advanced-toggle"]');
         var advancedPanel = doc.querySelector('[data-testid="ocra-replay-advanced-panel"]');
@@ -675,14 +762,20 @@
             if (!element) {
               return;
             }
+            var optionalSecret = element.hasAttribute('data-optional-secret');
             if (enabled) {
               element.removeAttribute('disabled');
-              if (requiredAttr) {
+              if (requiredAttr && !optionalSecret) {
                 element.setAttribute('required', 'required');
+              } else if (optionalSecret) {
+                element.removeAttribute('required');
               }
             } else {
               element.setAttribute('disabled', 'disabled');
-              if (requiredAttr) {
+              if (requiredAttr && !optionalSecret) {
+                element.removeAttribute('required');
+              }
+              if (optionalSecret) {
                 element.removeAttribute('required');
               }
               if (typeof element.value === 'string') {
@@ -1155,15 +1248,23 @@
             }
           } else {
             var suite = suiteInput ? suiteInput.value.trim() : '';
-            var secret = secretInput ? secretInput.value.trim() : '';
-            if (suite || secret) {
-              var inline = {};
-              if (suite) {
-                inline.suite = suite;
+            var inline = {};
+            if (suite) {
+              inline.suite = suite;
+            }
+            if (secretFieldController) {
+              if (!secretFieldController.validate()) {
+                return null;
               }
+              var inlineSecretPayload = secretFieldController.payload() || {};
+              Object.assign(inline, inlineSecretPayload);
+            } else {
+              var secret = secretInput ? secretInput.value.trim() : '';
               if (secret) {
                 inline.sharedSecretHex = secret;
               }
+            }
+            if (Object.keys(inline).length > 0) {
               payload.inlineCredential = inline;
             }
           }
@@ -1275,8 +1376,11 @@
           if (suiteInput) {
             suiteInput.value = fallback(sample.suite, '');
           }
-          if (secretInput) {
-            secretInput.value = fallback(sample.sharedSecretHex, '');
+          var presetSecret = fallback(sample.sharedSecretHex, '');
+          if (secretFieldController) {
+            secretFieldController.applyPreset(presetSecret);
+          } else if (secretInput) {
+            secretInput.value = presetSecret;
           }
           if (challengeInput) {
             challengeInput.value = fallback(sample.challenge, '');
@@ -1452,7 +1556,12 @@
           var selected = form.querySelector('input[name="replayMode"]:checked');
           var mode = selected ? selected.value : 'stored';
           verboseBeginRequest();
-          var payload = verboseAttach(buildPayload(mode));
+          var rawPayload = buildPayload(mode);
+          if (!rawPayload) {
+            setBusy(false);
+            return;
+          }
+          var payload = verboseAttach(rawPayload);
           var headers = {
             Accept: 'application/json',
             'Content-Type': 'application/json',

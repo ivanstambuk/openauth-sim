@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.openauth.sim.core.encoding.Base32SecretCodec;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.otp.totp.TotpCredentialPersistenceAdapter;
@@ -201,6 +202,69 @@ class TotpReplayEndpointTest {
 
         var reduceAttributes = orderedAttributes(step(trace, "mod.reduce"));
         assertTrue(reduceAttributes.containsKey("otp"));
+    }
+
+    @Test
+    @DisplayName("Inline TOTP replay accepts Base32 shared secrets")
+    void inlineTotpReplayAcceptsBase32Secret() throws Exception {
+        String base32 = "JBSWY3DPEHPK3PXP";
+        String secretHex = Base32SecretCodec.toUpperHex(base32);
+        TotpDescriptor descriptor = TotpDescriptor.create(
+                "inline-base32",
+                SecretMaterial.fromHex(secretHex),
+                TotpHashAlgorithm.SHA1,
+                6,
+                Duration.ofSeconds(30),
+                TotpDriftWindow.of(1, 1));
+        Instant timestamp = Instant.ofEpochSecond(1_700_000_030L);
+        String otp = TotpGenerator.generate(descriptor, timestamp);
+
+        String responseBody = mockMvc.perform(post("/api/v1/totp/replay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                          {
+                            "sharedSecretBase32": "%s",
+                            "algorithm": "SHA1",
+                            "digits": 6,
+                            "stepSeconds": 30,
+                            "driftBackward": 1,
+                            "driftForward": 1,
+                            "timestamp": %d,
+                            "otp": "%s"
+                          }
+                          """.formatted(base32, timestamp.getEpochSecond(), otp)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode response = JSON.readTree(responseBody);
+        assertEquals("match", response.get("status").asText());
+        JsonNode metadata = response.get("metadata");
+        assertEquals("inline", metadata.get("credentialSource").asText());
+        assertEquals(6, metadata.get("digits").asInt());
+        assertEquals(30L, metadata.get("stepSeconds").asLong());
+    }
+
+    @Test
+    @DisplayName("Inline TOTP replay rejects invalid Base32 secrets")
+    void inlineTotpReplayRejectsInvalidBase32Secret() throws Exception {
+        String responseBody = mockMvc.perform(post("/api/v1/totp/replay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                          {
+                            "sharedSecretBase32": "!!!!",
+                            "otp": "123456"
+                          }
+                          """))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode response = JSON.readTree(responseBody);
+        assertEquals("shared_secret_base32_invalid", response.get("reasonCode").asText());
+        assertEquals("sharedSecretBase32", response.get("details").get("field").asText());
     }
 
     @Test

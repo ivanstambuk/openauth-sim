@@ -10,6 +10,7 @@ import io.openauth.sim.application.ocra.OcraInlineIdentifiers;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.rest.VerboseTracePayload;
+import io.openauth.sim.rest.support.InlineSecretInput;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -295,7 +296,7 @@ class OcraEvaluationService {
 
         static CommandEnvelope from(OcraEvaluationRequest request) {
             boolean hasCredential = hasText(request.credentialId());
-            boolean hasInline = hasText(request.sharedSecretHex());
+            boolean hasInline = InlineSecretInput.hasSecret(request.sharedSecretHex(), request.sharedSecretBase32());
 
             if (hasCredential && hasInline) {
                 throw new ValidationError(
@@ -325,11 +326,24 @@ class OcraEvaluationService {
                 throw new ValidationError("suite", "missing_required", "suite is required for inline mode");
             }
 
-            String identifier = inlineIdentifier(request);
+            String secretHex = InlineSecretInput.resolveHex(
+                    request.sharedSecretHex(),
+                    request.sharedSecretBase32(),
+                    () -> new ValidationError(
+                            "sharedSecretHex",
+                            "shared_secret_missing",
+                            "sharedSecretHex or sharedSecretBase32 must be provided"),
+                    () -> new ValidationError(
+                            "request",
+                            "shared_secret_conflict",
+                            "Provide either sharedSecretHex or sharedSecretBase32, not both"),
+                    message -> new ValidationError("sharedSecretBase32", "shared_secret_base32_invalid", message));
+
+            String identifier = inlineIdentifier(suite, secretHex);
             EvaluationCommand command = OcraEvaluationRequests.inline(new OcraEvaluationRequests.InlineInputs(
                     identifier,
                     suite,
-                    request.sharedSecretHex(),
+                    secretHex,
                     request.challenge(),
                     request.sessionHex(),
                     request.clientChallenge(),
@@ -342,8 +356,8 @@ class OcraEvaluationService {
             return new CommandEnvelope(command, normalized, false, suite);
         }
 
-        private static String inlineIdentifier(OcraEvaluationRequest request) {
-            return OcraInlineIdentifiers.sharedIdentifier(request.suite(), request.sharedSecretHex());
+        private static String inlineIdentifier(String suite, String secretHex) {
+            return OcraInlineIdentifiers.sharedIdentifier(suite, secretHex);
         }
     }
 

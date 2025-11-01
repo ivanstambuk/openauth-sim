@@ -1,7 +1,7 @@
 # Use the HOTP Operator UI
 
 _Status: Draft_
-_Last updated: 2025-10-06_
+_Last updated: 2025-10-31_
 
 The operator console embedded in the REST API now provides HOTP evaluation and replay tooling alongside the existing OCRA flows. This guide walks through evaluating stored credentials, running inline checks, replaying observed OTPs without mutating counters, and interpreting telemetry identifiers.
 
@@ -33,14 +33,14 @@ The operator console embedded in the REST API now provides HOTP evaluation and r
 4. Validation errors (counter overflow, missing credential) appear in the error panel with sanitized messaging; counters are not mutated when evaluation fails.
 
 ## Run Inline HOTP Checks
-1. Switch the evaluation mode toggle to **Inline parameters**; the inline form appears immediately. Use **Load a sample vector** to populate curated data—`SHA-1, 6 digits (RFC 4226)` mirrors the reference vector, while the remaining presets cover SHA-1/8 digits, SHA-256 (6 and 8 digits), and SHA-512 (6 and 8 digits). Each inline preset now has an identically configured stored credential seeded from the previous step so you can compare stored and inline flows side-by-side. You can still provide your own secret, algorithm, digit length, and counter manually.
-2. Choose **Evaluate inline parameters** to call `/api/v1/hotp/evaluate/inline` without mutating stored credentials. The response contains the generated OTP, the previous/next counter values, and telemetry metadata.
+1. Switch the evaluation mode toggle to **Inline parameters**; the inline form appears immediately. Use **Load a sample vector** to populate curated data—`SHA-1, 6 digits (RFC 4226)` mirrors the reference vector, while the remaining presets cover SHA-1/8 digits, SHA-256 (6 and 8 digits), and SHA-512 (6 and 8 digits). Each inline preset now has an identically configured stored credential seeded from the previous step so you can compare stored and inline flows side-by-side. You can still provide your own secret, algorithm, digit length, and counter manually. The shared-secret row now exposes both a **Base32** and **Hex** input; paste either encoding and the UI automatically synchronises the companion field (Base32 ⇄ hex) so REST requests always receive the canonical hexadecimal payload.
+2. Choose **Evaluate inline parameters** to call `/api/v1/hotp/evaluate/inline` without mutating stored credentials. The response contains the generated OTP, the previous/next counter values, and telemetry metadata. Supplying both encodings is rejected with the same `shared_secret_conflict` validation response used by the REST endpoint, keeping UI feedback aligned with the contract.
 3. Inline evaluation metadata now includes the selected preset key/label when you launch the request from a sample vector, making it easier to trace automated drills in downstream logs.
 
 ## Replay Observed HOTP OTPs
 1. Activate the **Replay** pill within the HOTP tab to load the replay form. The console defaults to **Stored** mode and surfaces a CSRF-aware form bound to `/api/v1/hotp/replay`.
 2. For stored credentials, choose an entry from the dropdown, paste the observed OTP, and submit **Replay stored credential**. The response echoes counter metadata but leaves the MapDB counter untouched.
-3. Switch mode to **Inline** to replay ad-hoc secrets. Provide the identifier, shared secret (hex), hash algorithm, digit length, counter, and observed OTP; optional advanced metadata (label/notes) is sent as contextual hints without persistence.
+3. Switch mode to **Inline** to replay ad-hoc secrets. Provide the identifier, shared secret (either Base32 or hex), hash algorithm, digit length, counter, and observed OTP; optional advanced metadata (label/notes) is sent as contextual hints without persistence. The Base32 and hex inputs mirror the inline evaluation behaviour—paste Base32 to derive the canonical hex payload automatically, or enter hex directly to clear the Base32 field before submission.
 4. Use **Load a sample vector** to populate demo values that mirror the Selenium coverage. Inline presets derive from RFC 4226 test vectors, while stored presets reuse the seeded credential shipped with the UI smoke tests.
 5. Results report a **match**/**mismatch** status plus telemetry metadata; validation issues render sanitized error details and never mutate counters or stored credentials.
 

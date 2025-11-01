@@ -41,6 +41,7 @@ final class OcraCliCommandTest {
 
     private static final String STANDARD_KEY_20 =
             CHALLENGE_ZERO_VECTOR.secret().asHex().toUpperCase(Locale.ROOT);
+    private static final String STANDARD_KEY_20_BASE32 = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
     private static final String CHALLENGE_ZERO = CHALLENGE_ZERO_VECTOR
             .challengeQuestion()
             .orElseThrow(() -> new IllegalStateException("Numeric challenge missing value"));
@@ -151,6 +152,64 @@ final class OcraCliCommandTest {
         assertEquals("evaluate-token", telemetry.get("credentialId"));
         assertEquals(expectedOtp, telemetry.get("otp"));
         assertFalse(result.stdout().contains(STANDARD_KEY_20.substring(0, 8)), "secret leaked to stdout");
+    }
+
+    @Test
+    void evaluateWithInlineSecretSupportsBase32() {
+        Path databasePath = databasePath("evaluate-inline-base32");
+
+        OcraCredentialFactory factory = new OcraCredentialFactory();
+        OcraCredentialDescriptor descriptor = factory.createDescriptor(new OcraCredentialRequest(
+                "inline-base32",
+                OCRA_SUITE_QN08,
+                STANDARD_KEY_20,
+                SecretEncoding.HEX,
+                null,
+                null,
+                null,
+                Map.of("source", "inline-test")));
+        String expectedOtp = OcraResponseCalculator.generate(
+                descriptor, new OcraExecutionContext(null, CHALLENGE_ONE, null, null, null, null, null));
+
+        CliResult result = execute(
+                databasePath,
+                "evaluate",
+                "--suite",
+                OCRA_SUITE_QN08,
+                "--secret-base32",
+                STANDARD_KEY_20_BASE32,
+                "--challenge",
+                CHALLENGE_ONE);
+
+        assertEquals(0, result.exitCode(), () -> "stderr was: " + result.stderr());
+        Map<String, String> telemetry = telemetryLine(result.stdout(), "cli.ocra.evaluate");
+        assertEquals("success", telemetry.get("status"));
+        assertEquals("success", telemetry.get("reasonCode"));
+        assertEquals(expectedOtp, telemetry.get("otp"));
+    }
+
+    @Test
+    void evaluateInlineRejectsHexAndBase32Combination() {
+        Path databasePath = databasePath("evaluate-inline-conflict");
+
+        CliResult result = execute(
+                databasePath,
+                "evaluate",
+                "--suite",
+                OCRA_SUITE_QN08,
+                "--secret",
+                STANDARD_KEY_20,
+                "--secret-base32",
+                STANDARD_KEY_20_BASE32,
+                "--challenge",
+                CHALLENGE_ONE);
+
+        assertEquals(CommandLine.ExitCode.USAGE, result.exitCode(), () -> "stdout was: " + result.stdout());
+        String stderr = result.stderr();
+        assertTrue(stderr.contains("event=cli.ocra.evaluate"));
+        assertTrue(
+                stderr.contains("Provide either --secret or --secret-base32"),
+                () -> "stderr missing exclusivity hint:\n" + stderr);
     }
 
     @Test

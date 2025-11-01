@@ -423,11 +423,11 @@ final class HotpOperatorUiReplaySeleniumTest {
         assertThat(driver.findElements(By.id("hotpReplayInlineIdentifier")))
                 .as("Inline replay form should not render an identifier input")
                 .isEmpty();
-        waitForAttribute(
-                By.id("hotpReplayInlineSecretHex"),
-                "value",
-                SECRET_HEX,
-                "Inline secret should auto-fill from preset data");
+        SharedSecretField sharedSecret = hotpReplaySharedSecret();
+        sharedSecret.waitUntilValueEquals(SECRET_HEX);
+        assertThat(sharedSecret.submissionName())
+                .as("Inline replay secret should default to sharedSecretHex submission")
+                .isEqualTo("sharedSecretHex");
         waitForAttribute(
                 By.id("hotpReplayInlineCounter"),
                 "value",
@@ -560,6 +560,10 @@ final class HotpOperatorUiReplaySeleniumTest {
     private void waitForOption(Select select, String value) {
         new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> select.getOptions().stream()
                 .anyMatch(option -> value.equals(option.getAttribute("value"))));
+    }
+
+    private SharedSecretField hotpReplaySharedSecret() {
+        return new SharedSecretField(driver, By.cssSelector("[data-testid='hotp-replay-inline-shared-secret']"));
     }
 
     private void waitForAttribute(By locator, String attribute, String expected, String message) {

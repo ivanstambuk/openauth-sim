@@ -20,6 +20,7 @@ import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
+import io.openauth.sim.core.encoding.Base32SecretCodec;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretEncoding;
@@ -108,6 +109,21 @@ public final class OcraCli implements Callable<Integer> {
 
     static boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    static String resolveSecret(String secretHex, String secretBase32) {
+        boolean hasHex = hasText(secretHex);
+        boolean hasBase32 = hasText(secretBase32);
+        if (hasHex && hasBase32) {
+            throw new IllegalArgumentException("Provide either --secret or --secret-base32");
+        }
+        if (!hasHex && !hasBase32) {
+            throw new IllegalArgumentException("Provide either --secret or --secret-base32");
+        }
+        if (hasBase32) {
+            return Base32SecretCodec.toUpperHex(secretBase32);
+        }
+        return secretHex.trim();
     }
 
     static String sanitizeMessage(String message) {
@@ -464,6 +480,12 @@ public final class OcraCli implements Callable<Integer> {
         String sharedSecretHex;
 
         @CommandLine.Option(
+                names = {"--secret-base32"},
+                paramLabel = "<base32>",
+                description = "Shared secret material in Base32 (RFC 4648)")
+        String sharedSecretBase32;
+
+        @CommandLine.Option(
                 names = {"--challenge"},
                 paramLabel = "<value>",
                 description = "Challenge question input")
@@ -512,14 +534,17 @@ public final class OcraCli implements Callable<Integer> {
         public Integer call() {
             String event = event("evaluate");
             boolean hasCredential = hasText(credentialId);
-            boolean hasSecret = hasText(sharedSecretHex);
+            boolean hasSecret = hasText(sharedSecretHex) || hasText(sharedSecretBase32);
 
             if (hasCredential && hasSecret) {
                 return failValidation(
-                        event, "credential_conflict", "Provide either credentialId or sharedSecretHex, not both");
+                        event,
+                        "credential_conflict",
+                        "Provide either credentialId or shared secret material, not both");
             }
             if (!hasCredential && !hasSecret) {
-                return failValidation(event, "credential_missing", "credentialId or sharedSecretHex must be provided");
+                return failValidation(
+                        event, "credential_missing", "credentialId or shared secret material must be provided");
             }
 
             try {
@@ -552,12 +577,13 @@ public final class OcraCli implements Callable<Integer> {
                 if (!hasText(suite)) {
                     return failValidation(event, "suite_missing", "suite is required for inline mode");
                 }
+                String inlineSecretHex = resolveSecret(sharedSecretHex, sharedSecretBase32);
                 OcraEvaluationApplicationService service = new OcraEvaluationApplicationService(
                         Clock.systemUTC(), OcraCredentialResolvers.emptyResolver());
                 EvaluationCommand command = OcraEvaluationRequests.inline(new OcraEvaluationRequests.InlineInputs(
-                        OcraInlineIdentifiers.sharedIdentifier(suite, sharedSecretHex),
+                        OcraInlineIdentifiers.sharedIdentifier(suite, inlineSecretHex),
                         suite,
-                        sharedSecretHex,
+                        inlineSecretHex,
                         challenge,
                         session,
                         clientChallenge,
@@ -575,6 +601,8 @@ public final class OcraCli implements Callable<Integer> {
                 emitSuccess(event, "success", fields);
                 result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
                 return CommandLine.ExitCode.OK;
+            } catch (IllegalArgumentException ex) {
+                return failValidation(event, "validation_error", ex.getMessage());
             } catch (EvaluationValidationException ex) {
                 return failValidation(event, ex.reasonCode(), ex.getMessage());
             } catch (Exception ex) {
@@ -605,6 +633,12 @@ public final class OcraCli implements Callable<Integer> {
                 paramLabel = "<hex>",
                 description = "Shared secret material in hexadecimal for inline verification")
         String sharedSecretHex;
+
+        @CommandLine.Option(
+                names = {"--secret-base32"},
+                paramLabel = "<base32>",
+                description = "Shared secret material in Base32 (RFC 4648) for inline verification")
+        String sharedSecretBase32;
 
         @CommandLine.Option(
                 names = {"--otp"},
@@ -668,14 +702,17 @@ public final class OcraCli implements Callable<Integer> {
             }
 
             boolean hasCredential = hasText(credentialId);
-            boolean hasSecret = hasText(sharedSecretHex);
+            boolean hasSecret = hasText(sharedSecretHex) || hasText(sharedSecretBase32);
 
             if (hasCredential && hasSecret) {
                 return failValidation(
-                        event, "credential_conflict", "Provide either credentialId or sharedSecretHex, not both");
+                        event,
+                        "credential_conflict",
+                        "Provide either credentialId or shared secret material, not both");
             }
             if (!hasCredential && !hasSecret) {
-                return failValidation(event, "credential_missing", "credentialId or sharedSecretHex must be provided");
+                return failValidation(
+                        event, "credential_missing", "credentialId or shared secret material must be provided");
             }
 
             try {
@@ -716,12 +753,13 @@ public final class OcraCli implements Callable<Integer> {
                 fields.put("credentialSource", "inline");
                 fields.put("suite", suite.trim());
 
+                String inlineSecretHex = resolveSecret(sharedSecretHex, sharedSecretBase32);
                 OcraVerificationApplicationService service = new OcraVerificationApplicationService(
                         OcraCredentialResolvers.emptyVerificationResolver(), null);
                 VerificationCommand command = OcraVerificationRequests.inline(new OcraVerificationRequests.InlineInputs(
-                        OcraInlineIdentifiers.sharedIdentifier(suite, sharedSecretHex),
+                        OcraInlineIdentifiers.sharedIdentifier(suite, inlineSecretHex),
                         suite,
-                        sharedSecretHex,
+                        inlineSecretHex,
                         otp,
                         challenge,
                         clientChallenge,

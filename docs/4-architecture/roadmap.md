@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-_Last updated: 2025-10-29_
+_Last updated: 2025-10-31_
 
 This roadmap tracks the major workstreams required to reach a feature-complete OpenAuth Simulator. Update this file whenever scope or status changes so future sessions can pick up without replaying prior conversations.
 
@@ -44,6 +44,8 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 34 | Unified validation feedback surfaces | Ensure operator-console result cards always display API validation messages | Complete | Spec: [Feature 034](specs/feature-034-unified-validation-feedback.md), Plan: [Feature Plan 034](feature-plan-034-unified-validation-feedback.md), Tasks: [Feature 034 Tasks](tasks/feature-034-unified-validation-feedback.md); Delivered 2025-10-22 after OCRA evaluate/replay adopted the shared ResultCard helper, operator docs were refreshed, and `./gradlew --no-daemon spotlessApply check` closed the workstream. |
 | 35 | Evaluate & replay audit tracing | Deliver cross-protocol verbose trace instrumentation with CLI/REST/UI parity | Complete | Spec: [Feature 035](specs/feature-035-evaluate-replay-audit-tracing.md), Plan: [Feature Plan 035](feature-plan-035-evaluate-replay-audit-tracing.md), Tasks: [Feature 035 Tasks](tasks/feature-035-evaluate-replay-audit-tracing.md); Completed 2025-10-26 with OpenAPI snapshots refreshed and `./gradlew --no-daemon spotlessApply check` green. |
 | 36 | Verbose trace tier controls | Introduce cross-protocol tier filtering so verbose traces expose normal/educational/lab-secrets detail levels consistently | Proposed | Spec: [Feature 036](specs/feature-036-verbose-trace-tier-controls.md), Plan: [Feature Plan 036](feature-plan-036-verbose-trace-tier-controls.md), Tasks: [Feature 036 Tasks](tasks/feature-036-verbose-trace-tier-controls.md); Scoped 2025-10-25 to deliver shared tier helper + protocol tagging ahead of future facade toggles. |
+| 37 | Base32 inline secret support | Accept Base32 secrets across inline HOTP/TOTP/OCRA flows while preserving hex-based storage | Complete | Spec: [Feature 037](specs/feature-037-base32-inline-secret-support.md), Plan: [Feature Plan 037](feature-plan-037-base32-inline-secret-support.md), Tasks: [Feature 037 Tasks](tasks/feature-037-base32-inline-secret-support.md) |
+| 38 | Evaluation result preview table | Present Δ-ordered OTP previews (including Δ=0) across REST, CLI, and operator UI evaluation flows | Planned | Spec: [Feature 038](specs/feature-038-result-preview-window.md), Plan: [Feature Plan 038](feature-plan-038-result-preview-window.md), Tasks: [Feature 038 Tasks](tasks/feature-038-result-preview-window.md) |
 
 ## Upcoming Milestones
 

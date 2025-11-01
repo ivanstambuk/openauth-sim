@@ -82,6 +82,7 @@ class HotpEvaluationControllerTest {
 
         HotpInlineEvaluationRequest request = new HotpInlineEvaluationRequest(
                 vector.secret().asHex(),
+                null,
                 vector.algorithm().name(),
                 vector.digits(),
                 vector.counter(),
@@ -169,7 +170,7 @@ class HotpEvaluationControllerTest {
 
         HotpJsonVector sample = vector(6, 0L);
         HotpInlineEvaluationRequest request = new HotpInlineEvaluationRequest(
-                sample.secret().asHex(), sample.algorithm().name(), sample.digits(), null, Map.of(), null);
+                sample.secret().asHex(), null, sample.algorithm().name(), sample.digits(), null, Map.of(), null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate/inline")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -191,7 +192,7 @@ class HotpEvaluationControllerTest {
 
         HotpJsonVector sample = vector(6, 0L);
         HotpInlineEvaluationRequest request = new HotpInlineEvaluationRequest(
-                sample.secret().asHex(), sample.algorithm().name(), sample.digits(), 0L, Map.of(), null);
+                sample.secret().asHex(), null, sample.algorithm().name(), sample.digits(), 0L, Map.of(), null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate/inline")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -238,7 +239,7 @@ class HotpEvaluationControllerTest {
 
         HotpJsonVector sample = vector(6, 0L);
         HotpInlineEvaluationRequest request = new HotpInlineEvaluationRequest(
-                sample.secret().asHex(), sample.algorithm().name(), sample.digits(), null, Map.of(), null);
+                sample.secret().asHex(), null, sample.algorithm().name(), sample.digits(), null, Map.of(), null);
 
         mockMvc.perform(post("/api/v1/hotp/evaluate/inline")
                         .contentType(MediaType.APPLICATION_JSON)

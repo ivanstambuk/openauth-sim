@@ -32,7 +32,7 @@ final class TotpReplayControllerTest {
     @DisplayName("Replay delegates to service and surfaces the payload")
     void replayDelegatesToService() {
         TotpReplayRequest request =
-                new TotpReplayRequest("cred-1", "654321", 1L, null, 1, 1, null, null, null, null, true);
+                new TotpReplayRequest("cred-1", "654321", 1L, null, 1, 1, null, null, null, null, null, true);
         TotpReplayMetadata metadata =
                 new TotpReplayMetadata("stored", "cred-1", true, "SHA1", 6, 30L, 1, 1, 0, false, "rest-totp-1");
         TotpReplayResponse expected =
