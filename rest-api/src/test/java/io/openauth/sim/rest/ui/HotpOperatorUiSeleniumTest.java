@@ -953,6 +953,7 @@ final class HotpOperatorUiSeleniumTest {
             throw new AssertionError("HOTP result panel should not render additional metadata copy");
         }
     }
+
     private void waitUntilTextPopulated(WebElement element) {
         new WebDriverWait(driver, Duration.ofSeconds(5)).until(webDriver -> {
             try {

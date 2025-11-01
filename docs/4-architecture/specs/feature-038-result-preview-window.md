@@ -10,29 +10,33 @@ Extend HOTP, TOTP, and OCRA evaluation responses so operators can see the evalua
 - 2025-11-01 – The preview table integrates into the current “Evaluation result” card; no new panels or headings are introduced (operator directive).  
 - 2025-11-01 – Highlight the evaluated row (Δ = 0) with a slim protocol-coloured accent bar; typography may stay uniform (operator directive).  
 - 2025-11-01 – When offsets are both zero, render a single-row table with Δ = 0 so the evaluated OTP still appears in tabular form (operator directive).  
-- 2025-11-01 – Continue accepting explicit backward/forward offsets via existing inputs; no additional counter fields are required (operator directive).  
-- 2025-11-01 – CLI flows should mirror the REST payload ordering when the window feature ships; they may opt-in with the same flags delivered in Feature 037 (owner directive).
+- 2025-11-01 – CLI flows should mirror the REST payload ordering when the window feature ships; they may opt-in with the same flags delivered in Feature 037 (owner directive).  
+- 2025-11-02 – Evaluation screens introduce dedicated “Preview window offsets” controls on HOTP/TOTP/OCRA; drift inputs are removed from evaluation flows and retained exclusively on replay/validation forms (owner directive).
 
 ## Requirements
 
 ### R1 – REST evaluation payloads surface ordered previews
-1. Extend HOTP, TOTP, and OCRA evaluation endpoints to include a `previews` array when the caller supplies `window.backward`/`window.forward` (defaulting to zero when omitted).  
-2. Each element exposes `{ "counter": long|string, "delta": int, "otp": string }`; OCRA may replace `counter` with `context` fields when timestamps are present.  
-3. Always include the evaluated entry at `delta = 0` even if both offsets equal zero; ordering is ascending by counter/time.  
-4. Preserve existing metadata fields so current clients remain compatible.  
-5. Document schema changes in the OpenAPI snapshot.
+1. Extend HOTP, TOTP, and OCRA evaluation endpoints to accept a `window` object containing `backward` and `forward` integers and return a `previews` array assembled from that window (defaulting to zero when omitted).  
+2. Remove evaluation-specific `driftBackward`/`driftForward` request properties; only the replay endpoints keep drift inputs for validation.  
+3. Each preview element exposes `{ "counter": long|string, "delta": int, "otp": string }`; OCRA may replace `counter` with `context` fields when timestamps are present.  
+4. Always include the evaluated entry at `delta = 0` even if both offsets equal zero; ordering is ascending by counter/time.  
+5. Preserve existing metadata fields so current clients remain compatible and provide sensible defaults when the new window inputs are absent.  
+6. Document the request/response schema changes (including drift removal) in the OpenAPI snapshot.
 
-### R2 – Operator UI result card embeds the preview table
+### R2 – Operator UI embeds preview controls and table
 1. Replace the standalone OTP line with a table containing three columns: `Counter`, `Δ`, and `OTP`.  
 2. Render one row per preview item; apply a protocol-specific accent bar on the left edge of the `Δ = 0` row.  
 3. Table appears immediately beneath the card title; the status badge remains pinned to the lower-right as today.  
 4. Support single-row scenarios (offsets zero) without altering card dimensions.  
-5. Provide keyboard and screen-reader hints (row headers or aria-labels) so Δ values are announced.
+5. Provide keyboard and screen-reader hints (row headers or aria-labels) so Δ values are announced.  
+6. Introduce the unified “Preview window offsets” control group on HOTP, TOTP, and OCRA evaluation forms; remove drift inputs from these evaluation panels while leaving replay panels unaffected.
 
 ### R3 – CLI mirror and copy helpers
 1. HOTP/TOTP/OCRA inline evaluation commands print the preview table when offsets are supplied (default zero produces one row).  
 2. Highlight the evaluated Δ = 0 entry with ANSI-safe styling (e.g., brackets) while preserving log-friendly output.  
-3. Respect quiet/JSON modes; JSON output must include the `previews` array identical to the REST schema.
+3. Respect quiet/JSON modes; JSON output must include the `previews` array identical to the REST schema.  
+4. Accept `--window-backward` / `--window-forward` (or equivalent) flags consistent with the UI control; omit them to default to zero offsets.  
+5. Remove evaluation drift parameters from CLI commands; retain drift options only on replay flows.
 
 ## ASCII Mock-up (Operator UI)
 ```
@@ -41,7 +45,7 @@ Extend HOTP, TOTP, and OCRA evaluation responses so operators can see the evalua
 │                                                             │
 │ ┌─────────────────────────────────────────────────────────┐ │
 │ │ Counter    Δ    OTP                                     │ │
-│ │────────────────────────────────────────────────────────│ │
+│ │─────────────────────────────────────────────────────────│ │
 │ │ 000121    -2    421 707                                 │ │
 │ │ 000122    -1    123 456                                 │ │
 │ │▌000123     0    867 530                                 │ │

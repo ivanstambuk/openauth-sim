@@ -12,7 +12,7 @@ Deliver RFC 4226 HOTP capabilities across the simulator so operators can registe
 - 2025-10-04 – Initial delivery must ship an end-to-end slice (core domain, application adapters, CLI commands, and REST endpoints) instead of a core-only milestone (user directive; Option B selected).
 - 2025-10-04 – HOTP credentials reuse the existing MapDB credential store/schema-v1 baseline alongside OCRA descriptors; no dedicated HOTP store is created (user directive; Option A selected).
 - 2025-10-04 – Telemetry coverage must match the OCRA parity level (issuance, evaluation, failure reasons) using the shared `TelemetryContracts` adapters (user directive; Option A selected).
-- 2025-10-04 – Application layer owns HOTP counter persistence and telemetry-ready metadata so CLI/REST facades remain thin (user directive; Option A selected).
+- 2025-10-04 – Application layer owns HOTP counter persistence and telemetry-ready metadata so CLI/REST facades remain thin; stored evaluations MUST increment the credential’s moving factor and persist the updated counter immediately after each successful OTP generation to keep state in sync across facades (user directive; Option A selected).
 - 2025-10-05 – HOTP telemetry events adopt the `hotp.evaluate` and `hotp.issue` namespaces via `TelemetryContracts` to keep parity with future facade integrations (worklog confirmation).
 - 2025-10-05 – Operator UI remains evaluation-only across all credential types; HOTP UI excludes issuance until a future roadmap decision revisits the scope (user directive).
 - 2025-10-05 – HOTP operator UI lives within the existing operator console tab, supporting stored credential evaluation and inline secret evaluation flows (options B + C selected).

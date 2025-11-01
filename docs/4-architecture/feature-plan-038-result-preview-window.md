@@ -1,7 +1,7 @@
 # Feature Plan 038 – Evaluation Result Preview Table
 
 _Linked specification:_ `docs/4-architecture/specs/feature-038-result-preview-window.md`  
-_Status:_ Planned  
+_Status:_ In progress  
 _Last updated:_ 2025-11-01
 
 ## Vision & Success Criteria
@@ -19,15 +19,15 @@ _Last updated:_ 2025-11-01
 - Requires UI table components (operator console) and CLI formatting helpers.
 
 ## Increment Breakdown (≤30 minutes each)
-1. **I1 – REST schema scaffolding**  
-   - Add preview model to evaluation responses (HOTP/TOTP/OCRA) and wire service tests.  
+1. **I1 – REST schema scaffolding** _(in progress 2025-11-01)_  
+   - Add request/response window models (HOTP/TOTP/OCRA), remove evaluation drift fields, and wire service tests.  
    - Update OpenAPI snapshot.  
    - Commands: `./gradlew --no-daemon :rest-api:test`.
 2. **I2 – Application/CLI contract alignment**  
-   - Expose preview data from application services; adjust CLI formatters and tests.  
+   - Expose preview data from application services; add CLI window flags, drop evaluation drift options, and extend tests.  
    - Commands: `./gradlew --no-daemon :application:test :cli:test`.
 3. **I3 – Operator UI table integration**  
-   - Render preview table inside result card with accent bar highlight; update Selenium coverage.  
+   - Render preview table inside result card with accent bar highlight; replace evaluation drift controls with unified window inputs while leaving replay drift untouched; update Selenium coverage.  
    - Commands: `./gradlew --no-daemon :rest-api:test :ui:test`.
 4. **I4 – Accessibility & docs**  
    - Verify screen-reader/contrast behaviour, document the change, refresh knowledge map if needed.  
