@@ -19,6 +19,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -66,6 +68,7 @@ final class EmvCliTest {
 
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         String stdout = harness.stdout();
+        String masterKeyDigest = expectedMasterKeyDigest(vector);
 
         assertTrue(stdout.contains("event=cli.emv.cap.identify"), stdout);
         assertTrue(stdout.contains("status=success"), stdout);
@@ -77,6 +80,7 @@ final class EmvCliTest {
         int expectedMaskLength = countMaskedDigits(vector.outputs());
         assertTrue(stdout.contains("maskLength=" + expectedMaskLength), stdout);
 
+        assertTrue(stdout.contains("trace.masterKeySha256=" + masterKeyDigest), stdout);
         assertTrue(stdout.contains("trace.sessionKey=" + vector.outputs().sessionKeyHex()), stdout);
         assertTrue(
                 stdout.contains(
@@ -144,6 +148,7 @@ final class EmvCliTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> trace = (Map<String, Object>) root.get("trace");
         assertNotNull(trace, "Trace payload should be present by default");
+        assertEquals(expectedMasterKeyDigest(vector), trace.get("masterKeySha256"));
         assertEquals(vector.outputs().sessionKeyHex(), trace.get("sessionKey"));
         @SuppressWarnings("unchecked")
         Map<String, Object> generateAcInput = (Map<String, Object>) trace.get("generateAcInput");
@@ -435,6 +440,41 @@ final class EmvCliTest {
     private static int countMaskedDigits(Outputs outputs) {
         return (int)
                 outputs.maskedDigitsOverlay().chars().filter(ch -> ch != '.').count();
+    }
+
+    private static String expectedMasterKeyDigest(EmvCapVector vector) {
+        return sha256Digest(vector.input().masterKeyHex());
+    }
+
+    private static String sha256Digest(String hex) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = hexToBytes(hex);
+            byte[] hashed = digest.digest(bytes);
+            return "sha256:" + toHex(hashed);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        String normalized = hex.trim().toUpperCase(Locale.ROOT);
+        if ((normalized.length() & 1) == 1) {
+            throw new IllegalArgumentException("Hex input must contain an even number of characters");
+        }
+        byte[] data = new byte[normalized.length() / 2];
+        for (int index = 0; index < normalized.length(); index += 2) {
+            data[index / 2] = (byte) Integer.parseInt(normalized.substring(index, index + 2), 16);
+        }
+        return data;
+    }
+
+    private static String toHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format(Locale.ROOT, "%02X", value));
+        }
+        return builder.toString();
     }
 
     private static final class CommandHarness {

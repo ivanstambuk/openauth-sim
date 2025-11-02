@@ -74,7 +74,7 @@ final class EmvCapReplayService {
         EmvCapReplayMetadata metadata = buildMetadata(result, resolvedTelemetryId, telemetryFields);
 
         if (signal.status() == TelemetryStatus.SUCCESS) {
-            VerboseTracePayload tracePayload = includeTrace
+            EmvCapReplayVerboseTracePayload tracePayload = includeTrace
                     ? result.traceOptional()
                             .map(trace -> toTracePayload(result, trace))
                             .orElse(null)
@@ -83,7 +83,7 @@ final class EmvCapReplayService {
         }
 
         if (signal.status() == TelemetryStatus.INVALID && "otp_mismatch".equals(signal.reasonCode())) {
-            VerboseTracePayload tracePayload = includeTrace
+            EmvCapReplayVerboseTracePayload tracePayload = includeTrace
                     ? result.traceOptional()
                             .map(trace -> toTracePayload(result, trace))
                             .orElse(null)
@@ -211,7 +211,7 @@ final class EmvCapReplayService {
                 telemetryId);
     }
 
-    private static VerboseTracePayload toTracePayload(ReplayResult result, Trace trace) {
+    private static EmvCapReplayVerboseTracePayload toTracePayload(ReplayResult result, Trace trace) {
         if (trace == null) {
             return null;
         }
@@ -230,6 +230,7 @@ final class EmvCapReplayService {
         builder.addStep(step -> step.id("generate_ac")
                 .summary("Generated application cryptogram")
                 .detail("core.emv.cap.generateAc")
+                .attribute(AttributeType.STRING, "masterKey.sha256", trace.masterKeySha256())
                 .attribute(AttributeType.HEX, "sessionKey", trace.sessionKey())
                 .attribute(
                         AttributeType.HEX,
@@ -255,7 +256,8 @@ final class EmvCapReplayService {
                 .attribute(AttributeType.INT, "driftBackward", result.driftBackward())
                 .attribute(AttributeType.INT, "driftForward", result.driftForward()));
 
-        return VerboseTracePayload.from(builder.build());
+        VerboseTracePayload payload = VerboseTracePayload.from(builder.build());
+        return new EmvCapReplayVerboseTracePayload(trace.masterKeySha256(), payload);
     }
 
     private static String nextTelemetryId() {

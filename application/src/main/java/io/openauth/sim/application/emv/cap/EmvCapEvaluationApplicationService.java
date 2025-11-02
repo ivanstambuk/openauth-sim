@@ -7,6 +7,8 @@ import io.openauth.sim.core.emv.cap.EmvCapEngine;
 import io.openauth.sim.core.emv.cap.EmvCapInput;
 import io.openauth.sim.core.emv.cap.EmvCapMode;
 import io.openauth.sim.core.emv.cap.EmvCapResult;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -92,6 +94,7 @@ public final class EmvCapEvaluationApplicationService {
 
     private static Trace toTrace(EmvCapResult result, EvaluationRequest request) {
         return new Trace(
+                masterKeyDigest(request.masterKeyHex()),
                 result.sessionKeyHex(),
                 new Trace.GenerateAcInput(
                         result.generateAcInput().terminalHex(),
@@ -193,6 +196,7 @@ public final class EmvCapEvaluationApplicationService {
 
     /** Structured trace payload exposed to verbose consumers. */
     public record Trace(
+            String masterKeySha256,
             String sessionKey,
             GenerateAcInput generateAcInput,
             String generateAcResult,
@@ -201,6 +205,10 @@ public final class EmvCapEvaluationApplicationService {
             String issuerApplicationData) {
 
         public Trace {
+            masterKeySha256 = Objects.requireNonNull(masterKeySha256, "masterKeySha256");
+            if (!masterKeySha256.startsWith("sha256:")) {
+                throw new IllegalArgumentException("masterKeySha256 must start with sha256:");
+            }
             sessionKey = normalizeHex(sessionKey, "trace.sessionKey");
             generateAcInput = Objects.requireNonNull(generateAcInput, "generateAcInput");
             generateAcResult = normalizeHex(generateAcResult, "trace.generateAcResult");
@@ -216,6 +224,33 @@ public final class EmvCapEvaluationApplicationService {
                 iccHex = normalizeHex(iccHex, "trace.generateAcInput.icc");
             }
         }
+    }
+
+    private static String masterKeyDigest(String masterKeyHex) {
+        String normalized = normalizeHex(masterKeyHex, "masterKey");
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashed = digest.digest(hexToBytes(normalized));
+            return "sha256:" + toHex(hashed);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        byte[] data = new byte[hex.length() / 2];
+        for (int index = 0; index < hex.length(); index += 2) {
+            data[index / 2] = (byte) Integer.parseInt(hex.substring(index, index + 2), 16);
+        }
+        return data;
+    }
+
+    private static String toHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format(Locale.ROOT, "%02X", value));
+        }
+        return builder.toString();
     }
 
     /** Telemetry emission container for evaluation outcomes. */

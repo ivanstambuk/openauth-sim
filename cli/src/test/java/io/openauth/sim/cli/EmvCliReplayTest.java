@@ -12,6 +12,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -26,6 +29,7 @@ final class EmvCliReplayTest {
     @Test
     void storedReplayEmitsMatchTelemetry() {
         ReplayFixture fixture = EmvCapReplayFixtures.load("replay-identify-baseline");
+        EmvCapVector vector = EmvCapVectorFixtures.load(fixture.vectorId());
         CommandHarness harness = CommandHarness.create(tempDir.resolve("emv-cap-replay.db"));
 
         int seedExit = harness.execute("cap", "seed");
@@ -48,11 +52,13 @@ final class EmvCliReplayTest {
 
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         String stdout = harness.stdout();
+        String masterKeyDigest = expectedMasterKeyDigest(vector);
         assertTrue(stdout.contains("event=cli.emv.cap.replay"), stdout);
         assertTrue(stdout.contains("status=match"), stdout);
         assertTrue(stdout.contains("reasonCode=match"), stdout);
         assertTrue(stdout.contains("credentialSource=stored"), stdout);
         assertTrue(stdout.contains("matchedDelta=0"), stdout);
+        assertTrue(stdout.contains("trace.masterKeySha256=" + masterKeyDigest), stdout);
     }
 
     @Test
@@ -161,6 +167,7 @@ final class EmvCliReplayTest {
         assertTrue(stdout.contains("matchedDelta=0"), stdout);
         assertTrue(stdout.contains("metadata.branchFactor=" + vector.input().branchFactor()), stdout);
         assertTrue(stdout.contains("metadata.height=" + vector.input().height()), stdout);
+        assertTrue(stdout.contains("trace.masterKeySha256=" + expectedMasterKeyDigest(vector)), stdout);
     }
 
     @Test
@@ -343,6 +350,41 @@ final class EmvCliReplayTest {
         assertTrue(stderr.contains("event=cli.emv.cap.replay"), stderr);
         assertTrue(stderr.contains("status=invalid"), stderr);
         assertTrue(stderr.contains("error=masterKey must be provided"), stderr);
+    }
+
+    private static String expectedMasterKeyDigest(EmvCapVector vector) {
+        return sha256Digest(vector.input().masterKeyHex());
+    }
+
+    private static String sha256Digest(String hex) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = hexToBytes(hex);
+            byte[] hashed = digest.digest(bytes);
+            return "sha256:" + toHex(hashed);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        String normalized = hex.trim().toUpperCase(Locale.ROOT);
+        if ((normalized.length() & 1) == 1) {
+            throw new IllegalArgumentException("Hex input must contain an even number of characters");
+        }
+        byte[] data = new byte[normalized.length() / 2];
+        for (int index = 0; index < normalized.length(); index += 2) {
+            data[index / 2] = (byte) Integer.parseInt(normalized.substring(index, index + 2), 16);
+        }
+        return data;
+    }
+
+    private static String toHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format(Locale.ROOT, "%02X", value));
+        }
+        return builder.toString();
     }
 
     private static final class CommandHarness {

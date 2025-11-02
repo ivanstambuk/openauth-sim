@@ -56,12 +56,7 @@
           >
           <div class="card-shell__body section-columns">
             <div class="stack-lg">
-              <h2 class="section-title">Derive EMV/CAP one-time passwords</h2>
-              <p class="section-lede">
-                Provide ICC parameters or load a stored credential preset to simulate Identify, Respond, or Sign flows.
-                Verbose traces reveal intermediate buffers when enabled.
-              </p>
-
+              <h2 class="section-title">Evaluate an EMV/CAP OTP</h2>
               <form
                   class="evaluation-form stack-lg"
                   data-testid="emv-form"
@@ -91,7 +86,7 @@
 
                   <div class="seed-actions" data-testid="emv-seed-actions">
                     <button type="button" class="button-secondary" data-testid="emv-seed-credentials">
-                      Seed canonical EMV/CAP credentials
+                      Seed sample credentials
                     </button>
                     <p class="hint" data-testid="emv-seed-status" aria-live="polite"></p>
                   </div>
@@ -303,10 +298,6 @@
                   <button type="submit" class="button-primary" data-testid="emv-evaluate-submit">
                     Evaluate CAP OTP
                   </button>
-                  <label class="verbose-trace-toggle" data-testid="emv-include-trace">
-                    <input type="checkbox" checked="checked" />
-                    <span>Include verbose trace</span>
-                  </label>
                 </div>
               </form>
             </div>
@@ -364,14 +355,9 @@
           >
           <div class="card-shell__body section-columns">
             <div class="stack-lg">
-              <h2 class="section-title">Replay an EMV/CAP one-time password</h2>
-              <p class="section-lede">
-                Validate operator-supplied OTPs against stored presets or inline parameters. Use the preview window to
-                scan neighbouring counters, and enable verbose traces for detailed comparison logs.
-              </p>
-
+              <h2 class="section-title">Replay an EMV/CAP OTP</h2>
               <fieldset class="mode-toggle mode-toggle--compact" data-testid="emv-replay-mode-toggle" data-mode="stored">
-                <legend>Replay mode</legend>
+                <legend>Choose replay mode</legend>
                 <div class="mode-option" data-testid="emv-replay-mode-stored">
                   <input
                       type="radio"
@@ -606,10 +592,6 @@
                   <button type="submit" class="button-primary" data-testid="emv-replay-submit">
                     Replay CAP OTP
                   </button>
-                  <label class="verbose-trace-toggle" data-testid="emv-replay-include-trace">
-                    <input type="checkbox" checked="checked" />
-                    <span>Include verbose trace</span>
-                  </label>
                 </div>
               </form>
             </div>

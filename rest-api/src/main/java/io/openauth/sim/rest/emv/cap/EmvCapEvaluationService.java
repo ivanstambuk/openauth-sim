@@ -148,6 +148,7 @@ final class EmvCapEvaluationService {
         EmvCapTracePayload.GenerateAcInput generateAcInput = new EmvCapTracePayload.GenerateAcInput(
                 trace.generateAcInput().terminalHex(), trace.generateAcInput().iccHex());
         return new EmvCapTracePayload(
+                trace.masterKeySha256(),
                 trace.sessionKey(),
                 generateAcInput,
                 trace.generateAcResult(),

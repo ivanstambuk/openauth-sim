@@ -375,6 +375,8 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
             @CommandLine.Option(
                     names = "--include-trace",
                     paramLabel = "<true|false>",
+                    arity = "0..1",
+                    fallbackValue = "true",
                     defaultValue = "true",
                     description = "Include verbose trace payload (true/false, default: true)")
             boolean includeTrace;
@@ -878,6 +880,8 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
             @CommandLine.Option(
                     names = "--include-trace",
                     paramLabel = "<true|false>",
+                    arity = "0..1",
+                    fallbackValue = "true",
                     defaultValue = "true",
                     description = "Include verbose trace payload (true/false, default: true)")
             boolean includeTrace;
@@ -1070,6 +1074,9 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
 
     private static void appendTraceJson(StringBuilder builder, Trace trace, EvaluationRequest request) {
         builder.append(",\n  \"trace\": {\n");
+        builder.append("    \"masterKeySha256\": \"")
+                .append(escapeJson(trace.masterKeySha256()))
+                .append("\",\n");
         builder.append("    \"sessionKey\": \"")
                 .append(escapeJson(trace.sessionKey()))
                 .append("\",\n");
@@ -1103,6 +1110,7 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
     }
 
     private static void printTrace(PrintWriter writer, Trace trace, EvaluationRequest request) {
+        writer.println("trace.masterKeySha256=" + trace.masterKeySha256());
         writer.println("trace.sessionKey=" + trace.sessionKey());
         writer.println(
                 "trace.generateAcInput.terminal=" + trace.generateAcInput().terminalHex());

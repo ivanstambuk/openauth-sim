@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record EmvCapTracePayload(
+        @JsonProperty("masterKeySha256") String masterKeySha256,
         @JsonProperty("sessionKey") String sessionKey,
         @JsonProperty("generateAcInput") GenerateAcInput generateAcInput,
         @JsonProperty("generateAcResult") String generateAcResult,

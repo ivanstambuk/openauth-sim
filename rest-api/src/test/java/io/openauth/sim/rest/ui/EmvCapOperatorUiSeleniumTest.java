@@ -10,8 +10,11 @@ import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
 import io.openauth.sim.core.store.CredentialStore;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -103,12 +106,9 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("Global verbose trace checkbox should be enabled for verbose requests")
                 .isTrue();
         waitForTracePanelVisibility(false);
-
-        WebElement includeTraceCheckbox =
-                waitForVisible(By.cssSelector("[data-testid='emv-include-trace'] input[type='checkbox']"));
-        assertThat(includeTraceCheckbox.isSelected())
-                .as("Include verbose trace checkbox should default to checked")
-                .isTrue();
+        assertThat(driver.findElements(By.cssSelector("[data-testid='emv-include-trace']")))
+                .as("EMV-specific include-trace checkbox should be removed in favour of global toggle")
+                .isEmpty();
 
         waitForClickable(By.cssSelector("button[data-testid='emv-evaluate-submit']"))
                 .click();
@@ -143,6 +143,7 @@ final class EmvCapOperatorUiSeleniumTest {
         String atcHex = BASELINE_VECTOR.input().atcHex();
         int branchFactor = BASELINE_VECTOR.input().branchFactor();
         int height = BASELINE_VECTOR.input().height();
+        String masterKeyDigest = expectedMasterKeyDigest(BASELINE_VECTOR);
         assertThat(traceText)
                 .as("Trace content should include EMV/CAP metadata")
                 .contains("operation = emv.cap.evaluate")
@@ -153,6 +154,7 @@ final class EmvCapOperatorUiSeleniumTest {
                 .contains("metadata.height = " + height);
         assertThat(traceText)
                 .as("Trace steps should surface session key and Generate AC details")
+                .contains("masterKey.sha256 = " + masterKeyDigest)
                 .contains("sessionKey = " + sessionKey)
                 .contains("generateAcResult = " + generateAcResult)
                 .contains("terminal = " + terminalHex)
@@ -175,12 +177,12 @@ final class EmvCapOperatorUiSeleniumTest {
         waitForCredential(credentialSelect, STORED_CREDENTIAL_ID, STORED_PRESET_LABEL);
 
         WebElement globalVerboseCheckbox = waitForClickable(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
-        if (!globalVerboseCheckbox.isSelected()) {
-            globalVerboseCheckbox.click();
-        }
-
-        waitForClickable(By.cssSelector("[data-testid='emv-include-trace'] input[type='checkbox']"))
-                .click();
+        assertThat(globalVerboseCheckbox.isSelected())
+                .as("Global verbose toggle should default to unchecked")
+                .isFalse();
+        assertThat(driver.findElements(By.cssSelector("[data-testid='emv-include-trace']")))
+                .as("EMV-specific include-trace checkbox should be removed")
+                .isEmpty();
 
         waitForClickable(By.cssSelector("button[data-testid='emv-evaluate-submit']"))
                 .click();
@@ -202,8 +204,17 @@ final class EmvCapOperatorUiSeleniumTest {
     @DisplayName("Stored EMV/CAP replay surfaces match outcome with verbose trace")
     void storedReplayDisplaysMatchOutcome() {
         EmvCapReplayFixtures.ReplayFixture fixture = EmvCapReplayFixtures.load("replay-respond-baseline");
+        EmvCapVector vector = EmvCapVectorFixtures.load(fixture.vectorId());
 
         navigateToEmvConsole();
+
+        WebElement globalVerboseCheckbox = waitForClickable(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
+        if (!globalVerboseCheckbox.isSelected()) {
+            globalVerboseCheckbox.click();
+        }
+        assertThat(driver.findElements(By.cssSelector("[data-testid='emv-replay-include-trace']")))
+                .as("Replay-specific include-trace checkbox should be removed")
+                .isEmpty();
 
         waitForClickable(By.cssSelector("[data-testid='emv-console-tab-replay']"))
                 .click();
@@ -221,12 +232,6 @@ final class EmvCapOperatorUiSeleniumTest {
         setNumericInput(
                 By.cssSelector("[data-testid='emv-replay-drift-forward'] input"),
                 fixture.previewWindow().forward());
-
-        WebElement includeTrace =
-                waitForClickable(By.cssSelector("[data-testid='emv-replay-include-trace'] input[type='checkbox']"));
-        if (!includeTrace.isSelected()) {
-            includeTrace.click();
-        }
 
         waitForClickable(By.cssSelector("button[data-testid='emv-replay-submit']"))
                 .click();
@@ -253,7 +258,8 @@ final class EmvCapOperatorUiSeleniumTest {
                 .contains("mode = RESPOND")
                 .contains("credentialSource = stored")
                 .contains("matchedDelta = 0")
-                .contains("suppliedOtp = " + fixture.otpDecimal());
+                .contains("suppliedOtp = " + fixture.otpDecimal())
+                .contains("masterKey.sha256 = " + expectedMasterKeyDigest(vector));
     }
 
     @Test
@@ -265,6 +271,11 @@ final class EmvCapOperatorUiSeleniumTest {
         navigateToEmvConsole();
         waitForClickable(By.cssSelector("[data-testid='emv-console-tab-replay']"))
                 .click();
+
+        WebElement globalVerboseCheckbox = waitForClickable(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
+        assertThat(globalVerboseCheckbox.isSelected())
+                .as("Global verbose toggle should remain unchecked by default")
+                .isFalse();
 
         waitForClickable(By.cssSelector("[data-testid='emv-replay-mode-inline'] input[type='radio']"))
                 .click();
@@ -282,11 +293,9 @@ final class EmvCapOperatorUiSeleniumTest {
                 By.cssSelector("[data-testid='emv-replay-drift-forward'] input"),
                 fixture.previewWindow().forward());
 
-        WebElement includeTrace =
-                waitForClickable(By.cssSelector("[data-testid='emv-replay-include-trace'] input[type='checkbox']"));
-        if (includeTrace.isSelected()) {
-            includeTrace.click();
-        }
+        assertThat(driver.findElements(By.cssSelector("[data-testid='emv-replay-include-trace']")))
+                .as("Replay panel should not expose its own include-trace checkbox")
+                .isEmpty();
 
         waitForClickable(By.cssSelector("button[data-testid='emv-replay-submit']"))
                 .click();
@@ -457,6 +466,41 @@ final class EmvCapOperatorUiSeleniumTest {
             }
         }
         return count;
+    }
+
+    private static String expectedMasterKeyDigest(EmvCapVector vector) {
+        return sha256Digest(vector.input().masterKeyHex());
+    }
+
+    private static String sha256Digest(String hex) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = hexToBytes(hex);
+            byte[] hashed = digest.digest(bytes);
+            return "sha256:" + toHex(hashed);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        String normalized = hex.trim().toUpperCase(Locale.ROOT);
+        if ((normalized.length() & 1) == 1) {
+            throw new IllegalArgumentException("Hex input must contain an even number of characters");
+        }
+        byte[] data = new byte[normalized.length() / 2];
+        for (int index = 0; index < normalized.length(); index += 2) {
+            data[index / 2] = (byte) Integer.parseInt(normalized.substring(index, index + 2), 16);
+        }
+        return data;
+    }
+
+    private static String toHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format(Locale.ROOT, "%02X", value));
+        }
+        return builder.toString();
     }
 
     private WebElement waitForTracePanelVisibility(boolean visible) {

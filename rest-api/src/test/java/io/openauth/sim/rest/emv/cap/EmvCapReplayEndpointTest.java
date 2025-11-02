@@ -18,7 +18,10 @@ import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -98,6 +101,64 @@ final class EmvCapReplayEndpointTest {
                 .as("Verbose trace payload should be present when includeTrace=true")
                 .isNotNull();
         assertEquals("emv.cap.replay.stored", trace.get("operation").asText());
+        assertEquals(
+                expectedMasterKeyDigest(fixture.referencedVector()),
+                trace.path("masterKeySha256").asText());
+    }
+
+    @Test
+    @DisplayName("Stored replay defaults includeTrace to true when omitted")
+    void storedReplayDefaultsToVerboseTrace() throws Exception {
+        ReplayFixture fixture = EmvCapReplayFixtures.load("replay-respond-baseline");
+        ObjectNode payload = JSON.createObjectNode();
+        payload.put("credentialId", fixture.credentialId());
+        payload.put("mode", fixture.mode().name());
+        payload.put("otp", fixture.otpDecimal());
+        payload.put("driftBackward", fixture.previewWindow().backward());
+        payload.put("driftForward", fixture.previewWindow().forward());
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/replay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.writeValueAsString(payload)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = JSON.readTree(responseBody);
+        assertEquals("match", root.get("status").asText());
+        assertEquals("match", root.get("reasonCode").asText());
+        assertThat(root.get("trace"))
+                .as("Trace should be included when includeTrace is omitted")
+                .isNotNull();
+    }
+
+    @Test
+    @DisplayName("Stored replay honours includeTrace=false toggle")
+    void storedReplaySuppressesTraceWhenDisabled() throws Exception {
+        ReplayFixture fixture = EmvCapReplayFixtures.load("replay-respond-baseline");
+        ObjectNode payload = JSON.createObjectNode();
+        payload.put("credentialId", fixture.credentialId());
+        payload.put("mode", fixture.mode().name());
+        payload.put("otp", fixture.otpDecimal());
+        payload.put("driftBackward", fixture.previewWindow().backward());
+        payload.put("driftForward", fixture.previewWindow().forward());
+        payload.put("includeTrace", false);
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/replay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.writeValueAsString(payload)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = JSON.readTree(responseBody);
+        assertEquals("match", root.get("status").asText());
+        assertEquals("match", root.get("reasonCode").asText());
+        assertThat(root.get("trace"))
+                .as("Trace should be omitted when includeTrace=false")
+                .isNull();
     }
 
     @Test
@@ -302,6 +363,41 @@ final class EmvCapReplayEndpointTest {
             root.put("includeTrace", true);
         }
         return JSON.writeValueAsString(root);
+    }
+
+    private static String expectedMasterKeyDigest(EmvCapVector vector) {
+        return sha256Digest(vector.input().masterKeyHex());
+    }
+
+    private static String sha256Digest(String hex) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = hexToBytes(hex);
+            byte[] hashed = digest.digest(bytes);
+            return "sha256:" + toHex(hashed);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        String normalized = hex.trim().toUpperCase(Locale.ROOT);
+        if ((normalized.length() & 1) == 1) {
+            throw new IllegalArgumentException("Hex input must contain an even number of characters");
+        }
+        byte[] data = new byte[normalized.length() / 2];
+        for (int index = 0; index < normalized.length(); index += 2) {
+            data[index / 2] = (byte) Integer.parseInt(normalized.substring(index, index + 2), 16);
+        }
+        return data;
+    }
+
+    private static String toHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format(Locale.ROOT, "%02X", value));
+        }
+        return builder.toString();
     }
 
     @TestConfiguration

@@ -17,6 +17,9 @@ import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -68,6 +71,8 @@ class EmvCapEvaluationEndpointTest {
 
         JsonNode trace = root.get("trace");
         assertNotNull(trace);
+        assertEquals(
+                expectedMasterKeyDigest(vector), trace.path("masterKeySha256").asText());
         assertEquals(vector.outputs().sessionKeyHex(), trace.get("sessionKey").asText());
         assertEquals(
                 vector.outputs().generateAcResultHex(),
@@ -112,6 +117,8 @@ class EmvCapEvaluationEndpointTest {
 
         JsonNode trace = root.get("trace");
         assertNotNull(trace);
+        assertEquals(
+                expectedMasterKeyDigest(vector), trace.path("masterKeySha256").asText());
         assertEquals(vector.outputs().sessionKeyHex(), trace.get("sessionKey").asText());
         assertEquals(
                 vector.outputs().generateAcResultHex(),
@@ -505,6 +512,41 @@ class EmvCapEvaluationEndpointTest {
             case RESPOND -> "emv.cap.respond";
             case SIGN -> "emv.cap.sign";
         };
+    }
+
+    private static String expectedMasterKeyDigest(EmvCapVector vector) {
+        return sha256Digest(vector.input().masterKeyHex());
+    }
+
+    private static String sha256Digest(String hex) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = hexToBytes(hex);
+            byte[] hashed = digest.digest(bytes);
+            return "sha256:" + toHex(hashed);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        String normalized = hex.trim().toUpperCase(Locale.ROOT);
+        if ((normalized.length() & 1) == 1) {
+            throw new IllegalArgumentException("Hex input must contain an even number of characters");
+        }
+        byte[] data = new byte[normalized.length() / 2];
+        for (int index = 0; index < normalized.length(); index += 2) {
+            data[index / 2] = (byte) Integer.parseInt(normalized.substring(index, index + 2), 16);
+        }
+        return data;
+    }
+
+    private static String toHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format(Locale.ROOT, "%02X", value));
+        }
+        return builder.toString();
     }
 
     @TestConfiguration

@@ -39,7 +39,6 @@
   var terminalInput = form.querySelector('#emvTerminalData');
   var iccOverrideInput = form.querySelector('#emvIccOverride');
   var iccResolvedInput = form.querySelector('#emvIccResolved');
-  var includeTraceCheckbox = form.querySelector('[data-testid="emv-include-trace"] input[type="checkbox"]');
   var seedActions = form.querySelector('[data-testid="emv-seed-actions"]');
   var seedButton = seedActions ? seedActions.querySelector('[data-testid="emv-seed-credentials"]') : null;
   var seedStatus = seedActions ? seedActions.querySelector('[data-testid="emv-seed-status"]') : null;
@@ -135,9 +134,6 @@
   var replayDriftForwardInput = replayForm
       ? replayForm.querySelector('[data-testid="emv-replay-drift-forward"] input')
       : null;
-  var replayIncludeTraceCheckbox = replayForm
-      ? replayForm.querySelector('[data-testid="emv-replay-include-trace"] input[type="checkbox"]')
-      : null;
   var replayResultPanel = rootPanel.querySelector('[data-testid="emv-replay-result-card"]');
   var replayStatusBadge = replayResultPanel
       ? replayResultPanel.querySelector('[data-testid="emv-replay-status"]')
@@ -172,22 +168,6 @@
   if (seedButton) {
     seedButton.addEventListener('click', function () {
       handleSeedRequest();
-    });
-  }
-
-  if (includeTraceCheckbox) {
-    includeTraceCheckbox.addEventListener('change', function () {
-      if (!includeTraceCheckbox.checked) {
-        clearVerboseTrace();
-      }
-    });
-  }
-
-  if (replayIncludeTraceCheckbox) {
-    replayIncludeTraceCheckbox.addEventListener('change', function () {
-      if (!replayIncludeTraceCheckbox.checked) {
-        clearVerboseTrace();
-      }
     });
   }
 
@@ -671,20 +651,14 @@
   }
 
   function isTraceRequested() {
-    return isTraceEnabled(includeTraceCheckbox);
+    return isTraceEnabled();
   }
 
   function isReplayTraceRequested() {
-    return isTraceEnabled(replayIncludeTraceCheckbox);
+    return isTraceEnabled();
   }
 
-  function isTraceEnabled(localCheckbox) {
-    if (localCheckbox && !localCheckbox.checked) {
-      return false;
-    }
-    if (localCheckbox && localCheckbox.checked) {
-      return true;
-    }
+  function isTraceEnabled() {
     if (verboseConsole && typeof verboseConsole.isEnabled === 'function') {
       return verboseConsole.isEnabled();
     }
@@ -798,6 +772,13 @@
     }
 
     var steps = [];
+    if (trace.masterKeySha256) {
+      steps.push({
+        id: 'master_key',
+        summary: 'Master key digest',
+        attributes: { 'masterKey.sha256': trace.masterKeySha256 },
+      });
+    }
     if (trace.sessionKey) {
       steps.push({
         id: 'session_key',
