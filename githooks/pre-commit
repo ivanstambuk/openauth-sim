@@ -42,6 +42,56 @@ ensure_open_questions_guardrail() {
 }
 
 
+is_file_staged() {
+  local target=$1
+  for staged in "${STAGED_FILES[@]}"; do
+    if [[ $staged == "$target" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+verify_gradle_wrapper_jar() {
+  local jar_rel_path="gradle/wrapper/gradle-wrapper.jar"
+  local checksum_rel_path="gradle/wrapper/gradle-wrapper.jar.sha256"
+  local jar_path="$ROOT_DIR/$jar_rel_path"
+  local checksum_path="$ROOT_DIR/$checksum_rel_path"
+
+  require_command sha256sum "Install 'sha256sum' (coreutils) to verify Gradle wrapper integrity."
+
+  if ! is_file_staged "$checksum_rel_path"; then
+    log "Gradle wrapper jar staged without matching checksum file ('$checksum_rel_path')."
+    log "Download the official checksum from services.gradle.org, add it beside the jar, stage both, then retry."
+    return 1
+  fi
+
+  if [[ ! -f $checksum_path ]]; then
+    log "Checksum file '$checksum_rel_path' is missing. Stage the checksum alongside the jar."
+    return 1
+  fi
+
+  local expected_checksum
+  expected_checksum=$(awk '{print $1}' "$checksum_path" | tr -d '\r')
+  if [[ -z ${expected_checksum// } ]]; then
+    log "Checksum file '$checksum_rel_path' is empty or malformed."
+    return 1
+  fi
+
+  local actual_checksum
+  actual_checksum=$(sha256sum "$jar_path" | awk '{print $1}')
+
+  if [[ "$expected_checksum" != "$actual_checksum" ]]; then
+    log "Gradle wrapper checksum mismatch detected."
+    log "  expected: $expected_checksum"
+    log "  actual:   $actual_checksum"
+    log "Regenerate the wrapper via './gradlew wrapper ...' and re-download the matching checksum."
+    return 1
+  fi
+
+  return 0
+}
+
 run_gradle_with_retry() {
   local description=$1
   shift
@@ -117,6 +167,11 @@ enforce_staged_file_guards() {
     size_bytes=$(wc -c <"$file")
     if (( size_bytes > MAX_FILE_SIZE_BYTES )); then
       large_files+=("$file ($(human_readable_size "$size_bytes"))")
+    fi
+
+    if [[ $file == "gradle/wrapper/gradle-wrapper.jar" ]]; then
+      verify_gradle_wrapper_jar || die "Gradle wrapper integrity verification failed."
+      continue
     fi
 
     mime_type=$(file -b --mime "$file" 2>/dev/null || echo "application/octet-stream")
