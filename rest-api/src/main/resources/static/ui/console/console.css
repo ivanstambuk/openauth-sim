@@ -971,6 +971,10 @@ fieldset {
   box-shadow: inset 0.3rem 0 0 var(--ocra-color-primary-accent);
 }
 
+[data-preview-accent='emv'] .result-preview__row--active {
+  box-shadow: inset 0.3rem 0 0 var(--ocra-color-primary-accent);
+}
+
 .result-row {
   display: flex;
   justify-content: space-between;
@@ -1397,4 +1401,33 @@ a:focus {
 .ocra-placeholder h2 {
   margin-top: 0;
   color: var(--ocra-color-text);
+}
+
+.emv-parameter-grid {
+  display: grid;
+  gap: var(--ocra-spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.emv-field--full {
+  grid-column: 1 / -1;
+}
+
+.emv-customer-grid {
+  display: grid;
+  gap: var(--ocra-spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.emv-transaction-grid {
+  display: grid;
+  gap: var(--ocra-spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.emv-action-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--ocra-spacing-md);
+  flex-wrap: wrap;
 }

@@ -1,0 +1,35 @@
+{
+  "description": "CAP Sign flow with challenge/reference/amount from emvlab.org (2025-11-01)",
+  "mode": "SIGN",
+  "inputs": {
+    "masterKey": "89ABCDEF0123456789ABCDEF01234567",
+    "atc": "01A4",
+    "branchFactor": 4,
+    "height": 8,
+    "iv": "00000000000000000000000000000000",
+    "cdol1": "9F02069F03069F1A0295055F2A029A039C019F3704",
+    "issuerProprietaryBitmap": "00001F00000000000FFFFF00000000008000",
+    "challenge": "998877",
+    "reference": "445566",
+    "amount": "000000123456",
+    "iccDataTemplate": "1000xxxxA50006040000",
+    "issuerApplicationData": "06770A03A48000"
+  },
+  "resolved": {
+    "iccData": "100001A4A50006040000"
+  },
+  "outputs": {
+    "sessionKey": "FB861FFEA7AEB052F461E991FD07A425",
+    "generateAcInput": {
+      "terminal": "0000001234560000000000000000800000000000000000000000445566",
+      "icc": "100001A4A50006040000"
+    },
+    "generateAcResult": "8001A43F758937C03A618906770A03A48000",
+    "bitmask": "....1F...........FFFFF..........8...",
+    "maskedDigitsOverlay": "....04...........A6189..........8...",
+    "otp": {
+      "decimal": "9749267",
+      "hex": "94C313"
+    }
+  }
+}

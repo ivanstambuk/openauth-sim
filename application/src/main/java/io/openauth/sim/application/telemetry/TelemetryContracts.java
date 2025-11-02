@@ -26,6 +26,11 @@ public final class TelemetryContracts {
     private static final Fido2TelemetryAdapter FIDO2_ATTEST_ADAPTER = new Fido2TelemetryAdapter("fido2.attest");
     private static final Fido2TelemetryAdapter FIDO2_ATTEST_REPLAY_ADAPTER =
             new Fido2TelemetryAdapter("fido2.attestReplay");
+    private static final EmvCapTelemetryAdapter EMV_CAP_IDENTIFY_ADAPTER =
+            new EmvCapTelemetryAdapter("emv.cap.identify");
+    private static final EmvCapTelemetryAdapter EMV_CAP_RESPOND_ADAPTER = new EmvCapTelemetryAdapter("emv.cap.respond");
+    private static final EmvCapTelemetryAdapter EMV_CAP_SIGN_ADAPTER = new EmvCapTelemetryAdapter("emv.cap.sign");
+    private static final EmvCapTelemetryAdapter EMV_CAP_SEED_ADAPTER = new EmvCapTelemetryAdapter("emv.cap.seed");
 
     private TelemetryContracts() {
         throw new AssertionError("No instances");
@@ -104,5 +109,25 @@ public final class TelemetryContracts {
     /** Returns the shared adapter for FIDO2/WebAuthn attestation replay telemetry. */
     public static Fido2TelemetryAdapter fido2AttestReplayAdapter() {
         return FIDO2_ATTEST_REPLAY_ADAPTER;
+    }
+
+    /** Returns the shared adapter for EMV/CAP Identify telemetry. */
+    public static EmvCapTelemetryAdapter emvCapIdentifyAdapter() {
+        return EMV_CAP_IDENTIFY_ADAPTER;
+    }
+
+    /** Returns the shared adapter for EMV/CAP Respond telemetry. */
+    public static EmvCapTelemetryAdapter emvCapRespondAdapter() {
+        return EMV_CAP_RESPOND_ADAPTER;
+    }
+
+    /** Returns the shared adapter for EMV/CAP Sign telemetry. */
+    public static EmvCapTelemetryAdapter emvCapSignAdapter() {
+        return EMV_CAP_SIGN_ADAPTER;
+    }
+
+    /** Returns the shared adapter for EMV/CAP seeding telemetry. */
+    public static EmvCapTelemetryAdapter emvCapSeedingAdapter() {
+        return EMV_CAP_SEED_ADAPTER;
     }
 }

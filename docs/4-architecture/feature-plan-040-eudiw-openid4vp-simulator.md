@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-040-eudiw-openid4vp-simulator.md`  
 _Status:_ Draft  
-_Last updated:_ 2025-11-01
+_Last updated:_ 2025-11-02
 
 ## Vision & Success Criteria
 - Demonstrate HAIP-aligned remote OpenID4VP exchanges end to end (request → wallet response → validation) without external wallets.
@@ -65,10 +65,20 @@ _Last updated:_ 2025-11-01
    - Implement validation entry point reusing verification pipeline, emit `oid4vp.response.validated`/`failed` events, support inline/stored selectors, sample dropdown, and ensure error mapping aligns with F-040-12.  
    - Commands: `./gradlew --no-daemon :application:test :core:test`, `./gradlew --no-daemon spotlessApply check`.
 
-9. **I9 – Facade integrations (F-040-15/16/17/22)**  
-   - Stage failing REST MockMvc, CLI, and UI Selenium tests verifying Generate/Validate flows and updated mock-ups.  
-   - Implement controllers, DTOs, CLI commands, UI tab updates (including Validate inputs), and regenerate OpenAPI snapshot.  
-   - Commands: `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :rest-api:test :cli:test :ui:test`.
+9. **I9 – REST & CLI integrations (F-040-15/16)**  
+   - Stage failing MockMvc and Picocli tests covering request creation, wallet simulate, validate flows, verbose toggles, and problem-details errors.  
+   - Implement controllers, DTOs, CLI commands, regenerate the OpenAPI snapshot, and keep REST/CLI payloads aligned with the spec JSON samples.  
+   - Commands: `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :rest-api:test :cli:test`.
+
+9a. **I9a – Operator UI layout & baseline banner (F-040-17/21/24/25/29)**  
+   - Introduce failing JS + Selenium tests asserting two-column layout, baseline banner visibility when profile ≠ HAIP, DCQL preview read-only behaviour, and sample selector autofill.  
+   - Implement Evaluate/Replay panels to honour the shared layout, render the banner, surface Trusted Authority labels, and keep forms synced with stored presets.  
+   - Commands: `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EudiwOperatorUiSeleniumTest"`.
+
+9b. **I9b – Trace dock & multi-presentation parity (F-040-22/22a/26/30)**  
+   - Add failing UI and application tests verifying global trace dock integration, absence of per-panel verbose toggles, and multi-presentation collapsible sections with copy controls and matching trace keys.  
+   - Implement trace payload wiring, result/trace field separation, and copy/download controls; confirm telemetry/trace content matches the specification matrix.  
+   - Commands: `./gradlew --no-daemon :application:test :ui:test`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EudiwOperatorUiSeleniumTest"`.
 
 10. **I10 – Fixture ingestion toggle (F-040-18, N-040-04)**  
    - Add tests covering synthetic vs conformance fixture selection, provenance metadata capture, and telemetry redaction.  

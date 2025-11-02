@@ -76,7 +76,8 @@ trust anchors stay aligned.
 - **Operator Console** – The Attestation panel automatically references the refreshed catalogue.
   The result card displays the anchor source (“Metadata” or “Metadata + Manual”) and highlights any
   resolver warnings. To refresh the UI without restarting the simulator, redeploy the REST API
-  application (or trigger a `:rest-api:bootRun` restart in development).
+  application (or rerun `./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi`
+  in development).
 
 ## Troubleshooting
 

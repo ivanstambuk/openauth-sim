@@ -10,7 +10,7 @@ This guide teaches operators how to interact with every OCRA REST endpoint expos
 ## 1. Start the REST Service
 From the repository root:
 ```bash
-./gradlew :rest-api:bootRun
+./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi
 ```
 The service exposes endpoints on `http://localhost:8080` and wires OCRA orchestration through the shared application services (no direct domain wiring required).
 

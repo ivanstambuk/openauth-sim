@@ -1,0 +1,35 @@
+{
+  "description": "SIGN flow with amount ≥ 5000 captured via external emulator (2025-11-02)",
+  "mode": "SIGN",
+  "inputs": {
+    "masterKey": "89ABCDEF0123456789ABCDEF01234567",
+    "atc": "0102",
+    "branchFactor": 4,
+    "height": 8,
+    "iv": "00000000000000000000000000000000",
+    "cdol1": "9F02069F03069F1A0295055F2A029A039C019F3704",
+    "issuerProprietaryBitmap": "00001F00000000000FFFFF00000000008000",
+    "challenge": "123456",
+    "reference": "654321",
+    "amount": "000000050375",
+    "iccDataTemplate": "1000xxxxA50006040000",
+    "issuerApplicationData": "06770A03A48000"
+  },
+  "resolved": {
+    "iccData": "10000102A50006040000"
+  },
+  "outputs": {
+    "sessionKey": "7CA7516EC8167A1C2FB064F80DAD5B26",
+    "generateAcInput": {
+      "terminal": "0000000503750000000000000000800000000000000000000000654321",
+      "icc": "10000102A50006040000"
+    },
+    "generateAcResult": "800102DB33738C88011BC806770A03A48000",
+    "bitmask": "....1F...........FFFFF..........8...",
+    "maskedDigitsOverlay": "....02...........11BC8..........8...",
+    "otp": {
+      "decimal": "4339601",
+      "hex": "423791"
+    }
+  }
+}

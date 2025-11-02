@@ -1,0 +1,317 @@
+# Feature 039 – EMV/CAP Simulation Services
+
+_Status: In progress_  
+_Last updated: 2025-11-02_
+
+## Overview
+Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors the reference calculator workflows while fitting the OpenAuth Simulator architecture. Scope now covers reusable core derivation utilities, application orchestration, REST and CLI facades, operator console integration, and MapDB-backed credential seeding so every surface can evaluate Identify/Respond/Sign flows with consistent telemetry and traces. Documentation across REST, CLI, and operator UI guides captures the extended fixture set delivered in T3908c/T3909 so operators can reproduce reference flows end-to-end.
+
+## Clarifications
+- 2025-11-01 – CLI parity will follow existing Picocli ergonomics: positional/flag inputs with optional `--output-json` mirroring the REST payload, plus an `--include-trace` toggle (owner decision).
+- 2025-11-01 – Operator console already contains an EMV/CAP tab; we will activate it with an inline result card and an optional verbose trace panel controlled by a checkbox near the action buttons (owner decision).
+- 2025-11-01 – EMV/CAP credentials must be persisted in MapDB alongside other protocols and support deterministic seeding commands akin to HOTP/TOTP/OCRA/FIDO2 (owner decision).
+- 2025-11-01 – Hardware/token-level APDU workflows remain out of scope; the simulator only needs the application-layer derivation to model `GENERATE AC` outputs and OTP masking (owner decision).
+- 2025-11-02 – Operator console result pane must use the shared two-column layout: the right column exposes only the OTP preview table (Counter/Δ/OTP) and status badge, while mask length, masked digits count, ATC, branch factor, height, ICC template/resolved payloads, and other diagnostics live in the verbose trace panel (owner directive).
+- 2025-11-01 – Seed regression tests with the transcripted calculator vectors; specification documents additional input tuples so the user can supply more samples for broader coverage (owner directive).
+- 2025-11-02 – Verbose trace output must funnel through the shared `VerboseTraceConsole` so copy/download controls and Selenium assertions match other protocols while the EMV-specific metrics remain exposed within the trace payload (owner directive).
+- 2025-11-02 – Replay flows must mirror other protocols: Evaluate and Replay actions live side by side, Replay accepts operator-entered OTPs against stored or inline EMV/CAP credentials, and verbose tracing follows the same toggle semantics (owner directive).
+
+## Requirements
+
+### R1 – Core EMV/CAP domain
+1. Add a `core.emv.cap` package encapsulating:
+   - Session key derivation per EMV 4.1 Book 2, Part III, Annex A1.3 using ICC master key, ATC, branch factor `b`, height `H`, and IV parameters.
+   - CAP mode abstractions that validate input tuples for Identify (no challenge/reference), Respond (challenge), and Sign (challenge + reference + amount) flows.
+   - Bitmask application driven by Issuer Proprietary Bitmap (IPB) and CDOL1 descriptors to extract digits from the Generate AC response.
+2. Models must treat all external inputs as uppercase hexadecimal strings and emit detailed validation errors (length, parity, non-hex characters).
+3. Provide deterministic functions returning:
+   - derived session key (hex),
+   - generated application cryptogram (`generateAc` result without tag-length),
+   - masked numeric OTP (string preserving leading zeros, 8–12 digits depending on IPB),
+   - metadata detailing which nibbles contributed to the OTP.
+4. Share existing crypto primitives (e.g., 3DES MAC) where possible; do not introduce external dependencies without explicit approval.
+5. Record redaction guidance so callers can scrub master keys and session keys when emitting telemetry outside verbose traces.
+
+### R2 – Application orchestration & telemetry
+1. Introduce `EmvCapEvaluationApplicationService` (and supporting request/response records) that wrap the core domain utilities and enforce:
+   - optional transaction data (terminal + ICC payload) and Issuer Application Data (IAD),
+   - substitution of ATC into ICC payload segments marked `xxxx`,
+   - mode-specific input validation and error reporting.
+2. Emit telemetry via `TelemetryContracts`:
+   - Event names `emv.cap.identify`, `emv.cap.respond`, `emv.cap.sign`.
+   - Frames include sanitized metadata (mode, ATC, ipbMaskLength, maskedDigitsCount) without master/session keys or raw cryptograms.
+3. Provide toggleable verbose trace assembly containing full derivation details and masked-digit overlays for downstream facades.
+4. Introduce fixtures under `docs/test-vectors/emv-cap/*.json` capturing canonical inputs/outputs, seeded with the transcript sample and placeholders for user-supplied vectors. Maintain coverage for:
+   - Baseline identify/respond/sign flows (`identify-baseline`, `respond-baseline`, `sign-baseline`).
+   - Additional identify variations spanning branch factor/height pairs (`identify-b2-h6`, `identify-b6-h10`).
+   - Respond challenges covering short/long inputs (`respond-challenge4`, `respond-challenge8`).
+   - Sign flows with low/high amounts (`sign-amount-0845`, `sign-amount-50375`).
+
+### R3 – REST EMV/CAP evaluate endpoint
+1. Add `POST /api/v1/emv/cap/evaluate` accepting JSON payload:
+   ```json
+   {
+     "mode": "IDENTIFY" | "RESPOND" | "SIGN",
+     "masterKey": "0123...",
+     "atc": "00B4",
+     "branchFactor": 4,
+     "height": 8,
+     "iv": "0000...",
+     "cdol1": "9F02...",
+     "issuerProprietaryBitmap": "00001F...",
+     "customerInputs": {
+       "challenge": "1234",
+       "reference": "5678",
+       "amount": "00123456"
+     },
+     "transactionData": {
+       "terminal": "000000...",
+       "icc": "1000xxxxA500..."
+     },
+     "issuerApplicationData": "06770A..."
+   }
+   ```
+   - `customerInputs` properties are optional depending on mode.
+   - `transactionData` is optional; ensure substitutions occur only when provided.
+2. Response payload returns:
+   ```json
+   {
+     "otp": "42511495",
+     "maskLength": 8,
+     "trace": {
+       "sessionKey": "5EC8...",
+       "generateAcInput": { "terminal": "...", "icc": "..." },
+       "generateAcResult": "8000...",
+       "bitmask": "....1F...",
+       "maskedDigits": "....14...",
+       "issuerApplicationData": "06770A..."
+     },
+     "telemetry": { ... sanitized frame metadata ... }
+   }
+   ```
+3. Reject requests with validation errors using the existing problem-details contract; include precise field hints.
+4. Respect the verbose trace toggle (default true) via request flag `includeTrace`; when false, omit sensitive fields from `trace`.
+5. Add OpenAPI documentation and snapshot updates covering request schema, enumerations, sanitisation notes, and example responses.
+
+### R4 – CLI EMV/CAP evaluate command
+1. Extend the Picocli application with `emv cap evaluate` that accepts:
+   - Required options: `--mode`, `--master-key`, `--atc`, `--branch-factor`, `--height`, `--iv`, `--cdol1`, `--issuer-proprietary-bitmap`.
+   - Optional mode-specific inputs: `--challenge`, `--reference`, `--amount` (Sign mode requires all three, Respond requires `--challenge` only, Identify ignores them).
+   - Optional overrides: `--terminal-data`, `--icc-template`, `--issuer-application-data`.
+   - Flags: `--include-trace` (default true) and `--output-json` (pretty-prints the REST-equivalent response).
+2. Command delegates to `EmvCapEvaluationApplicationService` and emits telemetry via new CLI adapters (`TelemetryContracts.emvCap*`) with IDs prefixed `cli-emv-cap-`.
+3. Default (text) output includes OTP, mask length, sanitized telemetry fields, and—when `--include-trace`—a structured trace section matching REST field names.
+4. JSON output must match the REST schema (`otp`, `maskLength`, `trace`, `telemetry`) so tooling can switch between facades without reformatting.
+5. Tests cover each mode, invalid parameter scenarios, includeTrace toggling, JSON parity, and telemetry sanitisation.
+
+### R5 – Operator UI EMV/CAP console panel
+1. Activate the existing EMV/CAP tab in the operator console with:
+   - Input groups for derivation parameters, customer inputs, optional transaction/issuer data, and mode selector radio buttons.
+   - Stored credential preset dropdown mirroring other protocols (fed by MapDB persistence in R6).
+   - Preview-window offset controls (`Backward`, `Forward`) matching the HOTP/TOTP/OCRA evaluation panels.
+2. Provide an “Enable verbose tracing for the next request” checkbox (checked by default) aligned with other panels; when unchecked, hide the trace pane and omit the `trace` request flag. Surface the shared warning copy (`Verbose traces expose raw secrets and intermediate buffers. Use only in trusted environments.`) beneath the toggle.
+3. Request layout mirrors HOTP/TOTP/OCRA: left column hosts the input form (including preview-window offsets that drive the evaluation result table), right column renders the result card. The result card surfaces only the OTP preview table (counter/Δ/OTP) and the status badge; all other metadata shifts to verbose trace.
+4. Verbose trace collects every diagnostic detail previously shown on the result card (mask length, masked digits, ATC, branch factor, height) alongside session key, Generate AC inputs/result, bitmask overlay, masked digits overlay, issuer application data, and resolved ICC payload. Use accessible formatting (monospaced columns, scroll containers as needed).
+5. Validation errors surface inline using the existing problem-details mapping with field-level annotations.
+6. Selenium/JS tests exercise happy paths for each mode, includeTrace toggle, preset loading, error rendering, and telemetry sanitisation of DOM nodes.
+
+### R6 – EMV/CAP credential persistence & seeding
+1. Persist EMV/CAP credentials in MapDB via `CredentialStore`, storing master key, derivation parameters, issuer data, and transaction templates under deterministic identifiers.
+2. Add an application seeding service that imports canonical EMV CAP fixtures (and optional user-supplied additions) and exposes:
+   - REST endpoint `POST /api/v1/emv/cap/credentials/seed` returning added/total counts and credential identifiers.
+   - CLI command `emv cap seed` with equivalent reporting.
+3. Ensure seeding is idempotent and guard sensitive values with the same sanitisation rules applied elsewhere (no master/session keys in telemetry/logs).
+4. Operator UI integrates stored credential selection (dropdown + autofill) and indicates when presets populate the form.
+5. Tests cover MapDB persistence flows, seeding idempotency, preset rendering, and facade interactions with stored credentials.
+
+### R7 – Application replay orchestration & telemetry
+1. Introduce `EmvCapReplayApplicationService` that reuses the core derivation helpers to recompute OTP candidates across the configured preview window (backward/forward deltas) and validates operator-supplied OTPs for Identify, Respond, and Sign modes.
+2. Support both stored credentials (via `CredentialStore`) and inline requests, preserving optional transaction payloads, issuer application data, and ATC substitution semantics from evaluation.
+3. Accept preview-window overrides (backward/forward) matching evaluation defaults; inline requests default to `0/0` while stored credentials inherit the persisted offsets unless overridden.
+4. Return replay results containing status, reason code, matched delta (when successful), sanitized telemetry frame, and optional verbose trace payload. Trace content mirrors evaluation diagnostics plus supplied OTP, comparison overlays, and mismatch highlights when validation fails.
+5. Emit telemetry events `emv.cap.replay.identify`, `emv.cap.replay.respond`, and `emv.cap.replay.sign`, redacting master/session keys while including credential source, preview-window configuration, supplied OTP length, and match outcome.
+
+### R8 – REST EMV/CAP replay endpoint
+1. Add `POST /api/v1/emv/cap/replay` mirroring existing protocol replay schemas:
+   - `credentialId` (optional) selects a stored credential; when omitted, the request must include inline parameters: `iccMasterKey`, `atc`, `branchFactor`, `height`, `initializationVector`, `cdol1Payload`, `issuerBitmap`, optional `transactionData`, and optional `issuerApplicationData`.
+   - `mode` enumerates `IDENTIFY`, `RESPOND`, `SIGN` and drives optional inputs (`challenge`, `reference`, `amount`).
+   - `otp` (required) captures the operator-supplied digits for comparison.
+   - `driftBackward` / `driftForward` mirror the preview-window offsets surfaced in the Evaluate UI (default `0/0` inline; stored credentials inherit persisted offsets).
+   - `includeTrace` toggles verbose trace emission (default true) and suppresses sensitive fields when false.
+2. Response payload aligns with existing replay responses (`status`, `reasonCode`, `metadata`, `trace`); metadata includes credential source (`stored`/`inline`), credential identifier/reference, preview-window bounds, matched delta (when successful), sanitized issuer metadata, and telemetry identifier.
+3. Validation errors must surface through the problem-details contract with explicit field-level messages for invalid OTP length/value, missing credential inputs, or mode-specific omissions.
+4. Regenerate OpenAPI definitions and snapshots to cover the new endpoint, request schema, enums, examples, and error responses.
+
+### R9 – CLI EMV/CAP replay command
+1. Add `emv cap replay` supporting stored and inline credentials:
+   - Stored replay requires `--credential-id` and `--otp` while allowing preview window overrides (`--search-backward`, `--search-forward`).
+   - Inline replay accepts the same derivation flags as `emv cap evaluate` plus `--otp`, optional `--challenge`, `--reference`, `--amount`, and optional transaction/issuer payload overrides.
+2. Provide `--include-trace` (default true) and `--output-json` switches; JSON output mirrors the REST replay schema, and text output highlights status, reason code, matched delta, sanitized telemetry, and—when traces are enabled—the verbose diagnostic payload.
+3. Emit telemetry via adapters prefixed `cli-emv-cap-replay-*`, capturing credential source, preview-window configuration, supplied OTP length, and match outcome without disclosing sensitive buffers.
+4. Unit tests cover stored/inline success, OTP mismatch, invalid parameter combinations, preview-window overrides, includeTrace toggling, and JSON/text parity.
+
+### R10 – Operator UI EMV/CAP replay panel
+1. Mirror the Evaluate/Replay tab pattern from other protocols: add a Replay tab containing stored credential dropdown, inline parameter form, preview-window controls, OTP input, include-trace checkbox, and a `[ Replay CAP OTP ]` action button.
+2. Replay form must accept stored presets and allow inline overrides; selecting a preset pre-populates derivation fields while keeping them editable until cleared, matching the HOTP/TOTP behavior.
+3. Replay result card exposes match status badge, matched delta (when successful), and the shared OTP preview table; verbose trace (via `VerboseTraceConsole`) surfaces session keys, Generate AC inputs/result, masked overlays, issuer data, supplied OTP, comparison overlays, and mismatch diagnostics.
+4. Validation errors and include-trace interactions mirror the Evaluate experience; Selenium/JS coverage expands to stored/inline replay flows, mismatch outcomes, and trace suppression.
+
+## Reference Mock-ups (Operator UI Follow-up)
+
+These ASCII mock-ups capture the operator-console layout for the live EMV/CAP tab. They align with the existing console design language and inform the UI implementation and Selenium coverage.
+
+### Evaluate Form & Result Layout (Identify mode shown)
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ EMV/CAP evaluation                                                           │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ ┌───────────────────────────────┐   ┌──────────────────────────────────────┐ │
+│ │ Stored credential (optional) │   │ Evaluation result                    │ │
+│ │  Preset  [ identify-baseline▼]│   │  COUNTER   Δ    OTP                  │ │
+│ │                                │  │  180       0   42511495              │ │
+│ │ Session key derivation         │  │ Status                      [SUCCESS]│ │
+│ │  ICC Master Key (hex) [ … ]    │  │                                    │ │
+│ │  ATC (hex)          [00B4]     │  └────────────────────────────────────┘ │
+│ │  Branch factor (b)  [ 4 ]      │                                        │
+│ │  Height (H)         [ 8 ]      │                                        │
+│ │  Initialization vec [ … ]      │                                        │
+│ │                                │                                        │
+│ │ Card configuration             │                                        │
+│ │  CDOL1 payload       [ … ]     │                                        │
+│ │  Issuer bitmap       [ … ]     │                                        │
+│ │                                │                                        │
+│ │ Customer input                 │                                        │
+│ │  Mode: (• Identify) ( ) Respond │                                       │
+│ │        ( ) Sign                │                                        │
+│ │  Challenge   [     ]           │                                        │
+│ │  Reference   [     ]           │                                        │
+│ │  Amount      [     ]           │                                        │
+│ │                                │                                        │
+│ │ Preview window offsets         │                                        │
+│ │  Backward [ 1 ]  Forward [ 1 ] │                                        │
+│ │                                │                                        │
+│ │ Transaction (optional)         │                                        │
+│ │  Terminal data     [ … ]       │                                        │
+│ │  ICC template      [ … ]       │                                        │
+│ │  Issuer App Data   [ … ]       │                                        │
+│ │                                │                                        │
+│ │ [ Evaluate CAP OTP ]                                                     │
+│ │                                                                         │
+│ │ Enable verbose tracing for the next request [x]                         │
+│ │ Verbose traces expose raw secrets and intermediate buffers.             │
+│ │ Use only in trusted environments.                                       │
+│ └───────────────────────────────┘                                         │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Replay Form & Result Layout (Respond mode shown)
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ EMV/CAP replay                                                               │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ ┌───────────────────────────────┐   ┌──────────────────────────────────────┐ │
+│ │ Stored credential (optional) │   │ Replay result                        │ │
+│ │  Preset  [ respond-baseline▼]│   │  COUNTER   Δ    OTP                  │ │
+│ │                                │  │  180       0   42511495 (match)      │ │
+│ │ Session key derivation         │  │ Status                      [SUCCESS]│ │
+│ │  ICC Master Key (hex) [ … ]    │  │ Reason                 MATCH_FOUND   │ │
+│ │  ATC (hex)          [00B4]     │  └────────────────────────────────────┘ │
+│ │  Branch factor (b)  [ 4 ]      │                                        │
+│ │  Height (H)         [ 8 ]      │                                        │
+│ │  Initialization vec [ … ]      │                                        │
+│ │                                │                                        │
+│ │ Card configuration             │                                        │
+│ │  CDOL1 payload       [ … ]     │                                        │
+│ │  Issuer bitmap       [ … ]     │                                        │
+│ │                                │                                        │
+│ │ Customer input                 │                                        │
+│ │  Mode: ( ) Identify (•) Respond │                                       │
+│ │        ( ) Sign                │                                        │
+│ │  Challenge   [1234]            │                                        │
+│ │  Reference   [     ]           │                                        │
+│ │  Amount      [     ]           │                                        │
+│ │                                │                                        │
+│ │ Provided OTP [ 42511495 ]      │                                        │
+│ │ Preview window offsets         │                                        │
+│ │  Backward [ 1 ]  Forward [ 1 ] │                                        │
+│ │                                │                                        │
+│ │ Transaction (optional)         │                                        │
+│ │  Terminal data     [ … ]       │                                        │
+│ │  ICC template      [ … ]       │                                        │
+│ │  Issuer App Data   [ … ]       │                                        │
+│ │                                │                                        │
+│ │ [ Replay CAP OTP ]                                                       │
+│ │                                                                         │
+│ │ Enable verbose tracing for the next request [x]                         │
+│ │ Verbose traces expose raw secrets and intermediate buffers.             │
+│ │ Use only in trusted environments.                                       │
+│ └───────────────────────────────┘                                         │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Verbose Trace Panel
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ Verbose trace                                                                │
+│                                                                              │
+│  Session key:                  5EC8B98ABC8F9E7597647CBCB9A75402              │
+│  Generate AC input (terminal): 00000000000000000000000000008000…             │
+│  Generate AC input (ICC):      100000B4A50006040000                          │
+│  Generate AC result:           8000B47F32A79FDA94564306770A03A48000          │
+│  Bitmask:                      ....1F...........FFFFF..........8...           │
+│  Masked digits overlay:        ....14...........45643..........8...           │
+│  Issuer Application Data:      06770A03A48000                                │
+│  Mask length:                  8                                             │
+│  Masked digits:                8                                             │
+│  ATC:                          00B4                                          │
+│  Branch factor:                4                                             │
+│  Height:                       8                                             │
+│                                                                              │
+│  Copy trace button lives on the shared console toolbar (no per-panel controls).│
+└──────────────────────────────────────────────────────────────────────────────┘
+Legend: verbose trace remains optional; result metrics (mask length, ATC, etc.) are trace-only.
+```
+
+## Non-Goals
+- Modelling full APDU reader lifecycles, terminal risk management, or PIN capture workflows.
+- Introducing hardware integrations or vendor-specific token emulators.
+- Altering existing HOTP/TOTP/OCRA/FIDO2 telemetry schemas beyond adding new adapters.
+- Persisting sensitive trace data beyond the lifetime of a single request.
+
+## Acceptance Criteria
+1. Unit/property tests cover mode validation, session key derivation, cryptogram generation, bitmask digit extraction, replay comparisons (match + mismatch), and stored credential seeding.
+2. Application-layer tests confirm telemetry redaction and verbose trace contents for inline and stored credentials across evaluation and replay flows.
+3. REST integration tests exercise all modes for `POST /api/v1/emv/cap/evaluate` and `/replay`, stored credential usage, inline overrides, preview-window adjustments, includeTrace toggling, mismatch responses, and seeding endpoints; validation failures surface via problem-details payloads.
+4. CLI tests ensure `emv cap evaluate`, `emv cap replay`, and `emv cap seed` honour option validation, text/JSON parity, telemetry sanitisation, preview-window overrides, mismatch handling, and includeTrace toggling.
+5. Operator console tests (JS + Selenium) cover Evaluate and Replay tabs, preset loading, OTP/trace rendering, mismatch messaging, include-trace checkbox behaviour, and accessibility expectations.
+6. OpenAPI snapshot regenerated with evaluate, replay, and seeding endpoints; documentation aligns with sanitisation requirements and example payloads.
+7. Fixture files capture the transcript vectors, additional replay cases, and stored credential metadata plus guidance for extending coverage.
+
+## Test Strategy
+- **Core**: Deterministic tests using transcript vector(s), verifying session key, generate AC result, OTP, masked overlay output per mode, and stored credential serialisation.
+- **Application**: Mocked telemetry assertions ensuring sensitive fields remain redacted while verbose traces capture expected data (inline/stored) for both evaluate and replay flows, including mismatch diagnostics.
+- **REST**: MockMvc tests for evaluate and replay endpoints (happy path, mismatch, validation), seeding endpoints, stored credential listings, preview-window overrides, and includeTrace toggling; contract tests validate JSON schema and OpenAPI snapshots.
+- **CLI**: Picocli unit tests invoking `emv cap evaluate`, `emv cap replay`, and `emv cap seed`, covering text/JSON parity, telemetry IDs, failure messaging, preview-window overrides, and includeTrace toggles.
+- **Operator UI**: JS unit tests and Selenium coverage validating Evaluate/Replay interactions, preset loading, OTP entry, trace checkbox behaviour, mismatch messaging, DOM sanitisation, and error display.
+- **Security**: Negative tests covering invalid hex length/parity, lower-case input normalisation, branch factor/height bounds, and sanitisation of persisted/seeding data.
+- **Documentation**: Update `docs/2-how-to` catalogue with REST + CLI guidance, operator console instructions, and stored credential reference material.
+
+## Appendix – Additional Vectors Needed
+1. Identify mode baseline (provided transcript) – confirm OTP `42511495`.
+2. Respond mode with non-empty challenge.
+3. Sign mode with challenge, reference, and amount values.
+4. Each mode repeated with and without transaction data to confirm optional flow.
+5. Alternative branch factor/height pairs (if available) to exercise derivation matrix.
+
+For each vector the user will supply:
+- ICC master key (hex, 16 or 32 bytes).
+- ATC (hex, 2 bytes).
+- Branch factor `b` (integer).
+- Height `H` (integer).
+- IV (hex, 16 bytes).
+- CDOL1 (hex).
+- Issuer Proprietary Bitmap (hex).
+- Customer inputs (challenge/reference/amount) per mode.
+- Transaction data (terminal + ICC payload with ATC placeholders) when applicable.
+- Issuer Application Data (hex).
+- Expected session key, Generate AC result, bitmask overlay, and final OTP.

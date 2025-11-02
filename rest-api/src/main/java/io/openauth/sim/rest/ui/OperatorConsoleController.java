@@ -79,6 +79,10 @@ final class OperatorConsoleController {
         model.addAttribute("totpCredentialSampleEndpoint", "/api/v1/totp/credentials");
         model.addAttribute("totpInlinePresetsJson", serializeTotpInlinePresets());
         model.addAttribute("totpReplayEndpoint", "/api/v1/totp/replay");
+        model.addAttribute("emvEvaluateEndpoint", "/api/v1/emv/cap/evaluate");
+        model.addAttribute("emvCredentialsEndpoint", "/api/v1/emv/cap/credentials");
+        model.addAttribute("emvSeedEndpoint", "/api/v1/emv/cap/credentials/seed");
+        model.addAttribute("emvSeedDefinitionsJson", serializeEmvSeedDefinitions());
         model.addAttribute("fido2StoredEvaluateEndpoint", "/api/v1/webauthn/evaluate");
         model.addAttribute("fido2InlineEvaluateEndpoint", "/api/v1/webauthn/evaluate/inline");
         model.addAttribute("fido2ReplayEndpoint", "/api/v1/webauthn/replay");
@@ -136,6 +140,14 @@ final class OperatorConsoleController {
             return objectMapper.writeValueAsString(TotpOperatorSampleData.inlinePresets());
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("Unable to render TOTP inline presets", ex);
+        }
+    }
+
+    private String serializeEmvSeedDefinitions() {
+        try {
+            return objectMapper.writeValueAsString(EmvCapOperatorSampleData.seedDefinitions());
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Unable to render EMV/CAP seed definitions", ex);
         }
     }
 

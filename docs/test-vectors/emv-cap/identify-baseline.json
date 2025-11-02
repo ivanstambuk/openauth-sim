@@ -1,0 +1,35 @@
+{
+  "description": "Baseline CAP Identify flow derived from emvlab.org (2025-11-01)",
+  "mode": "IDENTIFY",
+  "inputs": {
+    "masterKey": "0123456789ABCDEF0123456789ABCDEF",
+    "atc": "00B4",
+    "branchFactor": 4,
+    "height": 8,
+    "iv": "00000000000000000000000000000000",
+    "cdol1": "9F02069F03069F1A0295055F2A029A039C019F3704",
+    "issuerProprietaryBitmap": "00001F00000000000FFFFF00000000008000",
+    "challenge": "",
+    "reference": "",
+    "amount": "",
+    "iccDataTemplate": "1000xxxxA50006040000",
+    "issuerApplicationData": "06770A03A48000"
+  },
+  "resolved": {
+    "iccData": "100000B4A50006040000"
+  },
+  "outputs": {
+    "sessionKey": "5EC8B98ABC8F9E7597647CBCB9A75402",
+    "generateAcInput": {
+      "terminal": "0000000000000000000000000000800000000000000000000000000000",
+      "icc": "100000B4A50006040000"
+    },
+    "generateAcResult": "8000B47F32A79FDA94564306770A03A48000",
+    "bitmask": "....1F...........FFFFF..........8...",
+    "maskedDigitsOverlay": "....14...........45643..........8...",
+    "otp": {
+      "decimal": "42511495",
+      "hex": "288AC87"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "description": "RESPOND flow with 4-digit challenge captured via external emulator (2025-11-02)",
+  "mode": "RESPOND",
+  "inputs": {
+    "masterKey": "0123456789ABCDEF0123456789ABCDEF",
+    "atc": "00D1",
+    "branchFactor": 4,
+    "height": 8,
+    "iv": "00000000000000000000000000000000",
+    "cdol1": "9F02069F03069F1A0295055F2A029A039C019F3704",
+    "issuerProprietaryBitmap": "00001F00000000000FFFFF00000000008000",
+    "challenge": "4815",
+    "reference": "",
+    "amount": "",
+    "iccDataTemplate": "1000xxxxA50006040000",
+    "issuerApplicationData": "06770A03A48000"
+  },
+  "resolved": {
+    "iccData": "100000D1A50006040000"
+  },
+  "outputs": {
+    "sessionKey": "348549A74361237CC77575B50EC7C8E3",
+    "generateAcInput": {
+      "terminal": "0000000000000000000000000000800000000000000000000000004815",
+      "icc": "100000D1A50006040000"
+    },
+    "generateAcResult": "8000D1D23D64617F0644FA06770A03A48000",
+    "bitmask": "....1F...........FFFFF..........8...",
+    "maskedDigitsOverlay": "....11...........644FA..........8...",
+    "otp": {
+      "decimal": "36473333",
+      "hex": "22C89F5"
+    }
+  }
+}

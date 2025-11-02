@@ -25,7 +25,7 @@ The REST API exposes stored and inline WebAuthn assertion verification plus repl
 ### Start the REST Service
 From the repository root:
 ```bash
-./gradlew :rest-api:bootRun
+./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi
 ```
 Endpoints are now available at `http://localhost:8080`. The OpenAPI contract lives at:
 - JSON: `http://localhost:8080/v3/api-docs`

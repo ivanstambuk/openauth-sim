@@ -1,7 +1,7 @@
 # Feature 040 – EUDIW OpenID4VP Simulator
 
 _Status: Draft_  
-_Last updated: 2025-11-01_
+_Last updated: 2025-11-02_
 
 ## Overview
 Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiable Presentations (OpenID4VP 1.0) flows that align with the High Assurance Interoperability Profile (HAIP). The simulator plays both verifier and wallet roles so REST, CLI, and operator UI facades can demonstrate complete presentation exchanges without external wallets. The scope includes SD-JWT VC (`application/dc+sd-jwt`) and ISO/IEC 18013-5 mdoc (`mso_mdoc`) credential formats, HAIP-mandated encryption for `direct_post.jwt`, Trusted Authorities filtering, and PID fixtures (`eu.europa.ec.eudi.pid.1`). Synthetic fixtures ship first with an ingestion seam for official EU conformance vectors once released.
@@ -137,6 +137,158 @@ Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiabl
 - Include duration metrics, encryption flags, credential counts, and Trusted Authority decision results while masking nonces (show trailing six characters only).
 - Provide verbose trace payloads (disabled by default for REST/CLI, opt-in via query flag) showing sanitized request/response envelopes.
 
+## REST Surface Contract
+
+All endpoints live under `/api/v1/eudiw/openid4vp` and accept/return UTF-8 JSON. A `verbose=true` query parameter (or request field where noted) enables verbose traces; omit or set `false` to exclude the `trace` object. Unless explicitly stated, hashed values use lowercase hex SHA-256 and all identifiers are opaque simulator-generated strings.
+
+### `POST /api/v1/eudiw/openid4vp/requests`
+
+Create a HAIP-aligned authorization request and optional QR payload.
+
+Request:
+```json
+{
+  "profile": "HAIP",
+  "responseMode": "DIRECT_POST_JWT",
+  "dcqlPreset": "pid-haip-baseline",
+  "dcqlOverride": null,
+  "signedRequest": true,
+  "includeQrAscii": true
+}
+```
+
+Response (`trace` only present when `?verbose=true`):
+```json
+{
+  "requestId": "7K3D-XF29",
+  "profile": "HAIP",
+  "requestUri": "https://sim.example/oid4vp/request/7K3D-XF29",
+  "authorizationRequest": {
+    "clientId": "x509_hash:3b07…",
+    "nonce": "******F29",
+    "state": "******RZ1",
+    "responseMode": "direct_post.jwt",
+    "presentationDefinition": { "...": "sanitised" }
+  },
+  "qr": {
+    "ascii": "████ ▓▓▓ …",
+    "uri": "openid-vp://?request_uri=https://…/7K3D-XF29"
+  },
+  "trace": {
+    "requestId": "7K3D-XF29",
+    "profile": "HAIP",
+    "dcqlHash": "08c2…",
+    "trustedAuthorities": [ "aki:s9tIpP…" ],
+    "nonceFull": "e8618e14723cf29"
+  },
+  "telemetry": {
+    "event": "oid4vp.request.created",
+    "durationMs": 12,
+    "encryptionEnforced": true
+  }
+}
+```
+
+### `POST /api/v1/eudiw/openid4vp/wallet/simulate`
+
+Generate a deterministic wallet response for a given request. Inline credential payloads override fixture presets when supplied.
+
+Request:
+```json
+{
+  "requestId": "7K3D-XF29",
+  "walletPreset": "pid-haip-baseline",
+  "inlineSdJwt": {
+    "compactSdJwt": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9…",
+    "disclosures": [
+      "WyJjbGFpbXMiLCJnaXZlbl9uYW1lIiwiQWxpY2lhIl0=",
+      "WyJjbGFpbXMiLCJmYW1pbHlfbmFtZSIsIlJpdmVyYSJd"
+    ],
+    "kbJwt": "eyJhbGciOiJFZERTQSJ9…"
+  },
+  "inlineMdoc": null,
+  "trustedAuthorityPolicy": "aki:s9tIpP…",
+  "profile": "HAIP"
+}
+```
+
+Response:
+```json
+{
+  "requestId": "7K3D-XF29",
+  "status": "SUCCESS",
+  "responseMode": "direct_post.jwt",
+  "presentations": [
+    {
+      "credentialId": "pid-eu.europa.ec.eudi.pid.1",
+      "format": "dc+sd-jwt",
+      "holderBinding": true,
+      "trustedAuthorityMatch": "aki:s9tIpP…",
+      "vpToken": {
+        "vp_token": "eyJ2…",
+        "presentation_submission": { "...": "…" }
+      }
+    }
+  ],
+  "trace": {
+    "walletPreset": "pid-haip-baseline",
+    "vpTokenHash": "6f5a…",
+    "kbJwtHash": "f2c1…",
+    "nonceFull": "e8618e14723cf29",
+    "latencyMs": 142
+  },
+  "telemetry": {
+    "event": "oid4vp.wallet.responded",
+    "durationMs": 142,
+    "presentations": 1
+  }
+}
+```
+
+### `POST /api/v1/eudiw/openid4vp/validate`
+
+Validate an externally supplied VP Token (inline JSON or stored preset). Response mirrors the wallet simulate schema with `status` signalling `SUCCESS` or `FAILED`, plus an `errors` array when validation fails. Trace includes per-credential diagnostics (hashes, Claims Path Pointer matches, Trusted Authority verdict, encryption verification flags).
+
+### `POST /api/v1/eudiw/openid4vp/presentations/seed`
+
+Seed stored presentations from fixtures or imported conformance bundles. Request specifies the source (`"synthetic"` or `"conformance"`), optional fixture identifiers, and provenance metadata. Response includes counts of created/updated presentations and omits trace data.
+
+All endpoints surface problem-details errors with `type`, `title`, `status`, and `detail`. Validation errors include a `violations[]` array (`field`, `message`) consistent with existing simulator conventions.
+
+## CLI Contract
+
+The Picocli surface adopts three top-level commands under `eudiw` and mirrors REST payloads. All commands honour `--output-json` (pretty-print REST-equivalent payloads) and `--verbose`/`--no-verbose` flags (default `--no-verbose`).
+
+- `eudiw request create`  
+  Required options: `--profile`, `--response-mode`, `--dcql-preset` _or_ `--dcql-json`. Optional toggles: `--unsigned` (disable HAIP JAR), `--qr` (render ASCII QR), `--seed <path>` (override deterministic seed). Returns request metadata and, when verbose, a trace section containing masked nonce/state and DCQL hash.
+
+- `eudiw wallet simulate`  
+  Required: `--request-id`, `--profile`. Either `--wallet-preset <id>` or inline credential inputs via `--sdjwt <path>` / `--disclosure <path>` / `--kb-jwt <path>` / `--mdoc <path>`. Optional `--trusted-authority <policy-id>`. Text output summarises credential IDs, response mode, Trusted Authority matches; verbose output appends trace diagnostics (hashes, latency).
+
+- `eudiw validate`  
+  Accepts `--preset <id>` or `--vp-token <path>` (inline JSON), optional `--response-mode-override` and `--trusted-authority`. Reports success/failure, problem-details when invalid, and verbose traces with per-credential diagnostics. Exit codes: `0` success, `2` validation failure, `3` request/setup error.
+
+Command help must reference the REST endpoints for cross-facade parity and highlight that verbose tracing exposes masked but still sensitive hashes.
+
+## Result & Trace Presentation Matrix
+
+| Context | Result payload (always present) | Trace payload (`verbose=true` / `--verbose`) | Notes |
+|---------|---------------------------------|----------------------------------------------|-------|
+| REST/CLI responses | `status`, `profile`, `responseMode`, `presentations[].credentialId`, `presentations[].format`, `presentations[].trustedAuthorityMatch`, inline VP Token JSON (per F-040-26), `telemetry` | `requestId`, masked `nonce`/`state`, `dcqlHash`, `vpTokenHash`, `kbJwtHash`, `trustedAuthorities[]`, `latencyMs`, encryption verdicts (`direct_post.jwt`), per-credential diagnostics (`claimsSatisfied`, `akiMatch`, `deviceResponseHash`) | `trace` omitted entirely when verbose disabled. Multi-presentation traces include `presentations[n].id` keys matching result order. |
+| Operator UI – result card | Status badge, response mode, credential summary rows (format, Trusted Authority labels), VP Token JSON viewer | Shared console trace dock entries keyed by presentation ID; includes same hashes/diagnostics as REST plus QR render metadata and baseline/HAIP flag state | The right-hand panel never repeats hash fields; users switch to the global trace dock for details. |
+| Operator UI – baseline banner | “Baseline mode – HAIP enforcement disabled” banner (only in result card) | Trace records `haipEnforced=false` to support telemetry correlation | Banner shown whenever profile ≠ `HAIP`. |
+
+When verbose tracing is enabled, facades must log a warning mirroring existing HOTP/TOTP/OCRA copy: “Verbose traces expose hashed identifiers and diagnostic metadata. Use only in trusted environments.” Hashes remain, but master keys and raw disclosures never appear.
+
+## Test Strategy
+
+- **Core (`core.eudi.openid4vp`)** – Property-based and fixture-driven tests covering DCQL evaluation, Trusted Authority policies (positive/negative), SD-JWT disclosure hashing/KJ-JWT binding, DeviceResponse COSE signature validation, encryption helpers (round-trip JWE), and deterministic seed replay.
+- **Application (`application.eudi.openid4vp`)** – Unit tests asserting telemetry frames (events, sanitized fields), trace construction (masked nonce/state, hashed payloads), HAIP enforcement toggles (`invalid_request` on encryption failure), multi-presentation handling, and baseline profile banner semantics.
+- **REST** – MockMvc suites for each endpoint verifying status codes, JSON schema (required fields, enums), verbose toggling, problem-details responses, and parity with the specification examples. Snapshot tests capture OpenAPI changes introduced by the new contract.
+- **CLI** – Picocli command tests covering option validation, preset vs inline credential flows, `--verbose` toggling, JSON parity with REST responses, exit codes, and help output.
+- **UI** – JS unit and Selenium tests validating two-column layout, baseline banner visibility, DCQL preview read-only behaviour, sample loader, global trace dock integration (including copy/download controls), and multi-presentation collapsible sections with matching trace keys.
+- **Fixtures & ingestion** – Tests ensuring synthetic vs conformance fixture toggles load the expected records, provenance metadata is captured, and seeding endpoints/commands remain idempotent.
+- **Performance/metrics** – Lightweight regression capturing latency for encrypted vs non-encrypted flows (≤200 ms target) with assertions on telemetry latency fields.
 ## Operator UI Mock-ups
 
 The console mirrors the EMV/CAP layout: request inputs at the top, result and trace panels rendered side by side (stacked on narrow screens). Square brackets indicate editable inputs; uppercase labels are static. Verbose tracing is controlled globally via the console header toggle and shared trace dock, so the individual panels do not render a local checkbox. When the profile switch selects **Baseline**, a banner appears above the panel (“Baseline mode – HAIP enforcement disabled”) to warn operators about the relaxed profile.

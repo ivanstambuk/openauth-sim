@@ -1,0 +1,285 @@
+package io.openauth.sim.rest.ui;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import io.openauth.sim.application.emv.cap.EmvCapSeedApplicationService;
+import io.openauth.sim.application.emv.cap.EmvCapSeedSamples;
+import io.openauth.sim.application.emv.cap.EmvCapSeedSamples.SeedSample;
+import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
+import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
+import io.openauth.sim.core.store.CredentialStore;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriverException;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.htmlunit.HtmlUnitDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+
+/**
+ * Failing Selenium scaffold for the EMV/CAP operator console tab. The test captures the expected UX
+ * so the panel implementation can drive the UI increment.
+ */
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+final class EmvCapOperatorUiSeleniumTest {
+
+    private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(12);
+    private static final String STORED_CREDENTIAL_ID = "emv-cap-identify-baseline";
+    private static final String STORED_PRESET_LABEL = "CAP Identify baseline";
+    private static final EmvCapVector BASELINE_VECTOR = EmvCapVectorFixtures.load("identify-baseline");
+
+    @TempDir
+    static Path tempDir;
+
+    private static Path databasePath;
+
+    @DynamicPropertySource
+    static void configure(DynamicPropertyRegistry registry) {
+        databasePath = tempDir.resolve("credentials.db");
+        registry.add(
+                "openauth.sim.persistence.database-path",
+                () -> databasePath.toAbsolutePath().toString());
+        registry.add("openauth.sim.persistence.enable-store", () -> "true");
+    }
+
+    @Autowired
+    private CredentialStore credentialStore;
+
+    @LocalServerPort
+    private int port;
+
+    private HtmlUnitDriver driver;
+
+    @BeforeEach
+    void setUp() {
+        driver = new HtmlUnitDriver(true);
+        driver.setJavascriptEnabled(true);
+        driver.getWebClient().getOptions().setFetchPolyfillEnabled(true);
+        driver.getWebClient().getOptions().setThrowExceptionOnScriptError(true);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(2));
+        seedCredentials();
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (driver == null) {
+            return;
+        }
+        try {
+            driver.quit();
+        } catch (WebDriverException ignored) {
+            // driver already disposed
+        }
+    }
+
+    @Test
+    @DisplayName("Stored EMV/CAP preset auto-fills parameters and returns OTP with verbose trace")
+    void storedPresetEvaluatesIdentifyMode() {
+        navigateToEmvConsole();
+
+        Select credentialSelect = waitForStoredCredentialSelect();
+        waitForCredential(credentialSelect, STORED_CREDENTIAL_ID, STORED_PRESET_LABEL);
+
+        WebElement globalVerboseCheckbox = waitForClickable(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
+        assertThat(globalVerboseCheckbox.isSelected())
+                .as("Global verbose trace checkbox should default to unchecked")
+                .isFalse();
+        globalVerboseCheckbox.click();
+        assertThat(globalVerboseCheckbox.isSelected())
+                .as("Global verbose trace checkbox should be enabled for verbose requests")
+                .isTrue();
+        waitForTracePanelVisibility(false);
+
+        WebElement includeTraceCheckbox =
+                waitForVisible(By.cssSelector("[data-testid='emv-include-trace'] input[type='checkbox']"));
+        assertThat(includeTraceCheckbox.isSelected())
+                .as("Include verbose trace checkbox should default to checked")
+                .isTrue();
+
+        waitForClickable(By.cssSelector("button[data-testid='emv-evaluate-submit']"))
+                .click();
+        driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
+
+        waitForStatus("Success");
+        WebElement otpNode =
+                driver.findElement(By.cssSelector("[data-testid='emv-result-card'] [data-testid='emv-otp']"));
+        assertThat(otpNode.getText().trim()).isEqualTo(BASELINE_VECTOR.outputs().otpDecimal());
+
+        WebElement telemetryBadge =
+                driver.findElement(By.cssSelector("[data-testid='emv-result-card'] [data-testid='emv-status']"));
+        assertThat(telemetryBadge.getText()).isEqualTo("Success");
+
+        WebElement tracePanel = waitForTracePanelVisibility(true);
+        assertThat(tracePanel.getAttribute("hidden"))
+                .as("Verbose trace panel should not be hidden after verbose evaluation")
+                .isNull();
+        WebElement traceContent = waitForVisible(By.cssSelector("[data-testid='verbose-trace-content']"));
+        String traceText = traceContent.getText();
+        int maskLength = expectedMaskLength(BASELINE_VECTOR);
+        int maskedDigitsCount =
+                expectedMaskedDigitsCount(BASELINE_VECTOR.outputs().maskedDigitsOverlay());
+        String sessionKey = BASELINE_VECTOR.outputs().sessionKeyHex();
+        String generateAcResult = BASELINE_VECTOR.outputs().generateAcResultHex();
+        String terminalHex = BASELINE_VECTOR.outputs().generateAcInputTerminalHex();
+        String iccTemplateHex = BASELINE_VECTOR.input().iccDataTemplateHex();
+        String iccResolvedHex = BASELINE_VECTOR.outputs().generateAcInputIccHex();
+        String bitmaskOverlay = BASELINE_VECTOR.outputs().bitmaskOverlay();
+        String maskedDigitsOverlay = BASELINE_VECTOR.outputs().maskedDigitsOverlay();
+        String issuerApplicationDataHex = BASELINE_VECTOR.input().issuerApplicationDataHex();
+        String atcHex = BASELINE_VECTOR.input().atcHex();
+        int branchFactor = BASELINE_VECTOR.input().branchFactor();
+        int height = BASELINE_VECTOR.input().height();
+        assertThat(traceText)
+                .as("Trace content should include EMV/CAP metadata")
+                .contains("operation = emv.cap.evaluate")
+                .contains("metadata.maskLength = " + maskLength)
+                .contains("metadata.maskedDigitsCount = " + maskedDigitsCount)
+                .contains("metadata.atc = " + atcHex)
+                .contains("metadata.branchFactor = " + branchFactor)
+                .contains("metadata.height = " + height);
+        assertThat(traceText)
+                .as("Trace steps should surface session key and Generate AC details")
+                .contains("sessionKey = " + sessionKey)
+                .contains("generateAcResult = " + generateAcResult)
+                .contains("terminal = " + terminalHex)
+                .contains("iccTemplate = " + iccTemplateHex)
+                .contains("iccResolved = " + iccResolvedHex)
+                .contains("bitmask = " + bitmaskOverlay)
+                .contains("maskedDigitsOverlay = " + maskedDigitsOverlay)
+                .contains("issuerApplicationData = " + issuerApplicationDataHex);
+        assertThat(driver.findElements(By.cssSelector("[data-testid='verbose-trace-copy']")))
+                .as("Shared verbose trace controls should expose copy button")
+                .isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("Disabling verbose trace hides the panel and omits trace content")
+    void includeTraceToggleOmitTrace() {
+        navigateToEmvConsole();
+
+        Select credentialSelect = waitForStoredCredentialSelect();
+        waitForCredential(credentialSelect, STORED_CREDENTIAL_ID, STORED_PRESET_LABEL);
+
+        WebElement globalVerboseCheckbox = waitForClickable(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
+        if (!globalVerboseCheckbox.isSelected()) {
+            globalVerboseCheckbox.click();
+        }
+
+        waitForClickable(By.cssSelector("[data-testid='emv-include-trace'] input[type='checkbox']"))
+                .click();
+
+        waitForClickable(By.cssSelector("button[data-testid='emv-evaluate-submit']"))
+                .click();
+        driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
+
+        waitForStatus("Success");
+        WebElement resultCard =
+                driver.findElement(By.cssSelector("[data-testid='emv-result-card'] [data-testid='emv-otp']"));
+        assertThat(resultCard.getText().trim())
+                .isEqualTo(BASELINE_VECTOR.outputs().otpDecimal());
+
+        WebElement tracePanel = waitForTracePanelVisibility(false);
+        assertThat(tracePanel.getAttribute("hidden"))
+                .as("Verbose trace panel should remain hidden when includeTrace is unchecked")
+                .isNotNull();
+    }
+
+    private Select waitForStoredCredentialSelect() {
+        WebElement element = new WebDriverWait(driver, WAIT_TIMEOUT)
+                .until(ExpectedConditions.presenceOfElementLocated(By.id("emvStoredCredentialId")));
+        return new Select(element);
+    }
+
+    private void navigateToEmvConsole() {
+        driver.get("http://localhost:" + port + "/ui/console?protocol=emv");
+        new WebDriverWait(driver, WAIT_TIMEOUT)
+                .until(ExpectedConditions.presenceOfElementLocated(By.cssSelector("[data-protocol-panel='emv']")));
+    }
+
+    private void seedCredentials() {
+        credentialStore.findAll().stream()
+                .filter(credential -> credential.name().startsWith("emv-cap-"))
+                .map(credential -> credential.name())
+                .forEach(credentialStore::delete);
+        EmvCapSeedApplicationService seedService = new EmvCapSeedApplicationService();
+        List<SeedSample> samples = EmvCapSeedSamples.samples();
+        seedService.seed(samples.stream().map(SeedSample::toSeedCommand).toList(), credentialStore);
+    }
+
+    private void waitForCredential(Select select, String id, String label) {
+        new WebDriverWait(driver, WAIT_TIMEOUT)
+                .until(d -> select.getOptions().stream().anyMatch(option -> id.equals(option.getAttribute("value"))));
+        assertThat(select.getOptions().stream()
+                        .anyMatch(option -> label.equals(option.getText().trim())))
+                .as("Stored credential dropdown should expose friendly preset label")
+                .isTrue();
+        select.selectByValue(id);
+        waitForNonEmptyValue(By.id("emvMasterKey"), "Master key should auto-populate from stored preset");
+    }
+
+    private WebElement waitForVisible(By locator) {
+        return new WebDriverWait(driver, WAIT_TIMEOUT).until(ExpectedConditions.visibilityOfElementLocated(locator));
+    }
+
+    private WebElement waitForClickable(By locator) {
+        return new WebDriverWait(driver, WAIT_TIMEOUT).until(ExpectedConditions.elementToBeClickable(locator));
+    }
+
+    private void waitForNonEmptyValue(By locator, String message) {
+        new WebDriverWait(driver, WAIT_TIMEOUT).until(driver -> {
+            WebElement element = driver.findElement(locator);
+            return element != null && !element.getAttribute("value").trim().isEmpty();
+        });
+        WebElement element = driver.findElement(locator);
+        assertThat(element.getAttribute("value")).as(message).isNotBlank();
+    }
+
+    private void waitForStatus(String expected) {
+        new WebDriverWait(driver, WAIT_TIMEOUT).until(webDriver -> {
+            WebElement badge =
+                    webDriver.findElement(By.cssSelector("[data-testid='emv-result-card'] [data-testid='emv-status']"));
+            return badge != null && expected.equals(badge.getText().trim());
+        });
+    }
+
+    private static int expectedMaskLength(EmvCapVector vector) {
+        return expectedMaskedDigitsCount(vector.outputs().maskedDigitsOverlay());
+    }
+
+    private static int expectedMaskedDigitsCount(String overlay) {
+        if (overlay == null) {
+            return 0;
+        }
+        int count = 0;
+        for (int index = 0; index < overlay.length(); index++) {
+            if (overlay.charAt(index) != '.') {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private WebElement waitForTracePanelVisibility(boolean visible) {
+        return new WebDriverWait(driver, WAIT_TIMEOUT).until(webDriver -> {
+            WebElement panel = webDriver.findElement(By.cssSelector("[data-testid='verbose-trace-panel']"));
+            String state = panel.getAttribute("data-trace-visible");
+            if (visible) {
+                return "true".equals(state) ? panel : null;
+            }
+            return !"true".equals(state) ? panel : null;
+        });
+    }
+}

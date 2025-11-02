@@ -153,6 +153,7 @@
 
       <th:block th:replace="~{ui/totp/panel :: totpPanel(${activeProtocol}=='totp')}"></th:block>
       <th:block th:replace="~{ui/fido2/panel :: fido2Panel(${activeProtocol}=='fido2')}"></th:block>
+      <th:block th:replace="~{ui/emv/panel :: emvPanel(${activeProtocol}=='emv')}"></th:block>
 
       <section
           class="verbose-trace-controls"
@@ -197,20 +198,6 @@
           </summary>
           <pre class="verbose-trace-panel__content" data-testid="verbose-trace-content"></pre>
         </details>
-      </section>
-
-      <section
-          id="protocol-panel-emv"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="emv"
-          aria-labelledby="protocol-tab-emv"
-          th:attr="hidden=${activeProtocol}!='emv' ? 'hidden' : null, aria-hidden=${activeProtocol}!='emv' ? 'true' : null"
-        >
-        <h2>EMV / CAP</h2>
-        <p>
-          EMV/CAP operator workflows are planned. This panel will light up when credential flows and UI
-          scaffolding are available.
-        </p>
       </section>
 
       <section
@@ -721,6 +708,7 @@
     <script th:src="@{/ui/console/console.js}"></script>
     <script th:src="@{/ui/hotp/console.js}"></script>
     <script th:src="@{/ui/totp/console.js}"></script>
+    <script th:src="@{/ui/emv/console.js}"></script>
     <script th:src="@{/ui/fido2/console.js}"></script>
   </body>
 </html>

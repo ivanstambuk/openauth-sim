@@ -36,6 +36,25 @@ git config core.hooksPath githooks
 
 The default build disables Error Prone for now because plugin 3.1.0 and recent Error Prone drops raise `--should-stop` incompatibilities. Re-enable once a compatible plugin is published by passing `-PerrorproneEnabled=true` and addressing any diagnostics during the run.
 
+### Run the REST facade locally
+
+Use the shared init script at `tools/run-rest-api.init.gradle.kts` whenever you want to start the REST endpoints or operator console without IDE tooling. It registers two helper tasks:
+
+- `runRestApi` launches `io.openauth.sim.rest.RestApiApplication` with the assembled runtime classpath.
+- `printRestApiRuntimeClasspath` outputs the resolved classpath so you can invoke `java -cp …` manually if needed.
+
+Typical usage from the repository root:
+
+```bash
+./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi
+```
+
+Stop the service with `Ctrl+C`. To inspect the runtime classpath instead:
+
+```bash
+./gradlew --quiet --init-script tools/run-rest-api.init.gradle.kts printRestApiRuntimeClasspath
+```
+
 ### Conventions
 
 - All contributions happen in small, self-contained steps (&lt;30 minutes), each followed by `spotlessApply check` and a conventional commit.

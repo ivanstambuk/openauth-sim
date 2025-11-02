@@ -14,6 +14,15 @@ Document deterministic runbooks for common tasks. Published topics:
 10. [Embed the Protocol Info surface](embed-protocol-info-surface.md)
 11. [Use the FIDO2/WebAuthn operator UI](use-fido2-operator-ui.md)
 12. [Operate the FIDO2/WebAuthn REST API](use-fido2-rest-operations.md)
-13. [Use the FIDO2/WebAuthn CLI](use-fido2-cli-operations.md)
+13. [Operate the EMV/CAP REST API](use-emv-cap-rest-operations.md)
+14. [Use the EMV/CAP CLI](use-emv-cap-cli-operations.md)
+15. [Use the EMV/CAP operator UI](use-emv-cap-operator-ui.md)
+16. [Use the FIDO2/WebAuthn CLI](use-fido2-cli-operations.md)
+
+Most REST/UI guides assume the simulator is running via:
+
+```bash
+./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi
+```
 
 Each guide should follow the template in `docs/templates/how-to-template.md` (TBD).

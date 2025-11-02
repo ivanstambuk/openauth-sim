@@ -9,7 +9,7 @@ templates. It mirrors the REST contract so operators can swap between the UI, CL
 calls with consistent telemetry.
 
 ## Prerequisites
-- The `rest-api` Spring Boot application is running (launch the `RestApiApplication` class from your IDE or use `./gradlew :rest-api:run` if you have added the `application` plugin locally).
+- The `rest-api` Spring Boot application is running (launch the `RestApiApplication` class from your IDE or run `./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi` from the repo root).
 - Point both the REST app and CLI at the same credential database (default `data/credentials.db`). You can override this path via the `openauth.sim.persistence.database-path` property; rename legacy files like `data/ocra-credentials.db` or point the property directly at them before launching.
 - Your browser can reach the service host (default `http://localhost:8080`).
 - OCRA credentials already exist if you plan to use stored flows (evaluation presets or replay).

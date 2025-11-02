@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>EMV/CAP Operator Panel</title>
+  </head>
+  <body>
+    <section
+        th:fragment="emvPanel(visible)"
+        id="protocol-panel-emv"
+        class="protocol-panel"
+        data-protocol-panel="emv"
+        aria-labelledby="protocol-tab-emv"
+        th:attr="hidden=${visible == null || !visible} ? 'hidden' : null, aria-hidden=${visible == null || !visible} ? 'true' : null"
+      >
+      <section class="card-shell" data-testid="emv-card-shell">
+        <div class="card-shell__body section-columns">
+          <div class="stack-lg">
+            <h2 class="section-title">Derive EMV/CAP one-time passwords</h2>
+            <p class="section-lede">
+              Provide ICC parameters or load a stored credential preset to simulate Identify, Respond, or Sign flows.
+              Verbose traces reveal intermediate buffers when enabled.
+            </p>
+
+          <form
+              class="evaluation-form stack-lg"
+              data-testid="emv-form"
+              th:attr="data-evaluate-endpoint=${emvEvaluateEndpoint},data-credentials-endpoint=${emvCredentialsEndpoint},data-seed-endpoint=${emvSeedEndpoint}"
+            >
+            <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+            <script
+                type="application/json"
+                id="emv-seed-definitions"
+                th:utext="${emvSeedDefinitionsJson}"
+              ></script>
+
+            <div class="stack-md">
+              <div class="field-group">
+                <label for="emvStoredCredentialId">Stored credential preset</label>
+                <select
+                    id="emvStoredCredentialId"
+                    name="storedCredentialId"
+                    data-testid="emv-stored-credential-select"
+                  >
+                  <option value="">Select a preset credential</option>
+                </select>
+                <p class="hint">
+                  Selecting a preset loads canonical ICC master key, derivation parameters, and default customer inputs.
+                </p>
+              </div>
+
+              <div class="seed-actions" data-testid="emv-seed-actions">
+                <button type="button" class="button-secondary" data-testid="emv-seed-credentials">
+                  Seed canonical EMV/CAP credentials
+                </button>
+                <p class="hint" data-testid="emv-seed-status" aria-live="polite"></p>
+              </div>
+            </div>
+
+            <fieldset class="mode-toggle mode-toggle--compact" data-testid="emv-mode-toggle">
+              <legend>Mode</legend>
+              <div class="mode-option">
+                <input
+                    type="radio"
+                    id="emvModeIdentify"
+                    name="mode"
+                    value="IDENTIFY"
+                    checked="checked"
+                    data-testid="emv-mode-identify"
+                  />
+                <label for="emvModeIdentify">Identify</label>
+              </div>
+              <div class="mode-option">
+                <input
+                    type="radio"
+                    id="emvModeRespond"
+                    name="mode"
+                    value="RESPOND"
+                    data-testid="emv-mode-respond"
+                  />
+                <label for="emvModeRespond">Respond</label>
+              </div>
+              <div class="mode-option">
+                <input
+                    type="radio"
+                    id="emvModeSign"
+                    name="mode"
+                    value="SIGN"
+                    data-testid="emv-mode-sign"
+                  />
+                <label for="emvModeSign">Sign</label>
+              </div>
+            </fieldset>
+
+            <div class="field-grid emv-parameter-grid">
+              <div class="field-group">
+                <label for="emvMasterKey">ICC master key (hex)</label>
+                <textarea
+                    id="emvMasterKey"
+                    name="masterKey"
+                    data-testid="emv-master-key"
+                    rows="2"
+                    spellcheck="false"
+                    autocapitalize="none"
+                    autocomplete="off"
+                  ></textarea>
+              </div>
+              <div class="field-group">
+                <label for="emvAtc">Application Transaction Counter (hex)</label>
+                <input
+                    type="text"
+                    id="emvAtc"
+                    name="atc"
+                    data-testid="emv-atc"
+                    autocomplete="off"
+                  />
+              </div>
+              <div class="field-group">
+                <label for="emvBranchFactor">Branch factor (b)</label>
+                <input
+                    type="number"
+                    id="emvBranchFactor"
+                    name="branchFactor"
+                    min="1"
+                    data-testid="emv-branch-factor"
+                  />
+              </div>
+              <div class="field-group">
+                <label for="emvHeight">Height (H)</label>
+                <input
+                    type="number"
+                    id="emvHeight"
+                    name="height"
+                    min="1"
+                    data-testid="emv-height"
+                  />
+              </div>
+              <div class="field-group emv-field--full">
+                <label for="emvIv">Initialization vector (hex)</label>
+                <textarea
+                    id="emvIv"
+                    name="iv"
+                    rows="2"
+                    spellcheck="false"
+                    autocapitalize="none"
+                    autocomplete="off"
+                    data-testid="emv-iv"
+                  ></textarea>
+              </div>
+              <div class="field-group emv-field--full">
+                <label for="emvCdol1">CDOL1 payload (hex)</label>
+                <textarea
+                    id="emvCdol1"
+                    name="cdol1"
+                    rows="2"
+                    spellcheck="false"
+                    autocapitalize="none"
+                    autocomplete="off"
+                    data-testid="emv-cdol1"
+                  ></textarea>
+              </div>
+              <div class="field-group emv-field--full">
+                <label for="emvIpb">Issuer Proprietary Bitmap (hex)</label>
+                <textarea
+                    id="emvIpb"
+                    name="issuerProprietaryBitmap"
+                    rows="2"
+                    spellcheck="false"
+                    autocapitalize="none"
+                    autocomplete="off"
+                    data-testid="emv-ipb"
+                  ></textarea>
+              </div>
+              <div class="field-group emv-field--full">
+                <label for="emvIccTemplate">ICC payload template (xxxx = ATC)</label>
+                <textarea
+                    id="emvIccTemplate"
+                    name="iccDataTemplate"
+                    rows="2"
+                    spellcheck="false"
+                    autocapitalize="none"
+                    autocomplete="off"
+                    data-testid="emv-icc-template"
+                  ></textarea>
+              </div>
+              <div class="field-group emv-field--full">
+                <label for="emvIssuerApplicationData">Issuer Application Data (hex)</label>
+                <textarea
+                    id="emvIssuerApplicationData"
+                    name="issuerApplicationData"
+                    rows="2"
+                    spellcheck="false"
+                    autocapitalize="none"
+                    autocomplete="off"
+                    data-testid="emv-issuer-application-data"
+                  ></textarea>
+              </div>
+            </div>
+
+            <div class="field-grid emv-customer-grid" role="group" aria-labelledby="emvCustomerInputs">
+              <span id="emvCustomerInputs" class="field-legend">Customer inputs</span>
+              <div class="field-group">
+                <label for="emvChallenge">Challenge (digits)</label>
+                <input type="text" id="emvChallenge" name="challenge" data-testid="emv-challenge" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="emvReference">Reference (digits)</label>
+                <input type="text" id="emvReference" name="reference" data-testid="emv-reference" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="emvAmount">Amount (digits)</label>
+                <input type="text" id="emvAmount" name="amount" data-testid="emv-amount" autocomplete="off" />
+              </div>
+            </div>
+
+            <section class="stack-md emv-transaction-section" aria-labelledby="emvTransactionInputs">
+              <h3 id="emvTransactionInputs" class="section-subtitle">Transaction data (optional overrides)</h3>
+              <div class="field-grid emv-transaction-grid">
+                <div class="field-group emv-field--full">
+                  <label for="emvTerminalData">Terminal data (hex)</label>
+                  <textarea
+                      id="emvTerminalData"
+                      name="terminalData"
+                      rows="2"
+                      spellcheck="false"
+                      autocapitalize="none"
+                      autocomplete="off"
+                      data-testid="emv-terminal-data"
+                    ></textarea>
+                </div>
+                <div class="field-group emv-field--full">
+                  <label for="emvIccOverride">ICC payload override (hex)</label>
+                  <textarea
+                      id="emvIccOverride"
+                      name="iccData"
+                      rows="2"
+                      spellcheck="false"
+                      autocapitalize="none"
+                      autocomplete="off"
+                      data-testid="emv-icc-override"
+                    ></textarea>
+                </div>
+                <div class="field-group emv-field--full">
+                  <label for="emvIccResolved">Resolved ICC payload (reference)</label>
+                  <textarea
+                      id="emvIccResolved"
+                      name="iccResolved"
+                      rows="2"
+                      spellcheck="false"
+                      autocapitalize="none"
+                      autocomplete="off"
+                      data-testid="emv-icc-resolved"
+                  ></textarea>
+                  <p class="hint">
+                    The resolved ICC payload is retained for reference and isn’t submitted unless copied into the
+                    override field.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <div class="emv-action-bar">
+              <button type="submit" class="button-primary" data-testid="emv-evaluate-submit">
+                Evaluate CAP OTP
+              </button>
+              <label class="verbose-trace-toggle" data-testid="emv-include-trace">
+                <input type="checkbox" checked="checked" />
+                <span>Include verbose trace</span>
+              </label>
+            </div>
+          </form>
+        </div>
+
+        <div class="status-column stack-md">
+          <section
+              class="result-panel"
+              data-testid="emv-result-card"
+              aria-live="polite"
+              aria-labelledby="emv-result-heading"
+              hidden="hidden"
+            >
+            <div class="result-header">
+              <h3 id="emv-result-heading" class="result-card__title">CAP result</h3>
+              <span class="status-badge" data-testid="emv-status">—</span>
+            </div>
+            <div
+                class="result-preview"
+                data-result-preview
+                data-preview-accent="emv"
+                hidden="hidden"
+                aria-hidden="true"
+              >
+              <table class="result-preview__table" data-testid="emv-preview-table">
+                <caption class="visually-hidden">Preview of neighbouring CAP OTP values.</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" class="result-preview__heading result-preview__heading--counter">Counter</th>
+                    <th scope="col" class="result-preview__heading result-preview__heading--delta">
+                      <abbr title="Delta">Δ</abbr>
+                    </th>
+                    <th scope="col" class="result-preview__heading result-preview__heading--otp">OTP</th>
+                  </tr>
+                </thead>
+                <tbody data-result-preview-body data-testid="emv-preview-body"></tbody>
+              </table>
+            </div>
+            <div class="result-message" data-result-message hidden aria-hidden="true"></div>
+            <p class="hint result-message__hint" data-result-hint hidden aria-hidden="true"></p>
+          </section>
+
+        </div>
+      </div>
+      </section>
+    </section>
+  </body>
+</html>

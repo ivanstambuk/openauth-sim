@@ -6,7 +6,7 @@ _Last updated: 2025-11-01_
 The operator console embedded in the REST API now provides HOTP evaluation and replay tooling alongside the existing OCRA flows. This guide walks through evaluating stored credentials, running inline checks, replaying observed OTPs without mutating counters, and interpreting telemetry identifiers.
 
 ## Prerequisites
-- Run the REST API (`./gradlew :rest-api:bootRun`) so the operator console is reachable at `http://localhost:8080/ui/console`.
+- Run the REST API (`./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi`) so the operator console is reachable at `http://localhost:8080/ui/console`.
 - Ensure the simulator can access a MapDB credential store (defaults to `data/credentials.db`). Use the CLI to import HOTP credentials if none exist.
 - The operator console now exposes a **Seed sample credentials** button in stored mode; use it to add the canonical SHA-1/6 and SHA-256/8 demo records before running drills. The CLI and REST endpoints remain available for bulk imports or cleanup.
 

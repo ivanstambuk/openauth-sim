@@ -1,6 +1,6 @@
 # Feature 038 Tasks – Evaluation Result Preview Table
 
-_Status: In progress_  
+_Status: Complete_  
 _Last updated: 2025-11-01_
 
 - [x] T3801 – REST evaluation previews: extend HOTP/TOTP/OCRA requests/responses with `window.backward`/`window.forward`, remove evaluation drift fields, add ordered `previews` array, update integration tests, regenerate OpenAPI snapshots. _(Completed 2025-11-02 – REST DTOs updated, OpenAPI snapshot regenerated, placeholder preview rows emitted pending application wiring)_  

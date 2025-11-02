@@ -1,0 +1,35 @@
+{
+  "description": "IDENTIFY flow with branchFactor 6 and height 10 captured via external emulator (2025-11-02)",
+  "mode": "IDENTIFY",
+  "inputs": {
+    "masterKey": "0123456789ABCDEF0123456789ABCDEF",
+    "atc": "00C2",
+    "branchFactor": 6,
+    "height": 10,
+    "iv": "00000000000000000000000000000000",
+    "cdol1": "9F02069F03069F1A0295055F2A029A039C019F3704",
+    "issuerProprietaryBitmap": "00001F00000000000FFFFF00000000008000",
+    "challenge": "",
+    "reference": "",
+    "amount": "",
+    "iccDataTemplate": "1000xxxxA50006040000",
+    "issuerApplicationData": "06770A03A48000"
+  },
+  "resolved": {
+    "iccData": "100000C2A50006040000"
+  },
+  "outputs": {
+    "sessionKey": "E0E9831325383B2C7C942C5ED5988375",
+    "generateAcInput": {
+      "terminal": "0000000000000000000000000000800000000000000000000000000000",
+      "icc": "100000C2A50006040000"
+    },
+    "generateAcResult": "8000C20F1E73DB3FE44BB106770A03A48000",
+    "bitmask": "....1F...........FFFFF..........8...",
+    "maskedDigitsOverlay": "....02...........44BB1..........8...",
+    "otp": {
+      "decimal": "4757347",
+      "hex": "489763"
+    }
+  }
+}

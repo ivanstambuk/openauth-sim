@@ -1,0 +1,35 @@
+{
+  "description": "CAP Respond flow with challenge from emvlab.org (2025-11-01)",
+  "mode": "RESPOND",
+  "inputs": {
+    "masterKey": "0123456789ABCDEF0123456789ABCDEF",
+    "atc": "00B5",
+    "branchFactor": 4,
+    "height": 8,
+    "iv": "00000000000000000000000000000000",
+    "cdol1": "9F02069F03069F1A0295055F2A029A039C019F3704",
+    "issuerProprietaryBitmap": "00001F00000000000FFFFF00000000008000",
+    "challenge": "1122334455",
+    "reference": "",
+    "amount": "",
+    "iccDataTemplate": "1000xxxxA50006040000",
+    "issuerApplicationData": "06770A03A48000"
+  },
+  "resolved": {
+    "iccData": "100000B5A50006040000"
+  },
+  "outputs": {
+    "sessionKey": "40386B4334EA43313D8A4C262F6885AB",
+    "generateAcInput": {
+      "terminal": "0000000000000000000000000000800000000000000000000011223344",
+      "icc": "100000B5A50006040000"
+    },
+    "generateAcResult": "8000B5B1FA3935AA491B7506770A03A48000",
+    "bitmask": "....1F...........FFFFF..........8...",
+    "maskedDigitsOverlay": "....15...........91B75..........8...",
+    "otp": {
+      "decimal": "45233899",
+      "hex": "2B236EB"
+    }
+  }
+}

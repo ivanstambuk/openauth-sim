@@ -472,26 +472,6 @@
           "required" : true
         },
         "responses" : {
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Verification payload failed validation",
             "content" : {
@@ -516,6 +496,26 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
                 }
               }
             }
@@ -655,6 +655,16 @@
           "required" : true
         },
         "responses" : {
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
           "200" : {
             "description" : "Replay completed",
             "content" : {
@@ -667,16 +677,6 @@
           },
           "422" : {
             "description" : "Validation error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -715,22 +715,22 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -765,22 +765,22 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -792,6 +792,74 @@
       "post" : {
         "tags" : [ "hotp-credential-directory-controller" ],
         "operationId" : "seedCredentials_3",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SeedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/emv/cap/evaluate" : {
+      "post" : {
+        "tags" : [ "emv-cap-evaluation-controller" ],
+        "summary" : "Evaluate EMV/CAP parameters and derive an OTP",
+        "description" : "Executes the EMV/CAP derivation flow (Identify, Respond, or Sign) and returns the resulting OTP along with sanitized telemetry metadata.",
+        "operationId" : "evaluateEmvCap",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EmvCapEvaluationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "422" : {
+            "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EmvCapEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EmvCapEvaluationResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EmvCapEvaluationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/emv/cap/credentials/seed" : {
+      "post" : {
+        "tags" : [ "emv-cap-credential-seed-controller" ],
+        "operationId" : "seedCredentials_4",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -1013,6 +1081,27 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpStoredSampleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/emv/cap/credentials" : {
+      "get" : {
+        "tags" : [ "emv-cap-credential-directory-controller" ],
+        "operationId" : "listCredentials_4",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EmvCapCredentialSummary"
+                  }
                 }
               }
             }
@@ -2429,6 +2518,29 @@
           }
         }
       },
+      "HotpReplayErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
       "HotpReplayMetadata" : {
         "type" : "object",
         "properties" : {
@@ -2472,29 +2584,6 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpReplayMetadata"
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
-      "HotpReplayErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "type" : "string"
-          },
-          "reasonCode" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"
@@ -2632,6 +2721,181 @@
             }
           },
           "verbose" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "CustomerInputs" : {
+        "type" : "object",
+        "properties" : {
+          "challenge" : {
+            "type" : "string"
+          },
+          "reference" : {
+            "type" : "string"
+          },
+          "amount" : {
+            "type" : "string"
+          }
+        }
+      },
+      "EmvCapEvaluationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "mode" : {
+            "type" : "string"
+          },
+          "masterKey" : {
+            "type" : "string"
+          },
+          "atc" : {
+            "type" : "string"
+          },
+          "branchFactor" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "height" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "iv" : {
+            "type" : "string"
+          },
+          "cdol1" : {
+            "type" : "string"
+          },
+          "issuerProprietaryBitmap" : {
+            "type" : "string"
+          },
+          "customerInputs" : {
+            "$ref" : "#/components/schemas/CustomerInputs"
+          },
+          "transactionData" : {
+            "$ref" : "#/components/schemas/TransactionData"
+          },
+          "iccDataTemplate" : {
+            "type" : "string"
+          },
+          "issuerApplicationData" : {
+            "type" : "string"
+          },
+          "includeTrace" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "TransactionData" : {
+        "type" : "object",
+        "properties" : {
+          "terminal" : {
+            "type" : "string"
+          },
+          "icc" : {
+            "type" : "string"
+          }
+        }
+      },
+      "EmvCapEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/EmvCapTracePayload"
+          }
+        }
+      },
+      "EmvCapTracePayload" : {
+        "type" : "object",
+        "properties" : {
+          "sessionKey" : {
+            "type" : "string"
+          },
+          "generateAcInput" : {
+            "$ref" : "#/components/schemas/GenerateAcInput"
+          },
+          "generateAcResult" : {
+            "type" : "string"
+          },
+          "bitmask" : {
+            "type" : "string"
+          },
+          "maskedDigitsOverlay" : {
+            "type" : "string"
+          },
+          "issuerApplicationData" : {
+            "type" : "string"
+          },
+          "iccPayloadTemplate" : {
+            "type" : "string"
+          },
+          "iccPayloadResolved" : {
+            "type" : "string"
+          }
+        }
+      },
+      "GenerateAcInput" : {
+        "type" : "object",
+        "properties" : {
+          "terminal" : {
+            "type" : "string"
+          },
+          "icc" : {
+            "type" : "string"
+          }
+        }
+      },
+      "EmvCapEvaluationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "otp" : {
+            "type" : "string"
+          },
+          "maskLength" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/EmvCapTracePayload"
+          },
+          "telemetry" : {
+            "$ref" : "#/components/schemas/EmvCapTelemetryPayload"
+          }
+        }
+      },
+      "EmvCapTelemetryPayload" : {
+        "type" : "object",
+        "properties" : {
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "fields" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "event" : {
+            "type" : "string"
+          },
+          "sanitized" : {
             "type" : "boolean"
           }
         }
@@ -2907,6 +3171,89 @@
             "additionalProperties" : {
               "type" : "string"
             }
+          }
+        }
+      },
+      "Defaults" : {
+        "type" : "object",
+        "properties" : {
+          "challenge" : {
+            "type" : "string"
+          },
+          "reference" : {
+            "type" : "string"
+          },
+          "amount" : {
+            "type" : "string"
+          }
+        }
+      },
+      "EmvCapCredentialSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "masterKey" : {
+            "type" : "string"
+          },
+          "defaultAtc" : {
+            "type" : "string"
+          },
+          "branchFactor" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "height" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "iv" : {
+            "type" : "string"
+          },
+          "cdol1" : {
+            "type" : "string"
+          },
+          "issuerProprietaryBitmap" : {
+            "type" : "string"
+          },
+          "iccDataTemplate" : {
+            "type" : "string"
+          },
+          "issuerApplicationData" : {
+            "type" : "string"
+          },
+          "defaults" : {
+            "$ref" : "#/components/schemas/Defaults"
+          },
+          "transaction" : {
+            "$ref" : "#/components/schemas/Transaction"
+          },
+          "metadata" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "Transaction" : {
+        "type" : "object",
+        "properties" : {
+          "terminal" : {
+            "type" : "string"
+          },
+          "icc" : {
+            "type" : "string"
+          },
+          "iccResolved" : {
+            "type" : "string"
           }
         }
       }
