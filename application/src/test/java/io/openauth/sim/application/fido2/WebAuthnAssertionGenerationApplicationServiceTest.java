@@ -3,14 +3,12 @@ package io.openauth.sim.application.fido2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import io.openauth.sim.core.fido2.WebAuthnAssertionRequest;
 import io.openauth.sim.core.fido2.WebAuthnAssertionVerifier;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.fido2.WebAuthnStoredCredential;
 import io.openauth.sim.core.trace.VerboseTrace;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
@@ -114,28 +112,12 @@ final class WebAuthnAssertionGenerationApplicationServiceTest {
                         challenge,
                         privateKeyJwk);
 
-        Method generateVerbose;
-        try {
-            generateVerbose = WebAuthnAssertionGenerationApplicationService.class.getMethod(
-                    "generate", WebAuthnAssertionGenerationApplicationService.GenerationCommand.class, boolean.class);
-        } catch (NoSuchMethodException ex) {
-            fail("Feature 035 requires WebAuthnAssertionGenerationApplicationService.generate(command, verbose) "
-                    + "to emit generation trace steps when verbose mode is enabled.");
-            return;
-        }
+        WebAuthnAssertionGenerationApplicationService.GenerationResult result = service.generate(command, true);
 
-        Object result = generateVerbose.invoke(service, command, true);
-        Method verboseTraceMethod;
-        try {
-            verboseTraceMethod = result.getClass().getMethod("verboseTrace");
-        } catch (NoSuchMethodException ex) {
-            fail("GenerationResult.verboseTrace() must expose the constructed WebAuthn generation trace.");
-            return;
-        }
-
-        @SuppressWarnings("unchecked")
-        Optional<VerboseTrace> trace = (Optional<VerboseTrace>) verboseTraceMethod.invoke(result);
-        assertTrue(trace.isPresent(), "Verbose trace should be present when verbose flag is true");
+        Optional<VerboseTrace> trace = result.verboseTrace();
+        assertTrue(
+                trace.isPresent(),
+                "Feature 035 requires WebAuthn assertion generation to expose verbose traces when verbose=true");
         VerboseTrace verboseTrace = trace.orElseThrow();
         assertEquals("fido2.assertion.generate.inline", verboseTrace.operation());
         assertNotNull(findStep(verboseTrace, "build.clientData"));
