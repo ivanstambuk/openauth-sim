@@ -2,12 +2,23 @@
   'use strict';
 
   var documentRef = global.document;
+  var rootPanel = documentRef.querySelector('[data-protocol-panel="emv"]');
   var form = documentRef.querySelector('[data-testid="emv-form"]');
-  if (!form) {
+  var replayForm = documentRef.querySelector('[data-testid="emv-replay-form"]');
+  if (!rootPanel || !form) {
     return;
   }
 
   var verboseConsole = global.VerboseTraceConsole || null;
+  var tabsContainer = rootPanel.querySelector('[data-testid="emv-console-tabs"]');
+  var evaluateTabButton = tabsContainer
+      ? tabsContainer.querySelector('[data-testid="emv-console-tab-evaluate"]')
+      : null;
+  var replayTabButton = tabsContainer
+      ? tabsContainer.querySelector('[data-testid="emv-console-tab-replay"]')
+      : null;
+  var evaluatePanel = rootPanel.querySelector('[data-emv-panel="evaluate"]');
+  var replayPanel = rootPanel.querySelector('[data-emv-panel="replay"]');
   var evaluateEndpoint = form.getAttribute('data-evaluate-endpoint') || '';
   var credentialsEndpoint = form.getAttribute('data-credentials-endpoint') || '';
   var seedEndpoint = form.getAttribute('data-seed-endpoint') || '';
@@ -53,11 +64,104 @@
     seedDefinitionNode.parentNode.removeChild(seedDefinitionNode);
   }
 
+  var replayEndpoint = replayForm ? replayForm.getAttribute('data-replay-endpoint') || '' : '';
+  var replayCredentialsEndpoint = replayForm
+      ? replayForm.getAttribute('data-credentials-endpoint') || credentialsEndpoint
+      : credentialsEndpoint;
+  var replayCsrfInput = replayForm ? replayForm.querySelector('input[name="_csrf"]') : null;
+  var replayModeToggle = replayForm ? replayForm.querySelector('[data-testid="emv-replay-mode-toggle"]') : null;
+  var replayModeStoredRadio = replayModeToggle
+      ? replayModeToggle.querySelector('#emvReplayModeStored')
+      : null;
+  var replayModeInlineRadio = replayModeToggle
+      ? replayModeToggle.querySelector('#emvReplayModeInline')
+      : null;
+  var replayStoredSection = replayForm ? replayForm.querySelector('[data-replay-section="stored"]') : null;
+  var replayStoredSelect = replayForm ? replayForm.querySelector('#emvReplayStoredCredentialId') : null;
+  var replayCapModeRadios = replayForm
+      ? Array.prototype.slice.call(replayForm.querySelectorAll('input[name="emvReplayCapMode"]'))
+      : [];
+  var replayMasterKeyInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-master-key"] input')
+      : null;
+  var replayAtcInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-atc"] input')
+      : null;
+  var replayBranchFactorInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-branch-factor"] input')
+      : null;
+  var replayHeightInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-height"] input')
+      : null;
+  var replayIvInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-iv"] input')
+      : null;
+  var replayCdol1Input = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-cdol1"] textarea')
+      : null;
+  var replayIssuerBitmapInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-issuer-bitmap"] textarea')
+      : null;
+  var replayChallengeInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-challenge"] input')
+      : null;
+  var replayReferenceInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-reference"] input')
+      : null;
+  var replayAmountInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-amount"] input')
+      : null;
+  var replayTerminalInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-terminal-data"] textarea')
+      : null;
+  var replayIccOverrideInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-icc-override"] textarea')
+      : null;
+  var replayIccTemplateInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-icc-template"] textarea')
+      : null;
+  var replayIccResolvedInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-icc-resolved"] textarea')
+      : null;
+  var replayIssuerApplicationDataInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-issuer-application-data"] textarea')
+      : null;
+  var replayOtpInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-otp"] input')
+      : null;
+  var replayDriftBackwardInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-drift-backward"] input')
+      : null;
+  var replayDriftForwardInput = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-drift-forward"] input')
+      : null;
+  var replayIncludeTraceCheckbox = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-include-trace"] input[type="checkbox"]')
+      : null;
+  var replayResultPanel = rootPanel.querySelector('[data-testid="emv-replay-result-card"]');
+  var replayStatusBadge = replayResultPanel
+      ? replayResultPanel.querySelector('[data-testid="emv-replay-status"]')
+      : null;
+  var replayOtpNode = replayResultPanel
+      ? replayResultPanel.querySelector('[data-testid="emv-replay-otp"]')
+      : null;
+  var replayMatchedDeltaNode = replayResultPanel
+      ? replayResultPanel.querySelector('[data-testid="emv-replay-matched-delta"]')
+      : null;
+  var replayReasonNode = replayResultPanel
+      ? replayResultPanel.querySelector('[data-testid="emv-replay-reason"]')
+      : null;
+
   var credentialsCache = Object.create(null);
   var credentialsList = [];
   var loadingCredentials = false;
   var submitting = false;
+  var replaySubmitting = false;
   var seeding = false;
+  var replayInitialized = false;
+  var activePanel = null;
+
+  initializeTabs();
 
   if (storedSelect) {
     storedSelect.addEventListener('change', function () {
@@ -79,19 +183,35 @@
     });
   }
 
+  if (replayIncludeTraceCheckbox) {
+    replayIncludeTraceCheckbox.addEventListener('change', function () {
+      if (!replayIncludeTraceCheckbox.checked) {
+        clearVerboseTrace();
+      }
+    });
+  }
+
   form.addEventListener('submit', function (event) {
     event.preventDefault();
     handleSubmit();
   });
 
+  if (replayForm) {
+    replayForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      handleReplaySubmit();
+    });
+  }
+
   loadCredentials();
 
   function loadCredentials() {
-    if (!credentialsEndpoint || loadingCredentials) {
+    var endpoint = credentialsEndpoint || replayCredentialsEndpoint;
+    if (!endpoint || loadingCredentials) {
       return;
     }
     loadingCredentials = true;
-    getJson(credentialsEndpoint)
+    getJson(endpoint)
       .then(function (payload) {
         credentialsCache = Object.create(null);
         credentialsList = Array.isArray(payload) ? payload : [];
@@ -114,6 +234,17 @@
   }
 
   function populateStoredSelect(list) {
+    var entries = Array.isArray(list) ? list : [];
+    entries.forEach(function (summary) {
+      if (summary && typeof summary.id === 'string') {
+        credentialsCache[summary.id] = summary;
+      }
+    });
+    populateEvaluateStoredSelect(entries);
+    populateReplayStoredSelect(entries);
+  }
+
+  function populateEvaluateStoredSelect(list) {
     if (!storedSelect) {
       return;
     }
@@ -124,7 +255,6 @@
       if (!summary || typeof summary.id !== 'string') {
         return;
       }
-      credentialsCache[summary.id] = summary;
       var option = documentRef.createElement('option');
       option.value = summary.id;
       option.textContent =
@@ -133,6 +263,36 @@
           : summary.id;
       storedSelect.appendChild(option);
     });
+  }
+
+  function populateReplayStoredSelect(list) {
+    if (!replayStoredSelect) {
+      return;
+    }
+    var previousValue = replayStoredSelect.value;
+    while (replayStoredSelect.options.length > 1) {
+      replayStoredSelect.remove(1);
+    }
+    list.forEach(function (summary) {
+      if (!summary || typeof summary.id !== 'string') {
+        return;
+      }
+      var option = documentRef.createElement('option');
+      option.value = summary.id;
+      option.textContent =
+        typeof summary.label === 'string' && summary.label.trim().length > 0
+          ? summary.label.trim()
+          : summary.id;
+      replayStoredSelect.appendChild(option);
+    });
+    if (previousValue && replayStoredSelect.querySelector('option[value="' + previousValue + '"]')) {
+      replayStoredSelect.value = previousValue;
+    } else if (!previousValue && list.length > 0) {
+      replayStoredSelect.value = list[0].id;
+    }
+    if (replayModeIsStored() && replayStoredSelect.value) {
+      applyReplayCredential(replayStoredSelect.value);
+    }
   }
 
   function applyCredential(credentialId) {
@@ -168,6 +328,244 @@
       setValue(terminalInput, '');
       setValue(iccOverrideInput, '');
       setValue(iccResolvedInput, '');
+    }
+
+    applyReplayDefaults(credentialId, summary);
+  }
+
+  function applyReplayDefaults(credentialId, summary) {
+    if (!summary) {
+      return;
+    }
+    if (replayStoredSelect && !replayStoredSelect.value && credentialId) {
+      replayStoredSelect.value = credentialId;
+    }
+    if (!replayStoredSelect || !credentialId) {
+      applyCredentialSummaryToReplay(summary);
+      return;
+    }
+    if (!replayStoredSelect.value) {
+      applyReplayCredential(credentialId);
+      return;
+    }
+    if (replayModeIsStored() && replayStoredSelect.value === credentialId) {
+      applyReplayCredential(credentialId);
+      return;
+    }
+    if (!replayInitialized) {
+      applyReplayCredential(credentialId);
+    }
+  }
+
+  function applyReplayCredential(credentialId) {
+    if (!credentialId || !credentialsCache[credentialId]) {
+      return;
+    }
+    if (replayStoredSelect && replayStoredSelect.value !== credentialId) {
+      replayStoredSelect.value = credentialId;
+    }
+    var summary = credentialsCache[credentialId];
+    setReplayCapMode(summary.mode);
+    applyCredentialSummaryToReplay(summary);
+  }
+
+  function applyCredentialSummaryToReplay(summary) {
+    if (!summary) {
+      return;
+    }
+    setValue(replayMasterKeyInput, summary.masterKey);
+    setValue(replayAtcInput, summary.defaultAtc);
+    setValue(replayBranchFactorInput, summary.branchFactor);
+    setValue(replayHeightInput, summary.height);
+    setValue(replayIvInput, summary.iv);
+    setValue(replayCdol1Input, summary.cdol1);
+    setValue(replayIssuerBitmapInput, summary.issuerProprietaryBitmap);
+    setValue(replayIccTemplateInput, summary.iccDataTemplate);
+    setValue(replayIssuerApplicationDataInput, summary.issuerApplicationData);
+
+    if (summary.defaults) {
+      setValue(replayChallengeInput, summary.defaults.challenge);
+      setValue(replayReferenceInput, summary.defaults.reference);
+      setValue(replayAmountInput, summary.defaults.amount);
+    } else {
+      setValue(replayChallengeInput, '');
+      setValue(replayReferenceInput, '');
+      setValue(replayAmountInput, '');
+    }
+
+    if (summary.transaction) {
+      setValue(replayTerminalInput, summary.transaction.terminal);
+      setValue(replayIccOverrideInput, summary.transaction.icc);
+      setValue(replayIccResolvedInput, summary.transaction.iccResolved);
+    } else {
+      setValue(replayTerminalInput, '');
+      setValue(replayIccOverrideInput, '');
+      setValue(replayIccResolvedInput, '');
+    }
+
+    setValue(replayOtpInput, '');
+  }
+
+  function initializeTabs() {
+    setActivePanel('evaluate');
+    if (evaluateTabButton) {
+      evaluateTabButton.addEventListener('click', function () {
+        setActivePanel('evaluate');
+      });
+    }
+    if (replayTabButton) {
+      replayTabButton.addEventListener('click', function () {
+        setActivePanel('replay');
+      });
+    }
+  }
+
+  function setActivePanel(panel) {
+    if (!panel) {
+      return;
+    }
+    if (panel !== 'evaluate' && panel !== 'replay') {
+      panel = 'evaluate';
+    }
+    if (activePanel === panel) {
+      return;
+    }
+    var previous = activePanel;
+    activePanel = panel;
+    toggleTabState(evaluateTabButton, panel === 'evaluate');
+    toggleTabState(replayTabButton, panel === 'replay');
+    setPanelVisibility(evaluatePanel, panel !== 'evaluate');
+    setPanelVisibility(replayPanel, panel !== 'replay');
+    if (panel === 'replay') {
+      initializeReplay();
+    }
+    if (previous && previous !== panel) {
+      clearVerboseTrace();
+    }
+  }
+
+  function toggleTabState(button, active) {
+    if (!button) {
+      return;
+    }
+    button.classList.toggle('mode-pill--active', !!active);
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
+  }
+
+  function setPanelVisibility(panel, hidden) {
+    if (!panel) {
+      return;
+    }
+    if (hidden) {
+      panel.setAttribute('hidden', 'hidden');
+      panel.setAttribute('aria-hidden', 'true');
+    } else {
+      panel.removeAttribute('hidden');
+      panel.removeAttribute('aria-hidden');
+    }
+  }
+
+  function initializeReplay() {
+    if (!replayForm || replayInitialized) {
+      return;
+    }
+    replayInitialized = true;
+
+    if (replayStoredSelect) {
+      replayStoredSelect.addEventListener('change', function () {
+        applyReplayCredential(replayStoredSelect.value);
+      });
+    }
+
+    if (replayModeStoredRadio) {
+      replayModeStoredRadio.addEventListener('change', function () {
+        if (replayModeStoredRadio.checked) {
+          updateReplayMode('stored');
+        }
+      });
+    }
+    if (replayModeInlineRadio) {
+      replayModeInlineRadio.addEventListener('change', function () {
+        if (replayModeInlineRadio.checked) {
+          updateReplayMode('inline');
+        }
+      });
+    }
+
+    replayCapModeRadios.forEach(function (radio) {
+      if (!radio) {
+        return;
+      }
+      radio.addEventListener('change', function () {
+        if (radio.checked) {
+          setReplayCapMode(radio.value);
+        }
+      });
+    });
+
+    updateReplayMode(replayModeToggle && replayModeToggle.getAttribute('data-mode'));
+    if (replayStoredSelect && replayStoredSelect.value) {
+      applyReplayCredential(replayStoredSelect.value);
+    } else if (credentialsList.length > 0) {
+      applyReplayCredential(credentialsList[0].id);
+    }
+  }
+
+  function selectedReplayMode() {
+    if (!replayModeToggle) {
+      return 'stored';
+    }
+    var mode = replayModeToggle.getAttribute('data-mode');
+    if (mode === 'inline') {
+      return 'inline';
+    }
+    return 'stored';
+  }
+
+  function updateReplayMode(mode) {
+    var normalized = mode === 'inline' ? 'inline' : 'stored';
+    if (replayModeToggle) {
+      replayModeToggle.setAttribute('data-mode', normalized);
+    }
+    if (replayModeStoredRadio) {
+      replayModeStoredRadio.checked = normalized === 'stored';
+    }
+    if (replayModeInlineRadio) {
+      replayModeInlineRadio.checked = normalized === 'inline';
+    }
+    if (replayStoredSection) {
+      setPanelVisibility(replayStoredSection, normalized !== 'stored');
+    }
+    if (normalized === 'stored' && replayStoredSelect && replayStoredSelect.value) {
+      applyReplayCredential(replayStoredSelect.value);
+    }
+  }
+
+  function replayModeIsStored() {
+    return selectedReplayMode() === 'stored';
+  }
+
+  function selectedReplayCapMode() {
+    for (var index = 0; index < replayCapModeRadios.length; index += 1) {
+      var radio = replayCapModeRadios[index];
+      if (radio && radio.checked) {
+        return radio.value;
+      }
+    }
+    return 'IDENTIFY';
+  }
+
+  function setReplayCapMode(mode) {
+    if (!mode) {
+      return;
+    }
+    var normalized = String(mode).toUpperCase();
+    for (var index = 0; index < replayCapModeRadios.length; index += 1) {
+      var radio = replayCapModeRadios[index];
+      if (!radio) {
+        continue;
+      }
+      radio.checked = radio.value === normalized;
     }
   }
 
@@ -273,8 +671,19 @@
   }
 
   function isTraceRequested() {
-    if (includeTraceCheckbox && !includeTraceCheckbox.checked) {
+    return isTraceEnabled(includeTraceCheckbox);
+  }
+
+  function isReplayTraceRequested() {
+    return isTraceEnabled(replayIncludeTraceCheckbox);
+  }
+
+  function isTraceEnabled(localCheckbox) {
+    if (localCheckbox && !localCheckbox.checked) {
       return false;
+    }
+    if (localCheckbox && localCheckbox.checked) {
+      return true;
     }
     if (verboseConsole && typeof verboseConsole.isEnabled === 'function') {
       return verboseConsole.isEnabled();
@@ -304,11 +713,11 @@
     }
   }
 
-  function verboseApplyResponse(response, variant) {
+  function verboseApplyResponse(response, variant, context) {
     if (!verboseConsole) {
       return;
     }
-    var payload = buildVerboseTracePayload(response);
+    var payload = buildVerboseTracePayload(response, context);
     var options = { variant: variant || 'info', protocol: 'emv' };
     if (typeof verboseConsole.handleResponse === 'function') {
       verboseConsole.handleResponse(payload, options);
@@ -321,11 +730,11 @@
     clearVerboseTrace();
   }
 
-  function verboseApplyError(error) {
+  function verboseApplyError(error, context) {
     if (!verboseConsole) {
       return;
     }
-    var payload = buildVerboseTracePayload(error);
+    var payload = buildVerboseTracePayload(error, context);
     var options = { variant: 'error', protocol: 'emv' };
     if (typeof verboseConsole.handleError === 'function') {
       verboseConsole.handleError(payload, options);
@@ -338,19 +747,36 @@
     clearVerboseTrace();
   }
 
-  function buildVerboseTracePayload(response) {
-    var normalizedTrace = normalizeTrace(response);
+  function buildVerboseTracePayload(response, context) {
+    var normalizedTrace = normalizeTrace(response, context);
     if (!normalizedTrace) {
       return null;
     }
     return { trace: normalizedTrace };
   }
 
-  function normalizeTrace(response) {
+  function normalizeTrace(response, context) {
     if (!response || !response.trace) {
       return null;
     }
     var trace = response.trace || {};
+    if (typeof trace.operation === 'string') {
+      var replayMetadata = {};
+      if (trace.metadata && typeof trace.metadata === 'object') {
+        replayMetadata = Object.assign({}, trace.metadata);
+      }
+      if (context && context.metadata && typeof context.metadata === 'object') {
+        replayMetadata = Object.assign(replayMetadata, context.metadata);
+      }
+      if (context && context.suppliedOtp) {
+        replayMetadata.suppliedOtp = context.suppliedOtp;
+      }
+      return {
+        operation: trace.operation,
+        metadata: replayMetadata,
+        steps: Array.isArray(trace.steps) ? trace.steps : [],
+      };
+    }
     var telemetry = response.telemetry && typeof response.telemetry === 'object' ? response.telemetry : {};
     var fields = telemetry.fields && typeof telemetry.fields === 'object' ? telemetry.fields : {};
     var metadata = {};
@@ -436,6 +862,12 @@
       operation: 'emv.cap.evaluate',
       steps: steps,
     };
+    if (context && context.metadata && typeof context.metadata === 'object') {
+      metadata = Object.assign(metadata, context.metadata);
+    }
+    if (context && context.suppliedOtp) {
+      metadata.suppliedOtp = context.suppliedOtp;
+    }
     if (Object.keys(metadata).length > 0) {
       normalized.metadata = metadata;
     }
@@ -475,7 +907,7 @@
     }
 
     if (isTraceRequested() && body && body.trace) {
-      verboseApplyResponse(body, 'info');
+      verboseApplyResponse(body, 'info', null);
     } else {
       clearVerboseTrace();
     }
@@ -493,7 +925,7 @@
     }
     clearPreview();
     updateText(statusBadge, 'Error');
-    verboseApplyError(error);
+    verboseApplyError(error, null);
 
     var message = resolveErrorMessage(error);
     var hint = resolveErrorHint(error);
@@ -546,6 +978,240 @@
     resultPreviewBody.appendChild(row);
     resultPreviewContainer.removeAttribute('hidden');
     resultPreviewContainer.setAttribute('aria-hidden', 'false');
+  }
+
+  function clearReplayResult() {
+    if (!replayResultPanel) {
+      return;
+    }
+    if (global.ResultCard && typeof global.ResultCard.resetMessage === 'function') {
+      global.ResultCard.resetMessage(replayResultPanel);
+    }
+    updateText(replayStatusBadge, '—');
+    updateText(replayOtpNode, '—');
+    if (replayMatchedDeltaNode) {
+      replayMatchedDeltaNode.textContent = '';
+      replayMatchedDeltaNode.setAttribute('hidden', 'hidden');
+      replayMatchedDeltaNode.setAttribute('aria-hidden', 'true');
+    }
+    if (replayReasonNode) {
+      replayReasonNode.textContent = '';
+      replayReasonNode.setAttribute('hidden', 'hidden');
+      replayReasonNode.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function handleReplaySubmit() {
+    if (replaySubmitting || !replayEndpoint) {
+      return;
+    }
+    var payload = buildReplayPayload();
+    replaySubmitting = true;
+    clearReplayResult();
+    verboseBeginRequest();
+    postJson(replayEndpoint, payload.body, csrfToken(replayCsrfInput || csrfInput))
+      .then(function (response) {
+        renderReplaySuccess(response, payload.context);
+      })
+      .catch(function (error) {
+        renderReplayFailure(error, payload.context);
+      })
+      .then(function () {
+        replaySubmitting = false;
+      });
+  }
+
+  function buildReplayPayload() {
+    var capMode = selectedReplayCapMode();
+    var credentialMode = selectedReplayMode();
+    var credentialId = replayStoredSelect ? replayStoredSelect.value : '';
+    var otpText = digitsValue(replayOtpInput);
+    var driftBackward = parseInteger(replayDriftBackwardInput);
+    var driftForward = parseInteger(replayDriftForwardInput);
+
+    var payload = {
+      mode: capMode,
+      otp: otpText,
+      driftBackward: typeof driftBackward === 'number' ? driftBackward : 0,
+      driftForward: typeof driftForward === 'number' ? driftForward : 0,
+    };
+
+    if (!isReplayTraceRequested()) {
+      payload.includeTrace = false;
+    }
+
+    if (credentialMode === 'stored' && credentialId) {
+      payload.credentialId = credentialId;
+    }
+
+    payload.masterKey = uppercase(value(replayMasterKeyInput));
+    payload.atc = uppercase(value(replayAtcInput));
+    payload.branchFactor = parseInteger(replayBranchFactorInput);
+    payload.height = parseInteger(replayHeightInput);
+    payload.iv = uppercase(value(replayIvInput));
+    payload.cdol1 = uppercase(value(replayCdol1Input));
+    payload.issuerProprietaryBitmap = uppercase(value(replayIssuerBitmapInput));
+    payload.iccDataTemplate = uppercase(value(replayIccTemplateInput));
+    payload.issuerApplicationData = uppercase(value(replayIssuerApplicationDataInput));
+
+    var customerInputs = {
+      challenge: digitsValue(replayChallengeInput),
+      reference: digitsValue(replayReferenceInput),
+      amount: digitsValue(replayAmountInput),
+    };
+    if (customerInputs.challenge || customerInputs.reference || customerInputs.amount) {
+      payload.customerInputs = customerInputs;
+    }
+
+    var terminalHex = uppercase(value(replayTerminalInput));
+    var iccOverrideHex = uppercase(value(replayIccOverrideInput));
+    if (terminalHex || iccOverrideHex) {
+      payload.transactionData = {};
+      if (terminalHex) {
+        payload.transactionData.terminal = terminalHex;
+      }
+      if (iccOverrideHex) {
+        payload.transactionData.icc = iccOverrideHex;
+      }
+    }
+
+    var context = {
+      suppliedOtp: otpText,
+      metadata: {
+        credentialSource: credentialMode === 'stored' ? 'stored' : 'inline',
+        mode: capMode,
+      },
+    };
+    if (payload.credentialId) {
+      context.metadata.credentialId = payload.credentialId;
+    }
+
+    return { body: payload, context: context };
+  }
+
+  function renderReplaySuccess(body, requestContext) {
+    if (!replayResultPanel) {
+      return;
+    }
+    if (global.ResultCard && typeof global.ResultCard.showPanel === 'function') {
+      global.ResultCard.showPanel(replayResultPanel);
+    } else {
+      replayResultPanel.removeAttribute('hidden');
+      replayResultPanel.setAttribute('aria-hidden', 'false');
+    }
+
+    var status = body && body.status ? String(body.status) : 'unknown';
+    updateText(replayStatusBadge, formatReplayStatus(status));
+
+    var suppliedOtp = requestContext && requestContext.suppliedOtp ? requestContext.suppliedOtp : '';
+    var responseMetadata = body && body.metadata && typeof body.metadata === 'object' ? body.metadata : {};
+
+    if (status === 'match') {
+      updateText(replayOtpNode, suppliedOtp ? 'Matched OTP: ' + suppliedOtp : 'Matched OTP');
+      if (replayMatchedDeltaNode) {
+        var delta = typeof responseMetadata.matchedDelta === 'number' ? responseMetadata.matchedDelta : 0;
+        replayMatchedDeltaNode.textContent = 'Δ = ' + delta;
+        replayMatchedDeltaNode.removeAttribute('hidden');
+        replayMatchedDeltaNode.removeAttribute('aria-hidden');
+      }
+      if (replayReasonNode) {
+        replayReasonNode.textContent = '';
+        replayReasonNode.setAttribute('hidden', 'hidden');
+        replayReasonNode.setAttribute('aria-hidden', 'true');
+      }
+    } else if (status === 'mismatch') {
+      updateText(replayOtpNode, suppliedOtp ? 'Supplied OTP: ' + suppliedOtp : 'Supplied OTP');
+      if (replayMatchedDeltaNode) {
+        replayMatchedDeltaNode.textContent = '';
+        replayMatchedDeltaNode.setAttribute('hidden', 'hidden');
+        replayMatchedDeltaNode.setAttribute('aria-hidden', 'true');
+      }
+      var mismatchMessage = resolveReplayMessage(body && body.reasonCode ? body.reasonCode : 'otp_mismatch');
+      if (replayReasonNode) {
+        replayReasonNode.textContent = mismatchMessage;
+        replayReasonNode.removeAttribute('hidden');
+        replayReasonNode.removeAttribute('aria-hidden');
+      }
+    } else {
+      updateText(replayOtpNode, suppliedOtp ? 'Supplied OTP: ' + suppliedOtp : 'Supplied OTP');
+      if (replayMatchedDeltaNode) {
+        replayMatchedDeltaNode.textContent = '';
+        replayMatchedDeltaNode.setAttribute('hidden', 'hidden');
+        replayMatchedDeltaNode.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    var traceContext = {
+      suppliedOtp: suppliedOtp,
+      metadata: Object.assign({}, requestContext && requestContext.metadata ? requestContext.metadata : {}, responseMetadata),
+    };
+    if (isReplayTraceRequested() && body && body.trace) {
+      verboseApplyResponse(body, 'info', traceContext);
+    } else {
+      clearVerboseTrace();
+    }
+  }
+
+  function renderReplayFailure(error, requestContext) {
+    if (!replayResultPanel) {
+      return;
+    }
+    if (global.ResultCard && typeof global.ResultCard.showPanel === 'function') {
+      global.ResultCard.showPanel(replayResultPanel);
+    } else {
+      replayResultPanel.removeAttribute('hidden');
+      replayResultPanel.setAttribute('aria-hidden', 'false');
+    }
+
+    updateText(replayStatusBadge, 'Error');
+    var suppliedOtp = requestContext && requestContext.suppliedOtp ? requestContext.suppliedOtp : '';
+    updateText(replayOtpNode, suppliedOtp ? 'Supplied OTP: ' + suppliedOtp : 'Supplied OTP');
+    if (replayMatchedDeltaNode) {
+      replayMatchedDeltaNode.textContent = '';
+      replayMatchedDeltaNode.setAttribute('hidden', 'hidden');
+      replayMatchedDeltaNode.setAttribute('aria-hidden', 'true');
+    }
+    var message = resolveErrorMessage(error);
+    var hint = resolveErrorHint(error);
+    if (global.ResultCard && typeof global.ResultCard.showMessage === 'function') {
+      global.ResultCard.showMessage(replayResultPanel, message, 'error', { hint: hint });
+    }
+    if (replayReasonNode) {
+      replayReasonNode.textContent = message;
+      replayReasonNode.removeAttribute('hidden');
+      replayReasonNode.removeAttribute('aria-hidden');
+    }
+    verboseApplyError(error, {
+      suppliedOtp: suppliedOtp,
+      metadata: Object.assign({}, requestContext && requestContext.metadata ? requestContext.metadata : {}),
+    });
+  }
+
+  function formatReplayStatus(status) {
+    if (typeof status !== 'string') {
+      return 'Unknown';
+    }
+    var normalized = status.trim().toLowerCase();
+    if (normalized === 'match') {
+      return 'Match';
+    }
+    if (normalized === 'mismatch') {
+      return 'Mismatch';
+    }
+    if (normalized === 'error') {
+      return 'Error';
+    }
+    return normalized.length ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Unknown';
+  }
+
+  function resolveReplayMessage(reasonCode) {
+    if (typeof reasonCode !== 'string') {
+      return 'Replay failed.';
+    }
+    if (reasonCode === 'otp_mismatch') {
+      return 'OTP mismatch';
+    }
+    return reasonCode.replace(/_/g, ' ');
   }
 
   function normalizePreviewValue(value) {

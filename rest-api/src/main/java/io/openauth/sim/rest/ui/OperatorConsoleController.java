@@ -80,6 +80,7 @@ final class OperatorConsoleController {
         model.addAttribute("totpInlinePresetsJson", serializeTotpInlinePresets());
         model.addAttribute("totpReplayEndpoint", "/api/v1/totp/replay");
         model.addAttribute("emvEvaluateEndpoint", "/api/v1/emv/cap/evaluate");
+        model.addAttribute("emvReplayEndpoint", "/api/v1/emv/cap/replay");
         model.addAttribute("emvCredentialsEndpoint", "/api/v1/emv/cap/credentials");
         model.addAttribute("emvSeedEndpoint", "/api/v1/emv/cap/credentials/seed");
         model.addAttribute("emvSeedDefinitionsJson", serializeEmvSeedDefinitions());

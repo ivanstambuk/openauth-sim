@@ -90,35 +90,39 @@ _Last updated:_ 2025-11-02 (replay scope kickoff)
    - Add Selenium placeholders for replay tab interactions (disabled until implementation).  
    - Commands to stage red coverage: `./gradlew --no-daemon :core:test :application:test :rest-api:test :cli:test :ui:test` (targeted classes noted in tasks).  
 
-13. **I11 – Application replay service (pending)**  
+13. **I11 – Application replay service (complete 2025-11-02)**  
    - Implement `EmvCapReplayApplicationService`, request/response records, telemetry adapters, and verbose trace assembly while driving red tests from I10 to green.  
    - Ensure mismatch handling, preview-window overrides, and stored credential lookups mirror evaluation semantics.  
    - Commands: `./gradlew --no-daemon :application:test`, `./gradlew --no-daemon spotlessApply check`.  
+   - **Status (2025-11-02):** Complete – application orchestrator now emits sanitized telemetry (`emv.cap.replay.*`), scans preview windows, propagates verbose traces on demand, and passes `EmvCapReplayApplicationServiceTest`.  
 
-14. **I12 – REST replay endpoint (pending)**  
+14. **I12 – REST replay endpoint (complete 2025-11-02)**  
    - Introduce `POST /api/v1/emv/cap/replay`, DTOs, validation, telemetry wiring, and MockMvc coverage for stored/inline success, mismatch, and validation failures.  
    - Refresh OpenAPI snapshots and regenerate documentation.  
    - Commands: `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapReplayEndpointTest"`.  
+   - **Status (2025-11-02):** Complete – new controller/service expose `POST /api/v1/emv/cap/replay` with stored/inline handling, verbose trace payloads feed the shared console (`operation=emv.cap.replay.*`), metadata surfaces sanitized preview-window details, MockMvc coverage passes, and OpenAPI snapshots updated.  
 
-15. **I13 – CLI replay command (pending)**  
+15. **I13 – CLI replay command (complete 2025-11-02)**  
    - Add `emv cap replay` Picocli command with stored/inline paths, preview-window overrides, JSON/text parity, and telemetry emission.  
    - Extend CLI tests to cover success, mismatch, validation, includeTrace toggling, and OpenAPI parity for output payloads.  
    - Commands: `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliReplayTest"`, `./gradlew --no-daemon spotlessApply check`.  
+   - **Status (2025-11-02):** Complete – CLI now delegates replay requests to `EmvCapReplayApplicationService`, renders REST-parity JSON/text responses (including metadata and optional traces), emits `cli-emv-cap-replay-*` telemetry IDs, and satisfies `EmvCliReplayTest`; full `spotlessApply check` stays red on operator UI replay Selenium timeouts until T3914.  
 
-16. **I14 – Operator UI replay integration (pending)**  
+16. **I14 – Operator UI replay integration (complete 2025-11-02)**  
    - Activate Replay tab, wire stored preset dropdown, inline overrides, OTP input, includeTrace checkbox, and updated result/trace panels.  
    - Expand JS + Selenium suites to exercise stored/inline success, mismatch, validation errors, and trace suppression.  
    - Commands: `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon spotlessApply check`.  
+   - **Status (2025-11-02):** Complete – operator console now exposes a replay tab that reuses shared credential caches, mirrors REST metadata, honours include-trace toggles, and drives Selenium coverage for stored match + inline mismatch flows; `spotlessApply check` still fails at aggregated Jacoco branch coverage (0.68 < 0.70) pending final documentation sweep (I15).
 
-17. **I15 – Replay documentation & final verification (pending)**  
-   - Update REST/CLI/operator UI how-to guides with replay instructions, refresh roadmap/knowledge map/session snapshot, and record telemetry behaviour.  
-   - Run full Gradle quality gate to confirm replay additions keep the build green.  
-   - Commands: `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.  
+17. **I15 – Replay documentation & final verification (2025-11-02)**  
+   - Updated REST/CLI/operator UI how-to guides with replay instructions, refreshed roadmap/knowledge map/session snapshot, and recorded telemetry behaviour.  
+   - Added targeted EMV/CAP replay and TOTP evaluation tests to lift Jacoco branch coverage from 0.68 to 0.7000, then ran the full Gradle quality gate to verify the build.  
+   - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliReplayTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.totp.TotpEvaluationServiceTest"`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.  
 
-## Current Increment – T3910 Replay scaffolding (pending)
-- Stage replay-focused regression tests across application/REST/CLI/UI modules, capturing expected match/mismatch outcomes for stored and inline credentials.
-- Document test coverage additions in the tasks checklist and keep the build red until implementation increments (I11–I14) land.
-- Confirm updated fixtures and placeholder Selenium coverage compile before handing off for implementation.
+## Current Increment – T3915 Replay documentation & final verification (pending)
+- Refresh REST/CLI/operator UI guides with replay workflows, update roadmap/plan/tasks/knowledge map, and record telemetry behaviour.
+- Capture lessons learned plus coverage deltas in `_current-session.md`; reconcile open TODOs before closing Feature 039.
+- Once documentation is updated, rerun the full quality gate (`./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`) targeting a green coverage gate.
 
 ## Risks & Mitigations
 - **Limited test vectors:** Mitigate by collaborating with the user for additional samples; enforce fixture-driven tests so new vectors drop in quickly.  

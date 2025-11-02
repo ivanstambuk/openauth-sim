@@ -1,0 +1,44 @@
+{
+  "description": "Replay fixtures referencing baseline EMV/CAP vectors (generated 2025-11-02)",
+  "fixtures": [
+    {
+      "id": "replay-identify-baseline",
+      "credentialId": "emv-cap-identify-baseline",
+      "vectorId": "identify-baseline",
+      "mode": "IDENTIFY",
+      "otpDecimal": "42511495",
+      "otpHex": "288AC87",
+      "mismatchOtpDecimal": "42511496",
+      "previewWindow": {
+        "backward": 1,
+        "forward": 1
+      }
+    },
+    {
+      "id": "replay-respond-baseline",
+      "credentialId": "emv-cap-respond-baseline",
+      "vectorId": "respond-baseline",
+      "mode": "RESPOND",
+      "otpDecimal": "45233899",
+      "otpHex": "2B236EB",
+      "mismatchOtpDecimal": "45233801",
+      "previewWindow": {
+        "backward": 1,
+        "forward": 1
+      }
+    },
+    {
+      "id": "replay-sign-baseline",
+      "credentialId": "emv-cap-sign-baseline",
+      "vectorId": "sign-baseline",
+      "mode": "SIGN",
+      "otpDecimal": "9749267",
+      "otpHex": "94C313",
+      "mismatchOtpDecimal": "9749260",
+      "previewWindow": {
+        "backward": 0,
+        "forward": 1
+      }
+    }
+  ]
+}

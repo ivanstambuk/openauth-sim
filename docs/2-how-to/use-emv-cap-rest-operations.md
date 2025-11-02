@@ -3,7 +3,7 @@
 _Status: Draft_  
 _Last updated: 2025-11-02_
 
-The EMV/CAP evaluate endpoint derives CAP one-time passwords (Identify, Respond, Sign) on demand. It wraps the shared core engine, emits sanitized telemetry, and optionally returns a full derivation trace for diagnostics. This guide shows how to call the endpoint, interpret the response payloads, and disable verbose traces when you only need the masked digits.
+The EMV/CAP evaluate endpoint derives CAP one-time passwords (Identify, Respond, Sign) on demand. It wraps the shared core engine, emits sanitized telemetry, and optionally returns a full derivation trace for diagnostics. The companion replay endpoint validates stored or ad-hoc OTPs against the same derivation pipeline so you can confirm calculator outputs. This guide shows how to call both endpoints, interpret the response payloads, and disable verbose traces when you only need the masked digits.
 
 ## Prerequisites
 - Java 17 with `JAVA_HOME` configured.
@@ -134,6 +134,97 @@ All error payloads include sanitized telemetry in the `details` map when availab
 - **Identify** – no customer inputs required. Use this mode to validate branch factor/height/IPB configuration against the reference calculators.
 - **Respond** – populate `customerInputs.challenge` with the numeric challenge displayed by the token. The response OTP still derives from the masked digits overlay.
 - **Sign** – supply `challenge`, `reference`, and `amount`. `reference` and `amount` remain string values; the backend enforces numeric-only rules.
+
+## Replay a CAP OTP (`POST /api/v1/emv/cap/replay`)
+Replay accepts either a stored credential ID (seeded through the CLI/REST seeding commands) or a full inline payload that mirrors evaluation inputs. Responses include a `status` (`match` or `mismatch`), a `reasonCode`, metadata describing how the OTP was validated, and an optional verbose trace.
+
+### Stored replay workflow
+Replay a stored preset by supplying the credential ID, CAP mode, OTP, preview-window bounds, and the optional `includeTrace` toggle:
+```bash
+curl -s -H "Content-Type: application/json" \
+  -d '{
+        "credentialId": "emv-cap:respond-baseline",
+        "mode": "RESPOND",
+        "otp": "94644592",
+        "driftBackward": 1,
+        "driftForward": 1,
+        "includeTrace": true
+      }' \
+  http://localhost:8080/api/v1/emv/cap/replay | jq
+```
+
+Successful responses report `status = "match"` with metadata describing how the calculator output aligned with the stored credential:
+```json
+{
+  "status": "match",
+  "reasonCode": "match",
+  "metadata": {
+    "credentialSource": "stored",
+    "credentialId": "emv-cap:respond-baseline",
+    "mode": "RESPOND",
+    "matchedDelta": 0,
+    "driftBackward": 1,
+    "driftForward": 1,
+    "branchFactor": 4,
+    "height": 8,
+    "ipbMaskLength": 8,
+    "telemetryId": "rest-emv-cap-d4b4d5d5"
+  },
+  "trace": {
+    "operation": "emv.cap.replay.stored",
+    "...": "..."
+  }
+}
+```
+Trace payloads reuse the verbose structure from evaluation (`sessionKey`, Generate AC buffers, masked overlay, etc.). Set `includeTrace` to `false` when you only need the match metadata.
+
+### Inline replay workflow
+Inline replay validates an OTP by supplying the same master key, ATC, bitmap, and customer inputs you would use for evaluation. Include the OTP and preview-window bounds; the backend derives the expected OTP and compares it with the supplied value.
+```bash
+curl -s -H "Content-Type: application/json" \
+  -d '{
+        "mode": "SIGN",
+        "masterKey": "0123456789ABCDEF0123456789ABCDEF",
+        "atc": "0142",
+        "branchFactor": 4,
+        "height": 8,
+        "iv": "00000000000000000000000000000000",
+        "cdol1": "9F02069F03069F1A0295055F2A029A039C019F3704",
+        "issuerProprietaryBitmap": "00001F00000000000FFFFF00000000008000",
+        "customerInputs": {
+          "challenge": "1234",
+          "reference": "5689",
+          "amount": "50375"
+        },
+        "iccDataTemplate": "1000xxxxA50006040000",
+        "issuerApplicationData": "06770A03A48000",
+        "otp": "00000000",
+        "driftBackward": 1,
+        "driftForward": 1,
+        "includeTrace": false
+      }' \
+  http://localhost:8080/api/v1/emv/cap/replay | jq
+```
+
+Mismatch responses keep secrets redacted while explaining why validation failed:
+```json
+{
+  "status": "mismatch",
+  "reasonCode": "otp_mismatch",
+  "metadata": {
+    "credentialSource": "inline",
+    "mode": "SIGN",
+    "driftBackward": 1,
+    "driftForward": 1,
+    "branchFactor": 4,
+    "height": 8,
+    "ipbMaskLength": 8,
+    "suppliedOtpLength": 8,
+    "telemetryId": "rest-emv-cap-f3dab9e0"
+  }
+}
+```
+The trace is omitted because `includeTrace` defaults to `false`. Set it to `true` when you want the masked overlay that led to the expected OTP.
 
 ## Compare with published vectors
 Baseline vectors live under `docs/test-vectors/emv-cap/`. Each record includes the request payload, resolved ICC data, and expected outputs. Load them directly from tests or tooling to confirm the simulator stays aligned with the transcripted calculator runs.

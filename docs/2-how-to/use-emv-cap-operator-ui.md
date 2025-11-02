@@ -27,6 +27,19 @@ The operator console exposes an EMV/CAP tab that mirrors the REST contract while
 - Respond evaluations (e.g., `respond-challenge4`) surface the numeric challenge directly in the verbose trace, along with the resolved ICC payload and masked-digit overlay. The result card remains concise.
 - Sign evaluations (e.g., `sign-amount-0845`) include the reference and amount values in the trace metadata, while the result card continues to display only the masked OTP preview.
 
+## Replay stored or inline OTPs
+1. Switch to the **Replay** tab next to **Evaluate**.
+2. Choose whether to replay a stored credential or an inline payload:
+   - **Stored** – select a preset ID from the dropdown (`emv-cap:respond-baseline`, `emv-cap:sign-amount-50375`, etc.). Enter the OTP you captured from the calculator. Preview window bounds default to `0/0`; adjust the forward/backward fields to widen the search delta.
+   - **Inline** – leave the preset dropdown empty and fill in the master key, ATC, branch factor, height, IV, CDOL1, issuer bitmap, ICC template, issuer application data, and mode-specific customer inputs. These fields mirror the Evaluate tab and honour the same validation rules. Provide the OTP plus optional preview-window bounds.
+3. Leave “Include verbose trace” checked when you want the masked overlay, Generate AC buffers, matched delta, and resolved ICC payload. Uncheck it to suppress the trace and keep sensitive data off-screen.
+4. Press **Replay CAP OTP**. The result card summarizes the outcome:
+   - Matches display `status = match`, the matched delta (0 unless the preview window is non-zero), and the credential source (`stored` or `inline`).
+   - Mismatches show `status = mismatch` and the reason code (`otp_mismatch`). The supplied OTP length and preview-window bounds remain visible in the metadata column.
+5. When the trace toggle is enabled, the verbose panel renders the same JSON payload exposed by the REST/CLI facades (`operation` set to `emv.cap.replay.stored` or `.inline`). Use the toolbar to copy/download the payload.
+
+Replay submissions emit sanitized telemetry events with `telemetryId` prefixes `ui-emv-cap-replay-*`, allowing you to align them with REST/CLI logs when necessary.
+
 ## Copy and sanitize traces
 - The verbose trace panel routes through the shared `VerboseTraceConsole` toolbar. Use the copy button to collect JSON output that matches the REST/CLI responses.
 - Sensitive buffers (master keys, session keys, Generate AC inputs/outputs) only appear when the trace toggle is enabled for the request. Disable the toggle when capturing screenshots or operating in untrusted environments.

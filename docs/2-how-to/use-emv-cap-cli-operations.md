@@ -3,7 +3,7 @@
 _Status: Draft_  
 _Last updated: 2025-11-02_
 
-The `emv cap` Picocli commands let you exercise the CAP engine without spinning up the REST facade. You can seed canonical fixtures, evaluate Identify/Respond/Sign inputs, and emit either human-readable output or full JSON payloads (including verbose traces) that mirror the REST contract.
+The `emv cap` Picocli commands let you exercise the CAP engine without spinning up the REST facade. You can seed canonical fixtures, evaluate Identify/Respond/Sign inputs, replay stored or inline OTPs, and emit either human-readable output or full JSON payloads (including verbose traces) that mirror the REST contract.
 
 ## Prerequisites
 - Java 17 with `JAVA_HOME` pointing at a JDK 17 install.
@@ -73,6 +73,47 @@ Switch to Sign mode and request JSON output to mirror the REST facade:
   --output-json' | jq
 ```
 The JSON payload includes the OTP, mask metadata, verbose trace (session key, Generate AC buffers, masked overlay), and sanitized telemetry (`event = cli.emv.cap.sign`).
+
+## Replay stored credentials
+After running `emv cap seed`, use the replay command to validate calculator entries against the stored presets. Supply the credential ID, mode, OTP, and optional preview-window bounds:
+```bash
+./gradlew --quiet :cli:run --args=$'emv cap replay \
+  --credential-id emv-cap:respond-baseline \
+  --mode RESPOND \
+  --otp 94644592 \
+  --search-backward 1 \
+  --search-forward 1'
+```
+Text output shows a sanitized telemetry frame followed by the replay summary:
+```
+event=cli.emv.cap.replay status=success mode=RESPOND matchedDelta=0 driftBackward=1 driftForward=1
+Replay status: match (reason=match)
+Credential source: stored (ID=emv-cap:respond-baseline)
+```
+Add `--output-json` to mirror the REST payload, including the verbose trace when `--include-trace` remains `true` (the default).
+
+## Replay inline OTPs
+When you need to verify an OTP without seeding a preset, pass the same inputs you would use for evaluation plus the OTP you observed:
+```bash
+./gradlew --quiet :cli:run --args=$'emv cap replay \
+  --mode SIGN \
+  --master-key 0123456789ABCDEF0123456789ABCDEF \
+  --atc 0142 \
+  --branch-factor 4 \
+  --height 8 \
+  --iv 00000000000000000000000000000000 \
+  --cdol1 9F02069F03069F1A0295055F2A029A039C019F3704 \
+  --issuer-proprietary-bitmap 00001F00000000000FFFFF00000000008000 \
+  --challenge 1234 \
+  --reference 5689 \
+  --amount 50375 \
+  --icc-template 1000xxxxA50006040000 \
+  --issuer-application-data 06770A03A48000 \
+  --otp 00000000 \
+  --search-forward 1 \
+  --include-trace false'
+```
+Mismatched OTPs print a `status=mismatch` summary while keeping all secrets redacted. Set `--include-trace true` whenever you want the masked-digit overlay and Generate AC buffers to troubleshoot derivation issues. Preview window bounds (`--search-backward/forward`) control how far the replay service searches around the supplied ATC.
 
 ## Troubleshooting & telemetry notes
 - Input validation mirrors the REST layer. Invalid hex values, incorrect branch factors, or missing Sign fields return a non-zero exit code and print a `status=invalid_input` problem alongside sanitized telemetry.

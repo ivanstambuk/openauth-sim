@@ -228,6 +228,221 @@ class EmvCapEvaluationEndpointTest {
         assertEquals("masterKey", root.get("details").get("field").asText());
     }
 
+    @Test
+    @DisplayName("Invalid mode produces readable validation error")
+    void invalidModeReturnsValidationError() throws Exception {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
+        ObjectNode payload = (ObjectNode) MAPPER.readTree(requestBody(vector, Optional.of(true)));
+        payload.put("mode", "INVALID");
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertEquals("invalid_input", root.get("status").asText());
+        assertEquals("invalid_mode", root.get("reasonCode").asText());
+        assertEquals(
+                "Mode must be IDENTIFY, RESPOND, or SIGN", root.get("message").asText());
+        assertEquals("mode", root.get("details").get("field").asText());
+    }
+
+    @Test
+    @DisplayName("Odd-length ICC template triggers invalid_template_length")
+    void iccTemplateWithOddLengthReturnsValidationError() throws Exception {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
+        ObjectNode payload = (ObjectNode) MAPPER.readTree(requestBody(vector, Optional.of(true)));
+        payload.put("iccDataTemplate", "ABC");
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertEquals("invalid_input", root.get("status").asText());
+        assertEquals("invalid_template_length", root.get("reasonCode").asText());
+        assertEquals(
+                "iccDataTemplate must contain an even number of characters",
+                root.get("message").asText());
+        assertEquals("iccDataTemplate", root.get("details").get("field").asText());
+    }
+
+    @Test
+    @DisplayName("Optional terminal hex rejects odd-length payloads")
+    void transactionTerminalOddLengthReturnsValidationError() throws Exception {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
+        ObjectNode payload = (ObjectNode) MAPPER.readTree(requestBody(vector, Optional.of(true)));
+        ObjectNode transaction = payload.putObject("transactionData");
+        transaction.put("terminal", "123");
+        transaction.put("icc", vector.input().iccDataTemplateHex());
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertEquals("invalid_input", root.get("status").asText());
+        assertEquals("invalid_hex_length", root.get("reasonCode").asText());
+        assertEquals(
+                "transactionData.terminal must contain an even number of hex characters",
+                root.get("message").asText());
+        assertEquals(
+                "transactionData.terminal", root.get("details").get("field").asText());
+    }
+
+    @Test
+    @DisplayName("Branch factor must be positive")
+    void branchFactorMustBePositive() throws Exception {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
+        ObjectNode payload = (ObjectNode) MAPPER.readTree(requestBody(vector, Optional.of(true)));
+        payload.put("branchFactor", 0);
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertEquals("invalid_input", root.get("status").asText());
+        assertEquals("invalid_number", root.get("reasonCode").asText());
+        assertEquals("branchFactor must be positive", root.get("message").asText());
+        assertEquals("branchFactor", root.get("details").get("field").asText());
+    }
+
+    @Test
+    @DisplayName("Issuer proprietary bitmap must be hexadecimal")
+    void issuerBitmapMustBeHexadecimal() throws Exception {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
+        ObjectNode payload = (ObjectNode) MAPPER.readTree(requestBody(vector, Optional.of(true)));
+        payload.put("issuerProprietaryBitmap", "ZZ");
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertEquals("invalid_input", root.get("status").asText());
+        assertEquals("invalid_hex", root.get("reasonCode").asText());
+        assertEquals(
+                "issuerProprietaryBitmap must be hexadecimal",
+                root.get("message").asText());
+        assertEquals("issuerProprietaryBitmap", root.get("details").get("field").asText());
+    }
+
+    @Test
+    @DisplayName("IV must contain an even number of hex characters")
+    void ivRequiresEvenLength() throws Exception {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
+        ObjectNode payload = (ObjectNode) MAPPER.readTree(requestBody(vector, Optional.of(true)));
+        payload.put("iv", "000");
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertEquals("invalid_input", root.get("status").asText());
+        assertEquals("invalid_hex_length", root.get("reasonCode").asText());
+        assertEquals(
+                "iv must contain an even number of hex characters",
+                root.get("message").asText());
+        assertEquals("iv", root.get("details").get("field").asText());
+    }
+
+    @Test
+    @DisplayName("Blank transactionData fields are ignored")
+    void transactionDataBlankValuesAreIgnored() throws Exception {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
+        ObjectNode payload = (ObjectNode) MAPPER.readTree(requestBody(vector, Optional.of(true)));
+        ObjectNode transaction = payload.putObject("transactionData");
+        transaction.put("terminal", "  ");
+        transaction.put("icc", "");
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertEquals(vector.outputs().otpDecimal(), root.get("otp").asText());
+        assertEquals(expectedMaskLength(vector), root.get("maskLength").asInt());
+    }
+
+    @Test
+    @DisplayName("Invalid transactionData ICC hex produces validation error")
+    void transactionIccInvalidHexReturnsValidationError() throws Exception {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
+        ObjectNode payload = (ObjectNode) MAPPER.readTree(requestBody(vector, Optional.of(true)));
+        ObjectNode transaction = payload.putObject("transactionData");
+        transaction.put("terminal", vector.input().ivHex());
+        transaction.put("icc", "ZZ");
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        System.out.println("transaction icc response=" + responseBody);
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertEquals("invalid_input", root.get("status").asText());
+        assertEquals("invalid_hex", root.get("reasonCode").asText());
+        assertEquals(
+                "transactionData.icc must be hexadecimal", root.get("message").asText());
+        assertEquals("transactionData.icc", root.get("details").get("field").asText());
+    }
+
+    @Test
+    @DisplayName("Issuer application data must be hexadecimal")
+    void issuerApplicationDataMustBeHex() throws Exception {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
+        ObjectNode payload = (ObjectNode) MAPPER.readTree(requestBody(vector, Optional.of(true)));
+        payload.put("issuerApplicationData", "GHIJKL");
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertEquals("invalid_input", root.get("status").asText());
+        assertEquals("invalid_hex", root.get("reasonCode").asText());
+        assertEquals(
+                "issuerApplicationData must be hexadecimal", root.get("message").asText());
+        assertEquals("issuerApplicationData", root.get("details").get("field").asText());
+    }
+
     private static String requestBody(EmvCapVector vector, Optional<Boolean> includeTrace)
             throws JsonProcessingException {
         ObjectNode root = MAPPER.createObjectNode();

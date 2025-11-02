@@ -306,38 +306,6 @@ paths:
               $ref: "#/components/schemas/OcraVerificationRequest"
         required: true
       responses:
-        "422":
-          description: "Verification payload failed validation"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
-              examples:
-                Missing context:
-                  summary: "Validation failure"
-                  description: "Missing context"
-                  value:
-                    error: "invalid_input"
-                    message: "sessionHex is required"
-                    details:
-                      telemetryId: "rest-ocra-verify-<uuid>"
-                      status: "invalid"
-                      suite: "OCRA-1:HOTP-SHA256-8:QA08-S064"
-                      field: "sessionHex"
-                      reasonCode: "session_required"
-                      sanitized: "true"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
-        "404":
-          description: "Credential not found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "200":
           description: "Verification completed"
           content:
@@ -359,6 +327,38 @@ paths:
                       contextFingerprint: "Base64URL-Hash"
                       telemetryId: "rest-ocra-verify-<uuid>"
                       outcome: "match"
+        "422":
+          description: "Verification payload failed validation"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
+              examples:
+                Missing context:
+                  summary: "Validation failure"
+                  description: "Missing context"
+                  value:
+                    error: "invalid_input"
+                    message: "sessionHex is required"
+                    details:
+                      telemetryId: "rest-ocra-verify-<uuid>"
+                      status: "invalid"
+                      suite: "OCRA-1:HOTP-SHA256-8:QA08-S064"
+                      field: "sessionHex"
+                      reasonCode: "session_required"
+                      sanitized: "true"
+        "404":
+          description: "Credential not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
   /api/v1/ocra/evaluate:
     post:
       tags:
@@ -438,18 +438,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayErrorResponse"
-        "200":
-          description: "Replay completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayResponse"
         "422":
           description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "200":
+          description: "Replay completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayResponse"
   /api/v1/hotp/evaluate:
     post:
       tags:
@@ -465,14 +465,14 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
-        "500":
-          description: "Unexpected error"
+        "422":
+          description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "422":
-          description: "Validation error"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -498,14 +498,14 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
-        "500":
-          description: "Unexpected error"
+        "422":
+          description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "422":
-          description: "Validation error"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -528,6 +528,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SeedResponse"
+  /api/v1/emv/cap/replay:
+    post:
+      tags:
+      - "emv-cap-replay-controller"
+      summary: "Validate an EMV/CAP OTP against stored or inline parameters"
+      description: "Compares an operator-supplied OTP to recomputed EMV/CAP values\
+        \ across the configured preview window."
+      operationId: "replayEmvCap"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmvCapReplayRequest"
+        required: true
+      responses:
+        "200":
+          description: "Replay completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapReplayResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
   /api/v1/emv/cap/evaluate:
     post:
       tags:
@@ -1631,17 +1664,6 @@ components:
           $ref: "#/components/schemas/OcraVerificationContext"
         verbose:
           type: "boolean"
-    OcraVerificationErrorResponse:
-      type: "object"
-      properties:
-        error:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
     OcraVerificationMetadata:
       type: "object"
       properties:
@@ -1674,6 +1696,17 @@ components:
           $ref: "#/components/schemas/OcraVerificationMetadata"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
+    OcraVerificationErrorResponse:
+      type: "object"
+      properties:
+        error:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
     OcraEvaluationRequest:
       type: "object"
       properties:
@@ -1904,6 +1937,112 @@ components:
           type: "string"
         amount:
           type: "string"
+    EmvCapReplayRequest:
+      type: "object"
+      properties:
+        credentialId:
+          type: "string"
+        mode:
+          type: "string"
+        otp:
+          type: "string"
+        driftBackward:
+          type: "integer"
+          format: "int32"
+        driftForward:
+          type: "integer"
+          format: "int32"
+        includeTrace:
+          type: "boolean"
+        masterKey:
+          type: "string"
+        atc:
+          type: "string"
+        branchFactor:
+          type: "integer"
+          format: "int32"
+        height:
+          type: "integer"
+          format: "int32"
+        iv:
+          type: "string"
+        cdol1:
+          type: "string"
+        issuerProprietaryBitmap:
+          type: "string"
+        customerInputs:
+          $ref: "#/components/schemas/CustomerInputs"
+        transactionData:
+          $ref: "#/components/schemas/TransactionData"
+        iccDataTemplate:
+          type: "string"
+        issuerApplicationData:
+          type: "string"
+    TransactionData:
+      type: "object"
+      properties:
+        terminal:
+          type: "string"
+        icc:
+          type: "string"
+    EmvCapReplayMetadata:
+      type: "object"
+      properties:
+        credentialSource:
+          type: "string"
+        credentialId:
+          type: "string"
+        mode:
+          type: "string"
+        matchedDelta:
+          type: "integer"
+          format: "int32"
+        driftBackward:
+          type: "integer"
+          format: "int32"
+        driftForward:
+          type: "integer"
+          format: "int32"
+        branchFactor:
+          type: "integer"
+          format: "int32"
+        height:
+          type: "integer"
+          format: "int32"
+        ipbMaskLength:
+          type: "integer"
+          format: "int32"
+        suppliedOtpLength:
+          type: "integer"
+          format: "int32"
+        telemetryId:
+          type: "string"
+    EmvCapReplayResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        metadata:
+          $ref: "#/components/schemas/EmvCapReplayMetadata"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
+    EmvCapReplayErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     EmvCapEvaluationRequest:
       type: "object"
       properties:
@@ -1935,13 +2074,6 @@ components:
           type: "string"
         includeTrace:
           type: "boolean"
-    TransactionData:
-      type: "object"
-      properties:
-        terminal:
-          type: "string"
-        icc:
-          type: "string"
     EmvCapEvaluationErrorResponse:
       type: "object"
       properties:

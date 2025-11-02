@@ -15,6 +15,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - 2025-11-01 – Seed regression tests with the transcripted calculator vectors; specification documents additional input tuples so the user can supply more samples for broader coverage (owner directive).
 - 2025-11-02 – Verbose trace output must funnel through the shared `VerboseTraceConsole` so copy/download controls and Selenium assertions match other protocols while the EMV-specific metrics remain exposed within the trace payload (owner directive).
 - 2025-11-02 – Replay flows must mirror other protocols: Evaluate and Replay actions live side by side, Replay accepts operator-entered OTPs against stored or inline EMV/CAP credentials, and verbose tracing follows the same toggle semantics (owner directive).
+- 2025-11-02 – Task T3915 must deliver replay documentation updates plus Jacoco branch coverage recovery, culminating in a successful full `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` run (owner directive).
 
 ## Requirements
 
