@@ -1,7 +1,7 @@
 # Architecture Knowledge Map
 
 _Status: Draft_
-_Last updated: 2025-10-31_
+_Last updated: 2025-11-01_
 
 This living map captures the explicit relationships between modules, data flows, and external interfaces so future agents can reason about change impact quickly. Update it after every iteration that introduces or modifies a component, dependency, or contract.
 
@@ -13,7 +13,7 @@ This living map captures the explicit relationships between modules, data flows,
 
 ## Current Links
 - Core module currently exposes the OCRA credential domain consumed by facade modules; additional protocol packages will be introduced via future specifications.
-- Future work will surface issuance and presentation simulators for EU Digital Identity Wallet flows once the dedicated features are prioritised.
+- Feature 040 specification now scopes the EUDIW OpenID4VP simulator to remote verifier flows, introducing `application.eudi.openid4vp` services, DCQL evaluators, Generate/Validate facade modes (Evaluate/Replay tabs), inline SD-JWT/mdoc credential entry, friendly Trusted Authority labels, ETSI Trust List/OpenID Federation ingestion, global verbose trace integration, and shared fixtures so REST/CLI/UI can replay or verify HAIP-compliant presentations with Trusted Authorities filtering and telemetry parity.
 - Core OCRA package normalises RFC 6287 suites into descriptor records consumed by the credential registry and future factory helpers.
 - Core persistence serialization contracts convert protocol descriptors into versioned credential records, now stored by `MapDbCredentialStore` with optional schema migrations when configured.
 - OCRA validation telemetry emits structured debug events that future observability modules can ingest without exposing secret material.
@@ -30,6 +30,12 @@ This living map captures the explicit relationships between modules, data flows,
 - Stored WebAuthn attestation metadata responses now include read-only trust-anchor summaries so the operator console can display curated root names/certificate subjects without enabling inline edits.
 - CLI/REST/operator UI attestation replay accept curated metadata anchor identifiers, feeding them to `WebAuthnTrustAnchorResolver` alongside manual PEM bundles and logging the identifier set in telemetry for cross-facade observability.
 - Core WebAuthn parsing utilities now include `WebAuthnAuthenticatorDataParser` and `WebAuthnExtensionDecoder`, decoding authenticator-data CBOR (flags, counters, extensions) so application services, CLI, REST, and operator UI traces surface extension metadata and unknown entries consistently.
+- Core EMV CAP package (`core.emv.cap`) now derives session keys, generates AC payloads, and applies issuer proprietary bitmasks, exposing fixtures consumed by upcoming application and REST layers.
+- CLI module now exposes `emv cap evaluate`, wiring the application service with sanitized telemetry, JSON/text outputs, trace toggling, and inline overrides so operators can exercise Identify/Respond/Sign flows outside REST/UI.
+- Application `EmvCapSeedApplicationService` + `EmvCapCredentialPersistenceAdapter` persist canonical EMV/CAP fixtures; shared `EmvCapSeedSamples` feed REST `/api/v1/emv/cap/credentials/seed` and Picocli `emv cap seed` so MapDB presets stay consistent across facades.
+- Application module now exposes `application.emv.cap.EmvCapEvaluationApplicationService`, translating CAP requests into core inputs, emitting sanitized `emv.cap.*` telemetry frames, and assembling optional trace payloads for downstream facades.
+- REST API now exposes `POST /api/v1/emv/cap/evaluate`, mapping EMV/CAP DTOs to the application service, enforcing validation with detailed problem-details responses, and returning optional trace payloads with sanitized telemetry metadata and `includeTrace` toggle.
+- REST API now serves `GET /api/v1/emv/cap/credentials`, returning sanitized stored-descriptor summaries (mode, master key, derivation parameters, metadata) so CLI/REST/operator console presets stay in sync.
 - CLI module now includes `TotpCli` list/evaluate commands that wrap the TOTP application service and emit `cli.totp.evaluate` telemetry without persisting secrets.
 - Core module now includes a `fido2` package where `WebAuthnAssertionVerifier` parses COSE public keys, validates client/ authenticator payloads, and produces signature-verification outcomes for downstream facades.
 - Application module now provides `TotpSeedApplicationService`, with REST facades (`TotpCredentialSeedService`/`TotpCredentialDirectoryController`) exposing `/api/v1/totp/credentials/seed` and `/api/v1/totp/credentials`; operator console seed controls consume `TotpOperatorSampleData` to bootstrap demo credentials and emit `totp.seed` telemetry.
@@ -62,10 +68,11 @@ This living map captures the explicit relationships between modules, data flows,
 - Operator console Evaluate tab now provides an assertion/attestation ceremony toggle: assertion mode retains stored/inline flows, while attestation mode surfaces an inline-only form with trust-anchor textarea that locks out stored evaluation and posts to the `/api/v1/webauthn/attest` endpoint via the updated `ui/fido2/console.js` state machine.
 - FIDO2 operator console panels share stored credential state across evaluate and replay tabs, render all assertion payload fields as visible textareas, default replay presets to JWK public keys, and display seed-count parity messaging with counter controls that mirror HOTP/TOTP/OCRA behaviour.
 - Docs under `docs/2-how-to/use-fido2-*.md` capture the CLI, REST, and operator UI workflows, including guidance on JWK key material and JSON vector handling.
+- docs/test-vectors/emv-cap/{identify,respond,sign}-baseline.json capture CAP Identify/Respond/Sign derivation inputs, session keys, cryptogram overlays, and OTP outputs from emvlab.org to seed Feature 039 tests across modules.
 - REST API module now exposes `/api/v1/totp/evaluate` endpoints for stored and inline validation, logging `rest.totp.evaluate` telemetry while leaving secrets redacted.
 - REST API module now exposes `/api/v1/totp/replay`, delegating to `TotpReplayApplicationService`, returning non-mutating diagnostics, and emitting `rest.totp.replay` telemetry with matched skew metadata.
 - REST API module now exposes `/api/v1/totp/credentials/{credentialId}/sample`, delegating to `TotpSampleApplicationService` to produce deterministic OTP/timestamp payloads and logging `totp.sample` telemetry for operator diagnostics.
-- HOTP, TOTP, OCRA, and FIDO2/WebAuthn evaluation and replay now run within the operator console (stored credential counters, inline submissions, read-only replay diagnostics, curated presets, and seed helpers); EMV/CAP and EUDI wallet packages (OpenID4VP 1.0, ISO/IEC 18013-5, SIOPv2) remain placeholder tabs pending specifications.
+- HOTP, TOTP, OCRA, FIDO2/WebAuthn, and EMV/CAP evaluation now run within the operator console (stored credential selectors, inline submissions, read-only diagnostics, curated presets, seed helpers, verbose trace toggles); EUDI wallet packages (OpenID4VP 1.0, ISO/IEC 18013-5, SIOPv2) remain placeholder tabs pending specifications.
 - Operator console UI now exposes TOTP evaluation and replay panels backed by `/api/v1/totp/evaluate` and `/api/v1/totp/replay`, with drift/timestamp controls, inline sample presets sourced from `TotpOperatorSampleData`, telemetry surfacing (including preset metadata), and tab/mode persistence coordinated through `ui/totp/console.js`.
 - Operator console stored replay form now includes a **Load sample data** button positioned directly beneath the **Stored credential** selector, calling the sample endpoint to populate OTP/timestamp/drift fields while surfacing telemetry metadata.
 - MapDB-backed persistence layer (planned) will expose repositories consumed by CLI, REST API, and UI facades.
@@ -84,7 +91,7 @@ This living map captures the explicit relationships between modules, data flows,
 - Operator console replay flows call the same HOTP replay service, surface sample payload loaders, and normalise telemetry identifiers from `rest-hotp-*` to `ui-hotp-*` prefixes so operators can distinguish UI traffic while preserving the original telemetry payload for log correlation.
 - `infra-persistence` module centralises `CredentialStoreFactory` wiring so CLI, REST, and tests acquire MapDB-backed stores through a shared configuration seam while keeping encryption profiles and future migrations/overrides injectable.
 - CLI module now exposes `maintenance <compact|verify>` commands that orchestrate the helper for operators working on local MapDB stores.
-- Unified operator console at `/ui/console` now embeds HOTP, TOTP, OCRA, and FIDO2/WebAuthn evaluation/replay flows, with placeholder tabs remaining only for the forthcoming EMV/CAP and EUDI wallet protocols; legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` views now redirect/not-found so the console remains the single entry point.
+- Unified operator console at `/ui/console` now embeds HOTP, TOTP, OCRA, FIDO2/WebAuthn, and EMV/CAP evaluation/replay flows, with placeholder tabs remaining only for the forthcoming EUDI wallet protocols; legacy `/ui/ocra/evaluate` and `/ui/ocra/replay` views now redirect/not-found so the console remains the single entry point.
 - Operator console canonicalises deep links for HOTP/TOTP/OCRA/FIDO2 using the shared `protocol`, `tab`, and `mode` query parameters so refreshes and history navigation reopen the correct protocol/mode; the router still remembers per-protocol preferences and accepts legacy `totp*`/`fido2Mode` parameters for existing bookmarks.
 - Operator console panels standardise on the evaluate/replay pill header, shared summary messaging, and hint styling so HOTP, OCRA, and forthcoming credential tabs retain a uniform UX while protocol-specific forms capture their unique inputs/outputs.
 - Operator console now exposes a JSON-driven protocol info drawer/modal that syncs with tab selection, persists seen/surface/panel state in localStorage, auto-opens once per protocol on wide viewports, honours reduced-motion preferences, toggles aria-hidden on the console when the modal is active, dispatches CustomEvents for open/close/spec interactions, and is triggered by a single global info button aligned beside the tablist.
@@ -135,7 +142,7 @@ This living map captures the explicit relationships between modules, data flows,
 - REST facade now boots a MapDB-backed `CredentialStore` bean (path configurable via `openauth.sim.persistence.database-path`), enabling stored credential evaluations in both REST and UI flows.
 - `infra-persistence` module exposes `CredentialStoreFactory`, centralising MapDB provisioning so CLI and REST facades obtain `CredentialStore` instances without direct builder usage.
 - How-to catalogue documents the Appendix B Java workflow for generating new OCRA test vectors, keeping domain/UI fixtures aligned with the draft reference implementation.
-- Operator documentation suite under `docs/2-how-to` now includes REST, CLI, and Java integration guides that point operators to shared MapDB defaults and Swagger UI entry points.
+- Operator documentation suite under `docs/2-how-to` now includes REST, CLI, Java integration, and EMV/CAP evaluation guides that reference sanitized telemetry fields and the `includeTrace` toggle exposed by the REST facade.
 - OCRA replay & verification flows (Feature 009) now extend CLI and REST facades with strict OTP verification using stored or inline credentials while emitting hashed OTP telemetry for audit purposes; shipped 2025-10-01 with shared `core.ocra.verify` instrumentation.
 - Operator console TOTP evaluate and replay panels now expose **Use current Unix seconds** toggles (with reset helpers) so operators can snap timestamps to the console clock’s current step; JavaScript quantises the epoch seconds according to each credential’s step size while keeping manual overrides available when toggles are cleared.
 - Core-shared now ships `Base32SecretCodec`, converting Base32 secrets into uppercase hex for HOTP/TOTP/OCRA flows; REST facades call it through `InlineSecretInput` so telemetry and persistence stay hex-only even when operators submit Base32 payloads.
