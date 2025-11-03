@@ -16,8 +16,11 @@ import io.openauth.sim.application.emv.cap.EmvCapSeedSamples.SeedSample;
 import io.openauth.sim.application.telemetry.EmvCapTelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.core.emv.cap.EmvCapCredentialDescriptor;
+import io.openauth.sim.core.emv.cap.EmvCapCredentialPersistenceAdapter;
 import io.openauth.sim.core.emv.cap.EmvCapMode;
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.core.support.ProjectPaths;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.PrintWriter;
@@ -110,6 +113,16 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
         writer.println(builder);
     }
 
+    private static TelemetryFrame withCredentialMetadata(
+            TelemetryFrame frame, String credentialSource, String credentialId) {
+        Map<String, Object> fields = new LinkedHashMap<>(frame.fields());
+        fields.put("credentialSource", credentialSource);
+        if (credentialId != null && !credentialId.trim().isEmpty()) {
+            fields.put("credentialId", credentialId.trim());
+        }
+        return new TelemetryFrame(frame.event(), frame.status(), frame.sanitized(), fields);
+    }
+
     private static String eventForMode(EmvCapMode mode) {
         return EVENT_PREFIX + mode.name().toLowerCase(Locale.ROOT);
     }
@@ -135,6 +148,7 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
             name = "cap",
             description = "Derive EMV/CAP OTP values for Identify, Respond, and Sign modes.",
             subcommands = {
+                EmvCli.CapCommand.EvaluateStoredCommand.class,
                 EmvCli.CapCommand.EvaluateCommand.class,
                 EmvCli.CapCommand.ReplayCommand.class,
                 EmvCli.CapCommand.SeedCommand.class
@@ -768,6 +782,396 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
             }
         }
 
+        @CommandLine.Command(
+                name = "evaluate-stored",
+                description = "Derive an EMV/CAP OTP for a stored credential with optional overrides.")
+        static final class EvaluateStoredCommand implements java.util.concurrent.Callable<Integer> {
+
+            private static final EmvCapCredentialPersistenceAdapter CREDENTIAL_ADAPTER =
+                    new EmvCapCredentialPersistenceAdapter();
+
+            private final EmvCapEvaluationApplicationService service = new EmvCapEvaluationApplicationService();
+
+            @CommandLine.ParentCommand
+            private CapCommand parent;
+
+            @CommandLine.Option(
+                    names = "--credential-id",
+                    required = true,
+                    paramLabel = "<id>",
+                    description = "Identifier of the stored EMV/CAP credential")
+            String credentialId;
+
+            @CommandLine.Option(
+                    names = "--mode",
+                    paramLabel = "<mode>",
+                    description = "Override EMV/CAP mode: IDENTIFY, RESPOND, or SIGN")
+            String mode;
+
+            @CommandLine.Option(
+                    names = "--master-key",
+                    paramLabel = "<hex>",
+                    description = "Override ICC master key (hex)")
+            String masterKeyHex;
+
+            @CommandLine.Option(
+                    names = "--atc",
+                    paramLabel = "<hex>",
+                    description = "Override Application Transaction Counter (hex)")
+            String atcHex;
+
+            @CommandLine.Option(
+                    names = "--branch-factor",
+                    paramLabel = "<int>",
+                    description = "Override session key derivation branch factor")
+            Integer branchFactor;
+
+            @CommandLine.Option(
+                    names = "--height",
+                    paramLabel = "<int>",
+                    description = "Override session key derivation height")
+            Integer height;
+
+            @CommandLine.Option(
+                    names = "--iv",
+                    paramLabel = "<hex>",
+                    description = "Override initialization vector (hex)")
+            String ivHex;
+
+            @CommandLine.Option(
+                    names = "--cdol1",
+                    paramLabel = "<hex>",
+                    description = "Override CDOL1 descriptor payload (hex)")
+            String cdol1Hex;
+
+            @CommandLine.Option(
+                    names = "--issuer-proprietary-bitmap",
+                    paramLabel = "<hex>",
+                    description = "Override Issuer Proprietary Bitmap (hex)")
+            String issuerProprietaryBitmapHex;
+
+            @CommandLine.Option(
+                    names = "--challenge",
+                    paramLabel = "<digits>",
+                    description = "Override numeric challenge")
+            String challenge;
+
+            @CommandLine.Option(
+                    names = "--reference",
+                    paramLabel = "<digits>",
+                    description = "Override reference value")
+            String reference;
+
+            @CommandLine.Option(names = "--amount", paramLabel = "<digits>", description = "Override amount value")
+            String amount;
+
+            @CommandLine.Option(
+                    names = "--terminal-data",
+                    paramLabel = "<hex>",
+                    description = "Override terminal transaction payload (hex)")
+            String terminalDataHex;
+
+            @CommandLine.Option(
+                    names = "--icc-template",
+                    paramLabel = "<hex>",
+                    description = "Override ICC data template payload (hex)")
+            String iccTemplateHex;
+
+            @CommandLine.Option(
+                    names = "--icc-data",
+                    paramLabel = "<hex>",
+                    description = "Override resolved ICC payload (hex)")
+            String iccDataOverrideHex;
+
+            @CommandLine.Option(
+                    names = "--issuer-application-data",
+                    paramLabel = "<hex>",
+                    description = "Override Issuer Application Data payload (hex)")
+            String issuerApplicationDataHex;
+
+            @CommandLine.Option(
+                    names = "--include-trace",
+                    paramLabel = "<true|false>",
+                    arity = "0..1",
+                    fallbackValue = "true",
+                    defaultValue = "true",
+                    description = "Include verbose trace payload (true/false, default: true)")
+            boolean includeTrace;
+
+            @CommandLine.Option(
+                    names = "--output-json",
+                    description = "Pretty-print a REST-equivalent JSON response instead of text output")
+            boolean outputJson;
+
+            @Override
+            public Integer call() {
+                String trimmedId = credentialId == null ? "" : credentialId.trim();
+                if (trimmedId.isEmpty()) {
+                    parent.err().println("error=credentialId must be provided");
+                    return CommandLine.ExitCode.USAGE;
+                }
+
+                EmvCapCredentialDescriptor descriptor;
+                try (CredentialStore store = parent.openStore()) {
+                    descriptor = store.findByName(trimmedId)
+                            .map(VersionedCredentialRecordMapper::toRecord)
+                            .map(CREDENTIAL_ADAPTER::deserialize)
+                            .orElse(null);
+                } catch (Exception ex) {
+                    try {
+                        EmvCapMode modeValue = resolveMode(null);
+                        Map<String, Object> fields = missingCredentialFields(trimmedId);
+                        fields.put("exception", ex.getClass().getSimpleName());
+                        return failUnexpected(modeValue, fields, ex.getMessage());
+                    } catch (IllegalArgumentException modeEx) {
+                        Map<String, Object> fields = missingCredentialFields(trimmedId);
+                        return failValidation(EmvCapMode.IDENTIFY, fields, modeEx.getMessage());
+                    }
+                }
+
+                if (descriptor == null) {
+                    try {
+                        EmvCapMode modeValue = resolveMode(null);
+                        Map<String, Object> fields = missingCredentialFields(trimmedId);
+                        return failValidation(modeValue, fields, "Unknown EMV/CAP credential " + trimmedId);
+                    } catch (IllegalArgumentException ex) {
+                        Map<String, Object> fields = missingCredentialFields(trimmedId);
+                        return failValidation(EmvCapMode.IDENTIFY, fields, ex.getMessage());
+                    }
+                }
+
+                EmvCapMode modeValue;
+                try {
+                    modeValue = resolveMode(descriptor);
+                } catch (IllegalArgumentException ex) {
+                    Map<String, Object> fields = descriptorFields(descriptor, trimmedId);
+                    return failValidation(descriptor.mode(), fields, ex.getMessage());
+                }
+
+                EvaluationRequest request;
+                try {
+                    request = buildRequest(modeValue, descriptor);
+                } catch (IllegalArgumentException ex) {
+                    Map<String, Object> fields = descriptorFields(descriptor, trimmedId);
+                    fields.put("mode", modeValue.name());
+                    fields.put("reason", sanitizeMessage(ex.getMessage()));
+                    return failValidation(modeValue, fields, ex.getMessage());
+                }
+
+                EvaluationResult result;
+                try {
+                    result = service.evaluate(request, includeTrace);
+                } catch (RuntimeException ex) {
+                    Map<String, Object> fields = requestFields(request, trimmedId);
+                    fields.put("exception", ex.getClass().getSimpleName());
+                    return failUnexpected(modeValue, fields, ex.getMessage());
+                }
+
+                TelemetrySignal signal = result.telemetry();
+                TelemetryFrame frame = withCredentialMetadata(
+                        signal.emit(adapterForMode(modeValue), nextTelemetryId()), "stored", trimmedId);
+                String event = eventForMode(modeValue);
+                return switch (signal.status()) {
+                    case SUCCESS -> onSuccess(event, frame, request, result);
+                    case INVALID -> onInvalid(event, frame, signal);
+                    case ERROR -> onError(event, frame, signal);
+                };
+            }
+
+            private Integer onSuccess(
+                    String event, TelemetryFrame frame, EvaluationRequest request, EvaluationResult result) {
+                if (outputJson) {
+                    parent.out().println(renderJsonResponse(result, request, frame));
+                    return CommandLine.ExitCode.OK;
+                }
+
+                PrintWriter writer = parent.out();
+                writeFrame(writer, event, frame);
+                writer.printf(Locale.ROOT, "otp=%s%n", result.otp());
+                writer.printf(Locale.ROOT, "maskLength=%d%n", result.maskLength());
+                if (includeTrace) {
+                    result.traceOptional().ifPresent(trace -> printTrace(writer, trace, request));
+                }
+                return CommandLine.ExitCode.OK;
+            }
+
+            private Integer onInvalid(String event, TelemetryFrame frame, TelemetrySignal signal) {
+                writeFrame(parent.err(), event, frame);
+                if (signal.reason() != null && !signal.reason().isBlank()) {
+                    parent.err().println("error=" + sanitizeMessage(signal.reason()));
+                }
+                return CommandLine.ExitCode.USAGE;
+            }
+
+            private Integer onError(String event, TelemetryFrame frame, TelemetrySignal signal) {
+                writeFrame(parent.err(), event, frame);
+                if (signal.reason() != null && !signal.reason().isBlank()) {
+                    parent.err().println("error=" + sanitizeMessage(signal.reason()));
+                }
+                return CommandLine.ExitCode.SOFTWARE;
+            }
+
+            private EvaluationRequest buildRequest(EmvCapMode modeValue, EmvCapCredentialDescriptor descriptor) {
+                String masterKey = hasText(masterKeyHex)
+                        ? requireText(masterKeyHex, "masterKey")
+                        : descriptor.masterKey().asHex();
+                String atc = hasText(atcHex) ? requireText(atcHex, "atc") : descriptor.defaultAtcHex();
+                int branch = branchFactor != null
+                        ? requirePositive(branchFactor, "branchFactor")
+                        : descriptor.branchFactor();
+                int heightValue = height != null ? requirePositive(height, "height") : descriptor.height();
+                String iv = hasText(ivHex) ? requireText(ivHex, "iv") : descriptor.ivHex();
+                String cdol1Value = hasText(cdol1Hex) ? requireText(cdol1Hex, "cdol1") : descriptor.cdol1Hex();
+                String issuerBitmap = hasText(issuerProprietaryBitmapHex)
+                        ? requireText(issuerProprietaryBitmapHex, "issuerProprietaryBitmap")
+                        : descriptor.issuerProprietaryBitmapHex();
+                String iccTemplateValue = hasText(iccTemplateHex)
+                        ? requireText(iccTemplateHex, "iccTemplate")
+                        : descriptor.iccDataTemplateHex();
+                String issuerApplicationDataValue = hasText(issuerApplicationDataHex)
+                        ? requireText(issuerApplicationDataHex, "issuerApplicationData")
+                        : descriptor.issuerApplicationDataHex();
+
+                String challengeValue = hasText(challenge) ? challenge.trim() : descriptor.defaultChallenge();
+                String referenceValue = hasText(reference) ? reference.trim() : descriptor.defaultReference();
+                String amountValue = hasText(amount) ? amount.trim() : descriptor.defaultAmount();
+
+                CustomerInputs inputs = new CustomerInputs(challengeValue, referenceValue, amountValue);
+
+                Optional<String> terminal = optionalOf(terminalDataHex);
+                if (terminal.isEmpty()) {
+                    terminal = descriptor.terminalDataHex();
+                }
+
+                Optional<String> icc = optionalOf(iccDataOverrideHex);
+                if (icc.isEmpty()) {
+                    icc = descriptor.resolvedIccDataHex().or(descriptor::iccDataHex);
+                }
+
+                TransactionData transactionData = new TransactionData(terminal, icc);
+
+                return new EvaluationRequest(
+                        modeValue,
+                        masterKey,
+                        atc,
+                        branch,
+                        heightValue,
+                        iv,
+                        cdol1Value,
+                        issuerBitmap,
+                        inputs,
+                        transactionData,
+                        iccTemplateValue,
+                        issuerApplicationDataValue);
+            }
+
+            private EmvCapMode resolveMode(EmvCapCredentialDescriptor descriptor) {
+                if (hasText(mode)) {
+                    String normalized = mode.trim().toUpperCase(Locale.ROOT);
+                    try {
+                        EmvCapMode parsed = EmvCapMode.fromLabel(normalized);
+                        if (descriptor != null && parsed != descriptor.mode()) {
+                            throw new IllegalArgumentException("Stored credential "
+                                    + descriptor.name()
+                                    + " is registered as "
+                                    + descriptor.mode()
+                                    + " but command requested "
+                                    + parsed);
+                        }
+                        return parsed;
+                    } catch (IllegalArgumentException ex) {
+                        throw new IllegalArgumentException("mode must be IDENTIFY, RESPOND, or SIGN");
+                    }
+                }
+                if (descriptor != null) {
+                    return descriptor.mode();
+                }
+                return EmvCapMode.IDENTIFY;
+            }
+
+            private Map<String, Object> missingCredentialFields(String trimmedId) {
+                Map<String, Object> fields = new LinkedHashMap<>();
+                fields.put("credentialSource", "stored");
+                fields.put("credentialId", trimmedId);
+                return fields;
+            }
+
+            private Map<String, Object> descriptorFields(EmvCapCredentialDescriptor descriptor, String trimmedId) {
+                Map<String, Object> fields = missingCredentialFields(trimmedId);
+                fields.put("mode", descriptor.mode().name());
+                fields.put("atc", descriptor.defaultAtcHex());
+                fields.put("branchFactor", descriptor.branchFactor());
+                fields.put("height", descriptor.height());
+                fields.put(
+                        "ipbMaskLength", descriptor.issuerProprietaryBitmapHex().length() / 2);
+                return fields;
+            }
+
+            private Map<String, Object> requestFields(EvaluationRequest request, String trimmedId) {
+                Map<String, Object> fields = missingCredentialFields(trimmedId);
+                fields.put("mode", request.mode().name());
+                fields.put("atc", request.atcHex());
+                fields.put("branchFactor", request.branchFactor());
+                fields.put("height", request.height());
+                fields.put("ipbMaskLength", request.issuerProprietaryBitmapHex().length() / 2);
+                return fields;
+            }
+
+            private int failValidation(EmvCapMode modeValue, Map<String, Object> fields, String message) {
+                TelemetryFrame frame = adapterForMode(modeValue)
+                        .status("invalid", nextTelemetryId(), "invalid_input", true, message, fields);
+                frame = withCredentialMetadata(frame, "stored", credentialId != null ? credentialId.trim() : null);
+                writeFrame(parent.err(), eventForMode(modeValue), frame);
+                parent.err().println("error=" + sanitizeMessage(message));
+                return CommandLine.ExitCode.USAGE;
+            }
+
+            private int failUnexpected(EmvCapMode modeValue, Map<String, Object> fields, String message) {
+                TelemetryFrame frame = adapterForMode(modeValue)
+                        .status("error", nextTelemetryId(), "unexpected_error", false, message, fields);
+                frame = withCredentialMetadata(frame, "stored", credentialId != null ? credentialId.trim() : null);
+                writeFrame(parent.err(), eventForMode(modeValue), frame);
+                parent.err().println("error=" + sanitizeMessage(message));
+                return CommandLine.ExitCode.SOFTWARE;
+            }
+
+            private static Optional<String> optionalOf(String value) {
+                if (value == null) {
+                    return Optional.empty();
+                }
+                String trimmed = value.trim();
+                if (trimmed.isEmpty()) {
+                    return Optional.empty();
+                }
+                return Optional.of(trimmed);
+            }
+
+            private static boolean hasText(String value) {
+                return value != null && !value.trim().isEmpty();
+            }
+
+            private static String requireText(String value, String field) {
+                if (value == null) {
+                    throw new IllegalArgumentException(field + " must be provided");
+                }
+                String trimmed = value.trim();
+                if (trimmed.isEmpty()) {
+                    throw new IllegalArgumentException(field + " must not be empty");
+                }
+                return trimmed;
+            }
+
+            private static int requirePositive(Integer value, String field) {
+                if (value == null) {
+                    throw new IllegalArgumentException(field + " must be provided");
+                }
+                if (value <= 0) {
+                    throw new IllegalArgumentException(field + " must be positive");
+                }
+                return value;
+            }
+        }
+
         /** Execute the EMV/CAP evaluate flow from Picocli inputs. */
         @CommandLine.Command(name = "evaluate", description = "Derive an EMV/CAP OTP for the supplied parameters.")
         static final class EvaluateCommand implements java.util.concurrent.Callable<Integer> {
@@ -944,7 +1348,8 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
 
             private Integer handleResult(EmvCapMode modeValue, EvaluationRequest request, EvaluationResult result) {
                 TelemetrySignal signal = result.telemetry();
-                TelemetryFrame frame = signal.emit(adapterForMode(modeValue), nextTelemetryId());
+                TelemetryFrame frame = withCredentialMetadata(
+                        signal.emit(adapterForMode(modeValue), nextTelemetryId()), "inline", null);
                 String event = eventForMode(modeValue);
                 return switch (signal.status()) {
                     case SUCCESS -> onSuccess(event, frame, request, result);
@@ -989,6 +1394,7 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
             private int failValidation(EmvCapMode modeValue, Map<String, Object> fields, String message) {
                 TelemetryFrame frame = adapterForMode(modeValue)
                         .status("invalid", nextTelemetryId(), "invalid_input", true, message, fields);
+                frame = withCredentialMetadata(frame, "inline", null);
                 writeFrame(parent.err(), eventForMode(modeValue), frame);
                 parent.err().println("error=" + sanitizeMessage(message));
                 return CommandLine.ExitCode.USAGE;
@@ -997,6 +1403,7 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
             private int failUnexpected(EmvCapMode modeValue, Map<String, Object> fields, String message) {
                 TelemetryFrame frame = adapterForMode(modeValue)
                         .status("error", nextTelemetryId(), "unexpected_error", false, message, fields);
+                frame = withCredentialMetadata(frame, "inline", null);
                 writeFrame(parent.err(), eventForMode(modeValue), frame);
                 parent.err().println("error=" + sanitizeMessage(message));
                 return CommandLine.ExitCode.SOFTWARE;
@@ -1004,6 +1411,7 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
 
             private static Map<String, Object> baseFields(EvaluationRequest request) {
                 Map<String, Object> fields = new LinkedHashMap<>();
+                fields.put("credentialSource", "inline");
                 fields.put("mode", request.mode().name());
                 fields.put("atc", request.atcHex());
                 fields.put("branchFactor", request.branchFactor());
@@ -1033,43 +1441,37 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                 }
                 return trimmed;
             }
-
-            private static String renderJsonResponse(
-                    EvaluationResult result, EvaluationRequest request, TelemetryFrame frame) {
-                StringBuilder builder = new StringBuilder();
-                builder.append("{\n");
-                builder.append("  \"otp\": \"").append(escapeJson(result.otp())).append("\",\n");
-                builder.append("  \"maskLength\": ").append(result.maskLength());
-                result.traceOptional().ifPresent(trace -> appendTraceJson(builder, trace, request));
-                builder.append(",\n  \"telemetry\": {\n");
-                builder.append("    \"event\": \"")
-                        .append(escapeJson(frame.event()))
-                        .append("\",\n");
-                builder.append("    \"status\": \"")
-                        .append(escapeJson(frame.status()))
-                        .append("\",\n");
-                builder.append("    \"reasonCode\": \"")
-                        .append(escapeJson(result.telemetry().reasonCode()))
-                        .append("\",\n");
-                builder.append("    \"sanitized\": ").append(frame.sanitized()).append(",\n");
-                builder.append("    \"fields\": {\n");
-                Iterator<Map.Entry<String, Object>> iterator =
-                        frame.fields().entrySet().iterator();
-                while (iterator.hasNext()) {
-                    Map.Entry<String, Object> entry = iterator.next();
-                    builder.append("      \"")
-                            .append(escapeJson(entry.getKey()))
-                            .append("\": ")
-                            .append(formatJsonValue(entry.getValue()));
-                    if (iterator.hasNext()) {
-                        builder.append(",");
-                    }
-                    builder.append("\n");
-                }
-                builder.append("    }\n  }\n}");
-                return builder.toString();
-            }
         }
+    }
+
+    private static String renderJsonResponse(EvaluationResult result, EvaluationRequest request, TelemetryFrame frame) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("{\n");
+        builder.append("  \"otp\": \"").append(escapeJson(result.otp())).append("\",\n");
+        builder.append("  \"maskLength\": ").append(result.maskLength());
+        result.traceOptional().ifPresent(trace -> appendTraceJson(builder, trace, request));
+        builder.append(",\n  \"telemetry\": {\n");
+        builder.append("    \"event\": \"").append(escapeJson(frame.event())).append("\",\n");
+        builder.append("    \"status\": \"").append(escapeJson(frame.status())).append("\",\n");
+        builder.append("    \"reasonCode\": \"")
+                .append(escapeJson(result.telemetry().reasonCode()))
+                .append("\",\n");
+        builder.append("    \"sanitized\": ").append(frame.sanitized()).append(",\n");
+        builder.append("    \"fields\": {\n");
+        Iterator<Map.Entry<String, Object>> iterator = frame.fields().entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, Object> entry = iterator.next();
+            builder.append("      \"")
+                    .append(escapeJson(entry.getKey()))
+                    .append("\": ")
+                    .append(formatJsonValue(entry.getValue()));
+            if (iterator.hasNext()) {
+                builder.append(",");
+            }
+            builder.append("\n");
+        }
+        builder.append("    }\n  }\n}");
+        return builder.toString();
     }
 
     private static void appendTraceJson(StringBuilder builder, Trace trace, EvaluationRequest request) {
