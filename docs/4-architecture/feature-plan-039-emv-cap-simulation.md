@@ -120,40 +120,47 @@ _Last updated:_ 2025-11-02 (verbose trace redaction planning)
    - Added targeted EMV/CAP replay and TOTP evaluation tests to lift Jacoco branch coverage from 0.68 to 0.7000, then ran the full Gradle quality gate to verify the build.  
    - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliReplayTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.totp.TotpEvaluationServiceTest"`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.  
 
-18. **I16 – Verbose trace key redaction (planned)**  
-   - Update EMV application, REST, CLI, and UI layers so verbose trace payloads replace master key values with `sha256:<digest>` strings (while retaining derived session keys) and accompanying length metadata.  
-   - Extend tests (core/application/REST/CLI/UI) to assert hashed master keys for stored and inline flows, adjust fixtures/docs accordingly, and confirm session keys remain visible.  
-   - Commands: `./gradlew --no-daemon :application:test :rest-api:test :cli:test :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+18. **I16 – Verbose trace key redaction (complete 2025-11-02)**  
+   - Application/REST/CLI/operator UI layers now emit `sha256:<digest>` strings for master keys while preserving session keys; fixtures, CLI output expectations, Selenium assertions, and documentation were updated accordingly.  
+   - Regression suites across application, REST, CLI, and UI cover digest redaction, stored vs inline flows, and replay parity, and the full `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` pipeline passes.
 
-19. **I17 – Console verbose toggle harmonization (planned)**  
-   - Remove EMV-specific include-trace checkboxes from the operator UI, ensuring the global verbose toggle drives `includeTrace` semantics for both Evaluate and Replay flows.  
-   - Update UI templates/JS, Selenium coverage, and documentation to reflect the shared control; verify CLI/REST behaviour remains unchanged.  
-   - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+19. **I17 – Console verbose toggle harmonization (complete 2025-11-02)**  
+   - Removed EMV-specific include-trace checkboxes so evaluate/replay flows follow the global verbose toggle semantics; JavaScript routing now sets `includeTrace` from the shared control and Selenium asserts the toggle wiring.  
+   - Targeted runs `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"` and `./gradlew --no-daemon :ui:test` verify UI behaviour, and aggregated Jacoco coverage holds at 2161/3087 (≈0.7000) after rerunning `./gradlew --no-daemon spotlessApply check`.
 
-19a. **I17a – Remove UI transaction override inputs (planned)**  
-   - Delete the “Resolved ICC payload”, “ICC payload override”, and “Terminal data” controls from Evaluate and Replay panels, relying on verbose traces (for resolved payloads) and REST/CLI transaction data for advanced overrides.  
-   - Adjust JS caches, Selenium coverage, and operator documentation to confirm only the ICC template and issuer application data remain visible while traces continue to expose `iccPayloadResolved`.  
-   - Commands (post-tests): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+19a. **I17a – Remove UI transaction override inputs (complete 2025-11-02)**  
+   - Evaluate and Replay panels dropped resolved/override terminal payload controls, consolidating diagnostics in verbose traces while REST/CLI retain override payloads; JS caches and Selenium flows adjusted to confirm traces expose `iccPayloadResolved`.  
+   - Post-change runs `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :ui:test`, and `./gradlew --no-daemon spotlessApply check` remain green.
 
-20. **I18 – Operator UI stored credential evaluate parity (planned)**  
-   - Introduce a stored credential selector to the EMV/CAP Evaluate tab matching HOTP/TOTP/OCRA behaviour: presets populate the form, remain editable, and display empty-state messaging when no credentials exist.  
-   - Add red tests (JS + Selenium) asserting preset loading, inline overrides, and submission of stored credentials without manual re-entry; ensure include-trace semantics follow the global toggle.  
-   - Commands (tests-first): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"` (expected red until implementation), `./gradlew --no-daemon :ui:test`.
+20. **I18 – Operator UI stored credential evaluate parity (complete 2025-11-02)**  
+   - Added stored credential selector, empty-state messaging, preset submission CTA, and inline override handling to the Evaluate panel with shared credential caching; Selenium coverage now exercises stored and inline submissions plus verbose toggle behaviour.  
+   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"` and `./gradlew --no-daemon :ui:test` execute green alongside the aggregated `spotlessApply check` pipeline.
 
-21. **I19 – REST evaluate stored credential endpoint (planned)**  
-   - Extend REST EMV/CAP evaluate contract with a stored-credential payload (separate DTO or discriminator) mirroring HOTP/TOTP endpoints, including OpenAPI examples for stored vs inline requests.  
-   - Stage failing MockMvc tests covering stored credential evaluation success, inline overrides, validation errors (missing credential or parameters), and trace suppression when requested.  
-   - Commands (tests-first): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapEvaluationEndpointTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` (expected red until implementation).
+21. **I19 – REST evaluate stored credential endpoint (complete 2025-11-02)**  
+   - REST controller/service resolve `credentialId` presets via `CredentialStore`, merge inline overrides, log telemetry with credential metadata, and expose OpenAPI examples for stored requests; MockMvc tests assert success, override precedence, validation errors, and trace suppression.  
+   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapEvaluationEndpointTest"` plus `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` validate the contract updates.
 
-22. **I20 – CLI stored evaluate command (planned)**  
-   - Add a Picocli subcommand (e.g., `emv cap evaluate-stored`) akin to TOTP that pulls parameters from `CredentialStore`, allows preview-window overrides, and preserves JSON/text parity with inline evaluation.  
-   - Write failing CLI tests ensuring stored evaluation emits sanitized telemetry, honours `--include-trace`, and supports optional inline overrides prior to implementation.  
-   - Commands (tests-first): `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliEvaluateStoredTest"` (new test placeholder), `./gradlew --no-daemon spotlessApply check`.
+22. **I20 – CLI stored evaluate command (complete 2025-11-02)**  
+   - Delivered `emv cap evaluate-stored` Picocli command with inline override flags, JSON/text parity, sanitized telemetry, and includeTrace toggling; CLI harness tests assert stored match behaviour, override handling, telemetry redaction, and trace suppression.  
+   - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliEvaluateStoredTest"` and `./gradlew --no-daemon spotlessApply check` now pass alongside the broader replay suite runs.
 
-## Current Increment – T3918 Operator UI stored evaluate parity (planned)
-- Extend the Evaluate tab with a stored credential dropdown mirroring HOTP/TOTP presets, add empty-state messaging, and ensure preset selection pre-populates while keeping fields editable.
-- Stage failing Selenium/JS coverage for stored submission, inline overrides, and global verbose toggle behaviour before implementation.
-- Planned commands (tests-first): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :ui:test`.
+23. **I21 – Operator UI evaluate mode toggle alignment (planned)**  
+   - Reintroduce a single "Choose evaluation mode" radio selector (stored credential vs. inline parameters) in the EMV Evaluate panel, mirroring HOTP/TOTP/OCRA UX.  
+   - Replace dual buttons with one Evaluate CTA that honors the selected mode, update JavaScript handlers to branch on radio state, and adjust Selenium coverage.  
+   - Planned commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+
+24. **I22 – Preview window controls & API alignment (planned)**  
+   - Add preview-window offset inputs (backward/forward) to the Evaluate panel, extend REST `EmvCapEvaluationRequest` and CLI commands with the shared window schema, and update application DTOs/tests.  
+   - Ensure the result card renders previews based on operator-provided offsets and refresh Selenium/MockMvc/CLI coverage.  
+   - Planned commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapEvaluationEndpointTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliEvaluateTest"`, `./gradlew --no-daemon spotlessApply check`.
+
+25. **I23 – Verbose trace diagnostic parity (planned)**  
+   - Enrich EMV verbose trace payloads with ATC, branch factor, height, and mask length metadata and render them in the operator verbose console; adjust REST/CLI serialization and fixtures.  
+   - Update application telemetry/trace models, JSON snapshots, and Selenium assertions verifying the additional fields.  
+   - Planned commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCli*"`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+
+## Current Increment – I21 Operator UI evaluate mode toggle alignment (planned)
+- Restore the shared evaluation-mode radio selector and single Evaluate CTA, updating console templates/JS and Selenium tests to match other protocol panels before implementation begins.
 
 ## Previous Increment – T3917 Console verbose toggle harmonization (completed 2025-11-02)
 - Removed the EMV panel-specific `includeTrace` checkbox so evaluations and replays rely on the global verbose toggle shared across protocols.

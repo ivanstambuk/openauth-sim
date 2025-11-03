@@ -351,9 +351,11 @@ public final class OcraCli implements Callable<Integer> {
         @Override
         public Integer call() {
             String event = event("import");
-            try (CredentialStore store = openStore()) {
-                Duration allowedDrift = allowedDriftSeconds == null ? null : Duration.ofSeconds(allowedDriftSeconds);
-                OcraCredentialDescriptor descriptor = createDescriptor(
+
+            Duration allowedDrift = allowedDriftSeconds == null ? null : Duration.ofSeconds(allowedDriftSeconds);
+            OcraCredentialDescriptor descriptor;
+            try {
+                descriptor = createDescriptor(
                         credentialId.trim(),
                         suite.trim(),
                         sharedSecretHex.replace(" ", "").trim(),
@@ -361,7 +363,11 @@ public final class OcraCli implements Callable<Integer> {
                         hasText(pinHashHex) ? pinHashHex.trim() : null,
                         allowedDrift,
                         Map.of("source", "cli"));
+            } catch (IllegalArgumentException ex) {
+                return failValidation(event, "validation_error", ex.getMessage());
+            }
 
+            try (CredentialStore store = openStore()) {
                 store.save(VersionedCredentialRecordMapper.toCredential(
                         persistenceAdapter().serialize(descriptor)));
 

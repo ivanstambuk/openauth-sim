@@ -1,7 +1,7 @@
 # Feature 039 – EMV/CAP Simulation Services
 
 _Status: In progress_  
-_Last updated: 2025-11-02_
+_Last updated: 2025-11-03_
 
 ## Overview
 Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors the reference calculator workflows while fitting the OpenAuth Simulator architecture. Scope now covers reusable core derivation utilities, application orchestration, REST and CLI facades, operator console integration, and MapDB-backed credential seeding so every surface can evaluate Identify/Respond/Sign flows with consistent telemetry and traces. Documentation across REST, CLI, and operator UI guides captures the extended fixture set delivered in T3908c/T3909 so operators can reproduce reference flows end-to-end.
@@ -20,6 +20,9 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - 2025-11-02 – Task T3915 must deliver replay documentation updates plus Jacoco branch coverage recovery, culminating in a successful full `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` run (owner directive).
 - 2025-11-02 – Verbose traces must redact EMV master keys by surfacing only SHA-256 digests (formatted `sha256:<hex>`), matching the redaction pattern already used by HOTP/TOTP/OCRA verbose traces. Session keys remain visible to support troubleshooting (owner directive).
 - 2025-11-02 – Evaluate flows across all facades (Operator console, REST, CLI) must allow selecting stored EMV/CAP credentials in addition to inline parameters, mirroring HOTP/TOTP/OCRA behaviour where stored presets prefill/drive evaluation while remaining editable until cleared (owner directive).
+- 2025-11-03 – Operator console Evaluate tab must surface a "Choose evaluation mode" selector mirroring other protocols: radio buttons for stored credential vs. inline parameters, a single Evaluate CTA bound to the active selection, and no duplicate preset/inline buttons (owner directive).
+- 2025-11-03 – Preview window offsets remain mandatory on the Evaluate form and corresponding REST/CLI requests so operators can adjust the neighboring OTP previews; align EMV controls/DTOs with the HOTP/TOTP/OCRA window schema (owner directive).
+- 2025-11-03 – Verbose trace payloads must surface ATC, branch factor, height, and mask length metadata alongside the masked digits overlay so operator diagnostics match other protocols (owner directive).
 
 ## Requirements
 
