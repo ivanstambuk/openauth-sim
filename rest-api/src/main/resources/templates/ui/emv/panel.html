@@ -248,52 +248,6 @@
                   </div>
                 </div>
 
-                <section class="stack-md emv-transaction-section" aria-labelledby="emvTransactionInputs">
-                  <h3 id="emvTransactionInputs" class="section-subtitle">Transaction data (optional overrides)</h3>
-                  <div class="field-grid emv-transaction-grid">
-                    <div class="field-group emv-field--full">
-                      <label for="emvTerminalData">Terminal data (hex)</label>
-                      <textarea
-                          id="emvTerminalData"
-                          name="terminalData"
-                          rows="2"
-                          spellcheck="false"
-                          autocapitalize="none"
-                          autocomplete="off"
-                          data-testid="emv-terminal-data"
-                        ></textarea>
-                    </div>
-                    <div class="field-group emv-field--full">
-                      <label for="emvIccOverride">ICC payload override (hex)</label>
-                      <textarea
-                          id="emvIccOverride"
-                          name="iccData"
-                          rows="2"
-                          spellcheck="false"
-                          autocapitalize="none"
-                          autocomplete="off"
-                          data-testid="emv-icc-override"
-                        ></textarea>
-                    </div>
-                    <div class="field-group emv-field--full">
-                      <label for="emvIccResolved">Resolved ICC payload (reference)</label>
-                      <textarea
-                          id="emvIccResolved"
-                          name="iccResolved"
-                          rows="2"
-                          spellcheck="false"
-                          autocapitalize="none"
-                          autocomplete="off"
-                          data-testid="emv-icc-resolved"
-                      ></textarea>
-                      <p class="hint">
-                        The resolved ICC payload is retained for reference and isn’t submitted unless copied into the
-                        override field.
-                      </p>
-                    </div>
-                  </div>
-                </section>
-
                 <div class="emv-action-bar" data-testid="emv-action-bar">
                   <button
                       type="button"
@@ -505,6 +459,28 @@
                         autocomplete="off"
                       ></textarea>
                   </div>
+                  <div class="field-group emv-field--full" data-testid="emv-replay-icc-template">
+                    <label for="emvReplayIccTemplate">ICC payload template (xxxx = ATC)</label>
+                    <textarea
+                        id="emvReplayIccTemplate"
+                        name="replayIccTemplate"
+                        rows="2"
+                        spellcheck="false"
+                        autocapitalize="none"
+                        autocomplete="off"
+                      ></textarea>
+                  </div>
+                  <div class="field-group emv-field--full" data-testid="emv-replay-issuer-application-data">
+                    <label for="emvReplayIssuerApplicationData">Issuer Application Data (hex)</label>
+                    <textarea
+                        id="emvReplayIssuerApplicationData"
+                        name="replayIssuerApplicationData"
+                        rows="2"
+                        spellcheck="false"
+                        autocapitalize="none"
+                        autocomplete="off"
+                      ></textarea>
+                  </div>
                 </div>
 
                 <div class="field-grid emv-customer-grid" role="group" aria-labelledby="emvReplayCustomerInputs">
@@ -520,67 +496,6 @@
                   <div class="field-group" data-testid="emv-replay-amount">
                     <label for="emvReplayAmount">Amount (digits)</label>
                     <input type="text" id="emvReplayAmount" name="replayAmount" autocomplete="off" />
-                  </div>
-                </div>
-
-                <div class="field-grid emv-transaction-grid">
-                  <div class="field-group emv-field--full" data-testid="emv-replay-terminal-data">
-                    <label for="emvReplayTerminalData">Terminal data (hex)</label>
-                    <textarea
-                        id="emvReplayTerminalData"
-                        name="replayTerminalData"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                      ></textarea>
-                  </div>
-                  <div class="field-group emv-field--full" data-testid="emv-replay-icc-override">
-                    <label for="emvReplayIccOverride">ICC payload override (hex)</label>
-                    <textarea
-                        id="emvReplayIccOverride"
-                        name="replayIccOverride"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                      ></textarea>
-                  </div>
-                  <div class="field-group emv-field--full" data-testid="emv-replay-icc-template">
-                    <label for="emvReplayIccTemplate">ICC payload template (xxxx = ATC)</label>
-                    <textarea
-                        id="emvReplayIccTemplate"
-                        name="replayIccTemplate"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                      ></textarea>
-                  </div>
-                  <div class="field-group emv-field--full" data-testid="emv-replay-icc-resolved">
-                    <label for="emvReplayIccResolved">Resolved ICC payload (reference)</label>
-                    <textarea
-                        id="emvReplayIccResolved"
-                        name="replayIccResolved"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                      ></textarea>
-                    <p class="hint">
-                      Copy the resolved payload into the override field to submit a custom ICC buffer.
-                    </p>
-                  </div>
-                  <div class="field-group emv-field--full" data-testid="emv-replay-issuer-application-data">
-                    <label for="emvReplayIssuerApplicationData">Issuer Application Data (hex)</label>
-                    <textarea
-                        id="emvReplayIssuerApplicationData"
-                        name="replayIssuerApplicationData"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                      ></textarea>
                   </div>
                 </div>
 

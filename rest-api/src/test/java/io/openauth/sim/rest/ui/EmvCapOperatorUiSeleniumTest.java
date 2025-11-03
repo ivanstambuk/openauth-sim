@@ -106,6 +106,16 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("Stored preset evaluation button should become enabled once a credential is active")
                 .isNull();
 
+        assertThat(driver.findElements(By.cssSelector("[data-testid='emv-terminal-data']")))
+                .as("Evaluate panel should no longer expose terminal override input")
+                .isEmpty();
+        assertThat(driver.findElements(By.cssSelector("[data-testid='emv-icc-override']")))
+                .as("Evaluate panel should no longer expose ICC override input")
+                .isEmpty();
+        assertThat(driver.findElements(By.cssSelector("[data-testid='emv-icc-resolved']")))
+                .as("Evaluate panel should rely on verbose trace for resolved ICC payload")
+                .isEmpty();
+
         WebElement storedHint = driver.findElement(By.cssSelector("[data-testid='emv-stored-empty']"));
         assertThat(storedHint.getText())
                 .as("Stored preset hint should describe inline override fallback")
@@ -277,6 +287,16 @@ final class EmvCapOperatorUiSeleniumTest {
 
         Select storedSelect = waitForReplayStoredCredentialSelect();
         waitForReplayCredential(storedSelect, fixture.credentialId(), "CAP Respond baseline");
+
+        assertThat(driver.findElements(By.cssSelector("[data-testid='emv-replay-terminal-data']")))
+                .as("Replay panel should no longer expose terminal override input")
+                .isEmpty();
+        assertThat(driver.findElements(By.cssSelector("[data-testid='emv-replay-icc-override']")))
+                .as("Replay panel should no longer expose ICC override input")
+                .isEmpty();
+        assertThat(driver.findElements(By.cssSelector("[data-testid='emv-replay-icc-resolved']")))
+                .as("Replay panel should rely on verbose traces for resolved ICC payload")
+                .isEmpty();
 
         WebElement otpInput = waitForVisible(By.cssSelector("[data-testid='emv-replay-otp'] input[type='text']"));
         otpInput.clear();
