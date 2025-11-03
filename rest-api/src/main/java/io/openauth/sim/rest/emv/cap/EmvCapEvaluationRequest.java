@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record EmvCapEvaluationRequest(
+        @JsonProperty("credentialId") String credentialId,
         @JsonProperty("mode") String mode,
         @JsonProperty("masterKey") String masterKey,
         @JsonProperty("atc") String atc,
