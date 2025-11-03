@@ -39,9 +39,6 @@
   var challengeInput = form.querySelector('#emvChallenge');
   var referenceInput = form.querySelector('#emvReference');
   var amountInput = form.querySelector('#emvAmount');
-  var terminalInput = form.querySelector('#emvTerminalData');
-  var iccOverrideInput = form.querySelector('#emvIccOverride');
-  var iccResolvedInput = form.querySelector('#emvIccResolved');
   var storedSubmissionState = createStoredSubmissionState({ snapshot: captureEvaluateSnapshot });
   var seedActions = form.querySelector('[data-testid="emv-seed-actions"]');
   var seedButton = seedActions ? seedActions.querySelector('[data-testid="emv-seed-credentials"]') : null;
@@ -114,17 +111,8 @@
   var replayAmountInput = replayForm
       ? replayForm.querySelector('[data-testid="emv-replay-amount"] input')
       : null;
-  var replayTerminalInput = replayForm
-      ? replayForm.querySelector('[data-testid="emv-replay-terminal-data"] textarea')
-      : null;
-  var replayIccOverrideInput = replayForm
-      ? replayForm.querySelector('[data-testid="emv-replay-icc-override"] textarea')
-      : null;
   var replayIccTemplateInput = replayForm
       ? replayForm.querySelector('[data-testid="emv-replay-icc-template"] textarea')
-      : null;
-  var replayIccResolvedInput = replayForm
-      ? replayForm.querySelector('[data-testid="emv-replay-icc-resolved"] textarea')
       : null;
   var replayIssuerApplicationDataInput = replayForm
       ? replayForm.querySelector('[data-testid="emv-replay-issuer-application-data"] textarea')
@@ -336,16 +324,6 @@
       setValue(amountInput, summary.defaults.amount);
     }
 
-    if (summary.transaction) {
-      setValue(terminalInput, summary.transaction.terminal);
-      setValue(iccOverrideInput, summary.transaction.icc);
-      setValue(iccResolvedInput, summary.transaction.iccResolved);
-    } else {
-      setValue(terminalInput, '');
-      setValue(iccOverrideInput, '');
-      setValue(iccResolvedInput, '');
-    }
-
     applyReplayDefaults(credentialId, summary);
 
     if (storedSubmissionState && typeof storedSubmissionState.resetBaseline === 'function') {
@@ -412,16 +390,6 @@
       setValue(replayChallengeInput, '');
       setValue(replayReferenceInput, '');
       setValue(replayAmountInput, '');
-    }
-
-    if (summary.transaction) {
-      setValue(replayTerminalInput, summary.transaction.terminal);
-      setValue(replayIccOverrideInput, summary.transaction.icc);
-      setValue(replayIccResolvedInput, summary.transaction.iccResolved);
-    } else {
-      setValue(replayTerminalInput, '');
-      setValue(replayIccOverrideInput, '');
-      setValue(replayIccResolvedInput, '');
     }
 
     setValue(replayOtpInput, '');
@@ -714,8 +682,6 @@
       challenge: digitsValue(challengeInput),
       reference: digitsValue(referenceInput),
       amount: digitsValue(amountInput),
-      terminal: uppercase(value(terminalInput)),
-      icc: uppercase(value(iccOverrideInput)),
     };
   }
 
@@ -741,18 +707,6 @@
 
     if (!payload.customerInputs.challenge && !payload.customerInputs.reference && !payload.customerInputs.amount) {
       delete payload.customerInputs;
-    }
-
-    var transactionTerminal = uppercase(value(terminalInput));
-    var transactionIcc = uppercase(value(iccOverrideInput));
-    if (transactionTerminal || transactionIcc) {
-      payload.transactionData = {};
-      if (transactionTerminal) {
-        payload.transactionData.terminal = transactionTerminal;
-      }
-      if (transactionIcc) {
-        payload.transactionData.icc = transactionIcc;
-      }
     }
 
     payload.includeTrace = isTraceRequested();
@@ -1000,8 +954,6 @@
     }
     if (trace.iccPayloadResolved) {
       inputAttributes.iccResolved = trace.iccPayloadResolved;
-    } else if (generateInput.icc) {
-      inputAttributes.icc = generateInput.icc;
     }
     if (Object.keys(inputAttributes).length > 0) {
       steps.push({
@@ -1245,18 +1197,6 @@
     };
     if (customerInputs.challenge || customerInputs.reference || customerInputs.amount) {
       payload.customerInputs = customerInputs;
-    }
-
-    var terminalHex = uppercase(value(replayTerminalInput));
-    var iccOverrideHex = uppercase(value(replayIccOverrideInput));
-    if (terminalHex || iccOverrideHex) {
-      payload.transactionData = {};
-      if (terminalHex) {
-        payload.transactionData.terminal = terminalHex;
-      }
-      if (iccOverrideHex) {
-        payload.transactionData.icc = iccOverrideHex;
-      }
     }
 
     var context = {
