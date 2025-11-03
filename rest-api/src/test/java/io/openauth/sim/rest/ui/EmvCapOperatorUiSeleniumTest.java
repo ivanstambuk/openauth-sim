@@ -94,8 +94,22 @@ final class EmvCapOperatorUiSeleniumTest {
     void storedPresetEvaluatesIdentifyMode() {
         navigateToEmvConsole();
 
+        WebElement storedSubmitButton = waitForVisible(By.cssSelector("button[data-testid='emv-stored-submit']"));
+        assertThat(storedSubmitButton.getAttribute("disabled"))
+                .as("Stored preset evaluation button should be disabled until a credential is selected")
+                .isNotNull();
         Select credentialSelect = waitForStoredCredentialSelect();
         waitForCredential(credentialSelect, STORED_CREDENTIAL_ID, STORED_PRESET_LABEL);
+
+        storedSubmitButton = waitForClickable(By.cssSelector("button[data-testid='emv-stored-submit']"));
+        assertThat(storedSubmitButton.getAttribute("disabled"))
+                .as("Stored preset evaluation button should become enabled once a credential is active")
+                .isNull();
+
+        WebElement storedHint = driver.findElement(By.cssSelector("[data-testid='emv-stored-empty']"));
+        assertThat(storedHint.getText())
+                .as("Stored preset hint should describe inline override fallback")
+                .contains("Modify any field to fall back to inline overrides");
 
         WebElement globalVerboseCheckbox = waitForClickable(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
         assertThat(globalVerboseCheckbox.isSelected())
@@ -110,8 +124,7 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("EMV-specific include-trace checkbox should be removed in favour of global toggle")
                 .isEmpty();
 
-        waitForClickable(By.cssSelector("button[data-testid='emv-evaluate-submit']"))
-                .click();
+        storedSubmitButton.click();
         driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
 
         waitForStatus("Success");
@@ -151,7 +164,9 @@ final class EmvCapOperatorUiSeleniumTest {
                 .contains("metadata.maskedDigitsCount = " + maskedDigitsCount)
                 .contains("metadata.atc = " + atcHex)
                 .contains("metadata.branchFactor = " + branchFactor)
-                .contains("metadata.height = " + height);
+                .contains("metadata.height = " + height)
+                .contains("metadata.credentialSource = stored")
+                .contains("metadata.credentialId = " + STORED_CREDENTIAL_ID);
         assertThat(traceText)
                 .as("Trace steps should surface session key and Generate AC details")
                 .contains("masterKey.sha256 = " + masterKeyDigest)
@@ -198,6 +213,47 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(tracePanel.getAttribute("hidden"))
                 .as("Verbose trace panel should remain hidden when includeTrace is unchecked")
                 .isNotNull();
+    }
+
+    @Test
+    @DisplayName("Modifying stored preset fields falls back to inline evaluation")
+    void storedOverridesFallbackToInline() {
+        navigateToEmvConsole();
+
+        Select storedSelect = waitForStoredCredentialSelect();
+        waitForCredential(storedSelect, STORED_CREDENTIAL_ID, STORED_PRESET_LABEL);
+
+        WebElement storedSubmitButton = waitForClickable(By.cssSelector("button[data-testid='emv-stored-submit']"));
+        assertThat(storedSubmitButton.getAttribute("disabled")).isNull();
+
+        WebElement masterKeyInput = waitForVisible(By.id("emvMasterKey"));
+        String baselineMasterKey = BASELINE_VECTOR.input().masterKeyHex();
+        char replacement = baselineMasterKey.charAt(0) == 'F' ? 'E' : 'F';
+        String mutatedMasterKey = replacement + baselineMasterKey.substring(1);
+        masterKeyInput.clear();
+        masterKeyInput.sendKeys(mutatedMasterKey);
+
+        WebElement globalVerboseCheckbox = waitForClickable(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
+        if (!globalVerboseCheckbox.isSelected()) {
+            globalVerboseCheckbox.click();
+        }
+
+        storedSubmitButton.click();
+        driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
+
+        waitForStatus("Success");
+        WebElement tracePanel = waitForTracePanelVisibility(true);
+        assertThat(tracePanel.getAttribute("hidden")).isNull();
+
+        WebElement traceContent = waitForVisible(By.cssSelector("[data-testid='verbose-trace-content']"));
+        String traceText = traceContent.getText();
+        assertThat(traceText)
+                .as("Inline fallback should identify credentialSource as inline")
+                .contains("metadata.credentialSource = inline")
+                .doesNotContain("metadata.credentialSource = stored");
+
+        storedSubmitButton = waitForClickable(By.cssSelector("button[data-testid='emv-stored-submit']"));
+        assertThat(storedSubmitButton.getAttribute("disabled")).isNull();
     }
 
     @Test
@@ -343,6 +399,7 @@ final class EmvCapOperatorUiSeleniumTest {
     }
 
     private void waitForCredential(Select select, String id, String label) {
+        driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
         new WebDriverWait(driver, WAIT_TIMEOUT)
                 .until(d -> select.getOptions().stream().anyMatch(option -> id.equals(option.getAttribute("value"))));
         assertThat(select.getOptions().stream()

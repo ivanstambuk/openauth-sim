@@ -60,7 +60,7 @@
               <form
                   class="evaluation-form stack-lg"
                   data-testid="emv-form"
-                  th:attr="data-evaluate-endpoint=${emvEvaluateEndpoint},data-credentials-endpoint=${emvCredentialsEndpoint},data-seed-endpoint=${emvSeedEndpoint}"
+                  th:attr="data-evaluate-endpoint=${emvEvaluateEndpoint},data-stored-endpoint=${emvStoredEvaluateEndpoint},data-credentials-endpoint=${emvCredentialsEndpoint},data-seed-endpoint=${emvSeedEndpoint}"
                 >
                 <input type="hidden" name="_csrf" th:value="${csrfToken}" />
                 <script
@@ -294,11 +294,22 @@
                   </div>
                 </section>
 
-                <div class="emv-action-bar">
-                  <button type="submit" class="button-primary" data-testid="emv-evaluate-submit">
-                    Evaluate CAP OTP
+                <div class="emv-action-bar" data-testid="emv-action-bar">
+                  <button
+                      type="button"
+                      class="button-primary"
+                      data-testid="emv-stored-submit"
+                      disabled="disabled"
+                    >
+                    Evaluate stored preset
+                  </button>
+                  <button type="submit" class="button-secondary" data-testid="emv-evaluate-submit">
+                    Evaluate inline overrides
                   </button>
                 </div>
+                <p class="hint" data-testid="emv-stored-empty" aria-live="polite">
+                  Select a stored credential to enable preset evaluation.
+                </p>
               </form>
             </div>
 

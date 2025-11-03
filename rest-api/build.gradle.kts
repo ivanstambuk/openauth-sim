@@ -1,5 +1,7 @@
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.tasks.Exec
 import org.gradle.kotlin.dsl.getByType
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 plugins {
     java
@@ -39,4 +41,15 @@ dependencies {
     constraints {
         implementation("com.github.spotbugs:spotbugs-annotations:4.8.3")
     }
+}
+
+tasks.register<Exec>("emvConsoleJsTest") {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Runs EMV console JavaScript unit tests"
+    commandLine("node", "--test", "src/test/javascript/emv/console.test.js")
+    workingDir = project.projectDir
+}
+
+tasks.named("check") {
+    dependsOn("emvConsoleJsTest")
 }

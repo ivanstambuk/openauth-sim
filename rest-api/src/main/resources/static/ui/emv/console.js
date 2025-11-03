@@ -20,10 +20,13 @@
   var evaluatePanel = rootPanel.querySelector('[data-emv-panel="evaluate"]');
   var replayPanel = rootPanel.querySelector('[data-emv-panel="replay"]');
   var evaluateEndpoint = form.getAttribute('data-evaluate-endpoint') || '';
+  var storedEndpoint = form.getAttribute('data-stored-endpoint') || evaluateEndpoint;
   var credentialsEndpoint = form.getAttribute('data-credentials-endpoint') || '';
   var seedEndpoint = form.getAttribute('data-seed-endpoint') || '';
   var csrfInput = form.querySelector('input[name="_csrf"]');
   var storedSelect = form.querySelector('#emvStoredCredentialId');
+  var storedSubmitButton = form.querySelector('[data-testid="emv-stored-submit"]');
+  var storedEmptyState = form.querySelector('[data-testid="emv-stored-empty"]');
   var masterKeyInput = form.querySelector('#emvMasterKey');
   var atcInput = form.querySelector('#emvAtc');
   var branchFactorInput = form.querySelector('#emvBranchFactor');
@@ -39,6 +42,7 @@
   var terminalInput = form.querySelector('#emvTerminalData');
   var iccOverrideInput = form.querySelector('#emvIccOverride');
   var iccResolvedInput = form.querySelector('#emvIccResolved');
+  var storedSubmissionState = createStoredSubmissionState({ snapshot: captureEvaluateSnapshot });
   var seedActions = form.querySelector('[data-testid="emv-seed-actions"]');
   var seedButton = seedActions ? seedActions.querySelector('[data-testid="emv-seed-credentials"]') : null;
   var seedStatus = seedActions ? seedActions.querySelector('[data-testid="emv-seed-status"]') : null;
@@ -161,13 +165,27 @@
 
   if (storedSelect) {
     storedSelect.addEventListener('change', function () {
-      applyCredential(storedSelect.value);
+      if (storedSelect.value) {
+        applyCredential(storedSelect.value);
+      } else if (storedSubmissionState && typeof storedSubmissionState.clearBaseline === 'function') {
+        storedSubmissionState.clearBaseline();
+        updateStoredControls();
+      }
     });
   }
 
   if (seedButton) {
     seedButton.addEventListener('click', function () {
       handleSeedRequest();
+    });
+  }
+
+  if (storedSubmitButton) {
+    storedSubmitButton.addEventListener('click', function (event) {
+      if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+      }
+      handleStoredSubmit();
     });
   }
 
@@ -183,7 +201,9 @@
     });
   }
 
+  updateStoredControls();
   loadCredentials();
+  registerTestHooks();
 
   function loadCredentials() {
     var endpoint = credentialsEndpoint || replayCredentialsEndpoint;
@@ -196,10 +216,8 @@
         credentialsCache = Object.create(null);
         credentialsList = Array.isArray(payload) ? payload : [];
         populateStoredSelect(credentialsList);
-        if (storedSelect && storedSelect.value) {
+        if (storedSelect && storedSelect.value && credentialsCache[storedSelect.value]) {
           applyCredential(storedSelect.value);
-        } else if (credentialsList.length > 0) {
-          applyCredential(credentialsList[0].id);
         }
       })
       .catch(function (error) {
@@ -210,6 +228,7 @@
       })
       .then(function () {
         loadingCredentials = false;
+        updateStoredControls();
       });
   }
 
@@ -228,6 +247,16 @@
     if (!storedSelect) {
       return;
     }
+    var previousValue = storedSelect.value || '';
+    var entries = Array.isArray(list) ? list : [];
+    var placeholderOption = storedSelect.options && storedSelect.options.length ? storedSelect.options[0] : null;
+    if (placeholderOption) {
+      placeholderOption.textContent =
+        entries.length > 0 ? 'Select a preset credential' : 'No stored credentials available';
+    }
+    if (entries.length === 0) {
+      storedSelect.value = '';
+    }
     while (storedSelect.options.length > 1) {
       storedSelect.remove(1);
     }
@@ -243,6 +272,13 @@
           : summary.id;
       storedSelect.appendChild(option);
     });
+    if (entries.length > 0) {
+      var hasPrevious = previousValue && entries.some(function (summary) {
+        return summary && summary.id === previousValue;
+      });
+      storedSelect.value = hasPrevious ? previousValue : '';
+    }
+    updateStoredControls();
   }
 
   function populateReplayStoredSelect(list) {
@@ -311,6 +347,11 @@
     }
 
     applyReplayDefaults(credentialId, summary);
+
+    if (storedSubmissionState && typeof storedSubmissionState.resetBaseline === 'function') {
+      storedSubmissionState.resetBaseline(credentialId);
+    }
+    updateStoredControls();
   }
 
   function applyReplayDefaults(credentialId, summary) {
@@ -588,16 +629,20 @@
 
   function handleSubmit() {
     if (submitting || !evaluateEndpoint) {
-      return;
+      return Promise.resolve(null);
+    }
+    if (storedSubmissionState && typeof storedSubmissionState.recordInline === 'function') {
+      storedSubmissionState.recordInline();
     }
     var payload = buildPayload();
     submitting = true;
+    updateStoredControls();
     if (resultPanel && global.ResultCard && typeof global.ResultCard.resetMessage === 'function') {
       global.ResultCard.resetMessage(resultPanel);
     }
     clearPreview();
     verboseBeginRequest();
-    postJson(evaluateEndpoint, payload, csrfToken(csrfInput))
+    return postJson(evaluateEndpoint, payload, csrfToken(csrfInput))
       .then(function (response) {
         renderSuccess(response);
       })
@@ -606,7 +651,72 @@
       })
       .then(function () {
         submitting = false;
+        updateStoredControls();
       });
+  }
+
+  function handleStoredSubmit() {
+    if (submitting || !storedEndpoint || !storedSelect) {
+      return Promise.resolve(null);
+    }
+    var credentialId = storedSelect.value;
+    if (!credentialId) {
+      return Promise.resolve(null);
+    }
+    if (storedSubmissionState && typeof storedSubmissionState.hasOverrides === 'function') {
+      if (storedSubmissionState.hasOverrides(credentialId)) {
+        if (typeof storedSubmissionState.recordInline === 'function') {
+          storedSubmissionState.recordInline();
+        }
+        return handleSubmit();
+      }
+      if (typeof storedSubmissionState.recordStored === 'function') {
+        storedSubmissionState.recordStored();
+      }
+    }
+    var payload = storedSubmissionState && typeof storedSubmissionState.buildStoredPayload === 'function'
+      ? storedSubmissionState.buildStoredPayload(credentialId, isTraceRequested())
+      : { credentialId: credentialId, includeTrace: isTraceRequested() };
+    submitting = true;
+    updateStoredControls();
+    if (resultPanel && global.ResultCard && typeof global.ResultCard.resetMessage === 'function') {
+      global.ResultCard.resetMessage(resultPanel);
+    }
+    clearPreview();
+    verboseBeginRequest();
+    return postJson(storedEndpoint, payload, csrfToken(csrfInput))
+      .then(function (response) {
+        renderSuccess(response);
+      })
+      .catch(function (error) {
+        renderFailure(error);
+      })
+      .then(function () {
+        submitting = false;
+        updateStoredControls();
+      });
+  }
+
+  function captureEvaluateSnapshot() {
+    var branchFactorValue = parseInteger(branchFactorInput);
+    var heightValue = parseInteger(heightInput);
+    return {
+      mode: selectedMode(),
+      masterKey: uppercase(value(masterKeyInput)),
+      atc: uppercase(value(atcInput)),
+      branchFactor: branchFactorValue == null ? '' : String(branchFactorValue),
+      height: heightValue == null ? '' : String(heightValue),
+      iv: uppercase(value(ivInput)),
+      cdol1: uppercase(value(cdol1Input)),
+      issuerProprietaryBitmap: uppercase(value(ipbInput)),
+      iccDataTemplate: uppercase(value(iccTemplateInput)),
+      issuerApplicationData: uppercase(value(issuerApplicationDataInput)),
+      challenge: digitsValue(challengeInput),
+      reference: digitsValue(referenceInput),
+      amount: digitsValue(amountInput),
+      terminal: uppercase(value(terminalInput)),
+      icc: uppercase(value(iccOverrideInput)),
+    };
   }
 
   function buildPayload() {
@@ -648,6 +758,93 @@
     payload.includeTrace = isTraceRequested();
 
     return payload;
+  }
+
+  function createStoredSubmissionState(options) {
+    var snapshotFn = options && typeof options.snapshot === 'function' ? options.snapshot : function () {
+      return {};
+    };
+    var baselineCredential = null;
+    var baselineSnapshot = null;
+    var lastSubmission = null;
+
+    function normalizeSnapshot(source) {
+      if (!source || typeof source !== 'object') {
+        return {};
+      }
+      var normalized = {};
+      Object.keys(source).forEach(function (key) {
+        var value = source[key];
+        if (value == null) {
+          normalized[key] = '';
+        } else {
+          normalized[key] = typeof value === 'string' ? value : String(value);
+        }
+      });
+      return normalized;
+    }
+
+    return {
+      resetBaseline: function (credentialId) {
+        baselineCredential = credentialId || null;
+        baselineSnapshot = normalizeSnapshot(snapshotFn());
+      },
+      clearBaseline: function () {
+        baselineCredential = null;
+        baselineSnapshot = null;
+      },
+      hasOverrides: function (credentialId) {
+        if (!credentialId || !baselineSnapshot || baselineCredential !== credentialId) {
+          return true;
+        }
+        var current = normalizeSnapshot(snapshotFn());
+        var keys = Object.keys(baselineSnapshot);
+        for (var index = 0; index < keys.length; index += 1) {
+          var key = keys[index];
+          if (baselineSnapshot[key] !== current[key]) {
+            return true;
+          }
+        }
+        return false;
+      },
+      buildStoredPayload: function (credentialId, includeTrace) {
+        var payload = { credentialId: credentialId };
+        if (includeTrace !== undefined) {
+          payload.includeTrace = !!includeTrace;
+        }
+        lastSubmission = 'stored';
+        return payload;
+      },
+      recordInline: function () {
+        lastSubmission = 'inline';
+      },
+      recordStored: function () {
+        lastSubmission = 'stored';
+      },
+      clearSubmission: function () {
+        lastSubmission = null;
+      },
+      lastSubmission: function () {
+        return lastSubmission;
+      },
+    };
+  }
+
+  function registerTestHooks() {
+    if (!global.EmvConsoleTestHooks) {
+      global.EmvConsoleTestHooks = {};
+    }
+    global.EmvConsoleTestHooks.createStoredSubmissionState = createStoredSubmissionState;
+    if (typeof global.EmvConsoleTestHooks.attach === 'function') {
+      global.EmvConsoleTestHooks.attach({
+        storedState: storedSubmissionState,
+        handleStoredSubmit: handleStoredSubmit,
+        handleInlineSubmit: handleSubmit,
+        storedSelect: storedSelect,
+        storedButton: storedSubmitButton,
+        updateStoredControls: updateStoredControls,
+      });
+    }
   }
 
   function isTraceRequested() {
@@ -769,6 +966,12 @@
     }
     if (typeof fields.height === 'number' && !Number.isNaN(fields.height)) {
       metadata.height = fields.height;
+    }
+    if (typeof fields.credentialSource === 'string' && fields.credentialSource.trim().length > 0) {
+      metadata.credentialSource = fields.credentialSource.trim();
+    }
+    if (typeof fields.credentialId === 'string' && fields.credentialId.trim().length > 0) {
+      metadata.credentialId = fields.credentialId.trim();
     }
 
     var steps = [];
@@ -1214,6 +1417,31 @@
       return;
     }
     seedStatus.textContent = message || '';
+  }
+
+  function updateStoredControls() {
+    if (!storedSubmitButton) {
+      return;
+    }
+    var hasCredential = storedSelect && typeof storedSelect.value === 'string' && storedSelect.value.trim().length > 0;
+    if (!hasCredential || submitting) {
+      storedSubmitButton.setAttribute('disabled', 'disabled');
+    } else {
+      storedSubmitButton.removeAttribute('disabled');
+    }
+    if (!storedEmptyState) {
+      return;
+    }
+    if (credentialsList.length === 0) {
+      storedEmptyState.textContent = 'No stored credentials available. Seed sample credentials to enable preset evaluation.';
+      return;
+    }
+    if (!hasCredential) {
+      storedEmptyState.textContent = 'Select a stored credential to enable preset evaluation.';
+      return;
+    }
+    storedEmptyState.textContent =
+      'Preset evaluation sends only the stored credential. Modify any field to fall back to inline overrides.';
   }
 
   function setMode(mode) {
