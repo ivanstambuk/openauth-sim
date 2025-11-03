@@ -11,12 +11,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.openauth.sim.core.emv.cap.EmvCapCredentialDescriptor;
+import io.openauth.sim.core.emv.cap.EmvCapCredentialPersistenceAdapter;
 import io.openauth.sim.core.emv.cap.EmvCapInput;
 import io.openauth.sim.core.emv.cap.EmvCapMode;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
+import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.Resolved;
 import io.openauth.sim.core.model.Credential;
+import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
@@ -44,9 +49,14 @@ import org.springframework.test.web.servlet.MockMvc;
 class EmvCapEvaluationEndpointTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final EmvCapCredentialPersistenceAdapter CREDENTIAL_ADAPTER =
+            new EmvCapCredentialPersistenceAdapter();
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private CredentialStore credentialStore;
 
     @DynamicPropertySource
     static void configure(DynamicPropertyRegistry registry) {
@@ -97,6 +107,7 @@ class EmvCapEvaluationEndpointTest {
         assertEquals(
                 expectedMaskLength(vector),
                 telemetry.get("fields").get("maskedDigitsCount").asInt());
+        assertEquals("inline", telemetry.get("fields").get("credentialSource").asText());
     }
 
     @Test
@@ -160,6 +171,7 @@ class EmvCapEvaluationEndpointTest {
                 fields.get("ipbMaskLength").asInt());
         assertEquals(vector.input().branchFactor(), fields.get("branchFactor").asInt());
         assertEquals(vector.input().height(), fields.get("height").asInt());
+        assertEquals("inline", fields.get("credentialSource").asText());
     }
 
     @Test
@@ -181,6 +193,7 @@ class EmvCapEvaluationEndpointTest {
         JsonNode telemetry = root.get("telemetry");
         assertEquals("emv.cap.respond", telemetry.get("event").asText());
         assertEquals("success", telemetry.get("status").asText());
+        assertEquals("inline", telemetry.get("fields").get("credentialSource").asText());
     }
 
     @Test
@@ -203,6 +216,128 @@ class EmvCapEvaluationEndpointTest {
         JsonNode telemetry = root.get("telemetry");
         assertEquals("emv.cap.sign", telemetry.get("event").asText());
         assertEquals("success", telemetry.get("status").asText());
+        assertEquals("inline", telemetry.get("fields").get("credentialSource").asText());
+    }
+
+    @Test
+    @DisplayName("Stored credential evaluates using persisted descriptor")
+    void storedCredentialProducesOtpAndTelemetry() throws Exception {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
+        String credentialId = "emv-cap-evaluate-stored";
+        persistCredential(credentialId, vector);
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {"credentialId":"%s"}
+                        """.formatted(credentialId)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertEquals(vector.outputs().otpDecimal(), root.get("otp").asText());
+        assertNotNull(root.get("trace"));
+
+        JsonNode telemetry = root.get("telemetry");
+        assertEquals("success", telemetry.get("status").asText());
+        JsonNode fields = telemetry.get("fields");
+        assertEquals("stored", fields.get("credentialSource").asText());
+        assertEquals(credentialId, fields.get("credentialId").asText());
+        assertEquals(vector.input().atcHex(), fields.get("atc").asText());
+    }
+
+    @Test
+    @DisplayName("Inline overrides take precedence over stored descriptor values")
+    void inlineOverridesTakePrecedence() throws Exception {
+        EmvCapVector vector = EmvCapVectorFixtures.load("respond-baseline");
+        String credentialId = "emv-cap-evaluate-override";
+        persistCredential(credentialId, vector);
+
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.put("credentialId", credentialId);
+        payload.put("atc", "00B5");
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        JsonNode telemetry = root.get("telemetry");
+        JsonNode fields = telemetry.get("fields");
+        assertEquals("stored", fields.get("credentialSource").asText());
+        assertEquals("00B5", fields.get("atc").asText());
+    }
+
+    @Test
+    @DisplayName("Blank credentialId yields missing_field validation error")
+    void missingCredentialIdReturnsValidationError() throws Exception {
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {"credentialId":"  "}
+                        """))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertEquals("invalid_input", root.get("status").asText());
+        assertEquals("missing_field", root.get("reasonCode").asText());
+        assertEquals("credentialId is required", root.get("message").asText());
+        assertEquals("credentialId", root.get("details").get("field").asText());
+    }
+
+    @Test
+    @DisplayName("Unknown stored credential returns credential_not_found")
+    void unknownCredentialIdReturnsValidationError() throws Exception {
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {"credentialId":"missing-id"}
+                        """))
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertEquals("invalid_input", root.get("status").asText());
+        assertEquals("credential_not_found", root.get("reasonCode").asText());
+        assertTrue(root.get("message").asText().contains("missing-id"));
+        assertEquals("credentialId", root.get("details").get("field").asText());
+        assertEquals("missing-id", root.get("details").get("credentialId").asText());
+    }
+
+    @Test
+    @DisplayName("Stored evaluation honours includeTrace=false toggle")
+    void storedIncludeTraceFalseSuppressesTrace() throws Exception {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-b2-h6");
+        String credentialId = "emv-cap-evaluate-trace";
+        persistCredential(credentialId, vector);
+
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.put("credentialId", credentialId);
+        payload.put("includeTrace", false);
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(MAPPER.writeValueAsString(payload)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = MAPPER.readTree(responseBody);
+        assertNull(root.get("trace"));
+        JsonNode telemetry = root.get("telemetry");
+        assertEquals("stored", telemetry.get("fields").get("credentialSource").asText());
     }
 
     @Test
@@ -448,6 +583,32 @@ class EmvCapEvaluationEndpointTest {
         assertEquals(
                 "issuerApplicationData must be hexadecimal", root.get("message").asText());
         assertEquals("issuerApplicationData", root.get("details").get("field").asText());
+    }
+
+    private void persistCredential(String credentialId, EmvCapVector vector) {
+        credentialStore.delete(credentialId);
+        EmvCapInput input = vector.input();
+        Resolved resolved = vector.resolved();
+        EmvCapCredentialDescriptor descriptor = new EmvCapCredentialDescriptor(
+                credentialId,
+                input.mode(),
+                SecretMaterial.fromHex(input.masterKeyHex()),
+                input.atcHex(),
+                input.branchFactor(),
+                input.height(),
+                input.ivHex(),
+                input.cdol1Hex(),
+                input.issuerProprietaryBitmapHex(),
+                input.iccDataTemplateHex(),
+                input.issuerApplicationDataHex(),
+                input.customerInputs().challenge(),
+                input.customerInputs().reference(),
+                input.customerInputs().amount(),
+                input.transactionData().terminalHexOverride(),
+                input.transactionData().iccHexOverride(),
+                Optional.ofNullable(resolved).map(Resolved::iccDataHex));
+        Credential credential = VersionedCredentialRecordMapper.toCredential(CREDENTIAL_ADAPTER.serialize(descriptor));
+        credentialStore.save(credential);
     }
 
     private static String requestBody(EmvCapVector vector, Optional<Boolean> includeTrace)

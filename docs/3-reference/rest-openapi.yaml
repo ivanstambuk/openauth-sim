@@ -2066,6 +2066,9 @@ components:
     EmvCapEvaluationRequest:
       type: "object"
       properties:
+        credentialId:
+          type: "string"
+          description: "Identifier for a stored EMV/CAP credential to evaluate"
         mode:
           type: "string"
         masterKey:
