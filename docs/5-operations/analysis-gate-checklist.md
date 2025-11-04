@@ -39,12 +39,12 @@ Run this section once all planned tasks are complete and the latest build is gre
    - [ ] Feature tasks are all marked complete (☐ → ☑) and associated specs/plans reflect the final implementation.
    - [ ] Latest `./gradlew spotlessApply check` (or narrower documented suite) has passed within this increment.
 2. **Cross-artifact validation**
-   - [ ] Every specification requirement maps to executable code/tests; cite spec sections against classes/tests in the drift report.
+   - [ ] Every high- and medium-impact specification requirement maps to executable code/tests; cite spec sections against classes/tests in the drift report, and note any low-level coverage adjustments.
    - [ ] No implementation or tests lack an originating spec/plan task; undocumented work is captured as a follow-up task or spec addition.
    - [ ] Feature plan and tasks remain consistent with the shipped implementation (dependencies, acceptance criteria, sequencing).
 3. **Divergence handling**
    - [ ] High- and medium-impact gaps or over-deliveries are logged as new entries in `docs/4-architecture/open-questions.md` for user direction.
-   - [ ] Low-impact drift (typos, minor doc sync) is corrected directly before finalising the report.
+   - [ ] Low-impact or low-level drift (typos, minor wording, formatting) is corrected directly before finalising the report; document the fix without escalating.
    - [ ] Follow-up tasks or spec updates are drafted for any outstanding divergences awaiting approval.
 4. **Coverage confirmation**
    - [ ] Tests exist for each success, validation, and failure branch enumerated in the specification, and their latest run is green.

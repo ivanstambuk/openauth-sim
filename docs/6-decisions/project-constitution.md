@@ -51,8 +51,9 @@ This constitution establishes the non-negotiable operating principles for the Op
 ### Principle 6 – Implementation Drift Gate
 - Before a feature can be marked complete, run an Implementation Drift Gate once all planned tasks are complete and tests are green.
 - Cross-check the approved specification, feature plan, tasks checklist, and code/tests to confirm every spec requirement has a corresponding implementation and that no implementation ships without documented intent.
+- Verify high-impact and medium-impact requirements explicitly trace from specification to implementation and tests; ensure low-level details remain consistent with the governing artefacts.
 - Produce a drift report (attach it to the governing feature plan) summarising matches, gaps, and speculative work; reference exact spec sections and code paths so reviewers can trace decisions.
-- Record every high- or medium-impact divergence as an open question in `docs/4-architecture/open-questions.md` for user direction; resolve low-impact documentation drift directly before finalising the report.
+- Record every high- or medium-impact divergence as an open question in `docs/4-architecture/open-questions.md` for user direction; remediate lightweight or low-level drift yourself (typos, formatting, minor wording) and capture the adjustments in the drift report without escalating.
 - Verify executable coverage alignment by confirming each spec branch has failing tests staged before implementation and green tests afterwards; call out any missing coverage as follow-up tasks.
 - Document lessons and reusable guidance surfaced during the gate so downstream features inherit the updated practices.
 
