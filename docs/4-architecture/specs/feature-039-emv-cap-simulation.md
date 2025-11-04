@@ -1,7 +1,7 @@
 # Feature 039 – EMV/CAP Simulation Services
 
 _Status: In progress_  
-_Last updated: 2025-11-03_
+_Last updated: 2025-11-04_
 
 ## Overview
 Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors the reference calculator workflows while fitting the OpenAuth Simulator architecture. Scope now covers reusable core derivation utilities, application orchestration, REST and CLI facades, operator console integration, and MapDB-backed credential seeding so every surface can evaluate Identify/Respond/Sign flows with consistent telemetry and traces. Documentation across REST, CLI, and operator UI guides captures the extended fixture set delivered in T3908c/T3909 so operators can reproduce reference flows end-to-end.
@@ -87,11 +87,18 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
      "otp": "42511495",
      "maskLength": 8,
      "trace": {
+       "masterKeySha256": "sha256:8A7F...",
        "sessionKey": "5EC8...",
+       "atc": "00B4",
+       "branchFactor": 6,
+       "height": 10,
+       "maskLength": 8,
+       "previewWindowBackward": 0,
+       "previewWindowForward": 0,
        "generateAcInput": { "terminal": "...", "icc": "..." },
        "generateAcResult": "8000...",
        "bitmask": "....1F...",
-       "maskedDigits": "....14...",
+       "maskedDigitsOverlay": "....14...",
        "issuerApplicationData": "06770A..."
      },
      "telemetry": { ... sanitized frame metadata ... }
@@ -109,7 +116,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
    - Flags: `--include-trace` (default true) and `--output-json` (pretty-prints the REST-equivalent response).
 2. Command delegates to `EmvCapEvaluationApplicationService` and emits telemetry via new CLI adapters (`TelemetryContracts.emvCap*`) with IDs prefixed `cli-emv-cap-`.
 3. Default (text) output includes OTP, mask length, sanitized telemetry fields, and—when `--include-trace`—a structured trace section matching REST field names.
-4. JSON output must match the REST schema (`otp`, `maskLength`, `trace`, `telemetry`) so tooling can switch between facades without reformatting. The master key surfaces as a SHA-256 digest (`masterKeySha256`) with accompanying metadata; session keys remain in plaintext.
+4. JSON output must match the REST schema (`otp`, `maskLength`, `trace`, `telemetry`) so tooling can switch between facades without reformatting. The master key surfaces as a SHA-256 digest (`masterKeySha256`) with accompanying metadata; session keys remain in plaintext. Trace payloads also expose `atc`, `branchFactor`, `height`, `maskLength`, and preview window offsets so downstream consumers see the same diagnostics as the operator console.
 5. Tests cover each mode, invalid parameter scenarios, includeTrace toggling, JSON parity, and telemetry sanitisation.
 
 ### R5 – Operator UI EMV/CAP console panel
@@ -119,7 +126,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
    - Preview-window offset controls (`Backward`, `Forward`) matching the HOTP/TOTP/OCRA evaluation panels.
 2. Rely exclusively on the global “Enable verbose tracing for the next request” control shared by all protocols; when unchecked, the trace pane remains hidden and the request omits the `trace` flag. Surface the shared warning copy (`Verbose traces expose raw secrets and intermediate buffers. Use only in trusted environments.`) beneath the global toggle.
 3. Request layout mirrors HOTP/TOTP/OCRA: left column hosts the input form (including preview-window offsets that drive the evaluation result table), right column renders the result card. The result card surfaces only the OTP preview table (counter/Δ/OTP) and the status badge; all other metadata shifts to verbose trace.
-4. Verbose trace collects every diagnostic detail previously shown on the result card (mask length, masked digits, ATC, branch factor, height) alongside the SHA-256 digest of the master key (`masterKeySha256`), the derived session key, Generate AC inputs/result, bitmask overlay, masked digits overlay, issuer application data, and resolved ICC payload. Use accessible formatting (monospaced columns, scroll containers as needed).
+4. Verbose trace collects every diagnostic detail previously shown on the result card (mask length, masked digits, ATC, branch factor, height) plus the active preview window offsets (`previewWindowBackward`, `previewWindowForward`). These sit alongside the SHA-256 digest of the master key (`masterKeySha256`), the derived session key, Generate AC inputs/result, bitmask overlay, masked digits overlay, issuer application data, and resolved ICC payload. Use accessible formatting (monospaced columns, scroll containers as needed).
 5. Validation errors surface inline using the existing problem-details mapping with field-level annotations.
 6. Selenium/JS tests exercise happy paths for each mode, includeTrace toggle, preset loading, error rendering, and telemetry sanitisation of DOM nodes.
 

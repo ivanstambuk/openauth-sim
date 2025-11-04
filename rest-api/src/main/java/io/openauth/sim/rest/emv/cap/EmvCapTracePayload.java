@@ -7,6 +7,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 record EmvCapTracePayload(
         @JsonProperty("masterKeySha256") String masterKeySha256,
         @JsonProperty("sessionKey") String sessionKey,
+        @JsonProperty("atc") String atc,
+        @JsonProperty("branchFactor") int branchFactor,
+        @JsonProperty("height") int height,
+        @JsonProperty("maskLength") int maskLength,
+        @JsonProperty("previewWindowBackward") int previewWindowBackward,
+        @JsonProperty("previewWindowForward") int previewWindowForward,
         @JsonProperty("generateAcInput") GenerateAcInput generateAcInput,
         @JsonProperty("generateAcResult") String generateAcResult,
         @JsonProperty("bitmask") String bitmask,

@@ -48,7 +48,8 @@ public final class EmvCapEvaluationApplicationService {
                     previewForward);
 
             List<OtpPreview> previews = buildPreviewEntries(request, result, previewBackward, previewForward);
-            Trace trace = verboseTrace ? toTrace(result, request) : null;
+            Trace trace =
+                    verboseTrace ? toTrace(result, request, maskedDigitsCount, previewBackward, previewForward) : null;
 
             return new EvaluationResult(telemetry, result.otp().decimal(), maskedDigitsCount, previews, trace);
         } catch (IllegalArgumentException ex) {
@@ -164,8 +165,15 @@ public final class EmvCapEvaluationApplicationService {
                 request.issuerApplicationDataHex());
     }
 
-    private static Trace toTrace(EmvCapResult result, EvaluationRequest request) {
+    private static Trace toTrace(
+            EmvCapResult result, EvaluationRequest request, int maskLength, int previewBackward, int previewForward) {
         return new Trace(
+                request.atcHex(),
+                request.branchFactor(),
+                request.height(),
+                maskLength,
+                previewBackward,
+                previewForward,
                 masterKeyDigest(request.masterKeyHex()),
                 result.sessionKeyHex(),
                 new Trace.GenerateAcInput(
@@ -277,6 +285,12 @@ public final class EmvCapEvaluationApplicationService {
 
     /** Structured trace payload exposed to verbose consumers. */
     public record Trace(
+            String atc,
+            int branchFactor,
+            int height,
+            int maskLength,
+            int previewWindowBackward,
+            int previewWindowForward,
             String masterKeySha256,
             String sessionKey,
             GenerateAcInput generateAcInput,
@@ -286,6 +300,12 @@ public final class EmvCapEvaluationApplicationService {
             String issuerApplicationData) {
 
         public Trace {
+            atc = normalizeHex(atc, "trace.atc");
+            branchFactor = requirePositive(branchFactor, "trace.branchFactor");
+            height = requirePositive(height, "trace.height");
+            maskLength = Math.max(0, maskLength);
+            previewWindowBackward = Math.max(0, previewWindowBackward);
+            previewWindowForward = Math.max(0, previewWindowForward);
             masterKeySha256 = Objects.requireNonNull(masterKeySha256, "masterKeySha256");
             if (!masterKeySha256.startsWith("sha256:")) {
                 throw new IllegalArgumentException("masterKeySha256 must start with sha256:");

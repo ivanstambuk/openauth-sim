@@ -106,6 +106,12 @@ class EmvCapEvaluationEndpointTest {
         assertEquals(
                 vector.outputs().generateAcInputIccHex(),
                 trace.get("generateAcInput").get("icc").asText());
+        assertEquals(vector.input().atcHex(), trace.get("atc").asText());
+        assertEquals(vector.input().branchFactor(), trace.get("branchFactor").asInt());
+        assertEquals(vector.input().height(), trace.get("height").asInt());
+        assertEquals(expectedMaskLength(vector), trace.get("maskLength").asInt());
+        assertEquals(0, trace.get("previewWindowBackward").asInt());
+        assertEquals(0, trace.get("previewWindowForward").asInt());
 
         JsonNode telemetry = root.get("telemetry");
         assertNotNull(telemetry);
@@ -170,6 +176,12 @@ class EmvCapEvaluationEndpointTest {
         assertEquals(
                 vector.input().issuerApplicationDataHex(),
                 trace.get("issuerApplicationData").asText());
+        assertEquals(vector.input().atcHex(), trace.get("atc").asText());
+        assertEquals(vector.input().branchFactor(), trace.get("branchFactor").asInt());
+        assertEquals(vector.input().height(), trace.get("height").asInt());
+        assertEquals(expectedMaskLength(vector), trace.get("maskLength").asInt());
+        assertEquals(0, trace.get("previewWindowBackward").asInt());
+        assertEquals(0, trace.get("previewWindowForward").asInt());
 
         JsonNode telemetry = root.get("telemetry");
         assertNotNull(telemetry);

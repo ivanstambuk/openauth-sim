@@ -54,6 +54,12 @@ final class EmvCapEvaluationApplicationServiceTest {
         assertEquals(vector.outputs().bitmaskOverlay(), trace.bitmask());
         assertEquals(vector.outputs().maskedDigitsOverlay(), trace.maskedDigits());
         assertEquals(vector.input().issuerApplicationDataHex(), trace.issuerApplicationData());
+        assertEquals(vector.input().atcHex(), trace.atc());
+        assertEquals(vector.input().branchFactor(), trace.branchFactor());
+        assertEquals(vector.input().height(), trace.height());
+        assertEquals(expectedMaskLength(vector), trace.maskLength());
+        assertEquals(0, trace.previewWindowBackward());
+        assertEquals(0, trace.previewWindowForward());
 
         TelemetryFrame frame = result.telemetry().emit(adapterFor(vector.input().mode()), "telemetry-" + vectorId);
         assertEquals("success", frame.status(), "telemetry status");
@@ -85,6 +91,12 @@ final class EmvCapEvaluationApplicationServiceTest {
         assertEquals("....1F...........FFFFF..........8...", trace.bitmask());
         assertEquals("....14...........45643..........8...", trace.maskedDigits());
         assertEquals("06770A03A48000", trace.issuerApplicationData());
+        assertEquals(vector.input().atcHex(), trace.atc());
+        assertEquals(vector.input().branchFactor(), trace.branchFactor());
+        assertEquals(vector.input().height(), trace.height());
+        assertEquals(8, trace.maskLength());
+        assertEquals(0, trace.previewWindowBackward());
+        assertEquals(0, trace.previewWindowForward());
 
         TelemetryFrame frame = result.telemetry().emit(TelemetryContracts.emvCapIdentifyAdapter(), "telemetry-001");
         assertEquals("emv.cap.identify", frame.event(), "telemetry event");
@@ -194,6 +206,11 @@ final class EmvCapEvaluationApplicationServiceTest {
         assertEquals(2, result.previews().get(3).delta());
         assertEquals(
                 vector.outputs().otpDecimal(), result.previews().get(1).otp(), "delta 0 OTP should match baseline");
+
+        EmvCapEvaluationApplicationService.Trace trace = result.traceOptional().orElseThrow();
+        assertEquals(1, trace.previewWindowBackward());
+        assertEquals(2, trace.previewWindowForward());
+        assertEquals(expectedMaskLength(vector), trace.maskLength());
     }
 
     private static EmvCapEvaluationApplicationService.EvaluationRequest requestFrom(EmvCapVector vector) {

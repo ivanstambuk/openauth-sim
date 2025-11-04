@@ -226,6 +226,12 @@ final class EmvCapReplayService {
                 .withMetadata("credentialSource", result.credentialSource())
                 .withMetadata("driftBackward", Integer.toString(result.driftBackward()))
                 .withMetadata("driftForward", Integer.toString(result.driftForward()))
+                .withMetadata("atc", trace.atc())
+                .withMetadata("branchFactor", Integer.toString(trace.branchFactor()))
+                .withMetadata("height", Integer.toString(trace.height()))
+                .withMetadata("maskLength", Integer.toString(trace.maskLength()))
+                .withMetadata("previewWindowBackward", Integer.toString(trace.previewWindowBackward()))
+                .withMetadata("previewWindowForward", Integer.toString(trace.previewWindowForward()))
                 .withMetadata("match", Boolean.toString(result.match()));
 
         result.matchedDelta().ifPresent(delta -> builder.withMetadata("matchedDelta", Integer.toString(delta)));

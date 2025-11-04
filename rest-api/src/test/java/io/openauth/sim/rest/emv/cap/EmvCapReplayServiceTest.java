@@ -67,7 +67,19 @@ final class EmvCapReplayServiceTest {
                 "06770A03A48000");
 
         Trace trace = new Trace(
-                MASTER_KEY_SHA256, "0011", new GenerateAcInput("00AA", "00BB"), "C0FFEE", "bitmask", "123456", "00CC");
+                "00B4",
+                4,
+                8,
+                6,
+                0,
+                0,
+                MASTER_KEY_SHA256,
+                "0011",
+                new GenerateAcInput("00AA", "00BB"),
+                "C0FFEE",
+                "bitmask",
+                "123456",
+                "00CC");
 
         Map<String, Object> telemetryFields = new LinkedHashMap<>();
         telemetryFields.put("telemetryId", "rest-emv-cap-test");
@@ -143,7 +155,19 @@ final class EmvCapReplayServiceTest {
         telemetryFields.put("suppliedOtpLength", 6);
 
         Trace trace = new Trace(
-                MASTER_KEY_SHA256, "00FF", new GenerateAcInput("00AA", "00BB"), "DEADBEEF", "mask", "654321", "00CC");
+                "00B4",
+                5,
+                7,
+                6,
+                0,
+                0,
+                MASTER_KEY_SHA256,
+                "00FF",
+                new GenerateAcInput("00AA", "00BB"),
+                "DEADBEEF",
+                "mask",
+                "654321",
+                "00CC");
 
         TelemetrySignal signal = new TelemetrySignal(
                 EmvCapMode.SIGN, TelemetryStatus.INVALID, "otp_mismatch", "OTP mismatch", true, telemetryFields);
@@ -245,6 +269,12 @@ final class EmvCapReplayServiceTest {
         telemetryFields.put("suppliedOtpLength", 6);
 
         Trace trace = new Trace(
+                "002A",
+                5,
+                9,
+                6,
+                1,
+                2,
                 MASTER_KEY_SHA256,
                 "00AB",
                 new GenerateAcInput("00CC", "00DD"),

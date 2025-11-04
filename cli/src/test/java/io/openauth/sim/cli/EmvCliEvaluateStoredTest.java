@@ -45,6 +45,12 @@ final class EmvCliEvaluateStoredTest {
         assertTrue(stdout.contains("otp=" + vector.outputs().otpDecimal()), stdout);
         assertTrue(stdout.contains("maskLength=" + countMaskedDigits(vector.outputs())), stdout);
         assertTrue(stdout.contains("Preview window:"), stdout);
+        assertTrue(stdout.contains("trace.atc=" + vector.input().atcHex()), stdout);
+        assertTrue(stdout.contains("trace.branchFactor=" + vector.input().branchFactor()), stdout);
+        assertTrue(stdout.contains("trace.height=" + vector.input().height()), stdout);
+        assertTrue(stdout.contains("trace.maskLength=" + countMaskedDigits(vector.outputs())), stdout);
+        assertTrue(stdout.contains("trace.previewWindowBackward=0"), stdout);
+        assertTrue(stdout.contains("trace.previewWindowForward=0"), stdout);
         assertTrue(stdout.contains("trace.masterKeySha256=" + expectedMasterKeyDigest(vector)), stdout);
     }
 

@@ -974,11 +974,35 @@
     if (typeof fields.height === 'number' && !Number.isNaN(fields.height)) {
       metadata.height = fields.height;
     }
+    if (typeof fields.previewWindowBackward === 'number' && !Number.isNaN(fields.previewWindowBackward)) {
+      metadata.previewWindowBackward = fields.previewWindowBackward;
+    }
+    if (typeof fields.previewWindowForward === 'number' && !Number.isNaN(fields.previewWindowForward)) {
+      metadata.previewWindowForward = fields.previewWindowForward;
+    }
     if (typeof fields.credentialSource === 'string' && fields.credentialSource.trim().length > 0) {
       metadata.credentialSource = fields.credentialSource.trim();
     }
     if (typeof fields.credentialId === 'string' && fields.credentialId.trim().length > 0) {
       metadata.credentialId = fields.credentialId.trim();
+    }
+    if (typeof trace.maskLength === 'number' && !Number.isNaN(trace.maskLength)) {
+      metadata.maskLength = trace.maskLength;
+    }
+    if (typeof trace.atc === 'string' && trace.atc.trim().length > 0) {
+      metadata.atc = trace.atc.trim();
+    }
+    if (typeof trace.branchFactor === 'number' && !Number.isNaN(trace.branchFactor)) {
+      metadata.branchFactor = trace.branchFactor;
+    }
+    if (typeof trace.height === 'number' && !Number.isNaN(trace.height)) {
+      metadata.height = trace.height;
+    }
+    if (typeof trace.previewWindowBackward === 'number' && !Number.isNaN(trace.previewWindowBackward)) {
+      metadata.previewWindowBackward = trace.previewWindowBackward;
+    }
+    if (typeof trace.previewWindowForward === 'number' && !Number.isNaN(trace.previewWindowForward)) {
+      metadata.previewWindowForward = trace.previewWindowForward;
     }
 
     var steps = [];

@@ -184,6 +184,12 @@ final class EmvCapEvaluationService {
         return new EmvCapTracePayload(
                 trace.masterKeySha256(),
                 trace.sessionKey(),
+                trace.atc(),
+                trace.branchFactor(),
+                trace.height(),
+                trace.maskLength(),
+                trace.previewWindowBackward(),
+                trace.previewWindowForward(),
                 generateAcInput,
                 trace.generateAcResult(),
                 trace.bitmask(),

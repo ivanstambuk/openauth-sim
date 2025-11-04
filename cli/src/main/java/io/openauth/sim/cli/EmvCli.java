@@ -1553,6 +1553,16 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
         builder.append("    \"sessionKey\": \"")
                 .append(escapeJson(trace.sessionKey()))
                 .append("\",\n");
+        builder.append("    \"atc\": \"").append(escapeJson(trace.atc())).append("\",\n");
+        builder.append("    \"branchFactor\": ").append(trace.branchFactor()).append(",\n");
+        builder.append("    \"height\": ").append(trace.height()).append(",\n");
+        builder.append("    \"maskLength\": ").append(trace.maskLength()).append(",\n");
+        builder.append("    \"previewWindowBackward\": ")
+                .append(trace.previewWindowBackward())
+                .append(",\n");
+        builder.append("    \"previewWindowForward\": ")
+                .append(trace.previewWindowForward())
+                .append(",\n");
         builder.append("    \"generateAcInput\": {\n");
         builder.append("      \"terminal\": \"")
                 .append(escapeJson(trace.generateAcInput().terminalHex()))
@@ -1583,6 +1593,12 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
     }
 
     private static void printTrace(PrintWriter writer, Trace trace, EvaluationRequest request) {
+        writer.println("trace.atc=" + trace.atc());
+        writer.println("trace.branchFactor=" + trace.branchFactor());
+        writer.println("trace.height=" + trace.height());
+        writer.println("trace.maskLength=" + trace.maskLength());
+        writer.println("trace.previewWindowBackward=" + trace.previewWindowBackward());
+        writer.println("trace.previewWindowForward=" + trace.previewWindowForward());
         writer.println("trace.masterKeySha256=" + trace.masterKeySha256());
         writer.println("trace.sessionKey=" + trace.sessionKey());
         writer.println(

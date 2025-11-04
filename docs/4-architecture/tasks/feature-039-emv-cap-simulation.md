@@ -1,7 +1,7 @@
 # Feature 039 Tasks – EMV/CAP Simulation Services
 
 _Status: In progress_  
-_Last updated: 2025-11-03 (T3922 evaluate toggle alignment)_
+_Last updated: 2025-11-04 (T3924 verbose diagnostic parity)_
 
 - [x] T3901 – Fixture scaffolding & red tests: added `docs/test-vectors/emv-cap/{identify,respond,sign}-baseline.json`, captured session key/cryptogram/overlay/OTP metadata, and introduced `EmvCapSimulationVectorsTest` with deliberate failures pending domain wiring (Gradle run deferred until implementation). Commands: `./gradlew --no-daemon :core:test`.
 - [x] T3902 – Core implementation: implemented session key derivation, CAP mode validation, Generate AC execution, and IPB masking to satisfy T3901 tests; introduced negative-path coverage for invalid hex and Identify-mode challenge misuse. Commands: `./gradlew --no-daemon :core:test`, `./gradlew --no-daemon spotlessApply check`.
@@ -44,4 +44,6 @@ _Last updated: 2025-11-03 (T3922 evaluate toggle alignment)_
   - 2025-11-04: REST DTOs/response payloads expose `previewWindow` + `previews` arrays; OpenAPI snapshots regenerated and MockMvc suites updated to cover stored/inline preview adjustments.
   - 2025-11-04: CLI `emv cap evaluate`/`evaluate-stored` introduce `--window-backward/--window-forward`, print preview tables in text mode, and emit preview arrays in JSON responses; unit tests extended accordingly.
   - 2025-11-04: Operator UI adds preview offset inputs, preserves stored-mode submissions (without triggering inline fallback), renders multi-row preview tables, and Selenium coverage exercises non-zero offsets.
-- [ ] T3924 – Verbose diagnostic parity: Ensure EMV verbose traces expose preview metadata across UI/REST/CLI, synchronise documentation, and run the full Gradle quality gate. Planned commands: `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
+- [x] T3924 – Verbose diagnostic parity: Ensured EMV verbose traces expose ATC, branch factor, height, mask length, and preview window offsets across application/REST/CLI/UI traces; synced documentation/snapshots and reran the full Gradle quality gate. Commands: `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
+  - Application trace model now carries the additional metadata, REST/CLI serializers render the new fields, and operator console verbose traces surface the values via `VerboseTraceConsole`.
+  - Tests covering EMV evaluation, CLI JSON/text output, REST endpoints, replay metadata, and JS/Selenium suites updated to assert the new diagnostics; OpenAPI snapshots refresh the schema additions.

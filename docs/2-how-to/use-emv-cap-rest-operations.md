@@ -1,7 +1,7 @@
 # Operate the EMV/CAP REST API
 
 _Status: Draft_  
-_Last updated: 2025-11-02_
+_Last updated: 2025-11-04_
 
 The EMV/CAP evaluate endpoint derives CAP one-time passwords (Identify, Respond, Sign) on demand. It wraps the shared core engine, emits sanitized telemetry, and optionally returns a full derivation trace for diagnostics. The companion replay endpoint validates stored or ad-hoc OTPs against the same derivation pipeline so you can confirm calculator outputs. This guide shows how to call both endpoints, interpret the response payloads, and disable verbose traces when you only need the masked digits.
 
@@ -69,7 +69,14 @@ Successful response (Identify baseline):
   "otp": "42511495",
   "maskLength": 8,
   "trace": {
+    "masterKeySha256": "sha256:8A7F239A0C4B7342C0178F274D37B9F6B3C8D1E4F7A2C5D8E9F0011223344556",
     "sessionKey": "5EC8B98ABC8F9E7597647CBCB9A75402",
+    "atc": "00B4",
+    "branchFactor": 4,
+    "height": 8,
+    "maskLength": 8,
+    "previewWindowBackward": 0,
+    "previewWindowForward": 0,
     "generateAcInput": {
       "terminal": "0000000000000000000000000000800000000000000000000000000000",
       "icc": "100000B4A50006040000"
@@ -93,7 +100,9 @@ Successful response (Identify baseline):
       "ipbMaskLength": 8,
       "maskedDigitsCount": 8,
       "branchFactor": 4,
-      "height": 8
+      "height": 8,
+      "previewWindowBackward": 0,
+      "previewWindowForward": 0
     }
   }
 }

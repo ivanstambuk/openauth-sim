@@ -84,6 +84,12 @@ final class EmvCliTest {
         assertTrue(stdout.contains("[0]"), stdout);
         assertTrue(stdout.contains("> " + vector.input().atcHex()), stdout);
 
+        assertTrue(stdout.contains("trace.atc=" + vector.input().atcHex()), stdout);
+        assertTrue(stdout.contains("trace.branchFactor=" + vector.input().branchFactor()), stdout);
+        assertTrue(stdout.contains("trace.height=" + vector.input().height()), stdout);
+        assertTrue(stdout.contains("trace.maskLength=" + expectedMaskLength), stdout);
+        assertTrue(stdout.contains("trace.previewWindowBackward=0"), stdout);
+        assertTrue(stdout.contains("trace.previewWindowForward=0"), stdout);
         assertTrue(stdout.contains("trace.masterKeySha256=" + masterKeyDigest), stdout);
         assertTrue(stdout.contains("trace.sessionKey=" + vector.outputs().sessionKeyHex()), stdout);
         assertTrue(
@@ -163,6 +169,12 @@ final class EmvCliTest {
         assertNotNull(trace, "Trace payload should be present by default");
         assertEquals(expectedMasterKeyDigest(vector), trace.get("masterKeySha256"));
         assertEquals(vector.outputs().sessionKeyHex(), trace.get("sessionKey"));
+        assertEquals(vector.input().atcHex(), trace.get("atc"));
+        assertEquals(vector.input().branchFactor(), ((Number) trace.getOrDefault("branchFactor", 0)).intValue());
+        assertEquals(vector.input().height(), ((Number) trace.getOrDefault("height", 0)).intValue());
+        assertEquals(countMaskedDigits(vector.outputs()), ((Number) trace.getOrDefault("maskLength", 0)).intValue());
+        assertEquals(0, ((Number) trace.getOrDefault("previewWindowBackward", -1)).intValue());
+        assertEquals(0, ((Number) trace.getOrDefault("previewWindowForward", -1)).intValue());
         @SuppressWarnings("unchecked")
         Map<String, Object> generateAcInput = (Map<String, Object>) trace.get("generateAcInput");
         assertEquals(vector.outputs().generateAcInputTerminalHex(), generateAcInput.get("terminal"));

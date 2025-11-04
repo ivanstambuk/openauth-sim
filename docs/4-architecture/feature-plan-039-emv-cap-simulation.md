@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-039-emv-cap-simulation.md`  
 _Status:_ In progress  
-_Last updated:_ 2025-11-02 (verbose trace redaction planning)
+_Last updated:_ 2025-11-04 (verbose trace diagnostic parity)
 
 ## Vision & Success Criteria
 - Deliver deterministic EMV/CAP OTP generation **and replay validation** (Identify, Respond, Sign) across core, application, REST, CLI, and operator console facades with consistent telemetry and optional verbose traces.
@@ -155,15 +155,15 @@ _Last updated:_ 2025-11-02 (verbose trace redaction planning)
    - Implemented application-level preview generation (extra `OtpPreview` entries), REST response serialization, CLI preview-table output, and operator UI rendering (including stored-mode Selenium coverage for non-zero offsets).  
    - Executed `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCli*"`, `./gradlew --no-daemon :ui:test`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, and the full `./gradlew --no-daemon spotlessApply check` quality gate.
 
-25. **I23 – Verbose trace diagnostic parity (planned)**  
-   - Enrich EMV verbose trace payloads with ATC, branch factor, height, and mask length metadata and render them in the operator verbose console; adjust REST/CLI serialization and fixtures.  
-   - Update application telemetry/trace models, JSON snapshots, and Selenium assertions verifying the additional fields.  
-   - Planned commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCli*"`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+25. **I23 – Verbose trace diagnostic parity (completed 2025-11-04)**  
+   - Expanded EMV verbose traces with ATC, branch factor, height, mask length, and preview window offsets so application, REST, CLI, and operator UI diagnostics align with telemetry and preview controls.  
+   - Updated application trace record, REST DTOs/payloads, CLI renderers (text/JSON), OpenAPI snapshots, JS console adapters, Selenium assertions, and replay verbose metadata to exercise the new fields.  
+   - Commands executed: `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
 
-## Current Increment – I23 Verbose trace diagnostic parity (planned)
-- Enrich verbose trace payloads (application/REST/CLI/UI) with preview metadata (ATC, branch factor, height, mask length) and render the additional fields in the shared operator verbose console. 
-- Update JSON fixtures, OpenAPI contracts, CLI/REST documentation, and Selenium assertions so every facade reports the same diagnostic context. 
-- Planned commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCli*"`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+## Current Increment – I23 Verbose trace diagnostic parity (completed)
+- Application/REST/CLI/UI trace payloads now include ATC, branch factor, height, mask length, and preview window offsets; operator console trace metadata mirrors telemetry fields.  
+- JSON fixtures, OpenAPI contracts, CLI docs, and Selenium assertions updated alongside refresh of knowledge map/how-to guidance.  
+- Validation commands: `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
 
 ## Previous Increment – T3917 Console verbose toggle harmonization (completed 2025-11-02)
 - Removed the EMV panel-specific `includeTrace` checkbox so evaluations and replays rely on the global verbose toggle shared across protocols.
