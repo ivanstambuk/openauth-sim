@@ -28,6 +28,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - 2025-11-04 – Evaluate and Replay dropdown labelling must match other protocols (“Load a sample vector” + “Select a sample”) while retaining EMV/CAP hinting about canonical parameters and ATC preservation (owner directive).
 - 2025-11-04 – Evaluate and Replay sample vector controls must apply the shared `stack-offset-top-lg` spacing utility so their layout matches the HOTP/TOTP/FIDO2 panels (owner directive).
 - 2025-11-04 – Evaluate sample vector and seeding controls must share the same block/spacing treatment as Replay: the preset selector sits directly under the mode toggle with no additional vertical gap, and the seed action/button lives within that block so spacing mirrors the Replay layout (owner directive).
+- 2025-11-04 – Evaluate and Replay sample vector selectors must reuse the shared inline preset styling (label stacked above a full-width dark inline preset dropdown with seed actions and hints beneath) so the EMV panel matches HOTP/TOTP/FIDO2 ergonomics (owner directive).
 
 ## Requirements
 

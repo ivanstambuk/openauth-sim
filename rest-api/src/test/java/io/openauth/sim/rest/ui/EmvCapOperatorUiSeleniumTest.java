@@ -103,17 +103,20 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(evaluatePresetContainer.getAttribute("class"))
                 .as("Sample vector block should reuse shared spacing helper")
                 .contains("stack-offset-top-lg");
-        WebElement presetFieldGroup =
-                storedPresetSelect.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
+        WebElement evaluateSampleBlock = waitForVisible(By.cssSelector("[data-testid='emv-evaluate-sample-vector']"));
+        assertThat(evaluateSampleBlock.getAttribute("class"))
+                .as("Sample vector block should reuse shared inline preset styling")
+                .contains("inline-preset");
         WebElement seedActions = waitForVisible(By.cssSelector("[data-testid='emv-seed-actions']"));
-        assertThat(seedActions.getAttribute("class"))
-                .as("Seed actions should reuse inline spacing helper inside preset block")
-                .contains("seed-actions--inline");
-        WebElement seedActionsContainer =
-                seedActions.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
-        assertThat(seedActionsContainer)
-                .as("Seed actions should live inside the preset field group to mirror replay spacing")
-                .isEqualTo(presetFieldGroup);
+        WebElement seedActionsParent =
+                seedActions.findElement(By.xpath("ancestor::*[@data-testid='emv-evaluate-sample-vector']"));
+        assertThat(seedActionsParent)
+                .as("Seed actions should remain inside the preset block beneath the dropdown")
+                .isEqualTo(evaluateSampleBlock);
+        String evaluateSelectBackground = storedPresetSelect.getCssValue("background-color");
+        assertThat(evaluateSelectBackground.replace(" ", ""))
+                .as("Sample vector dropdown should not fall back to a white background")
+                .doesNotContain("255,255,255");
         assertElementOrder(
                 evaluateModeToggle,
                 storedPresetSelect,
@@ -330,9 +333,22 @@ final class EmvCapOperatorUiSeleniumTest {
                 .click();
 
         Select storedSelect = waitForReplayStoredCredentialSelect();
-        WebElement replayPresetContainer = storedSelect
-                .getWrappedElement()
-                .findElement(By.xpath("ancestor::div[contains(@class,'stack-offset-top-lg')][1]"));
+        WebElement replaySampleBlock = waitForVisible(By.cssSelector("[data-testid='emv-replay-sample-vector']"));
+        assertThat(replaySampleBlock.getAttribute("class"))
+                .as("Replay preset block should reuse shared inline preset styling")
+                .contains("inline-preset");
+        WebElement replaySelectElement = storedSelect.getWrappedElement();
+        String replaySelectBackground = replaySelectElement.getCssValue("background-color");
+        assertThat(replaySelectBackground.replace(" ", ""))
+                .as("Replay sample vector dropdown should not fall back to a white background")
+                .doesNotContain("255,255,255");
+        WebElement replayModeToggle = waitForVisible(By.cssSelector("fieldset[data-testid='emv-replay-mode-toggle']"));
+        WebElement storedReplayRadio = replayModeToggle.findElement(By.cssSelector("#emvReplayModeStored"));
+        if (!storedReplayRadio.isSelected()) {
+            storedReplayRadio.click();
+        }
+        WebElement replayPresetContainer =
+                replaySelectElement.findElement(By.xpath("ancestor::div[contains(@class,'stack-offset-top-lg')][1]"));
         assertThat(replayPresetContainer.getAttribute("class"))
                 .as("Replay preset block should reuse shared spacing helper")
                 .contains("stack-offset-top-lg");

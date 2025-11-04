@@ -1,7 +1,7 @@
 # Feature 039 Tasks – EMV/CAP Simulation Services
 
 _Status: In progress_  
-_Last updated: 2025-11-04 (T3926 sample vector terminology parity)_
+_Last updated: 2025-11-04 (T3929 sample vector styling parity)_
 
 - [x] T3901 – Fixture scaffolding & red tests: added `docs/test-vectors/emv-cap/{identify,respond,sign}-baseline.json`, captured session key/cryptogram/overlay/OTP metadata, and introduced `EmvCapSimulationVectorsTest` with deliberate failures pending domain wiring (Gradle run deferred until implementation). Commands: `./gradlew --no-daemon :core:test`.
 - [x] T3902 – Core implementation: implemented session key derivation, CAP mode validation, Generate AC execution, and IPB masking to satisfy T3901 tests; introduced negative-path coverage for invalid hex and Identify-mode challenge misuse. Commands: `./gradlew --no-daemon :core:test`, `./gradlew --no-daemon spotlessApply check`.
@@ -52,3 +52,4 @@ _Last updated: 2025-11-04 (T3926 sample vector terminology parity)_
   - Tests covering EMV evaluation, CLI JSON/text output, REST endpoints, replay metadata, and JS/Selenium suites updated to assert the new diagnostics; OpenAPI snapshots refresh the schema additions.
 - [x] T3927 – Sample vector spacing parity: Applied the shared `stack-offset-top-lg` utility to the Evaluate and Replay sample vector containers so EMV/CAP spacing matches other protocol panels, and added Selenium assertions to guard the helper on both panels; reran Selenium and the full formatting/check pipeline. Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon spotlessApply check`.
 - [x] T3928 – Evaluate sample block refinement: Moved seed actions inside the Evaluate preset field group, added inline spacing styles, extended Selenium assertions, and reran `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"` plus `./gradlew --no-daemon spotlessApply check`.
+- [x] T3929 – Sample vector styling parity: Extended Selenium coverage so Evaluate and Replay sample vector selectors assert the shared inline preset container and dark surface dropdown, refactored `panel.html` markup accordingly, and reran `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :ui:test`, and `./gradlew --no-daemon spotlessApply check`.

@@ -183,12 +183,14 @@ _Last updated:_ 2025-11-04 (verbose trace diagnostic parity)
    - Collapsed the Evaluate sample vector block so preset selection and seed controls mirror the Replay layout with no extra vertical gap by relocating the seed actions inside the preset field group and introducing inline spacing styles.  
    - Extended Selenium assertions to require the inline helper and reran `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"` plus `./gradlew --no-daemon spotlessApply check` (both green).
 
-## Current Increment – Implementation drift gate & acceptance review (planned)
+31. **I29 – Sample vector styling parity (completed 2025-11-04)**  
+   - Extended Selenium coverage to assert the Evaluate and Replay sample vector dropdowns use the shared inline preset container, shared dark surface styling, and reside with seed actions/hints.  
+   - Refactored the EMV operator template to reuse inline preset markup for both selectors, including new `data-testid` hooks, and ensured the dropdown appearance matches the existing HOTP/TOTP/FIDO2 inline preset background.  
+   - Commands executed: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+
+## Next Increment – Implementation drift gate & acceptance review (planned)
 - Compile drift gate report covering Feature 039 scope (evaluation, replay, verbose diagnostics) and verify artefact traceability across spec/plan/tasks vs. code/tests.  
 - Re-run full quality gate if required during review and capture acceptance notes for project owner before closing the workstream.
-
-## Next Increment – Pending (to be scheduled post drift gate)
-- Identify follow-up work only after the drift gate/acceptance review concludes; no additional increments are queued at this time.
 
 ## Previous Increment – I28 Evaluate sample vector spacing refinement (completed 2025-11-04)
 - Collapsed the Evaluate sample vector block so preset selection and seed controls mirror the Replay layout, introduced inline spacing styles, and reran targeted Selenium/UI checks alongside `spotlessApply check`.

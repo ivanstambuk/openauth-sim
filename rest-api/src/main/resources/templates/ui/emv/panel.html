@@ -107,7 +107,7 @@
                 </fieldset>
 
                 <div class="stack-md stack-offset-top-lg evaluation-form__preset-block">
-                  <div class="field-group">
+                  <div class="inline-preset" data-testid="emv-evaluate-sample-vector">
                     <label for="emvStoredCredentialId">Load a sample vector</label>
                     <select
                         id="emvStoredCredentialId"
@@ -425,7 +425,7 @@
                 <input type="hidden" name="_csrf" th:value="${csrfToken}" />
 
                 <div class="stack-md stack-offset-top-lg" data-replay-section="stored">
-                  <div class="field-group">
+                  <div class="inline-preset" data-testid="emv-replay-sample-vector">
                     <label for="emvReplayStoredCredentialId">Load a sample vector</label>
                     <select
                         id="emvReplayStoredCredentialId"
