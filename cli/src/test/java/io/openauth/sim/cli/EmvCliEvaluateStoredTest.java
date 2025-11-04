@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,7 @@ final class EmvCliEvaluateStoredTest {
         assertTrue(stdout.contains("credentialSource=stored"), stdout);
         assertTrue(stdout.contains("otp=" + vector.outputs().otpDecimal()), stdout);
         assertTrue(stdout.contains("maskLength=" + countMaskedDigits(vector.outputs())), stdout);
+        assertTrue(stdout.contains("Preview window:"), stdout);
         assertTrue(stdout.contains("trace.masterKeySha256=" + expectedMasterKeyDigest(vector)), stdout);
     }
 
@@ -75,6 +77,14 @@ final class EmvCliEvaluateStoredTest {
 
         assertNotNull(root.get("otp"), "OTP field should be present");
         @SuppressWarnings("unchecked")
+        List<Map<String, Object>> previews = (List<Map<String, Object>>) root.get("previews");
+        assertNotNull(previews, "Preview array should be present");
+        assertFalse(previews.isEmpty(), "Preview array should include the evaluated entry");
+        Map<String, Object> previewEntry = previews.get(0);
+        assertEquals(overrideAtc, previewEntry.get("counter"));
+        assertEquals(0, ((Number) previewEntry.get("delta")).intValue());
+
+        @SuppressWarnings("unchecked")
         Map<String, Object> telemetry = (Map<String, Object>) root.get("telemetry");
         assertNotNull(telemetry, "Telemetry payload should be present");
         @SuppressWarnings("unchecked")
@@ -82,6 +92,8 @@ final class EmvCliEvaluateStoredTest {
         assertEquals("stored", fields.get("credentialSource"));
         assertEquals("emv-cap-respond-baseline", fields.get("credentialId"));
         assertEquals(overrideAtc, fields.get("atc"));
+        assertEquals(0, ((Number) fields.get("previewWindowBackward")).intValue());
+        assertEquals(0, ((Number) fields.get("previewWindowForward")).intValue());
     }
 
     @Test

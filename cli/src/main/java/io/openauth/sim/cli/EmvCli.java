@@ -13,6 +13,7 @@ import io.openauth.sim.application.emv.cap.EmvCapSeedApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapSeedApplicationService.SeedResult;
 import io.openauth.sim.application.emv.cap.EmvCapSeedSamples;
 import io.openauth.sim.application.emv.cap.EmvCapSeedSamples.SeedSample;
+import io.openauth.sim.application.preview.OtpPreview;
 import io.openauth.sim.application.telemetry.EmvCapTelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
@@ -521,6 +522,8 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                         atc,
                         branch,
                         heightValue,
+                        Math.max(0, searchBackward),
+                        Math.max(0, searchForward),
                         iv,
                         cdol1,
                         issuerBitmap,
@@ -890,6 +893,20 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
             String issuerApplicationDataHex;
 
             @CommandLine.Option(
+                    names = "--window-backward",
+                    defaultValue = "0",
+                    paramLabel = "<steps>",
+                    description = "Preview window size before the evaluated OTP")
+            int windowBackward;
+
+            @CommandLine.Option(
+                    names = "--window-forward",
+                    defaultValue = "0",
+                    paramLabel = "<steps>",
+                    description = "Preview window size after the evaluated OTP")
+            int windowForward;
+
+            @CommandLine.Option(
                     names = "--include-trace",
                     paramLabel = "<true|false>",
                     arity = "0..1",
@@ -989,6 +1006,7 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                 writeFrame(writer, event, frame);
                 writer.printf(Locale.ROOT, "otp=%s%n", result.otp());
                 writer.printf(Locale.ROOT, "maskLength=%d%n", result.maskLength());
+                OtpPreviewTableFormatter.print(writer, result.previews());
                 if (includeTrace) {
                     result.traceOptional().ifPresent(trace -> printTrace(writer, trace, request));
                 }
@@ -1056,6 +1074,8 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                         atc,
                         branch,
                         heightValue,
+                        Math.max(0, windowBackward),
+                        Math.max(0, windowForward),
                         iv,
                         cdol1Value,
                         issuerBitmap,
@@ -1104,6 +1124,8 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                 fields.put("height", descriptor.height());
                 fields.put(
                         "ipbMaskLength", descriptor.issuerProprietaryBitmapHex().length() / 2);
+                fields.put("previewWindowBackward", Math.max(0, windowBackward));
+                fields.put("previewWindowForward", Math.max(0, windowForward));
                 return fields;
             }
 
@@ -1114,6 +1136,8 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                 fields.put("branchFactor", request.branchFactor());
                 fields.put("height", request.height());
                 fields.put("ipbMaskLength", request.issuerProprietaryBitmapHex().length() / 2);
+                fields.put("previewWindowBackward", request.previewWindowBackward());
+                fields.put("previewWindowForward", request.previewWindowForward());
                 return fields;
             }
 
@@ -1282,6 +1306,20 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
             String issuerApplicationDataHex;
 
             @CommandLine.Option(
+                    names = "--window-backward",
+                    defaultValue = "0",
+                    paramLabel = "<steps>",
+                    description = "Preview window size before the evaluated OTP")
+            int windowBackward;
+
+            @CommandLine.Option(
+                    names = "--window-forward",
+                    defaultValue = "0",
+                    paramLabel = "<steps>",
+                    description = "Preview window size after the evaluated OTP")
+            int windowForward;
+
+            @CommandLine.Option(
                     names = "--include-trace",
                     paramLabel = "<true|false>",
                     arity = "0..1",
@@ -1337,6 +1375,8 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                         requireText(atcHex, "atc"),
                         branchFactor,
                         height,
+                        Math.max(0, windowBackward),
+                        Math.max(0, windowForward),
                         requireText(ivHex, "iv"),
                         requireText(cdol1Hex, "cdol1"),
                         requireText(issuerProprietaryBitmapHex, "issuerProprietaryBitmap"),
@@ -1369,6 +1409,7 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                 writeFrame(writer, event, frame);
                 writer.printf(Locale.ROOT, "otp=%s%n", result.otp());
                 writer.printf(Locale.ROOT, "maskLength=%d%n", result.maskLength());
+                OtpPreviewTableFormatter.print(writer, result.previews());
                 if (includeTrace) {
                     result.traceOptional().ifPresent(trace -> printTrace(writer, trace, request));
                 }
@@ -1449,6 +1490,36 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
         builder.append("{\n");
         builder.append("  \"otp\": \"").append(escapeJson(result.otp())).append("\",\n");
         builder.append("  \"maskLength\": ").append(result.maskLength());
+
+        List<OtpPreview> previews = result.previews();
+        builder.append(",\n  \"previews\": ");
+        if (previews.isEmpty()) {
+            builder.append("[]");
+        } else {
+            builder.append("[\n");
+            for (int index = 0; index < previews.size(); index++) {
+                OtpPreview preview = previews.get(index);
+                builder.append("    {\n");
+                builder.append("      \"counter\": ");
+                if (preview.counter() == null || preview.counter().isBlank()) {
+                    builder.append("null");
+                } else {
+                    builder.append("\"").append(escapeJson(preview.counter())).append("\"");
+                }
+                builder.append(",\n");
+                builder.append("      \"delta\": ").append(preview.delta()).append(",\n");
+                builder.append("      \"otp\": \"")
+                        .append(escapeJson(preview.otp()))
+                        .append("\"\n");
+                builder.append("    }");
+                if (index + 1 < previews.size()) {
+                    builder.append(",");
+                }
+                builder.append("\n");
+            }
+            builder.append("  ]");
+        }
+
         result.traceOptional().ifPresent(trace -> appendTraceJson(builder, trace, request));
         builder.append(",\n  \"telemetry\": {\n");
         builder.append("    \"event\": \"").append(escapeJson(frame.event())).append("\",\n");

@@ -161,6 +161,9 @@ public final class EmvCapReplayApplicationService {
             return override;
         }
 
+        int previewBackward = command.driftBackward();
+        int previewForward = command.driftForward();
+
         CustomerInputs inputs = new CustomerInputs(
                 descriptor.defaultChallenge(), descriptor.defaultReference(), descriptor.defaultAmount());
 
@@ -173,6 +176,8 @@ public final class EmvCapReplayApplicationService {
                 descriptor.defaultAtcHex(),
                 descriptor.branchFactor(),
                 descriptor.height(),
+                previewBackward,
+                previewForward,
                 descriptor.ivHex(),
                 descriptor.cdol1Hex(),
                 descriptor.issuerProprietaryBitmapHex(),
@@ -213,6 +218,8 @@ public final class EmvCapReplayApplicationService {
                 formatted,
                 request.branchFactor(),
                 request.height(),
+                request.previewWindowBackward(),
+                request.previewWindowForward(),
                 request.ivHex(),
                 request.cdol1Hex(),
                 request.issuerProprietaryBitmapHex(),

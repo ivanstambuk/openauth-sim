@@ -25,8 +25,13 @@
   var seedEndpoint = form.getAttribute('data-seed-endpoint') || '';
   var csrfInput = form.querySelector('input[name="_csrf"]');
   var storedSelect = form.querySelector('#emvStoredCredentialId');
-  var storedSubmitButton = form.querySelector('[data-testid="emv-stored-submit"]');
   var storedEmptyState = form.querySelector('[data-testid="emv-stored-empty"]');
+  var evaluateModeToggle = form.querySelector('[data-testid="emv-evaluate-mode-toggle"]');
+  var evaluateModeRadios = evaluateModeToggle
+      ? Array.prototype.slice.call(evaluateModeToggle.querySelectorAll('input[name="emvEvaluateMode"]'))
+      : [];
+  var actionBar = form.querySelector('[data-testid="emv-action-bar"]');
+  var evaluateButton = form.querySelector('[data-testid="emv-evaluate-submit"]');
   var masterKeyInput = form.querySelector('#emvMasterKey');
   var atcInput = form.querySelector('#emvAtc');
   var branchFactorInput = form.querySelector('#emvBranchFactor');
@@ -39,6 +44,8 @@
   var challengeInput = form.querySelector('#emvChallenge');
   var referenceInput = form.querySelector('#emvReference');
   var amountInput = form.querySelector('#emvAmount');
+  var windowBackwardInput = form.querySelector('#emvWindowBackward');
+  var windowForwardInput = form.querySelector('#emvWindowForward');
   var storedSubmissionState = createStoredSubmissionState({ snapshot: captureEvaluateSnapshot });
   var seedActions = form.querySelector('[data-testid="emv-seed-actions"]');
   var seedButton = seedActions ? seedActions.querySelector('[data-testid="emv-seed-credentials"]') : null;
@@ -155,10 +162,28 @@
     storedSelect.addEventListener('change', function () {
       if (storedSelect.value) {
         applyCredential(storedSelect.value);
+        if (selectedEvaluateMode() !== 'stored') {
+          setEvaluateMode('stored');
+        } else {
+          updateStoredControls();
+        }
       } else if (storedSubmissionState && typeof storedSubmissionState.clearBaseline === 'function') {
         storedSubmissionState.clearBaseline();
         updateStoredControls();
+      } else {
+        updateStoredControls();
       }
+    });
+  }
+
+  if (evaluateModeRadios.length > 0) {
+    evaluateModeRadios.forEach(function (input) {
+      if (!input) {
+        return;
+      }
+      input.addEventListener('change', function () {
+        updateStoredControls();
+      });
     });
   }
 
@@ -168,18 +193,9 @@
     });
   }
 
-  if (storedSubmitButton) {
-    storedSubmitButton.addEventListener('click', function (event) {
-      if (event && typeof event.preventDefault === 'function') {
-        event.preventDefault();
-      }
-      handleStoredSubmit();
-    });
-  }
-
   form.addEventListener('submit', function (event) {
     event.preventDefault();
-    handleSubmit();
+    handleFormSubmit();
   });
 
   if (replayForm) {
@@ -595,7 +611,18 @@
       });
   }
 
-  function handleSubmit() {
+  function handleFormSubmit() {
+    var mode = selectedEvaluateMode();
+    if (mode === 'stored') {
+      if (!hasStoredCredential()) {
+        return Promise.resolve(null);
+      }
+      return handleStoredSubmit();
+    }
+    return handleInlineSubmit();
+  }
+
+  function handleInlineSubmit() {
     if (submitting || !evaluateEndpoint) {
       return Promise.resolve(null);
     }
@@ -608,7 +635,7 @@
     if (resultPanel && global.ResultCard && typeof global.ResultCard.resetMessage === 'function') {
       global.ResultCard.resetMessage(resultPanel);
     }
-    clearPreview();
+    clearPreviewTable();
     verboseBeginRequest();
     return postJson(evaluateEndpoint, payload, csrfToken(csrfInput))
       .then(function (response) {
@@ -636,7 +663,7 @@
         if (typeof storedSubmissionState.recordInline === 'function') {
           storedSubmissionState.recordInline();
         }
-        return handleSubmit();
+        return handleInlineSubmit();
       }
       if (typeof storedSubmissionState.recordStored === 'function') {
         storedSubmissionState.recordStored();
@@ -650,7 +677,7 @@
     if (resultPanel && global.ResultCard && typeof global.ResultCard.resetMessage === 'function') {
       global.ResultCard.resetMessage(resultPanel);
     }
-    clearPreview();
+    clearPreviewTable();
     verboseBeginRequest();
     return postJson(storedEndpoint, payload, csrfToken(csrfInput))
       .then(function (response) {
@@ -674,6 +701,8 @@
       atc: uppercase(value(atcInput)),
       branchFactor: branchFactorValue == null ? '' : String(branchFactorValue),
       height: heightValue == null ? '' : String(heightValue),
+      previewWindowBackward: value(windowBackwardInput),
+      previewWindowForward: value(windowForwardInput),
       iv: uppercase(value(ivInput)),
       cdol1: uppercase(value(cdol1Input)),
       issuerProprietaryBitmap: uppercase(value(ipbInput)),
@@ -709,9 +738,30 @@
       delete payload.customerInputs;
     }
 
+    attachPreviewWindow(payload);
+
     payload.includeTrace = isTraceRequested();
 
     return payload;
+  }
+
+  function attachPreviewWindow(payload) {
+    if (!payload) {
+      return;
+    }
+    var backward = windowBackwardInput ? parseInteger(windowBackwardInput) : null;
+    var forward = windowForwardInput ? parseInteger(windowForwardInput) : null;
+    if (backward == null && forward == null) {
+      return;
+    }
+    var windowPayload = {};
+    if (backward != null) {
+      windowPayload.backward = backward;
+    }
+    if (forward != null) {
+      windowPayload.forward = forward;
+    }
+    payload.previewWindow = windowPayload;
   }
 
   function createStoredSubmissionState(options) {
@@ -755,6 +805,9 @@
         var keys = Object.keys(baselineSnapshot);
         for (var index = 0; index < keys.length; index += 1) {
           var key = keys[index];
+          if (key === 'previewWindowBackward' || key === 'previewWindowForward') {
+            continue;
+          }
           if (baselineSnapshot[key] !== current[key]) {
             return true;
           }
@@ -766,6 +819,7 @@
         if (includeTrace !== undefined) {
           payload.includeTrace = !!includeTrace;
         }
+        attachPreviewWindow(payload);
         lastSubmission = 'stored';
         return payload;
       },
@@ -793,9 +847,8 @@
       global.EmvConsoleTestHooks.attach({
         storedState: storedSubmissionState,
         handleStoredSubmit: handleStoredSubmit,
-        handleInlineSubmit: handleSubmit,
+        handleInlineSubmit: handleInlineSubmit,
         storedSelect: storedSelect,
-        storedButton: storedSubmitButton,
         updateStoredControls: updateStoredControls,
       });
     }
@@ -1021,7 +1074,7 @@
       resultPanel.setAttribute('aria-hidden', 'false');
     }
 
-    clearPreview();
+    clearPreviewTable();
 
     var telemetry = body && body.telemetry ? body.telemetry : null;
     var status = telemetry && telemetry.status ? String(telemetry.status) : 'unknown';
@@ -1032,7 +1085,8 @@
 
     if (status === 'success') {
       var counter = fields && typeof fields.atc === 'string' ? fields.atc : '';
-      renderPreview(counter, body && body.otp ? body.otp : '');
+      var previews = body && Array.isArray(body.previews) ? body.previews : [];
+      renderPreviewList(previews, { counter: counter, otp: body && body.otp ? body.otp : '' });
     } else {
       var reasonCode = telemetry && typeof telemetry.reasonCode === 'string' ? telemetry.reasonCode : '';
       var message = reason || 'Evaluation failed.';
@@ -1059,7 +1113,7 @@
       resultPanel.removeAttribute('hidden');
       resultPanel.setAttribute('aria-hidden', 'false');
     }
-    clearPreview();
+    clearPreviewTable();
     updateText(statusBadge, 'Error');
     verboseApplyError(error, null);
 
@@ -1070,7 +1124,7 @@
     }
   }
 
-  function clearPreview() {
+  function clearPreviewTable() {
     if (!resultPreviewBody) {
       return;
     }
@@ -1083,37 +1137,95 @@
     }
   }
 
-  function renderPreview(counter, otp) {
+  function normalizeDelta(value) {
+    if (typeof value === 'number' && isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      var parsed = parseInt(value, 10);
+      return isNaN(parsed) ? null : parsed;
+    }
+    return null;
+  }
+
+  function formatDeltaDisplay(delta) {
+    var normalized = normalizeDelta(delta);
+    if (normalized == null) {
+      return '—';
+    }
+    if (normalized === 0) {
+      return '[0]';
+    }
+    if (normalized > 0) {
+      return '+' + normalized;
+    }
+    return String(normalized);
+  }
+
+  function formatDeltaLabel(delta) {
+    var normalized = normalizeDelta(delta);
+    if (normalized == null) {
+      return 'Delta unavailable';
+    }
+    if (normalized === 0) {
+      return 'Delta zero';
+    }
+    if (normalized > 0) {
+      return 'Delta plus ' + normalized;
+    }
+    return 'Delta minus ' + Math.abs(normalized);
+  }
+
+  function renderPreviewList(previews, fallback) {
     if (!resultPreviewBody || !resultPreviewContainer) {
       return;
     }
-    clearPreview();
+    clearPreviewTable();
+    var entries = Array.isArray(previews) ? previews.slice() : [];
+    if (!entries.length && fallback) {
+      entries.push({
+        counter: fallback.counter || null,
+        delta: 0,
+        otp: fallback.otp || null,
+      });
+    }
+    entries.forEach(function (entry) {
+      var row = documentRef.createElement('tr');
+      row.className = 'result-preview__row';
+      var deltaValue = normalizeDelta(entry && entry.delta);
+      if (deltaValue === 0) {
+        row.classList.add('result-preview__row--active');
+      }
+      if (deltaValue != null) {
+        row.setAttribute('data-delta', String(deltaValue));
+      }
 
-    var row = documentRef.createElement('tr');
-    row.className = 'result-preview__row result-preview__row--active';
-    row.setAttribute('data-delta', '0');
+      var counterCell = documentRef.createElement('th');
+      counterCell.scope = 'row';
+      counterCell.className = 'result-preview__cell result-preview__cell--counter';
+      counterCell.textContent = normalizePreviewValue(entry && entry.counter);
+      row.appendChild(counterCell);
 
-    var counterCell = documentRef.createElement('th');
-    counterCell.scope = 'row';
-    counterCell.className = 'result-preview__cell result-preview__cell--counter';
-    counterCell.textContent = normalizePreviewValue(counter);
-    row.appendChild(counterCell);
+      var deltaCell = documentRef.createElement('td');
+      deltaCell.className = 'result-preview__cell result-preview__cell--delta';
+      deltaCell.textContent = formatDeltaDisplay(deltaValue);
+      deltaCell.setAttribute('aria-label', formatDeltaLabel(deltaValue));
+      row.appendChild(deltaCell);
 
-    var deltaCell = documentRef.createElement('td');
-    deltaCell.className = 'result-preview__cell result-preview__cell--delta';
-    deltaCell.textContent = '0';
-    deltaCell.setAttribute('aria-label', 'Delta zero');
-    row.appendChild(deltaCell);
+      var otpCell = documentRef.createElement('td');
+      otpCell.className = 'result-preview__cell result-preview__cell--otp';
+      otpCell.textContent = normalizePreviewValue(entry && entry.otp);
+      if (deltaValue === 0) {
+        otpCell.setAttribute('data-testid', 'emv-otp');
+      }
+      row.appendChild(otpCell);
 
-    var otpCell = documentRef.createElement('td');
-    otpCell.className = 'result-preview__cell result-preview__cell--otp';
-    otpCell.setAttribute('data-testid', 'emv-otp');
-    otpCell.textContent = normalizePreviewValue(otp);
-    row.appendChild(otpCell);
-
-    resultPreviewBody.appendChild(row);
-    resultPreviewContainer.removeAttribute('hidden');
-    resultPreviewContainer.setAttribute('aria-hidden', 'false');
+      resultPreviewBody.appendChild(row);
+    });
+    if (entries.length > 0) {
+      resultPreviewContainer.removeAttribute('hidden');
+      resultPreviewContainer.setAttribute('aria-hidden', 'false');
+    }
   }
 
   function clearReplayResult() {
@@ -1360,28 +1472,92 @@
   }
 
   function updateStoredControls() {
-    if (!storedSubmitButton) {
+    var mode = selectedEvaluateMode();
+    if (evaluateModeToggle) {
+      evaluateModeToggle.setAttribute('data-mode', mode);
+    }
+    if (actionBar) {
+      actionBar.setAttribute('data-mode', mode);
+    }
+    updateEvaluateButton(mode);
+    updateEvaluationHint(mode);
+  }
+
+  function updateEvaluateButton(mode) {
+    if (!evaluateButton) {
       return;
     }
-    var hasCredential = storedSelect && typeof storedSelect.value === 'string' && storedSelect.value.trim().length > 0;
-    if (!hasCredential || submitting) {
-      storedSubmitButton.setAttribute('disabled', 'disabled');
-    } else {
-      storedSubmitButton.removeAttribute('disabled');
+    var label = mode === 'stored' ? 'Evaluate stored credential' : 'Evaluate inline parameters';
+    if (evaluateButton.textContent !== label) {
+      evaluateButton.textContent = label;
     }
+    if (submitting) {
+      evaluateButton.setAttribute('disabled', 'disabled');
+      return;
+    }
+    if (mode === 'stored' && !hasStoredCredential()) {
+      evaluateButton.setAttribute('disabled', 'disabled');
+    } else {
+      evaluateButton.removeAttribute('disabled');
+    }
+  }
+
+  function updateEvaluationHint(mode) {
     if (!storedEmptyState) {
       return;
     }
     if (credentialsList.length === 0) {
-      storedEmptyState.textContent = 'No stored credentials available. Seed sample credentials to enable preset evaluation.';
+      storedEmptyState.textContent =
+        'No stored credentials available. Seed sample credentials to enable preset evaluation.';
       return;
     }
-    if (!hasCredential) {
-      storedEmptyState.textContent = 'Select a stored credential to enable preset evaluation.';
+    if (mode === 'stored') {
+      if (!hasStoredCredential()) {
+        storedEmptyState.textContent = 'Select a stored credential to evaluate a preset.';
+        return;
+      }
+      storedEmptyState.textContent =
+        'Stored evaluations send the selected credential. Modify any field to fall back to inline parameters.';
       return;
     }
     storedEmptyState.textContent =
-      'Preset evaluation sends only the stored credential. Modify any field to fall back to inline overrides.';
+      'Inline evaluation uses the parameters entered above. Select a stored credential and switch modes to run a preset.';
+  }
+
+  function hasStoredCredential() {
+    return (
+      !!storedSelect &&
+      typeof storedSelect.value === 'string' &&
+      storedSelect.value.trim().length > 0
+    );
+  }
+
+  function setEvaluateMode(mode) {
+    if (!evaluateModeRadios || evaluateModeRadios.length === 0) {
+      return;
+    }
+    var normalized = mode === 'stored' ? 'stored' : 'inline';
+    for (var index = 0; index < evaluateModeRadios.length; index += 1) {
+      var input = evaluateModeRadios[index];
+      if (!input) {
+        continue;
+      }
+      input.checked = input.value === normalized;
+    }
+    updateStoredControls();
+  }
+
+  function selectedEvaluateMode() {
+    if (!evaluateModeRadios || evaluateModeRadios.length === 0) {
+      return 'inline';
+    }
+    for (var index = 0; index < evaluateModeRadios.length; index += 1) {
+      var input = evaluateModeRadios[index];
+      if (input && input.checked) {
+        return input.value === 'stored' ? 'stored' : 'inline';
+      }
+    }
+    return 'inline';
   }
 
   function setMode(mode) {

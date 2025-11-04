@@ -37,6 +37,9 @@ final class EmvCapEvaluationApplicationServiceTest {
 
         assertEquals(vector.outputs().otpDecimal(), result.otp(), "otp should match fixture output");
         assertEquals(expectedMaskLength(vector), result.maskLength(), "mask length should match fixture overlay");
+        assertEquals(1, result.previews().size(), "preview list should contain the evaluated entry only");
+        assertEquals(0, result.previews().get(0).delta(), "central preview entry should report delta 0");
+        assertEquals(vector.outputs().otpDecimal(), result.previews().get(0).otp(), "central preview OTP should match");
 
         EmvCapEvaluationApplicationService.Trace trace = result.traceOptional().orElseThrow();
         assertEquals(expectedMasterKeyDigest(vector), trace.masterKeySha256());
@@ -107,6 +110,8 @@ final class EmvCapEvaluationApplicationServiceTest {
                         vector.input().atcHex(),
                         vector.input().branchFactor(),
                         vector.input().height(),
+                        0,
+                        0,
                         vector.input().ivHex(),
                         vector.input().cdol1Hex(),
                         vector.input().issuerProprietaryBitmapHex(),
@@ -155,6 +160,42 @@ final class EmvCapEvaluationApplicationServiceTest {
         assertTrue(result.traceOptional().isEmpty(), "trace should be omitted when verbose flag is false");
     }
 
+    @Test
+    void previewWindowGeneratesNeighbouringEntries() {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
+        EmvCapEvaluationApplicationService.EvaluationRequest request =
+                new EmvCapEvaluationApplicationService.EvaluationRequest(
+                        vector.input().mode(),
+                        vector.input().masterKeyHex(),
+                        vector.input().atcHex(),
+                        vector.input().branchFactor(),
+                        vector.input().height(),
+                        1,
+                        2,
+                        vector.input().ivHex(),
+                        vector.input().cdol1Hex(),
+                        vector.input().issuerProprietaryBitmapHex(),
+                        new EmvCapEvaluationApplicationService.CustomerInputs(
+                                vector.input().customerInputs().challenge(),
+                                vector.input().customerInputs().reference(),
+                                vector.input().customerInputs().amount()),
+                        new EmvCapEvaluationApplicationService.TransactionData(
+                                vector.input().transactionData().terminalHexOverride(),
+                                vector.input().transactionData().iccHexOverride()),
+                        vector.input().iccDataTemplateHex(),
+                        vector.input().issuerApplicationDataHex());
+
+        EmvCapEvaluationApplicationService.EvaluationResult result = service.evaluate(request, true);
+
+        assertEquals(4, result.previews().size(), "preview list should include backward and forward entries");
+        assertEquals(-1, result.previews().get(0).delta());
+        assertEquals(0, result.previews().get(1).delta());
+        assertEquals(1, result.previews().get(2).delta());
+        assertEquals(2, result.previews().get(3).delta());
+        assertEquals(
+                vector.outputs().otpDecimal(), result.previews().get(1).otp(), "delta 0 OTP should match baseline");
+    }
+
     private static EmvCapEvaluationApplicationService.EvaluationRequest requestFrom(EmvCapVector vector) {
         return new EmvCapEvaluationApplicationService.EvaluationRequest(
                 vector.input().mode(),
@@ -162,6 +203,8 @@ final class EmvCapEvaluationApplicationServiceTest {
                 vector.input().atcHex(),
                 vector.input().branchFactor(),
                 vector.input().height(),
+                0,
+                0,
                 vector.input().ivHex(),
                 vector.input().cdol1Hex(),
                 vector.input().issuerProprietaryBitmapHex(),

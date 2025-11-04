@@ -1,5 +1,6 @@
 package io.openauth.sim.application.emv.cap;
 
+import io.openauth.sim.application.preview.OtpPreview;
 import io.openauth.sim.application.telemetry.EmvCapTelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
@@ -7,9 +8,12 @@ import io.openauth.sim.core.emv.cap.EmvCapEngine;
 import io.openauth.sim.core.emv.cap.EmvCapInput;
 import io.openauth.sim.core.emv.cap.EmvCapMode;
 import io.openauth.sim.core.emv.cap.EmvCapResult;
+import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -24,6 +28,8 @@ public final class EmvCapEvaluationApplicationService {
 
     public EvaluationResult evaluate(EvaluationRequest request, boolean verboseTrace) {
         Objects.requireNonNull(request, "request");
+        int previewBackward = Math.max(0, request.previewWindowBackward());
+        int previewForward = Math.max(0, request.previewWindowForward());
         try {
             EmvCapInput input = toDomainInput(request);
             EmvCapResult result = EmvCapEngine.evaluate(input);
@@ -37,11 +43,14 @@ public final class EmvCapEvaluationApplicationService {
                     ipbMaskLength,
                     maskedDigitsCount,
                     request.branchFactor(),
-                    request.height());
+                    request.height(),
+                    previewBackward,
+                    previewForward);
 
+            List<OtpPreview> previews = buildPreviewEntries(request, result, previewBackward, previewForward);
             Trace trace = verboseTrace ? toTrace(result, request) : null;
 
-            return new EvaluationResult(telemetry, result.otp().decimal(), maskedDigitsCount, trace);
+            return new EvaluationResult(telemetry, result.otp().decimal(), maskedDigitsCount, previews, trace);
         } catch (IllegalArgumentException ex) {
             int ipbMaskLength = safeMaskLength(request);
             TelemetrySignal telemetry = TelemetrySignal.validationFailure(
@@ -50,8 +59,10 @@ public final class EmvCapEvaluationApplicationService {
                     ipbMaskLength,
                     request.branchFactor(),
                     request.height(),
+                    previewBackward,
+                    previewForward,
                     ex.getMessage());
-            return new EvaluationResult(telemetry, "", 0, null);
+            return new EvaluationResult(telemetry, "", 0, List.of(), null);
         } catch (RuntimeException ex) {
             int ipbMaskLength = safeMaskLength(request);
             TelemetrySignal telemetry = TelemetrySignal.error(
@@ -60,12 +71,73 @@ public final class EmvCapEvaluationApplicationService {
                     ipbMaskLength,
                     request.branchFactor(),
                     request.height(),
+                    previewBackward,
+                    previewForward,
                     ex.getClass().getName() + ": " + ex.getMessage());
-            return new EvaluationResult(telemetry, "", 0, null);
+            return new EvaluationResult(telemetry, "", 0, List.of(), null);
         }
     }
 
+    private static List<OtpPreview> buildPreviewEntries(
+            EvaluationRequest request, EmvCapResult centerResult, int backward, int forward) {
+        int sanitizedBackward = Math.max(0, backward);
+        int sanitizedForward = Math.max(0, forward);
+        List<OtpPreview> previews = new ArrayList<>();
+        for (int delta = -sanitizedBackward; delta <= sanitizedForward; delta++) {
+            Optional<String> adjustedAtc = adjustAtcHex(request.atcHex(), delta);
+            if (adjustedAtc.isEmpty()) {
+                continue;
+            }
+            String otp;
+            if (delta == 0) {
+                otp = centerResult.otp().decimal();
+            } else {
+                try {
+                    EmvCapResult neighbor = EmvCapEngine.evaluate(toDomainInput(request, adjustedAtc.get()));
+                    otp = neighbor.otp().decimal();
+                } catch (RuntimeException ex) {
+                    continue;
+                }
+            }
+            previews.add(OtpPreview.forCounter(adjustedAtc.get(), delta, otp));
+        }
+        if (previews.isEmpty()) {
+            previews.add(OtpPreview.centerOnly(centerResult.otp().decimal()));
+        }
+        return List.copyOf(previews);
+    }
+
+    private static Optional<String> adjustAtcHex(String atcHex, int delta) {
+        if (delta == 0) {
+            return Optional.of(atcHex);
+        }
+        BigInteger base = new BigInteger(atcHex, 16);
+        BigInteger candidate = base.add(BigInteger.valueOf(delta));
+        if (candidate.signum() < 0) {
+            return Optional.empty();
+        }
+        int width = atcHex.length();
+        BigInteger limit = BigInteger.ONE.shiftLeft(width * 4).subtract(BigInteger.ONE);
+        if (candidate.compareTo(limit) > 0) {
+            return Optional.empty();
+        }
+        String formatted = candidate.toString(16).toUpperCase(Locale.ROOT);
+        if (formatted.length() < width) {
+            StringBuilder padded = new StringBuilder(width);
+            for (int index = formatted.length(); index < width; index++) {
+                padded.append('0');
+            }
+            padded.append(formatted);
+            formatted = padded.toString();
+        }
+        return Optional.of(formatted);
+    }
+
     private static EmvCapInput toDomainInput(EvaluationRequest request) {
+        return toDomainInput(request, request.atcHex());
+    }
+
+    private static EmvCapInput toDomainInput(EvaluationRequest request, String atcHex) {
         EmvCapInput.CustomerInputs customerInputs = new EmvCapInput.CustomerInputs(
                 request.customerInputs().challenge(),
                 request.customerInputs().reference(),
@@ -80,7 +152,7 @@ public final class EmvCapEvaluationApplicationService {
         return new EmvCapInput(
                 request.mode(),
                 request.masterKeyHex(),
-                request.atcHex(),
+                atcHex,
                 request.branchFactor(),
                 request.height(),
                 request.ivHex(),
@@ -133,6 +205,8 @@ public final class EmvCapEvaluationApplicationService {
             String atcHex,
             int branchFactor,
             int height,
+            int previewWindowBackward,
+            int previewWindowForward,
             String ivHex,
             String cdol1Hex,
             String issuerProprietaryBitmapHex,
@@ -147,6 +221,8 @@ public final class EmvCapEvaluationApplicationService {
             atcHex = normalizeHex(atcHex, "atc");
             branchFactor = requirePositive(branchFactor, "branchFactor");
             height = requirePositive(height, "height");
+            previewWindowBackward = Math.max(0, previewWindowBackward);
+            previewWindowForward = Math.max(0, previewWindowForward);
             ivHex = normalizeHex(ivHex, "iv");
             cdol1Hex = normalizeHex(cdol1Hex, "cdol1");
             issuerProprietaryBitmapHex = normalizeHex(issuerProprietaryBitmapHex, "issuerProprietaryBitmap");
@@ -183,7 +259,12 @@ public final class EmvCapEvaluationApplicationService {
     }
 
     /** Successful evaluation response returned to callers. */
-    public record EvaluationResult(TelemetrySignal telemetry, String otp, int maskLength, Trace trace) {
+    public record EvaluationResult(
+            TelemetrySignal telemetry, String otp, int maskLength, List<OtpPreview> previews, Trace trace) {
+
+        public EvaluationResult {
+            previews = previews == null ? List.of() : List.copyOf(previews);
+        }
 
         public Optional<Trace> traceOptional() {
             return Optional.ofNullable(trace);
@@ -275,40 +356,78 @@ public final class EmvCapEvaluationApplicationService {
         }
 
         static TelemetrySignal success(
-                EmvCapMode mode, String atc, int ipbMaskLength, int maskedDigitsCount, int branchFactor, int height) {
+                EmvCapMode mode,
+                String atc,
+                int ipbMaskLength,
+                int maskedDigitsCount,
+                int branchFactor,
+                int height,
+                int previewBackward,
+                int previewForward) {
             return new TelemetrySignal(
                     mode,
                     TelemetryStatus.SUCCESS,
                     "generated",
                     null,
                     true,
-                    telemetryFields(mode, atc, ipbMaskLength, maskedDigitsCount, branchFactor, height));
+                    telemetryFields(
+                            mode,
+                            atc,
+                            ipbMaskLength,
+                            maskedDigitsCount,
+                            branchFactor,
+                            height,
+                            previewBackward,
+                            previewForward));
         }
 
         static TelemetrySignal validationFailure(
-                EmvCapMode mode, String atc, int ipbMaskLength, int branchFactor, int height, String reason) {
+                EmvCapMode mode,
+                String atc,
+                int ipbMaskLength,
+                int branchFactor,
+                int height,
+                int previewBackward,
+                int previewForward,
+                String reason) {
             return new TelemetrySignal(
                     mode,
                     TelemetryStatus.INVALID,
                     "invalid_input",
                     reason,
                     true,
-                    telemetryFields(mode, atc, ipbMaskLength, 0, branchFactor, height));
+                    telemetryFields(
+                            mode, atc, ipbMaskLength, 0, branchFactor, height, previewBackward, previewForward));
         }
 
         static TelemetrySignal error(
-                EmvCapMode mode, String atc, int ipbMaskLength, int branchFactor, int height, String reason) {
+                EmvCapMode mode,
+                String atc,
+                int ipbMaskLength,
+                int branchFactor,
+                int height,
+                int previewBackward,
+                int previewForward,
+                String reason) {
             return new TelemetrySignal(
                     mode,
                     TelemetryStatus.ERROR,
                     "unexpected_error",
                     reason,
                     false,
-                    telemetryFields(mode, atc, ipbMaskLength, 0, branchFactor, height));
+                    telemetryFields(
+                            mode, atc, ipbMaskLength, 0, branchFactor, height, previewBackward, previewForward));
         }
 
         private static Map<String, Object> telemetryFields(
-                EmvCapMode mode, String atc, int ipbMaskLength, int maskedDigitsCount, int branchFactor, int height) {
+                EmvCapMode mode,
+                String atc,
+                int ipbMaskLength,
+                int maskedDigitsCount,
+                int branchFactor,
+                int height,
+                int previewBackward,
+                int previewForward) {
             Map<String, Object> fields = new LinkedHashMap<>();
             fields.put("mode", mode.name());
             fields.put("atc", atc);
@@ -320,6 +439,8 @@ public final class EmvCapEvaluationApplicationService {
             if (height > 0) {
                 fields.put("height", height);
             }
+            fields.put("previewWindowBackward", Math.max(0, previewBackward));
+            fields.put("previewWindowForward", Math.max(0, previewForward));
             return fields;
         }
     }

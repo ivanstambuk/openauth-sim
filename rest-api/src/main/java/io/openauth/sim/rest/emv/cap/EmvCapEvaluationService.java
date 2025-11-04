@@ -15,7 +15,10 @@ import io.openauth.sim.core.emv.cap.EmvCapMode;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.rest.EvaluationWindowRequest;
+import io.openauth.sim.rest.OtpPreviewResponse;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -73,6 +76,9 @@ final class EmvCapEvaluationService {
         int branchFactor = resolvePositive(
                 request.branchFactor(), descriptor != null ? descriptor.branchFactor() : null, "branchFactor");
         int height = resolvePositive(request.height(), descriptor != null ? descriptor.height() : null, "height");
+        EvaluationWindowRequest window = request.previewWindow();
+        int previewBackward = window != null ? window.backwardOrDefault(0) : 0;
+        int previewForward = window != null ? window.forwardOrDefault(0) : 0;
         String iv = resolveHex(request.iv(), descriptor != null ? descriptor.ivHex() : null, "iv");
         String cdol1 = resolveHex(request.cdol1(), descriptor != null ? descriptor.cdol1Hex() : null, "cdol1");
         String issuerProprietaryBitmap = resolveHex(
@@ -99,6 +105,8 @@ final class EmvCapEvaluationService {
                     atc,
                     branchFactor,
                     height,
+                    previewBackward,
+                    previewForward,
                     iv,
                     cdol1,
                     issuerProprietaryBitmap,
@@ -160,7 +168,11 @@ final class EmvCapEvaluationService {
                     .orElse(null);
         }
         EmvCapTelemetryPayload telemetryPayload = new EmvCapTelemetryPayload(frame, signal.reasonCode());
-        return new EmvCapEvaluationResponse(result.otp(), result.maskLength(), tracePayload, telemetryPayload);
+        List<OtpPreviewResponse> previews = result.previews().stream()
+                .map(entry -> new OtpPreviewResponse(entry.counter(), entry.delta(), entry.otp()))
+                .toList();
+        return new EmvCapEvaluationResponse(
+                result.otp(), result.maskLength(), previews, tracePayload, telemetryPayload);
     }
 
     private EmvCapTracePayload toTracePayload(Trace trace, EvaluationRequest evaluationRequest) {

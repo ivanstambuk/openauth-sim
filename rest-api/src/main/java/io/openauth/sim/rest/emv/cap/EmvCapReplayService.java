@@ -117,6 +117,8 @@ final class EmvCapReplayService {
         String atc = requireHex(request.atc(), "atc");
         int branchFactor = requirePositive(request.branchFactor(), "branchFactor");
         int height = requirePositive(request.height(), "height");
+        int previewBackward = request.driftBackward() != null ? Math.max(0, request.driftBackward()) : 0;
+        int previewForward = request.driftForward() != null ? Math.max(0, request.driftForward()) : 0;
         String iv = requireHex(request.iv(), "iv");
         String cdol1 = requireHex(request.cdol1(), "cdol1");
         String issuerBitmap = requireHex(request.issuerProprietaryBitmap(), "issuerProprietaryBitmap");
@@ -145,6 +147,8 @@ final class EmvCapReplayService {
                     atc,
                     branchFactor,
                     height,
+                    previewBackward,
+                    previewForward,
                     iv,
                     cdol1,
                     issuerBitmap,

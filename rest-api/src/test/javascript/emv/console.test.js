@@ -172,8 +172,15 @@ function createEnvironment({ verboseEnabled }) {
   const iccOverrideInput = createTextarea('emvIccOverride', 'DEF');
   const iccResolvedInput = createTextarea('emvIccResolved', 'FED');
   const csrfInput = createInput('_csrf', 'token');
-  const storedSubmitButton = createButton();
+  const evaluateButton = createButton();
+  evaluateButton.removeAttribute('disabled');
   const storedHint = { textContent: '' };
+
+  const evaluateModeInline = createInput('emvEvaluateModeInline', 'inline');
+  evaluateModeInline.value = 'inline';
+  evaluateModeInline.checked = true;
+  const evaluateModeStored = createInput('emvEvaluateModeStored', 'stored');
+  evaluateModeStored.value = 'stored';
 
   const modeIdentify = createInput('emvModeIdentify', 'IDENTIFY');
   modeIdentify.value = 'IDENTIFY';
@@ -218,6 +225,21 @@ function createEnvironment({ verboseEnabled }) {
   const replayPanel = {
     setAttribute() {},
     removeAttribute() {},
+  };
+  const evaluateModeToggle = {
+    setAttribute() {},
+    getAttribute() {
+      return null;
+    },
+    querySelectorAll(selector) {
+      if (selector === 'input[name="emvEvaluateMode"]') {
+        return [evaluateModeInline, evaluateModeStored];
+      }
+      return [];
+    },
+  };
+  const actionBar = {
+    setAttribute() {},
   };
 
   const seedScript = {
@@ -303,10 +325,14 @@ function createEnvironment({ verboseEnabled }) {
           return iccResolvedInput;
         case '[data-testid="emv-seed-actions"]':
           return null;
-        case '[data-testid="emv-stored-submit"]':
-          return storedSubmitButton;
+        case '[data-testid="emv-action-bar"]':
+          return actionBar;
+        case '[data-testid="emv-evaluate-submit"]':
+          return evaluateButton;
         case '[data-testid="emv-stored-empty"]':
           return storedHint;
+        case '[data-testid="emv-evaluate-mode-toggle"]':
+          return evaluateModeToggle;
         default:
           return null;
       }
@@ -314,6 +340,9 @@ function createEnvironment({ verboseEnabled }) {
     querySelectorAll(selector) {
       if (selector === 'input[name="mode"]') {
         return [modeIdentify, modeRespond, modeSign];
+      }
+      if (selector === 'input[name="emvEvaluateMode"]') {
+        return [evaluateModeInline, evaluateModeStored];
       }
       return [];
     },

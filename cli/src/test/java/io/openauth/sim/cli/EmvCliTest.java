@@ -80,6 +80,10 @@ final class EmvCliTest {
         int expectedMaskLength = countMaskedDigits(vector.outputs());
         assertTrue(stdout.contains("maskLength=" + expectedMaskLength), stdout);
 
+        assertTrue(stdout.contains("Preview window:"), stdout);
+        assertTrue(stdout.contains("[0]"), stdout);
+        assertTrue(stdout.contains("> " + vector.input().atcHex()), stdout);
+
         assertTrue(stdout.contains("trace.masterKeySha256=" + masterKeyDigest), stdout);
         assertTrue(stdout.contains("trace.sessionKey=" + vector.outputs().sessionKeyHex()), stdout);
         assertTrue(
@@ -146,6 +150,15 @@ final class EmvCliTest {
         assertEquals(countMaskedDigits(vector.outputs()), ((Number) root.get("maskLength")).intValue());
 
         @SuppressWarnings("unchecked")
+        List<Map<String, Object>> previews = (List<Map<String, Object>>) root.get("previews");
+        assertNotNull(previews, "Preview array should be present");
+        assertFalse(previews.isEmpty(), "Preview array must include the evaluated entry");
+        Map<String, Object> primaryPreview = previews.get(0);
+        assertEquals(vector.input().atcHex(), primaryPreview.get("counter"));
+        assertEquals(0, ((Number) primaryPreview.get("delta")).intValue());
+        assertEquals(vector.outputs().otpDecimal(), primaryPreview.get("otp"));
+
+        @SuppressWarnings("unchecked")
         Map<String, Object> trace = (Map<String, Object>) root.get("trace");
         assertNotNull(trace, "Trace payload should be present by default");
         assertEquals(expectedMasterKeyDigest(vector), trace.get("masterKeySha256"));
@@ -183,6 +196,8 @@ final class EmvCliTest {
                 vector.input().issuerProprietaryBitmapHex().length() / 2,
                 ((Number) fields.get("ipbMaskLength")).intValue());
         assertEquals(countMaskedDigits(vector.outputs()), ((Number) fields.get("maskedDigitsCount")).intValue());
+        assertEquals(0, ((Number) fields.get("previewWindowBackward")).intValue());
+        assertEquals(0, ((Number) fields.get("previewWindowForward")).intValue());
     }
 
     @Test

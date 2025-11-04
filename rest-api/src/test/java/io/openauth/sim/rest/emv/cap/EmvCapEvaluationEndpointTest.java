@@ -79,6 +79,15 @@ class EmvCapEvaluationEndpointTest {
         assertEquals(vector.outputs().otpDecimal(), root.get("otp").asText());
         assertEquals(expectedMaskLength(vector), root.get("maskLength").asInt());
 
+        JsonNode previews = root.get("previews");
+        assertNotNull(previews, "Previews array should be present");
+        assertTrue(previews.isArray(), "Previews node must be an array");
+        assertEquals(1, previews.size(), "Default preview window should include a single entry");
+        JsonNode previewEntry = previews.get(0);
+        assertEquals(vector.input().atcHex(), previewEntry.get("counter").asText());
+        assertEquals(0, previewEntry.get("delta").asInt());
+        assertEquals(vector.outputs().otpDecimal(), previewEntry.get("otp").asText());
+
         JsonNode trace = root.get("trace");
         assertNotNull(trace);
         assertEquals(
@@ -107,6 +116,8 @@ class EmvCapEvaluationEndpointTest {
         assertEquals(
                 expectedMaskLength(vector),
                 telemetry.get("fields").get("maskedDigitsCount").asInt());
+        assertEquals(0, telemetry.get("fields").get("previewWindowBackward").asInt());
+        assertEquals(0, telemetry.get("fields").get("previewWindowForward").asInt());
         assertEquals("inline", telemetry.get("fields").get("credentialSource").asText());
     }
 
@@ -125,6 +136,12 @@ class EmvCapEvaluationEndpointTest {
         JsonNode root = MAPPER.readTree(responseBody);
         assertEquals(vector.outputs().otpDecimal(), root.get("otp").asText());
         assertEquals(expectedMaskLength(vector), root.get("maskLength").asInt());
+        JsonNode identifyPreviews = root.get("previews");
+        assertNotNull(identifyPreviews);
+        assertTrue(identifyPreviews.isArray());
+        assertEquals(1, identifyPreviews.size());
+        assertEquals(
+                vector.input().atcHex(), identifyPreviews.get(0).get("counter").asText());
 
         JsonNode trace = root.get("trace");
         assertNotNull(trace);
@@ -166,6 +183,8 @@ class EmvCapEvaluationEndpointTest {
         assertEquals(vector.input().mode().name(), fields.get("mode").asText());
         assertEquals(vector.input().atcHex(), fields.get("atc").asText());
         assertEquals(expectedMaskLength(vector), fields.get("maskedDigitsCount").asInt());
+        assertEquals(0, fields.get("previewWindowBackward").asInt());
+        assertEquals(0, fields.get("previewWindowForward").asInt());
         assertEquals(
                 vector.input().issuerProprietaryBitmapHex().length() / 2,
                 fields.get("ipbMaskLength").asInt());
@@ -621,6 +640,11 @@ class EmvCapEvaluationEndpointTest {
         root.put("atc", input.atcHex());
         root.put("branchFactor", input.branchFactor());
         root.put("height", input.height());
+
+        ObjectNode previewWindow = root.putObject("previewWindow");
+        previewWindow.put("backward", 0);
+        previewWindow.put("forward", 0);
+
         root.put("iv", input.ivHex());
         root.put("cdol1", input.cdol1Hex());
         root.put("issuerProprietaryBitmap", input.issuerProprietaryBitmapHex());

@@ -92,6 +92,43 @@
                   </div>
                 </div>
 
+                <fieldset
+                    class="mode-toggle"
+                    data-testid="emv-evaluate-mode-toggle"
+                    data-mode="inline"
+                  >
+                  <legend>Choose evaluation mode</legend>
+                  <div class="mode-option">
+                    <input
+                        type="radio"
+                        id="emvEvaluateModeInline"
+                        name="emvEvaluateMode"
+                        value="inline"
+                        data-testid="emv-mode-select-inline"
+                        aria-describedby="emvEvaluateModeInlineHint"
+                        checked="checked"
+                      />
+                    <label for="emvEvaluateModeInline">Inline parameters</label>
+                    <p id="emvEvaluateModeInlineHint" class="hint">
+                      Provide master key, derivation parameters, and customer inputs manually.
+                    </p>
+                  </div>
+                  <div class="mode-option">
+                    <input
+                        type="radio"
+                        id="emvEvaluateModeStored"
+                        name="emvEvaluateMode"
+                        value="stored"
+                        data-testid="emv-mode-select-stored"
+                        aria-describedby="emvEvaluateModeStoredHint"
+                      />
+                    <label for="emvEvaluateModeStored">Stored credential</label>
+                    <p id="emvEvaluateModeStoredHint" class="hint">
+                      Evaluate a stored EMV/CAP preset. Editing parameters falls back to inline overrides.
+                    </p>
+                  </div>
+                </fieldset>
+
                 <fieldset class="mode-toggle mode-toggle--compact" data-testid="emv-mode-toggle">
                   <legend>Mode</legend>
                   <div class="mode-option">
@@ -248,21 +285,54 @@
                   </div>
                 </div>
 
+                <p class="field-legend" id="emvPreviewWindowLegend">
+                  Preview window offsets
+                </p>
+                <div
+                    class="field-grid preview-offset-grid"
+                    aria-labelledby="emvPreviewWindowLegend"
+                    data-testid="emv-preview-window-grid"
+                  >
+                  <div class="field-group">
+                    <label for="emvWindowBackward">Backward steps</label>
+                    <input
+                        type="number"
+                        id="emvWindowBackward"
+                        name="previewWindowBackward"
+                        min="0"
+                        step="1"
+                        inputmode="numeric"
+                        value="0"
+                        aria-describedby="emvPreviewWindowHint"
+                        data-testid="emv-window-backward"
+                      />
+                  </div>
+                  <div class="field-group">
+                    <label for="emvWindowForward">Forward steps</label>
+                    <input
+                        type="number"
+                        id="emvWindowForward"
+                        name="previewWindowForward"
+                        min="0"
+                        step="1"
+                        inputmode="numeric"
+                        value="0"
+                        aria-describedby="emvPreviewWindowHint"
+                        data-testid="emv-window-forward"
+                      />
+                  </div>
+                </div>
+                <p class="hint" id="emvPreviewWindowHint">
+                  Include neighbouring OTPs before and after the evaluated entry.
+                </p>
+
                 <div class="emv-action-bar" data-testid="emv-action-bar">
-                  <button
-                      type="button"
-                      class="button-primary"
-                      data-testid="emv-stored-submit"
-                      disabled="disabled"
-                    >
-                    Evaluate stored preset
-                  </button>
-                  <button type="submit" class="button-secondary" data-testid="emv-evaluate-submit">
-                    Evaluate inline overrides
+                  <button type="submit" class="button-primary" data-testid="emv-evaluate-submit">
+                    Evaluate inline parameters
                   </button>
                 </div>
                 <p class="hint" data-testid="emv-stored-empty" aria-live="polite">
-                  Select a stored credential to enable preset evaluation.
+                  Inline evaluation uses the parameters entered above. Select a stored credential and switch modes to run a preset.
                 </p>
               </form>
             </div>

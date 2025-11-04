@@ -2,6 +2,7 @@ package io.openauth.sim.rest.emv.cap;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.openauth.sim.rest.EvaluationWindowRequest;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record EmvCapEvaluationRequest(
@@ -14,6 +15,7 @@ record EmvCapEvaluationRequest(
         @JsonProperty("iv") String iv,
         @JsonProperty("cdol1") String cdol1,
         @JsonProperty("issuerProprietaryBitmap") String issuerProprietaryBitmap,
+        @JsonProperty("previewWindow") EvaluationWindowRequest previewWindow,
         @JsonProperty("customerInputs") CustomerInputs customerInputs,
         @JsonProperty("transactionData") TransactionData transactionData,
         @JsonProperty("iccDataTemplate") String iccDataTemplate,

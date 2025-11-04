@@ -86,6 +86,8 @@ final class EmvCapReplayApplicationServiceTest {
                 vector.input().atcHex(),
                 vector.input().branchFactor(),
                 vector.input().height(),
+                0,
+                0,
                 vector.input().ivHex(),
                 vector.input().cdol1Hex(),
                 vector.input().issuerProprietaryBitmapHex(),

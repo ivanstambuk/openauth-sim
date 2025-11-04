@@ -94,16 +94,18 @@ final class EmvCapOperatorUiSeleniumTest {
     void storedPresetEvaluatesIdentifyMode() {
         navigateToEmvConsole();
 
-        WebElement storedSubmitButton = waitForVisible(By.cssSelector("button[data-testid='emv-stored-submit']"));
-        assertThat(storedSubmitButton.getAttribute("disabled"))
-                .as("Stored preset evaluation button should be disabled until a credential is selected")
+        selectStoredEvaluateMode();
+
+        WebElement evaluateButton = waitForVisible(By.cssSelector("button[data-testid='emv-evaluate-submit']"));
+        assertThat(evaluateButton.getAttribute("disabled"))
+                .as("Evaluate button should be disabled until a credential is selected in stored mode")
                 .isNotNull();
         Select credentialSelect = waitForStoredCredentialSelect();
         waitForCredential(credentialSelect, STORED_CREDENTIAL_ID, STORED_PRESET_LABEL);
 
-        storedSubmitButton = waitForClickable(By.cssSelector("button[data-testid='emv-stored-submit']"));
-        assertThat(storedSubmitButton.getAttribute("disabled"))
-                .as("Stored preset evaluation button should become enabled once a credential is active")
+        evaluateButton = waitForClickable(By.cssSelector("button[data-testid='emv-evaluate-submit']"));
+        assertThat(evaluateButton.getAttribute("disabled"))
+                .as("Evaluate button should become enabled once a credential is active in stored mode")
                 .isNull();
 
         assertThat(driver.findElements(By.cssSelector("[data-testid='emv-terminal-data']")))
@@ -119,7 +121,7 @@ final class EmvCapOperatorUiSeleniumTest {
         WebElement storedHint = driver.findElement(By.cssSelector("[data-testid='emv-stored-empty']"));
         assertThat(storedHint.getText())
                 .as("Stored preset hint should describe inline override fallback")
-                .contains("Modify any field to fall back to inline overrides");
+                .contains("Modify any field to fall back to inline parameters");
 
         WebElement globalVerboseCheckbox = waitForClickable(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
         assertThat(globalVerboseCheckbox.isSelected())
@@ -134,13 +136,28 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("EMV-specific include-trace checkbox should be removed in favour of global toggle")
                 .isEmpty();
 
-        storedSubmitButton.click();
+        setNumericInput(By.cssSelector("[data-testid='emv-window-backward']"), 1);
+        setNumericInput(By.cssSelector("[data-testid='emv-window-forward']"), 2);
+
+        evaluateButton.click();
         driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
 
         waitForStatus("Success");
         WebElement otpNode =
                 driver.findElement(By.cssSelector("[data-testid='emv-result-card'] [data-testid='emv-otp']"));
         assertThat(otpNode.getText().trim()).isEqualTo(BASELINE_VECTOR.outputs().otpDecimal());
+
+        List<WebElement> previewRows = driver.findElements(By.cssSelector("[data-testid='emv-preview-body'] tr"));
+        assertThat(previewRows)
+                .as("Preview table should reflect backward and forward offsets")
+                .hasSize(4);
+        assertThat(previewRows.stream()
+                        .map(row -> row.getAttribute("data-delta"))
+                        .toList())
+                .containsExactly("-1", "0", "1", "2");
+        assertThat(previewRows.get(1).getAttribute("class"))
+                .as("Delta 0 row should be marked active")
+                .contains("result-preview__row--active");
 
         WebElement telemetryBadge =
                 driver.findElement(By.cssSelector("[data-testid='emv-result-card'] [data-testid='emv-status']"));
@@ -230,11 +247,13 @@ final class EmvCapOperatorUiSeleniumTest {
     void storedOverridesFallbackToInline() {
         navigateToEmvConsole();
 
+        selectStoredEvaluateMode();
+
         Select storedSelect = waitForStoredCredentialSelect();
         waitForCredential(storedSelect, STORED_CREDENTIAL_ID, STORED_PRESET_LABEL);
 
-        WebElement storedSubmitButton = waitForClickable(By.cssSelector("button[data-testid='emv-stored-submit']"));
-        assertThat(storedSubmitButton.getAttribute("disabled")).isNull();
+        WebElement evaluateButton = waitForClickable(By.cssSelector("button[data-testid='emv-evaluate-submit']"));
+        assertThat(evaluateButton.getAttribute("disabled")).isNull();
 
         WebElement masterKeyInput = waitForVisible(By.id("emvMasterKey"));
         String baselineMasterKey = BASELINE_VECTOR.input().masterKeyHex();
@@ -248,7 +267,7 @@ final class EmvCapOperatorUiSeleniumTest {
             globalVerboseCheckbox.click();
         }
 
-        storedSubmitButton.click();
+        evaluateButton.click();
         driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
 
         waitForStatus("Success");
@@ -262,8 +281,8 @@ final class EmvCapOperatorUiSeleniumTest {
                 .contains("metadata.credentialSource = inline")
                 .doesNotContain("metadata.credentialSource = stored");
 
-        storedSubmitButton = waitForClickable(By.cssSelector("button[data-testid='emv-stored-submit']"));
-        assertThat(storedSubmitButton.getAttribute("disabled")).isNull();
+        evaluateButton = waitForClickable(By.cssSelector("button[data-testid='emv-evaluate-submit']"));
+        assertThat(evaluateButton.getAttribute("disabled")).isNull();
     }
 
     @Test
@@ -501,6 +520,13 @@ final class EmvCapOperatorUiSeleniumTest {
         WebElement element = waitForVisible(locator);
         element.clear();
         element.sendKeys(String.valueOf(value));
+    }
+
+    private void selectStoredEvaluateMode() {
+        WebElement storedRadio = waitForClickable(By.cssSelector("[data-testid='emv-mode-select-stored']"));
+        if (!storedRadio.isSelected()) {
+            storedRadio.click();
+        }
     }
 
     private WebElement waitForVisible(By locator) {
