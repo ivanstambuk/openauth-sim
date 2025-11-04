@@ -1,6 +1,6 @@
 # Open Questions Log
 
-Use this file to capture outstanding questions or ambiguities before starting work. Limit each feature to a maximum of five high-impact questions per the clarification gate. Delete a row as soon as its question is resolved and ensure the answer is captured in the referenced spec/plan/ADR before removal. Each entry should include:
+Use this file to capture every outstanding high- or medium-impact question or ambiguity before starting work. Delete a row as soon as its question is resolved and ensure the answer is captured in the referenced spec/plan/ADR before removal. Each entry should include:
 
 > **Guardrail:** This table may only contain rows whose status is `Open`. If you resolve a question, remove the row immediately (record the answer in the referenced spec/plan/ADR).
 

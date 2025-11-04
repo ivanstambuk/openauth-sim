@@ -25,8 +25,8 @@ This constitution establishes the non-negotiable operating principles for the Op
 - Store specifications under `docs/4-architecture/specs/` with traceable identifiers (e.g., Feature 001).
 
 ### Principle 2 – Clarification Gate
-- Resolve ambiguous scope before planning by asking up to five high-impact questions per feature; escalate medium-impact uncertainties the same way, but tidy low-level or lightweight ambiguities directly and note the fixes in the governing spec/plan.
-- Record high- and medium-impact open questions in `docs/4-architecture/open-questions.md`; do not plan or implement until the user answers them and the specification captures the resolution.
+- Resolve ambiguous scope before planning by capturing every high-impact question for the feature; escalate every medium-impact uncertainty the same way, while tidying low-level or lightweight ambiguities directly and noting the fixes in the governing spec/plan.
+- Record all high- and medium-impact open questions in `docs/4-architecture/open-questions.md`; do not plan or implement until the user answers them and the specification captures the resolution.
 - Document clarified answers in the specification under `## Clarifications`, including any low-level adjustments handled without escalation.
 
 ### Principle 3 – Test-First Quality Discipline

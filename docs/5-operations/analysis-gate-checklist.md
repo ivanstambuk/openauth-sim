@@ -13,7 +13,7 @@ Use this checklist after a feature's specification, plan, and tasks exist but be
 ## Checklist
 1. **Specification completeness**
    - [ ] Objectives, functional, and non-functional requirements are populated.
-   - [ ] Clarifications section reflects most recent answers (≤5 high-impact questions per feature).
+   - [ ] Clarifications section reflects the latest answers for every high- and medium-impact question logged for this feature.
    - [ ] UI-impacting work includes an ASCII mock-up in the spec (`docs/4-architecture/spec-guidelines/ui-ascii-mockups.md`).
 2. **Open questions review**
    - [ ] No blocking `Open` entries remain for this feature. If any exist, pause and obtain clarification.
