@@ -21,6 +21,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
@@ -93,6 +94,30 @@ final class EmvCapOperatorUiSeleniumTest {
     @DisplayName("Stored EMV/CAP preset auto-fills parameters and returns OTP with verbose trace")
     void storedPresetEvaluatesIdentifyMode() {
         navigateToEmvConsole();
+
+        WebElement evaluateModeToggle =
+                waitForVisible(By.cssSelector("fieldset[data-testid='emv-evaluate-mode-toggle']"));
+        WebElement storedPresetSelect = waitForVisible(By.cssSelector("#emvStoredCredentialId"));
+        WebElement evaluatePresetContainer =
+                storedPresetSelect.findElement(By.xpath("ancestor::div[contains(@class,'stack-offset-top-lg')][1]"));
+        assertThat(evaluatePresetContainer.getAttribute("class"))
+                .as("Sample vector block should reuse shared spacing helper")
+                .contains("stack-offset-top-lg");
+        WebElement presetFieldGroup =
+                storedPresetSelect.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
+        WebElement seedActions = waitForVisible(By.cssSelector("[data-testid='emv-seed-actions']"));
+        assertThat(seedActions.getAttribute("class"))
+                .as("Seed actions should reuse inline spacing helper inside preset block")
+                .contains("seed-actions--inline");
+        WebElement seedActionsContainer =
+                seedActions.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
+        assertThat(seedActionsContainer)
+                .as("Seed actions should live inside the preset field group to mirror replay spacing")
+                .isEqualTo(presetFieldGroup);
+        assertElementOrder(
+                evaluateModeToggle,
+                storedPresetSelect,
+                "Evaluate mode selector should render before stored credential controls");
 
         selectStoredEvaluateMode();
 
@@ -305,6 +330,12 @@ final class EmvCapOperatorUiSeleniumTest {
                 .click();
 
         Select storedSelect = waitForReplayStoredCredentialSelect();
+        WebElement replayPresetContainer = storedSelect
+                .getWrappedElement()
+                .findElement(By.xpath("ancestor::div[contains(@class,'stack-offset-top-lg')][1]"));
+        assertThat(replayPresetContainer.getAttribute("class"))
+                .as("Replay preset block should reuse shared spacing helper")
+                .contains("stack-offset-top-lg");
         waitForReplayCredential(storedSelect, fixture.credentialId(), "CAP Respond baseline");
 
         assertThat(driver.findElements(By.cssSelector("[data-testid='emv-replay-terminal-data']")))
@@ -371,6 +402,30 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(globalVerboseCheckbox.isSelected())
                 .as("Global verbose toggle should remain unchecked by default")
                 .isFalse();
+
+        WebElement replayModeToggle = waitForVisible(By.cssSelector("fieldset[data-testid='emv-replay-mode-toggle']"));
+        List<WebElement> replayModeOptions = replayModeToggle.findElements(By.cssSelector(".mode-option"));
+        assertThat(replayModeOptions)
+                .as("Replay mode toggle should expose inline and stored options in order")
+                .hasSize(2);
+        WebElement inlineOption = replayModeOptions.get(0);
+        WebElement storedOption = replayModeOptions.get(1);
+        assertThat(inlineOption.getAttribute("data-testid")).isEqualTo("emv-replay-mode-inline");
+        assertThat(storedOption.getAttribute("data-testid")).isEqualTo("emv-replay-mode-stored");
+
+        WebElement inlineRadio = inlineOption.findElement(By.cssSelector("input[type='radio']"));
+        WebElement inlineHint = inlineOption.findElement(By.cssSelector(".hint"));
+        assertThat(inlineRadio.isSelected())
+                .as("Inline replay mode should be selected by default")
+                .isTrue();
+        assertThat(inlineHint.getText()).isEqualTo("Manual replay with full CAP derivation inputs.");
+
+        WebElement storedRadio = storedOption.findElement(By.cssSelector("input[type='radio']"));
+        WebElement storedHint = storedOption.findElement(By.cssSelector(".hint"));
+        assertThat(storedRadio.isSelected())
+                .as("Stored replay mode should not be selected by default")
+                .isFalse();
+        assertThat(storedHint.getText()).isEqualTo("Replay a seeded preset without advancing ATC.");
 
         waitForClickable(By.cssSelector("[data-testid='emv-replay-mode-inline'] input[type='radio']"))
                 .click();
@@ -527,6 +582,19 @@ final class EmvCapOperatorUiSeleniumTest {
         if (!storedRadio.isSelected()) {
             storedRadio.click();
         }
+    }
+
+    private void assertElementOrder(WebElement first, WebElement second, String message) {
+        JavascriptExecutor javascriptExecutor = driver;
+        Number positionMask = (Number) javascriptExecutor.executeScript(
+                "return arguments[0].compareDocumentPosition(arguments[1]);", first, second);
+        long mask = positionMask == null ? 0L : positionMask.longValue();
+        assertThat(mask & 2L)
+                .as(message + " (second element should not precede the first)")
+                .isEqualTo(0L);
+        assertThat(mask & 4L)
+                .as(message + " (second element should follow the first)")
+                .isNotEqualTo(0L);
     }
 
     private WebElement waitForVisible(By locator) {

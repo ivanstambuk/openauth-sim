@@ -160,10 +160,42 @@ _Last updated:_ 2025-11-04 (verbose trace diagnostic parity)
    - Updated application trace record, REST DTOs/payloads, CLI renderers (text/JSON), OpenAPI snapshots, JS console adapters, Selenium assertions, and replay verbose metadata to exercise the new fields.  
    - Commands executed: `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
 
-## Current Increment – I23 Verbose trace diagnostic parity (completed)
-- Application/REST/CLI/UI trace payloads now include ATC, branch factor, height, mask length, and preview window offsets; operator console trace metadata mirrors telemetry fields.  
-- JSON fixtures, OpenAPI contracts, CLI docs, and Selenium assertions updated alongside refresh of knowledge map/how-to guidance.  
-- Validation commands: `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
+26. **I24 – Evaluate selector placement parity (completed 2025-11-04)**  
+   - Reordered the operator console EMV/CAP Evaluate panel so the "Choose evaluation mode" selector renders immediately beneath the panel heading, with stored credential presets and inline parameter inputs following it for cross-protocol parity.  
+   - Adjusted Selenium coverage to assert document order guarantees (mode selector precedes preset controls) while preserving stored/inline submission behaviour.  
+   - Validation commands: `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon spotlessApply check`.
+
+27. **I25 – Replay selector ordering & helper copy (completed 2025-11-04)**  
+   - Realigned the EMV/CAP Replay mode toggle so Inline parameters renders before Stored credential, defaulting the selector to inline for parity with other protocols.  
+   - Added concise helper copy for both options (`Manual replay with full CAP derivation inputs.` / `Replay a seeded preset without advancing ATC.`) and verified they remain single-line hints.  
+   - Extended Selenium coverage to assert option order, default selection, and helper text, then ran `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"` (pass), `./gradlew --no-daemon :ui:test` (pass), and `./gradlew --no-daemon spotlessApply check` (pass).
+
+28. **I26 – Sample vector terminology parity (completed 2025-11-04)**  
+   - Renamed the Evaluate and Replay dropdown labels to “Load a sample vector” with a “Select a sample” default option for cross-protocol consistency while keeping EMV-specific hints.  
+   - Updated stored-mode hints to describe canonical parameter loading and ATC preservation without exceeding a single line.  
+   - Refreshed Selenium guards and reran targeted REST/UI suites plus `spotlessApply check`.
+
+29. **I27 – Sample vector spacing parity (completed 2025-11-04)**  
+   - Applied the shared `stack-offset-top-lg` spacing helper to the Evaluate and Replay sample vector containers so the EMV panel’s vertical rhythm matches HOTP/TOTP/FIDO2 layouts.  
+   - Added Selenium assertions guarding the helper on both Evaluate and Replay preset blocks, then reran `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"` and `./gradlew --no-daemon spotlessApply check` (both green).
+
+30. **I28 – Evaluate sample vector spacing refinement (completed 2025-11-04)**  
+   - Collapsed the Evaluate sample vector block so preset selection and seed controls mirror the Replay layout with no extra vertical gap by relocating the seed actions inside the preset field group and introducing inline spacing styles.  
+   - Extended Selenium assertions to require the inline helper and reran `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"` plus `./gradlew --no-daemon spotlessApply check` (both green).
+
+## Current Increment – Implementation drift gate & acceptance review (planned)
+- Compile drift gate report covering Feature 039 scope (evaluation, replay, verbose diagnostics) and verify artefact traceability across spec/plan/tasks vs. code/tests.  
+- Re-run full quality gate if required during review and capture acceptance notes for project owner before closing the workstream.
+
+## Next Increment – Pending (to be scheduled post drift gate)
+- Identify follow-up work only after the drift gate/acceptance review concludes; no additional increments are queued at this time.
+
+## Previous Increment – I28 Evaluate sample vector spacing refinement (completed 2025-11-04)
+- Collapsed the Evaluate sample vector block so preset selection and seed controls mirror the Replay layout, introduced inline spacing styles, and reran targeted Selenium/UI checks alongside `spotlessApply check`.
+
+## Previous Increment – I27 Sample vector spacing parity (completed 2025-11-04)
+- Applied the shared `stack-offset-top-lg` spacing helper to the Evaluate and Replay sample vector containers so the EMV panel’s vertical rhythm matches HOTP/TOTP/FIDO2 layouts.  
+- Added Selenium assertions guarding the helper on both Evaluate and Replay preset blocks, then reran `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"` and `./gradlew --no-daemon spotlessApply check` (both green).
 
 ## Previous Increment – T3917 Console verbose toggle harmonization (completed 2025-11-02)
 - Removed the EMV panel-specific `includeTrace` checkbox so evaluations and replays rely on the global verbose toggle shared across protocols.

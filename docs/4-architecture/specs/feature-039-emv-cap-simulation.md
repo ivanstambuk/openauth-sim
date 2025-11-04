@@ -21,8 +21,13 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - 2025-11-02 – Verbose traces must redact EMV master keys by surfacing only SHA-256 digests (formatted `sha256:<hex>`), matching the redaction pattern already used by HOTP/TOTP/OCRA verbose traces. Session keys remain visible to support troubleshooting (owner directive).
 - 2025-11-02 – Evaluate flows across all facades (Operator console, REST, CLI) must allow selecting stored EMV/CAP credentials in addition to inline parameters, mirroring HOTP/TOTP/OCRA behaviour where stored presets prefill/drive evaluation while remaining editable until cleared (owner directive).
 - 2025-11-03 – Operator console Evaluate tab must surface a "Choose evaluation mode" selector mirroring other protocols: radio buttons for stored credential vs. inline parameters, a single Evaluate CTA bound to the active selection, and no duplicate preset/inline buttons (owner directive).
+- 2025-11-04 – Operator console Evaluate panel must render the "Choose evaluation mode" heading and radio selector immediately below the panel title, before stored credential presets or parameter inputs, matching the HOTP/TOTP/FIDO2 ordering (owner directive).
 - 2025-11-03 – Preview window offsets remain mandatory on the Evaluate form and corresponding REST/CLI requests so operators can adjust the neighboring OTP previews; align EMV controls/DTOs with the HOTP/TOTP/OCRA window schema (owner directive).
 - 2025-11-03 – Verbose trace payloads must surface ATC, branch factor, height, and mask length metadata alongside the masked digits overlay so operator diagnostics match other protocols (owner directive).
+- 2025-11-04 – Operator console Replay mode toggle must list Inline parameters before Stored credential and surface succinct helper copy beside each option (“Manual replay with full CAP derivation inputs.” / “Replay a seeded preset without advancing ATC.”), mirroring other protocols without wrapping onto a second line (owner directive).
+- 2025-11-04 – Evaluate and Replay dropdown labelling must match other protocols (“Load a sample vector” + “Select a sample”) while retaining EMV/CAP hinting about canonical parameters and ATC preservation (owner directive).
+- 2025-11-04 – Evaluate and Replay sample vector controls must apply the shared `stack-offset-top-lg` spacing utility so their layout matches the HOTP/TOTP/FIDO2 panels (owner directive).
+- 2025-11-04 – Evaluate sample vector and seeding controls must share the same block/spacing treatment as Replay: the preset selector sits directly under the mode toggle with no additional vertical gap, and the seed action/button lives within that block so spacing mirrors the Replay layout (owner directive).
 
 ## Requirements
 
@@ -122,7 +127,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 ### R5 – Operator UI EMV/CAP console panel
 1. Activate the existing EMV/CAP tab in the operator console with:
    - Input groups for derivation parameters, customer inputs, ICC template, issuer application data, and mode selector radio buttons.
-   - Stored credential preset dropdown mirroring other protocols (fed by MapDB persistence in R6).
+   - “Load a sample vector” dropdown mirroring other protocols (fed by MapDB persistence in R6).
    - Preview-window offset controls (`Backward`, `Forward`) matching the HOTP/TOTP/OCRA evaluation panels.
 2. Rely exclusively on the global “Enable verbose tracing for the next request” control shared by all protocols; when unchecked, the trace pane remains hidden and the request omits the `trace` flag. Surface the shared warning copy (`Verbose traces expose raw secrets and intermediate buffers. Use only in trusted environments.`) beneath the global toggle.
 3. Request layout mirrors HOTP/TOTP/OCRA: left column hosts the input form (including preview-window offsets that drive the evaluation result table), right column renders the result card. The result card surfaces only the OTP preview table (counter/Δ/OTP) and the status badge; all other metadata shifts to verbose trace.
@@ -181,10 +186,14 @@ These ASCII mock-ups capture the operator-console layout for the live EMV/CAP ta
 │ EMV/CAP evaluation                                                           │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ ┌───────────────────────────────┐   ┌──────────────────────────────────────┐ │
-│ │ Stored credential (optional) │   │ Evaluation result                    │ │
-│ │  Preset  [ identify-baseline▼]│   │  COUNTER   Δ    OTP                  │ │
-│ │                                │  │  180       0   42511495              │ │
-│ │ Session key derivation         │  │ Status                      [SUCCESS]│ │
+│ │ Choose evaluation mode        │   │ Evaluation result                    │ │
+│ │  (• Inline parameters)         │  │  COUNTER   Δ    OTP                  │ │
+│ │  ( ) Stored credential         │  │  180       0   42511495              │ │
+│ │                                │  │ Status                      [SUCCESS]│ │
+│ │ Stored credential (optional) │  │                                       │ │
+│ │  Preset  [ identify-baseline▼]│  │                                       │ │
+│ │                                │  │                                       │
+│ │ Session key derivation         │  │                                       │
 │ │  ICC Master Key (hex) [ … ]    │  │                                    │ │
 │ │  ATC (hex)          [00B4]     │  └────────────────────────────────────┘ │
 │ │  Branch factor (b)  [ 4 ]      │                                        │

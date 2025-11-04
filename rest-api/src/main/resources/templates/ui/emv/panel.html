@@ -69,29 +69,6 @@
                     th:utext="${emvSeedDefinitionsJson}"
                   ></script>
 
-                <div class="stack-md">
-                  <div class="field-group">
-                    <label for="emvStoredCredentialId">Stored credential preset</label>
-                    <select
-                        id="emvStoredCredentialId"
-                        name="storedCredentialId"
-                        data-testid="emv-stored-credential-select"
-                      >
-                      <option value="">Select a preset credential</option>
-                    </select>
-                    <p class="hint">
-                      Selecting a preset loads canonical ICC master key, derivation parameters, and default customer inputs.
-                    </p>
-                  </div>
-
-                  <div class="seed-actions" data-testid="emv-seed-actions">
-                    <button type="button" class="button-secondary" data-testid="emv-seed-credentials">
-                      Seed sample credentials
-                    </button>
-                    <p class="hint" data-testid="emv-seed-status" aria-live="polite"></p>
-                  </div>
-                </div>
-
                 <fieldset
                     class="mode-toggle"
                     data-testid="emv-evaluate-mode-toggle"
@@ -128,6 +105,28 @@
                     </p>
                   </div>
                 </fieldset>
+
+                <div class="stack-md stack-offset-top-lg evaluation-form__preset-block">
+                  <div class="field-group">
+                    <label for="emvStoredCredentialId">Load a sample vector</label>
+                    <select
+                        id="emvStoredCredentialId"
+                        name="storedCredentialId"
+                        data-testid="emv-stored-credential-select"
+                      >
+                      <option value="">Select a sample</option>
+                    </select>
+                    <p class="hint">
+                      Selecting a sample loads canonical CAP keys, derivation values, and customer inputs.
+                    </p>
+                    <div class="seed-actions seed-actions--inline" data-testid="emv-seed-actions">
+                      <button type="button" class="button-secondary" data-testid="emv-seed-credentials">
+                        Seed sample credentials
+                      </button>
+                      <p class="hint" data-testid="emv-seed-status" aria-live="polite"></p>
+                    </div>
+                  </div>
+                </div>
 
                 <fieldset class="mode-toggle mode-toggle--compact" data-testid="emv-mode-toggle">
                   <legend>Mode</legend>
@@ -391,26 +390,30 @@
           <div class="card-shell__body section-columns">
             <div class="stack-lg">
               <h2 class="section-title">Replay an EMV/CAP OTP</h2>
-              <fieldset class="mode-toggle mode-toggle--compact" data-testid="emv-replay-mode-toggle" data-mode="stored">
+              <fieldset class="mode-toggle mode-toggle--compact" data-testid="emv-replay-mode-toggle" data-mode="inline">
                 <legend>Choose replay mode</legend>
-                <div class="mode-option" data-testid="emv-replay-mode-stored">
-                  <input
-                      type="radio"
-                      id="emvReplayModeStored"
-                      name="emvReplayMode"
-                      value="stored"
-                      checked="checked"
-                    />
-                  <label for="emvReplayModeStored">Stored credential</label>
-                </div>
                 <div class="mode-option" data-testid="emv-replay-mode-inline">
                   <input
                       type="radio"
                       id="emvReplayModeInline"
                       name="emvReplayMode"
                       value="inline"
+                      aria-describedby="emvReplayModeInlineHint"
+                      checked="checked"
                     />
                   <label for="emvReplayModeInline">Inline parameters</label>
+                  <p id="emvReplayModeInlineHint" class="hint">Manual replay with full CAP derivation inputs.</p>
+                </div>
+                <div class="mode-option" data-testid="emv-replay-mode-stored">
+                  <input
+                      type="radio"
+                      id="emvReplayModeStored"
+                      name="emvReplayMode"
+                      value="stored"
+                      aria-describedby="emvReplayModeStoredHint"
+                    />
+                  <label for="emvReplayModeStored">Stored credential</label>
+                  <p id="emvReplayModeStoredHint" class="hint">Replay a seeded preset without advancing ATC.</p>
                 </div>
               </fieldset>
 
@@ -421,18 +424,18 @@
                 >
                 <input type="hidden" name="_csrf" th:value="${csrfToken}" />
 
-                <div class="stack-md" data-replay-section="stored">
+                <div class="stack-md stack-offset-top-lg" data-replay-section="stored">
                   <div class="field-group">
-                    <label for="emvReplayStoredCredentialId">Stored credential preset</label>
+                    <label for="emvReplayStoredCredentialId">Load a sample vector</label>
                     <select
                         id="emvReplayStoredCredentialId"
                         name="credentialId"
                         data-testid="emv-replay-stored-credential-select"
                       >
-                      <option value="">Select a preset credential</option>
+                      <option value="">Select a sample</option>
                     </select>
                     <p class="hint" data-testid="emv-replay-stored-hint" aria-live="polite">
-                      Selecting a preset loads its canonical parameters; adjust the fields below to override values before replaying.
+                      Selecting a sample loads its canonical CAP parameters; adjust values below before replaying.
                     </p>
                   </div>
                 </div>

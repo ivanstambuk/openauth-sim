@@ -150,6 +150,22 @@ button {
   margin-top: calc(var(--ocra-spacing-lg) * 0.5);
 }
 
+.evaluation-form .seed-actions--inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ocra-spacing-sm);
+  align-items: center;
+  margin-top: var(--ocra-spacing-xs);
+}
+
+.evaluation-form .seed-actions--inline .hint {
+  margin: 0;
+}
+
+.evaluation-form .evaluation-form__preset-block {
+  margin-top: calc(var(--ocra-spacing-lg) * -1);
+}
+
 .evaluation-form[data-loading] {
   opacity: 0.7;
 }
