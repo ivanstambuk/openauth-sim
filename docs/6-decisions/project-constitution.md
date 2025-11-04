@@ -12,7 +12,7 @@ Follow-up TODOs: none
 ## Metadata
 - Constitution Version: 1.0.0
 - Ratified On: 2025-09-27
-- Last Amended On: 2025-10-19
+- Last Amended On: 2025-11-04
 - Maintainer: Ivan (project owner)
 
 ## Preamble
@@ -48,6 +48,14 @@ This constitution establishes the non-negotiable operating principles for the Op
 - Follow least-destructive command practices; seek approval for high-risk actions even when automation is available.
 - Backward compatibility across all facades (REST, CLI, UI, programmatic, and future additions) is intentionally unsupported. Implement fallback logic only when the user explicitly directs it for the current scope.
 
+### Principle 6 – Implementation Drift Gate
+- Before a feature can be marked complete, run an Implementation Drift Gate once all planned tasks are complete and tests are green.
+- Cross-check the approved specification, feature plan, tasks checklist, and code/tests to confirm every spec requirement has a corresponding implementation and that no implementation ships without documented intent.
+- Produce a drift report (attach it to the governing feature plan) summarising matches, gaps, and speculative work; reference exact spec sections and code paths so reviewers can trace decisions.
+- Record every high- or medium-impact divergence as an open question in `docs/4-architecture/open-questions.md` for user direction; resolve low-impact documentation drift directly before finalising the report.
+- Verify executable coverage alignment by confirming each spec branch has failing tests staged before implementation and green tests afterwards; call out any missing coverage as follow-up tasks.
+- Document lessons and reusable guidance surfaced during the gate so downstream features inherit the updated practices.
+
 ## Governance
 - **Amendments:** Propose constitution changes via pull request referencing this document. Classify version bumps as MAJOR (principle removal or incompatible rewrite), MINOR (new principle or substantial expansion), or PATCH (clarification without semantic change).
 - **Review cadence:** Reconfirm adherence during each session reset using `docs/5-operations/runbook-session-reset.md`.
@@ -55,5 +63,6 @@ This constitution establishes the non-negotiable operating principles for the Op
 
 ## Enforcement
 - `docs/5-operations/analysis-gate-checklist.md` must be executed once a spec, plan, and tasks exist to verify alignment before implementation.
+- The Implementation Drift Gate report must demonstrate zero unresolved high- or medium-impact divergences before a feature is marked complete; pending issues require recorded follow-up tasks or specification updates approved by the user.
 - Commits failing constitutional checks may not merge; re-run analysis and remediation before continuing.
 - Repeated violations trigger a governance review to determine whether additional principles or automation are required.

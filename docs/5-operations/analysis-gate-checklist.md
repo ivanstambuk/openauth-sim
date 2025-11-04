@@ -1,6 +1,6 @@
 # Analysis Gate Checklist
 
-Use this checklist after a feature's specification, plan, and tasks exist but before implementation begins. It enforces the project constitution and keeps specifications, plans, and tasks aligned.
+Use this checklist after a feature's specification, plan, and tasks exist but before implementation begins. After implementation, complete the Implementation Drift Gate section before the feature can be marked complete. Together these guardrails enforce the project constitution and keep specifications, plans, tasks, and code aligned.
 
 ## Inputs
 - Feature specification (e.g., `docs/4-architecture/specs/feature-XXX-*.md`)
@@ -8,6 +8,7 @@ Use this checklist after a feature's specification, plan, and tasks exist but be
 - Feature tasks (e.g., `docs/4-architecture/tasks/feature-XXX-*.md`)
 - Open questions log (`docs/4-architecture/open-questions.md`)
 - Constitution (`docs/6-decisions/project-constitution.md`)
+- Feature plan subsection reserved for the Implementation Drift Gate report (create if missing)
 
 ## Checklist
 1. **Specification completeness**
@@ -31,6 +32,28 @@ Use this checklist after a feature's specification, plan, and tasks exist but be
    - [ ] SpotBugs dead-state detectors (Feature 015) noted, including the module command used to validate `URF/UWF/UUF/NP` findings.
    - [ ] Analysis results recorded in the feature plan (copy this checklist with pass/fail notes).
 
+## Implementation Drift Gate (Pre-Completion)
+Run this section once all planned tasks are complete and the latest build is green.
+
+1. **Preconditions**
+   - [ ] Feature tasks are all marked complete (☐ → ☑) and associated specs/plans reflect the final implementation.
+   - [ ] Latest `./gradlew spotlessApply check` (or narrower documented suite) has passed within this increment.
+2. **Cross-artifact validation**
+   - [ ] Every specification requirement maps to executable code/tests; cite spec sections against classes/tests in the drift report.
+   - [ ] No implementation or tests lack an originating spec/plan task; undocumented work is captured as a follow-up task or spec addition.
+   - [ ] Feature plan and tasks remain consistent with the shipped implementation (dependencies, acceptance criteria, sequencing).
+3. **Divergence handling**
+   - [ ] High- and medium-impact gaps or over-deliveries are logged as new entries in `docs/4-architecture/open-questions.md` for user direction.
+   - [ ] Low-impact drift (typos, minor doc sync) is corrected directly before finalising the report.
+   - [ ] Follow-up tasks or spec updates are drafted for any outstanding divergences awaiting approval.
+4. **Coverage confirmation**
+   - [ ] Tests exist for each success, validation, and failure branch enumerated in the specification, and their latest run is green.
+   - [ ] Any missing coverage is documented with explicit tasks and blockers.
+5. **Report & retrospective**
+   - [ ] Implementation Drift Gate report added to the feature plan, detailing findings, artefact links, and reviewer(s).
+   - [ ] Lessons learned and reusable guidance captured for future features (e.g., updates to specs/runbooks/templates).
+   - [ ] Stakeholders (product, technical, AI agent as applicable) have acknowledged the report outcome before completion.
+
 ## Output
 Document the outcome in the relevant feature plan under a "Analysis Gate" subsection, including:
 - Date/time of the review
@@ -38,3 +61,5 @@ Document the outcome in the relevant feature plan under a "Analysis Gate" subsec
 - Follow-up actions or remediation tasks
 
 Only proceed to implementation when every checkbox is satisfied or deferred with explicit owner approval.
+
+For the Implementation Drift Gate, append the completed checklist and report summary to the feature plan. Do not mark the feature complete until all high/medium-impact divergences are resolved through updated specs, approved tasks, or user sign-off.
