@@ -15,7 +15,7 @@ The REST API exposes stored and inline WebAuthn assertion verification plus repl
 - Example request:
   ```bash
   curl -s -H "Content-Type: application/json" \
-    -d '{"credentialId":"packed-es256","relyingPartyId":"example.org","origin":"https://example.org","expectedType":"webauthn.get","challenge":"tNvtqPm4a6c4ZC7a6r0N0Q","privateKey":"<JWK>","verbose":true}' \
+    -d '{"credentialId":"packed-es256","relyingPartyId":"example.org","origin":"https://example.org","expectedType":"webauthn.get","challenge":"tNvtqPm4a6c4ZC7a6r0N0Q","verbose":true}' \
     http://localhost:8080/api/v1/webauthn/evaluate | jq '.trace'
   ```
 - Traces expose raw assertions and key material, so only enable verbose mode in controlled environments. Leave the field out (or set `false`) during regular runs to keep responses minimal and sanitized.
@@ -112,17 +112,17 @@ Example response (trimmed):
   "algorithm": "ES256",
   "userVerificationRequired": false,
   "challenge": "tNvtqPm4a6c4ZC7a6r0N0Q",
-  "privateKeyJwk": "<JWK JSON shortened>"
+  "signingKeyHandle": "ab12cd34ef56",
+  "privateKeyPlaceholder": "[stored-server-side]"
 }
 ```
-The endpoint returns the relying-party metadata, a Base64URL challenge, and a compact authenticator private key (JWK) sourced from the generator presets. Use these inputs when calling the evaluation endpoints.
+The endpoint returns the relying-party metadata and Base64URL challenge plus a stable signing-key handle. The placeholder reminds you that the authenticator private key remains server-side; neither REST nor UI clients ever receive the raw secret.
 
 ## Generate Stored Assertions (`POST /api/v1/webauthn/evaluate`)
-Send the credential identifier, relying-party context, challenge, and authenticator private key. Signature-counter and UV overrides are optional.
+Send the credential identifier, relying-party context, and challenge. Signature-counter and UV overrides are optional. The service retrieves the signing key from the credential store automatically.
 ```bash
-curl -s -H "Content-Type: application/json"   -d '{"credentialId":"packed-es256","relyingPartyId":"example.org","origin":"https://example.org","expectedType":"webauthn.get","challenge":"tNvtqPm4a6c4ZC7a6r0N0Q","privateKey":"<JWK JSON shortened>"}'   http://localhost:8080/api/v1/webauthn/evaluate | jq
+curl -s -H "Content-Type: application/json"   -d '{"credentialId":"packed-es256","relyingPartyId":"example.org","origin":"https://example.org","expectedType":"webauthn.get","challenge":"tNvtqPm4a6c4ZC7a6r0N0Q"}'   http://localhost:8080/api/v1/webauthn/evaluate | jq
 ```
-> Replace `<JWK JSON shortened>` with the `privateKeyJwk` value returned by the sample endpoint.
 Success response:
 ```json
 {
@@ -131,7 +131,7 @@ Success response:
   "metadata": { "telemetryId": "rest-fido2-3b27c9c4-…", "credentialSource": "stored", "credentialReference": true, "relyingPartyId": "example.org", "origin": "https://example.org", "algorithm": "ES256", "userVerificationRequired": false }
 }
 ```
-Validation failures return HTTP 422 with sanitized error metadata (for example `credential_not_found`, `origin_mismatch`, or `private_key_invalid`). Only successful calls include the assertion payload.
+Validation failures return HTTP 422 with sanitized error metadata (for example `credential_not_found`, `origin_mismatch`, or `generation_failed`). Only successful calls include the assertion payload.
 
 ## Generate Inline Assertions (`POST /api/v1/webauthn/evaluate/inline`)
 Inline requests provide every credential attribute explicitly. The example below reuses the `packed-es256` private key but supplies a fresh challenge.

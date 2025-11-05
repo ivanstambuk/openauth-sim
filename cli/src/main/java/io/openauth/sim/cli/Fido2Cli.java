@@ -245,9 +245,6 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         if (!hasText(command.challenge)) {
             command.challenge = sample.challengeBase64Url();
         }
-        if (!hasText(command.privateKey)) {
-            command.privateKey = sample.privateKeyJwk();
-        }
         if (command.signatureCounter == null) {
             command.signatureCounter = sample.signatureCounter();
         }
@@ -625,18 +622,6 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 description = "Override user verification requirement (true/false)")
         Boolean userVerificationRequired;
 
-        @CommandLine.Option(
-                names = "--private-key",
-                paramLabel = "<jwk-or-pem>",
-                description = "Authenticator private key as JWK (preferred) or PEM/PKCS#8")
-        String privateKey;
-
-        @CommandLine.Option(
-                names = "--private-key-file",
-                paramLabel = "<path>",
-                description = "Path to a file containing the authenticator private key (JWK or PEM/PKCS#8)")
-        Path privateKeyFile;
-
         @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the generation steps")
         boolean verbose;
 
@@ -677,22 +662,6 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                         event("evaluate"), "missing_option", "--challenge is required", Map.copyOf(baseFields));
             }
 
-            String resolvedPrivateKey;
-            try {
-                resolvedPrivateKey = extractPrivateKey(privateKey, privateKeyFile);
-            } catch (IllegalArgumentException | IOException ex) {
-                return parent.failValidation(
-                        event("evaluate"), "private_key_invalid", ex.getMessage(), Map.copyOf(baseFields));
-            }
-
-            if (!hasText(resolvedPrivateKey)) {
-                return parent.failValidation(
-                        event("evaluate"),
-                        "private_key_required",
-                        "Provide --private-key or --private-key-file",
-                        Map.copyOf(baseFields));
-            }
-
             byte[] challengeBytes;
             try {
                 challengeBytes = decodeBase64Url("challenge", challenge);
@@ -710,7 +679,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                 origin,
                                 expectedType,
                                 challengeBytes,
-                                resolvedPrivateKey,
+                                null,
                                 signatureCounter,
                                 userVerificationRequired),
                         verbose);

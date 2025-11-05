@@ -170,6 +170,34 @@ public final class WebAuthnAssertionGenerationApplicationService {
         boolean userVerificationRequired =
                 command.userVerificationRequiredOverrideValue().orElse(descriptor.userVerificationRequired());
 
+        String storedPrivateKey = decodeSecret(credential);
+        String legacyPrivateKey =
+                command.privateKey() == null ? "" : command.privateKey().trim();
+        boolean storedKeyPreferred = hasText(storedPrivateKey);
+        String effectivePrivateKey = storedKeyPreferred ? storedPrivateKey : legacyPrivateKey;
+        if (!hasText(effectivePrivateKey)) {
+            throw new IllegalArgumentException("Stored credential is missing private key material");
+        }
+
+        KeyMaterial keyMaterial;
+        try {
+            keyMaterial = parsePrivateKey(effectivePrivateKey, descriptor.algorithm());
+        } catch (GeneralSecurityException ex) {
+            if (storedKeyPreferred
+                    && hasText(legacyPrivateKey)
+                    && !Objects.equals(legacyPrivateKey, storedPrivateKey)) {
+                effectivePrivateKey = legacyPrivateKey;
+                try {
+                    keyMaterial = parsePrivateKey(effectivePrivateKey, descriptor.algorithm());
+                    storedKeyPreferred = false;
+                } catch (GeneralSecurityException nested) {
+                    throw new IllegalArgumentException("Unable to parse private key: " + nested.getMessage(), nested);
+                }
+            } else {
+                throw new IllegalArgumentException("Unable to parse private key: " + ex.getMessage(), ex);
+            }
+        }
+
         GenerationCommand.Inline inline = new GenerationCommand.Inline(
                 descriptor.name(),
                 descriptor.credentialId(),
@@ -180,14 +208,7 @@ public final class WebAuthnAssertionGenerationApplicationService {
                 signatureCounter,
                 userVerificationRequired,
                 command.challenge(),
-                command.privateKey());
-
-        KeyMaterial keyMaterial;
-        try {
-            keyMaterial = parsePrivateKey(command.privateKey(), descriptor.algorithm());
-        } catch (GeneralSecurityException ex) {
-            throw new IllegalArgumentException("Unable to parse private key: " + ex.getMessage(), ex);
-        }
+                effectivePrivateKey);
 
         byte[] clientDataJson = createClientDataJson(inline.expectedType(), inline.challenge(), inline.origin());
         byte[] authenticatorData;
@@ -211,7 +232,7 @@ public final class WebAuthnAssertionGenerationApplicationService {
                 authenticatorData,
                 signature,
                 inline.challenge(),
-                command.privateKey(),
+                storedKeyPreferred ? "" : effectivePrivateKey,
                 verbose,
                 "fido2.assertion.generate.stored",
                 trace -> {
@@ -235,6 +256,17 @@ public final class WebAuthnAssertionGenerationApplicationService {
                 descriptor.relyingPartyId(),
                 command.origin(),
                 Optional.ofNullable(artifacts.trace()));
+    }
+
+    private static String decodeSecret(Credential credential) {
+        if (credential == null || credential.secret() == null) {
+            return "";
+        }
+        return new String(credential.secret().value(), StandardCharsets.UTF_8).trim();
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 
     private static byte[] createClientDataJson(String type, byte[] challenge, String origin) {
@@ -423,13 +455,17 @@ public final class WebAuthnAssertionGenerationApplicationService {
         }
         String privateKey = privateKeyRaw == null ? "" : privateKeyRaw;
         byte[] safeSignature = signature == null ? new byte[0] : signature.clone();
-        trace.addStep(step -> step.id("generate.signature")
-                .summary("Generate assertion signature")
-                .detail("Signature.sign")
-                .attribute("alg", algorithm.label())
-                .attribute("alg.name", algorithm.name())
-                .attribute("privateKey.sha256", sha256Digest(privateKey.getBytes(StandardCharsets.UTF_8)))
-                .attribute(AttributeType.INT, "signature.len.bytes", safeSignature.length));
+        trace.addStep(step -> {
+            step.id("generate.signature")
+                    .summary("Generate assertion signature")
+                    .detail("Signature.sign")
+                    .attribute("alg", algorithm.label())
+                    .attribute("alg.name", algorithm.name());
+            if (hasText(privateKey)) {
+                step.attribute("privateKey.sha256", sha256Digest(privateKey.getBytes(StandardCharsets.UTF_8)));
+            }
+            step.attribute(AttributeType.INT, "signature.len.bytes", safeSignature.length);
+        });
     }
 
     private static String canonicalizeRpId(String relyingPartyId) {
@@ -881,7 +917,7 @@ public final class WebAuthnAssertionGenerationApplicationService {
                 expectedType =
                         Objects.requireNonNull(expectedType, "expectedType").trim();
                 challenge = challenge == null ? new byte[0] : challenge.clone();
-                privateKey = Objects.requireNonNull(privateKey, "privateKey").trim();
+                privateKey = privateKey == null ? "" : privateKey.trim();
             }
 
             @Override
@@ -914,7 +950,7 @@ public final class WebAuthnAssertionGenerationApplicationService {
                 expectedType =
                         Objects.requireNonNull(expectedType, "expectedType").trim();
                 challenge = challenge == null ? new byte[0] : challenge.clone();
-                privateKey = Objects.requireNonNull(privateKey, "privateKey").trim();
+                privateKey = privateKey == null ? "" : privateKey.trim();
             }
 
             public byte[] challenge() {

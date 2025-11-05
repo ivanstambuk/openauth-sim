@@ -62,8 +62,8 @@ class WebAuthnEvaluationService {
                 .summary("Decode challenge")
                 .detail("Base64URL decode")
                 .attribute("length", challenge.length));
-
-        String privateKey = requireText(request.privateKey(), "private_key_required", "Private key is required");
+        String privateKey =
+                request.privateKey() == null ? "" : request.privateKey().trim();
 
         GenerationCommand.Stored command = new GenerationCommand.Stored(
                 credentialId,

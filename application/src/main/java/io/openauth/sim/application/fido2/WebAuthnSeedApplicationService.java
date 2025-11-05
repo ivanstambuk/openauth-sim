@@ -5,6 +5,7 @@ import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
+import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.util.ArrayList;
@@ -30,12 +31,9 @@ public final class WebAuthnSeedApplicationService {
 
         List<String> added = new ArrayList<>();
         for (SeedCommand command : commands) {
-            if (credentialStore.exists(command.credentialId())) {
-                continue;
-            }
-
+            String credentialId = command.credentialId();
             WebAuthnCredentialDescriptor descriptor = WebAuthnCredentialDescriptor.builder()
-                    .name(command.credentialId())
+                    .name(credentialId)
                     .relyingPartyId(command.relyingPartyId())
                     .credentialId(command.credentialIdBytes())
                     .publicKeyCose(command.publicKeyCose())
@@ -49,16 +47,23 @@ public final class WebAuthnSeedApplicationService {
             Map<String, String> attributes = new LinkedHashMap<>(serialized.attributes());
             command.metadata().forEach((key, value) -> attributes.put(ATTR_METADATA_PREFIX + key, value));
 
+            var existing = credentialStore.findByName(credentialId);
+            existing.ifPresent(current -> current.attributes().forEach(attributes::putIfAbsent));
+
+            SecretMaterial secret = SecretMaterial.fromStringUtf8(command.privateKeyJwk());
+
             Credential persisted = new Credential(
                     serialized.name(),
                     CredentialType.FIDO2,
-                    serialized.secret(),
+                    secret,
                     attributes,
-                    serialized.createdAt(),
+                    existing.map(Credential::createdAt).orElse(serialized.createdAt()),
                     serialized.updatedAt());
 
             credentialStore.save(persisted);
-            added.add(command.credentialId());
+            if (existing.isEmpty()) {
+                added.add(credentialId);
+            }
         }
 
         return new SeedResult(List.copyOf(added));
@@ -73,6 +78,7 @@ public final class WebAuthnSeedApplicationService {
             long signatureCounter,
             boolean userVerificationRequired,
             WebAuthnSignatureAlgorithm algorithm,
+            String privateKeyJwk,
             Map<String, String> metadata) {
 
         public SeedCommand {
@@ -82,6 +88,7 @@ public final class WebAuthnSeedApplicationService {
                     .clone();
             publicKeyCose =
                     Objects.requireNonNull(publicKeyCose, "publicKeyCose").clone();
+            privateKeyJwk = Objects.requireNonNull(privateKeyJwk, "privateKeyJwk");
             metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
         }
     }

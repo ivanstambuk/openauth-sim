@@ -377,12 +377,21 @@
                         ></textarea>
                     </div>
                   </div>
-                  <input
-                      type="hidden"
-                      id="fido2StoredPrivateKey"
-                      name="privateKey"
-                      data-testid="fido2-stored-private-key"
-                    />
+                  <div class="field-group">
+                    <label for="fido2StoredPrivateKeyPlaceholder">Credential private key</label>
+                    <input
+                        id="fido2StoredPrivateKeyPlaceholder"
+                        type="text"
+                        readonly="readonly"
+                        aria-readonly="true"
+                        value="[stored-server-side]"
+                        data-testid="fido2-stored-private-key-placeholder"
+                      />
+                    <p class="hint">
+                      Signing key handle:
+                      <span data-testid="fido2-stored-key-handle">—</span>
+                    </p>
+                  </div>
                   <div class="field-grid">
                     <div
                         class="field-group"

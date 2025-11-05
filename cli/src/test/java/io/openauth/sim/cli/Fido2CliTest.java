@@ -11,6 +11,7 @@ import io.openauth.sim.core.fido2.WebAuthnFixtures;
 import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.model.Credential;
+import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
@@ -50,9 +51,6 @@ final class Fido2CliTest {
         WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
         harness.save("fido2-packed-es256", fixture, WebAuthnSignatureAlgorithm.ES256);
 
-        Path privateKeyFile = tempDir.resolve("private-key.json");
-        java.nio.file.Files.writeString(privateKeyFile, PRIVATE_KEY_JWK, StandardCharsets.UTF_8);
-
         int exitCode = harness.execute(
                 "evaluate",
                 "--credential-id",
@@ -68,9 +66,7 @@ final class Fido2CliTest {
                 "--signature-counter",
                 Long.toString(fixture.storedCredential().signatureCounter()),
                 "--user-verification-required",
-                Boolean.toString(fixture.storedCredential().userVerificationRequired()),
-                "--private-key-file",
-                privateKeyFile.toString());
+                Boolean.toString(fixture.storedCredential().userVerificationRequired()));
 
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         String stdout = harness.stdout();
@@ -287,7 +283,14 @@ final class Fido2CliTest {
             try (CredentialStore store = CredentialStoreFactory.openFileStore(database)) {
                 Credential credential = VersionedCredentialRecordMapper.toCredential(
                         new io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter().serialize(descriptor));
-                store.save(credential);
+                Credential persisted = new Credential(
+                        credential.name(),
+                        credential.type(),
+                        SecretMaterial.fromStringUtf8(fixture.credentialPrivateKeyJwk()),
+                        credential.attributes(),
+                        credential.createdAt(),
+                        credential.updatedAt());
+                store.save(persisted);
             }
         }
 
@@ -305,7 +308,14 @@ final class Fido2CliTest {
             try (CredentialStore store = CredentialStoreFactory.openFileStore(database)) {
                 Credential credential = VersionedCredentialRecordMapper.toCredential(
                         new io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter().serialize(descriptor));
-                store.save(credential);
+                Credential persisted = new Credential(
+                        credential.name(),
+                        credential.type(),
+                        SecretMaterial.fromStringUtf8(sample.privateKeyJwk()),
+                        credential.attributes(),
+                        credential.createdAt(),
+                        credential.updatedAt());
+                store.save(persisted);
             }
         }
     }

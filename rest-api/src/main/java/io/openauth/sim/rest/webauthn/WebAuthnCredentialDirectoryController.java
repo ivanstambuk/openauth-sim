@@ -2,13 +2,19 @@ package io.openauth.sim.rest.webauthn;
 
 import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.rest.ui.Fido2OperatorSampleData;
 import io.openauth.sim.rest.ui.Fido2OperatorSampleData.InlineVector;
 import io.openauth.sim.rest.ui.Fido2OperatorSampleData.SeedDefinition;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,6 +39,8 @@ final class WebAuthnCredentialDirectoryController {
             .thenComparing(WebAuthnCredentialSummary::id, String.CASE_INSENSITIVE_ORDER);
 
     private static final int UNKNOWN_ALGORITHM_RANK = WebAuthnSignatureAlgorithm.values().length;
+    private static final int SIGNING_KEY_HANDLE_LENGTH = 12;
+    private static final String PRIVATE_KEY_PLACEHOLDER = "[stored-server-side]";
 
     private static final String ATTR_RP_ID = "fido2.rpId";
     private static final String ATTR_ALGORITHM = "fido2.algorithm";
@@ -85,6 +93,10 @@ final class WebAuthnCredentialDirectoryController {
         if (vector == null) {
             return ResponseEntity.notFound().build();
         }
+        String signingKeyHandle = computeSigningKeyHandle(definition.get().credentialId());
+        if (!StringUtils.hasText(signingKeyHandle)) {
+            signingKeyHandle = signingKeyHandle(definition.get());
+        }
         WebAuthnStoredSampleResponse response = new WebAuthnStoredSampleResponse(
                 definition.get().credentialId(),
                 definition.get().relyingPartyId(),
@@ -93,7 +105,8 @@ final class WebAuthnCredentialDirectoryController {
                 definition.get().algorithm().label(),
                 definition.get().userVerificationRequired(),
                 vector.expectedChallengeBase64Url(),
-                definition.get().privateKeyJwk());
+                signingKeyHandle,
+                PRIVATE_KEY_PLACEHOLDER);
         return ResponseEntity.ok(response);
     }
 
@@ -143,6 +156,67 @@ final class WebAuthnCredentialDirectoryController {
         return trimmedId + " (" + algorithm + ")";
     }
 
+    private String computeSigningKeyHandle(String credentialId) {
+        if (credentialStore == null || !StringUtils.hasText(credentialId)) {
+            return "";
+        }
+        return credentialStore
+                .findByName(credentialId.trim())
+                .map(WebAuthnCredentialDirectoryController::signingKeyHandleForCredential)
+                .orElse("");
+    }
+
+    private static String signingKeyHandleForCredential(Credential credential) {
+        if (credential == null || credential.secret() == null) {
+            return "";
+        }
+        return signingKeyHandle(extractKeyMaterial(credential.secret().value()));
+    }
+
+    private static byte[] extractKeyMaterial(byte[] secretBytes) {
+        String secretText = new String(secretBytes, StandardCharsets.UTF_8).trim();
+        if (secretText.startsWith("{") && secretText.endsWith("}")) {
+            try {
+                Object parsed = SimpleJson.parse(secretText);
+                if (parsed instanceof Map<?, ?> map) {
+                    Object d = map.get("d");
+                    if (d instanceof String dValue && !dValue.isBlank()) {
+                        return Base64.getUrlDecoder().decode(dValue);
+                    }
+                }
+            } catch (IllegalArgumentException ignored) {
+                // fall back to raw secret bytes
+            }
+        }
+        return secretBytes.clone();
+    }
+
+    private static String signingKeyHandle(Fido2OperatorSampleData.SeedDefinition definition) {
+        if (definition == null) {
+            return "";
+        }
+        String privateKeyJwk = definition.privateKeyJwk();
+        if (!StringUtils.hasText(privateKeyJwk)) {
+            return "";
+        }
+        byte[] keyMaterial = extractKeyMaterial(privateKeyJwk.getBytes(StandardCharsets.UTF_8));
+        return signingKeyHandle(keyMaterial);
+    }
+
+    private static String signingKeyHandle(byte[] keyMaterial) {
+        if (keyMaterial == null || keyMaterial.length == 0) {
+            return "";
+        }
+        try {
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            byte[] digest = sha256.digest(keyMaterial);
+            String hex = HexFormat.of().formatHex(digest);
+            return hex.substring(0, Math.min(SIGNING_KEY_HANDLE_LENGTH, hex.length()));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 algorithm unavailable", ex);
+        }
+    }
+
     record WebAuthnCredentialSummary(
             String id,
             String label,
@@ -164,7 +238,8 @@ final class WebAuthnCredentialDirectoryController {
             String algorithm,
             boolean userVerificationRequired,
             String challenge,
-            String privateKeyJwk) {
+            String signingKeyHandle,
+            String privateKeyPlaceholder) {
         // DTO marker
     }
 }

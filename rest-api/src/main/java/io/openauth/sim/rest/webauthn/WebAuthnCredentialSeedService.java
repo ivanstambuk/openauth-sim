@@ -51,6 +51,7 @@ final class WebAuthnCredentialSeedService {
                         definition.signatureCounter(),
                         definition.userVerificationRequired(),
                         definition.algorithm(),
+                        definition.privateKeyJwk(),
                         definition.metadata()))
                 .toList();
 

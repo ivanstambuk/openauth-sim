@@ -15,14 +15,14 @@ The `fido2` Picocli facade lets you validate WebAuthn assertions and attestation
 Run CLI commands from the repository root. Set `GRADLE_USER_HOME=$PWD/.gradle` if you prefer to isolate Gradle caches in the workspace.
 
 ## Generate a Stored WebAuthn Assertion
-Stored mode relies on a credential that already lives in MapDB and a private key you control. Presets from `WebAuthnGeneratorSamples` keep the CLI aligned with the operator UI and REST facades.
+Stored mode relies on a credential that already lives in MapDB. The CLI resolves the signer from the store, so the private key never leaves the simulator. Presets from `WebAuthnGeneratorSamples` keep the CLI aligned with the operator UI and REST facades.
 
 1. Seed the canonical fixtures if you do not have any WebAuthn credentials yet:
    ```bash
    curl -s -X POST http://localhost:8080/api/v1/webauthn/credentials/seed | jq
    ```
    The response enumerates which credential IDs were added (for example `packed-es256`).
-2. Invoke the CLI with a preset. The command below loads the curated challenge + private key for the credential named `packed-es256`, generates a signed `PublicKeyCredential`, prints it to stdout, and appends a sanitized telemetry line:
+2. Invoke the CLI with a preset. The command below loads the curated challenge for the credential named `packed-es256`, generates a signed `PublicKeyCredential` using the server-side key material, prints it to stdout, and appends a sanitized telemetry line:
    ```bash
    ./gradlew --quiet :cli:run --args=$'fido2 evaluate --preset-id packed-es256'
    ```

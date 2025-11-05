@@ -126,7 +126,18 @@
       panel.querySelector('[data-testid="fido2-stored-counter-hint"]');
   var storedCounterResetButton =
       panel.querySelector('[data-testid="fido2-stored-counter-reset"]');
-  var storedPrivateKeyField = panel.querySelector('#fido2StoredPrivateKey');
+  var storedPrivateKeyPlaceholderField =
+      panel.querySelector('#fido2StoredPrivateKeyPlaceholder');
+  var storedKeyHandleField =
+      panel.querySelector('[data-testid="fido2-stored-key-handle"]');
+  var storedSampleEndpoint =
+      storedForm ? storedForm.getAttribute('data-sample-endpoint') : null;
+  var defaultStoredPlaceholder =
+      storedPrivateKeyPlaceholderField && storedPrivateKeyPlaceholderField.value
+          ? storedPrivateKeyPlaceholderField.value
+          : '[stored-server-side]';
+  var emptySigningKeyHandle = '—';
+  var activeStoredSampleRequestId = null;
   var storedUvSelect = panel.querySelector('#fido2StoredUvRequired');
 
   var attestationModeToggle =
@@ -729,8 +740,7 @@
       expectedType: CLIENT_DATA_TYPE,
       challenge: elementValue(storedChallengeField),
       signatureCounter: signatureCounter,
-      userVerificationRequired: uvValue,
-      privateKey: elementValue(storedPrivateKeyField),
+      userVerificationRequired: uvValue
     };
     payload = verboseAttach(payload);
     verboseBeginRequest();
@@ -2129,6 +2139,8 @@ function updateReplayAttestationStoredFields(credentialId) {
 
   function applyStoredSample(credentialId) {
     pendingStoredResult();
+    resetStoredKeyIndicators();
+    activeStoredSampleRequestId = credentialId || '';
     if (!credentialId) {
       clearStoredEvaluationFields();
       return;
@@ -2161,10 +2173,17 @@ function updateReplayAttestationStoredFields(credentialId) {
     storedCounterSnapshotSeconds = null;
     setValue(storedCounterInput, presetCounter);
     refreshStoredCounterAfterPreset();
-    setValue(storedPrivateKeyField, definition.privateKeyJwk || '');
     setStoredAssertionText('Awaiting submission.');
     if (inlineSampleSelect && vector) {
       inlineSampleSelect.value = vector.key;
+    }
+    if (storedSampleEndpoint) {
+      fetchStoredSample(credentialId).then(function (sample) {
+        if (activeStoredSampleRequestId !== (credentialId || '')) {
+          return;
+        }
+        applyStoredSampleMetadata(sample);
+      });
     }
   }
 
@@ -2176,7 +2195,7 @@ function updateReplayAttestationStoredFields(credentialId) {
     storedCounterSnapshotSeconds = null;
     setValue(storedCounterInput, '');
     updateStoredCounterHintText();
-    setValue(storedPrivateKeyField, '');
+    resetStoredKeyIndicators();
     if (storedUvSelect) {
       storedUvSelect.checked = false;
     }
@@ -3445,6 +3464,68 @@ function updateReplayAttestationStoredFields(credentialId) {
         })
         .catch(function () {
           return { ok: false, status: 0, bodyText: '' };
+        });
+  }
+
+  function updateStoredKeyPlaceholder(value) {
+    if (!storedPrivateKeyPlaceholderField) {
+      return;
+    }
+    var nextValue =
+        value && value.trim() ? value.trim() : defaultStoredPlaceholder;
+    storedPrivateKeyPlaceholderField.value = nextValue;
+  }
+
+  function updateStoredKeyHandle(handle) {
+    if (!storedKeyHandleField) {
+      return;
+    }
+    var nextHandle =
+        handle && handle.trim() ? handle.trim() : emptySigningKeyHandle;
+    storedKeyHandleField.textContent = nextHandle;
+  }
+
+  function resetStoredKeyIndicators() {
+    updateStoredKeyPlaceholder(defaultStoredPlaceholder);
+    updateStoredKeyHandle(emptySigningKeyHandle);
+  }
+
+  function applyStoredSampleMetadata(sample) {
+    if (!sample || typeof sample !== 'object') {
+      resetStoredKeyIndicators();
+      return;
+    }
+    updateStoredKeyPlaceholder(sample.privateKeyPlaceholder);
+    updateStoredKeyHandle(sample.signingKeyHandle);
+  }
+
+  function fetchStoredSample(credentialId) {
+    if (!storedSampleEndpoint || !credentialId || typeof global.fetch !== 'function') {
+      return Promise.resolve(null);
+    }
+    var endpoint =
+        storedSampleEndpoint.replace('{credentialId}', encodeURIComponent(credentialId));
+    return global
+        .fetch(endpoint, {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        })
+        .then(function (response) {
+          if (!response.ok) {
+            return null;
+          }
+          return response
+              .json()
+              .then(function (body) {
+                return body && typeof body === 'object' ? body : null;
+              })
+              .catch(function () {
+                return null;
+              });
+        })
+        .catch(function () {
+          return null;
         });
   }
 

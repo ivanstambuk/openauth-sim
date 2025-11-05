@@ -12,6 +12,7 @@ import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.core.model.Credential;
+import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
@@ -63,9 +64,6 @@ final class Fido2CliVerboseTraceTest {
         WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
         harness.save("fido2-trace-stored", fixture, WebAuthnSignatureAlgorithm.ES256);
 
-        Path privateKeyFile = tempDir.resolve("trace-private-key.json");
-        Files.writeString(privateKeyFile, fixture.credentialPrivateKeyJwk(), StandardCharsets.UTF_8);
-
         int exitCode = harness.execute(
                 "evaluate",
                 "--credential-id",
@@ -82,8 +80,6 @@ final class Fido2CliVerboseTraceTest {
                 Long.toString(fixture.storedCredential().signatureCounter()),
                 "--user-verification-required",
                 Boolean.toString(fixture.storedCredential().userVerificationRequired()),
-                "--private-key-file",
-                privateKeyFile.toString(),
                 "--verbose");
 
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
@@ -98,9 +94,7 @@ final class Fido2CliVerboseTraceTest {
         assertTrue(stdout.contains("generate.signature"), stdout);
         String clientDataDigest = attributeValue(stdout, "clientData.sha256");
         assertEquals(sha256Digest(clientDataBytes), clientDataDigest, stdout);
-        String expectedPrivateDigest = digestPrivateKey(privateKeyFile);
-        String actualPrivateDigest = attributeValue(stdout, "privateKey.sha256");
-        assertEquals(expectedPrivateDigest, actualPrivateDigest, stdout);
+        assertFalse(stdout.contains("privateKey"), stdout);
     }
 
     @Test
@@ -422,7 +416,14 @@ final class Fido2CliVerboseTraceTest {
             try (CredentialStore store = CredentialStoreFactory.openFileStore(database)) {
                 Credential credential = VersionedCredentialRecordMapper.toCredential(
                         new io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter().serialize(descriptor));
-                store.save(credential);
+                Credential persisted = new Credential(
+                        credential.name(),
+                        credential.type(),
+                        SecretMaterial.fromStringUtf8(fixture.credentialPrivateKeyJwk()),
+                        credential.attributes(),
+                        credential.createdAt(),
+                        credential.updatedAt());
+                store.save(persisted);
             }
         }
     }

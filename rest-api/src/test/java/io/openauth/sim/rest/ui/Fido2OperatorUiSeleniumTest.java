@@ -190,6 +190,46 @@ final class Fido2OperatorUiSeleniumTest {
     }
 
     @Test
+    @DisplayName("Stored evaluation masks credential private key material")
+    void storedEvaluationMasksCredentialPrivateKeys() {
+        navigateToWebAuthnPanel();
+
+        WebElement evaluateModeToggle = waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"));
+        if (!"inline".equals(evaluateModeToggle.getAttribute("data-mode"))) {
+            waitUntilAttribute(By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "inline");
+        }
+
+        WebElement storedRadio = waitFor(By.cssSelector("[data-testid='fido2-evaluate-mode-select-stored']"));
+        storedRadio.click();
+        waitUntilAttribute(By.cssSelector("[data-testid='fido2-evaluate-mode-toggle']"), "data-mode", "stored");
+
+        WebElement seedButton = waitFor(By.cssSelector("[data-testid='fido2-seed-credentials']"));
+        seedButton.click();
+        waitForNonBlankText(By.cssSelector("[data-testid='fido2-seed-status']"));
+
+        By storedCredentialSelector = By.id("fido2StoredCredentialId");
+        waitForOption(storedCredentialSelector, STORED_CREDENTIAL_ID);
+        Select storedCredentialSelect = new Select(waitFor(storedCredentialSelector));
+        selectOptionByValue(storedCredentialSelect, STORED_CREDENTIAL_ID);
+
+        awaitValue(By.id("fido2StoredChallenge"), value -> value != null && !value.isBlank());
+
+        assertThat(driver.findElements(By.cssSelector("[data-testid='fido2-stored-private-key']")))
+                .as("stored evaluation should not include hidden private key inputs")
+                .isEmpty();
+
+        WebElement placeholder = waitFor(By.cssSelector("[data-testid='fido2-stored-private-key-placeholder']"));
+        assertThat(placeholder.getAttribute("value").trim())
+                .as("stored evaluation should display a sanitized placeholder")
+                .isEqualTo("[stored-server-side]");
+
+        WebElement handleElement = waitFor(By.cssSelector("[data-testid='fido2-stored-key-handle']"));
+        assertThat(handleElement.getText().trim())
+                .as("stored evaluation should expose signing key handle")
+                .matches("[0-9a-f]{12}");
+    }
+
+    @Test
     @DisplayName("Stored WebAuthn generation renders a PublicKeyCredential payload")
     void storedGenerationDisplaysGeneratedAssertion() {
         navigateToWebAuthnPanel();
@@ -239,16 +279,15 @@ final class Fido2OperatorUiSeleniumTest {
         WebElement originInput = driver.findElement(By.id("fido2StoredOrigin"));
         assertThat(originInput.getAttribute("value")).isEqualTo("https://example.org");
 
-        WebElement hiddenPrivateKey = waitFor(By.cssSelector("[data-testid='fido2-stored-private-key']"));
-        assertThat(hiddenPrivateKey.getAttribute("type")).isEqualTo("hidden");
-        awaitValue(
-                By.cssSelector("[data-testid='fido2-stored-private-key']"),
-                value -> value != null && value.contains("\"kty\""));
-        String storedPrivateKeyValue = hiddenPrivateKey.getAttribute("value");
-        assertThat(storedPrivateKeyValue)
-                .as("stored private key should render as pretty-printed JWK")
-                .contains("\n")
-                .contains("\"kty\"");
+        assertThat(driver.findElements(By.cssSelector("[data-testid='fido2-stored-private-key']")))
+                .as("stored evaluation should not emit hidden private-key inputs")
+                .isEmpty();
+        WebElement placeholder = waitFor(By.cssSelector("[data-testid='fido2-stored-private-key-placeholder']"));
+        assertThat(placeholder.getAttribute("value").trim()).isEqualTo("[stored-server-side]");
+        WebElement signingKeyHandle = waitFor(By.cssSelector("[data-testid='fido2-stored-key-handle']"));
+        awaitText(
+                By.cssSelector("[data-testid='fido2-stored-key-handle']"),
+                text -> text != null && text.trim().matches("[0-9a-f]{12}"));
 
         WebElement submitButton = driver.findElement(By.cssSelector("[data-testid='fido2-evaluate-stored-submit']"));
         submitButton.click();
@@ -282,9 +321,9 @@ final class Fido2OperatorUiSeleniumTest {
         Select credentialSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
         selectOptionByValue(credentialSelect, STORED_CREDENTIAL_ID);
         awaitValue(By.id("fido2StoredChallenge"), value -> value != null && !value.isBlank());
-        awaitValue(
-                By.cssSelector("[data-testid='fido2-stored-private-key']"),
-                value -> value != null && value.contains("\"kty\""));
+        assertThat(driver.findElements(By.cssSelector("[data-testid='fido2-stored-private-key']")))
+                .as("stored evaluation verbose trace path should omit hidden private-key inputs")
+                .isEmpty();
 
         WebElement verboseCheckbox = waitFor(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
         if (!verboseCheckbox.isSelected()) {
@@ -310,7 +349,7 @@ final class Fido2OperatorUiSeleniumTest {
         assertThat(traceText).contains("build.signatureBase");
         assertThat(traceText).contains("generate.signature");
         assertThat(traceText).contains("  clientData.sha256 = ");
-        assertThat(traceText).contains("  privateKey.sha256 = ");
+        assertThat(traceText).doesNotContain("privateKey.sha256");
     }
 
     @Test
@@ -489,7 +528,11 @@ final class Fido2OperatorUiSeleniumTest {
         Select credentialSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
         selectOptionByValue(credentialSelect, STORED_CREDENTIAL_ID);
         awaitValue(By.id("fido2StoredChallenge"), value -> value != null && !value.isBlank());
-        awaitValue(By.id("fido2StoredPrivateKey"), value -> value != null && value.contains("\"kty\""));
+        WebElement placeholder = waitFor(By.cssSelector("[data-testid='fido2-stored-private-key-placeholder']"));
+        assertThat(placeholder.getAttribute("value").trim()).isEqualTo("[stored-server-side]");
+        awaitText(
+                By.cssSelector("[data-testid='fido2-stored-key-handle']"),
+                text -> text != null && text.trim().matches("[0-9a-f]{12}"));
 
         WebElement submitButton = waitFor(By.cssSelector("[data-testid='fido2-evaluate-stored-submit']"));
         submitButton.click();
@@ -2453,6 +2496,7 @@ final class Fido2OperatorUiSeleniumTest {
                         definition.signatureCounter(),
                         definition.userVerificationRequired(),
                         definition.algorithm(),
+                        definition.privateKeyJwk(),
                         definition.metadata()))
                 .toList();
         seedService.seed(commands, credentialStore);

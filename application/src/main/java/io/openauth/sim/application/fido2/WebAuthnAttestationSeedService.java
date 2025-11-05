@@ -80,7 +80,9 @@ public final class WebAuthnAttestationSeedService {
                     Map.copyOf(attributes));
 
             Credential merged = VersionedCredentialRecordMapper.toCredential(enriched);
-            SecretMaterial secret = existing.map(Credential::secret).orElse(merged.secret());
+            SecretMaterial secret = existing.map(Credential::secret)
+                    .filter(current -> current.value() != null && current.value().length > 0)
+                    .orElse(merged.secret());
             Instant createdAt = existing.map(Credential::createdAt).orElse(merged.createdAt());
             Instant updatedAt = merged.updatedAt();
             Map<String, String> mergedAttributes = merged.attributes();
