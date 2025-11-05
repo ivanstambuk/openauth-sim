@@ -383,15 +383,11 @@
       storedSelect.value = credentialId;
     }
     setMode(summary.mode);
-    setValue(masterKeyInput, summary.masterKey);
     setValue(atcInput, summary.defaultAtc);
     setValue(branchFactorInput, summary.branchFactor);
     setValue(heightInput, summary.height);
     setValue(ivInput, summary.iv);
-    setValue(cdol1Input, summary.cdol1);
-    setValue(ipbInput, summary.issuerProprietaryBitmap);
-    setValue(iccTemplateInput, summary.iccDataTemplate);
-    setValue(issuerApplicationDataInput, summary.issuerApplicationData);
+    clearEvaluateSensitiveInputs();
 
     if (summary.defaults) {
       setValue(challengeInput, summary.defaults.challenge);
@@ -451,15 +447,11 @@
     }
     currentReplaySummary = summary;
     refreshSensitiveMasks(replaySensitiveFields, summary);
-    setValue(replayMasterKeyInput, summary.masterKey);
     setValue(replayAtcInput, summary.defaultAtc);
     setValue(replayBranchFactorInput, summary.branchFactor);
     setValue(replayHeightInput, summary.height);
     setValue(replayIvInput, summary.iv);
-    setValue(replayCdol1Input, summary.cdol1);
-    setValue(replayIssuerBitmapInput, summary.issuerProprietaryBitmap);
-    setValue(replayIccTemplateInput, summary.iccDataTemplate);
-    setValue(replayIssuerApplicationDataInput, summary.issuerApplicationData);
+    clearReplaySensitiveInputs();
 
     if (summary.defaults) {
       setValue(replayChallengeInput, summary.defaults.challenge);
@@ -1380,15 +1372,17 @@
       payload.credentialId = credentialId;
     }
 
-    payload.masterKey = uppercase(value(replayMasterKeyInput));
-    payload.atc = uppercase(value(replayAtcInput));
-    payload.branchFactor = parseInteger(replayBranchFactorInput);
-    payload.height = parseInteger(replayHeightInput);
-    payload.iv = uppercase(value(replayIvInput));
-    payload.cdol1 = uppercase(value(replayCdol1Input));
-    payload.issuerProprietaryBitmap = uppercase(value(replayIssuerBitmapInput));
-    payload.iccDataTemplate = uppercase(value(replayIccTemplateInput));
-    payload.issuerApplicationData = uppercase(value(replayIssuerApplicationDataInput));
+    if (credentialMode !== 'stored') {
+      payload.masterKey = uppercase(value(replayMasterKeyInput));
+      payload.atc = uppercase(value(replayAtcInput));
+      payload.branchFactor = parseInteger(replayBranchFactorInput);
+      payload.height = parseInteger(replayHeightInput);
+      payload.iv = uppercase(value(replayIvInput));
+      payload.cdol1 = uppercase(value(replayCdol1Input));
+      payload.issuerProprietaryBitmap = uppercase(value(replayIssuerBitmapInput));
+      payload.iccDataTemplate = uppercase(value(replayIccTemplateInput));
+      payload.issuerApplicationData = uppercase(value(replayIssuerApplicationDataInput));
+    }
 
     var customerInputs = {
       challenge: digitsValue(replayChallengeInput),
@@ -1580,6 +1574,22 @@
     });
   }
 
+  function clearEvaluateSensitiveInputs() {
+    setValue(masterKeyInput, '');
+    setValue(cdol1Input, '');
+    setValue(ipbInput, '');
+    setValue(iccTemplateInput, '');
+    setValue(issuerApplicationDataInput, '');
+  }
+
+  function clearReplaySensitiveInputs() {
+    setValue(replayMasterKeyInput, '');
+    setValue(replayCdol1Input, '');
+    setValue(replayIssuerBitmapInput, '');
+    setValue(replayIccTemplateInput, '');
+    setValue(replayIssuerApplicationDataInput, '');
+  }
+
   function toggleSensitiveFields(fields, hideInputs, summary) {
     if (!Array.isArray(fields) || fields.length === 0) {
       return;
@@ -1673,14 +1683,22 @@
 
   function formatHexMaskFactory(property) {
     return function (summary) {
-      if (!summary || typeof summary[property] !== 'string') {
-        return summary ? 'Hidden (no stored value)' : '';
+      if (!summary) {
+        return '';
       }
-      var trimmed = summary[property].trim();
-      if (!trimmed.length) {
-        return 'Hidden (no stored value)';
+      var lengthProperty = property + 'HexLength';
+      var lengthValue = summary[lengthProperty];
+      if (typeof lengthValue === 'number' && lengthValue > 0) {
+        return 'Hidden (' + lengthValue + ' hex chars)';
       }
-      return 'Hidden (' + trimmed.length + ' hex chars)';
+      var raw = summary[property];
+      if (typeof raw === 'string') {
+        var trimmed = raw.trim();
+        if (trimmed.length) {
+          return 'Hidden (' + trimmed.length + ' hex chars)';
+        }
+      }
+      return 'Hidden (no stored value)';
     };
   }
 

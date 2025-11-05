@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-039-emv-cap-simulation.md`  
 _Status:_ In progress  
-_Last updated:_ 2025-11-05 (stored credential sanitisation planning)
+_Last updated:_ 2025-11-05 (I30 sanitisation & drift gate)
 
 ## Vision & Success Criteria
 - Deliver deterministic EMV/CAP OTP generation **and replay validation** (Identify, Respond, Sign) across core, application, REST, CLI, and operator console facades with consistent telemetry and optional verbose traces.
@@ -188,14 +188,28 @@ _Last updated:_ 2025-11-05 (stored credential sanitisation planning)
    - Refactored the EMV operator template to reuse inline preset markup for both selectors, including new `data-testid` hooks, and ensured the dropdown appearance matches the existing HOTP/TOTP/FIDO2 inline preset background.  
    - Commands executed: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
 
-32. **I30 – Stored credential secret sanitisation (planned)**  
-   - Draft failing coverage across REST (`EmvCapCredentialDirectoryControllerTest`), UI JavaScript unit helpers, and Selenium flows asserting that credential directory responses no longer include raw master key/CDOL1/IPB/ICC template/issuer application data values when stored mode is active, and that masked placeholders display digest/length metadata instead.  
-   - Implement credential directory sanitisation (digest + length metadata only), adjust stored-evaluate/replay payload builders to request the full credential server-side at submit time, and update operator console JavaScript/template logic to render masked placeholders while keeping inline overrides available when operators intentionally switch modes.  
-   - Refresh OpenAPI (if schemas change) via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` and rerun the full quality pipeline `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` to restore Jacoco thresholds after the new coverage paths land.
+32. **I30 – Stored credential secret sanitisation (completed 2025-11-05)**  
+   - Added failing REST (`EmvCapCredentialDirectoryControllerTest`), JS unit, and Selenium coverage forcing digest + length metadata for stored presets, then removed raw master key/CDOL1/IPB/ICC template/issuer application data fields from directory summaries, cleared stored UI inputs, reused the new length metadata for masks, and ensured stored evaluate/replay requests fetch secrets exclusively on the server while inline fallback requires explicit operator input.  
+   - Updated OpenAPI snapshots and replay payload builders so stored submissions omit sensitive fields, validated UI regressions, and confirmed the sanitisation suite with the full Gradle quality pipeline.
+   - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapCredentialDirectoryControllerTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
 
-## Next Increment – Implementation drift gate & acceptance review (planned)
-- Compile drift gate report covering Feature 039 scope (evaluation, replay, verbose diagnostics) and verify artefact traceability across spec/plan/tasks vs. code/tests.  
-- Re-run full quality gate if required during review and capture acceptance notes for project owner before closing the workstream.
+33. **Implementation drift gate & acceptance review (completed 2025-11-05)**  
+   - Validated that Feature 039 spec/plan/tasks align with the sanitised implementation, mapped each high-impact requirement to concrete code/tests, and confirmed no undocumented work shipped.  
+   - Logged lessons learned for future sanitisation sweeps (share digest/length placeholder pattern) and captured the drift report below.
+
+## Implementation Drift Gate Report (2025-11-05)
+- **Reviewers:** Codex (GPT-5)  
+- **Preconditions:** All Feature 039 tasks (`docs/4-architecture/tasks/feature-039-emv-cap-simulation.md`) marked complete; latest `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` succeeded at 2025-11-05T20:40Z (see command log).  
+- **Spec alignment:**
+  - R5.4 (`docs/4-architecture/specs/feature-039-emv-cap-simulation.md`) → operator console masks now render digest + length metadata while stored inputs stay non-interactive; implemented in `rest-api/src/main/resources/static/ui/emv/console.js` (mask builders and `clear*SensitiveInputs`) with coverage in `rest-api/src/test/java/io/openauth/sim/rest/ui/EmvCapOperatorUiSeleniumTest.java` (stored-mode assertions) and `rest-api/src/test/javascript/emv/console.test.js` (mask formatting unit test).
+  - R6.3–R6.4 → credential directory sanitisation and server-side hydration provided by `rest-api/src/main/java/io/openauth/sim/rest/emv/cap/EmvCapCredentialDirectoryController.java`; verified via `rest-api/src/test/java/io/openauth/sim/rest/emv/cap/EmvCapCredentialDirectoryControllerTest.java` digest/length checks and stored replay submissions.
+  - R7.2/R8.1 → stored replay requests now omit master key/CDOL1/IPB/etc. when `credentialId` is supplied, relying on application hydration; validated through Selenium replay flow and JS unit coverage simulating stored submissions (ensuring inline fallback still transmits overrides when edited).
+- **Divergences:** None. No over-delivery detected; sanitisation pattern matches spec clarifications dated 2025-11-05. Open questions log remains empty.
+- **Coverage:** Success and validation branches covered by existing suites plus new digest/length assertions across REST, JS, and Selenium. Failure paths (inline override fallback) exercised by console unit tests and replay Selenium scenario. No missing coverage identified.
+- **Follow-ups:** None for Feature 039. Recommendation: reuse the digest/length placeholder helper pattern for Feature 026’s stored credential sanitisation.
+- **Artifacts synced:** Feature plan/tasks updated, knowledge map entry appended, `_current-session.md` refreshed with I30 completion notes.
+
+Outcome: Feature 039 meets the Implementation Drift Gate. Proceed to acceptance sign-off once stakeholders review this report.
 
 ## Previous Increment – I28 Evaluate sample vector spacing refinement (completed 2025-11-04)
 - Collapsed the Evaluate sample vector block so preset selection and seed controls mirror the Replay layout, introduced inline spacing styles, and reran targeted Selenium/UI checks alongside `spotlessApply check`.

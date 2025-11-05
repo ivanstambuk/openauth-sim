@@ -4,6 +4,65 @@ const path = require('node:path');
 const { test } = require('node:test');
 const vm = require('node:vm');
 
+const SANITIZED_SUMMARIES = [
+  {
+    id: 'emv-123',
+    label: 'CAP Identify baseline',
+    mode: 'IDENTIFY',
+    masterKeySha256: 'sha256:SANITIZED-IDENTIFY',
+    masterKeyHexLength: 32,
+    defaultAtc: '00B4',
+    branchFactor: 4,
+    height: 8,
+    iv: '0001020304050607',
+    cdol1HexLength: 64,
+    issuerProprietaryBitmapHexLength: 32,
+    iccDataTemplateHexLength: 40,
+    issuerApplicationDataHexLength: 48,
+    defaults: {
+      challenge: '',
+      reference: '',
+      amount: '',
+    },
+    transaction: {
+      iccResolved: '',
+    },
+    metadata: {
+      presetLabel: 'CAP Identify baseline',
+    },
+  },
+];
+
+async function flushMicrotasks() {
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
+function createMaskField() {
+  const attributes = new Map();
+  const style = {};
+  const valueNode = { textContent: '' };
+  return {
+    style,
+    valueNode,
+    setAttribute(name, value) {
+      attributes.set(name, String(value));
+    },
+    getAttribute(name) {
+      return attributes.has(name) ? attributes.get(name) : null;
+    },
+    removeAttribute(name) {
+      attributes.delete(name);
+    },
+    querySelector(selector) {
+      if (selector === '[data-mask-value]') {
+        return valueNode;
+      }
+      return null;
+    },
+  };
+}
+
 const scriptSource = readFileSync(
   path.resolve(__dirname, '../../../main/resources/static/ui/emv/console.js'),
   'utf8',
@@ -17,6 +76,7 @@ function createInput(id, value = '') {
     value,
     textContent: '',
     checked: false,
+    style: {},
     listeners: {},
     setAttribute(name, val) {
       attributes.set(name, String(val));
@@ -171,6 +231,11 @@ function createEnvironment({ verboseEnabled }) {
   const terminalInput = createTextarea('emvTerminalData', 'ABC');
   const iccOverrideInput = createTextarea('emvIccOverride', 'DEF');
   const iccResolvedInput = createTextarea('emvIccResolved', 'FED');
+  const masterKeyMaskNode = createMaskField();
+  const cdol1MaskNode = createMaskField();
+  const ipbMaskNode = createMaskField();
+  const iccTemplateMaskNode = createMaskField();
+  const issuerApplicationDataMaskNode = createMaskField();
   const csrfInput = createInput('_csrf', 'token');
   const evaluateButton = createButton();
   evaluateButton.removeAttribute('disabled');
@@ -283,7 +348,7 @@ function createEnvironment({ verboseEnabled }) {
         return '/api/v1/emv/cap/evaluate';
       }
       if (name === 'data-credentials-endpoint' || name === 'data-seed-endpoint') {
-        return '';
+        return '/api/v1/emv/cap/credentials';
       }
       return null;
     },
@@ -311,6 +376,16 @@ function createEnvironment({ verboseEnabled }) {
           return iccTemplateInput;
         case '#emvIssuerApplicationData':
           return issuerApplicationDataInput;
+        case '[data-testid="emv-master-key-mask"]':
+          return masterKeyMaskNode;
+        case '[data-testid="emv-cdol1-mask"]':
+          return cdol1MaskNode;
+        case '[data-testid="emv-ipb-mask"]':
+          return ipbMaskNode;
+        case '[data-testid="emv-icc-template-mask"]':
+          return iccTemplateMaskNode;
+        case '[data-testid="emv-issuer-application-data-mask"]':
+          return issuerApplicationDataMaskNode;
         case '#emvChallenge':
           return challengeInput;
         case '#emvReference':
@@ -370,6 +445,13 @@ function createEnvironment({ verboseEnabled }) {
   const fetchCalls = [];
   const fetchStub = (url, options = {}) => {
     if (!options.method || options.method === 'GET') {
+      if (String(url).includes('/api/v1/emv/cap/credentials')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(SANITIZED_SUMMARIES),
+        });
+      }
       return Promise.resolve({
         ok: true,
         status: 200,
@@ -423,6 +505,13 @@ function createEnvironment({ verboseEnabled }) {
     inputs: {
       masterKey: masterKeyInput,
       atc: atcInput,
+      cdol1: cdol1Input,
+      issuerApplicationData: issuerApplicationDataInput,
+    },
+    masks: {
+      masterKey: () => masterKeyMaskNode.valueNode.textContent,
+      cdol1: () => cdol1MaskNode.valueNode.textContent,
+      issuerApplicationData: () => issuerApplicationDataMaskNode.valueNode.textContent,
     },
     storedHint,
   };
@@ -437,6 +526,38 @@ async function invokeStoredSubmit(env) {
   await env.hooks.handleStoredSubmit();
   await Promise.resolve();
 }
+
+test('stored credential masks display digest and length metadata without populating secret inputs', async () => {
+  const env = createEnvironment({ verboseEnabled: true });
+  await flushMicrotasks();
+  env.hooks.storedSelect.value = SANITIZED_SUMMARIES[0].id;
+  if (typeof env.hooks.storedSelect.dispatchEvent === 'function') {
+    env.hooks.storedSelect.dispatchEvent('change');
+  }
+  await flushMicrotasks();
+  assert.equal(env.inputs.masterKey.value, '', 'Stored master key input should remain blank');
+  assert.equal(env.inputs.cdol1.value, '', 'Stored CDOL1 textarea should remain blank');
+  assert.equal(
+    env.inputs.issuerApplicationData.value,
+    '',
+    'Stored issuer application data textarea should remain blank',
+  );
+  assert.equal(
+    env.masks.masterKey(),
+    SANITIZED_SUMMARIES[0].masterKeySha256,
+    'Master key mask should surface digest metadata',
+  );
+  assert.equal(
+    env.masks.cdol1(),
+    `Hidden (${SANITIZED_SUMMARIES[0].cdol1HexLength} hex chars)`,
+    'CDOL1 mask should surface length metadata',
+  );
+  assert.equal(
+    env.masks.issuerApplicationData(),
+    `Hidden (${SANITIZED_SUMMARIES[0].issuerApplicationDataHexLength} hex chars)`,
+    'Issuer application data mask should surface length metadata',
+  );
+});
 
 test('stored submission posts credential ID to stored endpoint when verbose enabled', async () => {
   const env = createEnvironment({ verboseEnabled: true });

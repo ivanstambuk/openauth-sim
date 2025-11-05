@@ -8,11 +8,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openauth.sim.application.emv.cap.EmvCapSeedApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapSeedSamples;
+import io.openauth.sim.core.emv.cap.EmvCapCredentialPersistenceAdapter;
+import io.openauth.sim.core.model.Credential;
+import io.openauth.sim.core.model.CredentialType;
+import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.CredentialStore;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -66,6 +71,64 @@ final class EmvCapCredentialDirectoryControllerTest {
     }
 
     @Test
+    @DisplayName("Directory endpoint skips credentials missing required attributes")
+    void directorySkipsIncompleteCredentials() throws Exception {
+        Credential missingCdol1 = Credential.create(
+                "emv-cap-incomplete",
+                CredentialType.EMV_CA,
+                SecretMaterial.fromHex("00112233445566778899AABBCCDDEEFF"),
+                Map.ofEntries(
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_MODE, "IDENTIFY"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_DEFAULT_ATC, "00B4"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_BRANCH_FACTOR, "4"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_HEIGHT, "8"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_IV, "0000000000000000"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_IPB, "F0F0"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_ICC_TEMPLATE, "DEADBEEF"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_ISSUER_APPLICATION_DATA, "CAFEBABE"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_CDOL1, "")));
+        credentialStore.save(missingCdol1);
+
+        MvcResult result = mockMvc.perform(get("/api/v1/emv/cap/credentials").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode root = objectMapper.readTree(result.getResponse().getContentAsByteArray());
+        assertThat(findById(root, "emv-cap-incomplete"))
+                .as("Incomplete credential should be omitted from the directory listing")
+                .isNull();
+    }
+
+    @Test
+    @DisplayName("Directory endpoint skips credentials with invalid branch factor metadata")
+    void directorySkipsCredentialWithInvalidBranchFactor() throws Exception {
+        Credential invalidBranchFactor = Credential.create(
+                "emv-cap-invalid-branch",
+                CredentialType.EMV_CA,
+                SecretMaterial.fromHex("F00112233445566778899AABBCCDDEE0"),
+                Map.ofEntries(
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_MODE, "IDENTIFY"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_DEFAULT_ATC, "00B4"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_BRANCH_FACTOR, "not-a-number"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_HEIGHT, "8"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_IV, "0000000000000000"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_IPB, "0F0F"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_ICC_TEMPLATE, "FEEDFACE"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_ISSUER_APPLICATION_DATA, "CAFED00D"),
+                        Map.entry(EmvCapCredentialPersistenceAdapter.ATTR_CDOL1, "01")));
+        credentialStore.save(invalidBranchFactor);
+
+        MvcResult result = mockMvc.perform(get("/api/v1/emv/cap/credentials").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode root = objectMapper.readTree(result.getResponse().getContentAsByteArray());
+        assertThat(findById(root, "emv-cap-invalid-branch"))
+                .as("Credential with non-numeric branch factor should be omitted")
+                .isNull();
+    }
+
+    @Test
     @DisplayName("Directory endpoint lists seeded EMV/CAP credentials with metadata")
     void directoryListsSeededCredentials() throws Exception {
         MvcResult result = mockMvc.perform(get("/api/v1/emv/cap/credentials").accept(MediaType.APPLICATION_JSON))
@@ -80,9 +143,39 @@ final class EmvCapCredentialDirectoryControllerTest {
         assertThat(identifyNode).isNotNull();
         assertThat(identifyNode.path("mode").asText()).isEqualTo("IDENTIFY");
         assertThat(identifyNode.path("label").asText()).isEqualTo("CAP Identify baseline");
-        String masterKey = identifyNode.path("masterKey").asText();
-        assertThat(masterKey).isNotEmpty();
+        Credential identifyCredential =
+                credentialStore.findByName("emv-cap-identify-baseline").orElseThrow();
+        String masterKey = identifyCredential.secret().asHex().trim();
+        String cdol1 = attribute(identifyCredential, EmvCapCredentialPersistenceAdapter.ATTR_CDOL1);
+        String issuerBitmap = attribute(identifyCredential, EmvCapCredentialPersistenceAdapter.ATTR_IPB);
+        String iccTemplate = attribute(identifyCredential, EmvCapCredentialPersistenceAdapter.ATTR_ICC_TEMPLATE);
+        String issuerApplicationData =
+                attribute(identifyCredential, EmvCapCredentialPersistenceAdapter.ATTR_ISSUER_APPLICATION_DATA);
+
+        assertThat(identifyNode.has("masterKey"))
+                .as("Master key should be omitted from directory response")
+                .isFalse();
+        assertThat(identifyNode.has("cdol1"))
+                .as("CDOL1 payload should be omitted from directory response")
+                .isFalse();
+        assertThat(identifyNode.has("issuerProprietaryBitmap"))
+                .as("IPB should be omitted from directory response")
+                .isFalse();
+        assertThat(identifyNode.has("iccDataTemplate"))
+                .as("ICC template should be omitted from directory response")
+                .isFalse();
+        assertThat(identifyNode.has("issuerApplicationData"))
+                .as("Issuer application data should be omitted from directory response")
+                .isFalse();
+
         assertThat(identifyNode.path("masterKeySha256").asText()).isEqualTo(sha256Digest(masterKey));
+        assertThat(identifyNode.path("masterKeyHexLength").asInt()).isEqualTo(masterKey.length());
+        assertThat(identifyNode.path("cdol1HexLength").asInt()).isEqualTo(cdol1.length());
+        assertThat(identifyNode.path("issuerProprietaryBitmapHexLength").asInt())
+                .isEqualTo(issuerBitmap.length());
+        assertThat(identifyNode.path("iccDataTemplateHexLength").asInt()).isEqualTo(iccTemplate.length());
+        assertThat(identifyNode.path("issuerApplicationDataHexLength").asInt())
+                .isEqualTo(issuerApplicationData.length());
         assertThat(identifyNode.path("defaultAtc").asText()).isEqualTo("00B4");
         assertThat(identifyNode.path("defaults").path("challenge").asText()).isEmpty();
         assertThat(identifyNode.path("transaction").path("iccResolved").asText())
@@ -100,6 +193,10 @@ final class EmvCapCredentialDirectoryControllerTest {
             }
         }
         return null;
+    }
+
+    private static String attribute(Credential credential, String key) {
+        return credential.attributes().getOrDefault(key, "").trim();
     }
 
     private static String sha256Digest(String hex) {

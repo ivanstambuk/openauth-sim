@@ -153,6 +153,17 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(masterKeyInput.getAttribute("data-secret-mode"))
                 .as("Master key field should track stored mode state")
                 .isEqualTo("stored");
+        assertThat(masterKeyInput.getAttribute("value"))
+                .as("Master key input should remain empty in stored mode to avoid secret leakage")
+                .isBlank();
+        WebElement cdol1Input = driver.findElement(By.id("emvCdol1"));
+        assertThat(cdol1Input.getAttribute("value"))
+                .as("CDOL1 textarea should remain empty in stored mode to avoid secret leakage")
+                .isBlank();
+        WebElement issuerDataInput = driver.findElement(By.id("emvIssuerApplicationData"));
+        assertThat(issuerDataInput.getAttribute("value"))
+                .as("Issuer application data textarea should remain empty in stored mode")
+                .isBlank();
         WebElement masterKeyMask = driver.findElement(By.cssSelector("[data-testid='emv-master-key-mask']"));
         assertThat(masterKeyMask.getAttribute("hidden"))
                 .as("Master key mask should be visible in stored mode")
@@ -260,7 +271,7 @@ final class EmvCapOperatorUiSeleniumTest {
                 .contains("metadata.credentialId = " + STORED_CREDENTIAL_ID);
         assertThat(traceText)
                 .as("Trace steps should surface session key and Generate AC details")
-                .contains("masterKey.sha256 = " + masterKeyDigest)
+                .contains(masterKeyDigest)
                 .contains("sessionKey = " + sessionKey)
                 .contains("generateAcResult = " + generateAcResult)
                 .contains("terminal = " + terminalHex)
@@ -348,6 +359,10 @@ final class EmvCapOperatorUiSeleniumTest {
         String mutatedMasterKey = replacement + baselineMasterKey.substring(1);
         masterKeyInput.clear();
         masterKeyInput.sendKeys(mutatedMasterKey);
+        setHexInput(By.id("emvCdol1"), BASELINE_VECTOR.input().cdol1Hex());
+        setHexInput(By.id("emvIpb"), BASELINE_VECTOR.input().issuerProprietaryBitmapHex());
+        setHexInput(By.id("emvIccTemplate"), BASELINE_VECTOR.input().iccDataTemplateHex());
+        setHexInput(By.id("emvIssuerApplicationData"), BASELINE_VECTOR.input().issuerApplicationDataHex());
 
         WebElement globalVerboseCheckbox = waitForClickable(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
         if (!globalVerboseCheckbox.isSelected()) {
@@ -423,6 +438,9 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(replayMasterKeyInput.getAttribute("data-secret-mode"))
                 .as("Replay master key input should track stored mode state")
                 .isEqualTo("stored");
+        assertThat(replayMasterKeyInput.getAttribute("value"))
+                .as("Replay master key input should remain empty in stored mode")
+                .isBlank();
         WebElement replayMasterKeyMask =
                 driver.findElement(By.cssSelector("[data-testid='emv-replay-master-key-mask']"));
         assertThat(replayMasterKeyMask.getAttribute("hidden"))
@@ -489,7 +507,7 @@ final class EmvCapOperatorUiSeleniumTest {
                 .contains("credentialSource = stored")
                 .contains("matchedDelta = 0")
                 .contains("suppliedOtp = " + fixture.otpDecimal())
-                .contains("masterKey.sha256 = " + expectedMasterKeyDigest(vector));
+                .contains(expectedMasterKeyDigest(vector));
     }
 
     @Test
@@ -616,7 +634,6 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("Stored credential dropdown should expose friendly preset label")
                 .isTrue();
         select.selectByValue(id);
-        waitForNonEmptyValue(By.id("emvMasterKey"), "Master key should auto-populate from stored preset");
     }
 
     private void waitForReplayCredential(Select select, String id, String label) {
@@ -627,8 +644,6 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("Replay stored credential dropdown should expose preset label")
                 .isTrue();
         select.selectByValue(id);
-        waitForNonEmptyValue(
-                By.cssSelector("[data-testid='emv-replay-master-key'] input"), "Master key should populate");
     }
 
     private void populateReplayInlineForm(EmvCapVector vector) {
@@ -721,15 +736,6 @@ final class EmvCapOperatorUiSeleniumTest {
 
     private WebElement waitForClickable(By locator) {
         return new WebDriverWait(driver, WAIT_TIMEOUT).until(ExpectedConditions.elementToBeClickable(locator));
-    }
-
-    private void waitForNonEmptyValue(By locator, String message) {
-        new WebDriverWait(driver, WAIT_TIMEOUT).until(driver -> {
-            WebElement element = driver.findElement(locator);
-            return element != null && !element.getAttribute("value").trim().isEmpty();
-        });
-        WebElement element = driver.findElement(locator);
-        assertThat(element.getAttribute("value")).as(message).isNotBlank();
     }
 
     private void waitForStatus(String expected) {

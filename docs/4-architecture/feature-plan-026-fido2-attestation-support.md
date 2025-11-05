@@ -1,8 +1,8 @@
 # Feature Plan 026 – FIDO2/WebAuthn Attestation Support
 
 _Linked specification:_ `docs/4-architecture/specs/feature-026-fido2-attestation-support.md`  
-_Status:_ In progress  
-_Last updated:_ 2025-11-05 (stored credential sanitisation planning)
+_Status:_ In review  
+_Last updated:_ 2025-11-05 (stored credential sanitisation implemented; awaiting acceptance)
 
 ## Vision & Success Criteria
 - Provide end-to-end attestation generation and verification across core, application services, CLI, REST API, and operator UI, mirroring the existing assertion workflow.
@@ -337,16 +337,15 @@ _2025-10-26 – Scope reopened to deliver stored attestation replay affordances 
     - Render the summary in the operator console stored replay panel (read-only), update Selenium coverage, and rerun `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"` plus the full `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  
     _2025-10-31 – Documentation refreshed, REST metadata now surfaces `trustAnchorSummaries` with metadata-description and certificate-subject fallbacks, operator console renders the read-only textarea, Selenium coverage extended, OpenAPI snapshots regenerated, and the full Gradle suite completed._  
 
-45. **I45 – Stored credential secret sanitisation (planned)**  
-    - Stage failing coverage to prove that `/api/v1/webauthn/credentials/{credentialId}/sample` and operator UI stored evaluation/replay flows never surface authenticator private keys or long-term secrets (assert hidden inputs absent, digest/handle placeholders present).  
-    - Strip private key material from stored credential/sample responses, returning sanitized handles/digests only, and adjust application services to resolve private keys server-side when generating attestations or assertions. Responses must expose a `signingKeyHandle` (first 12 hex characters of the SHA-256 digest for the stored key) alongside a constant `privateKeyPlaceholder` value of `[stored-server-side]`; legacy `privateKeyJwk`/`privateKeyPem` fields are removed.  
-    - Update operator console templates/JavaScript to remove hidden private-key fields, render masked placeholders, and fetch sanitized metadata; refresh Selenium/UI unit tests accordingly, regenerate OpenAPI snapshots, and rerun `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.  
-    _2025-11-05 – CLI stored evaluation now succeeds without a request-side private key; `GenerationCommand.Stored` treats missing payloads as empty, stored verbose traces suppress the `privateKey.sha256` attribute, and `./gradlew --no-daemon :cli:test` verifies the regression is fixed while inline traces retain hashed controls._  
-    _2025-11-05 – REST stored evaluation/samples no longer emit credential secrets; sample responses fall back to seed definitions for signing-key handles, the stored request ignores optional `privateKey`, Selenium coverage (`storedEvaluationMasksCredentialPrivateKeys`, `storedGenerationVerboseTraceListsBuildSteps`) confirms the UI renders `[stored-server-side]` plus a 12-char handle, and OpenAPI snapshots were refreshed after the DTO updates (`OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`)._
+45. **I45 – Stored credential secret sanitisation (completed 2025-11-05)**  
+    - Added failing REST (`WebAuthnCredentialSanitisationTest`), CLI (`Fido2CliVerboseTraceTest`), and Selenium (`Fido2OperatorUiSeleniumTest`) coverage to ensure stored credential responses expose only signing key handles plus `[stored-server-side]` placeholders.  
+    - Removed authenticator private keys from stored sample endpoints, hydrated secrets exclusively server-side for evaluation/replay flows, and updated the operator console to render masked placeholders while keeping inline overrides available.  
+    - Regenerated OpenAPI artefacts and reran `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` (2025-11-05T20:40Z, green).  
+    _2025-11-05 – Sanitisation merged via commit `bcaad35`; docs/plan/tasks updated. Awaiting owner acceptance to re-close the workstream._
 
 ## Closure Notes
 - 2025-10-31 – Feature accepted after validating stored replay trust-anchor summaries across REST/UI facades and rerunning the full Gradle suite. Roadmap, tasks, and session snapshot updated to mark the workstream complete.
-- 2025-11-05 – Workstream re-opened to address stored credential secret sanitisation; see I45 and T2650 for the remediation scope.
+- 2025-11-05 – Stored credential sanitisation delivered (I45/T2650); pending owner review to confirm re-closure.
 
 ## Analysis Gate (2025-10-20)
 - **Specification completeness** – Updated 2025-10-27 to capture Preset/Manual/Stored evaluate inputs (with replay simplified to Manual/Stored), MapDB-backed persistence, and curated seeding controls; clarifications document the owner’s Option B selections and follow-on directives.

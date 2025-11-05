@@ -1,8 +1,8 @@
 # Feature 026 Tasks – FIDO2/WebAuthn Attestation Support
 
 _Linked plan:_ `docs/4-architecture/feature-plan-026-fido2-attestation-support.md`  
-_Status:_ In progress  
-_Last updated:_ 2025-11-05 (T2650 stored credential sanitisation planning)
+_Status:_ Complete  
+_Last updated:_ 2025-11-05 (T2650 stored credential sanitisation complete)
 
 ☑ **T2601 – Fixture scaffolding**  
  ☑ Convert selected W3C Level 3 attestation examples and synthetic fixtures into JSON assets under `docs/`.  
@@ -332,12 +332,12 @@ _Last updated:_ 2025-11-05 (T2650 stored credential sanitisation planning)
     ☑ Render the summary in the operator console stored replay panel (read-only), refresh Selenium coverage, and rerun `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"` plus the full `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  
 _2025-10-31 – Spec/plan/tasks/session/knowledge-map updated for Option B; stored metadata endpoint now returns `trustAnchorSummaries` (metadata description fallback or certificate subjects) with controller + unit coverage, operator console renders the read-only textarea, Selenium asserts populated summary, OpenAPI snapshots regenerated, and Gradle suite `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check` completed after reseeding._  
 
-- [ ] **T2650 – Stored credential secret sanitisation**  
-    - Stage failing tests across REST (`WebAuthnCredentialDirectoryControllerTest`), UI JavaScript helpers, and Selenium scenarios proving that stored credential/sample responses no longer expose authenticator private keys and that the operator console renders masked placeholders (`[stored-server-side]`) plus signing-key handles instead of hidden private-key inputs.  
-    - Strip private key material from `/api/v1/webauthn/credentials/{credentialId}/sample`, update application services to fetch secrets server-side during evaluation/replay, adjust CLI/REST/UI payload builders to emit `signingKeyHandle` + `privateKeyPlaceholder` only, and refresh OpenAPI snapshots if schemas change.  
-    - Rerun `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` once sanitisation lands to confirm coverage and quality gates.
-    _2025-11-05 – CLI stored evaluation now tolerates missing request private keys and suppresses `privateKey.sha256` in verbose traces; ran `./gradlew --no-daemon :cli:test` to confirm the regression is fixed._
-    _2025-11-05 – REST/UI sanitisation implemented: `/credentials/{id}/sample` returns `signingKeyHandle` + placeholder (fallback hashing seeded private keys), stored evaluation ignores optional legacy `privateKey`, operator console shows masked fields without hidden inputs, Selenium assertions updated, and OpenAPI snapshots regenerated via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`._
+- [x] **T2650 – Stored credential secret sanitisation**  
+    - Staged failing coverage across REST (`WebAuthnCredentialSanitisationTest`), CLI unit tests (`Fido2CliVerboseTraceTest`), and Selenium flows (`Fido2OperatorUiSeleniumTest`) to require digest-based signing key handles plus `[stored-server-side]` placeholders instead of private key payloads.  
+    - Removed authenticator private keys from `/api/v1/webauthn/credentials/{credentialId}/sample`, updated application/REST/CLI services to hydrate keys server-side, and taught the operator console to render the placeholder while keeping inline overrides.  
+    - Regenerated OpenAPI snapshots and reran `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` (2025-11-05T20:40Z) with green results.  
+    _2025-11-05 – Sanitisation merged via commit `bcaad35` (“feat: sanitize stored WebAuthn credential secrets”); documentation, plan, and knowledge map updated to reflect the masked placeholder contract._
 
 **Acceptance**  
-- 2025-10-31 – Feature 026 closed after trust-anchor summaries were validated across REST/operator UI facets and full Gradle verification succeeded.
+- 2025-10-31 – Feature 026 closed after trust-anchor summaries were validated across REST/operator UI facets and full Gradle verification succeeded.  
+- 2025-11-05 – Sanitisation follow-up (T2650) completed; owner to confirm re-closure post-review.

@@ -75,6 +75,12 @@ final class EmvCapCredentialDirectoryController {
             return null;
         }
 
+        String masterKeyTrimmed = masterKey.trim();
+        String cdol1Trimmed = cdol1.trim();
+        String issuerBitmapTrimmed = issuerProprietaryBitmap.trim();
+        String iccTemplateTrimmed = iccTemplate.trim();
+        String issuerApplicationDataTrimmed = issuerApplicationData.trim();
+
         Defaults defaults = new Defaults(
                 attributes.getOrDefault(EmvCapCredentialPersistenceAdapter.ATTR_DEFAULT_CHALLENGE, ""),
                 attributes.getOrDefault(EmvCapCredentialPersistenceAdapter.ATTR_DEFAULT_REFERENCE, ""),
@@ -86,7 +92,7 @@ final class EmvCapCredentialDirectoryController {
                 attributes.get(EmvCapCredentialPersistenceAdapter.ATTR_TRANSACTION_ICC_RESOLVED));
 
         Map<String, String> metadata = extractMetadata(attributes);
-        String masterKeySha256 = computeMasterKeyDigest(masterKey);
+        String masterKeySha256 = computeMasterKeyDigest(masterKeyTrimmed);
         String label = Optional.ofNullable(metadata.get("presetLabel"))
                 .filter(StringUtils::hasText)
                 .orElse(credential.name());
@@ -95,16 +101,16 @@ final class EmvCapCredentialDirectoryController {
                 credential.name(),
                 label,
                 mode.toUpperCase(Locale.ROOT),
-                masterKey,
                 masterKeySha256,
+                masterKeyTrimmed.length(),
                 defaultAtc,
                 branchFactor,
                 height,
                 iv,
-                cdol1,
-                issuerProprietaryBitmap,
-                iccTemplate,
-                issuerApplicationData,
+                cdol1Trimmed.length(),
+                issuerBitmapTrimmed.length(),
+                iccTemplateTrimmed.length(),
+                issuerApplicationDataTrimmed.length(),
                 defaults,
                 transaction,
                 metadata);
@@ -173,16 +179,16 @@ final class EmvCapCredentialDirectoryController {
             String id,
             String label,
             String mode,
-            String masterKey,
             String masterKeySha256,
+            int masterKeyHexLength,
             String defaultAtc,
             Integer branchFactor,
             Integer height,
             String iv,
-            String cdol1,
-            String issuerProprietaryBitmap,
-            String iccDataTemplate,
-            String issuerApplicationData,
+            int cdol1HexLength,
+            int issuerProprietaryBitmapHexLength,
+            int iccDataTemplateHexLength,
+            int issuerApplicationDataHexLength,
             Defaults defaults,
             Transaction transaction,
             Map<String, String> metadata) {
@@ -191,15 +197,10 @@ final class EmvCapCredentialDirectoryController {
             Objects.requireNonNull(id, "id");
             Objects.requireNonNull(label, "label");
             Objects.requireNonNull(mode, "mode");
-            Objects.requireNonNull(masterKey, "masterKey");
             Objects.requireNonNull(defaultAtc, "defaultAtc");
             Objects.requireNonNull(branchFactor, "branchFactor");
             Objects.requireNonNull(height, "height");
             Objects.requireNonNull(iv, "iv");
-            Objects.requireNonNull(cdol1, "cdol1");
-            Objects.requireNonNull(issuerProprietaryBitmap, "issuerProprietaryBitmap");
-            Objects.requireNonNull(iccDataTemplate, "iccDataTemplate");
-            Objects.requireNonNull(issuerApplicationData, "issuerApplicationData");
             Objects.requireNonNull(masterKeySha256, "masterKeySha256");
             defaults = defaults == null ? new Defaults("", "", "") : defaults;
             transaction = transaction == null ? new Transaction(null, null, null) : transaction;

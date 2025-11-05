@@ -306,6 +306,18 @@ paths:
               $ref: "#/components/schemas/OcraVerificationRequest"
         required: true
       responses:
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
+        "404":
+          description: "Credential not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "422":
           description: "Verification payload failed validation"
           content:
@@ -326,18 +338,6 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "404":
-          description: "Credential not found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "200":
           description: "Verification completed"
           content:
@@ -373,6 +373,12 @@ paths:
               $ref: "#/components/schemas/OcraEvaluationRequest"
         required: true
       responses:
+        "500":
+          description: "Unexpected server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
         "400":
           description: "Invalid request payload"
           content:
@@ -393,12 +399,6 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "500":
-          description: "Unexpected server error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
         "200":
           description: "Evaluation successful"
           content:
@@ -432,24 +432,24 @@ paths:
               $ref: "#/components/schemas/HotpReplayRequest"
         required: true
       responses:
-        "200":
-          description: "Replay completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
         "422":
           description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "200":
+          description: "Replay completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayResponse"
   /api/v1/hotp/evaluate:
     post:
       tags:
@@ -465,6 +465,12 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "200":
           description: "Evaluation completed"
           content:
@@ -473,12 +479,6 @@ paths:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
         "422":
           description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "500":
-          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -498,6 +498,12 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "200":
           description: "Evaluation completed"
           content:
@@ -506,12 +512,6 @@ paths:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
         "422":
           description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "500":
-          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -543,6 +543,12 @@ paths:
               $ref: "#/components/schemas/EmvCapReplayRequest"
         required: true
       responses:
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
         "200":
           description: "Replay completed"
           content:
@@ -551,12 +557,6 @@ paths:
                 $ref: "#/components/schemas/EmvCapReplayResponse"
         "422":
           description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
-        "500":
-          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -1790,6 +1790,21 @@ components:
             type: "string"
         verbose:
           type: "boolean"
+    HotpReplayErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     HotpReplayMetadata:
       type: "object"
       properties:
@@ -1823,7 +1838,16 @@ components:
           $ref: "#/components/schemas/HotpReplayMetadata"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
-    HotpReplayErrorResponse:
+    HotpStoredEvaluationRequest:
+      type: "object"
+      properties:
+        credentialId:
+          type: "string"
+        window:
+          $ref: "#/components/schemas/EvaluationWindowRequest"
+        verbose:
+          type: "boolean"
+    HotpEvaluationErrorResponse:
       type: "object"
       properties:
         status:
@@ -1838,15 +1862,6 @@ components:
             type: "object"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
-    HotpStoredEvaluationRequest:
-      type: "object"
-      properties:
-        credentialId:
-          type: "string"
-        window:
-          $ref: "#/components/schemas/EvaluationWindowRequest"
-        verbose:
-          type: "boolean"
     HotpEvaluationMetadata:
       type: "object"
       properties:
@@ -1888,21 +1903,6 @@ components:
             $ref: "#/components/schemas/OtpPreviewResponse"
         metadata:
           $ref: "#/components/schemas/HotpEvaluationMetadata"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
-    HotpEvaluationErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
     HotpInlineEvaluationRequest:
@@ -1985,6 +1985,21 @@ components:
           type: "string"
         icc:
           type: "string"
+    EmvCapReplayErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     EmvCapReplayMetadata:
       type: "object"
       properties:
@@ -2048,21 +2063,6 @@ components:
             $ref: "#/components/schemas/VerboseTraceStepPayload"
         masterKeySha256:
           type: "string"
-    EmvCapReplayErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
     EmvCapEvaluationRequest:
       type: "object"
       properties:
@@ -2393,10 +2393,11 @@ components:
           type: "string"
         mode:
           type: "string"
-        masterKey:
-          type: "string"
         masterKeySha256:
           type: "string"
+        masterKeyHexLength:
+          type: "integer"
+          format: "int32"
         defaultAtc:
           type: "string"
         branchFactor:
@@ -2407,14 +2408,18 @@ components:
           format: "int32"
         iv:
           type: "string"
-        cdol1:
-          type: "string"
-        issuerProprietaryBitmap:
-          type: "string"
-        iccDataTemplate:
-          type: "string"
-        issuerApplicationData:
-          type: "string"
+        cdol1HexLength:
+          type: "integer"
+          format: "int32"
+        issuerProprietaryBitmapHexLength:
+          type: "integer"
+          format: "int32"
+        iccDataTemplateHexLength:
+          type: "integer"
+          format: "int32"
+        issuerApplicationDataHexLength:
+          type: "integer"
+          format: "int32"
         defaults:
           $ref: "#/components/schemas/Defaults"
         transaction:
