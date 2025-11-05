@@ -147,6 +147,45 @@
       ? replayResultPanel.querySelector('[data-testid="emv-replay-reason"]')
       : null;
 
+  var evaluateSensitiveFields = buildSensitiveFields([
+    { input: masterKeyInput, mask: form.querySelector('[data-testid="emv-master-key-mask"]'), formatter: formatMasterKeyMask },
+    { input: cdol1Input, mask: form.querySelector('[data-testid="emv-cdol1-mask"]'), formatter: formatHexMaskFactory('cdol1') },
+    { input: ipbInput, mask: form.querySelector('[data-testid="emv-ipb-mask"]'), formatter: formatHexMaskFactory('issuerProprietaryBitmap') },
+    { input: iccTemplateInput, mask: form.querySelector('[data-testid="emv-icc-template-mask"]'), formatter: formatHexMaskFactory('iccDataTemplate') },
+    { input: issuerApplicationDataInput, mask: form.querySelector('[data-testid="emv-issuer-application-data-mask"]'), formatter: formatHexMaskFactory('issuerApplicationData') },
+  ]);
+
+  var replaySensitiveFields = buildSensitiveFields([
+    {
+      input: replayMasterKeyInput,
+      mask: replayForm ? replayForm.querySelector('[data-testid="emv-replay-master-key-mask"]') : null,
+      formatter: formatMasterKeyMask,
+    },
+    {
+      input: replayCdol1Input,
+      mask: replayForm ? replayForm.querySelector('[data-testid="emv-replay-cdol1-mask"]') : null,
+      formatter: formatHexMaskFactory('cdol1'),
+    },
+    {
+      input: replayIssuerBitmapInput,
+      mask: replayForm ? replayForm.querySelector('[data-testid="emv-replay-ipb-mask"]') : null,
+      formatter: formatHexMaskFactory('issuerProprietaryBitmap'),
+    },
+    {
+      input: replayIccTemplateInput,
+      mask: replayForm ? replayForm.querySelector('[data-testid="emv-replay-icc-template-mask"]') : null,
+      formatter: formatHexMaskFactory('iccDataTemplate'),
+    },
+    {
+      input: replayIssuerApplicationDataInput,
+      mask: replayForm ? replayForm.querySelector('[data-testid="emv-replay-issuer-application-data-mask"]') : null,
+      formatter: formatHexMaskFactory('issuerApplicationData'),
+    },
+  ]);
+
+  var currentStoredSummary = null;
+  var currentReplaySummary = null;
+
   var credentialsCache = Object.create(null);
   var credentialsList = [];
   var loadingCredentials = false;
@@ -157,6 +196,8 @@
   var activePanel = null;
 
   initializeTabs();
+
+  updateEvaluateSensitiveFields(selectedEvaluateMode());
 
   if (storedSelect) {
     storedSelect.addEventListener('change', function () {
@@ -169,8 +210,10 @@
         }
       } else if (storedSubmissionState && typeof storedSubmissionState.clearBaseline === 'function') {
         storedSubmissionState.clearBaseline();
+        currentStoredSummary = null;
         updateStoredControls();
       } else {
+        currentStoredSummary = null;
         updateStoredControls();
       }
     });
@@ -282,6 +325,11 @@
       });
       storedSelect.value = hasPrevious ? previousValue : '';
     }
+    if (storedSelect.value && credentialsCache[storedSelect.value]) {
+      currentStoredSummary = credentialsCache[storedSelect.value];
+    } else {
+      currentStoredSummary = null;
+    }
     updateStoredControls();
   }
 
@@ -310,8 +358,16 @@
     } else if (!previousValue && list.length > 0) {
       replayStoredSelect.value = list[0].id;
     }
+    if (replayStoredSelect && replayStoredSelect.value && credentialsCache[replayStoredSelect.value]) {
+      currentReplaySummary = credentialsCache[replayStoredSelect.value];
+    } else if (!replayModeIsStored()) {
+      currentReplaySummary = null;
+    }
     if (replayModeIsStored() && replayStoredSelect.value) {
       applyReplayCredential(replayStoredSelect.value);
+    } else if (replayModeIsStored()) {
+      currentReplaySummary = null;
+      updateReplaySensitiveFields();
     }
   }
 
@@ -320,6 +376,9 @@
       return;
     }
     var summary = credentialsCache[credentialId];
+    currentStoredSummary = summary;
+    refreshSensitiveMasks(evaluateSensitiveFields, summary);
+    refreshSensitiveMasks(replaySensitiveFields, summary);
     if (typeof storedSelect.value !== 'string' || storedSelect.value !== credentialId) {
       storedSelect.value = credentialId;
     }
@@ -380,14 +439,18 @@
       replayStoredSelect.value = credentialId;
     }
     var summary = credentialsCache[credentialId];
+    currentReplaySummary = summary;
     setReplayCapMode(summary.mode);
     applyCredentialSummaryToReplay(summary);
+    updateReplaySensitiveFields();
   }
 
   function applyCredentialSummaryToReplay(summary) {
     if (!summary) {
       return;
     }
+    currentReplaySummary = summary;
+    refreshSensitiveMasks(replaySensitiveFields, summary);
     setValue(replayMasterKeyInput, summary.masterKey);
     setValue(replayAtcInput, summary.defaultAtc);
     setValue(replayBranchFactorInput, summary.branchFactor);
@@ -544,6 +607,7 @@
     if (normalized === 'stored' && replayStoredSelect && replayStoredSelect.value) {
       applyReplayCredential(replayStoredSelect.value);
     }
+    updateReplaySensitiveFields();
   }
 
   function replayModeIsStored() {
@@ -1495,6 +1559,131 @@
     seedStatus.textContent = message || '';
   }
 
+  function updateEvaluateSensitiveFields(mode) {
+    var hideInputs = mode === 'stored';
+    toggleSensitiveFields(evaluateSensitiveFields, hideInputs, hideInputs ? currentStoredSummary : null);
+  }
+
+  function updateReplaySensitiveFields() {
+    var storedMode = replayModeIsStored();
+    toggleSensitiveFields(replaySensitiveFields, storedMode, storedMode ? currentReplaySummary : null);
+  }
+
+  function refreshSensitiveMasks(fields, summary) {
+    if (!Array.isArray(fields)) {
+      return;
+    }
+    fields.forEach(function (field) {
+      if (field && typeof field.update === 'function') {
+        field.update(summary);
+      }
+    });
+  }
+
+  function toggleSensitiveFields(fields, hideInputs, summary) {
+    if (!Array.isArray(fields) || fields.length === 0) {
+      return;
+    }
+    fields.forEach(function (field) {
+      if (!field || !field.input) {
+        return;
+      }
+      if (typeof field.update === 'function') {
+        field.update(summary);
+      }
+      if (global.console && typeof global.console.log === 'function') {
+        global.console.log('[emv] toggleSensitiveFields', field.input.id || 'unknown', hideInputs);
+      }
+      if (hideInputs) {
+        field.input.setAttribute('aria-hidden', 'true');
+        field.input.style.opacity = '0';
+        field.input.style.pointerEvents = 'none';
+        field.input.style.userSelect = 'none';
+        field.input.setAttribute('tabindex', '-1');
+        field.input.setAttribute('data-secret-mode', 'stored');
+        if (field.mask) {
+          field.mask.style.display = '';
+          field.mask.setAttribute('aria-hidden', 'false');
+          field.mask.removeAttribute('hidden');
+        }
+      } else {
+        field.input.removeAttribute('aria-hidden');
+        field.input.style.opacity = '';
+        field.input.style.pointerEvents = '';
+        field.input.style.userSelect = '';
+        field.input.removeAttribute('tabindex');
+        field.input.setAttribute('data-secret-mode', 'inline');
+        if (field.mask) {
+          field.mask.style.display = 'none';
+          field.mask.setAttribute('aria-hidden', 'true');
+          field.mask.setAttribute('hidden', 'hidden');
+        }
+      }
+    });
+  }
+
+  function buildSensitiveFields(definitions) {
+    if (!Array.isArray(definitions)) {
+      return [];
+    }
+    return definitions
+      .map(function (definition) {
+        if (!definition || !definition.input || !definition.mask) {
+          return null;
+        }
+        var valueNode = definition.mask.querySelector('[data-mask-value]');
+        var formatter = typeof definition.formatter === 'function'
+          ? definition.formatter
+          : defaultMaskFormatter;
+        var container = definition.container;
+        if (!container && definition.input && typeof definition.input.closest === 'function') {
+          container = definition.input.closest('.field-group');
+        }
+        return {
+          input: definition.input,
+          mask: definition.mask,
+          container: container,
+          valueNode: valueNode,
+          update: function (summary) {
+            if (!this.valueNode) {
+              return;
+            }
+            var text = formatter(summary);
+            if (!text || !String(text).trim()) {
+              text = defaultMaskFormatter(summary);
+            }
+            this.valueNode.textContent = text;
+          },
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function defaultMaskFormatter(summary) {
+    return summary ? 'Hidden (value available)' : 'Select a stored credential to view masked value.';
+  }
+
+  function formatMasterKeyMask(summary) {
+    if (!summary || typeof summary.masterKeySha256 !== 'string') {
+      return '';
+    }
+    var digest = summary.masterKeySha256.trim();
+    return digest.length ? digest : 'sha256:UNAVAILABLE';
+  }
+
+  function formatHexMaskFactory(property) {
+    return function (summary) {
+      if (!summary || typeof summary[property] !== 'string') {
+        return summary ? 'Hidden (no stored value)' : '';
+      }
+      var trimmed = summary[property].trim();
+      if (!trimmed.length) {
+        return 'Hidden (no stored value)';
+      }
+      return 'Hidden (' + trimmed.length + ' hex chars)';
+    };
+  }
+
   function updateStoredControls() {
     var mode = selectedEvaluateMode();
     if (evaluateModeToggle) {
@@ -1505,6 +1694,8 @@
     }
     updateEvaluateButton(mode);
     updateEvaluationHint(mode);
+    updateSeedControls(mode);
+    updateEvaluateSensitiveFields(mode);
   }
 
   function updateEvaluateButton(mode) {
@@ -1546,6 +1737,31 @@
     }
     storedEmptyState.textContent =
       'Inline evaluation uses the parameters entered above. Select a stored credential and switch modes to run a preset.';
+  }
+
+  function updateSeedControls(mode) {
+    if (!seedActions) {
+      return;
+    }
+    var storedActive = mode === 'stored';
+    if (storedActive) {
+      seedActions.removeAttribute('hidden');
+      seedActions.removeAttribute('aria-hidden');
+      if (seedButton) {
+        if (seeding) {
+          seedButton.setAttribute('disabled', 'disabled');
+        } else {
+          seedButton.removeAttribute('disabled');
+        }
+      }
+    } else {
+      seedActions.setAttribute('hidden', 'hidden');
+      seedActions.setAttribute('aria-hidden', 'true');
+      if (seedButton) {
+        seedButton.setAttribute('disabled', 'disabled');
+      }
+      updateSeedStatus('');
+    }
   }
 
   function hasStoredCredential() {

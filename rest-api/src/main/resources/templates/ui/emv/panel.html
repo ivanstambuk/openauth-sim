@@ -176,6 +176,16 @@
                         autocomplete="off"
                       ></textarea>
                   </div>
+                  <div
+                      class="secret-mask stack-xs"
+                      data-testid="emv-master-key-mask"
+                      data-emv-mask="masterKey"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    >
+                    <code data-mask-value>—</code>
+                    <p class="hint">Stored presets hide this master key. Switch to inline parameters to edit.</p>
+                  </div>
                   <div class="field-group">
                     <label for="emvAtc">Application Transaction Counter (hex)</label>
                     <input
@@ -230,6 +240,16 @@
                         data-testid="emv-cdol1"
                       ></textarea>
                   </div>
+                  <div
+                      class="secret-mask stack-xs"
+                      data-testid="emv-cdol1-mask"
+                      data-emv-mask="cdol1"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    >
+                    <code data-mask-value>—</code>
+                    <p class="hint">Stored presets hide this CDOL1 payload. Switch to inline parameters to edit.</p>
+                  </div>
                   <div class="field-group emv-field--full">
                     <label for="emvIpb">Issuer Proprietary Bitmap (hex)</label>
                     <textarea
@@ -241,6 +261,16 @@
                         autocomplete="off"
                         data-testid="emv-ipb"
                       ></textarea>
+                  </div>
+                  <div
+                      class="secret-mask stack-xs"
+                      data-testid="emv-ipb-mask"
+                      data-emv-mask="issuerProprietaryBitmap"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    >
+                    <code data-mask-value>—</code>
+                    <p class="hint">Stored presets hide this issuer bitmap. Switch to inline parameters to edit.</p>
                   </div>
                   <div class="field-group emv-field--full">
                     <label for="emvIccTemplate">ICC payload template (xxxx = ATC)</label>
@@ -254,6 +284,16 @@
                         data-testid="emv-icc-template"
                       ></textarea>
                   </div>
+                  <div
+                      class="secret-mask stack-xs"
+                      data-testid="emv-icc-template-mask"
+                      data-emv-mask="iccDataTemplate"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    >
+                    <code data-mask-value>—</code>
+                    <p class="hint">Stored presets hide this ICC template. Switch to inline parameters to edit.</p>
+                  </div>
                   <div class="field-group emv-field--full">
                     <label for="emvIssuerApplicationData">Issuer Application Data (hex)</label>
                     <textarea
@@ -265,6 +305,16 @@
                         autocomplete="off"
                         data-testid="emv-issuer-application-data"
                       ></textarea>
+                  </div>
+                  <div
+                      class="secret-mask stack-xs"
+                      data-testid="emv-issuer-application-data-mask"
+                      data-emv-mask="issuerApplicationData"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    >
+                    <code data-mask-value>—</code>
+                    <p class="hint">Stored presets hide this issuer application data. Switch to inline parameters to edit.</p>
                   </div>
                 </div>
 
@@ -487,6 +537,16 @@
                         autocomplete="off"
                       />
                   </div>
+                  <div
+                      class="secret-mask stack-xs"
+                      data-testid="emv-replay-master-key-mask"
+                      data-emv-mask="masterKey"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    >
+                    <code data-mask-value>—</code>
+                    <p class="hint">Stored presets hide this master key. Switch to inline parameters to edit.</p>
+                  </div>
                   <div class="field-group" data-testid="emv-replay-atc">
                     <label for="emvReplayAtc">Application Transaction Counter (hex)</label>
                     <input type="text" id="emvReplayAtc" name="replayAtc" autocomplete="off" />
@@ -521,6 +581,16 @@
                         autocomplete="off"
                       ></textarea>
                   </div>
+                  <div
+                      class="secret-mask stack-xs"
+                      data-testid="emv-replay-cdol1-mask"
+                      data-emv-mask="cdol1"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    >
+                    <code data-mask-value>—</code>
+                    <p class="hint">Stored presets hide this CDOL1 payload. Switch to inline parameters to edit.</p>
+                  </div>
                   <div class="field-group emv-field--full" data-testid="emv-replay-issuer-bitmap">
                     <label for="emvReplayIssuerBitmap">Issuer Proprietary Bitmap (hex)</label>
                     <textarea
@@ -531,6 +601,16 @@
                         autocapitalize="none"
                         autocomplete="off"
                       ></textarea>
+                  </div>
+                  <div
+                      class="secret-mask stack-xs"
+                      data-testid="emv-replay-ipb-mask"
+                      data-emv-mask="issuerProprietaryBitmap"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    >
+                    <code data-mask-value>—</code>
+                    <p class="hint">Stored presets hide this issuer bitmap. Switch to inline parameters to edit.</p>
                   </div>
                   <div class="field-group emv-field--full" data-testid="emv-replay-icc-template">
                     <label for="emvReplayIccTemplate">ICC payload template (xxxx = ATC)</label>
@@ -543,6 +623,16 @@
                         autocomplete="off"
                       ></textarea>
                   </div>
+                  <div
+                      class="secret-mask stack-xs"
+                      data-testid="emv-replay-icc-template-mask"
+                      data-emv-mask="iccDataTemplate"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    >
+                    <code data-mask-value>—</code>
+                    <p class="hint">Stored presets hide this ICC template. Switch to inline parameters to edit.</p>
+                  </div>
                   <div class="field-group emv-field--full" data-testid="emv-replay-issuer-application-data">
                     <label for="emvReplayIssuerApplicationData">Issuer Application Data (hex)</label>
                     <textarea
@@ -553,6 +643,16 @@
                         autocapitalize="none"
                         autocomplete="off"
                       ></textarea>
+                  </div>
+                  <div
+                      class="secret-mask stack-xs"
+                      data-testid="emv-replay-issuer-application-data-mask"
+                      data-emv-mask="issuerApplicationData"
+                      hidden="hidden"
+                      aria-hidden="true"
+                    >
+                    <code data-mask-value>—</code>
+                    <p class="hint">Stored presets hide this issuer application data. Switch to inline parameters to edit.</p>
                   </div>
                 </div>
 

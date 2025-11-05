@@ -107,7 +107,10 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(evaluateSampleBlock.getAttribute("class"))
                 .as("Sample vector block should reuse shared inline preset styling")
                 .contains("inline-preset");
-        WebElement seedActions = waitForVisible(By.cssSelector("[data-testid='emv-seed-actions']"));
+        WebElement seedActions = driver.findElement(By.cssSelector("[data-testid='emv-seed-actions']"));
+        assertThat(seedActions.getAttribute("hidden"))
+                .as("Seed actions should remain hidden while inline mode is active")
+                .isNotNull();
         WebElement seedActionsParent =
                 seedActions.findElement(By.xpath("ancestor::*[@data-testid='emv-evaluate-sample-vector']"));
         assertThat(seedActionsParent)
@@ -131,10 +134,43 @@ final class EmvCapOperatorUiSeleniumTest {
         Select credentialSelect = waitForStoredCredentialSelect();
         waitForCredential(credentialSelect, STORED_CREDENTIAL_ID, STORED_PRESET_LABEL);
 
+        assertThat(seedActions.getAttribute("hidden"))
+                .as("Seed actions should become visible when stored mode is active")
+                .isNull();
+
         evaluateButton = waitForClickable(By.cssSelector("button[data-testid='emv-evaluate-submit']"));
         assertThat(evaluateButton.getAttribute("disabled"))
                 .as("Evaluate button should become enabled once a credential is active in stored mode")
                 .isNull();
+
+        WebElement masterKeyInput = driver.findElement(By.id("emvMasterKey"));
+        assertThat(masterKeyInput.getCssValue("opacity"))
+                .as("Master key field should be visually hidden while stored mode is active")
+                .isEqualTo("0");
+        assertThat(masterKeyInput.getCssValue("pointer-events"))
+                .as("Master key field should be non-interactive when stored")
+                .isEqualTo("none");
+        assertThat(masterKeyInput.getAttribute("data-secret-mode"))
+                .as("Master key field should track stored mode state")
+                .isEqualTo("stored");
+        WebElement masterKeyMask = driver.findElement(By.cssSelector("[data-testid='emv-master-key-mask']"));
+        assertThat(masterKeyMask.getAttribute("hidden"))
+                .as("Master key mask should be visible in stored mode")
+                .isNull();
+        String masterKeyMaskText = masterKeyMask
+                .findElement(By.cssSelector("[data-mask-value]"))
+                .getText()
+                .trim();
+        assertThat(masterKeyMaskText)
+                .as("Master key mask should surface the SHA-256 digest")
+                .isEqualTo(expectedMasterKeyDigest(BASELINE_VECTOR));
+
+        WebElement issuerMask = driver.findElement(
+                By.cssSelector("[data-testid='emv-issuer-application-data-mask'] [data-mask-value]"));
+        assertThat(issuerMask.getText())
+                .as("Issuer application data mask should include hidden length")
+                .contains(String.valueOf(
+                        BASELINE_VECTOR.input().issuerApplicationDataHex().length()));
 
         assertThat(driver.findElements(By.cssSelector("[data-testid='emv-terminal-data']")))
                 .as("Evaluate panel should no longer expose terminal override input")
@@ -283,7 +319,30 @@ final class EmvCapOperatorUiSeleniumTest {
         WebElement evaluateButton = waitForClickable(By.cssSelector("button[data-testid='emv-evaluate-submit']"));
         assertThat(evaluateButton.getAttribute("disabled")).isNull();
 
+        WebElement masterKeyMask = driver.findElement(By.cssSelector("[data-testid='emv-master-key-mask']"));
+        assertThat(masterKeyMask.getAttribute("hidden"))
+                .as("Master key mask should be visible while stored mode is active")
+                .isNull();
+
+        waitForClickable(By.cssSelector("[data-testid='emv-mode-select-inline']"))
+                .click();
+
+        masterKeyMask = driver.findElement(By.cssSelector("[data-testid='emv-master-key-mask']"));
+        assertThat(masterKeyMask.getAttribute("hidden"))
+                .as("Master key mask should hide once inline mode is selected")
+                .isNotNull();
+        WebElement seedActions = driver.findElement(By.cssSelector("[data-testid='emv-seed-actions']"));
+        assertThat(seedActions.getAttribute("hidden"))
+                .as("Seed actions should be hidden after switching back to inline mode")
+                .isNotNull();
+
         WebElement masterKeyInput = waitForVisible(By.id("emvMasterKey"));
+        assertThat(masterKeyInput.getAttribute("hidden"))
+                .as("Master key input should be visible in inline mode")
+                .isNull();
+        assertThat(masterKeyInput.getAttribute("readonly"))
+                .as("Master key input should be editable in inline mode")
+                .isNull();
         String baselineMasterKey = BASELINE_VECTOR.input().masterKeyHex();
         char replacement = baselineMasterKey.charAt(0) == 'F' ? 'E' : 'F';
         String mutatedMasterKey = replacement + baselineMasterKey.substring(1);
@@ -353,6 +412,35 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("Replay preset block should reuse shared spacing helper")
                 .contains("stack-offset-top-lg");
         waitForReplayCredential(storedSelect, fixture.credentialId(), "CAP Respond baseline");
+
+        WebElement replayMasterKeyInput = driver.findElement(By.id("emvReplayMasterKey"));
+        assertThat(replayMasterKeyInput.getCssValue("opacity"))
+                .as("Replay master key input should be visually hidden in stored mode")
+                .isEqualTo("0");
+        assertThat(replayMasterKeyInput.getCssValue("pointer-events"))
+                .as("Replay master key input should be non-interactive in stored mode")
+                .isEqualTo("none");
+        assertThat(replayMasterKeyInput.getAttribute("data-secret-mode"))
+                .as("Replay master key input should track stored mode state")
+                .isEqualTo("stored");
+        WebElement replayMasterKeyMask =
+                driver.findElement(By.cssSelector("[data-testid='emv-replay-master-key-mask']"));
+        assertThat(replayMasterKeyMask.getAttribute("hidden"))
+                .as("Replay master key mask should be visible in stored mode")
+                .isNull();
+        String replayMaskDigest = replayMasterKeyMask
+                .findElement(By.cssSelector("[data-mask-value]"))
+                .getText();
+        assertThat(replayMaskDigest)
+                .as("Replay master key mask should show the SHA-256 digest")
+                .isEqualTo(expectedMasterKeyDigest(vector));
+
+        WebElement replayIssuerMask = driver.findElement(
+                By.cssSelector("[data-testid='emv-replay-issuer-application-data-mask'] [data-mask-value]"));
+        assertThat(replayIssuerMask.getText())
+                .as("Replay issuer data mask should include hidden length")
+                .contains(
+                        String.valueOf(vector.input().issuerApplicationDataHex().length()));
 
         assertThat(driver.findElements(By.cssSelector("[data-testid='emv-replay-terminal-data']")))
                 .as("Replay panel should no longer expose terminal override input")
@@ -443,8 +531,19 @@ final class EmvCapOperatorUiSeleniumTest {
                 .isFalse();
         assertThat(storedHint.getText()).isEqualTo("Replay a seeded preset without advancing ATC.");
 
-        waitForClickable(By.cssSelector("[data-testid='emv-replay-mode-inline'] input[type='radio']"))
-                .click();
+        JavascriptExecutor styleExecutor = driver;
+        Object inlineDisplay = styleExecutor.executeScript(
+                "return window.getComputedStyle(document.getElementById('emvReplayMasterKey')).display;");
+        Object inlineVisibility = styleExecutor.executeScript(
+                "return window.getComputedStyle(document.getElementById('emvReplayMasterKey')).visibility;");
+        Object inlinePointer = styleExecutor.executeScript(
+                "return window.getComputedStyle(document.getElementById('emvReplayMasterKey')).pointerEvents;");
+        Object inlineMode = styleExecutor.executeScript("var input = document.getElementById('emvReplayMasterKey');"
+                + "return input ? input.getAttribute('data-secret-mode') : null;");
+        System.out.println("inline display: " + inlineDisplay);
+        System.out.println("inline visibility: " + inlineVisibility);
+        System.out.println("inline pointer events: " + inlinePointer);
+        System.out.println("inline secret mode: " + inlineMode);
 
         populateReplayInlineForm(vector);
 
@@ -574,13 +673,15 @@ final class EmvCapOperatorUiSeleniumTest {
     }
 
     private void setHexInput(By locator, String value) {
-        WebElement element = waitForVisible(locator);
+        WebElement element =
+                new WebDriverWait(driver, WAIT_TIMEOUT).until(ExpectedConditions.presenceOfElementLocated(locator));
         element.clear();
         element.sendKeys(value);
     }
 
     private void setDecimalInput(By locator, String value) {
-        WebElement element = waitForVisible(locator);
+        WebElement element =
+                new WebDriverWait(driver, WAIT_TIMEOUT).until(ExpectedConditions.presenceOfElementLocated(locator));
         element.clear();
         if (value != null && !value.isBlank()) {
             element.sendKeys(value);
@@ -588,7 +689,8 @@ final class EmvCapOperatorUiSeleniumTest {
     }
 
     private void setNumericInput(By locator, int value) {
-        WebElement element = waitForVisible(locator);
+        WebElement element =
+                new WebDriverWait(driver, WAIT_TIMEOUT).until(ExpectedConditions.presenceOfElementLocated(locator));
         element.clear();
         element.sendKeys(String.valueOf(value));
     }

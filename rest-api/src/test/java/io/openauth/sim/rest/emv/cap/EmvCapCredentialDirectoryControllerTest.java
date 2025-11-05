@@ -10,6 +10,9 @@ import io.openauth.sim.application.emv.cap.EmvCapSeedApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapSeedSamples;
 import io.openauth.sim.core.store.CredentialStore;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -77,7 +80,9 @@ final class EmvCapCredentialDirectoryControllerTest {
         assertThat(identifyNode).isNotNull();
         assertThat(identifyNode.path("mode").asText()).isEqualTo("IDENTIFY");
         assertThat(identifyNode.path("label").asText()).isEqualTo("CAP Identify baseline");
-        assertThat(identifyNode.path("masterKey").asText()).isNotEmpty();
+        String masterKey = identifyNode.path("masterKey").asText();
+        assertThat(masterKey).isNotEmpty();
+        assertThat(identifyNode.path("masterKeySha256").asText()).isEqualTo(sha256Digest(masterKey));
         assertThat(identifyNode.path("defaultAtc").asText()).isEqualTo("00B4");
         assertThat(identifyNode.path("defaults").path("challenge").asText()).isEmpty();
         assertThat(identifyNode.path("transaction").path("iccResolved").asText())
@@ -95,5 +100,36 @@ final class EmvCapCredentialDirectoryControllerTest {
             }
         }
         return null;
+    }
+
+    private static String sha256Digest(String hex) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = hexToBytes(hex);
+            byte[] hashed = digest.digest(bytes);
+            return "sha256:" + toHex(hashed);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        String normalized = hex.trim().toUpperCase(Locale.ROOT);
+        if ((normalized.length() & 1) == 1) {
+            throw new IllegalArgumentException("Hex input must contain an even number of characters");
+        }
+        byte[] data = new byte[normalized.length() / 2];
+        for (int index = 0; index < normalized.length(); index += 2) {
+            data[index / 2] = (byte) Integer.parseInt(normalized.substring(index, index + 2), 16);
+        }
+        return data;
+    }
+
+    private static String toHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format(Locale.ROOT, "%02X", value));
+        }
+        return builder.toString();
     }
 }

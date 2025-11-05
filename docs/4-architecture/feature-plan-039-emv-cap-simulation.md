@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-039-emv-cap-simulation.md`  
 _Status:_ In progress  
-_Last updated:_ 2025-11-04 (verbose trace diagnostic parity)
+_Last updated:_ 2025-11-05 (stored credential sanitisation planning)
 
 ## Vision & Success Criteria
 - Deliver deterministic EMV/CAP OTP generation **and replay validation** (Identify, Respond, Sign) across core, application, REST, CLI, and operator console facades with consistent telemetry and optional verbose traces.
@@ -187,6 +187,11 @@ _Last updated:_ 2025-11-04 (verbose trace diagnostic parity)
    - Extended Selenium coverage to assert the Evaluate and Replay sample vector dropdowns use the shared inline preset container, shared dark surface styling, and reside with seed actions/hints.  
    - Refactored the EMV operator template to reuse inline preset markup for both selectors, including new `data-testid` hooks, and ensured the dropdown appearance matches the existing HOTP/TOTP/FIDO2 inline preset background.  
    - Commands executed: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+
+32. **I30 – Stored credential secret sanitisation (planned)**  
+   - Draft failing coverage across REST (`EmvCapCredentialDirectoryControllerTest`), UI JavaScript unit helpers, and Selenium flows asserting that credential directory responses no longer include raw master key/CDOL1/IPB/ICC template/issuer application data values when stored mode is active, and that masked placeholders display digest/length metadata instead.  
+   - Implement credential directory sanitisation (digest + length metadata only), adjust stored-evaluate/replay payload builders to request the full credential server-side at submit time, and update operator console JavaScript/template logic to render masked placeholders while keeping inline overrides available when operators intentionally switch modes.  
+   - Refresh OpenAPI (if schemas change) via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` and rerun the full quality pipeline `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` to restore Jacoco thresholds after the new coverage paths land.
 
 ## Next Increment – Implementation drift gate & acceptance review (planned)
 - Compile drift gate report covering Feature 039 scope (evaluation, replay, verbose diagnostics) and verify artefact traceability across spec/plan/tasks vs. code/tests.  

@@ -1,8 +1,8 @@
 # Feature 026 Tasks – FIDO2/WebAuthn Attestation Support
 
 _Linked plan:_ `docs/4-architecture/feature-plan-026-fido2-attestation-support.md`  
-_Status:_ Complete  
-_Last updated:_ 2025-10-31
+_Status:_ In progress  
+_Last updated:_ 2025-11-05 (T2650 stored credential sanitisation planning)
 
 ☑ **T2601 – Fixture scaffolding**  
  ☑ Convert selected W3C Level 3 attestation examples and synthetic fixtures into JSON assets under `docs/`.  
@@ -331,6 +331,11 @@ _Last updated:_ 2025-10-31
     ☑ Extend the stored attestation metadata endpoint with `trustAnchorSummaries`, covering curated metadata ids and certificate-subject fallbacks in unit tests.  
     ☑ Render the summary in the operator console stored replay panel (read-only), refresh Selenium coverage, and rerun `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"` plus the full `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  
 _2025-10-31 – Spec/plan/tasks/session/knowledge-map updated for Option B; stored metadata endpoint now returns `trustAnchorSummaries` (metadata description fallback or certificate subjects) with controller + unit coverage, operator console renders the read-only textarea, Selenium asserts populated summary, OpenAPI snapshots regenerated, and Gradle suite `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check` completed after reseeding._  
+
+- [ ] **T2650 – Stored credential secret sanitisation**  
+    - Stage failing tests across REST (`WebAuthnCredentialDirectoryControllerTest`), UI JavaScript helpers, and Selenium scenarios proving that stored credential/sample responses no longer expose authenticator private keys and that the operator console renders masked placeholders instead of hidden private-key inputs.  
+    - Strip private key material from `/api/v1/webauthn/credentials/{credentialId}/sample`, update application services to fetch secrets server-side during evaluation/replay, adjust CLI/REST/UI payload builders, and refresh OpenAPI snapshots if schemas change.  
+    - Rerun `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` once sanitisation lands to confirm coverage and quality gates.
 
 **Acceptance**  
 - 2025-10-31 – Feature 026 closed after trust-anchor summaries were validated across REST/operator UI facets and full Gradle verification succeeded.

@@ -1,8 +1,8 @@
 # Feature Plan 026 – FIDO2/WebAuthn Attestation Support
 
 _Linked specification:_ `docs/4-architecture/specs/feature-026-fido2-attestation-support.md`  
-_Status:_ Complete  
-_Last updated:_ 2025-10-31
+_Status:_ In progress  
+_Last updated:_ 2025-11-05 (stored credential sanitisation planning)
 
 ## Vision & Success Criteria
 - Provide end-to-end attestation generation and verification across core, application services, CLI, REST API, and operator UI, mirroring the existing assertion workflow.
@@ -337,8 +337,14 @@ _2025-10-26 – Scope reopened to deliver stored attestation replay affordances 
     - Render the summary in the operator console stored replay panel (read-only), update Selenium coverage, and rerun `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.attestationReplayStoredModeDisplaysPersistedPayloads"` plus the full `./gradlew --no-daemon :application:test :cli:test :rest-api:test spotlessApply check`.  
     _2025-10-31 – Documentation refreshed, REST metadata now surfaces `trustAnchorSummaries` with metadata-description and certificate-subject fallbacks, operator console renders the read-only textarea, Selenium coverage extended, OpenAPI snapshots regenerated, and the full Gradle suite completed._  
 
+45. **I45 – Stored credential secret sanitisation (planned)**  
+    - Stage failing coverage to prove that `/api/v1/webauthn/credentials/{credentialId}/sample` and operator UI stored evaluation/replay flows never surface authenticator private keys or long-term secrets (assert hidden inputs absent, digest/handle placeholders present).  
+    - Strip private key material from stored credential/sample responses, returning sanitized handles/digests only, and adjust application services to resolve private keys server-side when generating attestations or assertions.  
+    - Update operator console templates/JavaScript to remove hidden private-key fields, render masked placeholders, and fetch sanitized metadata; refresh Selenium/UI unit tests accordingly, regenerate OpenAPI snapshots, and rerun `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
+
 ## Closure Notes
 - 2025-10-31 – Feature accepted after validating stored replay trust-anchor summaries across REST/UI facades and rerunning the full Gradle suite. Roadmap, tasks, and session snapshot updated to mark the workstream complete.
+- 2025-11-05 – Workstream re-opened to address stored credential secret sanitisation; see I45 and T2650 for the remediation scope.
 
 ## Analysis Gate (2025-10-20)
 - **Specification completeness** – Updated 2025-10-27 to capture Preset/Manual/Stored evaluate inputs (with replay simplified to Manual/Stored), MapDB-backed persistence, and curated seeding controls; clarifications document the owner’s Option B selections and follow-on directives.

@@ -4,6 +4,8 @@ import io.openauth.sim.core.emv.cap.EmvCapCredentialPersistenceAdapter;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.store.CredentialStore;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -84,6 +86,7 @@ final class EmvCapCredentialDirectoryController {
                 attributes.get(EmvCapCredentialPersistenceAdapter.ATTR_TRANSACTION_ICC_RESOLVED));
 
         Map<String, String> metadata = extractMetadata(attributes);
+        String masterKeySha256 = computeMasterKeyDigest(masterKey);
         String label = Optional.ofNullable(metadata.get("presetLabel"))
                 .filter(StringUtils::hasText)
                 .orElse(credential.name());
@@ -93,6 +96,7 @@ final class EmvCapCredentialDirectoryController {
                 label,
                 mode.toUpperCase(Locale.ROOT),
                 masterKey,
+                masterKeySha256,
                 defaultAtc,
                 branchFactor,
                 height,
@@ -131,11 +135,46 @@ final class EmvCapCredentialDirectoryController {
         }
     }
 
+    private static String computeMasterKeyDigest(String masterKeyHex) {
+        if (!StringUtils.hasText(masterKeyHex)) {
+            return "sha256:UNAVAILABLE";
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] keyBytes = hexToBytes(masterKeyHex.trim());
+            byte[] hashed = digest.digest(keyBytes);
+            return "sha256:" + toHex(hashed);
+        } catch (NoSuchAlgorithmException | IllegalArgumentException ex) {
+            return "sha256:UNAVAILABLE";
+        }
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        String normalized = hex.replaceAll("\\s+", "").toUpperCase(Locale.ROOT);
+        if ((normalized.length() & 1) == 1) {
+            throw new IllegalArgumentException("Hex input must contain an even number of characters");
+        }
+        byte[] data = new byte[normalized.length() / 2];
+        for (int index = 0; index < normalized.length(); index += 2) {
+            data[index / 2] = (byte) Integer.parseInt(normalized.substring(index, index + 2), 16);
+        }
+        return data;
+    }
+
+    private static String toHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format(Locale.ROOT, "%02X", value));
+        }
+        return builder.toString();
+    }
+
     record EmvCapCredentialSummary(
             String id,
             String label,
             String mode,
             String masterKey,
+            String masterKeySha256,
             String defaultAtc,
             Integer branchFactor,
             Integer height,
@@ -161,6 +200,7 @@ final class EmvCapCredentialDirectoryController {
             Objects.requireNonNull(issuerProprietaryBitmap, "issuerProprietaryBitmap");
             Objects.requireNonNull(iccDataTemplate, "iccDataTemplate");
             Objects.requireNonNull(issuerApplicationData, "issuerApplicationData");
+            Objects.requireNonNull(masterKeySha256, "masterKeySha256");
             defaults = defaults == null ? new Defaults("", "", "") : defaults;
             transaction = transaction == null ? new Transaction(null, null, null) : transaction;
             metadata = metadata == null ? Map.of() : Map.copyOf(metadata);

@@ -29,6 +29,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - 2025-11-04 – Evaluate and Replay sample vector controls must apply the shared `stack-offset-top-lg` spacing utility so their layout matches the HOTP/TOTP/FIDO2 panels (owner directive).
 - 2025-11-04 – Evaluate sample vector and seeding controls must share the same block/spacing treatment as Replay: the preset selector sits directly under the mode toggle with no additional vertical gap, and the seed action/button lives within that block so spacing mirrors the Replay layout (owner directive).
 - 2025-11-04 – Evaluate and Replay sample vector selectors must reuse the shared inline preset styling (label stacked above a full-width dark inline preset dropdown with seed actions and hints beneath) so the EMV panel matches HOTP/TOTP/FIDO2 ergonomics (owner directive).
+- 2025-11-05 – Stored credential summaries supplied to any facade must never include raw ICC master keys, CDOL1 payloads, issuer proprietary bitmaps, ICC templates, or issuer application data. REST responses expose only SHA-256 digests and length metadata; operator UI panels render masked placeholders while keeping the underlying secret material server-side (owner directive).
 
 ## Requirements
 
@@ -132,18 +133,19 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
    - Preview-window offset controls (`Backward`, `Forward`) matching the HOTP/TOTP/OCRA evaluation panels.
 2. Rely exclusively on the global “Enable verbose tracing for the next request” control shared by all protocols; when unchecked, the trace pane remains hidden and the request omits the `trace` flag. Surface the shared warning copy (`Verbose traces expose raw secrets and intermediate buffers. Use only in trusted environments.`) beneath the global toggle.
 3. Request layout mirrors HOTP/TOTP/OCRA: left column hosts the input form (including preview-window offsets that drive the evaluation result table), right column renders the result card. The result card surfaces only the OTP preview table (counter/Δ/OTP) and the status badge; all other metadata shifts to verbose trace.
-4. Verbose trace collects every diagnostic detail previously shown on the result card (mask length, masked digits, ATC, branch factor, height) plus the active preview window offsets (`previewWindowBackward`, `previewWindowForward`). These sit alongside the SHA-256 digest of the master key (`masterKeySha256`), the derived session key, Generate AC inputs/result, bitmask overlay, masked digits overlay, issuer application data, and resolved ICC payload. Use accessible formatting (monospaced columns, scroll containers as needed).
-5. Validation errors surface inline using the existing problem-details mapping with field-level annotations.
-6. Selenium/JS tests exercise happy paths for each mode, includeTrace toggle, preset loading, error rendering, and telemetry sanitisation of DOM nodes.
+4. Stored credential mode renders masked placeholders fed solely by sanitized summaries: display SHA-256 digests for master keys and length-only hints for CDOL1 payloads, issuer proprietary bitmap, ICC template, and issuer application data. Inputs remain in the DOM for inline fallback but stay non-interactive (opacity 0, pointer events disabled, tab stop removed) until the operator switches back to inline mode.
+5. Verbose trace collects every diagnostic detail previously shown on the result card (mask length, masked digits, ATC, branch factor, height) plus the active preview window offsets (`previewWindowBackward`, `previewWindowForward`). These sit alongside the SHA-256 digest of the master key (`masterKeySha256`), the derived session key, Generate AC inputs/result, bitmask overlay, masked digits overlay, issuer application data, and resolved ICC payload. Use accessible formatting (monospaced columns, scroll containers as needed).
+6. Validation errors surface inline using the existing problem-details mapping with field-level annotations.
+7. Selenium/JS tests exercise happy paths for each mode, includeTrace toggle, preset loading, error rendering, telemetry sanitisation of DOM nodes, and masked placeholder visibility/toggling.
 
 ### R6 – EMV/CAP credential persistence & seeding
 1. Persist EMV/CAP credentials in MapDB via `CredentialStore`, storing master key, derivation parameters, issuer data, and transaction templates under deterministic identifiers.
 2. Add an application seeding service that imports canonical EMV CAP fixtures (and optional user-supplied additions) and exposes:
    - REST endpoint `POST /api/v1/emv/cap/credentials/seed` returning added/total counts and credential identifiers.
    - CLI command `emv cap seed` with equivalent reporting.
-3. Ensure seeding is idempotent and guard sensitive values with the same sanitisation rules applied elsewhere (no master/session keys in telemetry/logs).
-4. Operator UI integrates stored credential selection (dropdown + autofill) and indicates when presets populate the form.
-5. Tests cover MapDB persistence flows, seeding idempotency, preset rendering, and facade interactions with stored credentials.
+3. Ensure seeding is idempotent and guard sensitive values with the same sanitisation rules applied elsewhere (no master/session keys in telemetry/logs). Credential directory responses expose only sanitized summaries (digests/length metadata) so downstream facades never transmit raw secret material.
+4. Operator UI integrates stored credential selection (dropdown + autofill) and pulls only sanitized summaries; evaluation/replay submissions fetch the full credential server-side immediately before derivation.
+5. Tests cover MapDB persistence flows, seeding idempotency, preset rendering, sanitized summary generation, and facade interactions with stored credentials.
 
 ### R7 – Application replay orchestration & telemetry
 1. Introduce `EmvCapReplayApplicationService` that reuses the core derivation helpers to recompute OTP candidates across the configured preview window (backward/forward deltas) and validates operator-supplied OTPs for Identify, Respond, and Sign modes.
@@ -173,9 +175,9 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 
 ### R10 – Operator UI EMV/CAP replay panel
 1. Mirror the Evaluate/Replay tab pattern from other protocols: add a Replay tab containing stored credential dropdown, inline parameter form, preview-window controls, OTP input, and a `[ Replay CAP OTP ]` action button—verbose tracing remains governed by the global toggle.
-2. Replay form must accept stored presets and allow inline overrides; selecting a preset pre-populates derivation fields while keeping them editable until cleared, matching the HOTP/TOTP behavior.
+2. Replay form must accept stored presets and allow inline overrides; selecting a preset pre-populates derivation fields while keeping them editable until cleared, matching the HOTP/TOTP behavior. Stored mode uses sanitized summaries (digests/length metadata) and keeps sensitive inputs non-interactive until inline overrides are requested.
 3. Replay result card exposes match status badge, matched delta (when successful), and the shared OTP preview table; verbose trace (via `VerboseTraceConsole`) surfaces Generate AC inputs/result, masked overlays, issuer data, supplied OTP, comparison overlays, and mismatch diagnostics while redacting the master key (session keys remain visible).
-4. Validation errors mirror the Evaluate experience; Selenium/JS coverage expands to stored/inline replay flows, mismatch outcomes, and trace suppression governed by the global verbose toggle.
+4. Validation errors mirror the Evaluate experience; Selenium/JS coverage expands to stored/inline replay flows, mismatch outcomes, trace suppression governed by the global verbose toggle, and masked placeholder assertions.
 
 ## Reference Mock-ups (Operator UI Follow-up)
 
