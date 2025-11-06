@@ -1,0 +1,10 @@
+{
+  "kid": "pid-haip-baseline-holder",
+  "kty": "EC",
+  "use": "sig",
+  "alg": "ES256",
+  "crv": "P-256",
+  "x": "1puhwQLp6mI8ZxvJvZs1W-6e66ykB9Q0bL64VsmKOgE",
+  "y": "E-1yulsx8mFFtZl2PrWawtCsH63AaS7cr0kUKnlY4bM",
+  "d": "GhC9TQE4iyOPw6yA74dc0bbmYqG4LtlxgO1Z9GxJ9LI"
+}

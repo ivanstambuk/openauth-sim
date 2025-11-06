@@ -1,9 +1,9 @@
 # Feature 040 Tasks – EUDIW OpenID4VP Simulator
 
-_Status: Draft_  
-_Last updated: 2025-11-02_
+_Status: Ready_  
+_Last updated: 2025-11-06_
 
-- [ ] T3999 – Trusted list ingestion foundation (F-040-18/25): add ETSI TL/OpenID Federation fixture metadata, local snapshots, synthetic issuer/holder key stubs, stored presentation metadata, and failing resolver tests. Cmd: `./gradlew --no-daemon :core:test`.
+- [x] T3999 – Trusted list ingestion foundation (F-040-18/25): add ETSI TL/OpenID Federation fixture metadata, local snapshots, synthetic issuer/holder key stubs, stored presentation metadata, and failing resolver tests. Cmd: `./gradlew --no-daemon :core:test`. _Updates 2025-11-06:_ Added HAIP baseline snapshot/stored presentation, synthetic issuer/holder ES256 keys, and loader coverage via `TrustedAuthorityFixturesTest`/`SyntheticKeyFixturesTest`.
 - [ ] T4001 – Fixture scaffolding & seed setup (F-040-18/19/25/31, N-040-01): add synthetic PID fixtures for SD-JWT VC + mdoc, deterministic seed files, synthetic issuer/holder keys, friendly issuer labels for Trusted Authorities, stored presentation records, and failing smoke tests ensuring fixture availability. Cmd: `./gradlew --no-daemon :core:test`.
 - [ ] T4002 – Authorization request red tests (F-040-01/02/03/04/05/14): add failing tests for DCQL enforcement, nonce/state determinism, response mode toggles, telemetry expectations. Cmd: `./gradlew --no-daemon :application:test`.
 - [ ] T4003 – Authorization request implementation: satisfy T4002, implement builder, QR renderer, telemetry, HAIP signed-request toggle. Cmds: `./gradlew --no-daemon :application:test`, `./gradlew --no-daemon spotlessApply check`.

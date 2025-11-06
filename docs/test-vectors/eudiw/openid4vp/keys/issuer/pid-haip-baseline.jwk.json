@@ -1,0 +1,10 @@
+{
+  "kid": "pid-haip-baseline-issuer",
+  "kty": "EC",
+  "use": "sig",
+  "alg": "ES256",
+  "crv": "P-256",
+  "x": "5JtZx0l1V0a23Q0q4WcZzBEAh-7fF7n4AG2wE8xmPKQ",
+  "y": "1J_Sp0mDiNEGrN3l5tr1sGYn0PRO8yqqXn_MtBx9Y9E",
+  "d": "fVXM4WeD1HtQfW8FweGBGdE1e2o4qJf9-klRHsXJZKo"
+}

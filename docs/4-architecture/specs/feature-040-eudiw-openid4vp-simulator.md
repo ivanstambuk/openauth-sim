@@ -1,7 +1,7 @@
 # Feature 040 – EUDIW OpenID4VP Simulator
 
-_Status: Draft_  
-_Last updated: 2025-11-02_
+_Status: Ready for implementation_  
+_Last updated: 2025-11-06_
 
 ## Overview
 Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiable Presentations (OpenID4VP 1.0) flows that align with the High Assurance Interoperability Profile (HAIP). The simulator plays both verifier and wallet roles so REST, CLI, and operator UI facades can demonstrate complete presentation exchanges without external wallets. The scope includes SD-JWT VC (`application/dc+sd-jwt`) and ISO/IEC 18013-5 mdoc (`mso_mdoc`) credential formats, HAIP-mandated encryption for `direct_post.jwt`, Trusted Authorities filtering, and PID fixtures (`eu.europa.ec.eudi.pid.1`). Synthetic fixtures ship first with an ingestion seam for official EU conformance vectors once released.
@@ -127,7 +127,8 @@ Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiabl
   - `keys/` stores synthetic issuer/holder key material (JWKs, PEM cert chains) referenced by fixtures.
   - `fixtures/synthetic/sdjwt-vc/<fixture-id>/` (cleartext claim JSON, salted digest map, optional compact SD-JWT, disclosures, KB-JWT body, metadata).
   - `fixtures/synthetic/mdoc/<fixture-id>/` (Base64 DeviceResponse CBOR, CBOR diagnostic text, metadata).
-  - `trust/anchors/x509/<issuer>/` (PEM chain fragments) and `trust/policy/trusted_authorities.dcql.json`.
+  - `trust/anchors/x509/<issuer>/` (PEM chain fragments), `trust/policy/trusted_authorities.dcql.json`, and `trust/snapshots/<preset-id>.json` capturing friendly labels plus stored presentation mappings.
+  - `stored/presentations/<presentation-id>.json` describing seeded VP Tokens for stored mode.
   - `seeds/default.seed` for deterministic nonce/state.
 - Loader toggles between synthetic and imported conformance bundles; ingestion captures provenance metadata (source version, hash).
 - Validation utilities recompute SD-JWT disclosure hashes, KB-JWT `sd_hash`, DeviceResponse COSE signatures/MSO hashes, and Trusted Authority membership.

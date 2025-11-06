@@ -1,8 +1,8 @@
 # Feature Plan 040 – EUDIW OpenID4VP Simulator
 
 _Linked specification:_ `docs/4-architecture/specs/feature-040-eudiw-openid4vp-simulator.md`  
-_Status:_ Draft  
-_Last updated:_ 2025-11-02
+_Status:_ Ready  
+_Last updated:_ 2025-11-06
 
 ## Vision & Success Criteria
 - Demonstrate HAIP-aligned remote OpenID4VP exchanges end to end (request → wallet response → validation) without external wallets.
@@ -96,10 +96,22 @@ _Last updated:_ 2025-11-02
 - **Fixture authenticity**: clearly label synthetic vs conformance vectors; maintain provenance metadata to prevent confusion.  
 - **Telemetry privacy**: review event payloads for PII; add regression tests ensuring redaction toggles work.
 
-## Analysis Gate (Pending)
-- Verify spec completeness and references after I2.  
-- Ensure tasks reference requirement IDs (T-040-xx align with F-040-xx).  
-- Confirm telemetry/documentation impacts captured before proceeding with implementation.
+## Quality & Tooling Gates
+- Run `./gradlew --no-daemon spotbugsMain spotbugsTest` after changes to enforce the Feature 015 dead-state detectors (`URF`, `UWF`, `UUF`, `NP`) across modules touched during the increment.  
+- Each increment concludes with `./gradlew --no-daemon spotlessApply check`; targeted module test commands remain listed with their tasks above.  
+- Capture telemetry payload diffs via existing snapshot tests and document any deviations before implementation continues.
+
+## Analysis Gate (2025-11-06)
+- ✅ Specification completeness – Overview, goals, requirements F-040-01…F-040-31 documented; clarifications up to 2025-11-01 captured; Operator UI ASCII mock-ups included.  
+- ✅ Open questions review – `docs/4-architecture/open-questions.md` has no entries for Feature 040.  
+- ✅ Plan alignment – Plan links to the Feature 040 spec/tasks and mirrors scope/dependencies noted in the specification.  
+- ✅ Tasks coverage – T3999–T4021 map to the functional requirements (IDs referenced per task), stage tests before implementation, and keep increments ≤30 minutes.  
+- ✅ Constitution compliance – Workflow preserves spec-first, clarification gate, test-first cadence, and straight-line increments via dedicated helpers.  
+- ✅ Tooling readiness – Commands (`./gradlew --no-daemon :core:test`, `spotlessApply check`, `spotbugsMain spotbugsTest`, etc.) documented; telemetry snapshot notes retained.  
+- Outcome: proceed to implementation once initial failing tests are staged (starting with T3999/T4001).
+
+## Implementation Drift Gate (Pending)
+- To be completed after all tasks finish and the build passes; capture drift findings, coverage confirmation, and lessons learned.
 
 ## Exit Criteria
 - REST/CLI/UI demonstrate remote OpenID4VP exchange for SD-JWT VC and mdoc fixtures under deterministic seeds.

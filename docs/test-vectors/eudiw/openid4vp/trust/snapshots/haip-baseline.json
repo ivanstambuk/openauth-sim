@@ -1,0 +1,35 @@
+{
+  "presetId": "haip-baseline",
+  "storedPresentationIds": [
+    "pid-haip-baseline"
+  ],
+  "authorities": [
+    {
+      "type": "aki",
+      "values": [
+        {
+          "value": "s9tIpP7qrS9=",
+          "label": "EU PID Issuer"
+        }
+      ]
+    },
+    {
+      "type": "etsi_tl",
+      "values": [
+        {
+          "value": "EU-2025-09-TL",
+          "label": "ETSI Trusted List – 2025-09 snapshot"
+        }
+      ]
+    },
+    {
+      "type": "openid_federation",
+      "values": [
+        {
+          "value": "https://haip.ec.europa.eu/trust-list",
+          "label": "EU Wallet Federation Trust List"
+        }
+      ]
+    }
+  ]
+}

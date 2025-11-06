@@ -14,6 +14,7 @@ This living map captures the explicit relationships between modules, data flows,
 ## Current Links
 - Core module currently exposes the OCRA credential domain consumed by facade modules; additional protocol packages will be introduced via future specifications.
 - Feature 040 specification now scopes the EUDIW OpenID4VP simulator to remote verifier flows, introducing `application.eudi.openid4vp` services, DCQL evaluators, Generate/Validate facade modes (Evaluate/Replay tabs), inline SD-JWT/mdoc credential entry, friendly Trusted Authority labels, ETSI Trust List/OpenID Federation ingestion, global verbose trace integration, and shared fixtures so REST/CLI/UI can replay or verify HAIP-compliant presentations with Trusted Authorities filtering and telemetry parity.
+- Core `eudi.openid4vp` package now exposes `TrustedAuthorityFixtures` and `SyntheticKeyFixtures`, loading HAIP baseline trusted authority snapshots, stored presentation stubs, and synthetic issuer/holder ES256 keys from `docs/test-vectors/eudiw/openid4vp/` to unblock Feature 040 ingestion tests.
 - Core OCRA package normalises RFC 6287 suites into descriptor records consumed by the credential registry and future factory helpers.
 - Core persistence serialization contracts convert protocol descriptors into versioned credential records, now stored by `MapDbCredentialStore` with optional schema migrations when configured.
 - OCRA validation telemetry emits structured debug events that future observability modules can ingest without exposing secret material.
