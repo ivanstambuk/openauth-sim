@@ -202,10 +202,9 @@
   if (storedSelect) {
     storedSelect.addEventListener('change', function () {
       if (storedSelect.value) {
+        var modeBeforeSelection = selectedEvaluateMode();
         applyCredential(storedSelect.value);
-        if (selectedEvaluateMode() !== 'stored') {
-          setEvaluateMode('stored');
-        } else {
+        if (modeBeforeSelection !== 'stored') {
           updateStoredControls();
         }
       } else if (storedSubmissionState && typeof storedSubmissionState.clearBaseline === 'function') {
@@ -587,6 +586,13 @@
     if (replayModeToggle) {
       replayModeToggle.setAttribute('data-mode', normalized);
     }
+    if (replayForm) {
+      if (normalized === 'stored') {
+        replayForm.classList.add('emv-stored-mode');
+      } else {
+        replayForm.classList.remove('emv-stored-mode');
+      }
+    }
     if (replayModeStoredRadio) {
       replayModeStoredRadio.checked = normalized === 'stored';
     }
@@ -600,6 +606,9 @@
       applyReplayCredential(replayStoredSelect.value);
     }
     updateReplaySensitiveFields();
+    if (normalized === 'inline') {
+      toggleSensitiveFields(replaySensitiveFields, false, null);
+    }
   }
 
   function replayModeIsStored() {
@@ -772,6 +781,9 @@
 
   function buildPayload() {
     var mode = selectedMode();
+    var credentialId = storedSelect && typeof storedSelect.value === 'string'
+      ? storedSelect.value.trim()
+      : '';
     var payload = {
       mode: mode,
       masterKey: uppercase(value(masterKeyInput)),
@@ -797,6 +809,10 @@
     attachPreviewWindow(payload);
 
     payload.includeTrace = isTraceRequested();
+
+    if (credentialId) {
+      payload.credentialId = credentialId;
+    }
 
     return payload;
   }
@@ -906,6 +922,10 @@
         handleInlineSubmit: handleInlineSubmit,
         storedSelect: storedSelect,
         updateStoredControls: updateStoredControls,
+        selectedEvaluateMode: selectedEvaluateMode,
+        setEvaluateMode: setEvaluateMode,
+        selectedReplayMode: selectedReplayMode,
+        setReplayMode: updateReplayMode,
       });
     }
   }
@@ -1559,8 +1579,13 @@
   }
 
   function updateReplaySensitiveFields() {
-    var storedMode = replayModeIsStored();
+    var storedMode = replayModeStoredRadio
+      ? !!replayModeStoredRadio.checked
+      : replayModeIsStored();
     toggleSensitiveFields(replaySensitiveFields, storedMode, storedMode ? currentReplaySummary : null);
+    if (!storedMode && replayForm) {
+      replayForm.classList.remove('emv-stored-mode');
+    }
   }
 
   function refreshSensitiveMasks(fields, summary) {
@@ -1605,31 +1630,47 @@
         global.console.log('[emv] toggleSensitiveFields', field.input.id || 'unknown', hideInputs);
       }
       if (hideInputs) {
-        field.input.setAttribute('aria-hidden', 'true');
-        field.input.style.opacity = '0';
-        field.input.style.pointerEvents = 'none';
-        field.input.style.userSelect = 'none';
-        field.input.setAttribute('tabindex', '-1');
-        field.input.setAttribute('data-secret-mode', 'stored');
-        if (field.mask) {
-          field.mask.style.display = '';
-          field.mask.setAttribute('aria-hidden', 'false');
-          field.mask.removeAttribute('hidden');
-        }
+        applyStoredVisibility(field);
       } else {
-        field.input.removeAttribute('aria-hidden');
-        field.input.style.opacity = '';
-        field.input.style.pointerEvents = '';
-        field.input.style.userSelect = '';
-        field.input.removeAttribute('tabindex');
-        field.input.setAttribute('data-secret-mode', 'inline');
-        if (field.mask) {
-          field.mask.style.display = 'none';
-          field.mask.setAttribute('aria-hidden', 'true');
-          field.mask.setAttribute('hidden', 'hidden');
-        }
+        applyInlineVisibility(field);
       }
     });
+  }
+
+  function applyStoredVisibility(field) {
+    if (field.container) {
+      field.container.setAttribute('aria-hidden', 'true');
+    }
+    field.input.setAttribute('aria-hidden', 'true');
+    field.input.style.opacity = '';
+    field.input.style.pointerEvents = 'none';
+    field.input.style.userSelect = 'none';
+    field.input.style.display = '';
+    field.input.setAttribute('tabindex', '-1');
+    field.input.setAttribute('data-secret-mode', 'stored');
+    if (field.mask) {
+      field.mask.style.display = 'none';
+      field.mask.setAttribute('aria-hidden', 'true');
+      field.mask.setAttribute('hidden', 'hidden');
+    }
+  }
+
+  function applyInlineVisibility(field) {
+    if (field.container) {
+      field.container.removeAttribute('aria-hidden');
+    }
+    field.input.removeAttribute('aria-hidden');
+    field.input.style.opacity = '';
+    field.input.style.pointerEvents = '';
+    field.input.style.userSelect = '';
+    field.input.style.display = '';
+    field.input.removeAttribute('tabindex');
+    field.input.setAttribute('data-secret-mode', 'inline');
+    if (field.mask) {
+      field.mask.style.display = 'none';
+      field.mask.setAttribute('aria-hidden', 'true');
+      field.mask.setAttribute('hidden', 'hidden');
+    }
   }
 
   function buildSensitiveFields(definitions) {
@@ -1704,6 +1745,13 @@
 
   function updateStoredControls() {
     var mode = selectedEvaluateMode();
+    if (form) {
+      if (mode === 'stored') {
+        form.classList.add('emv-stored-mode');
+      } else {
+        form.classList.remove('emv-stored-mode');
+      }
+    }
     if (evaluateModeToggle) {
       evaluateModeToggle.setAttribute('data-mode', mode);
     }
@@ -1754,7 +1802,7 @@
       return;
     }
     storedEmptyState.textContent =
-      'Inline evaluation uses the parameters entered above. Select a stored credential and switch modes to run a preset.';
+      'Inline evaluation uses the parameters entered above. Selecting a sample populates inline fields; switch to stored mode to evaluate the preset.';
   }
 
   function updateSeedControls(mode) {

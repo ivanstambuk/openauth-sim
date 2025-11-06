@@ -68,9 +68,9 @@ const scriptSource = readFileSync(
   'utf8',
 );
 
-function createInput(id, value = '') {
+function createInput(id, value = '', container = null) {
   const attributes = new Map();
-  return {
+  const element = {
     id,
     tagName: 'INPUT',
     value,
@@ -97,11 +97,24 @@ function createInput(id, value = '') {
       const handlers = this.listeners[type] || [];
       handlers.forEach((handler) => handler({ target: this }));
     },
+    closest(selector) {
+      if (!this.__container) {
+        return null;
+      }
+      if (selector === '.field-group') {
+        return this.__container;
+      }
+      return null;
+    },
   };
+  element.__container = container;
+  return element;
 }
 
-function createTextarea(id, value = '') {
-  return { ...createInput(id, value), tagName: 'TEXTAREA' };
+function createTextarea(id, value = '', container = null) {
+  const input = createInput(id, value, container);
+  input.tagName = 'TEXTAREA';
+  return input;
 }
 
 function createButton() {
@@ -184,6 +197,31 @@ function createPreviewBody() {
   };
 }
 
+function createFieldGroup(id) {
+  const attributes = new Map();
+  const style = {};
+  return {
+    id,
+    className: 'field-group',
+    style,
+    setAttribute(name, value) {
+      attributes.set(name, String(value));
+    },
+    getAttribute(name) {
+      return attributes.has(name) ? attributes.get(name) : null;
+    },
+    removeAttribute(name) {
+      attributes.delete(name);
+    },
+    closest(selector) {
+      if (selector === '.field-group') {
+        return this;
+      }
+      return null;
+    },
+  };
+}
+
 function createDomElement(tagName) {
   const attributes = new Map();
   const children = [];
@@ -216,15 +254,21 @@ function createDomElement(tagName) {
 
 function createEnvironment({ verboseEnabled }) {
   const storedSelect = createSelect();
-  const masterKeyInput = createInput('emvMasterKey', 'A1B2');
+  const masterKeyContainer = createFieldGroup('emv-master-key-group');
+  const cdol1Container = createFieldGroup('emv-cdol1-group');
+  const ipbContainer = createFieldGroup('emv-ipb-group');
+  const iccTemplateContainer = createFieldGroup('emv-icc-template-group');
+  const issuerApplicationDataContainer = createFieldGroup('emv-issuer-application-data-group');
+
+  const masterKeyInput = createTextarea('emvMasterKey', 'A1B2', masterKeyContainer);
   const atcInput = createInput('emvAtc', '01');
   const branchFactorInput = createInput('emvBranchFactor', '2');
   const heightInput = createInput('emvHeight', '1');
   const ivInput = createTextarea('emvIv', 'AA');
-  const cdol1Input = createTextarea('emvCdol1', 'BB');
-  const ipbInput = createTextarea('emvIpb', 'CC');
-  const iccTemplateInput = createTextarea('emvIccTemplate', 'DD');
-  const issuerApplicationDataInput = createTextarea('emvIssuerApplicationData', 'EE');
+  const cdol1Input = createTextarea('emvCdol1', 'BB', cdol1Container);
+  const ipbInput = createTextarea('emvIpb', 'CC', ipbContainer);
+  const iccTemplateInput = createTextarea('emvIccTemplate', 'DD', iccTemplateContainer);
+  const issuerApplicationDataInput = createTextarea('emvIssuerApplicationData', 'EE', issuerApplicationDataContainer);
   const challengeInput = createInput('emvChallenge', '1234');
   const referenceInput = createInput('emvReference', '5678');
   const amountInput = createInput('emvAmount', '999');
@@ -424,6 +468,22 @@ function createEnvironment({ verboseEnabled }) {
     addEventListener() {},
   };
 
+  const formClassSet = new Set();
+  form.className = '';
+  form.classList = {
+    add(className) {
+      formClassSet.add(className);
+      form.className = Array.from(formClassSet).join(' ');
+    },
+    remove(className) {
+      formClassSet.delete(className);
+      form.className = Array.from(formClassSet).join(' ');
+    },
+    contains(className) {
+      return formClassSet.has(className);
+    },
+  };
+
   const rootPanel = {
     querySelector(selector) {
       if (selector === '[data-testid="emv-console-tabs"]') {
@@ -508,10 +568,19 @@ function createEnvironment({ verboseEnabled }) {
       cdol1: cdol1Input,
       issuerApplicationData: issuerApplicationDataInput,
     },
+    containers: {
+      masterKey: masterKeyContainer,
+      cdol1: cdol1Container,
+      ipb: ipbContainer,
+      iccTemplate: iccTemplateContainer,
+      issuerApplicationData: issuerApplicationDataContainer,
+    },
     masks: {
-      masterKey: () => masterKeyMaskNode.valueNode.textContent,
-      cdol1: () => cdol1MaskNode.valueNode.textContent,
-      issuerApplicationData: () => issuerApplicationDataMaskNode.valueNode.textContent,
+      masterKey: masterKeyMaskNode,
+      cdol1: cdol1MaskNode,
+      ipb: ipbMaskNode,
+      iccTemplate: iccTemplateMaskNode,
+      issuerApplicationData: issuerApplicationDataMaskNode,
     },
     storedHint,
   };
@@ -527,9 +596,13 @@ async function invokeStoredSubmit(env) {
   await Promise.resolve();
 }
 
-test('stored credential masks display digest and length metadata without populating secret inputs', async () => {
+test('stored credential mode hides sensitive inputs and masks while leaving values blank', async () => {
   const env = createEnvironment({ verboseEnabled: true });
   await flushMicrotasks();
+  if (typeof env.hooks.setEvaluateMode === 'function') {
+    env.hooks.setEvaluateMode('stored');
+  }
+  env.hooks.updateStoredControls();
   env.hooks.storedSelect.value = SANITIZED_SUMMARIES[0].id;
   if (typeof env.hooks.storedSelect.dispatchEvent === 'function') {
     env.hooks.storedSelect.dispatchEvent('change');
@@ -543,20 +616,145 @@ test('stored credential masks display digest and length metadata without populat
     'Stored issuer application data textarea should remain blank',
   );
   assert.equal(
-    env.masks.masterKey(),
+    env.inputs.masterKey.getAttribute('data-secret-mode'),
+    'stored',
+    'Master key input should record stored mode state',
+  );
+  assert.equal(
+    env.inputs.masterKey.style.pointerEvents,
+    'none',
+    'Master key input should disable pointer events in stored mode',
+  );
+  assert.equal(
+    env.inputs.masterKey.getAttribute('aria-hidden'),
+    'true',
+    'Master key input should be marked aria-hidden in stored mode',
+  );
+  assert.equal(
+    env.inputs.cdol1.style.pointerEvents,
+    'none',
+    'CDOL1 textarea should disable pointer events in stored mode',
+  );
+  assert.equal(
+    env.inputs.issuerApplicationData.style.pointerEvents,
+    'none',
+    'Issuer application data textarea should disable pointer events in stored mode',
+  );
+  assert.equal(
+    env.masks.masterKey.getAttribute('hidden'),
+    'hidden',
+    'Master key mask should remain hidden in stored mode',
+  );
+  assert.equal(
+    env.masks.cdol1.getAttribute('hidden'),
+    'hidden',
+    'CDOL1 mask should remain hidden in stored mode',
+  );
+  assert.equal(
+    env.masks.issuerApplicationData.getAttribute('hidden'),
+    'hidden',
+    'Issuer application data mask should remain hidden in stored mode',
+  );
+  assert.equal(
+    env.masks.masterKey.valueNode.textContent,
     SANITIZED_SUMMARIES[0].masterKeySha256,
-    'Master key mask should surface digest metadata',
+    'Digest metadata should still be populated for diagnostics',
   );
   assert.equal(
-    env.masks.cdol1(),
+    env.masks.cdol1.valueNode.textContent,
     `Hidden (${SANITIZED_SUMMARIES[0].cdol1HexLength} hex chars)`,
-    'CDOL1 mask should surface length metadata',
+    'CDOL1 mask metadata should still be populated behind the scenes',
   );
   assert.equal(
-    env.masks.issuerApplicationData(),
+    env.masks.issuerApplicationData.valueNode.textContent,
     `Hidden (${SANITIZED_SUMMARIES[0].issuerApplicationDataHexLength} hex chars)`,
-    'Issuer application data mask should surface length metadata',
+    'Issuer application data metadata should still be populated behind the scenes',
   );
+});
+
+test('selecting a preset while inline mode is active keeps inline controls editable', async () => {
+  const env = createEnvironment({ verboseEnabled: true });
+  await flushMicrotasks();
+  if (typeof env.hooks.setEvaluateMode === 'function') {
+    env.hooks.setEvaluateMode('inline');
+  }
+  env.hooks.updateStoredControls();
+  assert.equal(env.hooks.selectedEvaluateMode(), 'inline');
+
+  env.hooks.storedSelect.value = SANITIZED_SUMMARIES[0].id;
+  if (typeof env.hooks.storedSelect.dispatchEvent === 'function') {
+    env.hooks.storedSelect.dispatchEvent('change');
+  }
+  await flushMicrotasks();
+
+  assert.equal(env.hooks.selectedEvaluateMode(), 'inline');
+  assert.equal(
+    env.inputs.masterKey.getAttribute('data-secret-mode'),
+    'inline',
+    'Master key input should remain editable when inline mode is active',
+  );
+  assert.equal(
+    env.inputs.masterKey.getAttribute('aria-hidden'),
+    null,
+    'Master key input should remain visible when inline mode is active',
+  );
+  assert.equal(
+    env.inputs.masterKey.style.pointerEvents,
+    '',
+    'Master key input should allow pointer events in inline mode',
+  );
+  assert.ok(
+    env.storedHint.textContent.includes('Inline evaluation'),
+    'Inline mode hint should remain visible after selecting a preset',
+  );
+});
+
+test('inline submit with preset falls back to stored credential when secrets are blank', async () => {
+  const env = createEnvironment({ verboseEnabled: true });
+  await flushMicrotasks();
+  if (typeof env.hooks.setEvaluateMode === 'function') {
+    env.hooks.setEvaluateMode('inline');
+  }
+  env.hooks.updateStoredControls();
+  env.hooks.storedSelect.value = SANITIZED_SUMMARIES[0].id;
+  if (typeof env.hooks.storedSelect.dispatchEvent === 'function') {
+    env.hooks.storedSelect.dispatchEvent('change');
+  }
+  await flushMicrotasks();
+
+  await env.hooks.handleInlineSubmit();
+
+  assert.equal(env.fetchCalls.length, 1, 'Inline submit should issue one fetch call');
+  const call = env.fetchCalls[0];
+  assert.equal(call.body.credentialId, SANITIZED_SUMMARIES[0].id);
+  assert.equal(call.body.masterKey, '', 'Inline payload keeps master key blank to trigger fallback');
+  assert.equal(call.body.includeTrace, true, 'Inline payload should request trace when verbose is enabled');
+});
+
+test('inline preset submit preserves overrides while keeping credential fallback', async () => {
+  const env = createEnvironment({ verboseEnabled: false });
+  await flushMicrotasks();
+  if (typeof env.hooks.setEvaluateMode === 'function') {
+    env.hooks.setEvaluateMode('inline');
+  }
+  env.hooks.updateStoredControls();
+  env.hooks.storedSelect.value = SANITIZED_SUMMARIES[0].id;
+  if (typeof env.hooks.storedSelect.dispatchEvent === 'function') {
+    env.hooks.storedSelect.dispatchEvent('change');
+  }
+  await flushMicrotasks();
+
+  env.inputs.masterKey.value = 'DEADBEEFDEADBEEFDEADBEEFDEADBEEF';
+  env.inputs.atc.value = '00B5';
+
+  await env.hooks.handleInlineSubmit();
+
+  assert.equal(env.fetchCalls.length, 1);
+  const call = env.fetchCalls[0];
+  assert.equal(call.body.credentialId, SANITIZED_SUMMARIES[0].id);
+  assert.equal(call.body.masterKey, 'DEADBEEFDEADBEEFDEADBEEFDEADBEEF');
+  assert.equal(call.body.atc, '00B5');
+  assert.equal(call.body.includeTrace, false);
 });
 
 test('stored submission posts credential ID to stored endpoint when verbose enabled', async () => {
@@ -580,7 +778,7 @@ test('overriding stored fields triggers inline fallback with inline payload', as
   assert.equal(env.fetchCalls.length, 1);
   const call = env.fetchCalls[0];
   assert.equal(call.url, '/api/v1/emv/cap/evaluate');
-  assert.equal(call.body.credentialId, undefined);
+  assert.equal(call.body.credentialId, 'emv-inline');
   assert.equal(call.body.masterKey, 'DEADBEEF');
   assert.equal(call.body.includeTrace, false);
   assert.equal(call.body.mode, 'IDENTIFY');

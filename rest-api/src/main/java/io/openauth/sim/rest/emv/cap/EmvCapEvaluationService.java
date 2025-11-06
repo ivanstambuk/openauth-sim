@@ -119,7 +119,8 @@ final class EmvCapEvaluationService {
                     "invalid_input", normalizeMessage(ex.getMessage()), Map.of("field", extractField(ex.getMessage())));
         }
 
-        String credentialSource = credentialId.isPresent() ? "stored" : "inline";
+        String credentialSource =
+                credentialId.isPresent() ? (hasInlineOverrides(request) ? "inline" : "stored") : "inline";
 
         EvaluationResult result = applicationService.evaluate(evaluationRequest, includeTrace);
         TelemetrySignal signal = result.telemetry();
@@ -348,6 +349,13 @@ final class EmvCapEvaluationService {
 
     private static boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private static boolean hasInlineOverrides(EmvCapEvaluationRequest request) {
+        if (request == null) {
+            return false;
+        }
+        return hasText(request.mode());
     }
 
     private static String requireTemplate(String value, String field) {

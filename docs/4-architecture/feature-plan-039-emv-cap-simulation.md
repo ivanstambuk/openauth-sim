@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-039-emv-cap-simulation.md`  
 _Status:_ In progress  
-_Last updated:_ 2025-11-05 (I30 sanitisation & drift gate)
+_Last updated:_ 2025-11-06 (I36 stored preset secret hiding planned)
 
 ## Vision & Success Criteria
 - Deliver deterministic EMV/CAP OTP generation **and replay validation** (Identify, Respond, Sign) across core, application, REST, CLI, and operator console facades with consistent telemetry and optional verbose traces.
@@ -196,6 +196,30 @@ _Last updated:_ 2025-11-05 (I30 sanitisation & drift gate)
 33. **Implementation drift gate & acceptance review (completed 2025-11-05)**  
    - Validated that Feature 039 spec/plan/tasks align with the sanitised implementation, mapped each high-impact requirement to concrete code/tests, and confirmed no undocumented work shipped.  
    - Logged lessons learned for future sanitisation sweeps (share digest/length placeholder pattern) and captured the drift report below.
+
+## Upcoming Increment – I36 Stored preset secret hiding (planned)
+- Goal: remove masked placeholders from stored credential mode so preset-only values disappear, matching HOTP/TOTP/OCRA/FIDO2 behaviour and eliminating layout overlap.
+- Steps:
+  1. Extend JS and Selenium tests to assert stored mode hides ICC master key, CDOL1, Issuer Proprietary Bitmap, ICC payload template, and Issuer Application Data fields while inline mode keeps them editable.
+  2. Update `console.js` (and any supporting templates) to conditionally render those sections only in inline mode; ensure stored submissions still include `credentialId` with inline overrides intact.
+  3. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+
+## Upcoming Increment – I34 Inline sample vector mode persistence (planned)
+- Goal: prevent the operator console Evaluate panel from switching to stored credential mode when an inline operator picks a sample vector; maintain editable inline controls and styling parity with other protocols.
+- Steps:
+  1. Add failing JS unit test(s) (Evaluate helpers) asserting inline mode remains active after preset selection, plus Selenium coverage capturing the radio state and field editability.
+  2. Adjust EMV console JavaScript or component state management to honour the inline mode while still hydrating stored sample values; ensure stored-mode-only masking remains intact when the radio is not selected.
+  3. Re-run targeted suites: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+
+## Previous Increment – I34 Inline sample vector mode persistence (completed 2025-11-05)
+- Added JS unit coverage (`node --test rest-api/src/test/javascript/emv/console.test.js`) and Selenium assertions to prove inline mode stays active after preset selection while masks/seed actions remain hidden.
+- Updated `console.js` to drop the automatic `stored` switch, refreshed inline evaluation hints, and kept stored-mode behaviour intact when explicitly selected.
+- Validation commands: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+
+## Previous Increment – I35 Inline preset hydration (completed 2025-11-05)
+- Updated `console.js` to attach the selected preset `credentialId` to inline submissions so masked secrets fall back to MapDB while preserving editable fields.
+- Added Node tests asserting fallback payloads (blank secrets, explicit overrides) and Selenium coverage that evaluates presets in inline mode without triggering stored mode.
+- Validation commands: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
 
 ## Implementation Drift Gate Report (2025-11-05)
 - **Reviewers:** Codex (GPT-5)  

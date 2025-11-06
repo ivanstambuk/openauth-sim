@@ -1447,3 +1447,16 @@ a:focus {
   gap: var(--ocra-spacing-md);
   flex-wrap: wrap;
 }
+
+.emv-stored-mode [data-testid='emv-master-key'],
+.emv-stored-mode [data-testid='emv-cdol1'],
+.emv-stored-mode [data-testid='emv-ipb'],
+.emv-stored-mode [data-testid='emv-icc-template'],
+.emv-stored-mode [data-testid='emv-issuer-application-data'],
+.emv-stored-mode [data-testid='emv-replay-master-key'],
+.emv-stored-mode [data-testid='emv-replay-cdol1'],
+.emv-stored-mode [data-testid='emv-replay-issuer-bitmap'],
+.emv-stored-mode [data-testid='emv-replay-icc-template'],
+.emv-stored-mode [data-testid='emv-replay-issuer-application-data'] {
+  display: none;
+}
