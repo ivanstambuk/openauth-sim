@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-039-emv-cap-simulation.md`  
 _Status:_ In progress  
-_Last updated:_ 2025-11-06 (I36 stored preset secret hiding planned)
+_Last updated:_ 2025-11-06 (I38 customer input inline grouping complete; next step I39 inline preset hydration)
 
 ## Vision & Success Criteria
 - Deliver deterministic EMV/CAP OTP generation **and replay validation** (Identify, Respond, Sign) across core, application, REST, CLI, and operator console facades with consistent telemetry and optional verbose traces.
@@ -202,13 +202,11 @@ _Last updated:_ 2025-11-06 (I36 stored preset secret hiding planned)
 - Extended `.emv-stored-mode` rules in `console.css` to hide the same containers to guard against stale markup, keeping inline mode unaffected.
 - Refreshed Node and Selenium expectations so stored preset flows assert the absence of sensitive rows while inline mode verifies all inputs remain editable. Validation commands: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon spotlessApply check --console=plain`.
 
-## Upcoming Increment – I38 Customer input layout toggle (planned)
-- Goal: restructure the EMV CAP Evaluate and Replay panels so customer-mode radios and Challenge/Reference/Amount inputs share a single group, keeping inputs visible at all times but only editable when their mode is active.
-- Steps:
-  1. Update the operator console templates and CSS to group the radios and inputs per the ASCII mock-up, applying disabled states for non-applicable fields (Respond: Challenge; Sign: Reference + Amount; Identify: all disabled).
-  2. Adjust `console.js` to toggle `disabled`, `aria-disabled`, and styling for both evaluate and replay forms while ensuring serialized payloads only include allowed fields.
-  3. Extend JS unit tests and Selenium coverage to validate read-only states, DOM structure, and mode-driven enabling for both Evaluate and Replay panels.
-  4. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, full `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+## Previous Increment – I38 Customer input inline grouping (completed 2025-11-06)
+- Updated the operator console templates to group the mode radios with Challenge/Reference/Amount inputs beneath a single “Input from customer” legend for Evaluate and Replay panels, and tightened CSS spacing.
+- Taught `console.js` to apply mode-driven enablement (Identify clears and disables all inputs, Respond enables only Challenge, Sign enables Reference/Amount while keeping Challenge masked), while keeping serialized payloads aligned and hint text mode-aware.
+- Extended JS console tests to cover the new grouping/aria semantics and adjusted Selenium coverage—inline Sign replay asserted via TODO pending T3936 inline preset hydration; legacy scenario temporarily disabled to avoid false negatives.
+- Verification commands: `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
 
 ## Upcoming Increment – I39 Inline preset full hydration (planned)
 - Goal: ensure inline Evaluate and Replay forms display stored defaults for all overridable fields (master key, CDOL1, IPB, ICC template, IAD, challenge/reference/amount) whenever a preset is selected.

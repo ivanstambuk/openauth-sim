@@ -63,6 +63,19 @@ function createMaskField() {
   };
 }
 
+function createHintNode() {
+  const attributes = new Map();
+  return {
+    textContent: '',
+    setAttribute(name, value) {
+      attributes.set(name, String(value));
+    },
+    getAttribute(name) {
+      return attributes.has(name) ? attributes.get(name) : null;
+    },
+  };
+}
+
 const scriptSource = readFileSync(
   path.resolve(__dirname, '../../../main/resources/static/ui/emv/console.js'),
   'utf8',
@@ -77,15 +90,22 @@ function createInput(id, value = '', container = null) {
     textContent: '',
     checked: false,
     style: {},
+    disabled: false,
     listeners: {},
     setAttribute(name, val) {
       attributes.set(name, String(val));
+      if (name === 'disabled') {
+        this.disabled = true;
+      }
     },
     getAttribute(name) {
       return attributes.has(name) ? attributes.get(name) : null;
     },
     removeAttribute(name) {
       attributes.delete(name);
+      if (name === 'disabled') {
+        this.disabled = false;
+      }
     },
     addEventListener(type, handler) {
       if (!this.listeners[type]) {
@@ -259,6 +279,9 @@ function createEnvironment({ verboseEnabled }) {
   const ipbContainer = createFieldGroup('emv-ipb-group');
   const iccTemplateContainer = createFieldGroup('emv-icc-template-group');
   const issuerApplicationDataContainer = createFieldGroup('emv-issuer-application-data-group');
+  const challengeContainer = createFieldGroup('emv-challenge-group');
+  const referenceContainer = createFieldGroup('emv-reference-group');
+  const amountContainer = createFieldGroup('emv-amount-group');
 
   const masterKeyInput = createTextarea('emvMasterKey', 'A1B2', masterKeyContainer);
   const atcInput = createInput('emvAtc', '01');
@@ -269,9 +292,9 @@ function createEnvironment({ verboseEnabled }) {
   const ipbInput = createTextarea('emvIpb', 'CC', ipbContainer);
   const iccTemplateInput = createTextarea('emvIccTemplate', 'DD', iccTemplateContainer);
   const issuerApplicationDataInput = createTextarea('emvIssuerApplicationData', 'EE', issuerApplicationDataContainer);
-  const challengeInput = createInput('emvChallenge', '1234');
-  const referenceInput = createInput('emvReference', '5678');
-  const amountInput = createInput('emvAmount', '999');
+  const challengeInput = createInput('emvChallenge', '1234', challengeContainer);
+  const referenceInput = createInput('emvReference', '5678', referenceContainer);
+  const amountInput = createInput('emvAmount', '999', amountContainer);
   const terminalInput = createTextarea('emvTerminalData', 'ABC');
   const iccOverrideInput = createTextarea('emvIccOverride', 'DEF');
   const iccResolvedInput = createTextarea('emvIccResolved', 'FED');
@@ -284,6 +307,7 @@ function createEnvironment({ verboseEnabled }) {
   const evaluateButton = createButton();
   evaluateButton.removeAttribute('disabled');
   const storedHint = { textContent: '' };
+  const customerHint = createHintNode();
 
   const evaluateModeInline = createInput('emvEvaluateModeInline', 'inline');
   evaluateModeInline.value = 'inline';
@@ -452,6 +476,8 @@ function createEnvironment({ verboseEnabled }) {
           return storedHint;
         case '[data-testid="emv-evaluate-mode-toggle"]':
           return evaluateModeToggle;
+        case '[data-testid="emv-customer-hint"]':
+          return customerHint;
         default:
           return null;
       }
@@ -567,6 +593,9 @@ function createEnvironment({ verboseEnabled }) {
       atc: atcInput,
       cdol1: cdol1Input,
       issuerApplicationData: issuerApplicationDataInput,
+      challenge: challengeInput,
+      reference: referenceInput,
+      amount: amountInput,
     },
     containers: {
       masterKey: masterKeyContainer,
@@ -574,6 +603,9 @@ function createEnvironment({ verboseEnabled }) {
       ipb: ipbContainer,
       iccTemplate: iccTemplateContainer,
       issuerApplicationData: issuerApplicationDataContainer,
+      challenge: challengeContainer,
+      reference: referenceContainer,
+      amount: amountContainer,
     },
     masks: {
       masterKey: masterKeyMaskNode,
@@ -581,6 +613,9 @@ function createEnvironment({ verboseEnabled }) {
       ipb: ipbMaskNode,
       iccTemplate: iccTemplateMaskNode,
       issuerApplicationData: issuerApplicationDataMaskNode,
+    },
+    hints: {
+      evaluate: customerHint,
     },
     storedHint,
   };
@@ -777,6 +812,83 @@ test('selecting a preset while inline mode is active keeps inline controls edita
     env.storedHint.textContent.includes('Inline evaluation'),
     'Inline mode hint should remain visible after selecting a preset',
   );
+});
+
+test('CAP mode toggles customer inputs and helper hint', async () => {
+  const env = createEnvironment({ verboseEnabled: true });
+  await flushMicrotasks();
+  env.hooks.updateStoredControls();
+
+  const { challenge, reference, amount } = env.inputs;
+  const { challenge: challengeGroup, reference: referenceGroup, amount: amountGroup } = env.containers;
+  const customerHint = env.hints.evaluate;
+
+  assert.equal(challenge.disabled, true, 'Identify mode should disable challenge input');
+  assert.equal(reference.disabled, true, 'Identify mode should disable reference input');
+  assert.equal(amount.disabled, true, 'Identify mode should disable amount input');
+  assert.equal(
+    challengeGroup.getAttribute('aria-disabled'),
+    'true',
+    'Identify mode should mark challenge container as aria-disabled',
+  );
+  assert.equal(
+    referenceGroup.getAttribute('aria-disabled'),
+    'true',
+    'Identify mode should mark reference container as aria-disabled',
+  );
+  assert.equal(
+    amountGroup.getAttribute('aria-disabled'),
+    'true',
+    'Identify mode should mark amount container as aria-disabled',
+  );
+  assert.equal(
+    customerHint.textContent,
+    'Identify mode does not accept customer inputs.',
+    'Identify hint text should describe disabled inputs',
+  );
+  assert.equal(customerHint.getAttribute('data-mode'), 'IDENTIFY', 'Hint should note active Identify mode');
+
+  env.hooks.setCapMode('RESPOND');
+  assert.equal(challenge.disabled, false, 'Respond mode should enable challenge input');
+  assert.equal(reference.disabled, true, 'Respond mode should keep reference disabled');
+  assert.equal(amount.disabled, true, 'Respond mode should keep amount disabled');
+  assert.equal(
+    challengeGroup.getAttribute('aria-disabled'),
+    null,
+    'Respond mode should clear aria-disabled from challenge container',
+  );
+  assert.equal(
+    referenceGroup.getAttribute('aria-disabled'),
+    'true',
+    'Respond mode should leave reference container aria-disabled',
+  );
+  assert.equal(
+    customerHint.textContent,
+    'Respond mode enables Challenge; Reference and Amount remain disabled.',
+    'Respond hint should describe enabled fields',
+  );
+  assert.equal(customerHint.getAttribute('data-mode'), 'RESPOND', 'Hint should note Respond mode');
+
+  env.hooks.setCapMode('SIGN');
+  assert.equal(challenge.disabled, true, 'Sign mode should disable challenge input');
+  assert.equal(reference.disabled, false, 'Sign mode should enable reference input');
+  assert.equal(amount.disabled, false, 'Sign mode should enable amount input');
+  assert.equal(
+    referenceGroup.getAttribute('aria-disabled'),
+    null,
+    'Sign mode should clear aria-disabled from reference container',
+  );
+  assert.equal(
+    amountGroup.getAttribute('aria-disabled'),
+    null,
+    'Sign mode should clear aria-disabled from amount container',
+  );
+  assert.equal(
+    customerHint.textContent,
+    'Sign mode enables Reference and Amount; Challenge stays disabled.',
+    'Sign hint should describe enabled fields',
+  );
+  assert.equal(customerHint.getAttribute('data-mode'), 'SIGN', 'Hint should note Sign mode');
 });
 
 test('inline submit with preset falls back to stored credential when secrets are blank', async () => {

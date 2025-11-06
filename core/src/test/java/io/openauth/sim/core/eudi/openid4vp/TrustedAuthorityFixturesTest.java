@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.eudi.openid4vp.TrustedAuthorityFixtures.TrustedAuthorityPolicy;
 import io.openauth.sim.core.eudi.openid4vp.TrustedAuthorityFixtures.TrustedAuthoritySnapshot;
+import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import org.junit.jupiter.api.Test;
 
@@ -51,6 +53,62 @@ final class TrustedAuthorityFixturesTest {
     @Test
     void missingSnapshotThrows() {
         assertThrows(IllegalStateException.class, () -> TrustedAuthorityFixtures.loadSnapshot("not-defined"));
+    }
+
+    @Test
+    void parseSnapshotRejectsMissingStoredPresentationIds() {
+        Map<String, Object> root = Map.of(
+                "presetId",
+                "invalid",
+                "authorities",
+                List.of(Map.of("type", "aki", "values", List.of(Map.of("value", "v", "label", "l")))));
+
+        assertThrows(IllegalStateException.class, () -> TrustedAuthorityFixtures.parseSnapshot(root, "invalid"));
+    }
+
+    @Test
+    void parseSnapshotRejectsNonArrayAuthorities() {
+        Map<String, Object> root = Map.of(
+                "presetId", "invalid",
+                "storedPresentationIds", List.of("pid-haip-baseline"),
+                "authorities", "not-an-array");
+
+        assertThrows(IllegalStateException.class, () -> TrustedAuthorityFixtures.parseSnapshot(root, "invalid"));
+    }
+
+    @Test
+    void parseSnapshotRejectsAuthorityWithInvalidValues() {
+        Map<String, Object> root = Map.of(
+                "presetId",
+                "invalid",
+                "storedPresentationIds",
+                List.of("pid-haip-baseline"),
+                "authorities",
+                List.of(Map.of("type", "aki", "values", List.of("not-an-object"))));
+
+        assertThrows(IllegalStateException.class, () -> TrustedAuthorityFixtures.parseSnapshot(root, "invalid"));
+    }
+
+    @Test
+    void parseSnapshotRejectsMissingPresetId() {
+        Map<String, Object> root = Map.of(
+                "storedPresentationIds", List.of("pid-haip-baseline"),
+                "authorities", List.of(Map.of("type", "aki", "values", List.of(Map.of("value", "v", "label", "l")))));
+
+        assertThrows(IllegalStateException.class, () -> TrustedAuthorityFixtures.parseSnapshot(root, "invalid"));
+    }
+
+    @Test
+    void parseSnapshotRejectsAuthorityMissingLabel() {
+        Map<String, Object> root = Map.of(
+                "presetId",
+                "invalid",
+                "storedPresentationIds",
+                List.of("pid-haip-baseline"),
+                "authorities",
+                List.of(Map.of("type", "aki", "values", List.of(Map.of("value", "v")))));
+
+        assertThrows(IllegalStateException.class, () -> TrustedAuthorityFixtures.parseSnapshot(root, "invalid"));
     }
 
     private static void assertTrustedAuthorityValue(

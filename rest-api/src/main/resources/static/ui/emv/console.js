@@ -44,6 +44,8 @@
   var challengeInput = form.querySelector('#emvChallenge');
   var referenceInput = form.querySelector('#emvReference');
   var amountInput = form.querySelector('#emvAmount');
+  var customerHint = form.querySelector('[data-testid="emv-customer-hint"]');
+  var capModeRadios = Array.prototype.slice.call(form.querySelectorAll('input[name="mode"]'));
   var windowBackwardInput = form.querySelector('#emvWindowBackward');
   var windowForwardInput = form.querySelector('#emvWindowForward');
   var storedSubmissionState = createStoredSubmissionState({ snapshot: captureEvaluateSnapshot });
@@ -118,6 +120,9 @@
   var replayAmountInput = replayForm
       ? replayForm.querySelector('[data-testid="emv-replay-amount"] input')
       : null;
+  var replayCustomerHint = replayForm
+      ? replayForm.querySelector('[data-testid="emv-replay-customer-hint"]')
+      : null;
   var replayIccTemplateInput = replayForm
       ? replayForm.querySelector('[data-testid="emv-replay-icc-template"] textarea')
       : null;
@@ -146,6 +151,11 @@
   var replayReasonNode = replayResultPanel
       ? replayResultPanel.querySelector('[data-testid="emv-replay-reason"]')
       : null;
+  var CUSTOMER_HINT_COPY = {
+    IDENTIFY: 'Identify mode does not accept customer inputs.',
+    RESPOND: 'Respond mode enables Challenge; Reference and Amount remain disabled.',
+    SIGN: 'Sign mode enables Reference and Amount; Challenge stays disabled.',
+  };
 
   var evaluateSensitiveFields = buildSensitiveFields([
     { input: masterKeyInput, mask: form.querySelector('[data-testid="emv-master-key-mask"]'), formatter: formatMasterKeyMask },
@@ -225,6 +235,19 @@
       }
       input.addEventListener('change', function () {
         updateStoredControls();
+      });
+    });
+  }
+
+  if (capModeRadios.length > 0) {
+    capModeRadios.forEach(function (input) {
+      if (!input) {
+        return;
+      }
+      input.addEventListener('change', function () {
+        if (input.checked) {
+          updateCustomerInputsForMode(input.value);
+        }
       });
     });
   }
@@ -562,6 +585,7 @@
       });
     });
 
+    updateReplayCustomerInputsForMode(selectedReplayCapMode());
     updateReplayMode(replayModeToggle && replayModeToggle.getAttribute('data-mode'));
     if (replayStoredSelect && replayStoredSelect.value) {
       applyReplayCredential(replayStoredSelect.value);
@@ -609,6 +633,7 @@
     if (normalized === 'inline') {
       toggleSensitiveFields(replaySensitiveFields, false, null);
     }
+    updateReplayCustomerInputsForMode(selectedReplayCapMode());
   }
 
   function replayModeIsStored() {
@@ -629,7 +654,7 @@
     if (!mode) {
       return;
     }
-    var normalized = String(mode).toUpperCase();
+    var normalized = normalizeCapMode(mode);
     for (var index = 0; index < replayCapModeRadios.length; index += 1) {
       var radio = replayCapModeRadios[index];
       if (!radio) {
@@ -637,6 +662,7 @@
       }
       radio.checked = radio.value === normalized;
     }
+    updateReplayCustomerInputsForMode(normalized);
   }
 
   function handleSeedRequest() {
@@ -924,8 +950,19 @@
         updateStoredControls: updateStoredControls,
         selectedEvaluateMode: selectedEvaluateMode,
         setEvaluateMode: setEvaluateMode,
+        setCapMode: setMode,
+        updateCustomerInputsForMode: updateCustomerInputsForMode,
+        updateReplayCustomerInputsForMode: updateReplayCustomerInputsForMode,
         selectedReplayMode: selectedReplayMode,
         setReplayMode: updateReplayMode,
+        challengeInput: challengeInput,
+        referenceInput: referenceInput,
+        amountInput: amountInput,
+        replayChallengeInput: replayChallengeInput,
+        replayReferenceInput: replayReferenceInput,
+        replayAmountInput: replayAmountInput,
+        customerHint: customerHint,
+        replayCustomerHint: replayCustomerHint,
       });
     }
   }
@@ -1686,6 +1723,98 @@
     }
   }
 
+  function normalizeCapMode(mode) {
+    if (typeof mode !== 'string') {
+      return 'IDENTIFY';
+    }
+    var normalized = mode.trim().toUpperCase();
+    if (normalized === 'RESPOND' || normalized === 'SIGN') {
+      return normalized;
+    }
+    return 'IDENTIFY';
+  }
+
+  function updateCustomerInputsForMode(mode) {
+    var normalized = normalizeCapMode(mode || selectedMode());
+    if (normalized === 'RESPOND') {
+      setCustomerFieldState(challengeInput, true);
+      setCustomerFieldState(referenceInput, false);
+      setValue(referenceInput, '');
+      setCustomerFieldState(amountInput, false);
+      setValue(amountInput, '');
+    } else if (normalized === 'SIGN') {
+      setCustomerFieldState(challengeInput, false);
+      setCustomerFieldState(referenceInput, true);
+      setCustomerFieldState(amountInput, true);
+    } else {
+      setCustomerFieldState(challengeInput, false);
+      setCustomerFieldState(referenceInput, false);
+      setCustomerFieldState(amountInput, false);
+      setValue(challengeInput, '');
+      setValue(referenceInput, '');
+      setValue(amountInput, '');
+    }
+    updateCustomerHintMessage(customerHint, normalized);
+  }
+
+  function updateReplayCustomerInputsForMode(mode) {
+    var normalized = normalizeCapMode(mode || selectedReplayCapMode());
+    if (normalized === 'RESPOND') {
+      setCustomerFieldState(replayChallengeInput, true);
+      setCustomerFieldState(replayReferenceInput, false);
+      setValue(replayReferenceInput, '');
+      setCustomerFieldState(replayAmountInput, false);
+      setValue(replayAmountInput, '');
+    } else if (normalized === 'SIGN') {
+      setCustomerFieldState(replayChallengeInput, false);
+      setCustomerFieldState(replayReferenceInput, true);
+      setCustomerFieldState(replayAmountInput, true);
+    } else {
+      setCustomerFieldState(replayChallengeInput, false);
+      setCustomerFieldState(replayReferenceInput, false);
+      setCustomerFieldState(replayAmountInput, false);
+      setValue(replayChallengeInput, '');
+      setValue(replayReferenceInput, '');
+      setValue(replayAmountInput, '');
+    }
+    updateCustomerHintMessage(replayCustomerHint, normalized);
+  }
+
+  function setCustomerFieldState(input, enabled) {
+    if (!input) {
+      return;
+    }
+    if (enabled) {
+      input.disabled = false;
+      input.removeAttribute('disabled');
+      input.removeAttribute('aria-disabled');
+    } else {
+      input.disabled = true;
+      input.setAttribute('disabled', 'disabled');
+      input.setAttribute('aria-disabled', 'true');
+    }
+    var container = typeof input.closest === 'function' ? input.closest('.field-group') : null;
+    if (container) {
+      if (enabled) {
+        container.removeAttribute('aria-disabled');
+      } else {
+        container.setAttribute('aria-disabled', 'true');
+      }
+    }
+  }
+
+  function updateCustomerHintMessage(target, mode) {
+    if (!target) {
+      return;
+    }
+    var normalized = normalizeCapMode(mode);
+    var message = CUSTOMER_HINT_COPY[normalized] || CUSTOMER_HINT_COPY.IDENTIFY;
+    if (target.textContent !== message) {
+      target.textContent = message;
+    }
+    target.setAttribute('data-mode', normalized);
+  }
+
   function buildSensitiveFields(definitions) {
     if (!Array.isArray(definitions)) {
       return [];
@@ -1775,6 +1904,7 @@
     updateEvaluationHint(mode);
     updateSeedControls(mode);
     updateEvaluateSensitiveFields(mode);
+    updateCustomerInputsForMode(selectedMode());
   }
 
   function updateEvaluateButton(mode) {
@@ -1883,7 +2013,7 @@
     if (!mode) {
       return;
     }
-    var normalized = String(mode).toUpperCase();
+    var normalized = normalizeCapMode(mode);
     var modeInputs = form.querySelectorAll('input[name="mode"]');
     for (var index = 0; index < modeInputs.length; index += 1) {
       var input = modeInputs[index];
@@ -1892,6 +2022,7 @@
       }
       input.checked = input.value === normalized;
     }
+    updateCustomerInputsForMode(normalized);
   }
 
   function selectedMode() {

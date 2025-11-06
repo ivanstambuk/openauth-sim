@@ -1429,10 +1429,41 @@ a:focus {
   grid-column: 1 / -1;
 }
 
+.emv-customer-block {
+  border: 1px solid rgba(22, 211, 243, 0.12);
+  border-radius: var(--ocra-radius-md);
+  padding: var(--ocra-spacing-md);
+  background: rgba(14, 27, 46, 0.35);
+}
+
+.emv-customer-block .field-legend {
+  font-weight: 600;
+  padding: 0 var(--ocra-spacing-xs);
+}
+
+.emv-customer-block .mode-toggle {
+  margin: 0;
+}
+
+.emv-customer-block .hint {
+  margin-top: calc(var(--ocra-spacing-sm) * 0.5);
+  margin-bottom: 0;
+}
+
 .emv-customer-grid {
   display: grid;
   gap: var(--ocra-spacing-md);
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.emv-customer-block .field-group[aria-disabled='true'] label {
+  color: var(--ocra-color-text-muted);
+}
+
+.emv-customer-block .field-group[aria-disabled='true'] input {
+  background: var(--ocra-color-surface-disabled);
+  border-color: var(--ocra-color-border-disabled);
+  color: var(--ocra-color-text-muted);
 }
 
 .emv-transaction-grid {

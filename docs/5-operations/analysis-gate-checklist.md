@@ -11,7 +11,7 @@ Use this checklist after a feature's specification, plan, and tasks exist but be
 - Feature plan subsection reserved for the Implementation Drift Gate report (create if missing)
 
 ## Checklist
-1. **Specification completeness**
+1. **Specification completeness** 
    - [ ] Objectives, functional, and non-functional requirements are populated.
    - [ ] Clarifications section reflects the latest answers for every high- and medium-impact question logged for this feature.
    - [ ] UI-impacting work includes an ASCII mock-up in the spec (`docs/4-architecture/spec-guidelines/ui-ascii-mockups.md`).

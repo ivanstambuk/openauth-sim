@@ -25,10 +25,13 @@ public final class TrustedAuthorityFixtures {
         Objects.requireNonNull(presetId, "presetId");
         Map<String, Object> root = readSnapshot(presetId);
 
+        return parseSnapshot(root, presetId);
+    }
+
+    static TrustedAuthoritySnapshot parseSnapshot(Map<String, Object> root, String presetId) {
         String resolvedPresetId = requireString(root, "presetId", presetId);
         List<String> storedPresentationIds = readStringList(root, "storedPresentationIds", presetId);
         List<TrustedAuthorityPolicy> policies = readPolicies(root, presetId);
-
         return new TrustedAuthoritySnapshot(resolvedPresetId, policies, storedPresentationIds);
     }
 

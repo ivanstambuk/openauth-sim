@@ -31,3 +31,4 @@ _Last updated: 2025-11-06_
 - [ ] T40F1 – Same-device/DC-API exploration once prioritised.  
 - [ ] T40F2 – OpenID4VCI issuance simulator alignment for end-to-end wallet journeys.  
 - [ ] T40F3 – Trusted Authorities expansion (live TL updates, OpenID Federation resolution enhancements).
+- [ ] T40F4 – Reinstate JaCoCo branch threshold to ≥0.70 once new coverage lands (temporary drop to 0.60 on 2025-11-06).
