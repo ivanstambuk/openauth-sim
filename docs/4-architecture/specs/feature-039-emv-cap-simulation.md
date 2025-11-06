@@ -34,6 +34,10 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - 2025-11-04 – Evaluate sample vector and seeding controls must share the same block/spacing treatment as Replay: the preset selector sits directly under the mode toggle with no additional vertical gap, and the seed action/button lives within that block so spacing mirrors the Replay layout (owner directive).
 - 2025-11-04 – Evaluate and Replay sample vector selectors must reuse the shared inline preset styling (label stacked above a full-width dark inline preset dropdown with seed actions and hints beneath) so the EMV panel matches HOTP/TOTP/FIDO2 ergonomics (owner directive).
 - 2025-11-05 – Stored credential summaries supplied to any facade must never include raw ICC master keys, CDOL1 payloads, issuer proprietary bitmaps, ICC templates, or issuer application data. REST responses expose only SHA-256 digests and length metadata; operator UI panels render masked placeholders while keeping the underlying secret material server-side (owner directive).
+- 2025-11-06 – Operator console Evaluate and Replay “Input from customer” section must group Challenge/Reference/Amount inputs beneath the mode radios, keeping fields visible at all times but only enabling Challenge for Respond and Reference/Amount for Sign. Identify mode leaves all three disabled (owner directive).
+- 2025-11-06 – Card configuration section should present CDOL1 and IPB inputs in a stacked card configuration block with full-width text areas under their labels (owner directive).
+- 2025-11-06 – Inline preset hydration must populate every overridable field (master key, CDOL1, IPB, ICC template, IAD, and mode-specific customer inputs) when a preset is selected so operators can see defaults before editing (owner directive).
+- 2025-11-06 – Card configuration must include a sub-group labelled “Transaction” that stacks ICC payload template and Issuer Application Data with helper copy indicating “xxxx” is replaced by the ATC (owner directive).
 
 ## Requirements
 
@@ -205,11 +209,16 @@ These ASCII mock-ups capture the operator-console layout for the live EMV/CAP ta
 │ │  ATC (hex)          [00B4]     │  └────────────────────────────────────┘ │
 │ │  Branch factor (b)  [ 4 ]      │                                        │
 │ │  Height (H)         [ 8 ]      │                                        │
-│ │  Initialization vec [ … ]      │                                        │
+│ │  IV (hex)           [ … ]      │                                        │
 │ │                                │                                        │
 │ │ Card configuration             │                                        │
 │ │  CDOL1 payload       [ … ]     │                                        │
 │ │  Issuer bitmap       [ … ]     │                                        │
+│ │                                │                                        │
+│ │ Transaction                   │                                        │
+│ │  Transaction data   [ … ]     │                                        │
+│ │  Issuer App Data    [ … ]     │                                        │
+│ │  “xxxx” → ATC hint            │                                        │
 │ │                                │                                        │
 │ │ Customer input                 │                                        │
 │ │  Mode: (• Identify) ( ) Respond │                                       │
@@ -243,11 +252,16 @@ These ASCII mock-ups capture the operator-console layout for the live EMV/CAP ta
 │ │  ATC (hex)          [00B4]     │  └──────────────────────────────────────┘ │
 │ │  Branch factor (b)  [ 4 ]      │                                           │
 │ │  Height (H)         [ 8 ]      │                                           │
-│ │  Initialization vec [ … ]      │                                           │
+│ │  IV (hex)           [ … ]      │                                           │
 │ │                                │                                           │
 │ │ Card configuration             │                                           │
 │ │  CDOL1 payload       [ … ]     │                                           │
 │ │  Issuer bitmap       [ … ]     │                                           │
+│ │                                │                                           │
+│ │ Transaction                     │                                           │
+│ │  Transaction data   [ … ]       │                                           │
+│ │  Issuer App Data    [ … ]       │                                           │
+│ │  “xxxx” → ATC hint              │                                           │
 │ │                                │                                           │
 │ │ Customer input                 │                                           │
 │ │  Mode: ( ) Identify (•) Respond │                                          │

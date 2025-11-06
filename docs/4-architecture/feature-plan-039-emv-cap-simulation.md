@@ -197,12 +197,44 @@ _Last updated:_ 2025-11-06 (I36 stored preset secret hiding planned)
    - Validated that Feature 039 spec/plan/tasks align with the sanitised implementation, mapped each high-impact requirement to concrete code/tests, and confirmed no undocumented work shipped.  
    - Logged lessons learned for future sanitisation sweeps (share digest/length placeholder pattern) and captured the drift report below.
 
-## Upcoming Increment – I36 Stored preset secret hiding (planned)
-- Goal: remove masked placeholders from stored credential mode so preset-only values disappear, matching HOTP/TOTP/OCRA/FIDO2 behaviour and eliminating layout overlap.
+## Upcoming Increment – I37 Stored mode label hiding (planned)
+- Goal: hide stored-mode CDOL1/IPB/ICC/IAD field groups entirely so inline-only labels no longer render while presets are active.
 - Steps:
-  1. Extend JS and Selenium tests to assert stored mode hides ICC master key, CDOL1, Issuer Proprietary Bitmap, ICC payload template, and Issuer Application Data fields while inline mode keeps them editable.
-  2. Update `console.js` (and any supporting templates) to conditionally render those sections only in inline mode; ensure stored submissions still include `credentialId` with inline overrides intact.
+  1. Restore full-container toggling in `console.js` so `applyStoredVisibility`/`applyInlineVisibility` hide and re-show `.field-group` elements for CDOL1, issuer bitmap, ICC template, and issuer application data.
+  2. Update CSS and Selenium/JS fixtures if necessary to assert labels are absent in stored mode and reappear when switching back to inline mode.
   3. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+
+## Upcoming Increment – I38 Customer input layout toggle (planned)
+- Goal: restructure the EMV CAP Evaluate and Replay panels so customer-mode radios and Challenge/Reference/Amount inputs share a single group, keeping inputs visible at all times but only editable when their mode is active.
+- Steps:
+  1. Update the operator console templates and CSS to group the radios and inputs per the ASCII mock-up, applying disabled states for non-applicable fields (Respond: Challenge; Sign: Reference + Amount; Identify: all disabled).
+  2. Adjust `console.js` to toggle `disabled`, `aria-disabled`, and styling for both evaluate and replay forms while ensuring serialized payloads only include allowed fields.
+  3. Extend JS unit tests and Selenium coverage to validate read-only states, DOM structure, and mode-driven enabling for both Evaluate and Replay panels.
+  4. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, full `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+
+## Upcoming Increment – I39 Inline preset full hydration (planned)
+- Goal: ensure inline Evaluate and Replay forms display stored defaults for all overridable fields (master key, CDOL1, IPB, ICC template, IAD, challenge/reference/amount) whenever a preset is selected.
+- Steps:
+  1. Update inline preset hydration logic in `console.js` so `applyCredential` populates every overridable input for both Evaluate and Replay panels when inline mode is active.
+  2. Keep overrides functional: blanking a field should still fall back to stored values, and inline edits must take precedence.
+  3. Expand JS unit tests and Selenium coverage to assert that each field surfaces the preset defaults immediately after selection, and that clearing a field reverts to stored fallback behaviour.
+  4. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, full `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+
+## Upcoming Increment – I40 Card transaction grouping (planned)
+- Goal: introduce a dedicated “Transaction” sub-section in the operator console that stacks ICC payload template and Issuer Application Data inputs, with helper text noting `xxxx` is replaced by the ATC.
+- Steps:
+  1. Update EMV Evaluate/Replay templates to wrap ICC template + IAD under a shared “Transaction” legend beneath Card configuration, mirroring the ASCII mock-up.
+  2. Adjust CSS spacing to align the new group with existing panels and ensure stored-mode masking continues to work.
+  3. Refresh Selenium/JS tests to assert presence of the new grouping and helper copy in inline and stored modes.
+  4. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+
+## Upcoming Increment – I41 Session key derivation grouping (planned)
+- Goal: visually group ICC master key, ATC, branch factor, height, and IV under a shared heading with helper copy mirroring the reference emulator.
+- Steps:
+  1. Update EMV templates to wrap these inputs in a `Session key derivation` fieldset with inline hints; ensure stored-mode masking/intentionally disabled behaviour persists.
+  2. Adjust CSS spacing/alignment to keep the block consistent across Evaluate and Replay panels.
+  3. Extend Selenium/JS tests to assert the new grouping renders for inline and stored modes and that helper text appears as specified.
+  4. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
 
 ## Upcoming Increment – I34 Inline sample vector mode persistence (planned)
 - Goal: prevent the operator console Evaluate panel from switching to stored credential mode when an inline operator picks a sample vector; maintain editable inline controls and styling parity with other protocols.
