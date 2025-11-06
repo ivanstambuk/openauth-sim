@@ -197,12 +197,10 @@ _Last updated:_ 2025-11-06 (I36 stored preset secret hiding planned)
    - Validated that Feature 039 spec/plan/tasks align with the sanitised implementation, mapped each high-impact requirement to concrete code/tests, and confirmed no undocumented work shipped.  
    - Logged lessons learned for future sanitisation sweeps (share digest/length placeholder pattern) and captured the drift report below.
 
-## Upcoming Increment – I37 Stored mode label hiding (planned)
-- Goal: hide stored-mode CDOL1/IPB/ICC/IAD field groups entirely so inline-only labels no longer render while presets are active.
-- Steps:
-  1. Restore full-container toggling in `console.js` so `applyStoredVisibility`/`applyInlineVisibility` hide and re-show `.field-group` elements for CDOL1, issuer bitmap, ICC template, and issuer application data.
-  2. Update CSS and Selenium/JS fixtures if necessary to assert labels are absent in stored mode and reappear when switching back to inline mode.
-  3. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+## Previous Increment – I37 Stored mode label hiding (completed 2025-11-06)
+- Restored full-container toggling in `console.js` so stored mode applies `hidden`/`aria-hidden="true"` to the CDOL1, issuer bitmap, ICC template, issuer application data field groups, and the mask wrappers themselves. Switching back to inline mode removes those attributes and re-renders labels and helper copy.
+- Extended `.emv-stored-mode` rules in `console.css` to hide the same containers to guard against stale markup, keeping inline mode unaffected.
+- Refreshed Node and Selenium expectations so stored preset flows assert the absence of sensitive rows while inline mode verifies all inputs remain editable. Validation commands: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon spotlessApply check --console=plain`.
 
 ## Upcoming Increment – I38 Customer input layout toggle (planned)
 - Goal: restructure the EMV CAP Evaluate and Replay panels so customer-mode radios and Challenge/Reference/Amount inputs share a single group, keeping inputs visible at all times but only editable when their mode is active.
