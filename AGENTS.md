@@ -36,6 +36,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 
 ## During Implementation
 - **Sync context to disk.** Update the roadmap (`docs/4-architecture/roadmap.md`), feature specs, feature plans, and tasks documents as progress is made. Use ADRs only for final decisions.
+- **No unapproved deletions.** Never delete files or directories—especially via recursive commands or when cleaning untracked items—unless the user has explicitly approved the exact paths in the current session. Features may be developed in parallel across sessions, so untracked files or directories can appear without warning; surface them for review instead of removing them.
 - **Tests are compulsory.** Always run `./gradlew spotlessApply check`. If a test remains red, disable it with a TODO, note the reason, and capture the follow-up in the relevant plan. Commit messages must satisfy the repository `.gitlint` conventional-commit rules.
 - **Formatter policy.** Spotless now uses Palantir Java Format 2.78.0 with a 120-character wrap; configure IDE formatters to match before pushing code changes.
 - **Maintain the knowledge map.** Add, adjust, or prune entries in `docs/4-architecture/knowledge-map.md` whenever new modules, dependencies, or contracts appear.

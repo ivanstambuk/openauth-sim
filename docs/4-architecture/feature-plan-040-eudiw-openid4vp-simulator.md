@@ -30,19 +30,20 @@ _Last updated:_ 2025-11-06
    - Integrate GPT-5 Pro research (complete).  
    - Action: none (baseline done) – recorded for traceability.
 
-2. **I2 – Fixture scaffolding & smoke tests (F-040-18/19, N-040-01)**  
-   - Add synthetic PID fixtures (SD-JWT + mdoc) and deterministic seed files.  
-   - Introduce failing tests (`OpenId4VpFixtureSmokeTest`, `TrustedAuthorityFixtureTest`) asserting fixture presence and PID namespace coverage.  
+2. **I2 – Fixture scaffolding & smoke tests (F-040-18/19, N-040-01)** – _Completed 2025-11-06_  
+   - Added synthetic PID fixtures (SD-JWT + mdoc) and deterministic seed files.  
+   - Introduced `PidFixtureSmokeTest` alongside existing trusted authority coverage to assert fixture presence and PID namespace coverage.  
    - Command: `./gradlew --no-daemon :core:test`.
 
-3. **I3 – Verifier request builder (F-040-01/02/03/04/05/14)**  
-   - Add failing tests for request construction (`OpenId4VpAuthorizationRequestTest`) covering DCQL enforcement, nonce generation, response modes.  
+3. **I3 – Verifier request builder (F-040-01/02/03/04/05/14)** – _Tests staged 2025-11-06; implementation pending_  
+   - Added failing `OpenId4VpAuthorizationRequestServiceTest` cases covering DCQL enforcement, deterministic seed reuse, and telemetry expectations.  
    - Implement builder, JAR toggle, ASCII QR renderer, telemetry events `oid4vp.request.*`.  
    - Commands: `./gradlew --no-daemon :application:test`, `./gradlew --no-daemon spotlessApply check`.
 
 4. **I4 – Wallet simulator foundations (F-040-07/08/09/10/13)**  
    - Stage tests verifying VP Token shape, SD-JWT disclosure hashing, KB-JWT generation.  
    - Implement SD-JWT wallet path with deterministic salts/keys (loading synthetic issuer/holder keys), stub DeviceResponse loader, and wire inline credential inputs (preset vs manual + sample selector) to the generator; expose stored-mode seeding utilities.  
+   - 2025-11-06: SD-JWT wallet service implemented per Option A (recompute disclosure hashes); telemetry + trace hashes now return from `OpenId4VpWalletSimulationService`. `:application:test` passes; full `spotlessApply check` still fails on pre-existing Feature 039 checkstyle path lookup.  
    - Commands: `./gradlew --no-daemon :core:test :application:test`, `./gradlew --no-daemon spotlessApply check`.
 
 5. **I5 – mdoc DeviceResponse path (F-040-09/10/17)**  

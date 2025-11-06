@@ -33,6 +33,23 @@ const SANITIZED_SUMMARIES = [
   },
 ];
 
+const HYDRATION_DETAILS = {
+  'emv-123': {
+    id: 'emv-123',
+    mode: 'IDENTIFY',
+    masterKey: '0123456789ABCDEFFEDCBA9876543210',
+    cdol1: '9F2608AABBCCDDEEFF',
+    issuerProprietaryBitmap: 'F0F0F0F0',
+    iccDataTemplate: '5A0843211234567890',
+    issuerApplicationData: '9F108101112233445566778899AABBCC',
+    defaults: {
+      challenge: '12345678',
+      reference: '',
+      amount: '',
+    },
+  },
+};
+
 async function flushMicrotasks() {
   await Promise.resolve();
   await Promise.resolve();
@@ -530,8 +547,25 @@ function createEnvironment({ verboseEnabled }) {
 
   const fetchCalls = [];
   const fetchStub = (url, options = {}) => {
+    const urlString = String(url);
     if (!options.method || options.method === 'GET') {
-      if (String(url).includes('/api/v1/emv/cap/credentials')) {
+      if (/\/api\/v1\/emv\/cap\/credentials\/[^/]+$/.test(urlString)) {
+        const credentialId = decodeURIComponent(urlString.substring(urlString.lastIndexOf('/') + 1));
+        const detail = HYDRATION_DETAILS[credentialId];
+        if (!detail) {
+          return Promise.resolve({
+            ok: false,
+            status: 404,
+            json: () => Promise.resolve({}),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(detail),
+        });
+      }
+      if (urlString.endsWith('/api/v1/emv/cap/credentials')) {
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -592,6 +626,8 @@ function createEnvironment({ verboseEnabled }) {
       masterKey: masterKeyInput,
       atc: atcInput,
       cdol1: cdol1Input,
+      issuerProprietaryBitmap: ipbInput,
+      iccTemplate: iccTemplateInput,
       issuerApplicationData: issuerApplicationDataInput,
       challenge: challengeInput,
       reference: referenceInput,
@@ -812,6 +848,44 @@ test('selecting a preset while inline mode is active keeps inline controls edita
     env.storedHint.textContent.includes('Inline evaluation'),
     'Inline mode hint should remain visible after selecting a preset',
   );
+});
+
+test('inline preset hydration populates sensitive fields for evaluate flow', async () => {
+  const env = createEnvironment({ verboseEnabled: true });
+  await flushMicrotasks();
+  if (typeof env.hooks.setEvaluateMode === 'function') {
+    env.hooks.setEvaluateMode('inline');
+  }
+  env.hooks.updateStoredControls();
+  env.hooks.storedSelect.value = SANITIZED_SUMMARIES[0].id;
+  if (typeof env.hooks.storedSelect.dispatchEvent === 'function') {
+    env.hooks.storedSelect.dispatchEvent('change');
+  }
+  await flushMicrotasks();
+  await flushMicrotasks();
+  await flushMicrotasks();
+
+  const hydration = HYDRATION_DETAILS[SANITIZED_SUMMARIES[0].id];
+  assert.equal(env.inputs.masterKey.value, hydration.masterKey, 'Master key should hydrate inline input');
+  assert.equal(env.inputs.cdol1.value, hydration.cdol1, 'CDOL1 should hydrate inline textarea');
+  assert.equal(
+    env.inputs.issuerProprietaryBitmap.value,
+    hydration.issuerProprietaryBitmap,
+    'Issuer bitmap should hydrate inline textarea',
+  );
+  assert.equal(
+    env.inputs.iccTemplate.value,
+    hydration.iccDataTemplate,
+    'ICC template should hydrate inline textarea',
+  );
+  assert.equal(
+    env.inputs.issuerApplicationData.value,
+    hydration.issuerApplicationData,
+    'Issuer application data should hydrate inline textarea',
+  );
+  assert.equal(env.inputs.challenge.value, hydration.defaults.challenge, 'Challenge default should hydrate inline field');
+  assert.equal(env.inputs.reference.value, hydration.defaults.reference, 'Reference default should hydrate inline field');
+  assert.equal(env.inputs.amount.value, hydration.defaults.amount, 'Amount default should hydrate inline field');
 });
 
 test('CAP mode toggles customer inputs and helper hint', async () => {

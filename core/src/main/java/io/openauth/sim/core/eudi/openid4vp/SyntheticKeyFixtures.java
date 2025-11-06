@@ -4,12 +4,13 @@ import io.openauth.sim.core.json.SimpleJson;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** Loader for synthetic issuer/holder keys used by the EUDIW OpenID4VP simulator. */
+/** Loader for synthetic issuer/holder JWKs used by simulator fixtures. */
 public final class SyntheticKeyFixtures {
 
     private static final List<Path> KEY_SEARCH_PATHS = List.of(
@@ -31,6 +32,7 @@ public final class SyntheticKeyFixtures {
     private static Jwk loadKey(String category, String keyId) {
         Objects.requireNonNull(category, "category");
         Objects.requireNonNull(keyId, "keyId");
+
         Path path = resolveKeyPath(category, keyId);
         String json;
         try {
@@ -38,13 +40,12 @@ public final class SyntheticKeyFixtures {
         } catch (IOException ex) {
             throw new IllegalStateException("Unable to read synthetic key " + category + "/" + keyId, ex);
         }
+
         Object parsed = SimpleJson.parse(json);
         if (!(parsed instanceof Map<?, ?> map)) {
             throw new IllegalStateException("Synthetic key " + category + "/" + keyId + " must be a JSON object");
         }
-        @SuppressWarnings("unchecked")
-        Map<String, Object> root = (Map<String, Object>) map;
-
+        Map<String, Object> root = castMap(map);
         return new Jwk(
                 requireString(root, "kid", keyId),
                 requireString(root, "kty", keyId),
@@ -54,6 +55,11 @@ public final class SyntheticKeyFixtures {
                 requireString(root, "x", keyId),
                 requireString(root, "y", keyId),
                 requireString(root, "d", keyId));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> castMap(Map<?, ?> source) {
+        return (Map<String, Object>) source;
     }
 
     private static String requireString(Map<String, Object> root, String key, String keyId) {
@@ -68,7 +74,7 @@ public final class SyntheticKeyFixtures {
         String fileName = keyId + ".jwk.json";
         for (Path base : KEY_SEARCH_PATHS) {
             Path candidate = base.resolve(category).resolve(fileName);
-            if (Files.exists(candidate)) {
+            if (Files.exists(candidate, LinkOption.NOFOLLOW_LINKS)) {
                 return candidate;
             }
         }
@@ -76,6 +82,6 @@ public final class SyntheticKeyFixtures {
     }
 
     public record Jwk(String kid, String kty, String use, String alg, String crv, String x, String y, String d) {
-        // Marker record – key material exposed via canonical components.
+        // Intentionally empty; record exposes structural fields.
     }
 }

@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-039-emv-cap-simulation.md`  
 _Status:_ In progress  
-_Last updated:_ 2025-11-06 (I38 customer input inline grouping complete; next step I39 inline preset hydration)
+_Last updated:_ 2025-11-06 (I39 inline preset hydration – in progress after customer input grouping wrap-up)
 
 ## Vision & Success Criteria
 - Deliver deterministic EMV/CAP OTP generation **and replay validation** (Identify, Respond, Sign) across core, application, REST, CLI, and operator console facades with consistent telemetry and optional verbose traces.
@@ -208,13 +208,13 @@ _Last updated:_ 2025-11-06 (I38 customer input inline grouping complete; next st
 - Extended JS console tests to cover the new grouping/aria semantics and adjusted Selenium coverage—inline Sign replay asserted via TODO pending T3936 inline preset hydration; legacy scenario temporarily disabled to avoid false negatives.
 - Verification commands: `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
 
-## Upcoming Increment – I39 Inline preset full hydration (planned)
+## Current Increment – I39 Inline preset full hydration (in progress)
 - Goal: ensure inline Evaluate and Replay forms display stored defaults for all overridable fields (master key, CDOL1, IPB, ICC template, IAD, challenge/reference/amount) whenever a preset is selected.
 - Steps:
-  1. Update inline preset hydration logic in `console.js` so `applyCredential` populates every overridable input for both Evaluate and Replay panels when inline mode is active.
-  2. Keep overrides functional: blanking a field should still fall back to stored values, and inline edits must take precedence.
-  3. Expand JS unit tests and Selenium coverage to assert that each field surfaces the preset defaults immediately after selection, and that clearing a field reverts to stored fallback behaviour.
-  4. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, full `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+  1. Extend the REST credential directory with `GET /api/v1/emv/cap/credentials/{credentialId}` so presets expose inline defaults (master key, CDOL1, issuer bitmap, ICC template, issuer application data, customer inputs); add controller/service coverage and refresh OpenAPI snapshots.
+  2. Teach `console.js` to fetch/cache credential details, hydrate Evaluate/Replay inline forms when presets are selected or modes switch to inline, and preserve override semantics (blank fields fall back to stored credentials, manual edits take precedence).
+  3. Expand JS unit tests and re-enable the Selenium inline replay scenario to confirm presets populate immediately, Sign-mode defaults hydrate correctly, and clearing inputs reverts to stored fallback behaviour.
+  4. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
 
 ## Upcoming Increment – I40 Card transaction grouping (planned)
 - Goal: introduce a dedicated “Transaction” sub-section in the operator console that stacks ICC payload template and Issuer Application Data inputs, with helper text noting `xxxx` is replaced by the ATC.

@@ -1,0 +1,14 @@
+{
+  "credentialId": "pid-haip-baseline",
+  "format": "mso_mdoc",
+  "profile": "HAIP",
+  "issuer": {
+    "id": "https://pid-issuer.example.eu/issuers/haip",
+    "label": "EU PID Issuer"
+  },
+  "holder": {
+    "id": "did:example:holder-0001",
+    "label": "Sample PID Holder"
+  },
+  "version": "2025-11-01"
+}

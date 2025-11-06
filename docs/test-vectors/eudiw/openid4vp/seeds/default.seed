@@ -1,0 +1,4 @@
+nonceSeed=eudiw-openid4vp-nonce-seed-v1
+stateSeed=eudiw-openid4vp-state-seed-v1
+requestIdPrefix=HAIP-
+keyBindingNonceSeed=eudiw-openid4vp-kb-nonce-seed-v1

@@ -11,12 +11,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import org.junit.jupiter.api.Test;
 
-/**
- * Red tests for Feature 040 – T3999.
- *
- * <p>The implementation will ingest ETSI Trust List / OpenID Federation snapshots and make them
- * available as DCQL metadata. Until then, these tests are expected to fail.
- */
 final class TrustedAuthorityFixturesTest {
 
     @Test
@@ -27,7 +21,6 @@ final class TrustedAuthorityFixturesTest {
         assertTrue(
                 snapshot.storedPresentationIds().contains("pid-haip-baseline"),
                 "baseline snapshot must seed stored presentations for reuse");
-
         assertTrue(
                 snapshot.authorities().stream().anyMatch(policy -> policy.type().equals("aki")),
                 "aki authorities missing");
@@ -69,9 +62,12 @@ final class TrustedAuthorityFixturesTest {
     @Test
     void parseSnapshotRejectsNonArrayAuthorities() {
         Map<String, Object> root = Map.of(
-                "presetId", "invalid",
-                "storedPresentationIds", List.of("pid-haip-baseline"),
-                "authorities", "not-an-array");
+                "presetId",
+                "invalid",
+                "storedPresentationIds",
+                List.of("pid-haip-baseline"),
+                "authorities",
+                "not-an-array");
 
         assertThrows(IllegalStateException.class, () -> TrustedAuthorityFixtures.parseSnapshot(root, "invalid"));
     }
@@ -92,8 +88,10 @@ final class TrustedAuthorityFixturesTest {
     @Test
     void parseSnapshotRejectsMissingPresetId() {
         Map<String, Object> root = Map.of(
-                "storedPresentationIds", List.of("pid-haip-baseline"),
-                "authorities", List.of(Map.of("type", "aki", "values", List.of(Map.of("value", "v", "label", "l")))));
+                "storedPresentationIds",
+                List.of("pid-haip-baseline"),
+                "authorities",
+                List.of(Map.of("type", "aki", "values", List.of(Map.of("value", "v", "label", "l")))));
 
         assertThrows(IllegalStateException.class, () -> TrustedAuthorityFixtures.parseSnapshot(root, "invalid"));
     }
@@ -126,6 +124,6 @@ final class TrustedAuthorityFixturesTest {
     }
 
     private record TrustedAuthorityExpectation(String value, String label) {
-        // Test helper record.
+        // Intentionally empty; record exposes expectation fields.
     }
 }

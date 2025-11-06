@@ -4,13 +4,14 @@ import io.openauth.sim.core.json.SimpleJson;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** Loader for EUDIW OpenID4VP trusted authority fixtures stored under {@code docs/test-vectors}. */
+/** Loader for OpenID4VP trusted authority snapshots used by simulator fixtures. */
 public final class TrustedAuthorityFixtures {
 
     private static final List<Path> SNAPSHOT_SEARCH_PATHS = List.of(
@@ -24,7 +25,6 @@ public final class TrustedAuthorityFixtures {
     public static TrustedAuthoritySnapshot loadSnapshot(String presetId) {
         Objects.requireNonNull(presetId, "presetId");
         Map<String, Object> root = readSnapshot(presetId);
-
         return parseSnapshot(root, presetId);
     }
 
@@ -43,21 +43,23 @@ public final class TrustedAuthorityFixtures {
         } catch (IOException ex) {
             throw new IllegalStateException("Unable to read OpenID4VP trusted authority snapshot " + presetId, ex);
         }
-
         Object parsed = SimpleJson.parse(json);
         if (!(parsed instanceof Map<?, ?> map)) {
             throw new IllegalStateException("Trusted authority snapshot " + presetId + " must be a JSON object");
         }
-        @SuppressWarnings("unchecked")
-        Map<String, Object> root = (Map<String, Object>) map;
-        return root;
+        return castMap(map);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> castMap(Map<?, ?> source) {
+        return (Map<String, Object>) source;
     }
 
     private static Path resolveSnapshotPath(String presetId) {
         String fileName = presetId + ".json";
         for (Path base : SNAPSHOT_SEARCH_PATHS) {
             Path candidate = base.resolve(fileName);
-            if (Files.exists(candidate)) {
+            if (Files.exists(candidate, LinkOption.NOFOLLOW_LINKS)) {
                 return candidate;
             }
         }
@@ -87,15 +89,13 @@ public final class TrustedAuthorityFixtures {
             throw new IllegalStateException(
                     "Trusted authority snapshot " + presetId + " must include an 'authorities' array");
         }
-
         List<TrustedAuthorityPolicy> policies = new ArrayList<>(list.size());
         for (Object candidate : list) {
-            if (!(candidate instanceof Map<?, ?> policyMap)) {
+            if (!(candidate instanceof Map<?, ?> map)) {
                 throw new IllegalStateException(
                         "Entries in 'authorities' for snapshot " + presetId + " must be JSON objects");
             }
-            @SuppressWarnings("unchecked")
-            Map<String, Object> policy = (Map<String, Object>) policyMap;
+            Map<String, Object> policy = castMap(map);
             String type = requireString(policy, "type", presetId);
             List<TrustedAuthorityValue> values = readPolicyValues(policy, presetId, type);
             policies.add(new TrustedAuthorityPolicy(type, values));
@@ -112,14 +112,13 @@ public final class TrustedAuthorityFixtures {
         }
         List<TrustedAuthorityValue> values = new ArrayList<>(list.size());
         for (Object entry : list) {
-            if (!(entry instanceof Map<?, ?> valueMap)) {
+            if (!(entry instanceof Map<?, ?> map)) {
                 throw new IllegalStateException(
                         "Values for policy " + type + " in snapshot " + presetId + " must be JSON objects");
             }
-            @SuppressWarnings("unchecked")
-            Map<String, Object> cast = (Map<String, Object>) valueMap;
-            String trustedValue = requireString(cast, "value", presetId);
-            String label = requireString(cast, "label", presetId);
+            Map<String, Object> valueMap = castMap(map);
+            String trustedValue = requireString(valueMap, "value", presetId);
+            String label = requireString(valueMap, "label", presetId);
             values.add(new TrustedAuthorityValue(trustedValue, label));
         }
         return List.copyOf(values);
@@ -136,14 +135,14 @@ public final class TrustedAuthorityFixtures {
 
     public record TrustedAuthoritySnapshot(
             String presetId, List<TrustedAuthorityPolicy> authorities, List<String> storedPresentationIds) {
-        // Marker record – state is defined by canonical components.
+        // Intentionally empty; record provides accessors only.
     }
 
     public record TrustedAuthorityPolicy(String type, List<TrustedAuthorityValue> values) {
-        // Marker record – state is defined by canonical components.
+        // Intentionally empty; record provides accessors only.
     }
 
     public record TrustedAuthorityValue(String value, String label) {
-        // Marker record – state is defined by canonical components.
+        // Intentionally empty; record provides accessors only.
     }
 }

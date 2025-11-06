@@ -198,6 +198,10 @@
 
   var credentialsCache = Object.create(null);
   var credentialsList = [];
+  var credentialDetailsCache = Object.create(null);
+  var credentialDetailsPending = Object.create(null);
+  var pendingEvaluateHydrationId = null;
+  var pendingReplayHydrationId = null;
   var loadingCredentials = false;
   var submitting = false;
   var replaySubmitting = false;
@@ -224,6 +228,10 @@
       } else {
         currentStoredSummary = null;
         updateStoredControls();
+      }
+      if (!storedSelect.value) {
+        pendingEvaluateHydrationId = null;
+        pendingReplayHydrationId = null;
       }
     });
   }
@@ -419,6 +427,12 @@
 
     applyReplayDefaults(credentialId, summary);
 
+    pendingEvaluateHydrationId = credentialId;
+    pendingReplayHydrationId = credentialId;
+    hydrateEvaluateFromCache(credentialId);
+    hydrateReplayFromCache(credentialId);
+    hydrateCredentialDetails(credentialId);
+
     if (storedSubmissionState && typeof storedSubmissionState.resetBaseline === 'function') {
       storedSubmissionState.resetBaseline(credentialId);
     }
@@ -449,6 +463,142 @@
     }
   }
 
+  function hydrateCredentialDetails(credentialId) {
+    loadCredentialDetails(credentialId).then(function () {
+      hydrateEvaluateFromCache(credentialId);
+      hydrateReplayFromCache(credentialId);
+    });
+  }
+
+  function loadCredentialDetails(credentialId) {
+    if (!credentialId) {
+      return Promise.resolve(null);
+    }
+    if (credentialDetailsCache[credentialId]) {
+      return Promise.resolve(credentialDetailsCache[credentialId]);
+    }
+    if (credentialDetailsPending[credentialId]) {
+      return credentialDetailsPending[credentialId];
+    }
+    var endpoint = credentialDetailsEndpoint(credentialId);
+    if (!endpoint) {
+      return Promise.resolve(null);
+    }
+    var request = getJson(endpoint)
+      .then(function (payload) {
+        if (!payload || typeof payload !== 'object') {
+          return null;
+        }
+        var normalized = normalizeCredentialDetails(payload);
+        credentialDetailsCache[credentialId] = normalized;
+        return normalized;
+      })
+      .catch(function (error) {
+        if (global.console && typeof global.console.warn === 'function') {
+          global.console.warn('Unable to load EMV/CAP credential defaults', error);
+        }
+        return null;
+      })
+      .then(function (result) {
+        delete credentialDetailsPending[credentialId];
+        return result;
+      });
+    credentialDetailsPending[credentialId] = request;
+    return request;
+  }
+
+  function credentialDetailsEndpoint(credentialId) {
+    if (!credentialId) {
+      return null;
+    }
+    var base = credentialsEndpoint || replayCredentialsEndpoint;
+    if (!base) {
+      return null;
+    }
+    if (base.endsWith('/')) {
+      base = base.slice(0, -1);
+    }
+    return base + '/' + encodeURIComponent(credentialId);
+  }
+
+  function normalizeCredentialDetails(payload) {
+    var defaults = payload.defaults && typeof payload.defaults === 'object'
+      ? payload.defaults
+      : {};
+    return {
+      id: ensureHydrationString(payload.id),
+      mode: ensureHydrationString(payload.mode),
+      masterKey: ensureHydrationString(payload.masterKey),
+      cdol1: ensureHydrationString(payload.cdol1),
+      issuerProprietaryBitmap: ensureHydrationString(payload.issuerProprietaryBitmap),
+      iccDataTemplate: ensureHydrationString(payload.iccDataTemplate),
+      issuerApplicationData: ensureHydrationString(payload.issuerApplicationData),
+      defaults: {
+        challenge: ensureHydrationString(defaults.challenge),
+        reference: ensureHydrationString(defaults.reference),
+        amount: ensureHydrationString(defaults.amount),
+      },
+    };
+  }
+
+  function ensureHydrationString(value) {
+    if (value == null) {
+      return '';
+    }
+    return String(value).trim();
+  }
+
+  function hydrateEvaluateFromCache(credentialId) {
+    if (!credentialId || pendingEvaluateHydrationId !== credentialId) {
+      return;
+    }
+    if (selectedEvaluateMode() !== 'inline') {
+      return;
+    }
+    var details = credentialDetailsCache[credentialId];
+    if (!details) {
+      return;
+    }
+    setValue(masterKeyInput, details.masterKey);
+    setValue(cdol1Input, details.cdol1);
+    setValue(ipbInput, details.issuerProprietaryBitmap);
+    setValue(iccTemplateInput, details.iccDataTemplate);
+    setValue(issuerApplicationDataInput, details.issuerApplicationData);
+    if (details.defaults) {
+      setValue(challengeInput, details.defaults.challenge);
+      setValue(referenceInput, details.defaults.reference);
+      setValue(amountInput, details.defaults.amount);
+    }
+    if (storedSubmissionState && typeof storedSubmissionState.resetBaseline === 'function') {
+      storedSubmissionState.resetBaseline(credentialId);
+    }
+    pendingEvaluateHydrationId = null;
+  }
+
+  function hydrateReplayFromCache(credentialId) {
+    if (!credentialId || pendingReplayHydrationId !== credentialId) {
+      return;
+    }
+    if (selectedReplayMode() !== 'inline') {
+      return;
+    }
+    var details = credentialDetailsCache[credentialId];
+    if (!details) {
+      return;
+    }
+    setValue(replayMasterKeyInput, details.masterKey);
+    setValue(replayCdol1Input, details.cdol1);
+    setValue(replayIssuerBitmapInput, details.issuerProprietaryBitmap);
+    setValue(replayIccTemplateInput, details.iccDataTemplate);
+    setValue(replayIssuerApplicationDataInput, details.issuerApplicationData);
+    if (details.defaults) {
+      setValue(replayChallengeInput, details.defaults.challenge);
+      setValue(replayReferenceInput, details.defaults.reference);
+      setValue(replayAmountInput, details.defaults.amount);
+    }
+    pendingReplayHydrationId = null;
+  }
+
   function applyReplayCredential(credentialId) {
     if (!credentialId || !credentialsCache[credentialId]) {
       return;
@@ -461,6 +611,9 @@
     setReplayCapMode(summary.mode);
     applyCredentialSummaryToReplay(summary);
     updateReplaySensitiveFields();
+    pendingReplayHydrationId = credentialId;
+    hydrateReplayFromCache(credentialId);
+    hydrateCredentialDetails(credentialId);
   }
 
   function applyCredentialSummaryToReplay(summary) {
@@ -634,6 +787,9 @@
       toggleSensitiveFields(replaySensitiveFields, false, null);
     }
     updateReplayCustomerInputsForMode(selectedReplayCapMode());
+    if (normalized === 'inline' && replayStoredSelect && replayStoredSelect.value) {
+      hydrateReplayFromCache(replayStoredSelect.value);
+    }
   }
 
   function replayModeIsStored() {
@@ -963,6 +1119,7 @@
         replayAmountInput: replayAmountInput,
         customerHint: customerHint,
         replayCustomerHint: replayCustomerHint,
+        buildReplayPayload: buildReplayPayload,
       });
     }
   }
@@ -1408,7 +1565,12 @@
 
   function buildReplayPayload() {
     var capMode = selectedReplayCapMode();
-    var credentialMode = selectedReplayMode();
+    var credentialMode = 'stored';
+    if (replayForm && replayForm.classList && typeof replayForm.classList.contains === 'function') {
+      credentialMode = replayForm.classList.contains('emv-stored-mode') ? 'stored' : 'inline';
+    } else if (replayModeInlineRadio && replayModeInlineRadio.checked) {
+      credentialMode = 'inline';
+    }
     var credentialId = replayStoredSelect ? replayStoredSelect.value : '';
     var otpText = digitsValue(replayOtpInput);
     var driftBackward = parseInteger(replayDriftBackwardInput);
@@ -1905,6 +2067,9 @@
     updateSeedControls(mode);
     updateEvaluateSensitiveFields(mode);
     updateCustomerInputsForMode(selectedMode());
+    if (mode === 'inline' && storedSelect && storedSelect.value) {
+      hydrateEvaluateFromCache(storedSelect.value);
+    }
   }
 
   function updateEvaluateButton(mode) {

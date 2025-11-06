@@ -16,6 +16,7 @@ Immediate actions:
 7. Check `docs/4-architecture/open-questions.md` for unresolved clarifications.
 8. Consult `docs/_current-session.md` for the latest workstream snapshot; update it as you discover new status.
 9. Reconfirm the Specification-Driven Development cadence: spec updates lead, failing tests follow, then tasks and implementation proceed.
+10. Expect that parallel or prior sessions may introduce new files or directories; if you encounter unfamiliar or untracked paths, surface them for user guidance rather than removing them.
 
 Diagnosis tree:
 - If open questions exist, prepare a clarification request before planning.

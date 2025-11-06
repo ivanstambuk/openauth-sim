@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Locale;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -779,7 +778,6 @@ final class EmvCapOperatorUiSeleniumTest {
     }
 
     @Test
-    @Disabled("Pending inline preset hydration (T3936) to support Sign-mode inline replay")
     @DisplayName("Inline EMV/CAP replay with mismatched OTP renders mismatch status")
     void inlineReplayShowsMismatchOutcome() {
         EmvCapReplayFixtures.ReplayFixture fixture = EmvCapReplayFixtures.load("replay-respond-baseline");

@@ -1,9 +1,11 @@
 package io.openauth.sim.rest.emv.cap;
 
+import io.openauth.sim.core.emv.cap.EmvCapCredentialDescriptor;
 import io.openauth.sim.core.emv.cap.EmvCapCredentialPersistenceAdapter;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
@@ -16,8 +18,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,6 +32,8 @@ final class EmvCapCredentialDirectoryController {
     private static final String METADATA_PREFIX = "emv.cap.metadata.";
     private static final Comparator<EmvCapCredentialSummary> SUMMARY_COMPARATOR =
             Comparator.comparing(EmvCapCredentialSummary::label, String.CASE_INSENSITIVE_ORDER);
+    private static final EmvCapCredentialPersistenceAdapter CREDENTIAL_ADAPTER =
+            new EmvCapCredentialPersistenceAdapter();
 
     private final CredentialStore credentialStore;
 
@@ -46,6 +52,19 @@ final class EmvCapCredentialDirectoryController {
                 .filter(Objects::nonNull)
                 .sorted(SUMMARY_COMPARATOR)
                 .collect(Collectors.toUnmodifiableList());
+    }
+
+    @GetMapping("/credentials/{credentialId}")
+    ResponseEntity<EmvCapCredentialHydration> credentialDetail(@PathVariable("credentialId") String credentialId) {
+        if (credentialStore == null || !StringUtils.hasText(credentialId)) {
+            return ResponseEntity.notFound().build();
+        }
+        return credentialStore
+                .findByName(credentialId.trim())
+                .filter(credential -> credential.type() == CredentialType.EMV_CA)
+                .flatMap(EmvCapCredentialDirectoryController::toHydration)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     private static EmvCapCredentialSummary toSummary(Credential credential) {
@@ -114,6 +133,25 @@ final class EmvCapCredentialDirectoryController {
                 defaults,
                 transaction,
                 metadata);
+    }
+
+    private static Optional<EmvCapCredentialHydration> toHydration(Credential credential) {
+        try {
+            EmvCapCredentialDescriptor descriptor =
+                    CREDENTIAL_ADAPTER.deserialize(VersionedCredentialRecordMapper.toRecord(credential));
+            return Optional.of(new EmvCapCredentialHydration(
+                    credential.name(),
+                    descriptor.mode().name(),
+                    descriptor.masterKey().asHex().toUpperCase(Locale.ROOT),
+                    descriptor.cdol1Hex().toUpperCase(Locale.ROOT),
+                    descriptor.issuerProprietaryBitmapHex().toUpperCase(Locale.ROOT),
+                    descriptor.iccDataTemplateHex().toUpperCase(Locale.ROOT),
+                    descriptor.issuerApplicationDataHex().toUpperCase(Locale.ROOT),
+                    new EmvCapCredentialHydration.HydrationDefaults(
+                            descriptor.defaultChallenge(), descriptor.defaultReference(), descriptor.defaultAmount())));
+        } catch (IllegalArgumentException ex) {
+            return Optional.empty();
+        }
     }
 
     private static Map<String, String> extractMetadata(Map<String, String> attributes) {
@@ -205,6 +243,37 @@ final class EmvCapCredentialDirectoryController {
             defaults = defaults == null ? new Defaults("", "", "") : defaults;
             transaction = transaction == null ? new Transaction(null, null, null) : transaction;
             metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+        }
+    }
+
+    record EmvCapCredentialHydration(
+            String id,
+            String mode,
+            String masterKey,
+            String cdol1,
+            String issuerProprietaryBitmap,
+            String iccDataTemplate,
+            String issuerApplicationData,
+            HydrationDefaults defaults) {
+
+        EmvCapCredentialHydration {
+            Objects.requireNonNull(id, "id");
+            Objects.requireNonNull(mode, "mode");
+            Objects.requireNonNull(masterKey, "masterKey");
+            Objects.requireNonNull(cdol1, "cdol1");
+            Objects.requireNonNull(issuerProprietaryBitmap, "issuerProprietaryBitmap");
+            Objects.requireNonNull(iccDataTemplate, "iccDataTemplate");
+            Objects.requireNonNull(issuerApplicationData, "issuerApplicationData");
+            defaults = defaults == null ? new HydrationDefaults("", "", "") : defaults;
+        }
+
+        record HydrationDefaults(String challenge, String reference, String amount) {
+
+            HydrationDefaults {
+                challenge = challenge == null ? "" : challenge;
+                reference = reference == null ? "" : reference;
+                amount = amount == null ? "" : amount;
+            }
         }
     }
 

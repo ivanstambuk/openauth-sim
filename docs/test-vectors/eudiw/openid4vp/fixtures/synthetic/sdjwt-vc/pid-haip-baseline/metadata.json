@@ -1,0 +1,22 @@
+{
+  "credentialId": "pid-haip-baseline",
+  "format": "dc+sd-jwt",
+  "profile": "HAIP",
+  "description": "Synthetic PID SD-JWT VC aligned with the HAIP baseline profile.",
+  "issuer": {
+    "id": "https://pid-issuer.example.eu/issuers/haip",
+    "label": "EU PID Issuer",
+    "authorityKeyIdentifier": "s9tIpP7qrS9="
+  },
+  "holder": {
+    "id": "did:example:holder-0001",
+    "label": "Sample PID Holder",
+    "bindingKeyId": "pid-haip-baseline-holder"
+  },
+  "evidence": {
+    "disclosureCount": 3,
+    "digestCount": 3,
+    "kbJwt": true
+  },
+  "version": "2025-11-01"
+}

@@ -186,6 +186,49 @@ final class EmvCapCredentialDirectoryControllerTest {
         assertThat(metadata.path("vectorId").asText()).isEqualTo("identify-baseline");
     }
 
+    @Test
+    @DisplayName("Credential detail endpoint exposes inline defaults for presets")
+    void credentialDetailExposesInlineDefaults() throws Exception {
+        EmvCapSeedSamples.SeedSample signSample = EmvCapSeedSamples.samples().stream()
+                .filter(sample -> "sign-baseline".equals(sample.vectorId()))
+                .findFirst()
+                .orElseThrow();
+
+        MvcResult result = mockMvc.perform(get("/api/v1/emv/cap/credentials/{credentialId}", signSample.credentialId())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode payload = objectMapper.readTree(result.getResponse().getContentAsByteArray());
+        var vector = signSample.vector();
+
+        assertThat(payload.path("id").asText()).isEqualTo(signSample.credentialId());
+        assertThat(payload.path("mode").asText()).isEqualTo(signSample.mode().name());
+        assertThat(payload.path("masterKey").asText()).isEqualTo(vector.input().masterKeyHex());
+        assertThat(payload.path("cdol1").asText()).isEqualTo(vector.input().cdol1Hex());
+        assertThat(payload.path("issuerProprietaryBitmap").asText())
+                .isEqualTo(vector.input().issuerProprietaryBitmapHex());
+        assertThat(payload.path("iccDataTemplate").asText())
+                .isEqualTo(vector.input().iccDataTemplateHex());
+        assertThat(payload.path("issuerApplicationData").asText())
+                .isEqualTo(vector.input().issuerApplicationDataHex());
+
+        JsonNode defaults = payload.path("defaults");
+        assertThat(defaults.path("challenge").asText())
+                .isEqualTo(vector.input().customerInputs().challenge());
+        assertThat(defaults.path("reference").asText())
+                .isEqualTo(vector.input().customerInputs().reference());
+        assertThat(defaults.path("amount").asText())
+                .isEqualTo(vector.input().customerInputs().amount());
+    }
+
+    @Test
+    @DisplayName("Credential detail endpoint returns 404 when preset is missing")
+    void credentialDetailReturnsNotFound() throws Exception {
+        mockMvc.perform(get("/api/v1/emv/cap/credentials/does-not-exist").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
     private static JsonNode findById(JsonNode root, String id) {
         for (JsonNode node : root) {
             if (id.equals(node.path("id").asText())) {

@@ -28,6 +28,7 @@ Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiabl
 - 2025-11-01 – Authorization requests receive internal simulator identifiers for telemetry/replay; the UI hides them except within verbose traces (user directive).
 - 2025-11-01 – DCQL preview renders formatted JSON in a read-only text area with the simulator’s standard read-only background styling (user directive).
 - 2025-11-01 – Result panels expose VP Token JSON inline (read-only, horizontal scroll) so operators can inspect payloads without enabling verbose trace (user directive).
+- 2025-11-06 – Wallet simulator recomputes SD-JWT disclosure hashes from supplied disclosures; fixtures offer reference digests but the service must remain deterministic without relying on precomputed hashes (owner decision on Option A).
 - 2025-11-01 – Synthetic issuer/holder key material (SD-JWT signer, KB-JWT keys, mdoc issuer certs) ship with fixtures and are scoped to simulator use only (user directive).
 - 2025-11-01 – Inline sample selector loads fixture-defined vectors into SD-JWT/disclosure/device response fields for quick demonstrations (user directive).
 - 2025-11-01 – Authority Key Identifier (DCQL `aki`) remains the initial Trusted Authority filter; presets store friendly labels as metadata so the UI can surface a name alongside the `aki` value without altering the DCQL payload (user directive).

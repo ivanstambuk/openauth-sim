@@ -306,14 +306,14 @@ paths:
               $ref: "#/components/schemas/OcraVerificationRequest"
         required: true
       responses:
-        "500":
-          description: "Unexpected error"
+        "404":
+          description: "Credential not found"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/OcraVerificationErrorResponse"
-        "404":
-          description: "Credential not found"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -432,24 +432,24 @@ paths:
               $ref: "#/components/schemas/HotpReplayRequest"
         required: true
       responses:
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
         "200":
           description: "Replay completed"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
   /api/v1/hotp/evaluate:
     post:
       tags:
@@ -465,18 +465,18 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "200":
           description: "Evaluation completed"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "422":
           description: "Validation error"
           content:
@@ -498,18 +498,18 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "200":
           description: "Evaluation completed"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "422":
           description: "Validation error"
           content:
@@ -543,6 +543,12 @@ paths:
               $ref: "#/components/schemas/EmvCapReplayRequest"
         required: true
       responses:
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -555,12 +561,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmvCapReplayResponse"
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
   /api/v1/emv/cap/evaluate:
     post:
       tags:
@@ -576,6 +576,12 @@ paths:
               $ref: "#/components/schemas/EmvCapEvaluationRequest"
         required: true
       responses:
+        "200":
+          description: "Evaluation completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapEvaluationResponse"
         "422":
           description: "Validation error"
           content:
@@ -588,12 +594,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmvCapEvaluationErrorResponse"
-        "200":
-          description: "Evaluation completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EmvCapEvaluationResponse"
   /api/v1/emv/cap/credentials/seed:
     post:
       tags:
@@ -766,6 +766,24 @@ paths:
                 type: "array"
                 items:
                   $ref: "#/components/schemas/EmvCapCredentialSummary"
+  /api/v1/emv/cap/credentials/{credentialId}:
+    get:
+      tags:
+      - "emv-cap-credential-directory-controller"
+      operationId: "credentialDetail"
+      parameters:
+      - name: "credentialId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapCredentialHydration"
 components:
   schemas:
     VerboseTraceAttributePayload:
@@ -1790,21 +1808,6 @@ components:
             type: "string"
         verbose:
           type: "boolean"
-    HotpReplayErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
     HotpReplayMetadata:
       type: "object"
       properties:
@@ -1838,16 +1841,7 @@ components:
           $ref: "#/components/schemas/HotpReplayMetadata"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
-    HotpStoredEvaluationRequest:
-      type: "object"
-      properties:
-        credentialId:
-          type: "string"
-        window:
-          $ref: "#/components/schemas/EvaluationWindowRequest"
-        verbose:
-          type: "boolean"
-    HotpEvaluationErrorResponse:
+    HotpReplayErrorResponse:
       type: "object"
       properties:
         status:
@@ -1862,6 +1856,15 @@ components:
             type: "object"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
+    HotpStoredEvaluationRequest:
+      type: "object"
+      properties:
+        credentialId:
+          type: "string"
+        window:
+          $ref: "#/components/schemas/EvaluationWindowRequest"
+        verbose:
+          type: "boolean"
     HotpEvaluationMetadata:
       type: "object"
       properties:
@@ -1903,6 +1906,21 @@ components:
             $ref: "#/components/schemas/OtpPreviewResponse"
         metadata:
           $ref: "#/components/schemas/HotpEvaluationMetadata"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
+    HotpEvaluationErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
     HotpInlineEvaluationRequest:
@@ -2098,21 +2116,37 @@ components:
           type: "string"
         includeTrace:
           type: "boolean"
-    EmvCapEvaluationErrorResponse:
+    EmvCapEvaluationResponse:
       type: "object"
       properties:
-        status:
+        otp:
           type: "string"
+        maskLength:
+          type: "integer"
+          format: "int32"
+        previews:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OtpPreviewResponse"
+        trace:
+          $ref: "#/components/schemas/EmvCapTracePayload"
+        telemetry:
+          $ref: "#/components/schemas/EmvCapTelemetryPayload"
+    EmvCapTelemetryPayload:
+      type: "object"
+      properties:
         reasonCode:
           type: "string"
-        message:
-          type: "string"
-        details:
+        fields:
           type: "object"
           additionalProperties:
             type: "object"
-        trace:
-          $ref: "#/components/schemas/EmvCapTracePayload"
+        status:
+          type: "string"
+        event:
+          type: "string"
+        sanitized:
+          type: "boolean"
     EmvCapTracePayload:
       type: "object"
       properties:
@@ -2158,37 +2192,21 @@ components:
           type: "string"
         icc:
           type: "string"
-    EmvCapEvaluationResponse:
+    EmvCapEvaluationErrorResponse:
       type: "object"
       properties:
-        otp:
+        status:
           type: "string"
-        maskLength:
-          type: "integer"
-          format: "int32"
-        previews:
-          type: "array"
-          items:
-            $ref: "#/components/schemas/OtpPreviewResponse"
-        trace:
-          $ref: "#/components/schemas/EmvCapTracePayload"
-        telemetry:
-          $ref: "#/components/schemas/EmvCapTelemetryPayload"
-    EmvCapTelemetryPayload:
-      type: "object"
-      properties:
         reasonCode:
           type: "string"
-        fields:
+        message:
+          type: "string"
+        details:
           type: "object"
           additionalProperties:
             type: "object"
-        status:
-          type: "string"
-        event:
-          type: "string"
-        sanitized:
-          type: "boolean"
+        trace:
+          $ref: "#/components/schemas/EmvCapTracePayload"
     WebAuthnCredentialSummary:
       type: "object"
       properties:
@@ -2436,4 +2454,32 @@ components:
         icc:
           type: "string"
         iccResolved:
+          type: "string"
+    EmvCapCredentialHydration:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        mode:
+          type: "string"
+        masterKey:
+          type: "string"
+        cdol1:
+          type: "string"
+        issuerProprietaryBitmap:
+          type: "string"
+        iccDataTemplate:
+          type: "string"
+        issuerApplicationData:
+          type: "string"
+        defaults:
+          $ref: "#/components/schemas/HydrationDefaults"
+    HydrationDefaults:
+      type: "object"
+      properties:
+        challenge:
+          type: "string"
+        reference:
+          type: "string"
+        amount:
           type: "string"

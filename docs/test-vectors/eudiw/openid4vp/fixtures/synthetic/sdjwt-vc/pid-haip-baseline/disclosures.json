@@ -1,0 +1,17 @@
+[
+  [
+    "bVNKV2FEWXVtM1kzRnpveQ==",
+    "vc.credentialSubject.family_name",
+    "DOE"
+  ],
+  [
+    "T0NMeFZTYnJ2bW90ZEFhbQ==",
+    "vc.credentialSubject.given_name",
+    "JOANNA"
+  ],
+  [
+    "c3VjY2Vzc0FkbWluaXN0cmF0aXZl",
+    "vc.credentialSubject.nationality",
+    "DE"
+  ]
+]

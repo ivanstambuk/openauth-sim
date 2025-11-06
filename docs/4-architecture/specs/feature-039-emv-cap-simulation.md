@@ -152,7 +152,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
    - REST endpoint `POST /api/v1/emv/cap/credentials/seed` returning added/total counts and credential identifiers.
    - CLI command `emv cap seed` with equivalent reporting.
 3. Ensure seeding is idempotent and guard sensitive values with the same sanitisation rules applied elsewhere (no master/session keys in telemetry/logs). Credential directory responses expose only sanitized summaries (digests/length metadata) so downstream facades never transmit raw secret material.
-4. Operator UI integrates stored credential selection (dropdown + autofill) and pulls only sanitized summaries; evaluation/replay submissions fetch the full credential server-side immediately before derivation.
+4. Operator UI integrates stored credential selection (dropdown + autofill) and still loads sanitized summaries, but inline hydration requests fetch full preset defaults via `GET /api/v1/emv/cap/credentials/{credentialId}` (master key hex, CDOL1, issuer proprietary bitmap, ICC template, issuer application data, and stored customer inputs). Responses are cached per credential so inline Evaluate/Replay forms populate immediately while stored mode keeps secrets hidden.
 5. Tests cover MapDB persistence flows, seeding idempotency, preset rendering, sanitized summary generation, and facade interactions with stored credentials.
 
 ### R7 – Application replay orchestration & telemetry
