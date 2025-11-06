@@ -616,6 +616,26 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     'Stored issuer application data textarea should remain blank',
   );
   assert.equal(
+    env.containers.masterKey.getAttribute('hidden'),
+    'hidden',
+    'Master key field group should be hidden in stored mode',
+  );
+  assert.equal(
+    env.containers.masterKey.getAttribute('aria-hidden'),
+    'true',
+    'Master key field group should be marked aria-hidden in stored mode',
+  );
+  assert.equal(
+    env.containers.cdol1.getAttribute('hidden'),
+    'hidden',
+    'CDOL1 field group should be hidden in stored mode',
+  );
+  assert.equal(
+    env.containers.issuerApplicationData.getAttribute('hidden'),
+    'hidden',
+    'Issuer application data field group should be hidden in stored mode',
+  );
+  assert.equal(
     env.inputs.masterKey.getAttribute('data-secret-mode'),
     'stored',
     'Master key input should record stored mode state',
@@ -646,14 +666,29 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     'Master key mask should remain hidden in stored mode',
   );
   assert.equal(
+    env.masks.masterKey.getAttribute('aria-hidden'),
+    'true',
+    'Master key mask should be marked aria-hidden in stored mode',
+  );
+  assert.equal(
     env.masks.cdol1.getAttribute('hidden'),
     'hidden',
     'CDOL1 mask should remain hidden in stored mode',
   );
   assert.equal(
+    env.masks.cdol1.getAttribute('aria-hidden'),
+    'true',
+    'CDOL1 mask should be marked aria-hidden in stored mode',
+  );
+  assert.equal(
     env.masks.issuerApplicationData.getAttribute('hidden'),
     'hidden',
     'Issuer application data mask should remain hidden in stored mode',
+  );
+  assert.equal(
+    env.masks.issuerApplicationData.getAttribute('aria-hidden'),
+    'true',
+    'Issuer application data mask should be marked aria-hidden in stored mode',
   );
   assert.equal(
     env.masks.masterKey.valueNode.textContent,
@@ -697,6 +732,41 @@ test('selecting a preset while inline mode is active keeps inline controls edita
     env.inputs.masterKey.getAttribute('aria-hidden'),
     null,
     'Master key input should remain visible when inline mode is active',
+  );
+  assert.equal(
+    env.containers.masterKey.getAttribute('hidden'),
+    null,
+    'Master key field group should remain visible in inline mode',
+  );
+  assert.equal(
+    env.containers.masterKey.getAttribute('aria-hidden'),
+    null,
+    'Master key field group should clear aria-hidden when inline mode is active',
+  );
+  assert.equal(
+    env.containers.cdol1.getAttribute('hidden'),
+    null,
+    'CDOL1 field group should remain visible in inline mode',
+  );
+  assert.equal(
+    env.containers.issuerApplicationData.getAttribute('hidden'),
+    null,
+    'Issuer application data field group should remain visible in inline mode',
+  );
+  assert.equal(
+    env.masks.masterKey.getAttribute('hidden'),
+    null,
+    'Master key mask should clear hidden attribute when inline mode is active',
+  );
+  assert.equal(
+    env.masks.masterKey.getAttribute('aria-hidden'),
+    null,
+    'Master key mask should clear aria-hidden when inline mode is active',
+  );
+  assert.equal(
+    env.masks.masterKey.style.display,
+    'none',
+    'Master key mask should remain visually hidden while inline mode is active',
   );
   assert.equal(
     env.inputs.masterKey.style.pointerEvents,

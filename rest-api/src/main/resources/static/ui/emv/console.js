@@ -1638,9 +1638,7 @@
   }
 
   function applyStoredVisibility(field) {
-    if (field.container) {
-      field.container.setAttribute('aria-hidden', 'true');
-    }
+    setFieldVisibility(field, true);
     field.input.setAttribute('aria-hidden', 'true');
     field.input.style.opacity = '';
     field.input.style.pointerEvents = 'none';
@@ -1650,15 +1648,11 @@
     field.input.setAttribute('data-secret-mode', 'stored');
     if (field.mask) {
       field.mask.style.display = 'none';
-      field.mask.setAttribute('aria-hidden', 'true');
-      field.mask.setAttribute('hidden', 'hidden');
     }
   }
 
   function applyInlineVisibility(field) {
-    if (field.container) {
-      field.container.removeAttribute('aria-hidden');
-    }
+    setFieldVisibility(field, false);
     field.input.removeAttribute('aria-hidden');
     field.input.style.opacity = '';
     field.input.style.pointerEvents = '';
@@ -1668,8 +1662,27 @@
     field.input.setAttribute('data-secret-mode', 'inline');
     if (field.mask) {
       field.mask.style.display = 'none';
-      field.mask.setAttribute('aria-hidden', 'true');
-      field.mask.setAttribute('hidden', 'hidden');
+    }
+  }
+
+  function setFieldVisibility(field, hidden) {
+    if (field.container) {
+      if (hidden) {
+        field.container.setAttribute('hidden', 'hidden');
+        field.container.setAttribute('aria-hidden', 'true');
+      } else {
+        field.container.removeAttribute('hidden');
+        field.container.removeAttribute('aria-hidden');
+      }
+    }
+    if (field.mask) {
+      if (hidden) {
+        field.mask.setAttribute('hidden', 'hidden');
+        field.mask.setAttribute('aria-hidden', 'true');
+      } else {
+        field.mask.removeAttribute('hidden');
+        field.mask.removeAttribute('aria-hidden');
+      }
     }
   }
 
