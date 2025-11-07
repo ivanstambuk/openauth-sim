@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -40,8 +41,15 @@ public final class OpenId4VpWalletSimulationService {
         Optional<String> keyBindingJwt = inlineSdJwt != null ? inlineSdJwt.keyBindingJwt() : preset.keyBindingJwt();
 
         List<String> disclosureHashes = OpenId4VpWalletSimulationService.computeDisclosureHashes(disclosures);
-        Optional<String> trustedAuthorityMatch = OpenId4VpWalletSimulationService.determineTrustedAuthorityMatch(
-                request.trustedAuthorityPolicy(), trustedAuthorityPolicies);
+        TrustedAuthorityEvaluator.Decision trustedAuthorityDecision = this.dependencies
+                .trustedAuthorityEvaluator()
+                .evaluate(request.trustedAuthorityPolicy(), trustedAuthorityPolicies);
+        if (trustedAuthorityDecision.problemDetails().isPresent()) {
+            throw new Oid4vpValidationException(
+                    trustedAuthorityDecision.problemDetails().orElseThrow());
+        }
+        Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMatch =
+                trustedAuthorityDecision.trustedAuthorityMatch();
         VpToken vpToken = new VpToken(compactSdJwt, Map.of("presentation_definition_id", credentialId));
         boolean holderBinding = keyBindingJwt.isPresent();
         Presentation presentation =
@@ -49,9 +57,15 @@ public final class OpenId4VpWalletSimulationService {
         Trace trace = new Trace(
                 OpenId4VpWalletSimulationService.sha256Hex(compactSdJwt),
                 keyBindingJwt.map(OpenId4VpWalletSimulationService::sha256Hex),
-                disclosureHashes);
-        TelemetrySignal telemetry =
-                this.dependencies.telemetryPublisher().walletResponded(request.requestId(), request.profile(), 1);
+                disclosureHashes,
+                trustedAuthorityMatch);
+        TelemetrySignal telemetry = this.dependencies
+                .telemetryPublisher()
+                .walletResponded(
+                        request.requestId(),
+                        request.profile(),
+                        1,
+                        telemetryFields(trustedAuthorityMatch, request.trustedAuthorityPolicy()));
         return new SimulationResult(
                 request.requestId(),
                 Status.SUCCESS,
@@ -69,15 +83,6 @@ public final class OpenId4VpWalletSimulationService {
             computed.add("sha-256:" + OpenId4VpWalletSimulationService.sha256Hex(disclosure));
         }
         return List.copyOf(computed);
-    }
-
-    private static Optional<String> determineTrustedAuthorityMatch(
-            Optional<String> requestedPolicy, List<String> availablePolicies) {
-        if (requestedPolicy == null || requestedPolicy.isEmpty()) {
-            return Optional.empty();
-        }
-        List<String> policies = availablePolicies == null ? List.of() : List.copyOf(availablePolicies);
-        return requestedPolicy.filter(policies::contains);
     }
 
     private static String requireInlineMetadata(String value, String fieldName) {
@@ -105,10 +110,29 @@ public final class OpenId4VpWalletSimulationService {
         return builder.toString();
     }
 
-    public record Dependencies(WalletPresetRepository walletPresetRepository, TelemetryPublisher telemetryPublisher) {
+    private static Map<String, Object> telemetryFields(
+            Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> match, Optional<String> requestedPolicy) {
+        Map<String, Object> fields = new LinkedHashMap<>();
+        requestedPolicy.ifPresent(policy -> fields.put("trustedAuthorityRequested", policy));
+        match.ifPresent(verdict -> fields.put(
+                "trustedAuthority",
+                Map.of(
+                        "type", verdict.type(),
+                        "value", verdict.value(),
+                        "label", verdict.label(),
+                        "policy", verdict.policy())));
+        fields.put("presentations", 1);
+        return fields;
+    }
+
+    public record Dependencies(
+            WalletPresetRepository walletPresetRepository,
+            TelemetryPublisher telemetryPublisher,
+            TrustedAuthorityEvaluator trustedAuthorityEvaluator) {
         public Dependencies {
             Objects.requireNonNull(walletPresetRepository, "walletPresetRepository");
             Objects.requireNonNull(telemetryPublisher, "telemetryPublisher");
+            Objects.requireNonNull(trustedAuthorityEvaluator, "trustedAuthorityEvaluator");
         }
     }
 
@@ -184,7 +208,7 @@ public final class OpenId4VpWalletSimulationService {
             String credentialId,
             String format,
             boolean holderBinding,
-            Optional<String> trustedAuthorityMatch,
+            Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMatch,
             VpToken vpToken,
             List<String> disclosureHashes) {
         public Presentation {
@@ -196,16 +220,22 @@ public final class OpenId4VpWalletSimulationService {
         }
     }
 
-    public record Trace(String vpTokenHash, Optional<String> kbJwtHash, List<String> disclosureHashes) {
+    public record Trace(
+            String vpTokenHash,
+            Optional<String> kbJwtHash,
+            List<String> disclosureHashes,
+            Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMatch) {
         public Trace {
             Objects.requireNonNull(vpTokenHash, "vpTokenHash");
             kbJwtHash = kbJwtHash == null ? Optional.empty() : kbJwtHash;
             disclosureHashes = disclosureHashes == null ? List.of() : List.copyOf(disclosureHashes);
+            trustedAuthorityMatch = trustedAuthorityMatch == null ? Optional.empty() : trustedAuthorityMatch;
         }
     }
 
     public static interface TelemetryPublisher {
-        public TelemetrySignal walletResponded(String var1, Profile var2, int var3);
+        public TelemetrySignal walletResponded(
+                String requestId, Profile profile, int presentations, Map<String, Object> fields);
     }
 
     public static enum Profile {

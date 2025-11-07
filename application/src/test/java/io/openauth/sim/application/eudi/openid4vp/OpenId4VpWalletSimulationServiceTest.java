@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.core.eudi.openid4vp.TrustedAuthorityFixtures;
 import io.openauth.sim.core.json.SimpleJson;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -28,6 +29,8 @@ final class OpenId4VpWalletSimulationServiceTest {
     private static final String PRESET_ID = "pid-haip-baseline";
     private static final String INLINE_CREDENTIAL_ID = "pid-inline-sample";
     private static final String TRUSTED_AUTHORITY_POLICY = "aki:s9tIpP7qrS9=";
+    private static final TrustedAuthorityEvaluator EVALUATOR =
+            TrustedAuthorityEvaluator.fromSnapshot(TrustedAuthorityFixtures.loadSnapshot("haip-baseline"));
 
     @Test
     void presetWalletProducesDeterministicSdJwtPresentation() throws IOException, NoSuchAlgorithmException {
@@ -35,7 +38,7 @@ final class OpenId4VpWalletSimulationServiceTest {
         RecordingTelemetry telemetry = new RecordingTelemetry();
 
         OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
-                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry, EVALUATOR));
 
         OpenId4VpWalletSimulationService.SimulateRequest request = new OpenId4VpWalletSimulationService.SimulateRequest(
                 "HAIP-000001",
@@ -58,7 +61,10 @@ final class OpenId4VpWalletSimulationServiceTest {
         assertEquals("pid-haip-baseline", presentation.credentialId());
         assertEquals("dc+sd-jwt", presentation.format());
         assertTrue(presentation.holderBinding());
-        assertEquals(Optional.of(TRUSTED_AUTHORITY_POLICY), presentation.trustedAuthorityMatch());
+        TrustedAuthorityEvaluator.TrustedAuthorityVerdict trustedMatch =
+                presentation.trustedAuthorityMatch().orElseThrow();
+        assertEquals(TRUSTED_AUTHORITY_POLICY, trustedMatch.policy());
+        assertEquals("EU PID Issuer", trustedMatch.label());
 
         OpenId4VpWalletSimulationService.VpToken vpToken = presentation.vpToken();
         assertEquals(presets.compactSdJwt(), vpToken.vpToken());
@@ -71,12 +77,17 @@ final class OpenId4VpWalletSimulationServiceTest {
         assertEquals(presets.expectedVpTokenHash(), trace.vpTokenHash());
         assertEquals(Optional.of(presets.expectedKbJwtHash()), trace.kbJwtHash());
         assertEquals(expectedDisclosureHashes, trace.disclosureHashes());
+        assertEquals(
+                TRUSTED_AUTHORITY_POLICY,
+                trace.trustedAuthorityMatch().orElseThrow().policy());
 
         OpenId4VpWalletSimulationService.TelemetrySignal telemetrySignal = result.telemetry();
         assertEquals("oid4vp.wallet.responded", telemetrySignal.event());
         assertEquals("HAIP-000001", telemetry.lastRequestId);
         assertEquals(OpenId4VpWalletSimulationService.Profile.HAIP, telemetry.lastProfile);
         assertEquals(1, telemetry.lastPresentationCount);
+        assertEquals(
+                TRUSTED_AUTHORITY_POLICY, ((Map<?, ?>) telemetry.lastFields().get("trustedAuthority")).get("policy"));
     }
 
     @Test
@@ -85,7 +96,7 @@ final class OpenId4VpWalletSimulationServiceTest {
         RecordingTelemetry telemetry = new RecordingTelemetry();
 
         OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
-                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry, EVALUATOR));
 
         String inlineSdJwt =
                 "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2N1c3RvbS5pc3N1ZXIuZXhhbXBsZS9zcGVjIiwidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsImN1c3RvbS12YyJdfX0.c2lnLWlubGluZS1zaWduYXR1cmU";
@@ -132,7 +143,7 @@ final class OpenId4VpWalletSimulationServiceTest {
         RecordingTelemetry telemetry = new RecordingTelemetry();
 
         OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
-                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry, EVALUATOR));
 
         String inlineSdJwt =
                 "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnQiOiJpbi1saW5lLXdhbGxldCIsInR5cCI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsImN1c3RvbS12YyJdfX0.dGVzdC1pbi1saW5lLXNpZ24";
@@ -165,7 +176,9 @@ final class OpenId4VpWalletSimulationServiceTest {
         assertEquals(INLINE_CREDENTIAL_ID, presentation.credentialId());
         assertEquals("dc+sd-jwt", presentation.format());
         assertFalse(presentation.holderBinding());
-        assertEquals(Optional.of(TRUSTED_AUTHORITY_POLICY), presentation.trustedAuthorityMatch());
+        assertEquals(
+                TRUSTED_AUTHORITY_POLICY,
+                presentation.trustedAuthorityMatch().orElseThrow().policy());
         assertEquals(inlineSdJwt, presentation.vpToken().vpToken());
 
         List<String> inlineDisclosureHashes = List.of("sha-256:" + sha256Hex(inlineDisclosure));
@@ -181,7 +194,7 @@ final class OpenId4VpWalletSimulationServiceTest {
         RecordingTelemetry telemetry = new RecordingTelemetry();
 
         OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
-                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry, EVALUATOR));
 
         OpenId4VpWalletSimulationService.SimulateRequest request = new OpenId4VpWalletSimulationService.SimulateRequest(
                 "HAIP-TRACE-01",
@@ -191,35 +204,32 @@ final class OpenId4VpWalletSimulationServiceTest {
                 Optional.empty(),
                 Optional.of(TRUSTED_AUTHORITY_POLICY));
 
-        try {
-            service.simulate(request);
-        } catch (UnsupportedOperationException ignored) {
-            // Expected until implementation lands; ensure telemetry contract still recorded.
-        }
+        service.simulate(request);
 
         assertEquals("HAIP-TRACE-01", telemetry.lastRequestId);
         assertEquals(OpenId4VpWalletSimulationService.Profile.HAIP, telemetry.lastProfile);
+        assertEquals(TRUSTED_AUTHORITY_POLICY, telemetry.lastFields().get("trustedAuthorityRequested"));
     }
 
     @Test
-    void unmatchedTrustedAuthorityReturnsEmptyOptional() {
+    void unmatchedTrustedAuthorityReturnsProblemDetails() {
         FixtureWalletPresetRepository presets = new FixtureWalletPresetRepository();
         RecordingTelemetry telemetry = new RecordingTelemetry();
 
         OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
-                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry, EVALUATOR));
 
-        OpenId4VpWalletSimulationService.SimulateRequest request = new OpenId4VpWalletSimulationService.SimulateRequest(
-                "HAIP-TRACE-02",
-                OpenId4VpWalletSimulationService.Profile.HAIP,
-                OpenId4VpWalletSimulationService.ResponseMode.DIRECT_POST,
-                Optional.of(PRESET_ID),
-                Optional.empty(),
-                Optional.of("aki:missing"));
+        Oid4vpValidationException exception = assertThrows(
+                Oid4vpValidationException.class,
+                () -> service.simulate(new OpenId4VpWalletSimulationService.SimulateRequest(
+                        "HAIP-TRACE-02",
+                        OpenId4VpWalletSimulationService.Profile.HAIP,
+                        OpenId4VpWalletSimulationService.ResponseMode.DIRECT_POST,
+                        Optional.of(PRESET_ID),
+                        Optional.empty(),
+                        Optional.of("aki:missing"))));
 
-        OpenId4VpWalletSimulationService.SimulationResult result = service.simulate(request);
-
-        assertTrue(result.presentations().get(0).trustedAuthorityMatch().isEmpty());
+        assertEquals("invalid_scope", exception.problemDetails().title());
     }
 
     @Test
@@ -228,7 +238,7 @@ final class OpenId4VpWalletSimulationServiceTest {
         RecordingTelemetry telemetry = new RecordingTelemetry();
 
         OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
-                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry, EVALUATOR));
 
         OpenId4VpWalletSimulationService.SimulateRequest request = new OpenId4VpWalletSimulationService.SimulateRequest(
                 "HAIP-HASH-01",
@@ -253,7 +263,7 @@ final class OpenId4VpWalletSimulationServiceTest {
         RecordingTelemetry telemetry = new RecordingTelemetry();
 
         OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
-                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry, EVALUATOR));
 
         OpenId4VpWalletSimulationService.SimulateRequest request = new OpenId4VpWalletSimulationService.SimulateRequest(
                 "HAIP-TRACE-03",
@@ -274,7 +284,7 @@ final class OpenId4VpWalletSimulationServiceTest {
         RecordingTelemetry telemetry = new RecordingTelemetry();
 
         OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
-                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry, EVALUATOR));
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
@@ -499,16 +509,24 @@ final class OpenId4VpWalletSimulationServiceTest {
         private OpenId4VpWalletSimulationService.Profile lastProfile;
         private int lastPresentationCount;
         private OpenId4VpWalletSimulationService.TelemetrySignal lastSignal;
+        private Map<String, Object> lastFields = Map.of();
 
         @Override
         public OpenId4VpWalletSimulationService.TelemetrySignal walletResponded(
-                String requestId, OpenId4VpWalletSimulationService.Profile profile, int presentationCount) {
+                String requestId,
+                OpenId4VpWalletSimulationService.Profile profile,
+                int presentationCount,
+                Map<String, Object> fields) {
             this.lastRequestId = requestId;
             this.lastProfile = profile;
             this.lastPresentationCount = presentationCount;
-            this.lastSignal = new SimpleTelemetrySignal(
-                    "oid4vp.wallet.responded", Map.of("profile", profile.name(), "presentations", presentationCount));
+            this.lastFields = Map.copyOf(fields);
+            this.lastSignal = new SimpleTelemetrySignal("oid4vp.wallet.responded", this.lastFields);
             return lastSignal;
+        }
+
+        Map<String, Object> lastFields() {
+            return lastFields;
         }
     }
 

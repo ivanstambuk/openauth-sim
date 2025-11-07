@@ -34,8 +34,15 @@ public final class MdocWalletSimulationService {
         }
 
         ResolvedMdocInput input = resolveInput(request);
-        Optional<String> trustedAuthorityMatch =
-                determineTrustedAuthorityMatch(request.trustedAuthorityPolicy(), input.trustedAuthorityPolicies());
+        TrustedAuthorityEvaluator.Decision trustedAuthorityDecision = this.dependencies
+                .trustedAuthorityEvaluator()
+                .evaluate(request.trustedAuthorityPolicy(), input.trustedAuthorityPolicies());
+        if (trustedAuthorityDecision.problemDetails().isPresent()) {
+            throw new Oid4vpValidationException(
+                    trustedAuthorityDecision.problemDetails().orElseThrow());
+        }
+        Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMatch =
+                trustedAuthorityDecision.trustedAuthorityMatch();
 
         Map<String, Boolean> claimsSatisfied = evaluateClaims(input.claimsPathPointers());
         String deviceResponseHash = sha256Hex(decodeBase64(input.deviceResponseBase64()));
@@ -52,8 +59,13 @@ public final class MdocWalletSimulationService {
                 encryptionRequired ? Optional.of(Boolean.TRUE) : Optional.empty());
         Trace trace = new Trace(List.of(diagnostics), Optional.empty());
 
-        TelemetrySignal telemetry =
-                this.dependencies.telemetryPublisher().walletResponded(request.requestId(), request.profile(), 1);
+        TelemetrySignal telemetry = this.dependencies
+                .telemetryPublisher()
+                .walletResponded(
+                        request.requestId(),
+                        request.profile(),
+                        1,
+                        telemetryFields(trustedAuthorityMatch, request.trustedAuthorityPolicy()));
 
         return new SimulationResult(
                 request.requestId(),
@@ -98,14 +110,6 @@ public final class MdocWalletSimulationService {
         return Map.copyOf(evaluation);
     }
 
-    private static Optional<String> determineTrustedAuthorityMatch(Optional<String> requested, List<String> available) {
-        if (requested == null || requested.isEmpty()) {
-            return Optional.empty();
-        }
-        List<String> policies = available == null ? List.of() : available;
-        return requested.filter(policies::contains);
-    }
-
     private static byte[] decodeBase64(String value) {
         return Base64.getDecoder().decode(value);
     }
@@ -124,6 +128,21 @@ public final class MdocWalletSimulationService {
         }
     }
 
+    private static Map<String, Object> telemetryFields(
+            Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> match, Optional<String> requestedPolicy) {
+        Map<String, Object> fields = new LinkedHashMap<>();
+        requestedPolicy.ifPresent(policy -> fields.put("trustedAuthorityRequested", policy));
+        match.ifPresent(verdict -> fields.put(
+                "trustedAuthority",
+                Map.of(
+                        "type", verdict.type(),
+                        "value", verdict.value(),
+                        "label", verdict.label(),
+                        "policy", verdict.policy())));
+        fields.put("presentations", 1);
+        return fields;
+    }
+
     private record ResolvedMdocInput(
             String credentialId,
             String docType,
@@ -136,11 +155,13 @@ public final class MdocWalletSimulationService {
     public record Dependencies(
             DeviceResponsePresetRepository presetRepository,
             TelemetryPublisher telemetryPublisher,
-            HaipEncryptionHook haipEncryptionHook) {
+            HaipEncryptionHook haipEncryptionHook,
+            TrustedAuthorityEvaluator trustedAuthorityEvaluator) {
         public Dependencies {
             Objects.requireNonNull(presetRepository, "presetRepository");
             Objects.requireNonNull(telemetryPublisher, "telemetryPublisher");
             Objects.requireNonNull(haipEncryptionHook, "haipEncryptionHook");
+            Objects.requireNonNull(trustedAuthorityEvaluator, "trustedAuthorityEvaluator");
         }
     }
 
@@ -183,7 +204,8 @@ public final class MdocWalletSimulationService {
     }
 
     public interface TelemetryPublisher {
-        TelemetrySignal walletResponded(String requestId, Profile profile, int presentations);
+        TelemetrySignal walletResponded(
+                String requestId, Profile profile, int presentations, Map<String, Object> fields);
     }
 
     public interface TelemetrySignal {
@@ -236,7 +258,7 @@ public final class MdocWalletSimulationService {
             String credentialId,
             String format,
             boolean holderBinding,
-            Optional<String> trustedAuthorityMatch,
+            Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMatch,
             VpToken vpToken) {
         public Presentation {
             Objects.requireNonNull(credentialId, "credentialId");
@@ -262,7 +284,7 @@ public final class MdocWalletSimulationService {
 
     public record PresentationDiagnostics(
             String credentialId,
-            Optional<String> trustedAuthorityMatch,
+            Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMatch,
             Map<String, Boolean> claimsSatisfied,
             String deviceResponseHash,
             Optional<Boolean> encryptionApplied) {

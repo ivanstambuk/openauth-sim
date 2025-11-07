@@ -37,6 +37,8 @@ public final class OpenId4VpAuthorizationRequestService {
         String state = seeds.nextState();
 
         List<String> trustedAuthorities = preset == null ? List.of() : preset.trustedAuthorityPolicies();
+        List<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMetadata =
+                this.dependencies.trustedAuthorityEvaluator().describePolicies(trustedAuthorities);
 
         AuthorizationRequest authorizationRequest =
                 new AuthorizationRequest(clientId, nonce, state, responseMode, presentationDefinition);
@@ -57,6 +59,7 @@ public final class OpenId4VpAuthorizationRequestService {
                         request.profile(),
                         dcqlHash(presentationDefinition),
                         trustedAuthorities,
+                        trustedAuthorityMetadata,
                         nonce,
                         state,
                         requestUri)
@@ -69,6 +72,13 @@ public final class OpenId4VpAuthorizationRequestService {
         telemetryFields.put("haipMode", haipEnforced);
         telemetryFields.put("requestUri", requestUri);
         telemetryFields.put("trustedAuthorities", trustedAuthorities);
+        if (!trustedAuthorityMetadata.isEmpty()) {
+            telemetryFields.put(
+                    "trustedAuthorityMetadata",
+                    trustedAuthorityMetadata.stream()
+                            .map(OpenId4VpAuthorizationRequestService::verdictFields)
+                            .toList());
+        }
         telemetryFields.put("nonceMasked", maskValue(nonce));
         telemetryFields.put("stateMasked", maskValue(state));
         if (request.verbose()) {
@@ -126,13 +136,15 @@ public final class OpenId4VpAuthorizationRequestService {
             DcqlPresetRepository presetRepository,
             RequestUriFactory requestUriFactory,
             QrCodeEncoder qrCodeEncoder,
-            TelemetryPublisher telemetryPublisher) {
+            TelemetryPublisher telemetryPublisher,
+            TrustedAuthorityEvaluator trustedAuthorityEvaluator) {
         public Dependencies {
             Objects.requireNonNull(seedSequence, "seedSequence");
             Objects.requireNonNull(presetRepository, "presetRepository");
             Objects.requireNonNull(requestUriFactory, "requestUriFactory");
             Objects.requireNonNull(qrCodeEncoder, "qrCodeEncoder");
             Objects.requireNonNull(telemetryPublisher, "telemetryPublisher");
+            Objects.requireNonNull(trustedAuthorityEvaluator, "trustedAuthorityEvaluator");
         }
     }
 
@@ -212,6 +224,7 @@ public final class OpenId4VpAuthorizationRequestService {
             Profile profile,
             String dcqlHash,
             List<String> trustedAuthorities,
+            List<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMetadata,
             String nonce,
             String state,
             String requestUri) {
@@ -220,6 +233,8 @@ public final class OpenId4VpAuthorizationRequestService {
             Objects.requireNonNull(profile, "profile");
             Objects.requireNonNull(dcqlHash, "dcqlHash");
             Objects.requireNonNull(trustedAuthorities, "trustedAuthorities");
+            trustedAuthorityMetadata =
+                    trustedAuthorityMetadata == null ? List.of() : List.copyOf(trustedAuthorityMetadata);
             Objects.requireNonNull(nonce, "nonce");
             Objects.requireNonNull(state, "state");
             Objects.requireNonNull(requestUri, "requestUri");
@@ -230,6 +245,11 @@ public final class OpenId4VpAuthorizationRequestService {
     public static enum Profile {
         HAIP,
         BASELINE;
+    }
+
+    private static Map<String, Object> verdictFields(TrustedAuthorityEvaluator.TrustedAuthorityVerdict verdict) {
+        return Map.of(
+                "type", verdict.type(), "value", verdict.value(), "label", verdict.label(), "policy", verdict.policy());
     }
 
     public interface TelemetryPublisher {

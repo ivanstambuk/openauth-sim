@@ -3,6 +3,7 @@ package io.openauth.sim.application.eudi.openid4vp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.core.eudi.openid4vp.TrustedAuthorityFixtures;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -22,6 +23,8 @@ final class MdocWalletSimulationServiceTest {
     private static final String PRESET_ID = "pid-haip-baseline";
     private static final String INLINE_ID = "pid-inline-mdoc";
     private static final String TRUSTED_POLICY = "aki:s9tIpP7qrS9=";
+    private static final TrustedAuthorityEvaluator EVALUATOR =
+            TrustedAuthorityEvaluator.fromSnapshot(TrustedAuthorityFixtures.loadSnapshot("haip-baseline"));
 
     @Test
     void presetWalletProducesDeterministicDeviceResponseAndClaimsPointers() throws Exception {
@@ -30,7 +33,7 @@ final class MdocWalletSimulationServiceTest {
         RecordingEncryptionHook encryptionHook = new RecordingEncryptionHook();
 
         MdocWalletSimulationService service = new MdocWalletSimulationService(
-                new MdocWalletSimulationService.Dependencies(repository, telemetry, encryptionHook));
+                new MdocWalletSimulationService.Dependencies(repository, telemetry, encryptionHook, EVALUATOR));
 
         MdocWalletSimulationService.SimulateRequest request = new MdocWalletSimulationService.SimulateRequest(
                 "HAIP-MDOC-001",
@@ -52,7 +55,9 @@ final class MdocWalletSimulationServiceTest {
         assertEquals("pid-haip-baseline", presentation.credentialId());
         assertEquals("mso_mdoc", presentation.format());
         assertTrue(presentation.trustedAuthorityMatch().isPresent());
-        assertEquals(TRUSTED_POLICY, presentation.trustedAuthorityMatch().get());
+        assertEquals(
+                TRUSTED_POLICY,
+                presentation.trustedAuthorityMatch().orElseThrow().policy());
 
         MdocWalletSimulationService.Trace trace = result.trace();
         MdocWalletSimulationService.PresentationDiagnostics diagnostics =
@@ -77,7 +82,7 @@ final class MdocWalletSimulationServiceTest {
         RecordingEncryptionHook encryptionHook = new RecordingEncryptionHook();
 
         MdocWalletSimulationService service = new MdocWalletSimulationService(
-                new MdocWalletSimulationService.Dependencies(repository, telemetry, encryptionHook));
+                new MdocWalletSimulationService.Dependencies(repository, telemetry, encryptionHook, EVALUATOR));
 
         MdocWalletSimulationService.DeviceResponsePreset basePreset = repository.load(PRESET_ID);
         String inlineDeviceResponse = basePreset.deviceResponseBase64();
@@ -102,7 +107,9 @@ final class MdocWalletSimulationServiceTest {
                 result.presentations().get(0);
         assertEquals(INLINE_ID, presentation.credentialId());
         assertEquals("mso_mdoc", presentation.format());
-        assertEquals(Optional.of(TRUSTED_POLICY), presentation.trustedAuthorityMatch());
+        assertEquals(
+                TRUSTED_POLICY,
+                presentation.trustedAuthorityMatch().orElseThrow().policy());
 
         MdocWalletSimulationService.PresentationDiagnostics diagnostics =
                 result.trace().presentations().get(0);
@@ -117,7 +124,7 @@ final class MdocWalletSimulationServiceTest {
         RecordingEncryptionHook encryptionHook = new RecordingEncryptionHook();
 
         MdocWalletSimulationService service = new MdocWalletSimulationService(
-                new MdocWalletSimulationService.Dependencies(repository, telemetry, encryptionHook));
+                new MdocWalletSimulationService.Dependencies(repository, telemetry, encryptionHook, EVALUATOR));
 
         MdocWalletSimulationService.SimulateRequest request = new MdocWalletSimulationService.SimulateRequest(
                 "HAIP-ENC-001",
@@ -210,7 +217,10 @@ final class MdocWalletSimulationServiceTest {
 
         @Override
         public MdocWalletSimulationService.TelemetrySignal walletResponded(
-                String requestId, MdocWalletSimulationService.Profile profile, int presentations) {
+                String requestId,
+                MdocWalletSimulationService.Profile profile,
+                int presentations,
+                Map<String, Object> fields) {
             this.lastRequestId = requestId;
             return this;
         }

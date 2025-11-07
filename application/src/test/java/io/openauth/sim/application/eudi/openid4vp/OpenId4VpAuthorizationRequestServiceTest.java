@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.openauth.sim.core.eudi.openid4vp.TrustedAuthorityFixtures;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -19,6 +20,8 @@ final class OpenId4VpAuthorizationRequestServiceTest {
             requestId -> "https://simulator.test/requests/" + requestId;
     private static final OpenId4VpAuthorizationRequestService.QrCodeEncoder QR_CODE_ENCODER =
             payload -> "[QR]" + payload;
+    private static final TrustedAuthorityEvaluator EVALUATOR =
+            TrustedAuthorityEvaluator.fromSnapshot(TrustedAuthorityFixtures.loadSnapshot("haip-baseline"));
 
     @Test
     void haipProfileGeneratesDeterministicRequestPayload() {
@@ -195,6 +198,9 @@ final class OpenId4VpAuthorizationRequestServiceTest {
 
         Map<String, Object> fields = telemetry.lastSignal.fields();
         assertEquals(List.of("aki:s9tIpP7qrS9="), fields.get("trustedAuthorities"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> metadata = (List<Map<String, Object>>) fields.get("trustedAuthorityMetadata");
+        assertEquals("EU PID Issuer", metadata.get(0).get("label"));
     }
 
     @Test
@@ -219,7 +225,12 @@ final class OpenId4VpAuthorizationRequestServiceTest {
     private static OpenId4VpAuthorizationRequestService serviceWith(
             OpenId4VpAuthorizationRequestService.SeedSequence seedSequence, RecordingTelemetryPublisher telemetry) {
         return new OpenId4VpAuthorizationRequestService(new OpenId4VpAuthorizationRequestService.Dependencies(
-                seedSequence, new InMemoryPresetRepository(), REQUEST_URI_FACTORY, QR_CODE_ENCODER, telemetry));
+                seedSequence,
+                new InMemoryPresetRepository(),
+                REQUEST_URI_FACTORY,
+                QR_CODE_ENCODER,
+                telemetry,
+                EVALUATOR));
     }
 
     private static final class RecordingTelemetryPublisher

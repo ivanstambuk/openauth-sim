@@ -17,6 +17,9 @@ This living map captures the explicit relationships between modules, data flows,
 - Core `eudi.openid4vp` package now exposes `TrustedAuthorityFixtures` and `SyntheticKeyFixtures`, loading HAIP baseline trusted authority snapshots, stored presentation stubs, and synthetic issuer/holder ES256 keys from `docs/test-vectors/eudiw/openid4vp/` to unblock Feature 040 ingestion tests.
 - Synthetic PID fixture bundles (`docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/`) now include SD-JWT VC artifacts (claims, disclosures, digests, KB-JWT) and ISO mdoc DeviceResponse assets plus deterministic seed files to drive upcoming simulator services and smoke tests.
 - Core `eudi.openid4vp` now exposes `MdocDeviceResponseFixtures`, hydrating ISO DeviceResponse payloads and Claim Path Pointer metadata that feed the application-layer `MdocWalletSimulationService` for Trusted Authority filtering and HAIP encryption enforcement.
+- Application `eudi.openid4vp` services now surface `Oid4vpProblemDetails`/`Oid4vpValidationException`, enabling REST/CLI facades to lift Trusted Authority problem-details via shared adapters.
+- REST API adds `Oid4vpProblemDetailsAdvice`, translating `Oid4vpValidationException` into RFC 7807 payloads for future OpenID4VP endpoints.
+- CLI introduces `Oid4vpProblemDetailsFormatter`, ensuring upcoming EUDIW commands can render the same problem-details structure via the terminal.
 - Core OCRA package normalises RFC 6287 suites into descriptor records consumed by the credential registry and future factory helpers.
 - Core persistence serialization contracts convert protocol descriptors into versioned credential records, now stored by `MapDbCredentialStore` with optional schema migrations when configured.
 - OCRA validation telemetry emits structured debug events that future observability modules can ingest without exposing secret material.
