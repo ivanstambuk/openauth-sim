@@ -1,0 +1,10 @@
+{
+  "kid": "haip-direct-post-jwt-verifier",
+  "kty": "EC",
+  "use": "enc",
+  "alg": "ECDH-ES",
+  "crv": "P-256",
+  "x": "whr0P5Lgr-3dGZy1Rk2gQ17gL07deJ7pKnz03Wx_w1s",
+  "y": "JkD1JytY1qX1aQGehGzRNu-g70MF3pvN8MPmMXxMvmY",
+  "d": "9Wc2xOkoTaT9cL8dF2JYPoS8GvUaSl2DVvWSRuAayhM"
+}

@@ -35,6 +35,7 @@ Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiabl
 - 2025-11-01 – Authority Key Identifier (DCQL `aki`) remains the initial Trusted Authority filter; presets store friendly labels as metadata so the UI can surface a name alongside the `aki` value without altering the DCQL payload (user directive).
 - 2025-11-01 – ETSI Trust List ingestion (fixtures + loader) precedes simulator implementation; UI defaults to `(pending)` until the ingestion step populates identifiers (user directive).
 - 2025-11-01 – Operator UI provides separate **Evaluate** and **Replay** sub-tabs: Evaluate hosts Generate mode, Replay hosts Validate mode to mirror existing HOTP/TOTP/OCRA/FIDO2 layout (user directive).
+- 2025-11-07 – HAIP `direct_post.jwt` encryption reuses fixture private keys to derive the P-256 public coordinates when the JWK omits or contains placeholder values so tests can encrypt/decrypt deterministically across all fixtures (owner directive).
 - 2025-11-01 – Verbose tracing is controlled via the global console toggle and shared trace dock; EUDIW panels must not introduce local verbose checkboxes (user directive).
 - 2025-11-01 – When HAIP-required encryption fails, the simulator surfaces an `invalid_request` problem detail and only offers a retry when HAIP enforcement is disabled (user directive).
 - 2025-11-06 – Owner confirmed the next multi-step change must cover the entire Feature 040 scope end to end (authorization + wallet refactors, mdoc path, Trusted Authorities, encryption, validation, REST/CLI/UI integration, documentation parity).
@@ -141,6 +142,19 @@ Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiabl
 - Emit JSON telemetry via `TelemetryContracts` with event families listed in F-040-14.
 - Include duration metrics, encryption flags, credential counts, and Trusted Authority decision results while masking nonces (show trailing six characters only).
 - Provide verbose trace payloads (disabled by default for REST/CLI, opt-in via query flag) showing sanitized request/response envelopes.
+
+### Telemetry Redaction Guidance
+- `oid4vp.request.created` / `oid4vp.request.qr.rendered`
+  - Allowed fields: `event`, `requestId`, `profile`, `responseMode`, `durationMs`, `qrRendered` (boolean), `haipEnforced`, and `trustedAuthorities[]` (each entry limited to `{ "aki": "…", "label": "…" }`).
+  - Redaction rules: mask `nonce`/`state` everywhere outside verbose traces (show trailing six characters only), hash DCQL payloads to `dcqlHash`, and exclude raw QR/request URIs from telemetry—full values remain restricted to trace payloads.
+- `oid4vp.wallet.responded`
+  - Allowed fields: `event`, `requestId`, `presentations` (count only), `durationMs`, `haipEnforced`, `trustedAuthorityDecision` (`MATCH`/`MISS`), `profile`, `responseMode`.
+  - Redaction rules: never log VP Token, KB-JWT, disclosure, or DeviceResponse payloads. Emit `vpTokenHash`, `kbJwtHash`, and `deviceResponseHash` inside verbose traces instead. Holder-binding data surfaces as a boolean flag only.
+- `oid4vp.response.validated` / `oid4vp.response.failed`
+  - Validation services MUST reuse `TrustedAuthorityEvaluator` decisions so telemetry remains comparable with wallet simulations. Include sanitized identifiers (`requestId`, `credentialId`, `trustedAuthorityMatch`) and hashed payload diagnostics only; violation details stay inside `Oid4vpProblemDetails` and verbose traces.
+- All telemetry frames MUST set `sanitized=true` and avoid echoing inline credential metadata beyond `credentialId`, `format`, and Trusted Authority labels. Claims Path Pointer matches, AKI comparison inputs, encryption verdicts, and similar diagnostics belong exclusively in the verbose `trace` envelope.
+
+Validation flows (S5) inherit this policy: they must trigger the same telemetry events, call `TrustedAuthorityEvaluator` before returning results, and raise `Oid4vpValidationException` (`invalid_scope`) whenever Trusted Authority requirements fail so REST/CLI facades surface consistent problem-details.
 
 ## REST Surface Contract
 
@@ -260,6 +274,11 @@ Response:
 ### `POST /api/v1/eudiw/openid4vp/validate`
 
 Validate an externally supplied VP Token (inline JSON or stored preset). Response mirrors the wallet simulate schema with `status` signalling `SUCCESS` or `FAILED`, plus an `errors` array when validation fails. Trace includes per-credential diagnostics (hashes, Claims Path Pointer matches, Trusted Authority verdict, encryption verification flags).
+
+Validation mode MUST:
+- Invoke the shared `TrustedAuthorityEvaluator` before emitting telemetry or traces so `trustedAuthorityMatch` values align with wallet simulations (S1/S2).
+- Reuse `Oid4vpProblemDetails`/`Oid4vpValidationException` for error propagation; Trusted Authority misses raise `invalid_scope`, encryption issues raise `invalid_request`, and wallet unavailability maps to `wallet_unavailable`.
+- Emit the same telemetry events (`oid4vp.response.validated`/`oid4vp.response.failed`) and redaction rules documented earlier, ensuring only hashed payloads and friendly Trusted Authority labels leave the service.
 
 ### `POST /api/v1/eudiw/openid4vp/presentations/seed`
 

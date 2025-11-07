@@ -19,6 +19,8 @@ This living map captures the explicit relationships between modules, data flows,
 - Core `eudi.openid4vp` now exposes `MdocDeviceResponseFixtures`, hydrating ISO DeviceResponse payloads and Claim Path Pointer metadata that feed the application-layer `MdocWalletSimulationService` for Trusted Authority filtering and HAIP encryption enforcement.
 - Application `eudi.openid4vp` services now surface `Oid4vpProblemDetails`/`Oid4vpValidationException`, enabling REST/CLI facades to lift Trusted Authority problem-details via shared adapters.
 - REST API adds `Oid4vpProblemDetailsAdvice`, translating `Oid4vpValidationException` into RFC 7807 payloads for future OpenID4VP endpoints.
+- Feature 040 specification now codifies telemetry redaction guidance for `oid4vp.request.*`, `oid4vp.wallet.responded`, and validation events, requiring all facades (REST/CLI/UI) to reuse `TrustedAuthorityEvaluator` verdicts and `Oid4vpProblemDetails` when validation flows ship.
+- Application module now ships `DirectPostJwtEncryptionService` (T4011) implementing HAIP `direct_post.jwt` encryption via P-256 ECDH-ES + A128GCM, deriving verifier coordinates from fixture private keys when needed, capturing telemetry latency, and surfacing `invalid_request` problem-details on failure.
 - CLI introduces `Oid4vpProblemDetailsFormatter`, ensuring upcoming EUDIW commands can render the same problem-details structure via the terminal.
 - Core OCRA package normalises RFC 6287 suites into descriptor records consumed by the credential registry and future factory helpers.
 - Core persistence serialization contracts convert protocol descriptors into versioned credential records, now stored by `MapDbCredentialStore` with optional schema migrations when configured.
