@@ -49,6 +49,7 @@ _Last updated:_ 2025-11-06
 5. **I5 – mdoc DeviceResponse path (F-040-09/10/17)**  
    - Add failing tests for DeviceResponse verification and Claims Path Pointer mapping.  
    - Implement DeviceResponse adapter (using fixture CBOR and synthetic issuer certs) and hydrate inline DeviceResponse uploads alongside presets and sample vector selection; include HAIP encryption toggle scaffolding and stored-mode seeding data.  
+   - 2025-11-07: `MdocDeviceResponseFixtures.load` now hydrates fixture metadata + claims pointers, and `MdocWalletSimulationService` verifies DeviceResponse responses, Trusted Authority policies, and HAIP encryption hooks. Greens recorded via `./gradlew --no-daemon :core:test :application:test` followed by `./gradlew --no-daemon spotlessApply check`.
    - Commands: `./gradlew --no-daemon :core:test :application:test`.
 
 6. **I6 – Trusted Authorities + error handling (F-040-11/12/21)**  

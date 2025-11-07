@@ -1,0 +1,6 @@
+{
+  "$.pid.doctype": "eu.europa.ec.eudi.pid.1",
+  "$.pid.family_name": "Riviera",
+  "$.pid.given_name": "Alice",
+  "$.pid.birth_date": "1998-09-04"
+}
