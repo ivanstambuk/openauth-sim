@@ -29,6 +29,7 @@ Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiabl
 - 2025-11-01 – DCQL preview renders formatted JSON in a read-only text area with the simulator’s standard read-only background styling (user directive).
 - 2025-11-01 – Result panels expose VP Token JSON inline (read-only, horizontal scroll) so operators can inspect payloads without enabling verbose trace (user directive).
 - 2025-11-06 – Wallet simulator recomputes SD-JWT disclosure hashes from supplied disclosures; fixtures offer reference digests but the service must remain deterministic without relying on precomputed hashes (owner decision on Option A).
+- 2025-11-06 – Inline SD-JWT submissions operate without presets when the caller supplies `inlineSdJwt.credentialId`, `inlineSdJwt.format`, and optional `inlineSdJwt.trustedAuthorityPolicies`; these metadata fields drive result cards, telemetry, and Trusted Authority matching (owner directive).
 - 2025-11-01 – Synthetic issuer/holder key material (SD-JWT signer, KB-JWT keys, mdoc issuer certs) ship with fixtures and are scoped to simulator use only (user directive).
 - 2025-11-01 – Inline sample selector loads fixture-defined vectors into SD-JWT/disclosure/device response fields for quick demonstrations (user directive).
 - 2025-11-01 – Authority Key Identifier (DCQL `aki`) remains the initial Trusted Authority filter; presets store friendly labels as metadata so the UI can surface a name alongside the `aki` value without altering the DCQL payload (user directive).
@@ -36,6 +37,8 @@ Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiabl
 - 2025-11-01 – Operator UI provides separate **Evaluate** and **Replay** sub-tabs: Evaluate hosts Generate mode, Replay hosts Validate mode to mirror existing HOTP/TOTP/OCRA/FIDO2 layout (user directive).
 - 2025-11-01 – Verbose tracing is controlled via the global console toggle and shared trace dock; EUDIW panels must not introduce local verbose checkboxes (user directive).
 - 2025-11-01 – When HAIP-required encryption fails, the simulator surfaces an `invalid_request` problem detail and only offers a retry when HAIP enforcement is disabled (user directive).
+- 2025-11-06 – Owner confirmed the next multi-step change must cover the entire Feature 040 scope end to end (authorization + wallet refactors, mdoc path, Trusted Authorities, encryption, validation, REST/CLI/UI integration, documentation parity).
+- 2025-11-06 – Authorization telemetry stays limited to the documented fields (event, duration, encryption flag, Trusted Authority decision, masked nonce/state suffixes); Trusted Authority metadata surfaces only the friendly label and `aki`; QR/requestUri responses keep masked URIs in standard payloads and expose the full value exclusively through verbose traces (owner confirmation of Option A set for T4023).
 - 2025-11-01 – Console deep links (`?protocol=eudiw&tab=<evaluate|replay>&mode=<inline|stored>`) must hydrate EUDIW state to keep parity with other tabs (user directive).
 - 2025-11-01 – When DCQL requests multiple credentials, the result view renders one collapsible section per presentation with descriptor identifiers and per-section copy actions (user directive).
 - 2025-11-01 – Stored credential mode mirrors other simulators: provide a “Seed sample presentations” action that imports fixture-backed records into the MapDB store for quick selection (user directive).
@@ -201,18 +204,25 @@ Request:
   "requestId": "7K3D-XF29",
   "walletPreset": "pid-haip-baseline",
   "inlineSdJwt": {
+    "credentialId": "pid-eu.europa.ec.eudi.pid.1",
+    "format": "dc+sd-jwt",
     "compactSdJwt": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9…",
     "disclosures": [
       "WyJjbGFpbXMiLCJnaXZlbl9uYW1lIiwiQWxpY2lhIl0=",
       "WyJjbGFpbXMiLCJmYW1pbHlfbmFtZSIsIlJpdmVyYSJd"
     ],
-    "kbJwt": "eyJhbGciOiJFZERTQSJ9…"
+    "kbJwt": "eyJhbGciOiJFZERTQSJ9…",
+    "trustedAuthorityPolicies": [
+      "aki:s9tIpP…"
+    ]
   },
   "inlineMdoc": null,
   "trustedAuthorityPolicy": "aki:s9tIpP…",
   "profile": "HAIP"
 }
 ```
+
+If `walletPreset` is omitted, `inlineSdJwt.credentialId` and `inlineSdJwt.format` become required so the simulator can stamp the presentation metadata without consulting fixtures. The optional `inlineSdJwt.trustedAuthorityPolicies[]` array seeds Trusted Authority matching for inline-only journeys. Disclosure hashes are always recomputed from the supplied `inlineSdJwt.disclosures` (or preset disclosures when no inline overrides) to satisfy Option A’s determinism requirement.
 
 Response:
 ```json

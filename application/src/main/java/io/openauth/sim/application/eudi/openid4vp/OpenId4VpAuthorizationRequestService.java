@@ -1,5 +1,10 @@
 package io.openauth.sim.application.eudi.openid4vp;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -17,45 +22,116 @@ public final class OpenId4VpAuthorizationRequestService {
         DcqlPreset preset = request.dcqlPreset()
                 .map(this.dependencies.presetRepository()::load)
                 .orElse(null);
-        if (request.signedRequest() && preset == null) {
-            throw new IllegalArgumentException("Signed requests require a DCQL preset with client metadata");
-        }
         String presentationDefinition = request.dcqlOverride().orElseGet(() -> {
             if (preset != null) {
                 return preset.presentationDefinition();
             }
             throw new IllegalArgumentException("DCQL preset or override required");
         });
-        String clientId =
-                preset != null ? preset.clientId() : OpenId4VpAuthorizationRequestService.deriveClientId(request);
-        String responseMode =
-                switch (request.responseMode()) {
-                    case FRAGMENT -> "fragment";
-                    case DIRECT_POST -> "direct_post";
-                    case DIRECT_POST_JWT -> "direct_post.jwt";
-                };
-        String requestId = this.dependencies.seedSequence().nextRequestId();
-        String nonce = this.dependencies.seedSequence().nextNonce();
-        String state = this.dependencies.seedSequence().nextState();
+        String clientId = preset != null ? preset.clientId() : deriveClientId(request);
+        String responseMode = responseModeLabel(request.responseMode());
+
+        SeedSequence seeds = this.dependencies.seedSequence();
+        String requestId = seeds.nextRequestId();
+        String nonce = seeds.nextNonce();
+        String state = seeds.nextState();
+
+        List<String> trustedAuthorities = preset == null ? List.of() : preset.trustedAuthorityPolicies();
+
         AuthorizationRequest authorizationRequest =
                 new AuthorizationRequest(clientId, nonce, state, responseMode, presentationDefinition);
+
         boolean haipEnforced = request.profile() == Profile.HAIP && request.signedRequest();
+        String requestUri = this.dependencies.requestUriFactory().create(requestId);
+        String deepLinkUri = "openid-vp://?request_uri=" + requestUri;
+
+        QrCode qr = null;
+        if (request.includeQr()) {
+            String ascii = this.dependencies.qrCodeEncoder().encode(deepLinkUri);
+            qr = new QrCode(ascii, deepLinkUri);
+        }
+
+        Trace trace = request.verbose()
+                ? new Trace(
+                        requestId,
+                        request.profile(),
+                        dcqlHash(presentationDefinition),
+                        trustedAuthorities,
+                        nonce,
+                        state,
+                        requestUri)
+                : null;
+
+        Map<String, Object> telemetryFields = new LinkedHashMap<>();
+        telemetryFields.put("requestId", requestId);
+        telemetryFields.put("profile", request.profile().name());
+        telemetryFields.put("responseMode", request.responseMode().name());
+        telemetryFields.put("haipMode", haipEnforced);
+        telemetryFields.put("requestUri", requestUri);
+        telemetryFields.put("trustedAuthorities", trustedAuthorities);
+        telemetryFields.put("nonceMasked", maskValue(nonce));
+        telemetryFields.put("stateMasked", maskValue(state));
+        if (request.verbose()) {
+            telemetryFields.put("nonceFull", nonce);
+            telemetryFields.put("stateFull", state);
+        }
+        if (qr != null) {
+            telemetryFields.put("qrAscii", qr.ascii());
+            telemetryFields.put("qrUri", qr.uri());
+        }
+
         TelemetrySignal telemetry = this.dependencies
                 .telemetryPublisher()
-                .requestCreated(requestId, request.profile(), request.responseMode(), haipEnforced);
-        return new AuthorizationRequestResult(requestId, authorizationRequest, telemetry);
+                .requestCreated(requestId, request.profile(), request.responseMode(), haipEnforced, telemetryFields);
+
+        return new AuthorizationRequestResult(
+                requestId,
+                request.profile(),
+                requestUri,
+                authorizationRequest,
+                Optional.ofNullable(qr),
+                Optional.ofNullable(trace),
+                telemetry);
     }
 
     private static String deriveClientId(CreateRequest request) {
-        String prefix = request.profile() == Profile.HAIP ? "haip-simulator" : "baseline-simulator";
-        return prefix;
+        return request.profile() == Profile.HAIP ? "haip-simulator" : "baseline-simulator";
+    }
+
+    private static String responseModeLabel(ResponseMode responseMode) {
+        return switch (responseMode) {
+            case FRAGMENT -> "fragment";
+            case DIRECT_POST -> "direct_post";
+            case DIRECT_POST_JWT -> "direct_post.jwt";
+        };
+    }
+
+    private static String maskValue(String value) {
+        String suffix = value.length() <= 6 ? value : value.substring(value.length() - 6);
+        return "******" + suffix;
+    }
+
+    private static String dcqlHash(String presentationDefinition) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(presentationDefinition.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 not available", ex);
+        }
     }
 
     public record Dependencies(
-            SeedSequence seedSequence, DcqlPresetRepository presetRepository, TelemetryPublisher telemetryPublisher) {
+            SeedSequence seedSequence,
+            DcqlPresetRepository presetRepository,
+            RequestUriFactory requestUriFactory,
+            QrCodeEncoder qrCodeEncoder,
+            TelemetryPublisher telemetryPublisher) {
         public Dependencies {
             Objects.requireNonNull(seedSequence, "seedSequence");
             Objects.requireNonNull(presetRepository, "presetRepository");
+            Objects.requireNonNull(requestUriFactory, "requestUriFactory");
+            Objects.requireNonNull(qrCodeEncoder, "qrCodeEncoder");
             Objects.requireNonNull(telemetryPublisher, "telemetryPublisher");
         }
     }
@@ -78,6 +154,14 @@ public final class OpenId4VpAuthorizationRequestService {
 
     public static interface DcqlPresetRepository {
         public DcqlPreset load(String var1);
+    }
+
+    public interface RequestUriFactory {
+        String create(String requestId);
+    }
+
+    public interface QrCodeEncoder {
+        String encode(String payload);
     }
 
     public record DcqlPreset(
@@ -116,13 +200,45 @@ public final class OpenId4VpAuthorizationRequestService {
         }
     }
 
+    public record QrCode(String ascii, String uri) {
+        public QrCode {
+            Objects.requireNonNull(ascii, "ascii");
+            Objects.requireNonNull(uri, "uri");
+        }
+    }
+
+    public record Trace(
+            String requestId,
+            Profile profile,
+            String dcqlHash,
+            List<String> trustedAuthorities,
+            String nonce,
+            String state,
+            String requestUri) {
+        public Trace {
+            Objects.requireNonNull(requestId, "requestId");
+            Objects.requireNonNull(profile, "profile");
+            Objects.requireNonNull(dcqlHash, "dcqlHash");
+            Objects.requireNonNull(trustedAuthorities, "trustedAuthorities");
+            Objects.requireNonNull(nonce, "nonce");
+            Objects.requireNonNull(state, "state");
+            Objects.requireNonNull(requestUri, "requestUri");
+            trustedAuthorities = List.copyOf(trustedAuthorities);
+        }
+    }
+
     public static enum Profile {
         HAIP,
         BASELINE;
     }
 
-    public static interface TelemetryPublisher {
-        public TelemetrySignal requestCreated(String var1, Profile var2, ResponseMode var3, boolean var4);
+    public interface TelemetryPublisher {
+        TelemetrySignal requestCreated(
+                String requestId,
+                Profile profile,
+                ResponseMode responseMode,
+                boolean haipMode,
+                Map<String, Object> fields);
     }
 
     public static interface TelemetrySignal {
@@ -132,10 +248,20 @@ public final class OpenId4VpAuthorizationRequestService {
     }
 
     public record AuthorizationRequestResult(
-            String requestId, AuthorizationRequest authorizationRequest, TelemetrySignal telemetry) {
+            String requestId,
+            Profile profile,
+            String requestUri,
+            AuthorizationRequest authorizationRequest,
+            Optional<QrCode> qr,
+            Optional<Trace> trace,
+            TelemetrySignal telemetry) {
         public AuthorizationRequestResult {
             Objects.requireNonNull(requestId, "requestId");
+            Objects.requireNonNull(profile, "profile");
+            Objects.requireNonNull(requestUri, "requestUri");
             Objects.requireNonNull(authorizationRequest, "authorizationRequest");
+            qr = qr == null ? Optional.empty() : qr;
+            trace = trace == null ? Optional.empty() : trace;
             Objects.requireNonNull(telemetry, "telemetry");
         }
     }

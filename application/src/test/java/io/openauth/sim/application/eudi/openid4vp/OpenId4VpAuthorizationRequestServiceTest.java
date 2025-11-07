@@ -1,6 +1,8 @@
 package io.openauth.sim.application.eudi.openid4vp;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
@@ -13,6 +15,10 @@ final class OpenId4VpAuthorizationRequestServiceTest {
     private static final String PRESET_ID = "pid-haip-baseline";
     private static final String PRESENTATION_DEFINITION = "{\"dcql\":\"pid-haip-baseline\"}";
     private static final String CLIENT_ID = "x509_hash:fixture";
+    private static final OpenId4VpAuthorizationRequestService.RequestUriFactory REQUEST_URI_FACTORY =
+            requestId -> "https://simulator.test/requests/" + requestId;
+    private static final OpenId4VpAuthorizationRequestService.QrCodeEncoder QR_CODE_ENCODER =
+            payload -> "[QR]" + payload;
 
     @Test
     void haipProfileGeneratesDeterministicRequestPayload() {
@@ -114,10 +120,106 @@ final class OpenId4VpAuthorizationRequestServiceTest {
                 second.authorizationRequest().state());
     }
 
+    @Test
+    void includeQrRequestsShouldEmitQrAsciiAndRequestUriTelemetry() {
+        RecordingTelemetryPublisher telemetry = new RecordingTelemetryPublisher();
+        OpenId4VpAuthorizationRequestService service =
+                serviceWith(new StubSeedSequence("HAIP-000001", "nonce-abc", "state-xyz"), telemetry);
+
+        OpenId4VpAuthorizationRequestService.CreateRequest request =
+                new OpenId4VpAuthorizationRequestService.CreateRequest(
+                        OpenId4VpAuthorizationRequestService.Profile.HAIP,
+                        OpenId4VpAuthorizationRequestService.ResponseMode.DIRECT_POST_JWT,
+                        Optional.of(PRESET_ID),
+                        Optional.empty(),
+                        true,
+                        true,
+                        true);
+
+        service.create(request);
+
+        assertNotNull(telemetry.lastSignal, "telemetry event should be recorded");
+        Map<String, Object> fields = telemetry.lastSignal.fields();
+        assertNotNull(fields.get("qrAscii"), "QR rendering should emit ASCII preview telemetry");
+        assertNotNull(fields.get("requestUri"), "Authorization requests should emit request URI telemetry");
+    }
+
+    @Test
+    void verboseRequestsShouldEmitMaskedAndFullNonceTraceTelemetry() {
+        RecordingTelemetryPublisher telemetry = new RecordingTelemetryPublisher();
+        OpenId4VpAuthorizationRequestService service =
+                serviceWith(new StubSeedSequence("HAIP-000001", "nonce-abc", "state-xyz"), telemetry);
+
+        OpenId4VpAuthorizationRequestService.CreateRequest request =
+                new OpenId4VpAuthorizationRequestService.CreateRequest(
+                        OpenId4VpAuthorizationRequestService.Profile.HAIP,
+                        OpenId4VpAuthorizationRequestService.ResponseMode.DIRECT_POST_JWT,
+                        Optional.of(PRESET_ID),
+                        Optional.empty(),
+                        true,
+                        false,
+                        true);
+
+        service.create(request);
+
+        Map<String, Object> fields = telemetry.lastSignal.fields();
+        assertEquals(
+                "******ce-abc",
+                fields.get("nonceMasked"),
+                "Nonce traces should only expose the trailing six characters");
+        assertEquals("nonce-abc", fields.get("nonceFull"));
+        assertEquals(
+                "******te-xyz",
+                fields.get("stateMasked"),
+                "State traces should only expose the trailing six characters");
+        assertEquals("state-xyz", fields.get("stateFull"));
+    }
+
+    @Test
+    void trustedAuthorityMetadataShouldPropagateIntoTelemetry() {
+        RecordingTelemetryPublisher telemetry = new RecordingTelemetryPublisher();
+        OpenId4VpAuthorizationRequestService service =
+                serviceWith(new StubSeedSequence("HAIP-000001", "nonce-abc", "state-xyz"), telemetry);
+
+        OpenId4VpAuthorizationRequestService.CreateRequest request =
+                new OpenId4VpAuthorizationRequestService.CreateRequest(
+                        OpenId4VpAuthorizationRequestService.Profile.HAIP,
+                        OpenId4VpAuthorizationRequestService.ResponseMode.DIRECT_POST_JWT,
+                        Optional.of(PRESET_ID),
+                        Optional.empty(),
+                        true,
+                        false,
+                        false);
+
+        service.create(request);
+
+        Map<String, Object> fields = telemetry.lastSignal.fields();
+        assertEquals(List.of("aki:s9tIpP7qrS9="), fields.get("trustedAuthorities"));
+    }
+
+    @Test
+    void signedInlineRequestsWithoutPresetAreSupported() {
+        RecordingTelemetryPublisher telemetry = new RecordingTelemetryPublisher();
+        OpenId4VpAuthorizationRequestService service =
+                serviceWith(new StubSeedSequence("HAIP-000001", "nonce-abc", "state-xyz"), telemetry);
+
+        OpenId4VpAuthorizationRequestService.CreateRequest request =
+                new OpenId4VpAuthorizationRequestService.CreateRequest(
+                        OpenId4VpAuthorizationRequestService.Profile.HAIP,
+                        OpenId4VpAuthorizationRequestService.ResponseMode.DIRECT_POST_JWT,
+                        Optional.empty(),
+                        Optional.of(PRESENTATION_DEFINITION),
+                        true,
+                        false,
+                        false);
+
+        assertDoesNotThrow(() -> service.create(request));
+    }
+
     private static OpenId4VpAuthorizationRequestService serviceWith(
             OpenId4VpAuthorizationRequestService.SeedSequence seedSequence, RecordingTelemetryPublisher telemetry) {
         return new OpenId4VpAuthorizationRequestService(new OpenId4VpAuthorizationRequestService.Dependencies(
-                seedSequence, new InMemoryPresetRepository(), telemetry));
+                seedSequence, new InMemoryPresetRepository(), REQUEST_URI_FACTORY, QR_CODE_ENCODER, telemetry));
     }
 
     private static final class RecordingTelemetryPublisher
@@ -134,14 +236,13 @@ final class OpenId4VpAuthorizationRequestServiceTest {
                 String requestId,
                 OpenId4VpAuthorizationRequestService.Profile profile,
                 OpenId4VpAuthorizationRequestService.ResponseMode responseMode,
-                boolean haipMode) {
+                boolean haipMode,
+                Map<String, Object> fields) {
             this.lastRequestId = requestId;
             this.lastProfile = profile;
             this.lastResponseMode = responseMode;
             this.lastHaipMode = haipMode;
-            this.lastSignal = new SimpleTelemetrySignal(
-                    "oid4vp.request.created",
-                    Map.of("profile", profile.name(), "responseMode", responseMode.name(), "haipMode", haipMode));
+            this.lastSignal = new SimpleTelemetrySignal("oid4vp.request.created", Map.copyOf(fields));
             return lastSignal;
         }
     }

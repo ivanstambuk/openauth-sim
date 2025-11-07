@@ -20,24 +20,32 @@ public final class OpenId4VpWalletSimulationService {
         Objects.requireNonNull(request, "request");
         WalletPreset preset = request.walletPresetId()
                 .map(this.dependencies.walletPresetRepository()::load)
-                .orElseThrow(() -> new IllegalArgumentException("walletPresetId required for SD-JWT simulations"));
+                .orElse(null);
         InlineSdJwt inlineSdJwt = request.inlineSdJwt().orElse(null);
+        if (preset == null && inlineSdJwt == null) {
+            throw new IllegalArgumentException("walletPresetId or inlineSdJwt required for SD-JWT simulations");
+        }
+
+        String credentialId = preset != null
+                ? preset.credentialId()
+                : requireInlineMetadata(inlineSdJwt.credentialId(), "inlineSdJwt.credentialId");
+        String format =
+                preset != null ? preset.format() : requireInlineMetadata(inlineSdJwt.format(), "inlineSdJwt.format");
+
+        List<String> trustedAuthorityPolicies =
+                preset != null ? preset.trustedAuthorityPolicies() : inlineSdJwt.trustedAuthorityPolicies();
+
         String compactSdJwt = inlineSdJwt != null ? inlineSdJwt.compactSdJwt() : preset.compactSdJwt();
         List<String> disclosures = inlineSdJwt != null ? inlineSdJwt.disclosures() : preset.disclosures();
         Optional<String> keyBindingJwt = inlineSdJwt != null ? inlineSdJwt.keyBindingJwt() : preset.keyBindingJwt();
-        List<String> disclosureHashes = OpenId4VpWalletSimulationService.computeDisclosureHashes(
-                disclosures, inlineSdJwt != null ? List.of() : preset.disclosureHashes());
+
+        List<String> disclosureHashes = OpenId4VpWalletSimulationService.computeDisclosureHashes(disclosures);
         Optional<String> trustedAuthorityMatch = OpenId4VpWalletSimulationService.determineTrustedAuthorityMatch(
-                request.trustedAuthorityPolicy(), preset.trustedAuthorityPolicies());
-        VpToken vpToken = new VpToken(compactSdJwt, Map.of("presentation_definition_id", preset.credentialId()));
+                request.trustedAuthorityPolicy(), trustedAuthorityPolicies);
+        VpToken vpToken = new VpToken(compactSdJwt, Map.of("presentation_definition_id", credentialId));
         boolean holderBinding = keyBindingJwt.isPresent();
-        Presentation presentation = new Presentation(
-                preset.credentialId(),
-                preset.format(),
-                holderBinding,
-                trustedAuthorityMatch,
-                vpToken,
-                disclosureHashes);
+        Presentation presentation =
+                new Presentation(credentialId, format, holderBinding, trustedAuthorityMatch, vpToken, disclosureHashes);
         Trace trace = new Trace(
                 OpenId4VpWalletSimulationService.sha256Hex(compactSdJwt),
                 keyBindingJwt.map(OpenId4VpWalletSimulationService::sha256Hex),
@@ -54,13 +62,10 @@ public final class OpenId4VpWalletSimulationService {
                 telemetry);
     }
 
-    private static List<String> computeDisclosureHashes(List<String> disclosures, List<String> presetHashes) {
-        List<String> resolvedPresetHashes = presetHashes == null ? List.of() : List.copyOf(presetHashes);
-        if (!resolvedPresetHashes.isEmpty() && resolvedPresetHashes.size() == disclosures.size()) {
-            return resolvedPresetHashes;
-        }
-        List<String> computed = new ArrayList<>(disclosures.size());
-        for (String disclosure : disclosures) {
+    private static List<String> computeDisclosureHashes(List<String> disclosures) {
+        List<String> resolvedDisclosures = disclosures == null ? List.of() : List.copyOf(disclosures);
+        List<String> computed = new ArrayList<>(resolvedDisclosures.size());
+        for (String disclosure : resolvedDisclosures) {
             computed.add("sha-256:" + OpenId4VpWalletSimulationService.sha256Hex(disclosure));
         }
         return List.copyOf(computed);
@@ -73,6 +78,13 @@ public final class OpenId4VpWalletSimulationService {
         }
         List<String> policies = availablePolicies == null ? List.of() : List.copyOf(availablePolicies);
         return requestedPolicy.filter(policies::contains);
+    }
+
+    private static String requireInlineMetadata(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " required when walletPresetId is not provided");
+        }
+        return value;
     }
 
     private static String sha256Hex(String value) {
@@ -143,11 +155,21 @@ public final class OpenId4VpWalletSimulationService {
         }
     }
 
-    public record InlineSdJwt(String compactSdJwt, List<String> disclosures, Optional<String> keyBindingJwt) {
+    public record InlineSdJwt(
+            String credentialId,
+            String format,
+            String compactSdJwt,
+            List<String> disclosures,
+            Optional<String> keyBindingJwt,
+            List<String> trustedAuthorityPolicies) {
         public InlineSdJwt {
+            Objects.requireNonNull(credentialId, "credentialId");
+            Objects.requireNonNull(format, "format");
             Objects.requireNonNull(compactSdJwt, "compactSdJwt");
             disclosures = disclosures == null ? List.of() : List.copyOf(disclosures);
             keyBindingJwt = keyBindingJwt == null ? Optional.empty() : keyBindingJwt;
+            trustedAuthorityPolicies =
+                    trustedAuthorityPolicies == null ? List.of() : List.copyOf(trustedAuthorityPolicies);
         }
     }
 

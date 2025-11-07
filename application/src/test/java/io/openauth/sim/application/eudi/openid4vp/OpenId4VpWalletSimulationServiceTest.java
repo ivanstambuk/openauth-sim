@@ -2,6 +2,7 @@ package io.openauth.sim.application.eudi.openid4vp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.json.SimpleJson;
@@ -25,6 +26,7 @@ final class OpenId4VpWalletSimulationServiceTest {
     private static final Path FIXTURE_ROOT =
             Path.of("docs", "test-vectors", "eudiw", "openid4vp", "fixtures", "synthetic", "sdjwt-vc");
     private static final String PRESET_ID = "pid-haip-baseline";
+    private static final String INLINE_CREDENTIAL_ID = "pid-inline-sample";
     private static final String TRUSTED_AUTHORITY_POLICY = "aki:s9tIpP7qrS9=";
 
     @Test
@@ -92,7 +94,7 @@ final class OpenId4VpWalletSimulationServiceTest {
                 .withoutPadding()
                 .encodeToString(inlineDisclosureJson.getBytes(StandardCharsets.UTF_8));
         OpenId4VpWalletSimulationService.InlineSdJwt inline = new OpenId4VpWalletSimulationService.InlineSdJwt(
-                inlineSdJwt, List.of(inlineDisclosure), Optional.empty());
+                INLINE_CREDENTIAL_ID, "dc+sd-jwt", inlineSdJwt, List.of(inlineDisclosure), Optional.empty(), List.of());
 
         OpenId4VpWalletSimulationService.SimulateRequest request = new OpenId4VpWalletSimulationService.SimulateRequest(
                 "BASELINE-000001",
@@ -115,6 +117,55 @@ final class OpenId4VpWalletSimulationServiceTest {
         assertEquals("dc+sd-jwt", presentation.format());
         assertFalse(presentation.holderBinding());
         assertTrue(presentation.trustedAuthorityMatch().isEmpty());
+        assertEquals(inlineSdJwt, presentation.vpToken().vpToken());
+
+        List<String> inlineDisclosureHashes = List.of("sha-256:" + sha256Hex(inlineDisclosure));
+        assertEquals(inlineDisclosureHashes, presentation.disclosureHashes());
+        assertEquals(inlineDisclosureHashes, result.trace().disclosureHashes());
+        assertEquals(sha256Hex(inlineSdJwt), result.trace().vpTokenHash());
+        assertTrue(result.trace().kbJwtHash().isEmpty());
+    }
+
+    @Test
+    void inlineSdJwtWithoutPresetUsesInlineMetadata() throws NoSuchAlgorithmException {
+        FixtureWalletPresetRepository presets = new FixtureWalletPresetRepository();
+        RecordingTelemetry telemetry = new RecordingTelemetry();
+
+        OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+
+        String inlineSdJwt =
+                "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnQiOiJpbi1saW5lLXdhbGxldCIsInR5cCI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsImN1c3RvbS12YyJdfX0.dGVzdC1pbi1saW5lLXNpZ24";
+        String inlineDisclosureJson = "[\"salt-inline-only\",\"vc.credentialSubject.age\",\"25\"]";
+        String inlineDisclosure = Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(inlineDisclosureJson.getBytes(StandardCharsets.UTF_8));
+
+        OpenId4VpWalletSimulationService.InlineSdJwt inline = new OpenId4VpWalletSimulationService.InlineSdJwt(
+                INLINE_CREDENTIAL_ID,
+                "dc+sd-jwt",
+                inlineSdJwt,
+                List.of(inlineDisclosure),
+                Optional.empty(),
+                List.of(TRUSTED_AUTHORITY_POLICY));
+
+        OpenId4VpWalletSimulationService.SimulateRequest request = new OpenId4VpWalletSimulationService.SimulateRequest(
+                "INLINE-000001",
+                OpenId4VpWalletSimulationService.Profile.BASELINE,
+                OpenId4VpWalletSimulationService.ResponseMode.FRAGMENT,
+                Optional.empty(),
+                Optional.of(inline),
+                Optional.of(TRUSTED_AUTHORITY_POLICY));
+
+        OpenId4VpWalletSimulationService.SimulationResult result = service.simulate(request);
+
+        assertEquals("INLINE-000001", result.requestId());
+        OpenId4VpWalletSimulationService.Presentation presentation =
+                result.presentations().get(0);
+        assertEquals(INLINE_CREDENTIAL_ID, presentation.credentialId());
+        assertEquals("dc+sd-jwt", presentation.format());
+        assertFalse(presentation.holderBinding());
+        assertEquals(Optional.of(TRUSTED_AUTHORITY_POLICY), presentation.trustedAuthorityMatch());
         assertEquals(inlineSdJwt, presentation.vpToken().vpToken());
 
         List<String> inlineDisclosureHashes = List.of("sha-256:" + sha256Hex(inlineDisclosure));
@@ -150,6 +201,94 @@ final class OpenId4VpWalletSimulationServiceTest {
         assertEquals(OpenId4VpWalletSimulationService.Profile.HAIP, telemetry.lastProfile);
     }
 
+    @Test
+    void unmatchedTrustedAuthorityReturnsEmptyOptional() {
+        FixtureWalletPresetRepository presets = new FixtureWalletPresetRepository();
+        RecordingTelemetry telemetry = new RecordingTelemetry();
+
+        OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+
+        OpenId4VpWalletSimulationService.SimulateRequest request = new OpenId4VpWalletSimulationService.SimulateRequest(
+                "HAIP-TRACE-02",
+                OpenId4VpWalletSimulationService.Profile.HAIP,
+                OpenId4VpWalletSimulationService.ResponseMode.DIRECT_POST,
+                Optional.of(PRESET_ID),
+                Optional.empty(),
+                Optional.of("aki:missing"));
+
+        OpenId4VpWalletSimulationService.SimulationResult result = service.simulate(request);
+
+        assertTrue(result.presentations().get(0).trustedAuthorityMatch().isEmpty());
+    }
+
+    @Test
+    void disclosureHashesRecomputeFromDisclosuresEvenWhenPresetHashesMismatched() throws NoSuchAlgorithmException {
+        TamperedHashWalletPresetRepository presets = new TamperedHashWalletPresetRepository();
+        RecordingTelemetry telemetry = new RecordingTelemetry();
+
+        OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+
+        OpenId4VpWalletSimulationService.SimulateRequest request = new OpenId4VpWalletSimulationService.SimulateRequest(
+                "HAIP-HASH-01",
+                OpenId4VpWalletSimulationService.Profile.HAIP,
+                OpenId4VpWalletSimulationService.ResponseMode.DIRECT_POST_JWT,
+                Optional.of(PRESET_ID),
+                Optional.empty(),
+                Optional.of(TRUSTED_AUTHORITY_POLICY));
+
+        OpenId4VpWalletSimulationService.SimulationResult result = service.simulate(request);
+
+        List<String> expectedHashes = presets.expectedCorrectHashes();
+        assertEquals(expectedHashes, result.presentations().get(0).disclosureHashes());
+        assertEquals(expectedHashes, result.trace().disclosureHashes());
+        assertEquals(presets.expectedVpTokenHash(), result.trace().vpTokenHash());
+        assertEquals(Optional.of(presets.expectedKbJwtHash()), result.trace().kbJwtHash());
+    }
+
+    @Test
+    void telemetrySignalFromPublisherIsPropagatedInResult() {
+        FixtureWalletPresetRepository presets = new FixtureWalletPresetRepository();
+        RecordingTelemetry telemetry = new RecordingTelemetry();
+
+        OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+
+        OpenId4VpWalletSimulationService.SimulateRequest request = new OpenId4VpWalletSimulationService.SimulateRequest(
+                "HAIP-TRACE-03",
+                OpenId4VpWalletSimulationService.Profile.HAIP,
+                OpenId4VpWalletSimulationService.ResponseMode.DIRECT_POST,
+                Optional.of(PRESET_ID),
+                Optional.empty(),
+                Optional.of(TRUSTED_AUTHORITY_POLICY));
+
+        OpenId4VpWalletSimulationService.SimulationResult result = service.simulate(request);
+
+        assertEquals(telemetry.lastSignal, result.telemetry());
+    }
+
+    @Test
+    void missingPresetPropagatesRepositoryError() {
+        FixtureWalletPresetRepository presets = new FixtureWalletPresetRepository();
+        RecordingTelemetry telemetry = new RecordingTelemetry();
+
+        OpenId4VpWalletSimulationService service = new OpenId4VpWalletSimulationService(
+                new OpenId4VpWalletSimulationService.Dependencies(presets, telemetry));
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.simulate(new OpenId4VpWalletSimulationService.SimulateRequest(
+                        "HAIP-MISSING",
+                        OpenId4VpWalletSimulationService.Profile.HAIP,
+                        OpenId4VpWalletSimulationService.ResponseMode.DIRECT_POST_JWT,
+                        Optional.of("missing-preset"),
+                        Optional.empty(),
+                        Optional.empty())));
+
+        assertTrue(exception.getMessage().contains("Unknown preset"));
+    }
+
     private static String sha256Hex(String value) throws NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
@@ -163,7 +302,6 @@ final class OpenId4VpWalletSimulationServiceTest {
     private static final class FixtureWalletPresetRepository
             implements OpenId4VpWalletSimulationService.WalletPresetRepository {
 
-        private final Map<String, Object> digests;
         private final List<String> disclosureHashes;
         private final List<String> disclosures;
         private final String compactSdJwt;
@@ -172,13 +310,14 @@ final class OpenId4VpWalletSimulationServiceTest {
         private FixtureWalletPresetRepository() {
             try {
                 Path fixtureDir = resolveFixture(FIXTURE_ROOT.resolve(PRESET_ID));
-                this.digests = readJson(fixtureDir.resolve("digests.json"));
-                this.disclosureHashes = extractDisclosureHashes();
                 this.disclosures = loadDisclosures(readString(fixtureDir.resolve("disclosures.json")));
                 this.compactSdJwt = readString(fixtureDir.resolve("sdjwt.txt"));
                 this.compactKbJwt = buildCompactKbJwt(fixtureDir.resolve("kb-jwt.json"));
+                this.disclosureHashes = computeDisclosureHashes();
             } catch (IOException e) {
                 throw new IllegalStateException("Unable to load SD-JWT fixtures", e);
+            } catch (NoSuchAlgorithmException e) {
+                throw new IllegalStateException("Unable to hash SD-JWT disclosures", e);
             }
         }
 
@@ -224,10 +363,10 @@ final class OpenId4VpWalletSimulationServiceTest {
             return "\"" + value.replace("\"", "\\\"") + "\"";
         }
 
-        private List<String> extractDisclosureHashes() {
+        private List<String> computeDisclosureHashes() throws NoSuchAlgorithmException {
             List<String> hashes = new ArrayList<>();
-            for (Object value : digests.values()) {
-                hashes.add(String.valueOf(value));
+            for (String disclosure : disclosures) {
+                hashes.add("sha-256:" + sha256Hex(disclosure));
             }
             return hashes;
         }
@@ -315,6 +454,42 @@ final class OpenId4VpWalletSimulationServiceTest {
 
         List<String> disclosureHashes() {
             return disclosureHashes;
+        }
+    }
+
+    private static final class TamperedHashWalletPresetRepository
+            implements OpenId4VpWalletSimulationService.WalletPresetRepository {
+
+        private final FixtureWalletPresetRepository delegate = new FixtureWalletPresetRepository();
+
+        @Override
+        public OpenId4VpWalletSimulationService.WalletPreset load(String presetId) {
+            OpenId4VpWalletSimulationService.WalletPreset preset = delegate.load(presetId);
+            List<String> tampered = new ArrayList<>();
+            for (int i = 0; i < preset.disclosures().size(); i++) {
+                tampered.add("sha-256:tampered-" + i);
+            }
+            return new OpenId4VpWalletSimulationService.WalletPreset(
+                    preset.presetId(),
+                    preset.credentialId(),
+                    preset.format(),
+                    preset.compactSdJwt(),
+                    preset.disclosures(),
+                    tampered,
+                    preset.keyBindingJwt(),
+                    preset.trustedAuthorityPolicies());
+        }
+
+        List<String> expectedCorrectHashes() {
+            return delegate.disclosureHashes();
+        }
+
+        String expectedVpTokenHash() throws NoSuchAlgorithmException {
+            return delegate.expectedVpTokenHash();
+        }
+
+        String expectedKbJwtHash() throws NoSuchAlgorithmException {
+            return delegate.expectedKbJwtHash();
         }
     }
 
