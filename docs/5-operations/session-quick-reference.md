@@ -13,8 +13,8 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 - [ ] Confirm whether the user granted a compatibility exception; default is no fallbacks for any facade unless explicitly requested.
 
 ## Commit Protocol Reminder
-- When the user says “commit” or “commit and push,” stage the entire repository (`git add -A`) and rely on the managed hooks to run the quality pipeline.
-- Stage the entire repository (`git add -A`), obtain a Conventional Commit message via your assistant tooling that satisfies gitlint and includes a `Spec impact:` body line whenever docs and code change together (the default helper is `./tools/codex-commit-review.sh`), then commit with that output and push as soon as the hooks succeed.
+- When the user says “commit” or “commit and push,” assistants prepare the commit while the user runs the commands. Stage (or explicitly list) the relevant files, verify `./gradlew --no-daemon spotlessApply check` has passed, and gather the staged diff for review.
+- Run `./tools/codex-commit-review.sh` (or equivalent) to obtain a gitlint-compliant Conventional Commit message, including a `Spec impact:` line whenever docs and code change together, then output copy/paste-ready `git commit …` and `git push …` commands (with any required timeouts noted). The operator executes those commands locally unless they explicitly delegate execution.
 
 ## Handoff Prompt Template
 ```
