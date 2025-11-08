@@ -341,15 +341,15 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
   const referenceContainer = createFieldGroup('emv-reference-group');
   const amountContainer = createFieldGroup('emv-amount-group');
 
-  const masterKeyInput = createTextarea('emvMasterKey', 'A1B2', masterKeyContainer);
+  const masterKeyInput = createInput('emvMasterKey', 'A1B2', masterKeyContainer);
   const atcInput = createInput('emvAtc', '01', atcContainer);
   const branchFactorInput = createInput('emvBranchFactor', '2', branchFactorContainer);
   const heightInput = createInput('emvHeight', '1', heightContainer);
-  const ivInput = createTextarea('emvIv', 'AA', ivContainer);
+  const ivInput = createInput('emvIv', 'AA', ivContainer);
   const cdol1Input = createTextarea('emvCdol1', 'BB', cdol1Container);
-  const ipbInput = createTextarea('emvIpb', 'CC', ipbContainer);
+  const ipbInput = createInput('emvIpb', 'CC', ipbContainer);
   const iccTemplateInput = createTextarea('emvIccTemplate', 'DD', iccTemplateContainer);
-  const issuerApplicationDataInput = createTextarea('emvIssuerApplicationData', 'EE', issuerApplicationDataContainer);
+  const issuerApplicationDataInput = createInput('emvIssuerApplicationData', 'EE', issuerApplicationDataContainer);
   const challengeInput = createInput('emvChallenge', '1234', challengeContainer);
   const referenceInput = createInput('emvReference', '5678', referenceContainer);
   const amountInput = createInput('emvAmount', '999', amountContainer);
@@ -388,10 +388,10 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
     const replayHeightInput = createInput('emvReplayHeight', '8', replayHeightContainer);
     const replayIvInput = createInput('emvReplayIv', '0001020304050607', replayIvContainer);
     const replayCdol1Input = createTextarea('emvReplayCdol1', 'CDOL', replayCdol1Container);
-    const replayIssuerBitmapInput = createTextarea('emvReplayIssuerBitmap', 'IPB', replayIssuerBitmapContainer);
+    const replayIssuerBitmapInput = createInput('emvReplayIssuerBitmap', 'IPB', replayIssuerBitmapContainer);
     const replayIccTemplateInput =
         createTextarea('emvReplayIccTemplate', 'ICC', replayIccTemplateContainer);
-    const replayIssuerApplicationDataInput = createTextarea(
+    const replayIssuerApplicationDataInput = createInput(
         'emvReplayIssuerApplicationData', 'IAD', replayIssuerApplicationDataContainer);
     const replayChallengeInput = createInput('emvReplayChallenge', '', replayChallengeContainer);
     const replayReferenceInput = createInput('emvReplayReference', '', replayReferenceContainer);
@@ -489,7 +489,7 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
             return replayCdol1Input;
           case '[data-testid="emv-replay-cdol1-mask"]':
             return replayCdol1MaskNode;
-          case '[data-testid="emv-replay-issuer-bitmap"] textarea':
+          case '[data-testid="emv-replay-issuer-bitmap"] input':
             return replayIssuerBitmapInput;
           case '[data-testid="emv-replay-ipb-mask"]':
             return replayIssuerBitmapMaskNode;
@@ -497,7 +497,7 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
             return replayIccTemplateInput;
           case '[data-testid="emv-replay-icc-template-mask"]':
             return replayIccTemplateMaskNode;
-          case '[data-testid="emv-replay-issuer-application-data"] textarea':
+          case '[data-testid="emv-replay-issuer-application-data"] input':
             return replayIssuerApplicationDataInput;
           case '[data-testid="emv-replay-issuer-application-data-mask"]':
             return replayIssuerApplicationDataMaskNode;
@@ -1018,7 +1018,7 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
   assert.equal(
     env.inputs.issuerApplicationData.value,
     '',
-    'Stored issuer application data textarea should remain blank',
+    'Stored issuer application data input should remain blank',
   );
   assert.equal(env.inputs.iccTemplate.value, '', 'Stored ICC template textarea should remain blank');
   assert.equal(
@@ -1430,7 +1430,7 @@ test('inline preset hydration populates sensitive fields for evaluate flow', asy
   assert.equal(
     env.inputs.issuerProprietaryBitmap.value,
     hydration.issuerProprietaryBitmap,
-    'Issuer bitmap should hydrate inline textarea',
+    'Issuer bitmap should hydrate inline input',
   );
   assert.equal(
     env.inputs.iccTemplate.value,
@@ -1440,7 +1440,7 @@ test('inline preset hydration populates sensitive fields for evaluate flow', asy
   assert.equal(
     env.inputs.issuerApplicationData.value,
     hydration.issuerApplicationData,
-    'Issuer application data should hydrate inline textarea',
+    'Issuer application data should hydrate inline input',
   );
   assert.equal(env.inputs.challenge.value, hydration.defaults.challenge, 'Challenge default should hydrate inline field');
   assert.equal(env.inputs.reference.value, hydration.defaults.reference, 'Reference default should hydrate inline field');
@@ -1485,7 +1485,7 @@ test('inline preset hydration populates sensitive fields for replay flow', async
   assert.equal(
     env.replayInputs.issuerProprietaryBitmap.value,
     hydration.issuerProprietaryBitmap,
-    'Replay issuer bitmap should hydrate inline textarea',
+    'Replay issuer bitmap should hydrate inline input',
   );
   assert.equal(
     env.replayInputs.iccTemplate.value,
@@ -1495,7 +1495,7 @@ test('inline preset hydration populates sensitive fields for replay flow', async
   assert.equal(
     env.replayInputs.issuerApplicationData.value,
     hydration.issuerApplicationData,
-    'Replay issuer application data should hydrate inline textarea',
+    'Replay issuer application data should hydrate inline input',
   );
   assert.equal(
     env.replayInputs.challenge.value,

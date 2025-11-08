@@ -274,6 +274,24 @@ _Last updated:_ 2025-11-08 (I45 input-from-customer row layout completed)
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
   - `./gradlew --no-daemon spotlessApply check`
 
+## Previous Increment – I45 Single-line session key inputs (completed 2025-11-08)
+- Converted the ICC master key control from a textarea to a single-line text input so the master key and ATC sit on the same row without vertical scrollbars, matching R5’s inline requirement.
+- Ensured the `.secret-mask` wrapper still hides only the master key column in stored mode while the ATC column remains interactive; refreshed CSS helpers so the new markup keeps the existing layout widths.
+- Updated console JavaScript fixtures, Node unit tests, and Selenium assertions so they look for an `<input>` element (not a textarea) for `#emvMasterKey` while preserving validation rules.
+- Verification commands:
+  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
+  - `./gradlew --no-daemon spotlessApply check`
+
+## Upcoming Increment – I46 Single-line IV, IPB, and issuer application inputs
+- Swap the Evaluate form’s Initialization Vector, Issuer Proprietary Bitmap, and Issuer Application Data controls from `<textarea>` elements to single-line `<input>` controls (CDOL1 + ICC template stay textareas) while keeping stored-mode masking scoped to the sensitive columns.
+- Apply the same single-line treatment to the Replay panel (`#emvReplayIssuerBitmap`, `#emvReplayIssuerApplicationData`) so both panels remain aligned with spec R5.5/R5.6.
+- Update console JavaScript fixtures, DOM helpers, Node unit tests, and Selenium coverage to expect the new markup and assert the fields stay editable in inline mode yet hidden in stored mode. Ensure the replay console harness now selects `input` nodes for the issuer bitmap/application fields when wiring sensitive-field masks.
+- Rerun the target verification commands:
+  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
+  - `./gradlew --no-daemon spotlessApply check`
+
 ## Previous Increment – I34 Inline sample vector mode persistence (completed 2025-11-05)
 - Added JS unit coverage (`node --test rest-api/src/test/javascript/emv/console.test.js`) and Selenium assertions to prove inline mode stays active after preset selection while masks/seed actions remain hidden.
 - Updated `console.js` to drop the automatic `stored` switch, refreshed inline evaluation hints, and kept stored-mode behaviour intact when explicitly selected.

@@ -161,10 +161,17 @@ final class EmvCapOperatorUiSeleniumTest {
         assertFieldGroupVisible("#emvBranchFactor", "Branch factor");
         assertFieldGroupVisible("#emvHeight", "Height");
         assertFieldGroupVisible("#emvIv", "IV");
+        WebElement ivInput = driver.findElement(By.id("emvIv"));
+        assertThat(ivInput.getTagName())
+                .as("IV control should render as a single-line input")
+                .isEqualToIgnoringCase("input");
         assertMasterAtcRow("emv-master-atc-row", "#emvMasterKey", "#emvAtc", "Evaluate master/ATC row");
         assertBranchHeightRow("emv-branch-height-row", "#emvBranchFactor", "#emvHeight", "Evaluate session key pair");
 
         WebElement masterKeyInput = driver.findElement(By.id("emvMasterKey"));
+        assertThat(masterKeyInput.getTagName())
+                .as("Master key control should render as a single-line input")
+                .isEqualToIgnoringCase("input");
         WebElement masterKeyGroup =
                 masterKeyInput.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
         assertThat(masterKeyGroup.getAttribute("hidden"))
@@ -214,8 +221,11 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("Issuer application data field group should not be displayed in stored mode")
                 .isFalse();
         assertThat(issuerDataInput.getAttribute("value"))
-                .as("Issuer application data textarea should remain empty in stored mode")
+                .as("Issuer application data input should remain empty in stored mode")
                 .isBlank();
+        assertThat(issuerDataInput.getTagName())
+                .as("Issuer application data control should render as a single-line input")
+                .isEqualToIgnoringCase("input");
 
         WebElement ipbInput = driver.findElement(By.id("emvIpb"));
         WebElement ipbGroup = ipbInput.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
@@ -228,6 +238,9 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(ipbGroup.isDisplayed())
                 .as("Issuer bitmap field group should not be displayed in stored mode")
                 .isFalse();
+        assertThat(ipbInput.getTagName())
+                .as("Issuer bitmap control should render as a single-line input")
+                .isEqualToIgnoringCase("input");
 
         WebElement iccTemplateInput = driver.findElement(By.id("emvIccTemplate"));
         WebElement iccGroup =
@@ -310,7 +323,7 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("Transaction block should expose the ICC payload template textarea")
                 .isNotEmpty();
         assertThat(transactionFieldset.findElements(By.cssSelector("[data-testid='emv-issuer-application-data']")))
-                .as("Transaction block should expose the issuer application data textarea")
+                .as("Transaction block should expose the issuer application data input")
                 .isNotEmpty();
 
         WebElement customerFieldset = driver.findElement(By.cssSelector("fieldset[data-testid='emv-customer-block']"));
@@ -780,6 +793,9 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("Replay master key field group should not be displayed in stored mode")
                 .isFalse();
         WebElement replayMasterKeyInput = driver.findElement(By.id("emvReplayMasterKey"));
+        assertThat(replayMasterKeyInput.getTagName())
+                .as("Replay master key control should render as a single-line input")
+                .isEqualToIgnoringCase("input");
         assertThat(replayMasterKeyInput.isDisplayed())
                 .as("Replay master key input should not be displayed in stored mode")
                 .isFalse();
@@ -798,6 +814,10 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("Replay master key mask should not render placeholders in stored mode")
                 .isFalse();
 
+        WebElement replayIssuerBitmapInput = driver.findElement(By.id("emvReplayIssuerBitmap"));
+        assertThat(replayIssuerBitmapInput.getTagName())
+                .as("Replay issuer bitmap control should render as a single-line input")
+                .isEqualToIgnoringCase("input");
         WebElement replayIssuerMaskContainer =
                 driver.findElement(By.cssSelector("[data-testid='emv-replay-issuer-application-data-mask']"));
         assertThat(replayIssuerMaskContainer.getAttribute("hidden"))
@@ -806,6 +826,10 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(replayIssuerMaskContainer.isDisplayed())
                 .as("Replay issuer application data mask should not render placeholders in stored mode")
                 .isFalse();
+        WebElement replayIssuerApplicationDataInput = driver.findElement(By.id("emvReplayIssuerApplicationData"));
+        assertThat(replayIssuerApplicationDataInput.getTagName())
+                .as("Replay issuer application data control should render as a single-line input")
+                .isEqualToIgnoringCase("input");
 
         assertThat(driver.findElements(By.cssSelector("[data-testid='emv-replay-terminal-data']")))
                 .as("Replay panel should no longer expose terminal override input")
@@ -844,7 +868,7 @@ final class EmvCapOperatorUiSeleniumTest {
                 .isNotEmpty();
         assertThat(replayTransactionBlock.findElements(
                         By.cssSelector("[data-testid='emv-replay-issuer-application-data']")))
-                .as("Replay transaction block should present issuer application data textarea")
+                .as("Replay transaction block should present issuer application data input")
                 .isNotEmpty();
 
         WebElement replayCustomerGrid =

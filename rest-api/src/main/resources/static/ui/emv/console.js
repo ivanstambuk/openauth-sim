@@ -112,7 +112,7 @@
       ? replayForm.querySelector('[data-testid="emv-replay-cdol1"] textarea')
       : null;
   var replayIssuerBitmapInput = replayForm
-      ? replayForm.querySelector('[data-testid="emv-replay-issuer-bitmap"] textarea')
+      ? replayForm.querySelector('[data-testid="emv-replay-issuer-bitmap"] input')
       : null;
   var replayChallengeInput = replayForm
       ? replayForm.querySelector('[data-testid="emv-replay-challenge"] input')
@@ -130,7 +130,7 @@
       ? replayForm.querySelector('[data-testid="emv-replay-icc-template"] textarea')
       : null;
   var replayIssuerApplicationDataInput = replayForm
-      ? replayForm.querySelector('[data-testid="emv-replay-issuer-application-data"] textarea')
+      ? replayForm.querySelector('[data-testid="emv-replay-issuer-application-data"] input')
       : null;
   var replayOtpInput = replayForm
       ? replayForm.querySelector('[data-testid="emv-replay-otp"] input')
