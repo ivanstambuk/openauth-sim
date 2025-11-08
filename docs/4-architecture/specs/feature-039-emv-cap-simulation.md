@@ -35,6 +35,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - 2025-11-04 – Evaluate and Replay sample vector selectors must reuse the shared inline preset styling (label stacked above a full-width dark inline preset dropdown with seed actions and hints beneath) so the EMV panel matches HOTP/TOTP/FIDO2 ergonomics (owner directive).
 - 2025-11-05 – Stored credential summaries supplied to any facade must never include raw ICC master keys, CDOL1 payloads, issuer proprietary bitmaps, ICC templates, or issuer application data. REST responses expose only SHA-256 digests and length metadata; operator UI panels render masked placeholders while keeping the underlying secret material server-side (owner directive).
 - 2025-11-06 – Operator console Evaluate and Replay “Input from customer” section must group Challenge/Reference/Amount inputs beneath the mode radios, keeping fields visible at all times but only enabling Challenge for Respond and Reference/Amount for Sign. Identify mode leaves all three disabled (owner directive).
+- 2025-11-08 – Input from customer fieldsets now present each mode radio and its related inputs on the same horizontal row (Identify shows disabled placeholders, Respond lines the Challenge input beside the radio, Sign lines Reference and Amount beside the radio). The fields remain a single shared set that stays mounted while toggling only `disabled` states; CSS handles the grid alignment (owner directive).
 - 2025-11-06 – Card configuration section should present CDOL1 and IPB inputs in a stacked card configuration block with full-width text areas under their labels (owner directive).
 - 2025-11-06 – Inline preset hydration must populate every overridable field (master key, CDOL1, IPB, ICC template, IAD, and mode-specific customer inputs) when a preset is selected so operators can see defaults before editing (owner directive).
 - 2025-11-06 – Card configuration must include a sub-group labelled “Transaction” that stacks ICC payload template and Issuer Application Data with helper copy indicating “xxxx” is replaced by the ATC (owner directive).
@@ -147,6 +148,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 4. Stored credential mode hides preset-owned secrets entirely: ICC master key, CDOL1 payload, Issuer Proprietary Bitmap, ICC payload template, and Issuer Application Data inputs disappear so operators only see editable fields. Apply `hidden`/`aria-hidden="true"` to the surrounding `.field-group` containers and mask wrappers so neither labels nor helper copy render while stored mode is active; switching back to inline mode removes those attributes and restores the full editable set.
 5. Session key derivation fieldset mirrors the reference calculator: ICC master key + ATC occupy the first row, Branch factor (b) and Height (H) share the next horizontal row, and the IV spans the full width beneath them. The master key and ATC inputs must each expand to the full width of their column without additional gutter spacing on the row, matching the sizing applied to branch/height. Branch/height inputs remain visible in stored mode (only secrets like the master key hide) so operators can audit the tree configuration at a glance. Selenium coverage asserts both rows keep their dedicated wrappers and width constraints.
 6. **R5.6 – Card configuration isolation.** Card configuration remains an isolated fieldset (`.emv-card-block`) that contains only the CDOL1 payload and Issuer Proprietary Bitmap inputs (full-width text areas). Transaction (`.emv-transaction-block`) and Input from customer (`.emv-customer-block`) fieldsets are adjacent siblings; CSS borders/spacing must ensure none of those sections render inside Card configuration even when stacked vertically. Selenium/JS tests should assert that each legend/container is a sibling node and that stored-mode masking only affects the CDOL1/IPB groups within the card block.
+7. **R5.7 – Input-from-customer row layout.** Each mode radio renders on its own grid row with the relevant customer inputs aligned to the right: Identify displays the disabled Challenge/Reference/Amount placeholders, Respond pairs the Challenge input on the same row as the Respond radio, and Sign shows Reference + Amount inputs beside the Sign radio. Challenge/Reference/Amount remain a single shared input set (no duplicates), permanently mounted in the DOM, and toggle only their `disabled` state when the operator switches modes. Stored credential mode must not hide these inputs—they simply stay disabled per mode. Console JS must preserve the existing mode toggle semantics, and Selenium + Node console tests should assert the grid row DOM structure so regressions are caught.
 7. Verbose trace collects every diagnostic detail previously shown on the result card (mask length, masked digits, ATC, branch factor, height) plus the active preview window offsets (`previewWindowBackward`, `previewWindowForward`). These sit alongside the SHA-256 digest of the master key (`masterKeySha256`), the derived session key, Generate AC inputs/result, bitmask overlay, masked digits overlay, issuer application data, and resolved ICC payload. Use accessible formatting (monospaced columns, scroll containers as needed).
 8. Validation errors surface inline using the existing problem-details mapping with field-level annotations.
 9. Selenium/JS tests exercise happy paths for each mode, includeTrace toggle, preset loading, error rendering, telemetry sanitisation of DOM nodes, and masked placeholder visibility/toggling.
@@ -226,12 +228,11 @@ These ASCII mock-ups capture the operator-console layout for the live EMV/CAP ta
 │ │  Issuer App Data    [ … ]     │                                        │
 │ │  “xxxx” → ATC hint            │                                        │
 │ │                                │                                        │
-│ │ Customer input                 │                                        │
-│ │  Mode: (• Identify) ( ) Respond │                                       │
-│ │        ( ) Sign                │                                        │
-│ │  Challenge   [     ]           │                                        │
-│ │  Reference   [     ]           │                                        │
-│ │  Amount      [     ]           │                                        │
+│ │ Customer input (shared grid)   │                                        │
+│ │  Identify  (•) Challenge [—] Reference [—] Amount [—] (all disabled)    │
+│ │  Respond   ( ) Challenge [     ]                                       │
+│ │  Sign      ( ) Reference [     ] Amount [     ]                        │
+│ │  (Inputs stay mounted; mode toggles only their disabled state.)        │
 │ │                                │                                        │
 │ │ Preview window offsets         │                                        │
 │ │  Backward [ 1 ]  Forward [ 1 ] │                                        │
@@ -269,12 +270,11 @@ These ASCII mock-ups capture the operator-console layout for the live EMV/CAP ta
 │ │  Issuer App Data    [ … ]       │                                           │
 │ │  “xxxx” → ATC hint              │                                           │
 │ │                                │                                           │
-│ │ Customer input                 │                                           │
-│ │  Mode: ( ) Identify (•) Respond │                                          │
-│ │        ( ) Sign                │                                           │
-│ │  Challenge   [1234]            │                                           │
-│ │  Reference   [     ]           │                                           │
-│ │  Amount      [     ]           │                                           │
+│ │ Customer input (shared grid)      │                                        │
+│ │  Identify  ( ) Challenge [—] Reference [—] Amount [—] (disabled)          │
+│ │  Respond   (•) Challenge [1234]                                          │
+│ │  Sign      ( ) Reference [     ] Amount [     ]                          │
+│ │  (Single input set; no DOM duplication, only disabled toggles.)          │
 │ │                                │                                           │
 │ │ Provided OTP [ 42511495 ]      │                                           │
 │ │ Preview window offsets         │                                           │

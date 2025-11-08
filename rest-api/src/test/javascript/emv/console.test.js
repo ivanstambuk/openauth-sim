@@ -1287,6 +1287,52 @@ test('card configuration fieldsets isolate transaction and customer sections', (
   );
 });
 
+test('customer input grid exposes a single shared set of inputs for evaluate mode', () => {
+  const evaluateCustomerMarkup = extractFieldsetMarkup(panelTemplateSource, 'emv-customer-block');
+  const challengeMatches = evaluateCustomerMarkup.match(/data-field="challenge"/g) || [];
+  const referenceMatches = evaluateCustomerMarkup.match(/data-field="reference"/g) || [];
+  const amountMatches = evaluateCustomerMarkup.match(/data-field="amount"/g) || [];
+  assert.strictEqual(challengeMatches.length, 1, 'Evaluate grid should expose exactly one challenge field group');
+  assert.strictEqual(referenceMatches.length, 1, 'Evaluate grid should expose exactly one reference field group');
+  assert.strictEqual(amountMatches.length, 1, 'Evaluate grid should expose exactly one amount field group');
+
+  const respondIndex = evaluateCustomerMarkup.indexOf('data-mode="RESPOND"');
+  const challengeIndex = evaluateCustomerMarkup.indexOf('data-field="challenge"');
+  assert.ok(respondIndex > -1 && challengeIndex > respondIndex,
+      'Challenge field group should render after the Respond radio to share the same row');
+
+  const signIndex = evaluateCustomerMarkup.indexOf('data-mode="SIGN"');
+  const referenceIndex = evaluateCustomerMarkup.indexOf('data-field="reference"');
+  const amountIndex = evaluateCustomerMarkup.indexOf('data-field="amount"');
+  assert.ok(signIndex > -1 && referenceIndex > signIndex,
+      'Reference field group should render after the Sign radio to share the same row');
+  assert.ok(signIndex > -1 && amountIndex > signIndex,
+      'Amount field group should render after the Sign radio to share the same row');
+});
+
+test('customer input grid exposes a single shared set of inputs for replay mode', () => {
+  const replayCustomerMarkup = extractFieldsetMarkup(panelTemplateSource, 'emv-replay-customer-block');
+  const challengeMatches = replayCustomerMarkup.match(/data-field="challenge"/g) || [];
+  const referenceMatches = replayCustomerMarkup.match(/data-field="reference"/g) || [];
+  const amountMatches = replayCustomerMarkup.match(/data-field="amount"/g) || [];
+  assert.strictEqual(challengeMatches.length, 1, 'Replay grid should expose exactly one challenge field group');
+  assert.strictEqual(referenceMatches.length, 1, 'Replay grid should expose exactly one reference field group');
+  assert.strictEqual(amountMatches.length, 1, 'Replay grid should expose exactly one amount field group');
+
+  const respondIndex = replayCustomerMarkup.indexOf('data-mode="RESPOND"');
+  const challengeIndex = replayCustomerMarkup.indexOf('data-field="challenge"');
+  assert.ok(respondIndex > -1 && challengeIndex > respondIndex,
+      'Replay challenge field group should render after the Respond radio');
+
+  const signIndex = replayCustomerMarkup.indexOf('data-mode="SIGN"');
+  const referenceIndex = replayCustomerMarkup.indexOf('data-field="reference"');
+  const amountIndex = replayCustomerMarkup.indexOf('data-field="amount"');
+  assert.ok(signIndex > -1 && referenceIndex > signIndex,
+      'Replay reference field group should render after the Sign radio');
+  assert.ok(signIndex > -1 && amountIndex > signIndex,
+      'Replay amount field group should render after the Sign radio');
+});
+
 test('selecting a preset while inline mode is active keeps inline controls editable', async () => {
   const env = createEnvironment({ verboseEnabled: true });
   await flushMicrotasks();

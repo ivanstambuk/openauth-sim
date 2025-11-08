@@ -316,55 +316,71 @@
                     aria-describedby="emvCustomerInputsHint"
                   >
                   <legend class="field-legend">Input from customer</legend>
-                  <fieldset class="mode-toggle mode-toggle--compact" data-testid="emv-mode-toggle">
-                    <legend>Mode</legend>
-                    <div class="mode-option">
-                      <input
-                          type="radio"
-                          id="emvModeIdentify"
-                          name="mode"
-                          value="IDENTIFY"
-                          checked="checked"
-                          data-testid="emv-mode-identify"
-                        />
-                      <label for="emvModeIdentify">Identify</label>
-                    </div>
-                    <div class="mode-option">
-                      <input
-                          type="radio"
-                          id="emvModeRespond"
-                          name="mode"
-                          value="RESPOND"
-                          data-testid="emv-mode-respond"
-                        />
-                      <label for="emvModeRespond">Respond</label>
-                    </div>
-                    <div class="mode-option">
-                      <input
-                          type="radio"
-                          id="emvModeSign"
-                          name="mode"
-                          value="SIGN"
-                          data-testid="emv-mode-sign"
-                        />
-                      <label for="emvModeSign">Sign</label>
-                    </div>
-                  </fieldset>
                   <p class="hint" id="emvCustomerInputsHint" data-testid="emv-customer-hint">
                     Identify mode does not accept customer inputs.
                   </p>
-                  <div class="field-grid emv-customer-grid" data-testid="emv-customer-inputs">
-                    <div class="field-group">
-                      <label for="emvChallenge">Challenge (digits)</label>
-                      <input type="text" id="emvChallenge" name="challenge" data-testid="emv-challenge" autocomplete="off" />
+                  <span class="emv-customer-mode-label" id="emvCustomerModeLabel">Mode</span>
+                  <div
+                      class="emv-customer-grid"
+                      data-testid="emv-customer-inputs"
+                      role="group"
+                      aria-labelledby="emvCustomerInputsHint emvCustomerModeLabel"
+                    >
+                    <div class="emv-customer-row" data-testid="emv-row-identify">
+                      <div class="mode-option" data-mode="IDENTIFY">
+                        <input
+                            type="radio"
+                            id="emvModeIdentify"
+                            name="mode"
+                            value="IDENTIFY"
+                            checked="checked"
+                            data-testid="emv-mode-identify"
+                          />
+                        <label for="emvModeIdentify">Identify</label>
+                      </div>
+                      <div class="emv-customer-fields" aria-hidden="true">
+                        <p class="hint emv-customer-placeholder">No inputs required.</p>
+                      </div>
                     </div>
-                    <div class="field-group">
-                      <label for="emvReference">Reference (digits)</label>
-                      <input type="text" id="emvReference" name="reference" data-testid="emv-reference" autocomplete="off" />
+                    <div class="emv-customer-row" data-testid="emv-row-respond">
+                      <div class="mode-option" data-mode="RESPOND">
+                        <input
+                            type="radio"
+                            id="emvModeRespond"
+                            name="mode"
+                            value="RESPOND"
+                            data-testid="emv-mode-respond"
+                          />
+                        <label for="emvModeRespond">Respond</label>
+                      </div>
+                      <div class="emv-customer-fields">
+                        <div class="field-group emv-customer-field" data-field="challenge" data-testid="emv-challenge-group">
+                          <label for="emvChallenge">Challenge (digits)</label>
+                          <input type="text" id="emvChallenge" name="challenge" data-testid="emv-challenge" autocomplete="off" />
+                        </div>
+                      </div>
                     </div>
-                    <div class="field-group">
-                      <label for="emvAmount">Amount (digits)</label>
-                      <input type="text" id="emvAmount" name="amount" data-testid="emv-amount" autocomplete="off" />
+                    <div class="emv-customer-row" data-testid="emv-row-sign">
+                      <div class="mode-option" data-mode="SIGN">
+                        <input
+                            type="radio"
+                            id="emvModeSign"
+                            name="mode"
+                            value="SIGN"
+                            data-testid="emv-mode-sign"
+                          />
+                        <label for="emvModeSign">Sign</label>
+                      </div>
+                      <div class="emv-customer-fields emv-customer-fields--dual">
+                        <div class="field-group emv-customer-field" data-field="reference" data-testid="emv-reference-group">
+                          <label for="emvReference">Reference (digits)</label>
+                          <input type="text" id="emvReference" name="reference" data-testid="emv-reference" autocomplete="off" />
+                        </div>
+                        <div class="field-group emv-customer-field" data-field="amount" data-testid="emv-amount-group">
+                          <label for="emvAmount">Amount (digits)</label>
+                          <input type="text" id="emvAmount" name="amount" data-testid="emv-amount" autocomplete="off" />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </fieldset>
@@ -689,55 +705,83 @@
                     aria-describedby="emvReplayCustomerInputsHint"
                   >
                   <legend class="field-legend">Customer inputs</legend>
-                  <fieldset class="mode-toggle mode-toggle--compact" data-testid="emv-replay-mode-selector">
-                    <legend>CAP mode</legend>
-                    <div class="mode-option">
-                      <input
-                          type="radio"
-                          id="emvReplayModeIdentify"
-                          name="emvReplayCapMode"
-                          value="IDENTIFY"
-                          checked="checked"
-                          data-testid="emv-replay-mode-identify"
-                        />
-                      <label for="emvReplayModeIdentify">Identify</label>
-                    </div>
-                    <div class="mode-option">
-                      <input
-                          type="radio"
-                          id="emvReplayModeRespond"
-                          name="emvReplayCapMode"
-                          value="RESPOND"
-                          data-testid="emv-replay-mode-respond"
-                        />
-                      <label for="emvReplayModeRespond">Respond</label>
-                    </div>
-                    <div class="mode-option">
-                      <input
-                          type="radio"
-                          id="emvReplayModeSign"
-                          name="emvReplayCapMode"
-                          value="SIGN"
-                          data-testid="emv-replay-mode-sign"
-                        />
-                      <label for="emvReplayModeSign">Sign</label>
-                    </div>
-                  </fieldset>
                   <p class="hint" id="emvReplayCustomerInputsHint" data-testid="emv-replay-customer-hint">
                     Identify mode does not accept customer inputs.
                   </p>
-                  <div class="field-grid emv-customer-grid" data-testid="emv-replay-customer-inputs">
-                    <div class="field-group" data-testid="emv-replay-challenge">
-                      <label for="emvReplayChallenge">Challenge (digits)</label>
-                      <input type="text" id="emvReplayChallenge" name="replayChallenge" autocomplete="off" />
+                  <span class="emv-customer-mode-label" id="emvReplayCustomerModeLabel">Mode</span>
+                  <div
+                      class="emv-customer-grid"
+                      data-testid="emv-replay-customer-inputs"
+                      role="group"
+                      aria-labelledby="emvReplayCustomerInputsHint emvReplayCustomerModeLabel"
+                    >
+                    <div class="emv-customer-row" data-testid="emv-replay-row-identify">
+                      <div class="mode-option" data-mode="IDENTIFY">
+                        <input
+                            type="radio"
+                            id="emvReplayModeIdentify"
+                            name="emvReplayCapMode"
+                            value="IDENTIFY"
+                            checked="checked"
+                            data-testid="emv-replay-mode-identify"
+                          />
+                        <label for="emvReplayModeIdentify">Identify</label>
+                      </div>
+                      <div class="emv-customer-fields" aria-hidden="true">
+                        <p class="hint emv-customer-placeholder">No inputs required.</p>
+                      </div>
                     </div>
-                    <div class="field-group" data-testid="emv-replay-reference">
-                      <label for="emvReplayReference">Reference (digits)</label>
-                      <input type="text" id="emvReplayReference" name="replayReference" autocomplete="off" />
+                    <div class="emv-customer-row" data-testid="emv-replay-row-respond">
+                      <div class="mode-option" data-mode="RESPOND">
+                        <input
+                            type="radio"
+                            id="emvReplayModeRespond"
+                            name="emvReplayCapMode"
+                            value="RESPOND"
+                            data-testid="emv-replay-mode-respond"
+                          />
+                        <label for="emvReplayModeRespond">Respond</label>
+                      </div>
+                      <div class="emv-customer-fields">
+                        <div
+                            class="field-group emv-customer-field"
+                            data-field="challenge"
+                            data-testid="emv-replay-challenge"
+                          >
+                          <label for="emvReplayChallenge">Challenge (digits)</label>
+                          <input type="text" id="emvReplayChallenge" name="replayChallenge" autocomplete="off" />
+                        </div>
+                      </div>
                     </div>
-                    <div class="field-group" data-testid="emv-replay-amount">
-                      <label for="emvReplayAmount">Amount (digits)</label>
-                      <input type="text" id="emvReplayAmount" name="replayAmount" autocomplete="off" />
+                    <div class="emv-customer-row" data-testid="emv-replay-row-sign">
+                      <div class="mode-option" data-mode="SIGN">
+                        <input
+                            type="radio"
+                            id="emvReplayModeSign"
+                            name="emvReplayCapMode"
+                            value="SIGN"
+                            data-testid="emv-replay-mode-sign"
+                          />
+                        <label for="emvReplayModeSign">Sign</label>
+                      </div>
+                      <div class="emv-customer-fields emv-customer-fields--dual">
+                        <div
+                            class="field-group emv-customer-field"
+                            data-field="reference"
+                            data-testid="emv-replay-reference"
+                          >
+                          <label for="emvReplayReference">Reference (digits)</label>
+                          <input type="text" id="emvReplayReference" name="replayReference" autocomplete="off" />
+                        </div>
+                        <div
+                            class="field-group emv-customer-field"
+                            data-field="amount"
+                            data-testid="emv-replay-amount"
+                          >
+                          <label for="emvReplayAmount">Amount (digits)</label>
+                          <input type="text" id="emvReplayAmount" name="replayAmount" autocomplete="off" />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </fieldset>

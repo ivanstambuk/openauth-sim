@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-039-emv-cap-simulation.md`  
 _Status:_ In progress  
-_Last updated:_ 2025-11-08 (I44 card configuration isolation completed)
+_Last updated:_ 2025-11-08 (I45 input-from-customer row layout completed)
 
 ## Vision & Success Criteria
 - Deliver deterministic EMV/CAP OTP generation **and replay validation** (Identify, Respond, Sign) across core, application, REST, CLI, and operator console facades with consistent telemetry and optional verbose traces.
@@ -216,6 +216,13 @@ _Last updated:_ 2025-11-08 (I44 card configuration isolation completed)
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
   - `./gradlew --no-daemon spotlessApply check`
 - Result: inline Evaluate/Replay preset hydration is stable, Sign replay Selenium coverage is back on, and T3937/T3938 can now proceed.
+
+## Previous Increment – I45 Input-from-customer row layout (completed 2025-11-08)
+- Added R5.7 to the specification and refreshed this plan/tasks to capture the condensed layout requirement.
+- Reworked the Evaluate + Replay templates so each mode renders as its own row with the radio + label left-aligned and its related inputs (Respond + Challenge, Sign + Reference/Amount) on the same horizontal track while Identify shows a placeholder (still one shared set of inputs with the existing `data-field` hooks).
+- Introduced `.emv-customer-row`, `.emv-customer-fields`, and refreshed `.emv-customer-grid` styling so the radios/labels remain vertically aligned with consistent spacing while stored-mode masking continues to leave the inputs visible (just disabled per mode).
+- Extended the Node console tests to assert the single-set structure and updated the Selenium suite to confirm there is exactly one challenge/reference/amount group per panel plus Sign-mode enablement coverage.
+- Verification: `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`.
 
 ## Previous Increment – I40 Card transaction grouping (completed 2025-11-08)
 - Added a dedicated “Transaction” fieldset beneath Card configuration for Evaluate and Replay panels, stacking the ICC payload template and Issuer Application Data inputs while surfacing the mandated helper copy (`"xxxx" is replaced by the ATC before the ICC payload template is evaluated.`).

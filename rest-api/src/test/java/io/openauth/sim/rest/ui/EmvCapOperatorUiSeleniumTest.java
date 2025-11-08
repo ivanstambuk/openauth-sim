@@ -323,6 +323,17 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("Identify mode hint should describe disabled customer inputs")
                 .contains("Identify mode does not accept customer inputs.");
 
+        WebElement customerGrid = customerFieldset.findElement(By.cssSelector("[data-testid='emv-customer-inputs']"));
+        assertThat(customerGrid.findElements(By.cssSelector("[data-field='challenge']")))
+                .as("Customer grid should expose a single challenge field group")
+                .hasSize(1);
+        assertThat(customerGrid.findElements(By.cssSelector("[data-field='reference']")))
+                .as("Customer grid should expose a single reference field group")
+                .hasSize(1);
+        assertThat(customerGrid.findElements(By.cssSelector("[data-field='amount']")))
+                .as("Customer grid should expose a single amount field group")
+                .hasSize(1);
+
         WebElement challengeInput = driver.findElement(By.id("emvChallenge"));
         WebElement challengeGroup =
                 challengeInput.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
@@ -835,6 +846,18 @@ final class EmvCapOperatorUiSeleniumTest {
                         By.cssSelector("[data-testid='emv-replay-issuer-application-data']")))
                 .as("Replay transaction block should present issuer application data textarea")
                 .isNotEmpty();
+
+        WebElement replayCustomerGrid =
+                driver.findElement(By.cssSelector("[data-testid='emv-replay-customer-inputs']"));
+        assertThat(replayCustomerGrid.findElements(By.cssSelector("[data-field='challenge']")))
+                .as("Replay customer grid should expose a single challenge field group")
+                .hasSize(1);
+        assertThat(replayCustomerGrid.findElements(By.cssSelector("[data-field='reference']")))
+                .as("Replay customer grid should expose a single reference field group")
+                .hasSize(1);
+        assertThat(replayCustomerGrid.findElements(By.cssSelector("[data-field='amount']")))
+                .as("Replay customer grid should expose a single amount field group")
+                .hasSize(1);
 
         WebElement otpInput = waitForVisible(By.cssSelector("[data-testid='emv-replay-otp'] input[type='text']"));
         otpInput.clear();
