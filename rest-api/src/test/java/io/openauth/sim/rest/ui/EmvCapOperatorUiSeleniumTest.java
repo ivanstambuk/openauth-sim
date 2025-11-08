@@ -152,11 +152,6 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(sessionLegend.getText())
                 .as("Session key derivation legend should describe the grouped inputs")
                 .contains("Session key derivation");
-        WebElement sessionHint = driver.findElement(By.cssSelector("[data-testid='emv-session-hint']"));
-        assertThat(sessionHint.getText().trim())
-                .as("Session helper copy should call out ICC master key, ATC, branch factor, height, and IV")
-                .isEqualTo(
-                        "Provide the ICC master key, ATC, branch factor, height, and IV to derive the session key used for Generate AC.");
         assertFieldGroupVisible("#emvAtc", "ATC");
         assertFieldGroupVisible("#emvBranchFactor", "Branch factor");
         assertFieldGroupVisible("#emvHeight", "Height");
@@ -331,11 +326,6 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(customerLegend.getText())
                 .as("Customer input fieldset should advertise the grouped section")
                 .contains("Input from customer");
-        WebElement customerHint = customerFieldset.findElement(By.cssSelector("[data-testid='emv-customer-hint']"));
-        assertThat(customerHint.getText())
-                .as("Identify mode hint should describe disabled customer inputs")
-                .contains("Identify mode does not accept customer inputs.");
-
         WebElement customerGrid = customerFieldset.findElement(By.cssSelector("[data-testid='emv-customer-inputs']"));
         assertThat(customerGrid.findElements(By.cssSelector("[data-field='challenge']")))
                 .as("Customer grid should expose a single challenge field group")
@@ -381,9 +371,6 @@ final class EmvCapOperatorUiSeleniumTest {
         }
         new WebDriverWait(driver, WAIT_TIMEOUT)
                 .until(d -> challengeInput.isEnabled() && !referenceInput.isEnabled() && !amountInput.isEnabled());
-        assertThat(customerHint.getText())
-                .as("Respond mode hint should describe challenge-only entry")
-                .contains("Respond mode enables Challenge");
 
         WebElement signRadio = driver.findElement(By.cssSelector("[data-testid='emv-mode-sign']"));
         if (!signRadio.isSelected()) {
@@ -391,9 +378,6 @@ final class EmvCapOperatorUiSeleniumTest {
         }
         new WebDriverWait(driver, WAIT_TIMEOUT)
                 .until(d -> !challengeInput.isEnabled() && referenceInput.isEnabled() && amountInput.isEnabled());
-        assertThat(customerHint.getText())
-                .as("Sign mode hint should describe reference and amount inputs")
-                .contains("Sign mode enables Reference and Amount");
 
         WebElement identifyRadio = driver.findElement(By.cssSelector("[data-testid='emv-mode-identify']"));
         if (!identifyRadio.isSelected()) {
@@ -402,10 +386,9 @@ final class EmvCapOperatorUiSeleniumTest {
         new WebDriverWait(driver, WAIT_TIMEOUT)
                 .until(d -> !challengeInput.isEnabled() && !referenceInput.isEnabled() && !amountInput.isEnabled());
 
-        WebElement storedHint = driver.findElement(By.cssSelector("[data-testid='emv-stored-empty']"));
-        assertThat(storedHint.getText())
-                .as("Stored preset hint should describe inline override fallback")
-                .contains("Modify any field to fall back to inline parameters");
+        assertThat(driver.findElements(By.cssSelector("[data-testid='emv-stored-empty']")))
+                .as("Evaluate panel should no longer render inline/stored helper copy")
+                .isEmpty();
 
         WebElement globalVerboseCheckbox = waitForClickable(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
         assertThat(globalVerboseCheckbox.isSelected())
@@ -548,11 +531,9 @@ final class EmvCapOperatorUiSeleniumTest {
                 .as("Seed actions should stay hidden while inline mode is active")
                 .isNotNull();
 
-        WebElement hint = driver.findElement(By.cssSelector("[data-testid='emv-stored-empty']"));
-        assertThat(hint.getText().trim())
-                .as("Inline hint should explain preset selection without mode switching")
-                .isEqualTo(
-                        "Inline evaluation uses the parameters entered above. Selecting a sample populates inline fields; switch to stored mode to evaluate the preset.");
+        assertThat(driver.findElements(By.cssSelector("[data-testid='emv-stored-empty']")))
+                .as("Inline mode should not show the removed helper text")
+                .isEmpty();
 
         WebElement evaluateButton = waitForClickable(By.cssSelector("button[data-testid='emv-evaluate-submit']"));
         evaluateButton.click();
@@ -753,6 +734,11 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(replayPresetContainer.getAttribute("class"))
                 .as("Replay preset block should reuse shared spacing helper")
                 .contains("stack-offset-top-lg");
+        WebElement replayActionBar =
+                driver.findElement(By.cssSelector("[data-testid='emv-replay-form'] .emv-action-bar"));
+        assertThat(replayActionBar.getAttribute("class"))
+                .as("Replay action bar should reuse stack-offset-top-lg spacing helper")
+                .contains("stack-offset-top-lg");
         waitForReplayCredential(storedSelect, fixture.credentialId(), "CAP Respond baseline");
         ((JavascriptExecutor) driver)
                 .executeScript(
@@ -773,10 +759,6 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(replaySessionLegend.getText())
                 .as("Replay session legend should describe the grouped derivation inputs")
                 .contains("Session key derivation");
-        WebElement replaySessionHint = driver.findElement(By.cssSelector("[data-testid='emv-replay-session-hint']"));
-        assertThat(replaySessionHint.getText().trim())
-                .as("Replay session helper copy should outline the reproduction guidance")
-                .isEqualTo("Match the credential's session key inputs to reproduce CAP replay calculations.");
         assertFieldGroupVisible("#emvReplayAtc", "Replay ATC");
         assertFieldGroupVisible("#emvReplayBranchFactor", "Replay branch factor");
         assertFieldGroupVisible("#emvReplayHeight", "Replay height");

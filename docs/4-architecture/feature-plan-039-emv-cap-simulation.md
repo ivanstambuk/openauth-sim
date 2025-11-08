@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-039-emv-cap-simulation.md`  
 _Status:_ In progress  
-_Last updated:_ 2025-11-08 (I45 input-from-customer row layout completed)
+_Last updated:_ 2025-11-08 (I48 replay CTA spacing parity completed)
 
 ## Vision & Success Criteria
 - Deliver deterministic EMV/CAP OTP generation **and replay validation** (Identify, Respond, Sign) across core, application, REST, CLI, and operator console facades with consistent telemetry and optional verbose traces.
@@ -21,6 +21,29 @@ _Last updated:_ 2025-11-08 (I45 input-from-customer row layout completed)
 - Reuses telemetry infrastructure under `application.telemetry.TelemetryContracts`.
 - REST controller integrates with Spring Boot configuration and existing verbose trace toggles.
 - Test fixtures will live in `docs/test-vectors/emv-cap/` and be loaded by new test utilities.
+
+## Increment – I46 Preview-offset helper copy cleanup (completed 2025-11-08)
+- Removed the redundant helper sentence that trailed the "Preview window offsets" heading on EMV/CAP Evaluate and Replay forms so the control mirrors the HOTP/TOTP/OCRA layout.
+- Verified no console JS or Selenium assertions relied on the helper copy during the aggregate `./gradlew --no-daemon spotlessApply check` (600 s timeout) run; no targeted reruns were required beyond the pipeline.
+
+## Increment – I47 Evaluate-mode helper text removal (completed 2025-11-08)
+- Removed the informational hint that reiterated inline vs. stored behavior (“Inline evaluation uses the parameters entered above…”), dropped the `data-testid="emv-stored-empty"` hook, and cleaned up console JS logic that previously rotated the copy.
+- Updated Node + Selenium suites to assert the helper text remains absent, then executed the aggregate `./gradlew --no-daemon spotlessApply check` run (600 s timeout) to cover both harnesses.
+
+## Increment – I48 Replay CTA spacing parity (completed 2025-11-08)
+- Captured requirement R5.8 in the specification to lock the Replay action bar to the shared `stack-offset-top-lg` helper so its CTA mirrors the Evaluate panel and other protocol tabs.
+- Extended the Node console template tests with dedicated assertions for both Evaluate and Replay action bars plus added a Selenium expectation that the replay form’s `.emv-action-bar` includes the spacing class, ensuring regressions fail before reaching operators.
+- Updated `panel.html` so both action bars include the helper, reran `node --test rest-api/src/test/javascript/emv/console.test.js` and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`; deferred the aggregate `./gradlew --no-daemon spotlessApply check` to the operator per session guidance.
+
+## Increment – I49 Input helper copy removal (completed 2025-11-08)
+- Removed the Identify-mode helper copy plus the session-derivation hints from the Evaluate and Replay forms so those panels rely solely on legends, labels, and inline placeholders per the new directive.
+- Deleted the corresponding customer-hint wiring in `console.js`, updated Node + Selenium suites to stop asserting the removed text, and ensured accessibility attributes (`aria-describedby`/`aria-labelledby`) no longer reference absent nodes.
+- Commands: `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon spotlessApply check`.
+
+## Upcoming Increment – I50 Verbose trace provenance expansion
+- Capture the new R2.4 requirement inside the specification (already added) by staging failing application/REST/CLI tests that assert the richer trace content: protocol context fields, key derivation transparency (masked PAN/PSN + digests), CDOL/IAD decoding tables, MAC transcript metadata, and the decimalization overlay proofs reflected in the spec’s reference log.
+- Extend the REST/CLI DTOs plus `VerboseTraceConsole` adapters so each step emits the exact fields listed above using the single verbosity level; update fixtures/Node snapshot expectations to compare against the published example trace in the spec.
+- Refresh documentation snippets (how-to guides + UI screenshots) only after the new trace output stabilises; this increment focuses on code/tests. Validation commands: targeted `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*VerboseTrace*"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*Trace*"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliEvaluate*"`, followed by the aggregate `./gradlew --no-daemon spotlessApply check` (600 s timeout to satisfy hooks).
 
 ## Increment Breakdown (≤30 minutes each)
 1. **I1 – Fixture scaffolding & failing tests**  

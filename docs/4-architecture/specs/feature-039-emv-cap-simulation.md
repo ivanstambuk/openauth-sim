@@ -1,7 +1,7 @@
 # Feature 039 – EMV/CAP Simulation Services
 
 _Status: In progress_  
-_Last updated: 2025-11-08 (Session key + card configuration fieldset directives logged)_
+_Last updated: 2025-11-08 (R5.8 replay CTA spacing parity added)_
 
 ## Overview
 Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors the reference calculator workflows while fitting the OpenAuth Simulator architecture. Scope now covers reusable core derivation utilities, application orchestration, REST and CLI facades, operator console integration, and MapDB-backed credential seeding so every surface can evaluate Identify/Respond/Sign flows with consistent telemetry and traces. Documentation across REST, CLI, and operator UI guides captures the extended fixture set delivered in T3908c/T3909 so operators can reproduce reference flows end-to-end.
@@ -25,8 +25,13 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - 2025-11-05 – Selecting a sample vector while "Inline parameters" mode is active must keep the evaluation panel in inline mode (fields stay editable); do not auto-switch to stored credential mode (owner decision).
 - 2025-11-05 – Selecting a sample vector while "Inline parameters" mode is active must keep the evaluation panel in inline mode (fields stay editable); do not auto-switch to stored credential mode (owner decision).
 - 2025-11-05 – Inline evaluations triggered with a selected preset must still hydrate defaults from the stored credential (submit `credentialId` so missing fields fall back to persistence) while allowing inline overrides to replace individual parameters (owner decision).
+- 2025-11-08 – Checkstyle `WhitespaceAround` rule may be disabled globally to unblock EMV template/JS refactors without scattered suppressions (owner decision; configuration updated in `config/checkstyle/checkstyle.xml`).
+- 2025-11-08 – Remove the inline helper copy that previously stated "Identify mode does not accept customer inputs." along with the session-derivation hints on Evaluate/Replay; rely on field legends/labels instead (owner directive).
 - 2025-11-06 – Stored credential mode in the operator console must hide ICC master key, CDOL1 payload, Issuer Proprietary Bitmap, ICC payload template, and Issuer Application Data inputs entirely; operators switch to inline mode to inspect or edit those values (owner directive).
 - 2025-11-03 – Preview window offsets remain mandatory on the Evaluate form and corresponding REST/CLI requests so operators can adjust the neighboring OTP previews; align EMV controls/DTOs with the HOTP/TOTP/OCRA window schema (owner directive).
+- 2025-11-08 – Remove the redundant helper sentence beneath the "Preview window offsets" controls on EMV/CAP panels so the heading mirrors the other protocols (owner directive).
+- 2025-11-08 – Remove the evaluate-tab helper text "Inline evaluation uses the parameters entered above…"; mode toggles and preset selectors already convey the stored vs. inline workflow (owner directive).
+- 2025-11-08 – Replay action bar spacing must match the Evaluate tab and other protocol panels by reusing the shared `stack-offset-top-lg` utility so the Provided OTP inputs never butt against the CTA (owner directive – codified as requirement R5.8).
 - 2025-11-03 – Verbose trace payloads must surface ATC, branch factor, height, and mask length metadata alongside the masked digits overlay so operator diagnostics match other protocols (owner directive).
 - 2025-11-04 – Operator console Replay mode toggle must list Inline parameters before Stored credential and surface succinct helper copy beside each option (“Manual replay with full CAP derivation inputs.” / “Replay a seeded preset without advancing ATC.”), mirroring other protocols without wrapping onto a second line (owner directive).
 - 2025-11-04 – Evaluate and Replay dropdown labelling must match other protocols (“Load a sample vector” + “Select a sample”) while retaining EMV/CAP hinting about canonical parameters and ATC preservation (owner directive).
@@ -68,7 +73,13 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
    - Event names `emv.cap.identify`, `emv.cap.respond`, `emv.cap.sign`.
    - Frames include sanitized metadata (mode, ATC, ipbMaskLength, maskedDigitsCount) without master/session keys or raw cryptograms.
 3. Provide toggleable verbose trace assembly containing full derivation details and masked-digit overlays for downstream facades while redacting master keys (expose digest + byte length only) and leaving session keys visible.
-4. Introduce fixtures under `docs/test-vectors/emv-cap/*.json` capturing canonical inputs/outputs, seeded with the transcript sample and placeholders for user-supplied vectors. Maintain coverage for:
+4. Enrich the verbose trace content so every request surfaces the following provenance (single verbosity level shared across facades):
+   - **Protocol context** – CAP profile/mode, EMV reference (default 4.3 Book 3 unless overridden), AC/CID type, and issuer policy identifiers so auditors can understand which variant generated the OTP.
+   - **Key derivation transparency** – IMK family label (IMK-AC/SMI/SMC, etc.), derivation algorithm identifier, masked PAN/PSN (BIN + last digits plus `sha256:` digest), ATC, IV, master-key digest, and the resulting session key value per R2.3 visibility rules.
+   - **CDOL/IAD decoding & validation** – ordered tag/length/source tables with byte offsets, resolved hex, and decoded CVR/IAD metadata so operators can verify every TLV that fed `GENERATE AC`.
+   - **MAC transcript details** – MAC algorithm (3DES-CBC-MAC today), IV, padding rule, block-by-block notes, CID interpretation, and the raw Generate AC response so cryptogram derivations are reproducible.
+   - **Decimalization & overlay proof** – declared decimalization table (derived from IPB), concatenated source string (e.g., `AC||ATC`), mask pattern, and per-digit overlay steps that lead to the final OTP digits.
+5. Introduce fixtures under `docs/test-vectors/emv-cap/*.json` capturing canonical inputs/outputs, seeded with the transcript sample and placeholders for user-supplied vectors. Maintain coverage for:
    - Baseline identify/respond/sign flows (`identify-baseline`, `respond-baseline`, `sign-baseline`).
    - Additional identify variations spanning branch factor/height pairs (`identify-b2-h6`, `identify-b6-h10`).
    - Respond challenges covering short/long inputs (`respond-challenge4`, `respond-challenge8`).
@@ -138,6 +149,69 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 4. JSON output must match the REST schema (`otp`, `maskLength`, `trace`, `telemetry`) so tooling can switch between facades without reformatting. The master key surfaces as a SHA-256 digest (`masterKeySha256`) with accompanying metadata; session keys remain in plaintext. Trace payloads also expose `atc`, `branchFactor`, `height`, `maskLength`, and preview window offsets so downstream consumers see the same diagnostics as the operator console.
 5. Tests cover each mode, invalid parameter scenarios, includeTrace toggling, JSON parity, and telemetry sanitisation.
 
+#### Reference verbose trace example
+```
+step.0: context
+  profile               = CAP-Identify (issuer policy: retail-branch)
+  emv.version           = 4.3 Book 3
+  ac.type               = ARQC (CID=0x80)
+  issuer.policy.notes   = "CAP-1, ISO-0 decimalization, mask 9-digit preview"
+
+step.1: keys
+  master.family         = IMK-AC
+  master.sha256         = sha256:223E0A160AF9DA0A03E6DD2C4719C56F5D66A633CBE84E78AAA9F3735865522A
+  pan.masked            = 492181••••••••1234 (sha256:5DE415C6A7B13E82D7FE6F410D4F9F1E4636A90BD0E03C03ADF4B7A12D5F7F58)
+  psn.masked            = ••01 (sha256:97E9BE4AC7040CFF67871D395AAC6F6F3BE70A469AFB9B87F3130E9F042F02D1)
+  atc                   = 0x00B4
+  derivation.fn         = EMV-3DES-ATC-split (left/right halves)
+  session.key           = 5EC8B98ABC8F9E7597647CBCB9A75402
+
+step.2: cdol1
+  schema.items          = 8 (validated: OK)
+  [00..05] tag 9F02 len 6 src terminal      => 000000000000  (Amount Authorised = 0.00)
+  [06..11] tag 9F03 len 6 src terminal      => 000000000000  (Amount Other = 0.00)
+  [12..13] tag 9F1A len 2 src terminal      => 0276          (Country = NLD)
+  [14..19] tag 95   len 5 src terminal      => 0000000000    (TVR = 00 00 00 00 00)
+  [20..21] tag 5F2A len 2 src terminal      => 0978          (Currency = EUR)
+  [22..25] tag 9A   len 3 src terminal      => 230908        (Date = 2023-09-08)
+  [26..31] tag 9C   len 1 src terminal      => 21            (Transaction Type = 0x21)
+  [32..33] tag 9F37 len 4 src terminal      => 12345678      (Unpredictable Number)
+  concat.hex           = 00000000000000000000000002760000000009782309082112345678
+
+step.3: generate_ac
+  mac.algorithm         = 3DES-CBC-MAC (ISO9797-1 Alg 3)
+  mac.iv                = 0000000000000000
+  message.blocks        = 11 (padding applied)
+  chain.block[0]        = DES3(0000000000000000 XOR B0)
+  chain.block[10]       = DES3(chain.block[9] XOR B10)
+  generateAc.raw        = 80 00 B4 7F 32 A7 9F DA 94 56 43 06 77 0A 03 A4 80 00
+  cid.flags             = {b8=ARQC, b7=Advice=0, b6=TC=0, b5=AAC=0}
+  ac.hex                = 00B47F32A79FDA94
+  iad.raw               = 06770A03A48000
+  iad.decode            = {cvr=06770A03, counters=0xA480, CDA supported=1, offline PIN=0}
+
+step.4: masked_digits
+  decimalization.table  = ISO-0
+  source.hex            = AC||ATC = 00B47F32A79FDA94 || 00B4
+  source.dec            = 00541703287953009400B4
+  mask.pattern          = "....1F...........FFFFF..........8..."
+  overlay.steps         = [
+    {index:4,  from:'1', to:'1'},
+    {index:5,  from:'7', to:'4'},
+    {index:17, from:'3', to:'3'},
+    {index:18, from:'0', to:'4'},
+    {index:19, from:'0', to:'8'}
+  ]
+  otp                   = 140456438
+  digits.count          = 9
+
+step.5: outputs
+  previewWindowBackward = 0
+  previewWindowForward  = 0
+  maskLength            = 9
+  credential.source     = inline (id=emv-cap-identify-baseline)
+```
+
 ### R5 – Operator UI EMV/CAP console panel
 1. Activate the existing EMV/CAP tab in the operator console with:
    - Input groups for derivation parameters, customer inputs, ICC template, issuer application data, and mode selector radio buttons.
@@ -149,6 +223,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 5. Session key derivation fieldset mirrors the reference calculator: ICC master key + ATC occupy the first row, Branch factor (b) and Height (H) share the next horizontal row, and the IV spans the full width beneath them. The ICC master key **and** IV controls are single-line text inputs (no textareas) so the row stays compact without vertical scrolling; only the master key column hides in stored mode while the ATC and IV inputs remain visible. The inputs must each expand to the full width of their column without additional gutter spacing on the row, matching the sizing applied to branch/height. Branch/height inputs remain visible in stored mode (only secrets like the master key hide) so operators can audit the tree configuration at a glance. Selenium coverage asserts both rows keep their dedicated wrappers and width constraints.
 6. **R5.6 – Card configuration isolation.** Card configuration remains an isolated fieldset (`.emv-card-block`) that contains only the CDOL1 payload and Issuer Proprietary Bitmap inputs. CDOL1 stays a textarea so multi-field payloads remain readable, while the Issuer Proprietary Bitmap uses a single-line text input because it never exceeds a few bytes. Transaction (`.emv-transaction-block`) and Input from customer (`.emv-customer-block`) fieldsets are adjacent siblings; CSS borders/spacing must ensure none of those sections render inside Card configuration even when stacked vertically. Selenium/JS tests should assert that each legend/container is a sibling node and that stored-mode masking only affects the CDOL1/IPB groups within the card block. The Transaction block keeps the ICC payload template as a textarea but switches Issuer Application Data to a single-line text input so short 16–32-byte blobs stay inline while still hiding entirely in stored mode.
 7. **R5.7 – Input-from-customer row layout.** Each mode radio renders on its own grid row with the relevant customer inputs aligned to the right: Identify displays the disabled Challenge/Reference/Amount placeholders, Respond pairs the Challenge input on the same row as the Respond radio, and Sign shows Reference + Amount inputs beside the Sign radio. Challenge/Reference/Amount remain a single shared input set (no duplicates), permanently mounted in the DOM, and toggle only their `disabled` state when the operator switches modes. Stored credential mode must not hide these inputs—they simply stay disabled per mode. Console JS must preserve the existing mode toggle semantics, and Selenium + Node console tests should assert the grid row DOM structure so regressions are caught.
+8. **R5.8 – Replay CTA spacing parity.** The Replay form’s action bar must reuse the same vertical spacing contract as HOTP/TOTP/OCRA and the EMV Evaluate tab: the CTA container applies the shared `stack-offset-top-lg` utility so the Provided OTP/preview controls always retain a visible gap before the button. Keep the `.emv-action-bar` wrapper (and its button) unchanged otherwise so console.js bindings remain stable. Guard this requirement with template-focused Node tests (asserting the class is present near `data-testid="emv-replay-submit"`) and Selenium coverage that ensures the replay CTA maintains the spacing utility class so regressions surface quickly.
 7. Verbose trace collects every diagnostic detail previously shown on the result card (mask length, masked digits, ATC, branch factor, height) plus the active preview window offsets (`previewWindowBackward`, `previewWindowForward`). These sit alongside the SHA-256 digest of the master key (`masterKeySha256`), the derived session key, Generate AC inputs/result, bitmask overlay, masked digits overlay, issuer application data, and resolved ICC payload. Use accessible formatting (monospaced columns, scroll containers as needed).
 8. Validation errors surface inline using the existing problem-details mapping with field-level annotations.
 9. Selenium/JS tests exercise happy paths for each mode, includeTrace toggle, preset loading, error rendering, telemetry sanitisation of DOM nodes, and masked placeholder visibility/toggling.

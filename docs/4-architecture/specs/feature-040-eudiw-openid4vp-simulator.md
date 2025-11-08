@@ -35,6 +35,7 @@ Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiabl
 - 2025-11-01 – Authority Key Identifier (DCQL `aki`) remains the initial Trusted Authority filter; presets store friendly labels as metadata so the UI can surface a name alongside the `aki` value without altering the DCQL payload (user directive).
 - 2025-11-01 – ETSI Trust List ingestion (fixtures + loader) precedes simulator implementation; UI defaults to `(pending)` until the ingestion step populates identifiers (user directive).
 - 2025-11-01 – Operator UI provides separate **Evaluate** and **Replay** sub-tabs: Evaluate hosts Generate mode, Replay hosts Validate mode to mirror existing HOTP/TOTP/OCRA/FIDO2 layout (user directive).
+- 2025-11-08 – CLI surface introduces a dedicated `eudiw` Picocli command with `request`, `wallet`, and `validate` subcommands; stubs may land ahead of implementation so contract tests compile (owner directive).
 - 2025-11-07 – HAIP `direct_post.jwt` encryption reuses fixture private keys to derive the P-256 public coordinates when the JWK omits or contains placeholder values so tests can encrypt/decrypt deterministically across all fixtures (owner directive).
 - 2025-11-01 – Verbose tracing is controlled via the global console toggle and shared trace dock; EUDIW panels must not introduce local verbose checkboxes (user directive).
 - 2025-11-01 – When HAIP-required encryption fails, the simulator surfaces an `invalid_request` problem detail and only offers a retry when HAIP enforcement is disabled (user directive).

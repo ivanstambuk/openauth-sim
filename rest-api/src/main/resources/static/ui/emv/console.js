@@ -25,7 +25,6 @@
   var seedEndpoint = form.getAttribute('data-seed-endpoint') || '';
   var csrfInput = form.querySelector('input[name="_csrf"]');
   var storedSelect = form.querySelector('#emvStoredCredentialId');
-  var storedEmptyState = form.querySelector('[data-testid="emv-stored-empty"]');
   var evaluateModeToggle = form.querySelector('[data-testid="emv-evaluate-mode-toggle"]');
   var evaluateModeRadios = evaluateModeToggle
       ? Array.prototype.slice.call(evaluateModeToggle.querySelectorAll('input[name="emvEvaluateMode"]'))
@@ -44,7 +43,6 @@
   var challengeInput = form.querySelector('#emvChallenge');
   var referenceInput = form.querySelector('#emvReference');
   var amountInput = form.querySelector('#emvAmount');
-  var customerHint = form.querySelector('[data-testid="emv-customer-hint"]');
   var capModeRadios = Array.prototype.slice.call(form.querySelectorAll('input[name="mode"]'));
   var windowBackwardInput = form.querySelector('#emvWindowBackward');
   var windowForwardInput = form.querySelector('#emvWindowForward');
@@ -123,9 +121,6 @@
   var replayAmountInput = replayForm
       ? replayForm.querySelector('[data-testid="emv-replay-amount"] input')
       : null;
-  var replayCustomerHint = replayForm
-      ? replayForm.querySelector('[data-testid="emv-replay-customer-hint"]')
-      : null;
   var replayIccTemplateInput = replayForm
       ? replayForm.querySelector('[data-testid="emv-replay-icc-template"] textarea')
       : null;
@@ -154,12 +149,6 @@
   var replayReasonNode = replayResultPanel
       ? replayResultPanel.querySelector('[data-testid="emv-replay-reason"]')
       : null;
-  var CUSTOMER_HINT_COPY = {
-    IDENTIFY: 'Identify mode does not accept customer inputs.',
-    RESPOND: 'Respond mode enables Challenge; Reference and Amount remain disabled.',
-    SIGN: 'Sign mode enables Reference and Amount; Challenge stays disabled.',
-  };
-
   var evaluateSensitiveFields = buildSensitiveFields([
     { input: masterKeyInput, mask: form.querySelector('[data-testid="emv-master-key-mask"]'), formatter: formatMasterKeyMask },
     { input: cdol1Input, mask: form.querySelector('[data-testid="emv-cdol1-mask"]'), formatter: formatHexMaskFactory('cdol1') },
@@ -1178,8 +1167,6 @@
       replayChallengeInput: replayChallengeInput,
       replayReferenceInput: replayReferenceInput,
       replayAmountInput: replayAmountInput,
-      customerHint: customerHint,
-      replayCustomerHint: replayCustomerHint,
       buildReplayPayload: buildReplayPayload,
       hydrateCredentialDetails: triggerCredentialHydration,
       listCredentials: function () {
@@ -2018,7 +2005,6 @@
       setValue(referenceInput, '');
       setValue(amountInput, '');
     }
-    updateCustomerHintMessage(customerHint, normalized);
   }
 
   function updateReplayCustomerInputsForMode(mode) {
@@ -2041,7 +2027,6 @@
       setValue(replayReferenceInput, '');
       setValue(replayAmountInput, '');
     }
-    updateCustomerHintMessage(replayCustomerHint, normalized);
   }
 
   function setCustomerFieldState(input, enabled) {
@@ -2065,18 +2050,6 @@
         container.setAttribute('aria-disabled', 'true');
       }
     }
-  }
-
-  function updateCustomerHintMessage(target, mode) {
-    if (!target) {
-      return;
-    }
-    var normalized = normalizeCapMode(mode);
-    var message = CUSTOMER_HINT_COPY[normalized] || CUSTOMER_HINT_COPY.IDENTIFY;
-    if (target.textContent !== message) {
-      target.textContent = message;
-    }
-    target.setAttribute('data-mode', normalized);
   }
 
   function buildSensitiveFields(definitions) {
@@ -2165,7 +2138,6 @@
       actionBar.setAttribute('data-mode', mode);
     }
     updateEvaluateButton(mode);
-    updateEvaluationHint(mode);
     updateSeedControls(mode);
     updateEvaluateSensitiveFields(mode);
     updateCustomerInputsForMode(selectedMode());
@@ -2191,28 +2163,6 @@
     } else {
       evaluateButton.removeAttribute('disabled');
     }
-  }
-
-  function updateEvaluationHint(mode) {
-    if (!storedEmptyState) {
-      return;
-    }
-    if (credentialsList.length === 0) {
-      storedEmptyState.textContent =
-        'No stored credentials available. Seed sample credentials to enable preset evaluation.';
-      return;
-    }
-    if (mode === 'stored') {
-      if (!hasStoredCredential()) {
-        storedEmptyState.textContent = 'Select a stored credential to evaluate a preset.';
-        return;
-      }
-      storedEmptyState.textContent =
-        'Stored evaluations send the selected credential. Modify any field to fall back to inline parameters.';
-      return;
-    }
-    storedEmptyState.textContent =
-      'Inline evaluation uses the parameters entered above. Selecting a sample populates inline fields; switch to stored mode to evaluate the preset.';
   }
 
   function updateSeedControls(mode) {

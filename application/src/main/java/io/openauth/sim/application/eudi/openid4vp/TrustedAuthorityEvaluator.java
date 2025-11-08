@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-final class TrustedAuthorityEvaluator {
+public final class TrustedAuthorityEvaluator {
 
     private final Map<String, Map<String, String>> labelsByType;
 
@@ -18,7 +18,7 @@ final class TrustedAuthorityEvaluator {
         this.labelsByType = labelsByType;
     }
 
-    static TrustedAuthorityEvaluator fromSnapshot(TrustedAuthoritySnapshot snapshot) {
+    public static TrustedAuthorityEvaluator fromSnapshot(TrustedAuthoritySnapshot snapshot) {
         Objects.requireNonNull(snapshot, "snapshot");
         Map<String, Map<String, String>> index = new HashMap<>();
         for (TrustedAuthorityPolicy policy : snapshot.authorities()) {
@@ -84,9 +84,9 @@ final class TrustedAuthorityEvaluator {
         return policy.substring(separator + 1);
     }
 
-    record Decision(
+    public record Decision(
             Optional<TrustedAuthorityVerdict> trustedAuthorityMatch, Optional<Oid4vpProblemDetails> problemDetails) {
-        Decision {
+        public Decision {
             trustedAuthorityMatch = trustedAuthorityMatch == null ? Optional.empty() : trustedAuthorityMatch;
             problemDetails = problemDetails == null ? Optional.empty() : problemDetails;
         }
@@ -104,8 +104,8 @@ final class TrustedAuthorityEvaluator {
         }
     }
 
-    record TrustedAuthorityVerdict(String type, String value, String label, String policy) {
-        TrustedAuthorityVerdict {
+    public record TrustedAuthorityVerdict(String type, String value, String label, String policy) {
+        public TrustedAuthorityVerdict {
             Objects.requireNonNull(type, "type");
             Objects.requireNonNull(value, "value");
             Objects.requireNonNull(label, "label");

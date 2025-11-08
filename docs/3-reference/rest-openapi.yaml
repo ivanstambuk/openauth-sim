@@ -306,18 +306,6 @@ paths:
               $ref: "#/components/schemas/OcraVerificationRequest"
         required: true
       responses:
-        "404":
-          description: "Credential not found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "422":
           description: "Verification payload failed validation"
           content:
@@ -338,6 +326,18 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
+        "404":
+          description: "Credential not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "200":
           description: "Verification completed"
           content:
@@ -438,14 +438,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayResponse"
-        "500":
-          description: "Unexpected error"
+        "422":
+          description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayErrorResponse"
-        "422":
-          description: "Validation error"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -471,14 +471,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "500":
-          description: "Unexpected error"
+        "422":
+          description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "422":
-          description: "Validation error"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -504,14 +504,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "500":
-          description: "Unexpected error"
+        "422":
+          description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "422":
-          description: "Validation error"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -526,6 +526,99 @@ paths:
           description: "OK"
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/SeedResponse"
+  /api/v1/eudiw/openid4vp/wallet/simulate:
+    post:
+      tags:
+      - "oid-4vp-controller"
+      operationId: "simulateWallet"
+      parameters:
+      - name: "verbose"
+        in: "query"
+        required: false
+        schema:
+          type: "boolean"
+          default: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletSimulationPayload"
+        required: true
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WalletSimulationResponse"
+  /api/v1/eudiw/openid4vp/validate:
+    post:
+      tags:
+      - "oid-4vp-controller"
+      operationId: "validate"
+      parameters:
+      - name: "verbose"
+        in: "query"
+        required: false
+        schema:
+          type: "boolean"
+          default: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidationPayload"
+        required: true
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "object"
+  /api/v1/eudiw/openid4vp/requests:
+    post:
+      tags:
+      - "oid-4vp-controller"
+      operationId: "createRequest"
+      parameters:
+      - name: "verbose"
+        in: "query"
+        required: false
+        schema:
+          type: "boolean"
+          default: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorizationRequestPayload"
+        required: true
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AuthorizationResponse"
+  /api/v1/eudiw/openid4vp/presentations/seed:
+    post:
+      tags:
+      - "oid-4vp-controller"
+      operationId: "seedPresentations"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SeedRequest"
+        required: true
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
               schema:
                 $ref: "#/components/schemas/SeedResponse"
   /api/v1/emv/cap/replay:
@@ -543,24 +636,24 @@ paths:
               $ref: "#/components/schemas/EmvCapReplayRequest"
         required: true
       responses:
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
         "200":
           description: "Replay completed"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmvCapReplayResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
   /api/v1/emv/cap/evaluate:
     post:
       tags:
@@ -1946,6 +2039,156 @@ components:
             type: "string"
         verbose:
           type: "boolean"
+    InlineSdJwtPayload:
+      type: "object"
+      properties:
+        credentialId:
+          type: "string"
+        format:
+          type: "string"
+        compactSdJwt:
+          type: "string"
+        disclosures:
+          type: "array"
+          items:
+            type: "string"
+        keyBindingJwt:
+          type: "string"
+        trustedAuthorityPolicies:
+          type: "array"
+          items:
+            type: "string"
+    WalletSimulationPayload:
+      type: "object"
+      properties:
+        requestId:
+          type: "string"
+        walletPreset:
+          type: "string"
+        profile:
+          type: "string"
+        responseMode:
+          type: "string"
+        inlineSdJwt:
+          $ref: "#/components/schemas/InlineSdJwtPayload"
+        trustedAuthorityPolicy:
+          type: "string"
+    WalletSimulationResponse:
+      type: "object"
+      properties:
+        requestId:
+          type: "string"
+        status:
+          type: "string"
+        profile:
+          type: "string"
+        responseMode:
+          type: "string"
+        presentations:
+          type: "array"
+          items:
+            type: "object"
+            additionalProperties:
+              type: "object"
+        trace:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        telemetry:
+          type: "object"
+          additionalProperties:
+            type: "object"
+    InlineVpTokenPayload:
+      type: "object"
+      properties:
+        credentialId:
+          type: "string"
+        format:
+          type: "string"
+        vpToken:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        keyBindingJwt:
+          type: "string"
+        disclosures:
+          type: "array"
+          items:
+            type: "string"
+        trustedAuthorityPolicies:
+          type: "array"
+          items:
+            type: "string"
+    ValidationPayload:
+      type: "object"
+      properties:
+        requestId:
+          type: "string"
+        presetId:
+          type: "string"
+        inlineVpToken:
+          $ref: "#/components/schemas/InlineVpTokenPayload"
+        trustedAuthorityPolicy:
+          type: "string"
+        profile:
+          type: "string"
+        responseMode:
+          type: "string"
+        inlineDcqlJson:
+          type: "string"
+    AuthorizationRequestPayload:
+      type: "object"
+      properties:
+        profile:
+          type: "string"
+        responseMode:
+          type: "string"
+        dcqlPreset:
+          type: "string"
+        dcqlOverride:
+          type: "string"
+        signedRequest:
+          type: "boolean"
+        includeQrAscii:
+          type: "boolean"
+    AuthorizationResponse:
+      type: "object"
+      properties:
+        requestId:
+          type: "string"
+        profile:
+          type: "string"
+        requestUri:
+          type: "string"
+        authorizationRequest:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        qr:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        telemetry:
+          type: "object"
+          additionalProperties:
+            type: "object"
+    SeedRequest:
+      type: "object"
+      properties:
+        source:
+          type: "string"
+        presentations:
+          type: "array"
+          items:
+            type: "string"
+        metadata:
+          type: "object"
+          additionalProperties:
+            type: "object"
     CustomerInputs:
       type: "object"
       properties:
@@ -2003,21 +2246,6 @@ components:
           type: "string"
         icc:
           type: "string"
-    EmvCapReplayErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
     EmvCapReplayMetadata:
       type: "object"
       properties:
@@ -2081,6 +2309,21 @@ components:
             $ref: "#/components/schemas/VerboseTraceStepPayload"
         masterKeySha256:
           type: "string"
+    EmvCapReplayErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     EmvCapEvaluationRequest:
       type: "object"
       properties:

@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-038-result-preview-window.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-11-01
+_Last updated:_ 2025-11-08 (I5 helper-text cleanup delivered)
 
 ## Vision & Success Criteria
 - Surface evaluation previews (Δ-ordered OTPs) directly in REST payloads, operator UI result cards, and CLI outputs.
@@ -32,6 +32,8 @@ _Last updated:_ 2025-11-01
 4. **I4 – Accessibility & docs** _(completed 2025-11-01)_  
    - Finalised accent styling via inset highlight, confirmed accessibility review (Δ = 0 remains perceivable without colour), refreshed Selenium coverage, updated operator how-to guides/roadmap/knowledge map, and prepared for full quality gate rerun.  
    - Commands: `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon spotlessApply check`.
+5. **I5 – Preview offset helper-text cleanup** _(completed 2025-11-08)_  
+   - Removed the redundant descriptive sentence beneath the "Preview window offsets" controls on HOTP/TOTP/OCRA forms, dropped the unused `aria-describedby` bindings, and confirmed the aggregate `./gradlew --no-daemon spotlessApply check` pipeline (600 s timeout) stays green.  
 
 ## Risks & Mitigations
 - **Contract regressions:** cover with REST integration and CLI snapshot tests.  

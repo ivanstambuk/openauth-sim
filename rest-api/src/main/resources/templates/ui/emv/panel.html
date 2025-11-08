@@ -130,9 +130,6 @@
 
                 <fieldset class="emv-session-block stack-md" data-testid="emv-session-block">
                   <legend class="field-legend">Session key derivation</legend>
-                  <p class="hint" data-testid="emv-session-hint">
-                    Provide the ICC master key, ATC, branch factor, height, and IV to derive the session key used for Generate AC.
-                  </p>
                   <div class="field-grid emv-parameter-grid">
                     <div class="emv-session-row emv-session-master-row" data-testid="emv-master-atc-row">
                       <div class="emv-session-master-column">
@@ -313,18 +310,14 @@
                 <fieldset
                     class="emv-customer-block stack-md"
                     data-testid="emv-customer-block"
-                    aria-describedby="emvCustomerInputsHint"
                   >
                   <legend class="field-legend">Input from customer</legend>
-                  <p class="hint" id="emvCustomerInputsHint" data-testid="emv-customer-hint">
-                    Identify mode does not accept customer inputs.
-                  </p>
                   <span class="emv-customer-mode-label" id="emvCustomerModeLabel">Mode</span>
                   <div
                       class="emv-customer-grid"
                       data-testid="emv-customer-inputs"
                       role="group"
-                      aria-labelledby="emvCustomerInputsHint emvCustomerModeLabel"
+                      aria-labelledby="emvCustomerModeLabel"
                     >
                     <div class="emv-customer-row" data-testid="emv-row-identify">
                       <div class="mode-option" data-mode="IDENTIFY">
@@ -403,7 +396,6 @@
                         step="1"
                         inputmode="numeric"
                         value="0"
-                        aria-describedby="emvPreviewWindowHint"
                         data-testid="emv-window-backward"
                       />
                   </div>
@@ -417,23 +409,16 @@
                         step="1"
                         inputmode="numeric"
                         value="0"
-                        aria-describedby="emvPreviewWindowHint"
                         data-testid="emv-window-forward"
                       />
                   </div>
                 </div>
-                <p class="hint" id="emvPreviewWindowHint">
-                  Include neighbouring OTPs before and after the evaluated entry.
-                </p>
 
-                <div class="emv-action-bar" data-testid="emv-action-bar">
+                <div class="emv-action-bar stack-offset-top-lg" data-testid="emv-action-bar">
                   <button type="submit" class="button-primary" data-testid="emv-evaluate-submit">
                     Evaluate inline parameters
                   </button>
                 </div>
-                <p class="hint" data-testid="emv-stored-empty" aria-live="polite">
-                  Inline evaluation uses the parameters entered above. Select a stored credential and switch modes to run a preset.
-                </p>
               </form>
             </div>
 
@@ -543,9 +528,6 @@
 
                 <fieldset class="emv-session-block stack-md" data-testid="emv-replay-session-block">
                   <legend class="field-legend">Session key derivation</legend>
-                  <p class="hint" data-testid="emv-replay-session-hint">
-                    Match the credential's session key inputs to reproduce CAP replay calculations.
-                  </p>
                   <div class="field-grid emv-parameter-grid">
                     <div class="emv-session-row emv-session-master-row" data-testid="emv-replay-master-atc-row">
                       <div class="emv-session-master-column">
@@ -702,18 +684,14 @@
                 <fieldset
                     class="emv-customer-block stack-md"
                     data-testid="emv-replay-customer-block"
-                    aria-describedby="emvReplayCustomerInputsHint"
                   >
                   <legend class="field-legend">Customer inputs</legend>
-                  <p class="hint" id="emvReplayCustomerInputsHint" data-testid="emv-replay-customer-hint">
-                    Identify mode does not accept customer inputs.
-                  </p>
                   <span class="emv-customer-mode-label" id="emvReplayCustomerModeLabel">Mode</span>
                   <div
                       class="emv-customer-grid"
                       data-testid="emv-replay-customer-inputs"
                       role="group"
-                      aria-labelledby="emvReplayCustomerInputsHint emvReplayCustomerModeLabel"
+                      aria-labelledby="emvReplayCustomerModeLabel"
                     >
                     <div class="emv-customer-row" data-testid="emv-replay-row-identify">
                       <div class="mode-option" data-mode="IDENTIFY">
@@ -801,7 +779,7 @@
                   </div>
                 </div>
 
-                <div class="emv-action-bar">
+                <div class="emv-action-bar stack-offset-top-lg">
                   <button type="submit" class="button-primary" data-testid="emv-replay-submit">
                     Replay CAP OTP
                   </button>

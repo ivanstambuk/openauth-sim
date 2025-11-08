@@ -93,19 +93,6 @@ function createMaskField() {
   };
 }
 
-function createHintNode() {
-  const attributes = new Map();
-  return {
-    textContent: '',
-    setAttribute(name, value) {
-      attributes.set(name, String(value));
-    },
-    getAttribute(name) {
-      return attributes.has(name) ? attributes.get(name) : null;
-    },
-  };
-}
-
 const scriptSource = readFileSync(
   path.resolve(__dirname, '../../../main/resources/static/ui/emv/console.js'),
   'utf8',
@@ -115,6 +102,30 @@ const panelTemplateSource = readFileSync(
   path.resolve(__dirname, '../../../main/resources/templates/ui/emv/panel.html'),
   'utf8',
 );
+
+test('EMV evaluate action bar keeps stack spacing utility', () => {
+  const evaluateMatch = panelTemplateSource.match(
+    /<div class="([^"]*?emv-action-bar[^"]*?)"[^>]*data-testid="emv-action-bar"/,
+  );
+  assert.ok(evaluateMatch, 'Unable to locate evaluate action bar markup');
+  assert.match(
+    evaluateMatch[1],
+    /\bstack-offset-top-lg\b/,
+    'Evaluate action bar must include stack-offset-top-lg to keep CTA spacing',
+  );
+});
+
+test('EMV replay action bar reuses stack spacing utility', () => {
+  const replayMatch = panelTemplateSource.match(
+    /<div class="([^"]*?emv-action-bar[^"]*?)">\s*<button[^>]+data-testid="emv-replay-submit"/,
+  );
+  assert.ok(replayMatch, 'Unable to locate replay action bar markup');
+  assert.match(
+    replayMatch[1],
+    /\bstack-offset-top-lg\b/,
+    'Replay action bar must include stack-offset-top-lg to match other protocols',
+  );
+});
 
 function extractFieldsetMarkup(template, dataTestId) {
   const marker = `data-testid="${dataTestId}"`;
@@ -364,8 +375,6 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
   const csrfInput = createInput('_csrf', 'token');
   const evaluateButton = createButton();
   evaluateButton.removeAttribute('disabled');
-  const storedHint = { textContent: '' };
-  const customerHint = createHintNode();
 
   let replayEnv = null;
   if (includeReplay) {
@@ -407,7 +416,6 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
     const replayIssuerBitmapMaskNode = createMaskField();
     const replayIccTemplateMaskNode = createMaskField();
     const replayIssuerApplicationDataMaskNode = createMaskField();
-    const replayCustomerHint = createHintNode();
     const replayModeInline = createInput('emvReplayModeInline', 'inline');
     replayModeInline.value = 'inline';
     replayModeInline.checked = true;
@@ -513,8 +521,6 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
             return replayDriftBackwardInput;
           case '[data-testid="emv-replay-drift-forward"] input':
             return replayDriftForwardInput;
-          case '[data-testid="emv-replay-customer-hint"]':
-            return replayCustomerHint;
           case '[data-testid="emv-replay-mode-toggle"]':
             return replayModeToggle;
           case '#emvReplayModeStored':
@@ -576,7 +582,6 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
       issuerBitmapMask: replayIssuerBitmapMaskNode,
       iccTemplateMask: replayIccTemplateMaskNode,
       issuerApplicationDataMask: replayIssuerApplicationDataMaskNode,
-      customerHint: replayCustomerHint,
       modeToggle: replayModeToggle,
       capModeRadios: [replayModeIdentify, replayModeRespond, replayModeSign],
       otpInput: replayOtpInput,
@@ -783,12 +788,8 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
           return actionBar;
         case '[data-testid="emv-evaluate-submit"]':
           return evaluateButton;
-        case '[data-testid="emv-stored-empty"]':
-          return storedHint;
         case '[data-testid="emv-evaluate-mode-toggle"]':
           return evaluateModeToggle;
-        case '[data-testid="emv-customer-hint"]':
-          return customerHint;
         default:
           return null;
       }
@@ -954,9 +955,6 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
       iccTemplate: iccTemplateMaskNode,
       issuerApplicationData: issuerApplicationDataMaskNode,
     },
-    hints: {
-      evaluate: customerHint,
-    },
     replayInputs: includeReplay
         ? {
           masterKey: replayEnv.masterKeyInput,
@@ -987,7 +985,6 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
         }
         : null,
     replayStoredSelect: includeReplay ? replayEnv.storedSelect : null,
-    storedHint,
   };
 }
 
@@ -1399,10 +1396,6 @@ test('selecting a preset while inline mode is active keeps inline controls edita
     '',
     'Master key input should allow pointer events in inline mode',
   );
-  assert.ok(
-    env.storedHint.textContent.includes('Inline evaluation'),
-    'Inline mode hint should remain visible after selecting a preset',
-  );
 });
 
 test('inline preset hydration populates sensitive fields for evaluate flow', async () => {
@@ -1514,14 +1507,13 @@ test('inline preset hydration populates sensitive fields for replay flow', async
   );
 });
 
-test('CAP mode toggles customer inputs and helper hint', async () => {
+test('CAP mode toggles customer inputs', async () => {
   const env = createEnvironment({ verboseEnabled: true });
   await flushMicrotasks();
   env.hooks.updateStoredControls();
 
   const { challenge, reference, amount } = env.inputs;
   const { challenge: challengeGroup, reference: referenceGroup, amount: amountGroup } = env.containers;
-  const customerHint = env.hints.evaluate;
 
   assert.equal(challenge.disabled, true, 'Identify mode should disable challenge input');
   assert.equal(reference.disabled, true, 'Identify mode should disable reference input');
@@ -1541,12 +1533,6 @@ test('CAP mode toggles customer inputs and helper hint', async () => {
     'true',
     'Identify mode should mark amount container as aria-disabled',
   );
-  assert.equal(
-    customerHint.textContent,
-    'Identify mode does not accept customer inputs.',
-    'Identify hint text should describe disabled inputs',
-  );
-  assert.equal(customerHint.getAttribute('data-mode'), 'IDENTIFY', 'Hint should note active Identify mode');
 
   env.hooks.setCapMode('RESPOND');
   assert.equal(challenge.disabled, false, 'Respond mode should enable challenge input');
@@ -1562,12 +1548,6 @@ test('CAP mode toggles customer inputs and helper hint', async () => {
     'true',
     'Respond mode should leave reference container aria-disabled',
   );
-  assert.equal(
-    customerHint.textContent,
-    'Respond mode enables Challenge; Reference and Amount remain disabled.',
-    'Respond hint should describe enabled fields',
-  );
-  assert.equal(customerHint.getAttribute('data-mode'), 'RESPOND', 'Hint should note Respond mode');
 
   env.hooks.setCapMode('SIGN');
   assert.equal(challenge.disabled, true, 'Sign mode should disable challenge input');
@@ -1583,12 +1563,6 @@ test('CAP mode toggles customer inputs and helper hint', async () => {
     null,
     'Sign mode should clear aria-disabled from amount container',
   );
-  assert.equal(
-    customerHint.textContent,
-    'Sign mode enables Reference and Amount; Challenge stays disabled.',
-    'Sign hint should describe enabled fields',
-  );
-  assert.equal(customerHint.getAttribute('data-mode'), 'SIGN', 'Hint should note Sign mode');
 });
 
 test('inline submit with preset falls back to stored credential when secrets are blank', async () => {

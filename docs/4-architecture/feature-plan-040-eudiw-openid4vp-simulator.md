@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-040-eudiw-openid4vp-simulator.md`  
 _Status:_ Ready  
-_Last updated:_ 2025-11-06
+_Last updated:_ 2025-11-08
 
 ## Vision & Success Criteria
 - Demonstrate HAIP-aligned remote OpenID4VP exchanges end to end (request → wallet response → validation) without external wallets.
@@ -35,31 +35,35 @@ _Last updated:_ 2025-11-06
    - Introduced `PidFixtureSmokeTest` alongside existing trusted authority coverage to assert fixture presence and PID namespace coverage.  
    - Command: `./gradlew --no-daemon :core:test`.
 
-3. **I3 – Verifier request builder (F-040-01/02/03/04/05/14)** – _Tests staged 2025-11-06; implementation pending_  
+3. **I3 – Verifier request builder (F-040-01/02/03/04/05/14)** – _Completed 2025-11-06_  
    - Added failing `OpenId4VpAuthorizationRequestServiceTest` cases covering DCQL enforcement, deterministic seed reuse, and telemetry expectations.  
+   - 2025-11-06: Implemented the authorization request builder (HAIP enforcement guard, QR/URI renderers, nonce/state masking) and recorded `./gradlew --no-daemon :application:test` green alongside a documented `spotlessApply` run (blocked only by the pre-existing Feature 039 checkstyle path mismatch).  
    - Implement builder, JAR toggle, ASCII QR renderer, telemetry events `oid4vp.request.*`.  
    - Commands: `./gradlew --no-daemon :application:test`, `./gradlew --no-daemon spotlessApply check`.
 
-4. **I4 – Wallet simulator foundations (F-040-07/08/09/10/13)**  
+4. **I4 – Wallet simulator foundations (F-040-07/08/09/10/13)** – _Completed 2025-11-07_  
    - Stage tests verifying VP Token shape, SD-JWT disclosure hashing, KB-JWT generation.  
    - Implement SD-JWT wallet path with deterministic salts/keys (loading synthetic issuer/holder keys), stub DeviceResponse loader, and wire inline credential inputs (preset vs manual + sample selector) to the generator; expose stored-mode seeding utilities.  
    - 2025-11-06: SD-JWT wallet service implemented per Option A (recompute disclosure hashes); telemetry + trace hashes now return from `OpenId4VpWalletSimulationService`. `:application:test` passes; full `spotlessApply check` still fails on pre-existing Feature 039 checkstyle path lookup.  
+   - 2025-11-07: Inline-only metadata, Trusted Authority mismatch handling, and telemetry propagation hardened via T4024/T4025 with `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationServiceTest"` and a 7m36s `spotlessApply check` run both green.  
    - Commands: `./gradlew --no-daemon :core:test :application:test`, `./gradlew --no-daemon spotlessApply check`.
 
-5. **I5 – mdoc DeviceResponse path (F-040-09/10/17)**  
+5. **I5 – mdoc DeviceResponse path (F-040-09/10/17)** – _Completed 2025-11-07_  
    - Add failing tests for DeviceResponse verification and Claims Path Pointer mapping.  
    - Implement DeviceResponse adapter (using fixture CBOR and synthetic issuer certs) and hydrate inline DeviceResponse uploads alongside presets and sample vector selection; include HAIP encryption toggle scaffolding and stored-mode seeding data.  
    - 2025-11-07: `MdocDeviceResponseFixtures.load` now hydrates fixture metadata + claims pointers, and `MdocWalletSimulationService` verifies DeviceResponse responses, Trusted Authority policies, and HAIP encryption hooks. Greens recorded via `./gradlew --no-daemon :core:test :application:test` followed by `./gradlew --no-daemon spotlessApply check`.
    - Commands: `./gradlew --no-daemon :core:test :application:test`.
 
-6. **I6 – Trusted Authorities + error handling (F-040-11/12/21)**  
+6. **I6 – Trusted Authorities + error handling (F-040-11/12/21)** – _Completed 2025-11-07_  
    - Stage tests for Authority Key Identifier (`aki`) matching positives/negatives and OID4VP error mapping.  
    - Implement Trusted Authority evaluator, integrate with validation pipeline, produce problem-details responses.  
+   - 2025-11-07: `TrustedAuthorityEvaluator`, `Oid4vpProblemDetails`, and shared REST/CLI adapters landed, unblocking the new tests and wiring Trusted Authority decisions plus RFC 7807 `invalid_scope`/`invalid_request` payloads through authorization, wallet, and validation services.  
    - Commands: `./gradlew --no-daemon :application:test :core:test`, `./gradlew --no-daemon spotlessApply check`.
 
-7. **I7 – Encryption enforcement (F-040-04/20, N-040-03)**  
+7. **I7 – Encryption enforcement (F-040-04/20, N-040-03)** – _Completed 2025-11-07_  
    - Add failing tests for `direct_post.jwt` round-trip using fixture keys.  
    - Implement JWE encryption/decryption path (behind HAIP flag) and latency telemetry.  
+   - 2025-11-07: `DirectPostJwtEncryptionService` now performs HAIP-compliant P-256 ECDH-ES + A128GCM, derives verifier coordinates from fixture scalars, captures latency metrics, and surfaces `invalid_request` problem-details on key/encryption failures with `:application:test` + `spotlessApply check` green.  
    - Commands: `./gradlew --no-daemon :application:test`, `./gradlew --no-daemon spotlessApply check`.
 
 ## Multi-Step Change Plan – Full Feature 040 Execution
@@ -72,34 +76,42 @@ The owner confirmed (2025-11-06) that the next delivery must cover the entire Fe
    - Commands: `./gradlew --no-daemon :application:test`, followed by `./gradlew spotlessApply check`.
    - _Updates 2025-11-06:_ T4023 completed: authorization service now emits request URI + QR telemetry, masks nonce/state with verbose trace copies, recomputes DCQL hashes, and supports inline signed requests without presets. `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.eudi.openid4vp.OpenId4VpAuthorizationRequestServiceTest"` and `./gradlew --no-daemon spotlessApply check` both succeeded (spotless run ≈6 min due to existing Feature 039 suites).
    - _Updates 2025-11-07:_ T4024/T4025 delivered SD-JWT wallet refactor tests + implementation covering inline-only submissions, Trusted Authority mismatch handling, disclosure hash recomputation, telemetry contract propagation, and preset-miss errors. `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationServiceTest"` (red-to-green) and the full `./gradlew --no-daemon spotlessApply check` (≈7m36s) both passed.
+   - _Status:_ Completed 2025-11-07 (authorization + SD-JWT wallet refactor locked in with green `:application:test` + `spotlessApply check` runs).
 
 2. **S2 – mdoc wallet path (F-040-09/10/17/23)**  
    - Add failing tests around DeviceResponse parsing (CBOR diagnostics), Claims Path Pointer evaluation, inline uploads, and sample selector hydration.  
    - Implement `MdocWalletSimulationService` sharing Trusted Authority results, verifying COSE signatures, and exposing latency/trace metrics.  
    - Commands: `./gradlew --no-daemon :core:test :application:test`, `./gradlew spotlessApply check`.
+   - _Updates 2025-11-07:_ T4006/T4007 moved from red to green; `MdocDeviceResponseFixturesTest` + `MdocWalletSimulationServiceTest` cover preset/inline DeviceResponse hydration, Claims Path Pointer output, HAIP encryption hooks, and Trusted Authority policies with `./gradlew --no-daemon :core:test :application:test` plus `spotlessApply check` both passing.
+   - _Status:_ Completed 2025-11-07 (mdoc wallet path ready for facade wiring).
 
 3. **S3 – Trusted Authorities & error handling (F-040-11/12/21)**  
    - Red tests: Authority Key Identifier positive/negative matches, missing Trusted Authority policies, problem-details mapping for HAIP violations.  
    - Implement a reusable evaluator (DCQL policy lookup + friendly labels), wire into authorization/wallet/validation services, and surface telemetry fields (`trustedAuthorityMatch`, `akiPolicySource`).  
    - Commands: `./gradlew --no-daemon :application:test :core:test`, `./gradlew spotlessApply check`.
    - _Updates 2025-11-07:_ T4008 staged: `TrustedAuthorityEvaluatorTest` now exercises AKI match/miss flows against the HAIP fixture snapshot, and `Oid4vpProblemDetailsMapperTest` codifies the RFC 7807 contract (`invalid_request`, `invalid_scope`, `wallet_unavailable`). `./gradlew --no-daemon :application:test` fails as expected until T4009 introduces the evaluator/mapper implementations. Later 2025-11-07 update: `TrustedAuthorityEvaluator`, `Oid4vpProblemDetails`, and the mapper landed, unblocking the red tests. Authorization and SD-JWT/mdoc wallet services now depend on the evaluator so result cards, traces, and telemetry surface friendly Trusted Authority labels and emit `invalid_scope` problem-details when policies fail. REST + CLI layers now include shared adapters (`Oid4vpProblemDetailsAdvice`, `Oid4vpProblemDetailsFormatter`) ensuring the RFC 7807 payloads bubble up once endpoints/commands ship. _Updates 2025-11-07 (follow-ups)_: Telemetry redaction guidance plus validation-mode reuse notes now live in the specification, so S4 can proceed once encryption tests stage.
+   - _Status:_ Completed 2025-11-07 with `./gradlew --no-daemon :application:test` + `spotlessApply check` green and Trusted Authority plumbing shared across services.
 
 4. **S4 – Encryption enforcement (F-040-04/20/20a, N-040-03)**  
    - Tests assert `direct_post.jwt` JWE creation, decryption, error reporting, and HAIP toggle behaviour.  
    - Implement JOSE helpers (pending dependency approval already granted for Feature 040), plug latency metrics into telemetry, and extend traces with encryption verdicts.  
    - _Updates 2025-11-07:_ T4010 staged via `DirectPostJwtEncryptionServiceTest`, covering HAIP enforcement, baseline bypass, telemetry latency capture, and `invalid_request` surfacing when encryption keys are missing/decryption fails. Tests remain red until T4011 wires the actual encryption pipeline.
    - _Updates 2025-11-07:_ T4011 implemented `DirectPostJwtEncryptionService` using P-256 ECDH-ES + A128GCM, deriving public coordinates from fixture private keys when necessary, emitting telemetry latency, and raising `invalid_request` for encryption/decryption errors. `:application:test` and `spotlessApply check` now pass.
+   - _Status:_ Completed 2025-11-07 (HAIP `direct_post.jwt` enforcement live with telemetry + traces).
    - Commands: `./gradlew --no-daemon :application:test`, `./gradlew spotlessApply check`.
 
 5. **S5 – Validation mode services (F-040-22/23/26)**  
    - Stage failing tests for stored vs inline VP Token selection, DCQL preview rendering, multi-presentation traces, success/error telemetry, and problem-details surfaces.  
    - Implement validation service that reuses wallet evaluators, Trusted Authority checker, and encryption verifier; ensure verbose trace payloads align with the spec’s matrix.  
    - Commands: `./gradlew --no-daemon :application:test`, `./gradlew spotlessApply check`.
+   - _Updates 2025-11-08:_ T4012 introduced `OpenId4VpValidationServiceTest` (stored vs inline selectors, Trusted Authority mismatch, invalid VP Token handling, telemetry events), and T4013 implemented the validation service so the suite plus `./gradlew --no-daemon spotlessApply check` both pass. Validation now reuses `TrustedAuthorityEvaluator` + `DirectPostJwtEncryptionService` and emits `oid4vp.response.validated/failed`.
+   - _Status:_ Completed 2025-11-08; ready to hand off to REST/CLI/UI workstreams.
 
-6. **S6 – REST & CLI surfaces (F-040-15/16/30)**  
-   - Red tests: MockMvc endpoints for request/wallet/validate/seed, OpenAPI snapshot additions, Picocli command integration, verbose flag parity.  
-   - Implement controllers/DTOs/assemblers, update OpenAPI snapshots (`OPENAPI_SNAPSHOT_WRITE=true`), add CLI commands with output parity, and refresh telemetry catalog references.  
+6. **S6 – REST & CLI surfaces (F-040-15/16/30)**
+   - Red tests: MockMvc endpoints for request/wallet/validate/seed, OpenAPI snapshot additions, Picocli command integration, verbose flag parity.
+   - Implement controllers/DTOs/assemblers, update OpenAPI snapshots (`OPENAPI_SNAPSHOT_WRITE=true`), add CLI commands with output parity, and refresh telemetry catalog references.
    - Commands: `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :rest-api:test :cli:test`, `./gradlew spotlessApply check`.
+   - 2025-11-08 – `Oid4vpRestContractTest` + `Oid4vpCliContractTest` capture `/requests`, `/wallet/simulate`, `/validate` happy-path + problem-details flows; current runs red pending controllers/commands (`OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.eudi.openid4vp.Oid4vpRestContractTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.eudi.openid4vp.Oid4vpCliContractTest"`). Owner approved adding stub `eudiw` Picocli root/child commands so the contract tests compile ahead of implementation. _Update 2025-11-08:_ Fixture-backed `Oid4vpController` endpoints plus real `eudiw request|wallet|validate` commands now satisfy the contract suites, and OpenAPI snapshots have been regenerated (`OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`).
 
 7. **S7 – Operator UI integration (F-040-17/21/24/25/29/30)**  
    - Red Selenium/JS tests for Evaluate vs Replay tabs, Trusted Authority labels, DCQL read-only preview, sample selector autofill, trace dock usage, result-card VP Token rendering, and deep-link param hydration.  

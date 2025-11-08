@@ -14,6 +14,7 @@ Extend HOTP, TOTP, and OCRA evaluation responses so operators can see the evalua
 - 2025-11-02 – Evaluation screens introduce dedicated “Preview window offsets” controls on HOTP/TOTP/OCRA; drift inputs are removed from evaluation flows and retained exclusively on replay/validation forms (owner directive).
 - 2025-11-02 – Treat T3801 REST window DTO deltas as the working baseline for T3802; no clean-tree reset required before application/CLI propagation (owner directive).
 - 2025-11-01 – Accessibility review verified that the Δ = 0 row remains perceivable via bold weight plus inset accent; accent bars render inside the existing table grid without introducing additional columns (operator acceptance).
+- 2025-11-08 – The "Preview window offsets" heading is self-descriptive; remove helper sentences beneath the control group on HOTP/TOTP/OCRA panels so the form remains concise (owner directive).
 
 ## Requirements
 

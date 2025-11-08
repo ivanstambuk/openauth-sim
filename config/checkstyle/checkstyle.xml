@@ -9,7 +9,6 @@
     <module name="AvoidStarImport"/>
     <module name="UnusedImports"/>
     <module name="WhitespaceAfter"/>
-    <module name="WhitespaceAround"/>
     <module name="NeedBraces"/>
     <module name="LeftCurly"/>
     <module name="RightCurly"/>

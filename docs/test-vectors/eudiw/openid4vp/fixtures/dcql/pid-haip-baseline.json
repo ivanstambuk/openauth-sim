@@ -1,0 +1,20 @@
+{
+  "type": "pid-haip-baseline",
+  "credentials": [
+    {
+      "credential_id": "pid-haip-baseline",
+      "format": "dc+sd-jwt",
+      "required_claims": [
+        { "path": "vc.credentialSubject.given_name" },
+        { "path": "vc.credentialSubject.family_name" },
+        { "path": "vc.credentialSubject.nationality" }
+      ]
+    }
+  ],
+  "trusted_authorities": [
+    {
+      "type": "aki",
+      "values": [ "s9tIpP7qrS9=" ]
+    }
+  ]
+}
