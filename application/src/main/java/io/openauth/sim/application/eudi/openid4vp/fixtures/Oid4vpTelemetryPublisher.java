@@ -1,10 +1,13 @@
 package io.openauth.sim.application.eudi.openid4vp.fixtures;
 
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpAuthorizationRequestService;
+import io.openauth.sim.application.eudi.openid4vp.OpenId4VpFixtureIngestionService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpValidationService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService;
 import io.openauth.sim.application.eudi.openid4vp.TrustedAuthorityEvaluator;
+import io.openauth.sim.core.eudi.openid4vp.FixtureDatasets;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -12,7 +15,8 @@ import java.util.logging.Logger;
 public final class Oid4vpTelemetryPublisher
         implements OpenId4VpAuthorizationRequestService.TelemetryPublisher,
                 OpenId4VpWalletSimulationService.TelemetryPublisher,
-                OpenId4VpValidationService.TelemetryPublisher {
+                OpenId4VpValidationService.TelemetryPublisher,
+                OpenId4VpFixtureIngestionService.TelemetryPublisher {
 
     private static final Logger LOGGER = Logger.getLogger("io.openauth.sim.telemetry.oid4vp");
 
@@ -69,6 +73,21 @@ public final class Oid4vpTelemetryPublisher
         payload.put("telemetryId", nextTelemetryId());
         payload.put("reason", reason);
         return emit("oid4vp.response.failed", payload);
+    }
+
+    @Override
+    public OpenId4VpFixtureIngestionService.TelemetrySignal fixturesIngested(
+            FixtureDatasets.Source source,
+            Map<String, Object> fields,
+            java.util.List<String> requestedPresentationIds) {
+        Map<String, Object> payload = new LinkedHashMap<>(fields);
+        payload.put("source", source.directoryName());
+        payload.put("requestedCount", requestedPresentationIds == null ? 0 : requestedPresentationIds.size());
+        if (requestedPresentationIds != null && !requestedPresentationIds.isEmpty()) {
+            payload.put("requestedIds", List.copyOf(requestedPresentationIds));
+        }
+        payload.put("telemetryId", nextTelemetryId());
+        return emit("oid4vp.fixtures.ingested", payload);
     }
 
     private static DefaultTelemetrySignal emit(String event, Map<String, Object> fields) {

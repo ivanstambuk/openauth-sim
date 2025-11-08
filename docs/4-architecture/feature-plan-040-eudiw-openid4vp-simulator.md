@@ -145,10 +145,10 @@ Each step references/updates the corresponding tasks in `docs/4-architecture/tas
    - Implement trace payload wiring, result/trace field separation, and copy/download controls; confirm telemetry/trace content matches the specification matrix.  
    - Commands: `./gradlew --no-daemon :application:test :ui:test`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EudiwOperatorUiSeleniumTest"`.
 
-10. **I10 – Fixture ingestion toggle (F-040-18, N-040-04)**  
-   - Add tests covering synthetic vs conformance fixture selection, provenance metadata capture, and telemetry redaction.  
-   - Implement loader abstraction, configuration toggles, and documentation updates.  
-   - Commands: `./gradlew --no-daemon :core:test :application:test`, `./gradlew --no-daemon spotlessApply check`.
+10. **I10 – Fixture ingestion toggle (F-040-18, N-040-04)** – _Completed 2025-11-08_  
+   - Added `FixtureDatasetsTest` + `OpenId4VpFixtureIngestionServiceTest` to assert dataset toggles, provenance metadata, and Trusted Authority policy propagation.  
+   - Implemented `FixtureDatasets` (provenance loader), `OpenId4VpStoredPresentationFixtures` (catalog), and `OpenId4VpFixtureIngestionService` with the new `oid4vp.fixtures.ingested` telemetry path.  
+   - Commands: `./gradlew --no-daemon :core:test :application:test`, `./gradlew --no-daemon spotlessApply check` (second invocation ran with a 900 s timeout after the first attempt expired during EMV console JS tests).
 
 11. **I11 – Documentation & close-out (All requirements)**  
     - Update roadmap, knowledge map, how-to guides, telemetry catalogue, and task checklist.  

@@ -1,0 +1,6 @@
+{
+  "source": "Synthetic PID fixtures",
+  "version": "2025-11-01",
+  "sha256": "sha256:synthetic-openid4vp-v1",
+  "description": "Deterministic fixture bundle maintained in-repo for development and regression tests."
+}

@@ -1,0 +1,147 @@
+# Call the EUDIW OpenID4VP REST API
+
+_Status: Draft_  
+_Last updated: 2025-11-08_
+
+The Feature 040 REST endpoints expose the same request, wallet, validation, and (future) ingestion flows as the CLI/UI. All routes live under `/api/v1/eudiw/openid4vp` and emit sanitized telemetry (`oid4vp.request.created`, `oid4vp.wallet.responded`, `oid4vp.response.*`, `oid4vp.fixtures.ingested`). This guide walks through each endpoint with fixture-backed examples.
+
+## Prerequisites
+- Start the REST application: `./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi`.
+- Ensure `docs/test-vectors/eudiw/openid4vp/` is intact; it provides the `pid-haip-baseline` preset used below.
+- Optional: run `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` to view the current schema (`docs/3-reference/rest-openapi.(json|yaml)`).
+- `jq` (optional) for formatting responses.
+
+Verbose traces are disabled by default. Append `?verbose=true` to any POST route to include the `trace` object (hashed payloads, nonce/state, Trusted Authority verdict metadata).
+
+## 1. Create a HAIP authorization request (`POST /requests`)
+```bash
+curl -s -H "Content-Type: application/json" \
+  "http://localhost:8080/api/v1/eudiw/openid4vp/requests?verbose=true" \
+  -d '{
+        "profile": "HAIP",
+        "responseMode": "DIRECT_POST_JWT",
+        "dcqlPreset": "pid-haip-baseline",
+        "signedRequest": true,
+        "includeQrAscii": true
+      }' | jq
+```
+Response highlights:
+```json
+{
+  "requestId": "OID4VP-REQ-000042",
+  "profile": "HAIP",
+  "requestUri": "https://sim.local/oid4vp/request/OID4VP-REQ-000042",
+  "authorizationRequest": {
+    "clientId": "x509_hash:pid-haip-verifier",
+    "nonce": "******3CF29",
+    "state": "******1XRZ1",
+    "responseMode": "direct_post.jwt",
+    "presentationDefinition": { "input_descriptors": ["pid-haip-baseline"] }
+  },
+  "qr": {
+    "ascii": "████ ███ …",
+    "uri": "openid-vp://?request_uri=https://sim.local/oid4vp/request/OID4VP-REQ-000042"
+  },
+  "trace": {
+    "requestId": "OID4VP-REQ-000042",
+    "dcqlHash": "08c2…",
+    "trustedAuthorities": ["aki:s9tIpP7qrS9="],
+    "nonceFull": "e8618e14723cf29",
+    "stateFull": "b5ac20f71d31xrZ1"
+  }
+}
+```
+Notes:
+- Provide either `dcqlPreset` or `dcqlOverride`. Presets include Trusted Authority labels automatically.
+- Set `signedRequest=false` when profiling the Baseline mode; the controller still masks nonce/state in the response and telemetry.
+
+## 2. Simulate a wallet presentation (`POST /wallet/simulate`)
+Use the `requestId` issued above or omit it to let the simulator generate one.
+```bash
+curl -s -H "Content-Type: application/json" \
+  "http://localhost:8080/api/v1/eudiw/openid4vp/wallet/simulate?verbose=true" \
+  -d '{
+        "requestId": "OID4VP-REQ-000042",
+        "profile": "HAIP",
+        "walletPreset": "pid-haip-baseline",
+        "trustedAuthorityPolicy": "aki:s9tIpP7qrS9=",
+        "responseMode": "DIRECT_POST_JWT"
+      }' | jq
+```
+Key fields:
+- `presentations[0].vpToken.vp_token` – compact SD-JWT for the PID fixture.
+- `trace.vpTokenHash` / `kbJwtHash` – SHA-256 digests for telemetry parity.
+- `trace.trustedAuthorityMatch` – echoes the policy and friendly label recorded in telemetry.
+
+Inline simulations replace `walletPreset` with `inlineSdJwt`:
+```json
+"inlineSdJwt": {
+  "credentialId": "inline-pid",
+  "format": "dc+sd-jwt",
+  "compactSdJwt": "eyJ0eXAiOiJzZC1qd3QiLCJhbGciOiJFUzI1NiIs…",
+  "disclosures": ["WyJleU8iLDAseyJqd…"],
+  "keyBindingJwt": "eyJhbGciOiJFUzI1NiIs…",
+  "trustedAuthorityPolicies": ["aki:s9tIpP7qrS9="]
+}
+```
+
+## 3. Validate a VP Token (`POST /validate`)
+### Stored preset
+```bash
+curl -s -H "Content-Type: application/json" \
+  "http://localhost:8080/api/v1/eudiw/openid4vp/validate" \
+  -d '{
+        "presetId": "pid-haip-baseline",
+        "profile": "HAIP",
+        "responseMode": "DIRECT_POST_JWT",
+        "trustedAuthorityPolicy": "aki:s9tIpP7qrS9="
+      }' | jq '.presentations[0].trustedAuthorityMatch'
+```
+The service loads the stored VP Token/KB-JWT, recomputes disclosure hashes, verifies Trusted Authorities, and emits `oid4vp.response.validated` telemetry.
+
+### Inline VP Token
+```bash
+curl -s -H "Content-Type: application/json" \
+  "http://localhost:8080/api/v1/eudiw/openid4vp/validate?verbose=true" \
+  -d '{
+        "inlineVpToken": {
+          "credentialId": "inline-pid",
+          "format": "dc+sd-jwt",
+          "vpToken": {
+            "vp_token": "eyJ0eXAiOiJzZC1qd3Qi…",
+            "presentation_submission": { "descriptor_map": [] }
+          },
+          "disclosures": ["WyJleU8iLDAseyJqd…"],
+          "trustedAuthorityPolicies": ["aki:s9tIpP7qrS9="]
+        },
+        "trustedAuthorityPolicy": "aki:s9tIpP7qrS9="
+      }'
+```
+Validation failures raise RFC 7807 problem details (for example `invalid_scope` when the Trusted Authority filter is unmet). The response still includes sanitized telemetry in the `details` object.
+
+## 4. Seed presentations (`POST /presentations/seed`)
+The ingestion pipeline (T4020/T4021) introduces dataset-aware seeding; the REST endpoint currently records the request metadata until the CLI wiring lands.
+```bash
+curl -s -H "Content-Type: application/json" \
+  http://localhost:8080/api/v1/eudiw/openid4vp/presentations/seed \
+  -d '{
+        "source": "SYNTHETIC",
+        "presentations": ["pid-haip-baseline"],
+        "metadata": {
+          "sha256": "sha256:synthetic-openid4vp-v1",
+          "version": "2025-11-01"
+        }
+      }'
+```
+Fields:
+- `source`: `SYNTHETIC` or `CONFORMANCE` (matches `FixtureDatasets.Source`).
+- `presentations`: optional list of IDs to refresh (empty = ingest everything in the dataset).
+- `metadata`: provenance bundle (hash/version). Future increments will forward this payload to `OpenId4VpFixtureIngestionService` and emit `oid4vp.fixtures.ingested` telemetry.
+
+## Telemetry & troubleshooting
+- Request creation emits `oid4vp.request.created` with `haipMode`, masked nonce/state, and Trusted Authority labels. Wallet simulations emit `oid4vp.wallet.responded` plus the Trusted Authority verdict. Validation emits either `oid4vp.response.validated` (success) or `oid4vp.response.failed` (problem details). Fixture ingestion will emit `oid4vp.fixtures.ingested` once the REST endpoint is wired.
+- All telemetry frames set `sanitized=true`. Hashes (`vpTokenHash`, `kbJwtHash`, disclosure hashes) appear in traces rather than telemetry, keeping sensitive payloads off the wire.
+- Trusted Authority mismatches return `invalid_scope` with a `violations[]` array describing which policy failed. Inspect the response trace (via `?verbose=true`) to confirm which policies were evaluated.
+- Baseline mode bypasses HAIP encryption. Use HAIP mode to exercise the `direct_post.jwt` encryption path (`DirectPostJwtEncryptionService`) and collect latency metrics via `telemetry.fields.durationMs`.
+
+See `docs/2-how-to/use-eudiw-cli-operations.md` and `docs/2-how-to/use-eudiw-operator-ui.md` for companion workflows.

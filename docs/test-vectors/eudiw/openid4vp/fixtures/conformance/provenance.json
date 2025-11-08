@@ -1,0 +1,6 @@
+{
+  "source": "OpenID Foundation conformance bundle (placeholder)",
+  "version": "2025-10-15",
+  "sha256": "sha256:conformance-openid4vp-placeholder",
+  "description": "Reserved slot for imported EU/HAIP conformance vectors. Replace fields when official bundles are ingested."
+}
