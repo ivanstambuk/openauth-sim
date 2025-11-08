@@ -111,6 +111,22 @@ const scriptSource = readFileSync(
   'utf8',
 );
 
+const panelTemplateSource = readFileSync(
+  path.resolve(__dirname, '../../../main/resources/templates/ui/emv/panel.html'),
+  'utf8',
+);
+
+function extractFieldsetMarkup(template, dataTestId) {
+  const marker = `data-testid="${dataTestId}"`;
+  const markerIndex = template.indexOf(marker);
+  assert.notEqual(markerIndex, -1, `Unable to find fieldset marker ${marker}`);
+  const fieldsetStart = template.lastIndexOf('<fieldset', markerIndex);
+  assert.notEqual(fieldsetStart, -1, `Unable to locate opening fieldset for ${marker}`);
+  const fieldsetEnd = template.indexOf('</fieldset>', markerIndex);
+  assert.notEqual(fieldsetEnd, -1, `Unable to locate closing fieldset for ${marker}`);
+  return template.slice(fieldsetStart, fieldsetEnd);
+}
+
 function createInput(id, value = '', container = null) {
   const attributes = new Map();
   const element = {
@@ -1036,6 +1052,16 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     'ICC template field group should be marked aria-hidden in stored mode',
   );
   assert.equal(
+    env.containers.atc.getAttribute('hidden'),
+    null,
+    'ATC field group should remain visible while stored mode hides master key secrets',
+  );
+  assert.equal(
+    env.containers.atc.getAttribute('aria-hidden'),
+    null,
+    'ATC field group should keep aria-hidden cleared while stored mode is active',
+  );
+  assert.equal(
     env.inputs.masterKey.getAttribute('data-secret-mode'),
     'stored',
     'Master key input should record stored mode state',
@@ -1059,6 +1085,16 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     env.inputs.issuerApplicationData.style.pointerEvents,
     'none',
     'Issuer application data textarea should disable pointer events in stored mode',
+  );
+  assert.equal(
+    env.inputs.atc.style.pointerEvents || '',
+    '',
+    'ATC input should remain interactive so operators can adjust stored derivation values',
+  );
+  assert.equal(
+    env.inputs.atc.getAttribute('aria-hidden'),
+    null,
+    'ATC input should remain visible/accessible during stored mode',
   );
   assert.equal(
     env.inputs.iccTemplate.style.pointerEvents,
@@ -1227,6 +1263,28 @@ test('replay session key derivation fields remain visible when stored mode hides
         `${label} input should stay interactive so operators can adjust derivation values`,
     );
   });
+});
+
+test('card configuration fieldsets isolate transaction and customer sections', () => {
+  const evaluateCardMarkup = extractFieldsetMarkup(panelTemplateSource, 'emv-card-block');
+  assert.ok(
+      !evaluateCardMarkup.includes('data-testid="emv-transaction-block"'),
+      'Evaluate card configuration should not wrap the transaction block',
+  );
+  assert.ok(
+      !evaluateCardMarkup.includes('data-testid="emv-customer-block"'),
+      'Evaluate card configuration should not wrap the customer block',
+  );
+
+  const replayCardMarkup = extractFieldsetMarkup(panelTemplateSource, 'emv-replay-card-block');
+  assert.ok(
+      !replayCardMarkup.includes('data-testid="emv-replay-transaction-block"'),
+      'Replay card configuration should not wrap the transaction block',
+  );
+  assert.ok(
+      !replayCardMarkup.includes('data-testid="emv-replay-customer-block"'),
+      'Replay card configuration should not wrap the customer block',
+  );
 });
 
 test('selecting a preset while inline mode is active keeps inline controls editable', async () => {

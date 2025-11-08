@@ -161,6 +161,7 @@ final class EmvCapOperatorUiSeleniumTest {
         assertFieldGroupVisible("#emvBranchFactor", "Branch factor");
         assertFieldGroupVisible("#emvHeight", "Height");
         assertFieldGroupVisible("#emvIv", "IV");
+        assertMasterAtcRow("emv-master-atc-row", "#emvMasterKey", "#emvAtc", "Evaluate master/ATC row");
         assertBranchHeightRow("emv-branch-height-row", "#emvBranchFactor", "#emvHeight", "Evaluate session key pair");
 
         WebElement masterKeyInput = driver.findElement(By.id("emvMasterKey"));
@@ -284,8 +285,19 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(driver.findElements(By.cssSelector("[data-testid='emv-icc-resolved']")))
                 .as("Evaluate panel should rely on verbose trace for resolved ICC payload")
                 .isEmpty();
+        WebElement cardFieldset = driver.findElement(By.cssSelector("fieldset[data-testid='emv-card-block']"));
+        assertThat(cardFieldset.findElements(By.cssSelector("fieldset[data-testid='emv-transaction-block']")))
+                .as("Card configuration fieldset should not wrap the transaction block")
+                .isEmpty();
+        assertThat(cardFieldset.findElements(By.cssSelector("fieldset[data-testid='emv-customer-block']")))
+                .as("Card configuration fieldset should not wrap the customer block")
+                .isEmpty();
         WebElement transactionFieldset =
                 driver.findElement(By.cssSelector("fieldset[data-testid='emv-transaction-block']"));
+        assertThat(cardFieldset.findElements(
+                        By.xpath("following-sibling::fieldset[@data-testid='emv-transaction-block']")))
+                .as("Transaction fieldset should render as a sibling immediately after card configuration")
+                .isNotEmpty();
         WebElement transactionLegend = transactionFieldset.findElement(By.tagName("legend"));
         assertThat(transactionLegend.getText())
                 .as("Transaction legend should reflect the grouped ICC template inputs")
@@ -745,6 +757,8 @@ final class EmvCapOperatorUiSeleniumTest {
         assertFieldGroupVisible("#emvReplayBranchFactor", "Replay branch factor");
         assertFieldGroupVisible("#emvReplayHeight", "Replay height");
         assertFieldGroupVisible("#emvReplayIv", "Replay IV");
+        assertMasterAtcRow(
+                "emv-replay-master-atc-row", "#emvReplayMasterKey", "#emvReplayAtc", "Replay master/ATC row");
         assertBranchHeightRow(
                 "emv-replay-branch-height-row",
                 "#emvReplayBranchFactor",
@@ -791,6 +805,18 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(driver.findElements(By.cssSelector("[data-testid='emv-replay-icc-resolved']")))
                 .as("Replay panel should rely on verbose traces for resolved ICC payload")
                 .isEmpty();
+        WebElement replayCardBlock =
+                driver.findElement(By.cssSelector("fieldset[data-testid='emv-replay-card-block']"));
+        assertThat(replayCardBlock.findElements(By.cssSelector("fieldset[data-testid='emv-replay-transaction-block']")))
+                .as("Replay card configuration should not wrap the transaction block")
+                .isEmpty();
+        assertThat(replayCardBlock.findElements(By.cssSelector("fieldset[data-testid='emv-replay-customer-block']")))
+                .as("Replay card configuration should not wrap the customer block")
+                .isEmpty();
+        assertThat(replayCardBlock.findElements(
+                        By.xpath("following-sibling::fieldset[@data-testid='emv-replay-transaction-block']")))
+                .as("Replay transaction block should render as a sibling of card configuration")
+                .isNotEmpty();
         WebElement replayTransactionBlock =
                 driver.findElement(By.cssSelector("fieldset[data-testid='emv-replay-transaction-block']"));
         WebElement replayTransactionLegend = replayTransactionBlock.findElement(By.tagName("legend"));
@@ -1222,6 +1248,32 @@ final class EmvCapOperatorUiSeleniumTest {
                 heightGroup.findElement(By.xpath("ancestor::div[contains(@class,'emv-session-pair-row')][1]"));
         assertThat(heightWrapper)
                 .as(context + " should wrap height within the pair row")
+                .isEqualTo(row);
+    }
+
+    private void assertMasterAtcRow(String rowTestId, String masterSelector, String atcSelector, String context) {
+        String selector = String.format("[data-testid='%s']", rowTestId);
+        WebElement row = driver.findElement(By.cssSelector(selector));
+        assertThat(row.getAttribute("class"))
+                .as(context + " should reuse the dedicated master/ATC styling")
+                .contains("emv-session-master-row");
+        List<WebElement> fieldGroups = row.findElements(By.cssSelector(".field-group"));
+        assertThat(fieldGroups)
+                .as(context + " row should only include the master key and ATC field groups")
+                .hasSize(2);
+        WebElement masterInput = driver.findElement(By.cssSelector(masterSelector));
+        WebElement masterGroup = masterInput.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
+        WebElement masterWrapper =
+                masterGroup.findElement(By.xpath("ancestor::div[contains(@class,'emv-session-master-row')][1]"));
+        assertThat(masterWrapper)
+                .as(context + " should wrap the master key within the dedicated row")
+                .isEqualTo(row);
+        WebElement atcInput = driver.findElement(By.cssSelector(atcSelector));
+        WebElement atcGroup = atcInput.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
+        WebElement atcWrapper =
+                atcGroup.findElement(By.xpath("ancestor::div[contains(@class,'emv-session-master-row')][1]"));
+        assertThat(atcWrapper)
+                .as(context + " should wrap the ATC within the dedicated row")
                 .isEqualTo(row);
     }
 

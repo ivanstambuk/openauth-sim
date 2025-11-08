@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-039-emv-cap-simulation.md`  
 _Status:_ In progress  
-_Last updated:_ 2025-11-08 (I41 session key derivation grouping complete; next increment TBD)
+_Last updated:_ 2025-11-08 (I44 card configuration isolation completed)
 
 ## Vision & Success Criteria
 - Deliver deterministic EMV/CAP OTP generation **and replay validation** (Identify, Respond, Sign) across core, application, REST, CLI, and operator console facades with consistent telemetry and optional verbose traces.
@@ -246,6 +246,26 @@ _Last updated:_ 2025-11-08 (I41 session key derivation grouping complete; next i
 - Verification commands:
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `./gradlew --no-daemon spotlessApply check` (first attempt hit the 300 s timeout; reran with a longer timeout and it passed)
+
+## Previous Increment – I43 Session key master key/ATC width (completed 2025-11-08)
+- Wrapped the ICC master key textarea + secret mask and the ATC input inside a new `.emv-session-master-row`/`.emv-session-master-column` container for Evaluate and Replay templates so both fields stretch edge-to-edge like the branch/height pair while stored mode still hides only the master key field group.
+- Added shared `.emv-session-row` (grid-column span) and `.emv-session-master-row`/`.emv-session-master-column` CSS helpers so the new row matches the existing session block styling across responsive breakpoints.
+- Extended Selenium coverage with `assertMasterAtcRow` to confirm the row structure and ensure both master key and ATC inputs live inside the dedicated wrapper; added JS unit assertions so stored mode continues to hide only the master key container while ATC remains interactive.
+- Verification matrix:
+  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
+  - `./gradlew --no-daemon spotlessApply check`
+
+## Previous Increment – I44 Card configuration isolation (completed 2025-11-08)
+- Split the Evaluate and Replay templates so `.emv-card-block` now contains only CDOL1/IPB textareas while `.emv-transaction-block` and `.emv-customer-block` render as sibling fieldsets; added XPath-based Selenium assertions to guarantee the transaction block is a following sibling and that card borders never wrap customer inputs.
+- Added a panel-template regression test to the Node console suite that reads `panel.html` directly and fails if the card fieldsets ever include the transaction or customer sections again, satisfying spec requirement R5.6 without introducing a DOM parser dependency.
+- Expanded the Selenium coverage to assert the new hierarchy for both evaluate and replay flows (card block free of nested fieldsets, transaction legend/hints intact) while keeping the existing stored-mode masking checks green.
+- Verification matrix:
+  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
+  - `./gradlew --no-daemon spotlessApply check`
 
 ## Previous Increment – I34 Inline sample vector mode persistence (completed 2025-11-05)
 - Added JS unit coverage (`node --test rest-api/src/test/javascript/emv/console.test.js`) and Selenium assertions to prove inline mode stays active after preset selection while masks/seed actions remain hidden.

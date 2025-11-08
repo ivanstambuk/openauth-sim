@@ -1425,11 +1425,27 @@ a:focus {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.emv-session-row {
+  grid-column: 1 / -1;
+}
+
+.emv-session-master-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--ocra-spacing-md);
+  align-items: start;
+}
+
+.emv-session-master-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ocra-spacing-xs);
+}
+
 .emv-session-pair-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--ocra-spacing-md);
-  grid-column: 1 / -1;
   align-items: start;
 }
 
