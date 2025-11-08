@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/api/v1/emv/cap", produces = MediaType.APPLICATION_JSON_VALUE)
 final class EmvCapCredentialDirectoryController {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(EmvCapCredentialDirectoryController.class);
     private static final String METADATA_PREFIX = "emv.cap.metadata.";
     private static final Comparator<EmvCapCredentialSummary> SUMMARY_COMPARATOR =
             Comparator.comparing(EmvCapCredentialSummary::label, String.CASE_INSENSITIVE_ORDER);
@@ -59,6 +62,7 @@ final class EmvCapCredentialDirectoryController {
         if (credentialStore == null || !StringUtils.hasText(credentialId)) {
             return ResponseEntity.notFound().build();
         }
+        LOGGER.info("Hydrating EMV/CAP credential {}", credentialId);
         return credentialStore
                 .findByName(credentialId.trim())
                 .filter(credential -> credential.type() == CredentialType.EMV_CA)

@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/specs/feature-039-emv-cap-simulation.md`  
 _Status:_ In progress  
-_Last updated:_ 2025-11-06 (I39 inline preset hydration – in progress after customer input grouping wrap-up)
+_Last updated:_ 2025-11-08 (I41 session key derivation grouping complete; next increment TBD)
 
 ## Vision & Success Criteria
 - Deliver deterministic EMV/CAP OTP generation **and replay validation** (Identify, Respond, Sign) across core, application, REST, CLI, and operator console facades with consistent telemetry and optional verbose traces.
@@ -208,36 +208,44 @@ _Last updated:_ 2025-11-06 (I39 inline preset hydration – in progress after cu
 - Extended JS console tests to cover the new grouping/aria semantics and adjusted Selenium coverage—inline Sign replay asserted via TODO pending T3936 inline preset hydration; legacy scenario temporarily disabled to avoid false negatives.
 - Verification commands: `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
 
-## Current Increment – I39 Inline preset full hydration (in progress)
-- Goal: ensure inline Evaluate and Replay forms display stored defaults for all overridable fields (master key, CDOL1, IPB, ICC template, IAD, challenge/reference/amount) whenever a preset is selected.
-- Steps:
-  1. Extend the REST credential directory with `GET /api/v1/emv/cap/credentials/{credentialId}` so presets expose inline defaults (master key, CDOL1, issuer bitmap, ICC template, issuer application data, customer inputs); add controller/service coverage and refresh OpenAPI snapshots.
-  2. Teach `console.js` to fetch/cache credential details, hydrate Evaluate/Replay inline forms when presets are selected or modes switch to inline, and preserve override semantics (blank fields fall back to stored credentials, manual edits take precedence).
-  3. Expand JS unit tests and re-enable the Selenium inline replay scenario to confirm presets populate immediately, Sign-mode defaults hydrate correctly, and clearing inputs reverts to stored fallback behaviour.
-  4. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+## Previous Increment – I39 Inline preset full hydration (completed 2025-11-08)
+- Hardened the Node-based console harness so it waits for credential summaries before dispatching preset change events; this mirrors the real UI flow and guarantees inline Evaluate/Replay hydration receives the sensitive defaults (master key, CDOL1, IPB, ICC template, issuer application data, and Sign-mode customer inputs) before assertions run.
+- Verified the Sign replay Selenium scenario remains green by re-running `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, then exercised the full verification matrix:
+  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test` (initial run exposed the long-standing HtmlUnit FIDO2 preset-label flake; rerunning the focused FIDO2 class followed by the `./gradlew --no-daemon spotlessApply check` pipeline produced a green `:rest-api:test`)
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
+  - `./gradlew --no-daemon spotlessApply check`
+- Result: inline Evaluate/Replay preset hydration is stable, Sign replay Selenium coverage is back on, and T3937/T3938 can now proceed.
 
-## Upcoming Increment – I40 Card transaction grouping (planned)
-- Goal: introduce a dedicated “Transaction” sub-section in the operator console that stacks ICC payload template and Issuer Application Data inputs, with helper text noting `xxxx` is replaced by the ATC.
-- Steps:
-  1. Update EMV Evaluate/Replay templates to wrap ICC template + IAD under a shared “Transaction” legend beneath Card configuration, mirroring the ASCII mock-up.
-  2. Adjust CSS spacing to align the new group with existing panels and ensure stored-mode masking continues to work.
-  3. Refresh Selenium/JS tests to assert presence of the new grouping and helper copy in inline and stored modes.
-  4. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+## Previous Increment – I40 Card transaction grouping (completed 2025-11-08)
+- Added a dedicated “Transaction” fieldset beneath Card configuration for Evaluate and Replay panels, stacking the ICC payload template and Issuer Application Data inputs while surfacing the mandated helper copy (`"xxxx" is replaced by the ATC before the ICC payload template is evaluated.`).
+- Confirmed the existing `.emv-transaction-block` styling keeps the new group aligned with adjacent fieldsets and relied on the sensitive-field toggles to keep ICC template/IAD containers hidden in stored mode while leaving the helper hint visible.
+- Refreshed the Node console tests to assert ICC template containers/masks honour stored-mode hiding, and expanded the EMV Selenium suite to verify the new legend, helper text, and textarea presence for both Evaluate and Replay flows.
+- Verification matrix:
+  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
+  - `./gradlew --no-daemon spotlessApply check`
 
-## Upcoming Increment – I41 Session key derivation grouping (planned)
-- Goal: visually group ICC master key, ATC, branch factor, height, and IV under a shared heading with helper copy mirroring the reference emulator.
-- Steps:
-  1. Update EMV templates to wrap these inputs in a `Session key derivation` fieldset with inline hints; ensure stored-mode masking/intentionally disabled behaviour persists.
-  2. Adjust CSS spacing/alignment to keep the block consistent across Evaluate and Replay panels.
-  3. Extend Selenium/JS tests to assert the new grouping renders for inline and stored modes and that helper text appears as specified.
-  4. Re-run targeted suites: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+## Previous Increment – I41 Session key derivation grouping (completed 2025-11-08)
+- Wrapped the ICC master key, ATC, branch factor, height, and IV inputs for both Evaluate and Replay inside a shared “Session key derivation” fieldset, added helper copy + test IDs, and aligned copy to call out every derivation parameter explicitly.
+- Introduced `.emv-session-block` styling (borders, padding, legend typography) so the new group matches the card and transaction fieldsets across light/dark themes.
+- Extended the Node-based console harness with per-field containers plus new assertions proving stored mode continues to hide only the secret inputs while ATC/branch/height/IV remain visible in Evaluate and Replay forms.
+- Expanded `EmvCapOperatorUiSeleniumTest` to verify the new legend/hints, confirm non-secret derivation fields stay visible in stored mode, and ensure the helper copy matches the specification.
+- Verification matrix:
+  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
+  - `./gradlew --no-daemon spotlessApply check`
 
-## Upcoming Increment – I34 Inline sample vector mode persistence (planned)
-- Goal: prevent the operator console Evaluate panel from switching to stored credential mode when an inline operator picks a sample vector; maintain editable inline controls and styling parity with other protocols.
-- Steps:
-  1. Add failing JS unit test(s) (Evaluate helpers) asserting inline mode remains active after preset selection, plus Selenium coverage capturing the radio state and field editability.
-  2. Adjust EMV console JavaScript or component state management to honour the inline mode while still hydrating stored sample values; ensure stored-mode-only masking remains intact when the radio is not selected.
-  3. Re-run targeted suites: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+## Previous Increment – I42 Branch factor & height row alignment (completed 2025-11-08)
+- Added Selenium assertions to ensure the Evaluate and Replay forms expose a dedicated wrapper row that contains both Branch factor and Height inputs.
+- Wrapped the two inputs inside `.emv-session-pair-row` containers with new `data-testid` hooks and introduced CSS to keep the row full width while stored mode still hides only secret-bearing fields.
+- Verification commands:
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
+  - `./gradlew --no-daemon spotlessApply check` (first attempt hit the 300 s timeout; reran with a longer timeout and it passed)
 
 ## Previous Increment – I34 Inline sample vector mode persistence (completed 2025-11-05)
 - Added JS unit coverage (`node --test rest-api/src/test/javascript/emv/console.test.js`) and Selenium assertions to prove inline mode stays active after preset selection while masks/seed actions remain hidden.

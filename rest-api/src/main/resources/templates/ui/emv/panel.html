@@ -128,160 +128,183 @@
                   </div>
                 </div>
 
-                <div class="field-grid emv-parameter-grid">
-                  <div class="field-group">
-                    <label for="emvMasterKey">ICC master key (hex)</label>
-                    <textarea
-                        id="emvMasterKey"
-                        name="masterKey"
-                        data-testid="emv-master-key"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                      ></textarea>
+                <fieldset class="emv-session-block stack-md" data-testid="emv-session-block">
+                  <legend class="field-legend">Session key derivation</legend>
+                  <p class="hint" data-testid="emv-session-hint">
+                    Provide the ICC master key, ATC, branch factor, height, and IV to derive the session key used for Generate AC.
+                  </p>
+                  <div class="field-grid emv-parameter-grid">
+                    <div class="field-group">
+                      <label for="emvMasterKey">ICC master key (hex)</label>
+                      <textarea
+                          id="emvMasterKey"
+                          name="masterKey"
+                          data-testid="emv-master-key"
+                          rows="2"
+                          spellcheck="false"
+                          autocapitalize="none"
+                          autocomplete="off"
+                        ></textarea>
+                    </div>
+                    <div
+                        class="secret-mask stack-xs"
+                        data-testid="emv-master-key-mask"
+                        data-emv-mask="masterKey"
+                        hidden="hidden"
+                        aria-hidden="true"
+                      >
+                      <code data-mask-value>—</code>
+                      <p class="hint">Stored presets hide this master key. Switch to inline parameters to edit.</p>
+                    </div>
+                    <div class="field-group">
+                      <label for="emvAtc">Application Transaction Counter (hex)</label>
+                      <input
+                          type="text"
+                          id="emvAtc"
+                          name="atc"
+                          data-testid="emv-atc"
+                          autocomplete="off"
+                        />
+                    </div>
+                    <div class="emv-session-pair-row" data-testid="emv-branch-height-row">
+                      <div class="field-group">
+                        <label for="emvBranchFactor">Branch factor (b)</label>
+                        <input
+                            type="number"
+                            id="emvBranchFactor"
+                            name="branchFactor"
+                            min="1"
+                            data-testid="emv-branch-factor"
+                          />
+                      </div>
+                      <div class="field-group">
+                        <label for="emvHeight">Height (H)</label>
+                        <input
+                            type="number"
+                            id="emvHeight"
+                            name="height"
+                            min="1"
+                            data-testid="emv-height"
+                          />
+                      </div>
+                    </div>
+                    <div class="field-group emv-field--full">
+                      <label for="emvIv">Initialization vector (hex)</label>
+                      <textarea
+                          id="emvIv"
+                          name="iv"
+                          rows="2"
+                          spellcheck="false"
+                          autocapitalize="none"
+                          autocomplete="off"
+                          data-testid="emv-iv"
+                        ></textarea>
+                    </div>
                   </div>
-                  <div
-                      class="secret-mask stack-xs"
-                      data-testid="emv-master-key-mask"
-                      data-emv-mask="masterKey"
-                      hidden="hidden"
-                      aria-hidden="true"
-                    >
-                    <code data-mask-value>—</code>
-                    <p class="hint">Stored presets hide this master key. Switch to inline parameters to edit.</p>
+                </fieldset>
+
+                <fieldset class="emv-card-block stack-md" data-testid="emv-card-block">
+                  <legend class="field-legend">Card configuration</legend>
+                  <div class="field-grid emv-parameter-grid">
+                    <div class="field-group emv-field--full">
+                      <label for="emvCdol1">CDOL1 payload (hex)</label>
+                      <textarea
+                          id="emvCdol1"
+                          name="cdol1"
+                          rows="2"
+                          spellcheck="false"
+                          autocapitalize="none"
+                          autocomplete="off"
+                          data-testid="emv-cdol1"
+                        ></textarea>
+                    </div>
+                    <div
+                        class="secret-mask stack-xs"
+                        data-testid="emv-cdol1-mask"
+                        data-emv-mask="cdol1"
+                        hidden="hidden"
+                        aria-hidden="true"
+                      >
+                      <code data-mask-value>—</code>
+                      <p class="hint">Stored presets hide this CDOL1 payload. Switch to inline parameters to edit.</p>
+                    </div>
+                    <div class="field-group emv-field--full">
+                      <label for="emvIpb">Issuer Proprietary Bitmap (hex)</label>
+                      <textarea
+                          id="emvIpb"
+                          name="issuerProprietaryBitmap"
+                          rows="2"
+                          spellcheck="false"
+                          autocapitalize="none"
+                          autocomplete="off"
+                          data-testid="emv-ipb"
+                        ></textarea>
+                    </div>
+                    <div
+                        class="secret-mask stack-xs"
+                        data-testid="emv-ipb-mask"
+                        data-emv-mask="issuerProprietaryBitmap"
+                        hidden="hidden"
+                        aria-hidden="true"
+                      >
+                      <code data-mask-value>—</code>
+                      <p class="hint">Stored presets hide this issuer bitmap. Switch to inline parameters to edit.</p>
+                    </div>
                   </div>
-                  <div class="field-group">
-                    <label for="emvAtc">Application Transaction Counter (hex)</label>
-                    <input
-                        type="text"
-                        id="emvAtc"
-                        name="atc"
-                        data-testid="emv-atc"
-                        autocomplete="off"
-                      />
-                  </div>
-                  <div class="field-group">
-                    <label for="emvBranchFactor">Branch factor (b)</label>
-                    <input
-                        type="number"
-                        id="emvBranchFactor"
-                        name="branchFactor"
-                        min="1"
-                        data-testid="emv-branch-factor"
-                      />
-                  </div>
-                  <div class="field-group">
-                    <label for="emvHeight">Height (H)</label>
-                    <input
-                        type="number"
-                        id="emvHeight"
-                        name="height"
-                        min="1"
-                        data-testid="emv-height"
-                      />
-                  </div>
-                  <div class="field-group emv-field--full">
-                    <label for="emvIv">Initialization vector (hex)</label>
-                    <textarea
-                        id="emvIv"
-                        name="iv"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                        data-testid="emv-iv"
-                      ></textarea>
-                  </div>
-                  <div class="field-group emv-field--full">
-                    <label for="emvCdol1">CDOL1 payload (hex)</label>
-                    <textarea
-                        id="emvCdol1"
-                        name="cdol1"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                        data-testid="emv-cdol1"
-                      ></textarea>
-                  </div>
-                  <div
-                      class="secret-mask stack-xs"
-                      data-testid="emv-cdol1-mask"
-                      data-emv-mask="cdol1"
-                      hidden="hidden"
-                      aria-hidden="true"
-                    >
-                    <code data-mask-value>—</code>
-                    <p class="hint">Stored presets hide this CDOL1 payload. Switch to inline parameters to edit.</p>
-                  </div>
-                  <div class="field-group emv-field--full">
-                    <label for="emvIpb">Issuer Proprietary Bitmap (hex)</label>
-                    <textarea
-                        id="emvIpb"
-                        name="issuerProprietaryBitmap"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                        data-testid="emv-ipb"
-                      ></textarea>
-                  </div>
-                  <div
-                      class="secret-mask stack-xs"
-                      data-testid="emv-ipb-mask"
-                      data-emv-mask="issuerProprietaryBitmap"
-                      hidden="hidden"
-                      aria-hidden="true"
-                    >
-                    <code data-mask-value>—</code>
-                    <p class="hint">Stored presets hide this issuer bitmap. Switch to inline parameters to edit.</p>
-                  </div>
-                  <div class="field-group emv-field--full">
-                    <label for="emvIccTemplate">ICC payload template (xxxx = ATC)</label>
-                    <textarea
-                        id="emvIccTemplate"
-                        name="iccDataTemplate"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                        data-testid="emv-icc-template"
-                      ></textarea>
-                  </div>
-                  <div
-                      class="secret-mask stack-xs"
-                      data-testid="emv-icc-template-mask"
-                      data-emv-mask="iccDataTemplate"
-                      hidden="hidden"
-                      aria-hidden="true"
-                    >
-                    <code data-mask-value>—</code>
-                    <p class="hint">Stored presets hide this ICC template. Switch to inline parameters to edit.</p>
-                  </div>
-                  <div class="field-group emv-field--full">
-                    <label for="emvIssuerApplicationData">Issuer Application Data (hex)</label>
-                    <textarea
-                        id="emvIssuerApplicationData"
-                        name="issuerApplicationData"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                        data-testid="emv-issuer-application-data"
-                      ></textarea>
-                  </div>
-                  <div
-                      class="secret-mask stack-xs"
-                      data-testid="emv-issuer-application-data-mask"
-                      data-emv-mask="issuerApplicationData"
-                      hidden="hidden"
-                      aria-hidden="true"
-                    >
-                    <code data-mask-value>—</code>
-                    <p class="hint">Stored presets hide this issuer application data. Switch to inline parameters to edit.</p>
-                  </div>
-                </div>
+
+                  <fieldset class="emv-transaction-block stack-md" data-testid="emv-transaction-block">
+                    <legend class="field-legend">Transaction</legend>
+                    <p class="hint" data-testid="emv-transaction-hint">
+                      "xxxx" is replaced by the ATC before the ICC payload template is evaluated.
+                    </p>
+                    <div class="field-grid emv-transaction-grid">
+                      <div class="field-group emv-field--full">
+                        <label for="emvIccTemplate">ICC payload template</label>
+                        <textarea
+                            id="emvIccTemplate"
+                            name="iccDataTemplate"
+                            rows="2"
+                            spellcheck="false"
+                            autocapitalize="none"
+                            autocomplete="off"
+                            data-testid="emv-icc-template"
+                          ></textarea>
+                      </div>
+                      <div
+                          class="secret-mask stack-xs"
+                          data-testid="emv-icc-template-mask"
+                          data-emv-mask="iccDataTemplate"
+                          hidden="hidden"
+                          aria-hidden="true"
+                        >
+                        <code data-mask-value>—</code>
+                        <p class="hint">Stored presets hide this ICC template. Switch to inline parameters to edit.</p>
+                      </div>
+                      <div class="field-group emv-field--full">
+                        <label for="emvIssuerApplicationData">Issuer Application Data (hex)</label>
+                        <textarea
+                            id="emvIssuerApplicationData"
+                            name="issuerApplicationData"
+                            rows="2"
+                            spellcheck="false"
+                            autocapitalize="none"
+                            autocomplete="off"
+                            data-testid="emv-issuer-application-data"
+                          ></textarea>
+                      </div>
+                      <div
+                          class="secret-mask stack-xs"
+                          data-testid="emv-issuer-application-data-mask"
+                          data-emv-mask="issuerApplicationData"
+                          hidden="hidden"
+                          aria-hidden="true"
+                        >
+                        <code data-mask-value>—</code>
+                        <p class="hint">Stored presets hide this issuer application data. Switch to inline parameters to edit.</p>
+                      </div>
+                    </div>
+                  </fieldset>
+                </fieldset>
 
                 <fieldset
                     class="emv-customer-block stack-md"
@@ -498,136 +521,159 @@
                   </div>
                 </div>
 
-                <div class="field-grid emv-parameter-grid">
-                  <div class="field-group" data-testid="emv-replay-master-key">
-                    <label for="emvReplayMasterKey">ICC master key (hex)</label>
-                    <input
-                        type="text"
-                        id="emvReplayMasterKey"
-                        name="replayMasterKey"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                      />
+                <fieldset class="emv-session-block stack-md" data-testid="emv-replay-session-block">
+                  <legend class="field-legend">Session key derivation</legend>
+                  <p class="hint" data-testid="emv-replay-session-hint">
+                    Match the credential's session key inputs to reproduce CAP replay calculations.
+                  </p>
+                  <div class="field-grid emv-parameter-grid">
+                    <div class="field-group" data-testid="emv-replay-master-key">
+                      <label for="emvReplayMasterKey">ICC master key (hex)</label>
+                      <input
+                          type="text"
+                          id="emvReplayMasterKey"
+                          name="replayMasterKey"
+                          spellcheck="false"
+                          autocapitalize="none"
+                          autocomplete="off"
+                        />
+                    </div>
+                    <div
+                        class="secret-mask stack-xs"
+                        data-testid="emv-replay-master-key-mask"
+                        data-emv-mask="masterKey"
+                        hidden="hidden"
+                        aria-hidden="true"
+                      >
+                      <code data-mask-value>—</code>
+                      <p class="hint">Stored presets hide this master key. Switch to inline parameters to edit.</p>
+                    </div>
+                    <div class="field-group" data-testid="emv-replay-atc">
+                      <label for="emvReplayAtc">Application Transaction Counter (hex)</label>
+                      <input type="text" id="emvReplayAtc" name="replayAtc" autocomplete="off" />
+                    </div>
+                    <div class="emv-session-pair-row" data-testid="emv-replay-branch-height-row">
+                      <div class="field-group" data-testid="emv-replay-branch-factor">
+                        <label for="emvReplayBranchFactor">Branch factor (b)</label>
+                        <input type="number" id="emvReplayBranchFactor" name="replayBranchFactor" min="1" />
+                      </div>
+                      <div class="field-group" data-testid="emv-replay-height">
+                        <label for="emvReplayHeight">Height (H)</label>
+                        <input type="number" id="emvReplayHeight" name="replayHeight" min="1" />
+                      </div>
+                    </div>
+                    <div class="field-group emv-field--full" data-testid="emv-replay-iv">
+                      <label for="emvReplayIv">Initialization vector (hex)</label>
+                      <input
+                          type="text"
+                          id="emvReplayIv"
+                          name="replayIv"
+                          spellcheck="false"
+                          autocapitalize="none"
+                          autocomplete="off"
+                        />
+                    </div>
                   </div>
-                  <div
-                      class="secret-mask stack-xs"
-                      data-testid="emv-replay-master-key-mask"
-                      data-emv-mask="masterKey"
-                      hidden="hidden"
-                      aria-hidden="true"
-                    >
-                    <code data-mask-value>—</code>
-                    <p class="hint">Stored presets hide this master key. Switch to inline parameters to edit.</p>
+                </fieldset>
+
+                <fieldset class="emv-card-block stack-md" data-testid="emv-replay-card-block">
+                  <legend class="field-legend">Card configuration</legend>
+                  <div class="field-grid emv-parameter-grid">
+                    <div class="field-group emv-field--full" data-testid="emv-replay-cdol1">
+                      <label for="emvReplayCdol1">CDOL1 payload (hex)</label>
+                      <textarea
+                          id="emvReplayCdol1"
+                          name="replayCdol1"
+                          rows="2"
+                          spellcheck="false"
+                          autocapitalize="none"
+                          autocomplete="off"
+                        ></textarea>
+                    </div>
+                    <div
+                        class="secret-mask stack-xs"
+                        data-testid="emv-replay-cdol1-mask"
+                        data-emv-mask="cdol1"
+                        hidden="hidden"
+                        aria-hidden="true"
+                      >
+                      <code data-mask-value>—</code>
+                      <p class="hint">Stored presets hide this CDOL1 payload. Switch to inline parameters to edit.</p>
+                    </div>
+                    <div class="field-group emv-field--full" data-testid="emv-replay-issuer-bitmap">
+                      <label for="emvReplayIssuerBitmap">Issuer Proprietary Bitmap (hex)</label>
+                      <textarea
+                          id="emvReplayIssuerBitmap"
+                          name="replayIssuerBitmap"
+                          rows="2"
+                          spellcheck="false"
+                          autocapitalize="none"
+                          autocomplete="off"
+                        ></textarea>
+                    </div>
+                    <div
+                        class="secret-mask stack-xs"
+                        data-testid="emv-replay-ipb-mask"
+                        data-emv-mask="issuerProprietaryBitmap"
+                        hidden="hidden"
+                        aria-hidden="true"
+                      >
+                      <code data-mask-value>—</code>
+                      <p class="hint">Stored presets hide this issuer bitmap. Switch to inline parameters to edit.</p>
+                    </div>
                   </div>
-                  <div class="field-group" data-testid="emv-replay-atc">
-                    <label for="emvReplayAtc">Application Transaction Counter (hex)</label>
-                    <input type="text" id="emvReplayAtc" name="replayAtc" autocomplete="off" />
-                  </div>
-                  <div class="field-group" data-testid="emv-replay-branch-factor">
-                    <label for="emvReplayBranchFactor">Branch factor (b)</label>
-                    <input type="number" id="emvReplayBranchFactor" name="replayBranchFactor" min="1" />
-                  </div>
-                  <div class="field-group" data-testid="emv-replay-height">
-                    <label for="emvReplayHeight">Height (H)</label>
-                    <input type="number" id="emvReplayHeight" name="replayHeight" min="1" />
-                  </div>
-                  <div class="field-group emv-field--full" data-testid="emv-replay-iv">
-                    <label for="emvReplayIv">Initialization vector (hex)</label>
-                    <input
-                        type="text"
-                        id="emvReplayIv"
-                        name="replayIv"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                      />
-                  </div>
-                  <div class="field-group emv-field--full" data-testid="emv-replay-cdol1">
-                    <label for="emvReplayCdol1">CDOL1 payload (hex)</label>
-                    <textarea
-                        id="emvReplayCdol1"
-                        name="replayCdol1"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                      ></textarea>
-                  </div>
-                  <div
-                      class="secret-mask stack-xs"
-                      data-testid="emv-replay-cdol1-mask"
-                      data-emv-mask="cdol1"
-                      hidden="hidden"
-                      aria-hidden="true"
-                    >
-                    <code data-mask-value>—</code>
-                    <p class="hint">Stored presets hide this CDOL1 payload. Switch to inline parameters to edit.</p>
-                  </div>
-                  <div class="field-group emv-field--full" data-testid="emv-replay-issuer-bitmap">
-                    <label for="emvReplayIssuerBitmap">Issuer Proprietary Bitmap (hex)</label>
-                    <textarea
-                        id="emvReplayIssuerBitmap"
-                        name="replayIssuerBitmap"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                      ></textarea>
-                  </div>
-                  <div
-                      class="secret-mask stack-xs"
-                      data-testid="emv-replay-ipb-mask"
-                      data-emv-mask="issuerProprietaryBitmap"
-                      hidden="hidden"
-                      aria-hidden="true"
-                    >
-                    <code data-mask-value>—</code>
-                    <p class="hint">Stored presets hide this issuer bitmap. Switch to inline parameters to edit.</p>
-                  </div>
-                  <div class="field-group emv-field--full" data-testid="emv-replay-icc-template">
-                    <label for="emvReplayIccTemplate">ICC payload template (xxxx = ATC)</label>
-                    <textarea
-                        id="emvReplayIccTemplate"
-                        name="replayIccTemplate"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                      ></textarea>
-                  </div>
-                  <div
-                      class="secret-mask stack-xs"
-                      data-testid="emv-replay-icc-template-mask"
-                      data-emv-mask="iccDataTemplate"
-                      hidden="hidden"
-                      aria-hidden="true"
-                    >
-                    <code data-mask-value>—</code>
-                    <p class="hint">Stored presets hide this ICC template. Switch to inline parameters to edit.</p>
-                  </div>
-                  <div class="field-group emv-field--full" data-testid="emv-replay-issuer-application-data">
-                    <label for="emvReplayIssuerApplicationData">Issuer Application Data (hex)</label>
-                    <textarea
-                        id="emvReplayIssuerApplicationData"
-                        name="replayIssuerApplicationData"
-                        rows="2"
-                        spellcheck="false"
-                        autocapitalize="none"
-                        autocomplete="off"
-                      ></textarea>
-                  </div>
-                  <div
-                      class="secret-mask stack-xs"
-                      data-testid="emv-replay-issuer-application-data-mask"
-                      data-emv-mask="issuerApplicationData"
-                      hidden="hidden"
-                      aria-hidden="true"
-                    >
-                    <code data-mask-value>—</code>
-                    <p class="hint">Stored presets hide this issuer application data. Switch to inline parameters to edit.</p>
-                  </div>
-                </div>
+
+                  <fieldset class="emv-transaction-block stack-md" data-testid="emv-replay-transaction-block">
+                    <legend class="field-legend">Transaction</legend>
+                    <p class="hint" data-testid="emv-replay-transaction-hint">
+                      "xxxx" is replaced by the ATC before the ICC payload template is evaluated.
+                    </p>
+                    <div class="field-grid emv-transaction-grid">
+                      <div class="field-group emv-field--full" data-testid="emv-replay-icc-template">
+                        <label for="emvReplayIccTemplate">ICC payload template</label>
+                        <textarea
+                            id="emvReplayIccTemplate"
+                            name="replayIccTemplate"
+                            rows="2"
+                            spellcheck="false"
+                            autocapitalize="none"
+                            autocomplete="off"
+                          ></textarea>
+                      </div>
+                      <div
+                          class="secret-mask stack-xs"
+                          data-testid="emv-replay-icc-template-mask"
+                          data-emv-mask="iccDataTemplate"
+                          hidden="hidden"
+                          aria-hidden="true"
+                        >
+                        <code data-mask-value>—</code>
+                        <p class="hint">Stored presets hide this ICC template. Switch to inline parameters to edit.</p>
+                      </div>
+                      <div class="field-group emv-field--full" data-testid="emv-replay-issuer-application-data">
+                        <label for="emvReplayIssuerApplicationData">Issuer Application Data (hex)</label>
+                        <textarea
+                            id="emvReplayIssuerApplicationData"
+                            name="replayIssuerApplicationData"
+                            rows="2"
+                            spellcheck="false"
+                            autocapitalize="none"
+                            autocomplete="off"
+                          ></textarea>
+                      </div>
+                      <div
+                          class="secret-mask stack-xs"
+                          data-testid="emv-replay-issuer-application-data-mask"
+                          data-emv-mask="issuerApplicationData"
+                          hidden="hidden"
+                          aria-hidden="true"
+                        >
+                        <code data-mask-value>—</code>
+                        <p class="hint">Stored presets hide this issuer application data. Switch to inline parameters to edit.</p>
+                      </div>
+                    </div>
+                  </fieldset>
+                </fieldset>
 
                 <fieldset
                     class="emv-customer-block stack-md"

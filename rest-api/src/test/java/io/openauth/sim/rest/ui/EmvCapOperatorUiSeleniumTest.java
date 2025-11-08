@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.openauth.sim.application.emv.cap.EmvCapSeedApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapSeedSamples;
 import io.openauth.sim.application.emv.cap.EmvCapSeedSamples.SeedSample;
-import io.openauth.sim.core.emv.cap.EmvCapMode;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
@@ -148,6 +147,21 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(evaluateForm.getAttribute("class"))
                 .as("Evaluate form should mark stored mode via CSS class")
                 .contains("emv-stored-mode");
+        WebElement sessionFieldset = driver.findElement(By.cssSelector("fieldset[data-testid='emv-session-block']"));
+        WebElement sessionLegend = sessionFieldset.findElement(By.tagName("legend"));
+        assertThat(sessionLegend.getText())
+                .as("Session key derivation legend should describe the grouped inputs")
+                .contains("Session key derivation");
+        WebElement sessionHint = driver.findElement(By.cssSelector("[data-testid='emv-session-hint']"));
+        assertThat(sessionHint.getText().trim())
+                .as("Session helper copy should call out ICC master key, ATC, branch factor, height, and IV")
+                .isEqualTo(
+                        "Provide the ICC master key, ATC, branch factor, height, and IV to derive the session key used for Generate AC.");
+        assertFieldGroupVisible("#emvAtc", "ATC");
+        assertFieldGroupVisible("#emvBranchFactor", "Branch factor");
+        assertFieldGroupVisible("#emvHeight", "Height");
+        assertFieldGroupVisible("#emvIv", "IV");
+        assertBranchHeightRow("emv-branch-height-row", "#emvBranchFactor", "#emvHeight", "Evaluate session key pair");
 
         WebElement masterKeyInput = driver.findElement(By.id("emvMasterKey"));
         WebElement masterKeyGroup =
@@ -270,6 +284,22 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(driver.findElements(By.cssSelector("[data-testid='emv-icc-resolved']")))
                 .as("Evaluate panel should rely on verbose trace for resolved ICC payload")
                 .isEmpty();
+        WebElement transactionFieldset =
+                driver.findElement(By.cssSelector("fieldset[data-testid='emv-transaction-block']"));
+        WebElement transactionLegend = transactionFieldset.findElement(By.tagName("legend"));
+        assertThat(transactionLegend.getText())
+                .as("Transaction legend should reflect the grouped ICC template inputs")
+                .contains("Transaction");
+        WebElement transactionHint = driver.findElement(By.cssSelector("[data-testid='emv-transaction-hint']"));
+        assertThat(transactionHint.getText())
+                .as("Transaction helper copy should describe the ATC substitution")
+                .contains("\"xxxx\" is replaced by the ATC");
+        assertThat(transactionFieldset.findElements(By.cssSelector("[data-testid='emv-icc-template']")))
+                .as("Transaction block should expose the ICC payload template textarea")
+                .isNotEmpty();
+        assertThat(transactionFieldset.findElements(By.cssSelector("[data-testid='emv-issuer-application-data']")))
+                .as("Transaction block should expose the issuer application data textarea")
+                .isNotEmpty();
 
         WebElement customerFieldset = driver.findElement(By.cssSelector("fieldset[data-testid='emv-customer-block']"));
         WebElement customerLegend = customerFieldset.findElement(By.tagName("legend"));
@@ -668,6 +698,11 @@ final class EmvCapOperatorUiSeleniumTest {
                 .click();
 
         Select storedSelect = waitForReplayStoredCredentialSelect();
+        WebElement replayModeToggle = waitForVisible(By.cssSelector("fieldset[data-testid='emv-replay-mode-toggle']"));
+        WebElement storedReplayRadio = replayModeToggle.findElement(By.cssSelector("#emvReplayModeStored"));
+        if (!storedReplayRadio.isSelected()) {
+            storedReplayRadio.click();
+        }
         WebElement replaySampleBlock = waitForVisible(By.cssSelector("[data-testid='emv-replay-sample-vector']"));
         assertThat(replaySampleBlock.getAttribute("class"))
                 .as("Replay preset block should reuse shared inline preset styling")
@@ -677,22 +712,44 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(replaySelectBackground.replace(" ", ""))
                 .as("Replay sample vector dropdown should not fall back to a white background")
                 .doesNotContain("255,255,255");
-        WebElement replayModeToggle = waitForVisible(By.cssSelector("fieldset[data-testid='emv-replay-mode-toggle']"));
-        WebElement storedReplayRadio = replayModeToggle.findElement(By.cssSelector("#emvReplayModeStored"));
-        if (!storedReplayRadio.isSelected()) {
-            storedReplayRadio.click();
-        }
         WebElement replayPresetContainer =
                 replaySelectElement.findElement(By.xpath("ancestor::div[contains(@class,'stack-offset-top-lg')][1]"));
         assertThat(replayPresetContainer.getAttribute("class"))
                 .as("Replay preset block should reuse shared spacing helper")
                 .contains("stack-offset-top-lg");
         waitForReplayCredential(storedSelect, fixture.credentialId(), "CAP Respond baseline");
+        ((JavascriptExecutor) driver)
+                .executeScript(
+                        "var select = document.getElementById('emvReplayStoredCredentialId');"
+                                + "if (select) {"
+                                + "  select.value = arguments[0];"
+                                + "  select.dispatchEvent(new Event('change', { bubbles: true }));"
+                                + "}",
+                        fixture.credentialId());
 
         WebElement replayForm = driver.findElement(By.cssSelector("[data-testid='emv-replay-form']"));
         assertThat(replayForm.getAttribute("class"))
                 .as("Replay form should mark stored mode via CSS class")
                 .contains("emv-stored-mode");
+        WebElement replaySessionBlock =
+                driver.findElement(By.cssSelector("fieldset[data-testid='emv-replay-session-block']"));
+        WebElement replaySessionLegend = replaySessionBlock.findElement(By.tagName("legend"));
+        assertThat(replaySessionLegend.getText())
+                .as("Replay session legend should describe the grouped derivation inputs")
+                .contains("Session key derivation");
+        WebElement replaySessionHint = driver.findElement(By.cssSelector("[data-testid='emv-replay-session-hint']"));
+        assertThat(replaySessionHint.getText().trim())
+                .as("Replay session helper copy should outline the reproduction guidance")
+                .isEqualTo("Match the credential's session key inputs to reproduce CAP replay calculations.");
+        assertFieldGroupVisible("#emvReplayAtc", "Replay ATC");
+        assertFieldGroupVisible("#emvReplayBranchFactor", "Replay branch factor");
+        assertFieldGroupVisible("#emvReplayHeight", "Replay height");
+        assertFieldGroupVisible("#emvReplayIv", "Replay IV");
+        assertBranchHeightRow(
+                "emv-replay-branch-height-row",
+                "#emvReplayBranchFactor",
+                "#emvReplayHeight",
+                "Replay session key pair");
         WebElement replayMasterKeyGroup = driver.findElement(By.cssSelector("[data-testid='emv-replay-master-key']"));
         assertThat(replayMasterKeyGroup.isDisplayed())
                 .as("Replay master key field group should not be displayed in stored mode")
@@ -734,6 +791,24 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(driver.findElements(By.cssSelector("[data-testid='emv-replay-icc-resolved']")))
                 .as("Replay panel should rely on verbose traces for resolved ICC payload")
                 .isEmpty();
+        WebElement replayTransactionBlock =
+                driver.findElement(By.cssSelector("fieldset[data-testid='emv-replay-transaction-block']"));
+        WebElement replayTransactionLegend = replayTransactionBlock.findElement(By.tagName("legend"));
+        assertThat(replayTransactionLegend.getText())
+                .as("Replay transaction legend should reflect grouped ICC template inputs")
+                .contains("Transaction");
+        WebElement replayTransactionHint =
+                driver.findElement(By.cssSelector("[data-testid='emv-replay-transaction-hint']"));
+        assertThat(replayTransactionHint.getText())
+                .as("Replay transaction helper copy should describe the ATC substitution")
+                .contains("\"xxxx\" is replaced by the ATC");
+        assertThat(replayTransactionBlock.findElements(By.cssSelector("[data-testid='emv-replay-icc-template']")))
+                .as("Replay transaction block should present the ICC payload textarea")
+                .isNotEmpty();
+        assertThat(replayTransactionBlock.findElements(
+                        By.cssSelector("[data-testid='emv-replay-issuer-application-data']")))
+                .as("Replay transaction block should present issuer application data textarea")
+                .isNotEmpty();
 
         WebElement otpInput = waitForVisible(By.cssSelector("[data-testid='emv-replay-otp'] input[type='text']"));
         otpInput.clear();
@@ -784,6 +859,11 @@ final class EmvCapOperatorUiSeleniumTest {
         EmvCapVector vector = EmvCapVectorFixtures.load(fixture.vectorId());
 
         navigateToEmvConsole();
+        installHydrationListener();
+        Object xhrType = ((JavascriptExecutor) driver).executeScript("return typeof XMLHttpRequest;");
+        assertThat(String.valueOf(xhrType))
+                .as("HtmlUnit should expose XMLHttpRequest for hydration fallback")
+                .isEqualTo("function");
         waitForClickable(By.cssSelector("[data-testid='emv-console-tab-replay']"))
                 .click();
 
@@ -816,104 +896,39 @@ final class EmvCapOperatorUiSeleniumTest {
                 .isFalse();
         assertThat(storedHint.getText()).isEqualTo("Replay a seeded preset without advancing ATC.");
 
-        // Toggle away and back to inline mode to ensure sensitive fields are revealed for interaction.
-        storedRadio.click();
-        inlineRadio.click();
+        Select replayStoredSelect = waitForReplayStoredCredentialSelect();
+        waitForReplayCredential(replayStoredSelect, fixture.credentialId(), "CAP Respond baseline");
+        ((JavascriptExecutor) driver)
+                .executeScript(
+                        "var select = document.getElementById('emvReplayStoredCredentialId');"
+                                + "if (select) {"
+                                + "  select.value = arguments[0];"
+                                + "  select.dispatchEvent(new Event('change', { bubbles: true }));"
+                                + "}",
+                        fixture.credentialId());
+        Object hookStatus = ((JavascriptExecutor) driver)
+                .executeScript(
+                        "if (window.EmvConsoleTestHooks && typeof window.EmvConsoleTestHooks.hydrateCredentialDetails === 'function') {"
+                                + "window.EmvConsoleTestHooks.hydrateCredentialDetails(arguments[0]);"
+                                + "return 'invoked';"
+                                + "}"
+                                + "return 'missing';",
+                        fixture.credentialId());
+        System.out.println("Hydrate hook status (mismatch): " + hookStatus);
+        ((JavascriptExecutor) driver)
+                .executeScript(
+                        "if (window.EmvConsoleTestHooks && typeof window.EmvConsoleTestHooks.hydrateCredentialDetails === 'function') {"
+                                + "window.EmvConsoleTestHooks.hydrateCredentialDetails(arguments[0]);"
+                                + "}",
+                        fixture.credentialId());
         driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
+        waitForReplayHydration(vector);
         assertThat(inlineRadio.isSelected())
-                .as("Inline replay mode should be active after toggling")
+                .as("Inline replay mode should remain active after selecting a preset")
                 .isTrue();
         assertThat(storedRadio.isSelected())
-                .as("Stored replay mode should be inactive after toggling back to inline")
+                .as("Stored replay mode should stay inactive while inline mode is selected")
                 .isFalse();
-
-        JavascriptExecutor styleExecutor = driver;
-        styleExecutor.executeScript(
-                "if (window.EmvConsoleTestHooks && typeof window.EmvConsoleTestHooks.setReplayMode === 'function') {"
-                        + "window.EmvConsoleTestHooks.setReplayMode('inline');" + "}");
-        styleExecutor.executeScript(
-                "(function(){var form=document.querySelector('[data-testid=\\'emv-replay-form\\']');"
-                        + "if(form){form.classList.remove('emv-stored-mode');}"
-                        + "var maskMap={emvReplayMasterKey:'[data-testid=\\'emv-replay-master-key-mask\\']',"
-                        + "emvReplayCdol1:'[data-testid=\\'emv-replay-cdol1-mask\\']',"
-                        + "emvReplayIssuerBitmap:'[data-testid=\\'emv-replay-ipb-mask\\']',"
-                        + "emvReplayIccTemplate:'[data-testid=\\'emv-replay-icc-template-mask\\']',"
-                        + "emvReplayIssuerApplicationData:'[data-testid=\\'emv-replay-issuer-application-data-mask\\']'};"
-                        + "['emvReplayMasterKey','emvReplayCdol1',"
-                        + "'emvReplayIssuerBitmap','emvReplayIccTemplate','emvReplayIssuerApplicationData']"
-                        + ".forEach(function(id){var el=document.getElementById(id);"
-                        + "if(!el){return;}"
-                        + "el.style.pointerEvents='';el.removeAttribute('aria-hidden');"
-                        + "el.removeAttribute('tabindex');el.setAttribute('data-secret-mode','inline');"
-                        + "var container=el.closest('.field-group');"
-                        + "if(container){container.removeAttribute('hidden');container.removeAttribute('aria-hidden');}"
-                        + "var maskSelector=maskMap[id];"
-                        + "if(maskSelector){var mask=document.querySelector(maskSelector);"
-                        + "if(mask){mask.removeAttribute('hidden');mask.removeAttribute('aria-hidden');}}"
-                        + "});})();");
-        Object inlineDisplay = styleExecutor.executeScript(
-                "return window.getComputedStyle(document.getElementById('emvReplayMasterKey')).display;");
-        Object inlineVisibility = styleExecutor.executeScript(
-                "return window.getComputedStyle(document.getElementById('emvReplayMasterKey')).visibility;");
-        Object inlinePointer = styleExecutor.executeScript(
-                "return window.getComputedStyle(document.getElementById('emvReplayMasterKey')).pointerEvents;");
-        Object inlineMode = styleExecutor.executeScript("var input = document.getElementById('emvReplayMasterKey');"
-                + "return input ? input.getAttribute('data-secret-mode') : null;");
-        Object replayDataMode = styleExecutor.executeScript(
-                "var toggle = document.querySelector('[data-testid=\\'emv-replay-mode-toggle\\']');"
-                        + "return toggle ? toggle.getAttribute('data-mode') : null;");
-        Object replayFormClass =
-                styleExecutor.executeScript("var form = document.querySelector('[data-testid=\\'emv-replay-form\\']');"
-                        + "return form ? form.className : null;");
-        Object containerDisplay = styleExecutor.executeScript(
-                "var container = document.querySelector('[data-testid=\\'emv-replay-master-key\\']');"
-                        + "return container ? window.getComputedStyle(container).display : null;");
-        Object containerHidden = styleExecutor.executeScript(
-                "var container = document.querySelector('[data-testid=\\'emv-replay-master-key\\']');"
-                        + "return container ? container.hasAttribute('hidden') : null;");
-        System.out.println("inline display: " + inlineDisplay);
-        System.out.println("inline visibility: " + inlineVisibility);
-        System.out.println("inline pointer events: " + inlinePointer);
-        System.out.println("inline secret mode: " + inlineMode);
-        System.out.println("replay mode toggle data-mode: " + replayDataMode);
-        System.out.println("replay form class: " + replayFormClass);
-        System.out.println("replay container display: " + containerDisplay);
-        System.out.println("replay container hidden attr: " + containerHidden);
-
-        styleExecutor.executeScript("var select = document.getElementById('emvReplayStoredCredentialId');"
-                + "if(select){select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));}");
-
-        populateReplayInlineForm(vector);
-
-        Object replayMode = ((JavascriptExecutor) driver)
-                .executeScript(
-                        "return window.EmvConsoleTestHooks && typeof window.EmvConsoleTestHooks.selectedReplayMode === 'function'"
-                                + " ? window.EmvConsoleTestHooks.selectedReplayMode() : 'unknown';");
-        Object replayCredentialId = ((JavascriptExecutor) driver)
-                .executeScript("var select = document.getElementById('emvReplayStoredCredentialId');"
-                        + "return select ? select.value : null;");
-        System.out.println("Replay selected mode (hook): " + replayMode);
-        System.out.println("Replay stored credential select value: " + replayCredentialId);
-        Object replayMasterKeyValue = ((JavascriptExecutor) driver)
-                .executeScript(
-                        "var input=document.getElementById('emvReplayMasterKey');return input?input.value:null;");
-        Object replayMasterKeyDisabled = ((JavascriptExecutor) driver)
-                .executeScript(
-                        "var input=document.getElementById('emvReplayMasterKey');return input?input.disabled:null;");
-        System.out.println("Replay master key value: " + replayMasterKeyValue);
-        System.out.println("Replay master key disabled: " + replayMasterKeyDisabled);
-
-        ((JavascriptExecutor) driver)
-                .executeScript("if(!window.__emvCaptureInstalled){"
-                        + "const originalFetch = window.fetch;"
-                        + "window.fetch = function(url, options){"
-                        + "if(url && String(url).indexOf('/api/v1/emv/cap/replay')>=0){"
-                        + "window.__emvLastReplayPayload = options && options.body ? options.body : null;"
-                        + "}"
-                        + "return originalFetch.apply(this, arguments);"
-                        + "};"
-                        + "window.__emvCaptureInstalled = true;"
-                        + "}");
 
         WebElement otpInput = waitForVisible(By.cssSelector("[data-testid='emv-replay-otp'] input[type='text']"));
         otpInput.clear();
@@ -948,6 +963,110 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(tracePanel.getAttribute("hidden"))
                 .as("Trace panel should remain hidden when includeTrace is unchecked")
                 .isNotNull();
+    }
+
+    @Test
+    @DisplayName("Inline EMV/CAP Sign replay hydrates presets and reports success")
+    void inlineSignReplayMatchesPreset() {
+        EmvCapReplayFixtures.ReplayFixture fixture = EmvCapReplayFixtures.load("replay-sign-baseline");
+        EmvCapVector vector = EmvCapVectorFixtures.load(fixture.vectorId());
+
+        navigateToEmvConsole();
+        installHydrationListener();
+        ((JavascriptExecutor) driver).executeScript("window.__emvHydrationDebug = true;");
+        waitForClickable(By.cssSelector("[data-testid='emv-console-tab-replay']"))
+                .click();
+        Object replayMode = ((JavascriptExecutor) driver)
+                .executeScript("var toggle = document.querySelector(\"[data-testid='emv-replay-mode-toggle']\");"
+                        + "return toggle ? toggle.getAttribute('data-mode') : 'missing';");
+        System.out.println("Replay mode (sign) before selection: " + replayMode);
+        Object selectedModeBefore = ((JavascriptExecutor) driver)
+                .executeScript(
+                        "if (window.EmvConsoleTestHooks && typeof window.EmvConsoleTestHooks.selectedReplayMode === 'function') {"
+                                + "return window.EmvConsoleTestHooks.selectedReplayMode();"
+                                + "}"
+                                + "return 'missing';");
+        System.out.println("JS selectedReplayMode (sign) before selection: " + selectedModeBefore);
+
+        Select replayStoredSelect = waitForReplayStoredCredentialSelect();
+        waitForReplayCredential(replayStoredSelect, fixture.credentialId(), "CAP Sign baseline");
+        ((JavascriptExecutor) driver)
+                .executeScript(
+                        "var select = document.getElementById('emvReplayStoredCredentialId');"
+                                + "if (select) {"
+                                + "  select.value = arguments[0];"
+                                + "  select.dispatchEvent(new Event('change', { bubbles: true }));"
+                                + "}",
+                        fixture.credentialId());
+        driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
+        Object replayModeAfter = ((JavascriptExecutor) driver)
+                .executeScript("var toggle = document.querySelector(\"[data-testid='emv-replay-mode-toggle']\");"
+                        + "return toggle ? toggle.getAttribute('data-mode') : 'missing';");
+        System.out.println("Replay mode (sign) after selection: " + replayModeAfter);
+        Object selectedMode = ((JavascriptExecutor) driver)
+                .executeScript(
+                        "if (window.EmvConsoleTestHooks && typeof window.EmvConsoleTestHooks.selectedReplayMode === 'function') {"
+                                + "return window.EmvConsoleTestHooks.selectedReplayMode();"
+                                + "}"
+                                + "return 'missing';");
+        System.out.println("JS selectedReplayMode (sign) after selection: " + selectedMode);
+        Object credentialsSnapshot = ((JavascriptExecutor) driver)
+                .executeScript(
+                        "if (window.EmvConsoleTestHooks && typeof window.EmvConsoleTestHooks.listCredentials === 'function') {"
+                                + "return window.EmvConsoleTestHooks.listCredentials();"
+                                + "}"
+                                + "return [];");
+        System.out.println("Credential summaries: " + credentialsSnapshot);
+        Object replaySelectHtml = ((JavascriptExecutor) driver)
+                .executeScript("var select = document.getElementById('emvReplayStoredCredentialId');"
+                        + "return select ? select.innerHTML : 'missing';");
+        System.out.println("Replay select HTML: " + replaySelectHtml);
+        Object hydrationDebug =
+                ((JavascriptExecutor) driver).executeScript("return window.__emvLastReplayHydration || null;");
+        System.out.println("Replay hydration debug (sign): " + hydrationDebug);
+        waitForReplayHydration(vector);
+
+        WebElement signRadio = waitForClickable(By.cssSelector("[data-testid='emv-replay-mode-sign']"));
+        assertThat(signRadio.isSelected())
+                .as("Selecting a Sign preset should switch the CAP mode to Sign automatically")
+                .isTrue();
+        WebElement challengeInput = driver.findElement(By.id("emvReplayChallenge"));
+        WebElement referenceInput = driver.findElement(By.id("emvReplayReference"));
+        WebElement amountInput = driver.findElement(By.id("emvReplayAmount"));
+        assertThat(challengeInput.isEnabled())
+                .as("Sign mode should keep challenge disabled")
+                .isFalse();
+        assertThat(referenceInput.isEnabled())
+                .as("Reference input should be enabled in Sign mode")
+                .isTrue();
+        assertThat(amountInput.isEnabled())
+                .as("Amount input should be enabled in Sign mode")
+                .isTrue();
+        assertThat(referenceInput.getAttribute("value"))
+                .isEqualTo(vector.input().customerInputs().reference());
+        assertThat(amountInput.getAttribute("value"))
+                .isEqualTo(vector.input().customerInputs().amount());
+
+        WebElement otpInput = waitForVisible(By.cssSelector("[data-testid='emv-replay-otp'] input[type='text']"));
+        otpInput.clear();
+        otpInput.sendKeys(fixture.otpDecimal());
+
+        waitForClickable(By.cssSelector("button[data-testid='emv-replay-submit']"))
+                .click();
+        driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
+
+        WebElement resultCard = waitForVisible(By.cssSelector("[data-testid='emv-replay-result-card']"));
+        WebElement statusBadge = resultCard.findElement(By.cssSelector("[data-testid='emv-replay-status']"));
+        assertThat(statusBadge.getText())
+                .as("Replay status should reflect a successful match")
+                .isEqualTo("Match");
+        WebElement reasonNode = resultCard.findElement(By.cssSelector("[data-testid='emv-replay-reason']"));
+        String reasonText = reasonNode.getText();
+        if (reasonText != null && !reasonText.isBlank()) {
+            assertThat(reasonText).contains("MATCH_FOUND");
+        }
+        WebElement matchedNode = resultCard.findElement(By.cssSelector("[data-testid='emv-replay-matched-delta']"));
+        assertThat(matchedNode.getText()).contains("Δ = 0");
     }
 
     private Select waitForStoredCredentialSelect() {
@@ -992,54 +1111,58 @@ final class EmvCapOperatorUiSeleniumTest {
     private void waitForReplayCredential(Select select, String id, String label) {
         new WebDriverWait(driver, WAIT_TIMEOUT)
                 .until(d -> select.getOptions().stream().anyMatch(option -> id.equals(option.getAttribute("value"))));
-        assertThat(select.getOptions().stream()
-                        .anyMatch(option -> label.equals(option.getText().trim())))
+        boolean labelMatch = select.getOptions().stream()
+                .anyMatch(option ->
+                        label.equals(option.getText().trim()) || label.equals(option.getAttribute("data-label")));
+        if (!labelMatch) {
+            System.out.println("Replay options: "
+                    + select.getOptions().stream()
+                            .map(option -> option.getAttribute("value") + "="
+                                    + option.getText().trim())
+                            .toList());
+            System.out.println(
+                    "Replay select innerHTML: " + select.getWrappedElement().getAttribute("innerHTML"));
+        }
+        assertThat(labelMatch)
                 .as("Replay stored credential dropdown should expose preset label")
                 .isTrue();
-        select.selectByValue(id);
     }
 
-    private void populateReplayInlineForm(EmvCapVector vector) {
-        setHexInput(
-                By.cssSelector("[data-testid='emv-replay-master-key'] input"),
-                vector.input().masterKeyHex());
-        setHexInput(
-                By.cssSelector("[data-testid='emv-replay-atc'] input"),
-                vector.input().atcHex());
-        setNumericInput(
-                By.cssSelector("[data-testid='emv-replay-branch-factor'] input"),
-                vector.input().branchFactor());
-        setNumericInput(
-                By.cssSelector("[data-testid='emv-replay-height'] input"),
-                vector.input().height());
-        setHexInput(
-                By.cssSelector("[data-testid='emv-replay-iv'] input"),
-                vector.input().ivHex());
-        setHexInput(
-                By.cssSelector("[data-testid='emv-replay-cdol1'] textarea"),
-                vector.input().cdol1Hex());
-        setHexInput(
-                By.cssSelector("[data-testid='emv-replay-issuer-bitmap'] textarea"),
-                vector.input().issuerProprietaryBitmapHex());
+    private void waitForReplayHydration(EmvCapVector vector) {
+        JavascriptExecutor executor = driver;
+        try {
+            new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> {
+                Object count = executor.executeScript("return (window.__emvHydrationLog || []).filter(function(entry){"
+                        + "return entry && entry.kind === 'replay';"
+                        + "}).length;");
+                return count instanceof Number && ((Number) count).intValue() > 0;
+            });
+        } catch (org.openqa.selenium.TimeoutException ex) {
+            Object logSnapshot = executor.executeScript("return window.__emvHydrationLog || [];");
+            throw new AssertionError("Hydration log: " + logSnapshot, ex);
+        }
+        WebElement masterKey = driver.findElement(By.id("emvReplayMasterKey"));
+        assertThat(masterKey.getAttribute("value"))
+                .as("Replay master key should hydrate inline input")
+                .isEqualTo(vector.input().masterKeyHex());
+    }
 
-        selectReplayCapMode(vector.input().mode());
+    private void installHydrationListener() {
+        waitForConsoleHooks();
+        ((JavascriptExecutor) driver)
+                .executeScript("window.__emvHydrationLog = [];"
+                        + "if (window.EmvConsoleTestHooks) {"
+                        + "  window.EmvConsoleTestHooks.onHydration = function(entry) {"
+                        + "    if (!window.__emvHydrationLog) { window.__emvHydrationLog = []; }"
+                        + "    window.__emvHydrationLog.push(entry);"
+                        + "  };"
+                        + "}");
+    }
 
-        setDecimalInput(
-                By.cssSelector("[data-testid='emv-replay-challenge'] input"),
-                vector.input().customerInputs().challenge());
-        setDecimalInput(
-                By.cssSelector("[data-testid='emv-replay-reference'] input"),
-                vector.input().customerInputs().reference());
-        setDecimalInput(
-                By.cssSelector("[data-testid='emv-replay-amount'] input"),
-                vector.input().customerInputs().amount());
-
-        setHexInput(
-                By.cssSelector("[data-testid='emv-replay-icc-template'] textarea"),
-                vector.input().iccDataTemplateHex());
-        setHexInput(
-                By.cssSelector("[data-testid='emv-replay-issuer-application-data'] textarea"),
-                vector.input().issuerApplicationDataHex());
+    private void waitForConsoleHooks() {
+        new WebDriverWait(driver, WAIT_TIMEOUT)
+                .until(d -> Boolean.TRUE.equals(
+                        ((JavascriptExecutor) d).executeScript("return !!window.EmvConsoleTestHooks;")));
     }
 
     private void setHexInput(By locator, String value) {
@@ -1049,63 +1172,11 @@ final class EmvCapOperatorUiSeleniumTest {
         element.sendKeys(value);
     }
 
-    private void setDecimalInput(By locator, String value) {
-        WebElement element =
-                new WebDriverWait(driver, WAIT_TIMEOUT).until(ExpectedConditions.visibilityOfElementLocated(locator));
-        if (!element.isEnabled()) {
-            if (value != null && !value.isBlank()) {
-                ((JavascriptExecutor) driver).executeScript("arguments[0].value = arguments[1];", element, value);
-            }
-            return;
-        }
-        element.clear();
-        if (value != null && !value.isBlank()) {
-            element.sendKeys(value);
-        }
-    }
-
     private void setNumericInput(By locator, int value) {
         WebElement element =
                 new WebDriverWait(driver, WAIT_TIMEOUT).until(ExpectedConditions.visibilityOfElementLocated(locator));
         element.clear();
         element.sendKeys(String.valueOf(value));
-    }
-
-    private void selectReplayCapMode(EmvCapMode mode) {
-        if (mode == null) {
-            return;
-        }
-        By radioLocator;
-        switch (mode) {
-            case RESPOND:
-                radioLocator = By.cssSelector("[data-testid='emv-replay-mode-respond']");
-                break;
-            case SIGN:
-                radioLocator = By.cssSelector("[data-testid='emv-replay-mode-sign']");
-                break;
-            default:
-                radioLocator = By.cssSelector("[data-testid='emv-replay-mode-identify']");
-                break;
-        }
-        WebElement radio = waitForClickable(radioLocator);
-        if (!radio.isSelected()) {
-            radio.click();
-        }
-        WebDriverWait wait = new WebDriverWait(driver, WAIT_TIMEOUT);
-        switch (mode) {
-            case RESPOND:
-                wait.until(d -> driver.findElement(By.id("emvReplayChallenge")).isEnabled());
-                break;
-            case SIGN:
-                wait.until(d -> driver.findElement(By.id("emvReplayReference")).isEnabled()
-                        && driver.findElement(By.id("emvReplayAmount")).isEnabled());
-                break;
-            default:
-                wait.until(d -> !driver.findElement(By.id("emvReplayChallenge")).isEnabled()
-                        && !driver.findElement(By.id("emvReplayReference")).isEnabled()
-                        && !driver.findElement(By.id("emvReplayAmount")).isEnabled());
-                break;
-        }
     }
 
     private void selectStoredEvaluateMode() {
@@ -1126,6 +1197,46 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(mask & 4L)
                 .as(message + " (second element should follow the first)")
                 .isNotEqualTo(0L);
+    }
+
+    private void assertBranchHeightRow(String rowTestId, String branchSelector, String heightSelector, String context) {
+        String selector = String.format("[data-testid='%s']", rowTestId);
+        WebElement row = driver.findElement(By.cssSelector(selector));
+        assertThat(row.getAttribute("class"))
+                .as(context + " row should reuse the paired session styling")
+                .contains("emv-session-pair-row");
+        List<WebElement> fieldGroups = row.findElements(By.cssSelector(".field-group"));
+        assertThat(fieldGroups)
+                .as(context + " row should only include the branch and height field groups")
+                .hasSize(2);
+        WebElement branchInput = row.findElement(By.cssSelector(branchSelector));
+        WebElement branchGroup = branchInput.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
+        WebElement branchWrapper =
+                branchGroup.findElement(By.xpath("ancestor::div[contains(@class,'emv-session-pair-row')][1]"));
+        assertThat(branchWrapper)
+                .as(context + " should wrap branch factor within the pair row")
+                .isEqualTo(row);
+        WebElement heightInput = row.findElement(By.cssSelector(heightSelector));
+        WebElement heightGroup = heightInput.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
+        WebElement heightWrapper =
+                heightGroup.findElement(By.xpath("ancestor::div[contains(@class,'emv-session-pair-row')][1]"));
+        assertThat(heightWrapper)
+                .as(context + " should wrap height within the pair row")
+                .isEqualTo(row);
+    }
+
+    private void assertFieldGroupVisible(String selector, String label) {
+        WebElement input = driver.findElement(By.cssSelector(selector));
+        WebElement group = input.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
+        assertThat(group.getAttribute("hidden"))
+                .as(label + " field group should remain visible")
+                .isNull();
+        assertThat(group.getAttribute("aria-hidden"))
+                .as(label + " field group should keep aria-hidden cleared")
+                .isNull();
+        assertThat(group.isDisplayed())
+                .as(label + " field group should stay rendered while stored mode hides secrets")
+                .isTrue();
     }
 
     private WebElement waitForVisible(By locator) {

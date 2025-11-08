@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-_Last updated: 2025-10-31_
+_Last updated: 2025-11-07_
 
 This roadmap tracks the major workstreams required to reach a feature-complete OpenAuth Simulator. Update this file whenever scope or status changes so future sessions can pick up without replaying prior conversations.
 
@@ -46,7 +46,8 @@ This roadmap tracks the major workstreams required to reach a feature-complete O
 | 36 | Verbose trace tier controls | Introduce cross-protocol tier filtering so verbose traces expose normal/educational/lab-secrets detail levels consistently | Proposed | Spec: [Feature 036](specs/feature-036-verbose-trace-tier-controls.md), Plan: [Feature Plan 036](feature-plan-036-verbose-trace-tier-controls.md), Tasks: [Feature 036 Tasks](tasks/feature-036-verbose-trace-tier-controls.md); Scoped 2025-10-25 to deliver shared tier helper + protocol tagging ahead of future facade toggles. |
 | 37 | Base32 inline secret support | Accept Base32 secrets across inline HOTP/TOTP/OCRA flows while preserving hex-based storage | Complete | Spec: [Feature 037](specs/feature-037-base32-inline-secret-support.md), Plan: [Feature Plan 037](feature-plan-037-base32-inline-secret-support.md), Tasks: [Feature 037 Tasks](tasks/feature-037-base32-inline-secret-support.md) |
 | 38 | Evaluation result preview table | Present Δ-ordered OTP previews (including Δ=0) across REST, CLI, and operator UI evaluation flows | Complete | Spec: [Feature 038](specs/feature-038-result-preview-window.md), Plan: [Feature Plan 038](feature-plan-038-result-preview-window.md), Tasks: [Feature 038 Tasks](tasks/feature-038-result-preview-window.md); Accessibility review closed and full documentation synced 2025-11-01 |
-| 39 | EMV/CAP simulation services | Provide EMV CAP session key derivation and OTP generation via core/application/REST layers with verbose traces | In progress | Spec: [Feature 039](specs/feature-039-emv-cap-simulation.md), Plan: [Feature Plan 039](feature-plan-039-emv-cap-simulation.md), Tasks: [Feature 039 Tasks](tasks/feature-039-emv-cap-simulation.md); Follow-ups I21/T3922 (evaluate mode toggle), I22/T3923 (preview window controls across UI/REST/CLI), and I23/T3924 (verbose trace diagnostics) scheduled 2025-11-03. |
+| 39 | EMV/CAP simulation services | Provide EMV CAP session key derivation and OTP generation via core/application/REST layers with verbose traces | In progress | Spec: [Feature 039](specs/feature-039-emv-cap-simulation.md), Plan: [Feature Plan 039](feature-plan-039-emv-cap-simulation.md), Tasks: [Feature 039 Tasks](tasks/feature-039-emv-cap-simulation.md); Latest increments (I39–I42) delivered inline preset hydration, the Transaction fieldset, Session key derivation grouping, and the Branch factor/Height row alignment validated by Selenium. Next increment TBD once the owner prioritises the remaining EMV UI polish. |
+| 40 | Operator console JS modularization & test harness | Extract inline console scripts, provide a shared Node test harness, and wire Gradle so every protocol’s console logic is unit-tested during `check` | Planned | Spec: [Feature 041](specs/feature-041-operator-console-js-test-harness.md), Plan: [Feature Plan 041](feature-plan-041-operator-console-js-test-harness.md), Tasks: [Feature 041 Tasks](tasks/feature-041-operator-console-js-test-harness.md); Workstream intentionally left in Draft so it can be refreshed whenever protocols change or new facades are added. |
 
 ## Upcoming Milestones
 

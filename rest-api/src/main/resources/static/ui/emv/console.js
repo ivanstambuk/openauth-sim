@@ -78,13 +78,16 @@
       ? replayForm.getAttribute('data-credentials-endpoint') || credentialsEndpoint
       : credentialsEndpoint;
   var replayCsrfInput = replayForm ? replayForm.querySelector('input[name="_csrf"]') : null;
-  var replayModeToggle = replayForm ? replayForm.querySelector('[data-testid="emv-replay-mode-toggle"]') : null;
+  var replayModeToggle = rootPanel
+      ? rootPanel.querySelector('[data-testid="emv-replay-mode-toggle"]')
+      : null;
   var replayModeStoredRadio = replayModeToggle
       ? replayModeToggle.querySelector('#emvReplayModeStored')
       : null;
   var replayModeInlineRadio = replayModeToggle
       ? replayModeToggle.querySelector('#emvReplayModeInline')
       : null;
+  var currentReplayMode = 'inline';
   var replayStoredSection = replayForm ? replayForm.querySelector('[data-replay-section="stored"]') : null;
   var replayStoredSelect = replayForm ? replayForm.querySelector('#emvReplayStoredCredentialId') : null;
   var replayCapModeRadios = replayForm
@@ -202,6 +205,7 @@
   var credentialDetailsPending = Object.create(null);
   var pendingEvaluateHydrationId = null;
   var pendingReplayHydrationId = null;
+  var pendingReplayHydrationMode = null;
   var loadingCredentials = false;
   var submitting = false;
   var replaySubmitting = false;
@@ -232,6 +236,7 @@
       if (!storedSelect.value) {
         pendingEvaluateHydrationId = null;
         pendingReplayHydrationId = null;
+        pendingReplayHydrationMode = null;
       }
     });
   }
@@ -292,6 +297,11 @@
       .then(function (payload) {
         credentialsCache = Object.create(null);
         credentialsList = Array.isArray(payload) ? payload : [];
+        credentialsList.forEach(function (summary) {
+          if (summary && summary.id && !credentialDetailsCache[summary.id]) {
+            loadCredentialDetails(summary.id);
+          }
+        });
         populateStoredSelect(credentialsList);
         if (storedSelect && storedSelect.value && credentialsCache[storedSelect.value]) {
           applyCredential(storedSelect.value);
@@ -377,10 +387,14 @@
       }
       var option = documentRef.createElement('option');
       option.value = summary.id;
-      option.textContent =
+      var optionLabel =
         typeof summary.label === 'string' && summary.label.trim().length > 0
           ? summary.label.trim()
           : summary.id;
+      option.textContent = optionLabel;
+      if (typeof option.setAttribute === 'function') {
+        option.setAttribute('data-label', optionLabel);
+      }
       replayStoredSelect.appendChild(option);
     });
     if (previousValue && replayStoredSelect.querySelector('option[value="' + previousValue + '"]')) {
@@ -428,7 +442,7 @@
     applyReplayDefaults(credentialId, summary);
 
     pendingEvaluateHydrationId = credentialId;
-    pendingReplayHydrationId = credentialId;
+    setPendingReplayHydration(credentialId);
     hydrateEvaluateFromCache(credentialId);
     hydrateReplayFromCache(credentialId);
     hydrateCredentialDetails(credentialId);
@@ -464,10 +478,24 @@
   }
 
   function hydrateCredentialDetails(credentialId) {
-    loadCredentialDetails(credentialId).then(function () {
+    return loadCredentialDetails(credentialId).then(function () {
       hydrateEvaluateFromCache(credentialId);
       hydrateReplayFromCache(credentialId);
     });
+  }
+
+  function triggerCredentialHydration(credentialId) {
+    if (!credentialId) {
+      return Promise.resolve(null);
+    }
+    pendingEvaluateHydrationId = credentialId;
+    setPendingReplayHydration(credentialId, 'inline');
+    return hydrateCredentialDetails(credentialId);
+  }
+
+  function setPendingReplayHydration(credentialId, modeOverride) {
+    pendingReplayHydrationId = credentialId;
+    pendingReplayHydrationMode = modeOverride || selectedReplayMode();
   }
 
   function loadCredentialDetails(credentialId) {
@@ -513,6 +541,9 @@
     }
     var base = credentialsEndpoint || replayCredentialsEndpoint;
     if (!base) {
+      if (global.console && typeof global.console.warn === 'function') {
+        global.console.warn('[emv] Missing credential directory endpoint for hydration request');
+      }
       return null;
     }
     if (base.endsWith('/')) {
@@ -550,13 +581,20 @@
 
   function hydrateEvaluateFromCache(credentialId) {
     if (!credentialId || pendingEvaluateHydrationId !== credentialId) {
+      debugHydration('evaluate', {
+        reason: 'pending-mismatch',
+        credentialId: credentialId,
+        pending: pendingEvaluateHydrationId,
+      });
       return;
     }
     if (selectedEvaluateMode() !== 'inline') {
+      debugHydration('evaluate', { reason: 'mode-blocked', credentialId: credentialId });
       return;
     }
     var details = credentialDetailsCache[credentialId];
     if (!details) {
+      debugHydration('evaluate', { reason: 'missing-details', credentialId: credentialId });
       return;
     }
     setValue(masterKeyInput, details.masterKey);
@@ -569,6 +607,8 @@
       setValue(referenceInput, details.defaults.reference);
       setValue(amountInput, details.defaults.amount);
     }
+    notifyHydration('evaluate', credentialId);
+    debugHydration('evaluate', { reason: 'hydrated', credentialId: credentialId });
     if (storedSubmissionState && typeof storedSubmissionState.resetBaseline === 'function') {
       storedSubmissionState.resetBaseline(credentialId);
     }
@@ -577,13 +617,28 @@
 
   function hydrateReplayFromCache(credentialId) {
     if (!credentialId || pendingReplayHydrationId !== credentialId) {
+      debugHydration('replay', {
+        reason: 'pending-mismatch',
+        credentialId: credentialId,
+        pending: pendingReplayHydrationId,
+        requestedMode: pendingReplayHydrationMode,
+      });
       return;
     }
-    if (selectedReplayMode() !== 'inline') {
+    var currentMode = selectedReplayMode();
+    var requestedMode = pendingReplayHydrationMode || currentMode;
+    if (currentMode !== 'inline' && requestedMode !== 'inline') {
+      debugHydration('replay', {
+        reason: 'mode-blocked',
+        mode: currentMode,
+        requestedMode: requestedMode,
+        credentialId: credentialId,
+      });
       return;
     }
     var details = credentialDetailsCache[credentialId];
     if (!details) {
+      debugHydration('replay', { reason: 'missing-details', credentialId: credentialId, requestedMode: requestedMode });
       return;
     }
     setValue(replayMasterKeyInput, details.masterKey);
@@ -596,7 +651,18 @@
       setValue(replayReferenceInput, details.defaults.reference);
       setValue(replayAmountInput, details.defaults.amount);
     }
+    notifyHydration('replay', credentialId);
+    debugHydration('replay', { reason: 'hydrated', credentialId: credentialId, requestedMode: requestedMode });
     pendingReplayHydrationId = null;
+    pendingReplayHydrationMode = null;
+  }
+
+  function forceReplayHydration(credentialId) {
+    if (!credentialId) {
+      return;
+    }
+    setPendingReplayHydration(credentialId);
+    hydrateCredentialDetails(credentialId);
   }
 
   function applyReplayCredential(credentialId) {
@@ -611,7 +677,7 @@
     setReplayCapMode(summary.mode);
     applyCredentialSummaryToReplay(summary);
     updateReplaySensitiveFields();
-    pendingReplayHydrationId = credentialId;
+    setPendingReplayHydration(credentialId);
     hydrateReplayFromCache(credentialId);
     hydrateCredentialDetails(credentialId);
   }
@@ -748,18 +814,12 @@
   }
 
   function selectedReplayMode() {
-    if (!replayModeToggle) {
-      return 'stored';
-    }
-    var mode = replayModeToggle.getAttribute('data-mode');
-    if (mode === 'inline') {
-      return 'inline';
-    }
-    return 'stored';
+    return currentReplayMode;
   }
 
   function updateReplayMode(mode) {
     var normalized = mode === 'inline' ? 'inline' : 'stored';
+    currentReplayMode = normalized;
     if (replayModeToggle) {
       replayModeToggle.setAttribute('data-mode', normalized);
     }
@@ -1097,30 +1157,40 @@
       global.EmvConsoleTestHooks = {};
     }
     global.EmvConsoleTestHooks.createStoredSubmissionState = createStoredSubmissionState;
+    var exportedHooks = {
+      storedState: storedSubmissionState,
+      handleStoredSubmit: handleStoredSubmit,
+      handleInlineSubmit: handleInlineSubmit,
+      storedSelect: storedSelect,
+      updateStoredControls: updateStoredControls,
+      selectedEvaluateMode: selectedEvaluateMode,
+      setEvaluateMode: setEvaluateMode,
+      setCapMode: setMode,
+      updateCustomerInputsForMode: updateCustomerInputsForMode,
+      setActivePanel: setActivePanel,
+      updateReplayCustomerInputsForMode: updateReplayCustomerInputsForMode,
+      selectedReplayMode: selectedReplayMode,
+      setReplayMode: updateReplayMode,
+      replayStoredSelect: replayStoredSelect,
+      challengeInput: challengeInput,
+      referenceInput: referenceInput,
+      amountInput: amountInput,
+      replayChallengeInput: replayChallengeInput,
+      replayReferenceInput: replayReferenceInput,
+      replayAmountInput: replayAmountInput,
+      customerHint: customerHint,
+      replayCustomerHint: replayCustomerHint,
+      buildReplayPayload: buildReplayPayload,
+      hydrateCredentialDetails: triggerCredentialHydration,
+      listCredentials: function () {
+        return credentialsList.slice();
+      },
+    };
+    Object.keys(exportedHooks).forEach(function (key) {
+      global.EmvConsoleTestHooks[key] = exportedHooks[key];
+    });
     if (typeof global.EmvConsoleTestHooks.attach === 'function') {
-      global.EmvConsoleTestHooks.attach({
-        storedState: storedSubmissionState,
-        handleStoredSubmit: handleStoredSubmit,
-        handleInlineSubmit: handleInlineSubmit,
-        storedSelect: storedSelect,
-        updateStoredControls: updateStoredControls,
-        selectedEvaluateMode: selectedEvaluateMode,
-        setEvaluateMode: setEvaluateMode,
-        setCapMode: setMode,
-        updateCustomerInputsForMode: updateCustomerInputsForMode,
-        updateReplayCustomerInputsForMode: updateReplayCustomerInputsForMode,
-        selectedReplayMode: selectedReplayMode,
-        setReplayMode: updateReplayMode,
-        challengeInput: challengeInput,
-        referenceInput: referenceInput,
-        amountInput: amountInput,
-        replayChallengeInput: replayChallengeInput,
-        replayReferenceInput: replayReferenceInput,
-        replayAmountInput: replayAmountInput,
-        customerHint: customerHint,
-        replayCustomerHint: replayCustomerHint,
-        buildReplayPayload: buildReplayPayload,
-      });
+      global.EmvConsoleTestHooks.attach(exportedHooks);
     }
   }
 
@@ -1193,6 +1263,38 @@
       return;
     }
     clearVerboseTrace();
+  }
+
+  function notifyHydration(kind, credentialId) {
+    if (
+      global.EmvConsoleTestHooks
+      && typeof global.EmvConsoleTestHooks.onHydration === 'function'
+    ) {
+      try {
+        global.EmvConsoleTestHooks.onHydration({ kind: kind, credentialId: credentialId });
+      } catch (error) {
+        if (global.console && typeof global.console.warn === 'function') {
+          global.console.warn('[emv] hydration hook failed', error);
+        }
+      }
+    }
+  }
+
+  function debugHydration(kind, entry) {
+    if (!global.__emvHydrationDebug) {
+      return;
+    }
+    try {
+      if (kind === 'replay') {
+        global.__emvLastReplayHydration = entry;
+      } else if (kind === 'evaluate') {
+        global.__emvLastEvaluateHydration = entry;
+      }
+    } catch (error) {
+      if (global.console && typeof global.console.warn === 'function') {
+          global.console.warn('[emv] unable to record hydration debug state', error);
+      }
+    }
   }
 
   function buildVerboseTracePayload(response, context) {
@@ -2317,20 +2419,61 @@
   }
 
   function getJson(endpoint) {
-    if (typeof global.fetch !== 'function') {
+    if (typeof global.fetch === 'function') {
+      return global.fetch(endpoint, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+        .then(function (response) {
+          if (!response.ok) {
+            var error = new Error('Request failed with status ' + response.status);
+            error.status = response.status;
+            throw error;
+          }
+          return response.json();
+        })
+        .catch(function (error) {
+          return legacyGetJson(endpoint, error);
+        });
+    }
+    return legacyGetJson(endpoint, null);
+  }
+
+  function legacyGetJson(endpoint, originalError) {
+    if (typeof global.XMLHttpRequest !== 'function') {
+      if (originalError) {
+        throw originalError;
+      }
       return Promise.resolve([]);
     }
-    return global.fetch(endpoint, {
-      method: 'GET',
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    }).then(function (response) {
-      if (!response.ok) {
-        var error = new Error('Request failed with status ' + response.status);
-        error.status = response.status;
-        throw error;
+    return new Promise(function (resolve, reject) {
+      try {
+        var request = new global.XMLHttpRequest();
+        request.open('GET', endpoint, true);
+        request.setRequestHeader('Accept', 'application/json');
+        request.onreadystatechange = function () {
+          if (request.readyState !== 4) {
+            return;
+          }
+          if (request.status >= 200 && request.status < 300) {
+            try {
+              var payload = request.responseText ? JSON.parse(request.responseText) : [];
+              resolve(payload);
+            } catch (parseError) {
+              reject(parseError);
+            }
+          } else {
+            reject(new Error('Request failed with status ' + request.status));
+          }
+        };
+        request.onerror = function () {
+          reject(new Error('Request failed'));
+        };
+        request.send();
+      } catch (error) {
+        reject(error);
       }
-      return response.json();
     });
   }
 

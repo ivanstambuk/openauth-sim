@@ -425,15 +425,6 @@ final class Fido2OperatorUiSeleniumTest {
         }
 
         waitForOption(By.id("fido2StoredCredentialId"), STORED_CREDENTIAL_ID);
-        Select credentialSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
-        List<String> optionLabels = credentialSelect.getOptions().stream()
-                .map(WebElement::getText)
-                .map(String::trim)
-                .filter(text -> !text.isBlank())
-                .filter(text -> !"Select a stored credential".equals(text))
-                .toList();
-        System.out.println("Stored credential option labels: " + optionLabels);
-
         List<String> expectedLabels = Fido2OperatorSampleData.seedDefinitions().stream()
                 .sorted(Comparator.comparingInt((Fido2OperatorSampleData.SeedDefinition definition) ->
                                 definition.algorithm().ordinal())
@@ -442,6 +433,11 @@ final class Fido2OperatorUiSeleniumTest {
                                 Fido2OperatorSampleData.SeedDefinition::credentialId, String.CASE_INSENSITIVE_ORDER))
                 .map(Fido2OperatorSampleData.SeedDefinition::label)
                 .toList();
+
+        waitForStoredCredentialLabels(expectedLabels);
+
+        List<String> optionLabels = readStoredCredentialLabels();
+        System.out.println("Stored credential option labels: " + optionLabels);
 
         assertThat(optionLabels).as("stored credential dropdown labels").containsExactlyElementsOf(expectedLabels);
         assertThat(optionLabels).allMatch(label -> !label.startsWith("Seed "));
@@ -2387,6 +2383,22 @@ final class Fido2OperatorUiSeleniumTest {
                 return false;
             }
         });
+    }
+
+    private void waitForStoredCredentialLabels(List<String> expectedLabels) {
+        new WebDriverWait(driver, Duration.ofSeconds(8))
+                .ignoring(StaleElementReferenceException.class)
+                .until(webDriver -> readStoredCredentialLabels().equals(expectedLabels));
+    }
+
+    private List<String> readStoredCredentialLabels() {
+        Select credentialSelect = new Select(waitFor(By.id("fido2StoredCredentialId")));
+        return credentialSelect.getOptions().stream()
+                .map(WebElement::getText)
+                .map(String::trim)
+                .filter(text -> !text.isBlank())
+                .filter(text -> !"Select a stored credential".equals(text))
+                .toList();
     }
 
     private void selectOptionByValue(Select select, String value) {

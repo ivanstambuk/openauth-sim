@@ -1425,6 +1425,18 @@ a:focus {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.emv-session-pair-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--ocra-spacing-md);
+  grid-column: 1 / -1;
+  align-items: start;
+}
+
+.emv-session-pair-row .field-group {
+  margin-bottom: 0;
+}
+
 .emv-field--full {
   grid-column: 1 / -1;
 }
@@ -1439,6 +1451,40 @@ a:focus {
 .emv-customer-block .field-legend {
   font-weight: 600;
   padding: 0 var(--ocra-spacing-xs);
+}
+
+.emv-session-block,
+.emv-card-block {
+  border: 1px solid rgba(22, 211, 243, 0.12);
+  border-radius: var(--ocra-radius-md);
+  padding: var(--ocra-spacing-md);
+  background: rgba(14, 27, 46, 0.35);
+}
+
+.emv-card-block {
+  margin-top: var(--ocra-spacing-lg);
+}
+
+.emv-transaction-block {
+  border: 1px solid rgba(22, 211, 243, 0.08);
+  border-radius: var(--ocra-radius-md);
+  padding: var(--ocra-spacing-md);
+  background: rgba(14, 27, 46, 0.2);
+  margin-top: var(--ocra-spacing-md);
+}
+
+.emv-session-block legend,
+.emv-card-block legend,
+.emv-transaction-block legend {
+  font-weight: 600;
+  padding: 0 var(--ocra-spacing-xs);
+}
+
+.emv-session-block .hint,
+.emv-card-block .hint,
+.emv-transaction-block .hint {
+  margin-top: calc(var(--ocra-spacing-sm) * 0.5);
+  margin-bottom: 0;
 }
 
 .emv-customer-block .mode-toggle {

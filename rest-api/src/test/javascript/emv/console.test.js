@@ -4,6 +4,8 @@ const path = require('node:path');
 const { test } = require('node:test');
 const vm = require('node:vm');
 
+global.__emvHydrationDebug = true;
+
 const SANITIZED_SUMMARIES = [
   {
     id: 'emv-123',
@@ -53,6 +55,17 @@ const HYDRATION_DETAILS = {
 async function flushMicrotasks() {
   await Promise.resolve();
   await Promise.resolve();
+}
+
+async function waitForCredentialSummaries(env) {
+  if (!env || !env.hooks || typeof env.hooks.listCredentials !== 'function') {
+    return;
+  }
+  let attempts = 0;
+  while (env.hooks.listCredentials().length === 0 && attempts < 20) {
+    await flushMicrotasks();
+    attempts += 1;
+  }
 }
 
 function createMaskField() {
@@ -214,6 +227,14 @@ function createSelect() {
     remove(index) {
       select.options.splice(index, 1);
     },
+    querySelector(selector) {
+      const match = /^option\[value="([^"]+)"\]$/.exec(selector || '');
+      if (!match) {
+        return null;
+      }
+      const value = match[1];
+      return select.options.find((option) => option.value === value) || null;
+    },
   };
   return select;
 }
@@ -289,9 +310,13 @@ function createDomElement(tagName) {
   };
 }
 
-function createEnvironment({ verboseEnabled }) {
+function createEnvironment({ verboseEnabled, includeReplay = false }) {
   const storedSelect = createSelect();
   const masterKeyContainer = createFieldGroup('emv-master-key-group');
+  const atcContainer = createFieldGroup('emv-atc-group');
+  const branchFactorContainer = createFieldGroup('emv-branch-factor-group');
+  const heightContainer = createFieldGroup('emv-height-group');
+  const ivContainer = createFieldGroup('emv-iv-group');
   const cdol1Container = createFieldGroup('emv-cdol1-group');
   const ipbContainer = createFieldGroup('emv-ipb-group');
   const iccTemplateContainer = createFieldGroup('emv-icc-template-group');
@@ -301,10 +326,10 @@ function createEnvironment({ verboseEnabled }) {
   const amountContainer = createFieldGroup('emv-amount-group');
 
   const masterKeyInput = createTextarea('emvMasterKey', 'A1B2', masterKeyContainer);
-  const atcInput = createInput('emvAtc', '01');
-  const branchFactorInput = createInput('emvBranchFactor', '2');
-  const heightInput = createInput('emvHeight', '1');
-  const ivInput = createTextarea('emvIv', 'AA');
+  const atcInput = createInput('emvAtc', '01', atcContainer);
+  const branchFactorInput = createInput('emvBranchFactor', '2', branchFactorContainer);
+  const heightInput = createInput('emvHeight', '1', heightContainer);
+  const ivInput = createTextarea('emvIv', 'AA', ivContainer);
   const cdol1Input = createTextarea('emvCdol1', 'BB', cdol1Container);
   const ipbInput = createTextarea('emvIpb', 'CC', ipbContainer);
   const iccTemplateInput = createTextarea('emvIccTemplate', 'DD', iccTemplateContainer);
@@ -326,6 +351,227 @@ function createEnvironment({ verboseEnabled }) {
   const storedHint = { textContent: '' };
   const customerHint = createHintNode();
 
+  let replayEnv = null;
+  if (includeReplay) {
+    const replayStoredSelect = createSelect();
+    const replayMasterKeyContainer = createFieldGroup('emv-replay-master-key-group');
+    const replayAtcContainer = createFieldGroup('emv-replay-atc-group');
+    const replayBranchFactorContainer = createFieldGroup('emv-replay-branch-factor-group');
+    const replayHeightContainer = createFieldGroup('emv-replay-height-group');
+    const replayIvContainer = createFieldGroup('emv-replay-iv-group');
+    const replayCdol1Container = createFieldGroup('emv-replay-cdol1-group');
+    const replayIssuerBitmapContainer = createFieldGroup('emv-replay-issuer-bitmap-group');
+    const replayIccTemplateContainer = createFieldGroup('emv-replay-icc-template-group');
+    const replayIssuerApplicationDataContainer = createFieldGroup('emv-replay-issuer-application-data-group');
+    const replayChallengeContainer = createFieldGroup('emv-replay-challenge-group');
+    const replayReferenceContainer = createFieldGroup('emv-replay-reference-group');
+    const replayAmountContainer = createFieldGroup('emv-replay-amount-group');
+    const replayMasterKeyInput = createInput('emvReplayMasterKey', 'AA', replayMasterKeyContainer);
+    const replayAtcInput = createInput('emvReplayAtc', '00B4', replayAtcContainer);
+    const replayBranchFactorInput = createInput('emvReplayBranchFactor', '4', replayBranchFactorContainer);
+    const replayHeightInput = createInput('emvReplayHeight', '8', replayHeightContainer);
+    const replayIvInput = createInput('emvReplayIv', '0001020304050607', replayIvContainer);
+    const replayCdol1Input = createTextarea('emvReplayCdol1', 'CDOL', replayCdol1Container);
+    const replayIssuerBitmapInput = createTextarea('emvReplayIssuerBitmap', 'IPB', replayIssuerBitmapContainer);
+    const replayIccTemplateInput =
+        createTextarea('emvReplayIccTemplate', 'ICC', replayIccTemplateContainer);
+    const replayIssuerApplicationDataInput = createTextarea(
+        'emvReplayIssuerApplicationData', 'IAD', replayIssuerApplicationDataContainer);
+    const replayChallengeInput = createInput('emvReplayChallenge', '', replayChallengeContainer);
+    const replayReferenceInput = createInput('emvReplayReference', '', replayReferenceContainer);
+    const replayAmountInput = createInput('emvReplayAmount', '', replayAmountContainer);
+    const replayOtpContainer = createFieldGroup('emv-replay-otp-group');
+    const replayOtpInput = createInput('emvReplayOtp', '00000000', replayOtpContainer);
+    const replayDriftBackwardContainer = createFieldGroup('emv-replay-drift-backward-group');
+    const replayDriftForwardContainer = createFieldGroup('emv-replay-drift-forward-group');
+    const replayDriftBackwardInput = createInput('emvReplayDriftBackward', '0', replayDriftBackwardContainer);
+    const replayDriftForwardInput = createInput('emvReplayDriftForward', '1', replayDriftForwardContainer);
+    const replayMasterKeyMaskNode = createMaskField();
+    const replayCdol1MaskNode = createMaskField();
+    const replayIssuerBitmapMaskNode = createMaskField();
+    const replayIccTemplateMaskNode = createMaskField();
+    const replayIssuerApplicationDataMaskNode = createMaskField();
+    const replayCustomerHint = createHintNode();
+    const replayModeInline = createInput('emvReplayModeInline', 'inline');
+    replayModeInline.value = 'inline';
+    replayModeInline.checked = true;
+    const replayModeStored = createInput('emvReplayModeStored', 'stored');
+    replayModeStored.value = 'stored';
+    const replayModeToggle = {
+      dataset: { mode: 'inline' },
+      setAttribute(name, value) {
+        if (name === 'data-mode') {
+          this.dataset.mode = String(value);
+        }
+      },
+      getAttribute(name) {
+        if (name === 'data-mode') {
+          return this.dataset.mode;
+        }
+        return null;
+      },
+      querySelector(selector) {
+        if (selector === '#emvReplayModeStored') {
+          return replayModeStored;
+        }
+        if (selector === '#emvReplayModeInline') {
+          return replayModeInline;
+        }
+        return null;
+      },
+    };
+    const replayStoredSection = { setAttribute() {}, removeAttribute() {} };
+    const replayModeIdentify = createInput('emvReplayModeIdentify', 'IDENTIFY');
+    replayModeIdentify.checked = true;
+    const replayModeRespond = createInput('emvReplayModeRespond', 'RESPOND');
+    const replayModeSign = createInput('emvReplayModeSign', 'SIGN');
+
+    const replayFormClassSet = new Set();
+    const replayForm = {
+      className: '',
+      classList: {
+        add(className) {
+          replayFormClassSet.add(className);
+          replayForm.className = Array.from(replayFormClassSet).join(' ');
+        },
+        remove(className) {
+          replayFormClassSet.delete(className);
+          replayForm.className = Array.from(replayFormClassSet).join(' ');
+        },
+        contains(className) {
+          return replayFormClassSet.has(className);
+        },
+      },
+      getAttribute(name) {
+        if (name === 'data-replay-endpoint') {
+          return '/api/v1/emv/cap/replay';
+        }
+        if (name === 'data-credentials-endpoint') {
+          return '/api/v1/emv/cap/credentials';
+        }
+        return null;
+      },
+      querySelector(selector) {
+        switch (selector) {
+          case '[data-replay-section="stored"]':
+            return replayStoredSection;
+          case '#emvReplayStoredCredentialId':
+            return replayStoredSelect;
+          case '[data-testid="emv-replay-master-key"] input':
+            return replayMasterKeyInput;
+          case '[data-testid="emv-replay-master-key-mask"]':
+            return replayMasterKeyMaskNode;
+          case '[data-testid="emv-replay-atc"] input':
+            return replayAtcInput;
+          case '[data-testid="emv-replay-branch-factor"] input':
+            return replayBranchFactorInput;
+          case '[data-testid="emv-replay-height"] input':
+            return replayHeightInput;
+          case '[data-testid="emv-replay-iv"] input':
+            return replayIvInput;
+          case '[data-testid="emv-replay-cdol1"] textarea':
+            return replayCdol1Input;
+          case '[data-testid="emv-replay-cdol1-mask"]':
+            return replayCdol1MaskNode;
+          case '[data-testid="emv-replay-issuer-bitmap"] textarea':
+            return replayIssuerBitmapInput;
+          case '[data-testid="emv-replay-ipb-mask"]':
+            return replayIssuerBitmapMaskNode;
+          case '[data-testid="emv-replay-icc-template"] textarea':
+            return replayIccTemplateInput;
+          case '[data-testid="emv-replay-icc-template-mask"]':
+            return replayIccTemplateMaskNode;
+          case '[data-testid="emv-replay-issuer-application-data"] textarea':
+            return replayIssuerApplicationDataInput;
+          case '[data-testid="emv-replay-issuer-application-data-mask"]':
+            return replayIssuerApplicationDataMaskNode;
+          case '[data-testid="emv-replay-challenge"] input':
+            return replayChallengeInput;
+          case '[data-testid="emv-replay-reference"] input':
+            return replayReferenceInput;
+          case '[data-testid="emv-replay-amount"] input':
+            return replayAmountInput;
+          case '[data-testid="emv-replay-otp"] input':
+            return replayOtpInput;
+          case '[data-testid="emv-replay-drift-backward"] input':
+            return replayDriftBackwardInput;
+          case '[data-testid="emv-replay-drift-forward"] input':
+            return replayDriftForwardInput;
+          case '[data-testid="emv-replay-customer-hint"]':
+            return replayCustomerHint;
+          case '[data-testid="emv-replay-mode-toggle"]':
+            return replayModeToggle;
+          case '#emvReplayModeStored':
+            return replayModeStored;
+          case '#emvReplayModeInline':
+            return replayModeInline;
+          default:
+            return null;
+        }
+      },
+      querySelectorAll(selector) {
+        if (selector === 'input[name="replayMode"]') {
+          return [replayModeIdentify, replayModeRespond, replayModeSign];
+        }
+        return [];
+      },
+      addEventListener() {},
+    };
+
+    const replayStatusNode = { textContent: '—' };
+    const replayOtpResultNode = { textContent: '—' };
+    const replayMatchedNode = {
+      textContent: '',
+      setAttribute() {},
+      removeAttribute() {},
+    };
+    const replayReasonNode = {
+      textContent: '',
+      setAttribute() {},
+      removeAttribute() {},
+    };
+
+    replayEnv = {
+      form: replayForm,
+      storedSelect: replayStoredSelect,
+      masterKeyInput: replayMasterKeyInput,
+      masterKeyContainer: replayMasterKeyContainer,
+      atcInput: replayAtcInput,
+      branchFactorInput: replayBranchFactorInput,
+      heightInput: replayHeightInput,
+      ivInput: replayIvInput,
+      cdol1Container: replayCdol1Container,
+      cdol1Input: replayCdol1Input,
+      issuerBitmapContainer: replayIssuerBitmapContainer,
+      issuerBitmapInput: replayIssuerBitmapInput,
+      iccTemplateContainer: replayIccTemplateContainer,
+      iccTemplateInput: replayIccTemplateInput,
+      issuerApplicationDataContainer: replayIssuerApplicationDataContainer,
+      issuerApplicationDataInput: replayIssuerApplicationDataInput,
+      challengeInput: replayChallengeInput,
+      referenceInput: replayReferenceInput,
+      amountInput: replayAmountInput,
+      masterKeyMask: replayMasterKeyMaskNode,
+      atcContainer: replayAtcContainer,
+      branchFactorContainer: replayBranchFactorContainer,
+      heightContainer: replayHeightContainer,
+      ivContainer: replayIvContainer,
+      cdol1Mask: replayCdol1MaskNode,
+      issuerBitmapMask: replayIssuerBitmapMaskNode,
+      iccTemplateMask: replayIccTemplateMaskNode,
+      issuerApplicationDataMask: replayIssuerApplicationDataMaskNode,
+      customerHint: replayCustomerHint,
+      modeToggle: replayModeToggle,
+      capModeRadios: [replayModeIdentify, replayModeRespond, replayModeSign],
+      otpInput: replayOtpInput,
+      driftBackwardInput: replayDriftBackwardInput,
+      driftForwardInput: replayDriftForwardInput,
+      statusNode: replayStatusNode,
+      otpResultNode: replayOtpResultNode,
+      matchedNode: replayMatchedNode,
+      reasonNode: replayReasonNode,
+    };
+  }
   const evaluateModeInline = createInput('emvEvaluateModeInline', 'inline');
   evaluateModeInline.value = 'inline';
   evaluateModeInline.checked = true;
@@ -368,6 +614,32 @@ function createEnvironment({ verboseEnabled }) {
     },
   };
 
+  const replayResultPanel = includeReplay
+      ? {
+        hidden: true,
+        setAttribute() {},
+        removeAttribute() {},
+        querySelector(selector) {
+          if (!replayEnv) {
+            return null;
+          }
+          if (selector === '[data-testid=\'emv-replay-status\']') {
+            return replayEnv.statusNode;
+          }
+          if (selector === '[data-testid=\'emv-replay-otp\']') {
+            return replayEnv.otpResultNode;
+          }
+          if (selector === '[data-testid=\'emv-replay-matched-delta\']') {
+            return replayEnv.matchedNode;
+          }
+          if (selector === '[data-testid=\'emv-replay-reason\']') {
+            return replayEnv.reasonNode;
+          }
+          return null;
+        },
+      }
+      : null;
+
   const evaluatePanel = {
     setAttribute() {},
     removeAttribute() {},
@@ -407,6 +679,12 @@ function createEnvironment({ verboseEnabled }) {
       }
       if (selector === '[data-testid="emv-result-card"]') {
         return resultPanel;
+      }
+      if (selector === '[data-testid="emv-replay-form"]') {
+        return replayEnv ? replayEnv.form : null;
+      }
+      if (selector === '[data-testid="emv-replay-result-card"]') {
+        return replayResultPanel;
       }
       return null;
     },
@@ -541,6 +819,9 @@ function createEnvironment({ verboseEnabled }) {
       if (selector === '[data-testid="emv-result-card"]') {
         return resultPanel;
       }
+      if (selector === '[data-testid="emv-replay-result-card"]') {
+        return replayResultPanel;
+      }
       return null;
     },
   };
@@ -625,6 +906,9 @@ function createEnvironment({ verboseEnabled }) {
     inputs: {
       masterKey: masterKeyInput,
       atc: atcInput,
+      branchFactor: branchFactorInput,
+      height: heightInput,
+      iv: ivInput,
       cdol1: cdol1Input,
       issuerProprietaryBitmap: ipbInput,
       iccTemplate: iccTemplateInput,
@@ -635,6 +919,10 @@ function createEnvironment({ verboseEnabled }) {
     },
     containers: {
       masterKey: masterKeyContainer,
+      atc: atcContainer,
+      branchFactor: branchFactorContainer,
+      height: heightContainer,
+      iv: ivContainer,
       cdol1: cdol1Container,
       ipb: ipbContainer,
       iccTemplate: iccTemplateContainer,
@@ -653,6 +941,36 @@ function createEnvironment({ verboseEnabled }) {
     hints: {
       evaluate: customerHint,
     },
+    replayInputs: includeReplay
+        ? {
+          masterKey: replayEnv.masterKeyInput,
+          atc: replayEnv.atcInput,
+          branchFactor: replayEnv.branchFactorInput,
+          height: replayEnv.heightInput,
+          iv: replayEnv.ivInput,
+          cdol1: replayEnv.cdol1Input,
+          issuerProprietaryBitmap: replayEnv.issuerBitmapInput,
+          iccTemplate: replayEnv.iccTemplateInput,
+          issuerApplicationData: replayEnv.issuerApplicationDataInput,
+          challenge: replayEnv.challengeInput,
+          reference: replayEnv.referenceInput,
+          amount: replayEnv.amountInput,
+        }
+        : null,
+    replayContainers: includeReplay && replayEnv
+        ? {
+          masterKey: replayEnv.masterKeyContainer,
+          atc: replayEnv.atcContainer,
+          branchFactor: replayEnv.branchFactorContainer,
+          height: replayEnv.heightContainer,
+          iv: replayEnv.ivContainer,
+          cdol1: replayEnv.cdol1Container,
+          issuerProprietaryBitmap: replayEnv.issuerBitmapContainer,
+          iccTemplate: replayEnv.iccTemplateContainer,
+          issuerApplicationData: replayEnv.issuerApplicationDataContainer,
+        }
+        : null,
+    replayStoredSelect: includeReplay ? replayEnv.storedSelect : null,
     storedHint,
   };
 }
@@ -686,6 +1004,7 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     '',
     'Stored issuer application data textarea should remain blank',
   );
+  assert.equal(env.inputs.iccTemplate.value, '', 'Stored ICC template textarea should remain blank');
   assert.equal(
     env.containers.masterKey.getAttribute('hidden'),
     'hidden',
@@ -705,6 +1024,16 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     env.containers.issuerApplicationData.getAttribute('hidden'),
     'hidden',
     'Issuer application data field group should be hidden in stored mode',
+  );
+  assert.equal(
+    env.containers.iccTemplate.getAttribute('hidden'),
+    'hidden',
+    'ICC template field group should be hidden in stored mode',
+  );
+  assert.equal(
+    env.containers.iccTemplate.getAttribute('aria-hidden'),
+    'true',
+    'ICC template field group should be marked aria-hidden in stored mode',
   );
   assert.equal(
     env.inputs.masterKey.getAttribute('data-secret-mode'),
@@ -732,6 +1061,16 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     'Issuer application data textarea should disable pointer events in stored mode',
   );
   assert.equal(
+    env.inputs.iccTemplate.style.pointerEvents,
+    'none',
+    'ICC template textarea should disable pointer events in stored mode',
+  );
+  assert.equal(
+    env.inputs.iccTemplate.getAttribute('aria-hidden'),
+    'true',
+    'ICC template input should be marked aria-hidden in stored mode',
+  );
+  assert.equal(
     env.masks.masterKey.getAttribute('hidden'),
     'hidden',
     'Master key mask should remain hidden in stored mode',
@@ -745,6 +1084,16 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     env.masks.cdol1.getAttribute('hidden'),
     'hidden',
     'CDOL1 mask should remain hidden in stored mode',
+  );
+  assert.equal(
+    env.masks.iccTemplate.getAttribute('hidden'),
+    'hidden',
+    'ICC template mask should remain hidden in stored mode',
+  );
+  assert.equal(
+    env.masks.iccTemplate.getAttribute('aria-hidden'),
+    'true',
+    'ICC template mask should be marked aria-hidden in stored mode',
   );
   assert.equal(
     env.masks.cdol1.getAttribute('aria-hidden'),
@@ -776,6 +1125,108 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     `Hidden (${SANITIZED_SUMMARIES[0].issuerApplicationDataHexLength} hex chars)`,
     'Issuer application data metadata should still be populated behind the scenes',
   );
+});
+
+test('session key derivation fields remain visible while stored mode hides sensitive evaluate inputs', async () => {
+  const env = createEnvironment({ verboseEnabled: true });
+  await flushMicrotasks();
+  await waitForCredentialSummaries(env);
+  if (typeof env.hooks.setEvaluateMode === 'function') {
+    env.hooks.setEvaluateMode('stored');
+  }
+  if (typeof env.hooks.updateStoredControls === 'function') {
+    env.hooks.updateStoredControls();
+  }
+  env.hooks.storedSelect.value = SANITIZED_SUMMARIES[0].id;
+  if (typeof env.hooks.storedSelect.dispatchEvent === 'function') {
+    env.hooks.storedSelect.dispatchEvent('change');
+  }
+  await flushMicrotasks();
+  const derivationFields = [
+    { key: 'atc', label: 'ATC' },
+    { key: 'branchFactor', label: 'Branch factor' },
+    { key: 'height', label: 'Height' },
+    { key: 'iv', label: 'IV' },
+  ];
+  derivationFields.forEach(({ key, label }) => {
+    const container = env.containers[key];
+    assert.ok(container, `${label} field group should exist.`);
+    assert.equal(
+        container.getAttribute('hidden'),
+        null,
+        `${label} field group should remain visible when stored mode is active`,
+    );
+    assert.equal(
+        container.getAttribute('aria-hidden'),
+        null,
+        `${label} field group should keep aria-hidden cleared in stored mode`,
+    );
+    const input = env.inputs[key];
+    assert.ok(input, `${label} input should exist.`);
+    assert.equal(
+        input.getAttribute('aria-hidden'),
+        null,
+        `${label} input should remain accessible while stored mode hides secrets`,
+    );
+    assert.equal(
+        input.style.pointerEvents || '',
+        '',
+        `${label} input should stay interactive so operators can tweak derivation inputs`,
+    );
+  });
+});
+
+test('replay session key derivation fields remain visible when stored mode hides secrets', async () => {
+  const env = createEnvironment({ verboseEnabled: true, includeReplay: true });
+  await flushMicrotasks();
+  await waitForCredentialSummaries(env);
+  if (typeof env.hooks.setActivePanel === 'function') {
+    env.hooks.setActivePanel('replay');
+  }
+  if (typeof env.hooks.setReplayMode === 'function') {
+    env.hooks.setReplayMode('stored');
+  }
+  if (env.replayStoredSelect) {
+    env.replayStoredSelect.value = SANITIZED_SUMMARIES[0].id;
+    if (typeof env.replayStoredSelect.dispatchEvent === 'function') {
+      env.replayStoredSelect.dispatchEvent('change');
+    }
+  }
+  await flushMicrotasks();
+  await flushMicrotasks();
+  assert.ok(env.replayContainers, 'Replay containers should be available when includeReplay=true.');
+  const derivationFields = [
+    { key: 'atc', label: 'Replay ATC' },
+    { key: 'branchFactor', label: 'Replay branch factor' },
+    { key: 'height', label: 'Replay height' },
+    { key: 'iv', label: 'Replay IV' },
+  ];
+  derivationFields.forEach(({ key, label }) => {
+    const container = env.replayContainers[key];
+    assert.ok(container, `${label} field group should exist.`);
+    assert.equal(
+        container.getAttribute('hidden'),
+        null,
+        `${label} field group should remain visible in stored replay mode`,
+    );
+    assert.equal(
+        container.getAttribute('aria-hidden'),
+        null,
+        `${label} field group should keep aria-hidden cleared in stored replay mode`,
+    );
+    const input = env.replayInputs ? env.replayInputs[key] : null;
+    assert.ok(input, `${label} input should exist.`);
+    assert.equal(
+        input.getAttribute('aria-hidden'),
+        null,
+        `${label} input should remain accessible while stored replay hides secrets`,
+    );
+    assert.equal(
+        input.style.pointerEvents || '',
+        '',
+        `${label} input should stay interactive so operators can adjust derivation values`,
+    );
+  });
 });
 
 test('selecting a preset while inline mode is active keeps inline controls editable', async () => {
@@ -853,6 +1304,7 @@ test('selecting a preset while inline mode is active keeps inline controls edita
 test('inline preset hydration populates sensitive fields for evaluate flow', async () => {
   const env = createEnvironment({ verboseEnabled: true });
   await flushMicrotasks();
+  await waitForCredentialSummaries(env);
   if (typeof env.hooks.setEvaluateMode === 'function') {
     env.hooks.setEvaluateMode('inline');
   }
@@ -864,6 +1316,9 @@ test('inline preset hydration populates sensitive fields for evaluate flow', asy
   await flushMicrotasks();
   await flushMicrotasks();
   await flushMicrotasks();
+  // Debugging inline hydration state
+  // eslint-disable-next-line no-console
+  console.log('Evaluate hydration debug:', global.__emvLastEvaluateHydration);
 
   const hydration = HYDRATION_DETAILS[SANITIZED_SUMMARIES[0].id];
   assert.equal(env.inputs.masterKey.value, hydration.masterKey, 'Master key should hydrate inline input');
@@ -886,6 +1341,73 @@ test('inline preset hydration populates sensitive fields for evaluate flow', asy
   assert.equal(env.inputs.challenge.value, hydration.defaults.challenge, 'Challenge default should hydrate inline field');
   assert.equal(env.inputs.reference.value, hydration.defaults.reference, 'Reference default should hydrate inline field');
   assert.equal(env.inputs.amount.value, hydration.defaults.amount, 'Amount default should hydrate inline field');
+});
+
+test('inline preset hydration populates sensitive fields for replay flow', async () => {
+  const env = createEnvironment({ verboseEnabled: true, includeReplay: true });
+  await flushMicrotasks();
+  await waitForCredentialSummaries(env);
+  if (typeof env.hooks.setActivePanel === 'function') {
+    env.hooks.setActivePanel('replay');
+  }
+  if (typeof env.hooks.setReplayMode === 'function') {
+    env.hooks.setReplayMode('inline');
+  }
+  while (env.replayStoredSelect && env.replayStoredSelect.options.length <= 1) {
+    await flushMicrotasks();
+  }
+  if (env.replayStoredSelect) {
+    env.replayStoredSelect.value = SANITIZED_SUMMARIES[0].id;
+    if (typeof env.replayStoredSelect.dispatchEvent === 'function') {
+      env.replayStoredSelect.dispatchEvent('change');
+    }
+  }
+  await flushMicrotasks();
+  await flushMicrotasks();
+  await flushMicrotasks();
+
+  const hydration = HYDRATION_DETAILS[SANITIZED_SUMMARIES[0].id];
+  assert.ok(env.replayInputs, 'Replay inputs should be available when includeReplay=true');
+  assert.equal(
+    env.replayInputs.masterKey.value,
+    hydration.masterKey,
+    'Replay master key should hydrate inline input',
+  );
+  assert.equal(
+    env.replayInputs.cdol1.value,
+    hydration.cdol1,
+    'Replay CDOL1 should hydrate inline textarea',
+  );
+  assert.equal(
+    env.replayInputs.issuerProprietaryBitmap.value,
+    hydration.issuerProprietaryBitmap,
+    'Replay issuer bitmap should hydrate inline textarea',
+  );
+  assert.equal(
+    env.replayInputs.iccTemplate.value,
+    hydration.iccDataTemplate,
+    'Replay ICC template should hydrate inline textarea',
+  );
+  assert.equal(
+    env.replayInputs.issuerApplicationData.value,
+    hydration.issuerApplicationData,
+    'Replay issuer application data should hydrate inline textarea',
+  );
+  assert.equal(
+    env.replayInputs.challenge.value,
+    hydration.defaults.challenge,
+    'Replay challenge default should hydrate inline field',
+  );
+  assert.equal(
+    env.replayInputs.reference.value,
+    hydration.defaults.reference,
+    'Replay reference default should hydrate inline field',
+  );
+  assert.equal(
+    env.replayInputs.amount.value,
+    hydration.defaults.amount,
+    'Replay amount default should hydrate inline field',
+  );
 });
 
 test('CAP mode toggles customer inputs and helper hint', async () => {
