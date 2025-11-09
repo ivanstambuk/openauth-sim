@@ -1,0 +1,19 @@
+# Feature 021 – Task Checklist
+
+_Status: Completed_
+_Last updated: 2025-10-04_
+
+## Tasks (≤30 min each)
+- [x] T2110 – Extend Selenium suite with failing tests for info trigger accessibility, keyboard shortcuts, drawer/modal toggles, and protocol switching. (S21-01)
+- [x] T2111 – Add JS unit tests covering data schema parsing, escaping, persistence keys, and CustomEvent emissions (fails until persistence + events implemented). (S21-02)
+- [x] T2112 – Implement protocol info triggers, drawer/modal scaffolding, and schema-driven rendering driven by JSON sample data. (S21-01)
+- [x] T2113 – Add persistence (localStorage) wiring, auto-open behaviour, and CustomEvents with corresponding tests. (S21-02)
+- [x] T2114 – Implement modal expansion with focus trap, preference for reduced motion, and accessibility refinements. (S21-03)
+- [x] T2115 – Ship embeddable CSS/JS assets, standalone HTML demo, vanilla DOM integration guide, and README with integration + QA checklist. (S21-04)
+- [x] T2115A – Refactor UI/tests for the single global protocol info trigger aligned to the tablist, ensuring active protocol sync. (S21-01)
+- [x] T2116 – Update knowledge map/roadmap as needed, rerun `./gradlew spotlessApply check`, and prepare conventional commit. (S21-05)
+
+## Completion Notes
+- 2025-10-04 – All tasks delivered; docs/tests synced, final Gradle check executed, and commit prepared.
+
+Mark tasks completed as increments finish; ensure tests precede implementation work.

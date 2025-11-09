@@ -38,7 +38,7 @@ Interpretation:
 Because the harness filters out any vector that fails to replay (`strict_mismatch`, validation errors), all samples contribute to latency metrics.
 
 ## 3. Capture and Store Results
-1. Copy the two log lines into `docs/4-architecture/feature-plan-009-ocra-replay-verification.md` (or the active feature plan) with:
+1. Copy the two log lines into `docs/4-architecture/features/009/plan.md` (or the active feature plan) with:
    - Execution date/time.
    - Environment summary (OS, CPU, Java vendor/version).
    - Confirmation that thresholds were met.
@@ -51,6 +51,6 @@ Because the harness filters out any vector that fails to replay (`strict_mismatc
 - **High P95 values** – rerun with `--info --rerun-tasks` to rule out transient JVM warm-up spikes. Capture system load alongside the metrics and investigate recent code changes affecting `OcraReplayVerifier`.
 
 ## 5. Related References
-- `docs/4-architecture/specs/feature-009-ocra-replay-verification.md` (ORV-NFR-002 definition).
-- `docs/4-architecture/feature-plan-009-ocra-replay-verification.md` for recording benchmark outcomes.
+- `docs/4-architecture/features/009/spec.md` (ORV-NFR-002 definition).
+- `docs/4-architecture/features/009/plan.md` for recording benchmark outcomes.
 - `core/src/test/java/io/openauth/sim/core/credentials/ocra/OcraReplayVerifierBenchmark.java` (benchmark source).

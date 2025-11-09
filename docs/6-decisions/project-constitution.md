@@ -4,7 +4,7 @@ Version: none -> 1.0.0
 Modified Principles: n/a
 Added Sections: Principles, Governance, Enforcement
 Removed Sections: none
-Templates requiring updates: docs/6-decisions/project-constitution.md ✅, AGENTS.md ✅, docs/5-operations/runbook-session-reset.md ✅, docs/4-architecture/feature-plan-001-core-domain.md ✅, docs/4-architecture/specs/feature-001-core-credential-domain.md ✅, docs/4-architecture/tasks/feature-001-core-credential-domain.md ✅, docs/5-operations/analysis-gate-checklist.md ✅
+Templates requiring updates: docs/6-decisions/project-constitution.md ✅, AGENTS.md ✅, docs/5-operations/runbook-session-reset.md ✅, docs/4-architecture/features/001/plan.md ✅, docs/4-architecture/features/001/spec.md ✅, docs/4-architecture/features/001/tasks.md ✅, docs/5-operations/analysis-gate-checklist.md ✅
 Follow-up TODOs: none
 -->
 # OpenAuth Simulator Constitution
@@ -22,7 +22,7 @@ This constitution establishes the non-negotiable operating principles for the Op
 ### Principle 1 – Specifications Lead Execution
 - Author or update a feature specification before producing plans, tasks, or code.
 - Treat the specification as the source of truth; implementation plans, tasks, and code must reference it explicitly.
-- Store specifications under `docs/4-architecture/specs/` with traceable identifiers (e.g., Feature 001).
+- Store specifications under `docs/4-architecture/features/<NNN>/spec.md` with traceable identifiers (e.g., Feature 001).
 
 ### Principle 2 – Clarification Gate
 - Resolve ambiguous scope before planning by capturing every high-impact question for the feature; escalate every medium-impact uncertainty the same way, while tidying low-level or lightweight ambiguities directly and noting the fixes in the governing spec/plan.

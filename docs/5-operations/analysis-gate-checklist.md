@@ -3,9 +3,9 @@
 Use this checklist after a feature's specification, plan, and tasks exist but before implementation begins. After implementation, complete the Implementation Drift Gate section before the feature can be marked complete. Together these guardrails enforce the project constitution and keep specifications, plans, tasks, and code aligned.
 
 ## Inputs
-- Feature specification (e.g., `docs/4-architecture/specs/feature-XXX-*.md`)
-- Feature plan (e.g., `docs/4-architecture/feature-plan-XXX-*.md`)
-- Feature tasks (e.g., `docs/4-architecture/tasks/feature-XXX-*.md`)
+- Feature specification (e.g., `docs/4-architecture/features/XXX/spec.md`)
+- Feature plan (e.g., `docs/4-architecture/features/XXX/plan.md`)
+- Feature tasks (e.g., `docs/4-architecture/features/XXX/tasks.md`)
 - Open questions log (`docs/4-architecture/open-questions.md`)
 - Constitution (`docs/6-decisions/project-constitution.md`)
 - Feature plan subsection reserved for the Implementation Drift Gate report (create if missing)

@@ -2,6 +2,8 @@
 
 _Status: Draft_
 
+> Use this guide together with the spec template at `docs/templates/feature-spec-template.md`; fill the template’s “UI / Interaction Mock-ups” section using the practices below.
+
 ## Purpose
 Every UI-facing feature **or** change to existing UI behaviour must include a lightweight, text-based visualisation so reviewers understand the intended layout, state transitions, and validation flow without opening external assets. ASCII sketches live directly inside the specification that governs the change.
 

@@ -1,0 +1,427 @@
+{
+  "docs/4-architecture/specs/feature-001-core-credential-domain.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Test Strategy",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-001-ocra-data-model.md": [
+    "metadata table",
+    "Overview",
+    "Clarifications",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Test Strategy",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-002-persistence-hardening.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Test Strategy",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-003-rest-ocra-evaluation-endpoint.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-004-rest-ocra-credential-resolution.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-005-cli-ocra-operations.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-006-ocra-operator-ui.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-007-operator-docs.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Test Strategy",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-008-ocra-quality-automation.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-009-ocra-replay-verification.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-010-cli-exit-maintenance.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Test Strategy",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-011-reflection-policy-hardening.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-012-maintenance-cli-coverage-buffer.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-013-java17-enhancements.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-014-architecture-harmonization.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Test Strategy",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-015-spotbugs-dead-state-enforcement.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-016-ocra-ui-replay.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-017-operator-console-unification.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-018-ocra-migration-retirement.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-019-commit-msg-hook-refactor.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-020-operator-ui-protocol-tabs.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-021-protocol-info-surface.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-022-hotp-operator-support.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-023-totp-operator-support.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-024-fido2-webauthn-operator-support.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-025-sample-vector-label-harmonization.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Test Strategy",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-026-fido2-attestation-support.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Test Strategy",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-027-unified-credential-store.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-028-ide-warning-remediation.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-029-pmd-rule-hardening.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-030-gradle-9-upgrade.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-031-legacy-entrypoint-removal.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-032-palantir-formatter-adoption.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-033-operator-console-naming-alignment.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Test Strategy",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-034-unified-validation-feedback.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Test Strategy",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-035-evaluate-replay-audit-tracing.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Test Strategy",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-036-verbose-trace-tier-controls.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Test Strategy",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-037-base32-inline-secret-support.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-038-result-preview-window.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-039-emv-cap-simulation.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-040-eudiw-openid4vp-simulator.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "Requirements",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ],
+  "docs/4-architecture/specs/feature-041-operator-console-js-test-harness.md": [
+    "metadata table",
+    "Goals & Non-Goals",
+    "UI / Interaction Mock-ups",
+    "Branch & Scenario Matrix",
+    "Telemetry & Observability",
+    "Documentation Deliverables",
+    "Fixtures & Sample Data"
+  ]
+}

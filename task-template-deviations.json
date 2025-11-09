@@ -1,0 +1,127 @@
+{
+  "docs/4-architecture/tasks/feature-001-core-credential-domain.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-002-persistence-hardening.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-003-rest-ocra-endpoint.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-004-rest-ocra-credential-resolution.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-005-cli-ocra-operations.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-006-ocra-operator-ui.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-007-operator-docs.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-008-ocra-quality-automation.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-009-ocra-replay-verification.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-010-cli-exit-maintenance.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-011-reflection-policy-hardening.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-012-maintenance-cli-coverage-buffer.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-013-java17-enhancements.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-014-architecture-harmonization.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-015-spotbugs-dead-state-enforcement.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-016-ocra-ui-replay.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-017-operator-console-unification.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-018-ocra-migration-retirement.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-019-commit-msg-hook-refactor.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-020-operator-ui-protocol-tabs.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-021-protocol-info-surface.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-022-hotp-operator-support.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-023-totp-operator-support.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-024-fido2-webauthn-operator-support.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-025-sample-vector-label-harmonization.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-026-fido2-attestation-support.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-027-unified-credential-store.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-028-ide-warning-remediation.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-029-pmd-rule-hardening.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-030-gradle-9-upgrade.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-031-legacy-entrypoint-removal.md": [
+    "Status line",
+    "Last updated line",
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-032-palantir-formatter-adoption.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-033-operator-console-naming-alignment.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-034-unified-validation-feedback.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-035-evaluate-replay-audit-tracing.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-036-verbose-trace-tier-controls.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-037-base32-inline-secret-support.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-038-result-preview-window.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-039-emv-cap-simulation.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-040-eudiw-openid4vp-simulator.md": [
+    "Checklist section"
+  ],
+  "docs/4-architecture/tasks/feature-041-operator-console-js-test-harness.md": [
+    "Checklist section"
+  ]
+}

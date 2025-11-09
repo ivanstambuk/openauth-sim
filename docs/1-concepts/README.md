@@ -42,8 +42,8 @@ OATH Challenge-Response Algorithm (OCRA) credentials are the first protocol slic
 
 ## References
 
-- `docs/4-architecture/specs/feature-001-core-credential-domain.md`
-- `docs/4-architecture/feature-plan-001-core-domain.md`
+- `docs/4-architecture/features/001/spec.md`
+- `docs/4-architecture/features/001/plan.md`
 - `core/src/main/java/io/openauth/sim/core/credentials/ocra/OcraCredentialFactory.java`
 - `core/src/main/java/io/openauth/sim/core/store/encryption/PersistenceEncryption.java`
 - `docs/2-how-to/configure-persistence-profiles.md`

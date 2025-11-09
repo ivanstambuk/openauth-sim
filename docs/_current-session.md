@@ -27,15 +27,15 @@
 
 ## Reference Links
 - Roadmap entries: `docs/4-architecture/roadmap.md` (Workstreams 27, 34, 35, 40)
-- Additional spec: `docs/4-architecture/specs/feature-029-pmd-rule-hardening.md`
-- Additional plan: `docs/4-architecture/feature-plan-029-pmd-rule-hardening.md`
-- Additional tasks: `docs/4-architecture/tasks/feature-029-pmd-rule-hardening.md`
-- Spec (Feature 041): `docs/4-architecture/specs/feature-041-operator-console-js-test-harness.md`
-- Plan (Feature 041): `docs/4-architecture/feature-plan-041-operator-console-js-test-harness.md`
-- Tasks (Feature 041): `docs/4-architecture/tasks/feature-041-operator-console-js-test-harness.md`
-- Spec (Feature 040): `docs/4-architecture/specs/feature-040-eudiw-openid4vp-simulator.md`
-- Plan (Feature 040): `docs/4-architecture/feature-plan-040-eudiw-openid4vp-simulator.md`
-- Tasks (Feature 040): `docs/4-architecture/tasks/feature-040-eudiw-openid4vp-simulator.md`
+- Additional spec: `docs/4-architecture/features/029/spec.md`
+- Additional plan: `docs/4-architecture/features/029/plan.md`
+- Additional tasks: `docs/4-architecture/features/029/tasks.md`
+- Spec (Feature 041): `docs/4-architecture/features/041/spec.md`
+- Plan (Feature 041): `docs/4-architecture/features/041/plan.md`
+- Tasks (Feature 041): `docs/4-architecture/features/041/tasks.md`
+- Spec (Feature 040): `docs/4-architecture/features/040/spec.md`
+- Plan (Feature 040): `docs/4-architecture/features/040/plan.md`
+- Tasks (Feature 040): `docs/4-architecture/features/040/tasks.md`
 - Quick reference: `docs/5-operations/session-quick-reference.md`
 
 > Update this snapshot before ending each session and after significant context changes.

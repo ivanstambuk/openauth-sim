@@ -9,13 +9,14 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - **Confirm prerequisites.** Ensure `JAVA_HOME` points to a Java 17 JDK before invoking Gradle or Git hooks.
 - **Hook guard.** Verify `git config core.hooksPath githooks` before staging changes; reapply the setting after fresh clones or tool resets so the managed pre-commit hook and `commit-msg` gitlint gate both execute.
 - **Prime the knowledge map.** Skim `docs/4-architecture/knowledge-map.md` and the up-to-date module snapshot in `docs/architecture-graph.json` before planning so new work reinforces the architectural relationships already captured there.
+- **Template usage.** Author new specifications, feature plans, and task checklists using `docs/templates/feature-spec-template.md`, `docs/templates/feature-plan-template.md`, and `docs/templates/feature-tasks-template.md` so structure, metadata, and verification notes stay uniform across features.
 
 ## Specification Pipeline
-- Start every feature by updating or creating its specification in `docs/4-architecture/specs/`.
+- Start every feature by updating or creating its specification at `docs/4-architecture/features/<NNN>/spec.md`.
 - For any new UI feature or modification, include an ASCII mock-up in the specification (see `docs/4-architecture/spec-guidelines/ui-ascii-mockups.md`).
 - Capture every high-impact clarification question (and each medium-impact uncertainty) per feature; log them in `docs/4-architecture/open-questions.md` and record resolutions in the spec. Tidy lightweight ambiguities locally and note the adjustment in the governing spec/plan.
-- Generate or refresh the feature plan (`docs/4-architecture/feature-plan-*.md`) only after the specification is current and clarifications resolved.
-- Maintain a per-feature tasks checklist under `docs/4-architecture/tasks/` that mirrors the plan, orders tests before code, and keeps planned increments ≤90 minutes by preferring finer-grained entries and documenting sub-steps when something nears the limit.
+- Generate or refresh the feature plan (`docs/4-architecture/features/<NNN>/plan.md`) only after the specification is current and clarifications resolved.
+- Maintain a per-feature tasks checklist at `docs/4-architecture/features/<NNN>/tasks.md` that mirrors the plan, orders tests before code, and keeps planned increments ≤90 minutes by preferring finer-grained entries and documenting sub-steps when something nears the limit.
 - When revising a specification, only document fallback or compatibility behaviour if the user explicitly asked for it; if instructions are unclear, pause and request confirmation instead of assuming a fallback.
 - Run the analysis gate in `docs/5-operations/analysis-gate-checklist.md` once spec, plan, and tasks agree; address findings before implementation.
 
@@ -47,7 +48,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
   - Pre-commit hooks and the managed quality pipeline routinely take longer than two minutes. When invoking `git commit` (or any command that triggers that pipeline) via the CLI tool, always specify `timeout_ms >= 300000` so the process has enough time to finish cleanly.
 - **Dependencies.** **Never add or upgrade libraries without explicit user approval.** When granted, document the rationale in the feature plan. Dependabot opens weekly update PRs—treat them as scoped requests that still require owner approval before merging.
 - **No surprises.** Avoid destructive commands (e.g., `rm -rf`, `git reset --hard`) unless the user requests them. Stay within the repository sandbox.
-- **No reflection.** Do not introduce Java reflection in production or test sources. When existing code requires access to collaborators, expose package-private seams or dedicated test fixtures instead. Guardrails live under Feature 011 (`docs/4-architecture/specs/feature-011-reflection-policy-hardening.md`) and every increment must keep `./gradlew reflectionScan` and the ArchUnit suite green.
+- **No reflection.** Do not introduce Java reflection in production or test sources. When existing code requires access to collaborators, expose package-private seams or dedicated test fixtures instead. Guardrails live under Feature 011 (`docs/4-architecture/features/011/spec.md`) and every increment must keep `./gradlew reflectionScan` and the ArchUnit suite green.
 
 ## Guardrails & Governance
 - **Module boundaries.** Treat `core/` as the source of truth for cryptography; facades (`cli/`, `rest-api/`, `ui/`) must not mutate its internals without an approved plan. Delegate OCRA orchestration through the shared `application` module and acquire MapDB stores via `infra-persistence`’s `CredentialStoreFactory` instead of touching builders directly.
@@ -57,7 +58,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 - **Escalation policy.** Propose risky refactors, persistence changes, or dependency updates to the user before touching code—record approvals in the relevant plan.
 
 ## Tracking & Documentation
-- **Implementation plans.** Keep high-level plans in `docs/4-architecture/roadmap.md`, specifications in `docs/4-architecture/specs/`, feature plans alongside them, and per-feature tasks under `docs/4-architecture/tasks/`. Remove plans once work is complete.
+- **Implementation plans.** Keep high-level plans in `docs/4-architecture/roadmap.md`, store each feature’s spec/plan/tasks inside `docs/4-architecture/features/<NNN>/`, and remove plans once work is complete.
 - **Open questions.** Log open questions in `docs/4-architecture/open-questions.md` and mark them resolved when answered.
 - **Decisions.** Record only confirmed architectural decisions as ADRs under `docs/6-decisions/`.
 - **Local overrides.** If a subdirectory requires different instructions, add an `AGENTS.md` there and reference it from the roadmap/feature plan.

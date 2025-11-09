@@ -64,7 +64,7 @@ Stop the service with `Ctrl+C`. To inspect the runtime classpath instead:
 ### Specification-Driven Development (SDD)
 
 The project runs on Specification-Driven Development: specifications lead every change, executable tests capture behaviour before code, and only then do we plan and implement tasks. The working rhythm is:
-1. Draft or update the feature specification (see `docs/4-architecture/specs/`).
+1. Draft or update the feature specification (stored at `docs/4-architecture/features/<NNN>/spec.md`).
 2. Capture expected behaviour as failing tests or executable specifications.
 3. Break the work into logical, self-contained tasks that are expected to complete within ≤90 minutes (shorter slices encouraged) and reference the spec plus staged tests.
 4. Implement the smallest viable increment, keeping specs, plans, and docs in sync.
