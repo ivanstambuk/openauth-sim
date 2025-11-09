@@ -848,6 +848,125 @@ fieldset {
   overflow-x: auto;
 }
 
+.baseline-banner {
+  border-left: 4px solid rgba(255, 196, 54, 0.9);
+  background: rgba(255, 196, 54, 0.08);
+  color: #ffdc78;
+  font-weight: 600;
+  padding: var(--ocra-spacing-sm) var(--ocra-spacing-md);
+  border-radius: var(--ocra-radius-md);
+}
+
+.presentation-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ocra-spacing-md);
+  margin-top: var(--ocra-spacing-md);
+}
+
+.presentation-placeholder {
+  margin: 0;
+  padding: var(--ocra-spacing-md);
+  border: 1px dashed rgba(143, 228, 255, 0.45);
+  border-radius: var(--ocra-radius-md);
+  color: var(--ocra-color-text-muted);
+  font-size: 0.95rem;
+}
+
+.presentation-card {
+  border: 1px solid rgba(22, 211, 243, 0.2);
+  border-radius: var(--ocra-radius-md);
+  background: rgba(4, 10, 20, 0.85);
+  box-shadow: var(--ocra-shadow-sm);
+  overflow: hidden;
+}
+
+.presentation-card[open] {
+  border-color: rgba(22, 211, 243, 0.35);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.45);
+}
+
+.presentation-card__summary {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ocra-spacing-xs);
+  padding: var(--ocra-spacing-md) var(--ocra-spacing-lg);
+  background: rgba(8, 20, 38, 0.88);
+}
+
+.presentation-card__title {
+  font-weight: 600;
+  color: var(--ocra-color-primary-accent);
+  letter-spacing: 0.04em;
+}
+
+.presentation-card__meta {
+  font-size: 0.85rem;
+  color: var(--ocra-color-text-muted);
+}
+
+.presentation-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ocra-spacing-xs);
+}
+
+.presentation-card__badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(22, 211, 243, 0.35);
+  color: rgba(143, 228, 255, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.presentation-card__body {
+  padding: var(--ocra-spacing-md) var(--ocra-spacing-lg) var(--ocra-spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ocra-spacing-md);
+}
+
+.presentation-card__details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--ocra-spacing-sm) var(--ocra-spacing-lg);
+  margin: 0;
+}
+
+.presentation-card__details dt {
+  margin: 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+  color: var(--ocra-color-text-muted);
+}
+
+.presentation-card__details dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ocra-color-text);
+}
+
+.presentation-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ocra-spacing-sm);
+}
+
+.presentation-card__action {
+  flex: 0 0 auto;
+}
+
+.presentation-card__token {
+  width: 100%;
+  min-height: 8rem;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;

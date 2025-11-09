@@ -54,11 +54,20 @@ public final class OpenId4VpWalletSimulationService {
         boolean holderBinding = keyBindingJwt.isPresent();
         Presentation presentation =
                 new Presentation(credentialId, format, holderBinding, trustedAuthorityMatch, vpToken, disclosureHashes);
-        Trace trace = new Trace(
-                OpenId4VpWalletSimulationService.sha256Hex(compactSdJwt),
-                keyBindingJwt.map(OpenId4VpWalletSimulationService::sha256Hex),
+        String vpTokenHash = OpenId4VpWalletSimulationService.sha256Hex(compactSdJwt);
+        Optional<String> kbJwtHash = keyBindingJwt.map(OpenId4VpWalletSimulationService::sha256Hex);
+        PresentationTrace presentationTrace = new PresentationTrace(
+                credentialId,
+                credentialId,
+                format,
+                holderBinding,
                 disclosureHashes,
+                vpTokenHash,
+                kbJwtHash,
+                Optional.empty(),
                 trustedAuthorityMatch);
+        Trace trace =
+                new Trace(vpTokenHash, kbJwtHash, disclosureHashes, trustedAuthorityMatch, List.of(presentationTrace));
         TelemetrySignal telemetry = this.dependencies
                 .telemetryPublisher()
                 .walletResponded(
@@ -224,11 +233,35 @@ public final class OpenId4VpWalletSimulationService {
             String vpTokenHash,
             Optional<String> kbJwtHash,
             List<String> disclosureHashes,
-            Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMatch) {
+            Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMatch,
+            List<PresentationTrace> presentations) {
         public Trace {
             Objects.requireNonNull(vpTokenHash, "vpTokenHash");
             kbJwtHash = kbJwtHash == null ? Optional.empty() : kbJwtHash;
             disclosureHashes = disclosureHashes == null ? List.of() : List.copyOf(disclosureHashes);
+            trustedAuthorityMatch = trustedAuthorityMatch == null ? Optional.empty() : trustedAuthorityMatch;
+            presentations = presentations == null ? List.of() : List.copyOf(presentations);
+        }
+    }
+
+    public record PresentationTrace(
+            String presentationId,
+            String credentialId,
+            String format,
+            boolean holderBinding,
+            List<String> disclosureHashes,
+            String vpTokenHash,
+            Optional<String> kbJwtHash,
+            Optional<String> deviceResponseHash,
+            Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMatch) {
+        public PresentationTrace {
+            Objects.requireNonNull(presentationId, "presentationId");
+            Objects.requireNonNull(credentialId, "credentialId");
+            Objects.requireNonNull(format, "format");
+            disclosureHashes = disclosureHashes == null ? List.of() : List.copyOf(disclosureHashes);
+            Objects.requireNonNull(vpTokenHash, "vpTokenHash");
+            kbJwtHash = kbJwtHash == null ? Optional.empty() : kbJwtHash;
+            deviceResponseHash = deviceResponseHash == null ? Optional.empty() : deviceResponseHash;
             trustedAuthorityMatch = trustedAuthorityMatch == null ? Optional.empty() : trustedAuthorityMatch;
         }
     }

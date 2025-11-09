@@ -5,13 +5,13 @@ import java.io.PrintWriter;
 import java.util.List;
 import java.util.Objects;
 
-final class VerboseTracePrinter {
+public final class VerboseTracePrinter {
 
     private VerboseTracePrinter() {
         // Utility class.
     }
 
-    static void print(PrintWriter writer, VerboseTrace trace) {
+    public static void print(PrintWriter writer, VerboseTrace trace) {
         Objects.requireNonNull(writer, "writer");
         if (trace == null) {
             return;

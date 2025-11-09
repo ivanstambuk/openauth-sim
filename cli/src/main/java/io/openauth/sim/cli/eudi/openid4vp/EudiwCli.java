@@ -2,11 +2,14 @@ package io.openauth.sim.cli.eudi.openid4vp;
 
 import io.openauth.sim.application.eudi.openid4vp.Oid4vpProblemDetails;
 import io.openauth.sim.application.eudi.openid4vp.Oid4vpValidationException;
+import io.openauth.sim.application.eudi.openid4vp.Oid4vpVerboseTraceBuilder;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpAuthorizationRequestService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpValidationService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService.InlineSdJwt;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService.ResponseMode;
+import io.openauth.sim.cli.VerboseTracePrinter;
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
@@ -183,7 +186,18 @@ public final class EudiwCli implements java.util.concurrent.Callable<Integer> {
                                     includeQrAscii,
                                     verbose);
                     var result = parent.parent.services().authorizationService().create(request);
-                    parent.parent.printPayload(Oid4vpCliMapper.authorization(result), outputJson);
+                    Optional<VerboseTrace> verboseTrace =
+                            verbose ? Oid4vpVerboseTraceBuilder.authorization(result) : Optional.empty();
+                    parent.parent.printPayload(
+                            Oid4vpCliMapper.authorization(
+                                    result,
+                                    verboseTrace
+                                            .map(Oid4vpCliMapper::traceToMap)
+                                            .orElse(null)),
+                            outputJson);
+                    if (verboseTrace.isPresent() && !outputJson) {
+                        VerboseTracePrinter.print(parent.parent.out(), verboseTrace.get());
+                    }
                     return CommandLine.ExitCode.OK;
                 } catch (IllegalArgumentException ex) {
                     parent.parent.err().println("error=" + ex.getMessage());
@@ -268,7 +282,14 @@ public final class EudiwCli implements java.util.concurrent.Callable<Integer> {
                             Optional.ofNullable(trustedAuthorityPolicy));
                     var result =
                             parent.parent.services().walletSimulationService().simulate(request);
-                    parent.parent.printPayload(Oid4vpCliMapper.wallet(result, verbose), outputJson);
+                    VerboseTrace verboseTrace = verbose ? Oid4vpVerboseTraceBuilder.wallet(result) : null;
+                    parent.parent.printPayload(
+                            Oid4vpCliMapper.wallet(
+                                    result, verboseTrace == null ? null : Oid4vpCliMapper.traceToMap(verboseTrace)),
+                            outputJson);
+                    if (verboseTrace != null && !outputJson) {
+                        VerboseTracePrinter.print(parent.parent.out(), verboseTrace);
+                    }
                     return CommandLine.ExitCode.OK;
                 } catch (IllegalArgumentException ex) {
                     parent.parent.err().println("error=" + ex.getMessage());
@@ -353,7 +374,14 @@ public final class EudiwCli implements java.util.concurrent.Callable<Integer> {
                         Optional.ofNullable(trustedAuthorityPolicy),
                         inlineVpToken.map(token -> token.vpToken().toString()));
                 var result = parent.services().validationService().validate(validateRequest);
-                parent.printPayload(Oid4vpCliMapper.validation(result, verbose), outputJson);
+                VerboseTrace verboseTrace = verbose ? Oid4vpVerboseTraceBuilder.validation(result) : null;
+                parent.printPayload(
+                        Oid4vpCliMapper.validation(
+                                result, verboseTrace == null ? null : Oid4vpCliMapper.traceToMap(verboseTrace)),
+                        outputJson);
+                if (verboseTrace != null && !outputJson) {
+                    VerboseTracePrinter.print(parent.out(), verboseTrace);
+                }
                 return CommandLine.ExitCode.OK;
             } catch (Oid4vpValidationException ex) {
                 parent.err().println(JsonWriter.toJson(problemDetails(ex.problemDetails())));

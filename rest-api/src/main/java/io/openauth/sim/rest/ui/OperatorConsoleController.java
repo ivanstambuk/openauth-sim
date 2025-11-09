@@ -31,6 +31,7 @@ final class OperatorConsoleController {
     private static final String REST_VERIFICATION_PATH = "/api/v1/ocra/verify";
     private static final Set<String> SUPPORTED_PROTOCOLS =
             Set.of("ocra", "hotp", "totp", "fido2", "emv", "eudi-openid4vp", "eudi-iso-18013-5", "eudi-siopv2");
+    private static final Map<String, String> PROTOCOL_ALIASES = Map.of("eudiw", "eudi-openid4vp");
 
     private static final Base64.Encoder BASE64_URL_ENCODER =
             Base64.getUrlEncoder().withoutPadding();
@@ -56,8 +57,11 @@ final class OperatorConsoleController {
     @GetMapping("/console")
     String unifiedConsole(@ModelAttribute("form") OcraEvaluationForm form, HttpServletRequest request, Model model) {
         HttpSession session = request.getSession(true);
+        EudiwOperatorConsoleData.Snapshot eudiwData = EudiwOperatorConsoleData.snapshot();
         model.addAttribute("csrfToken", ensureCsrfToken(session));
         model.addAttribute("activeProtocol", determineProtocol(request.getParameter("protocol")));
+        model.addAttribute("initialEudiwTab", request.getParameter("tab"));
+        model.addAttribute("initialEudiwMode", request.getParameter("mode"));
         model.addAttribute("evaluationEndpoint", REST_EVALUATION_PATH);
         model.addAttribute("verificationEndpoint", REST_VERIFICATION_PATH);
         model.addAttribute("credentialsEndpoint", "/api/v1/ocra/credentials");
@@ -79,6 +83,12 @@ final class OperatorConsoleController {
         model.addAttribute("totpCredentialSampleEndpoint", "/api/v1/totp/credentials");
         model.addAttribute("totpInlinePresetsJson", serializeTotpInlinePresets());
         model.addAttribute("totpReplayEndpoint", "/api/v1/totp/replay");
+        model.addAttribute("eudiwRequestEndpoint", "/api/v1/eudiw/openid4vp/requests");
+        model.addAttribute("eudiwWalletEndpoint", "/api/v1/eudiw/openid4vp/wallet/simulate");
+        model.addAttribute("eudiwValidateEndpoint", "/api/v1/eudiw/openid4vp/validate");
+        model.addAttribute("eudiwSeedEndpoint", "/api/v1/eudiw/openid4vp/presentations/seed");
+        model.addAttribute("eudiwConsoleData", eudiwData);
+        model.addAttribute("eudiwConsoleDataJson", serializeEudiwConsoleData(eudiwData));
         model.addAttribute("emvEvaluateEndpoint", "/api/v1/emv/cap/evaluate");
         model.addAttribute("emvStoredEvaluateEndpoint", "/api/v1/emv/cap/evaluate");
         model.addAttribute("emvReplayEndpoint", "/api/v1/emv/cap/replay");
@@ -110,6 +120,9 @@ final class OperatorConsoleController {
             return "ocra";
         }
         String normalised = requested.trim().toLowerCase();
+        if (PROTOCOL_ALIASES.containsKey(normalised)) {
+            return PROTOCOL_ALIASES.get(normalised);
+        }
         return SUPPORTED_PROTOCOLS.contains(normalised) ? normalised : "ocra";
     }
 
@@ -142,6 +155,14 @@ final class OperatorConsoleController {
             return objectMapper.writeValueAsString(TotpOperatorSampleData.inlinePresets());
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("Unable to render TOTP inline presets", ex);
+        }
+    }
+
+    private String serializeEudiwConsoleData(EudiwOperatorConsoleData.Snapshot snapshot) {
+        try {
+            return objectMapper.writeValueAsString(snapshot);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Unable to render EUDIW console data", ex);
         }
     }
 

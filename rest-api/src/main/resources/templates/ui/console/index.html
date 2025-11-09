@@ -200,19 +200,9 @@
         </details>
       </section>
 
-      <section
-          id="protocol-panel-eudi-openid4vp"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="eudi-openid4vp"
-          aria-labelledby="protocol-tab-eudi-openid4vp"
-          th:attr="hidden=${activeProtocol}!='eudi-openid4vp' ? 'hidden' : null, aria-hidden=${activeProtocol}!='eudi-openid4vp' ? 'true' : null"
-        >
-        <h2>EUDIW OpenID4VP 1.0</h2>
-        <p>
-          EUDI wallet OpenID4VP 1.0 presentation tooling will land in a dedicated workstream. Placeholder
-          remains until the simulator can orchestrate credential offers and verifications.
-        </p>
-      </section>
+      <th:block
+          th:replace="~{ui/eudi/openid4vp/panel :: eudiwPanel(${activeProtocol}=='eudi-openid4vp', ${eudiwConsoleData})}"
+        ></th:block>
 
       <section
           id="protocol-panel-eudi-iso-18013-5"
@@ -705,9 +695,13 @@
     <script th:src="@{/ui/protocol-info.js}"></script>
     <script th:src="@{/ui/shared/verbose-trace.js}"></script>
     <script th:src="@{/ui/shared/secret-fields.js}"></script>
+    <script>
+      window.__operatorConsoleInitialSearch = window.location.search;
+    </script>
     <script th:src="@{/ui/console/console.js}"></script>
     <script th:src="@{/ui/hotp/console.js}"></script>
     <script th:src="@{/ui/totp/console.js}"></script>
+    <script th:src="@{/ui/eudi-openid4vp/console.js}"></script>
     <script th:src="@{/ui/emv/console.js}"></script>
     <script th:src="@{/ui/fido2/console.js}"></script>
   </body>

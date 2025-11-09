@@ -26,11 +26,32 @@
     'fido2',
     'emv',
   ]);
+  var protocolAliases = new Map([
+    ['eudiw', 'eudi-openid4vp'],
+  ]);
   var allowedTabs = new Set(['evaluate', 'replay']);
   var allowedModes = new Set(['inline', 'stored']);
   var allowedTotpTabs = new Set(['evaluate', 'replay']);
   var allowedTotpModes = new Set(['stored', 'inline']);
   var allowedFido2Modes = new Set(['stored', 'inline', 'replay']);
+
+  function canonicalProtocolValue(value) {
+    if (!value) {
+      return 'ocra';
+    }
+    var normalized = String(value).trim().toLowerCase();
+    if (protocolAliases.has(normalized)) {
+      return protocolAliases.get(normalized);
+    }
+    return allowedProtocols.has(normalized) ? normalized : 'ocra';
+  }
+
+  function protocolQueryValue(value) {
+    if (!value) {
+      return 'ocra';
+    }
+    return value;
+  }
 
   var currentProtocol = 'ocra';
   var lastProtocolTabs = { ocra: 'evaluate', hotp: 'evaluate', totp: 'evaluate', fido2: 'evaluate' };
@@ -44,8 +65,8 @@
 
   if (operatorConsoleRoot) {
     var activeProtocolAttr = operatorConsoleRoot.getAttribute('data-active-protocol');
-    if (activeProtocolAttr && allowedProtocols.has(activeProtocolAttr)) {
-      currentProtocol = activeProtocolAttr;
+    if (activeProtocolAttr) {
+      currentProtocol = canonicalProtocolValue(activeProtocolAttr);
     }
   }
 
@@ -123,8 +144,10 @@
 
   function setActiveProtocol(protocol, ocraMode, options) {
     options = options || {};
+    var canonicalProtocol = canonicalProtocolValue(protocol);
     var previousProtocol = currentProtocol;
-    currentProtocol = protocol;
+    currentProtocol = canonicalProtocol;
+    protocol = canonicalProtocol;
     if (previousProtocol !== protocol) {
       clearVerboseTracePanel();
     }
@@ -300,7 +323,7 @@ protocolTabs.forEach(function (tab) {
   }
 
   function normalizeState(state) {
-    var protocol = allowedProtocols.has(state && state.protocol) ? state.protocol : 'ocra';
+    var protocol = canonicalProtocolValue(state && state.protocol);
     var normalized = { protocol: protocol };
 
     if (protocol === 'totp') {
@@ -396,7 +419,7 @@ protocolTabs.forEach(function (tab) {
 
   function buildSearch(state) {
     var params = new global.URLSearchParams();
-    params.set('protocol', state.protocol);
+    params.set('protocol', protocolQueryValue(state.protocol));
     if (state.tab && allowedTabs.has(state.tab)) {
       params.set('tab', state.tab);
     }
@@ -546,8 +569,8 @@ protocolTabs.forEach(function (tab) {
     var mode = params.get('mode');
     if (!protocol && operatorConsoleRoot) {
       var attr = operatorConsoleRoot.getAttribute('data-active-protocol');
-      if (attr && allowedProtocols.has(attr)) {
-        protocol = attr;
+      if (attr) {
+        protocol = canonicalProtocolValue(attr);
       }
     }
     return normalizeState({
@@ -585,10 +608,11 @@ protocolTabs.forEach(function (tab) {
   protocolTabs.forEach(function (tab) {
     tab.addEventListener('click', function (event) {
       event.preventDefault();
-      var protocol = tab.getAttribute('data-protocol-tab');
-      if (!protocol || !allowedProtocols.has(protocol)) {
+      var protocolAttr = tab.getAttribute('data-protocol-tab');
+      if (!protocolAttr) {
         return;
       }
+      var protocol = canonicalProtocolValue(protocolAttr);
       var nextState;
       if (protocol === 'ocra') {
         nextState = { protocol: 'ocra', tab: 'evaluate', mode: 'inline' };

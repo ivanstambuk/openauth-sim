@@ -41,13 +41,24 @@ public final class OpenId4VpValidationService {
                             telemetryFields(request, submission, decision.trustedAuthorityMatch()),
                             decision.trustedAuthorityMatch());
 
+            PresentationTrace presentationTrace = new PresentationTrace(
+                    submission.credentialId(),
+                    submission.credentialId(),
+                    submission.format(),
+                    verified.holderBinding(),
+                    verified.disclosureHashes(),
+                    verified.vpTokenHash(),
+                    verified.kbJwtHash(),
+                    Optional.empty(),
+                    decision.trustedAuthorityMatch());
             Trace trace = new Trace(
                     verified.vpTokenHash(),
                     verified.kbJwtHash(),
                     verified.disclosureHashes(),
                     decision.trustedAuthorityMatch(),
                     submission.walletPresetId(),
-                    submission.dcqlPreview());
+                    submission.dcqlPreview(),
+                    List.of(presentationTrace));
             Presentation presentation = new Presentation(
                     submission.credentialId(),
                     submission.format(),
@@ -348,7 +359,8 @@ public final class OpenId4VpValidationService {
             List<String> disclosureHashes,
             Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMatch,
             Optional<String> walletPresetId,
-            Optional<String> dcqlPreview) {
+            Optional<String> dcqlPreview,
+            List<PresentationTrace> presentations) {
         public Trace {
             Objects.requireNonNull(vpTokenHash, "vpTokenHash");
             kbJwtHash = kbJwtHash == null ? Optional.empty() : kbJwtHash;
@@ -356,6 +368,29 @@ public final class OpenId4VpValidationService {
             trustedAuthorityMatch = trustedAuthorityMatch == null ? Optional.empty() : trustedAuthorityMatch;
             walletPresetId = walletPresetId == null ? Optional.empty() : walletPresetId;
             dcqlPreview = dcqlPreview == null ? Optional.empty() : dcqlPreview;
+            presentations = presentations == null ? List.of() : List.copyOf(presentations);
+        }
+    }
+
+    public record PresentationTrace(
+            String presentationId,
+            String credentialId,
+            String format,
+            boolean holderBinding,
+            List<String> disclosureHashes,
+            String vpTokenHash,
+            Optional<String> kbJwtHash,
+            Optional<String> deviceResponseHash,
+            Optional<TrustedAuthorityEvaluator.TrustedAuthorityVerdict> trustedAuthorityMatch) {
+        public PresentationTrace {
+            Objects.requireNonNull(presentationId, "presentationId");
+            Objects.requireNonNull(credentialId, "credentialId");
+            Objects.requireNonNull(format, "format");
+            disclosureHashes = disclosureHashes == null ? List.of() : List.copyOf(disclosureHashes);
+            Objects.requireNonNull(vpTokenHash, "vpTokenHash");
+            kbJwtHash = kbJwtHash == null ? Optional.empty() : kbJwtHash;
+            deviceResponseHash = deviceResponseHash == null ? Optional.empty() : deviceResponseHash;
+            trustedAuthorityMatch = trustedAuthorityMatch == null ? Optional.empty() : trustedAuthorityMatch;
         }
     }
 

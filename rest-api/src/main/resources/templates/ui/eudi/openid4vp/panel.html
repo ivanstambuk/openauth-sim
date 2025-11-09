@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>EUDIW OpenID4VP Panel</title>
+  </head>
+  <body>
+    <section
+        th:fragment="eudiwPanel(visible, consoleData)"
+        id="protocol-panel-eudi-openid4vp"
+        class="protocol-panel"
+        data-protocol-panel="eudi-openid4vp"
+        aria-labelledby="protocol-tab-eudi-openid4vp"
+        th:attr="hidden=${visible == null || !visible} ? 'hidden' : null,
+                 aria-hidden=${visible == null || !visible} ? 'true' : null,
+                 data-request-endpoint=${eudiwRequestEndpoint},
+                 data-wallet-endpoint=${eudiwWalletEndpoint},
+                 data-validate-endpoint=${eudiwValidateEndpoint},
+                 data-seed-endpoint=${eudiwSeedEndpoint},
+                 data-initial-tab=${initialEudiwTab} ?: '',
+                 data-initial-mode=${initialEudiwMode} ?: ''"
+        data-testid="eudiw-panel"
+      >
+      <div class="stack-lg">
+        <div
+            class="ocra-mode-toggle"
+            data-testid="eudiw-panel-tabs"
+            role="tablist"
+            aria-label="EUDIW interaction modes"
+          >
+          <button
+              type="button"
+              class="mode-pill mode-pill--active"
+              id="eudiw-panel-tab-evaluate"
+              data-testid="eudiw-panel-tab-evaluate"
+              data-eudiw-panel-target="evaluate"
+              role="tab"
+              aria-selected="true"
+              aria-controls="eudiw-evaluate-panel"
+            >
+            Evaluate
+          </button>
+          <button
+              type="button"
+              class="mode-pill"
+              id="eudiw-panel-tab-replay"
+              data-testid="eudiw-panel-tab-replay"
+              data-eudiw-panel-target="replay"
+              role="tab"
+              aria-selected="false"
+              aria-controls="eudiw-replay-panel"
+            >
+            Replay
+          </button>
+        </div>
+
+        <section
+            id="eudiw-evaluate-panel"
+            class="card-shell"
+            data-testid="eudiw-evaluate-panel"
+            data-eudiw-panel="evaluate"
+            role="tabpanel"
+            aria-labelledby="eudiw-panel-tab-evaluate"
+          >
+          <div class="card-shell__body section-columns">
+            <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+            <div class="stack-lg">
+              <h2 class="section-title" id="eudiw-evaluate-heading">EUDIW OpenID4VP – Generate a presentation</h2>
+              <fieldset
+                  class="mode-toggle"
+                  data-testid="eudiw-evaluate-mode-toggle"
+                  data-mode="inline"
+                >
+                <legend>Choose evaluation mode</legend>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="eudiwEvaluateModeInline"
+                    name="eudiwEvaluateMode"
+                    value="inline"
+                    data-testid="eudiw-evaluate-mode-select-inline"
+                    checked="checked"
+                  />
+                  <label for="eudiwEvaluateModeInline">Inline parameters</label>
+                  <p class="hint">Provide SD-JWT or mdoc payloads directly (sample vectors available).</p>
+                </div>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="eudiwEvaluateModeStored"
+                    name="eudiwEvaluateMode"
+                    value="stored"
+                    data-testid="eudiw-evaluate-mode-select-stored"
+                  />
+                  <label for="eudiwEvaluateModeStored">Stored credential</label>
+                  <p class="hint">Use a fixture-backed wallet preset to simulate the holder flow.</p>
+                </div>
+              </fieldset>
+
+              <div class="field-grid">
+                <div class="field-group">
+                  <label for="eudiwProfileSelect">Profile</label>
+                  <select
+                      id="eudiwProfileSelect"
+                      data-testid="eudiw-profile-select"
+                      aria-describedby="eudiwProfileHint"
+                    >
+                    <option value="HAIP" selected="selected">HAIP</option>
+                    <option value="BASELINE">Baseline</option>
+                  </select>
+                  <p class="hint" id="eudiwProfileHint">
+                    Baseline disables HAIP enforcement; use HAIP for fully compliant demo flows.
+                  </p>
+                </div>
+                <div class="field-group">
+                  <label for="eudiwResponseModeSelect">Response mode</label>
+                  <select
+                      id="eudiwResponseModeSelect"
+                      data-testid="eudiw-response-mode-select"
+                    >
+                    <option value="DIRECT_POST_JWT" selected="selected">direct_post.jwt</option>
+                    <option value="DIRECT_POST">direct_post</option>
+                    <option value="FRAGMENT">fragment</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label for="eudiwDcqlPreset">DCQL preset</label>
+                <select
+                    id="eudiwDcqlPreset"
+                    data-testid="eudiw-dcql-preset-select"
+                    aria-describedby="eudiwDcqlPresetHint"
+                  >
+                  <option value="" disabled="disabled">No presets available</option>
+                </select>
+                <p class="hint" id="eudiwDcqlPresetHint">
+                  Presets mirror <code>docs/test-vectors/eudiw/openid4vp/fixtures/dcql</code>.
+                </p>
+              </div>
+
+              <div class="field-group">
+                <label for="eudiwDcqlPreview">DCQL preview (read-only)</label>
+                <textarea
+                    id="eudiwDcqlPreview"
+                    class="code-textarea"
+                    rows="10"
+                    readonly="readonly"
+                    spellcheck="false"
+                    data-testid="eudiw-dcql-preview"
+                  ></textarea>
+              </div>
+
+              <div class="stack-sm">
+                <p class="hint">Trusted authorities</p>
+                <ul class="trusted-authority-list" data-testid="eudiw-trusted-authorities">
+                  <li>Loading trusted authority metadata…</li>
+                </ul>
+              </div>
+
+              <section
+                  class="stack-md"
+                  data-mode-section="inline"
+                  data-testid="eudiw-evaluate-inline-section"
+                  aria-label="Inline credential inputs"
+                >
+                <div class="inline-preset" data-testid="eudiw-inline-sample">
+                  <div class="inline-preset__fields">
+                    <label for="eudiwInlineSampleSelect">Load a sample vector</label>
+                    <div class="inline-preset__controls">
+                      <select
+                          id="eudiwInlineSampleSelect"
+                          data-testid="eudiw-inline-sample-select"
+                        >
+                        <option value="">Select sample</option>
+                      </select>
+                      <button
+                          type="button"
+                          class="button-secondary"
+                          data-testid="eudiw-inline-sample-apply"
+                        >
+                          Apply
+                        </button>
+                    </div>
+                  </div>
+                  <p class="hint">
+                    Inline samples copy SD-JWT, disclosures, KB-JWT, and policies into the form for quick demos.
+                  </p>
+                </div>
+
+                <div class="field-grid">
+                  <div class="field-group">
+                    <label for="eudiwInlineCredentialId">Credential ID</label>
+                    <input
+                        id="eudiwInlineCredentialId"
+                        type="text"
+                        data-testid="eudiw-inline-credential-id"
+                        autocomplete="off"
+                      />
+                  </div>
+                  <div class="field-group">
+                    <label for="eudiwInlineFormat">Format</label>
+                    <input
+                        id="eudiwInlineFormat"
+                        type="text"
+                        data-testid="eudiw-inline-format"
+                        autocomplete="off"
+                      />
+                  </div>
+                </div>
+
+                <div class="field-group">
+                  <label for="eudiwInlinePolicies">Trusted authority policies (comma separated)</label>
+                  <input
+                      id="eudiwInlinePolicies"
+                      type="text"
+                      data-testid="eudiw-inline-policies"
+                      autocomplete="off"
+                    />
+                </div>
+
+                <div class="field-group">
+                  <label for="eudiwInlineSdJwt">SD-JWT compact</label>
+                  <textarea
+                      id="eudiwInlineSdJwt"
+                      rows="4"
+                      data-testid="eudiw-inline-sdjwt"
+                      spellcheck="false"
+                    ></textarea>
+                </div>
+
+                <div class="field-group">
+                  <label for="eudiwInlineDisclosures">Disclosures (JSON)</label>
+                  <textarea
+                      id="eudiwInlineDisclosures"
+                      rows="4"
+                      data-testid="eudiw-inline-disclosures"
+                      spellcheck="false"
+                    ></textarea>
+                </div>
+
+                <div class="field-group">
+                  <label for="eudiwInlineKbJwt">KB-JWT compact (optional)</label>
+                  <textarea
+                      id="eudiwInlineKbJwt"
+                      rows="3"
+                      data-testid="eudiw-inline-kbjwt"
+                      spellcheck="false"
+                    ></textarea>
+                </div>
+
+                <div class="field-group">
+                  <label for="eudiwInlineDeviceResponse">DeviceResponse (Base64, optional)</label>
+                  <textarea
+                      id="eudiwInlineDeviceResponse"
+                      rows="3"
+                      data-testid="eudiw-inline-device-response"
+                      spellcheck="false"
+                    ></textarea>
+                  <p class="hint">
+                    Provide ISO/IEC 18013-5 DeviceResponse payloads when simulating mdoc presentations.
+                  </p>
+                </div>
+              </section>
+
+              <section
+                  class="stack-md"
+                  data-mode-section="stored"
+                  data-testid="eudiw-evaluate-stored-section"
+                  aria-label="Stored wallet preset"
+                  hidden="hidden"
+                >
+                <div class="field-group">
+                  <label for="eudiwStoredCredential">Stored wallet preset</label>
+                  <select
+                      id="eudiwStoredCredential"
+                      data-testid="eudiw-wallet-preset-select"
+                      aria-describedby="eudiwStoredCredentialHint"
+                    >
+                    <option value="" disabled="disabled">No presets available</option>
+                  </select>
+                  <p class="hint" id="eudiwStoredCredentialHint">
+                    Presets are bundled under <code>docs/test-vectors/eudiw/openid4vp/fixtures/synthetic</code>.
+                  </p>
+                </div>
+              </section>
+
+              <div
+                  class="seed-actions"
+                  data-testid="eudiw-seed-actions"
+                  hidden="hidden"
+                  aria-hidden="true"
+                >
+                <button
+                    type="button"
+                    class="button-secondary"
+                    data-testid="eudiw-seed-button"
+                  >
+                  Seed sample presentations
+                </button>
+                <p class="hint">
+                  Seed synthetic presentations when switching between fixture datasets or after clearing the store.
+                </p>
+                <p
+                    class="credential-status"
+                    data-testid="eudiw-seed-status"
+                    aria-live="polite"
+                    hidden="hidden"
+                    aria-hidden="true"
+                  ></p>
+              </div>
+
+              <div class="stack-md">
+                <div class="field-group">
+                  <label>ASCII QR preview</label>
+                  <pre
+                      class="qr-preview"
+                      data-testid="eudiw-qr-ascii"
+                      aria-live="polite"
+                    >Generate a request to render the ASCII QR.</pre>
+                </div>
+                <div class="field-group">
+                  <label for="eudiwQrAltUrl">Request URL</label>
+                  <input
+                      id="eudiwQrAltUrl"
+                      type="text"
+                      readonly="readonly"
+                      data-testid="eudiw-qr-alt-url"
+                      value=""
+                    />
+                  <p class="hint">Share the URL with a remote wallet when QR scanning isn’t available.</p>
+                </div>
+              </div>
+
+              <button
+                  type="button"
+                  class="button-primary"
+                  data-testid="eudiw-simulate-button"
+                  aria-describedby="eudiwSimulateHint"
+                >
+                Simulate wallet response
+              </button>
+              <p class="hint" id="eudiwSimulateHint">
+                Generates a request, renders the QR, and runs the deterministic wallet responder.
+              </p>
+            </div>
+
+            <aside class="stack-lg result-panel" data-testid="eudiw-result-card">
+              <div class="baseline-banner" data-testid="eudiw-baseline-banner" hidden="hidden" aria-hidden="true">
+                Baseline mode – HAIP enforcement disabled
+              </div>
+              <div class="result-summary">
+                <p class="result-badge" data-testid="eudiw-result-status">Awaiting simulation</p>
+                <p class="result-message" data-result-message hidden="hidden" aria-hidden="true"></p>
+                <p class="hint" data-result-hint hidden="hidden" aria-hidden="true"></p>
+              </div>
+              <div class="presentation-stack" data-testid="eudiw-result-presentations">
+                <p class="presentation-placeholder">
+                  Run a simulation to view presentation details.
+                </p>
+              </div>
+            </aside>
+          </div>
+          <script
+              type="application/json"
+              id="eudiw-console-data"
+              th:utext="${eudiwConsoleDataJson}"
+            ></script>
+        </section>
+
+        <section
+            id="eudiw-replay-panel"
+            class="card-shell"
+            data-testid="eudiw-replay-panel"
+            data-eudiw-panel="replay"
+            role="tabpanel"
+            aria-labelledby="eudiw-panel-tab-replay"
+            hidden="hidden"
+            aria-hidden="true"
+          >
+          <div class="card-shell__body section-columns">
+            <input type="hidden" name="_csrf" th:value="${csrfToken}" />
+            <div class="stack-lg">
+              <h2 class="section-title" id="eudiw-replay-heading">EUDIW OpenID4VP – Validate a presentation</h2>
+              <fieldset
+                  class="mode-toggle"
+                  data-testid="eudiw-replay-mode-toggle"
+                  data-mode="inline"
+                >
+                <legend>Choose replay mode</legend>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="eudiwReplayModeInline"
+                    name="eudiwReplayMode"
+                    value="inline"
+                    data-testid="eudiw-replay-mode-select-inline"
+                    checked="checked"
+                  />
+                  <label for="eudiwReplayModeInline">Inline parameters</label>
+                  <p class="hint">Paste VP Token JSON from an external wallet.</p>
+                </div>
+                <div class="mode-option">
+                  <input
+                    type="radio"
+                    id="eudiwReplayModeStored"
+                    name="eudiwReplayMode"
+                    value="stored"
+                    data-testid="eudiw-replay-mode-select-stored"
+                  />
+                  <label for="eudiwReplayModeStored">Stored presentation</label>
+                  <p class="hint">Validate a stored presentation fixture.</p>
+                </div>
+              </fieldset>
+
+              <section
+                  class="stack-md"
+                  data-mode-section="inline"
+                  data-testid="eudiw-replay-inline-section"
+                >
+                <div class="inline-preset">
+                  <div class="inline-preset__fields">
+                    <label for="eudiwReplaySampleSelect">Load a sample vector</label>
+                    <div class="inline-preset__controls">
+                      <select
+                          id="eudiwReplaySampleSelect"
+                          data-testid="eudiw-replay-sample-select"
+                        >
+                        <option value="">Select sample</option>
+                      </select>
+                      <button
+                          type="button"
+                          class="button-secondary"
+                          data-testid="eudiw-replay-sample-apply"
+                        >
+                          Apply
+                        </button>
+                    </div>
+                  </div>
+                  <p class="hint">Inline samples will populate the VP Token JSON textarea.</p>
+                </div>
+                <div class="field-group">
+                  <label for="eudiwReplayVpToken">Inline VP Token JSON</label>
+                  <textarea
+                      id="eudiwReplayVpToken"
+                      rows="10"
+                      data-testid="eudiw-replay-vp-token"
+                      spellcheck="false"
+                    ></textarea>
+                </div>
+              </section>
+
+              <section
+                  class="stack-md"
+                  data-mode-section="stored"
+                  data-testid="eudiw-replay-stored-section"
+                  hidden="hidden"
+                >
+                <div class="field-group">
+                  <label for="eudiwReplayStoredSelect">Stored presentation preset</label>
+                  <select
+                      id="eudiwReplayStoredSelect"
+                      data-testid="eudiw-replay-stored-select"
+                    >
+                    <option value="" disabled="disabled">No stored presentations available</option>
+                  </select>
+                </div>
+              </section>
+
+              <div class="field-grid">
+                <div class="field-group">
+                  <label for="eudiwReplayResponseMode">Response mode override</label>
+                  <select
+                      id="eudiwReplayResponseMode"
+                      data-testid="eudiw-replay-response-mode"
+                    >
+                    <option value="">Use preset/default</option>
+                    <option value="DIRECT_POST_JWT">direct_post.jwt</option>
+                    <option value="DIRECT_POST">direct_post</option>
+                    <option value="FRAGMENT">fragment</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label for="eudiwReplayPolicy">Trusted authority policy</label>
+                  <input
+                      id="eudiwReplayPolicy"
+                      type="text"
+                      data-testid="eudiw-replay-policy"
+                      autocomplete="off"
+                    />
+                </div>
+              </div>
+
+              <button
+                  type="button"
+                  class="button-primary"
+                  data-testid="eudiw-validate-button"
+                >
+                Validate presentation
+              </button>
+            </div>
+
+            <aside class="stack-lg result-panel" data-testid="eudiw-replay-result">
+              <div class="result-summary">
+                <p class="result-badge" data-testid="eudiw-replay-status">Awaiting validation</p>
+                <p class="result-message" data-result-message hidden="hidden" aria-hidden="true"></p>
+                <p class="hint" data-result-hint hidden="hidden" aria-hidden="true"></p>
+              </div>
+              <p class="hint" data-testid="eudiw-replay-problem-detail">—</p>
+              <div class="presentation-stack" data-testid="eudiw-replay-presentations">
+                <p class="presentation-placeholder">
+                  Validate a presentation to view replay details.
+                </p>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </div>
+    </section>
+  </body>
+</html>

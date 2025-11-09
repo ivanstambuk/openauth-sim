@@ -50,6 +50,13 @@ tasks.register<Exec>("emvConsoleJsTest") {
     workingDir = project.projectDir
 }
 
+tasks.register<Exec>("eudiwConsoleJsTest") {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Runs EUDIW OpenID4VP console JavaScript unit tests"
+    commandLine("node", "--test", "src/test/javascript/eudi/openid4vp/console.test.js")
+    workingDir = project.projectDir
+}
+
 tasks.named("check") {
-    dependsOn("emvConsoleJsTest")
+    dependsOn("emvConsoleJsTest", "eudiwConsoleJsTest")
 }

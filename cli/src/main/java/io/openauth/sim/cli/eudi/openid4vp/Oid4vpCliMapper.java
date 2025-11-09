@@ -3,43 +3,30 @@ package io.openauth.sim.cli.eudi.openid4vp;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpAuthorizationRequestService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpValidationService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService;
+import io.openauth.sim.core.trace.VerboseTrace;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 final class Oid4vpCliMapper {
     private Oid4vpCliMapper() {}
 
-    static Map<String, Object> authorization(OpenId4VpAuthorizationRequestService.AuthorizationRequestResult result) {
+    static Map<String, Object> authorization(
+            OpenId4VpAuthorizationRequestService.AuthorizationRequestResult result, Map<String, Object> tracePayload) {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("requestId", result.requestId());
         root.put("profile", result.profile().name());
         root.put("requestUri", result.requestUri());
         root.put("authorizationRequest", mapAuthorizationRequest(result.authorizationRequest()));
         result.qr().ifPresent(qr -> root.put("qr", Map.of("ascii", qr.ascii(), "uri", qr.uri())));
-        result.trace().ifPresent(trace -> root.put("trace", mapAuthorizationTrace(trace)));
-        root.put("telemetry", telemetry(result.telemetry()));
-        return root;
-    }
-
-    static Map<String, Object> wallet(OpenId4VpWalletSimulationService.SimulationResult result, boolean includeTrace) {
-        Map<String, Object> root = new LinkedHashMap<>();
-        root.put("requestId", result.requestId());
-        root.put("status", result.status().name());
-        root.put("profile", result.profile().name());
-        root.put("responseMode", result.responseMode().name());
-        root.put(
-                "presentations",
-                result.presentations().stream()
-                        .map(Oid4vpCliMapper::mapPresentation)
-                        .toList());
-        if (includeTrace) {
-            root.put("trace", mapWalletTrace(result.trace()));
+        if (tracePayload != null) {
+            root.put("trace", tracePayload);
         }
         root.put("telemetry", telemetry(result.telemetry()));
         return root;
     }
 
-    static Map<String, Object> validation(OpenId4VpValidationService.ValidationResult result, boolean includeTrace) {
+    static Map<String, Object> wallet(
+            OpenId4VpWalletSimulationService.SimulationResult result, Map<String, Object> tracePayload) {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("requestId", result.requestId());
         root.put("status", result.status().name());
@@ -50,8 +37,27 @@ final class Oid4vpCliMapper {
                 result.presentations().stream()
                         .map(Oid4vpCliMapper::mapPresentation)
                         .toList());
-        if (includeTrace) {
-            root.put("trace", mapValidationTrace(result.trace()));
+        if (tracePayload != null) {
+            root.put("trace", tracePayload);
+        }
+        root.put("telemetry", telemetry(result.telemetry()));
+        return root;
+    }
+
+    static Map<String, Object> validation(
+            OpenId4VpValidationService.ValidationResult result, Map<String, Object> tracePayload) {
+        Map<String, Object> root = new LinkedHashMap<>();
+        root.put("requestId", result.requestId());
+        root.put("status", result.status().name());
+        root.put("profile", result.profile().name());
+        root.put("responseMode", result.responseMode().name());
+        root.put(
+                "presentations",
+                result.presentations().stream()
+                        .map(Oid4vpCliMapper::mapPresentation)
+                        .toList());
+        if (tracePayload != null) {
+            root.put("trace", tracePayload);
         }
         root.put("telemetry", telemetry(result.telemetry()));
         return root;
@@ -65,18 +71,6 @@ final class Oid4vpCliMapper {
         payload.put("state", request.state());
         payload.put("responseMode", request.responseMode());
         payload.put("presentationDefinition", request.presentationDefinition());
-        return payload;
-    }
-
-    private static Map<String, Object> mapAuthorizationTrace(OpenId4VpAuthorizationRequestService.Trace trace) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("requestId", trace.requestId());
-        payload.put("profile", trace.profile().name());
-        payload.put("dcqlHash", trace.dcqlHash());
-        payload.put("trustedAuthorities", trace.trustedAuthorities());
-        payload.put("nonceFull", trace.nonce());
-        payload.put("stateFull", trace.state());
-        payload.put("requestUri", trace.requestUri());
         return payload;
     }
 
@@ -126,27 +120,36 @@ final class Oid4vpCliMapper {
         return payload;
     }
 
-    private static Map<String, Object> mapWalletTrace(OpenId4VpWalletSimulationService.Trace trace) {
+    static Map<String, Object> traceToMap(VerboseTrace trace) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("vpTokenHash", trace.vpTokenHash());
-        trace.kbJwtHash().ifPresent(value -> payload.put("kbJwtHash", value));
-        payload.put("disclosureHashes", trace.disclosureHashes());
+        payload.put("operation", trace.operation());
+        payload.put("metadata", trace.metadata());
         payload.put(
-                "trustedAuthorityMatch",
-                trace.trustedAuthorityMatch().map(match -> match.policy()).orElse(null));
+                "steps",
+                trace.steps().stream().map(Oid4vpCliMapper::mapTraceStep).toList());
         return payload;
     }
 
-    private static Map<String, Object> mapValidationTrace(OpenId4VpValidationService.Trace trace) {
+    private static Map<String, Object> mapTraceStep(VerboseTrace.TraceStep step) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("vpTokenHash", trace.vpTokenHash());
-        trace.kbJwtHash().ifPresent(value -> payload.put("kbJwtHash", value));
-        payload.put("disclosureHashes", trace.disclosureHashes());
+        payload.put("id", step.id());
+        payload.put("summary", step.summary());
+        if (step.detail() != null && !step.detail().isBlank()) {
+            payload.put("detail", step.detail());
+        }
+        if (step.specAnchor() != null && !step.specAnchor().isBlank()) {
+            payload.put("spec", step.specAnchor());
+        }
+        payload.put("attributes", step.attributes());
         payload.put(
-                "trustedAuthorityMatch",
-                trace.trustedAuthorityMatch().map(match -> match.policy()).orElse(null));
-        trace.walletPresetId().ifPresent(id -> payload.put("walletPreset", id));
-        trace.dcqlPreview().ifPresent(preview -> payload.put("dcqlPreview", preview));
+                "orderedAttributes",
+                step.typedAttributes().stream()
+                        .map(attribute -> Map.of(
+                                "type", attribute.type().label(),
+                                "name", attribute.name(),
+                                "value", String.valueOf(attribute.value())))
+                        .toList());
+        payload.put("notes", step.notes());
         return payload;
     }
 

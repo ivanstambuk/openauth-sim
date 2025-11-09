@@ -85,6 +85,113 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
    - Respond challenges covering short/long inputs (`respond-challenge4`, `respond-challenge8`).
    - Sign flows with low/high amounts (`sign-amount-0845`, `sign-amount-50375`).
 
+#### R2.4 – Verbose trace schema requirements
+All facades (application service, REST/CLI DTOs, verbose trace console, and replay flows) must emit the same JSON structure when `includeTrace=true`. The payload extends the summary fields already enumerated in R3 with a normative `provenance` object:
+
+```json
+"trace": {
+  "masterKeySha256": "sha256:…",
+  "sessionKey": "5EC8…",
+  "atc": "00B4",
+  "branchFactor": 6,
+  "height": 10,
+  "maskLength": 9,
+  "previewWindow": { "backward": 0, "forward": 0 },
+  "generateAcInput": { "terminal": "9F02…", "icc": "1000xxxxA500…" },
+  "iccPayloadTemplate": "1000xxxxA500…",
+  "iccPayloadResolved": "10000000A500…",
+  "generateAcResult": "8000…",
+  "bitmask": "....1F...",
+  "maskedDigitsOverlay": "....14...",
+  "issuerApplicationData": "06770A...",
+  "provenance": {
+    "protocolContext": {
+      "profile": "CAP-IDENTIFY",
+      "mode": "IDENTIFY",
+      "emvVersion": "4.3 Book 3",
+      "acType": "ARQC",
+      "cid": "0x80",
+      "issuerPolicyId": "retail-branch",
+      "issuerPolicyNotes": "CAP-1, ISO-0 decimalization"
+    },
+    "keyDerivation": {
+      "masterFamily": "IMK-AC",
+      "derivationAlgorithm": "EMV-3DES-ATC-split",
+      "masterKeyBytes": 16,
+      "masterKeySha256": "sha256:…",
+      "maskedPan": "492181••••••••1234",
+      "maskedPanSha256": "sha256:…",
+      "maskedPsn": "••01",
+      "maskedPsnSha256": "sha256:…",
+      "atc": "00B4",
+      "iv": "0000000000000000",
+      "sessionKey": "5EC8…",
+      "sessionKeyBytes": 16
+    },
+    "cdolBreakdown": {
+      "schemaItems": 8,
+      "entries": [
+        {
+          "index": 0,
+          "tag": "9F02",
+          "length": 6,
+          "source": "terminal",
+          "offset": "[00..05]",
+          "rawHex": "000000000000",
+          "decoded": { "label": "Amount Authorised", "value": "0.00" }
+        }
+      ],
+      "concatHex": "0000…"
+    },
+    "iadDecoding": {
+      "rawHex": "06770A03A48000",
+      "fields": [
+        { "name": "cvr", "value": "06770A03" },
+        { "name": "cdaSupported", "value": true }
+      ]
+    },
+    "macTranscript": {
+      "algorithm": "3DES-CBC-MAC (ISO9797-1 Alg 3)",
+      "paddingRule": "ISO9797-1 Method 2",
+      "iv": "0000000000000000",
+      "blockCount": 11,
+      "blocks": [
+        { "index": 0, "input": "B0", "cipher": "…" },
+        { "index": 10, "input": "B10", "cipher": "…" }
+      ],
+      "generateAcRaw": "8000…",
+      "cidFlags": { "arqc": true, "advice": false, "tc": false, "aac": false }
+    },
+    "decimalizationOverlay": {
+      "table": "ISO-0",
+      "sourceHex": "00B47F32A79FDA9400B4",
+      "sourceDecimal": "00541703287953009400B4",
+      "maskPattern": "....1F...........FFFFF..........8...",
+      "overlaySteps": [
+        { "index": 4, "from": "1", "to": "1" },
+        { "index": 5, "from": "7", "to": "4" }
+      ],
+      "otp": "140456438",
+      "digits": 9
+    }
+  }
+}
+```
+
+Key points:
+
+- Every field above is mandatory when verbose tracing is enabled; optional arrays (`entries`, `fields`, `blocks`, `overlaySteps`) must appear even when empty so downstream tooling can rely on a consistent schema.
+- Field formats are normative: digests follow `sha256:<64 hex>`; `sessionKey`/`sessionKeyBytes` map to 16- or 32-hex characters; `atc` is exactly four hex characters; `generateAcInput` strings are even-length uppercase hex; `iccPayloadTemplate` may contain literal `x` placeholders while `iccPayloadResolved` is fully substituted hex; `bitmask`/`maskedDigitsOverlay` mirror the mask notation already used in the operator UI (e.g., `.` passthrough, `F` forced). Failing tests must assert these formats.
+- CLI JSON output MUST equal the REST representation byte-for-byte (ordering aside). Text-mode traces can pretty-print, but the underlying data source must still populate the JSON structure.
+- Operator UI traces reuse the same JSON via `VerboseTraceConsole`. Rendered labels/sections must map one-to-one with the schema keys (`Protocol Context`, `Key Derivation`, `CDOL Breakdown`, `IAD Decoding`, `MAC Transcript`, `Decimalization Overlay`).
+- Replay flows reuse the identical schema; mismatches add an `expectedOtp` field (already defined elsewhere) but may not omit provenance objects.
+- Example objects in the spec and docs serve as golden fixtures; update `docs/test-vectors/emv-cap/*.json` when fields change to keep automated snapshots deterministic.
+- Acceptance tests:
+  1. `EmvCapEvaluationApplicationServiceTest` and `EmvCapReplayApplicationServiceTest` assert the full schema (including empty arrays) and enforce the format constraints.
+  2. `EmvCapEvaluationEndpointTest`/`EmvCapReplayEndpointTest` capture MockMvc snapshots for `includeTrace=true` and keep OpenAPI snapshots in sync.
+  3. `EmvCliEvaluateTest` and `EmvCliReplayTest` compare `--output-json` responses against the REST payload to guarantee parity.
+  4. `rest-api/src/test/javascript/emv/console.test.js` plus `EmvCapOperatorUiSeleniumTest` assert that `VerboseTraceConsole` renders each provenance section with the expected labels/values.
+
 ### R3 – REST EMV/CAP evaluate endpoint
 1. Add `POST /api/v1/emv/cap/evaluate` accepting JSON payload:
    ```json
@@ -118,18 +225,27 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
      "maskLength": 8,
      "trace": {
        "masterKeySha256": "sha256:8A7F...",
-       "sessionKey": "5EC8...",
-       "atc": "00B4",
-       "branchFactor": 6,
-       "height": 10,
-       "maskLength": 8,
-       "previewWindowBackward": 0,
-       "previewWindowForward": 0,
-       "generateAcInput": { "terminal": "...", "icc": "..." },
-       "generateAcResult": "8000...",
-       "bitmask": "....1F...",
-       "maskedDigitsOverlay": "....14...",
-       "issuerApplicationData": "06770A..."
+     "sessionKey": "5EC8...",
+     "atc": "00B4",
+     "branchFactor": 6,
+     "height": 10,
+     "maskLength": 8,
+     "previewWindow": { "backward": 0, "forward": 0 },
+     "generateAcInput": { "terminal": "0000000000000000…", "icc": "1000xxxxA500…" },
+     "iccPayloadTemplate": "1000xxxxA500…",
+     "iccPayloadResolved": "10000000A500…",
+     "generateAcResult": "8000...",
+     "bitmask": "....1F...",
+     "maskedDigitsOverlay": "....14...",
+     "issuerApplicationData": "06770A...",
+     "provenance": {
+       "protocolContext": { "...": "..." },
+       "keyDerivation": { "...": "..." },
+       "cdolBreakdown": { "schemaItems": 8, "entries": [ ... ] },
+       "iadDecoding": { "...": "..." },
+         "macTranscript": { "...": "..." },
+         "decimalizationOverlay": { "...": "..." }
+       }
      },
      "telemetry": { ... sanitized frame metadata ... }
    }

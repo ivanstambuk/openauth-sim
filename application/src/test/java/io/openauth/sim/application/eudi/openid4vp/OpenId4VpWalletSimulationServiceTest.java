@@ -80,6 +80,20 @@ final class OpenId4VpWalletSimulationServiceTest {
         assertEquals(
                 TRUSTED_AUTHORITY_POLICY,
                 trace.trustedAuthorityMatch().orElseThrow().policy());
+        assertEquals(1, trace.presentations().size());
+        OpenId4VpWalletSimulationService.PresentationTrace presentationTrace =
+                trace.presentations().get(0);
+        assertEquals("pid-haip-baseline", presentationTrace.presentationId());
+        assertEquals("pid-haip-baseline", presentationTrace.credentialId());
+        assertEquals("dc+sd-jwt", presentationTrace.format());
+        assertTrue(presentationTrace.holderBinding());
+        assertEquals(expectedDisclosureHashes, presentationTrace.disclosureHashes());
+        assertEquals(presets.expectedVpTokenHash(), presentationTrace.vpTokenHash());
+        assertEquals(Optional.of(presets.expectedKbJwtHash()), presentationTrace.kbJwtHash());
+        assertTrue(presentationTrace.deviceResponseHash().isEmpty());
+        assertEquals(
+                TRUSTED_AUTHORITY_POLICY,
+                presentationTrace.trustedAuthorityMatch().orElseThrow().policy());
 
         OpenId4VpWalletSimulationService.TelemetrySignal telemetrySignal = result.telemetry();
         assertEquals("oid4vp.wallet.responded", telemetrySignal.event());
@@ -135,6 +149,17 @@ final class OpenId4VpWalletSimulationServiceTest {
         assertEquals(inlineDisclosureHashes, result.trace().disclosureHashes());
         assertEquals(sha256Hex(inlineSdJwt), result.trace().vpTokenHash());
         assertTrue(result.trace().kbJwtHash().isEmpty());
+        assertEquals(1, result.trace().presentations().size());
+        OpenId4VpWalletSimulationService.PresentationTrace inlineTrace =
+                result.trace().presentations().get(0);
+        assertEquals(presentation.credentialId(), inlineTrace.presentationId());
+        assertEquals("dc+sd-jwt", inlineTrace.format());
+        assertEquals(inlineDisclosureHashes, inlineTrace.disclosureHashes());
+        assertFalse(inlineTrace.holderBinding());
+        assertEquals(sha256Hex(inlineSdJwt), inlineTrace.vpTokenHash());
+        assertTrue(inlineTrace.kbJwtHash().isEmpty());
+        assertTrue(inlineTrace.deviceResponseHash().isEmpty());
+        assertTrue(inlineTrace.trustedAuthorityMatch().isEmpty());
     }
 
     @Test
@@ -255,6 +280,13 @@ final class OpenId4VpWalletSimulationServiceTest {
         assertEquals(expectedHashes, result.trace().disclosureHashes());
         assertEquals(presets.expectedVpTokenHash(), result.trace().vpTokenHash());
         assertEquals(Optional.of(presets.expectedKbJwtHash()), result.trace().kbJwtHash());
+        assertEquals(1, result.trace().presentations().size());
+        OpenId4VpWalletSimulationService.PresentationTrace trace =
+                result.trace().presentations().get(0);
+        assertEquals(expectedHashes, trace.disclosureHashes());
+        assertEquals(presets.expectedVpTokenHash(), trace.vpTokenHash());
+        assertEquals(Optional.of(presets.expectedKbJwtHash()), trace.kbJwtHash());
+        assertTrue(trace.trustedAuthorityMatch().isPresent());
     }
 
     @Test

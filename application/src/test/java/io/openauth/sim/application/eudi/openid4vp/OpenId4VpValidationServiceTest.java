@@ -1,6 +1,7 @@
 package io.openauth.sim.application.eudi.openid4vp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -79,6 +80,24 @@ final class OpenId4VpValidationServiceTest {
         assertEquals(
                 List.of("sha-256:d0af4710ab371f1bb3d44cddd741b786ca58ea0bc4efa8dbe5e5e89cd719003a"),
                 trace.disclosureHashes());
+        assertEquals(1, trace.presentations().size());
+        OpenId4VpValidationService.PresentationTrace presentationTrace =
+                trace.presentations().get(0);
+        assertEquals("pid-haip-baseline", presentationTrace.presentationId());
+        assertEquals("dc+sd-jwt", presentationTrace.format());
+        assertTrue(presentationTrace.holderBinding());
+        assertEquals(
+                "sha-256:25e71aa5d863fbb34beb41e8a4bc608ee246508d3b278b061f1de60ad74a5fb2",
+                presentationTrace.vpTokenHash());
+        assertEquals(
+                Optional.of("sha-256:dd2092f6f82cb321a63a69cc9e0580cb43a343f1da2f275623bcb3f06bc7747e"),
+                presentationTrace.kbJwtHash());
+        assertEquals(
+                List.of("sha-256:d0af4710ab371f1bb3d44cddd741b786ca58ea0bc4efa8dbe5e5e89cd719003a"),
+                presentationTrace.disclosureHashes());
+        assertEquals(
+                "aki:s9tIpP7qrS9=",
+                presentationTrace.trustedAuthorityMatch().orElseThrow().policy());
 
         OpenId4VpValidationService.TelemetrySignal signal = result.telemetry();
         assertEquals("oid4vp.response.validated", signal.event());
@@ -141,6 +160,18 @@ final class OpenId4VpValidationServiceTest {
                 List.of("sha-256:feb9fc6814fc5eb657b00a4567abdfe4815debca1e04260d023856d126fc3667"),
                 trace.disclosureHashes());
         assertTrue(trace.kbJwtHash().isEmpty());
+        assertEquals(1, trace.presentations().size());
+        OpenId4VpValidationService.PresentationTrace inlineTrace =
+                trace.presentations().get(0);
+        assertEquals("pid-inline", inlineTrace.presentationId());
+        assertEquals("dc+sd-jwt", inlineTrace.format());
+        assertTrue(inlineTrace.vpTokenHash().startsWith("sha-256:"));
+        assertTrue(inlineTrace.trustedAuthorityMatch().isPresent());
+        assertFalse(inlineTrace.holderBinding());
+        assertTrue(inlineTrace.kbJwtHash().isEmpty());
+        assertEquals(
+                List.of("sha-256:feb9fc6814fc5eb657b00a4567abdfe4815debca1e04260d023856d126fc3667"),
+                inlineTrace.disclosureHashes());
     }
 
     @Test

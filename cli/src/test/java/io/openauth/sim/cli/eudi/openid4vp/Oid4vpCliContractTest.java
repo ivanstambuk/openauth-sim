@@ -37,8 +37,8 @@ final class Oid4vpCliContractTest {
         assertTrue(stdout.contains("authorizationRequest"), stdout);
         assertTrue(stdout.contains("qr"), stdout);
         assertTrue(stdout.contains("\"trace\""), stdout);
-        assertTrue(stdout.contains("dcqlHash"), stdout);
-        assertTrue(stdout.contains("nonceFull"), stdout);
+        assertTrue(stdout.contains("\"operation\":\"eudiw.request.create\""), stdout);
+        assertTrue(stdout.contains("\"steps\""), stdout);
     }
 
     @Test
@@ -64,8 +64,9 @@ final class Oid4vpCliContractTest {
         assertTrue(stdout.contains("\"status\":\"SUCCESS\""), stdout);
         assertTrue(stdout.contains("\"format\":\"dc+sd-jwt\""), stdout);
         assertTrue(stdout.contains("\"trustedAuthorityMatch\":\"aki:s9tIpP7qrS9=\""), stdout);
-        assertTrue(stdout.contains("vpTokenHash"), stdout);
-        assertTrue(stdout.contains("trustedAuthority"), stdout);
+        assertTrue(stdout.contains("\"operation\":\"eudiw.wallet.simulate\""), stdout);
+        assertTrue(stdout.contains("\"steps\""), stdout);
+        assertTrue(stdout.contains("\"vp_token_hash\""), stdout);
     }
 
     @Test

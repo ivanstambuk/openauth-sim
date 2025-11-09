@@ -1,7 +1,6 @@
 package io.openauth.sim.rest.eudi.openid4vp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -66,9 +65,9 @@ final class Oid4vpRestContractTest {
         assertTrue(response.hasNonNull("qr"));
         assertTrue(response.hasNonNull("telemetry"));
         JsonNode trace = response.get("trace");
-        assertEquals("HAIP", trace.get("profile").asText());
-        assertTrue(trace.hasNonNull("requestId"));
-        assertTrue(trace.hasNonNull("trustedAuthorities"));
+        assertEquals("eudiw.request.create", trace.get("operation").asText());
+        assertTrue(trace.get("metadata").has("request_id"));
+        assertTrue(trace.get("steps").isArray());
     }
 
     @Test
@@ -99,8 +98,10 @@ final class Oid4vpRestContractTest {
         assertEquals(
                 "aki:s9tIpP7qrS9=", presentation.get("trustedAuthorityMatch").asText());
         JsonNode trace = response.get("trace");
-        assertNotNull(trace.get("vpTokenHash"));
-        assertTrue(trace.hasNonNull("trustedAuthorityMatch"));
+        assertEquals("eudiw.wallet.simulate", trace.get("operation").asText());
+        JsonNode steps = trace.get("steps");
+        assertTrue(steps.isArray());
+        assertTrue(steps.toString().contains("wallet.presentation"));
     }
 
     @Test

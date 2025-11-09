@@ -472,6 +472,35 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "description" : "Verification completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationResponse"
+                },
+                "examples" : {
+                  "Match" : {
+                    "summary" : "Successful verification",
+                    "description" : "Match",
+                    "value" : {
+                      "status" : "match",
+                      "reasonCode" : "match",
+                      "metadata" : {
+                        "credentialSource" : "stored",
+                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
+                        "otpLength" : 8,
+                        "durationMillis" : 11,
+                        "contextFingerprint" : "Base64URL-Hash",
+                        "telemetryId" : "rest-ocra-verify-<uuid>",
+                        "outcome" : "match"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "422" : {
             "description" : "Verification payload failed validation",
             "content" : {
@@ -519,35 +548,6 @@
                 }
               }
             }
-          },
-          "200" : {
-            "description" : "Verification completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationResponse"
-                },
-                "examples" : {
-                  "Match" : {
-                    "summary" : "Successful verification",
-                    "description" : "Match",
-                    "value" : {
-                      "status" : "match",
-                      "reasonCode" : "match",
-                      "metadata" : {
-                        "credentialSource" : "stored",
-                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
-                        "otpLength" : 8,
-                        "durationMillis" : 11,
-                        "contextFingerprint" : "Base64URL-Hash",
-                        "telemetryId" : "rest-ocra-verify-<uuid>",
-                        "outcome" : "match"
-                      }
-                    }
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -569,16 +569,6 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected server error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
-                }
-              }
-            }
-          },
           "400" : {
             "description" : "Invalid request payload",
             "content" : {
@@ -603,6 +593,16 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
                 }
               }
             }
@@ -655,16 +655,6 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Replay completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Validation error",
             "content" : {
@@ -681,6 +671,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Replay completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayResponse"
                 }
               }
             }
@@ -705,22 +705,22 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -755,22 +755,22 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -962,12 +962,12 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Replay completed",
+          "422" : {
+            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/EmvCapReplayResponse"
+                  "$ref" : "#/components/schemas/EmvCapReplayErrorResponse"
                 }
               }
             }
@@ -982,12 +982,12 @@
               }
             }
           },
-          "422" : {
-            "description" : "Validation error",
+          "200" : {
+            "description" : "Replay completed",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/EmvCapReplayErrorResponse"
+                  "$ref" : "#/components/schemas/EmvCapReplayResponse"
                 }
               }
             }
@@ -1012,6 +1012,16 @@
           "required" : true
         },
         "responses" : {
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EmvCapEvaluationErrorResponse"
+                }
+              }
+            }
+          },
           "200" : {
             "description" : "Evaluation completed",
             "content" : {
@@ -1024,16 +1034,6 @@
           },
           "422" : {
             "description" : "Validation error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/EmvCapEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -2543,23 +2543,6 @@
           }
         }
       },
-      "OcraVerificationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          }
-        }
-      },
       "OcraVerificationMetadata" : {
         "type" : "object",
         "properties" : {
@@ -2605,6 +2588,23 @@
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
+      "OcraVerificationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
           }
         }
       },
@@ -2733,6 +2733,29 @@
           }
         }
       },
+      "HotpReplayErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
       "HotpReplayMetadata" : {
         "type" : "object",
         "properties" : {
@@ -2782,7 +2805,21 @@
           }
         }
       },
-      "HotpReplayErrorResponse" : {
+      "HotpStoredEvaluationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "credentialId" : {
+            "type" : "string"
+          },
+          "window" : {
+            "$ref" : "#/components/schemas/EvaluationWindowRequest"
+          },
+          "verbose" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "HotpEvaluationErrorResponse" : {
         "type" : "object",
         "properties" : {
           "status" : {
@@ -2802,20 +2839,6 @@
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
-      "HotpStoredEvaluationRequest" : {
-        "type" : "object",
-        "properties" : {
-          "credentialId" : {
-            "type" : "string"
-          },
-          "window" : {
-            "$ref" : "#/components/schemas/EvaluationWindowRequest"
-          },
-          "verbose" : {
-            "type" : "boolean"
           }
         }
       },
@@ -2877,29 +2900,6 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpEvaluationMetadata"
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
-      "HotpEvaluationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "type" : "string"
-          },
-          "reasonCode" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"
@@ -3017,10 +3017,7 @@
             }
           },
           "trace" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           },
           "telemetry" : {
             "type" : "object",
@@ -3136,10 +3133,7 @@
             }
           },
           "trace" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           },
           "telemetry" : {
             "type" : "object",
@@ -3254,6 +3248,29 @@
           }
         }
       },
+      "EmvCapReplayErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
       "EmvCapReplayMetadata" : {
         "type" : "object",
         "properties" : {
@@ -3343,29 +3360,6 @@
           }
         }
       },
-      "EmvCapReplayErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "type" : "string"
-          },
-          "reasonCode" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
       "EmvCapEvaluationRequest" : {
         "type" : "object",
         "properties" : {
@@ -3418,50 +3412,26 @@
           }
         }
       },
-      "EmvCapEvaluationResponse" : {
+      "EmvCapEvaluationErrorResponse" : {
         "type" : "object",
         "properties" : {
-          "otp" : {
+          "status" : {
             "type" : "string"
           },
-          "maskLength" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "previews" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/OtpPreviewResponse"
-            }
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/EmvCapTracePayload"
-          },
-          "telemetry" : {
-            "$ref" : "#/components/schemas/EmvCapTelemetryPayload"
-          }
-        }
-      },
-      "EmvCapTelemetryPayload" : {
-        "type" : "object",
-        "properties" : {
           "reasonCode" : {
             "type" : "string"
           },
-          "fields" : {
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
             "type" : "object",
             "additionalProperties" : {
               "type" : "object"
             }
           },
-          "status" : {
-            "type" : "string"
-          },
-          "event" : {
-            "type" : "string"
-          },
-          "sanitized" : {
-            "type" : "boolean"
+          "trace" : {
+            "$ref" : "#/components/schemas/EmvCapTracePayload"
           }
         }
       },
@@ -3531,26 +3501,50 @@
           }
         }
       },
-      "EmvCapEvaluationErrorResponse" : {
+      "EmvCapEvaluationResponse" : {
         "type" : "object",
         "properties" : {
-          "status" : {
+          "otp" : {
             "type" : "string"
           },
+          "maskLength" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "previews" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OtpPreviewResponse"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/EmvCapTracePayload"
+          },
+          "telemetry" : {
+            "$ref" : "#/components/schemas/EmvCapTelemetryPayload"
+          }
+        }
+      },
+      "EmvCapTelemetryPayload" : {
+        "type" : "object",
+        "properties" : {
           "reasonCode" : {
             "type" : "string"
           },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
+          "fields" : {
             "type" : "object",
             "additionalProperties" : {
               "type" : "object"
             }
           },
-          "trace" : {
-            "$ref" : "#/components/schemas/EmvCapTracePayload"
+          "status" : {
+            "type" : "string"
+          },
+          "event" : {
+            "type" : "string"
+          },
+          "sanitized" : {
+            "type" : "boolean"
           }
         }
       },

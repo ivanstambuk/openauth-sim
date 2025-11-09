@@ -1,6 +1,7 @@
 package io.openauth.sim.rest.eudi.openid4vp;
 
 import io.openauth.sim.application.eudi.openid4vp.Oid4vpValidationException;
+import io.openauth.sim.application.eudi.openid4vp.Oid4vpVerboseTraceBuilder;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpAuthorizationRequestService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpValidationService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService;
@@ -9,6 +10,7 @@ import io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationServi
 import io.openauth.sim.application.eudi.openid4vp.TrustedAuthorityEvaluator;
 import io.openauth.sim.application.eudi.openid4vp.fixtures.FixtureSeedSequence;
 import io.openauth.sim.core.json.SimpleJson;
+import io.openauth.sim.rest.VerboseTracePayload;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -56,7 +58,7 @@ class Oid4vpController {
                         payload.resolvedIncludeQrAscii(),
                         verbose);
         var result = authorizationRequestService.create(request);
-        return AuthorizationResponse.from(result);
+        return AuthorizationResponse.from(result, verbose);
     }
 
     @PostMapping("/wallet/simulate")
@@ -213,9 +215,10 @@ class Oid4vpController {
             String requestUri,
             Map<String, Object> authorizationRequest,
             Map<String, Object> qr,
-            Map<String, Object> trace,
+            VerboseTracePayload trace,
             Map<String, Object> telemetry) {
-        static AuthorizationResponse from(OpenId4VpAuthorizationRequestService.AuthorizationRequestResult result) {
+        static AuthorizationResponse from(
+                OpenId4VpAuthorizationRequestService.AuthorizationRequestResult result, boolean verbose) {
             Map<String, Object> requestMap = new LinkedHashMap<>();
             requestMap.put("clientId", result.authorizationRequest().clientId());
             requestMap.put("nonce", result.authorizationRequest().nonce());
@@ -232,26 +235,18 @@ class Oid4vpController {
                         return qrPayload;
                     })
                     .orElse(null);
-            Map<String, Object> traceMap = result.trace()
-                    .map(trace -> {
-                        Map<String, Object> payload = new LinkedHashMap<>();
-                        payload.put("requestId", trace.requestId());
-                        payload.put("profile", trace.profile().name());
-                        payload.put("dcqlHash", trace.dcqlHash());
-                        payload.put("trustedAuthorities", trace.trustedAuthorities());
-                        payload.put("nonceFull", trace.nonce());
-                        payload.put("stateFull", trace.state());
-                        payload.put("requestUri", trace.requestUri());
-                        return payload;
-                    })
-                    .orElse(null);
+            VerboseTracePayload tracePayload = verbose
+                    ? Oid4vpVerboseTraceBuilder.authorization(result)
+                            .map(VerboseTracePayload::from)
+                            .orElse(null)
+                    : null;
             return new AuthorizationResponse(
                     result.requestId(),
                     result.profile().name(),
                     result.requestUri(),
                     requestMap,
                     qrMap,
-                    traceMap,
+                    tracePayload,
                     Oid4vpController.telemetry(result.telemetry()));
         }
     }
@@ -262,21 +257,22 @@ class Oid4vpController {
             String profile,
             String responseMode,
             List<Map<String, Object>> presentations,
-            Map<String, Object> trace,
+            VerboseTracePayload trace,
             Map<String, Object> telemetry) {
         static WalletSimulationResponse from(
                 OpenId4VpWalletSimulationService.SimulationResult result, boolean verbose) {
             List<Map<String, Object>> presentations = result.presentations().stream()
                     .map(Oid4vpController::mapPresentation)
                     .toList();
-            Map<String, Object> trace = verbose ? mapTrace(result.trace()) : null;
+            VerboseTracePayload tracePayload =
+                    verbose ? VerboseTracePayload.from(Oid4vpVerboseTraceBuilder.wallet(result)) : null;
             return new WalletSimulationResponse(
                     result.requestId(),
                     result.status().name(),
                     result.profile().name(),
                     result.responseMode().name(),
                     presentations,
-                    trace,
+                    tracePayload,
                     Oid4vpController.telemetry(result.telemetry()));
         }
     }
@@ -287,20 +283,21 @@ class Oid4vpController {
             String profile,
             String responseMode,
             List<Map<String, Object>> presentations,
-            Map<String, Object> trace,
+            VerboseTracePayload trace,
             Map<String, Object> telemetry) {
         static ValidationResponse from(OpenId4VpValidationService.ValidationResult result, boolean verbose) {
             List<Map<String, Object>> presentations = result.presentations().stream()
                     .map(Oid4vpController::mapPresentation)
                     .toList();
-            Map<String, Object> trace = verbose ? mapValidationTrace(result.trace()) : null;
+            VerboseTracePayload tracePayload =
+                    verbose ? VerboseTracePayload.from(Oid4vpVerboseTraceBuilder.validation(result)) : null;
             return new ValidationResponse(
                     result.requestId(),
                     result.status().name(),
                     result.profile().name(),
                     result.responseMode().name(),
                     presentations,
-                    trace,
+                    tracePayload,
                     Oid4vpController.telemetry(result.telemetry()));
         }
     }
@@ -335,34 +332,6 @@ class Oid4vpController {
         map.put("vpToken", presentation.vpToken());
         map.put("disclosureHashes", presentation.disclosureHashes());
         return map;
-    }
-
-    private static Map<String, Object> mapTrace(OpenId4VpWalletSimulationService.Trace trace) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("vpTokenHash", trace.vpTokenHash());
-        trace.kbJwtHash().ifPresent(value -> payload.put("kbJwtHash", value));
-        payload.put("disclosureHashes", trace.disclosureHashes());
-        payload.put(
-                "trustedAuthorityMatch",
-                trace.trustedAuthorityMatch()
-                        .map(TrustedAuthorityEvaluator.TrustedAuthorityVerdict::policy)
-                        .orElse(null));
-        return payload;
-    }
-
-    private static Map<String, Object> mapValidationTrace(OpenId4VpValidationService.Trace trace) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("vpTokenHash", trace.vpTokenHash());
-        trace.kbJwtHash().ifPresent(value -> payload.put("kbJwtHash", value));
-        payload.put("disclosureHashes", trace.disclosureHashes());
-        payload.put(
-                "trustedAuthorityMatch",
-                trace.trustedAuthorityMatch()
-                        .map(TrustedAuthorityEvaluator.TrustedAuthorityVerdict::policy)
-                        .orElse(null));
-        trace.walletPresetId().ifPresent(id -> payload.put("walletPreset", id));
-        trace.dcqlPreview().ifPresent(preview -> payload.put("dcqlPreview", preview));
-        return payload;
     }
 
     private static Map<String, Object> telemetry(OpenId4VpAuthorizationRequestService.TelemetrySignal telemetry) {
