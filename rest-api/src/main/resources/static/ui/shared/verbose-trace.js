@@ -176,7 +176,104 @@
         lines.push(formatStep(step, index));
       });
     }
+
+    var provenanceLines = formatProvenance(trace.provenance);
+    if (provenanceLines) {
+      if (lines.length > 0) {
+        lines.push('');
+      }
+      provenanceLines.forEach(function (line) {
+        lines.push(line);
+      });
+    }
     return lines.join('\n');
+  }
+
+  function formatProvenance(provenance) {
+    if (!provenance || typeof provenance !== 'object') {
+      return null;
+    }
+    var sections = [
+      { key: 'protocolContext', title: 'Protocol Context' },
+      { key: 'keyDerivation', title: 'Key Derivation' },
+      { key: 'cdolBreakdown', title: 'CDOL Breakdown' },
+      { key: 'iadDecoding', title: 'IAD Decoding' },
+      { key: 'macTranscript', title: 'MAC Transcript' },
+      { key: 'decimalizationOverlay', title: 'Decimalization Overlay' },
+    ];
+    var lines = [];
+    sections.forEach(function (section) {
+      var value = provenance[section.key];
+      if (!value && value !== 0) {
+        return;
+      }
+      var sectionLines = formatProvenanceSection(section.title, value);
+      if (sectionLines.length === 0) {
+        return;
+      }
+      if (lines.length > 0) {
+        lines.push('');
+      }
+      sectionLines.forEach(function (line) {
+        lines.push(line);
+      });
+    });
+    return lines.length > 0 ? lines : null;
+  }
+
+  function formatProvenanceSection(title, value) {
+    var lines = [];
+    lines.push(title);
+    var body = formatProvenanceValue(value, '  ');
+    if (body.length === 0) {
+      return [];
+    }
+    body.forEach(function (entry) {
+      lines.push(entry);
+    });
+    return lines;
+  }
+
+  function formatProvenanceValue(value, indent) {
+    var lines = [];
+    if (value === null || value === undefined) {
+      return lines;
+    }
+    var prefix = indent || '';
+    if (Array.isArray(value)) {
+      value.forEach(function (item, index) {
+        var label = stringifyValue(item);
+        lines.push(prefix + '- [' + index + '] ' + label);
+      });
+      return lines;
+    }
+    if (typeof value === 'object') {
+      Object.keys(value).forEach(function (key) {
+        var entry = value[key];
+        if (Array.isArray(entry)) {
+          lines.push(prefix + key + ':');
+          var nested = formatProvenanceValue(entry, prefix + '  ');
+          nested.forEach(function (line) {
+            lines.push(line);
+          });
+        } else if (entry && typeof entry === 'object') {
+          lines.push(prefix + key + ':');
+          var nestedObject = formatProvenanceValue(entry, prefix + '  ');
+          if (nestedObject.length > 0) {
+            nestedObject.forEach(function (line) {
+              lines.push(line);
+            });
+          } else {
+            lines.push(prefix + '  ' + stringifyValue(entry));
+          }
+        } else {
+          lines.push(prefix + key + ' = ' + stringifyValue(entry));
+        }
+      });
+      return lines;
+    }
+    lines.push(prefix + stringifyValue(value));
+    return lines;
   }
 
   function renderTrace(trace, options) {

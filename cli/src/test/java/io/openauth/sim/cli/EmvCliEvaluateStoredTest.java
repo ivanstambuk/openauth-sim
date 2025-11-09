@@ -1,5 +1,6 @@
 package io.openauth.sim.cli;
 
+import static io.openauth.sim.cli.EmvCliTraceAssertions.assertTraceSchema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -100,6 +101,11 @@ final class EmvCliEvaluateStoredTest {
         assertEquals(overrideAtc, fields.get("atc"));
         assertEquals(0, ((Number) fields.get("previewWindowBackward")).intValue());
         assertEquals(0, ((Number) fields.get("previewWindowForward")).intValue());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> trace = (Map<String, Object>) root.get("trace");
+        assertNotNull(trace, "Trace payload should be present by default");
+        assertTraceSchema(trace);
     }
 
     @Test

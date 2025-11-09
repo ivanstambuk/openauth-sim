@@ -1,5 +1,7 @@
 package io.openauth.sim.cli;
 
+import static io.openauth.sim.cli.EmvCliTraceAssertions.assertMatchesFixture;
+import static io.openauth.sim.cli.EmvCliTraceAssertions.assertTraceSchema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -173,8 +175,11 @@ final class EmvCliTest {
         assertEquals(vector.input().branchFactor(), ((Number) trace.getOrDefault("branchFactor", 0)).intValue());
         assertEquals(vector.input().height(), ((Number) trace.getOrDefault("height", 0)).intValue());
         assertEquals(countMaskedDigits(vector.outputs()), ((Number) trace.getOrDefault("maskLength", 0)).intValue());
-        assertEquals(0, ((Number) trace.getOrDefault("previewWindowBackward", -1)).intValue());
-        assertEquals(0, ((Number) trace.getOrDefault("previewWindowForward", -1)).intValue());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> previewWindow = (Map<String, Object>) trace.get("previewWindow");
+        assertNotNull(previewWindow, "previewWindow should be present");
+        assertEquals(0, ((Number) previewWindow.getOrDefault("backward", -1)).intValue());
+        assertEquals(0, ((Number) previewWindow.getOrDefault("forward", -1)).intValue());
         @SuppressWarnings("unchecked")
         Map<String, Object> generateAcInput = (Map<String, Object>) trace.get("generateAcInput");
         assertEquals(vector.outputs().generateAcInputTerminalHex(), generateAcInput.get("terminal"));
@@ -188,6 +193,8 @@ final class EmvCliTest {
         if (resolved != null && resolved.iccDataHex() != null) {
             assertEquals(resolved.iccDataHex(), trace.get("iccPayloadResolved"));
         }
+
+        assertTraceSchema(trace);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> telemetry = (Map<String, Object>) root.get("telemetry");
@@ -210,6 +217,49 @@ final class EmvCliTest {
         assertEquals(countMaskedDigits(vector.outputs()), ((Number) fields.get("maskedDigitsCount")).intValue());
         assertEquals(0, ((Number) fields.get("previewWindowBackward")).intValue());
         assertEquals(0, ((Number) fields.get("previewWindowForward")).intValue());
+    }
+
+    @Test
+    void evaluateIdentifyJsonMatchesReferenceFixture() {
+        EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
+        CommandHarness harness = CommandHarness.create();
+
+        int exitCode = harness.execute(
+                "cap",
+                "evaluate",
+                "--mode",
+                vector.input().mode().name(),
+                "--master-key",
+                vector.input().masterKeyHex(),
+                "--atc",
+                vector.input().atcHex(),
+                "--branch-factor",
+                String.valueOf(vector.input().branchFactor()),
+                "--height",
+                String.valueOf(vector.input().height()),
+                "--iv",
+                vector.input().ivHex(),
+                "--cdol1",
+                vector.input().cdol1Hex(),
+                "--issuer-proprietary-bitmap",
+                vector.input().issuerProprietaryBitmapHex(),
+                "--icc-template",
+                vector.input().iccDataTemplateHex(),
+                "--issuer-application-data",
+                vector.input().issuerApplicationDataHex(),
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        Object parsed = SimpleJson.parse(harness.stdout());
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + harness.stdout());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> trace = (Map<String, Object>) root.get("trace");
+        assertNotNull(trace, "Trace payload should be present by default");
+
+        assertTraceSchema(trace);
+        assertMatchesFixture(trace);
     }
 
     @Test

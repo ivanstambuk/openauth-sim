@@ -24,6 +24,7 @@ import io.openauth.sim.application.emv.cap.EmvCapReplayApplicationService.Replay
 import io.openauth.sim.core.emv.cap.EmvCapMode;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -76,10 +77,13 @@ final class EmvCapReplayServiceTest {
                 MASTER_KEY_SHA256,
                 "0011",
                 new GenerateAcInput("00AA", "00BB"),
+                "1000XXXX",
+                "100000B4A50006040000",
                 "C0FFEE",
                 "bitmask",
                 "123456",
-                "00CC");
+                "00CC",
+                sampleProvenance());
 
         Map<String, Object> telemetryFields = new LinkedHashMap<>();
         telemetryFields.put("telemetryId", "rest-emv-cap-test");
@@ -164,10 +168,13 @@ final class EmvCapReplayServiceTest {
                 MASTER_KEY_SHA256,
                 "00FF",
                 new GenerateAcInput("00AA", "00BB"),
+                "1000XXXX",
+                "100000B4A50006040000",
                 "DEADBEEF",
                 "mask",
                 "654321",
-                "00CC");
+                "00CC",
+                sampleProvenance());
 
         TelemetrySignal signal = new TelemetrySignal(
                 EmvCapMode.SIGN, TelemetryStatus.INVALID, "otp_mismatch", "OTP mismatch", true, telemetryFields);
@@ -211,8 +218,9 @@ final class EmvCapReplayServiceTest {
         assertEquals("mismatch", response.status());
         assertEquals("otp_mismatch", response.reasonCode());
         assertNotNull(response.trace(), "Trace payload should be included for otp_mismatch when includeTrace is true");
-        assertEquals(MASTER_KEY_SHA256, response.trace().masterKeySha256());
-        assertEquals("emv.cap.replay.stored", response.trace().payload().operation());
+        EmvCapTracePayload tracePayload = response.trace().trace();
+        assertEquals(MASTER_KEY_SHA256, tracePayload.masterKeySha256());
+        assertEquals(trace.provenance().decimalizationOverlay().otp(), tracePayload.expectedOtp());
         assertEquals("stored", response.metadata().credentialSource());
         assertEquals("stored-credential", response.metadata().credentialId());
         assertEquals(Integer.valueOf(12), response.metadata().ipbMaskLength());
@@ -278,10 +286,13 @@ final class EmvCapReplayServiceTest {
                 MASTER_KEY_SHA256,
                 "00AB",
                 new GenerateAcInput("00CC", "00DD"),
+                "1000XXXX",
+                "100000B4A50006040000",
                 "C001D00D",
                 "mask",
                 "123456",
-                "0011AABBCCDDEE22");
+                "0011AABBCCDDEE22",
+                sampleProvenance());
 
         TelemetrySignal signal =
                 new TelemetrySignal(EmvCapMode.RESPOND, TelemetryStatus.SUCCESS, "match", null, true, telemetryFields);
@@ -306,6 +317,9 @@ final class EmvCapReplayServiceTest {
         assertEquals("match", response.status());
         assertEquals("match", response.reasonCode());
         assertNotNull(response.trace(), "Trace payload should be returned when includeTrace defaults to true");
+        EmvCapTracePayload inlineTrace = response.trace().trace();
+        assertEquals("C001D00D", inlineTrace.generateAcResult());
+        assertNull(inlineTrace.expectedOtp(), "Matched replay traces should not expose expectedOtp");
         assertEquals("inline", response.metadata().credentialSource());
         assertNull(response.metadata().credentialId());
         assertEquals(Integer.valueOf(0), response.metadata().matchedDelta());
@@ -486,5 +500,61 @@ final class EmvCapReplayServiceTest {
         assertEquals("invalid_request", exception.reasonCode());
         assertEquals("Request body is required", exception.getMessage());
         assertTrue(exception.details().isEmpty());
+    }
+
+    private static Trace.Provenance sampleProvenance() {
+        Trace.Provenance.ProtocolContext protocolContext = new Trace.Provenance.ProtocolContext(
+                "CAP-Identify", "IDENTIFY", "4.3", "ARQC", "0x80", "retail-branch", "Sample policy");
+
+        Trace.Provenance.KeyDerivation keyDerivation = new Trace.Provenance.KeyDerivation(
+                "IMK-AC",
+                "EMV-3DES-ATC-split",
+                16,
+                MASTER_KEY_SHA256,
+                "492181********1234",
+                "sha256:5DE415C6A7B13E82D7FE6F410D4F9F1E4636A90BD0E03C03ADF4B7A12D5F7F58",
+                "**01",
+                "sha256:97E9BE4AC7040CFF67871D395AAC6F6F3BE70A469AFB9B87F3130E9F042F02D1",
+                "00B4",
+                "0000000000000000",
+                "5EC8B98ABC8F9E7597647CBCB9A75402",
+                16);
+
+        Trace.Provenance.CdolBreakdown.Entry entry = new Trace.Provenance.CdolBreakdown.Entry(
+                0,
+                "9F02",
+                6,
+                "terminal",
+                "[00..05]",
+                "000000000000",
+                new Trace.Provenance.CdolBreakdown.Entry.Decoded("Amount Authorised", "0.00"));
+        Trace.Provenance.CdolBreakdown cdolBreakdown = new Trace.Provenance.CdolBreakdown(1, List.of(entry), "000000");
+
+        Trace.Provenance.IadDecoding.Field field = new Trace.Provenance.IadDecoding.Field("cvr", "06770A03");
+        Trace.Provenance.IadDecoding iadDecoding = new Trace.Provenance.IadDecoding("06770A03A48000", List.of(field));
+
+        Trace.Provenance.MacTranscript.Block block = new Trace.Provenance.MacTranscript.Block(0, "B0", "CIPHER");
+        Trace.Provenance.MacTranscript macTranscript = new Trace.Provenance.MacTranscript(
+                "3DES-CBC-MAC",
+                "ISO9797-1 Method 2",
+                "0000000000000000",
+                1,
+                List.of(block),
+                "8000",
+                new Trace.Provenance.MacTranscript.CidFlags(true, false, false, false));
+
+        Trace.Provenance.DecimalizationOverlay.OverlayStep step =
+                new Trace.Provenance.DecimalizationOverlay.OverlayStep(4, "1", "1");
+        Trace.Provenance.DecimalizationOverlay decimalizationOverlay = new Trace.Provenance.DecimalizationOverlay(
+                "ISO-0",
+                "00B47F32A79FDA9400B4",
+                "00541703287953009400B4",
+                "....1F...........FFFFF..........8...",
+                List.of(step),
+                "140456438",
+                9);
+
+        return new Trace.Provenance(
+                protocolContext, keyDerivation, cdolBreakdown, iadDecoding, macTranscript, decimalizationOverlay);
     }
 }

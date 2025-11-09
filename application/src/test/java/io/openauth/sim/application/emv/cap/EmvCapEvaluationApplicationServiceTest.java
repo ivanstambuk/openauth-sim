@@ -61,6 +61,8 @@ final class EmvCapEvaluationApplicationServiceTest {
         assertEquals(0, trace.previewWindowBackward());
         assertEquals(0, trace.previewWindowForward());
 
+        TraceSchemaAssertions.assertMatchesSchema(trace);
+
         TelemetryFrame frame = result.telemetry().emit(adapterFor(vector.input().mode()), "telemetry-" + vectorId);
         assertEquals("success", frame.status(), "telemetry status");
         assertEquals(vector.input().mode().name(), frame.fields().get("mode"));
@@ -89,6 +91,8 @@ final class EmvCapEvaluationApplicationServiceTest {
         assertEquals("100000B4A50006040000", trace.generateAcInput().iccHex());
         assertEquals("8000B47F32A79FDA94564306770A03A48000", trace.generateAcResult());
         assertEquals("....1F...........FFFFF..........8...", trace.bitmask());
+
+        TraceSchemaAssertions.assertMatchesSchema(trace);
         assertEquals("....14...........45643..........8...", trace.maskedDigits());
         assertEquals("06770A03A48000", trace.issuerApplicationData());
         assertEquals(vector.input().atcHex(), trace.atc());

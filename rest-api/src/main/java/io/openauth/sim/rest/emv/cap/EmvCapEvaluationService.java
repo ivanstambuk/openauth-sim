@@ -6,7 +6,6 @@ import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.Ev
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.EvaluationResult;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.TelemetrySignal;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.TelemetryStatus;
-import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.Trace;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.TransactionData;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.emv.cap.EmvCapCredentialDescriptor;
@@ -54,8 +53,6 @@ final class EmvCapEvaluationService {
             throw validation("invalid_request", "Request body is required", Map.of());
         }
 
-        boolean includeTrace = request.includeTrace() == null || Boolean.TRUE.equals(request.includeTrace());
-
         String rawCredentialId = request.credentialId();
         boolean credentialIdProvided = rawCredentialId != null;
         Optional<String> credentialId =
@@ -64,6 +61,8 @@ final class EmvCapEvaluationService {
         if (credentialIdProvided && credentialId.isEmpty()) {
             throw validation("missing_field", "credentialId is required", Map.of("field", "credentialId"));
         }
+
+        boolean includeTrace = request.includeTrace() != null ? Boolean.TRUE.equals(request.includeTrace()) : true;
 
         EmvCapCredentialDescriptor descriptor =
                 credentialId.map(this::loadDescriptor).orElse(null);
@@ -162,42 +161,15 @@ final class EmvCapEvaluationService {
             TelemetryFrame frame,
             TelemetrySignal signal,
             boolean includeTrace) {
-        EmvCapTracePayload tracePayload = null;
-        if (includeTrace) {
-            tracePayload = result.traceOptional()
-                    .map(trace -> toTracePayload(trace, evaluationRequest))
-                    .orElse(null);
-        }
+        EmvCapTracePayload tracePayload = includeTrace
+                ? result.traceOptional().map(EmvCapTracePayload::from).orElse(null)
+                : null;
         EmvCapTelemetryPayload telemetryPayload = new EmvCapTelemetryPayload(frame, signal.reasonCode());
         List<OtpPreviewResponse> previews = result.previews().stream()
                 .map(entry -> new OtpPreviewResponse(entry.counter(), entry.delta(), entry.otp()))
                 .toList();
         return new EmvCapEvaluationResponse(
                 result.otp(), result.maskLength(), previews, tracePayload, telemetryPayload);
-    }
-
-    private EmvCapTracePayload toTracePayload(Trace trace, EvaluationRequest evaluationRequest) {
-        if (trace == null) {
-            return null;
-        }
-        EmvCapTracePayload.GenerateAcInput generateAcInput = new EmvCapTracePayload.GenerateAcInput(
-                trace.generateAcInput().terminalHex(), trace.generateAcInput().iccHex());
-        return new EmvCapTracePayload(
-                trace.masterKeySha256(),
-                trace.sessionKey(),
-                trace.atc(),
-                trace.branchFactor(),
-                trace.height(),
-                trace.maskLength(),
-                trace.previewWindowBackward(),
-                trace.previewWindowForward(),
-                generateAcInput,
-                trace.generateAcResult(),
-                trace.bitmask(),
-                trace.maskedDigits(),
-                trace.issuerApplicationData(),
-                evaluationRequest.iccDataTemplateHex(),
-                trace.generateAcInput().iccHex());
     }
 
     private static String safeDecimal(String value) {

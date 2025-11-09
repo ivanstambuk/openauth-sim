@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,6 +16,7 @@ import io.openauth.sim.core.emv.cap.EmvCapCredentialDescriptor;
 import io.openauth.sim.core.emv.cap.EmvCapCredentialPersistenceAdapter;
 import io.openauth.sim.core.emv.cap.EmvCapInput;
 import io.openauth.sim.core.emv.cap.EmvCapMode;
+import io.openauth.sim.core.emv.cap.EmvCapTraceProvenanceSchema;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.Resolved;
@@ -24,7 +26,9 @@ import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -49,6 +53,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class EmvCapEvaluationEndpointTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final TypeReference<Map<String, Object>> TRACE_MAP_TYPE = new TypeReference<>() {};
     private static final EmvCapCredentialPersistenceAdapter CREDENTIAL_ADAPTER =
             new EmvCapCredentialPersistenceAdapter();
 
@@ -110,8 +115,12 @@ class EmvCapEvaluationEndpointTest {
         assertEquals(vector.input().branchFactor(), trace.get("branchFactor").asInt());
         assertEquals(vector.input().height(), trace.get("height").asInt());
         assertEquals(expectedMaskLength(vector), trace.get("maskLength").asInt());
-        assertEquals(0, trace.get("previewWindowBackward").asInt());
-        assertEquals(0, trace.get("previewWindowForward").asInt());
+        JsonNode previewWindow = trace.get("previewWindow");
+        assertNotNull(previewWindow, "previewWindow should be present on trace payloads");
+        assertEquals(0, previewWindow.get("backward").asInt());
+        assertEquals(0, previewWindow.get("forward").asInt());
+
+        assertTraceSchema(trace, vectorId);
 
         JsonNode telemetry = root.get("telemetry");
         assertNotNull(telemetry);
@@ -180,8 +189,12 @@ class EmvCapEvaluationEndpointTest {
         assertEquals(vector.input().branchFactor(), trace.get("branchFactor").asInt());
         assertEquals(vector.input().height(), trace.get("height").asInt());
         assertEquals(expectedMaskLength(vector), trace.get("maskLength").asInt());
-        assertEquals(0, trace.get("previewWindowBackward").asInt());
-        assertEquals(0, trace.get("previewWindowForward").asInt());
+        JsonNode identifyPreview = trace.get("previewWindow");
+        assertNotNull(identifyPreview, "previewWindow should be present on identify traces");
+        assertEquals(0, identifyPreview.get("backward").asInt());
+        assertEquals(0, identifyPreview.get("forward").asInt());
+
+        assertTraceSchema(trace, "identify-baseline");
 
         JsonNode telemetry = root.get("telemetry");
         assertNotNull(telemetry);
@@ -713,6 +726,20 @@ class EmvCapEvaluationEndpointTest {
 
     private static String expectedMasterKeyDigest(EmvCapVector vector) {
         return sha256Digest(vector.input().masterKeyHex());
+    }
+
+    private static void assertTraceSchema(JsonNode trace, String vectorId) throws JsonProcessingException {
+        Map<String, Object> traceMap = MAPPER.convertValue(trace, TRACE_MAP_TYPE);
+        List<String> missingFields = EmvCapTraceProvenanceSchema.missingFields(traceMap);
+        assertTrue(missingFields.isEmpty(), () -> "Trace schema mismatch: " + missingFields);
+        if ("identify-baseline".equals(vectorId)) {
+            JsonNode expectedTrace = expectedTraceFixture();
+            assertEquals(expectedTrace, trace, "Identify baseline trace should match the published fixture");
+        }
+    }
+
+    private static JsonNode expectedTraceFixture() throws JsonProcessingException {
+        return MAPPER.readTree(EmvCapTraceProvenanceSchema.rawJson()).get("trace");
     }
 
     private static String sha256Digest(String hex) {

@@ -362,11 +362,20 @@ test('syncDeepLink pushes alias URLs into history', () => {
   env.hooks.applyUrlStateForTest('?protocol=eudiw&tab=evaluate&mode=inline');
   env.hooks.syncUrlForTest({ replace: true });
   assert.equal(env.globals.history.replaceCalls.length, 1);
-  assert.match(env.globals.history.lastUrl || '', /protocol=eudi-openid4vp/);
+  assert.match(env.globals.history.lastUrl || '', /protocol=eudiw/);
   env.hooks.applyUrlStateForTest('?protocol=eudiw&tab=replay&mode=stored');
   env.hooks.syncUrlForTest();
   assert.equal(env.globals.history.pushCalls.length, 1);
   assert.match(env.globals.history.pushCalls[0].url || '', /tab=replay/);
+  assert.match(env.globals.history.pushCalls[0].url || '', /protocol=eudiw/);
+});
+
+test('syncDeepLink preserves canonical protocol when no alias is provided', () => {
+  const env = bootstrapConsole();
+  env.hooks.applyUrlStateForTest('?protocol=eudi-openid4vp&tab=evaluate&mode=inline');
+  env.hooks.syncUrlForTest({ replace: true });
+  assert.equal(env.globals.history.replaceCalls.length, 1);
+  assert.match(env.globals.history.lastUrl || '', /protocol=eudi-openid4vp/);
 });
 
 test('initial URL search hydrates state without pushing history', () => {
@@ -392,6 +401,17 @@ test('protocol activation reuses the initial search state before rewrites', () =
   const env = bootstrapConsole({ initialSearch: '?protocol=eudiw&tab=replay&mode=stored' });
   env.globals.location.search = '?protocol=eudi-openid4vp';
   env.globals.emit('operator:protocol-activated', { detail: { protocol: 'eudi-openid4vp' } });
+  const state = env.hooks.readStateForTest();
+  assert.equal(state.tab, 'replay');
+  assert.equal(state.replayMode, 'stored');
+});
+
+test('popstate restores prior alias, tab, and mode selections', () => {
+  const env = bootstrapConsole();
+  env.hooks.applyUrlStateForTest('?protocol=eudiw&tab=replay&mode=stored');
+  env.hooks.syncUrlForTest();
+  env.globals.location.search = '?protocol=eudiw&tab=replay&mode=stored';
+  env.globals.emit('popstate', { state: { protocol: 'eudiw', tab: 'replay', mode: 'stored' } });
   const state = env.hooks.readStateForTest();
   assert.equal(state.tab, 'replay');
   assert.equal(state.replayMode, 'stored');

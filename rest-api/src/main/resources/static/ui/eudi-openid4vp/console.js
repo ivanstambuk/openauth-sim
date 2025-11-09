@@ -12,6 +12,7 @@
     evaluateMode: 'inline',
     replayMode: 'inline',
   };
+  var protocolQueryValue = 'eudi-openid4vp';
 
   var verboseConsole = global.VerboseTraceConsole || null;
   var locationRef = global.location || null;
@@ -33,6 +34,7 @@
       initialParams.set('mode', initialModeAttr);
     }
     initialSearch = '?' + initialParams.toString();
+    protocolQueryValue = 'eudiw';
   }
 
   var dataset = readConsoleData();
@@ -1240,6 +1242,25 @@
     return normalized === 'eudiw' || normalized === 'eudi-openid4vp';
   }
 
+  function canonicalizeProtocolQuery(value) {
+    if (!value) {
+      return 'eudi-openid4vp';
+    }
+    var normalized = String(value).trim().toLowerCase();
+    return normalized === 'eudiw' ? 'eudiw' : 'eudi-openid4vp';
+  }
+
+  function setProtocolQueryValue(nextValue) {
+    if (nextValue === undefined || nextValue === null || nextValue === '') {
+      return;
+    }
+    protocolQueryValue = canonicalizeProtocolQuery(nextValue);
+  }
+
+  function currentProtocolQueryValue() {
+    return canonicalizeProtocolQuery(protocolQueryValue);
+  }
+
   function normalizeTabParam(value) {
     if (!value) {
       return 'evaluate';
@@ -1284,7 +1305,8 @@
     var tab = state.tab || 'evaluate';
     var mode = currentModeForTab(tab);
     var params = new global.URLSearchParams();
-    params.set('protocol', 'eudi-openid4vp');
+    var protocolValue = currentProtocolQueryValue();
+    params.set('protocol', protocolValue);
     params.set('tab', tab);
     params.set('mode', mode);
     var search = '?' + params.toString();
@@ -1295,7 +1317,7 @@
     var historyUpdated = false;
     if (historyTarget && typeof historyTarget[method] === 'function') {
       historyTarget[method](
-          { protocol: 'eudi-openid4vp', tab: tab, mode: mode },
+          { protocol: protocolValue, tab: tab, mode: mode },
           '',
           url);
       historyUpdated = true;
@@ -1329,6 +1351,9 @@
     var protocolParam = params.get('protocol');
     if (protocolParam && !isEudiwProtocolParam(protocolParam)) {
       return;
+    }
+    if (protocolParam) {
+      setProtocolQueryValue(protocolParam);
     }
     var desiredTab = normalizeTabParam(params.get('tab'));
     var desiredMode = normalizeModeParam(params.get('mode'));
@@ -1374,6 +1399,9 @@
       if (stateProtocol && stateProtocol !== 'eudi-openid4vp' && stateProtocol !== 'eudiw') {
         return;
       }
+      if (stateProtocol) {
+        setProtocolQueryValue(stateProtocol);
+      }
       var sourceLocation = locationRef || global.location;
       if (!stateProtocol && sourceLocation && sourceLocation.search) {
         var params = new global.URLSearchParams(sourceLocation.search);
@@ -1381,6 +1409,7 @@
         if (!isEudiwProtocolParam(protocolParam)) {
           return;
         }
+        setProtocolQueryValue(protocolParam);
       } else if (!stateProtocol && !sourceLocation) {
         return;
       }
@@ -1564,7 +1593,10 @@
       return '';
     }
     var params = new global.URLSearchParams();
-    params.set('protocol', 'eudiw');
+    var protocolValue = nextState.protocol
+        ? canonicalizeProtocolQuery(nextState.protocol)
+        : currentProtocolQueryValue();
+    params.set('protocol', protocolValue);
     var normalizedTab = isAllowedTabValue(nextState.tab) ? normalizeTabParam(nextState.tab) : null;
     if (normalizedTab) {
       params.set('tab', normalizedTab);

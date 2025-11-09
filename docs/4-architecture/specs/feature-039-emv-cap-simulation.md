@@ -1,7 +1,7 @@
 # Feature 039 – EMV/CAP Simulation Services
 
-_Status: In progress_  
-_Last updated: 2025-11-08 (R5.8 replay CTA spacing parity added)_
+_Status: In review_  
+_Last updated: 2025-11-09 (Implementation Drift Gate recorded)_
 
 ## Overview
 Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors the reference calculator workflows while fitting the OpenAuth Simulator architecture. Scope now covers reusable core derivation utilities, application orchestration, REST and CLI facades, operator console integration, and MapDB-backed credential seeding so every surface can evaluate Identify/Respond/Sign flows with consistent telemetry and traces. Documentation across REST, CLI, and operator UI guides captures the extended fixture set delivered in T3908c/T3909 so operators can reproduce reference flows end-to-end.

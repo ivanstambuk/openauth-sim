@@ -74,6 +74,8 @@ final class EmvCapReplayApplicationServiceTest {
         assertEquals(
                 expectedMasterKeyDigest(fixture.referencedVector()),
                 result.traceOptional().orElseThrow().masterKeySha256());
+
+        TraceSchemaAssertions.assertMatchesSchema(result.traceOptional().orElseThrow());
     }
 
     @org.junit.jupiter.api.Test

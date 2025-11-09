@@ -93,6 +93,13 @@ function createMaskField() {
   };
 }
 
+const traceFixture = JSON.parse(
+  readFileSync(
+    path.resolve(__dirname, '../../../../../docs/test-vectors/emv-cap/trace-provenance-example.json'),
+    'utf8',
+  ),
+);
+
 const scriptSource = readFileSync(
   path.resolve(__dirname, '../../../main/resources/static/ui/emv/console.js'),
   'utf8',
@@ -310,7 +317,13 @@ function createFieldGroup(id) {
 function createDomElement(tagName) {
   const attributes = new Map();
   const children = [];
-  return {
+  const classListSet = new Set();
+
+  function syncClassName(element) {
+    element.className = Array.from(classListSet).join(' ');
+  }
+
+  const element = {
     tagName: tagName.toUpperCase(),
     className: '',
     textContent: '',
@@ -334,7 +347,28 @@ function createDomElement(tagName) {
     removeAttribute(name) {
       attributes.delete(name);
     },
+    classList: {
+      add(className) {
+        if (!className) {
+          return;
+        }
+        classListSet.add(className);
+        syncClassName(element);
+      },
+      remove(className) {
+        if (!className) {
+          return;
+        }
+        classListSet.delete(className);
+        syncClassName(element);
+      },
+      contains(className) {
+        return classListSet.has(className);
+      },
+    },
   };
+
+  return element;
 }
 
 function createEnvironment({ verboseEnabled, includeReplay = false }) {
@@ -844,6 +878,8 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
   };
 
   const fetchCalls = [];
+  const cloneFixture = () => JSON.parse(JSON.stringify(traceFixture));
+
   const fetchStub = (url, options = {}) => {
     const urlString = String(url);
     if (!options.method || options.method === 'GET') {
@@ -878,10 +914,11 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
     }
     const body = options.body ? JSON.parse(options.body) : null;
     fetchCalls.push({ url, options, body });
+    const responseBody = cloneFixture();
     return Promise.resolve({
       ok: true,
       status: 200,
-      json: () => Promise.resolve({ telemetry: { status: 'success', fields: {} } }),
+      json: () => Promise.resolve(responseBody),
     });
   };
 
@@ -893,13 +930,16 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
   globalObject.console = console;
   globalObject.Promise = Promise;
   globalObject.ResultCard = null;
+  const tracePayloads = [];
   globalObject.VerboseTraceConsole = {
     isEnabled() {
       return verboseEnabled;
     },
     beginRequest() {},
     clearTrace() {},
-    handleResponse() {},
+    handleResponse(payload) {
+      tracePayloads.push(payload);
+    },
     handleError() {},
   };
 
@@ -920,6 +960,7 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
   return {
     hooks,
     fetchCalls,
+    tracePayloads,
     inputs: {
       masterKey: masterKeyInput,
       atc: atcInput,
@@ -1611,6 +1652,44 @@ test('inline preset submit preserves overrides while keeping credential fallback
   assert.equal(call.body.masterKey, 'DEADBEEFDEADBEEFDEADBEEFDEADBEEF');
   assert.equal(call.body.atc, '00B5');
   assert.equal(call.body.includeTrace, false);
+});
+
+test('inline verbose trace forwards provenance sections to the console', async () => {
+  const env = createEnvironment({ verboseEnabled: true });
+  await flushMicrotasks();
+  if (typeof env.hooks.setEvaluateMode === 'function') {
+    env.hooks.setEvaluateMode('inline');
+  }
+  env.hooks.updateStoredControls();
+  env.hooks.storedSelect.value = SANITIZED_SUMMARIES[0].id;
+  if (typeof env.hooks.storedSelect.dispatchEvent === 'function') {
+    env.hooks.storedSelect.dispatchEvent('change');
+  }
+  await flushMicrotasks();
+
+  await env.hooks.handleInlineSubmit();
+  await flushMicrotasks();
+  await flushMicrotasks();
+  assert.ok(env.tracePayloads.length > 0, 'Verbose trace console should receive a payload');
+  const tracePayload = env.tracePayloads[0];
+  assert.ok(tracePayload, 'Trace payload should exist');
+  assert.ok(tracePayload.trace, 'Trace payload should include trace details');
+  assert.ok(tracePayload.trace.provenance, 'Trace payload should include provenance section');
+
+  const sections = [
+    'protocolContext',
+    'keyDerivation',
+    'cdolBreakdown',
+    'iadDecoding',
+    'macTranscript',
+    'decimalizationOverlay',
+  ];
+  sections.forEach((section) => {
+    assert.ok(
+      tracePayload.trace.provenance[section],
+      `provenance.${section} should be present on verbose traces`,
+    );
+  });
 });
 
 test('stored submission posts credential ID to stored endpoint when verbose enabled', async () => {

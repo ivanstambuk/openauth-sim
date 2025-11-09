@@ -1,0 +1,197 @@
+{
+  "otp": "42511495",
+  "maskLength": 8,
+  "trace": {
+    "masterKeySha256": "sha256:223E0A160AF9DA0A03E6DD2C4719C56F5D66A633CBE84E78AAA9F3735865522A",
+    "sessionKey": "5EC8B98ABC8F9E7597647CBCB9A75402",
+    "atc": "00B4",
+    "branchFactor": 4,
+    "height": 8,
+    "maskLength": 8,
+    "previewWindow": {
+      "backward": 0,
+      "forward": 0
+    },
+    "generateAcInput": {
+      "terminal": "0000000000000000000000000000800000000000000000000000000000",
+      "icc": "100000B4A50006040000"
+    },
+    "iccPayloadTemplate": "1000XXXXA50006040000",
+    "iccPayloadResolved": "100000B4A50006040000",
+    "generateAcResult": "8000B47F32A79FDA94564306770A03A48000",
+    "bitmask": "....1F...........FFFFF..........8...",
+    "maskedDigitsOverlay": "....14...........45643..........8...",
+    "issuerApplicationData": "06770A03A48000",
+    "provenance": {
+      "protocolContext": {
+        "profile": "CAP-Identify",
+        "mode": "IDENTIFY",
+        "emvVersion": "4.3 Book 3",
+        "acType": "ARQC",
+        "cid": "0x80",
+        "issuerPolicyId": "retail-branch",
+        "issuerPolicyNotes": "CAP-1, ISO-0 decimalization, mask 9-digit preview"
+      },
+      "keyDerivation": {
+        "masterFamily": "IMK-AC",
+        "derivationAlgorithm": "EMV-3DES-ATC-split",
+        "masterKeyBytes": 16,
+        "masterKeySha256": "sha256:223E0A160AF9DA0A03E6DD2C4719C56F5D66A633CBE84E78AAA9F3735865522A",
+        "maskedPan": "492181********1234",
+        "maskedPanSha256": "sha256:5DE415C6A7B13E82D7FE6F410D4F9F1E4636A90BD0E03C03ADF4B7A12D5F7F58",
+        "maskedPsn": "**01",
+        "maskedPsnSha256": "sha256:97E9BE4AC7040CFF67871D395AAC6F6F3BE70A469AFB9B87F3130E9F042F02D1",
+        "atc": "00B4",
+        "iv": "0000000000000000",
+        "sessionKey": "5EC8B98ABC8F9E7597647CBCB9A75402",
+        "sessionKeyBytes": 16
+      },
+      "cdolBreakdown": {
+        "schemaItems": 8,
+        "entries": [
+          {
+            "index": 0,
+            "tag": "9F02",
+            "length": 6,
+            "source": "terminal",
+            "offset": "[00..05]",
+            "rawHex": "000000000000",
+            "decoded": {
+              "label": "Amount Authorised",
+              "value": "0.00"
+            }
+          },
+          {
+            "index": 1,
+            "tag": "9F03",
+            "length": 6,
+            "source": "terminal",
+            "offset": "[06..11]",
+            "rawHex": "000000000000",
+            "decoded": {
+              "label": "Amount Other",
+              "value": "0.00"
+            }
+          },
+          {
+            "index": 2,
+            "tag": "9F1A",
+            "length": 2,
+            "source": "terminal",
+            "offset": "[12..13]",
+            "rawHex": "0276",
+            "decoded": {
+              "label": "Country Code",
+              "value": "276"
+            }
+          },
+          {
+            "index": 3,
+            "tag": "95",
+            "length": 5,
+            "source": "terminal",
+            "offset": "[14..19]",
+            "rawHex": "0000000000",
+            "decoded": {
+              "label": "TVR",
+              "value": "0000000000"
+            }
+          },
+          {
+            "index": 4,
+            "tag": "5F2A",
+            "length": 2,
+            "source": "terminal",
+            "offset": "[20..21]",
+            "rawHex": "0978",
+            "decoded": {
+              "label": "Currency Code",
+              "value": "978"
+            }
+          },
+          {
+            "index": 5,
+            "tag": "9A",
+            "length": 3,
+            "source": "terminal",
+            "offset": "[22..25]",
+            "rawHex": "230908",
+            "decoded": {
+              "label": "Transaction Date",
+              "value": "2023-09-08"
+            }
+          },
+          {
+            "index": 6,
+            "tag": "9C",
+            "length": 1,
+            "source": "terminal",
+            "offset": "[26..27]",
+            "rawHex": "21",
+            "decoded": {
+              "label": "Transaction Type",
+              "value": "0x21"
+            }
+          },
+          {
+            "index": 7,
+            "tag": "9F37",
+            "length": 4,
+            "source": "terminal",
+            "offset": "[28..31]",
+            "rawHex": "12345678",
+            "decoded": {
+              "label": "Unpredictable Number",
+              "value": "12345678"
+            }
+          }
+        ],
+        "concatHex": "00000000000000000000000002760000000009782309082112345678"
+      },
+      "iadDecoding": {
+        "rawHex": "06770A03A48000",
+        "fields": [
+          { "name": "cvr", "value": "06770A03" },
+          { "name": "issuerActionCode", "value": "A48000" },
+          { "name": "cdaSupported", "value": true }
+        ]
+      },
+      "macTranscript": {
+        "algorithm": "3DES-CBC-MAC (ISO9797-1 Alg 3)",
+        "paddingRule": "ISO9797-1 Method 2",
+        "iv": "0000000000000000",
+        "blockCount": 11,
+        "blocks": [
+          { "index": 0, "input": "B0", "cipher": "CIPHER_BLOCK_00" },
+          { "index": 10, "input": "B10", "cipher": "CIPHER_BLOCK_10" }
+        ],
+        "generateAcRaw": "8000B47F32A79FDA94564306770A03A48000",
+        "cidFlags": {
+          "arqc": true,
+          "advice": false,
+          "tc": false,
+          "aac": false
+        }
+      },
+      "decimalizationOverlay": {
+        "table": "ISO-0",
+        "sourceHex": "00B47F32A79FDA9400B4",
+        "sourceDecimal": "00541703287953009400B4",
+        "maskPattern": "....1F...........FFFFF..........8...",
+        "overlaySteps": [
+          { "index": 4, "from": "1", "to": "1" },
+          { "index": 5, "from": "7", "to": "4" },
+          { "index": 17, "from": "3", "to": "3" },
+          { "index": 18, "from": "0", "to": "4" },
+          { "index": 19, "from": "0", "to": "8" }
+        ],
+        "otp": "140456438",
+        "digits": 9
+      }
+    }
+  },
+  "telemetry": {
+    "event": "emv.cap.identify",
+    "status": "success"
+  }
+}

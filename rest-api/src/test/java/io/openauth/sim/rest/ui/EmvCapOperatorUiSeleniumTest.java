@@ -472,6 +472,14 @@ final class EmvCapOperatorUiSeleniumTest {
                 .contains("bitmask = " + bitmaskOverlay)
                 .contains("maskedDigitsOverlay = " + maskedDigitsOverlay)
                 .contains("issuerApplicationData = " + issuerApplicationDataHex);
+        assertThat(traceText)
+                .as("Verbose trace console should render provenance sections with explicit headings")
+                .contains("Protocol Context")
+                .contains("Key Derivation")
+                .contains("CDOL Breakdown")
+                .contains("IAD Decoding")
+                .contains("MAC Transcript")
+                .contains("Decimalization Overlay");
         assertThat(driver.findElements(By.cssSelector("[data-testid='verbose-trace-copy']")))
                 .as("Shared verbose trace controls should expose copy button")
                 .isNotEmpty();
@@ -905,6 +913,14 @@ final class EmvCapOperatorUiSeleniumTest {
                 .contains("matchedDelta = 0")
                 .contains("suppliedOtp = " + fixture.otpDecimal())
                 .contains(expectedMasterKeyDigest(vector));
+        assertThat(traceText)
+                .as("Replay verbose trace console should render provenance sections with explicit headings")
+                .contains("Protocol Context")
+                .contains("Key Derivation")
+                .contains("CDOL Breakdown")
+                .contains("IAD Decoding")
+                .contains("MAC Transcript")
+                .contains("Decimalization Overlay");
     }
 
     @Test

@@ -4,16 +4,12 @@ import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.Cu
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.EvaluationRequest;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.TelemetrySignal;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.TelemetryStatus;
-import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.Trace;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.TransactionData;
 import io.openauth.sim.application.emv.cap.EmvCapReplayApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapReplayApplicationService.ReplayCommand;
 import io.openauth.sim.application.emv.cap.EmvCapReplayApplicationService.ReplayResult;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.emv.cap.EmvCapMode;
-import io.openauth.sim.core.trace.VerboseTrace;
-import io.openauth.sim.core.trace.VerboseTrace.AttributeType;
-import io.openauth.sim.rest.VerboseTracePayload;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -74,20 +70,12 @@ final class EmvCapReplayService {
         EmvCapReplayMetadata metadata = buildMetadata(result, resolvedTelemetryId, telemetryFields);
 
         if (signal.status() == TelemetryStatus.SUCCESS) {
-            EmvCapReplayVerboseTracePayload tracePayload = includeTrace
-                    ? result.traceOptional()
-                            .map(trace -> toTracePayload(result, trace))
-                            .orElse(null)
-                    : null;
+            EmvCapReplayVerboseTracePayload tracePayload = includeTrace ? tracePayload(result, false) : null;
             return new EmvCapReplayResponse("match", signal.reasonCode(), metadata, tracePayload);
         }
 
         if (signal.status() == TelemetryStatus.INVALID && "otp_mismatch".equals(signal.reasonCode())) {
-            EmvCapReplayVerboseTracePayload tracePayload = includeTrace
-                    ? result.traceOptional()
-                            .map(trace -> toTracePayload(result, trace))
-                            .orElse(null)
-                    : null;
+            EmvCapReplayVerboseTracePayload tracePayload = includeTrace ? tracePayload(result, true) : null;
             return new EmvCapReplayResponse("mismatch", signal.reasonCode(), metadata, tracePayload);
         }
 
@@ -215,59 +203,16 @@ final class EmvCapReplayService {
                 telemetryId);
     }
 
-    private static EmvCapReplayVerboseTracePayload toTracePayload(ReplayResult result, Trace trace) {
-        if (trace == null) {
-            return null;
-        }
-        String operation = "emv.cap.replay." + result.credentialSource();
-        Integer suppliedOtpLength = valueAsInteger(result.telemetry().fields(), "suppliedOtpLength");
-        VerboseTrace.Builder builder = VerboseTrace.builder(operation)
-                .withMetadata("mode", result.mode().name())
-                .withMetadata("credentialSource", result.credentialSource())
-                .withMetadata("driftBackward", Integer.toString(result.driftBackward()))
-                .withMetadata("driftForward", Integer.toString(result.driftForward()))
-                .withMetadata("atc", trace.atc())
-                .withMetadata("branchFactor", Integer.toString(trace.branchFactor()))
-                .withMetadata("height", Integer.toString(trace.height()))
-                .withMetadata("maskLength", Integer.toString(trace.maskLength()))
-                .withMetadata("previewWindowBackward", Integer.toString(trace.previewWindowBackward()))
-                .withMetadata("previewWindowForward", Integer.toString(trace.previewWindowForward()))
-                .withMetadata("match", Boolean.toString(result.match()));
-
-        result.matchedDelta().ifPresent(delta -> builder.withMetadata("matchedDelta", Integer.toString(delta)));
-        result.credentialId().ifPresent(id -> builder.withMetadata("credentialId", id));
-
-        builder.addStep(step -> step.id("generate_ac")
-                .summary("Generated application cryptogram")
-                .detail("core.emv.cap.generateAc")
-                .attribute(AttributeType.STRING, "masterKey.sha256", trace.masterKeySha256())
-                .attribute(AttributeType.HEX, "sessionKey", trace.sessionKey())
-                .attribute(
-                        AttributeType.HEX,
-                        "terminalPayload",
-                        trace.generateAcInput().terminalHex())
-                .attribute(
-                        AttributeType.HEX, "iccPayload", trace.generateAcInput().iccHex())
-                .attribute(AttributeType.HEX, "generateAcResult", trace.generateAcResult())
-                .attribute(AttributeType.STRING, "bitmask", trace.bitmask())
-                .attribute(AttributeType.STRING, "maskedDigits", trace.maskedDigits())
-                .attribute(AttributeType.HEX, "issuerApplicationData", trace.issuerApplicationData()));
-
-        builder.addStep(step -> step.id("otp_comparison")
-                .summary("Compared supplied OTP against computed values")
-                .detail("application.emv.cap.replay.compare")
-                .attribute(
-                        AttributeType.INT,
-                        "suppliedOtpLength",
-                        suppliedOtpLength != null
-                                ? suppliedOtpLength
-                                : trace.maskedDigits().length())
-                .attribute(AttributeType.BOOL, "match", result.match())
-                .attribute(AttributeType.INT, "driftBackward", result.driftBackward())
-                .attribute(AttributeType.INT, "driftForward", result.driftForward()));
-
-        VerboseTracePayload payload = VerboseTracePayload.from(builder.build());
-        return new EmvCapReplayVerboseTracePayload(trace.masterKeySha256(), payload);
+    private static EmvCapReplayVerboseTracePayload tracePayload(ReplayResult result, boolean mismatch) {
+        return result.traceOptional()
+                .map(trace -> {
+                    String expectedOtp = mismatch
+                            ? trace.provenance().decimalizationOverlay().otp()
+                            : null;
+                    EmvCapTracePayload payload = EmvCapTracePayload.from(trace, expectedOtp);
+                    return EmvCapReplayVerboseTracePayload.from(payload);
+                })
+                .orElse(null);
     }
 
     private static String nextTelemetryId() {

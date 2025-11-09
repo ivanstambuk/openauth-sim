@@ -373,6 +373,18 @@ paths:
               $ref: "#/components/schemas/OcraEvaluationRequest"
         required: true
       responses:
+        "200":
+          description: "Evaluation successful"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationResponse"
+        "500":
+          description: "Unexpected server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
         "400":
           description: "Invalid request payload"
           content:
@@ -393,18 +405,6 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "500":
-          description: "Unexpected server error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationErrorResponse"
-        "200":
-          description: "Evaluation successful"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationResponse"
   /api/v1/ocra/credentials/seed:
     post:
       tags:
@@ -432,24 +432,24 @@ paths:
               $ref: "#/components/schemas/HotpReplayRequest"
         required: true
       responses:
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
         "200":
           description: "Replay completed"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
   /api/v1/hotp/evaluate:
     post:
       tags:
@@ -465,8 +465,8 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
-        "422":
-          description: "Validation error"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -477,8 +477,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "500":
-          description: "Unexpected error"
+        "422":
+          description: "Validation error"
           content:
             application/json:
               schema:
@@ -498,8 +498,8 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
-        "422":
-          description: "Validation error"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -510,8 +510,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "500":
-          description: "Unexpected error"
+        "422":
+          description: "Validation error"
           content:
             application/json:
               schema:
@@ -669,6 +669,12 @@ paths:
               $ref: "#/components/schemas/EmvCapEvaluationRequest"
         required: true
       responses:
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -681,12 +687,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmvCapEvaluationResponse"
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EmvCapEvaluationErrorResponse"
   /api/v1/emv/cap/credentials/seed:
     post:
       tags:
@@ -1848,19 +1848,6 @@ components:
           type: "boolean"
         window:
           $ref: "#/components/schemas/EvaluationWindowRequest"
-    OcraEvaluationErrorResponse:
-      type: "object"
-      properties:
-        error:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "string"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
     OcraEvaluationResponse:
       type: "object"
       properties:
@@ -1874,6 +1861,19 @@ components:
           type: "array"
           items:
             $ref: "#/components/schemas/OtpPreviewResponse"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
+    OcraEvaluationErrorResponse:
+      type: "object"
+      properties:
+        error:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "string"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
     HotpReplayRequest:
@@ -1901,21 +1901,6 @@ components:
             type: "string"
         verbose:
           type: "boolean"
-    HotpReplayErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
     HotpReplayMetadata:
       type: "object"
       properties:
@@ -1947,6 +1932,21 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/HotpReplayMetadata"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
+    HotpReplayErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
     HotpStoredEvaluationRequest:
@@ -2257,6 +2257,66 @@ components:
             type: "object"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
+    Block:
+      type: "object"
+      properties:
+        index:
+          type: "integer"
+          format: "int32"
+        input:
+          type: "string"
+        cipher:
+          type: "string"
+    CdolBreakdown:
+      type: "object"
+      properties:
+        schemaItems:
+          type: "integer"
+          format: "int32"
+        entries:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/Entry"
+        concatHex:
+          type: "string"
+    CidFlags:
+      type: "object"
+      properties:
+        arqc:
+          type: "boolean"
+        advice:
+          type: "boolean"
+        tc:
+          type: "boolean"
+        aac:
+          type: "boolean"
+    DecimalizationOverlay:
+      type: "object"
+      properties:
+        table:
+          type: "string"
+        sourceHex:
+          type: "string"
+        sourceDecimal:
+          type: "string"
+        maskPattern:
+          type: "string"
+        overlaySteps:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OverlayStep"
+        otp:
+          type: "string"
+        digits:
+          type: "integer"
+          format: "int32"
+    Decoded:
+      type: "object"
+      properties:
+        label:
+          type: "string"
+        value:
+          type: "object"
     EmvCapReplayMetadata:
       type: "object"
       properties:
@@ -2303,22 +2363,220 @@ components:
     EmvCapReplayVerboseTracePayload:
       type: "object"
       properties:
-        operation:
-          type: "string"
-          description: "Stable identifier describing the traced operation (for example,\
-            \ totp.evaluate.stored)."
-        metadata:
-          type: "object"
-          additionalProperties:
-            type: "string"
-            description: "Additional metadata associated with the trace."
-          description: "Additional metadata associated with the trace."
-        steps:
-          type: "array"
-          description: "Ordered steps executed during the operation."
-          items:
-            $ref: "#/components/schemas/VerboseTraceStepPayload"
         masterKeySha256:
+          type: "string"
+        sessionKey:
+          type: "string"
+        atc:
+          type: "string"
+        branchFactor:
+          type: "integer"
+          format: "int32"
+        height:
+          type: "integer"
+          format: "int32"
+        maskLength:
+          type: "integer"
+          format: "int32"
+        previewWindow:
+          $ref: "#/components/schemas/PreviewWindow"
+        generateAcInput:
+          $ref: "#/components/schemas/GenerateAcInput"
+        iccPayloadTemplate:
+          type: "string"
+        iccPayloadResolved:
+          type: "string"
+        generateAcResult:
+          type: "string"
+        bitmask:
+          type: "string"
+        maskedDigitsOverlay:
+          type: "string"
+        issuerApplicationData:
+          type: "string"
+        provenance:
+          $ref: "#/components/schemas/EmvCapTraceProvenancePayload"
+        expectedOtp:
+          type: "string"
+    EmvCapTracePayload:
+      type: "object"
+      properties:
+        masterKeySha256:
+          type: "string"
+        sessionKey:
+          type: "string"
+        atc:
+          type: "string"
+        branchFactor:
+          type: "integer"
+          format: "int32"
+        height:
+          type: "integer"
+          format: "int32"
+        maskLength:
+          type: "integer"
+          format: "int32"
+        previewWindow:
+          $ref: "#/components/schemas/PreviewWindow"
+        generateAcInput:
+          $ref: "#/components/schemas/GenerateAcInput"
+        iccPayloadTemplate:
+          type: "string"
+        iccPayloadResolved:
+          type: "string"
+        generateAcResult:
+          type: "string"
+        bitmask:
+          type: "string"
+        maskedDigitsOverlay:
+          type: "string"
+        issuerApplicationData:
+          type: "string"
+        provenance:
+          $ref: "#/components/schemas/EmvCapTraceProvenancePayload"
+        expectedOtp:
+          type: "string"
+    EmvCapTraceProvenancePayload:
+      type: "object"
+      properties:
+        protocolContext:
+          $ref: "#/components/schemas/ProtocolContext"
+        keyDerivation:
+          $ref: "#/components/schemas/KeyDerivation"
+        cdolBreakdown:
+          $ref: "#/components/schemas/CdolBreakdown"
+        iadDecoding:
+          $ref: "#/components/schemas/IadDecoding"
+        macTranscript:
+          $ref: "#/components/schemas/MacTranscript"
+        decimalizationOverlay:
+          $ref: "#/components/schemas/DecimalizationOverlay"
+    Entry:
+      type: "object"
+      properties:
+        index:
+          type: "integer"
+          format: "int32"
+        tag:
+          type: "string"
+        length:
+          type: "integer"
+          format: "int32"
+        source:
+          type: "string"
+        offset:
+          type: "string"
+        rawHex:
+          type: "string"
+        decoded:
+          $ref: "#/components/schemas/Decoded"
+    Field:
+      type: "object"
+      properties:
+        name:
+          type: "string"
+        value:
+          type: "object"
+    GenerateAcInput:
+      type: "object"
+      properties:
+        terminal:
+          type: "string"
+        icc:
+          type: "string"
+    IadDecoding:
+      type: "object"
+      properties:
+        rawHex:
+          type: "string"
+        fields:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/Field"
+    KeyDerivation:
+      type: "object"
+      properties:
+        masterFamily:
+          type: "string"
+        derivationAlgorithm:
+          type: "string"
+        masterKeyBytes:
+          type: "integer"
+          format: "int32"
+        masterKeySha256:
+          type: "string"
+        maskedPan:
+          type: "string"
+        maskedPanSha256:
+          type: "string"
+        maskedPsn:
+          type: "string"
+        maskedPsnSha256:
+          type: "string"
+        atc:
+          type: "string"
+        iv:
+          type: "string"
+        sessionKey:
+          type: "string"
+        sessionKeyBytes:
+          type: "integer"
+          format: "int32"
+    MacTranscript:
+      type: "object"
+      properties:
+        algorithm:
+          type: "string"
+        paddingRule:
+          type: "string"
+        iv:
+          type: "string"
+        blockCount:
+          type: "integer"
+          format: "int32"
+        blocks:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/Block"
+        generateAcRaw:
+          type: "string"
+        cidFlags:
+          $ref: "#/components/schemas/CidFlags"
+    OverlayStep:
+      type: "object"
+      properties:
+        index:
+          type: "integer"
+          format: "int32"
+        from:
+          type: "string"
+        to:
+          type: "string"
+    PreviewWindow:
+      type: "object"
+      properties:
+        backward:
+          type: "integer"
+          format: "int32"
+        forward:
+          type: "integer"
+          format: "int32"
+    ProtocolContext:
+      type: "object"
+      properties:
+        profile:
+          type: "string"
+        mode:
+          type: "string"
+        emvVersion:
+          type: "string"
+        acType:
+          type: "string"
+        cid:
+          type: "string"
+        issuerPolicyId:
+          type: "string"
+        issuerPolicyNotes:
           type: "string"
     EmvCapEvaluationRequest:
       type: "object"
@@ -2370,51 +2628,6 @@ components:
             type: "object"
         trace:
           $ref: "#/components/schemas/EmvCapTracePayload"
-    EmvCapTracePayload:
-      type: "object"
-      properties:
-        masterKeySha256:
-          type: "string"
-        sessionKey:
-          type: "string"
-        atc:
-          type: "string"
-        branchFactor:
-          type: "integer"
-          format: "int32"
-        height:
-          type: "integer"
-          format: "int32"
-        maskLength:
-          type: "integer"
-          format: "int32"
-        previewWindowBackward:
-          type: "integer"
-          format: "int32"
-        previewWindowForward:
-          type: "integer"
-          format: "int32"
-        generateAcInput:
-          $ref: "#/components/schemas/GenerateAcInput"
-        generateAcResult:
-          type: "string"
-        bitmask:
-          type: "string"
-        maskedDigitsOverlay:
-          type: "string"
-        issuerApplicationData:
-          type: "string"
-        iccPayloadTemplate:
-          type: "string"
-        iccPayloadResolved:
-          type: "string"
-    GenerateAcInput:
-      type: "object"
-      properties:
-        terminal:
-          type: "string"
-        icc:
-          type: "string"
     EmvCapEvaluationResponse:
       type: "object"
       properties:

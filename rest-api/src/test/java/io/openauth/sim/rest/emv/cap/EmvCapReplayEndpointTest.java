@@ -2,10 +2,12 @@ package io.openauth.sim.rest.emv.cap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -14,6 +16,7 @@ import io.openauth.sim.application.emv.cap.EmvCapSeedSamples;
 import io.openauth.sim.application.emv.cap.EmvCapSeedSamples.SeedSample;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures.ReplayFixture;
+import io.openauth.sim.core.emv.cap.EmvCapTraceProvenanceSchema;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
 import io.openauth.sim.core.model.Credential;
@@ -22,6 +25,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +50,7 @@ import org.springframework.test.web.servlet.MockMvc;
 final class EmvCapReplayEndpointTest {
 
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final TypeReference<Map<String, Object>> TRACE_MAP_TYPE = new TypeReference<>() {};
 
     @Autowired
     private MockMvc mockMvc;
@@ -98,12 +103,20 @@ final class EmvCapReplayEndpointTest {
 
         JsonNode trace = root.get("trace");
         assertThat(trace)
-                .as("Verbose trace payload should be present when includeTrace=true")
+                .as("Trace payload should be present when includeTrace=true")
                 .isNotNull();
-        assertEquals("emv.cap.replay.stored", trace.get("operation").asText());
         assertEquals(
                 expectedMasterKeyDigest(fixture.referencedVector()),
                 trace.path("masterKeySha256").asText());
+        JsonNode previewWindow = trace.get("previewWindow");
+        assertNotNull(previewWindow, "previewWindow should be present for stored replay traces");
+        assertEquals(
+                fixture.previewWindow().backward(),
+                previewWindow.get("backward").asInt());
+        assertEquals(
+                fixture.previewWindow().forward(), previewWindow.get("forward").asInt());
+
+        assertTraceSchema(trace);
     }
 
     @Test
@@ -128,9 +141,11 @@ final class EmvCapReplayEndpointTest {
         JsonNode root = JSON.readTree(responseBody);
         assertEquals("match", root.get("status").asText());
         assertEquals("match", root.get("reasonCode").asText());
-        assertThat(root.get("trace"))
+        JsonNode trace = root.get("trace");
+        assertThat(trace)
                 .as("Trace should be included when includeTrace is omitted")
                 .isNotNull();
+        assertTraceSchema(trace);
     }
 
     @Test
@@ -216,7 +231,25 @@ final class EmvCapReplayEndpointTest {
         JsonNode root = JSON.readTree(responseBody);
         assertEquals("mismatch", root.get("status").asText());
         assertEquals("otp_mismatch", root.get("reasonCode").asText());
-        assertThat(root.has("trace")).isFalse();
+
+        JsonNode trace = root.get("trace");
+        assertThat(trace)
+                .as("Trace payload should be present when includeTrace=true")
+                .isNotNull();
+        String expectedOtp = trace.path("expectedOtp").asText();
+        assertThat(expectedOtp)
+                .as("expectedOtp should be populated on mismatch traces")
+                .isNotBlank();
+        assertTrue(expectedOtp.matches("\\d+"), "expectedOtp should be numeric");
+        String provenanceOtp = trace.path("provenance")
+                .path("decimalizationOverlay")
+                .path("otp")
+                .asText();
+        assertThat(provenanceOtp)
+                .as("decimalization overlay should publish the generated OTP")
+                .isNotBlank();
+        assertEquals(provenanceOtp, expectedOtp);
+        assertTraceSchema(trace);
     }
 
     @Test
@@ -327,7 +360,7 @@ final class EmvCapReplayEndpointTest {
     }
 
     private static String inlineRequestBody(
-            EmvCapVector vector, String otp, EmvCapReplayFixtures.PreviewWindow window, boolean includeTrace)
+            EmvCapVector vector, String otp, EmvCapReplayFixtures.PreviewWindow window, Boolean includeTrace)
             throws Exception {
         ObjectNode root = JSON.createObjectNode();
         root.put("mode", vector.input().mode().name());
@@ -359,8 +392,8 @@ final class EmvCapReplayEndpointTest {
         root.put("otp", otp);
         root.put("driftBackward", window.backward());
         root.put("driftForward", window.forward());
-        if (includeTrace) {
-            root.put("includeTrace", true);
+        if (includeTrace != null) {
+            root.put("includeTrace", includeTrace);
         }
         return JSON.writeValueAsString(root);
     }
@@ -398,6 +431,12 @@ final class EmvCapReplayEndpointTest {
             builder.append(String.format(Locale.ROOT, "%02X", value));
         }
         return builder.toString();
+    }
+
+    private static void assertTraceSchema(JsonNode trace) {
+        Map<String, Object> traceMap = JSON.convertValue(trace, TRACE_MAP_TYPE);
+        List<String> missingFields = EmvCapTraceProvenanceSchema.missingFields(traceMap);
+        assertTrue(missingFields.isEmpty(), () -> "Trace schema mismatch: " + missingFields);
     }
 
     @TestConfiguration

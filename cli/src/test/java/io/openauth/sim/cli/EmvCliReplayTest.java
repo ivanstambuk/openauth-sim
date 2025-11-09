@@ -1,13 +1,16 @@
 package io.openauth.sim.cli;
 
+import static io.openauth.sim.cli.EmvCliTraceAssertions.assertTraceSchema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures.ReplayFixture;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
+import io.openauth.sim.core.json.SimpleJson;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
@@ -15,6 +18,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
+import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -112,6 +116,26 @@ final class EmvCliReplayTest {
         assertTrue(stdout.contains("\"reasonCode\":\"otp_mismatch\""), stdout);
         assertTrue(stdout.contains("\"credentialSource\":\"inline\""), stdout);
         assertTrue(stdout.contains("\"mode\":\"" + fixture.mode().name() + "\""), stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> trace = (Map<String, Object>) root.get("trace");
+        assertNotNull(trace, "Trace payload should be present when includeTrace is true");
+        assertTraceSchema(trace);
+        String expectedOtp = (String) trace.get("expectedOtp");
+        assertNotNull(expectedOtp, "expectedOtp should be present on mismatch traces");
+        assertFalse(expectedOtp.isBlank(), "expectedOtp should not be blank");
+        assertTrue(expectedOtp.matches("\\d+"), "expectedOtp should contain only digits");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> provenance = (Map<String, Object>) trace.get("provenance");
+        assertNotNull(provenance, "Provenance payload should accompany verbose traces");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> decimalization = (Map<String, Object>) provenance.get("decimalizationOverlay");
+        assertNotNull(decimalization, "Decimalization overlay should be present in provenance");
+        assertEquals(decimalization.get("otp"), expectedOtp);
     }
 
     @Test

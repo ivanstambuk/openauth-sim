@@ -88,6 +88,7 @@ public final class EmvCapReplayApplicationService {
         Objects.requireNonNull(baseRequest, "baseRequest");
 
         List<Integer> deltas = previewDeltas(driftBackward, driftForward);
+        Optional<EmvCapEvaluationApplicationService.Trace> lastTrace = Optional.empty();
         for (int delta : deltas) {
             EvaluationRequest candidate = delta == 0 ? baseRequest : adjustAtc(baseRequest, delta);
             if (candidate == null) {
@@ -96,6 +97,9 @@ public final class EmvCapReplayApplicationService {
 
             EmvCapEvaluationApplicationService.EvaluationResult evaluation =
                     evaluationService.evaluate(candidate, verbose);
+            if (verbose) {
+                lastTrace = evaluation.traceOptional();
+            }
             if (otpMatches(evaluation.otp(), suppliedOtp)) {
                 TelemetrySignal telemetry = successTelemetry(
                         candidate,
@@ -136,7 +140,7 @@ public final class EmvCapReplayApplicationService {
                 driftForward,
                 baseRequest.mode(),
                 Optional.of(baseRequest),
-                Optional.empty());
+                lastTrace);
     }
 
     private EvaluationRequest resolveStoredRequest(ReplayCommand.Stored command) {

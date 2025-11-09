@@ -202,6 +202,8 @@ final class EudiwOperatorUiSeleniumTest {
     @DisplayName("Deep-link query params hydrate Replay tab and stored mode")
     void deepLinkHydratesReplayStoredMode() {
         navigateToEudiwConsoleWithQuery("?protocol=eudiw&tab=replay&mode=stored");
+        waitForUrlContains("protocol=eudiw");
+        waitForUrlContains("tab=replay");
 
         WebElement replayTab = waitForVisible(By.cssSelector("[data-testid='eudiw-panel-tab-replay']"));
         waitUntilAttribute(replayTab, "aria-selected", "true");
@@ -219,6 +221,18 @@ final class EudiwOperatorUiSeleniumTest {
         waitForUrlContains("mode=inline");
         WebElement replayInlineSection = waitForVisible(By.cssSelector("[data-testid='eudiw-replay-inline-section']"));
         new WebDriverWait(driver, WAIT_TIMEOUT).until(driver -> replayInlineSection.isDisplayed());
+
+        driver.navigate().back();
+        waitForUrlContains("mode=stored");
+        WebElement storedRadioAfterBack =
+                waitForVisible(By.cssSelector("[data-testid='eudiw-replay-mode-select-stored']"));
+        new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> storedRadioAfterBack.isSelected());
+
+        driver.navigate().forward();
+        waitForUrlContains("mode=inline");
+        WebElement inlineRadioAfterForward =
+                waitForVisible(By.cssSelector("[data-testid='eudiw-replay-mode-select-inline']"));
+        new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> inlineRadioAfterForward.isSelected());
     }
 
     private void navigateToEudiwConsole() {

@@ -1308,11 +1308,15 @@
       if (context && context.suppliedOtp) {
         replayMetadata.suppliedOtp = context.suppliedOtp;
       }
-      return {
+      var replayTrace = {
         operation: trace.operation,
         metadata: replayMetadata,
         steps: Array.isArray(trace.steps) ? trace.steps : [],
       };
+      if (trace.provenance && typeof trace.provenance === 'object') {
+        replayTrace.provenance = trace.provenance;
+      }
+      return replayTrace;
     }
     var telemetry = response.telemetry && typeof response.telemetry === 'object' ? response.telemetry : {};
     var fields = telemetry.fields && typeof telemetry.fields === 'object' ? telemetry.fields : {};
@@ -1430,8 +1434,11 @@
       });
     }
 
+    var fallbackOperation = context && typeof context.operation === 'string'
+      ? context.operation
+      : 'emv.cap.evaluate';
     var normalized = {
-      operation: 'emv.cap.evaluate',
+      operation: fallbackOperation,
       steps: steps,
     };
     if (context && context.metadata && typeof context.metadata === 'object') {
@@ -1442,6 +1449,9 @@
     }
     if (Object.keys(metadata).length > 0) {
       normalized.metadata = metadata;
+    }
+    if (trace.provenance && typeof trace.provenance === 'object') {
+      normalized.provenance = trace.provenance;
     }
     return normalized;
   }
@@ -1480,7 +1490,7 @@
     }
 
     if (isTraceRequested() && body && body.trace) {
-      verboseApplyResponse(body, 'info', null);
+      verboseApplyResponse(body, 'info', { operation: 'emv.cap.evaluate' });
     } else {
       clearVerboseTrace();
     }
@@ -1711,6 +1721,7 @@
     if (payload.credentialId) {
       context.metadata.credentialId = payload.credentialId;
     }
+    context.operation = 'emv.cap.replay';
 
     return { body: payload, context: context };
   }
@@ -1768,6 +1779,7 @@
     }
 
     var traceContext = {
+      operation: requestContext && typeof requestContext.operation === 'string' ? requestContext.operation : null,
       suppliedOtp: suppliedOtp,
       metadata: Object.assign({}, requestContext && requestContext.metadata ? requestContext.metadata : {}, responseMetadata),
     };

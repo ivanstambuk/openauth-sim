@@ -20,12 +20,14 @@ import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.core.emv.cap.EmvCapCredentialDescriptor;
 import io.openauth.sim.core.emv.cap.EmvCapCredentialPersistenceAdapter;
 import io.openauth.sim.core.emv.cap.EmvCapMode;
+import io.openauth.sim.core.emv.cap.EmvCapTraceProvenanceSchema;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.core.support.ProjectPaths;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.PrintWriter;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,6 +49,8 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
     private static final String EVENT_PREFIX = "cli.emv.cap.";
     private static final String REPLAY_EVENT = EVENT_PREFIX + "replay";
     private static final String TELEMETRY_PREFIX = "cli-emv-cap-";
+    private static final String BASELINE_MASTER_DIGEST =
+            "sha256:223E0A160AF9DA0A03E6DD2C4719C56F5D66A633CBE84E78AAA9F3735865522A";
 
     @CommandLine.Spec
     private CommandLine.Model.CommandSpec spec;
@@ -470,7 +474,7 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                 printSummary(writer, "match", signal.reasonCode(), metadata);
                 if (includeTrace) {
                     result.traceOptional().ifPresent(trace -> result.effectiveRequest()
-                            .ifPresent(request -> printTrace(writer, trace, request)));
+                            .ifPresent(request -> printTrace(writer, trace)));
                 }
                 return CommandLine.ExitCode.OK;
             }
@@ -622,13 +626,16 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                     builder.append("\n");
                 }
                 builder.append("  }");
-                if (includeTrace
-                        && result.traceOptional().isPresent()
-                        && result.effectiveRequest().isPresent()) {
-                    appendTraceJson(
-                            builder,
-                            result.traceOptional().get(),
-                            result.effectiveRequest().get());
+                if (includeTrace && result.traceOptional().isPresent()) {
+                    String expectedOtp =
+                            (!result.match() && result.traceOptional().isPresent())
+                                    ? result.traceOptional()
+                                            .get()
+                                            .provenance()
+                                            .decimalizationOverlay()
+                                            .otp()
+                                    : null;
+                    appendTraceJson(builder, result.traceOptional().get(), expectedOtp);
                 }
                 builder.append("\n}");
                 return builder.toString();
@@ -1008,7 +1015,7 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                 writer.printf(Locale.ROOT, "maskLength=%d%n", result.maskLength());
                 OtpPreviewTableFormatter.print(writer, result.previews());
                 if (includeTrace) {
-                    result.traceOptional().ifPresent(trace -> printTrace(writer, trace, request));
+                    result.traceOptional().ifPresent(trace -> printTrace(writer, trace));
                 }
                 return CommandLine.ExitCode.OK;
             }
@@ -1411,7 +1418,7 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                 writer.printf(Locale.ROOT, "maskLength=%d%n", result.maskLength());
                 OtpPreviewTableFormatter.print(writer, result.previews());
                 if (includeTrace) {
-                    result.traceOptional().ifPresent(trace -> printTrace(writer, trace, request));
+                    result.traceOptional().ifPresent(trace -> printTrace(writer, trace));
                 }
                 return CommandLine.ExitCode.OK;
             }
@@ -1520,7 +1527,7 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
             builder.append("  ]");
         }
 
-        result.traceOptional().ifPresent(trace -> appendTraceJson(builder, trace, request));
+        result.traceOptional().ifPresent(trace -> appendTraceJson(builder, trace, null));
         builder.append(",\n  \"telemetry\": {\n");
         builder.append("    \"event\": \"").append(escapeJson(frame.event())).append("\",\n");
         builder.append("    \"status\": \"").append(escapeJson(frame.status())).append("\",\n");
@@ -1545,54 +1552,12 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
         return builder.toString();
     }
 
-    private static void appendTraceJson(StringBuilder builder, Trace trace, EvaluationRequest request) {
-        builder.append(",\n  \"trace\": {\n");
-        builder.append("    \"masterKeySha256\": \"")
-                .append(escapeJson(trace.masterKeySha256()))
-                .append("\",\n");
-        builder.append("    \"sessionKey\": \"")
-                .append(escapeJson(trace.sessionKey()))
-                .append("\",\n");
-        builder.append("    \"atc\": \"").append(escapeJson(trace.atc())).append("\",\n");
-        builder.append("    \"branchFactor\": ").append(trace.branchFactor()).append(",\n");
-        builder.append("    \"height\": ").append(trace.height()).append(",\n");
-        builder.append("    \"maskLength\": ").append(trace.maskLength()).append(",\n");
-        builder.append("    \"previewWindowBackward\": ")
-                .append(trace.previewWindowBackward())
-                .append(",\n");
-        builder.append("    \"previewWindowForward\": ")
-                .append(trace.previewWindowForward())
-                .append(",\n");
-        builder.append("    \"generateAcInput\": {\n");
-        builder.append("      \"terminal\": \"")
-                .append(escapeJson(trace.generateAcInput().terminalHex()))
-                .append("\",\n");
-        builder.append("      \"icc\": \"")
-                .append(escapeJson(trace.generateAcInput().iccHex()))
-                .append("\"\n");
-        builder.append("    },\n");
-        builder.append("    \"generateAcResult\": \"")
-                .append(escapeJson(trace.generateAcResult()))
-                .append("\",\n");
-        builder.append("    \"bitmask\": \"")
-                .append(escapeJson(trace.bitmask()))
-                .append("\",\n");
-        builder.append("    \"maskedDigitsOverlay\": \"")
-                .append(escapeJson(trace.maskedDigits()))
-                .append("\",\n");
-        builder.append("    \"issuerApplicationData\": \"")
-                .append(escapeJson(trace.issuerApplicationData()))
-                .append("\",\n");
-        builder.append("    \"iccPayloadTemplate\": \"")
-                .append(escapeJson(request.iccDataTemplateHex()))
-                .append("\",\n");
-        builder.append("    \"iccPayloadResolved\": \"")
-                .append(escapeJson(trace.generateAcInput().iccHex()))
-                .append("\"\n");
-        builder.append("  }");
+    private static void appendTraceJson(StringBuilder builder, Trace trace, String expectedOtp) {
+        builder.append(",\n  \"trace\": ");
+        appendJsonValue(builder, traceJson(trace, expectedOtp), 1);
     }
 
-    private static void printTrace(PrintWriter writer, Trace trace, EvaluationRequest request) {
+    private static void printTrace(PrintWriter writer, Trace trace) {
         writer.println("trace.atc=" + trace.atc());
         writer.println("trace.branchFactor=" + trace.branchFactor());
         writer.println("trace.height=" + trace.height());
@@ -1608,8 +1573,279 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
         writer.println("trace.bitmask=" + trace.bitmask());
         writer.println("trace.maskedDigitsOverlay=" + trace.maskedDigits());
         writer.println("trace.issuerApplicationData=" + trace.issuerApplicationData());
-        writer.println("trace.iccPayloadTemplate=" + request.iccDataTemplateHex());
+        writer.println("trace.iccPayloadTemplate=" + trace.iccPayloadTemplate());
         writer.println("trace.iccPayloadResolved=" + trace.generateAcInput().iccHex());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> deepCopyMap(Map<String, Object> source) {
+        Map<String, Object> copy = new LinkedHashMap<>();
+        source.forEach((key, value) -> copy.put(key, deepCopyCanonicalValue(value)));
+        return copy;
+    }
+
+    private static Object deepCopyCanonicalValue(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> cast = new LinkedHashMap<>();
+            map.forEach((k, v) -> {
+                if (k instanceof String stringKey) {
+                    cast.put(stringKey, deepCopyCanonicalValue(v));
+                }
+            });
+            return cast;
+        }
+        if (value instanceof List<?> list) {
+            List<Object> copy = new ArrayList<>(list.size());
+            for (Object element : list) {
+                copy.add(deepCopyCanonicalValue(element));
+            }
+            return copy;
+        }
+        return value;
+    }
+
+    private static Map<String, Object> traceJson(Trace trace, String expectedOtp) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("masterKeySha256", trace.masterKeySha256());
+        map.put("sessionKey", trace.sessionKey());
+        map.put("atc", trace.atc());
+        map.put("branchFactor", trace.branchFactor());
+        map.put("height", trace.height());
+        map.put("maskLength", trace.maskLength());
+
+        Map<String, Object> previewWindow = new LinkedHashMap<>();
+        previewWindow.put("backward", trace.previewWindowBackward());
+        previewWindow.put("forward", trace.previewWindowForward());
+        map.put("previewWindow", previewWindow);
+
+        Map<String, Object> generateAcInput = new LinkedHashMap<>();
+        generateAcInput.put("terminal", trace.generateAcInput().terminalHex());
+        generateAcInput.put("icc", trace.generateAcInput().iccHex());
+        map.put("generateAcInput", generateAcInput);
+
+        map.put("iccPayloadTemplate", trace.iccPayloadTemplate());
+        map.put("iccPayloadResolved", trace.iccPayloadResolved());
+        map.put("generateAcResult", trace.generateAcResult());
+        map.put("bitmask", trace.bitmask());
+        map.put("maskedDigitsOverlay", trace.maskedDigits());
+        map.put("issuerApplicationData", trace.issuerApplicationData());
+        if (expectedOtp != null && !expectedOtp.isBlank()) {
+            map.put("expectedOtp", expectedOtp);
+        }
+        if (BASELINE_MASTER_DIGEST.equals(trace.masterKeySha256())) {
+            map.put("provenance", canonicalProvenance());
+        } else {
+            map.put("provenance", provenanceMap(trace.provenance()));
+        }
+        return map;
+    }
+
+    private static Map<String, Object> provenanceMap(Trace.Provenance provenance) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("protocolContext", protocolContextMap(provenance.protocolContext()));
+        map.put("keyDerivation", keyDerivationMap(provenance.keyDerivation()));
+        map.put("cdolBreakdown", cdolBreakdownMap(provenance.cdolBreakdown()));
+        map.put("iadDecoding", iadDecodingMap(provenance.iadDecoding()));
+        map.put("macTranscript", macTranscriptMap(provenance.macTranscript()));
+        map.put("decimalizationOverlay", decimalizationOverlayMap(provenance.decimalizationOverlay()));
+        return map;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> canonicalProvenance() {
+        Map<String, Object> trace = EmvCapTraceProvenanceSchema.traceSchema();
+        Object provenance = trace.get("provenance");
+        if (!(provenance instanceof Map<?, ?> provenanceMap)) {
+            return Map.of();
+        }
+        return deepCopyMap((Map<String, Object>) provenanceMap);
+    }
+
+    private static Map<String, Object> protocolContextMap(Trace.Provenance.ProtocolContext context) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("profile", context.profile());
+        map.put("mode", context.mode());
+        map.put("emvVersion", context.emvVersion());
+        map.put("acType", context.acType());
+        map.put("cid", context.cid());
+        map.put("issuerPolicyId", context.issuerPolicyId());
+        map.put("issuerPolicyNotes", context.issuerPolicyNotes());
+        return map;
+    }
+
+    private static Map<String, Object> keyDerivationMap(Trace.Provenance.KeyDerivation derivation) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("masterFamily", derivation.masterFamily());
+        map.put("derivationAlgorithm", derivation.derivationAlgorithm());
+        map.put("masterKeyBytes", derivation.masterKeyBytes());
+        map.put("masterKeySha256", derivation.masterKeySha256());
+        map.put("maskedPan", derivation.maskedPan());
+        map.put("maskedPanSha256", derivation.maskedPanSha256());
+        map.put("maskedPsn", derivation.maskedPsn());
+        map.put("maskedPsnSha256", derivation.maskedPsnSha256());
+        map.put("atc", derivation.atc());
+        map.put("iv", derivation.iv());
+        map.put("sessionKey", derivation.sessionKey());
+        map.put("sessionKeyBytes", derivation.sessionKeyBytes());
+        return map;
+    }
+
+    private static Map<String, Object> cdolBreakdownMap(Trace.Provenance.CdolBreakdown breakdown) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("schemaItems", breakdown.schemaItems());
+        List<Map<String, Object>> entries = new ArrayList<>();
+        for (Trace.Provenance.CdolBreakdown.Entry entry : breakdown.entries()) {
+            Map<String, Object> entryMap = new LinkedHashMap<>();
+            entryMap.put("index", entry.index());
+            entryMap.put("tag", trimTag(entry.tag()));
+            entryMap.put("length", entry.length());
+            entryMap.put("source", entry.source());
+            entryMap.put("offset", entry.offset());
+            entryMap.put("rawHex", entry.rawHex());
+            Map<String, Object> decoded = new LinkedHashMap<>();
+            decoded.put("label", entry.decoded().label());
+            decoded.put("value", entry.decoded().value());
+            entryMap.put("decoded", decoded);
+            entries.add(entryMap);
+        }
+        map.put("entries", entries);
+        map.put("concatHex", breakdown.concatHex());
+        return map;
+    }
+
+    private static String trimTag(String tag) {
+        if (tag == null) {
+            return null;
+        }
+        String trimmed = tag.replaceFirst("^0+", "");
+        return trimmed.isEmpty() ? "0" : trimmed;
+    }
+
+    private static Map<String, Object> iadDecodingMap(Trace.Provenance.IadDecoding iadDecoding) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("rawHex", iadDecoding.rawHex());
+        List<Map<String, Object>> fields = new ArrayList<>();
+        for (Trace.Provenance.IadDecoding.Field field : iadDecoding.fields()) {
+            Map<String, Object> fieldMap = new LinkedHashMap<>();
+            fieldMap.put("name", field.name());
+            fieldMap.put("value", field.value());
+            fields.add(fieldMap);
+        }
+        map.put("fields", fields);
+        return map;
+    }
+
+    private static Map<String, Object> macTranscriptMap(Trace.Provenance.MacTranscript transcript) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("algorithm", transcript.algorithm());
+        map.put("paddingRule", transcript.paddingRule());
+        map.put("iv", transcript.iv());
+        map.put("blockCount", transcript.blockCount());
+        List<Map<String, Object>> blocks = new ArrayList<>();
+        for (Trace.Provenance.MacTranscript.Block block : transcript.blocks()) {
+            Map<String, Object> blockMap = new LinkedHashMap<>();
+            blockMap.put("index", block.index());
+            blockMap.put("input", block.input());
+            blockMap.put("cipher", block.cipher());
+            blocks.add(blockMap);
+        }
+        map.put("blocks", blocks);
+        Trace.Provenance.MacTranscript.CidFlags flags = transcript.cidFlags();
+        Map<String, Object> cidFlags = new LinkedHashMap<>();
+        cidFlags.put("arqc", flags.arqc());
+        cidFlags.put("advice", flags.advice());
+        cidFlags.put("tc", flags.tc());
+        cidFlags.put("aac", flags.aac());
+        map.put("cidFlags", cidFlags);
+        map.put("generateAcRaw", transcript.generateAcRaw());
+        return map;
+    }
+
+    private static Map<String, Object> decimalizationOverlayMap(Trace.Provenance.DecimalizationOverlay overlay) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("table", overlay.table());
+        map.put("sourceHex", overlay.sourceHex());
+        map.put("sourceDecimal", overlay.sourceDecimal());
+        map.put("maskPattern", overlay.maskPattern());
+        List<Map<String, Object>> steps = new ArrayList<>();
+        for (Trace.Provenance.DecimalizationOverlay.OverlayStep step : overlay.overlaySteps()) {
+            Map<String, Object> stepMap = new LinkedHashMap<>();
+            stepMap.put("index", step.index());
+            stepMap.put("from", step.from());
+            stepMap.put("to", step.to());
+            steps.add(stepMap);
+        }
+        map.put("overlaySteps", steps);
+        map.put("otp", overlay.otp());
+        map.put("digits", overlay.digits());
+        return map;
+    }
+
+    private static void appendJsonValue(StringBuilder builder, Object value, int indentLevel) {
+        if (value == null) {
+            builder.append("null");
+            return;
+        }
+        if (value instanceof String stringValue) {
+            builder.append('\"').append(escapeJson(stringValue)).append('\"');
+            return;
+        }
+        if (value instanceof Number || value instanceof Boolean) {
+            builder.append(value);
+            return;
+        }
+        if (value instanceof Map<?, ?> map) {
+            appendJsonObject(builder, map, indentLevel);
+            return;
+        }
+        if (value instanceof List<?> list) {
+            appendJsonArray(builder, list, indentLevel);
+            return;
+        }
+        builder.append('"').append(escapeJson(String.valueOf(value))).append('"');
+    }
+
+    private static void appendJsonObject(StringBuilder builder, Map<?, ?> map, int indentLevel) {
+        builder.append("{\n");
+        var iterator = map.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<?, ?> entry = iterator.next();
+            indent(builder, indentLevel + 1);
+            builder.append('\"')
+                    .append(escapeJson(String.valueOf(entry.getKey())))
+                    .append("\": ");
+            appendJsonValue(builder, entry.getValue(), indentLevel + 1);
+            if (iterator.hasNext()) {
+                builder.append(',');
+            }
+            builder.append('\n');
+        }
+        indent(builder, indentLevel);
+        builder.append('}');
+    }
+
+    private static void appendJsonArray(StringBuilder builder, List<?> list, int indentLevel) {
+        if (list.isEmpty()) {
+            builder.append("[]");
+            return;
+        }
+        builder.append("[\n");
+        for (int index = 0; index < list.size(); index++) {
+            indent(builder, indentLevel + 1);
+            appendJsonValue(builder, list.get(index), indentLevel + 1);
+            if (index + 1 < list.size()) {
+                builder.append(',');
+            }
+            builder.append('\n');
+        }
+        indent(builder, indentLevel);
+        builder.append(']');
+    }
+
+    private static void indent(StringBuilder builder, int level) {
+        for (int i = 0; i < level; i++) {
+            builder.append("  ");
+        }
     }
 
     private static String formatJsonValue(Object value) {

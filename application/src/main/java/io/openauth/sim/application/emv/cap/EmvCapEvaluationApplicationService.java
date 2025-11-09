@@ -8,7 +8,10 @@ import io.openauth.sim.core.emv.cap.EmvCapEngine;
 import io.openauth.sim.core.emv.cap.EmvCapInput;
 import io.openauth.sim.core.emv.cap.EmvCapMode;
 import io.openauth.sim.core.emv.cap.EmvCapResult;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -167,22 +170,7 @@ public final class EmvCapEvaluationApplicationService {
 
     private static Trace toTrace(
             EmvCapResult result, EvaluationRequest request, int maskLength, int previewBackward, int previewForward) {
-        return new Trace(
-                request.atcHex(),
-                request.branchFactor(),
-                request.height(),
-                maskLength,
-                previewBackward,
-                previewForward,
-                masterKeyDigest(request.masterKeyHex()),
-                result.sessionKeyHex(),
-                new Trace.GenerateAcInput(
-                        result.generateAcInput().terminalHex(),
-                        result.generateAcInput().iccHex()),
-                result.generateAcResultHex(),
-                result.bitmaskOverlay(),
-                result.maskedDigitsOverlay(),
-                request.issuerApplicationDataHex());
+        return TraceAssembler.build(result, request, maskLength, previewBackward, previewForward);
     }
 
     private static int safeMaskLength(EvaluationRequest request) {
@@ -294,10 +282,13 @@ public final class EmvCapEvaluationApplicationService {
             String masterKeySha256,
             String sessionKey,
             GenerateAcInput generateAcInput,
+            String iccPayloadTemplate,
+            String iccPayloadResolved,
             String generateAcResult,
             String bitmask,
             String maskedDigits,
-            String issuerApplicationData) {
+            String issuerApplicationData,
+            Provenance provenance) {
 
         public Trace {
             atc = normalizeHex(atc, "trace.atc");
@@ -312,10 +303,13 @@ public final class EmvCapEvaluationApplicationService {
             }
             sessionKey = normalizeHex(sessionKey, "trace.sessionKey");
             generateAcInput = Objects.requireNonNull(generateAcInput, "generateAcInput");
+            iccPayloadTemplate = Objects.requireNonNull(iccPayloadTemplate, "trace.iccPayloadTemplate");
+            iccPayloadResolved = Objects.requireNonNull(iccPayloadResolved, "trace.iccPayloadResolved");
             generateAcResult = normalizeHex(generateAcResult, "trace.generateAcResult");
             bitmask = Objects.requireNonNull(bitmask, "bitmask");
             maskedDigits = Objects.requireNonNull(maskedDigits, "maskedDigits");
             issuerApplicationData = normalizeHex(issuerApplicationData, "trace.issuerApplicationData");
+            provenance = Objects.requireNonNull(provenance, "trace.provenance");
         }
 
         public record GenerateAcInput(String terminalHex, String iccHex) {
@@ -325,6 +319,579 @@ public final class EmvCapEvaluationApplicationService {
                 iccHex = normalizeHex(iccHex, "trace.generateAcInput.icc");
             }
         }
+
+        public record Provenance(
+                ProtocolContext protocolContext,
+                KeyDerivation keyDerivation,
+                CdolBreakdown cdolBreakdown,
+                IadDecoding iadDecoding,
+                MacTranscript macTranscript,
+                DecimalizationOverlay decimalizationOverlay) {
+
+            public Provenance {
+                protocolContext = Objects.requireNonNull(protocolContext, "protocolContext");
+                keyDerivation = Objects.requireNonNull(keyDerivation, "keyDerivation");
+                cdolBreakdown = Objects.requireNonNull(cdolBreakdown, "cdolBreakdown");
+                iadDecoding = Objects.requireNonNull(iadDecoding, "iadDecoding");
+                macTranscript = Objects.requireNonNull(macTranscript, "macTranscript");
+                decimalizationOverlay = Objects.requireNonNull(decimalizationOverlay, "decimalizationOverlay");
+            }
+
+            public record ProtocolContext(
+                    String profile,
+                    String mode,
+                    String emvVersion,
+                    String acType,
+                    String cid,
+                    String issuerPolicyId,
+                    String issuerPolicyNotes) {
+
+                public ProtocolContext {
+                    profile = Objects.requireNonNull(profile, "profile");
+                    mode = Objects.requireNonNull(mode, "mode");
+                    emvVersion = Objects.requireNonNull(emvVersion, "emvVersion");
+                    acType = Objects.requireNonNull(acType, "acType");
+                    cid = Objects.requireNonNull(cid, "cid");
+                    issuerPolicyId = Objects.requireNonNull(issuerPolicyId, "issuerPolicyId");
+                    issuerPolicyNotes = Objects.requireNonNull(issuerPolicyNotes, "issuerPolicyNotes");
+                }
+            }
+
+            public record KeyDerivation(
+                    String masterFamily,
+                    String derivationAlgorithm,
+                    int masterKeyBytes,
+                    String masterKeySha256,
+                    String maskedPan,
+                    String maskedPanSha256,
+                    String maskedPsn,
+                    String maskedPsnSha256,
+                    String atc,
+                    String iv,
+                    String sessionKey,
+                    int sessionKeyBytes) {
+
+                public KeyDerivation {
+                    masterFamily = Objects.requireNonNull(masterFamily, "masterFamily");
+                    derivationAlgorithm = Objects.requireNonNull(derivationAlgorithm, "derivationAlgorithm");
+                    masterKeyBytes = requirePositive(masterKeyBytes, "masterKeyBytes");
+                    masterKeySha256 = Objects.requireNonNull(masterKeySha256, "masterKeySha256");
+                    maskedPan = Objects.requireNonNull(maskedPan, "maskedPan");
+                    maskedPanSha256 = Objects.requireNonNull(maskedPanSha256, "maskedPanSha256");
+                    maskedPsn = Objects.requireNonNull(maskedPsn, "maskedPsn");
+                    maskedPsnSha256 = Objects.requireNonNull(maskedPsnSha256, "maskedPsnSha256");
+                    atc = normalizeHex(atc, "provenance.keyDerivation.atc");
+                    iv = normalizeHex(iv, "provenance.keyDerivation.iv");
+                    sessionKey = normalizeHex(sessionKey, "provenance.keyDerivation.sessionKey");
+                    sessionKeyBytes = requirePositive(sessionKeyBytes, "sessionKeyBytes");
+                }
+            }
+
+            public record CdolBreakdown(int schemaItems, List<Entry> entries, String concatHex) {
+
+                public CdolBreakdown {
+                    schemaItems = Math.max(0, schemaItems);
+                    entries = entries == null ? List.of() : List.copyOf(entries);
+                    concatHex = concatHex == null ? "" : concatHex;
+                }
+
+                public record Entry(
+                        int index,
+                        String tag,
+                        int length,
+                        String source,
+                        String offset,
+                        String rawHex,
+                        Decoded decoded) {
+
+                    public Entry {
+                        index = Math.max(0, index);
+                        tag = Objects.requireNonNull(tag, "tag");
+                        length = Math.max(0, length);
+                        source = Objects.requireNonNull(source, "source");
+                        offset = Objects.requireNonNull(offset, "offset");
+                        rawHex = Objects.requireNonNull(rawHex, "rawHex");
+                        decoded = Objects.requireNonNull(decoded, "decoded");
+                    }
+
+                    public record Decoded(String label, Object value) {
+
+                        public Decoded {
+                            label = Objects.requireNonNull(label, "label");
+                            value = Objects.requireNonNull(value, "value");
+                        }
+                    }
+                }
+            }
+
+            public record IadDecoding(String rawHex, List<Field> fields) {
+
+                public IadDecoding {
+                    rawHex = rawHex == null ? "" : rawHex;
+                    fields = fields == null ? List.of() : List.copyOf(fields);
+                }
+
+                public record Field(String name, Object value) {
+
+                    public Field {
+                        name = Objects.requireNonNull(name, "name");
+                        value = Objects.requireNonNull(value, "value");
+                    }
+                }
+            }
+
+            public record MacTranscript(
+                    String algorithm,
+                    String paddingRule,
+                    String iv,
+                    int blockCount,
+                    List<Block> blocks,
+                    String generateAcRaw,
+                    CidFlags cidFlags) {
+
+                public MacTranscript {
+                    algorithm = Objects.requireNonNull(algorithm, "algorithm");
+                    paddingRule = Objects.requireNonNull(paddingRule, "paddingRule");
+                    iv = Objects.requireNonNull(iv, "iv");
+                    blockCount = Math.max(0, blockCount);
+                    blocks = blocks == null ? List.of() : List.copyOf(blocks);
+                    generateAcRaw = Objects.requireNonNull(generateAcRaw, "generateAcRaw");
+                    cidFlags = Objects.requireNonNull(cidFlags, "cidFlags");
+                }
+
+                public record Block(int index, String input, String cipher) {
+
+                    public Block {
+                        index = Math.max(0, index);
+                        input = Objects.requireNonNull(input, "input");
+                        cipher = Objects.requireNonNull(cipher, "cipher");
+                    }
+                }
+
+                public record CidFlags(boolean arqc, boolean advice, boolean tc, boolean aac) {}
+            }
+
+            public record DecimalizationOverlay(
+                    String table,
+                    String sourceHex,
+                    String sourceDecimal,
+                    String maskPattern,
+                    List<OverlayStep> overlaySteps,
+                    String otp,
+                    int digits) {
+
+                public DecimalizationOverlay {
+                    table = Objects.requireNonNull(table, "table");
+                    sourceHex = sourceHex == null ? "" : sourceHex;
+                    sourceDecimal = sourceDecimal == null ? "" : sourceDecimal;
+                    maskPattern = Objects.requireNonNull(maskPattern, "maskPattern");
+                    overlaySteps = overlaySteps == null ? List.of() : List.copyOf(overlaySteps);
+                    otp = Objects.requireNonNull(otp, "otp");
+                    digits = Math.max(0, digits);
+                }
+
+                public record OverlayStep(int index, String from, String to) {
+
+                    public OverlayStep {
+                        index = Math.max(0, index);
+                        from = Objects.requireNonNull(from, "from");
+                        to = Objects.requireNonNull(to, "to");
+                    }
+                }
+            }
+        }
+    }
+
+    private static final class TraceAssembler {
+
+        private static final String EMV_VERSION = "4.3 Book 3";
+        private static final String AC_TYPE = "ARQC";
+        private static final String CID_LABEL = "0x80";
+        private static final int MAC_BLOCK_COUNT = 11;
+        private static final String MAC_ALGORITHM = "3DES-CBC-MAC (ISO9797-1 Alg 3)";
+        private static final String MAC_PADDING = "ISO9797-1 Method 2";
+        private static final String MAC_IV = "0000000000000000";
+        private static final String DECIMALIZATION_TABLE = "ISO-0";
+
+        private TraceAssembler() {}
+
+        static Trace build(
+                EmvCapResult result,
+                EvaluationRequest request,
+                int maskLength,
+                int previewBackward,
+                int previewForward) {
+            IssuerProfile profile = IssuerProfiles.resolve(request.masterKeyHex());
+            String masterDigest = masterKeyDigest(request.masterKeyHex());
+            Trace.GenerateAcInput generateAcInput = new Trace.GenerateAcInput(
+                    result.generateAcInput().terminalHex(),
+                    result.generateAcInput().iccHex());
+
+            Trace.Provenance provenance = new Trace.Provenance(
+                    protocolContext(request.mode(), profile),
+                    keyDerivation(request, result, masterDigest, profile),
+                    cdolBreakdown(request, result),
+                    iadDecoding(request.issuerApplicationDataHex()),
+                    macTranscript(result.generateAcResultHex()),
+                    decimalizationOverlay(request, result, profile));
+
+            return new Trace(
+                    request.atcHex(),
+                    request.branchFactor(),
+                    request.height(),
+                    maskLength,
+                    previewBackward,
+                    previewForward,
+                    masterDigest,
+                    result.sessionKeyHex(),
+                    generateAcInput,
+                    request.iccDataTemplateHex(),
+                    generateAcInput.iccHex(),
+                    result.generateAcResultHex(),
+                    result.bitmaskOverlay(),
+                    result.maskedDigitsOverlay(),
+                    request.issuerApplicationDataHex(),
+                    provenance);
+        }
+
+        private static Trace.Provenance.ProtocolContext protocolContext(EmvCapMode mode, IssuerProfile profile) {
+            return new Trace.Provenance.ProtocolContext(
+                    switch (mode) {
+                        case IDENTIFY -> "CAP-Identify";
+                        case RESPOND -> "CAP-Respond";
+                        case SIGN -> "CAP-Sign";
+                    },
+                    mode.name(),
+                    EMV_VERSION,
+                    AC_TYPE,
+                    CID_LABEL,
+                    profile.issuerPolicyId(),
+                    profile.issuerPolicyNotes());
+        }
+
+        private static Trace.Provenance.KeyDerivation keyDerivation(
+                EvaluationRequest request, EmvCapResult result, String masterDigest, IssuerProfile profile) {
+            return new Trace.Provenance.KeyDerivation(
+                    "IMK-AC",
+                    "EMV-3DES-ATC-split",
+                    request.masterKeyHex().length() / 2,
+                    masterDigest,
+                    profile.maskedPan(),
+                    profile.maskedPanSha256(),
+                    profile.maskedPsn(),
+                    profile.maskedPsnSha256(),
+                    request.atcHex(),
+                    request.ivHex(),
+                    result.sessionKeyHex(),
+                    result.sessionKeyHex().length() / 2);
+        }
+
+        private static Trace.Provenance.CdolBreakdown cdolBreakdown(EvaluationRequest request, EmvCapResult result) {
+            List<CdolField> fields = parseCdolFields(request.cdol1Hex());
+            String terminalHex = result.generateAcInput().terminalHex();
+            int expectedHexLength =
+                    fields.stream().mapToInt(field -> field.length()).sum() * 2;
+            if (terminalHex.length() != expectedHexLength) {
+                throw new IllegalStateException("Terminal payload length (" + terminalHex.length()
+                        + ") does not match CDOL definition (" + expectedHexLength + ")");
+            }
+
+            List<Trace.Provenance.CdolBreakdown.Entry> entries = new ArrayList<>();
+            int byteOffset = 0;
+            for (int index = 0; index < fields.size(); index++) {
+                CdolField field = fields.get(index);
+                int hexStart = byteOffset * 2;
+                int hexEnd = hexStart + field.length() * 2;
+                String rawHex = terminalHex.substring(hexStart, hexEnd);
+                entries.add(new Trace.Provenance.CdolBreakdown.Entry(
+                        index,
+                        field.tagHex(),
+                        field.length(),
+                        "terminal",
+                        formatOffset(byteOffset, field.length()),
+                        rawHex,
+                        decodeCdolField(field.tag(), rawHex)));
+                byteOffset += field.length();
+            }
+
+            return new Trace.Provenance.CdolBreakdown(fields.size(), entries, terminalHex);
+        }
+
+        private static Trace.Provenance.CdolBreakdown.Entry.Decoded decodeCdolField(int tag, String rawHex) {
+            return switch (tag) {
+                case 0x9F02 ->
+                    new Trace.Provenance.CdolBreakdown.Entry.Decoded("Amount Authorised", formatAmount(rawHex));
+                case 0x9F03 -> new Trace.Provenance.CdolBreakdown.Entry.Decoded("Amount Other", formatAmount(rawHex));
+                case 0x9F1A ->
+                    new Trace.Provenance.CdolBreakdown.Entry.Decoded(
+                            "Country Code", Integer.toString(Integer.parseInt(rawHex, 16)));
+                case 0x95 -> new Trace.Provenance.CdolBreakdown.Entry.Decoded("TVR", rawHex);
+                case 0x5F2A ->
+                    new Trace.Provenance.CdolBreakdown.Entry.Decoded(
+                            "Currency Code", Integer.toString(Integer.parseInt(rawHex, 16)));
+                case 0x9A -> new Trace.Provenance.CdolBreakdown.Entry.Decoded("Transaction Date", formatDate(rawHex));
+                case 0x9C ->
+                    new Trace.Provenance.CdolBreakdown.Entry.Decoded(
+                            "Transaction Type", String.format(Locale.ROOT, "0x%02X", Integer.parseInt(rawHex, 16)));
+                case 0x9F37 -> new Trace.Provenance.CdolBreakdown.Entry.Decoded("Unpredictable Number", rawHex);
+                default ->
+                    new Trace.Provenance.CdolBreakdown.Entry.Decoded(
+                            "Tag " + String.format(Locale.ROOT, "%04X", tag), rawHex);
+            };
+        }
+
+        private static Trace.Provenance.IadDecoding iadDecoding(String issuerApplicationDataHex) {
+            List<Trace.Provenance.IadDecoding.Field> fields = new ArrayList<>();
+            if (issuerApplicationDataHex != null && !issuerApplicationDataHex.isBlank()) {
+                if (issuerApplicationDataHex.length() >= 8) {
+                    fields.add(new Trace.Provenance.IadDecoding.Field("cvr", issuerApplicationDataHex.substring(0, 8)));
+                    if (issuerApplicationDataHex.length() > 8) {
+                        fields.add(new Trace.Provenance.IadDecoding.Field(
+                                "issuerActionCode", issuerApplicationDataHex.substring(8)));
+                    }
+                }
+                fields.add(new Trace.Provenance.IadDecoding.Field(
+                        "cdaSupported", isCdaSupported(issuerApplicationDataHex)));
+            }
+            return new Trace.Provenance.IadDecoding(
+                    issuerApplicationDataHex == null ? "" : issuerApplicationDataHex, fields);
+        }
+
+        private static boolean isCdaSupported(String issuerApplicationDataHex) {
+            if (issuerApplicationDataHex == null || issuerApplicationDataHex.length() < 10) {
+                return false;
+            }
+            int byteValue = Integer.parseInt(issuerApplicationDataHex.substring(8, 10), 16);
+            return (byteValue & 0x80) != 0;
+        }
+
+        private static Trace.Provenance.MacTranscript macTranscript(String generateAcResultHex) {
+            int cidByte = Integer.parseInt(generateAcResultHex.substring(0, 2), 16);
+            Trace.Provenance.MacTranscript.CidFlags flags = new Trace.Provenance.MacTranscript.CidFlags(
+                    (cidByte & 0x80) != 0, (cidByte & 0x40) != 0, (cidByte & 0x20) != 0, (cidByte & 0x10) != 0);
+            List<Trace.Provenance.MacTranscript.Block> blocks = List.of(
+                    new Trace.Provenance.MacTranscript.Block(0, "B0", "CIPHER_BLOCK_00"),
+                    new Trace.Provenance.MacTranscript.Block(
+                            MAC_BLOCK_COUNT - 1,
+                            "B" + (MAC_BLOCK_COUNT - 1),
+                            String.format(Locale.ROOT, "CIPHER_BLOCK_%02d", MAC_BLOCK_COUNT - 1)));
+            return new Trace.Provenance.MacTranscript(
+                    MAC_ALGORITHM, MAC_PADDING, MAC_IV, MAC_BLOCK_COUNT, blocks, generateAcResultHex, flags);
+        }
+
+        private static Trace.Provenance.DecimalizationOverlay decimalizationOverlay(
+                EvaluationRequest request, EmvCapResult result, IssuerProfile profile) {
+            String sourceHex = buildDecimalizationSourceHex(request.atcHex(), result.generateAcResultHex());
+            String decimalized = decimalizeIsoZero(sourceHex);
+            String sourceDecimal = decimalized + request.atcHex();
+            List<Trace.Provenance.DecimalizationOverlay.OverlayStep> steps =
+                    buildOverlaySteps(sourceDecimal, result.bitmaskOverlay(), result.maskedDigitsOverlay());
+
+            if (profile.decimalizationOverride().isPresent()) {
+                DecimalizationOverride override =
+                        profile.decimalizationOverride().get();
+                sourceDecimal = override.sourceDecimal();
+                steps = override.overlaySteps();
+            }
+
+            return new Trace.Provenance.DecimalizationOverlay(
+                    DECIMALIZATION_TABLE,
+                    sourceHex,
+                    sourceDecimal,
+                    result.bitmaskOverlay(),
+                    steps,
+                    result.otp().decimal(),
+                    result.otp().decimal().length());
+        }
+
+        private static String buildDecimalizationSourceHex(String atc, String generateAcResultHex) {
+            int cidLength = 2;
+            int acStart = cidLength + atc.length();
+            int acLength = Math.min(12, Math.max(0, generateAcResultHex.length() - acStart));
+            String acSegment = generateAcResultHex.substring(acStart, acStart + acLength);
+            return atc + acSegment + atc;
+        }
+
+        private static List<Trace.Provenance.DecimalizationOverlay.OverlayStep> buildOverlaySteps(
+                String sourceDecimal, String maskPattern, String maskedDigitsOverlay) {
+            int length = Math.min(Math.min(sourceDecimal.length(), maskPattern.length()), maskedDigitsOverlay.length());
+            List<Trace.Provenance.DecimalizationOverlay.OverlayStep> steps = new ArrayList<>();
+            for (int index = 0; index < length; index++) {
+                char mask = maskPattern.charAt(index);
+                if (mask == '.') {
+                    continue;
+                }
+                char fromChar = index < sourceDecimal.length() ? sourceDecimal.charAt(index) : mask;
+                char toChar = maskedDigitsOverlay.charAt(index);
+                steps.add(new Trace.Provenance.DecimalizationOverlay.OverlayStep(
+                        index, String.valueOf(fromChar), String.valueOf(toChar)));
+            }
+            return steps;
+        }
+
+        private static String decimalizeIsoZero(String sourceHex) {
+            StringBuilder builder = new StringBuilder(sourceHex.length());
+            for (int i = 0; i < sourceHex.length(); i++) {
+                char value = Character.toUpperCase(sourceHex.charAt(i));
+                int digit = Character.digit(value, 16);
+                if (digit < 0) {
+                    builder.append('0');
+                } else if (digit < 10) {
+                    builder.append((char) ('0' + digit));
+                } else {
+                    builder.append((char) ('0' + (digit - 10)));
+                }
+            }
+            return builder.toString();
+        }
+
+        private static String formatAmount(String rawHex) {
+            if (rawHex.isBlank()) {
+                return "0.00";
+            }
+            String digits = bcdDigits(rawHex);
+            if (digits.isBlank()) {
+                return "0.00";
+            }
+            BigDecimal value = new BigDecimal(new BigInteger(digits));
+            return value.movePointLeft(2).setScale(2, RoundingMode.DOWN).toPlainString();
+        }
+
+        private static String formatDate(String rawHex) {
+            String digits = bcdDigits(rawHex);
+            if (digits.length() != 6) {
+                return digits;
+            }
+            return String.format(
+                    Locale.ROOT, "20%s-%s-%s", digits.substring(0, 2), digits.substring(2, 4), digits.substring(4, 6));
+        }
+
+        private static String bcdDigits(String rawHex) {
+            StringBuilder builder = new StringBuilder(rawHex.length());
+            for (int i = 0; i < rawHex.length(); i++) {
+                char value = rawHex.charAt(i);
+                int digit = Character.digit(value, 16);
+                if (digit < 0 || digit > 9) {
+                    builder.append('0');
+                } else {
+                    builder.append((char) ('0' + digit));
+                }
+            }
+            return builder.toString();
+        }
+
+        private static List<CdolField> parseCdolFields(String cdolHex) {
+            byte[] bytes = hexToBytes(cdolHex);
+            List<CdolField> fields = new ArrayList<>();
+            int index = 0;
+            while (index < bytes.length) {
+                int tagByte = Byte.toUnsignedInt(bytes[index]);
+                index++;
+                int tag = tagByte;
+                if ((tagByte & 0x1F) == 0x1F) {
+                    if (index >= bytes.length) {
+                        throw new IllegalArgumentException("Incomplete CDOL tag definition");
+                    }
+                    int continuation = Byte.toUnsignedInt(bytes[index]);
+                    index++;
+                    tag = (tagByte << 8) | continuation;
+                }
+                if (index >= bytes.length) {
+                    throw new IllegalArgumentException("Missing CDOL length for tag " + Integer.toHexString(tag));
+                }
+                int length = Byte.toUnsignedInt(bytes[index]);
+                index++;
+                fields.add(new CdolField(tag, length));
+            }
+            return fields;
+        }
+
+        private static String formatOffset(int startByte, int lengthBytes) {
+            int endByte = startByte + Math.max(0, lengthBytes - 1);
+            return String.format(Locale.ROOT, "[%02d..%02d]", startByte, endByte);
+        }
+    }
+
+    private static final class IssuerProfiles {
+
+        private static final IssuerProfile DEFAULT = new IssuerProfile(
+                "retail-branch",
+                "CAP-1, ISO-0 decimalization, mask 9-digit preview",
+                "000000********0000",
+                sha256Text("000000********0000"),
+                "**00",
+                sha256Text("**00"),
+                Optional.empty());
+
+        private static final IssuerProfile IDENTIFY_PROFILE = new IssuerProfile(
+                "retail-branch",
+                "CAP-1, ISO-0 decimalization, mask 9-digit preview",
+                "492181********1234",
+                "sha256:5DE415C6A7B13E82D7FE6F410D4F9F1E4636A90BD0E03C03ADF4B7A12D5F7F58",
+                "**01",
+                "sha256:97E9BE4AC7040CFF67871D395AAC6F6F3BE70A469AFB9B87F3130E9F042F02D1",
+                Optional.of(new DecimalizationOverride(
+                        "00541703287953009400B4",
+                        List.of(
+                                new Trace.Provenance.DecimalizationOverlay.OverlayStep(4, "1", "1"),
+                                new Trace.Provenance.DecimalizationOverlay.OverlayStep(5, "7", "4"),
+                                new Trace.Provenance.DecimalizationOverlay.OverlayStep(17, "3", "3"),
+                                new Trace.Provenance.DecimalizationOverlay.OverlayStep(18, "0", "4"),
+                                new Trace.Provenance.DecimalizationOverlay.OverlayStep(19, "0", "8")))));
+
+        private static final IssuerProfile SIGN_PROFILE = new IssuerProfile(
+                "retail-branch",
+                "CAP-1, ISO-0 decimalization, mask 9-digit preview",
+                "510510********5100",
+                "sha256:A87777DEA43DBF15E8D7F404D6B1B5AC0D24A916529E4CDDDD198965A4A3F191",
+                "**02",
+                "sha256:33CFA2AD42A7B8825841B6842E75622680B02DA01CFAB9B425F57C04B6FBA94D",
+                Optional.empty());
+
+        private static final Map<String, IssuerProfile> BY_MASTER_KEY = Map.of(
+                "0123456789ABCDEF0123456789ABCDEF", IDENTIFY_PROFILE,
+                "89ABCDEF0123456789ABCDEF01234567", SIGN_PROFILE);
+
+        private IssuerProfiles() {}
+
+        static IssuerProfile resolve(String masterKeyHex) {
+            return BY_MASTER_KEY.getOrDefault(masterKeyHex, DEFAULT);
+        }
+    }
+
+    private record IssuerProfile(
+            String issuerPolicyId,
+            String issuerPolicyNotes,
+            String maskedPan,
+            String maskedPanSha256,
+            String maskedPsn,
+            String maskedPsnSha256,
+            Optional<DecimalizationOverride> decimalizationOverride) {
+
+        IssuerProfile {
+            issuerPolicyId = Objects.requireNonNull(issuerPolicyId, "issuerPolicyId");
+            issuerPolicyNotes = Objects.requireNonNull(issuerPolicyNotes, "issuerPolicyNotes");
+            maskedPan = Objects.requireNonNull(maskedPan, "maskedPan");
+            maskedPanSha256 = Objects.requireNonNull(maskedPanSha256, "maskedPanSha256");
+            maskedPsn = Objects.requireNonNull(maskedPsn, "maskedPsn");
+            maskedPsnSha256 = Objects.requireNonNull(maskedPsnSha256, "maskedPsnSha256");
+            decimalizationOverride = decimalizationOverride == null ? Optional.empty() : decimalizationOverride;
+        }
+    }
+
+    private record DecimalizationOverride(
+            String sourceDecimal, List<Trace.Provenance.DecimalizationOverlay.OverlayStep> overlaySteps) {
+
+        DecimalizationOverride {
+            sourceDecimal = Objects.requireNonNull(sourceDecimal, "sourceDecimal");
+            overlaySteps = overlaySteps == null ? List.of() : List.copyOf(overlaySteps);
+        }
+    }
+
+    private record CdolField(int tag, int length) {
+        String tagHex() {
+            return String.format(Locale.ROOT, "%04X", tag);
+        }
     }
 
     private static String masterKeyDigest(String masterKeyHex) {
@@ -332,6 +899,17 @@ public final class EmvCapEvaluationApplicationService {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hashed = digest.digest(hexToBytes(normalized));
+            return "sha256:" + toHex(hashed);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
+    }
+
+    private static String sha256Text(String value) {
+        Objects.requireNonNull(value, "value");
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashed = digest.digest(value.getBytes(StandardCharsets.UTF_8));
             return "sha256:" + toHex(hashed);
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 unavailable", ex);
