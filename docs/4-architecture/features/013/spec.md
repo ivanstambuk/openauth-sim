@@ -1,147 +1,164 @@
-# Feature 013 – Java 17 Language Enhancements
+# Feature 013 – Toolchain & Quality Platform
 
 | Field | Value |
 |-------|-------|
-| Status | Complete |
-| Last updated | 2025-11-10 |
+| Status | In migration (Batch P3) |
+| Last updated | 2025-11-11 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/013/plan.md` |
 | Linked tasks | `docs/4-architecture/features/013/tasks.md` |
-| Roadmap entry | #13 |
+| Roadmap entry | #13 – Toolchain & Quality Platform |
 
 ## Overview
-Apply targeted Java 17 language features across the OCRA CLI and REST layers to tighten compile-time guarantees and improve documentation readability without altering external contracts. The work seals the CLI command hierarchy, introduces sealed/pattern-matched request variants inside REST normalization, and replaces verbose escaped JSON examples with Java text blocks. Behaviour, APIs, and telemetry remain unchanged; only internals and documentation improve.
+Feature 013 unifies every toolchain and quality-automation improvement from the legacy tooling backlog (Features 010–015 and
+029–031). The spec now covers CLI exit harnesses, Maintenance CLI coverage buffers, reflection policy enforcement,
+Java 17 language upgrades, architecture harmonization, SpotBugs dead-state detectors, PMD rule hardening, Gradle wrapper +
+plugin upgrades, and the removal of legacy CLI/JS entry points. No new code ships in this migration; instead, Feature 013
+becomes the authoritative documentation for the quality gates, verification commands, and governance rules that keep the
+simulator’s tooling coherent.
 
 ## Clarifications
-- 2025-10-01 – Scope is limited to the OCRA CLI and REST modules; core cryptography remains untouched (Option A).
-- 2025-10-01 – Only the `OcraCli` abstract command hierarchy is sealed; other command trees stay unchanged unless future specs require it (Option B).
-- 2025-10-01 – REST request normalization exposes sealed variants consumed internally; REST controller payloads and schemas stay the same (Option A).
-- 2025-10-01 – Text-block migration targets OpenAPI example payloads embedded in controller annotations. Additional escaped JSON will be queued separately (Option A).
-- 2025-10-01 – No other CLI command hierarchies require sealing; future hierarchies should follow the same pattern (Option A).
-- 2025-10-01 – New REST endpoints with inline examples must use Java text blocks by default (Option A).
+- 2025-10-01 – CLI exit-code verification must avoid `SecurityManager`, using direct invocation for success paths and a
+  forked-JVM harness for failure exits while preserving JaCoCo instrumentation (legacy Feature 010).
+- 2025-10-01 – Maintenance CLI coverage buffer targets ≥0.90 line/branch Jacoco ratios (temporary relaxation to 0.70 was
+  recorded); hotspot reports, forked JVM tests, and corrupted-db coverage must be documented (legacy Feature 012).
+- 2025-10-01 – No-reflection policy applies to production and test sources; reflection usage must be replaced with explicit
+  seams, enforced via ArchUnit/Gradle `reflectionScan`, and documented in AGENTS.md (legacy Feature 011).
+- 2025-10-01 – Java 17 language features (sealed hierarchies, pattern matching, text blocks) apply to OCRA CLI + REST internals
+  without altering public contracts or telemetry (legacy Feature 013).
+- 2025-10-01 – Architecture harmonization requires shared OCRA application services, persistence factories, telemetry
+  adapters, DTO normalization, and `core` module splits with ArchUnit guards (legacy Feature 014).
+- 2025-10-03 – SpotBugs dead-state detectors (`URF_*`, `UUF_*`, `UWF_*`, `NP_UNWRITTEN_*`) and PMD unused-field/method rules must
+  run in every JVM module; suppressions require documented rationale (legacy Feature 015).
+- 2025-10-19 – PMD upgrade to 7.x, Law-of-Demeter scoping/whitelists, NonSerializableClass, and NonExhaustiveSwitch rules must be
+  captured alongside documentation for interpreting violations (legacy Feature 029).
+- 2025-10-18 – Gradle wrapper upgrades (8.10 → 9.1), plugin bumps (e.g., PIT 1.19.0-rc.2), and configuration-cache validation
+  must be documented with `--warning-mode=all` sweeps (legacy Feature 030).
+- 2025-10-19 – Legacy CLI/JS entry points and telemetry fallbacks were removed; only canonical telemetry adapters, router keys,
+  and Fetch APIs remain (legacy Feature 031).
 
 ## Goals
-- Leverage Java 17 language features (sealed classes/records, text blocks, pattern matching) to simplify CLI and REST internals while keeping behaviour identical.
-- Maintain or improve automated coverage (qualityGate, ArchUnit, PIT, Jacoco) after the refactors.
-- Document reproduction commands and policies so future contributors continue using sealed hierarchies and text blocks consistently.
+- G-013-01 – Keep CLI tooling healthy (exit-harness rewrite, Maintenance CLI coverage buffer, corrupted-db tests) with
+  documented `jacocoAggregatedReport`/hotspot commands.
+- G-013-02 – Enforce governance guardrails (no reflection, sealed hierarchies, shared architecture modules) via ArchUnit and
+  documented verification steps.
+- G-013-03 – Maintain the static-analysis platform (SpotBugs dead-state detectors, PMD 7 rules, Law-of-Demeter scoping,
+  NonSerializableClass/NonExhaustiveSwitch) with shared configuration files and suppression etiquette.
+- G-013-04 – Ensure build-tool upgrades (Gradle 9 wrapper, plugin bumps) and removal of legacy entry points are documented
+  with the required verification commands (`qualityGate`, `pmdMain pmdTest`, `spotbugsMain`, `./gradlew --warning-mode=all clean check`).
 
 ## Non-Goals
-- Increasing the minimum Java version beyond 17.
-- Refactoring protocols, schemas, or telemetry contracts outside the defined CLI/REST scope.
-- Introducing new dependencies or CLI/REST features.
+- Shipping new runtime behaviour or modifying quality thresholds beyond what the legacy specs already enforce.
+- Reintroducing deprecated entry points, telemetry fallbacks, or reflection-based seams.
+- Relaxing SpotBugs/PMD detectors or the Jacoco coverage buffer without a follow-up governance feature.
 
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-013-01 | Seal the `OcraCli` abstract command hierarchy with an explicit permit list covering the existing Picocli subcommands. | `AbstractOcraCommand` declared sealed, CLI tests demonstrate all permitted subcommands execute normally. | `./gradlew --no-daemon :cli:test` asserts CLI behaviour unchanged and no reflective access occurs. | Picocli wiring fails, unsealed subclasses persist, or new reflection appears. | No telemetry impact; guard via CLI tests. | Clarifications 1–3.
-| FR-013-02 | Replace REST OCRA evaluation/verification normalization with sealed request variants and pattern matching to remove nullable discriminators. | REST services emit sealed `StoredCredential`/`InlineSecret` variants; existing DTOs remain unchanged externally. | `./gradlew --no-daemon :rest-api:test --tests "*Ocra*ServiceTest"` covers both variants plus error paths. | Null pointers or serialization regressions appear; pattern matching misses a branch. | Telemetry unchanged; REST logs unaffected. | Clarifications 1–3.
-| FR-013-03 | Convert REST controller OpenAPI example strings to Java text blocks without changing the rendered payloads. | Controllers compile with text blocks; example snapshots remain identical. | OpenAPI snapshot tests or controller serialization tests compare outputs before vs after. | Snapshot diffs, formatting regressions, or controller compilation failures. | None; documentation-only change. | Clarifications 4 & 6.
-| FR-013-04 | Keep documentation guidance in `AGENTS.md`/specs updated so future features reuse sealed hierarchies and text blocks. | Spec/plan/tasks reference the policy; roadmap entry documents completion. | `rg -n "sealed" AGENTS.md` (already updated in Feature 011) plus this spec cross-references. | Lack of documentation causes future drift. | None. | Goals.
+| FR-013-01 | CLI exit harness removes `SecurityManager`, covers success (`CommandLine.ExitCode.OK`) and failure (`USAGE`, corrupted DB) paths via direct invocation + forked JVM while preserving JaCoCo instrumentation. | `OcraCliLauncherTest` + forked harness assert exit codes; `./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"` stays green. | CLI tests + Jacoco report show coverage > prior baseline. | Tests fail or rely on forbidden APIs. | None. | Legacy Feature 010.
+| FR-013-02 | Maintenance CLI coverage buffer ≥0.90 line/branch (once relaxation lifted) is documented with hotspot analysis, forked JVM failure tests, corrupted-db tests, and CLI-specific commands. | Plan/tasks list hotspot metrics + commands; tests cover failure branches; `jacocoAggregatedReport` evidence captured. | `./gradlew jacocoAggregatedReport`, targeted CLI tests, `_current-session.md` log. | Coverage unknown or buffer slips without documentation. | None. | Legacy Feature 012.
+| FR-013-03 | Reflection usage removed; ArchUnit + Gradle `reflectionScan` enforce policy; spec/plan/tasks/AGENTS mention the guardrail. | `rg -n "java.lang.reflect"` returns no project-owned matches; ArchUnit/`reflectionScan` run in `qualityGate`. | `./gradlew reflectionScan :core-architecture-tests:test`. | Reflection reintroduced or documentation missing. | None. | Legacy Feature 011.
+| FR-013-04 | Java 17 enhancements (sealed CLI hierarchy, sealed REST request variants, text-block OpenAPI examples) ship without changing external contracts. | CLI/REST tests cover sealed hierarchies; OpenAPI snapshots unchanged; `qualityGate` passes. | `./gradlew :cli:test :rest-api:test qualityGate`. | Behavioural regressions or snapshot diffs occur. | None. | Legacy Feature 013.
+| FR-013-05 | Architecture harmonization retains shared OCRA application services, persistence factory, telemetry adapter, DTO normalization, and `core` split enforced via ArchUnit. | Facades depend on application services only; ArchUnit tests guard module boundaries; documentation describes architecture. | `./gradlew :application:test :core-architecture-tests:test`. | Facades bypass application layer or telemetry diverges. | Telemetry remains via adapters. | Legacy Feature 014.
+| FR-013-06 | SpotBugs dead-state detectors (`URF_*`, `UUF_*`, `UWF_*`, `NP_UNWRITTEN_*`) enforced via shared include filter; violations remediated or justified. | `config/spotbugs/dead-state-include.xml` referenced by all SpotBugs tasks; `./gradlew spotbugsMain spotbugsTest` red→green history recorded. | SpotBugs logs show zero dead-state findings; suppressions documented. | Builds fail or suppressions lack rationale. | None. | Legacy Feature 015.
+| FR-013-07 | PMD 7 upgrade + rule hardening (error-prone/best-practice/design, Law-of-Demeter with whitelist, NonSerializableClass, NonExhaustiveSwitch) captured with remediation plan and commands. | `config/pmd/ruleset.xml` + whitelist committed; `pmdMain pmdTest` run green; plan references whitelist entries. | `./gradlew pmdMain pmdTest`. | PMD fails or documentation missing. | Optional `quality.pmd.run` logs if enabled. | Legacy Feature 029.
+| FR-013-08 | Gradle wrapper upgraded to 9.1.0 with plugin bumps (e.g., PIT 1.19.0-rc.2); warning-mode sweeps before/after upgrade documented; configuration cache validated. | `gradle/wrapper/gradle-wrapper.properties` pin 9.1; `./gradlew --warning-mode=all clean check` passes; `./gradlew --configuration-cache help` stored in logs. | Wrapper diff + commands recorded in `_current-session.md`. | Build fails or warnings unresolved. | None. | Legacy Feature 030.
+| FR-013-09 | Legacy CLI/JS entry points (legacy telemetry fallbacks, router shims, old presets) removed; docs/tests reference canonical adapters/routes only. | CLI/REST/UI telemetry uses `TelemetryContracts`; router state keys canonical; docs highlight change. | `rg "legacyEmit"` returns none; Selenium/REST tests confirm canonical routing. | Old entry points linger, causing drift. | Telemetry unaffected (only canonical). | Legacy Feature 031.
+| FR-013-10 | Roadmap, knowledge map, session log (docs/_current-session.md), and `_current-session.md` capture every toolchain change plus the commands executed (`qualityGate`, `spotbugsMain`, `pmdMain pmdTest`, `gradlew wrapper`, CLI tests). | Logs updated per increment; tasks reference command list. | Manual review before closing tasks. | Auditors cannot trace toolchain updates. | None. | Goals G-013-02..04.
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-013-01 | Maintain automation quality gates (spotless, ArchUnit, Jacoco, PIT) after Java 17 refactors. | Prevent regressions when language features ship. | `./gradlew qualityGate` passes without threshold changes. | Gradle toolchain, quality plugins. | Goals.
-| NFR-013-02 | Avoid REST performance regressions from sealed variant normalization. | Keep request processing at baseline latency. | Service tests/benchmarks show ≤5% deviation from prior runs. | REST application module. | Goals.
-| NFR-013-03 | Keep sealed hierarchies encapsulated (package-private or nested) so public APIs remain stable. | Prevent public API churn. | CLI/REST public signatures unchanged; ArchUnit checks confirm package-level encapsulation. | CLI, REST modules. | Clarifications 2 & 3.
-
-## UI / Interaction Mock-ups
-_Not applicable – no UI work is included._
+| NFR-013-01 | Maintain aggregated quality gate runtime within ±15% despite added checks (SpotBugs, PMD, reflection scan). | Developer ergonomics | Record runtimes before/after each increment in plan/tasks. | Gradle build. | Legacy Features 015/029/030.
+| NFR-013-02 | Jacoco coverage buffer (≥0.90 line/branch) restored for Maintenance CLI once the relaxation ends; hotspot reports kept current. | Quality assurance | Jacoco report excerpts stored in plan/tasks; `jacocoCoverageVerification` thresholds documented. | CLI module. | Legacy Feature 012.
+| NFR-013-03 | Reflection guard + sealed hierarchies remain enforced via ArchUnit/`reflectionScan`; local and CI gates share identical configuration. | Governance | ArchUnit + reflectionScan part of `qualityGate`; docs mention command. | `core-architecture-tests`, buildSrc. | Legacy Feature 011.
+| NFR-013-04 | PMD/SpotBugs configuration remains deterministic (shared include/whitelist files, single version pins) and adds ≤2 minutes to CI. | Build stability | CI job durations recorded; configuration stored in repo. | SpotBugs, PMD, buildSrc. | Legacy Features 015/029.
+| NFR-013-05 | Build upgrades (Gradle 9, plugin bumps) remain reproducible with warning-mode sweeps documented and configuration cache validated. | Tooling reliability | `./gradlew --warning-mode=all clean check` + `--configuration-cache help` outputs logged during upgrade. | Gradle wrapper. | Legacy Feature 030.
 
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
-| S-013-01 | CLI sealed hierarchy enforces the permitted Picocli subcommands while tests confirm behaviour parity. |
-| S-013-02 | REST OCRA evaluation/verification services use sealed variants + pattern matching to normalise stored vs inline requests. |
-| S-013-03 | OpenAPI example payloads become Java text blocks without altering rendered JSON. |
-| S-013-04 | Full quality gate (spotless, ArchUnit, Jacoco, PIT) remains green after the Java 17 refactors. |
+| S-013-01 | CLI exit harness + Maintenance CLI coverage buffer verified via CLI tests and Jacoco hotspot reports. |
+| S-013-02 | Reflection-free codebase enforced via ArchUnit + reflectionScan, documented in governance artefacts. |
+| S-013-03 | Java 17 features adopted in CLI/REST while maintaining public contracts + quality gates. |
+| S-013-04 | Architecture harmonization keeps shared services/persistence/telemetry/DTOs intact with module boundaries enforced. |
+| S-013-05 | SpotBugs + PMD detectors configured, running, and documented with remediation guidance. |
+| S-013-06 | Gradle wrapper/plugin upgrades validated with warning-mode sweeps + configuration cache checks. |
+| S-013-07 | Legacy entry points removed; telemetry/router states rely on canonical adapters only. |
+| S-013-08 | Roadmap/knowledge map/session log (docs/_current-session.md)/session logs capture commands + follow-ups for every toolchain change. |
 
 ## Test Strategy
-- **CLI:** Extend command tests to assert sealed hierarchy behaviour and confirm no unauthorized subclasses exist.
-- **REST:** Update evaluation/verification service tests to exercise both sealed variants, validation paths, and failure handling.
-- **Docs/Contracts:** Run OpenAPI snapshot tests to confirm text block conversions preserve payloads.
-- **Quality Gate:** Run `./gradlew qualityGate` to ensure ArchUnit/PIT/Jacoco remain green post-refactor.
+- **CLI Tooling:** `./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"` and Maintenance CLI forked JVM tests;
+  `./gradlew jacocoAggregatedReport jacocoCoverageVerification` for hotspot buffers.
+- **Reflection/Architecture:** `./gradlew reflectionScan :core-architecture-tests:test`.
+- **Java 17/Shared services:** `./gradlew :cli:test :rest-api:test :application:test :ui:test` plus OpenAPI snapshot tests.
+- **SpotBugs/PMD:** `./gradlew spotbugsMain spotbugsTest pmdMain pmdTest` (module-specific tasks as needed).
+- **Gradle upgrade:** `./gradlew --warning-mode=all clean check`, `./gradlew --configuration-cache help`, `./gradlew wrapper --gradle-version 9.1.0 --distribution-type bin`.
+- **Telemetry/router cleanup:** Selenium + REST suites verifying canonical routing/telemetry connectors.
+- **Documentation:** `./gradlew spotlessApply check`; `_current-session.md` notes commands per increment.
 
 ## Interface & Contract Catalogue
-### Domain Objects
-| ID | Description | Modules |
-|----|-------------|---------|
-| DO-013-01 | `StoredCredentialRequestVariant` – sealed variant representing stored credential normalization. | rest-api |
-| DO-013-02 | `InlineSecretRequestVariant` – sealed variant representing inline secret normalization. | rest-api |
+### Build / Toolchain Artefacts
+| ID | Description | Location |
+|----|-------------|----------|
+| BA-013-01 | CLI forked-JVM harness for exit-code verification. | `cli/src/test/java/.../OcraCliLauncherTest.java` |
+| BA-013-02 | Maintenance CLI hotspot report + Jacoco evidence. | `docs/4-architecture/features/013/plan.md` |
+| BA-013-03 | Reflection scan + ArchUnit rules. | `build.gradle.kts`, `core-architecture-tests` |
+| BA-013-04 | SpotBugs include filter + PMD ruleset/whitelist. | `config/spotbugs/dead-state-include.xml`, `config/pmd/*.xml` |
+| BA-013-05 | Gradle wrapper + plugin versions. | `gradle/wrapper/gradle-wrapper.properties`, `gradle/libs.versions.toml` |
 
-### API Routes / Services
-| ID | Transport | Description | Notes |
-|----|-----------|-------------|-------|
-| API-013-01 | REST `/api/v1/ocra/evaluate` | Internal normalization now uses sealed variants; external schema unchanged. | Snapshots validated via tests. |
-| API-013-02 | REST `/api/v1/ocra/verify` | Same as above for verification flows. | — |
-
-### CLI Commands / Flags
+### CLI / Commands
 | ID | Command | Behaviour |
 |----|---------|-----------|
-| CLI-013-01 | `./gradlew --no-daemon :cli:test` | Validates sealed CLI hierarchy and behaviour parity. |
-| CLI-013-02 | `./gradlew --no-daemon :rest-api:test --tests "*Ocra*ServiceTest"` | Exercises sealed REST variants and text blocks via service tests. |
-| CLI-013-03 | `./gradlew --no-daemon qualityGate` | Ensures automation stays green after Java 17 enhancements. |
+| CLI-013-01 | `./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"` | Validates CLI exit harness + forked JVM failure paths.
+| CLI-013-02 | `./gradlew jacocoAggregatedReport jacocoCoverageVerification` | Captures Maintenance CLI coverage buffer + hotspot data.
+| CLI-013-03 | `./gradlew reflectionScan :core-architecture-tests:test` | Enforces anti-reflection policy + architecture rules.
+| CLI-013-04 | `./gradlew spotbugsMain spotbugsTest pmdMain pmdTest` | Runs dead-state detectors + expanded PMD rules.
+| CLI-013-05 | `./gradlew --warning-mode=all clean check --configuration-cache help` | Validates Gradle upgrade + warning sweeps.
+| CLI-013-06 | `./gradlew wrapper --gradle-version 9.1.0 --distribution-type bin` | Regenerates wrapper during upgrades.
 
-### Telemetry Events
-| ID | Event name | Fields / Redaction rules |
-|----|-----------|---------------------------|
-| TE-013-NA | — | Telemetry contracts unchanged. |
-
-### Fixtures & Sample Data
-| ID | Path | Purpose |
-|----|------|---------|
-| FX-013-01 | `rest-api/src/test/java/.../OcraEvaluationServiceTest.java` | Validates sealed variant normalization paths. |
-| FX-013-02 | `rest-api/src/test/java/.../OcraVerificationServiceTest.java` | Same for verification flows. |
-| FX-013-03 | `cli/src/test/java/.../OcraCliTest.java` | Confirms sealed CLI hierarchy behaviour. |
-
-### UI States
-| ID | State | Trigger / Expected outcome |
-|----|-------|---------------------------|
-| UI-013-NA | — | Not applicable. |
-
-## Telemetry & Observability
-Runtime telemetry is unchanged. Enforcement relies on existing tests plus the quality gate; any regressions surface via Gradle output and OpenAPI snapshots.
+### Documentation / Governance Artefacts
+| ID | Artefact | Notes |
+|----|----------|-------|
+| DOC-013-01 | `docs/5-operations/analysis-gate-checklist.md` | References SpotBugs/PMD/reflection policies + verification commands.
+| DOC-013-02 | `docs/4-architecture/roadmap.md`, `docs/4-architecture/knowledge-map.md`, `docs/migration_plan.md` | Track toolchain ownership + migration notes.
+| DOC-013-03 | `_current-session.md` | Logs commands for each toolchain increment.
 
 ## Documentation Deliverables
-- Update this spec/plan/tasks with sealed hierarchy and text block guidance (Complete).
-- Reference the policy in roadmap/session snapshot so future features reuse sealed hierarchies and text blocks.
-
-## Fixtures & Sample Data
-- Jacoco and OpenAPI snapshot outputs remain the authoritative evidence for refactors; no new fixture directories required beyond existing CLI/REST tests.
+- Update roadmap/knowledge map/session log (docs/_current-session.md) with toolchain status, wrapper upgrades, and verification commands.
+- Ensure AGENTS.md references reflection policy, sealed hierarchies, SpotBugs/PMD expectations, and CLI/Gradle command lists.
+- Maintain hotspot reports, whitelist files, and wrapper/plugin version notes inside plan/tasks for future auditors.
 
 ## Spec DSL
 ```
+domain_objects:
+  - id: DO-013-01
+    name: ToolchainGuardrail
+    fields:
+      - name: name
+        type: string
+      - name: enforcementCommands
+        type: list<string>
+      - name: sourceFeature
+        type: string
 cli_commands:
   - id: CLI-013-01
-    command: ./gradlew --no-daemon :cli:test
-    description: Validates the sealed CLI hierarchy
+    command: ./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"
   - id: CLI-013-02
-    command: ./gradlew --no-daemon :rest-api:test --tests "*Ocra*ServiceTest"
-    description: Exercises sealed REST request variants
+    command: ./gradlew jacocoAggregatedReport jacocoCoverageVerification
   - id: CLI-013-03
-    command: ./gradlew --no-daemon qualityGate
-    description: Confirms automation stays green post-refactor
+    command: ./gradlew reflectionScan :core-architecture-tests:test
+  - id: CLI-013-04
+    command: ./gradlew spotbugsMain spotbugsTest pmdMain pmdTest
+  - id: CLI-013-05
+    command: ./gradlew --warning-mode=all clean check --configuration-cache help
+  - id: CLI-013-06
+    command: ./gradlew wrapper --gradle-version 9.1.0 --distribution-type bin
 fixtures:
   - id: FX-013-01
-    path: rest-api/src/test/java/.../OcraEvaluationServiceTest.java
-    purpose: Tests sealed evaluation request variants
+    path: config/spotbugs/dead-state-include.xml
   - id: FX-013-02
-    path: rest-api/src/test/java/.../OcraVerificationServiceTest.java
-    purpose: Tests sealed verification request variants
+    path: config/pmd/ruleset.xml
   - id: FX-013-03
-    path: cli/src/test/java/.../OcraCliTest.java
-    purpose: Validates sealed CLI command hierarchy
-scenarios:
-  - id: S-013-01
-    description: CLI sealed hierarchy verified via tests
-  - id: S-013-02
-    description: REST sealed variants normalise stored vs inline flows
-  - id: S-013-03
-    description: Text block conversion preserves OpenAPI examples
-  - id: S-013-04
-    description: Quality gate remains green after Java 17 enhancements
+    path: docs/4-architecture/features/013/plan.md (Jacoco hotspot table)
 ```
-
-## Appendix (Optional)
-- Quality gate evidence (2025-10-01): `./gradlew qualityGate` green; PIT/Jacoco thresholds unchanged.
-- Accepted limitation: Defensive guard `parsed == null` remains unreachable; documented for future refactors.

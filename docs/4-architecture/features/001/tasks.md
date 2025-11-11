@@ -1,50 +1,56 @@
-# Feature 001 Tasks – Core Credential Domain
+# Feature 001 Tasks – HOTP Simulator & Tooling
 
-_Status:_ Complete  
-_Last updated:_ 2025-11-10_
+_Status: Complete_  
+_Last updated: 2025-11-10_
+
+> Tasks are recorded with verification commands for future reference; each originally stayed ≤30 minutes and staged tests first.
 
 ## Checklist
-- [x] T-001-01 – Close clarifications, update roadmap/knowledge map, and capture analysis-gate notes (FR-001-01–FR-001-08, S-001-01–S-001-05).
-  _Intent:_ Ensure the spec/plan/tasks reflect the agreed OCRA-only scope before coding began.
-  _Verification commands:_
-  - `less docs/4-architecture/features/001/spec.md`
-  - `rg -n "Feature 001" docs/4-architecture/roadmap.md`
-
-- [x] T-001-02 – Add failing descriptor + validation tests covering required fields, suite parsing, and sanitized telemetry (FR-001-01, FR-001-06, S-001-01, S-001-03).
-  _Intent:_ Define the immutable descriptor contract and error conditions ahead of implementation.
-  _Verification commands:_
-  - `./gradlew --no-daemon :core:test --tests "*OcraCredentialDescriptorTest"`
-
-- [x] T-001-03 – Implement descriptors, validation helpers, and error diagnostics; rerun targeted tests (FR-001-01, FR-001-07, S-001-01, S-001-03).
-  _Intent:_ Drive the red tests from T-001-02 green while preserving secret redaction.
-  _Verification commands:_
-  - `./gradlew --no-daemon :core:test --tests "*OcraCredentialDescriptorTest"`
-  - `./gradlew --no-daemon spotlessApply`
-
-- [x] T-001-04 – Build shared-secret normalization utilities plus property-based tests (FR-001-02, S-001-02).
-  _Intent:_ Canonicalize RAW/HEX/Base64 inputs and prove round-trips + failure modes.
-  _Verification commands:_
-  - `./gradlew --no-daemon :core:test --tests "*SecretMaterialCodecTest"`
-
-- [x] T-001-05 – Implement registry metadata + persistence envelopes with upgrade hooks (FR-001-03, FR-001-04, S-001-03, S-001-04).
-  _Intent:_ Expose capability metadata and ensure stored descriptors upgrade seamlessly.
-  _Verification commands:_
-  - `./gradlew --no-daemon :core:test --tests "*CredentialRegistryTest"`
-  - `./gradlew --no-daemon :core:test --tests "*CredentialEnvelopeUpgradeTest"`
-
-- [x] T-001-06 – Deliver RFC 6287 compliance fixtures (including S064/S128/S256/S512 session vectors) and implement `OcraResponseCalculator` (FR-001-05, S-001-05).
-  _Intent:_ Guarantee the execution helper reproduces published OTPs for all supported suites.
-  _Verification commands:_
-  - `./gradlew --no-daemon :core:test --tests "*OcraRfc6287ComplianceTest"`
-
-- [x] T-001-07 – Wire session-aware helper into CLI maintenance flows and document provenance for the vectors (FR-001-05, S-001-05).
-  _Intent:_ Prove downstream consumers can call the calculator while keeping telemetry sanitized.
-  _Verification commands:_
-  - `./gradlew --no-daemon :cli:test --tests "*MaintenanceCli*"`
-  - `rg -n "S064" docs/4-architecture/features/001/plan.md`
+- [x] T-001-01 – Add failing HOTP generator/validator tests with RFC 4226 vectors (S-001-01, FR-001-01).  
+  _Verification:_ `./gradlew --no-daemon :core:test`
+- [x] T-001-02 – Implement HOTP domain logic + fixture loader to satisfy T-001-01 (S-001-01, FR-001-01).  
+  _Verification:_ `./gradlew --no-daemon :core:test`
+- [x] T-001-03 – Add failing MapDB integration tests mixing OCRA + HOTP credentials (S-001-01, FR-001-02).  
+  _Verification:_ `./gradlew --no-daemon :application:test --tests "*CredentialStore*"`
+- [x] T-001-04 – Implement shared persistence updates and rerun integration tests (S-001-01, FR-001-02).  
+  _Verification:_ `./gradlew --no-daemon :application:test`
+- [x] T-001-05 – Add failing application telemetry tests for HOTP evaluation/issuance/replay (S-001-02, FR-001-03/04).  
+  _Verification:_ `./gradlew --no-daemon :application:test --tests "*Hotp*Telemetry*"`
+- [x] T-001-06 – Implement application services/telemetry adapters (S-001-02, FR-001-03/04).  
+  _Verification:_ `./gradlew --no-daemon :application:test`
+- [x] T-001-07 – Add failing CLI command tests (import/list/evaluate/replay) (S-001-02, FR-001-03).  
+  _Verification:_ `./gradlew --no-daemon :cli:test --tests "*Hotp*CommandTest"`
+- [x] T-001-08 – Implement CLI commands + telemetry (S-001-02, FR-001-03).  
+  _Verification:_ `./gradlew --no-daemon :cli:test`
+- [x] T-001-09 – Add failing REST MockMvc + OpenAPI tests for HOTP evaluation (S-001-03, FR-001-04).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "*HotpEvaluate*"`
+- [x] T-001-10 – Implement REST evaluation endpoint, update OpenAPI snapshots (S-001-03, FR-001-04).  
+  _Verification:_ `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshotTest"`
+- [x] T-001-11 – Add failing REST/Selenium coverage for HOTP replay endpoints (stored + inline) (S-001-03, FR-001-04).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "*HotpReplay*"`
+- [x] T-001-12 – Implement HOTP replay service/controller/UI wiring (S-001-03/04, FR-001-04/05).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test`
+- [x] T-001-13 – Add failing Selenium tests for HOTP stored evaluation UI (S-001-04, FR-001-05).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "*HotpOperatorUiStored*"`
+- [x] T-001-14 – Implement HOTP stored evaluation UI + seeding controls (S-001-04, FR-001-05).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test`
+- [x] T-001-15 – Add failing Selenium tests for HOTP inline evaluation + accessibility (S-001-04, FR-001-05).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "*HotpOperatorUiInline*"`
+- [x] T-001-16 – Implement HOTP inline evaluation UI (S-001-04, FR-001-05).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test`
+- [x] T-001-17 – Add failing Selenium coverage for HOTP replay UI enhancements (sample hints, automatic context) (S-001-04).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "*HotpOperatorUiReplay*"`
+- [x] T-001-18 – Implement HOTP replay UI tweaks (auto-fill counter/OTP, remove sample button) (S-001-04).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test`
+- [x] T-001-19 – Publish `docs/hotp_validation_vectors.json`, add loader/tests across modules (S-001-05, FR-001-06).  
+  _Verification:_ `./gradlew --no-daemon :core:test :cli:test :rest-api:test`
+- [x] T-001-20 – Update CLI/REST/operator docs with HOTP guidance, rerun spotless (S-001-05, FR-001-07).  
+  _Verification:_ `./gradlew --no-daemon spotlessApply check`
 
 ## Verification Log
-- 2025-11-10 – `./gradlew --no-daemon spotlessApply check`
+- 2025-10-05 – `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`
+- 2025-10-13 – Fixture catalogue + UI updates verified with `./gradlew --no-daemon :rest-api:test --tests "*Hotp*"` and `./gradlew spotlessApply check`
+- 2025-11-10 – `./gradlew --no-daemon spotlessApply check` (template migration verification)
 
 ## Notes / TODOs
-- Legacy Phase/T0xx tables live in git history prior to 2025-11-09 for auditors who need the original increment breakdown.
+- HOTP issuance/provisioning will be handled under a future feature once prioritized.

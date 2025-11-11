@@ -1,54 +1,42 @@
-# Feature 013 Tasks – Java 17 Language Enhancements
+# Feature 013 Tasks – Toolchain & Quality Platform
 
-_Status:_ Complete  
-_Last updated:_ 2025-11-10_
-
-> Checklist mirrors the Feature 013 plan increments; tasks remain checked for audit history while migrating templates.
+_Status:_ In migration (Batch P3)  
+_Last updated:_ 2025-11-11
 
 ## Checklist
-- [x] T-013-01 – Capture roadmap entry and baseline context (FR-013-04, S-013-04).  
-  _Intent:_ Ensure roadmap/session docs reflect the Java 17 scope before coding.  
-  _Verification commands:_  
-  - `rg -n "Feature 013" docs/4-architecture/roadmap.md`  
-  _Notes:_ Roadmap entry 26 updated on 2025-10-01.
+- [x] T-013-01 – Merge legacy toolchain specs (Features 010–015/029/030/031) into the consolidated spec.
+  - _Intent:_ Capture CLI exit harness, Maintenance coverage buffer, reflection policy, Java 17 refactor notes, architecture harmonization, SpotBugs/PMD enforcement, Gradle upgrades, and legacy-entry removal requirements plus verification commands.
+  - _Verification commands:_ `rg "FR-013" docs/4-architecture/features/013/spec.md`, `git diff --stat docs/4-architecture/features/013/spec.md`.
+  - _Notes:_ Spec now lists FR-013-01..10 and NFR-013-01..05.
+- [x] T-013-02 – Refresh plan/tasks to enumerate required commands (`qualityGate`, `jacocoAggregatedReport`, `reflectionScan`, `spotbugsMain`, `pmdMain pmdTest`, Gradle wrapper/warning sweeps) and outstanding backlog items (coverage buffer restoration, PMD whitelist, etc.).
+  - _Intent:_ Keep execution playbooks and backlog explicit for future agents.
+  - _Verification commands:_ `rg "P3-I" docs/4-architecture/features/013/plan.md`, `rg "T-013" docs/4-architecture/features/013/tasks.md`.
+  - _Notes:_ Include reminders to log wrapper updates and quality-gate runs in `_current-session.md`.
+- [x] T-013-03 – Remove `docs/4-architecture/features/013/legacy/` after review; log `rm -rf …`, `ls docs/4-architecture/features/013`, and queued verification commands (spotless/qualityGate) in `_current-session.md` + `docs/migration_plan.md`.
+  - _Intent:_ Complete the legacy absorption with audit logs.
+  - _Verification commands:_ `rm -rf docs/4-architecture/features/013/legacy`, `ls docs/4-architecture/features/013`.
+  - _Notes:_ Mention pending spotless/qualityGate reruns for Phase 2 close-out.
+- [x] T-013-04 – Update roadmap/knowledge map/architecture graph/session log (docs/_current-session.md) with toolchain ownership and verification notes; queue final `./gradlew --no-daemon spotlessApply check` + `./gradlew --no-daemon qualityGate` after Feature 013 migration completes.
+  - _Intent:_ Keep cross-cutting docs synchronized and prep the Phase 2 close-out commands.
+  - _Verification commands:_ `rg "Feature 013" docs/4-architecture/roadmap.md docs/4-architecture/knowledge-map.md docs/migration_plan.md` (2025-11-11), `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`.
+  - _Notes:_ Command outputs recorded in `_current-session.md`; session log (docs/_current-session.md) now includes the Batch P3 Phase 2 verification log.
 
-- [x] T-013-02 – Document ≤90-minute increments + analysis gate prerequisites (FR-013-04, S-013-04).  
-  _Intent:_ Align plan/tasks with the spec and confirm no open questions remain.  
-  _Verification commands:_  
-  - `rg -n "Analysis Gate" docs/4-architecture/features/013/plan.md`
+### Legacy Coverage Checklist
+- [x] T-013-L1 – Features 010/011/012/013/014/015 (CLI harness, maintenance buffers, reflection policy).
+  - _Intent:_ Ensure FR-013-01..06 and NFR-013-02/03 memorialize the CLI exit harness, maintenance CLI coverage buffer, reflection ban, and wrapper guidance migrated from these features.
+  - _Verification commands:_ `./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"`, `./gradlew --no-daemon qualityGate`, `./gradlew --no-daemon reflectionScan`.
+  - _Notes:_ `_current-session.md` entries from 2025-11-11 capture the command outputs tied to P3-I1/P3-I2.
+- [x] T-013-L2 – Features 029/030/031 (toolchain automation + quality gates).
+  - _Intent:_ Confirm FR-013-07..09 and NFR-013-01/04/05 represent the PMD/SpotBugs/pmdMain/pmdTest orchestration, configuration-cache requirements, and CI parity from these features.
+  - _Verification commands:_ `./gradlew --no-daemon pmdMain pmdTest`, `./gradlew --no-daemon spotbugsMain`, `./gradlew --no-daemon qualityGate`.
+  - _Notes:_ Logged in `_current-session.md` and referenced by the Batch P3 Phase 2 session log (docs/_current-session.md) entry.
 
-- [x] T-013-03 – Execute the analysis gate checklist and capture tooling readiness (NFR-013-01, S-013-04).  
-  _Intent:_ Verify constitutional guardrails before implementing language features.  
-  _Verification commands:_  
-  - `less docs/5-operations/analysis-gate-checklist.md`
-
-- [x] T-013-04 – Seal `OcraCli.AbstractOcraCommand` and update CLI tests (FR-013-01, S-013-01).  
-  _Intent:_ Limit command inheritance to the permitted Picocli subcommands while keeping behaviour intact.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :cli:test`
-
-- [x] T-013-05 – Introduce sealed request variants for REST OCRA evaluation normalization (FR-013-02, S-013-02).  
-  _Intent:_ Remove nullable discriminators and rely on pattern matching for evaluation flows.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :rest-api:test --tests "*OcraEvaluation*"`
-
-- [x] T-013-06 – Mirror sealed variant refactor for REST OCRA verification (FR-013-02, S-013-02).  
-  _Intent:_ Align verification services/telemetry with the new sealed variants.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :rest-api:test --tests "*OcraVerification*"`
-
-- [x] T-013-07 – Convert OpenAPI example strings to text blocks and rerun the quality gate (FR-013-03, NFR-013-01, S-013-03, S-013-04).  
-  _Intent:_ Improve documentation readability while proving automation remains green.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :rest-api:test`  
-  - `./gradlew --no-daemon qualityGate`  
-  - `./gradlew --no-daemon spotlessApply`
-
-## Verification Log (Optional)
-- 2025-10-01 – `./gradlew --no-daemon :cli:test` (PASS – sealed hierarchy enforced).
-- 2025-10-01 – `./gradlew --no-daemon :rest-api:test --tests "*OcraEvaluation*"` (PASS – sealed evaluation variants).
-- 2025-10-01 – `./gradlew --no-daemon :rest-api:test --tests "*OcraVerification*"` (PASS – sealed verification variants).
-- 2025-10-01 – `./gradlew --no-daemon qualityGate` (PASS – no ArchUnit/PIT regressions).
+## Verification Log
+- 2025-11-11 – `rg "Feature 013" docs/4-architecture/roadmap.md docs/4-architecture/knowledge-map.md docs/migration_plan.md`
+- 2025-11-11 – `./gradlew --no-daemon spotlessApply check`
+- 2025-11-11 – `./gradlew --no-daemon qualityGate`
 
 ## Notes / TODOs
-- Future CLI command trees should adopt sealed hierarchies by default; document any new cases in their respective specs.
+- Track Maintenance CLI coverage buffer restoration and spotbugs/pmd follow-ups once tooling work resumes.
+- Capture wrapper upgrade cadence + warning-mode sweeps each time Gradle versions bump.
+- Consider adding automation to block `legacyEmit` or router shim regressions.

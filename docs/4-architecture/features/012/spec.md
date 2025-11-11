@@ -1,149 +1,175 @@
-# Feature 012 – Maintenance CLI Coverage Buffer
+# Feature 012 – Core Cryptography & Persistence
 
 | Field | Value |
 |-------|-------|
-| Status | Complete |
-| Last updated | 2025-11-10 |
+| Status | In migration (Batch P3) |
+| Last updated | 2025-11-11 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/012/plan.md` |
 | Linked tasks | `docs/4-architecture/features/012/tasks.md` |
-| Roadmap entry | #12 |
+| Roadmap entry | #12 – Core Cryptography & Persistence |
 
 ## Overview
-Analyse the Maintenance CLI coverage profile, document hotspots that threaten the Jacoco aggregated buffer, and land targeted regression tests so the CLI keeps ≥0.90 line/branch coverage once the temporary 0.70 relaxation is lifted. The work delivers a repeatable hotspot report plus forked-JVM and corrupted-database tests that exercise the remaining failure branches without touching runtime behaviour.
+Feature 012 aggregates every shared persistence guideline for the simulator: credential-store profiles, cache tuning,
+telemetry contracts, maintenance helpers, optional encryption, default filenames, and documentation of recent IDE warning
+remediation. Legacy Features 002 (persistence & caching hardening), 027 (unified credential-store naming), and 028 (IDE
+warning remediation) now live inside this consolidated spec/plan/tasks set so facade modules consume the same storage APIs
+and operators can rely on a single governance source.
 
 ## Clarifications
-- 2025-10-01 – Coverage buffer refers to maintaining ≥0.90 line **and** ≥0.90 branch ratios in the aggregated Jacoco verification configured in `build.gradle.kts` (`jacocoCoverageVerification` limits 0.90/0.90). (Option A)
-- 2025-10-06 – Thresholds are temporarily reduced to ≥0.70/≥0.70 to accelerate HOTP delivery; roadmap Workstream 19 tracks restoring the 0.90 buffer once scope stabilises. The pre-commit hook still runs `jacocoAggregatedReport`, `jacocoCoverageVerification`, and `mutationTest`; developers use `./gradlew check -Ppit.skip=true` during feature work. (Option A)
-- 2025-10-01 – Scope is limited to Maintenance CLI commands and helpers (`io.openauth.sim.cli.MaintenanceCli` and nested records). Other CLI/REST/core modules stay out of scope. (Option A)
-- 2025-10-01 – Introduced system property `openauth.sim.persistence.skip-upgrade` for test-only fixtures; defaults to `false` and lets tests seed legacy records without triggering automatic upgrades. (Option A)
+- 2025-09-28 – Persistence improvements land in the order: instrumentation/metrics → cache tuning → storage hygiene → optional
+  encryption; all work stays within the existing `CredentialStore` abstraction and must sustain ≥10 000 read-heavy RPS with
+  cache-hit P99 ≤5 ms and MapDB-hit P99 ≤15 ms.
+- 2025-09-28 – Telemetry contract `persistence.credential.lookup|mutation` emits `storeProfile`, `credentialNameHash`,
+  `cacheHit`, `source`, `latencyMicros`, `operation`, `redacted=true`.
+- 2025-09-28 – Cached deployment profiles: `IN_MEMORY` (Caffeine 250k entries, expire-after-access 2 min), `FILE` (150k,
+  expire-after-write 10 min), `CONTAINER` (500k, expire-after-access 15 min) with documented overrides.
+- 2025-09-28 – Maintenance helpers expose compaction and integrity checks via `MapDbCredentialStore.Builder` plus CLI hooks
+  so operators avoid downtime.
+- 2025-10-18 – Shared default filename is `credentials.db` for all facades; legacy file probing was removed and operators must
+  manually rename or pass explicit paths.
+- 2025-10-18/19 – IDE warning remediation keeps unused locals out of persistence-related code by strengthening assertions,
+  promoting DTOs, and exporting SpotBugs annotations without altering behaviour; `spotbugs-annotations` remains
+  `compileOnlyApi` in `application`.
+- 2025-11-11 – Batch P3 relocates legacy Features 002/027/028 into this spec and requires `_current-session.md` plus
+  `docs/migration_plan.md` to capture every documentation move and verification command.
 
 ## Goals
-- Capture accurate Maintenance CLI coverage metrics and hotspot analysis so future work has a baseline.
-- Recommend and implement targeted regression tests (forked JVM failure path, corrupted DB, supplementary branches) that protect the Jacoco buffer.
-- Document reproduction commands, thresholds, and hotspot findings in the plan/tasks so coverage remains auditable.
+- G-012-01 – Document the shared credential-store contract (profiles, cache settings, telemetry, maintenance helpers,
+  encryption) so every module references consistent behaviour.
+- G-012-02 – Standardise persistence defaults (`credentials.db`) and manual migration guidance across docs/how-tos/runbooks.
+- G-012-03 – Keep persistence documentation warning-free by capturing IDE remediation steps, toolchain updates, and
+  verification commands.
+- G-012-04 – Maintain roadmap/knowledge-map/architecture-graph references and log verification commands in
+  `_current-session.md` + session log (docs/_current-session.md) entries for every persistence documentation change.
 
 ## Non-Goals
-- Adding new CLI functionality or changing Maintenance CLI runtime behaviour.
-- Modifying REST/UI modules or Jacoco thresholds beyond the temporary relaxation already documented.
-- Introducing new dependencies beyond existing CLI test fixtures.
+- Shipping new persistence code, storage backends, or schema changes in this migration.
+- Reintroducing automatic legacy-filename detection or fallback logic.
+- Modifying CLI/REST/UI behaviour beyond documenting persistence defaults, maintenance helpers, and telemetry.
 
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-012-01 | Capture aggregated Jacoco line/branch metrics for Maintenance CLI classes and store them in the hotspot report. | `./gradlew jacocoAggregatedReport` runs and the plan lists up-to-date percentages plus file references. | Reviewers can trace metrics in `docs/4-architecture/features/012/plan.md` to the Jacoco HTML. | Missing or stale metrics leave the plan undocumented. | Build output only; no runtime telemetry. | Clarifications 1–2. |
-| FR-012-02 | Identify Maintenance CLI hotspots (untested branches, failure paths) with coverage data and risk context. | Plan documents each hotspot with file path, coverage numbers, and risk rationale. | Hotspot table references Jacoco data and aligns with Scenario S-012-02. | Analysis lacks evidence or omits known hotspots. | None. | Goals. |
-| FR-012-03 | Recommend concrete regression scenarios for every hotspot, including commands, expected outcomes, and priority. | Plan lists recommended tests that map to task IDs and scenarios. | `docs/4-architecture/features/012/plan.md` links each hotspot to a test recommendation; tasks reference them. | Missing recommendations prevent implementation planning. | None. | Goals. |
-| FR-012-04 | Implement forked-JVM test covering `MaintenanceCli.main` failure exit path without terminating the test JVM. | `MaintenanceCliTest` (or equivalent) spawns a JVM, asserts exit code 1, and keeps Jacoco coverage intact. | `./gradlew :cli:test --tests "*MaintenanceCli*"` covers the System.exit branch; coverage report confirms branch is green. | Forked JVM test fails or leaves branch uncovered. | None. | Clarifications 2; Goals. |
-| FR-012-05 | Implement corrupted-database verification test that exercises the maintenance catch block and asserts exit code 1 plus the failure message. | CLI test feeds invalid data store, expecting exit code 1 and `maintenance command failed`. | `./gradlew :cli:test --tests "*MaintenanceCli*"` captures stderr assertion; coverage report marks catch path covered. | Test fails or bypasses the catch branch. | None. | Goals. |
-| FR-012-06 | Add supplementary branch coverage (parent-null path, `-h` flag, blank suite/key, legacy issue listing) to preserve ≥0.90 buffer when thresholds restore. | CLI tests cover each branch and plan documents any remaining gaps (e.g., defensive null guard). | Branch counters for the affected lines show coverage ≥0.90; plan notes accepted gaps. | Branch coverage regresses or gaps lack documentation. | None. | Goals. |
+| FR-012-01 | Define deployment profiles (`IN_MEMORY`, `FILE`, `CONTAINER`) with curated Caffeine/MapDB settings and documented override hooks. | Builders expose profile enums + overrides; cache hit ratios stay >90% in smoke tests. | Unit/integration tests confirm profile settings; docs list defaults. | Profiles missing or overrides misconfigured. | `persistence.cache.profile` logs include `profileId`, overrides hash. | Legacy Feature 002.
+| FR-012-02 | Emit structured telemetry for credential lookups/mutations/maintenance without leaking secrets (fields per clarifications). | Telemetry events appear in tests with `redacted=true`; verbose traces reuse existing plumbing. | Contract tests assert fields + redaction; docs describe telemetry usage. | Logs leak secrets or omit fields. | `persistence.credential.lookup|mutation` events. | Legacy Feature 002.
+| FR-012-03 | Provide maintenance helpers (compaction/integrity/CLI entry points) surfaced via `MapDbCredentialStore.Builder` and documented CLI flows. | Operators trigger maintenance via CLI/Builder without stopping the simulator; docs explain commands and expected logs. | CLI integration tests + how-to walkthrough; plan/tasks list commands. | Maintenance steps undocumented or risky. | `persistence.credential.maintenance` logs. | Legacy Feature 002.
+| FR-012-04 | Offer optional AES-GCM at-rest encryption via `PersistenceEncryption` interface without changing default plaintext behaviour. | Enabling encryption stores redacted ciphertext while defaults remain plaintext; docs describe key management/risks. | Unit tests cover encryption on/off; documentation outlines configuration. | Encryption toggles misbehave or leak data. | Telemetry remains redacted; encryption logs note mode only. | Legacy Feature 002.
+| FR-012-05 | Standardise the default credential-store filename (`credentials.db`) across all facades and document manual migration guidance (rename legacy files or supply explicit paths). | Factories default to `credentials.db`; CLI help/REST config/UI copy mention the shared default; docs explain manual migration steps. | `rg "credentials.db"` across docs; CLI/REST tests assert defaults; Selenium flows show updated copy. | Legacy filenames referenced or fallback logic reintroduced. | Logs only mention overrides (no noise for defaults). | Legacy Feature 027.
+| FR-012-06 | Remove legacy filename detection and require explicit overrides for custom paths; log overrides deterministically. | `CredentialStoreFactory` rejects implicit legacy file detection; logs structured override lines with `explicit=true`. | Unit tests assert default vs override cases; docs mention `--credential-store-path`. | Silent fallback occurs or logs spam defaults. | `persistence.defaultPathSelected` log (explicit only). | Legacy Feature 027.
+| FR-012-07 | Record IDE warning remediation steps (assertion tightening, DTO extraction, SpotBugs annotation export, transient REST exception fields) so persistence modules remain warning-free. | Docs capture remediation scope; application/core/CLI/REST/UI tests cover new assertions; SpotBugs annotations exported via `compileOnlyApi`. | `./gradlew --no-daemon :application:test :core:test :cli:test :rest-api:test :ui:test spotlessApply check`; IDE snapshot referenced in plan/tasks. | Warnings reappear or documentation omits context. | No telemetry change. | Legacy Feature 028.
+| FR-012-08 | Log every persistence documentation update (spec/plan/tasks, roadmap, knowledge map, architecture graph, session log (docs/_current-session.md)) and list executed commands in `_current-session.md`. | Session/migration logs mention commands (`rg`, `spotlessApply`, doc edits); open questions stay empty. | Manual review before closing tasks. | Auditors cannot trace persistence doc changes. | None. | Goals G-012-04.
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-012-01 | Traceability – hotspot report plus tests must live in version control. | Future work needs evidence to justify coverage buffers. | `docs/4-architecture/features/012/plan.md` stores metrics & recommendations, tasks reference them. | Plan/docs, Jacoco report. | Clarification 1. |
-| NFR-012-02 | Reproducibility – coverage commands remain documented. | Contributors can rerun analysis quickly. | Plan/tasks list `./gradlew jacocoAggregatedReport`, `./gradlew :cli:test`, and browser commands. | Gradle build, Jacoco plugin. | Goals. |
-| NFR-012-03 | Scope discipline – no runtime dependency drift. | Keep changes limited to tests/docs and note unresolved coverage gaps. | Git history shows only test/doc edits; plan records accepted gaps (e.g., `parsed == null`). | CLI module tests/docs. | Clarifications 3–4. |
-
-## UI / Interaction Mock-ups
-_Not applicable – Maintenance CLI coverage has no UI footprint._
+| NFR-012-01 | Performance: sustain ≥10 000 read-heavy RPS with cache-hit P99 ≤5 ms / MapDB-hit P99 ≤15 ms under documented profiles. | Persistence SLA | Benchmark notes stored in plan/tasks; regression tests reference targets. | `MapDbCredentialStore`, Caffeine caches. | Legacy Feature 002.
+| NFR-012-02 | Observability: telemetry + logs must redact secrets and remain consistent across facades. | Security/compliance | Contract tests enforce `redacted=true`; docs describe telemetry consumption. | TelemetryContracts, verbose traces. | Legacy Feature 002.
+| NFR-012-03 | Deterministic defaults: `credentials.db` remains the only implicit filename; overrides logged once per boot. | Operator predictability | Tests compare resolved path; docs mention manual migrations. | `CredentialStoreFactory`, CLI/REST config. | Legacy Feature 027.
+| NFR-012-04 | IDE hygiene: persistence-related modules stay warning-free and SpotBugs annotations compile everywhere without extra dependencies. | Developer experience | IDE inspection snapshots + regression gate results recorded in plan/tasks. | application, core, cli, rest-api, ui modules. | Legacy Feature 028.
+| NFR-012-05 | Documentation traceability: roadmap/knowledge-map/architecture-graph entries reference Feature 012; `_current-session.md` logs verification commands. | Governance | Doc review + session snapshot before closing tasks. | docs hierarchy. | Goals G-012-04.
 
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
-| S-012-01 | Aggregated Jacoco run captures current Maintenance CLI line/branch metrics and stores them in the hotspot report. |
-| S-012-02 | Hotspot analysis documents every low-coverage branch with recommended tests and priorities. |
-| S-012-03 | Forked JVM test exercises `MaintenanceCli.main` failure branch while preserving Jacoco coverage. |
-| S-012-04 | Corrupted database verification test triggers the maintenance catch block, asserting exit code 1 + error message. |
-| S-012-05 | Supplementary branch tests (parent-null path, `-h` flag, blank parameters, legacy issue listing) keep the coverage buffer intact when thresholds return to 0.90. |
+| S-012-01 | Deployment profiles + cache tuning documented and exercised via tests. |
+| S-012-02 | Telemetry/observability (lookup, mutation, maintenance) remains redacted and consistent. |
+| S-012-03 | Maintenance helpers + CLI commands operate without downtime and are documented. |
+| S-012-04 | Optional encryption toggles documented and tested. |
+| S-012-05 | Unified `credentials.db` default adopted across factories, CLI/REST/UI, and documentation. |
+| S-012-06 | Manual migration guidance explains renaming legacy files or providing explicit paths. |
+| S-012-07 | IDE warning remediation recorded; tests/assertions strengthened without regressions. |
+| S-012-08 | Roadmap/knowledge map/session log (docs/_current-session.md)/session logs capture persistence doc updates + commands. |
 
 ## Test Strategy
-- **CLI:** Add/extend JUnit tests (`MaintenanceCliTest` variants) for forked JVM exit, corrupted DB, parent-null, short help, blank parameter validations, and legacy fixtures.
-- **Build tooling:** Run `./gradlew jacocoAggregatedReport` to regenerate coverage data after tests land; verify aggregated HTML matches plan notes.
-- **Quality gate:** `./gradlew --no-daemon spotlessApply check` and `jacocoCoverageVerification` remain part of the standard pipeline; enforcement temporarily accepts ≥0.70 while roadmap Workstream 19 restores ≥0.90.
+- **Benchmarks/Profiles:** Reference existing performance notes when running persistence benchmarks; ensure cache-hit metrics
+  meet NFR targets.
+- **Telemetry:** Contract tests for `persistence.credential.lookup|mutation|maintenance` covering success/failure branches and
+  redaction rules.
+- **Maintenance helpers:** CLI/Builder integration tests executing compaction/integrity operations, verifying logs.
+- **Encryption toggle:** Unit/integration tests enabling/disabling `PersistenceEncryption` and ensuring plaintext defaults.
+- **Defaults:** CLI/REST/UI regression suites assert `credentials.db` usage and override logging.
+- **IDE remediation:** Regression gate (`./gradlew --no-daemon :infra-persistence:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`) keeps warnings at zero; plan/tasks log command output.
+- **Documentation:** `./gradlew --no-daemon spotlessApply check` after doc edits; `_current-session.md` records commands per increment.
 
 ## Interface & Contract Catalogue
-### Domain Objects
+### Domain Objects / Builders
 | ID | Description | Modules |
 |----|-------------|---------|
-| DO-012-NA | No new runtime domain objects; tests rely on existing Maintenance CLI records. | — |
+| DO-012-01 | `CredentialStoreProfile` enum + builder overrides (cache sizes, eviction rules, MapDB options). | infra-persistence, application |
+| DO-012-02 | `PersistenceTelemetryEvent` structure for lookup/mutation/maintenance operations. | application, telemetry adapters |
+| DO-012-03 | `MaintenanceCommand` CLI wiring (compact, verify). | cli, rest-api (future) |
+| DO-012-04 | `PersistenceEncryption` interface (enable/disable AES-GCM at-rest). | infra-persistence |
 
-### API Routes / Services
-| ID | Transport | Description | Notes |
-|----|-----------|-------------|-------|
-| API-012-NA | — | No REST/service changes. | — |
-
-### CLI Commands / Flags
+### CLI / Commands
 | ID | Command | Behaviour |
 |----|---------|-----------|
-| CLI-012-01 | `./gradlew --no-daemon jacocoAggregatedReport` | Regenerates coverage data used in the hotspot report. |
-| CLI-012-02 | `./gradlew --no-daemon :cli:test --tests "*MaintenanceCli*"` | Runs the Maintenance CLI test suite including forked JVM and corrupted DB cases. |
-| CLI-012-03 | `./gradlew --no-daemon check -Ppit.skip=true` | Developer workflow executing quality gates while skipping PIT as clarified. |
-
-### Telemetry Events
-| ID | Event name | Fields / Redaction rules |
-|----|-----------|---------------------------|
-| TE-012-NA | — | Build-only coverage enforcement; no runtime telemetry. |
+| CLI-012-01 | `./gradlew --no-daemon :cli:run --args="maintenance compact"` (or equivalent helper script) | Triggers compaction via shared maintenance helper.
+| CLI-012-02 | `./gradlew --no-daemon :cli:run --args="maintenance verify"` | Runs integrity check; logs structured result.
+| CLI-012-03 | `./gradlew --no-daemon spotlessApply check` / `:infra-persistence:test` | Verification commands recorded after doc updates.
 
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-012-01 | `docs/4-architecture/features/012/plan.md` | Stores hotspot metrics/recommendations. |
-| FX-012-02 | `build/reports/jacoco/aggregated/html/index.html` | Coverage evidence referenced by the plan. |
-| FX-012-03 | `cli/src/test/java/io/openauth/sim/cli/MaintenanceCliTest.java` (and helpers) | Houses forked JVM/corrupted DB/supplementary branch tests. |
-
-### UI States
-| ID | State | Trigger / Expected outcome |
-|----|-------|---------------------------|
-| UI-012-NA | — | Not applicable. |
-
-## Telemetry & Observability
-Observability relies on Jacoco HTML/XML reports plus Gradle task output. When coverage drops below thresholds, `jacocoCoverageVerification` fails the gate. The plan records metrics so trends remain auditable; no runtime telemetry is emitted.
+| FX-012-01 | `docs/test-vectors/ocra/` + credential-store snapshots | Used for cache tuning + maintenance smoke tests.
+| FX-012-02 | `data/credentials.db` | Unified default path referenced in docs/tests.
+| FX-012-03 | Performance benchmark notes (appendix referenced from plan) | Record throughput/P99 measurements.
 
 ## Documentation Deliverables
-- `docs/4-architecture/features/012/plan.md` – Hotspot analysis, coverage metrics, and recommendations.
-- `docs/_current-session.md` – Session log entry for Feature 012 template migration.
-- `docs/migration_plan.md` – Progress update to unblock directory renumbering once legacy features align with the template.
-
-## Fixtures & Sample Data
-- Maintain Jacoco HTML output under `build/reports/jacoco/aggregated/` for audit.
-- Keep CLI test fixtures (corrupted DB blobs, legacy MapDB snapshots) under `cli/src/test/resources/maintenance/` so regression tests remain deterministic.
+- Roadmap, knowledge map, and architecture graph mention Feature 012 as the persistence/polishing owner.
+- How-to guides (`docs/2-how-to/configure-persistence-profiles.md`, credential store maintenance docs) describe profiles,
+  defaults, maintenance commands, encryption toggles, and manual migration steps.
+- `_current-session.md` and `docs/migration_plan.md` log each documentation change + verification command.
 
 ## Spec DSL
 ```
+domain_objects:
+  - id: DO-012-01
+    name: CredentialStoreProfile
+    fields:
+      - name: id
+        type: enum[IN_MEMORY, FILE, CONTAINER]
+      - name: config
+        type: map
+  - id: DO-012-02
+    name: PersistenceTelemetryEvent
+    fields:
+      - name: type
+        type: enum[lookup,mutation,maintenance]
+      - name: storeProfile
+        type: string
+      - name: credentialNameHash
+        type: string
+      - name: latencyMicros
+        type: long
+      - name: redacted
+        type: boolean
+  - id: DO-012-03
+    name: MaintenanceCommand
+    fields:
+      - name: operation
+        type: enum[compact,verify]
+      - name: args
+        type: map
+  - id: DO-012-04
+    name: PersistenceEncryptionConfig
+    fields:
+      - name: enabled
+        type: boolean
+      - name: algorithm
+        type: string
+        default: AES-GCM
 cli_commands:
   - id: CLI-012-01
-    command: ./gradlew --no-daemon jacocoAggregatedReport
-    description: Regenerates Maintenance CLI coverage data
+    command: gradlew cli:run --args="maintenance compact"
   - id: CLI-012-02
-    command: ./gradlew --no-daemon :cli:test --tests "*MaintenanceCli*"
-    description: Runs Maintenance CLI regression tests covering hotspot scenarios
-  - id: CLI-012-03
-    command: ./gradlew --no-daemon check -Ppit.skip=true
-    description: Developer workflow while PIT skips are permitted
+    command: gradlew cli:run --args="maintenance verify"
+telemetry_events:
+  - id: TE-012-01
+    event: persistence.credential.lookup
+  - id: TE-012-02
+    event: persistence.credential.mutation
 fixtures:
   - id: FX-012-01
-    path: docs/4-architecture/features/012/plan.md
-    purpose: Stores hotspot metrics & recommendations
-  - id: FX-012-02
-    path: build/reports/jacoco/aggregated/html/index.html
-    purpose: Coverage evidence for Maintenance CLI
-  - id: FX-012-03
-    path: cli/src/test/java/io/openauth/sim/cli/MaintenanceCliTest.java
-    purpose: Forked JVM/corrupted DB/supplementary branch tests
-scenarios:
-  - id: S-012-01
-    description: Coverage snapshot stored in plan
-  - id: S-012-02
-    description: Hotspot analysis with actionable recommendations
-  - id: S-012-03
-    description: Forked JVM failure-path test covers System.exit branch
-  - id: S-012-04
-    description: Corrupted database test drives maintenance catch path
-  - id: S-012-05
-    description: Supplementary branch coverage preserves ≥0.90 buffer
+    path: data/credentials.db
 ```
-
-## Appendix (Optional)
-- Coverage snapshot (2025-10-01): `io.openauth.sim.cli` line 97.56%, branch 93.30%. `MaintenanceCli` line 97.47%, branch 94.52%, complexity 91.30%.
-- Accepted gap: defensive `parsed == null` guard remains uncovered; documented to avoid unnecessary API churn.

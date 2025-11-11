@@ -1,4 +1,4 @@
-# Feature 002 – Persistence & Caching Hardening
+# Feature 002 – TOTP Simulator & Tooling
 
 | Field | Value |
 |-------|-------|
@@ -7,229 +7,159 @@
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/002/plan.md` |
 | Linked tasks | `docs/4-architecture/features/002/tasks.md` |
-| Roadmap entry | #2 |
+| Roadmap entry | #2 – TOTP Simulator & Tooling |
 
 ## Overview
-Elevate the persistence layer backing the shared `CredentialStore` so it reliably supports ultra-low latency and high-throughput workloads (≥10,000 RPS) across local, embedded, and containerised deployments. The work tunes MapDB + Caffeine cache profiles, adds targeted observability, introduces optional at-rest protection, and exposes maintenance helpers while retaining the existing `CredentialStore` abstraction for every facade.
+Add RFC 6238 TOTP support across the simulator so operators can evaluate stored and inline TOTP credentials (plus replay)
+alongside existing HOTP/OCRA flows. Scope includes core domain, persistence descriptors, application services, CLI/REST
+facades, operator UI panels, shared fixtures, telemetry parity, and documentation. Issuance remains out of scope.
 
 ## Clarifications
-- 2025-09-28 – Prioritise improvements in the order: instrumentation/metrics → cache tuning → storage hygiene → optional encryption so performance validation can happen incrementally.
-- 2025-09-28 – Deployment scope covers in-memory/embedded tests, local disk developer installs, and container/volume-backed runtimes with documented override knobs per profile.
-- 2025-09-28 – Performance target: sustain ≥10,000 read-heavy requests per second with cache-hit P99 ≤5 ms and MapDB-hit P99 ≤15 ms.
-- 2025-09-28 – API surface: stay within the existing `CredentialStore` abstraction; no downstream module should see a breaking change.
-- 2025-09-28 – Auditing & redaction: enforce secret redaction in logs/metrics and continue honouring log-level driven auditing behaviour.
-- 2025-09-28 – Telemetry contract (T202): emit Level.FINE `persistence.credential.lookup` and `persistence.credential.mutation` frames with `storeProfile`, `credentialNameHash`, `cacheHit`, `source`, `latencyMicros`, `operation`, and `redacted=true`; never include raw secrets.
-- 2025-09-28 – Cache tuning (T203): Default Caffeine settings—`IN_MEMORY` (max 250k entries, expire-after-access 2 min), `FILE` (max 150k, expire-after-write 10 min), `CONTAINER` (max 500k, expire-after-access 15 min)—with builder overrides for advanced scenarios.
-- 2025-09-28 – Maintenance helper (T205–T206): Provide synchronous compaction/integrity operations via `MapDbCredentialStore.Builder` plus CLI entry points so operators can trigger maintenance without downtime.
-- 2025-09-28 – Encryption scope (T207): Offer AES-GCM based at-rest protection through a `PersistenceEncryption` interface that callers can supply keys to; default configuration remains plaintext until enabled.
+- 2025-10-08 – Launch delivers an end-to-end slice (core → application → CLI/REST/UI) in a single feature (Option A).
+- 2025-10-08 – Support SHA-1, SHA-256, SHA-512, 6/8 digits, and at least 30 s/60 s steps at launch (Option A).
+- 2025-10-08 – Reuse schema-v1 MapDB store; no new schema (Option A).
+- 2025-10-08 – Evaluation exposes ± step drift windows + timestamp overrides; replay uses `/api/v1/totp/replay` with
+  non-mutating diagnostics (Option A).
+- 2025-10-08 – CLI + Java facades ship alongside REST/UI surfaces.
+- 2025-10-08 – Telemetry emits via `totp.evaluate`/`totp.replay` adapters.
+- 2025-10-11 – Operator console Evaluate tab defaults to inline mode for TOTP; replay removes “Load sample data” button
+  in favour of auto-applied samples (user directives).
+- 2025-10-28 – TOTP panels include “Use current Unix seconds” toggles and “Reset to now” helpers quantised to the step size.
 
 ## Goals
-- Harden MapDB + Caffeine for simulator-sized datasets via curated cache profiles, maintenance hooks, and optional encryption.
-- Provide structured telemetry/metrics so persistence behaviour is observable from CLI/REST/UI facades without leaking secrets.
-- Document configuration guidance, maintenance commands, and benchmark steps for operators and future contributors.
+- G-002-01 – Provide deterministic TOTP evaluation/replay with telemetry parity across core/application/CLI/REST.
+- G-002-02 – Extend operator console with TOTP stored/inline/replay flows, presets, seeding, auto-fill helpers.
+- G-002-03 – Publish TOTP fixture catalogue + documentation updates.
 
 ## Non-Goals
-- Replacing MapDB with another storage engine.
-- Changing higher-level credential APIs or introducing new persistence abstractions.
-- Delivering REST/UI maintenance endpoints (tracked by downstream features once persistence stabilises).
+- N-002-01 – Issuance/enrollment flows.
+- N-002-02 – New schema or data migrations.
+- N-002-03 – Non-RFC 6238 OTP variants.
 
 ## Functional Requirements
-
-### FR1 – Deployment profiles & cache tuning (FR-201, S02-01)
-- **Requirement:** Provide curated configuration profiles for in-memory, file-backed, and container deployments (cache sizes, eviction policies, MapDB knobs) plus documented override hooks.
-- **Success path:** Each profile boots with no manual tuning, loads sample credentials, and keeps hit ratios above 90% in smoke tests.
-- **Validation path:** Builder rejects invalid overrides and logs redacted diagnostics when misconfigured.
-- **Failure path:** Missing or conflicting profile settings raise structured exceptions before MapDB opens.
-- **Telemetry & traces:** `persistence.cache.profile` log/trace entries capture `profileId`, cache settings hash, and source of overrides.
-- **Source:** T203 cache tuning directive (2025-09-28).
-
-### FR2 – Persistence telemetry & diagnostics (FR-202, S02-02)
-- **Requirement:** Emit structured metrics/logs for cache hits/misses, load latency, mutations, and maintenance events without exposing secrets.
-- **Success path:** `persistence.credential.lookup`/`mutation`/`maintenance` events appear in tests and include `credentialNameHash`, `storeProfile`, `latencyMicros`, and `redacted=true`.
-- **Validation path:** Tests assert telemetry for success + failure branches and block logging of raw secrets.
-- **Failure path:** Any telemetry emission lacking redaction fails ArchUnit/contract suites; build blocks until fixed.
-- **Telemetry & traces:** Events stream through `TelemetryContracts` and verbose trace plumbing.
-- **Source:** Clarification T202 + Feature plan telemetry notes.
-
-### FR3 – Maintenance helper & CLI entry points (FR-203, S02-03)
-- **Requirement:** Provide compaction/integrity operations via a builder-produced helper plus CLI commands that expose structured `MaintenanceResult` payloads.
-- **Success path:** CLI and integration tests trigger compaction/integrity flows that complete without corrupting data and return result records.
-- **Validation path:** Negative tests simulate partial failures and ensure status=`WARN`/`FAIL` results surface via CLI and telemetry.
-- **Failure path:** If maintenance cannot start (e.g., store locked), commands exit non-zero with actionable diagnostics and no partial writes.
-- **Telemetry & traces:** `persistence.maintenance` event logs `operation`, `durationMs`, `entriesScanned`, `issues`, `status`.
-- **Source:** T205–T206 maintenance scope (2025-09-28).
-
-### FR4 – Optional AES-GCM at-rest protection (FR-204, S02-04)
-- **Requirement:** Introduce a `PersistenceEncryption` interface with AES-GCM provider + key callbacks while keeping plaintext as the default.
-- **Success path:** Tests confirm encrypted payloads decrypt correctly when the supplied key matches; plaintext mode remains unchanged when encryption disabled.
-- **Validation path:** Mismatched keys and tampered payloads raise structured errors and telemetry alerts.
-- **Failure path:** Encryption failures never leak partial plaintext; store rejects writes and surfaces failure via telemetry + CLI.
-- **Telemetry & traces:** `persistence.encryption` events contain `profile`, `status`, and `reasonCode` without exposing key material.
-- **Source:** T207 encryption directive (2025-09-28).
-
-### FR5 – Benchmarks & operator documentation (S02-05, S02-06)
-- **Requirement:** Capture ≥10k RPS benchmarks with documented configuration and update roadmap/how-to/knowledge map entries outlining maintenance + encryption usage.
-- **Success path:** Benchmark harness results recorded in the plan/tasks, and docs (`docs/2-how-to/configure-persistence-profiles.md`, roadmap, knowledge map) reflect the new capabilities.
-- **Validation path:** Re-running the harness reproduces results within ±5% and doc updates link to relevant commands.
-- **Failure path:** If benchmarks regress or docs drift, the feature stays open until alignment is restored.
-- **Telemetry & traces:** Benchmark runs record telemetry snapshots for comparison.
-- **Source:** Plan T0201–T0209 closure notes.
+| ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
+|----|-------------|--------------|-----------------|--------------|--------------------|--------|
+| FR-002-01 | Implement RFC 6238 TOTP generator/validator across SHA-1/256/512, 6/8 digits, and configurable steps with drift windows. | Core tests with fixture catalogue pass; mutation/ArchUnit green. | Drift boundary tests ensure rejection when outside windows. | `:core:test` fails or drift logic incorrect. | `totp.evaluate` events sanitized via TelemetryContracts. | Clarifications. |
+| FR-002-02 | Persist TOTP credentials within schema-v1 MapDB with defaults (`SHA1`, `6`, `30s`, ±1 steps). | Integration tests mix HOTP/OCRA/TOTP descriptors. | CLI/REST evaluation updates counters/timestamps as expected. | Schema diff or migration required. | Telemetry includes credential hashes only. | Clarifications. |
+| FR-002-03 | Application services handle stored/inline evaluation, timestamp overrides, drift windows, replay (non-mutating), telemetry. | JUnit tests cover success/error paths, replay non-mutating. | Negative tests reject invalid inputs or drift. | Replay mutates counters or telemetry missing. | `totp.evaluate`/`totp.replay`. | Clarifications. |
+| FR-002-04 | CLI commands import/list/evaluate/replay TOTP credentials with drift/timestamp options. | Picocli tests assert outputs + telemetry, covering stored/inline/replay. | Invalid input tests produce descriptive errors. | CLI command fails or telemetry absent. | Telemetry parallels HOTP/OCRA. | Clarifications. |
+| FR-002-05 | REST endpoints (evaluate inline/stored, replay) expose schema + OpenAPI updates, accept drift/timestamp overrides, return OTP payloads. | MockMvc + OpenAPI tests pass; replay non-mutating. | Negative tests cover invalid drift, timestamp overrides. | REST tests fail or counters mutate. | `totp.evaluate`/`totp.replay`. | Clarifications. |
+| FR-002-06 | Operator console adds TOTP stored/inline/replay panels with presets, seeding, auto-fill toggles, inline-default Evaluate tab. | Selenium tests cover stored/inline/replay, seeding, timestamp controls, auto-applied samples. | Accessibility checks (aria roles, keyboard order). | UI missing flows or telemetry inconsistent. | Reuses REST telemetry. | Clarifications. |
+| FR-002-07 | Publish `docs/totp_validation_vectors.json` and shared loader; update CLI/REST/UI docs/how-to. | Fixture loader feeds tests/presets; docs reference vector IDs. | Missing vector causes tests/docs failures. | n/a | Clarifications. |
 
 ## Non-Functional Requirements
-
-### NFR1 – Throughput (NFR-201)
-- **Requirement:** Sustain ≥10k requests per second with ≥90% cache hit-rate under synthetic benchmarks.
-- **Driver:** Prevent persistence from bottlenecking simulator protocols.
-- **Measurement:** `MapDbCredentialStoreBaselineBenchmark` harness with `IO_OPENAUTH_SIM_BENCHMARK=true` and recorded ops/sec metrics.
-- **Dependencies:** Benchmark harness, tuned cache profiles.
-- **Source:** Objectives + T201/T208 benchmarking tasks.
-
-### NFR2 – Latency (NFR-202)
-- **Requirement:** P99 latency ≤5 ms for cache hits and ≤15 ms for MapDB reads.
-- **Driver:** Maintain operator responsiveness under load.
-- **Measurement:** Benchmark harness histograms.
-- **Dependencies:** Caffeine eviction strategy, MapDB configuration.
-- **Source:** Clarifications 2025-09-28.
-
-### NFR3 – Observability (NFR-203)
-- **Requirement:** Emit structured logs/metrics referencing credential names only (hashed) with cache + maintenance context.
-- **Driver:** Enable diagnosis without sensitive data exposure.
-- **Measurement:** Telemetry contract tests and manual log inspection.
-- **Dependencies:** Telemetry adapters, CLI logging hooks.
-- **Source:** FR2 + telemetry clarification.
-
-### NFR4 – Security & redaction (NFR-204)
-- **Requirement:** Enforce redaction of secret material across logs, telemetry, benchmarks, and maintenance outputs.
-- **Driver:** Prevent accidental leakage in high-volume diagnostic flows.
-- **Measurement:** Redaction unit tests + ArchUnit rules verifying no secret fields leave the encryption boundary.
-- **Dependencies:** `SecretMaterial` helpers, telemetry serializers.
-- **Source:** Clarifications & FR4.
+| ID | Requirement | Driver | Measurement | Dependencies | Source |
+|----|-------------|--------|-------------|--------------|--------|
+| NFR-002-01 | Security | Secrets remain encrypted at rest; telemetry redacts OTP/secrets. | Tests + telemetry linting. | MapDB, TelemetryContracts. | Clarifications. |
+| NFR-002-02 | Compatibility | schema-v1 remains backward compatible; no migrations. | Legacy stores load successfully. | Persistence module. | Clarifications. |
+| NFR-002-03 | Quality | `./gradlew qualityGate` + `spotlessApply` stay green. | CI pipeline. | Gradle tooling. | Spec. |
 
 ## UI / Interaction Mock-ups
 ```
-Not applicable – persistence changes are exercised via CLI commands and automated tooling only.
+TOTP Evaluate (Inline default)
+-----------------------------
+[ Inline form | Stored form ]
+Inline fields: Secret, Algorithm, Digits, Step, Drift ±, Timestamp (with “Use current Unix seconds” toggle and “Reset to now”).
+Stored fields: Credential dropdown, auto-filled counter/timestamp preview.
+Replay panel mirrors Evaluate but never mutates counters.
 ```
 
 ## Branch & Scenario Matrix
-
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
-| S02-01 | Deployment profiles expose tuned cache defaults with override hooks. |
-| S02-02 | Structured metrics/telemetry report cache hit/miss, latency, and maintenance events without leaking secrets. |
-| S02-03 | Maintenance helper executes compaction/integrity operations and surfaces structured CLI results. |
-| S02-04 | Optional at-rest protection hooks guard MapDB payloads while default config stays plaintext. |
-| S02-05 | Benchmark harness demonstrates ≥10k RPS throughput with recorded P99 latencies. |
-| S02-06 | Documentation captures configuration guidance, maintenance instructions, and encryption usage. |
+| S-002-01 | Core domain + persistence descriptors ready for TOTP. |
+| S-002-02 | Application services + telemetry + CLI flows implemented. |
+| S-002-03 | REST evaluation/replay endpoints with OpenAPI parity. |
+| S-002-04 | Operator console stored/inline/replay UX parity (seeding, auto-fill). |
+| S-002-05 | Fixture catalogue + documentation updates complete.
 
 ## Test Strategy
-- **Core:** `MapDbCredentialStoreTest`, `SecretMaterialCodecTest`, `MapDbCredentialStoreBaselineBenchmark`, and telemetry/maintenance unit tests validate cache profiles, encryption, and maintenance flows.
-- **Application:** `CredentialStoreFactory` integration tests ensure application services continue to consume the store without API drift.
-- **CLI:** `MaintenanceCliTest` covers command wiring, exit codes, and structured result output.
-- **REST/UI:** No direct changes; contract and UI tests rely on the unchanged `CredentialStore` abstraction and will be updated in downstream features if maintenance endpoints are added.
-- **Docs/Contracts:** How-to guides and roadmap entries capture persistence profiles, maintenance commands, and benchmark instructions; telemetry schemas documented alongside `TelemetryContracts`.
+- **Core:** RFC 6238 vector tests + mutation/ArchUnit.
+- **Persistence:** Integration tests mixing HOTP/OCRA/TOTP descriptors.
+- **Application:** JUnit coverage for stored/inline/replay flows + telemetry.
+- **CLI:** Picocli integration tests for evaluation/replay commands.
+- **REST:** MockMvc + OpenAPI snapshot tests for evaluate/replay endpoints.
+- **UI:** Selenium tests for stored/inline/replay flows, seeding, timestamp toggles, accessibility/regressions.
+- **Docs:** `./gradlew spotlessApply check` after doc updates.
 
 ## Interface & Contract Catalogue
-
 ### Domain Objects
 | ID | Description | Modules |
 |----|-------------|---------|
-| DO-002-01 | `MapDbCredentialStore` with profile-aware builder options and cache settings. | core, application |
-| DO-002-02 | `CacheSettings` / profile descriptors enumerating capacity + eviction knobs. | core |
-| DO-002-03 | `MaintenanceResult` record with `operation`, `duration`, `entriesScanned`, `entriesRepaired`, `issues`, `status`. | core, cli |
-| DO-002-04 | `PersistenceEncryption` interface + AES-GCM implementation with key callbacks. | core |
+| DO-002-01 | `TotpCredentialDescriptor` (algorithm, digits, stepSeconds, drift). | core, application |
+| DO-002-02 | `TotpEvaluationRequest`/`ReplayRequest` (stored/inline payload). | REST, CLI, application |
 
 ### API Routes / Services
 | ID | Transport | Description | Notes |
 |----|-----------|-------------|-------|
-| API-002-01 | Application service | `CredentialStoreFactory` provisioning profile-tuned stores for facades. | Exposes builder overrides but preserves `CredentialStore` interface. |
+| API-002-01 | REST POST `/api/v1/totp/evaluate` | Evaluates stored/inline credentials with drift/timestamp overrides. |
+| API-002-02 | REST POST `/api/v1/totp/replay` | Non-mutating replay diagnostics. |
+| API-002-03 | REST GET `/api/v1/totp/credentials` | Stored credential listing for UI. |
 
 ### CLI Commands / Flags
 | ID | Command | Behaviour |
 |----|---------|-----------|
-| CLI-002-01 | `./bin/openauth maintenance store --operation <compact|verify>` | Invokes maintenance helper, prints `MaintenanceResult`, and propagates telemetry IDs. |
+| CLI-002-01 | `maintenance totp evaluate` | Evaluates stored/inline credentials (drift/timestamp). |
+| CLI-002-02 | `maintenance totp replay` | Non-mutating replay. |
 
 ### Telemetry Events
 | ID | Event name | Fields / Redaction rules |
 |----|-----------|---------------------------|
-| TE-002-01 | `persistence.credential.lookup` | `storeProfile`, `credentialNameHash`, `cacheHit`, `source`, `latencyMicros`, `redacted=true`. |
-| TE-002-02 | `persistence.credential.mutation` | `operation`, `storeProfile`, `latencyMicros`, `credentialNameHash`, `redacted=true`. |
-| TE-002-03 | `persistence.maintenance` | `operation`, `durationMs`, `entriesScanned`, `issues[]`, `status`, `redacted=true`. |
-| TE-002-04 | `persistence.encryption` | `profile`, `status`, `reasonCode`, `redacted=true`. |
+| TE-002-01 | `totp.evaluate` | `credentialIdHash`, `mode`, `result`, sanitized metadata. |
+| TE-002-02 | `totp.replay` | `credentialIdHash`, `mode`, `result`, sanitized metadata. |
 
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-002-01 | `core/src/test/java/io/openauth/sim/core/store/MapDbCredentialStoreBaselineBenchmark.java` | Benchmark harness driving throughput/latency measurements. |
-| FX-002-02 | `docs/2-how-to/configure-persistence-profiles.md` | Operator guidance for profiles, maintenance, and encryption usage. |
+| FX-002-01 | `docs/totp_validation_vectors.json` | RFC 6238 vectors shared across modules. |
+| FX-002-02 | `rest-api/src/test/resources/totp/sample-requests/*.json` | REST/Selenium test payloads. |
 
 ### UI States
 | ID | State | Trigger / Expected outcome |
 |----|-------|---------------------------|
-| — | Not applicable | Persistence feature has no UI impact; future REST/UI work will extend this table. |
+| UI-002-01 | Inline Evaluate default | Evaluate tab loads inline form active. |
+| UI-002-02 | Stored Evaluate | Dropdown selection auto-fills preview and increments counters on success. |
+| UI-002-03 | Replay | Stored/inline replay actions never mutate counters; auto-fill sample data. |
 
 ## Telemetry & Observability
-Telemetry flows through `TelemetryContracts` adapters; CLI/REST/operator UI consumers reuse these events without custom loggers. Each event redacts credential names via hashing, excludes secret material, and includes profile identifiers so benchmarks can compare deployments. Verbose trace integration links maintenance commands to their telemetry IDs, enabling trace-to-log correlation.
+- All evaluation/replay events routed through `TelemetryContracts` to maintain parity with HOTP/OCRA.
+- Operator console leverages REST telemetry, no additional UI event names.
 
 ## Documentation Deliverables
-- `docs/2-how-to/configure-persistence-profiles.md` – configuration profiles, maintenance instructions, encryption guidance.
-- `docs/4-architecture/knowledge-map.md` – persistence relationships between core, application, CLI.
-- `docs/4-architecture/roadmap.md` – record feature completion and downstream dependency notes.
-- `docs/5-operations/analysis-gate-checklist.md` – persistence telemetry expectations referenced during the gate.
+- Update TOTP operator how-to, CLI/REST guides, roadmap, knowledge map, OpenAPI docs.
 
 ## Fixtures & Sample Data
-- Benchmark harness inside `core` module plus generated datasets recorded in plan/tasks.
-- Maintenance helper regression data captured via CLI tests; no static secrets stored in fixtures.
+- `docs/totp_validation_vectors.json` plus derived test fixtures.
 
 ## Spec DSL
 ```
 domain_objects:
   - id: DO-002-01
-    name: MapDbCredentialStore
+    name: TotpCredentialDescriptor
     fields:
-      - name: profile
-        type: enum(IN_MEMORY, FILE, CONTAINER)
-      - name: cacheSettings
-        type: object
-        constraints: tuned defaults + override hooks
-  - id: DO-002-03
-    name: MaintenanceResult
+      - name: algorithm
+        type: enum[SHA1,SHA256,SHA512]
+      - name: digits
+        type: enum[6,8]
+      - name: stepSeconds
+        type: integer
+  - id: DO-002-02
+    name: TotpEvaluationRequest
     fields:
-      - name: operation
-        type: enum(COMPACTION, INTEGRITY_CHECK)
-      - name: status
-        type: enum(SUCCESS, WARN, FAIL)
-  - id: DO-002-04
-    name: PersistenceEncryption
-    fields:
-      - name: keySupplier
-        type: functional interface
-routes:
-  - id: API-002-01
-    method: service
-    path: application.persistence.CredentialStoreFactory
-cli_commands:
-  - id: CLI-002-01
-    command: ./bin/openauth maintenance store --operation <compact|verify>
+      - name: credentialId
+        type: string
+      - name: mode
+        type: enum[stored,inline]
 telemetry_events:
   - id: TE-002-01
-    event: persistence.credential.lookup
-    fields:
-      - name: credentialNameHash
-        redaction: hash
-      - name: cacheHit
-        redaction: none
-  - id: TE-002-03
-    event: persistence.maintenance
-    fields:
-      - name: status
-        redaction: none
+    event: totp.evaluate
 fixtures:
   - id: FX-002-01
-    path: core/src/test/java/io/openauth/sim/core/store/MapDbCredentialStoreBaselineBenchmark.java
-ui_states: []
+    path: docs/totp_validation_vectors.json
+ui_states:
+  - id: UI-002-01
+    description: TOTP inline evaluate default view
 ```
 
 ## Appendix
-- `docs/4-architecture/features/002/plan.md`
-- `docs/4-architecture/features/002/tasks.md`
-- `core/src/main/java/io/openauth/sim/core/store/MapDbCredentialStore.java`
+_None._

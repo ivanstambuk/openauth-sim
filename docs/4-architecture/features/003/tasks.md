@@ -1,57 +1,51 @@
-# Feature 003 Tasks – REST OCRA Evaluation Endpoint
+# Feature 003 Tasks – OCRA Simulator & Replay
 
-_Status:_ Complete  
-_Last updated:_ 2025-11-10_
+_Status: Complete_  
+_Last updated: 2025-11-11_
+
+> The tasks below roll up the historical Feature 001/003/004/009/016/018 increments. Each entry keeps the original
+> verification commands so future agents can retrace the execution while the catalogue renumbers.
 
 ## Checklist
-- [x] T0301 – Align spec/plan/tasks, record Spring Boot + SpringDoc decisions, and clear open questions (F-REST-001–F-REST-005, S03-01–S03-05).
-  _Intent:_ Lock facade scope and tooling choices before implementation.
-  _Verification commands:_
-  - `less docs/4-architecture/features/003/spec.md`
-  - `rg -n "Feature 003" docs/4-architecture/roadmap.md`
-  _Notes:_ Captured clarifications (per Clarifications section) and documented dependency decisions for Spring Boot/SpringDoc.
-
-- [x] T0302 – Add failing MockMvc + unit tests for inline success, validation errors, and telemetry redaction (F-REST-001, F-REST-002, S03-01, S03-02, S03-03).
-  _Intent:_ Define controller/service expectations and error shapes up front.
-  _Verification commands:_
-  - `./gradlew --no-daemon :rest-api:test --tests "*OcraEvaluationEndpointTest"`
-  _Notes:_ Tests assert OTP parity fixtures and telemetry reason-code placeholders before implementation.
-
-- [x] T0303 – Implement controller/service wiring to `OcraResponseCalculator`, satisfying inline success tests (F-REST-001, S03-01).
-  _Intent:_ Provide the synchronous JSON endpoint described in the spec.
-  _Verification commands:_
-  - `./gradlew --no-daemon :rest-api:test`
-  _Notes:_ Adds DTOs + controller wiring plus telemetry ID propagation; flips MockMvc expectations to HTTP 200.
-
-- [x] T0304 – Enforce validation + telemetry reason codes (hex checks, counters, sanitization) and rerun targeted suites (F-REST-002, F-REST-003, S03-02, S03-03).
-  _Intent:_ Guarantee detailed error reporting without leaking secrets.
-  _Verification commands:_
-  - `./gradlew --no-daemon :rest-api:test --tests "*Validation*"`
-  - `./gradlew --no-daemon :rest-api:test --tests "*Telemetry*"`
-  _Notes:_ Covers reason codes listed in the spec (challenge/session/timestamp/pin) and ensures `sanitized=true`.
-
-- [x] T0305 – Generate OpenAPI JSON/YAML snapshots, add snapshot tests, and document Swagger UI usage (F-REST-004, S03-04).
-  _Intent:_ Keep contract artifacts in sync with the controller and guard drift.
-  _Verification commands:_
-  - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshotTest"`
-  - `rg -n "Swagger" docs/2-how-to/use-ocra-rest-operations.md`
-  _Notes:_ Produces `docs/3-reference/rest-openapi.{json,yaml}` and documents `/swagger-ui.html` instructions.
-
-- [x] T0306 – Extend validation for timestamp drift + PIN hashes, with dedicated tests for new reason codes (F-REST-002, S03-05).
-  _Intent:_ Cover advanced scenarios highlighted in the spec and prevent regressions.
-  _Verification commands:_
-  - `./gradlew --no-daemon :rest-api:test --tests "*Timestamp*"`
-  _Notes:_ Adds coverage for `timestamp_drift_exceeded` and `pin_hash_mismatch` pathways using clock injection.
-
-- [x] T0307 – Run `./gradlew spotlessApply check`, record telemetry samples, and update knowledge map/operator docs (S03-01–S03-05).
-  _Intent:_ Finish the feature with documentation parity and a green build.
-  _Verification commands:_
-  - `./gradlew --no-daemon spotlessApply check`
-  - `rg -n "rest.ocra.evaluate" docs/3-reference`
-  _Notes:_ Syncs documentation deliverables (how-to, knowledge map) and archives telemetry samples for operators.
+- [x] T-003-01 – Stage failing RFC 6287/S064/S512 descriptor + calculator tests (S-003-01, FR-003-01/02).  
+  _Verification:_ `./gradlew --no-daemon :core:test`
+- [x] T-003-02 – Implement descriptor canonicalisation + `OcraResponseCalculator` helpers (S-003-01, FR-003-01/02).  
+  _Verification:_ `./gradlew --no-daemon :core:test`, ArchUnit + mutation suites.
+- [x] T-003-03 – Add failing persistence envelope upgrade tests (schema-v1 only) (S-003-01, FR-003-03).  
+  _Verification:_ `./gradlew --no-daemon :application:test --tests "*CredentialStore*"`
+- [x] T-003-04 – Implement persistence upgrades + telemetry logging (S-003-01, FR-003-03).  
+  _Verification:_ `./gradlew --no-daemon :application:test`
+- [x] T-003-05 – Remove schema-v0 migration helpers; document schema-v1 requirement (S-003-05, FR-003-08/09).  
+  _Verification:_ `./gradlew --no-daemon :application:test :core:test`, doc lint.
+- [x] T-003-06 – Add failing MockMvc/OpenAPI tests for `/api/v1/ocra/evaluate` (inline payloads) (S-003-02, FR-003-04).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "*OcraEvaluate*"`
+- [x] T-003-07 – Implement inline REST evaluation controller + telemetry + OpenAPI snapshots (S-003-02, FR-003-04).  
+  _Verification:_ `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshotTest"`
+- [x] T-003-08 – Add failing tests for stored credential resolution + exclusivity (S-003-02, FR-003-05).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "*OcraStored*"`
+- [x] T-003-09 – Implement stored credential resolution + reason codes, update docs (S-003-02, FR-003-05).  
+  _Verification:_ `./gradlew --no-daemon :application:test :rest-api:test`
+- [x] T-003-10 – Add failing CLI replay + REST `/ocra/verify` tests with hashed telemetry assertions (S-003-03, FR-003-06).  
+  _Verification:_ `./gradlew --no-daemon :cli:test --tests "*OcraVerify*"`, `./gradlew --no-daemon :rest-api:test --tests "*OcraVerify*"`
+- [x] T-003-11 – Implement CLI/REST replay logic, telemetry hashing, and benchmark harness (S-003-03, FR-003-06).  
+  _Verification:_ `IO_OPENAUTH_SIM_BENCHMARK=true ./gradlew :core:test --tests "*OcraReplayBenchmark*"`
+- [x] T-003-12 – Add failing UI unit/Selenium tests for OCRA stored/inline evaluation tabs (S-003-04, FR-003-07).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "*OcraOperatorUiEvaluate*"`
+- [x] T-003-13 – Implement evaluation tab presets, timestamp toggles, verbose trace wiring (S-003-04, FR-003-07).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test :ui:test`
+- [x] T-003-14 – Add failing UI/Selenium coverage for replay workspace + spacing/a11y checks (S-003-04, FR-003-07).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "*OcraOperatorUiReplay*"`
+- [x] T-003-15 – Implement replay workspace, hashed telemetry surfaces, and docs (S-003-04/05, FR-003-06/07/09).  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test`, doc lint.
+- [x] T-003-16 – Update roadmap/knowledge map/how-to guides to reference Feature 003 + new telemetry events (S-003-05, FR-003-09).  
+  _Verification:_ `./gradlew --no-daemon spotlessApply check`
 
 ## Verification Log
-- 2025-11-10 – `./gradlew --no-daemon spotlessApply check`
+- 2025-09-30 – `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OcraEvaluateOpenApi*"`
+- 2025-10-03 – `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test`
+- 2025-10-07 – `IO_OPENAUTH_SIM_BENCHMARK=true ./gradlew :core:test --tests "*OcraReplayBenchmark*"`
+- 2025-10-15 – Selenium + UI regression suite (`OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "*OcraOperatorUi*"`)
+- 2025-11-10 – `./gradlew --no-daemon spotlessApply check` (template migration)
 
 ## Notes / TODOs
-- Original R00x/R01x task tables remain in git history before 2025-11-09 for auditors who need the incremental breakdown.
+- Verbose trace enhancements move to Feature 035/040; the `legacy/` subdirectory preserves prior specs for auditors.

@@ -7,7 +7,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
   - Whenever you present alternative approaches—whether for open questions or general solution proposals—precede each clarification with a numbered heading (1., 2., …) and enumerate options alphabetically (A, B, C …); include pros and cons for each option and state the recommended choice (with rationale) before requesting a decision.
 - **Work in small steps.** During planning, break every change into logical, self-contained tasks that are expected to complete within ≤90 minutes. Execution can take longer if required; the goal is to plan manageable increments, run `./gradlew spotlessApply check`, and commit with a conventional message for each finished slice.
 - **Confirm prerequisites.** Ensure `JAVA_HOME` points to a Java 17 JDK before invoking Gradle or Git hooks.
-- **Hook guard.** Verify `git config core.hooksPath githooks` before staging changes; reapply the setting after fresh clones or tool resets so the managed pre-commit hook and `commit-msg` gitlint gate both execute.
+- **Hook guard.** Verify `git config core.hooksPath githooks` before staging changes; reapply the setting after fresh clones or tool resets so the managed pre-commit hook and `commit-msg` gitlint gate both execute. Feature 011 (`docs/4-architecture/features/011/{spec,plan,tasks}.md`) is the canonical reference for FR-011-01..08/NFR-011-01..05—when you run the guard commands (`git config core.hooksPath`, `githooks/pre-commit`, `githooks/commit-msg`) capture the output in `_current-session.md` and `docs/migration_plan.md` as that feature requires.
 - **Prime the knowledge map.** Skim `docs/4-architecture/knowledge-map.md` and the up-to-date module snapshot in `docs/architecture-graph.json` before planning so new work reinforces the architectural relationships already captured there.
 - **Template usage.** Author new specifications, feature plans, and task checklists using `docs/templates/feature-spec-template.md`, `docs/templates/feature-plan-template.md`, and `docs/templates/feature-tasks-template.md` so structure, metadata, and verification notes stay uniform across features.
 
@@ -27,6 +27,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 
 > Quick reference: See `docs/5-operations/session-quick-reference.md` for the Session Kickoff Checklist and handoff prompt template.
 - Maintain `docs/_current-session.md` as the single live snapshot across active chats; always review/update it before closing a session.
+- Feature ownership quick cues (Batch P3): Feature 009 now covers operator console/UI docs, Feature 010 owns documentation & knowledge automation, Feature 011 governs AGENTS/runbooks/hooks, Feature 012 centralises core cryptography & persistence docs, and Feature 013 aggregates toolchain/quality automation guidance.
 
 ## SDD Feedback Loops
 - Specification-Driven Development (SDD) is the default cadence. Anchor every increment in an explicit specification, aligned with the [GitHub Spec Kit reference](https://github.com/github/spec-kit/blob/main/spec-driven.md).

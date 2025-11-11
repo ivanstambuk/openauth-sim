@@ -1,11 +1,11 @@
 # Configure MapDB Persistence Profiles
 
 _Status: In Progress_
-_Last updated: 2025-10-02_
+_Last updated: 2025-11-11_
 
 ## Overview
 
-MapDB-backed credential persistence supports multiple deployment profiles that balance cache footprint, latency, and durability. The shared `infra-persistence` module now exposes `CredentialStoreFactory`, which applies OCRA migrations and recommended cache defaults for CLI, REST, UI, and test surfaces. This guide explains how to select a profile, adjust cache behaviour, and validate the resulting configuration using the project’s tooling. For advanced tuning you can still work with `MapDbCredentialStore` builders directly, but always start from the factory-applied builder so migrations stay registered.
+MapDB-backed credential persistence supports multiple deployment profiles that balance cache footprint, latency, and durability. The shared `infra-persistence` module now exposes `CredentialStoreFactory`, which applies OCRA migrations and recommended cache defaults for CLI, REST, UI, and test surfaces. Feature 012 (`docs/4-architecture/features/012/{spec,plan,tasks}.md`) is the canonical reference for these profiles, telemetry contracts, maintenance helpers, and verification commands, so consult it alongside this guide. For advanced tuning you can still work with `MapDbCredentialStore` builders directly, but always start from the factory-applied builder so migrations stay registered.
 
 ## Prerequisites
 
@@ -138,7 +138,7 @@ The command prints the structured maintenance result (operation, status, duratio
 
 ## Enable Optional AES Encryption
 
-When running in environments that require secrets encrypted at rest, configure `MapDbCredentialStore` with the AES-GCM encryption helper added in Feature 002:
+When running in environments that require secrets encrypted at rest, configure `MapDbCredentialStore` with the AES-GCM encryption helper added in Feature 012 (see `docs/4-architecture/features/012/spec.md`, FR-012-04):
 
 ```java
 byte[] key = ...; // 16/24/32-byte AES key supplied by your key-management system
@@ -163,5 +163,5 @@ If the wrong key is provided during startup, credential reads will raise an `Ill
 
 ## Follow-ups
 
-- Benchmark results after cache tuning should be captured under Feature 002 plan task T201 once rerun.
-- Future work (T205+) will document maintenance hooks and optional encryption; keep this guide in sync when new configuration knobs appear.
+- Benchmark results after cache tuning should be captured under Feature 012 plan task T-012-XX (see `docs/4-architecture/features/012/plan.md`) once rerun so the spec’s performance targets stay auditable.
+- Future work (tracked in Feature 012 tasks) will document maintenance hooks and optional encryption; keep this guide in sync when new configuration knobs appear.

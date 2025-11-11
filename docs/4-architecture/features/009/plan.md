@@ -1,95 +1,92 @@
-# Feature Plan 009 – OCRA Replay & Verification
+# Feature 009 – Operator Console Infrastructure Plan
 
-_Linked specification:_ `docs/4-architecture/features/009/spec.md`  
-_Status:_ Complete  
-_Last updated:_ 2025-11-10
+| Field | Value |
+|-------|-------|
+| Status | In migration (Batch P3) |
+| Last updated | 2025-11-11 |
+| Owners | Ivan (project owner) |
+| Specification | `docs/4-architecture/features/009/spec.md` |
+| Tasks checklist | `docs/4-architecture/features/009/tasks.md` |
+| Roadmap entry | #9 – Operator Console Infrastructure |
 
-## Vision & Success Criteria
-- Operators and automated systems can verify historical OCRA OTP submissions against stored or inline credentials without mutating counters or sessions.
-- CLI (`ocra verify`) and REST (`POST /api/v1/ocra/verify`) facades expose identical payloads, responses, and telemetry.
-- Replay telemetry emits hashed OTP/context fingerprints plus deterministic outcomes for audits.
-- Verification runs within the documented performance budget (≤150 ms P95 stored, ≤200 ms P95 inline) on the reference hardware.
-- Documentation (how-to guides, roadmap, knowledge map) explains verification flows, telemetry interpretation, and benchmarking steps.
-- `./gradlew qualityGate` remains green with the new tests and coverage.
+## Vision
+Draw every operator-console story (tabs, placeholders, info drawer, presets, validation helpers, trace diagnostics, Base32 inputs, preview windows,
+and JS harness tests) under Feature 009 so future batches can evolve concrete console capabilities from a single, auditable source.
 
-## Scope Alignment
-- **In scope:** Core replay verifier, CLI command, REST endpoint, telemetry hashing, performance benchmarking, documentation updates, roadmap/knowledge map sync.
-- **Out of scope:** Operator UI flows, tolerance windows or resynchronisation helpers, non-OCRA protocol support, persisted verification receipts.
+## Scope
+- Consolidate the console tab shell, query-param routing, and stored credential seeding controls introduced by the legacy features.
+- Surface architectural additions (Protocol Info drawer, preset label harmonisation, validation helper, verbose traces/tiers, Base32 inline secrets, preview windows).
+- Document and verify the console JS modularisation plus Node/Gradle harness that powers deterministic protocol suites.
+- Synchronise documentation artefacts (roadmap, knowledge map, session log (docs/_current-session.md), `_current-session.md`, operator how-tos) with the consolidated console ownership.
 
-## Dependencies & Interfaces
-- Core OCRA domain types (`OcraCredentialDescriptor`, replay fixtures) and persistence module for immutable reads.
-- CLI Picocli launcher, REST Spring controllers, OpenAPI snapshot tooling.
-- Telemetry contracts (`core.ocra.verify`, `cli.ocra.verify`, `rest.ocra.verify`).
-- Docs/roadmap/knowledge-map entries, benchmark harness gated by `IO_OPENAUTH_SIM_BENCHMARK`.
+## Dependencies
+| Dependency | Notes |
+|------------|-------|
+| `rest-api` module | Hosts the Thymeleaf templates, controllers, REST endpoints, and JS assets; must keep `TelemetryContracts` adapters aligned. |
+| `application` module | Supplies orchestration helpers, trace builders, Base32 helpers, and preview window services used by CLI/REST/UI. |
+| `cli` module | CLI flags/commands must match spec (verbose toggle, tiers, Base32, preview windows). |
+| Node toolchain | Required for `operatorConsoleJsTest` and the modular console harness; ensures deterministic DOM fixtures. |
+| Docs/roadmap/knowledge map | Need updates to cite Feature 009 exclusively and to log the migration once legacy directories disappear. |
 
-## Assumptions & Risks
-- **Assumptions:** Existing fixtures cover RFC 6287 timed signatures; persistence reads remain side-effect-free; telemetry hashing functions already shared across modules.
-- **Risks & mitigations:**
-  - _Strict mismatch UX confusion:_ Document exit codes/HTTP statuses clearly in how-to guides.
-  - _Performance regressions:_ Capture benchmark data and rerun when dependencies change.
-  - _Telemetry leaks:_ Enforce logger tests and ArchUnit checks ensuring only hashed fields are emitted.
-
-## Implementation Drift Gate
-- Triggered once T-009-01–T-009-07 finished; evidence stored within this plan and the tasks checklist.
-- Evidence package: mapping of FR/NFR IDs to code/tests, telemetry hash samples, performance benchmark logs, and CLI/REST smoke-test transcripts.
-- Outcome (2025-10-01): Gate completed with `./gradlew qualityGate` green, stored P95 0.060 ms / inline P95 0.024 ms on WSL2 OpenJDK 17.0.16 host.
-
-## Increment Map
-1. **I1 – Clarify scope & analysis gate** _(T-009-01)_  
-   - _Goal:_ Confirm clarifications, update roadmap/knowledge map, and record strict verification decisions.  
-   - _Commands:_ `less docs/4-architecture/features/009/spec.md`, `rg -n "Feature 009" docs/4-architecture/roadmap.md`.  
-   - _Exit:_ Analysis gate checklist completed; open questions cleared.
-
-2. **I2 – Core replay verifier coverage & implementation** _(T-009-02, T-009-03)_  
-   - _Goal:_ Add failing core tests for stored/inline success, strict mismatch, immutability, then implement `OcraReplayVerifier`.  
-   - _Commands:_ `./gradlew --no-daemon :core:test --tests "*OcraReplay*"` (red → green).  
-   - _Exit:_ Core tests pass; telemetry hashing helpers in place.
-
-3. **I3 – CLI verification command** _(T-009-04)_  
-   - _Goal:_ Add Picocli tests for stored/inline success, strict mismatch, and validation errors; wire command + telemetry + exit codes.  
-   - _Commands:_ `./gradlew --no-daemon :cli:test --tests "*OcraVerify*"`; CLI smoke tests documented.  
-   - _Exit:_ CLI command available with deterministic outputs and sanitized telemetry.
-
-4. **I4 – REST verification endpoint** _(T-009-05)_  
-   - _Goal:_ Define request/response DTOs, add controller/service tests (success/mismatch/validation/unknown credential), update OpenAPI snapshot, implement endpoint.  
-   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*OcraVerification*"`; `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`.  
-   - _Exit:_ REST endpoint mirrors CLI payloads with sanitized responses; OpenAPI snapshot committed.
-
-5. **I5 – Telemetry, documentation, and benchmarks** _(T-009-06)_  
-   - _Goal:_ Document telemetry hashing, CLI/REST troubleshooting, and performance methodology; capture benchmark data on reference hardware.  
-   - _Commands:_ `rg -n "ocra verify" docs/2-how-to`, `rg -n "benchmark" docs/4-architecture/features/009/plan.md`.  
-   - _Exit:_ Docs updated, telemetry schema recorded, benchmarks logged with environment metadata.
-
-6. **I6 – Full quality gate & closure** _(T-009-07)_  
-   - _Goal:_ Run `./gradlew qualityGate`, confirm PIT/Jacoco thresholds, archive reports, and record closure notes.  
-   - _Commands:_ `./gradlew --no-daemon qualityGate`; collect `build/reports/pitest` and `build/reports/jacoco/aggregated` artifacts.  
-   - _Exit:_ Gate green; metrics captured in plan/tasks and session log.
+## Increment Map (≤90 min each)
+| Increment | Intent | Owner | Status | Notes |
+|-----------|--------|-------|--------|-------|
+| P3-I1 | Absorb the FR/NFR/verification content from legacy features 017/020/021/025/033–038/041 into Feature 009’s spec so the new template fully describes the operator console. | Ivan | Completed | `spec.md` now lists the new FRs, NFRs, scenarios, interfaces, and DSL entries. |
+| P3-I2 | Refresh the plan/tasks/doc gates to describe the new scope, scenario tracking, and tooling commands described by the legacy artefacts. | Ivan | Completed | Updated `plan.md` & `tasks.md` to match the consolidated spec. |
+| P3-I3 | Delete the emptied `docs/4-architecture/features/009/legacy/<old-id>/` directories, log the removals + command outputs in `_current-session.md`, and record the Batch P3 Phase 2 progress inside `docs/migration_plan.md`. | Ivan | Completed | Legacy tree removed, `_current-session.md` notes the command, and Phase 2 progress entry added to `migration_plan.md`. |
+| P3-I4 | Once all features 009–013 absorb their legacy content, rerun `./gradlew --no-daemon spotlessApply check` and log the result alongside the Batch P3 Phase 2 entry; capture any follow-ups before handing off. | Ivan | Pending | Deferred until the remaining features finish their rewrites. |
 
 ## Scenario Tracking
-| Scenario ID | Increment / Task reference | Notes |
-|-------------|---------------------------|-------|
-| S-009-01 | I2 / T-009-02 / T-009-03 | Core replay verifier coverage + implementation. |
-| S-009-02 | I3 / T-009-04 | CLI verification command behaviour/telemetry. |
-| S-009-03 | I4 / T-009-05 | REST endpoint payloads, responses, OpenAPI snapshot. |
-| S-009-04 | I2–I5 / T-009-02–T-009-06 | Telemetry hashing/logging applied across modules. |
-| S-009-05 | I2–I4 / T-009-02–T-009-05 | Strict mismatch messaging across core/CLI/REST. |
-| S-009-06 | I5–I6 / T-009-06 / T-009-07 | Benchmark recording + governance documentation. |
+| Scenario | Description | Increment |
+|----------|-------------|-----------|
+| S-009-01 | `/ui/console` renders ordered tabs (hotp → eudi-siopv2), maintains query-param history, and surfaces stored credential seeding controls plus placeholder messaging. | P3-I1 |
+| S-009-02 | Protocol Info drawer opens via the tablist trigger, swaps schema-based content per protocol, persists preferences, and exposes embeddable docs. | P3-I1 |
+| S-009-03 | Preset dropdowns across HOTP/TOTP/OCRA/FIDO2 display `<scenario – attributes>` labels and seeded/stored catalogues stay in sync. | P3-I1 |
+| S-009-04 | Validation helper reveals the result card and message for invalid OTP/OCRA/WebAuthn responses. | P3-I1 |
+| S-009-05 | Verbose trace mode delivers identical payloads to CLI, REST, and UI consumers, including WebAuthn metadata. | P3-I1 |
+| S-009-06 | Trace tiers (normal/educational/lab-secrets) mask attributes via the shared helper and emit `telemetry.trace.*` events when requested. | P3-I1 |
+| S-009-07 | Inline shared secrets accept Base32 or hex inputs with CLI/UI helpers enforcing mutual exclusivity. | P3-I1 |
+| S-009-08 | Evaluation preview windows render ordered Delta tables, CLI/REST flags map offsets, and helper text remains concise in the UI. | P3-I1 |
+| S-009-09 | Console JS modules run inside the `operatorConsoleJsTest` harness with protocol-filtering support and deterministic fixtures. | P3-I1 |
+| S-009-10 | Documentation (roadmap, knowledge map, session log (docs/_current-session.md), `_current-session.md`, how-tos) captures the consolidated console scope and marks legacy directories as removed. | P3-I2/P3-I3 |
 
-## Analysis Gate (2025-10-01)
-- ✅ Specification captured clarifications, requirements, and interface designs.
-- ✅ Open questions cleared in `docs/4-architecture/open-questions.md`.
-- ✅ Plan/tasks aligned with scope; roadmap & knowledge map updated.
-- ✅ Tasks ≤30 minutes with verification commands sequenced before implementation.
-- ✅ Tooling readiness documented (`./gradlew :core:test`, `:cli:test`, `:rest-api:test`, `qualityGate`, OpenAPI snapshot command).
+## Legacy Parity Review
+- 2025-11-11 – Compared Feature 009 FR/NFR/scenario inventories against legacy Features 017/020/021/025/033–038/041. All requirements are represented in the consolidated spec/plan/tasks; remaining work (trace-tier automation, Node harness expansion, verbose-trace UX polish) stays in the Follow-ups backlog.
+
+## Legacy Integration Tracker
+| Legacy Feature(s) | Increment(s) | Status | Notes |
+|-------------------|--------------|--------|-------|
+| 017/020/021/025/033 | P3-I1 (spec), P3-I2 (plan/tasks) | Completed | FR-009-01..03 and NFR-009-04 capture tab shells, history routing, preset labels, and Base32 helpers from the legacy console specs. |
+| 034/035/036/037/038 | P3-I1, P3-I2 | Completed | FR-009-04..08 and NFR-009-02 document info drawer content, verbose traces, validation helpers, and DOM harness behaviors migrated from the instrumentation features. |
+| 041 | P3-I1, P3-I2 | Completed | FR-009-09 and NFR-009-05 cover the JS harness, preview windows, and documentation sync requirements previously owned by Feature 041. |
+
+## Assumptions & Risks
+- Legacy specs dot the landscape (017/020/021/025/033–038/041); this rewrite assumes no new functional details exist outside these folders.
+- Node harness/Gradle integration must stay deterministic; flaky JS suites would block the gate & require follow-up documentation.
+- Deleting the `legacy/` folders before verifying the content migrated would harm auditability; log the deletions in `_current-session.md` and `migration_plan.md` immediately after removal.
+- Trace tiers and Base32 helpers must keep telemetry sanitised; any regression in `TelemetryContracts` (e.g., leaking secrets) is a high-risk failure.
+
+## Quality & Tooling Gates
+- `./gradlew --no-daemon spotlessApply check`
+- `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"`
+- `./gradlew --no-daemon :cli:test --tests "*VerboseTrace*"`
+- `./gradlew --no-daemon :application:test --tests "*VerboseTrace*"`
+- `node --test rest-api/src/test/javascript/emv/console.test.js`
+- `./gradlew --no-daemon operatorConsoleJsTest -PconsoleTestFilter=<protocol>` (runs under `check` and respects filtering)
+- `./gradlew --no-daemon pmdMain pmdTest`
+
+## Analysis Gate
+Run `docs/5-operations/analysis-gate-checklist.md` after the spec/plan/tasks mention Feature 009 as the single console owner, all scenarios trace to requirements, and `_current-session.md`/`migration_plan.md` log the directory removals.
+
+## Implementation Drift Gate
+Before closing this feature, confirm every FR/NFR (FR-009-01..FR-009-10, NFR-009-01..NFR-009-05) maps to code/tests (console shell, info drawer, presets, validation helper, verbose traces/tiers, Base32 inputs, preview windows, JS harness). Capture the drift report inside this plan once the gate runs.
 
 ## Exit Criteria
-- Core replay verifier, CLI command, and REST endpoint shipped with deterministic outcomes and telemetry hashing.
-- Documentation (how-to guides, roadmap, knowledge map) reflects verification workflows and performance benchmarks.
-- OpenAPI snapshot, telemetry schema, and benchmark logs updated.
-- `./gradlew qualityGate` passes with PIT/Jacoco thresholds satisfied; reports archived under `build/reports/`.
-- Session snapshot and migration tracker reference Feature 009 template/telemetry updates.
+- The consolidated Feature 009 spec/plan/tasks document the entire operator console scope (tabs, info drawer, presets, verbose diagnostics, Base32, preview windows, JS harness).
+- Documentation (roadmap, knowledge map, session log (docs/_current-session.md), `_current-session.md`, how-tos) references Feature 009 and notes the legacy directories are gone.
+- Legacy directories `docs/4-architecture/features/009/legacy/<old-id>` no longer exist and their deletions/logs are recorded.
+- The console verification suites (JVM, Node, PMD/Spotless) remain green once the phase concludes.
 
-## Follow-ups / Backlog
-- Future feature to extend replay verification into operator UI once the UX scope is prioritised.
-- Consider expanding the verification gate to HOTP/TOTP once specifications exist.
-- Monitor benchmark deltas after major persistence/telemetry changes; rerun `IO_OPENAUTH_SIM_BENCHMARK` workflow as needed.
+## Follow-ups
+- Repeat this legacy absorption process for Features 010–013 so their specs/plans/tasks become authoritative and the remaining `legacy/` trees are removed.
+- After all features migrate, rerun `./gradlew --no-daemon spotlessApply check`, log the Batch P3 Phase 2 result in `docs/migration_plan.md`, and update `_current-session.md` before handing off.

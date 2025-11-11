@@ -1,162 +1,208 @@
-# Feature 009 – OCRA Replay & Verification
+# Feature 009 – Operator Console Infrastructure
 
 | Field | Value |
 |-------|-------|
-| Status | Complete |
-| Last updated | 2025-11-10 |
+| Status | In migration (Batch P3) |
+| Last updated | 2025-11-11 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/009/plan.md` |
 | Linked tasks | `docs/4-architecture/features/009/tasks.md` |
-| Roadmap entry | #9 |
+| Roadmap entry | #9 – Operator Console Infrastructure |
 
 ## Overview
-Deliver strict replay/verification workflows so auditors can confirm previously issued OCRA one-time passwords (OTPs) against stored or inline credentials without regenerating new values. The feature adds CLI and REST entry points backed by a deterministic core verifier, enforces zero tolerance windows, and emits hashed telemetry so operators can correlate requests across facades without exposing secrets.
+Feature 009 now serves as the single source of truth for every operator-console artefact—Thymeleaf shells, vanilla JS controllers,
+verbose-trace dock wiring, Node harnesses, and protocol-specific helpers. This feature absorbs the legacy console workstreams
+(017/020/021/025/033–038/041) so multi-protocol tabs, info surfaces, validation helpers, trace diagnostics, Base32 inputs,
+preview windows, and the modular JS test harness all share one consolidated spec/plan/tasks bundle before further feature work
+continues.
 
 ## Clarifications
-- 2025-10-01 – Facade scope covers CLI and REST only; operator UI remains out of scope until a future UX feature (Option A).
-- 2025-10-01 – Verification payloads must include the complete OCRA suite context (challenge, session/timestamp, counter, credential reference) so the replay engine can reproduce the original OTP deterministically (Option B).
-- 2025-10-01 – Operators may verify against stored credentials or inline secrets; both paths must emit identical telemetry schemas (Option B).
-- 2025-10-01 – Replay evidence relies on existing structured telemetry/logging; no persisted receipts are introduced (Option A).
-- 2025-10-01 – Strict verification forbids tolerance windows or resynchronisation; mismatches are definitive failures (Option A).
-- 2025-10-01 – Performance benchmarks for Requirement R913 run on the WSL2 Linux host (x86_64) with OpenJDK 17.0.16; results recorded with hardware/JDK metadata (Option B).
-- 2025-10-01 – Timestamp verification coverage must exercise both stored and inline flows using RFC 6287 timed signature vectors (Option A).
+- 2025-11-01 – `/ui/console` is the canonical entry point; legacy routes such as `/ui/ocra/*` redirect or 404 to avoid drift (owner directive).
+- 2025-10-04 – Placeholder tabs for HOTP, TOTP, FIDO2/WebAuthn, EMV/CAP, and the three EUDI wallet modes appear in the exact ordered list.
+- 2025-10-04 – Protocol Info drawer is an accessible right-aligned trigger + drawer (520 px) that loads schema data, persists preferences, and emits CustomEvents.
+- 2025-10-12 – Console preset dropdowns share `<scenario – attributes>` naming across protocols and keep seeded/stored catalogues identical for HOTP/TOTP/OCRA/FIDO2.
+- 2025-10-20 – Result cards surface validation messages via a helper that exposes `showResultCard`/`validationMessage` to JS and keeps Selenium suites green.
+- 2025-10-22 – Verbose traces attach to every protocol (HOTP/TOTP/OCRA/WebAuthn) with CLI (`--verbose`), REST (`verboseTrace=true`), and UI toggles; WebAuthn traces include RP metadata.
+- 2025-10-25 – Trace tiers (`normal`, `educational`, `lab-secrets`) filter attributes via a shared helper before telemetry or UI serialization.
+- 2025-10-31 – Inline flows accept `sharedSecretBase32` (mutually exclusive with hex) across HOTP/TOTP/OCRA facades; UI toggles and CLI flags reuse a shared helper.
+- 2025-11-01 – Evaluation previews expose ordered tables, Delta accents, and CLI/REST window flags; replay flows keep drift inputs until future iterations.
+- 2025-11-07 – Console JavaScript now lives in discrete modules, shares a Node harness (`operatorConsoleJsTest`), and exposes documented entry points for SecretFieldBridge/VerboseTraceConsole.
 
 ## Goals
-- Provide stored and inline verification flows across core, CLI, and REST facades without mutating credential counters or sessions.
-- Surface deterministic mismatch messaging and audit-ready telemetry (hashed OTP/context fingerprints, credential source) for every facade.
-- Document performance benchmarks, CLI command syntax, REST schema, and troubleshooting guidance for operators.
+- G-009-01 – Keep the operator console shell (tabs, query params, seed workflows) deterministic, accessible, and documented across protocols.
+- G-009-02 – Surface contextual metadata (Protocol Info drawer) plus harmonised preset labels so operators rely on a single UX contract.
+- G-009-03 – Document validation, trace diagnostics, Base32 inputs, preview tables, and JS harness wiring so downstream batches reuse the same builders and tests.
 
 ## Non-Goals
-- Re-implementing base OCRA evaluation logic or extending replay to HOTP/TOTP/other protocols.
-- Introducing operator UI flows or persistence-layer receipts.
-- Adding tolerance windows, resynchronisation helpers, or OTP regeneration utilities.
+- N-009-01 – No behaviour changes that expose incomplete protocols beyond placeholders or disabled tabs.
+- N-009-02 – Do not introduce telemetry adapters outside the existing `TelemetryContracts` guardrail.
+- N-009-03 – Avoid launching new UI frameworks; keep the dark-theme Thymeleaf + vanilla JS stack intact.
 
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-009-01 | Core replay engine must verify OTPs for stored or inline credentials without mutating counters, sessions, or timestamps. | `OcraReplayVerifier` reproduces the original OTP deterministically and returns `MATCH`/`MISMATCH`/`INVALID`. | Unit tests cover stored vs inline success, strict mismatch, missing context, and immutability assertions. | Any mutation or indeterminate verdict fails quality gate; mismatch handling must remain deterministic. | `core.ocra.verify` frames include `credentialSource`, `otpHash`, `contextFingerprint`, `outcome`, `durationMs`. | Clarifications 2–5; Goals. |
-| FR-009-02 | Provide a CLI command (`ocra verify`) that accepts OTP + context, supports stored or inline credentials, emits sanitized telemetry, and returns deterministic exit codes. | CLI command prints result summary and exits with `0` (match), `2` (mismatch), `64/70` (validation/unexpected). | Picocli integration tests cover stored/inline success, strict mismatch, validation failures, and telemetry assertions. | Missing arguments, mismatched context, or unexpected errors surface sanitized messages and telemetry hashes. | `cli.ocra.verify` frames log `credentialSource`, `outcome`, `reasonCode`, `otpHash`. | Clarifications 1–3. |
-| FR-009-03 | Expose REST endpoint `POST /api/v1/ocra/verify` that mirrors CLI payloads/responses and leaves evaluation endpoints untouched. | Endpoint returns JSON body with `outcome`, `reasonCode`, and hashed telemetry identifiers. | REST contract tests exercise success, mismatch, validation failures, and unknown credential cases; OpenAPI snapshot updated. | Missing context or unknown credential IDs return structured 4xx responses without leaking secrets; unexpected errors emit sanitized 5xx responses. | `rest.ocra.verify` telemetry mirrors CLI fields and logs HTTP status/outcome. | Clarifications 1–3, 5. |
-| FR-009-04 | Enforce hashed telemetry/logging for OTP/context data and capture performance benchmarks with documented methodology. | Hashes computed per spec (`otpHash`, `contextFingerprint`); benchmark report stored with plan/tasks. | Tests capture logger output ensuring only hashed fields appear; documentation references benchmark command/environment. | Raw secrets/OTP/context appear in logs or telemetry; missing benchmark data blocks completion. | Telemetry frames include `sanitized=true`, hashed fields, `durationMs`. | Clarifications 3–6; Goals. |
-| FR-009-05 | Publish operator documentation describing CLI/REST verification flows, telemetry interpretation, and troubleshooting guidance. | Docs under `docs/2-how-to` and roadmap/knowledge map entries reference verification flows and benchmarks. | Spotless/doc lint runs; knowledge map updates recorded. | Missing documentation leaves operators without guidance; roadmap drift flagged in governance reviews. | Documentation references telemetry event names for correlation. | Goals; documentation deliverables. |
+| FR-009-01 | `/ui/console` renders the ordered protocol tabs, query-parameter-based history, stored credential seed controls, and placeholder messaging while legacy `/ui/ocra/*` routes redirect to the new entry. | Selenium/DOM tests verify tab order, state restoration, seeding controls, and disabled future tabs. | Invalid/legacy tabs fallback to OCRA, history navigation uses query params, and stored credential seeding logs the action. | Legacy routes still reachable or tabs render out of order. | `ui.console.navigation` events carry `protocol`, `tab`, and `seedAction`. | 017, 020, 033 |
+| FR-009-02 | Protocol Info drawer opens via the right-aligned trigger, persists preferences, swaps content per protocol, and exposes embeddable schema-driven assets/docs. | Drawer obeys `prefers-reduced-motion`, uses `localStorage` keys per protocol, and renders schema payloads safely. | Accessibility tests exercise focus trap + ESC/Enter shortcuts; doc review validates README/harness integration. | Drawer fails to open, persistence breaks, or schema renders unescaped HTML. | CustomEvents `ui.protocolInfo.trigger.clicked`, `ui.protocolInfo.opened/closed`, `ui.protocolInfo.protocol.changed`, `ui.protocolInfo.persistence.updated`. | 021 |
+| FR-009-03 | Console preset dropdowns across HOTP/TOTP/OCRA/FIDO2 expose `<scenario – key attributes>` labels, keep seeded/stored catalogues in sync (6/8-digit permutations + RFC suffixes), and documentation references the harmonised copy. | Templates and JS render the new labels; OAuth presets include `(RFC 6287)` suffixes while drafts stay untouched. | UI snapshots + Selenium run confirm the label list and seeded credentials match; docs mention the new pattern. | Stale labels, missing seeded credentials, or docs lacking guidance. | Sanitized label strings remain in telemetry logs. | 025 |
+| FR-009-04 | Validation helper ensures every invalid response reveals the appropriate result card with the API `message` for HOTP/TOTP/OCRA/WebAuthn flows. | Helper toggles `showResultCard` and `validationMessage`, and Selenium suites confirm the message renders. | Integration tests feed invalid payloads to each ceremony; docs describe the pattern. | Result card remains hidden or message missing despite invalid responses. | Telemetry unaffected. | 034 |
+| FR-009-05 | Verbose trace mode provides identical payloads to CLI, REST, and UI callers while remaining opt-in per request and retaining WebAuthn metadata (RP IDs, flag maps, signature counters). | CLI `--verbose`, REST `verboseTrace=true`, and UI trace panel show the same steps; WebAuthn trace includes canonical RP IDs + policy notes. | Facade-specific verbose trace suites (`:core:test`, `:application:test`, `:cli:test`, `:rest-api:test`, Selenium) cover happy/failure scenarios. | Traces diverge, default requests leak verbose data, or WebAuthn metadata missing. | None (traces returned inline). | 035 |
+| FR-009-06 | Trace tier filtering helper enforces `normal`, `educational`, and `lab-secrets` contracts across builders and facades while logging per-request tier metadata. | Helper masks secrets whose `minimumTier` exceeds the requested tier and returns deterministic payloads; CLI/REST/JS respect tier flags. | Tier fixtures/assertions exercise all protocols; telemetry events emit `telemetry.trace.filtered` and `telemetry.trace.invalid_tier`. | Unknown tiers cause errors or secrets leak at lower tiers. | `telemetry.trace.filtered`, `telemetry.trace.invalid_tier`. | 036 |
+| FR-009-07 | Inline secrets accept Base32 input (mutually exclusive with hex) via the shared `SecretEncodings` helper, CLI flags, and UI toggle; docs cover conversion hints. | Helper uppercases/pads Base32, CLI commands expose `--shared-secret-base32`, REST DTOs support `sharedSecretBase32`, and the UI toggle keeps both encodings aligned. | REST/CLI/UI tests assert exclusivity, validation errors, and conversion results; OpenAPI snapshot documents the new field. | Missing validation, helpers fail, or docs lack guidance. | Telemetry events log only the sanitized hex string. | 037 |
+| FR-009-08 | Evaluation flows accept preview windows (`window.backward/forward`), render Delta-ordered tables (with accent on Delta = 0), and expose CLI/REST flags while keeping replay drift inputs unchanged. | CLI output, REST JSON, and UI tables render the ordered previews; invalid offsets return informative errors and blocks the request. | CLI/REST/Selenium tests cover {0,0} defaults, multi-row windows, accent styling, and helper-text removal. | Preview tables missing, delta accent absent, or helper text unexpectedly shown. | `otp.evaluate.preview`, `otp.evaluate.preview_invalid_window`. | 038 |
+| FR-009-09 | Static JS modules expose per-protocol controller factories, reuse shared helpers (SecretFieldBridge, VerboseTraceConsole), and run through the `operatorConsoleJsTest` Gradle task with filtering support. | Node harness suites (`node --test rest-api/src/test/javascript/...`) exercise HOTP, TOTP, OCRA, FIDO2, EMV, and shared widgets; `./gradlew operatorConsoleJsTest -PconsoleTestFilter=<protocol>` filters runs. | Gradle aggregators (`check`) fail when Node tests regress; docs describe harness onboarding. | Inline scripts remain, harness missing features, or Gradle task not wired under `check`. | Optional telemetry `build.console_js.test`. | 041 |
+| FR-009-10 | Documentation, knowledge map, session log (docs/_current-session.md), roadmap, and `_current-session.md` describe the consolidated console scope (tabs, traces, debug helpers, scripted tests) and reference the new feature as the exclusive source. | Docs mention Feature 009 for console ownership; migration tracker logs the rewrite and verifications. | `spotlessApply check` plus manual doc review confirm the entries; `_current-session.md` cites the deletion/completion log. | Legacy features still cited or docs unsynchronised. | n/a | G-009-04 |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-009-01 | Strict verification – no tolerance windows or resynchronisation attempts; mismatches remain definitive. | Audit/non-repudiation commitments. | Unit/integration tests enforce strict mismatch messages and status codes. | Core replay verifier, CLI/REST facades. | Clarifications 5. |
-| NFR-009-02 | Performance – stored credential verification ≤150 ms P95; inline verification ≤200 ms P95 on reference hardware (WSL2 Linux, OpenJDK 17.0.16). | Operator SLAs. | Benchmark script output recorded in plan/tasks with hardware/JDK metadata. | Benchmark harness, `IO_OPENAUTH_SIM_BENCHMARK` runtime flag. | Clarifications 6. |
-| NFR-009-03 | Idempotence – verification requests must be side-effect-free (no counter/session mutation, no credential updates). | Prevents audit drift and replay state changes. | Integration tests snapshot persistence state before/after verification. | `infra-persistence` read operations, CLI/REST flows. | Goals; Clarifications 2–3. |
-| NFR-009-04 | Telemetry redaction – hashed OTP/context fields only; sanitize logs and responses. | Security and compliance. | Log-capture tests prove raw values absent; CLI/REST responses avoid sensitive data. | Telemetry contracts, logging framework. | Clarifications 3–4. |
-
-## UI / Interaction Mock-ups
-_Not applicable – Feature 009 does not add UI surfaces._
+| NFR-009-01 | Documentation traceability | Keep spec/plan/tasks linked to the console GH fragments, knowledge map, and session log (docs/_current-session.md) so auditors can track the renumbering. | Verified links + `_current-session.md` notes per increment. | docs/migration_plan.md, knowledge map, roadmap. | Constitution Principle 4 + Migration directive |
+| NFR-009-02 | Telemetry hygiene | Secrets or Base32 strings must never appear in structured logs; trace tiers mask attributes accordingly. | ArchUnit/telemetry guardrails + code review. | `TelemetryContracts`, masked logging helpers. | 036, 037, Constitution |
+| NFR-009-03 | Quality gate parity | `./gradlew --no-daemon spotlessApply check`, all JVM `:rest-api`/`:application`/`:cli`/`:ui` suites, Node harness, and PMD/Spotless must stay green. | Command logs recorded in `_current-session.md`. | Gradle toolchain, Node environment. | Constitution Principle 3 |
+| NFR-009-04 | Accessibility | Tablist focus, Info drawer, validation messaging, and preview accent styling meet WCAG/keyboard expectations. | Selenium/axe audits + manual review. | Thymeleaf templates, CSS tokens. | 020, 021, 034, 038 |
+| NFR-009-05 | Node harness determinism | JS tests run consistently (no timers/non-deterministic APIs) and add ≤2 minutes to `./gradlew check`. | CI logs, harness README, filtering property. | Node + Gradle configuration. | 041 |
 
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
-| S-009-01 | Core replay engine verifies stored and inline OTP submissions without mutating credential state. |
-| S-009-02 | CLI verification command enforces argument exclusivity and reports deterministic outcomes/exit codes with telemetry hashes. |
-| S-009-03 | REST verification endpoint accepts identical payloads, returns structured JSON, and surfaces validation/mismatch cases with correct HTTP statuses. |
-| S-009-04 | Telemetry across core/CLI/REST emits hashed OTP/context fingerprints plus sanitized metadata for audits. |
-| S-009-05 | Strict mismatch handling documents definitive failure messaging across facades. |
-| S-009-06 | Performance benchmarks capture stored vs inline verification latency on the reference environment and land in documentation. |
+| S-009-01 | `/ui/console` renders ordered tabs (hotp, totp, ocra, emv, fido2, eudi-openid4vp, eudi-iso18013-5, eudi-siopv2), preserves query params, and keeps seeding/placeholder controls intact. |
+| S-009-02 | Protocol Info trigger/drawer opens, swaps schema content, persists preferences, and exposes embeddable docs. |
+| S-009-03 | Preset dropdowns across HOTP/TOTP/OCRA/FIDO2 show `<scenario – key attributes>` labels with RFC suffixes where required.
+| S-009-04 | Validation helper reveals result cards/messages for invalid responses across HOTP/TOTP/OCRA/WebAuthn.
+| S-009-05 | Verbose trace mode returns identical payloads (CLI/REST/UI) with WebAuthn metadata when toggled per request.
+| S-009-06 | Trace tiers filter attributes while CLI/REST/UI contemplates `normal`, `educational`, `lab-secrets` toggles; invalid tier requests emit telemetry.
+| S-009-07 | Inline secret entry accepts Base32 or hex (mutually exclusive), CLI flags route through the helper, and UI toggles keep values aligned.
+| S-009-08 | Evaluation preview windows render ordered tables with Delta=0 accent, CLI/REST flags pick offsets, and helper text is concise.
+| S-009-09 | Console JS modules run inside the `operatorConsoleJsTest` harness with filtering, covering HOTP/TOTP/OCRA/FIDO2/EMV/shared widgets.
+| S-009-10 | Knowledge map, session log (docs/_current-session.md), roadmap, and `_current-session.md` describe the console feature as the authoritative place for all related content.
 
 ## Test Strategy
-- **Core:** Unit tests for `OcraReplayVerifier` covering stored/inline success, strict mismatch, missing context, immutability.
-- **Application/CLI:** Picocli integration tests for `ocra verify` ensuring argument validation, exit codes, telemetry, and persistence snapshots.
-- **REST:** Controller/service tests plus OpenAPI snapshot updates for success/mismatch/validation/credential-not-found cases.
-- **Telemetry/logging:** Logger-capture tests assert hashed fields only; integration tests confirm `sanitized=true` metadata.
-- **Performance:** Benchmark script records stored vs inline latency on the WSL2 reference host with environment metadata.
+- JVM suites: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"`, `./gradlew --no-daemon :cli:test --tests "*VerboseTrace*"`, `./gradlew --no-daemon :application:test --tests "*VerboseTrace*"`, and `./gradlew --no-daemon :ui:test` to cover console flows, trace builders, and validation helpers.
+- Node/JS: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon operatorConsoleJsTest -PconsoleTestFilter=<protocol>` plus the aggregated `check` target to run Node harness suites.
+- Documentation: `./gradlew --no-daemon spotlessApply check` to keep specs/roadmap/knowledge-map/formatted; manual doc review ensures session log (docs/_current-session.md)/_current-session updates.
 
 ## Interface & Contract Catalogue
 ### Domain Objects
 | ID | Description | Modules |
 |----|-------------|---------|
-| DO-009-01 | `OcraReplayRequest` – normalized OTP + suite context payload used by CLI/REST facades. | core, application, cli, rest-api |
-| DO-009-02 | `OcraReplayResult` – outcome enum (`MATCH`, `MISMATCH`, `INVALID`) with hashed telemetry fields. | core, application, cli, rest-api |
+| DO-009-01 | `OperatorProtocolTab` enumerates the supported tabs (hotp/totp/ocra/emv/fido2/eudi-*). | rest-api, ui JS |
+| DO-009-02 | `ProtocolInfoSchema` describes sections/accordions/hooks rendered in the info drawer. | rest-api UI |
+| DO-009-03 | `ProtocolInfoState` tracks last protocol, drawer visibility, and accordion scope persisted to `localStorage`. | ui JS |
+| DO-009-04 | `SecretEncodings` helper converts Base32 to uppercase hex, strips whitespace, and provides masking hints. | core, application, ui |
+| DO-009-05 | `InlineSecretInput` holds mutually exclusive `sharedSecretHex` and `sharedSecretBase32` fields. | rest-api, application, cli, ui |
+| DO-009-06 | `VerboseTrace`, `VerboseTraceStep`, and `TraceAttribute` model operations, metadata, and tier filters. | core, application |
+| DO-009-07 | `TraceTier` enum (normal/educational/lab-secrets) plus `TraceTierFilter` helper masks attributes per tier. | core |
+| DO-009-08 | `PreviewWindow` captures `backward`/`forward` offsets; `PreviewRow` records delta, context, and accent metadata. | rest-api, application, cli, ui |
+| DO-009-09 | `ConsoleControllerFactory` (per protocol) receives `DomHarnessContext` from the shared JS harness. | rest-api JS |
 
 ### API Routes / Services
-| ID | Transport | Description | Notes |
-|----|-----------|-------------|-------|
-| API-009-01 | REST `POST /api/v1/ocra/verify` | Accepts verification payload, returns `OcraReplayResultResponse`. | Uses same context fields as evaluation endpoint; OpenAPI snapshot maintained. |
+| ID | Method | Path | Description |
+|----|--------|------|-------------|
+| API-009-01 | GET | /ui/console | Renders the console shell (tabs, headers, seed controls). |
+| API-009-02 | POST | /api/v1/{protocol}/inline/evaluate | Accepts `sharedSecretHex` or `sharedSecretBase32`, `window`, and toggles trace/preview behaviour. |
+| API-009-03 | POST | /api/v1/{protocol}/trace | Returns verbose trace payloads filtered by tier if requested. |
+| API-009-04 | GET | /api/v1/ocra/credentials/seed | Seeds canonical credential suites (without overwriting existing ones). |
+| API-009-05 | POST | /api/v1/{protocol}/validate | Supports preview windows and validation helper messaging. |
 
-### CLI Commands / Flags
+### CLI Commands
 | ID | Command | Behaviour |
 |----|---------|-----------|
-| CLI-009-01 | `./gradlew :cli:runOcraCli --args=\"ocra verify …\"` | Verifies OTPs using stored (`--credential-id`) or inline (`--suite` + `--secret`) credentials; enforces mutual exclusivity and emits sanitized telemetry. |
+| CLI-009-01 | `hotp evaluate --verbose --verbose-tier=<tier> --shared-secret-base32` | Routes Base32/hex through helper, emits verbose traces filtered by tier, and prints ordered preview tables when `--window-*` flags used. |
+| CLI-009-02 | `node --test rest-api/src/test/javascript/emv/console.test.js` | Runs the console JS harness for EMV flows. |
+| CLI-009-03 | `./gradlew --no-daemon operatorConsoleJsTest` | Aggregates console Node suites, supports `-PconsoleTestFilter=<protocol>`, and runs as part of `check`. |
+| CLI-009-04 | `totp inline-evaluate --shared-secret-base32` / `ocra evaluate --shared-secret-base32` etc | Mirror HOTP options per protocol through the shared helper. |
 
 ### Telemetry Events
-| ID | Event name | Fields / Redaction rules |
-|----|-----------|---------------------------|
-| TE-009-01 | `core.ocra.verify` | `credentialSource`, `outcome`, `otpHash`, `contextFingerprint`, `durationMs`, `sanitized=true`. |
-| TE-009-02 | `cli.ocra.verify` | `credentialSource`, `outcome`, `reasonCode`, `otpHash`, `contextFingerprint`. |
-| TE-009-03 | `rest.ocra.verify` | `credentialSource`, `httpStatus`, `outcome`, `reasonCode`, `otpHash`, `contextFingerprint`. |
+| ID | Event | Fields / Notes |
+|----|-------|----------------|
+| TE-009-01 | `ui.console.navigation` | `protocol`, `tab`, `seedAction`. |
+| TE-009-02 | `ui.protocolInfo.trigger.clicked` / `ui.protocolInfo.opened/closed` / `ui.protocolInfo.protocol.changed` / `ui.protocolInfo.persistence.updated` | `protocol`, `entryPoint`, `prefs`. |
+| TE-009-03 | `telemetry.trace.filtered` | `protocol`, `tier`, `attributeCount`, `maskedCount`, `source`. |
+| TE-009-04 | `telemetry.trace.invalid_tier` | `protocol`, `tier`, `source`, `reason`. |
+| TE-009-05 | `otp.evaluate.preview` / `otp.evaluate.preview_invalid_window` | `protocol`, `windowBackward`, `windowForward`, `previewCount`, `result`. |
+| TE-009-06 | `build.console_js.test` (optional) | Reports JS harness status/duration per protocol. |
 
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-009-01 | `docs/test-vectors/ocra/rfc-6287/*.json` | RFC 6287 timed signature vectors reused for stored/inline verification tests. |
-| FX-009-02 | `core/src/test/resources/fixtures/ocra/replay/*.json` | Deterministic replay fixtures for core verifier tests. |
+| FX-009-01 | `docs/test-vectors/ocra/operator-samples.json` | Seeded credential catalogue for seeding controls. |
+| FX-009-02 | `rest-api/src/main/resources/static/ui/console/console.css` | Shared console styles. |
+| FX-009-03 | `rest-api/src/main/java/io/openauth/sim/rest/ui/HotpOperatorSampleData.java` (and Totp/Ocra/Fido2 variants) | Preset label definitions referred by requirement FR-009-03. |
+| FX-009-04 | `docs/test-vectors/trace-tiers/hotp/*.json`, `docs/test-vectors/trace-tiers/fido2/*.json` | Canonical tier payloads. |
+| FX-009-05 | `docs/test-vectors/trace-preview/*.json` | Ordered preview tables for evaluation windows. |
+| FX-009-06 | `rest-api/src/test/javascript/support/fixtures/*.json` | DOM harness fixtures for Node suites. |
 
 ### UI States
-| ID | State | Trigger / Expected outcome |
-|----|-------|---------------------------|
-| UI-009-NA | — | Feature has no UI component. |
+| ID | Description | Trigger |
+|----|-------------|--------|
+| UI-009-01 | Tablist with HOTP → EUDI tabs, placeholder panels, and query-param persistence. | `/ui/console` navigation. |
+| UI-009-02 | Protocol Info drawer (trigger + panel) with schema-driven content and persistence. | `Protocol info` icon. |
+| UI-009-03 | Validation result card forced visible with API message when responses are invalid. | Invalid REST responses. |
+| UI-009-04 | Verbose trace dock (terminal-style) showing trace steps filtered by tier. | `Show verbose trace` control. |
+| UI-009-05 | Base32 toggle/text area syncing between hex/base32, inline hints, and validation states. | Shared secret section. |
+| UI-009-06 | Preview window offsets control and Delta-ordered table with accent for Delta = 0. | Evaluation forms. |
+| UI-009-07 | Node harness documentation/hint showing `createXConsoleController({ dom, harness })`. | JS tests referencing `rest-api/src/test/javascript/support`. |
 
 ## Telemetry & Observability
-Verification telemetry relies on hashed OTPs (`otpHash = Base64URL(SHA-256(uppercase OTP bytes))`) and hashed context fingerprints (`contextFingerprint = Base64URL(SHA-256(suite + '|' + normalized challenge payloads + '|' + sessionHex + '|' + timestampHex + '|' + counter))`). CLI, REST, and core events include `credentialSource`, `outcome`, `reasonCode`, `durationMs`, and `sanitized=true`. Logs never contain raw OTPs, secrets, session payloads, or timestamps; tests capture logger output to ensure compliance. Benchmark commands (`IO_OPENAUTH_SIM_BENCHMARK=true ./gradlew :core:test --tests "*OcraReplayBenchmark*"`) record latency metrics plus environment metadata.
+Continue emitting `operator.console.*` frames through `TelemetryContracts` adapters. Verbose trace tiers emit `telemetry.trace.filtered`/`invalid_tier`, and preview telemetry uses `otp.evaluate.preview*`. The `build.console_js.test` event remains optional but available for monitoring the JS harness.
 
 ## Documentation Deliverables
-- Update CLI and REST operator guides with verification command/endpoint usage, sample payloads, and troubleshooting steps.
-- Record benchmark methodology/results alongside Feature 009 plan/tasks and link from roadmap/knowledge map.
-- Keep telemetry expectations documented in `docs/5-operations/analysis-gate-checklist.md` when replay verification is in scope.
+- Update `docs/4-architecture/roadmap.md`, `docs/4-architecture/knowledge-map.md`, and `docs/migration_plan.md` to describe the consolidated console scope (tabs, info drawer, trace tiers, Base32, preview windows, and JS harness).
+- Record the migration progress (deleted legacy directories, verification commands, and Phase 2 flag) inside `docs/_current-session.md`.
+- Align operator how-to guides (`docs/2-how-to/*.md`) and runbooks with the new spec, including Base32 instructions, trace usage, and console testing guidance.
 
 ## Fixtures & Sample Data
-- Reuse RFC 6287 timed signature fixtures (`docs/test-vectors/ocra/`) for deterministic verification tests.
-- Store additional replay fixture payloads under `core/src/test/resources/fixtures/ocra/replay/` for regression coverage.
+Reuse the existing preset helpers (HotpOperatorSampleData, TotpOperatorSampleData, OcraOperatorSampleData, Fido2OperatorSampleData), trace tier fixture sets, and preview table resources; keep the DOM harness fixtures under `rest-api/src/test/javascript/support/fixtures/` up to date with each protocol.
 
 ## Spec DSL
 ```
 domain_objects:
   - id: DO-009-01
-    name: OcraReplayRequest
-    modules: [core, application, cli, rest-api]
-  - id: DO-009-02
-    name: OcraReplayResult
-    modules: [core, application, cli, rest-api]
-api_routes:
+    name: OperatorProtocolTab
+    values: [hotp, totp, ocra, emv, fido2, eudi-openid4vp, eudi-iso18013-5, eudi-siopv2]
+  - id: DO-009-04
+    name: SecretEncodings
+    operations:
+      - name: toHex
+        params: [base32Value]
+        returns: string
+  - id: DO-009-05
+    name: InlineSecretInput
+    constraints:
+      - exactly_one_of: [sharedSecretHex, sharedSecretBase32]
+routes:
   - id: API-009-01
+    method: GET
+    path: /ui/console
+  - id: API-009-02
     method: POST
-    path: /api/v1/ocra/verify
+    path: /api/v1/{protocol}/inline/evaluate
+    query:
+      - name: verboseTrace
+        type: boolean
+      - name: verboseTier
+        type: enum[normal, educational, lab_secrets]
+  - id: API-009-03
+    method: POST
+    path: /api/v1/{protocol}/trace
+  - id: API-009-04
+    method: POST
+    path: /api/v1/{protocol}/preview
 cli_commands:
   - id: CLI-009-01
-    command: ./gradlew :cli:runOcraCli --args="ocra verify …"
+    command: hotp evaluate --verbose --verbose-tier=<tier> --shared-secret-base32=<value>
+  - id: CLI-009-02
+    command: ./gradlew operatorConsoleJsTest
 telemetry_events:
   - id: TE-009-01
-    event: core.ocra.verify
+    event: ui.console.navigation
   - id: TE-009-02
-    event: cli.ocra.verify
+    event: ui.protocolInfo.trigger.clicked
   - id: TE-009-03
-    event: rest.ocra.verify
+    event: telemetry.trace.filtered
 fixtures:
-  - id: FX-009-01
-    path: docs/test-vectors/ocra/rfc-6287/*.json
-  - id: FX-009-02
-    path: core/src/test/resources/fixtures/ocra/replay/*.json
-scenarios:
-  - id: S-009-01
-    description: Core replay engine verifies stored/inline OTPs without state changes
-  - id: S-009-02
-    description: CLI command enforces argument exclusivity and deterministic exit codes
-  - id: S-009-03
-    description: REST endpoint mirrors CLI payloads/responses with correct status codes
-  - id: S-009-04
-    description: Telemetry/logging emit hashed OTP/context fingerprints only
-  - id: S-009-05
-    description: Strict mismatch handling documented across facades
-  - id: S-009-06
-    description: Performance benchmarks recorded with environment metadata
+  - id: FX-009-03
+    path: rest-api/src/main/java/io/openauth/sim/rest/ui/HotpOperatorSampleData.java
+ui_states:
+  - id: UI-009-02
+    description: Protocol Info drawer with schema-driven content
 ```
-
-## Appendix (Optional)
-- None.

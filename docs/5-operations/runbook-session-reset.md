@@ -8,7 +8,7 @@ Detection (Alerts/Queries):
 
 Immediate actions:
 1. Read `AGENTS.md` to refresh global working agreements and the project constitution link.
-2. Run `git config core.hooksPath` and ensure it returns `githooks`; set it if unset so the managed pre-commit hook executes.
+2. Run `git config core.hooksPath` and ensure it returns `githooks`; set it if unset so the managed pre-commit hook executes, then log the command/output in `_current-session.md` per Feature 011 governance policy.
 3. Review `docs/4-architecture/roadmap.md` for current workstreams and milestones.
 4. Inspect the active feature specification(s) in `docs/4-architecture/features/<NNN>/spec.md`.
 5. Inspect the corresponding feature plan(s) in `docs/4-architecture/features/<NNN>/plan.md`.
@@ -17,6 +17,7 @@ Immediate actions:
 8. Consult `docs/_current-session.md` for the latest workstream snapshot; update it as you discover new status.
 9. Reconfirm the Specification-Driven Development cadence: spec updates lead, failing tests follow, then tasks and implementation proceed.
 10. Expect that parallel or prior sessions may introduce new files or directories; if you encounter unfamiliar or untracked paths, surface them for user guidance rather than removing them.
+    - Batch P3 ownership map: Feature 009 (operator console/UI docs), Feature 010 (documentation & knowledge automation), Feature 011 (governance/runbooks/hooks—see `docs/4-architecture/features/011/{spec,plan,tasks}.md` for FR-011-01..08 + NFR-011-01..05), Feature 012 (core cryptography & persistence docs), Feature 013 (toolchain & quality automation).
 
 Diagnosis tree:
 - If open questions exist, prepare a clarification request before planning.

@@ -4,8 +4,10 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 
 ## Session Kickoff Checklist
 - [ ] Run `git status -sb` to review branch, staged changes, and repo cleanliness.
-- [ ] Confirm environment prerequisites: `JAVA_HOME` points to a Java 17 JDK and `git config core.hooksPath` returns `githooks`.
+- [ ] Confirm environment prerequisites: `JAVA_HOME` points to a Java 17 JDK and `git config core.hooksPath` returns `githooks`; log the command/output in `_current-session.md` so Feature 011 traceability stays intact.
 - [ ] Review current context: latest roadmap entry, active specification, feature plan, tasks checklist, and `docs/4-architecture/open-questions.md`.
+- [ ] Console/UI changes now live under Feature 009 – consult `docs/4-architecture/features/009/{spec,plan,tasks}.md` (legacy operator-console features moved under `legacy/<old-id>/`).
+- [ ] Documentation/how-to automation (Feature 010), governance/runbooks/hooks (Feature 011), core cryptography & persistence docs (Feature 012), and toolchain/quality automation (Feature 013) each have consolidated spec/plan/tasks under `docs/4-architecture/features/<NNN>/`; check those folders when triaging Batch P3 work. Feature 011 specifically documents FR-011-01..08/NFR-011-01..05, including the required hook guard + spotless logging commands.
 - [ ] If scope introduces or modifies UI, confirm the spec includes an ASCII mock-up (`docs/4-architecture/spec-guidelines/ui-ascii-mockups.md`).
 - [ ] If the last build is stale or after syncing, run `./gradlew --no-daemon spotlessApply check` to ensure the baseline is green (capture or resolve any failures before proceeding).
 - [ ] Before running long Gradle workflows (`spotlessApply check`, `qualityGate`, full commits), set CLI tool timeouts to ≥600 s so the run doesn’t terminate mid-pipeline.

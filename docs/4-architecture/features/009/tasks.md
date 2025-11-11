@@ -1,54 +1,46 @@
-# Feature 009 Tasks – OCRA Replay & Verification
+# Feature 009 Tasks – Operator Console Infrastructure
 
-_Status:_ Complete  
-_Last updated:_ 2025-11-10_
+_Status:_ In migration (Batch P3)
+_Last updated:_ 2025-11-11
 
-> Checklist mirrors the Feature 009 plan increments. Tasks remain checked for audit history during the template refinement sweep.
+## Checklist (Batch P3 Phase 2)
+- [x] T-009-01 – Consolidate the functional/non-functional/verification content from legacy Features 017/020/021/025/033–038/041 into the refreshed spec template.
+  - _Intent:_ Make Feature 009 the authoritative console spec and capture every interface/domain requirement from the migrated features.
+  - _Verification commands:_ Review `spec.md` diff for new sections (FRs, scenarios, DSL, interface catalogue). Auto-format docs with `spotless` if needed.
+  - _Notes:_ `spec.md` now lists FR-009-01..FR-009-10, updated scenarios, and interface tables covering tabs, info drawer, trace tiers, Base32, preview windows, and JS harness.
+- [x] T-009-02 – Update the plan/tasks/checklist to describe the new scope, scenario tracking, tooling gates, and docs/log requirements.
+  - _Intent:_ Align planning artefacts with the consolidated console scope so reviewers see the same story across plan/tasks.
+  - _Verification commands:_ `git diff --stat docs/4-architecture/features/009/{plan,tasks}.md` (2025-11-11) to confirm FR/NFR, scenario, and quality sections match the consolidated spec.
+  - _Notes:_ Plan/tasks now document the Node harness commands, verbose trace gates, and documentation/logging expectations; legacy directory references were removed during the review.
+- [x] T-009-03 – Delete the now-empty staging folders from the operator-console migration and log the commands.
+  - _Intent:_ Remove redundant directories while keeping the migration auditable.
+  - _Verification commands:_ `rm -rf docs/4-architecture/features/operator-console docs/4-architecture/features/docs-and-quality docs/4-architecture/features/platform-foundations` (2025-11-11), followed by `./gradlew --no-daemon spotlessApply check`.
+  - _Notes:_ Commands/output recorded in `_current-session.md` and `docs/migration_plan.md` (Batch P3 Phase 2 legacy cleanup entry).
+- [x] T-009-04 – Capture the Phase 2 gate reminder (Feature 010–013 rewrites + `spotlessApply check`/`qualityGate`) in the plan, tasks, and migration log.
+  - _Intent:_ Keep the session log (docs/_current-session.md)/`_current-session.md` aware that the final Gradle gate awaits the remaining feature rewrites.
+  - _Verification commands:_ `rg "Phase 2" docs/4-architecture/features/009/plan.md` (2025-11-11) confirms the reminder plus command list.
+  - _Notes:_ Batch P3 gate commands are documented in the plan and migration log; rerun them once the remaining features finish.
 
-## Checklist
-- [x] T-009-01 – Finalise specification, roadmap, and knowledge map context; capture strict replay decisions (FR-009-01–FR-009-05, S-009-01–S-009-06).  
-  _Intent:_ Ensure façade scope, telemetry hashing, and performance expectations are settled before coding.  
-  _Verification commands:_  
-  - `less docs/4-architecture/features/009/spec.md`  
-  - `rg -n "Feature 009" docs/4-architecture/roadmap.md`
+## Verification Log
+- 2025-11-11 – `./gradlew --no-daemon spotlessApply check` (doc migration gate)
+- 2025-11-11 – `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test` (console-focused suites)
+- 2025-11-11 – `node --test rest-api/src/test/javascript/emv/console.test.js`
+- 2025-11-11 – `./gradlew --no-daemon pmdMain pmdTest`
 
-- [x] T-009-02 – Add failing core replay tests for stored vs inline credentials, match/mismatch outcomes, and immutability (FR-009-01, S-009-01, S-009-05).  
-  _Intent:_ Define deterministic behaviour and failure messaging ahead of implementation.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :core:test --tests "*OcraReplay*"`
-
-- [x] T-009-03 – Implement the core verification service plus telemetry emitters, keeping counters/session data immutable (FR-009-01, FR-009-04, S-009-01, S-009-04).  
-  _Intent:_ Drive the red tests green while ensuring inline secrets never leak to logs/persistence.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :core:test`  
-  - `rg -n "core.ocra.verify" */src`
-
-- [x] T-009-04 – Add failing and then passing Picocli verification command tests for stored/inline flows, mismatch messaging, and exit codes (FR-009-02, S-009-02, S-009-05).  
-  _Intent:_ Provide operator tooling with deterministic outputs plus telemetry parity.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :cli:test --tests "*OcraVerify*"`
-
-- [x] T-009-05 – Add REST contract/tests and implementation for the verification endpoint, including OpenAPI schemas and validation errors (FR-009-03, S-009-03, S-009-05).  
-  _Intent:_ Mirror CLI capabilities over HTTP with structured responses and status codes.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :rest-api:test --tests "*OcraVerification*"`  
-  - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`
-
-- [x] T-009-06 – Capture telemetry schema docs, hash requirements, and performance benchmark notes (FR-009-04, FR-009-05, S-009-04, S-009-06).  
-  _Intent:_ Document audit expectations and the WSL2 latency benchmark that validated the implementation.  
-  _Verification commands:_  
-  - `rg -n "ocra verify" docs/2-how-to`  
-  - `rg -n "benchmark" docs/4-architecture/features/009/plan.md`
-
-- [x] T-009-07 – Run `./gradlew qualityGate`, confirm PIT/Jacoco thresholds after replay tests, and log closure metrics (FR-009-01–FR-009-05, S-009-01–S-009-06).  
-  _Intent:_ Finish the feature with a full passing gate and recorded coverage/mutation scores.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon qualityGate`  
-  - `ls build/reports/pitest`  
-  - `ls build/reports/jacoco/aggregated`
-
-## Verification Log (Optional)
-- 2025-10-01 – `./gradlew --no-daemon qualityGate` (PASS, stored P95 0.060 ms / inline P95 0.024 ms on WSL2 + OpenJDK 17.0.16; mutation score 91.83%).
+### Legacy Coverage Checklist
+- [x] T-009-L1 – Features 017/020/021/025/033 (tabs, presets, Base32 helpers).
+  - _Intent:_ Confirm FR-009-01..03 and NFR-009-04 cover the unified tab shell, history routing, preset labels, and Base32 toggles inherited from these features.
+  - _Verification commands:_ `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"`, `./gradlew --no-daemon :application:test --tests "*VerboseTrace*"`.
+  - _Notes:_ Scenario S-009-01/S-009-03 plus `_current-session.md` (2025-11-11) record the verification output.
+- [x] T-009-L2 – Features 034/035/036/037/038 (info drawer, verbose traces, validation helpers).
+  - _Intent:_ Keep FR-009-04..08 and NFR-009-02 synchronized with the instrumentation/spec DSL migrated from these features.
+  - _Verification commands:_ `./gradlew --no-daemon :application:test --tests "*TraceDock*"`, `./gradlew --no-daemon :cli:test --tests "*VerboseTrace*"`, `node --test rest-api/src/test/javascript/emv/console.test.js`.
+  - _Notes:_ Plan increments P3-I1/P3-I2 reference these IDs; `_current-session.md` stores the command log.
+- [x] T-009-L3 – Feature 041 (operator console JS harness + preview windows).
+  - _Intent:_ Ensure FR-009-09 and NFR-009-05 encapsulate the harness, preview panes, and doc-sync requirements so the old scripts stay retired.
+  - _Verification commands:_ `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon pmdMain pmdTest`, `./gradlew --no-daemon :rest-api:test --tests "*OperatorUiSeleniumTest"`.
+  - _Notes:_ Harness deletion + verification output logged with the Batch P3 Phase 2 migration summary on 2025-11-11.
 
 ## Notes / TODOs
-- Historical R90x micro-tasks (design/implementation increments) remain available in git history before 2025-11-09 for granular tracing.
+- Document Phase 2 status (Feature 009 spec rewrite complete but verification gate pending) inside `docs/migration_plan.md` and `_current-session.md` before moving to Features 010–013.
+- Keep the knowledge map/roadmap aligned with Feature 009 ownership; update references when upstream features change scope.

@@ -472,6 +472,16 @@
           "required" : true
         },
         "responses" : {
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
           "200" : {
             "description" : "Verification completed",
             "content" : {
@@ -501,6 +511,16 @@
               }
             }
           },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
+          },
           "422" : {
             "description" : "Verification payload failed validation",
             "content" : {
@@ -525,26 +545,6 @@
                       }
                     }
                   }
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
                 }
               }
             }
@@ -655,12 +655,12 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Replay completed",
+          "422" : {
+            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayResponse"
+                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
                 }
               }
             }
@@ -675,12 +675,12 @@
               }
             }
           },
-          "422" : {
-            "description" : "Validation error",
+          "200" : {
+            "description" : "Replay completed",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                  "$ref" : "#/components/schemas/HotpReplayResponse"
                 }
               }
             }
@@ -715,22 +715,22 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -765,22 +765,22 @@
               }
             }
           },
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -972,22 +972,22 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/EmvCapReplayErrorResponse"
-                }
-              }
-            }
-          },
           "200" : {
             "description" : "Replay completed",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/EmvCapReplayResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EmvCapReplayErrorResponse"
                 }
               }
             }
@@ -2543,6 +2543,23 @@
           }
         }
       },
+      "OcraVerificationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
       "OcraVerificationMetadata" : {
         "type" : "object",
         "properties" : {
@@ -2588,23 +2605,6 @@
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
-      "OcraVerificationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
           }
         }
       },
@@ -2733,6 +2733,29 @@
           }
         }
       },
+      "HotpReplayErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
       "HotpReplayMetadata" : {
         "type" : "object",
         "properties" : {
@@ -2776,29 +2799,6 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpReplayMetadata"
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
-      "HotpReplayErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "type" : "string"
-          },
-          "reasonCode" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"

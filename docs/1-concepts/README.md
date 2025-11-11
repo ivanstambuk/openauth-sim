@@ -30,7 +30,7 @@ OATH Challenge-Response Algorithm (OCRA) credentials are the first protocol slic
 - All factory and validation helpers emit descriptive exceptions while redacting secret material.
 - Structured debug-level telemetry is produced under the logger `io.openauth.sim.core.credentials.ocra.validation` with event name `ocra.validation.failure` when a validation step fails.
 - Telemetry payload fields: `credentialName`, `suite`, `failureCode` (`CREATE_DESCRIPTOR`, `VALIDATE_CHALLENGE`, `VALIDATE_SESSION`, `VALIDATE_TIMESTAMP`), `messageId` (`OCRA-VAL-00x`), and optional `detail`. Secrets and challenge/session values are never logged.
-- Operators can correlate telemetry with persistence state via the credential name; see Feature 001 specification for field-level requirements.
+- Operators can correlate telemetry with persistence state via the credential name; see Feature 003 specification for field-level requirements.
 
 ## Glossary
 
@@ -42,8 +42,8 @@ OATH Challenge-Response Algorithm (OCRA) credentials are the first protocol slic
 
 ## References
 
-- `docs/4-architecture/features/001/spec.md`
-- `docs/4-architecture/features/001/plan.md`
+- `docs/4-architecture/features/003/spec.md`
+- `docs/4-architecture/features/003/plan.md`
 - `core/src/main/java/io/openauth/sim/core/credentials/ocra/OcraCredentialFactory.java`
 - `core/src/main/java/io/openauth/sim/core/store/encryption/PersistenceEncryption.java`
 - `docs/2-how-to/configure-persistence-profiles.md`

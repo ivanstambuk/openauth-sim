@@ -1,127 +1,178 @@
-# Feature 010 – CLI Exit Testing Maintenance
+# Feature 010 – Documentation & Knowledge Automation
 
 | Field | Value |
 |-------|-------|
-| Status | Complete |
-| Last updated | 2025-11-10 |
+| Status | In migration (Batch P3) |
+| Last updated | 2025-11-11 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/010/plan.md` |
 | Linked tasks | `docs/4-architecture/features/010/tasks.md` |
-| Roadmap entry | #10 |
+| Roadmap entry | #10 – Documentation & Knowledge Automation |
 
 ## Overview
-Retire the deprecated `SecurityManager` interceptors inside the CLI launcher tests so the suite keeps verifying exit-code behaviour on Java 17+ toolchains. The work is strictly test-scoped: direct invocation must still cover success paths while a forked JVM harness observes failure exits without modifying the production `OcraCliLauncher`.
+Feature 010 consolidates every operator-facing guide, roadmap/knowledge-map reference, session workflow, and build-quality
+automation note into a single specification. The feature merges the historical documentation suites (Features 007/008) with
+the quality-gate automation charter so that Java/CLI/REST guides, README messaging, roadmap snapshots, `_current-session.md`
+logs, and Gradle quality tasks all evolve in lockstep. Going forward, Feature 010 is the authoritative source for doc
+structure, knowledge-map automation, and the aggregated `qualityGate` pipeline (ArchUnit, Jacoco, PIT, Spotless, SpotBugs,
+Checkstyle, gitleaks) that protects the OCRA stack and its supporting docs.
 
 ## Clarifications
-- 2025-10-01 – Scope is limited to the CLI launcher tests; production `OcraCliLauncher` stays untouched (Option A, owner decision).
-- 2025-10-01 – Prefer bespoke harnesses over third-party helpers; reuse built-in JDK facilities even if extra fixtures are required (Option A).
-- 2025-10-01 – Preserve assertions validating Picocli usage exit codes so success/failure coverage remains equivalent to the SecurityManager-based approach (Option A).
+- 2025-09-30 – Operator documentation must cover Java integration (`docs/2-how-to/use-ocra-from-java.md`), CLI operations
+  (`docs/2-how-to/use-ocra-cli-operations.md`), and REST workflows (`docs/2-how-to/use-ocra-rest-operations.md`) with
+  runnable examples, telemetry expectations, and troubleshooting tips; README references only shipped capabilities.
+- 2025-09-30 – A single Gradle entry point (`./gradlew --no-daemon qualityGate`) must run ArchUnit boundary checks,
+  Jacoco aggregation (≥90% line/branch), PIT mutation tests (≥85% score), Spotless, Checkstyle, SpotBugs, and gitleaks so
+  contributors replicate CI locally.
+- 2025-09-30 – The GitHub Actions workflow mirrors the local `qualityGate`, uploads Jacoco/PIT/ArchUnit logs, and respects
+  cache hints so runtimes stay manageable (<10 minutes on developer laptops, comparable timing in CI).
+- 2025-11-11 – Batch P3 directs Feature 010 to absorb the legacy Feature 007/008 specs, plans, and tasks, remove the
+  `legacy/` tree once the consolidated spec lands, and log the deletion plus verification commands inside
+  `docs/_current-session.md` and `docs/migration_plan.md`.
 
 ## Goals
-- Standardise CLI exit-code verification so automation can rely on deterministic pass/fail signals.
-- Maintain success-path coverage through direct invocation and failure-path coverage via a forked JVM harness that respects JaCoCo instrumentation.
-- Document the test-only nature of the change so future agents avoid touching runtime CLI wiring when maintaining exit-code tests.
+- G-010-01 – Deliver accurate, runnable operator guides for Java/CLI/REST flows plus README cross-links that reflect the
+  current simulator capabilities.
+- G-010-02 – Keep roadmap, knowledge map, session log (docs/_current-session.md), session quick reference, and `_current-session.md` synchronized with
+  documentation migrations by logging commands and deltas for every increment.
+- G-010-03 – Provide deterministic automation notes (templates, verification steps, knowledge-map refresh guidance) so doc
+  updates remain auditable.
+- G-010-04 – Maintain the aggregated `qualityGate` (ArchUnit + Jacoco + PIT + lint suites) with identical behaviour across
+  local environments and GitHub Actions, including troubleshooting documentation and skip flags.
 
 ## Non-Goals
-- Introducing new CLI commands, flags, or telemetry.
-- Modifying REST, UI, or application modules.
-- Adding third-party testing dependencies for process interception.
+- Shipping new simulator runtime behaviour (doc/automation-only scope for Batch P3).
+- Expanding quality automation to non-OCRA modules until future specs request it.
+- Introducing new documentation formats or publishing pipelines beyond Markdown/ASCII.
 
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-010-01 | Remove all `SecurityManager` references from CLI launcher tests while keeping coverage intact. | `OcraCliLauncherTest` relies on direct invocation and process forking instead of SecurityManager interception. | `rg SecurityManager cli/src/test/java/io/openauth/sim/cli` returns no matches; `./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"` passes. | Compilation/runtime failures triggered by forbidden APIs or lingering SecurityManager hooks. | No new telemetry; CLI logging remains unchanged. | Clarifications 1–3. |
-| FR-010-02 | Cover both success (`--help`) and failure (`import`) flows with deterministic exit codes using direct invocation plus a forked JVM harness that copies the active JaCoCo agent. | Direct invocation asserts CommandLine.ExitCode.OK and survives without System.exit; spawned JVM observes `CommandLine.ExitCode.USAGE` and captures usage text. | Tests `mainPrintsUsageWithoutExitingWhenExitCodeZero`, `mainInvokesSystemExitForNonZeroCode`, and `mainExitsProcessWhenExitCodeNonZero` execute via `:cli:test` and assert exit codes/output. | Harness fails to propagate the agent, cannot capture output, or produces flaky exit codes. | Test output only; no production telemetry changes. | Goals; Clarifications 2–3. |
-| FR-010-03 | Keep runtime CLI behaviour untouched so diffs remain constrained to tests/docs, preventing accidental exit-code regressions. | `git diff` shows only test/doc updates; CLI smoke tests still succeed. | `./gradlew --no-daemon :cli:test` plus targeted CLI integration tests confirm runtime behaviour unchanged. | Any runtime CLI change, new dependency, or altered exit code surfaces in review/tests. | No telemetry changes; existing CLI traces continue to function. | Clarification 1; Non-Goals. |
+| FR-010-01 | Publish and maintain the operator doc suite (`docs/2-how-to/use-ocra-from-java.md`, `docs/2-how-to/use-ocra-cli-operations.md`, `docs/2-how-to/use-ocra-rest-operations.md`) with runnable snippets, telemetry expectations, and troubleshooting sections. | Operators follow prerequisites, copy commands, and reproduce OTP generation/replay flows without diving into source. | Spot-check snippets against the latest build; `./gradlew spotlessApply check` validates formatting; `_current-session.md` logs updates. | Outdated instructions block operators or contradict shipped behaviour. | No new telemetry; guides reference existing `core.ocra.*`, `cli.ocra.*`, `rest.ocra.*` frames. | Legacy Feature 007. |
+| FR-010-02 | Keep `README.md` and how-to landing pages focused on shipped functionality, include Swagger UI links, and cross-link the operator docs/quality-gate guidance. | README lists active simulators + `http://localhost:8080/swagger-ui/index.html`, points to how-to guides, and omits future/planned placeholders. | Manual review + linting; `_current-session.md` records diff summary. | README references stale content or omits critical docs. | None. | Legacy Feature 007. |
+| FR-010-03 | Synchronise roadmap, knowledge map, architecture graph, session quick reference, session log (docs/_current-session.md), and `_current-session.md` whenever documentation or automation scope changes. | Doc updates mention Feature 010; `_current-session.md` and `docs/migration_plan.md` log commands (moves, deletions, verification). | `rg "Feature 010"` across docs; reviewers confirm entries after each increment. | Cross-document drift forces manual archaeology. | None. | Goals G-010-02/03. |
+| FR-010-04 | Provide an aggregated Gradle task `./gradlew --no-daemon qualityGate` (with optional `-Ppit.skip=true`) that runs Spotless, Checkstyle, SpotBugs, ArchUnit, Jacoco aggregation, PIT mutation tests, and gitleaks in one command. | Running `qualityGate` locally matches CI output; reports land under `build/reports/quality/`, `build/reports/jacoco/aggregated/`, and `build/reports/pitest/`. | Observing Gradle output plus report folders; task wiring documented in plan/tasks. | Contributors must chain commands manually or miss required suites. | Build logs only; no runtime telemetry. | Legacy Feature 008. |
+| FR-010-05 | Enforce ArchUnit boundary rules that block CLI/REST/UI modules from touching `core` directly (outside the application seams). | Illegal dependencies break `qualityGate` with actionable messages. | ArchUnit tests seed forbidden imports; CI artifacts capture failures. | Architecture drift ships undetected. | None. | Legacy Feature 008. |
+| FR-010-06 | Maintain Jacoco aggregated coverage thresholds (≥90% line/branch) for OCRA code paths; failures block the gate until coverage is restored. | Jacoco reports meet thresholds locally and in CI; offenders listed when regressions occur. | Inspect `build/reports/jacoco/aggregated/index.html` + Gradle console when tests fail. | Coverage regressions pass unnoticed. | None. | Legacy Feature 008. |
+| FR-010-07 | Maintain PIT mutation score ≥85% for OCRA packages, surfaced via `qualityGate` with HTML reports for debugging. | PIT runs during the gate and exits non-zero when the score falls below 85%; skip flag `-Ppit.skip=true` documented for local triage. | Build output references `build/reports/pitest`; docs explain thresholds and skip usage. | Mutation regressions merge unnoticed or developers cannot triage failures. | None. | Legacy Feature 008. |
+| FR-010-08 | Ensure GitHub Actions runs the same `qualityGate` command (push + PR), caches Gradle/PIT/Jacoco artifacts, and uploads reports for auditing. | Workflow logs show identical command/flags; artifacts contain reports for inspection. | `.github/workflows/quality-gate.yml` (or successor) reviewed after edits; CI history tracked in `_current-session.md`. | Local and CI gates drift, causing false positives/negatives. | None. | Legacy Feature 008. |
+| FR-010-09 | Document gate usage, skip flags, report locations, and remediation steps in `docs/5-operations/session-quick-reference.md`, roadmap, knowledge map, and `_current-session.md`. | Contributors find the gate runbook quickly and follow remediation playbooks for ArchUnit/Jacoco/PIT failures. | `rg "qualityGate" docs/5-operations/session-quick-reference.md` etc.; doc reviews confirm instructions. | Gate failures lack guidance, delaying fixes. | None. | Legacy Feature 008. |
+| FR-010-10 | Log every documentation/automation migration in `_current-session.md` and `docs/migration_plan.md`, including commands executed (`rm -rf`, `spotlessApply`, `qualityGate`) and outstanding follow-ups. | Session log shows the command list + rationale; session log (docs/_current-session.md) includes Batch P3 entries for Feature 010. | Review `_current-session.md`, plan/tasks, and session log (docs/_current-session.md) while closing increments. | Auditors cannot trace what changed or which verification command ran. | None. | Goals G-010-02/04. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-010-01 | Test harness must operate on Java 17+ where `SecurityManager` is disabled. | Java 17 toolchain baseline for OpenAuth Simulator. | `./gradlew --no-daemon spotlessApply check` on JDK 17 passes without SecurityManager warnings. | Gradle toolchain config, CLI module tests. | Goals. |
-| NFR-010-02 | Forked JVM harness must propagate the active JaCoCo agent so coverage metrics remain accurate. | Prevent coverage regressions when verifying exit paths. | Harness inspects `ManagementFactory.getRuntimeMXBean().getInputArguments()` and forwards any `-javaagent:*jacocoagent*` argument; aggregated Jacoco reports remain unchanged. | JaCoCo agent, CLI build. | Plan Notes (2025-10-01). |
-
-## UI / Interaction Mock-ups
-_Not applicable – Feature 010 does not introduce UI changes._
+| NFR-010-01 | Documentation rebuild workflow (spec/plan/tasks + guides) must execute within 5 minutes, relying on `./gradlew --no-daemon spotlessApply check`. | Productivity | Wall-clock timing logged in plan/tasks; `_current-session.md` notes slow runs. | Spotless, doc templates. | Legacy Feature 007, Goals. |
+| NFR-010-02 | `qualityGate` runtime stays ≤10 minutes on reference hardware via Gradle caching and optional PIT skip flag; CI caches mirror the local setup. | Developer ergonomics | Timing recorded in plan/tasks and CI job metadata. | Gradle caching, GitHub Actions workflow. | Legacy Feature 008. |
+| NFR-010-03 | Coverage/mutation thresholds, target packages, and skip flags are parameterised through Gradle properties so tuning never requires code rewrites. | Maintainability | Thresholds stored in `gradle.properties`/`qualityGate` extension; docs explain overrides. | Gradle build scripts. | Legacy Feature 008. |
+| NFR-010-04 | Templates and documentation remain ASCII/Markdown to avoid locale drift; linting keeps formatting consistent. | Consistency | `spotlessApply` + reviewer checks enforce ASCII. | Docs templates. | Clarifications 1. |
+| NFR-010-05 | PIT/Jacoco/ArchUnit artifacts stay in deterministic locations (`build/reports/jacoco/aggregated/`, `build/reports/pitest/`, `build/reports/quality/`) referenced by docs for troubleshooting. | Transparency | `rg "build/reports" docs/4-architecture/features/010/spec.md` and doc deliverables cite these paths. | Gradle reporting configuration. | Legacy Feature 008. |
 
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
-| S-010-01 | Direct invocation of `OcraCliLauncher.execute("--help")` returns `0`, prints usage text, and never calls `System.exit`. |
-| S-010-02 | Forked JVM harness launches `OcraCliLauncher import`, receives `CommandLine.ExitCode.USAGE`, streams usage text for assertions, and reuses the JaCoCo agent argument when present. |
-| S-010-03 | Repository scan confirms zero `SecurityManager` references under `cli/src/test/**`, proving Java 17 compatibility. |
-| S-010-04 | Production CLI entry point remains untouched; regression checks show runtime behaviour unchanged and diffs limited to tests/docs. |
+| S-010-01 | Java/CLI/REST operator guides deliver runnable flows with telemetry/troubleshooting notes. |
+| S-010-02 | README and doc landing pages link to active guides and remove stale references. |
+| S-010-03 | Roadmap, knowledge map, architecture graph, session log (docs/_current-session.md), and `_current-session.md` stay synchronized with documentation moves. |
+| S-010-04 | `./gradlew --no-daemon qualityGate` aggregates Spotless, Checkstyle, SpotBugs, ArchUnit, Jacoco, PIT, and gitleaks. |
+| S-010-05 | ArchUnit boundary rules fire on illegal dependencies and keep gates green otherwise. |
+| S-010-06 | Jacoco aggregated reports enforce ≥90% thresholds. |
+| S-010-07 | PIT mutation reports enforce ≥85% thresholds (with documented skip flag). |
+| S-010-08 | GitHub Actions workflow mirrors `qualityGate`, caches artifacts, and uploads reports. |
+| S-010-09 | Docs/runbooks explain how to run/remediate the gate (commands, skip flags, report paths). |
+| S-010-10 | `_current-session.md` + session log (docs/_current-session.md) entries log every documentation or automation move (commands, deletions, verification). |
 
 ## Test Strategy
-- **Core/Application/REST/UI:** Not impacted; no new tests required.  
-- **CLI:** `OcraCliLauncherTest` covers success vs failure flows using direct invocation plus a spawned JVM harness that forwards the active JaCoCo agent.  
-- **Docs/Contracts:** Plan/tasks/spec artefacts document the harness; no OpenAPI or telemetry snapshots change.
+- **Docs:** `./gradlew --no-daemon spotlessApply check` after every documentation increment; manual verification of Java/CLI/REST
+  workflows before publishing changes.
+- **Quality automation:** `./gradlew --no-daemon qualityGate` locally to exercise ArchUnit/Jacoco/PIT/Spotless/SpotBugs/Checkstyle/gitleaks; capture
+  wall-clock time and report locations in plan/tasks.
+- **CI parity:** GitHub Actions workflow executes the same `qualityGate` command on push/PR and uploads Jacoco/PIT
+  artifacts for audit.
+- **Logging:** `_current-session.md` records command output summaries; `docs/migration_plan.md` stores Batch P3 entries for Feature 010.
 
 ## Interface & Contract Catalogue
 ### Domain Objects
 | ID | Description | Modules |
 |----|-------------|---------|
-| DO-010-NA | No new runtime domain objects introduced; work is limited to CLI test harnesses. | — |
+| DO-010-01 | `DocumentationGuide` metadata (path, prerequisites, verification command, owner) referenced from spec/plan/tasks. | docs |
+| DO-010-02 | `QualityGateConfig` (thresholds, skip flags, report locations) stored in Gradle extensions/properties. | build logic |
 
 ### API Routes / Services
-| ID | Transport | Description | Notes |
-|----|-----------|-------------|-------|
-| API-010-NA | — | No REST or service changes. | — |
+_None – documentation and build automation only._
 
 ### CLI Commands / Flags
 | ID | Command | Behaviour |
 |----|---------|-----------|
-| CLI-010-01 | `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliLauncherTest"` | Executes the launcher exit harness (direct invocation + forked JVM) to verify deterministic exit codes without SecurityManager usage. |
+| CLI-010-01 | `./gradlew --no-daemon spotlessApply check` | Required verification for documentation edits. |
+| CLI-010-02 | `./gradlew --no-daemon qualityGate [-Ppit.skip=true]` | Runs the aggregated quality automation gate locally/CI. |
 
 ### Telemetry Events
-| ID | Event name | Fields / Redaction rules |
-|----|-----------|---------------------------|
-| TE-010-NA | — | No telemetry additions; existing CLI logs remain intact. |
+_No new telemetry events; docs reference existing `core.ocra.*`, `cli.ocra.*`, and `rest.ocra.*` frames plus verbose trace options._
 
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-010-01 | `cli/src/test/java/io/openauth/sim/cli/OcraCliLauncherTest.java` | Houses the direct invocation and forked JVM harness replacing `SecurityManager`. |
-| FX-010-02 | `build/reports/jacoco/test/html/` | Jacoco reports verifying coverage parity after the harness refactor. |
+| FX-010-01 | `docs/2-how-to/use-ocra-from-java.md`, `docs/2-how-to/use-ocra-cli-operations.md`, `docs/2-how-to/use-ocra-rest-operations.md` | Operator-facing documentation bundle governed by this feature. |
+| FX-010-02 | `docs/test-vectors/ocra/` | Deterministic OTP vectors referenced in docs. |
+| FX-010-03 | `build/reports/jacoco/aggregated/`, `build/reports/pitest/`, `build/reports/quality/` | Report directories linked from the gate documentation. |
 
 ### UI States
-| ID | State | Trigger / Expected outcome |
-|----|-------|---------------------------|
-| UI-010-NA | — | Not applicable. |
+_Not applicable._
 
 ## Telemetry & Observability
-No production telemetry changes occur. Test logs rely on standard JUnit output, while CLI logging remains untouched. Operators can continue inspecting CLI verbose logs via existing commands; exit-harness assertions run exclusively in the test suite.
+No runtime telemetry changes. Observability relies on deterministic documentation, `_current-session.md` logs, Gradle console
+output, and the stored Jacoco/PIT/quality reports referenced above.
 
 ## Documentation Deliverables
-- `docs/2-how-to/README.md` – Add a Testing section note describing the CLI exit harness command and rationale for avoiding `SecurityManager`.
-- `docs/5-operations/session-quick-reference.md` – Reference the `:cli:test --tests "*OcraCliLauncherTest"` command under regression packs so future agents rerun it after CLI modifications.
-- `docs/_current-session.md` – Capture harness updates and verification commands for hand-offs.
+- `docs/2-how-to/use-ocra-from-java.md`, `docs/2-how-to/use-ocra-cli-operations.md`, `docs/2-how-to/use-ocra-rest-operations.md` – operator
+  guides kept current by this feature.
+- `README.md` – refreshed to reference only shipped functionality and entry points.
+- `docs/4-architecture/roadmap.md`, `docs/4-architecture/knowledge-map.md`, `docs/migration_plan.md`, `docs/_current-session.md`, and
+  `docs/5-operations/session-quick-reference.md` – synchronized references + logging expectations for documentation and automation work.
+- `.github/workflows/quality-gate.yml` (or successor) – ensures CI parity for the quality gate.
 
 ## Fixtures & Sample Data
-- Preserve the forked JVM harness inside `cli/src/test/java/io/openauth/sim/cli/OcraCliLauncherTest.java` alongside JaCoCo agent forwarding logic.  
-- Retain Jacoco HTML reports under `build/reports/jacoco/test/` as evidence that coverage remains intact after the migration.
+- Continue using `docs/test-vectors/ocra/` for deterministic OTP examples across all guides.
+- Store Jacoco/PIT/quality reports in the documented `build/reports/**` directories for troubleshooting and CI artifact uploads.
 
 ## Spec DSL
 ```
-domain_objects: []
+domain_objects:
+  - id: DO-010-01
+    name: DocumentationGuide
+    fields:
+      - name: path
+        type: string
+      - name: verificationCommand
+        type: string
+  - id: DO-010-02
+    name: QualityGateConfig
+    fields:
+      - name: jacocoLineThreshold
+        type: int
+        default: 90
+      - name: jacocoBranchThreshold
+        type: int
+        default: 90
+      - name: pitMutationScore
+        type: int
+        default: 85
 cli_commands:
   - id: CLI-010-01
-    command: ./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliLauncherTest"
-    description: Runs the CLI exit-code harness (direct invocation + forked JVM)
-telemetry_events: []
+    command: ./gradlew --no-daemon spotlessApply check
+  - id: CLI-010-02
+    command: ./gradlew --no-daemon qualityGate [-Ppit.skip=true]
 fixtures:
   - id: FX-010-01
-    path: cli/src/test/java/io/openauth/sim/cli/OcraCliLauncherTest.java
-    purpose: Replaces SecurityManager with explicit harness helpers
+    path: docs/2-how-to/use-ocra-rest-operations.md
+  - id: FX-010-02
+    path: build/reports/jacoco/aggregated/
 scenarios:
   - id: S-010-01
-    description: Direct invocation covers success without terminating the process
-  - id: S-010-02
-    description: Forked JVM captures failure exit codes and usage text
-  - id: S-010-03
-    description: Repo scan confirms zero SecurityManager references under CLI tests
+    description: Operator guides stay runnable with telemetry/troubleshooting coverage.
   - id: S-010-04
-    description: Production CLI entry point remains untouched (test-only change)
+    description: Aggregated qualityGate runs locally/CI with ArchUnit/Jacoco/PIT + lint suites.
+  - id: S-010-08
+    description: CI workflow mirrors local gate and uploads reports.
 ```
-
-## Appendix (Optional)
-- SecurityManager deprecation timeline: JDK 17 disables the API by default, motivating the bespoke harness captured here. Future Java releases may remove the class entirely, so the repository must avoid reintroducing it.

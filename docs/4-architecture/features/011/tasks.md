@@ -1,72 +1,42 @@
-# Feature 011 Tasks – Reflection Policy Hardening
+# Feature 011 Tasks – Governance & Workflow Automation
 
-_Status: Complete_  
-_Last updated: 2025-11-10_
-
-> Checklist mirrors the Feature 011 plan increments; entries remain checked for audit history while migrating templates. Reference FR/NFR/Scenario IDs to keep traceability intact.
+_Status:_ In migration (Batch P3)  
+_Last updated:_ 2025-11-11
 
 ## Checklist
-- [x] T-011-01 – Catalogue all reflection usage across modules (FR-011-01, S-011-01).  
-  _Intent:_ Establish the full scope of the ban before refactoring.  
-  _Verification commands:_  
-  - `rg --hidden --glob "*.java" "java.lang.reflect"`  
-  - `rg --hidden --glob "*.kt" "Class.forName"`  
-  _Notes:_ Inventory recorded in plan notes (2025-10-01 snapshot).
+- [x] T-011-01 – Merge legacy governance specs (Features 019/032) into the consolidated spec template.
+  - _Intent:_ Capture hook workflows (gitlint, cache warm/retry) and Palantir formatter policy directly in `spec.md`.
+  - _Verification commands:_ `rg "FR-011" docs/4-architecture/features/011/spec.md`, `git diff --stat docs/4-architecture/features/011/spec.md`.
+  - _Notes:_ Spec now lists FR-011-01..08 + NFR-011-01..05.
+- [x] T-011-02 – Refresh plan/tasks to reference hook guard, gitlint, Palantir, and analysis-gate verification commands.
+  - _Intent:_ Keep plan/tasks synchronized with the new requirements and explicit command logs.
+  - _Verification commands:_ `rg "P3-I" docs/4-architecture/features/011/plan.md`, `rg "T-011" docs/4-architecture/features/011/tasks.md`.
+  - _Notes:_ Ensure checklist includes hook guard + analysis gate logging expectations.
+- [x] T-011-03 – Remove `docs/4-architecture/features/011/legacy/` after reviewing the merged content; log `rm -rf …` and `ls` output in `_current-session.md` + `docs/migration_plan.md`.
+  - _Intent:_ Finish the legacy absorption while preserving audit logs.
+  - _Verification commands:_ `rm -rf docs/4-architecture/features/011/legacy`, `ls docs/4-architecture/features/011`, append log entries.
+  - _Notes:_ Mention the command list + spotless run in both logs.
+- [x] T-011-04 – Update governance docs (AGENTS/runbooks/constitution/analysis gate) and log verification commands.
+  - _Intent:_ Keep cross-cutting governance artefacts pointing at Feature 011 and record `git config core.hooksPath`, hook dry runs, and `spotlessApply` results.
+  - _Verification commands:_ `git config core.hooksPath` (2025-11-11), isolated `./githooks/pre-commit` dry-run via a temporary index, `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`.
+  - _Notes:_ Command outputs captured in `_current-session.md` and `docs/migration_plan.md`; governance docs updated to cite Feature 011.
 
-- [x] T-011-02 – Add failing ArchUnit guard for `java.lang.reflect` imports (FR-011-01, FR-011-04, S-011-02).  
-  _Intent:_ Ensure reflective imports immediately fail the architecture suite.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :core-architecture-tests:test --tests "*ReflectionPolicyTest"`
+### Legacy Coverage Checklist
+- [x] T-011-L1 – Feature 019 (governance + hook guard).
+  - _Intent:_ Ensure FR-011-02/03 and NFR-011-02/04 capture hook guard logging, gitlint policy, analysis-gate logging, and session snapshot expectations migrated from Feature 019.
+  - _Verification commands:_ `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index git read-tree --empty; GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`, `./gradlew --no-daemon spotlessApply check`.
+  - _Notes:_ `_current-session.md` (2025-11-11) and `docs/migration_plan.md` record the guard logs + spotless reruns that close this mapping.
+- [x] T-011-L2 – Feature 032 (formatter + workflow automation).
+  - _Intent:_ Confirm FR-011-06/07 and NFR-011-03/04 cover the Palantir formatter pin, spotless/qualityGate enforcement, and CI parity requirements inherited from Feature 032.
+  - _Verification commands:_ `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`, review `.github/workflows/*` outputs for gitlint/formatter parity.
+  - _Notes:_ Plan increment P3-I2 and the session log detail these commands before the legacy directory deletion.
 
-- [x] T-011-03 – Add failing regex/Gradle scan for reflective API strings (FR-011-01, FR-011-04, S-011-03).  
-  _Intent:_ Catch cases where reflection is invoked via string lookups.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon reflectionScan`
-
-- [x] T-011-04 – Remove reflection usage until the ArchUnit guard passes (FR-011-01, FR-011-02, S-011-01, S-011-02).  
-  _Intent:_ Replace reflective imports with explicit seams across modules.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :core-architecture-tests:test --tests "*ReflectionPolicyTest"`
-
-- [x] T-011-05 – Wire `reflectionScan` into `qualityGate` with necessary allowlists (FR-011-04, NFR-011-02, S-011-03).  
-  _Intent:_ Make the regex guard part of the default CI pipeline.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon reflectionScan qualityGate`
-
-- [x] T-011-06 – Introduce explicit CLI collaborator seams (FR-011-02, S-011-05).  
-  _Intent:_ Let CLI tests hit collaborators directly instead of via reflection.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :cli:test --tests "*OcraCli*"`
-
-- [x] T-011-07 – Refactor maintenance CLI paths to structured DTOs (FR-011-02, S-011-05).  
-  _Intent:_ Maintain CLI behaviour while eliminating reflective inspection.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :cli:test --tests "*MaintenanceCli*"`
-
-- [x] T-011-08 – Remove reflection from REST services/tests (FR-011-02, S-011-05).  
-  _Intent:_ Update controllers and services to rely on injectable seams.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :rest-api:test --tests "*Ocra*"`
-
-- [x] T-011-09 – Remove reflection from core MapDB/OCRA fixtures (FR-011-02, S-011-05).  
-  _Intent:_ Introduce package-private helpers so domain tests stay deterministic without reflection.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon :core:test`
-
-- [x] T-011-10 – Update `AGENTS.md` and related docs with the reflection policy (FR-011-03, S-011-04).  
-  _Intent:_ Communicate the guardrails and mitigation steps to contributors.  
-  _Verification commands:_  
-  - `rg -n "reflection" AGENTS.md`
-
-- [x] T-011-11 – Refresh knowledge map/roadmap/session log; run `spotlessApply check` (FR-011-01–FR-011-04, NFR-011-01, NFR-011-02, S-011-01–S-011-04).  
-  _Intent:_ Prove the gate stays green and documentation remains synced.  
-  _Verification commands:_  
-  - `./gradlew --no-daemon spotlessApply check`
-
-## Verification Log (Optional)
-- 2025-10-01 – `./gradlew --no-daemon :core-architecture-tests:test --tests "*ReflectionPolicyTest"` (PASS after refactors).
-- 2025-10-01 – `./gradlew --no-daemon reflectionScan qualityGate` (PASS; guard wired into CI pipeline).
-- 2025-10-01 – `./gradlew --no-daemon spotlessApply check` (PASS on OpenJDK 17.0.16 with guards enabled).
+## Verification Log
+- 2025-11-11 – `git config core.hooksPath`
+- 2025-11-11 – Temporary-index `./githooks/pre-commit` dry-run
+- 2025-11-11 – `./gradlew --no-daemon spotlessApply check`
+- 2025-11-11 – `./gradlew --no-daemon qualityGate`
 
 ## Notes / TODOs
-- Future exemptions must update both this specification and the guard allowlists; otherwise, the ArchUnit and regex tasks will block merges.
+- Capture gitlint/markdown-lint automation backlog items in Feature 013 after Batch P3 closes.
+- Record hook runtime snapshots (pre-commit, commit-msg) in `_current-session.md` during future governance increments.

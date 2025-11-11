@@ -1,7 +1,7 @@
 {
   "meta": {
     "intent": "Authoritative knowledge snapshot describing module responsibilities and dependencies for OpenAuth Simulator agents.",
-    "last_updated": "2025-10-17T19:45:00Z",
+    "last_updated": "2025-11-11T15:00:00Z",
     "maintenance": "Refresh this graph after any cross-module architectural change (new services, endpoint shifts, or telemetry contract updates). Keep it in sync with docs/4-architecture/knowledge-map.md and reference it during session kickoffs."
   },
   "nodes": [
@@ -72,6 +72,33 @@
         "Feature 026 docs (spec/plan/tasks) track attestation generation milestones, UI migration TODOs, and follow-up commands.",
         "docs/webauthn_attestation/ hosts per-format JSON fixtures and curated MDS bundles; docs/2-how-to/use-fido2-cli-operations.md outlines generator CLI usage.",
         "docs/3-reference/rest-openapi.(json|yaml) contain latest OpenAPI snapshots enforced by OpenApiSnapshotTest." 
+      ]
+    },
+    {
+      "id": "feature:011",
+      "name": "Feature 011 – Governance",
+      "observations": [
+        "Spec/plan/tasks under docs/4-architecture/features/011 describe FR-011-01..08/NFR-011-01..05 covering AGENTS, constitution updates, runbooks, gitlint policies, Palantir formatter pin, and analysis-gate workflows.",
+        "Mandates logging hook guard commands (`git config core.hooksPath`, `githooks/pre-commit`, `githooks/commit-msg`) plus spotless/qualityGate runs in docs/_current-session.md and docs/migration_plan.md.",
+        "Owns governance of managed hooks, gitlint, cache warm/retry behaviour, and documentation traceability requirements for Feature 011 increments." 
+      ]
+    },
+    {
+      "id": "feature:012",
+      "name": "Feature 012 – Core Cryptography & Persistence",
+      "observations": [
+        "Consolidates deployment profiles (IN_MEMORY/FILE/CONTAINER), cache tuning targets, telemetry contracts, maintenance helpers, optional encryption, unified credentials.db defaults, and IDE remediation steps.",
+        "Spec/plan/tasks live under docs/4-architecture/features/012 and align with docs/2-how-to/configure-persistence-profiles.md plus CredentialStoreFactory guidance.",
+        "Requires verification/logging of benchmarks, maintenance CLI commands, `rg \"credentials.db\"`, and spotless runs after persistence doc updates." 
+      ]
+    },
+    {
+      "id": "feature:013",
+      "name": "Feature 013 – Toolchain & Quality Platform",
+      "observations": [
+        "Aggregates CLI exit harness coverage, Maintenance CLI Jacoco buffer, reflection policy enforcement, Java 17 refactors, architecture harmonization, SpotBugs/PMD enforcement, and Gradle wrapper upgrades.",
+        "Spec/plan/tasks under docs/4-architecture/features/013 enumerate the command suite (`./gradlew qualityGate`, Jacoco hotspots, `reflectionScan`, `spotbugsMain`, `pmdMain pmdTest`, wrapper --warning-mode sweeps) plus logging expectations.",
+        "Legacy toolchain directories were removed; verification commands now run as part of Batch P3 Phase 2 close-out with outputs recorded in docs/_current-session.md and docs/migration_plan.md." 
       ]
     },
     {
@@ -169,6 +196,24 @@
       "target": "concept:telemetry",
       "name": "publishes",
       "description": "Application services emit telemetry frames consumed by CLI, REST, and operator UI layers." 
+    },
+    {
+      "source": "docs:root",
+      "target": "feature:011",
+      "name": "governs",
+      "description": "Feature 011 spec/plan/tasks own AGENTS/runbooks/constitution policies, managed hooks, and governance logging expectations." 
+    },
+    {
+      "source": "docs:root",
+      "target": "feature:012",
+      "name": "documents",
+      "description": "Feature 012 captures persistence profiles, telemetry, maintenance helpers, encryption guidance, and verification commands." 
+    },
+    {
+      "source": "docs:root",
+      "target": "feature:013",
+      "name": "documents",
+      "description": "Feature 013 consolidates toolchain/quality automation guardrails and the command suite required for Batch P3 verification." 
     },
     {
       "source": "dataset:attestation-fixtures",

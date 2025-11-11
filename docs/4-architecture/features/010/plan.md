@@ -1,99 +1,97 @@
-# Feature Plan 010 – CLI Exit Testing Maintenance
+# Feature 010 – Documentation & Knowledge Automation Plan
 
-_Linked specification:_ `docs/4-architecture/features/010/spec.md`  
-_Status:_ Complete  
-_Last updated:_ 2025-11-10
+| Field | Value |
+|-------|-------|
+| Status | In migration (Batch P3) |
+| Last updated | 2025-11-11 |
+| Owners | Ivan (project owner) |
+| Specification | `docs/4-architecture/features/010/spec.md` |
+| Tasks checklist | `docs/4-architecture/features/010/tasks.md` |
+| Roadmap entry | #10 – Documentation & Knowledge Automation |
 
-## Vision & Success Criteria
-- Keep CLI exit-code verification green on Java 17+ without relying on deprecated `SecurityManager` hooks.
-- Provide deterministic success (`--help`) and failure (`import`) coverage that mirrors production Picocli exit codes.
-- Preserve JaCoCo coverage accounting by forwarding any active `-javaagent` argument to the forked JVM harness.
-- Document the harness commands (`./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"`) so maintainers rerun them after CLI changes.
-- Keep runtime CLI sources untouched; all diffs live in test/doc directories.
+## Vision
+Centralise every operator-facing guide, roadmap/knowledge-map reference, and quality-automation workflow under one feature so
+all documentation and the aggregated `qualityGate` evolve together. Success means the Java/CLI/REST guides, README, roadmap,
+knowledge map, `_current-session.md`, session log (docs/_current-session.md), and GitHub Actions workflow share a single authoritative spec/plan/tasks
+set with deterministic verification commands.
 
-## Scope Alignment
-- **In scope:** CLI launcher tests, harness utilities that spawn JVMs, documentation reflecting the new process, roadmap/session log updates.
-- **Out of scope:** Runtime CLI command changes, REST/UI/API modules, dependency additions, telemetry schema updates.
+## Scope
+- Merge legacy Features 007/008 (operator documentation suite + quality automation) into Feature 010’s spec/plan/tasks.
+- Keep roadmap, knowledge map, architecture graph, session log (docs/_current-session.md), and session quick reference aligned with documentation and
+  automation changes.
+- Maintain the aggregated `qualityGate` task plus its CI workflow, report locations, skip flags, and troubleshooting guides.
+- Log every documentation/automation increment inside `_current-session.md` and `docs/migration_plan.md` with command history.
 
-## Dependencies & Interfaces
-- `cli` module tests (`OcraCliLauncherTest`).
-- Picocli exit codes and usage messaging for `OcraCliLauncher`.
-- Java 17 toolchain with optional JaCoCo `-javaagent` argument.
-- Gradle tasks `:cli:test` and `spotlessApply check` for verification.
+_Out of scope:_ shipping runtime simulator changes, expanding the quality gate to non-OCRA modules, or introducing new
+publishing tooling.
+
+## Dependencies
+| Dependency | Notes |
+|------------|-------|
+| Docs templates (`docs/templates/*.md`) | Govern structure for specs/plans/tasks and operator guides. |
+| Operator guides (`docs/2-how-to/*.md`) + README | Must reflect current simulator behaviour and telemetry expectations. |
+| Roadmap / knowledge map / session log (docs/_current-session.md) / `_current-session.md` | Need synchronized references and command logs per increment. |
+| Gradle build logic (`qualityGate` task, Spotless, ArchUnit, Jacoco, PIT, SpotBugs, Checkstyle, gitleaks) | Provide the automation enforced by this feature. |
+| GitHub Actions workflow (`.github/workflows/quality-gate.yml`) | Mirrors local gate execution and uploads reports. |
+
+## Legacy Integration Tracker
+| Legacy Feature(s) | Increment(s) | Status | Notes |
+|-------------------|--------------|--------|-------|
+| 007 | P3-I1 (spec), P3-I2 (plan/tasks) | Completed | FR-010-01/02 and NFR-010-01 now describe the operator how-to guides, snippets, and troubleshooting flows migrated from the legacy documentation feature. |
+| 008 | P3-I2 | Completed | FR-010-04..09 and NFR-010-02/03/05 cover the automation charter (ArchUnit/Jacoco/PIT/qualityGate) and doc logging expectations previously maintained by Feature 008. |
 
 ## Assumptions & Risks
-- **Assumptions:**
-  - JaCoCo agent argument appears inside `ManagementFactory.getRuntimeMXBean().getInputArguments()` when coverage is enabled.
-  - Launching a nested JVM from tests is permitted in CI environments.
-  - CLI launcher contract (`--help`, `import`) remains stable while this maintenance task executes.
-- **Risks / Mitigations:**
-  - _Process leaks:_ Always close streams and forcibly destroy the spawned JVM if it outlives the test.
-  - _Coverage gaps:_ Attach the detected `-javaagent` argument to the spawned JVM and inspect Jacoco HTML output before/after.
-  - _Flaky exit codes:_ Use deterministic arguments (`--help`, `import`) and assert on Picocli constants to avoid brittle expectations.
+- Documentation remains Markdown/ASCII; deviations require template updates.
+- Developers run `./gradlew --no-daemon spotlessApply check` for every doc change and `./gradlew --no-daemon qualityGate` when automations change.
+- Risk: forgetting to log commands in `_current-session.md` or session log (docs/_current-session.md) reduces auditability—mitigate via checklist items.
+- Risk: PIT/Jacoco runtimes can exceed NFR limits if cache hints regress—monitor timings inside tasks/plan notes.
 
-## Implementation Drift Gate
-- **Trigger:** 2025-10-01 after T-010-01–T-010-04 were completed.
-- **Evidence:** `git diff --stat cli/src/test/java/io/openauth/sim/cli`, Jacoco HTML snapshot, `rg SecurityManager` output, and session log entries referencing the harness.
-- **Outcome:** Gate passed with `./gradlew --no-daemon spotlessApply check` on Java 17 (SecurityManager-free) and `:cli:test` covering both exit paths.
-
-## Increment Map
-1. **I1 – Scope confirmation & harness design** _(T-010-01)_  
-   - _Goal:_ Capture clarifications, document why `SecurityManager` must be removed, and outline the direct-invocation vs spawn strategy.  
-   - _Preconditions:_ Feature specification in Draft status, roadmap pointer to Feature 010.  
-   - _Steps:_
-     - Review existing CLI launcher tests and note SecurityManager usage.
-     - Record clarifications + analysis gate checklist in docs/4-architecture/open-questions.md (none pending).
-   - _Commands:_ `less docs/4-architecture/features/010/spec.md`, `rg -n "SecurityManager" cli/src/test/java`.  
-   - _Exit:_ Open questions cleared, harness approach documented inside the spec/plan/tasks.
-
-2. **I2 – Direct invocation harness updates** _(T-010-02)_  
-   - _Goal:_ Replace in-process assertions with explicit exit-code checks using `OcraCliLauncher.execute` and `CommandLine.ExitCode`.  
-   - _Preconditions:_ I1 complete, tests still referencing SecurityManager.  
-   - _Steps:_
-     - Update tests covering `--help` success path and `import` failure via `execute` helper.
-     - Ensure usage text assertions remain intact without intercepting System exit.
-   - _Commands:_ `./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"`.  
-   - _Exit:_ Tests pass in-process without SecurityManager usage.
-
-3. **I3 – Forked JVM harness & coverage parity** _(T-010-03)_  
-   - _Goal:_ Add spawned JVM test that observes `System.exit` for failure cases and forwards the JaCoCo agent when present.  
-   - _Preconditions:_ I2 complete, JaCoCo agent path detectable.  
-   - _Steps:_
-     - Build command list (java binary, optional agent, classpath, launcher class, `import`).
-     - Capture stdout/stderr, assert exit code equals Picocli usage, and clean up resources.
-     - Compare Jacoco reports before/after to confirm coverage unaffected.
-   - _Commands:_ `./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"`, `ls build/reports/jacoco/test/html`.  
-   - _Exit:_ Process-based harness passes locally and in CI with intact coverage reports.
-
-4. **I4 – Quality gate & documentation sync** _(T-010-04)_  
-   - _Goal:_ Run the standard formatting/tests gate and update roadmap/session/migration docs.  
-   - _Preconditions:_ I2–I3 succeeded.  
-   - _Steps:_
-     - Execute `./gradlew --no-daemon spotlessApply check`.
-     - Update plan/spec/tasks statuses plus docs/roadmap/session to describe the harness.
-   - _Commands:_ `./gradlew --no-daemon spotlessApply check`, `rg -n "Feature 010" docs`.  
-   - _Exit:_ Documentation synced, gate green, feature marked complete.
+## Increment Map (≤90 min each)
+| Increment | Intent | Owner | Status | Notes |
+|-----------|--------|-------|--------|-------|
+| P3-I1 | Absorb the legacy operator documentation suite (Java/CLI/REST guides + README cross-links) into the consolidated spec. | Ivan | Completed | FR-010-01/02 captured from legacy Feature 007; spec now references guide paths and telemetry expectations. |
+| P3-I2 | Capture the quality automation charter (ArchUnit, Jacoco, PIT, aggregated `qualityGate`, CI workflow, troubleshooting docs). | Ivan | Completed | FR-010-04..09 + NFR entries incorporated from legacy Feature 008. |
+| P3-I3 | Remove `docs/4-architecture/features/010/legacy/{007,008}` after verifying the spec/plan/tasks contain the migrated content; log the deletion + command output in `_current-session.md` and `docs/migration_plan.md`. | Ivan | Completed | `rm -rf docs/4-architecture/features/010/legacy` executed and recorded; pending docs capture in session log (docs/_current-session.md)/session snapshot. |
+| P3-I4 | Record the Phase 2 summary (Feature 009–013) in `docs/migration_plan.md`, rerun `./gradlew --no-daemon spotlessApply check` (doc gate), and queue the final `qualityGate` run once Features 011–013 finish their rewrites. | Ivan | Pending | Requires remaining Batch P3 features to absorb their legacy content before executing the gate. |
 
 ## Scenario Tracking
-| Scenario ID | Increment / Task reference | Notes |
-|-------------|---------------------------|-------|
-| S-010-01 | I2 / T-010-02 | Direct invocation success path without `System.exit`. |
-| S-010-02 | I3 / T-010-03 | Forked JVM harness observes `CommandLine.ExitCode.USAGE`. |
-| S-010-03 | I1–I4 / T-010-01–T-010-04 | Repository scan shows zero `SecurityManager` references. |
-| S-010-04 | I4 / T-010-04 | Runtime CLI untouched; documentation updated. |
+| Scenario | Description | Increment |
+|----------|-------------|-----------|
+| S-010-01 | Operator guides remain runnable with telemetry and troubleshooting coverage. | P3-I1 |
+| S-010-02 | README/doc landing pages point to shipped capabilities only. | P3-I1 |
+| S-010-03 | Roadmap/knowledge map/session log (docs/_current-session.md)/session quick reference stay synchronized and log commands. | P3-I1–P3-I4 |
+| S-010-04 | `qualityGate` aggregates Spotless, Checkstyle, SpotBugs, ArchUnit, Jacoco, PIT, gitleaks. | P3-I2 |
+| S-010-05 | ArchUnit rules enforce module boundaries. | P3-I2 |
+| S-010-06 | Jacoco aggregated thresholds remain ≥90% line/branch. | P3-I2 |
+| S-010-07 | PIT mutation score stays ≥85% with documented skip flag. | P3-I2 |
+| S-010-08 | GitHub Actions workflow mirrors the gate and uploads reports. | P3-I2 |
+| S-010-09 | Docs/runbooks explain how to run/remediate the gate. | P3-I2 |
+| S-010-10 | `_current-session.md` + session log (docs/_current-session.md) log every documentation/automation increment. | P3-I3 |
 
-## Analysis Gate (2025-10-01)
-- ✅ Clarifications logged in the specification; no open questions remained.
-- ✅ SecurityManager removal approach recorded in spec/plan/tasks before edits.
-- ✅ Verification commands (`rg SecurityManager`, `:cli:test`, `spotlessApply check`) enumerated.
-- ✅ Scope limited to CLI tests; dependencies/risks acknowledged.
+## Legacy Parity Review
+- 2025-11-11 – Compared Feature 010 FR/NFR/scenario coverage with legacy Features 007/008. Documentation, roadmap automation, and quality-gate requirements are fully represented; remaining enhancements (knowledge-map regeneration scripting, markdown lint adoption) stay in the backlog.
+
+## Quality & Tooling Gates
+- `./gradlew --no-daemon spotlessApply check` – required after every documentation/spec/plan/task edit.
+- `./gradlew --no-daemon qualityGate [-Ppit.skip=true]` – aggregated automation gate (ArchUnit, Jacoco, PIT, Spotless, SpotBugs, Checkstyle, gitleaks).
+- Optional targeted searches: `rg "Feature 010" docs/` to confirm cross-document references.
+
+## Analysis Gate
+Run `docs/5-operations/analysis-gate-checklist.md` after P3-I3 completes (legacy tree removed + docs synced). Ensure roadmap,
+knowledge map, session log (docs/_current-session.md), and `_current-session.md` match the updated spec/plan/tasks before moving to implementation work.
+
+## Implementation Drift Gate
+Once Batch P3 Phase 2 ends (Features 009–013 absorbed), cross-check FR-010-01..FR-010-10 and NFR-010-01..05 against the operator
+guides, README, roadmap/knowledge map entries, `_current-session.md` logs, and `qualityGate` configuration/report folders. Log the
+drift report inside this plan with links to verification commands.
 
 ## Exit Criteria
-- `rg SecurityManager cli/src/test/java` returns zero results post-change.
-- `./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"` passes, covering direct invocation + forked JVM flows.
-- `./gradlew --no-daemon spotlessApply check` succeeds on Java 17.
-- Documentation (spec/plan/tasks, roadmap/session snapshot) references the harness and its commands.
+- Feature 010 spec/plan/tasks fully describe the operator doc suite and quality automation guardrails (no `legacy/` references).
+- `docs/4-architecture/features/010/legacy/` removed and the deletion logged in `_current-session.md` + `docs/migration_plan.md`.
+- Roadmap, knowledge map, architecture graph, session log (docs/_current-session.md), session quick reference, and `_current-session.md` cite Feature 010 for documentation and automation work.
+- `./gradlew --no-daemon spotlessApply check` recorded after the migration; final `qualityGate` queued once Features 011–013 integrate.
 
 ## Follow-ups / Backlog
-- Consider sharing the forked JVM helper across other CLI command tests if additional exit-code coverage is required.
-- Evaluate whether similar harnesses are needed for REST smoke tests before renumbering begins.
+- Script knowledge-map regeneration to reduce manual edits (capture timing + instructions in Feature 010 tasks once designed).
+- Evaluate adding Markdown lint to the managed hook after Batch P3 verification.
+- Expand `qualityGate` coverage beyond the OCRA stack in a future feature once this migration stabilises.

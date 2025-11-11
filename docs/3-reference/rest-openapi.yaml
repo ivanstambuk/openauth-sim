@@ -306,6 +306,12 @@ paths:
               $ref: "#/components/schemas/OcraVerificationRequest"
         required: true
       responses:
+        "404":
+          description: "Credential not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "200":
           description: "Verification completed"
           content:
@@ -327,6 +333,12 @@ paths:
                       contextFingerprint: "Base64URL-Hash"
                       telemetryId: "rest-ocra-verify-<uuid>"
                       outcome: "match"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "422":
           description: "Verification payload failed validation"
           content:
@@ -347,18 +359,6 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "404":
-          description: "Credential not found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
   /api/v1/ocra/evaluate:
     post:
       tags:
@@ -432,24 +432,24 @@ paths:
               $ref: "#/components/schemas/HotpReplayRequest"
         required: true
       responses:
-        "200":
-          description: "Replay completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
         "422":
           description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "200":
+          description: "Replay completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayResponse"
   /api/v1/hotp/evaluate:
     post:
       tags:
@@ -471,18 +471,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "200":
-          description: "Evaluation completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationResponse"
         "422":
           description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
+        "200":
+          description: "Evaluation completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationResponse"
   /api/v1/hotp/evaluate/inline:
     post:
       tags:
@@ -504,18 +504,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
-        "200":
-          description: "Evaluation completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationResponse"
         "422":
           description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationErrorResponse"
+        "200":
+          description: "Evaluation completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationResponse"
   /api/v1/hotp/credentials/seed:
     post:
       tags:
@@ -642,18 +642,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmvCapReplayErrorResponse"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
         "200":
           description: "Replay completed"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmvCapReplayResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
   /api/v1/emv/cap/evaluate:
     post:
       tags:
@@ -1775,6 +1775,17 @@ components:
           $ref: "#/components/schemas/OcraVerificationContext"
         verbose:
           type: "boolean"
+    OcraVerificationErrorResponse:
+      type: "object"
+      properties:
+        error:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
     OcraVerificationMetadata:
       type: "object"
       properties:
@@ -1807,17 +1818,6 @@ components:
           $ref: "#/components/schemas/OcraVerificationMetadata"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
-    OcraVerificationErrorResponse:
-      type: "object"
-      properties:
-        error:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
     OcraEvaluationRequest:
       type: "object"
       properties:
@@ -1901,6 +1901,21 @@ components:
             type: "string"
         verbose:
           type: "boolean"
+    HotpReplayErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     HotpReplayMetadata:
       type: "object"
       properties:
@@ -1932,21 +1947,6 @@ components:
           type: "string"
         metadata:
           $ref: "#/components/schemas/HotpReplayMetadata"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
-    HotpReplayErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
     HotpStoredEvaluationRequest:
