@@ -1,66 +1,67 @@
 # Feature Plan 034 – Unified Validation Feedback Surfaces
 
 _Linked specification:_ `docs/4-architecture/features/034/spec.md`  
+_Linked tasks:_ `docs/4-architecture/features/034/tasks.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-10-29
+_Last updated:_ 2025-11-10
 
 ## Vision & Success Criteria
-- Result cards across all operator-console ceremonies (OCRA, HOTP, TOTP, WebAuthn assertion, WebAuthn attestation) surface validation error messages returned by the application/REST APIs.
-- Invalid responses automatically unhide the result card, preventing silent failures.
-- Shared utilities/documentation make the behaviour the default for future ceremonies.
-- Automation (`./gradlew --no-daemon :rest-api:test`, Selenium suites, and full `spotlessApply check`) remains green.
+Ensure every operator-console ceremony surfaces API validation failures within the result card by introducing a shared
+helper. Success requires baseline audits, helper implementation, ceremony wiring, and updated tests/docs that prove the
+pattern.
 
 ## Scope Alignment
-- In scope: operator-console templates, controller/view-model plumbing, JavaScript helper updates, Selenium coverage, documentation refresh (console help/how-to).
-- Out of scope: CLI/REST output changes, server-side validation copy rewrite, inline field errors.
+- **In scope:** Result-card audit, shared helper (view model + JS), ceremony wiring (OCRA/HOTP/TOTP/WebAuthn), Selenium
+  invalid scenarios, documentation updates.
+- **Out of scope:** Server-side validation copy changes, CLI/REST output changes, per-field inline errors.
 
 ## Dependencies & Interfaces
-- Builds on existing Thymeleaf templates (`rest-api/src/main/resources/templates/ui/**`) and console JavaScript modules.
-- Requires Selenium updates in `Fido2OperatorUiSeleniumTest`, `OcraOperatorUiSeleniumTest`, `TotpOperatorUiSeleniumTest`, etc.
-- Documentation touchpoints: operator console how-to under `docs/2-how-to/`.
+- `rest-api` operator console controller/view models and Thymeleaf templates.
+- Console JS assets and Selenium suites.
+- Knowledge map/how-to documentation for operator console workflows.
 
-## Increment Breakdown (≤30 min each)
-1. **I1 – Audit existing result panels**
-   - Catalogue current result-card toggling logic per ceremony; note hidden states and message placeholders.
-   - Command: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"` (dry run).
+## Assumptions & Risks
+- **Assumptions:** Existing APIs already surface meaningful `message` fields; Selenium fixtures cover invalid flows.
+- **Risks:**
+  - Helper misses a ceremony → mitigate by auditing all result cards before implementation.
+  - Selenium runtime increase due to invalid scenarios → reuse shared fixtures.
 
-2. **I2 – Shared invalid-state helper**
-   - Introduce a controller/view-model helper that normalises invalid responses (message text + visibility flag).
-   - Update console JS to expose `showResultMessage(message)` within the shared module.
-   - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleViewModelTest"` (new/updated).
+## Implementation Drift Gate
+- Evidence captured 2025-10-22: helper diff, Selenium invalid scenario logs, documentation updates, and
+  `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"` + `spotlessApply check`
+  outputs. Gate stays satisfied unless the validation pattern changes.
 
-3. **I3 – Apply helper to ceremonies**
-   - Wire OCRA, HOTP, TOTP, WebAuthn assertion, and WebAuthn attestation template/controller pairs.
-   - Ensure result card HTML renders the message in an error banner.
-   - Commands: targeted Selenium suites per ceremony.
-   - 2025-10-21: HOTP replay path now emits ResultCard messaging for mismatch responses; Selenium guard added.
-   - 2025-10-21: TOTP replay stored/inline flows now reuse ResultCard messaging for mismatch responses with Selenium coverage.
-   - 2025-10-21: HOTP inline evaluation uses ResultCard helper for invalid payloads (Selenium covered).
-   - 2025-10-21: WebAuthn inline + attestation evaluation controllers now drive ResultCard messaging for invalid responses with Selenium coverage.
-   - 2025-10-21: OCRA evaluate + replay panels migrated to the shared ResultCard helper; Selenium suite updated via `OperatorConsoleSeleniumTest`.
+## Increment Map
+1. **I1 – Baseline audit (S-034-01)**
+   - Capture current result-card behaviour/screenshots for all ceremonies.
+   - Commands: manual review; document findings in plan/tasks.
+2. **I2 – Shared helper implementation (S-034-02)**
+   - Add view-model + JS helper toggling `showResultCard` + `validationMessage`; write unit tests.
+   - Commands: `./gradlew --no-daemon :rest-api:test` (targeted unit tests).
+3. **I3 – Ceremony wiring (S-034-03)**
+   - Wire OCRA/HOTP/TOTP/WebAuthn assertion/attestation to helper.
+   - Commands: `./gradlew --no-daemon :rest-api:test --tests "*OperatorUiControllerTest"`.
+4. **I4 – Selenium invalid scenarios (S-034-03/S-034-04)**
+   - Extend Selenium suites to drive invalid inputs per ceremony and assert message rendering.
+   - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"`.
+5. **I5 – Documentation & analysis gate (S-034-04)**
+   - Update how-to guides/knowledge map/session snapshot; rerun `./gradlew spotlessApply check`.
 
-4. **I4 – Regression coverage & docs**
-   - Add Selenium scenarios that trigger validation failures and assert visible messages.
-   - Update operator console how-to / inline hints describing the behaviour.
-   - Final command: `./gradlew --no-daemon spotlessApply check`.
-   - 2025-10-21: HOTP stored replay invalid scenario covered by `HotpOperatorUiSeleniumTest`.
-   - 2025-10-21: `TotpOperatorUiSeleniumTest` enforces ResultCard message/hint for replay mismatch cases.
-   - 2025-10-21: `Fido2OperatorUiSeleniumTest` verifies inline + attestation invalid flows surface ResultCard message/hints.
-   - 2025-10-21: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleSeleniumTest"` executed to validate OCRA migration; full `spotlessApply check` rerun after documentation refresh.
-   - 2025-10-22: `docs/2-how-to/use-ocra-operator-ui.md` updated to describe ResultCard feedback for invalid responses; `./gradlew --no-daemon spotlessApply check` now green to close the increment.
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-034-01 | I1 / T-034-01 | Baseline audit. |
+| S-034-02 | I2 / T-034-02 | Helper implementation. |
+| S-034-03 | I3, I4 / T-034-03, T-034-04 | Ceremony wiring + Selenium coverage. |
+| S-034-04 | I5 / T-034-05 | Documentation + analysis gate. |
 
-## Risks & Mitigations
-- **Risk:** Selenium runtime inflation.  
-  **Mitigation:** Reuse existing fixture helpers and keep new scenarios scoped to validation checks.
+## Analysis Gate
+- Completed 2025-10-22 after helper rollout + documentation updates; no open questions remain.
 
-- **Risk:** Future ceremonies forgetting to hook into the helper.  
-  **Mitigation:** Document helper usage in knowledge map and add unit test that enforces presence for registered ceremonies.
+## Exit Criteria
+- All ceremonies display validation messages via result card helper.
+- Selenium invalid scenarios pass with new assertions.
+- Documentation updated; `spotlessApply check` green.
 
-## Follow-ups
-- Update knowledge map once helper lands.
-- Consider future enhancement for field-level inline errors if required.
-
-## Completion Notes
-- 2025-10-21 – Result-card helper rolled out across OCRA, HOTP, TOTP, and WebAuthn ceremonies with Selenium guardrails covering mismatch scenarios.
-- 2025-10-22 – Documentation refreshed and `./gradlew --no-daemon spotlessApply check` completed successfully, satisfying the closure criteria.
-- 2025-10-29 – Plan marked complete; no remaining tasks pending analysis gate.
+## Follow-ups / Backlog
+- Future ceremonies must adopt the helper; add guidance to new specs as they are created.

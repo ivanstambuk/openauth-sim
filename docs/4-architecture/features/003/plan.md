@@ -1,53 +1,92 @@
 # Feature Plan 003 – REST OCRA Evaluation Endpoint
 
+_Linked specification:_ `docs/4-architecture/features/003/spec.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-10-31
+_Last updated:_ 2025-11-10
 
-## Objective
-Expose a synchronous REST endpoint under `/api/v1/ocra/evaluate` that reuses the core `OcraResponseCalculator` to compute session-aware OTPs for RFC 6287 suites. The feature delivers automated coverage for the S064/S128/S256/S512 fixtures already validated through the CLI, ensuring REST clients receive identical responses with secrets redacted.
+## Vision & Success Criteria
+- Deliver a synchronous REST endpoint (`POST /api/v1/ocra/evaluate`) that mirrors CLI/core OCRA behaviour with deterministic OTP outputs.
+- Keep validation, telemetry, and documentation (OpenAPI snapshots, how-to guides, knowledge map) aligned so downstream clients rely on a stable contract.
+- Maintain telemetry redaction guarantees and provide tests for all success/failure paths, including advanced validations (timestamps, PIN hashes).
 
-Reference specification: `docs/4-architecture/features/003/spec.md`.
+## Scope Alignment
+- **In scope:**
+  - Request/response DTOs, controller/service wiring, MockMvc + unit tests.
+  - Validation, telemetry, reason-code mapping, and log redaction checks.
+  - OpenAPI JSON/YAML generation with snapshot tests.
+  - Documentation updates (operator how-to, knowledge map, roadmap references).
+- **Out of scope:**
+  - Persistence-backed credential lookup, authentication/authorization, replay flows, UI wiring, async/batch endpoints.
 
-## Success Criteria
-- Endpoint accepts all supported runtime inputs (suite, shared secret hex, optional counter/challenges/session/pin/timestamp) and produces deterministic OTPs.
-- Integration tests exercise the endpoint against the known RFC vector fixtures, keeping responses in sync with the core module.
-- Telemetry verifies redaction rules and captures execution metadata (`rest.ocra.evaluate`).
-- OpenAPI documentation (via SpringDoc `/v3/api-docs`) and operator how-to references describe the endpoint contract and sample payloads, with both JSON and YAML snapshots checked into `docs/3-reference/`.
+## Dependencies & Interfaces
+- Core `OcraResponseCalculator` and fixtures from Feature 001.
+- `rest-api` Spring Boot stack (Java 17, Boot 3.3.4) plus SpringDoc OpenAPI starter.
+- `TelemetryContracts` for redaction-compliant logging.
+- Documentation assets under `docs/2-how-to/`, `docs/3-reference/`, and knowledge map entries.
 
-## Task Tracker
-- Detailed increments live in `docs/4-architecture/features/003/tasks.md`. Keep each task ≤30 minutes and commit after every green build.
-- Record `./gradlew spotlessApply check` outputs and analysis gate evaluations in this plan as work progresses.
-- Initial scope covers synchronous evaluation only; follow-up tickets will address persistence-backed credential lookup and authentication.
+## Assumptions & Risks
+- **Assumptions:** Inline payloads remain the only supported mode; operators rely on HTTP auth handled outside this feature.
+- **Risks & mitigations:**
+  - _Telemetry leakage:_ mitigated via log capture tests enforcing `sanitized=true`.
+  - _OpenAPI drift:_ snapshot tests plus `OPENAPI_SNAPSHOT_WRITE` workflow.
+  - _Dependency skew:_ SpringDoc/Spring Boot versions recorded here and pinned via Gradle locks.
 
-### Timeline & Notes
-- 2025-09-28 – Owner approved adopting SpringDoc OpenAPI starter for R005 to auto-generate REST docs; dependency addition will be recorded alongside Gradle lock refresh.
-- 2025-09-28 – R005 implementation: integrated SpringDoc 2.4.0 with enforced Spring Boot BOM, added OpenAPI documentation tests, and generated the initial snapshot under docs/3-reference/rest-openapi.json.
-- 2025-09-28 – Option A confirmed: REST facade receives dedicated spec/plan/tasks separate from Feature 001.
-- 2025-09-28 – Current focus on Task R001 (documentation uplift) before implementing the endpoint (R002–R004).
-- 2025-09-28 – R001 complete: spec/plan/tasks created; queued next steps R002/R003 (tests first).
-- 2025-09-28 – R002 complete: Spring Boot dependencies added, integration test asserts current 404 response (TODO to flip on R004); dependency locks updated after aligning transitive versions; `./gradlew spotlessApply check` (PASS, 2025-09-28, ~99s).
-- 2025-09-28 – R003 clarification: controller validation tests will keep 404 expectations with TODOs to flip when R004 lands.
-- 2025-09-28 – `./gradlew spotlessApply check` (PASS, config cache reused) after documentation updates.
-- 2025-09-28 – R004 delivered: wired `POST /api/v1/ocra/evaluate` controller/service to `OcraResponseCalculator`, flipped MockMvc tests to assert 200/400 with telemetry captures, and added error DTOs; `./gradlew :rest-api:test` (PASS, ≈14s) and `./gradlew spotlessApply check` (PASS, ≈26s) recorded.
-- 2025-09-28 – R006 wrap-up: reran `./gradlew spotlessApply check` (PASS), captured telemetry output via `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest --info`, archived sample logs in `docs/3-reference/rest-ocra-telemetry-snapshot.md`, and verified roadmap/knowledge map consistency.
-- 2025-09-28 – Authentication decision finalized: no authentication/authorization layer will be added for this endpoint; treat it as an internal operator surface and avoid revisiting the topic.
-- 2025-09-28 – Operational safeguards decision recorded: no rate limiting or throttling will be introduced for this endpoint; downstream environments will manage access externally.
-- 2025-09-28 – Input hardening direction set: validate all hex fields, enforce non-negative counters, and enrich telemetry with `reasonCode`/`sanitized` attributes to support alerting while preserving redaction guarantees.
-- 2025-09-28 – R007–R009 complete: expanded MockMvc coverage for malformed hex/counter flows, added pre-validation and telemetry reason codes, and captured green runs (`./gradlew :rest-api:test` PASS, `./gradlew spotlessApply check` PASS).
-- 2025-09-28 – Timestamp validation will reuse `OcraCredentialFactory.validateTimestamp` drift rules (reason code `timestamp_drift_exceeded`); runtime PIN mismatches will emit `pin_hash_mismatch` and be pre-validated before calculator execution.
-- 2025-09-28 – R010/R011 delivered: timestamp drift + PIN mismatch MockMvc coverage now green; REST service resolves timestampHex with suite metadata, injects `Clock` for deterministic tests, and maps reason codes (`timestamp_drift_exceeded`, `pin_hash_mismatch`, etc.).
-- 2025-09-28 – R012 complete: operator how-to and telemetry snapshot updated with new reason codes; captured fresh logs via `./gradlew :rest-api:test --tests io.openauth.sim.rest.OcraEvaluationEndpointTest --info --rerun-tasks`.
-- 2025-09-30 – R013–R015 delivered: added YAML coverage/tests, extended snapshot writer to canonicalise JSON/YAML output, regenerated artifacts via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.rest.OpenApiSnapshotTest`, updated docs/knowledge map, and confirmed `./gradlew spotlessApply check` (PASS).
+## Implementation Drift Gate
+- Evidence captured via spec/plan/tasks plus telemetry + OpenAPI snapshots.
+- Gate checklist: FR/NFR mapping confirmed, OpenAPI/telemetry assets updated, docs synced, and `./gradlew spotlessApply check` recorded.
+- Status: PASS (2025-09-28) prior to final implementation; no outstanding drift items.
 
-## Dependencies
-- Relies on the existing OCRA core package; ensure no modifications are required in `core/` for this feature.
-- Spring Boot application scaffolding must be ready in the `rest-api` module (confirm configuration before implementation).
-- Telemetry logging must align with constitution redaction rules already in place for CLI/core helpers.
+## Increment Map
+1. **I1 – Clarifications + failing tests (T0301–T0302)**
+   - _Goal:_ Lock scope, record tooling decisions, and stage failing MockMvc/telemetry tests.
+   - _Preconditions:_ Spec skeleton + clarifications drafted.
+   - _Steps:_ update roadmap/knowledge map entries; add failing tests for success + validation + telemetry; document `reasonCode` list.
+   - _Commands:_
+     - `./gradlew --no-daemon :rest-api:test --tests "*OcraEvaluationEndpointTest"`
+   - _Exit:_ Tests fail as expected, clarifications logged, analysis gate satisfied.
+2. **I2 – Controller + validation implementation (T0303–T0304)**
+   - _Goal:_ Wire controller/service to `OcraResponseCalculator`, satisfy inline success cases, and enforce validation + telemetry semantics.
+   - _Preconditions:_ I1 tests exist.
+   - _Steps:_ implement controller, request/response DTOs, validation annotations, telemetry hooking; rerun targeted suites.
+   - _Commands:_
+     - `./gradlew --no-daemon :rest-api:test`
+   - _Exit:_ MockMvc suites green; telemetry/log capture asserts redaction.
+3. **I3 – OpenAPI + advanced validations (T0305–T0306)**
+   - _Goal:_ Generate JSON/YAML snapshots, add snapshot tests, and extend coverage for timestamp/pin/session validations.
+   - _Preconditions:_ I2 green.
+   - _Steps:_ run snapshot writer, commit artifacts, add negative tests for timestamp/pin, update dependency locks if needed.
+   - _Commands:_
+     - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshotTest"`
+     - `./gradlew --no-daemon :rest-api:test --tests "*Timestamp*"`
+   - _Exit:_ Snapshots updated, advanced validations covered, docs reference Swagger UI.
+4. **I4 – Documentation sync + final verification (T0307)**
+   - _Goal:_ Update how-to/knowledge map references, capture telemetry samples, and run spotless/check for closure.
+   - _Preconditions:_ I3 complete.
+   - _Steps:_ refresh docs referencing `rest.ocra.evaluate`, update roadmap + knowledge map, run full Gradle gate.
+   - _Commands:_
+     - `./gradlew --no-daemon spotlessApply check`
+   - _Exit:_ Docs in sync, knowledge map updated, final build recorded.
 
-## Self-Review & Analysis Gate
-- 2025-09-28 (analysis gate) – Checklist completed prior to R004 implementation: specification and tasks remain in sync, no open questions, tests sequenced ahead of code, dependencies unchanged, and Gradle command readiness confirmed. No remediation items identified.
-- 2025-09-28 – Self-review complete for R004: verified telemetry logging redacts secrets, confirmed new request/response DTO constructors normalize inputs, and captured Gradle command outputs noted above.
-- 2025-09-28 – Self-review for R005: validated SpringDoc 2.4.0 alignment with Spring Boot 3.3.4 (enforced BOM), confirmed new OpenAPI tests guard `/v3/api-docs`, regenerated `docs/3-reference/rest-openapi.json`, and documented operator workflow in `docs/2-how-to/use-ocra-evaluation-endpoint.md`.
-- Self-review notes, Gradle command outputs, and telemetry assertions should be appended as tasks close.
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S03-01 | I1–I2 / T0302–T0303 | Endpoint success path + OTP parity. |
+| S03-02 | I2 / T0304 | Validation + structured errors. |
+| S03-03 | I2 / T0304 | Telemetry redaction + reason codes. |
+| S03-04 | I3 / T0305 | OpenAPI generation + snapshot tests. |
+| S03-05 | I3 / T0306 | Advanced validation coverage (timestamp/pin). |
+| S03-06 | I4 / T0307 | Documentation + telemetry references updated. |
 
-Update this plan as each task completes, mirroring task checklist status and documenting build/analysis results.
+## Analysis Gate
+- Completed 2025-09-28 (PASS). Spec and plan aligned with clarifications; tasks ordered tests-first; dependencies documented; `./gradlew --no-daemon spotlessApply check` executed.
+
+## Exit Criteria
+- `./gradlew --no-daemon :rest-api:test` and `./gradlew --no-daemon spotlessApply check` green with telemetry/log capture assertions.
+- OpenAPI snapshots updated + guarded by tests.
+- Operator docs, knowledge map, and roadmap entries reflect the endpoint + telemetry reason codes.
+- No open questions remain for REST OCRA evaluation scope.
+
+## Follow-ups / Backlog
+1. Add persistence-backed credential lookup + authentication for REST OCRA (future feature).
+2. Extend maintenance endpoints/UI wiring once persistence templates finish migrating.
+3. Evaluate throttling/rate-limiting needs for high-volume clients.

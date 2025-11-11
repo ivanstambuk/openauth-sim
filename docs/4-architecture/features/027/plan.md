@@ -1,56 +1,77 @@
 # Feature Plan 027 – Unified Credential Store Naming
 
 _Linked specification:_ `docs/4-architecture/features/027/spec.md`  
+_Linked tasks:_ `docs/4-architecture/features/027/tasks.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-10-29
+_Last updated:_ 2025-11-10
 
-## Objective
-Deliver a seamless transition to the shared `credentials.db` default across all simulator facades while retiring compatibility shims for legacy protocol-specific database files.
+## Vision & Success Criteria
+Deliver a seamless shift to the shared `credentials.db` default so every facade persists credentials in the same file
+without opaque fallbacks. Success means:
+- Persistence factory + infra code always pick `credentials.db` unless a custom path is supplied (FR-027-02).
+- CLI/REST/UI copy, help text, and tests reference the shared default (FR-027-03).
+- Governance artefacts + how-to guides highlight the manual migration requirement, with no lingering legacy filenames (FR-027-01/04).
+- Regression suite `./gradlew --no-daemon :infra-persistence:test :cli:test :rest-api:test spotlessApply check` remains green.
 
-## Current Context
-- Prior to this work, REST and the OCRA CLI defaulted to `ocra-credentials.db` while other CLIs used protocol-specific filenames, forcing operators to reconcile paths manually.
-- Documentation and knowledge artefacts assume the OCRA-specific filename for cross-facade sharing.
-- Operators with pre-populated OCRA/TOTP/HOTP/FIDO2 stores must now rename or explicitly configure their database paths; no automated migration is provided.
+## Scope Alignment
+- **In scope:** Persistence factory logic, CLI/REST configuration defaults, documentation updates (roadmap, knowledge map, how-to, release notes), session snapshot, migration guidance.
+- **Out of scope:** Schema changes, automatic file migration, encryption, or telemetry format changes.
 
-## Increment Breakdown (≤30 minutes each)
-1. **I1 – Documentation & governance sync**
-   - Update the roadmap, knowledge map, and current-session snapshot to reference Feature 027.
-   - Capture the resolved clarification (new default name) in the specification and open-questions log.
-   - Ensure the feature tasks checklist mirrors this plan.
-   - _2025-10-18 – Completed: spec/plan/tasks created, roadmap/knowledge map/current-session updated, clarification logged._
+## Dependencies & Interfaces
+- `infra-persistence` (`CredentialStoreFactory`) and consumers in application/REST/CLI modules.
+- CLI help generators and REST configuration beans referencing default paths.
+- Documentation stack (`docs/2-how-to`, roadmap, knowledge map, session snapshot).
 
-2. **I2 – Persistence factory update**
-   - Update `CredentialStoreFactory.resolveDatabasePath` to always return `credentials.db` when no explicit path is provided.
-   - Remove legacy filename probing and related telemetry/logging.
-   - Refresh `CredentialStoreFactoryTest` coverage to assert the simplified behaviour.
-   - _2025-10-19 – Completed: factory now returns `credentials.db` by default with no legacy probes; tests updated accordingly._
+## Assumptions & Risks
+- **Assumptions:** Operators can manually rename/relocate legacy `*-credentials.db` files; existing MapDB schema stays compatible.
+- **Risks:**
+  - Operators miss the manual migration guidance → Mitigate via docs + startup log reminder.
+  - Tests continue referencing legacy filenames → Mitigate by auditing all modules after factory change (Increment I3).
 
-3. **I3 – Facade defaults & tests**
-   - Replace default filename constants in CLI modules and REST configuration with the unified name.
-   - Update CLI help text, REST tests, Selenium scenarios, and docs referencing the old filenames.
-   - Run targeted module tests plus `./gradlew spotlessApply check`, then capture rollout guidance in docs/2-how-to.
-   - _2025-10-18 – Completed: CLI/REST defaults updated, targeted CLI/REST/Selenium suites rerun; full `spotlessApply check` scheduled post-doc refresh._
+## Implementation Drift Gate
+- Evidence bundle (captured 2025-10-29):
+  - `CredentialStoreFactoryTest` diff proving deterministic default.
+  - CLI/REST/Selenium screenshots/logs showing `credentials.db` references only.
+  - Docs (how-to, roadmap, knowledge map, session snapshot) mentioning manual migration.
+  - Verification log for `./gradlew --no-daemon :infra-persistence:test :cli:test :rest-api:test spotlessApply check`.
+- Gate remains satisfied; rerun if persistence strategy changes again.
 
-4. **I4 – Migration guidance**
-   - Document manual migration guidance (rename legacy files or set explicit paths) in `docs/2-how-to/configure-persistence-profiles.md` and related guides.
-   - Note the change in release/roadmap documentation and update telemetry guidance if logging changed.
-   - _2025-10-19 – Completed: how-to guides, roadmap, and spec now instruct operators to migrate legacy files manually; fallback language removed._
+## Increment Map
+1. **I1 – Governance & documentation sync (S-027-01, S-027-04)**
+   - Update roadmap, knowledge map, current-session, and spec clarifications with the unified filename.
+   - Commands: documentation edits + `./gradlew --no-daemon spotlessApply check`.
+   - Status: Completed 2025-10-18.
+2. **I2 – Persistence factory simplification (S-027-02)**
+   - Update `CredentialStoreFactory.resolveDatabasePath` to always return `credentials.db`; delete legacy detection logic.
+   - Refresh `CredentialStoreFactoryTest` coverage.
+   - Commands: `./gradlew --no-daemon :infra-persistence:test :application:test`.
+   - Status: Completed 2025-10-19.
+3. **I3 – Facade defaults & regression tests (S-027-03)**
+   - Replace CLI/REST constants, help text, and tests; sync Selenium expectations.
+   - Commands: `./gradlew --no-daemon :cli:test`, `./gradlew --no-daemon :rest-api:test`, Selenium suites, `./gradlew --no-daemon spotlessApply check`.
+   - Status: Completed 2025-10-19.
+4. **I4 – Migration guidance & release notes (S-027-04)**
+   - Update how-to guides, release notes, and roadmap entries with manual migration steps.
+   - Commands: documentation edits + `./gradlew --no-daemon spotlessApply check`.
+   - Status: Completed 2025-10-19.
 
-## Dependencies
-- `infra-persistence` module for the shared factory logic.
-- CLI and REST modules consuming the factory.
-- Documentation stack under `docs/`.
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-027-01 | I1 / T-027-01 | Governance artefacts updated.
+| S-027-02 | I2 / T-027-02 | Persistence factory + tests.
+| S-027-03 | I3 / T-027-03 | CLI/REST/UI defaults + regression suite.
+| S-027-04 | I1, I4 / T-027-04 | Documentation/how-to guidance.
 
-## Risks & Mitigations
-- **Risk:** Operators might forget to migrate legacy `*-credentials.db` files and assume they are still loaded automatically.  
-  **Mitigation:** Highlight the manual migration requirement across docs and CLI/REST startup logs when the unified default is created.
-- **Risk:** Hard-coded tests assume legacy filenames.  
-  **Mitigation:** Inventory and update tests across modules in Increment I3.
+## Analysis Gate
+- Completed 2025-10-18 once clarifications and governance updates landed.
+- No re-run required unless another persistence change is proposed.
 
-## Validation
-- Execute `./gradlew --no-daemon :infra-persistence:test :cli:test :rest-api:test spotlessApply check`.
-- Manual smoke test: launch CLI/REST without explicit database path to confirm the new default file is created and reused after restart; repeat with a legacy file by explicitly pointing the configuration at it to verify manual migration guidance.
+## Exit Criteria
+- FR-027-01…FR-027-04 satisfied with code/tests/docs evidence.
+- Regression suite (`./gradlew --no-daemon :infra-persistence:test :cli:test :rest-api:test spotlessApply check`) executed and logged.
+- Roadmap/knowledge map/how-to/session snapshot reference only `credentials.db`.
+- Owner acknowledged manual migration guidance.
 
-## Completion Notes
-- 2025-10-19 – I1–I4 delivered factory updates, CLI/REST defaults, regression coverage, and documentation guidance; validation stack executed (`./gradlew --no-daemon :infra-persistence:test :cli:test :rest-api:test spotlessApply check`).
-- 2025-10-29 – Documentation artefacts (roadmap, knowledge map, how-to guides) verified in sync; plan closed with no outstanding increments.
+## Follow-ups / Backlog
+- None; future persistence enhancements (encryption, alternative stores) belong to new features.

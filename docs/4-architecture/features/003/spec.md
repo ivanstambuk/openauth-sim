@@ -1,119 +1,205 @@
-# Feature 003 – REST OCRA Evaluation Endpoint Specification
+# Feature 003 – REST OCRA Evaluation Endpoint
 
-_Status: Accepted_
-_Last updated: 2025-09-30_
+| Field | Value |
+|-------|-------|
+| Status | Complete |
+| Last updated | 2025-11-10 |
+| Owners | Ivan (project owner) |
+| Linked plan | `docs/4-architecture/features/003/plan.md` |
+| Linked tasks | `docs/4-architecture/features/003/tasks.md` |
+| Roadmap entry | #3 |
 
 ## Overview
-Expose the existing `OcraResponseCalculator` via the Spring Boot REST facade so automated clients can compute RFC 6287-compliant one-time passcodes using synchronous HTTP requests. The endpoint must remain session-aware, redacting all sensitive material while emitting structured telemetry for operations teams.
+Expose the existing `OcraResponseCalculator` via the `rest-api` Spring Boot facade so automated clients can compute RFC 6287-compliant OTPs with a synchronous HTTP POST. The endpoint must accept all inline inputs (suite, shared secret, optional counter/challenge/session/pin/timestamp fields), redact secrets in responses and telemetry, and keep OpenAPI snapshots aligned for downstream automation.
 
+## Clarifications
+- 2025-09-28 – Option A: maintain a dedicated REST feature (spec/plan/tasks) instead of extending Feature 001 so facade changes remain isolated.
+- 2025-09-28 – Endpoint path fixed at `POST /api/v1/ocra/evaluate`; responses return a JSON payload containing the OTP and metadata. No async orchestration required for this scope.
+- 2025-09-28 – Input scope limited to inline payloads; persistence-backed credential lookup deferred to future workstreams.
+- 2025-09-28 – Spring Boot 3.3.4 baseline adopted with SpringDoc OpenAPI starter; dependency locks refreshed (Mockito, ByteBuddy, Caffeine, json-smart, jspecify).
+- 2025-09-28 – SpringDoc Option A approved to generate `/v3/api-docs` artifacts; manual YAML editing stays a fallback if generation blocks the gate.
+- 2025-09-30 – Generated OpenAPI snapshots (JSON + YAML) stored under `docs/3-reference/rest-openapi.{json,yaml}` with snapshot tests guarding drift.
 
 ## Goals
-- Expose OCRA evaluation over REST with proper request/response schemas, validation, and telemetry redaction.
-- Provide deterministic OpenAPI documentation and contract tests for the new endpoint.
+- Provide a synchronous REST endpoint that mirrors the CLI/core OCRA evaluation semantics.
+- Deliver exhaustive validation + telemetry for inline inputs without leaking secret material.
+- Keep OpenAPI documentation, knowledge map references, and operator how-to guides in sync with the controller contract.
 
 ## Non-Goals
-- Does not cover replay/validation flows (handled in Feature 009).
-- Does not include UI work beyond the REST contract.
+- Replay/validation flows (Feature 009) and persistence-backed credential lookup.
+- UI/operator-console wiring beyond referencing the REST endpoint in docs.
+- Authentication, authorization, rate limiting, or async/batch interfaces (future features).
+
+## Functional Requirements
+
+### FR1 – Synchronous OCRA evaluation (`S03-01`)
+- **Requirement:** Implement `POST /api/v1/ocra/evaluate` that accepts suite, sharedSecretHex, optional counter/challenges/session/pin/timestamp fields, and returns the computed OTP with metadata.
+- **Success path:** Valid payload returns HTTP 200 with `{otp,suite,telemetryId}`; OTP matches `OcraResponseCalculator` fixtures across S064/S128/S256/S512 suites.
+- **Validation path:** Missing required fields or malformed payloads route to FR2 error handling.
+- **Failure path:** Calculator errors (unexpected) map to HTTP 500 with sanitized diagnostics.
+- **Telemetry & traces:** `rest.ocra.evaluate` event captures `suite`, `hasSessionPayload`, `status`, `durationMillis` while redacting secrets.
+- **Source:** Feature directive + clarifications dated 2025-09-28.
+
+### FR2 – Validation & error responses (`S03-02`, `S03-05`)
+- **Requirement:** Enforce suite-specific validation (hex constraints, counter non-negativity, timestamp drift, PIN hashes) and return structured errors with `reasonCode`.
+- **Success path:** Inputs meeting validation proceed to FR1.
+- **Validation path:** HTTP 400 with `{error,message,details{field,reason}}`; reason codes include `session_required`, `session_not_permitted`, `challenge_length`, `challenge_format`, `counter_required`, `counter_negative`, `not_hexadecimal`, `invalid_hex_length`, `timestamp_drift_exceeded`, `timestamp_invalid`, `timestamp_not_permitted`, `pin_hash_required`, `pin_hash_not_permitted`, `pin_hash_mismatch`.
+- **Failure path:** Schema-level errors (malformed JSON) produce HTTP 400 with `error=invalid_json`.
+- **Telemetry & traces:** Validation failures emit `rest.ocra.evaluate` events with `status=FAILED`, `reasonCode`, `sanitized=true`.
+- **Source:** Clarifications + tests T0302–T0306.
+
+### FR3 – Telemetry & logging (`S03-03`)
+- **Requirement:** Emit structured telemetry/logging that adheres to constitution redaction rules for both success and failure paths.
+- **Success path:** Telemetry frames include `suite`, `hasSessionPayload`, `hasClientChallenge`, `hasServerChallenge`, `hasPin`, `hasTimestamp`, `status`, `durationMillis`, `reasonCode` (optional), `sanitized=true`.
+- **Validation path:** Log capture tests assert secrets never appear; attempts to log raw hex fail CI.
+- **Failure path:** Missing telemetry fields block builds via contract tests.
+- **Source:** Telemetry expectations + plan success criteria.
+
+### FR4 – OpenAPI documentation (`S03-04`)
+- **Requirement:** Keep JSON + YAML OpenAPI snapshots aligned with the controller and guard them via snapshot tests.
+- **Success path:** `OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests OpenApiSnapshotTest` regenerates artifacts, snapshot tests fail on unreviewed drift.
+- **Validation path:** PRs touching REST contracts must run the snapshot test and update docs.
+- **Failure path:** Snapshot mismatch breaks CI until artifacts updated intentionally.
+- **Telemetry & traces:** n/a (documentation asset).
+- **Source:** Clarifications 2025-09-28 to 2025-09-30.
+
+### FR5 – Operator documentation & tooling parity (`S03-06`)
+- **Requirement:** Update operator how-to guides, knowledge map, and telemetry docs to describe the REST endpoint, example payloads, and Swagger UI usage.
+- **Success path:** Docs list sample cURL commands, Telemetry fields, and instructions for accessing `/swagger-ui.html`.
+- **Validation path:** `rg` checks confirm doc updates referencing `rest.ocra.evaluate` after code changes.
+- **Failure path:** Missing doc sync noted in plan/tasks; feature cannot close until updated.
+- **Telemetry & traces:** Documented string `rest.ocra.evaluate` reused by monitoring.
+- **Source:** Plan timeline entries R005–R012.
+
+## Non-Functional Requirements
+
+### NFR1 – Response time (`NFR-REST-001`)
+- **Requirement:** P95 ≤ 50 ms under local execution; synchronous handler only.
+- **Driver:** Keep REST facade responsive for operators/automation.
+- **Measurement:** MockMvc + integration tests instrument latency assertions.
+- **Dependencies:** `OcraResponseCalculator`, Spring Boot 3.3.4.
+- **Source:** Spec table.
+
+### NFR2 – Security (`NFR-REST-002`)
+- **Requirement:** Reject invalid inputs, do not persist request payloads, and never log secrets.
+- **Driver:** Constitution redaction + operator safety.
+- **Measurement:** Tests capturing logs/telemetry to ensure `sanitized=true`; manual review of persistence layers (none for this feature).
+- **Source:** Spec table + telemetry expectations.
+
+### NFR3 – Compatibility (`NFR-REST-003`)
+- **Requirement:** Remain Java 17/Spring Boot 3.3.x compatible; reuse existing `rest-api` module conventions.
+- **Driver:** Keep workspace toolchain consistent.
+- **Measurement:** `./gradlew --no-daemon :rest-api:test spotlessApply check` passes with BOM-managed deps.
+- **Source:** Clarifications + plan dependency notes.
+
+### NFR4 – Observability (`NFR-REST-004`)
+- **Requirement:** Telemetry/logging adhere to redaction rules; tests confirm no secret leakage.
+- **Driver:** Support monitoring/auditing.
+- **Measurement:** Telemetry contract + log capture tests; knowledge map references updated.
+- **Source:** Spec table + telemetry expectations.
+
+## UI / Interaction Mock-ups
+```
+REST-only feature; refer to the API contract below for request/response examples.
+```
 
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
-| S03-01 | REST `/api/v1/ocra/evaluate` accepts inline secret payloads and returns RFC 6287 OTPs through synchronous JSON responses. |
-| S03-02 | Validation layer enforces suite, hex, counter, timestamp, and session requirements, returning structured errors with reason codes. |
-| S03-03 | Telemetry/logging emit `rest.ocra.evaluate` events with sanitized fields and duration metadata for success/failure paths. |
-| S03-04 | OpenAPI generation (JSON + YAML snapshots) stays aligned with the controller contract and is guarded by snapshot tests. |
-| S03-05 | Integration tests cover advanced validations (timestamp drift, PIN hashes, session payloads) to prevent regressions. |
-
-
-## Clarifications
-- 2025-09-28 – Adopt Option A: author dedicated REST-facing specification/plan/tasks instead of extending Feature 001 documents, keeping facade concerns isolated from the core credential domain plan.
-- 2025-09-28 – Endpoint will be implemented as a synchronous `POST` under `/api/v1/ocra/evaluate`, returning the computed OTP in the response payload. No long-polling or async job orchestration is required for this feature.
-- 2025-09-28 – The endpoint accepts hex-encoded secret material supplied per-request; persistence-backed credential lookup remains out of scope until a future task.
-- 2025-09-28 – Spring Boot 3.3.4 (`spring-boot-starter-web` and `spring-boot-starter-test`) introduced to the `rest-api` module with dependency locks refreshed to align shared tooling (Mockito, ByteBuddy, Caffeine, json-smart, jspecify).
-- 2025-09-28 – Adopt SpringDoc OpenAPI (Option A) to generate `/v3/api-docs` for REST surfaces; manual YAML authoring stays as a contingency plan if generation fails the analysis gate.
-- 2025-09-30 – Maintain generated OpenAPI snapshots in both JSON and YAML formats under `docs/3-reference/rest-openapi.json` and `docs/3-reference/rest-openapi.yaml`; tests must guard drift for each artifact.
-- 2025-09-28 – Controller validation tests (R003) will mirror current 404 behavior with TODOs referencing R004, keeping the build green while signalling future expectations.
-- 2025-09-28 – Authentication hardening deferred: endpoint remains internal-only with no additional auth layer; future security posture will rely on organizational controls rather than request-level checks.
-- 2025-09-28 – All hex-encoded fields (`sharedSecretHex`, `sessionHex`, `pinHashHex`, `timestampHex`) will be pre-validated for hexadecimal content and even length; failures return field-specific 400 responses with structured reason codes.
-- 2025-09-28 – Suites requiring counters must receive non-negative `counter` values; missing or invalid counters trigger explicit 400 responses rather than defaulting to zero.
-- 2025-09-28 – Telemetry hardening: structured log events gain `reasonCode` and `sanitized=true|false` attributes and continue to rely on WARN/ERROR levels for downstream alerting.
-- 2025-09-28 – Timestamp validation will reuse the descriptor-configured drift window from `OcraCredentialFactory.validateTimestamp` and surface `timestamp_drift_exceeded` when outside tolerance.
-- 2025-09-28 – Runtime PIN hash mismatches emit a dedicated `pin_hash_mismatch` reason code; REST pre-validation compares the supplied hash against descriptor expectations before invoking the calculator.
-- 2025-09-28 – Authentication/authorization is not required for this endpoint; treat the route as an internal operator surface with no additional auth layer.
-- 2025-09-28 – Rate limiting and similar operational throttles are out of scope; no request-rate safeguards will be added for this endpoint.
-
-## Objectives & Success Criteria
-- Provide a deterministic REST endpoint that accepts all runtime inputs required by session-enabled OCRA suites (challenge, client/server data, session payloads, timestamp, counter, PIN hash).
-- Guarantee responses redact shared secrets and echo only non-sensitive metadata (suite identifier, OTP, execution telemetry references).
-- Publish OpenAPI documentation and supporting markdown references so clients understand request/response formats and error semantics.
-
-## Functional Requirements
-| ID | Requirement | Acceptance Signal |
-|----|-------------|-------------------|
-| FR-REST-001 | Expose `POST /api/v1/ocra/evaluate` accepting suite, shared secret, and optional runtime parameters. | Valid requests using S064/S128/S256/S512 fixtures return HTTP 200 with the expected OTP values. |
-| FR-REST-002 | Validate inputs using the existing `OcraCredentialFactory` and reuse `OcraResponseCalculator`. | Invalid suites or malformed secrets produce HTTP 400 with descriptive, redacted error messages. |
-| FR-REST-005 | Reject malformed hex inputs, invalid counters, timestamp drift violations, and PIN hash mismatches before invoking the core calculator. | Requests with non-hex characters, odd-length hex, missing/negative counters, out-of-window timestamps, or PIN hash mismatches return HTTP 400 with field-specific `reasonCode` values (`timestamp_drift_exceeded`, `pin_hash_mismatch`, etc.). |
-| FR-REST-003 | Emit structured telemetry events (`rest.ocra.evaluate`) capturing status, suite, input flags, and duration without logging secrets. | Telemetry hook verified by unit/integration tests asserting redaction. |
-| FR-REST-004 | Document the endpoint in OpenAPI generation and `docs/2-how-to` so operators can exercise it. | `rest-api` module exposes updated OpenAPI spec (JSON & YAML snapshots) and docs reference the new route. |
-
-## Non-Functional Requirements
-| ID | Requirement | Target |
-|----|-------------|--------|
-| NFR-REST-001 | Response time | ≤50 ms at p95 under local execution; synchronous handler only. |
-| NFR-REST-002 | Security | Reject missing/invalid inputs; do not persist request payloads or secrets. |
-| NFR-REST-003 | Compatibility | Java 17, Spring Boot stack already available in `rest-api` module. |
-| NFR-REST-004 | Observability | Telemetry/logging adheres to constitution redaction rules; tests confirm no secret leakage. |
-
-## API Contract
-- **Request (application/json)**
-  ```json
-  {
-    "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
-    "sharedSecretHex": "3132333435363738393031323334353637383930313233343536373839303132",
-    "challenge": "SESSION01",
-    "sessionHex": "001122...",
-    "clientChallenge": "optional",
-    "serverChallenge": "optional",
-    "pinHashHex": "optional",
-    "timestampHex": "optional",
-    "counter": 0
-  }
-  ```
-- **Response (HTTP 200)**
-  ```json
-  {
-    "otp": "17477202",
-    "suite": "OCRA-1:HOTP-SHA256-8:QA08-S064",
-    "telemetryId": "rest-ocra-<uuid>"
-  }
-  ```
-- **Error (HTTP 400)**
-  ```json
-  {
-    "error": "invalid_input",
-    "message": "challenge must be 8 characters for QA08",
-    "details": {
-      "field": "challenge",
-      "reason": "length_mismatch"
-    }
-  }
-  ```
-
-## Telemetry Expectations
-- Emit a structured event with keys: `event=rest.ocra.evaluate`, `suite`, `hasSessionPayload`, `hasClientChallenge`, `hasServerChallenge`, `hasPin`, `hasTimestamp`, `status`, `durationMillis`.
-- Include additional attributes `reasonCode` (when applicable) and `sanitized` (boolean) so alerting rules can track redaction state.
-- Secrets (`sharedSecretHex`, full session payload, challenges) must never appear in logs/telemetry; tests enforce this via log capture.
-- Expected validation reason codes now include `session_required`, `session_not_permitted`, `challenge_length`, `challenge_format`, `counter_required`, `counter_negative`, `not_hexadecimal`, `invalid_hex_length`, `timestamp_drift_exceeded`, `timestamp_not_permitted`, `timestamp_invalid`, `pin_hash_mismatch`, `pin_hash_required`, and `pin_hash_not_permitted` (extend tests as new cases emerge).
+| S03-01 | REST `/api/v1/ocra/evaluate` accepts inline secret payloads and returns RFC 6287 OTPs via JSON responses. |
+| S03-02 | Validation layer enforces suite/hex/counter/timestamp/session requirements with structured errors. |
+| S03-03 | Telemetry/logging emit `rest.ocra.evaluate` events with sanitized fields for success/failure. |
+| S03-04 | OpenAPI generation (JSON + YAML) stays aligned with the controller contract and is snapshot-tested. |
+| S03-05 | Integration tests cover advanced validations (timestamp drift, PIN hashes, session payloads). |
+| S03-06 | Documentation/roadmap/how-to references cover configuration guidance and telemetry expectations. |
 
 ## Test Strategy
-- **Unit tests**: Validate request DTO parsing, rejection of malformed inputs, and telemetry emission using mocked logger/appender.
-- **Integration tests**: Spin up the Spring Boot test slice, issue HTTP requests covering S064/S128/S256/S512 vectors, and assert OTP parity with core fixtures plus field-specific validation errors and reason codes.
-- **Contract tests**: Ensure OpenAPI generation includes schema and examples; compare generated output against the saved JSON and YAML snapshots.
+- **Unit:** DTO validation, telemetry emission, and error mapping tests.
+- **Integration:** Spring Boot test slice hitting `POST /api/v1/ocra/evaluate` across RFC fixtures and validation failure cases.
+- **Contract:** Snapshot tests for JSON/YAML OpenAPI files.
+- **Docs:** `OPENAPI_SNAPSHOT_WRITE=true` workflow documented; how-to guide includes sample cURL commands.
 
-## Dependencies & Out of Scope
-- Reuses core OCRA factories/calculator; no changes to core module for this feature.
-- Adds `org.springdoc:springdoc-openapi-starter-webmvc-ui` to the REST facade so `/v3/api-docs` and Swagger UI stay aligned with implementation; rationale and approval recorded in Feature Plan 003 (R005).
-- Credential persistence lookup, authentication/authorization, and rate limiting remain out of scope.
-- Future async/batch evaluation endpoints will require separate specifications.
+## Interface & Contract Catalogue
 
-Update this document as new clarifications or constraints arise during implementation.
+### Domain Objects
+| ID | Description | Modules |
+|----|-------------|---------|
+| DO-003-01 | `OcraEvaluationRequest` DTO encapsulating suite + inline inputs with validation annotations. | rest-api |
+| DO-003-02 | `OcraEvaluationResponse` DTO returning `otp`, `suite`, `telemetryId`. | rest-api |
+| DO-003-03 | `ValidationErrorResponse` DTO with `error`, `message`, `details{field,reason}`. | rest-api |
+
+### API Routes / Services
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| API-003-01 | REST `POST /api/v1/ocra/evaluate` | Computes OTPs using `OcraResponseCalculator`. | Requires inline hex secrets; persistence lookup deferred.
+
+### CLI Commands / Flags
+| ID | Command | Behaviour |
+|----|---------|-----------|
+| — | n/a | CLI already covered by Feature 001; no new commands here. |
+
+### Telemetry Events
+| ID | Event name | Fields / Redaction rules |
+|----|-----------|---------------------------|
+| TE-003-01 | `rest.ocra.evaluate` | `suite`, `hasSessionPayload`, `hasClientChallenge`, `hasServerChallenge`, `hasPin`, `hasTimestamp`, `status`, `durationMillis`, `reasonCode`, `sanitized=true`. |
+
+### Fixtures & Sample Data
+| ID | Path | Purpose |
+|----|------|---------|
+| FX-003-01 | `rest-api/src/test/resources/http/ocra-evaluate/*.http` | Sample HTTP requests for integration tests. |
+| FX-003-02 | `docs/3-reference/rest-openapi.json` / `.yaml` | Snapshot of REST contracts. |
+
+### UI States
+| ID | State | Trigger / Expected outcome |
+|----|-------|---------------------------|
+| — | Not applicable | REST-only feature. |
+
+## Telemetry & Observability
+`rest.ocra.evaluate` events flow through `TelemetryContracts`, capturing sanitized booleans for each optional input. Log capture tests ensure no secrets leak. Operators correlate HTTP responses with telemetry via the returned `telemetryId`.
+
+## Documentation Deliverables
+- `docs/2-how-to/use-ocra-rest-operations.md` – sample payloads and Swagger UI instructions.
+- `docs/4-architecture/knowledge-map.md` – links REST facade to core OCRA services.
+- `docs/3-reference/rest-openapi.{json,yaml}` – contract artifacts with snapshot tests.
+
+## Fixtures & Sample Data
+- RFC 6287 vectors (shared with Feature 001) reused in integration tests.
+- HTTP request/response samples stored alongside tests.
+
+## Spec DSL
+```
+domain_objects:
+  - id: DO-003-01
+    name: OcraEvaluationRequest
+    fields:
+      - name: suite
+        type: string
+        constraints: "RFC 6287 suite"
+      - name: sharedSecretHex
+        type: string
+        constraints: uppercase hex, length >= 32
+  - id: DO-003-02
+    name: OcraEvaluationResponse
+    fields:
+      - name: otp
+        type: string
+routes:
+  - id: API-003-01
+    method: POST
+    path: /api/v1/ocra/evaluate
+telemetry_events:
+  - id: TE-003-01
+    event: rest.ocra.evaluate
+    fields:
+      - name: status
+        redaction: none
+fixtures:
+  - id: FX-003-02
+    path: docs/3-reference/rest-openapi.json
+ui_states: []
+```
+
+## Appendix
+- `docs/4-architecture/features/003/plan.md`
+- `docs/4-architecture/features/003/tasks.md`
+- `docs/3-reference/rest-openapi.{json,yaml}`

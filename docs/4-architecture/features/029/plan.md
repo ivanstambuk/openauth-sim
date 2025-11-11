@@ -1,65 +1,83 @@
 # Feature Plan 029 – PMD Rule Hardening
 
-_Linked specification:_ `docs/4-architecture/features/029/spec.md`  
-_Status:_ Planned  
-_Last updated:_ 2025-10-19
+| Field | Value |
+|-------|-------|
+| Status | Planned |
+| Last updated | 2025-11-10 |
+| Linked specification | `docs/4-architecture/features/029/spec.md` |
+| Linked tasks | `docs/4-architecture/features/029/tasks.md` |
 
 ## Vision & Success Criteria
-- Raise static-analysis coverage by enabling the agreed PMD error-prone, best-practice, and design rules without introducing excessive false positives.
-- Enforce `LawOfDemeter` for core domain and application service packages as a locality-of-behaviour guardrail while documenting sanctioned fluent interfaces.
-- Keep the build green by iteratively remediating violations, adding narrowly scoped exclusions, and ensuring `./gradlew --no-daemon spotlessApply check` (including PMD) passes before closing the feature.
-
-## Scope Alignment
-- **In scope:** PMD configuration updates, per-module remediation required to satisfy the new rules, documentation updates (AGENTS, quality runbooks), and telemetry around rule adoption if needed.
-- **Out of scope:** Introducing additional static-analysis tools, rewriting architectural seams, or modifying dependency versions.
+- Expand PMD coverage with the approved rule set while keeping developer ergonomics acceptable.
+- Scope Law-of-Demeter enforcement to domain/service packages with a transparent whitelist.
+- Remediate violations across core, application, infra, CLI, REST, and UI modules without regressing `spotlessApply check`.
+- Publish contributor guidance so future agents understand how to run and remediate PMD findings.
 
 ## Dependencies & Interfaces
-- PMD configuration shared across modules via `config/pmd/ruleset.xml`.
-- Potential Gradle wiring adjustments (ensuring `pmdMain`/`pmdTest` include the new rule files or exclude patterns).
-- Law-of-Demeter whitelist resource (new file under `config/pmd/`) consumed by the PMD plugin.
-- Documentation touchpoints: `AGENTS.md`, `docs/5-operations/analysis-gate-checklist.md`, and any contributor how-to guides referencing lint workflows.
+- PMD plugin configured via Gradle 8.10+ and `config/pmd/ruleset.xml`.
+- Shared documentation touchpoints: `AGENTS.md`, `docs/5-operations/analysis-gate-checklist.md`, and knowledge map.
+- Potential coordination with parallel features editing the same modules (record conflicts in roadmap/current-session).
 
-## Increment Breakdown (≤30 minutes each)
-1. **I1 – PMD 7 upgrade baseline**  
-   - Bump the PMD toolVersion in `gradle/libs.versions.toml` / `build.gradle.kts` and verify Gradle compatibility (PMD 7 requires Gradle ≥8.6; workspace currently uses 8.10).  
-   - Run `./gradlew --no-daemon pmdMain pmdTest` to capture migration fallout (rule name changes, reporting format shifts) before enabling additional rules.  
-   - Document CLI/reporting/property changes surfaced by PMD 7 so downstream increments can address them deliberately.  
-   - _2025-10-19 – Updated PMD to 7.17.0, refreshed dependency locks via `--write-locks`, and captured baseline failures (`AssignmentInOperand`) across `MaintenanceCli`, core `CborDecoder`/`SimpleJson`, and `OcraReplayVerifierBenchmark`; reports located under the module `build/reports/pmd/` directories. Follow-up cleanup removed the flagged increments and PMD now passes (`./gradlew --no-daemon pmdMain pmdTest`)._
+## Implementation Drift Gate
+- Run after tasks T2901–T2908 complete with a green `./gradlew spotlessApply check`.
+- Evidence package stored in this plan:
+  - Table mapping FR29-01…FR29-05 to code/test references (rule files, whitelist resources, remediation PRs).
+  - Screenshot or log excerpt from `pmdMain` showing zero violations post-remediation.
+  - Excerpt of contributor docs referencing new workflow.
+  - Summary of intentional exclude patterns with rationale.
 
-2. **I2 – Governance sync & baseline capture**  
-   - Create spec/plan/tasks artefacts, add a roadmap entry, and refresh `docs/_current-session.md`.  
-   - Record the Law-of-Demeter heuristic directive under clarifications.  
-   - _2025-10-19 – Started: spec/plan/tasks preparation underway; roadmap/session updates pending._
+## Increment Map
+0. **I0 – PMD 7 upgrade baseline (T2901)**  
+   - Upgrade toolVersion, refresh dependency locks, archive baseline reports.  
+   - Commands: `./gradlew --no-daemon --write-locks pmdMain pmdTest`.
+1. **I1 – Governance sync (T2902)**  
+   - Finalise spec/plan/tasks, roadmap entry, `_current-session` update.  
+   - Commands: documentation only.
+2. **I2 – Ruleset expansion & dry run (T2903)**  
+   - Append rules to `config/pmd/ruleset.xml`, run PMD, log findings.  
+   - Commands: `./gradlew --no-daemon pmdMain pmdTest`.
+3. **I3 – Law-of-Demeter scoping (T2904)**  
+   - Add whitelist resource, restrict enforcement, verify targeted packages.  
+   - Commands: `./gradlew --no-daemon pmdMain`.
+4. **I4 – Domain remediation (T2905)**  
+   - Fix violations in `core/` + `core-ocra/`, add tests, note exclusions.  
+   - Commands: `./gradlew --no-daemon :core:test :core-ocra:test pmdMain`.
+5. **I5 – Service/facade remediation (T2906)**  
+   - Address findings in `application/`, `infra-persistence/`, `cli/`, `rest-api/`, `ui/`.  
+   - Commands: `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain`.
+6. **I6 – Documentation & governance (T2907)**  
+   - Update AGENTS/runbooks/knowledge map with PMD guidance.  
+   - Commands: documentation + `./gradlew --no-daemon spotlessApply check`.
+7. **I7 – Quality gate closure (T2908)**  
+   - Run full Gradle gate, archive drift-gate evidence, close tasks.  
+   - Commands: `./gradlew --no-daemon spotlessApply check`.
 
-3. **I3 – Ruleset expansion & dry run**  
-  - Append the targeted rule references (including `category/java/bestpractices.xml/NonExhaustiveSwitch`) to `config/pmd/ruleset.xml`.  
-  - Run `./gradlew --no-daemon pmdMain pmdTest` across the full codebase to capture baseline violations and log them in the plan/tasks for follow-up.  
-  - _2025-10-19 – Dry run executed by temporarily adding `NonExhaustiveSwitch`; `./gradlew --no-daemon pmdMain pmdTest` completed with zero violations reported across all modules._  
-  - _2025-10-19 – Rule enabled permanently; both `./gradlew --no-daemon pmdMain pmdTest` and `./gradlew --no-daemon spotlessApply check` remain green._
+## Scenario Tracking
+| Scenario ID | Increment reference | Notes |
+|-------------|--------------------|-------|
+| S29-01 | I0 | PMD 7 upgrade baseline reports archived. |
+| S29-02 | I2 | Ruleset expansion logged with zero-config failures. |
+| S29-03 | I3 | Law-of-Demeter whitelist enforced. |
+| S29-04 | I4 | Core/domain violations remediated. |
+| S29-05 | I5 | Service/facade remediation complete. |
+| S29-06 | I6–I7 | Documentation + quality gates updated. |
 
-4. **I4 – Law-of-Demeter scoping**  
-   - Introduce a dedicated whitelist resource (e.g., `config/pmd/law-of-demeter-excludes.txt`) referenced via `<exclude-pattern>`.  
-   - Limit enforcement to domain/service packages and document the rationale in the plan.  
-   - Run PMD to confirm only intended packages are evaluated.
+## Quality & Tooling Gates
+- Every increment concludes with `./gradlew --no-daemon spotlessApply check`.
+- Spotless uses Palantir Java Format 2.78.0; rerun after rule changes that touch Java sources.
+- Document each executed PMD command inside the tasks verification log.
+- Keep PMD reports under version control only when referenced in docs; otherwise, share paths.
 
-5. **I5 – Domain module remediation**  
-   - Resolve violations across `core/`, `core-ocra/`, and related domain packages, extracting helpers or simplifying call chains as needed.  
-   - Add targeted unit tests where behaviour changes to ensure coverage.  
-   - Commands: `./gradlew --no-daemon :core:test`, `./gradlew --no-daemon :core-ocra:test`, plus module-specific PMD tasks if needed.
+## Analysis Gate
+- Execute once I7 finishes. Checklist: PMD + spotless green, clarifications resolved, roadmap/current-session updated, evidence archived.
 
-6. **I6 – Service/facade remediation**  
-   - Address rule findings in `application/`, `infra-persistence/`, and facade modules (`cli/`, `rest-api/`, `ui/`).  
-   - Ensure fluent APIs remain whitelisted; extend exclude patterns only with justification noted in tasks.  
-   - Commands: `./gradlew --no-daemon :application:test`, `:rest-api:test`, `:cli:test`, `:ui:test` (if applicable).
+## Exit Criteria
+- FR29-01…FR29-05 satisfied with corresponding documentation.
+- `config/pmd/ruleset.xml` + whitelist resources committed with rationale.
+- All targeted modules pass PMD + unit tests; no outstanding violations.
+- Knowledge map/roadmap updated, tasks checklist fully checked.
 
-7. **I7 – Documentation & governance updates**  
-   - Update `AGENTS.md`, runbooks, and the analysis gate checklist with guidance on the new PMD rules and Law-of-Demeter interpretation.  
-   - Reflect rule coverage in the knowledge map if new quality automation relationships emerge.
-
-8. **I8 – Quality gate & closure**  
-   - Execute `./gradlew --no-daemon spotlessApply check` to verify a green build.  
-  - Close feature artefacts (tasks checklist, current-session entry) and summarise outcomes in the roadmap.
-
-## Dependencies
-- Requires existing Gradle PMD plugin configuration.  
-- Potential cross-team coordination if violations intersect with in-progress features (communicate via roadmap/tasks).
+## Follow-ups / Backlog
+- Monitor PMD runtime; consider per-module task parallelism if CI impact grows.
+- Evaluate introducing mutation tests for Law-of-Demeter helper rules.
+- Track additional PMD categories (security rules) for future features.

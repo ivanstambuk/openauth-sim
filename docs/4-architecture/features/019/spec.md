@@ -1,76 +1,149 @@
 # Feature 019 – Commit Message Hook Refactor
 
-_Status: Complete_
-_Last updated: 2025-10-04_
+| Field | Value |
+|-------|-------|
+| Status | Complete |
+| Last updated | 2025-11-10 |
+| Owners | Ivan (project owner) |
+| Linked plan | `docs/4-architecture/features/019/plan.md` |
+| Linked tasks | `docs/4-architecture/features/019/tasks.md` |
+| Roadmap entry | #11 – Governance & Workflow Automation |
 
 ## Overview
-The current pre-commit hook executes `gitlint` by reading `.git/COMMIT_EDITMSG`. This fails whenever commits are prepared outside the default Git flow (e.g., hosted editors that supply the commit message through arguments). This feature relocates commit message linting to a dedicated `commit-msg` hook so Git provides the message file path directly, keeping pre-commit focused on staged-content validation while preserving existing quality gates (gitleaks, Gradle formatting, targeted tests, and `check`).
-
-
-## Goals
-- Refactor the managed commit-msg hook to enforce conventional commits and gitlint checks reliably.
-- Document hook installation/usage so contributors stay compliant.
-
-## Non-Goals
-- Does not change repository history or rewrite past commits.
-- Does not add new commit policies beyond the ones documented.
-
+Move gitlint enforcement from the pre-commit hook to a dedicated `commit-msg` hook so Git always supplies the commit
+message path, keep pre-commit focused on staged-content checks (Spotless, targeted tests, gitleaks), and document the
+hook responsibilities plus CI coverage. The refactor also adds reliable Spotless stale-cache recovery, Gradle
+configuration-cache warming, and a repository-level `.gitlint` profile enforced locally and in CI.
 
 ## Clarifications
-- 2025-10-04 – Commit message linting must move to a `commit-msg` hook that Git invokes with the commit message file path (Option B from the clarification gate). The pre-commit hook should no longer read `.git/COMMIT_EDITMSG`.
-- 2025-10-04 – Adopt a repository `.gitlint` that enforces Conventional Commit titles, 100-character titles, and 120-character body lines.
-- 2025-10-04 – When Spotless reports a stale configuration cache during pre-commit, the hook should automatically remove `.gradle/configuration-cache` and retry once (Option A from follow-up clarification).
-- 2025-10-04 – CI must run gitlint with the repository configuration on pushes and pull requests.
-- 2025-10-04 – Spotless retry helper must match the exact stale-cache message and log retry success/failure.
-- 2025-10-04 – Pre-commit should warm the Gradle configuration cache once per run before other tasks.
+- 2025-10-04 – Commit message linting must run inside `githooks/commit-msg` using the message-file argument that Git
+  passes; pre-commit may no longer read `.git/COMMIT_EDITMSG`.
+- 2025-10-04 – `.gitlint` enforces Conventional Commits, 100-character titles, and 120-character body lines.
+- 2025-10-04 – When Spotless surfaces the exact stale configuration-cache message, the hook clears
+  `.gradle/configuration-cache/` and retries the Gradle command once.
+- 2025-10-04 – Pre-commit must warm the Gradle configuration cache via
+  `./gradlew --no-daemon help --configuration-cache` (with the retry helper) before other Gradle tasks each run.
+- 2025-10-04 – CI must run gitlint with the repository configuration for pushes and pull requests.
 
-## Branch & Scenario Matrix
+## Goals
+- G-019-01 – Ensure commit message linting always runs (both locally and in CI) via the `commit-msg` hook + gitlint job.
+- G-019-02 – Improve pre-commit reliability by handling Spotless stale-cache errors and warming the configuration cache.
+- G-019-03 – Keep contributor/runbook documentation aligned with the hook architecture and prerequisites.
 
-| Scenario ID | Description / Expected outcome |
-|-------------|--------------------------------|
-| S19-01 | Commit message linting moves to `githooks/commit-msg` with gitlint enforcing Conventional Commits. |
-| S19-02 | Pre-commit hook focuses on staged-content checks, handles stale configuration cache retries, and warms the cache once per run. |
-| S19-03 | Documentation/runbooks/spec/plan capture the new hook architecture and gitlint policy. |
-| S19-04 | CI workflow runs gitlint using the repository configuration to enforce commit policy on pushes/PRs. |
+## Non-Goals
+- N-019-01 – Altering existing Gradle tasks executed by the pre-commit hook beyond cache warming/retry flow.
+- N-019-02 – Adding new linting rules beyond the documented `.gitlint` configuration.
+- N-019-03 – Changing repository history or rewriting previous commit messages.
 
 ## Functional Requirements
-| ID | Requirement | Acceptance Signal |
-|----|-------------|-------------------|
-| CMH-001 | Provide a `githooks/commit-msg` script that runs `gitlint` against the message file argument Git supplies. | Running `GIT_PARAMS=.git/COMMIT_EDITMSG githooks/commit-msg .git/COMMIT_EDITMSG` succeeds when `gitlint` passes and fails when lint rules are violated. |
-| CMH-002 | Update the pre-commit hook to drop the dependency on `.git/COMMIT_EDITMSG` while retaining gitleaks, Gradle formatting, targeted tests, and `check`. | Executing `githooks/pre-commit` on staged changes no longer shells out to `gitlint` yet still runs the remaining stages. |
-| CMH-003 | Document the new hook architecture so contributors know `gitlint` now fires during the `commit-msg` stage. | Contributor runbooks reference the `commit-msg` hook for message linting and no longer instruct developers to rely on `.git/COMMIT_EDITMSG`. |
-| CMH-004 | Handle Spotless stale cache errors by clearing `.gradle/configuration-cache` once and rerunning the failed Gradle command inside the pre-commit hook. | Triggering the stale-cache message during a hook run removes the cache, reruns the Gradle task, and succeeds without manual intervention. |
-| CMH-005 | Provide a version-controlled `.gitlint` that aligns with Conventional Commit rules (title ≤300 chars, body ≤120 chars, minimum body length 20, enforced allowed types, project forbidden words). | `gitlint --staged` uses the repo config and fails when commits break the policy; documentation references the enforced types and limits. |
-| CMH-006 | Ensure CI runs gitlint using the repository configuration for pushes and pull requests. | CI workflow includes a gitlint job that fails when commits violate `.gitlint`. |
-| CMH-004B | Restrict Spotless cache clearing to exact stale-cache messages and log retry outcomes. | Pre-commit hook only clears cache when the failure line matches exactly and logs success/failure. |
-| CMH-004C | Warm the Gradle configuration cache once per pre-commit invocation. | Pre-commit runs `./gradlew --no-daemon help --configuration-cache` (with retry guard) before other Gradle tasks. |
+| ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
+|----|-------------|--------------|-----------------|--------------|--------------------|--------|
+| FR-019-01 | Implement `githooks/commit-msg` that runs `gitlint` against the commit message file passed by Git. | Running `githooks/commit-msg .git/COMMIT_EDITMSG` enforces `.gitlint` rules and exits 0/1 appropriately. | Manual invocation with good/bad fixtures confirms behaviour; hook logs the lint command. | Non-compliant commit messages block commits with gitlint output. | n/a | Clarifications 2025-10-04. |
+| FR-019-02 | Update `githooks/pre-commit` to remove gitlint usage, focus on staged-content checks, and keep existing gitleaks/Gradle/test steps. | Pre-commit no longer touches `.git/COMMIT_EDITMSG` and still runs the expected toolchain. | Dry-run `git commit` triggers pre-commit and shows the new sequence. | Missing steps cause automation to fail or skip required checks. | n/a | Clarifications 2025-10-04. |
+| FR-019-03 | Add Spotless stale-cache retry logic that clears `.gradle/configuration-cache` once per failure and logs success/failure. | Hook detects the exact stale-cache message, deletes cache, reruns command, and succeeds. | Stub Gradle wrapper to emit the stale-cache message; verify log entries. | If retry also fails, hook exits non-zero with logged failure. | n/a | Clarifications 2025-10-04. |
+| FR-019-04 | Warm the Gradle configuration cache once per pre-commit run before other tasks. | Hook executes `./gradlew --no-daemon help --configuration-cache` (with retry) and logs completion. | Inspect hook output/log; rerun ensures warm step skipped/reported once. | Missing warm step flagged during hook review. | n/a | Clarifications 2025-10-04. |
+| FR-019-05 | Add repository `.gitlint` file documenting Conventional Commit policy and line-length limits. | `.gitlint` exists at repo root; gitlint uses it automatically. | `gitlint --msg-filename sample` passes/fails as expected. | Absence of file or wrong config fails hook/CI. | n/a | Clarifications 2025-10-04. |
+| FR-019-06 | CI workflow runs gitlint with the repository config on pushes/PRs. | GitHub workflow includes gitlint job referencing `.gitlint`. | Break CI with invalid commit to observe failure. | Missing job allows non-compliant commits to pass review. | n/a | Clarifications 2025-10-04. |
+| FR-019-07 | Update documentation (AGENTS, runbooks, spec/plan/tasks) to describe hook responsibilities, prerequisites, and verification steps. | Docs mention commit-msg hook, gitlint requirement, cache-warming behaviour, and CI enforcement. | Doc lint/spotless passes; contributors can follow instructions. | Missing documentation flagged during reviews. | n/a | Clarifications 2025-10-04. |
 
 ## Non-Functional Requirements
-| ID | Requirement | Target |
-|----|-------------|--------|
-| CMH-NFR-001 | Tooling parity | Local development and CI must both execute `gitlint` through the `commit-msg` hook without additional configuration. |
-| CMH-NFR-002 | Developer ergonomics | Hook runtimes remain within existing expectations (pre-commit <30s including Gradle tasks; commit-msg hook ≤2s with gitlint). |
+| ID | Requirement | Driver | Measurement | Dependencies | Source |
+|----|-------------|--------|-------------|--------------|--------|
+| NFR-019-01 | Tooling parity | Keep commit linting consistent between local hooks and CI. | Both commit-msg hook and CI gitlint job use `.gitlint`. | gitlint binary, CI workflow. | Clarifications 2025-10-04. |
+| NFR-019-02 | Developer ergonomics | Pre-commit runtime remains ≤30s; commit-msg hook completes ≤2s. | Manual measurements/logging within hooks. | Gradle wrapper, gitleaks, gitlint. | Clarifications 2025-10-04. |
+
+## UI / Interaction Mock-ups
+_Not applicable – hook-level change only._
+
+## Branch & Scenario Matrix
+| Scenario ID | Description / Expected outcome |
+|-------------|--------------------------------|
+| S-019-01 | Commit message linting runs through `commit-msg` with `.gitlint` rules. |
+| S-019-02 | Pre-commit hook handles cache warming, stale-cache retry, and staged-content checks without gitlint. |
+| S-019-03 | Documentation/runbooks/spec/plan/tasks explain the hook architecture and prerequisites. |
+| S-019-04 | CI enforces gitlint with the repository configuration. |
 
 ## Test Strategy
-- Before implementation, run the existing pre-commit hook in an environment where `.git/COMMIT_EDITMSG` is absent to reproduce the failure (optional sandbox observation).
-- After implementation, manually invoke `githooks/commit-msg` with a sample message file to observe both passing and failing scenarios.
-- Perform a dry-run `git commit` to confirm both pre-commit and commit-msg hooks trigger as expected.
+- **Hooks:** Manually invoke `githooks/commit-msg` with compliant/non-compliant fixtures; run `githooks/pre-commit` on a
+  staged change to validate cache warm + retry logic.
+- **CI:** Trigger workflow via test branch to ensure gitlint job runs and blocks invalid messages.
+- **Docs:** Run `./gradlew spotlessApply check` after doc changes to keep formatting and lint tools green.
 
-## Dependencies & Risks
-- Developers lacking `gitlint` will now encounter failures during the `commit-msg` stage; ensure guidance remains clear in runbooks.
-- Hosted Git providers executing commits server-side must be configured to run repository hooks if commit linting is required in CI.
+## Interface & Contract Catalogue
+### Domain Objects
+| ID | Description | Modules |
+|----|-------------|---------|
+| DO-019-01 | `CommitMsgHookConfig` – environment contract describing the gitlint command, message path, and `.gitlint` location. | githooks |
+| DO-019-02 | `PreCommitWorkflow` – ordered sequence of cache warm, Spotless retry guard, gitleaks, Gradle tasks, targeted tests. | githooks |
 
-## Out of Scope
-- Altering gitlint rule configuration or Gradle tasks executed by the pre-commit hook.
-- Introducing additional commit message validation beyond existing gitlint rules.
+### API Routes / Services
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| — | — | Hooks run locally; no external routes apply. | |
 
-## Verification
-- `./gradlew spotlessApply check` passes after hook adjustments.
-- Manual invocation of the new `commit-msg` hook demonstrates lint pass/fail scenarios.
-- Updated documentation merged alongside hook changes.
-- 2025-10-04 – `githooks/commit-msg /tmp/gitlint-pass.XSp1tL` passed while `/tmp/gitlint-fail.UaXqSh` failed as expected; `githooks/pre-commit` and `./gradlew --no-daemon spotlessApply check` both succeeded.
-- 2025-10-04 – Simulated Spotless stale-cache failure via stubbed `gradlew`; auto-retry cleared `.gradle/configuration-cache` and the hook succeeded.
-- 2025-10-04 – `.gitlint` config added with Conventional Commit enforcement; gitlint run passes on compliant commit message and fails on disallowed type.
-- 2025-10-04 – CI gitlint job added to workflow; failure observed on non-compliant commit and passes otherwise.
-- 2025-10-04 – Spotless retry helper now matches the exact stale-cache signature and logs outcome.
-- 2025-10-04 – Pre-commit warms configuration cache via `help --configuration-cache` before other tasks.
+### CLI Commands / Flags
+| ID | Command | Behaviour |
+|----|---------|-----------|
+| CLI-019-01 | `githooks/commit-msg <message-file>` | Executes gitlint using repository config, fails on invalid commit messages. |
+| CLI-019-02 | `githooks/pre-commit` | Warms Gradle cache, runs Spotless with retry, executes staged-content checks. |
+
+### Telemetry Events
+| ID | Event name | Fields / Redaction rules |
+|----|-----------|---------------------------|
+| — | — | No telemetry changes; hooks log locally. |
+
+### Fixtures & Sample Data
+| ID | Path | Purpose |
+|----|------|---------|
+| FX-019-01 | `/tmp/gitlint-pass.*`, `/tmp/gitlint-fail.*` (generated during validation) | Sample commit messages for hook/manual testing. |
+|
+### UI States
+| ID | State | Trigger / Expected outcome |
+|----|-------|---------------------------|
+| — | — | No UI impact. |
+
+## Telemetry & Observability
+- Hook scripts log cache warm, retry outcomes, and gitlint invocations to aid local diagnostics.
+- CI workflow logs gitlint job output for failed commits.
+
+## Documentation Deliverables
+- Update `AGENTS.md`, `docs/5-operations/runbook-session-reset.md`, and related runbooks to reference commit-msg hook,
+  cache warming, and gitlint prerequisites.
+- Note the changes in `docs/4-architecture/knowledge-map.md` and this feature’s plan/tasks.
+
+## Fixtures & Sample Data
+No repository fixtures added; validation uses disposable temp files.
+
+## Spec DSL
+```
+domain_objects:
+  - id: DO-019-01
+    name: CommitMsgHookConfig
+    fields:
+      - name: gitlintCommand
+        type: string
+      - name: messageFile
+        type: path
+      - name: gitlintConfig
+        type: path
+  - id: DO-019-02
+    name: PreCommitWorkflow
+    fields:
+      - name: steps
+        type: list<string>
+        constraints: [warm_cache, spotless_retry, gitleaks, gradle_check, targeted_tests]
+cli_commands:
+  - id: CLI-019-01
+    command: githooks/commit-msg
+  - id: CLI-019-02
+    command: githooks/pre-commit
+telemetry_events: []
+fixtures:
+  - id: FX-019-01
+    path: /tmp/gitlint-pass.*
+    purpose: hook validation
+ui_states: []
+```
+
+## Appendix
+_None._

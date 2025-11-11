@@ -1,130 +1,165 @@
 # Feature 023 – TOTP Operator Support
 
-_Status: Complete_
-_Last updated: 2025-10-18_
+| Field | Value |
+|-------|-------|
+| Status | Complete |
+| Last updated | 2025-11-10 |
+| Owners | Ivan (project owner) |
+| Linked plan | `docs/4-architecture/features/023/plan.md` |
+| Linked tasks | `docs/4-architecture/features/023/tasks.md` |
+| Roadmap entry | #3 – HOTP/TOTP Simulator & Tooling |
 
 ## Overview
-Deliver RFC 6238 TOTP capabilities across the simulator so operators can validate time-based one-time passwords alongside existing HOTP and OCRA flows. This feature introduces a TOTP domain model, shared persistence descriptors, application-layer services, CLI commands, REST endpoints, and operator console evaluation/replay experiences while keeping issuance out of scope for the initial release.
-
-
-## Goals
-- Introduce TOTP evaluation flows across REST, CLI, and UI with shared preview/telemetry behaviour.
-- Provide presets and fixtures covering multiple step sizes and hash algorithms.
-
-## Non-Goals
-- Does not change HOTP/OCRA beyond shared helpers.
-- Does not add replay/validation for TOTP (future work).
-
+Add RFC 6238 TOTP support across the simulator so operators can evaluate stored and inline TOTP credentials (plus replay)
+alongside existing HOTP/OCRA flows. Scope includes core domain, persistence descriptors, application services, CLI/REST
+facades, operator UI panels, shared fixtures, telemetry parity, and documentation. Issuance remains out of scope.
 
 ## Clarifications
-- 2025-10-08 – Kickoff delivers a single end-to-end slice spanning core domain, persistence, application services, CLI, REST API, and operator console UI (user directive; Option A selected).
-- 2025-10-08 – Support SHA-1, SHA-256, and SHA-512 algorithms, 6- and 8-digit codes, and configurable time-step durations (30 s and 60 s minimum) at launch (user directive; Option A selected).
-- 2025-10-08 – Persist TOTP credentials within the existing MapDB schema v1 alongside HOTP/OCRA entries (user directive; Option A selected).
-- 2025-10-08 – Evaluation flows expose configurable ± step drift windows and optional operator-supplied timestamp overrides to simulate clock skew (user directive; Option A selected).
-- 2025-10-08 – Initial scope remains evaluation/replay-only; issuance/enrollment UX is deferred to a future feature (user directive; Option B selected).
-- 2025-10-08 – CLI and Java application facades must launch alongside REST/UI surfaces to match HOTP/OCRA parity (user directive).
-- 2025-10-08 – TOTP evaluation telemetry emits through the shared `totp.evaluate` adapter, mirroring HOTP/OCRA telemetry patterns (worklog note).
-- 2025-10-08 – Facade integration will stage failing tests for CLI and REST in parallel increments before implementing the shared wiring (user confirmed Option B).
-- 2025-10-08 – Operator console documentation lives in `docs/2-how-to/use-totp-operator-ui.md`; roadmap and knowledge map now flag the TOTP panels as live (worklog note).
-- 2025-10-08 – TOTP replay tab must mirror HOTP/OCRA replay semantics via a dedicated `/api/v1/totp/replay` flow that performs non-mutating diagnostics while reusing evaluation logic where practical (user directive; Option A selected).
-- 2025-10-08 – Stored-mode hint copy shortens to “Validate a stored simulator credential (epoch-second timestamps).” (user selected Option A).
-- 2025-10-08 – Replay actions reuse the “Verify OTP” label + primary button styling to match HOTP/OCRA consoles (user directive).
-- 2025-10-08 – Operator console mode selectors present inline TOTP inputs before stored credential options to mirror HOTP/OCRA ordering (user directive; Option A selected).
-- 2025-10-08 – Inline TOTP parameter controls (algorithm, digits, step seconds) render on a single row for both evaluate and replay panels (user directive).
-- 2025-10-08 – Drift window inputs (backward/forward steps) display side-by-side across stored and inline evaluate/replay forms (user directive).
-- 2025-10-09 – Inline TOTP evaluate and replay panels must include a "Load a sample vector" preset control mirroring HOTP/OCRA; presets populate RFC 6238 sample secrets, timestamps, OTPs, and metadata (user directive; Option A selected).
-- 2025-10-09 – Stored-mode TOTP evaluations expose a `Seed sample credentials` control backed by a dedicated TOTP seeding endpoint; the button mirrors HOTP/OCRA behaviour and surfaces only within the evaluate tab’s stored mode (user directive; Option A selected).
-- 2025-10-09 – TOTP stored replay flows use a stored credential dropdown (labelled “Stored credential”) instead of a free-text identifier, matching HOTP/OCRA parity across evaluate/replay panels (user directive; Option A selected).
-- 2025-10-09 – Stored TOTP replay panels must include a “Load sample data” control fed by a backend sampler endpoint (`/api/v1/totp/credentials/{credentialId}/sample`) so the payload reflects canonical demo vectors (user directive; Option A selected).
-- 2025-10-09 – Position the stored replay “Load sample data” control directly below the “Stored credential” selector, matching the vertical spacing used by the OCRA panel (user directive).
-- 2025-10-15 – TOTP stored replay selections now auto-fill curated sample data immediately; the “Load sample data” button is removed so credential picks hydrate OTP/context without extra clicks (user chose option B).
-- 2025-10-09 – Canonical seeded TOTP credentials must satisfy algorithm-specific minimum secret lengths so `/api/v1/totp/credentials/{credentialId}/sample` succeeds for SHA-512 alongside SHA-1/SHA-256 presets (defect report; Option A selected).
-- 2025-10-11 – TOTP evaluate tabs must default the mode selector to “Inline parameters” (stored option selectable afterward) to preserve parity with HOTP/OCRA/FIDO2 evaluate panels (defect report; Option A selected).
-- 2025-10-11 – TOTP evaluate and replay inline preset controls must reuse the HOTP/OCRA spacing token (`stack-offset-top-lg`) so “Load a sample vector” retains matching vertical padding beneath the mode selector (user directive; Option A selected).
-- 2025-10-12 – Task T2346 will publish `docs/totp_validation_vectors.json`, translating RFC 6238 Appendix B examples into the shared JSON format so all facades load canonical TOTP fixtures; implementation is pending.
-- 2025-10-13 – T2346 scope confirmed: bundle includes RFC 6238 Appendix B timestamps for SHA-1/SHA-256/SHA-512 (8-digit outputs) plus curated 6-digit truncations; core/CLI/REST/UI layers must hydrate presets from the JSON loader instead of hard-coded vectors (worklog note; Option A selected).
-- 2025-10-13 – Task T2346 delivered the shared `totp_validation_vectors.json` catalogue, added `TotpJsonVectorFixtures`, and rewired core/CLI/REST/UI tests and presets to consume the loader while keeping the demo preset inline-only.
-- 2025-10-12 – Inline TOTP preset dropdown must expose RFC 6238 SHA-256 and SHA-512 vectors for 8-digit configurations (labelled with the RFC suffix), plus 6-digit truncations that use plain labels without additional qualifiers (user directive; Option A selected, label refinement).
-- 2025-10-13 – Evaluation result cards mirror HOTP/OCRA layout by showing the submitted OTP and status badge only; telemetry identifiers and drift metadata remain available via server logs rather than UI chrome (user directive; Option A selected).
-- 2025-10-13 – Stored credential seeding mirrors the inline preset catalogue (SHA-1/SHA-256/SHA-512 across 6- and 8-digit variants) so dropdown labels match the inline sample vector names (user directive; Option A selected).
-- 2025-10-13 – Operator console deep links standardise on `protocol=<key>`, `tab=<evaluate|replay>`, and `mode=<inline|stored>` parameters so TOTP URLs align with HOTP/OCRA/FIDO2 conventions (user directive; Option B selected).
-- 2025-10-13 – Selecting the TOTP protocol tab must always open the Evaluate tab in Inline mode, discarding prior tab/mode state to provide a consistent entry point (user directive).
-- 2025-10-18 – Stored-mode evaluation now generates the current OTP (respecting timestamp overrides) and returns it in the response/UI; the operator must not supply an OTP for evaluation (owner directive; supersedes 2025-10-08 validation guidance).
-- 2025-10-18 – Inline evaluation mirrors stored behaviour by generating the OTP from the provided parameters. Replay is the only flow that accepts operator-entered OTPs and reports match/mismatch outcomes (owner directive).
-- 2025-10-18 – Evaluation responses use `status=generated`, include the generated OTP, and emit telemetry without exposing secret material; replay retains its existing semantics (owner directive).
-- 2025-10-22 – Evaluation forms no longer render OTP input fields; generated codes surface exclusively in the ResultCard so TOTP mirrors HOTP/OCRA/FIDO2 UX (owner directive).
-- 2025-10-28 – Operator console TOTP panels adopt FIDO2-style “Use current Unix seconds” toggles (with “Reset to now” helpers) across evaluate/replay inline and stored modes; HOTP panels remain manual to avoid counter confusion (user approved Option A).
-- 2025-10-28 – Auto-filled timestamps quantise to the active TOTP step window before populating fields so generated OTPs align with time-step counters by default (user approved Option A).
+- 2025-10-08 – Launch delivers an end-to-end slice (core → application → CLI/REST/UI) in a single feature (Option A).
+- 2025-10-08 – Support SHA-1, SHA-256, SHA-512, 6/8 digits, and at least 30 s/60 s steps at launch (Option A).
+- 2025-10-08 – Reuse schema-v1 MapDB store; no new schema (Option A).
+- 2025-10-08 – Evaluation exposes ± step drift windows + timestamp overrides; replay uses `/api/v1/totp/replay` with
+  non-mutating diagnostics (Option A).
+- 2025-10-08 – CLI + Java facades ship alongside REST/UI surfaces.
+- 2025-10-08 – Telemetry emits via `totp.evaluate`/`totp.replay` adapters.
+- 2025-10-11 – Operator console Evaluate tab defaults to inline mode for TOTP; replay removes “Load sample data” button
+  in favour of auto-applied samples (user directives).
+- 2025-10-28 – TOTP panels include “Use current Unix seconds” toggles and “Reset to now” helpers quantised to the step size.
 
-## Branch & Scenario Matrix
+## Goals
+- G-023-01 – Provide deterministic TOTP evaluation/replay with telemetry parity across core/application/CLI/REST.
+- G-023-02 – Extend operator console with TOTP stored/inline/replay flows, presets, seeding, auto-fill helpers.
+- G-023-03 – Publish TOTP fixture catalogue + documentation updates.
 
-| Scenario ID | Description / Expected outcome |
-|-------------|--------------------------------|
-| S23-01 | Core TOTP domain and persistence descriptors share schema v1 with HOTP/OCRA while supporting SHA-1/256/512, multiple digit lengths, time steps, and drift windows. |
-| S23-02 | Application services and telemetry adapters manage stored/inline evaluate and replay flows with timestamp overrides, generated OTP responses, and sanitized events. |
-| S23-03 | CLI and REST facades expose TOTP evaluate/replay endpoints with drift/timestamp controls, replay diagnostics, OpenAPI snapshots, and regression tests. |
-| S23-04 | Operator console delivers stored/inline TOTP evaluate/replay panels, sample loaders, auto-fill timestamp toggles, and Selenium coverage aligned with HOTP/OCRA UX. |
-| S23-05 | Documentation, roadmap/knowledge map, and fixture catalogues capture TOTP availability, generation-first UX, and closing spotless/quality gates. |
+## Non-Goals
+- N-023-01 – Issuance/enrollment flows.
+- N-023-02 – New schema or data migrations.
+- N-023-03 – Non-RFC 6238 OTP variants.
 
 ## Functional Requirements
-| ID | Requirement | Acceptance Signal |
-|----|-------------|-------------------|
-| TOS-001 | Implement TOTP credential descriptors and generators complying with RFC 6238 (SHA-1/SHA-256/SHA-512, 6/8 digits, configurable step duration). | Core unit tests cover algorithm/digit combinations, rollover boundaries, and time-step conversions. |
-| TOS-002 | Store TOTP credentials in the existing schema v1 MapDB store without migrations, coexisting with HOTP/OCRA records. | Persistence integration tests confirm mixed credential types round-trip via `CredentialStoreFactory` and retain version markers. |
-| TOS-003 | Provide application-layer services that generate stored/inline TOTP codes (respecting drift and timestamp overrides) and expose validation hooks used by replay. | Application service tests verify generation payloads, invalid secret handling, drift boundary rejection, and telemetry status transitions (`generated`, `otp_out_of_window`). |
-| TOS-004 | Extend telemetry adapters (`TelemetryContracts`) for TOTP evaluation/replay events, mirroring naming conventions (`totp.evaluate`, `totp.replay`). | Telemetry unit tests assert emitted frames redact secrets and include algorithm/digit/window metadata. |
-| TOS-005 | Deliver CLI commands to import/list TOTP credentials and generate stored/inline codes with drift controls, while replay validates operator-supplied OTPs. | CLI integration tests (Picocli) demonstrate command help, successful generations (returning OTPs), and failure messaging for out-of-window replay checks. |
-| TOS-006 | Expose REST endpoints for stored (`POST /api/v1/totp/evaluate`) and inline (`POST /api/v1/totp/evaluate/inline`) generation plus replay (`POST /api/v1/totp/replay`), supporting drift and timestamp overrides. | MockMvc tests validate status codes, OTP payloads/status `generated`, OpenAPI snapshots, and non-mutating replay behaviour. |
-| TOS-007 | Update operator console UI with TOTP evaluation and replay panels (stored + inline) that integrate with REST endpoints, presets, and drift controls. | Selenium/system tests confirm panel rendering, preset behaviours, drift/timestamp inputs, and query-parameter deep links (`protocol=totp`). |
-| TOS-008 | Document TOTP usage (operator how-to, roadmap, knowledge map) and align placeholder messaging with live functionality. | Documentation diffs show updated instructions; lint (`./gradlew spotlessApply check`) passes after doc updates. |
-| TOS-009 | Provide a dedicated TOTP replay application/REST flow that mirrors HOTP/OCRA replay semantics, returning diagnostic metadata without mutating credential state. | Application + MockMvc tests assert telemetry, non-mutating behaviour, stored/inline replay handling, and error signalling. |
-| TOS-010 | Surface stored replay "Load sample data" controls backed by `/api/v1/totp/credentials/{credentialId}/sample`, emitting `totp.sample` telemetry and populating deterministic OTP/timestamp/drift inputs. | Application tests cover sampler output, MockMvc tests exercise the new endpoint, and Selenium coverage asserts UI form population plus status messaging. |
-| TOS-011 | Ensure canonical TOTP seed definitions honour algorithm-specific constraints (secret length, drift defaults) so stored sample payloads resolve for SHA-512 as well as SHA-1/SHA-256. | Regression tests (application + REST) invoke seeded SHA-512 credentials and receive deterministic sample responses without errors. |
+| ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
+|----|-------------|--------------|-----------------|--------------|--------------------|--------|
+| FR-023-01 | Implement RFC 6238 TOTP generator/validator across SHA-1/256/512, 6/8 digits, and configurable steps with drift windows. | Core tests with fixture catalogue pass; mutation/ArchUnit green. | Drift boundary tests ensure rejection when outside windows. | `:core:test` fails or drift logic incorrect. | `totp.evaluate` events sanitized via TelemetryContracts. | Clarifications. |
+| FR-023-02 | Persist TOTP credentials within schema-v1 MapDB with defaults (`SHA1`, `6`, `30s`, ±1 steps). | Integration tests mix HOTP/OCRA/TOTP descriptors. | CLI/REST evaluation updates counters/timestamps as expected. | Schema diff or migration required. | Telemetry includes credential hashes only. | Clarifications. |
+| FR-023-03 | Application services handle stored/inline evaluation, timestamp overrides, drift windows, replay (non-mutating), telemetry. | JUnit tests cover success/error paths, replay non-mutating. | Negative tests reject invalid inputs or drift. | Replay mutates counters or telemetry missing. | `totp.evaluate`/`totp.replay`. | Clarifications. |
+| FR-023-04 | CLI commands import/list/evaluate/replay TOTP credentials with drift/timestamp options. | Picocli tests assert outputs + telemetry, covering stored/inline/replay. | Invalid input tests produce descriptive errors. | CLI command fails or telemetry absent. | Telemetry parallels HOTP/OCRA. | Clarifications. |
+| FR-023-05 | REST endpoints (evaluate inline/stored, replay) expose schema + OpenAPI updates, accept drift/timestamp overrides, return OTP payloads. | MockMvc + OpenAPI tests pass; replay non-mutating. | Negative tests cover invalid drift, timestamp overrides. | REST tests fail or counters mutate. | `totp.evaluate`/`totp.replay`. | Clarifications. |
+| FR-023-06 | Operator console adds TOTP stored/inline/replay panels with presets, seeding, auto-fill toggles, inline-default Evaluate tab. | Selenium tests cover stored/inline/replay, seeding, timestamp controls, auto-applied samples. | Accessibility checks (aria roles, keyboard order). | UI missing flows or telemetry inconsistent. | Reuses REST telemetry. | Clarifications. |
+| FR-023-07 | Publish `docs/totp_validation_vectors.json` and shared loader; update CLI/REST/UI docs/how-to. | Fixture loader feeds tests/presets; docs reference vector IDs. | Missing vector causes tests/docs failures. | n/a | Clarifications. |
 
 ## Non-Functional Requirements
-| ID | Requirement | Acceptance Signal |
-|-----|-------------|-------------------|
-| TOS-NFR-001 | Maintain existing Jacoco (≥0.90 line / ≥0.90 branch) and PIT mutation thresholds after TOTP additions. | `./gradlew qualityGate` reports coverage ≥ thresholds across touched modules. |
-| TOS-NFR-002 | Ensure SpotBugs dead-state detectors (Feature 015) and reflection guardrails remain green across new code. | `./gradlew spotlessApply check` and the SpotBugs/ArchUnit suites run as part of the increment. |
-| TOS-NFR-003 | Keep operator UI accessible (ARIA labelling, keyboard navigation) for new controls. | Selenium accessibility assertions and axe-core scans pass on updated views. |
-| TOS-NFR-004 | Telemetry events must exclude shared secrets/OTP values while capturing context (algorithm, digits, step, drift window, timestamp override flag). | Telemetry tests assert field absence/presence; log sanitiser checks remain green. |
+| ID | Requirement | Driver | Measurement | Dependencies | Source |
+|----|-------------|--------|-------------|--------------|--------|
+| NFR-023-01 | Security | Secrets remain encrypted at rest; telemetry redacts OTP/secrets. | Tests + telemetry linting. | MapDB, TelemetryContracts. | Clarifications. |
+| NFR-023-02 | Compatibility | schema-v1 remains backward compatible; no migrations. | Legacy stores load successfully. | Persistence module. | Clarifications. |
+| NFR-023-03 | Quality | `./gradlew qualityGate` + `spotlessApply` stay green. | CI pipeline. | Gradle tooling. | Spec. |
 
-## In Scope
-- Core domain updates for TOTP key derivation, time-step computation, and drift handling.
-- Shared persistence descriptors, schema adjustments, and migrations (if required) within schema v1.
-- Application services, telemetry wiring, and facade adapters (CLI, REST, operator UI).
-- Test-first coverage across unit, integration, MockMvc, and Selenium suites.
-- Documentation updates (how-to, roadmap, knowledge map, OpenAPI).
+## UI / Interaction Mock-ups
+```
+TOTP Evaluate (Inline default)
+-----------------------------
+[ Inline form | Stored form ]
+Inline fields: Secret, Algorithm, Digits, Step, Drift ±, Timestamp (with “Use current Unix seconds” toggle and “Reset to now”).
+Stored fields: Credential dropdown, auto-filled counter/timestamp preview.
+Replay panel mirrors Evaluate but never mutates counters.
+```
 
-## Out of Scope
-- TOTP credential issuance/enrollment UX (CLI/REST/UI).
-- Backup/export tooling beyond existing credential store interactions.
-- Non-RFC 6238 extensions (e.g., custom HMAC algorithms, non-integer drifts).
-
-## Dependencies & Constraints
-- Reuse existing MapDB schema v1; any schema deltas require compatibility checks with HOTP/OCRA records.
-- Telemetry must continue flowing through `TelemetryContracts` without bypasses.
-- Spotless/SpotBugs configurations from Feature 022 remain authoritative; no dependency upgrades without owner approval.
-- Maintain parity with HOTP/OCRA CLI command naming conventions and REST payload schema styles.
-
-## Persistence Attributes
-- Persist TOTP credentials with `CredentialType.OATH_TOTP` and normalise attribute keys under schema v1:
-  - `totp.algorithm` → HMAC digest (`SHA1`, `SHA256`, `SHA512`).
-  - `totp.digits` → OTP length (`6` or `8`).
-  - `totp.stepSeconds` → time-step size in seconds.
-  - `totp.drift.backward` / `totp.drift.forward` → permitted negative/positive step windows.
-- MapDB store must default unset attributes to (`SHA1`, `6`, `30`, `1`, `1`) during save/load while preserving explicit overrides for non-default configurations.
+## Branch & Scenario Matrix
+| Scenario ID | Description / Expected outcome |
+|-------------|--------------------------------|
+| S-023-01 | Core domain + persistence descriptors ready for TOTP. |
+| S-023-02 | Application services + telemetry + CLI flows implemented. |
+| S-023-03 | REST evaluation/replay endpoints with OpenAPI parity. |
+| S-023-04 | Operator console stored/inline/replay UX parity (seeding, auto-fill). |
+| S-023-05 | Fixture catalogue + documentation updates complete.
 
 ## Test Strategy
-1. Add failing unit tests for TOTP generators/validators covering algorithm/digit combinations, time-step boundaries, and drift limits.
-2. Introduce failing persistence integration tests mixing TOTP, HOTP, and OCRA descriptors.
-3. Extend application-layer tests to cover success, invalid secret, expired OTP, and drift-window rejection scenarios; add telemetry assertions.
-4. Create failing CLI integration tests for evaluation/replay commands (stored + inline) including drift controls.
-5. Add failing REST MockMvc/OpenAPI tests for evaluation and replay endpoints with timestamp override inputs.
-6. Stage failing application and REST tests for the replay flow, ensuring stored/inline requests remain non-mutating and telemetry matches HOTP/OCRA patterns.
-7. Stage failing Selenium/system tests for operator console TOTP replay panels and parity interactions.
-8. Run `./gradlew spotlessApply check` after each increment; execute `./gradlew qualityGate` before closure.
+- **Core:** RFC 6238 vector tests + mutation/ArchUnit.
+- **Persistence:** Integration tests mixing HOTP/OCRA/TOTP descriptors.
+- **Application:** JUnit coverage for stored/inline/replay flows + telemetry.
+- **CLI:** Picocli integration tests for evaluation/replay commands.
+- **REST:** MockMvc + OpenAPI snapshot tests for evaluate/replay endpoints.
+- **UI:** Selenium tests for stored/inline/replay flows, seeding, timestamp toggles, accessibility/regressions.
+- **Docs:** `./gradlew spotlessApply check` after doc updates.
 
-## Follow-up Considerations
-- Future feature should define issuance/enrollment flows (shared secrets, provisioning URIs, QR codes).
-- Assess the need for configurable simulator clock sources (e.g., fixed offset) if operator demand extends beyond manual timestamp overrides.
+## Interface & Contract Catalogue
+### Domain Objects
+| ID | Description | Modules |
+|----|-------------|---------|
+| DO-023-01 | `TotpCredentialDescriptor` (algorithm, digits, stepSeconds, drift). | core, application |
+| DO-023-02 | `TotpEvaluationRequest`/`ReplayRequest` (stored/inline payload). | REST, CLI, application |
+
+### API Routes / Services
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| API-023-01 | REST POST `/api/v1/totp/evaluate` | Evaluates stored/inline credentials with drift/timestamp overrides. |
+| API-023-02 | REST POST `/api/v1/totp/replay` | Non-mutating replay diagnostics. |
+| API-023-03 | REST GET `/api/v1/totp/credentials` | Stored credential listing for UI. |
+
+### CLI Commands / Flags
+| ID | Command | Behaviour |
+|----|---------|-----------|
+| CLI-023-01 | `maintenance totp evaluate` | Evaluates stored/inline credentials (drift/timestamp). |
+| CLI-023-02 | `maintenance totp replay` | Non-mutating replay. |
+
+### Telemetry Events
+| ID | Event name | Fields / Redaction rules |
+|----|-----------|---------------------------|
+| TE-023-01 | `totp.evaluate` | `credentialIdHash`, `mode`, `result`, sanitized metadata. |
+| TE-023-02 | `totp.replay` | `credentialIdHash`, `mode`, `result`, sanitized metadata. |
+
+### Fixtures & Sample Data
+| ID | Path | Purpose |
+|----|------|---------|
+| FX-023-01 | `docs/totp_validation_vectors.json` | RFC 6238 vectors shared across modules. |
+| FX-023-02 | `rest-api/src/test/resources/totp/sample-requests/*.json` | REST/Selenium test payloads. |
+
+### UI States
+| ID | State | Trigger / Expected outcome |
+|----|-------|---------------------------|
+| UI-023-01 | Inline Evaluate default | Evaluate tab loads inline form active. |
+| UI-023-02 | Stored Evaluate | Dropdown selection auto-fills preview and increments counters on success. |
+| UI-023-03 | Replay | Stored/inline replay actions never mutate counters; auto-fill sample data. |
+
+## Telemetry & Observability
+- All evaluation/replay events routed through `TelemetryContracts` to maintain parity with HOTP/OCRA.
+- Operator console leverages REST telemetry, no additional UI event names.
+
+## Documentation Deliverables
+- Update TOTP operator how-to, CLI/REST guides, roadmap, knowledge map, OpenAPI docs.
+
+## Fixtures & Sample Data
+- `docs/totp_validation_vectors.json` plus derived test fixtures.
+
+## Spec DSL
+```
+domain_objects:
+  - id: DO-023-01
+    name: TotpCredentialDescriptor
+    fields:
+      - name: algorithm
+        type: enum[SHA1,SHA256,SHA512]
+      - name: digits
+        type: enum[6,8]
+      - name: stepSeconds
+        type: integer
+  - id: DO-023-02
+    name: TotpEvaluationRequest
+    fields:
+      - name: credentialId
+        type: string
+      - name: mode
+        type: enum[stored,inline]
+telemetry_events:
+  - id: TE-023-01
+    event: totp.evaluate
+fixtures:
+  - id: FX-023-01
+    path: docs/totp_validation_vectors.json
+ui_states:
+  - id: UI-023-01
+    description: TOTP inline evaluate default view
+```
+
+## Appendix
+_None._

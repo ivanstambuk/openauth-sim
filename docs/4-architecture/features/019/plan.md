@@ -1,61 +1,95 @@
 # Feature Plan 019 – Commit Message Hook Refactor
 
-_Status: Complete_
-_Last updated: 2025-10-04_
+_Linked specification:_ `docs/4-architecture/features/019/spec.md`  
+_Status:_ Complete  
+_Last updated:_ 2025-11-10
 
-## Objective
-Relocate commit message linting from the pre-commit hook to a dedicated commit-msg hook so Git provides the message file path, preventing failures when `.git/COMMIT_EDITMSG` is unavailable while preserving existing pre-commit quality gates.
+## Vision & Success Criteria
+Relocate gitlint enforcement into `githooks/commit-msg`, keep pre-commit focused on staged-content validation with cache
+warming/retry protections, and ensure both local contributors and CI follow the same Conventional Commit rules.
+Success signals:
+- Gitlint always executes via commit-msg hook and CI job (FR-019-01/FR-019-06).
+- Pre-commit runs staged-content checks, warms the Gradle configuration cache, and auto-heals Spotless stale-cache errors
+  (FR-019-02/FR-019-03/FR-019-04).
+- Documentation/runbooks describe the workflow and prerequisites (FR-019-07).
+- `./gradlew --no-daemon spotlessApply check` remains green after hook/doc updates.
 
-Reference specification: `docs/4-architecture/features/019/spec.md`.
+## Scope Alignment
+- **In scope:** Hook script changes, `.gitlint` configuration, documentation/runbook updates, CI gitlint integration,
+  cache warm/retry logic validation.
+- **Out of scope:** Changing Gradle tasks executed beyond the defined sequence, adding new lint rules, rewriting history.
 
-## Success Criteria
-- `githooks/commit-msg` invokes `gitlint` using the message file argument Git supplies and fails on lint violations (CMH-001).
-- `githooks/pre-commit` no longer reads `.git/COMMIT_EDITMSG` yet continues running gitleaks, Gradle formatting, targeted tests, and `check` (CMH-002).
-- Contributor documentation clarifies hook responsibilities and installation expectations (CMH-003).
-- Pre-commit hook auto-heals Spotless stale cache failures without manual intervention (CMH-004).
-- Repository `.gitlint` enforces Conventional Commit rules (CMH-005).
-- CI runs gitlint checks using the repository configuration (CMH-006).
-- CI runs gitlint checks using the repository configuration (CMH-006).
-- Gradle configuration cache warmed once per pre-commit invocation (CMH-004C).
-- `./gradlew spotlessApply check` passes after each increment.
+## Dependencies & Interfaces
+- `githooks/commit-msg` and `githooks/pre-commit` scripts.
+- Git tooling (gitlint, gitleaks) installed locally and available in CI.
+- `.gitlint` configuration and GitHub Actions workflow.
+- Documentation under `AGENTS.md`, `docs/5-operations/runbook-session-reset.md`, and related governance files.
 
-## Proposed Increments
-- ☑ R1901 – Implement `githooks/commit-msg`, adjust `githooks/pre-commit` to remove gitlint usage, and ensure scripts are executable.
-- ☑ R1902 – Update contributor documentation (runbook + relevant references), exercise the hooks manually, and run `./gradlew spotlessApply check`.
-- ☑ R1903 – Teach the pre-commit hook to clear `.gradle/configuration-cache` once when the Spotless stale-cache error appears and rerun the failing Gradle command.
-- ☑ R1906 – Tighten Spotless retry to exact message match and log success/failure.
-- ☑ R1904 – Add repository `.gitlint`, update documentation, and validate gitlint enforcement against allowed/disallowed commit messages.
-- ☑ R1905 – Wire gitlint into CI so pushes/PRs fail on non-compliant commit messages.
+## Assumptions & Risks
+- **Assumptions:** Contributors have `gitlint` available (documented prerequisite); CI runner has gitlint installed.
+- **Risks / Mitigations:**
+  - Spotless retry could mask other Gradle failures → limit retry to exact stale-cache message and log outcomes.
+  - Hooks may become slow → keep cache warm step lightweight (`help --configuration-cache`) and monitor runtimes.
 
-Each increment must stay within ≤30 minutes, lead with tests where possible (manual hook invocations), and log outcomes below.
+## Implementation Drift Gate
+- Map FR/NFR IDs to increments/tasks before coding (see Scenario Tracking).
+- Capture manual hook invocation logs/screenshots before closing the feature.
+- Rerun `./gradlew --no-daemon spotlessApply check` after documentation updates.
+- Confirm CI gitlint job runs in the latest workflow execution.
 
-## Checklist Before Implementation
-- [x] Specification drafted with clarifications logged.
-- [x] Open question resolved and captured in spec clarifications.
-- [x] Tasks document created and aligned with proposed increments.
-- [x] Analysis gate rerun once plan/tasks align (record below).
+## Increment Map
+1. **I1 – Commit-msg hook + gitlint config (S-019-01)**
+   - _Goal:_ Introduce `githooks/commit-msg` and `.gitlint`, remove gitlint from pre-commit.
+   - _Preconditions:_ Clarifications approved; gitlint available locally.
+   - _Steps:_
+     - Create `.gitlint` with Conventional Commit rules.
+     - Implement `githooks/commit-msg` invoking gitlint with provided message file.
+     - Update pre-commit to drop gitlint invocation.
+     - Validate hook using pass/fail fixtures.
+   - _Commands:_ `githooks/commit-msg /tmp/gitlint-pass`, `githooks/commit-msg /tmp/gitlint-fail`, `./gradlew spotlessApply check`.
+   - _Exit:_ Hooks executable, manual tests confirm enforcement.
 
-## Tooling Readiness
-- Ensure `JAVA_HOME` points to a Java 17 JDK before running Gradle or hooks.
-- Confirm `gitlint` and `gitleaks` are installed locally; document prerequisites if missing.
+2. **I2 – Pre-commit reliability upgrades (S-019-02)**
+   - _Goal:_ Add cache warm and stale-cache retry logic.
+   - _Steps:_
+     - Add helper that runs `./gradlew --no-daemon help --configuration-cache` once per run.
+     - Implement stale-cache detection clearing `.gradle/configuration-cache` and retrying once with logged outcome.
+     - Verify by stubbing Gradle wrapper to emit the exact stale-cache pattern.
+   - _Commands:_ `GITHOOK_SIMULATE_STALE=1 githooks/pre-commit`, `./gradlew spotlessApply check`.
+   - _Exit:_ Hook logs warm step + retry success/failure.
 
-## Notes
+3. **I3 – Documentation & contributor guidance (S-019-03)**
+   - _Goal:_ Update AGENTS, runbooks, and governance docs to capture the new workflow.
+   - _Steps:_
+     - Document commit-msg hook, gitlint prerequisite, cache warm behaviour, CI enforcement.
+     - Sync spec/plan/tasks references; close open questions if any.
+     - Rerun doc lint via `./gradlew spotlessApply check`.
+   - _Exit:_ Docs reflect new workflow; build stays green.
 
-- 2025-10-04 – Tasks checklist published; verified gitlint/gitleaks presence and JAVA_HOME configuration before implementation.
-- 2025-10-04 – R1901 delivered commit-msg hook + pre-commit update; manual fixtures prepared for validation.
-- 2025-10-04 – R1902 ran commit-msg/pre-commit hooks, cleared `.gradle/configuration-cache`, updated runbook + AGENTS, and reran `./gradlew --no-daemon spotlessApply check`.
-- 2025-10-04 – R1903 added Spotless stale-cache auto-retry to the pre-commit hook and verified via stubbed wrapper simulation.
-- 2025-10-04 – R1904 added `.gitlint` config, updated docs, and validated gitlint pass/fail scenarios.
-- 2025-10-04 – R1905 added CI gitlint job and documented server-side enforcement.
-- 2025-10-04 – R1906 tightened Spotless retry matching/logging with success/failure logs.
-- 2025-10-04 – R1907 warmed configuration cache at hook start using `help --configuration-cache`.
+4. **I4 – CI enforcement (S-019-04)**
+   - _Goal:_ Ensure GitHub Actions runs gitlint for pushes and PRs.
+   - _Steps:_
+     - Update `.github/workflows/ci.yml` with gitlint job (fetch-depth 0, dynamic commit range).
+     - Trigger workflow to confirm failures on bad commit messages.
+   - _Commands:_ `act` (if available) or monitored GitHub run; `./gradlew spotlessApply check` for completeness.
+   - _Exit:_ CI job present and documented.
+
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-019-01 | I1 / T-019-01, T-019-02 | Commit-msg hook + gitlint config. |
+| S-019-02 | I2 / T-019-03, T-019-04 | Pre-commit cache warm + retry logic. |
+| S-019-03 | I3 / T-019-05 | Documentation alignment. |
+| S-019-04 | I4 / T-019-06 | CI gitlint job.
 
 ## Analysis Gate
-_Re-run after tasks checklist is published and increments scoped._
+Completed 2025-10-04 once clarifications resolved; re-run only if hook requirements change.
 
-- [x] Specification completeness verified.
-- [x] Open questions reviewed.
-- [x] Plan aligns with specification requirements.
-- [x] Tasks cover proposed increments with test-first ordering.
-- [x] Tooling readiness checked.
-- [x] Constitution compliance confirmed (hooks + documentation only, no dependency changes).
+## Exit Criteria
+- Commit-msg hook + pre-commit reliability code merged.
+- `.gitlint` and CI gitlint job active.
+- Documentation updated.
+- `./gradlew --no-daemon spotlessApply check` green post-change.
+
+## Follow-ups / Backlog
+- Monitor hook runtimes; consider parallelising Gradle steps if future features expand checks.

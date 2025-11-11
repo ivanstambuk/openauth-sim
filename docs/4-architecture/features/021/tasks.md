@@ -1,19 +1,45 @@
-# Feature 021 – Task Checklist
+# Feature 021 Tasks – Protocol Info Surface
 
-_Status: Completed_
-_Last updated: 2025-10-04_
+_Status: Complete_  
+_Last updated: 2025-11-10_
 
-## Tasks (≤30 min each)
-- [x] T2110 – Extend Selenium suite with failing tests for info trigger accessibility, keyboard shortcuts, drawer/modal toggles, and protocol switching. (S21-01)
-- [x] T2111 – Add JS unit tests covering data schema parsing, escaping, persistence keys, and CustomEvent emissions (fails until persistence + events implemented). (S21-02)
-- [x] T2112 – Implement protocol info triggers, drawer/modal scaffolding, and schema-driven rendering driven by JSON sample data. (S21-01)
-- [x] T2113 – Add persistence (localStorage) wiring, auto-open behaviour, and CustomEvents with corresponding tests. (S21-02)
-- [x] T2114 – Implement modal expansion with focus trap, preference for reduced motion, and accessibility refinements. (S21-03)
-- [x] T2115 – Ship embeddable CSS/JS assets, standalone HTML demo, vanilla DOM integration guide, and README with integration + QA checklist. (S21-04)
-- [x] T2115A – Refactor UI/tests for the single global protocol info trigger aligned to the tablist, ensuring active protocol sync. (S21-01)
-- [x] T2116 – Update knowledge map/roadmap as needed, rerun `./gradlew spotlessApply check`, and prepare conventional commit. (S21-05)
+> Tasks remained ≤30 minutes and staged validation before implementation. Keep the verification commands handy for future changes.
 
-## Completion Notes
-- 2025-10-04 – All tasks delivered; docs/tests synced, final Gradle check executed, and commit prepared.
+## Checklist
+- [x] T-021-01 – Add failing Selenium coverage for the protocol info trigger (aria) and drawer toggles (S-021-01).  
+  _Intent:_ Lock in trigger placement, aria wiring, keyboard shortcuts, and per-protocol switching before coding.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :rest-api:test`
 
-Mark tasks completed as increments finish; ensure tests precede implementation work.
+- [x] T-021-02 – Write JS unit tests for schema parsing, escaping, persistence, and CustomEvents (S-021-02).  
+  _Intent:_ Ensure ProtocolInfo module exposes the required API and guards against malformed data.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :rest-api:test --tests "*ProtocolInfo*Test"`
+
+- [x] T-021-03 – Implement trigger/drawer/modal scaffolding plus schema-driven rendering (S-021-01, S-021-02).  
+  _Intent:_ Make the drawer functional with JSON data, persistence, and CustomEvents.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :rest-api:test`  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-021-04 – Add modal focus trap, reduced-motion handling, and accessibility refinements (S-021-03).  
+  _Intent:_ Harden the modal experience without impacting existing workflows.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :rest-api:test`
+
+- [x] T-021-05 – Ship embeddable CSS/JS bundles, standalone demo, and vanilla DOM integration guide (S-021-04).  
+  _Intent:_ Allow other applications to reuse the Protocol Info surface.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-021-06 – Update roadmap/knowledge map/session log and run final Gradle gate (S-021-05).  
+  _Intent:_ Document the feature, ensure governance artefacts stay synchronized, and close the workstream.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check`
+
+## Verification Log
+- 2025-10-04 – `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon spotlessApply check`
+- 2025-11-10 – `./gradlew --no-daemon spotlessApply check` (template migration verification)
+
+## Notes / TODOs
+- None.

@@ -1,8 +1,9 @@
 # Feature Plan 026 – FIDO2/WebAuthn Attestation Support
 
 _Linked specification:_ `docs/4-architecture/features/026/spec.md`  
+_Linked tasks:_ `docs/4-architecture/features/026/tasks.md`  
 _Status:_ In review  
-_Last updated:_ 2025-11-05 (stored credential sanitisation implemented; awaiting acceptance)
+_Last updated:_ 2025-11-10
 
 ## Vision & Success Criteria
 - Provide end-to-end attestation generation and verification across core, application services, CLI, REST API, and operator UI, mirroring the existing assertion workflow.
@@ -14,19 +15,35 @@ _Last updated:_ 2025-11-05 (stored credential sanitisation implemented; awaiting
 - Align operator UI labels with the accepted input formats (JWK or PEM/PKCS#8) now that Base64URL private keys are no longer supported.
 
 ## Scope Alignment
-- In scope: attestation generation & replay helpers, telemetry, CLI/REST endpoints, UI toggles/forms, fixture ingestion, trust-anchor configuration (inline uploads), documentation updates, initial MDS ingestion scaffolding, and stored attestation credential workflows (seeding + reuse through MapDB).
-- Evaluate flows across CLI/REST/operator UI must generate attestation payloads (attestationObject, clientDataJSON, challenge) while Replay owns verification scenarios; all facades must also resolve Stored attestation credentials via the shared `CredentialStore`.
-- Out of scope: credential export/import tooling beyond curated seeds, attestation formats beyond the four specified types, hardware-backed certificate chain validation beyond deterministic fixtures.
+- **In scope:** Attestation generation & replay helpers, telemetry, CLI/REST endpoints, UI toggles/forms, fixture ingestion, trust-anchor configuration (inline uploads), documentation updates, initial MDS scaffolding, and stored attestation credential workflows (seeding + MapDB reuse).
+- **In scope:** Evaluate flows across CLI/REST/operator UI generate attestation payloads (attestationObject, clientDataJSON, challenge) while Replay owns verification scenarios; all facades must resolve Stored attestation credentials via the shared `CredentialStore`.
+- **Out of scope:** Credential export/import tooling beyond curated seeds, attestation formats outside packed/FIDO-U2F/TPM/Android Key, and hardware-backed certificate validation beyond deterministic fixtures.
 
 ## Dependencies & Interfaces
 - Builds on existing FIDO2 assertion utilities (COSE parsing, JWK conversion).
-- Stored workflows reuse the shared `CredentialStore` (MapDB) and `WebAuthn` persistence adapters; ensure schema extensions capture attestation metadata/private keys without breaking existing assertion records.
-- Stores attestation fixtures under `docs/webauthn_attestation/` with per-format JSON files while reusing shared loader patterns.
-- Operator UI adjustments hinge on the current Evaluate/Replay tab layout; ensure toggle logic integrates with existing state management.
-- Telemetry contracts must extend `TelemetryContracts` without breaking existing assertion events.
-- Trust anchor handling must accept inline PEM bundles and prepare for optional MDS-sourced metadata without introducing external network calls.
+- Stored workflows reuse the shared `CredentialStore` (MapDB) and `WebAuthn` persistence adapters; schema extensions must capture attestation metadata/private keys without breaking assertion records.
+- Attestation fixtures remain under `docs/webauthn_attestation/` with per-format JSON files that reuse the shared loader patterns.
+- Operator UI adjustments hinge on the current Evaluate/Replay tab layout; toggle logic must integrate with existing state management.
+- Telemetry contracts extend `TelemetryContracts` without breaking existing assertion events.
+- Trust-anchor handling accepts inline PEM bundles, curated catalogues, and future MDS metadata while keeping secrets server-side.
 
-## Increment Breakdown (≤30 min each)
+## Assumptions & Risks
+- **Assumptions:** Existing fixture catalogues cover the four attestation formats; MapDB schema extensions coexist with assertion records; Selenium/JS harnesses can absorb additional attestation cases without new tooling.
+- **Risks / Mitigations:**  
+  - TPM/Android Key complexity → rely on deterministic fixtures + synthetic certificate chains with explicit unit tests.  
+  - Operator UI toggle sprawl → isolate attestation forms into shared components to avoid regression.  
+  - Fixture entropy/gitleaks → reuse allowlists and document rationale when large JSON/PEM assets update.
+
+## Implementation Drift Gate
+- Map every FR-026/NFR-026 requirement and S-026 scenario to increments/tasks before closing the feature.
+- Capture evidence:  
+  - CLI/REST/UI screenshots showing Manual override badges, stored selectors, certificate-chain accordions.  
+  - Telemetry snapshots for `fido2.attest.generated` / `fido2.attest.replayed` covering `inputSource`, `seedPresetId`, `overrides`, trust-anchor IDs, sanitized fingerprints.  
+  - Verification log referencing `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` plus Selenium/JS harness runs.  
+  - Stored credential diffs proving only digests/length placeholders appear outside persistence alongside dual copies of `trace-provenance-example.json`.
+- Document the gate outcome in tasks + `docs/_current-session.md`; last full gate executed 2025-11-05 after T2650 (stored credential sanitisation) landed.
+
+## Increment Map (≤30 min each)
 _2025-10-19 – T2628 closed: fixture key material now ships as structured JWK objects, the core loader derives canonical scalars from the JWK `d` field, CLI/REST/UI inputs reject legacy Base64-only keys, and `./gradlew spotlessApply check` verified the change. Manual-mode increments (T2618–T2622) remain next up._
 1. **I1 – Fixture + test scaffolding**  
    - Convert targeted W3C and synthetic attestation vectors into per-format JSON fixtures under `docs/webauthn_attestation/` (`packed.json`, `fido-u2f.json`, `tpm.json`, `android-key.json`).  
@@ -166,10 +183,40 @@ _2025-10-19 – T2628 closed: fixture key material now ships as structured JWK o
     - Update MockMvc and CLI tests plus OpenAPI snapshots to assert the lean payload, and document the contract change where applicable.  
     - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2EvaluationEndpointTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.Fido2CliTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon spotlessApply check`.
 
+## Scenario Tracking
+| Scenario ID | Increment reference | Notes |
+|-------------|--------------------|-------|
+| S-026-01 | I1, I2 | Fixture scaffolding and core attestation engine for packed, FIDO-U2F, TPM, Android Key formats. |
+| S-026-02 | I3, I4 | Application services and telemetry/replay APIs emitting sanitized payloads. |
+| S-026-03 | I5–I9 | CLI/REST/UI parity for preset/manual generation plus validation flows. |
+| S-026-04 | I23 | Manual override detection and UI auto-switch behaviour. |
+| S-026-05 | I10–I15 | Stored credential seeding, selectors, and sanitised stored-mode journeys. |
+
+## Analysis Gate
+- Completed 2025-10-12 when clarifications covering presets, manual overrides, and stored workflows were approved.
+- Rerun the gate if additional attestation formats, trust-anchor sources, or UI journeys are introduced before renumbering.
+
 ## Risks & Mitigations
 - **Complex format coverage** – TPM/Android Key attestations involve certificate handling; rely on deterministic fixtures and synthetic certificate chains.  
 - **UI complexity** – Toggle must not regress assertion flows; isolate attestation form logic to maintain readability.  
 - **Fixture entropy** – Large attestation blobs may trigger gitleaks; reuse or extend the existing allowlist with documented rationale.
+
+## Quality & Tooling Gates
+- Core/application/REST/CLI/UI modules rerun for every increment touched, culminating in `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
+- JS harness / Selenium suites executed when console changes land (`node --test rest-api/src/test/javascript/fido2/*.test.js`, `./gradlew --no-daemon :rest-api:test --tests "…Fido2…SeleniumTest"`).
+- Telemetry snapshots stored alongside plan/tasks when response contracts evolve.
+- OpenAPI snapshot regenerated whenever request/response shapes change.
+
+## Exit Criteria
+- FR-026-01…FR-026-05 satisfied with code/tests/telemetry evidence traced back to the spec.
+- Stored credential journeys sanitize secrets outside persistence; provenance fixtures remain mirrored in docs + rest-api directories.
+- CLI/REST/UI parity verified (Manual override detection, trust-anchor selectors, replay accordions) with targeted Selenium/JS + MockMvc/CLI tests.
+- Owner acceptance recorded alongside Implementation Drift Gate evidence.
+
+## Follow-ups / Backlog
+- Automate trust-anchor ingestion (FIDO MDS) once governance approves.
+- Extend Feature 041 JS harness to cover FIDO2 console flows for future maintenance.
+- Revisit seed catalogue tooling to allow JSON import/export when security review completes.
 
 ## Upcoming Increments – Manual Mode (Blocked pending clarifications)
 1. I19 – Credential ID alignment

@@ -1,60 +1,105 @@
 # Feature Plan 002 – Persistence & Caching Hardening
 
-_Status: Complete_
-_Last updated: 2025-09-28_
+_Linked specification:_ `docs/4-architecture/features/002/spec.md`  
+_Status:_ Complete  
+_Last updated:_ 2025-11-10
 
-## Objective
-Enhance the persistence layer so MapDB + Caffeine can sustain ≥10,000 RPS while providing robust observability, maintenance hooks, and optional at-rest protections—all without changing the `CredentialStore` interface.
+## Vision & Success Criteria
+- Ship hardened MapDB + Caffeine cache profiles that boot cleanly across in-memory, file, and container deployments without manual tuning.
+- Provide structured telemetry/metrics plus maintenance helpers so operators can diagnose issues and trigger compaction/integrity checks safely.
+- Demonstrate ≥10k RPS throughput with benchmark evidence and document the configuration/operational guidance in roadmap + how-to artifacts.
+- Keep the `CredentialStore` abstraction stable for all facades while introducing optional AES-GCM encryption hooks with redaction guarantees.
 
-Reference specification: `docs/4-architecture/features/002/spec.md`.
+## Scope Alignment
+- **In scope:**
+  - Benchmark harness + instrumentation updates (T0201–T0203).
+  - Cache profile defaults + override hooks and documentation (T0204).
+  - Maintenance helper + CLI entry points (T0205–T0206).
+  - Optional encryption interface, docs, and key-management guidance (T0206).
+  - Benchmark reruns, roadmap/knowledge-map/how-to updates, and final quality gates (T0207–T0209).
+- **Out of scope:**
+  - Replacing MapDB with a different storage backend.
+  - Adding REST/UI maintenance endpoints (future feature once persistence stabilises).
+  - Multi-tenant persistence sharding or HA/replication strategies.
 
-## Success Criteria
-- Benchmark harness demonstrates ≥10,000 RPS with latency targets from the specification and documents configuration used.
-- Cache and store emit metrics/logs (hit/miss ratios, load latencies, compaction events) without leaking secrets.
-- Maintenance operations (compaction, integrity checks) can be triggered via APIs/tests and complete without data loss.
-- Optional encryption hooks exist with documentation while default behaviour remains plaintext for tests.
-- Documentation (concepts, knowledge map, roadmap) reflects new persistence capabilities and configuration profiles.
+## Dependencies & Interfaces
+- `core` MapDB implementation + Caffeine cache settings.
+- `CredentialStoreFactory` (application module) that provisions stores for CLI/REST/UI consumers.
+- CLI maintenance command wiring plus telemetry adapters defined under `TelemetryContracts`.
+- `docs/2-how-to/configure-persistence-profiles.md`, roadmap, and knowledge map for documentation sync.
+- Benchmark harness `MapDbCredentialStoreBaselineBenchmark` executed via Gradle with the benchmark flag/environment variable.
 
-## Task Tracker
-- Detailed execution steps reside in `docs/4-architecture/features/002/tasks.md`.
-- Map benchmark and profiling results back to NFR-201/NFR-202 as tasks close.
-- Record outcomes of `./gradlew spotlessApply check` and benchmarks in this plan to maintain traceability.
-- 2025-09-28 – T201 baseline benchmark (`MapDbCredentialStoreBaselineBenchmark`) captured in-memory metrics: writes ≈1.7k ops/s (20k dataset, 11.6 s), reads ≈567k ops/s with P50≈0.0006 ms, P90≈0.0012 ms, P99≈0.0043 ms. Rerun via `./gradlew :core:test --tests io.openauth.sim.core.store.MapDbCredentialStoreBaselineBenchmark -Dio.openauth.sim.benchmark=true` or set `IO_OPENAUTH_SIM_BENCHMARK=true` in the environment.
-- 2025-09-28 – T202 structured telemetry: MapDB store now emits `persistence.credential.lookup` (cache hit/miss, latency) and `persistence.credential.mutation` (save/delete latency) Level.FINE events with redacted payloads. Validation covered by `MapDbCredentialStoreTest.structuredTelemetryEmittedForPersistenceOperations`.
-- 2025-09-28 – Gradle verification: `./gradlew :core:test` (pass) and `./gradlew spotlessApply check` (pass, includes SpotBugs note about missing `org.opentest4j.MultipleFailuresError`, non-fatal) recorded cache/persistence telemetry behaviour.
-- 2025-09-28 – T203 cache tuning scope: Adopt per-profile Caffeine defaults (in-memory: 250k max, 2 min expire-after-access; file-backed: 150k max, 10 min expire-after-write; container: 500k max, 15 min expire-after-access) and expose builder overrides for future deployment profiles.
-- 2025-09-28 – T203 implementation: `MapDbCredentialStore` builder applies cache profiles with override hooks; regression tests cover default/override strategies. `./gradlew :core:test` and `./gradlew spotlessApply check` passing (SpotBugs still logs missing `org.opentest4j.MultipleFailuresError`). Follow-up: rerun benchmark harness post-cache tuning to confirm RPS/latency deltas.
-- 2025-09-28 – T204 scope: Publish deployment profile reference covering in-memory, file-backed, and container defaults (cache sizing, TTL, storage hints, override examples) and wire docs into spec/tasks.
-- 2025-09-28 – T204 documentation: Authored `docs/2-how-to/configure-persistence-profiles.md`, updated spec/tasks/knowledge map, and recorded `./gradlew spotlessApply check` (pass; SpotBugs warning about missing `org.opentest4j.MultipleFailuresError`). Follow-up remains to rerun MapDB benchmark with tuned caches.
-- 2025-09-28 – Benchmark rerun (post T203 tuning): `./gradlew :core:test --tests io.openauth.sim.core.store.MapDbCredentialStoreBaselineBenchmark --rerun-tasks -Dio.openauth.sim.benchmark=true` emitted profile `IN_MEMORY` metrics – writes ≈2.86k ops/s (20k dataset, 6.98 s), reads ≈351k ops/s (50k ops, 142 ms) with P50≈0.00093 ms, P90≈0.00249 ms, P99≈0.0208 ms. Record used `--info` to capture telemetry; results documented here.
-- 2025-09-28 – Benchmark rerun (post T207 encryption integration): `IO_OPENAUTH_SIM_BENCHMARK=true ./gradlew :core:test --tests io.openauth.sim.core.store.MapDbCredentialStoreBaselineBenchmark --rerun-tasks --info` emitted profile `IN_MEMORY` metrics – writes ≈2.57k ops/s (20k dataset, 7.77 s), reads ≈330k ops/s (50k ops, 151 ms) with P50≈0.00108 ms, P90≈0.00266 ms, P99≈0.02283 ms. Stored log in `/tmp/benchmark.log` for reference.
-- 2025-09-28 – T205 maintenance scope: Adopt builder-produced maintenance helper with synchronous compaction/integrity methods so `CredentialStore` stays unchanged; maintenance emits a `MaintenanceResult` record (operation, duration, entriesScanned, entriesRepaired, issues, status) mirrored in Level.FINE telemetry before implementation.
-- 2025-09-28 – T205 maintenance helper tests: Added failing-first regression coverage for compaction/integrity operations and verified telemetry payloads via `MapDbCredentialStoreTest.maintenanceHelperEmitsResultsAndTelemetry`; `./gradlew :core:test --tests io.openauth.sim.core.store.MapDbCredentialStoreTest.maintenanceHelperEmitsResultsAndTelemetry` (pass) and full `./gradlew spotlessApply check` (pass, SpotBugs still notes missing `org.opentest4j.MultipleFailuresError`) executed post-implementation.
-- 2025-09-28 – T206 scope clarified: Expose maintenance operations via CLI command(s) that wrap the new `MaintenanceHelper`; REST/UI layers will follow in future increments.
-- 2025-09-28 – T206 CLI implementation: Added `maintenance <compact|verify>` command with tests (`./gradlew :cli:test --tests io.openauth.sim.cli.MaintenanceCliTest`) and verified full build via `./gradlew spotlessApply check`.
-- 2025-09-28 – T206 documentation: Updated `docs/2-how-to/configure-persistence-profiles.md` with CLI maintenance instructions so operators can trigger compaction/integrity routines via Gradle run tasks.
-- 2025-09-28 – T207 encryption scope: Select AES-GCM with in-memory key supplier callback as the initial optional at-rest protection strategy; update spec/tasks accordingly before test-first implementation.
-- 2025-09-28 – T207 encryption implementation: Added `PersistenceEncryption` interface with AES-GCM provider, integrated secret encryption into `MapDbCredentialStore`, and verified via `MapDbCredentialStoreTest.encryptionEncryptsSecretsAtRestAndDecryptsOnRead` alongside full `./gradlew spotlessApply check`.
-- 2025-09-28 – T208 coverage & docs: Extended tests for key-mismatch failure (`MapDbCredentialStoreTest.encryptionFailsWhenKeyDoesNotMatch`) and documented operator guidance/key rotation in `docs/2-how-to/configure-persistence-profiles.md`; `./gradlew spotlessApply check` remains green.
-- 2025-09-28 – T209 wrap-up: Knowledge map, roadmap, and concepts guide updated with maintenance/encryption context; no outstanding documentation gaps remain before T210.
-- 2025-09-28 – T210 wrap-up: Recorded final benchmark metrics (writes ≈2.57k ops/s, reads ≈330k ops/s, P99 ≈0.02283 ms), confirmed no open questions, and prepared final build verification/self-review notes.
-- 2025-09-28 – T210 build verification: `./gradlew spotlessApply check` (pass, configuration cache reused); self-review confirmed documentation-only delta.
+## Assumptions & Risks
+- **Assumptions:** MapDB remains the persistence engine; benchmark hardware roughly matches local dev machines; optional encryption stays off by default.
+- **Risks:**
+  - Benchmark regressions if cache defaults change (mitigation: rerun harness after each tuning change).
+  - Maintenance helper misuse causing downtime (mitigation: synchronous helper with explicit CLI confirmation text).
+  - Encryption key mishandling (mitigation: document key rotation + add telemetry warnings for mismatches).
 
-## Upcoming Increments
-All scoped increments (T201–T210) delivered as of 2025-09-28; no additional work remains for Feature 002.
+## Implementation Drift Gate
+- Evidence lives in the feature plan/task history plus telemetry snapshots.
+- Gate checklist: map FR/NFR/S02 scenarios to increments, ensure benchmark + telemetry artefacts exist, and confirm documentation updates.
+- Record drift findings here; none outstanding as of 2025-09-28 (PASS).
 
-## Wrap-up Notes
-- 2025-09-28 – Self-review: Diff limited to documentation updates closing Feature 002; benchmarks and telemetry already covered by prior tasks.
-- 2025-09-28 – Follow-ups: None. Feature 002 closed with roadmap/spec/tasks in sync and no open questions.
+## Increment Map
+1. **I1 – Clarifications, instrumentation, and baseline benchmarks (T0201–T0203)**
+   - _Goal:_ Lock priorities, emit structured telemetry, and capture pre-change benchmarks.
+   - _Preconditions:_ Spec + clarifications drafted; analysis gate ready.
+   - _Steps:_ finalize clarifications/runbook entries; implement telemetry events; build + run benchmark harness; document results.
+   - _Commands:_
+     - `./gradlew --no-daemon :core:test --tests "*MapDbCredentialStoreBaselineBenchmark" -Dio.openauth.sim.benchmark=true`
+     - `./gradlew --no-daemon :core:test --tests "*CredentialStoreTelemetryTest"`
+   - _Exit:_ Telemetry redaction tests pass, baseline metrics recorded in plan/tasks.
 
-## Dependencies & Considerations
-- Benchmarks may require additional tooling (JMH or custom harness) – ensure they run without network access.
-- Observe any platform constraints (CI resources) when defining RPS scenarios.
-- Coordinate with future Workstreams (CLI/REST) so their persistence assumptions match new configuration profiles.
+2. **I2 – Cache profiles + maintenance helper (T0204–T0205)**
+   - _Goal:_ Deliver profile defaults and expose maintenance helper APIs + CLI wiring.
+   - _Preconditions:_ I1 complete; telemetry events available for verification.
+   - _Steps:_ implement profile defaults + overrides; add maintenance helper + result record; wire CLI commands; expand docs/how-to.
+   - _Commands:_
+     - `./gradlew --no-daemon :core:test --tests "*CacheProfileTest"`
+     - `./gradlew --no-daemon :core:test --tests "*MaintenanceHelperTest"`
+     - `./gradlew --no-daemon :cli:test --tests "*MaintenanceCli*"`
+   - _Exit:_ Profiles smoke-tested across configurations; maintenance CLI produces structured output.
+
+3. **I3 – Encryption hooks + documentation sync (T0206–T0207)**
+   - _Goal:_ Introduce AES-GCM encryption interface, tests, and operator guidance (key rotation + maintenance docs).
+   - _Preconditions:_ I2 complete; CLI wiring available for doc references.
+   - _Steps:_ implement `PersistenceEncryption`, add positive/negative tests, refresh how-to + knowledge map + roadmap.
+   - _Commands:_
+     - `./gradlew --no-daemon :core:test --tests "*PersistenceEncryptionTest"`
+     - `rg -n "MapDB" docs/4-architecture/knowledge-map.md`
+   - _Exit:_ Encryption optional path documented; telemetry events cover failures.
+
+4. **I4 – Benchmark rerun + quality gate (T0208–T0209)**
+   - _Goal:_ Re-run benchmarks after tuning, archive results, and close with spotless/check + quality gate.
+   - _Preconditions:_ I3 complete; docs updated.
+   - _Steps:_ rerun benchmark harness with final configuration; log deltas in plan; execute spotless/check + `qualityGate` (with PIT skip flag); capture self-review notes.
+   - _Commands:_
+     - `IO_OPENAUTH_SIM_BENCHMARK=true ./gradlew --no-daemon :core:test --tests "*MapDbCredentialStoreBaselineBenchmark"`
+     - `./gradlew --no-daemon spotlessApply check`
+     - `./gradlew --no-daemon qualityGate -Ppit.skip=true`
+   - _Exit:_ Benchmark + Gradle gates green; documentation + tasks updated with closure notes.
+
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S02-01 | I2 / T0204 | Cache profiles + overrides validated via smoke tests. |
+| S02-02 | I1 / T0203 | Telemetry/metrics instrumentation with redaction checks. |
+| S02-03 | I2 / T0205–T0206 | Maintenance helper + CLI command outputs. |
+| S02-04 | I3 / T0206 | AES-GCM encryption optional path + failure coverage. |
+| S02-05 | I1 & I4 / T0202, T0208 | Benchmark harness before/after tuning. |
+| S02-06 | I3 / T0207 | Documentation updates (how-to, roadmap, knowledge map). |
 
 ## Analysis Gate
-- [x] Specification reviewed and aligned with clarifications.
-- [x] Open questions resolved (execution model and diagnostics locked on 2025-09-28).
-- [x] Tasks ordered with benchmarks/metrics preceding behavioural changes.
+- 2025-09-28 – PASS. Spec FR/NFR tables populated, no open questions, tasks staged with tests-first ordering, telemetry + persistence dependencies identified, and `./gradlew --no-daemon spotlessApply check` executed.
 
-Update this plan as tasks progress: check off completed items, add new tasks, and note blockers.
+## Exit Criteria
+- All FR/NFR scenarios proven via tests + benchmarks; documentation updated (how-to, roadmap, knowledge map).
+- `./gradlew --no-daemon spotlessApply check` and `./gradlew --no-daemon qualityGate -Ppit.skip=true` pass post-migration.
+- Telemetry events verified for success/failure paths with redaction.
+- Benchmark reruns logged with configuration context and stored in plan/tasks.
+
+## Follow-ups / Backlog
+1. Evaluate REST/UI endpoints for maintenance operations once persistence stabilises (defer to new feature).
+2. Investigate background/async maintenance scheduling hooks to avoid manual CLI invocations in long-running environments.
+3. Explore MapDB sharding or multi-tenant support if simulator workloads outgrow single-store patterns.

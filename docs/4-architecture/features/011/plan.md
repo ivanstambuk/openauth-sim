@@ -1,70 +1,93 @@
 # Feature Plan 011 – Reflection Policy Hardening
 
-_Status: Complete_
-_Last updated: 2025-10-02_
+_Linked specification:_ `docs/4-architecture/features/011/spec.md`  
+_Status:_ Complete  
+_Last updated:_ 2025-11-10
 
-## Objective
-Remove all reflection usage from the OpenAuth Simulator codebase, refactor affected services to expose explicit seams for testing, and tighten automation/documentation so reflective patterns cannot reappear.
+## Vision & Success Criteria
+- Repository contains zero project-owned reflection usages; all collaborators/tests rely on explicit seams.
+- ArchUnit + Gradle `reflectionScan` guards execute inside `./gradlew qualityGate` and fail deterministically when reflection is added.
+- CLI, REST, and core modules expose package-private helpers/records so tests avoid reflection without bloating public APIs.
+- `AGENTS.md`, knowledge map, and runbooks capture the anti-reflection policy and guard commands for future contributors.
+- `./gradlew spotlessApply check` and `qualityGate` remain green once the refactor completes.
 
-Reference specification: `docs/4-architecture/features/011/spec.md`.
+## Scope Alignment
+- **In scope:** Reflection inventory, guard creation, CLI/core/REST seam refactors, documentation updates, knowledge map sync, migration tracker updates.
+- **Out of scope:** Dependency upgrades, UI work, framework-level reflection already vetted (e.g., Spring proxies), policy extensions beyond reflection.
 
-## Success Criteria
-- Repository contains no direct reflection API usage (production or tests) except for explicitly documented exemptions in the specification.
-- CLI, REST, and core modules expose deterministic collaborators/interfaces that make previously reflective tests pass without reflective access.
-- New reflection guardrail (ArchUnit rule + Gradle regex scan) runs inside `./gradlew qualityGate` and fails when reflection is introduced.
-- `AGENTS.md` communicates the anti-reflection policy and mitigation strategies; related documentation stays in sync.
-- `./gradlew spotlessApply check` passes after all refactors and guard integrations.
+## Dependencies & Interfaces
+- `core-architecture-tests` ArchUnit suite and Gradle build (for `reflectionScan`).
+- CLI/REST/core modules whose tests previously used reflection.
+- Documentation repositories (`AGENTS.md`, knowledge map, roadmap, session snapshot).
+- Governance artefacts (analysis gate checklist, migration tracker).
 
-## Proposed Increments
-- R1101 – Register this feature in roadmap/knowledge-map notes and capture current reflection inventory. ☑ (2025-10-01 – roadmap updated; inventory logged below)
-- R1102 – Run `docs/5-operations/analysis-gate-checklist.md` for Feature 011; record results here. ☑ (2025-10-01 – see Analysis Gate section)
-- R1103 – Add failing reflection guard tests (ArchUnit + Gradle regex task) demonstrating current reflective usage. ☑ (2025-10-01 – tests red as expected)
-- R1104 – Implement reflection guard (ArchUnit rule + regex-based Gradle check) and wire into `qualityGate`. ☑ (2025-10-01 – `reflectionScan` wired to quality gate)
-- R1105 – Introduce explicit collaborator/interface for CLI OCRA commands, migrate tests away from reflection. ☑ (2025-10-01 – CLI tests call package-private helpers)
-- R1106 – Refactor CLI maintenance command parsing to expose structured DTO/test seam; remove reflection from tests. ☑ (2025-10-01 – records exposed; tests call accessors directly)
-- R1107 – Refactor REST OCRA services (evaluation + verification) to surface required seams, updating tests accordingly. ☑ (2025-10-01 – evaluation + verification tests now call package-private seams; reflection removed)
-- R1108 – Replace reflection in core OCRA credential tests with direct API access or purpose-built fixtures. ☑ (2025-10-01 – MapDb store + Ocra factory expose package-private seams; tests updated)
-- R1109 – Refresh documentation (`AGENTS.md`, plan/spec notes) describing the policy and guard usage. ☑ (2025-10-01 – AGENTS now documents no-reflection policy referencing Feature 011)
-- R1110 – Update knowledge map with new seams/automation, run `./gradlew spotlessApply check`, and record metrics. ☑ (2025-10-01 – knowledge map extended; `spotlessApply check` + `reflectionScan` green)
+## Assumptions & Risks
+- **Assumptions:**
+  - CI environments allow spawning the reflection scan and ArchUnit guards without additional permissions.
+  - Introducing package-private seams is acceptable when justified in the spec/plan.
+  - Developers will rerun `reflectionScan` locally before committing.
+- **Risks / Mitigations:**
+  - _False positives:_ Implement allowlists for legitimate framework usage; document them in the spec/plan.
+  - _API churn:_ Keep new seams package-private/internal and document them in the knowledge map.
+  - _Guard latency:_ Ensure `reflectionScan` executes in <10 s and reuse configuration cache to avoid bloating the quality gate.
 
-Update increment statuses/date stamps as work progresses; ensure each increment stays within a ≤30 minute change window.
+## Implementation Drift Gate
+- **Trigger:** After T-011-01–T-011-11 completed (2025-10-01).
+- **Evidence:** `rg` scan logs, ArchUnit test output, `reflectionScan` reports, CLI/REST/core test transcripts, knowledge map diff.
+- **Outcome:** Gate confirmed every REF/FR requirement mapped to implementation/tests; `./gradlew spotlessApply check` and `qualityGate` both green with guards enabled.
 
-## Checklist Before Implementation
-- [x] Specification clarifications resolved (see Clarifications section).
-- [x] Open questions logged/cleared for Feature 011.
-- [x] Tasks mapped to requirements with ≤30 minute increments in test-first order.
-- [x] Planned work aligns with constitutional principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
-- [x] Tooling readiness captured (commands, expected runtime, environment notes).
+## Increment Map
+1. **I1 – Inventory & failing guards** _(T-011-01–T-011-03)_  
+   - _Goal:_ Catalogue all reflection usage and add red guards (ArchUnit + regex scan).  
+   - _Preconditions:_ Spec/clarifications approved; roadmap references Feature 011.  
+   - _Steps:_ Run repository-wide `rg` scans, log offenders, land failing ArchUnit/regex tests.  
+   - _Commands:_ `rg --hidden --glob "*.java" "java.lang.reflect"`, `./gradlew :core-architecture-tests:test --tests "*Reflection*"`, `./gradlew reflectionScan`.  
+   - _Exit:_ Inventory captured in plan notes; guards fail as expected.
+2. **I2 – Guard implementation & wiring** _(T-011-04–T-011-05)_  
+   - _Goal:_ Replace reflection usages to drive the guards green and wire `reflectionScan` into `qualityGate`.  
+   - _Steps:_ Refactor offending areas iteratively, keep ArchUnit/regex tests green, add quality gate dependency.  
+   - _Commands:_ `./gradlew :core-architecture-tests:test --tests "*Reflection*"`, `./gradlew reflectionScan qualityGate`.  
+   - _Exit:_ Guards pass when repository is clean and fail otherwise.
+3. **I3 – CLI seam refactors** _(T-011-06–T-011-07)_  
+   - _Goal:_ Expose CLI collaborators/DTOs so tests avoid reflection while preserving behaviour.  
+   - _Steps:_ Introduce package-private helpers, update Picocli tests, verify exit codes.  
+   - _Commands:_ `./gradlew :cli:test --tests "*OcraCli*" --tests "*MaintenanceCli*"`.  
+   - _Exit:_ CLI suite green without reflection.
+4. **I4 – REST & core seam refactors** _(T-011-08–T-011-09)_  
+   - _Goal:_ Update REST services and core credential fixtures to avoid reflection.  
+   - _Steps:_ Adjust service constructors, inject collaborators, refresh tests and telemetry assertions.  
+   - _Commands:_ `./gradlew :rest-api:test --tests "*Ocra*"`, `./gradlew :core:test`.  
+   - _Exit:_ REST/core suites green, guards still pass.
+5. **I5 – Governance & closure** _(T-011-10–T-011-11)_  
+   - _Goal:_ Update `AGENTS.md`, roadmap/knowledge map, migration tracker, and capture final verification runs.  
+   - _Steps:_ Document policy, log commands in session snapshot, run full gate.  
+   - _Commands:_ `rg -n "reflection" AGENTS.md`, `./gradlew spotlessApply check`.  
+   - _Exit:_ Docs synced; feature marked complete with recorded verification log.
 
-### Tooling Readiness
-- `./gradlew qualityGate` – target entry point; will include new ArchUnit rule and regex scan once implemented.
-- `./gradlew :core-architecture-tests:test --tests "*Reflection*"` – scoped run for the upcoming ArchUnit rule.
-- `./gradlew reflectionScan` (to be introduced) – standalone regex scan for reflective APIs; expected runtime <10s on developer laptop.
-- Standard formatting via `./gradlew spotlessApply` before committing.
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-011-01 | I1–I4 / T-011-01–T-011-09 | Reflection inventory + removal across modules. |
+| S-011-02 | I1–I2 / T-011-02–T-011-05 | ArchUnit guard creation + enforcement. |
+| S-011-03 | I1–I2 / T-011-03–T-011-05 | `reflectionScan` wiring and enforcement. |
+| S-011-04 | I5 / T-011-10 | Documentation/AGENTS updates. |
+| S-011-05 | I3–I4 / T-011-06–T-011-09 | Behaviour parity across CLI/REST/core seams. |
 
 ## Analysis Gate (2025-10-01)
-Checklist executed per `docs/5-operations/analysis-gate-checklist.md`.
+- ✅ Specification captured clarifications, requirements, and scope.
+- ✅ Open questions cleared; none pending in `docs/4-architecture/open-questions.md`.
+- ✅ Plan/tasks mapped to FR/NFR IDs with ≤30 minute increments and tests-first ordering.
+- ✅ Tooling readiness documented (rg scans, ArchUnit, reflectionScan, spotless/check).
+- ✅ Governance artefacts (roadmap, knowledge map) queued for updates during increments.
 
-- Specification complete with objectives, requirements, clarifications (Feature 011 spec lines 1–47).
-- Open questions log clear for Feature 011 (docs/4-architecture/open-questions.md).
-- Plan references correct spec/tasks; success criteria align with REF-001–REF-004.
-- Tasks cover all functional requirements, sequenced tests before implementation, ≤30 minute increments.
-- Work honours constitution guardrails (spec-first, clarification gate satisfied, test-first increments, documentation sync plan, no new dependencies).
-- Tooling readiness documented above (`qualityGate`, targeted ArchUnit/scan tasks).
+## Exit Criteria
+- `rg` and `reflectionScan` report zero forbidden reflection usages.
+- `./gradlew :core-architecture-tests:test --tests "*Reflection*"` and `./gradlew reflectionScan qualityGate` pass on Java 17.
+- CLI/REST/core suites remain green without reflection.
+- `AGENTS.md`, knowledge map, roadmap, migration tracker, and session snapshot document the policy and status.
+- `./gradlew spotlessApply check` passes after documentation updates.
 
-No blockers identified; proceed to R1103 (failing guard tests).
-
-## Notes
-- 2025-10-01 – Plan drafted pending analysis gate; roadmap/task documents to be updated in subsequent increments.
-- 2025-10-01 – Reflection inventory captured: CLI tests (`OcraCliTest`, `OcraCliHelpersTest`, `MaintenanceCliTest`, `OcraCliErrorHandlingTest`), core tests (`OcraCredentialFactoryLoggingTest`, `MapDbCredentialStoreTest`), REST tests (`RestPersistenceConfigurationTest`, `OcraEvaluationServiceTest`, `OcraVerificationServiceTest`), and documentation snippet (`docs/2-how-to/generate-ocra-test-vectors.md`).
-- 2025-10-01 – R1103: added `ReflectionPolicyTest` (ArchUnit) and `ReflectionRegexScanTest` (regex guard). Initial runs flagged CLI/core/REST reflections; suite now passes after R1108.
-- 2025-10-01 – R1104: Registered Gradle `reflectionScan` task (qualityGate dependency); task now returns clean results following R1108 (see `./gradlew reflectionScan`).
-- 2025-10-01 – R1105: Updated `OcraCli` helpers to expose package-private seams and replaced CLI tests' reflective calls with direct method invocations; `./gradlew :cli:test` passes.
-- 2025-10-01 – R1106: Exposed `MaintenanceCli` parse records/methods, introduced `TestPaths` helper, and removed reflection from maintenance CLI tests; CLI suite remains green.
-- 2025-10-01 – R1107 (partial): Converted `RestPersistenceConfiguration` helpers and `OcraEvaluationService` nested types/methods to package-private seams; updated evaluation tests to call APIs directly and `./gradlew :rest-api:test --tests OcraEvaluationServiceTest` passes.
-- 2025-10-01 – R1107 (complete): `OcraVerificationService` now exposes package-private seams, and verification tests assert telemetry by invoking public helpers; `./gradlew :rest-api:test --tests OcraVerificationServiceTest` passes.
-- 2025-10-01 – R1108: `MapDbCredentialStore` now exposes a package-private cache view and `OcraCredentialFactory` publishes telemetry accessors, eliminating reflection from core tests; `./gradlew :core:test` green.
-- 2025-10-01 – R1109: Updated `AGENTS.md` to include the reflection ban with pointers to Feature 011 and guardrails; plan/spec notes synced.
-- 2025-10-01 – R1110: Knowledge map documents new package-private seams; `./gradlew spotlessApply check` (≈21s, mutation score 91%, test strength 94%) and `./gradlew reflectionScan` both green on local run.
-
-Record additional observations, benchmark data, or tool usage here during implementation.
+## Follow-ups / Backlog
+- Evaluate whether additional guards are needed for dynamic proxies or other JVM instrumentation patterns.
+- Consider promoting shared seam helpers into dedicated testing utilities if other protocols need them.
+- Monitor guard latency; if reflectionScan grows past 10 s, revisit implementation or caching strategy.

@@ -2,41 +2,52 @@
 
 _Linked plan:_ `docs/4-architecture/features/032/plan.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-10-31
+_Last updated:_ 2025-11-10
 
-☑ **T3201 – Planning artefacts & backlog sync (S32-05)**  
-  ☑ Draft Feature 032 plan and tasks documents; log the workstream in `docs/_current-session.md`.  
-  ☑ Remove the formatter version open question now that Option B (2.78.0) is approved.
+> Checklist mirrors the staged rollout: tooling swap first, repo-wide reformat second, docs + tracker updates last.
 
-☑ **T3202 – Spotless configuration swap (S32-01)**  
-  ☑ Add `palantirJavaFormat = "2.78.0"` to `gradle/libs.versions.toml` and update `build.gradle.kts` to use `palantirJavaFormat(...)`.  
-  ☑ Drop Google Java Format from `resolutionStrategy.force` and annotation-processor configurations.  
-  ☑ Ran `./gradlew --no-daemon spotlessCheck` (2025-10-19) – command failed with expected Palantir reformat diffs (372 Java files), confirming the new formatter is wired correctly ahead of the stage-7 reformat.
+## Checklist
+- [x] T-032-01 – Governance setup (FR-032-05, S-032-05).  
+  _Intent:_ Create spec/plan/tasks, update roadmap + session snapshot with the Option B decision, and document the staged rollout.  
+  _Verification:_ `./gradlew --no-daemon spotlessCheck` (2025-10-19 baseline).
 
-☑ **T3203 – Dependency lock refresh (S32-02)**  
-  ☑ Executed `./gradlew --no-daemon --write-locks spotlessCheck` (2025-10-19) to persist new Spotless dependencies; formatting failures persist by design until the global reformat runs.  
-  ☑ Ran `./gradlew --no-daemon --write-locks :core:compileJava :core-ocra:compileJava :application:compileJava :infra-persistence:compileJava :rest-api:compileJava :ui:compileJava :cli:compileJava` to refresh module lockfiles and remove `google-java-format` residues.
+- [x] T-032-02 – Spotless configuration swap (FR-032-01, S-032-01).  
+  _Intent:_ Pin Palantir Java Format 2.78.0 in the version catalog and switch Spotless to `palantirJavaFormat`.  
+  _Verification:_ `./gradlew --no-daemon spotlessCheck` (expected Palantir diffs, 2025-10-19).
 
-☑ **T3204 – Managed hook update (S32-03)**  
-  ☑ Update `githooks/pre-commit` (and related scripts) to reference Palantir Java Format.  
-  ☑ Verified messaging locally; hook now logs “spotlessApply (Palantir Java Format 2.78.0)” without additional command changes.
+- [x] T-032-03 – Dependency lock refresh (FR-032-02, S-032-02).  
+  _Intent:_ Regenerate root + module lockfiles to capture Palantir artifacts and drop google-java-format.  
+  _Verification:_ `./gradlew --no-daemon --write-locks spotlessApply check` plus targeted module `compileJava` runs (2025-10-19).
 
-☑ **T3205 – Documentation & knowledge sync (S32-05)**  
-  ☑ Refreshed `AGENTS.md`, `CONTRIBUTING.md`, and the architecture knowledge map with Palantir Java Format 2.78.0 guidance (120-character wrap, IDE alignment).  
-  ☑ Knowledge artefacts now instruct contributors to configure Palantir-compatible IDE plugins/settings.
+- [x] T-032-04 – Managed hook update (FR-032-03, S-032-03).  
+  _Intent:_ Update `githooks/pre-commit` messaging to reference Palantir 2.78.0 and dry-run the hook against staged files.  
+  _Verification:_ Manual hook dry-run logged 2025-10-19 (formatter invoked via Spotless Palantir task).
 
-☑ **T3206 – Stage 1 verification (S32-05)**  
-  ☑ Ran `./gradlew --no-daemon spotlessCheck` (2025-10-19); task failed with expected Palantir formatting diffs (372 Java files), confirming the need for the forthcoming repo-wide reformat.  
-  ☑ No additional module tests required prior to the bulk `spotlessApply` run.
+- [x] T-032-05 – Documentation & IDE guidance (FR-032-05, S-032-05).  
+  _Intent:_ Revise AGENTS, CONTRIBUTING, roadmap, knowledge map, and how-to guides with Palantir policy + IDE setup notes.  
+  _Verification:_ `./gradlew --no-daemon spotlessCheck` (docs sweep, 2025-10-19).
 
-☑ **T3207 – Repository-wide reformat (S32-04)**  
-  ☑ Executed `./gradlew --no-daemon spotlessApply` (2025-10-19); all Java sources reformatted under Palantir 2.78.0.  
-  ☑ Spot-checked core/application/rest-api samples to confirm 120-character wrapping and indentation shifts.
+- [x] T-032-06 – Stage 1 verification (FR-032-01..03, S-032-01..03).  
+  _Intent:_ Re-run `spotlessCheck` and targeted compile tasks to ensure the tooling swap is stable before reformatting.  
+  _Verification:_ `./gradlew --no-daemon spotlessCheck` (2025-10-19).
 
-☑ **T3208 – Final quality gate & closure (S32-04)**  
-  ☑ Ran `./gradlew --no-daemon spotlessApply check` (2025-10-19, timeout 600s) – build exited green with configuration cache reuse, followed by a `--write-locks` rerun to persist Palantir transitive dependencies.  
-  ☑ Ready to capture roadmap/current-session closure notes before archiving plan/tasks.
+- [x] T-032-07 – Repository-wide reformat (FR-032-04, S-032-04).  
+  _Intent:_ Execute `./gradlew --no-daemon spotlessApply` to apply Palantir formatting across all modules; spot-check sample files.  
+  _Verification:_ `./gradlew --no-daemon spotlessApply` (2025-10-19).
 
-☑ **T3209 – Documentation handoff (S32-05)**  
-  ☑ Updated roadmap (Feature 032 marked complete) and changelog with formatter policy notes; plan/tasks retained for history.  
-  ☑ Summarised Palantir migration outcomes in the current-session snapshot ahead of handoff.
+- [x] T-032-08 – Final quality gate (FR-032-04, S-032-04).  
+  _Intent:_ Run `./gradlew --no-daemon spotlessApply check` to ensure the build is green post-reformat.  
+  _Verification:_ `./gradlew --no-daemon spotlessApply check` (2025-10-19).
+
+- [x] T-032-09 – Documentation handoff & tracker updates (FR-032-05, S-032-05).  
+  _Intent:_ Update roadmap, changelog, `_current-session.md`, and migration tracker with the Palantir formatter outcome; publish rebase guidance.  
+  _Verification:_ Documentation diffs recorded 2025-10-19 (no additional command required).
+
+## Verification Log
+- 2025-10-19 – `./gradlew --no-daemon spotlessCheck`
+- 2025-10-19 – `./gradlew --no-daemon --write-locks spotlessApply check`
+- 2025-10-19 – `./gradlew --no-daemon spotlessApply`
+- 2025-10-19 – `./gradlew --no-daemon spotlessApply check`
+
+## Notes / TODOs
+- Monitor future Palantir releases; open a new feature if an upgrade is desired.

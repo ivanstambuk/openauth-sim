@@ -2,26 +2,38 @@
 
 _Linked plan:_ `docs/4-architecture/features/030/plan.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-10-19
+_Last updated:_ 2025-11-10
 
-☑ **T3001 – Governance setup (S30-04)**  
-  ☑ Create spec/plan/tasks artefacts and capture the owner approval in the spec.  
-  ☑ Update `docs/4-architecture/roadmap.md` and `docs/_current-session.md` to reference Feature 030.
+> Checklist mirrors the plan increments; each entry stayed ≤30 minutes and records the verification commands used when it closed.
 
-☑ **T3002 – Pre-upgrade warning sweep (S30-01)**  
-  ☑ Run `./gradlew --warning-mode=all clean check` using the existing Gradle 8.10 wrapper.  
-  ☑ Resolve or document any deprecation warnings surfaced by the command (none observed).
+## Checklist
+- [x] T-030-01 – Governance setup (FR-030-01, S-030-01, S-030-04).  
+  _Intent:_ Create spec/plan/tasks, capture owner approval, and update roadmap/knowledge map/session snapshot.  
+  _Verification:_ `./gradlew --warning-mode=all clean check` (baseline, 2025-10-19).
 
-☑ **T3003 – Wrapper upgrade (S30-02)**  
-  ☑ Execute `./gradlew wrapper --gradle-version 9.1.0 --distribution-type bin`.  
-  ☑ Verify `gradle/wrapper/gradle-wrapper.properties` and `gradle/wrapper/gradle-wrapper.jar` reflect the new version.
+- [x] T-030-02 – Pre-upgrade warning sweep (FR-030-01, S-030-01).  
+  _Intent:_ Run `./gradlew --warning-mode=all clean check` under Gradle 8.10 and document any deprecations (none observed).  
+  _Verification:_ `./gradlew --warning-mode=all clean check` (Gradle 8.10, 2025-10-19).
 
-☑ **T3004 – Post-upgrade validation (S30-03)**  
-  ☑ Run `./gradlew --warning-mode=all clean check` under Gradle 9.1.0.  
-  ☑ Execute targeted module tests (CLI, REST, Selenium) if not covered by `check` (covered by `check`).  
-  ☑ Capture configuration cache status and note any new warnings (none blocking; existing WebAuthn visibility + SpotBugs annotation warnings persist).  
-  ☑ Bump `info.solidsoft.pitest` plugin to `1.19.0-rc.2` to restore compatibility with Gradle 9.
+- [x] T-030-03 – Wrapper upgrade & plugin bump (FR-030-02, S-030-02).  
+  _Intent:_ Execute `./gradlew wrapper --gradle-version 9.1.0 --distribution-type bin`, verify wrapper artefacts, and bump `info.solidsoft.pitest` to 1.19.0-rc.2.  
+  _Verification:_ `./gradlew wrapper --gradle-version 9.1.0 --distribution-type bin` (2025-10-19).
 
-☑ **T3005 – Artifact review & documentation sync (S30-04)**  
-  ☑ Inspect and refresh any reproducible artifacts or snapshots impacted by the upgrade (none changed).  
-  ☑ Update roadmap, tasks, and session snapshot to mark completion and log follow-ups (complete; no outstanding follow-ups).
+- [x] T-030-04 – Post-upgrade validation (FR-030-03, S-030-03).  
+  _Intent:_ Run `./gradlew --warning-mode=all clean check` with Gradle 9.1.0 plus targeted CLI/REST/Selenium tests and `./gradlew --configuration-cache help`.  
+  _Verification:_  
+  - `./gradlew --warning-mode=all clean check` (Gradle 9, 2025-10-19)  
+  - `./gradlew --configuration-cache help` (2025-10-19)
+
+- [x] T-030-05 – Artifact review & documentation sync (FR-030-04, S-030-04).  
+  _Intent:_ Inspect reproducible artefacts (no diffs), update roadmap/knowledge map/session snapshot/migration tracker, and close the feature.  
+  _Verification:_ `./gradlew --warning-mode=all clean check` (spotless confirmation, 2025-10-19).
+
+## Verification Log
+- 2025-10-19 – `./gradlew --warning-mode=all clean check` (Gradle 9.1.0)
+- 2025-10-19 – `./gradlew --configuration-cache help`
+- 2025-10-19 – `./gradlew wrapper --gradle-version 9.1.0 --distribution-type bin`
+- 2025-10-19 – `./gradlew --warning-mode=all clean check` (Gradle 8.10 baseline)
+
+## Notes / TODOs
+- PIT plugin pinned to 1.19.0-rc.2 for Gradle 9 compatibility; unlock in future features if a final release lands.

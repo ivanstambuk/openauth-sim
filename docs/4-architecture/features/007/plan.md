@@ -1,47 +1,87 @@
 # Feature Plan 007 – Operator-Facing Documentation Suite
 
-_Status: Complete_
-_Last updated: 2025-09-30_
+_Linked specification:_ `docs/4-architecture/features/007/spec.md`  
+_Status:_ Complete  
+_Last updated:_ 2025-11-10
 
-## Objective
-Deliver an operator-oriented documentation package covering Java integrations, CLI usage, and REST endpoints while updating the README to reflect shipped capabilities and highlight the Swagger UI entry point. The plan tracks small, auditable increments that modernise existing guides and add new ones per Feature 007 specification.
+## Vision & Success Criteria
+- Give operators end-to-end guidance for Java, CLI, and REST OCRA workflows without reading implementation code.
+- Keep `README.md`, roadmap, and knowledge map synchronized with delivered capabilities, including Swagger UI discovery.
+- Ensure every documented example references deterministic fixtures, sanitized telemetry, and the shared credential store defaults so operators can reproduce results reliably.
 
-Reference specification: `docs/4-architecture/features/007/spec.md`.
+## Scope Alignment
+- **In scope:** Java integration how-to, CLI operations guide, REST operations guide (including Swagger UI), README refresh, roadmap/knowledge-map/session log updates.
+- **Out of scope:** Introducing new simulator features, commands, or endpoints; non-OCRA protocol documentation; documentation automation/publishing pipeline changes.
 
-## Success Criteria
-- Java operators can follow a new how-to guide to drive OTP generation/replay flows from external Java applications without consulting source code.
-- All OCRA CLI commands are documented in a single operator-friendly guide with realistic command examples and outcomes.
-- A refreshed REST guide replaces the existing evaluation-only document and documents every available endpoint, including credential discovery and Swagger UI usage.
-- `README.md` accurately reflects the current simulator capabilities, exposes the Swagger UI link, and removes outdated placeholder messaging.
-- Roadmap, knowledge map, and relevant cross-links reference the new operator documentation.
+## Dependencies & Interfaces
+- Relies on current CLI command surface (`runOcraCli`) and REST endpoints (`/api/v1/ocra/*`).
+- References core helpers (`OcraCredentialFactory`, `OcraResponseCalculator`) and deterministic fixture catalogues in `docs/test-vectors/ocra/`.
+- Governance artefacts: roadmap, knowledge map, migration plan, `_current-session.md`.
 
-## Proposed Increments
-- D071 – Align specification & clarifications, capture open questions, and prepare doc outline notes. ✅ 2025-09-30
-- D072 – Draft Java operator integration guide (structure, prerequisites, runnable examples); add failing TODO placeholders if coverage gaps remain. ✅ 2025-09-30
-- D073 – Author CLI operations guide documenting all commands; include sample outputs and troubleshooting notes. ✅ 2025-09-30
-- D074 – Replace the REST evaluation how-to with a comprehensive REST operations guide covering all endpoints and Swagger UI usage. ✅ 2025-09-30
-- D075 – Update `README.md` to reflect current capabilities, add the Swagger UI link, and remove future-work placeholders. ✅ 2025-09-30
-- D076 – Sync roadmap/knowledge map references and ensure cross-document links are updated. ✅ 2025-09-30
+## Assumptions & Risks
+- **Assumptions:** Latest CLI/REST behaviour is validated before documenting; credential store default remains `data/credentials.db`; telemetry events stay stable.
+- **Risks / Mitigations:**
+  - Stale knowledge could misdocument commands/endpoints → cross-check with CLI help + OpenAPI snapshot before publishing.
+  - README messaging drift → peer review ensures statements align with roadmap.
+  - Template mismatch → run doc lint + spotless as part of every increment.
 
-## Checklist Before Implementation
-- [x] Specification created with clarified scope and requirements.
-- [x] Open questions resolved and removed from `docs/4-architecture/open-questions.md` once captured in spec.
-- [x] Tasks checklist mirrors the increments above with ≤30 minute steps and sequences verification before commits.
-- [x] Analysis gate (docs/5-operations/analysis-gate-checklist.md) updated once tasks are ready.
+## Implementation Drift Gate
+- Trigger once T-007-01–T-007-06 finish and `./gradlew --no-daemon spotlessApply check` is green.
+- Evidence package lives in this plan’s appendix: map FR/NFR IDs to doc sections, attach verification log entries, and note CLI/REST sample outputs used during validation.
+- Confirm roadmap + knowledge map entries reference the published guides; capture screenshots or snippets if instructions change formatting.
+
+## Increment Map
+1. **I1 – Clarify scope & prep outlines** _(T-007-01)_
+   - _Goal:_ Align spec/plan/questions, document outline per guide.
+   - _Preconditions:_ Feature 007 spec drafted; migration templates chosen.
+   - _Steps:_ Close clarifications, update roadmap/knowledge map references, capture doc skeletons.
+   - _Commands:_ `rg -n "Feature 007" docs/4-architecture/roadmap.md`.
+   - _Exit:_ Open questions cleared; outlines stored alongside tasks. ✅ 2025-09-30.
+2. **I2 – Java operator guide** _(T-007-02)_
+   - _Goal:_ Publish `docs/2-how-to/use-ocra-from-java.md` with runnable samples.
+   - _Preconditions:_ Outline + fixture references ready.
+   - _Steps:_ Author content, validate code snippets, capture troubleshooting notes.
+   - _Commands:_ `rg -n "Java operator" docs/2-how-to`, `markdownlint docs/2-how-to/use-ocra-from-java.md`.
+   - _Exit:_ Guide merged, references added. ✅ 2025-09-30.
+3. **I3 – CLI operations guide** _(T-007-03)_
+   - _Goal:_ Document import/list/delete/evaluate/maintenance commands.
+   - _Steps:_ Capture command syntax, sample outputs, telemetry notes.
+   - _Commands:_ `rg -n "ocra" docs/2-how-to/use-ocra-cli-operations.md`.
+   - _Exit:_ Guide complete with troubleshooting section. ✅ 2025-09-30.
+4. **I4 – REST operations guide** _(T-007-04)_
+   - _Goal:_ Replace evaluation-only doc with full REST coverage + Swagger UI flow.
+   - _Commands:_ `rg -n "Swagger" docs/2-how-to/use-ocra-rest-operations.md`, `./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshot*"` (optional snapshot validation).
+   - _Exit:_ New guide published, legacy doc removed. ✅ 2025-09-30.
+5. **I5 – README refresh** _(T-007-05)_
+   - _Goal:_ Align README with shipped capabilities and link to guides.
+   - _Commands:_ `rg -n "Swagger" README.md`, `markdownlint README.md`.
+   - _Exit:_ README references new guides, no future-work placeholders. ✅ 2025-09-30.
+6. **I6 – Final verification & logging** _(T-007-06)_
+   - _Goal:_ Run spotless/check, capture verification log, and record completion in governance docs.
+   - _Commands:_ `./gradlew --no-daemon spotlessApply check`.
+   - _Exit:_ Verification log updated, knowledge map/roadmap/migration plan reflect completion. ✅ 2025-09-30.
+
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-007-01 | I2 / T-007-02 | Java operator how-to walkthrough. |
+| S-007-02 | I3 / T-007-03 | CLI guide covering import/list/delete/evaluate/maintenance. |
+| S-007-03 | I4 / T-007-04 | REST guide including Swagger UI and troubleshooting. |
+| S-007-04 | I5 / T-007-05 | README refresh referencing shipped capabilities. |
+| S-007-05 | I1 & I6 / T-007-01, T-007-06 | Cross-links + governance logs updated. |
 
 ## Analysis Gate (2025-09-30)
-- [x] Specification populated with objectives, requirements, clarifications (≤5 questions satisfied).
-- [x] Open questions log clear for Feature 007.
-- [x] Feature plan references correct spec/tasks and aligns dependencies/success criteria.
-- [x] Tasks map to every functional requirement with ≤30 minute increments and verification sequencing.
-- [x] Planned work respects constitution principles (spec-first, clarification gate, documentation sync, dependency control).
-- [x] Tooling readiness noted (`./gradlew spotlessApply check` before each commit).
+- ✅ Specification populated with objectives, requirements, clarifications.
+- ✅ Open questions cleared in `docs/4-architecture/open-questions.md`.
+- ✅ Plan + tasks align with scope and governance artefacts.
+- ✅ Tasks kept ≤30 minutes with tests/verification sequenced first.
+- ✅ Tooling readiness captured (`./gradlew spotlessApply check`, optional markdownlint, REST snapshot verification).
 
-Outcome: proceed to implementation; no follow-up actions required at this stage.
+## Exit Criteria
+- Java, CLI, REST how-to guides published and cross-linked.
+- README reflects shipped capabilities and Swagger UI entry point.
+- Roadmap, knowledge map, migration plan, and `_current-session.md` describe the documentation suite.
+- `./gradlew --no-daemon spotlessApply check` completes successfully after doc edits.
 
-## Notes
-- Confirm existing CLI/REST commands via `./gradlew :cli:runOcraCli --args="help"` and REST OpenAPI snapshots before finalising prose.
-- Keep examples aligned with the shared credential default (`data/credentials.db`); remind readers to rename or explicitly configure legacy filenames such as `data/ocra-credentials.db` because persistence fallbacks were removed in Feature 027.
-- Include telemetry references where relevant so operators can correlate command/API invocations with logs.
-
-Update this plan after each increment and mark complete when Feature 007 ships.
+## Follow-ups / Backlog
+- None; future documentation expansions will land under their respective feature IDs when prioritized.

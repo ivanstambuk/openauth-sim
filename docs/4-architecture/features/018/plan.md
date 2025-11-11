@@ -1,44 +1,78 @@
 # Feature Plan 018 – OCRA Migration Retirement
 
-_Status: Complete_
-_Last updated: 2025-10-03_
+_Linked specification:_ `docs/4-architecture/features/018/spec.md`  
+_Status:_ Complete  
+_Last updated:_ 2025-11-10
 
-## Objective
-Remove the unused OCRA schema-v0 upgrade path while keeping persistence builder wiring consistent across modules and documenting schema-v1 as the baseline.
+## Vision & Success Criteria
+Retire the legacy schema-v0 migration path so the simulator assumes schema-v1 records everywhere, preserves the
+`OcraStoreMigrations.apply` seam for future upgrades, and documents the persistence baseline. Success requires:
+- All legacy migration classes/tests deleted with builders still functional (FR-018-01).
+- Every façade and CLI helper continues to call `OcraStoreMigrations.apply` before opening MapDB stores (FR-018-02).
+- Documentation/knowledge map/how-to content clearly states schema-v1 is the baseline (FR-018-03).
+- `./gradlew --no-daemon spotlessApply check` passes after the cleanup.
 
-Reference specification: `docs/4-architecture/features/018/spec.md`.
+## Scope Alignment
+- **In scope:** Removing schema-v0 migration code/tests, verifying seam usage, refreshing docs/runbooks, running build
+gates.
+- **Out of scope:** New schema versions, migration tooling for external MapDB files, telemetry/event changes.
 
-## Success Criteria
-- Legacy migration classes/tests are removed and `OcraStoreMigrations.apply` continues to provide a single hook for MapDB builder configuration (OMR-001/OMR-002/OMR-003).
-- Documentation (knowledge map, how-to guide, roadmap notes) reflects the schema-v1 baseline and no longer mentions schema-v0 upgrades (OMR-004).
-- `./gradlew spotlessApply check` passes after each increment.
+## Dependencies & Interfaces
+- `core-ocra` module housing `OcraStoreMigrations`, MapDB builders, and associated tests.
+- CLI/REST/UI modules that open stores through shared factories.
+- Documentation artefacts (`knowledge-map.md`, how-to guides) that describe persistence assumptions.
 
-## Proposed Increments
-- ☑ R1801 – Update `core-ocra` tests to describe the migration-less builder contract and ensure coverage focuses on successful store opening.
-- ☑ R1802 – Remove `OcraRecordSchemaV0ToV1Migration`, adjust `OcraStoreMigrations`, and clean up references across modules.
-- ☑ R1803 – Refresh documentation (knowledge map, how-to guide, roadmap/plan notes) and rerun full Gradle checks.
+## Assumptions & Risks
+- **Assumptions:** No developer environments rely on schema-v0 files; any remaining ones can be regenerated from
+  fixtures. Existing telemetry already captures persistence actions.
+- **Risks / Mitigations:**
+  - Hidden schema-v0 data might exist → communicate baseline in docs/how-to; keep seam invocation so reintroducing a
+    migration later remains possible.
+  - Removing classes could break builder wiring → run targeted `core-ocra` tests plus full Gradle checks.
 
-Each increment must stay within ≤30 minutes, lead with tests where possible, and log notes/telemetry adjustments below as work progresses.
+## Implementation Drift Gate
+- Record mapping between FR/NFR IDs and increments/tasks in this plan.
+- Rerun `./gradlew --no-daemon spotlessApply check` after documentation updates.
+- Capture builder/CLI test evidence plus doc diffs before closing Feature 018.
 
-## Checklist Before Implementation
-- [x] Specification created with clarifications logged.
-- [x] Open questions resolved and captured in spec.
-- [x] Feature tasks drafted with test-first ordering.
-- [x] Analysis gate rerun once plan/tasks align (pending updates below).
+## Increment Map
+1. **I1 – Test-first schema-v1 baseline (S-018-01, FR-018-01)**
+   - _Goal:_ Ensure tests describe the desired migration-less behaviour before deleting code.
+   - _Preconditions:_ Spec + tasks approved.
+   - _Steps:_ Update `OcraStoreMigrationsTest` (and related fixtures) to fail when schema-v0 migrations exist; commit red
+     state.
+   - _Commands:_ `./gradlew --no-daemon :core-ocra:test` (expected red initially).
+   - _Exit:_ Tests assert absence of schema-v0 helpers.
 
-## Tooling Readiness
-- `./gradlew spotlessApply check` remains the required gate per increment.
-- `core-ocra` tests provide coverage of builder wiring; façade tests will be rerun via the Gradle check.
+2. **I2 – Remove migration code & verify seam (S-018-01, S-018-02, FR-018-01, FR-018-02)**
+   - _Goal:_ Delete migration classes, keep `OcraStoreMigrations.apply`, verify façades still call the seam.
+   - _Steps:_ Remove legacy classes, update factories/CLI/REST references, run targeted module tests.
+   - _Commands:_ `./gradlew --no-daemon :core-ocra:test`, `./gradlew --no-daemon :application:test`,
+     `./gradlew --no-daemon :rest-api:test`.
+   - _Exit:_ Builds/tests succeed with seam intact.
 
-## Notes
-- 2025-10-03 – R1801 updated `OcraStoreMigrationsTest` to expect legacy schema records to fail and added coverage for current schema success; `:core-ocra:test` failed as expected with legacy migration still present.
-- 2025-10-03 – R1802 removed `OcraRecordSchemaV0ToV1Migration`, simplified `OcraStoreMigrations`, and reran `./gradlew :core-ocra:test` to confirm green.
-- 2025-10-03 – R1803 refreshed roadmap, knowledge map, and persistence how-to docs; updated CLI expectations; and validated the full build with `./gradlew spotlessApply check`.
+3. **I3 – Documentation + full gate (S-018-03, FR-018-03, NFR-018-01/02)**
+   - _Goal:_ Update documentation artefacts and rerun the full Gradle gate.
+   - _Steps:_ Refresh knowledge map/how-to/roadmap, capture persistence baseline statements, rerun spotless/check.
+   - _Commands:_ `./gradlew --no-daemon spotlessApply check`.
+   - _Exit:_ Docs updated, build green, Feature 018 ready for drift gate sign-off.
 
-## Analysis Gate (2025-10-03)
-- [x] Specification completeness – spec documents clarifications and updated requirements.
-- [x] Open questions review – none tracked; confirmed clear as of 2025-10-03.
-- [x] Plan alignment – increments map to OMR requirements after R1802 updates.
-- [x] Tasks coverage – checklist mirrors R1801–R1803 scope with spec references.
-- [x] Constitution compliance – removal avoided new dependencies and preserved façade wiring; CLI/REST/UI tests rerun via Gradle check.
-- [x] Tooling readiness – recorded `./gradlew :core-ocra:test` outcomes for R1801 (red) and R1802 (green).
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-018-01 | I1 / T-018-01, I2 / T-018-02 | Removal of migration code + updated tests.
+| S-018-02 | I2 / T-018-02 | Seam verification across façades/CLI.
+| S-018-03 | I3 / T-018-03 | Documentation + knowledge map updates.
+
+## Analysis Gate
+Completed on 2025-10-03 when clarifications landed. Re-run only if new scope emerges; current artefacts align with the
+spec and tasks.
+
+## Exit Criteria
+- Legacy migration code/tests removed.
+- `./gradlew --no-daemon spotlessApply check` green.
+- Documentation/knowledge map/roadmap mention schema-v1 baseline.
+- Feature tasks checklist complete.
+
+## Follow-ups / Backlog
+- None; future schema upgrades will be scoped under new features if required.

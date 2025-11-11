@@ -1,97 +1,116 @@
-# Feature Plan 001 – Core Credential Domain Expansion
+# Feature Plan 001 – Core Credential Domain
 
+_Linked specification:_ `docs/4-architecture/features/001/spec.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-10-31
+_Last updated:_ 2025-11-10
 
-## Objective
+## Vision & Success Criteria
+- Deliver an OCRA-focused credential domain inside `core` that models RFC 6287 descriptors, shared-secret handling, validation, persistence, and execution helpers.
+- Keep downstream facades (application/CLI/REST/UI) aligned by exposing immutable descriptors, registry metadata, and deterministic diagnostics.
+- Ensure RFC 6287 Appendix C + draft session vectors replay through `OcraResponseCalculator`, backed by property-based secret codecs and versioned persistence envelopes.
+- Maintain documentation/telemetry parity: specs, plan, tasks, roadmap/knowledge map, and telemetry contracts stay in sync.
 
-Deliver an OCRA-focused credential domain inside the `core` module that normalises RFC 6287 descriptors, shared secret handling, validation, persistence, and execution helpers for downstream facades. Future protocol packages (FIDO2/WebAuthn, EUDI wallet suites, EMV/CAP, generic credentials) will be scoped under separate specifications.
+## Scope Alignment
+- **In scope:**
+  - Descriptor + registry modelling for OCRA suites, including metadata maps and unique naming.
+  - Shared-secret canonicalisation utilities (`SecretMaterial`) plus validation/telemetry hooks.
+  - Versioned persistence envelopes with upgrade hooks and ArchUnit boundaries.
+  - Execution helper + CLI maintenance command wiring needed to validate session-aware suites.
+  - Documentation/fixture updates required to explain the credential domain and session vectors.
+- **Out of scope:**
+  - HOTP/TOTP/FIDO2/EMV credential models or façade integrations (handled by other features).
+  - REST/UI endpoints beyond referencing the shared registry (Feature 003 picks up that work).
+  - Alternative persistence engines or runtime toggles for backward compatibility.
 
-Reference specification: `docs/4-architecture/features/001/spec.md`.
+## Dependencies & Interfaces
+- `core` module classes (`OcraCredentialDescriptor`, `SecretMaterial`, `OcraResponseCalculator`).
+- Application-layer registry services that query the descriptors (shared with Feature 003 but defined here).
+- MapDB-backed persistence store and versioned envelope schema.
+- `TelemetryContracts` adapters for `core.ocra.validation`, `core.ocra.secret.validation`, and `core.ocra.execution` events.
+- CLI maintenance harness leveraging the calculator for regression coverage.
+- RFC 6287 + IETF draft vector datasets under `docs/test-vectors/ocra/`.
 
-## Success Criteria
+## Assumptions & Risks
+- **Assumptions:**
+  - MapDB shared cache remains the persistence backing during migration.
+  - No additional external standards (beyond RFC 6287 + current draft) are required before renumbering.
+  - CLI maintenance tooling is acceptable as the first consumer of the calculator (REST/UI follow later).
+- **Risks / Mitigations:**
+  - _Fixture drift:_ Mitigated by storing RFC/draft vectors in version control with provenance notes.
+  - _Telemetry regressions:_ Use ArchUnit + telemetry contract tests to prevent missing fields.
+  - _Secret leakage:_ Property-based tests and dedicated redaction assertions guard against exceptions emitting raw material.
 
-- OCRA credential descriptors capture suite metadata, optional counter/PIN inputs, and user-defined metadata.
-- Shared secret utilities canonicalise RAW/HEX/Base64 encodings ahead of descriptor construction.
-- Validation, persistence, and telemetry layers enforce OCRA-specific constraints while redacting sensitive data.
-- RFC 6287 response generation and regression tests cover baseline and session-aware suites (S064/S128/S256/S512).
-- Documentation summarises the OCRA domain model in `docs/1-concepts`, with other protocols deferred to future specs.
+## Implementation Drift Gate
+- Execution evidence lives inside this plan and the Feature 001 tasks checklist.
+- Gate outputs: mapping of FR/NFR to implemented increments, telemetry screenshots/logs, and fixture provenance references.
+- Run the drift gate once `OcraResponseCalculator` + CLI helper landed; capture findings in this plan and log follow-ups if additional coverage is needed.
 
-## Task Tracker
+## Increment Map
+1. **I1 – Clarification + descriptor foundations (T-001-01–T-001-03)**
+   - _Goal:_ Close clarifications, seed roadmap/knowledge map touch points, and implement descriptor validation from staged tests.
+   - _Preconditions:_ Spec + branch/scenario matrix drafted; property-based failing tests exist for descriptors.
+   - _Steps:_
+     - Update roadmap + knowledge map (`T-001-01`).
+     - Write failing descriptor tests covering required fields/telemetry (`T-001-02`).
+     - Implement descriptors, validation helpers, and diagnostics; rerun targeted tests + Spotless (`T-001-03`).
+   - _Commands:_ `./gradlew --no-daemon :core:test --tests "*OcraCredentialDescriptorTest"`, `./gradlew --no-daemon spotlessApply`.
+   - _Exit:_ Descriptor tests green, telemetry redaction confirmed, documentation updated.
 
-- Detailed execution steps live in `docs/4-architecture/features/001/tasks.md`. Update that checklist as work progresses; other protocol packages will move to separate plans when opened.
-- Map task outcomes back to the specification requirements (FR/NFR IDs) to maintain traceability; metadata capture for OCRA now covers FR-001 through FR-008.
-- Record Gradle command outputs (`./gradlew spotlessApply check`) and analysis-gate results after each work session.
-- 2025-09-27 – Phase 1/T004 landed: disabled OCRA unit-test skeleton in place; `./gradlew spotlessApply check` passed post-change.
-- 2025-09-27 – Phase 1/T005 landed: disabled property-based secret material tests in place; `./gradlew spotlessApply check` executed successfully after commit preparation.
-- 2025-09-27 – Phase 1/T006 landed: introduced ArchUnit guardrails to prevent cross-package leakage, initially disabled pending descriptor rollout.
-- 2025-09-27 – Clarification resolved: OCRA descriptors parse the suite during construction and store secrets using `SecretMaterial`, guiding the T007 implementation approach.
-- 2025-09-27 – Phase 2/T007: descriptor parser + factory landed with OCRA suite coverage; `./gradlew spotlessApply check` succeeded (27s, configuration cache reused).
-- 2025-09-27 – Phase 2/T008 delivered: Added `OcraCredentialFactory`, tightened descriptor validation error messaging, re-enabled the T004 unit suite, and confirmed `./gradlew spotlessApply check` success at 23:16Z.
-- 2025-09-28 – Phase 1/T006 follow-up: Re-enabled the ArchUnit guardrails now that the OCRA package surface is stable; `./gradlew spotlessApply check` confirmed the rules pass (configuration cache reused).
-- 2025-09-27 – Phase 2/T009 delivered: Introduced shared secret normalisation helpers covering RAW/HEX/Base64 inputs, updated descriptor/factory flows to consume canonical `SecretMaterial`, re-enabled the property-based suite from T005, and recorded `./gradlew spotlessApply check` success at 23:34Z.
-- 2025-09-27 – Phase 2/T010 delivered: Added `CredentialCapability` and `CredentialRegistry` seeded with OCRA metadata and factory wiring, validated via registry tests, and recorded `./gradlew spotlessApply check` pending post-doc update.
-- 2025-09-28 – Phase 3/T011 delivered: Introduced versioned credential record + persistence adapter interfaces, added OCRA descriptor round-trip tests, implemented the adapter, and captured `./gradlew spotlessApply check` success (2025-09-28T15:17:00Z, 33s, configuration cache reused).
-- 2025-09-28 – Phase 3/T012 initiated: Wire `VersionedCredentialRecord` envelopes into `MapDbCredentialStore`, add upgrade hooks for future schema versions, and prove OCRA record migrations via targeted persistence tests.
-- 2025-09-28 – Phase 3/T012 delivered: Migrated `MapDbCredentialStore` to versioned envelopes with OCRA-focused upgrade pipeline, added legacy schema-0 migration coverage, and logged `./gradlew spotlessApply check` success (2025-09-28T16:12:00Z, 33s, configuration cache reused).
-- 2025-09-28 – Phase 3/T013 initiated: Add structured validation telemetry for OCRA flows, emitting redacted diagnostics suitable for future observability pipelines while keeping constitution logging rules intact.
-- 2025-09-28 – Phase 3/T013 delivered: Structured debug telemetry added to OCRA validations with log capture tests; `./gradlew spotlessApply check` succeeded (2025-09-28T16:58:00Z, 18s, configuration cache reused).
-- 2025-09-28 – Phase 4/T014 delivered: `docs/1-concepts/README.md` now includes the OCRA capability matrix, glossary, and telemetry reference; `./gradlew spotlessApply check` succeeded (2025-09-28T17:05:00Z, reuse configuration cache).
-- 2025-09-28 – Phase 4/T015 initiated: Refresh knowledge map to highlight telemetry flows, documentation touchpoints, and pending protocol packages.
-- 2025-09-28 – Phase 4/T015 delivered: Knowledge map now references the OCRA documentation/telemetry contract and flags pending protocol packages for future plans.
-- 2025-09-28 – Phase 4/T016 initiated: Update roadmap status and capture lessons/self-review notes following the telemetry+documentation increments.
-- 2025-09-28 – Phase 4/T016 delivered: Roadmap and action items refreshed (Workstream 1 now In progress, OCRA documentation noted); self-review captured in this plan.
-- Phase 5/T017–T018 planned: Catalogue the RFC 6287 reference vectors (Appendix C Standard, Challenge/Response, Mutual Challenge/Response, Plain Signature suites) and introduce placeholder tests that currently assert `UnsupportedOperationException` until the OCRA response calculator ships in a later increment; vectors remain test-only fixtures sourced under the RFC’s Simplified BSD terms. citeturn3view0
-- 2025-09-28 – Phase 5/T017–T018 progress: Added `OcraRfc6287VectorFixtures`, stubbed `OcraResponseCalculator` (throws `UnsupportedOperationException` until implemented), and introduced `OcraRfc6287PlaceholderTest` covering Standard, Counter/PIN, Mutual, and Signature suites with TODO markers to flip assertions when the helper lands; `./gradlew spotlessApply check` passed (≈59s, configuration cache reused).
-- Phase 5/T019 planned: Implement `OcraResponseCalculator` to generate RFC 6287-compliant responses, replace placeholder assertions with real OTP comparisons, and extend telemetry checks to ensure runtime inputs remain redacted. citeturn1search0turn1search1turn1search5
-- 2025-09-28 – Phase 5/T019–T020 delivered: Implemented `OcraResponseCalculator` using the RFC 6287 reference algorithm, corrected the 64-byte SEED constant, added session-information encoding for `Snnn` suites, replaced the placeholder suite with `OcraRfc6287ComplianceTest`, and verified `./gradlew spotlessApply check` (≈72s, configuration cache reused). citeturn1search0turn1search1turn1search5
-- 2025-09-28 – Phase 5/T021 delivered: Ran the IETF draft vector generator logic with the standard 32-byte demo key, challenge `SESSION01`, and the published S064 pattern repeated to 64/128/256/512-byte payloads to derive OTPs (`17477202`, `18468077`, `77715695`, `05806151`); recorded parameters in spec/tasks, captured fixtures in `OcraRfc6287VectorFixtures`, and confirmed `./gradlew spotlessApply check` (≈62s, configuration cache reused). citeturn0search0turn0search5
-- 2025-09-28 – Phase 5/T022 delivered: Extended the compliance suite to assert session-enabled suites expose the correct byte lengths, added redaction checks for session payloads, documented the behaviour in spec/tasks, and re-ran `./gradlew spotlessApply check` (≈27s, configuration cache reused). citeturn0search0turn0search5
-- 2025-09-28 – Session coverage follow-up: Use the IETF OCRA Internet-Draft’s vector generator to add compliance fixtures for S128/S256 (and beyond) so tests cover all documented session lengths (S064, S128, S256, S512). citeturn0search0turn0search5
-- 2025-09-28 – Phase 6 scope defined: Proceed with Option A (CLI first) for session-aware helper wiring; queued tasks T023 (tests) and T024 (implementation) under the new CLI Session Helper Integration phase.
-- 2025-09-28 – Phase 6/T023 delivered: Added parameterised CLI regression tests covering S064/S128/S256/S512 session payloads; initial assertions captured the missing command behaviour prior to T024 (`./gradlew :cli:test` – PASS, exercises failure path).
-- 2025-09-28 – Phase 6/T024 delivered: Wired the CLI `ocra` command to `OcraResponseCalculator`, returning deterministic OTP output, redacting shared secrets, and flipping the new regression tests to green (`./gradlew :cli:test` – PASS, configuration cache reused; `./gradlew spotlessApply check` – PASS, ~12s).
-- 2025-09-28 – REST integration decision: Adopt Option A (synchronous endpoint) for the next session helper rollout; work migrated to Feature Plan 003 for dedicated REST tracking.
-- 2025-09-28 – Verification checkpoint: `./gradlew spotlessApply check` (PASS, 26s, configuration cache reused) after re-enabling ArchUnit and updating documentation.
+2. **I2 – Secret canon + registry/persistence (T-001-04–T-001-05)**
+   - _Goal:_ Canonicalise shared secrets and enable registry metadata + persistence envelopes with upgrade hooks.
+   - _Preconditions:_ I1 complete; property-based codec tests staged.
+   - _Steps:_
+     - Implement codec + property-based tests (`T-001-04`).
+     - Expose registry metadata + versioned envelopes; add upgrade tests (`T-001-05`).
+     - Re-enable ArchUnit guardrails once packages stabilise.
+   - _Commands:_ `./gradlew --no-daemon :core:test --tests "*SecretMaterialCodecTest"`, `./gradlew --no-daemon :core:test --tests "*CredentialEnvelopeUpgradeTest"`.
+   - _Exit:_ Registry lookups deterministic; persistence upgrade tests green; ArchUnit rules enforced.
 
-## Phase 4 – Next Increment (T016 Roadmap & Self-Review)
+3. **I3 – Execution helper + CLI maintenance wiring (T-001-06–T-001-07)**
+   - _Goal:_ Implement `OcraResponseCalculator`, wire session-aware helper into the CLI maintenance flows, and document provenance.
+   - _Preconditions:_ I2 complete; placeholder compliance tests referencing RFC vectors exist.
+   - _Steps:_
+     - Implement calculator + RFC Appendix C/session compliance tests (`T-001-06`).
+     - Hook the helper into `maintenance ocra`, add sanitized logging, and update docs with vector provenance (`T-001-07`).
+   - _Commands:_ `./gradlew --no-daemon :core:test --tests "*OcraRfc6287ComplianceTest"`, `./gradlew --no-daemon :cli:test --tests "*MaintenanceCli*"`.
+   - _Exit:_ Compliance tests + CLI suites green; telemetry frames recorded; docs updated.
 
-1. Update `docs/4-architecture/roadmap.md` to reflect Workstream 1 progress (T011–T015) and surface upcoming actions.
-2. Capture lessons learned, test outcomes, and telemetry documentation notes within this feature plan and associated tasks.
-3. Verify action items/follow-ups are current and archive completed TODOs.
-4. Run `./gradlew spotlessApply check`, capture timing, and self-review before committing/pushing.
+4. **I4 – Fixture provenance + follow-up coverage (Future tasks)**
+   - _Goal:_ Keep RFC/draft vectors authoritative, stage additional failure coverage, and prepare for downstream REST adoption.
+   - _Preconditions:_ I3 complete; fixtures stored under `docs/test-vectors/ocra/`.
+   - _Steps:_
+     - Extend spec/tasks with additional fixture metadata.
+     - Stage negative tests for missing session lengths and telemetry omissions.
+     - Capture command outputs (`./gradlew spotlessApply check`) for the archive.
+   - _Commands:_ `./gradlew --no-daemon spotlessApply check` plus targeted module tests as needed.
+   - _Exit:_ Fixtures documented, telemetry coverage proven, plan ready for REST/UI features.
 
-## Phase 5 – RFC 6287 Verification (T017–T018)
-
-1. Extend the specification/tasks to cover integration of the official RFC 6287 (OCRA) reference vectors, documenting the source and expected OTP outcomes.
-2. Add placeholder tests that load the vectors and currently assert `UnsupportedOperationException` (or similar) until the OCRA response calculator is implemented; document the TODO so the assertions can be flipped when the helper lands.
-3. Capture the new coverage notes, Gradle command results (once tests go green with the future helper), and any follow-up actions within this plan.
-4. Implement `OcraResponseCalculator` to assemble the OCRA message (suite, counter, challenge(s), PIN, session, timestamp) and compute the HMAC/HOTP response prescribed by RFC 6287.
-5. Update the RFC vector tests to assert actual OTP values, add negative coverage for missing inputs, and validate telemetry remains redacted during execution.
-
-## Dependencies
-
-- Align with roadmap Workstreams 2–5 to ensure downstream modules consume the same types.
-- Surface any new security/privacy considerations as ADRs.
-- Complete the analysis gate checklist (`docs/5-operations/analysis-gate-checklist.md`) before implementation sessions begin.
-- Shared persistence decision: MapDB store and core-managed cache are shared across all facades (2025-09-27).
-- Crypto strategy decision: keep credential packages pure data/validation and integrate pluggable strategy interfaces for crypto execution (preferred option recorded 2025-09-27).
-- Persistence evolution decision: adopt per-record schema versioning with a migration pipeline that upgrades records on read/write (preferred option recorded 2025-09-27).
-
-## Self-Review Notes (2025-09-28)
-- Telemetry logging remains at `Level.FINE` to avoid operator noise; tests assert payload redaction to prevent regressions.
-- SpotBugs suppression limited to the test harness attaching log handlers; production code avoids suppressions.
-- Roadmap/action items updated to reference completed documentation work, keeping future contributors oriented toward remaining plans (Workstreams 2–5, crypto ADRs).
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-001-01 | I1 / T-001-02–T-001-03 | Descriptor immutability + validation diagnostics. |
+| S-001-02 | I2 / T-001-04 | Shared-secret canonicalisation + telemetry. |
+| S-001-03 | I2 / T-001-05 | Registry metadata + factory wiring. |
+| S-001-04 | I2 / T-001-05 | Persistence envelope upgrades + ArchUnit guardrails. |
+| S-001-05 | I3 / T-001-06–T-001-07 | Execution helper + CLI maintenance wiring + fixtures. |
 
 ## Analysis Gate
+- 2025-09-27 – Checklist executed (PASS).
+  - Spec FR/NFR tables + clarifications populated; open-questions log empty for this feature.
+  - Plan references correct artefacts and ≤90-minute increments.
+  - Tasks order tests before code; telemetry + persistence dependencies captured.
+  - Command readiness verified via `./gradlew --no-daemon spotlessApply check`.
 
-- 2025-09-27 – Checklist reviewed.
-  - Specification objectives, FR/NFR tables, and clarifications are populated and current (including per-protocol packaging cadence).
-  - Open questions log shows no blocking entries for this feature.
-  - Plan references the correct spec/tasks and mirrors success criteria and dependencies.
-- Task list covers FR-001–FR-009/NFRs with tests scheduled ahead of implementation work and ≤30 minute increments.
-  - Planned work remains compliant with constitution principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
-  - Tooling readiness captured (`./gradlew spotlessApply check`) and this analysis record stored here.
-  - Outcome: PASS – proceed to test design (Phase 1 tasks).
+## Exit Criteria
+- Specification, plan, tasks, and telemetry contracts stay in sync (no drift noted in the gate report).
+- `./gradlew --no-daemon spotlessApply check` plus targeted module suites remain green.
+- RFC 6287 Appendix C + session fixtures stored under `docs/test-vectors/ocra/` with provenance notes.
+- `maintenance ocra` CLI helper documented and emits sanitized telemetry/verbose trace identifiers.
+- Knowledge map + roadmap entries reference the completed OCRA domain work.
 
-Update this plan as tasks progress: check off completed items, add new tasks, and note blockers.
+## Follow-ups / Backlog
+1. Extend the specification/tasks to capture additional RFC/draft fixture metadata beyond Appendix C.
+2. Stage placeholder tests asserting `UnsupportedOperationException` paths for future REST integration before wiring new helpers.
+3. Document coverage notes + Gradle command outputs for the next iteration (especially once REST/UI adoption begins).
+4. Evaluate additional failure branches (missing session input, invalid suite) and add regression tests.
+5. Track downstream adoption workstreams (Feature 003+) to ensure they consume the canonical descriptor + registry APIs without drift.

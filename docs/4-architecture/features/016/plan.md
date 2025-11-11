@@ -1,81 +1,129 @@
 # Feature Plan 016 – OCRA UI Replay
 
-_Status: In Progress_
-_Last updated: 2025-10-04_
+_Linked specification:_ `docs/4-architecture/features/016/spec.md`  
+_Status:_ In Progress  
+_Last updated:_ 2025-11-10
 
-## Objective
-Extend the operator console with a dedicated replay screen that supports stored and inline OCRA verification flows by calling `/api/v1/ocra/verify`, surfaces outcome/telemetry details, and maintains accessibility and telemetry guardrails alongside existing evaluation tooling.
+## Vision & Success Criteria
+- Deliver an operator-console Replay panel that mirrors CLI/REST behaviour for stored and inline credentials (FR-016-01–FR-016-04).
+- Keep telemetry contract parity: `ui.console.replay` frames must align with `rest.ocra.verify` so auditors can correlate outcomes across facades (FR-016-05, NFR-016-03).
+- Maintain accessibility and performance budgets established for Feature 006; Replay flows must honour WCAG 2.1 AA and stay under the 200 ms P95 latency bar (NFR-016-01/NFR-016-02).
 
-Reference specification: `docs/4-architecture/features/016/spec.md`.
+## Scope Alignment
+- **In scope:**
+  - Surfacing Replay navigation, stored credential dropdowns, inline preset automation, and result cards that display telemetry IDs and sanitized reason codes.
+  - Extending Selenium/System coverage as the enforcement mechanism for replay UX + validation.
+  - Logging UI telemetry via `OperatorConsoleTelemetryLogger` and updating docs/telemetry snapshots.
+  - Refreshing how-to guides and knowledge-map entries to reflect the new replay surface.
+- **Out of scope:**
+  - Changing the Evaluate experience (aside from shared components already touched by Replay work).
+  - Introducing replay flows for non-OCRA protocols (HOTP/TOTP, EMV/CAP, WebAuthn, etc.).
+  - Credential lifecycle CRUD or persistence schema changes; these remain under Feature 009 + CLI.
+  - Adding fallbacks or legacy UI shims beyond the clarifications above (per governance: no implicit backwards compatibility).
 
-## Success Criteria
-- Replay screen reachable from the operator console navigation, with mode selection (stored vs inline) and context inputs mirroring CLI/REST options.
-- Stored mode fetches credential inventory from the REST facade and submits verification payloads end-to-end.
-- Inline mode accepts suite/secret inputs, validates context, and sends correct payloads to `/api/v1/ocra/verify`.
-- UI renders match/mismatch/validation outcomes with telemetry identifiers and reason codes, matching REST semantics.
-- Replay interactions emit enhanced telemetry (mode, outcome classification, hashed payload fingerprints) without exposing secrets.
-- Documentation (how-to guides, telemetry references) updated to cover UI replay usage and logging.
+## Dependencies & Interfaces
+- `/api/v1/ocra/verify`, `/api/v1/ocra/credentials`, and `/api/v1/ocra/credentials/{id}/sample` for stored inventory + verification payloads.
+- `OperatorConsoleController`, `ui/ocra/replay.html`, and associated JS fragments that toggle between Evaluate and Replay.
+- `TelemetryContracts.ocraVerificationAdapter` + `OperatorConsoleTelemetryLogger` for sanitized logging.
+- `docs/ocra_validation_vectors.json` and `data/credentials.db` fixtures that feed inline presets and stored credential seeding.
+- Gradle Selenium/System test harness plus HtmlUnit/WebDriver dependencies for headless UI verification.
 
-## Proposed Increments
-- ☑ R1601 – Capture clarifications, draft spec, update roadmap/knowledge map/open-questions. (2025-10-03 – Spec/plan/tasks synced; no open questions.)
-- ☑ R1602 – Author failing Selenium system coverage for replay navigation, stored credential submission, and inline flows. (2025-10-03 – Added `OperatorConsoleReplaySeleniumTest` expecting missing screen, documented failure in Notes.)
-- ☑ R1603 – Add MockMvc/WebTestClient tests for replay controller/service wiring, including telemetry expectations and REST error handling. (2025-10-03 – `OcraReplayControllerTest` and telemetry verifications passing.)
-- ☑ R1604 – Implement replay screen templates, controllers, and REST wiring to satisfy stored/inline flows with telemetry. (2025-10-03 – UI renders replay screen; REST + telemetry suites green.)
-- ☑ R1605 – Polish UI copy/accessibility, update telemetry adapters, and rerun Selenium suites. (2025-10-03 – Replay Selenium tests green with hashed fingerprints + WCAG contrast checks.)
-- ☑ R1606 – Refresh operator how-to/telemetry docs, rerun `./gradlew spotlessApply check`, and stage notes for commit. (2025-10-03 – Docs updated for replay workflow; quality gate reused configuration cache and passed.)
-- ☑ R1607 – Extend Selenium coverage to assert replay inline mode exposes the inline sample preset selector and auto-fills fields when a preset is chosen. (2025-10-03 – Failing test observed prior to implementation.)
-- ☑ R1608 – Update replay controller/template/JS to surface inline presets (Option A), ensure dropdown drives field population, then rerun Selenium + `./gradlew spotlessApply check`. (2025-10-03 – Tests + quality gate green.)
-- ☑ R1609 – Ensure replay inline presets remain hidden/disabled when stored mode is active, mirroring evaluation console behaviour. (2025-10-03 – Template/JS updated, preset container toggled with mode.)
-- ☑ R1610 – Extend Selenium coverage for stored mode preset visibility, then rerun `./gradlew :rest-api:test spotlessApply check`. (2025-10-03 – Stored-mode assertion verifies selector hidden; build commands green.)
-- ☑ R1611 – Extend inline sample definitions/tests to include expected OTP data for replay presets. (2025-10-03 – Presets include computed OTP strings mirrored in docs/tests.)
-- ☑ R1612 – Update replay template/JS to populate OTP when a preset is selected; rerun UI Selenium and quality gate commands. (2025-10-03 – UI auto-fills OTP; Selenium asserts non-empty and successful replay.)
-- ☑ R1613 – Tidy replay result card styling (status emphasis, telemetry rows) to match evaluation console. (2025-10-03 – Result badge + telemetry grid align with evaluation UI.)
-- ☑ R1614 – Extend Selenium replay suite with a failing scenario covering the new inline auto-fill button (expects preset values applied automatically). (2025-10-04 – Test currently red awaiting button wiring.)
-- ☑ R1615 – Implement inline auto-fill action wiring (template + JS) to trigger preset population with one click, then rerun Selenium and `./gradlew spotlessApply check`. (2025-10-04 – Replay inline auto-fill button added; targeted Selenium + spotless/check green.)
-- ☑ R1616 – Update operator UI docs/telemetry references for the auto-fill control and rerun quality gate commands. (2025-10-04 – How-to guide updated; knowledge map + quality gate synced.)
-- ☑ R1617 – Remove the replay inline auto-fill button so presets populate immediately on selection, adjust UI/JS/tests accordingly. (2025-10-04 – Button removed; preset change listeners handle auto-fill.)
-- ☑ R1618 – Refresh documentation/knowledge map/spec entries for the button removal and rerun targeted tests + `spotlessApply check`. (2025-10-04 – Docs/specs updated; replay Selenium + spotless/check rerun.)
-- ☑ R1619 – Remove the replay metadata "Mode" row (retain reason/outcome), update UI/JS/tests, and rerun `./gradlew :rest-api:test spotlessApply check`. (2025-10-04 – Mode row removed; reason/outcome retained with tests and quality gate rerun.)
+## Assumptions & Risks
+- **Assumptions:**
+  - CLI and REST replay semantics stay stable; UI simply orchestrates published contracts.
+  - MapDB sample copy succeeds locally, but Selenium can fall back to programmatic seeding when the file is unavailable.
+  - Preset catalogue (`docs/ocra_validation_vectors.json`) remains the single source for inline guidance.
+- **Risks / Mitigations:**
+  - *Selenium flakiness* – mitigate via deterministic HtmlUnit driver, explicit waits, and fallback credential seeding (Clarification 2025-10-04).
+  - *Telemetry drift* – keep contract tests for `OperatorConsoleTelemetryLogger` wired to the shared adapter and document every new field.
+  - *Accessibility regressions* – reuse Feature 006 helpers, re-run axe assertions, and keep colour palette + focus order identical to Evaluate panels.
 
-Each increment should take ≤30 minutes and finish with the relevant tests red→green before moving on.
+## Implementation Drift Gate
+Before declaring Feature 016 complete:
+1. Reconcile FR/NFR IDs (FR-016-01–05, NFR-016-01–04) against code/tests; record evidence in this plan and the forthcoming drift report appendix.
+2. Confirm scenario IDs (S-016-01–04) each have failing → passing tests (Selenium, MockMvc, docs) captured in the task checklist.
+3. Run `./gradlew --no-daemon spotlessApply check` and `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.OperatorConsoleReplaySeleniumTest" --info` with logs attached to the drift report.
+4. Update docs/knowledge-map/roadmap entries and attach telemetry snapshots referenced by the spec.
+Any divergence must be logged as an open question or backlog item before sign-off.
 
-## Checklist Before Implementation
-- [x] Specification updated with clarifications and requirements (`feature-016-ocra-ui-replay.md`).
-- [x] Open questions resolved (`docs/4-architecture/open-questions.md`).
-- [x] Tasks list drafted with tests-first ordering.
-- [x] Analysis gate rerun once plan/tasks are in sync.
+## Increment Map
+1. **I1 – Clarifications & red coverage (R1601–R1602)**
+   - _Goal:_ Capture owner decisions, sync spec/plan/tasks, and create failing Selenium scenarios for navigation + stored/inline submissions.
+   - _Preconditions:_ Feature 006 UI scaffolding + CLI/REST replay contracts.
+   - _Steps:_
+     - Update spec/plan with answered clarifications and roadmap notes.
+     - Author `OperatorConsoleReplaySeleniumTest` cases for stored vs inline replay (expected to fail without UI).
+     - Document red state + commands in tasks/plan.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*OperatorConsoleReplaySeleniumTest"` (fails), `./gradlew spotlessApply` (docs only).
+   - _Exit:_ Clarifications recorded; Selenium suite failing on missing Replay panel; open questions log empty.
 
-## Tooling Readiness
-- Selenium suite: `./gradlew :rest-api:systemTest` (or equivalent) to execute UI browser flows.
-- REST/UI integration tests: `./gradlew :rest-api:test` (MockMvc) and `./gradlew :rest-api:integrationTest` if split.
-- Quality gate: `./gradlew spotlessApply check` after each self-contained increment.
+2. **I2 – REST + telemetry scaffolding (R1603)**
+   - _Goal:_ Ensure `/api/v1/ocra/verify` metadata exposes `mode`, `credentialSource`, and telemetry hooks; add MockMvc coverage for replay pathways.
+   - _Preconditions:_ I1 failing tests; telemetry adapters available.
+   - _Steps:_
+     - Extend `OcraVerificationEndpointTest` + telemetry unit tests for stored/inline contexts and verbose traces.
+     - Wire `OperatorConsoleTelemetryLogger` POST endpoint and red tests verifying sanitized payloads.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*OcraVerificationEndpointTest"`.
+   - _Exit:_ REST/telemetry tests green; Selenium still red awaiting UI fragment.
 
-## Notes
-- 2025-10-04 – Owner requested an inline auto-fill button equivalent to evaluate; Option B selected (sample preset auto-fill). Added R1614–R1616 increments.
-- 2025-10-04 – Implemented inline auto-fill control with Selenium coverage; reran targeted replay test and full `spotlessApply check` before updating operator docs.
-- 2025-10-04 – Follow-up request removes the inline auto-fill button; queued R1617–R1618 to revert UI wiring and documentation.
-- 2025-10-15 – Logged R1620 to remove the stored replay “Load sample data” button, auto-populate context when a credential is selected, and refresh Selenium coverage/tests accordingly (Option B decision).
+3. **I3 – Replay panel implementation (R1604–R1605)**
+   - _Goal:_ Build `ui/ocra/replay.html`, controller endpoints, JS wiring, and accessibility polish.
+   - _Preconditions:_ REST + telemetry green, Selenium still failing.
+   - _Steps:_
+     - Implement stored/inline forms, mode toggles, preset scaffolding, and result card.
+     - Reuse shared CSS + status badges; ensure ARIA labels present.
+     - Re-run Selenium until stored + inline paths pass.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*OperatorConsoleReplaySeleniumTest"`, `./gradlew --no-daemon spotlessApply check`.
+   - _Exit:_ Selenium suite green for baseline flows; telemetry + MockMvc remain green.
 
-Use this section to log telemetry schema updates, notable UI decisions, and benchmark/latency observations as work proceeds.
-- 2025-10-03 – Quality gate run via `./gradlew :rest-api:test spotlessApply check` (no `systemTest` task defined for rest-api); recorded as baseline before UI implementation.
-- 2025-10-03 – Added Selenium replay suite (`OperatorConsoleReplaySeleniumTest`) covering stored and inline flows; initial run failed before the replay screen existed, documenting the red state for R1602.
-- 2025-10-03 – Confirmed with owner that T1602 covers inline replay Selenium coverage; stored replay navigation remains part of earlier tasks.
-- 2025-10-03 – MockMvc verification endpoint tests assert metadata.mode + telemetry mode fields; `./gradlew :rest-api:test --tests "io.openauth.sim.rest.OcraVerificationEndpointTest"` now passes after service telemetry wiring update.
-- 2025-10-03 – Replay template JS now consumes REST metadata.mode/credentialSource to render telemetry summaries; Selenium replay suite verifies stored/inline flows show hashed fingerprints and sanitized flags.
-- 2025-10-04 – Stored replay Selenium test now treats the bundled sample MapDB as optional, falling back to programmatic credential seeding when the copy step fails (Option B).
-- 2025-10-03 – UI replay telemetry now posts to `/ui/console/replay/telemetry`; new logger component emits through `TelemetryContracts.ocraVerificationAdapter` with mode/outcome/context fingerprints, covered by unit + WebMvc tests.
+4. **I4 – Documentation + knowledge sync (R1606)**
+   - _Goal:_ Update operator how-to, telemetry snapshots, knowledge map, and roadmap.
+   - _Preconditions:_ UI + tests green.
+   - _Steps:_
+     - Refresh docs/2-how-to, docs/3-reference telemetry snapshots.
+     - Capture notes in `_current-session.md`, roadmap, migration tracker.
+   - _Commands:_ `./gradlew --no-daemon spotlessApply check` (docs only).
+   - _Exit:_ Documentation references Replay usage; build stays green.
 
-- 2025-10-03 – Replay Selenium suite passes post-implementation; verifies hashed fingerprints and sanitized flags for stored/inline flows.
-- 2025-10-03 – Operator UI how-to and telemetry snapshot updated for replay workflow; `./gradlew spotlessApply check` rerun (configuration cache) and passed.
-- 2025-10-03 – Replay inline view now reuses evaluation presets (Option A); JS applies preset selections to suite/context fields, covered by Selenium auto-fill assertions.
-- 2025-10-03 – User confirmed sample presets must remain inline-only; need to align replay visibility with evaluation screen.
-- 2025-10-03 – Replayed UI now toggles preset dropdown with stored/inline modes; Selenium stored-mode test asserts hidden state to prevent regressions.
-- 2025-10-03 – Inline presets now carry expected OTP values; replay JS applies them and Selenium verifies match flow without manual entry.
-- 2025-10-03 – Replay result card now mirrors evaluation console styling (status badge + telemetry grid) for readability.
-## Analysis Gate (2025-10-03)
-- Specification completeness – PASS: Feature 016 spec defines objectives, functional/non-functional requirements, and captured clarifications.
-- Open questions review – PASS: `docs/4-architecture/open-questions.md` has no entries for this feature.
-- Plan alignment – PASS: Plan references the spec/tasks; success criteria mirror OUR-001–OUR-005.
-- Tasks coverage – PASS: Tasks T1601–T1607 map to replay flows, telemetry, documentation, and quality commands with tests preceding implementation.
-- Constitution compliance – PASS: Work remains within existing modules, reuses REST replay endpoint, and adds telemetry per guardrails (no dependency changes planned).
-- Tooling readiness – PASS: Plan lists Selenium/MockMvc suites and `./gradlew spotlessApply check`; SpotBugs/PMD guardrails remain active.
+5. **I5 – Inline preset automation + UX polish (R1607–R1615)**
+   - _Goal:_ Add inline preset dropdown, OTP auto-fill, preset visibility toggles, and result-card copy tweaks.
+   - _Preconditions:_ I3 complete; Selenium green for baseline.
+   - _Steps:_
+     - Stage failing Selenium cases for preset visibility + OTP auto-fill (stored vs inline separation).
+     - Update controller/template/JS/preset catalogue; rerun Selenium + Gradle gate.
+     - Remove temporary auto-fill button (Option B) and align copy.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*OperatorConsoleReplaySeleniumTest"`, `./gradlew --no-daemon spotlessApply check`.
+   - _Exit:_ Inline presets auto-fill suite/secret/context/OTP, stored mode hides presets, result cards match Evaluate styling.
+
+6. **I6 – Stored sample auto-fill + backlog clean-up (T1620)**
+   - _Goal:_ Remove the legacy “Load sample data” button for stored credentials, auto-fill context on selection, and capture any deferred tasks.
+   - _Preconditions:_ I5 complete; updated spec clarifications accepted.
+   - _Steps:_
+     - Delete the button, ensure credential selection triggers sample hydration, and cover error fallbacks.
+     - Refresh Selenium + MockMvc + docs + migration tracker.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*OperatorConsoleReplaySeleniumTest"`, `./gradlew --no-daemon spotlessApply check`.
+   - _Exit:_ Stored credential UX matches inline preset parity; backlog reduced to telemetry/documentation items only.
+
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-016-01 | I3, I5 | Replay navigation + UI polish validated by Selenium + accessibility checks. |
+| S-016-02 | I1, I3, I6 | Stored credential flow (dropdown, auto-fill, REST submission) incl. T1620 cleanup. |
+| S-016-03 | I1, I5 | Inline preset automation + validation handled by failing/green Selenium loops. |
+| S-016-04 | I2, I4 | Telemetry endpoint + documentation/knowledge-map sync; tracked via MockMvc + docs tasks. |
+
+## Analysis Gate
+- **Status:** Completed on 2025-10-03 (see historical notes). Re-run the checklist after I6 lands to confirm no new drift.
+- **Next run items:** Attach evidence of telemetry frame parity, Selenium logs, and docs updates; ensure `_current-session.md` references the final commands.
+
+## Exit Criteria
+- All FR-016-xx and NFR-016-xx mapped to passing tests + implementation.
+- `OperatorConsoleReplaySeleniumTest`, `OcraVerificationEndpointTest`, and telemetry logger tests green in CI.
+- `./gradlew --no-daemon spotlessApply check` succeeds after docs + code changes.
+- Telemetry snapshots, how-to guides, knowledge map, roadmap, and migration tracker updated to mention Replay.
+- Implementation Drift Gate report filed with links to spec/plan/tasks, plus open questions resolved or logged as backlog items.
+
+## Follow-ups / Backlog
+1. T-016-20 – Complete stored replay “Load sample data” removal and ensure Selenium + MockMvc cover the auto-fill path (pending in tasks list).
+2. Evaluate whether Replay verbose-trace opt-in should expose UI hints similar to Evaluate panels (defer to Feature 040 telemetry consolidation).
+3. Monitor test runtime; split Selenium scenarios if the replay suite exceeds acceptable wall-clock limits during future refactors.

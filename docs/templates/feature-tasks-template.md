@@ -4,10 +4,10 @@ _Status: Draft_
 _Last updated: YYYY-MM-DD_
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
-> When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
+> When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
 
 ## Checklist
-- [ ] T<NNN1> – <Task title> (F-<NNN>-01, N-<NNN>-01, S<NNN>-01).  
+- [ ] T-<NNN>-01 – <Task title> (F-<NNN>-01, N-<NNN>-01, S-<NNN>-01).  
   _Intent:_ What this task delivers (tests, implementation, docs).  
   _Verification commands:_  
   - `./gradlew --no-daemon :module:test --tests "…" `  
@@ -15,7 +15,7 @@ _Last updated: YYYY-MM-DD_
   - `./gradlew spotlessApply check`  
   _Notes:_ Link to related spec sections or follow-ups.
 
-- [ ] T<NNN2> – <Task title>.  
+- [ ] T-<NNN>-02 – <Task title>.  
   _Intent:_ …  
   _Verification commands:_ …  
 

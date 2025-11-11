@@ -1,42 +1,80 @@
-# Feature Plan 020 – Operator UI Protocol Tabs Expansion
+# Feature Plan 020 – Operator UI Multi-Protocol Tabs
 
-_Status: Draft_
-_Last updated: 2025-10-04_
+_Linked specification:_ `docs/4-architecture/features/020/spec.md`  
+_Status:_ Complete  
+_Last updated:_ 2025-11-10
 
-## Objective
-Expose HOTP, TOTP, and EUDI wallet protocol tabs on the operator console while keeping them as placeholders, and align roadmap planning with the new protocol scope.
+## Vision & Success Criteria
+Expose HOTP, TOTP, and EUDI wallet placeholder tabs inside `/ui/console` so operators see the upcoming protocols while
+keeping routing, accessibility, and dark-theme styling consistent. Roadmap/knowledge map entries must reflect the new
+workstreams. Success indicators:
+- Tab order + placeholder panels verified via Selenium/DOM tests (FR-020-01/02, S-020-01).
+- Query-parameter routing/history extended for new protocol keys (FR-020-03, S-020-02).
+- Roadmap + knowledge map updated (FR-020-04, S-020-03).
+- `./gradlew :rest-api:test` and `./gradlew spotlessApply check` pass after updates.
 
-Reference specification: `docs/4-architecture/features/020/spec.md`.
+## Scope Alignment
+- **In scope:** UI tab ordering, placeholder content, JS router updates, doc updates, roadmap adjustments.
+- **Out of scope:** Implementing functional HOTP/TOTP/EUDI flows or backend endpoints.
 
-## Success Criteria
-- Console tab list reflects the required ordering (HOTP → TOTP → OCRA → EMV/CAP → FIDO2/WebAuthn → EUDIW OpenID4VP 1.0 → EUDIW ISO/IEC 18013-5 → EUDIW SIOPv2) and maintains accessible semantics (OPT-001, OPT-NFR-001).
-- Selecting non-OCRA protocols surfaces placeholder messaging with no interactive forms, mirroring the current placeholder styling (OPT-002, OPT-NFR-002).
-- Query-parameter routing accepts and restores each new protocol key without breaking existing OCRA tab handling (OPT-003).
-- Roadmap table and milestones enumerate dedicated HOTP, TOTP, and EUDI wallet workstreams marked `Not started`, and the catch-all milestone is removed (OPT-004).
-- `./gradlew spotlessApply check` passes after each implementation increment.
+## Dependencies & Interfaces
+- `rest-api` module’s Thymeleaf template + JS router controlling `/ui/console`.
+- Selenium/DOM tests that validate tab behaviour.
+- `docs/4-architecture/roadmap.md` and `docs/4-architecture/knowledge-map.md`.
 
-## Proposed Increments
-- ☑ R2001 – Add failing Selenium/DOM assertions (or equivalent unit tests) for the expanded protocol tab order and placeholder panels, then run the relevant Gradle test task to confirm the new expectations fail.
-- ☑ R2002 – Update the Thymeleaf template and console script to render the new tab order, placeholder panels, and protocol keys; update supporting tests and rerun `./gradlew :rest-api:test`.
-- ☑ R2003 – Refresh roadmap (and knowledge map if needed) to reflect the new workstreams, remove the catch-all milestone, document changes, and rerun `./gradlew spotlessApply check`.
+## Assumptions & Risks
+- **Assumptions:** Placeholder content suffices until protocol specs land; query-parameter schema remains backward
+  compatible.
+- **Risks/Mitigations:**
+  - Tab ordering regressions → enforce with automated tests.
+  - Documentation drift → run spotless/Doc review after updates.
 
-Each increment should complete within ≤30 minutes and end with a green build for the affected modules.
+## Implementation Drift Gate
+- Map FR/NFR IDs to increments/tasks (see Scenario Tracking).
+- Capture Selenium screenshots or DOM dumps verifying placeholder panels.
+- Rerun `./gradlew :rest-api:test` + `./gradlew spotlessApply check` after UI/doc updates.
 
-## Checklist Before Implementation
-- [x] Specification created with clarifications recorded.
-- [x] Open questions resolved and captured in spec (tracked in `docs/4-architecture/open-questions.md`).
-- [x] Feature tasks drafted with test-first ordering.
-- [x] Analysis gate rerun once plan/tasks align.
+## Increment Map
+1. **I1 – Tests first (S-020-01, FR-020-01/02)**
+   - _Goal:_ Extend Selenium/DOM tests to expect new tabs + placeholders.
+   - _Steps:_
+     - Update `OperatorConsoleUnificationSeleniumTest` (or equivalent) to assert order and placeholder copy.
+     - Add router tests for new protocol keys.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test` (expected red).
+   - _Exit:_ Tests fail due to missing UI updates.
 
-## Tooling Readiness
-- `./gradlew :rest-api:test` covers console UI/JS; extend Selenium/DOM assertions within that task or accompanying unit tests.
-- `./gradlew spotlessApply check` remains the final gate per increment.
+2. **I2 – UI/JS implementation (S-020-01, S-020-02, FR-020-01..03)**
+   - _Goal:_ Render the new tabs and extend routing/history.
+   - _Steps:_
+     - Update Thymeleaf template and JS router with new tab definitions.
+     - Ensure placeholder copy/styling matches existing placeholders.
+     - Rerun Selenium + router tests.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon spotlessApply check`.
+   - _Exit:_ Tests green; UI exhibits correct order/placeholders.
 
-## Notes
-- 2025-10-04 – T2001 added Selenium assertions for HOTP/TOTP/EUDIW placeholders; `./gradlew :rest-api:test` initially red until template updates landed.
-- 2025-10-04 – T2002 implemented the expanded tab skeleton and placeholders; Selenium regression suite now green.
-- 2025-10-04 – T2003 refreshed roadmap + knowledge map and ran `./gradlew spotlessApply check`; build succeeded.
-- 2025-10-04 – User updated desired tab ordering to place EMV/CAP and FIDO2/WebAuthn ahead of EUDIW entries; specs/tests will reflect the revised sequence.
+3. **I3 – Documentation & roadmap updates (S-020-03, FR-020-04)**
+   - _Goal:_ Reflect the new workstreams across docs.
+   - _Steps:_
+     - Update roadmap to list HOTP, TOTP, and EUDI wallet features (`Not started`).
+     - Refresh knowledge map session + migration tracker.
+     - Rerun `./gradlew --no-daemon spotlessApply check`.
+   - _Exit:_ Docs consistent; build green.
+
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-020-01 | I1/I2 → T-020-01, T-020-02 | Tab ordering & placeholders. |
+| S-020-02 | I2 → T-020-02 | Routing/history for protocol keys. |
+| S-020-03 | I3 → T-020-03 | Roadmap/knowledge map updates.
 
 ## Analysis Gate
-- 2025-10-04 – Checklist executed; specification, plan, tasks, and open questions aligned. No follow-up actions required.
+Completed 2025-10-04 with clarifications logged; rerun if scope changes.
+
+## Exit Criteria
+- New tabs + placeholders render correctly.
+- Query-parameter routing handles new keys.
+- Docs updated.
+- `./gradlew :rest-api:test` + `./gradlew spotlessApply check` green after final change.
+
+## Follow-ups / Backlog
+- Ship functional HOTP/TOTP/EUDI simulator flows via future feature IDs once specs are ready.

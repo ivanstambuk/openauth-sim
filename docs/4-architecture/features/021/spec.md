@@ -1,78 +1,169 @@
 # Feature 021 – Protocol Info Surface
 
-_Status:_ Complete  
-_Last updated:_ 2025-10-31
+| Field | Value |
+|-------|-------|
+| Status | Complete |
+| Last updated | 2025-11-10 |
+| Owners | Ivan (project owner) |
+| Linked plan | `docs/4-architecture/features/021/plan.md` |
+| Linked tasks | `docs/4-architecture/features/021/tasks.md` |
+| Roadmap entry | #9 – Operator Console Infrastructure |
 
 ## Overview
-Introduce an "Info" drawer for every protocol tab in the operator console so users can access detailed guidance without leaving the UI. The surface mirrors the previously supplied prompt while aligning with OpenAuth Simulator’s workflow: specification-first execution, test-driven increments, and documentation/telemetry governance. The feature delivers drawer + modal UX, reusable embeddable assets, a React integration, and operational documentation.
-
-
-## Goals
-- Surface protocol metadata, hints, and telemetry summaries within the UI to aid operators.
-- Standardize how contextual help appears across CLI/REST docs and the console.
-
-## Non-Goals
-- Does not change underlying protocol execution.
-- Does not introduce analytics pipelines; it is purely presentation.
-
+Add a reusable protocol info drawer/modal to the operator console so every protocol tab exposes contextual guidance,
+telemetry hints, and quick links without leaving `/ui/console`. The surface relies on schema-driven JSON data, a single
+trigger button that follows the active tab, persistence via `localStorage`, and embeddable assets/documentation so other
+facades (vanilla DOM or React wrappers) can adopt the same UX.
 
 ## Clarifications
-- 2025-10-04 – Drawer target width fixed at 520 px to satisfy the "open further to the left" requirement (user directive).
-- 2025-10-04 – Implementation must follow existing operating procedures (spec/plan/tasks, ≤30 minute increments, Gradle checks, no new prompts/docs outside feature scope) (user directive).
-- 2025-10-04 – The supplied prompt serves as the UX/content baseline; all requirements listed there must appear in this feature’s deliverables (user directive).
-- 2025-10-04 – React wrapper requirement removed; ship vanilla DOM API integration guidance instead of a React component (user directive).
-- 2025-10-04 – Size monitoring is out of scope; ship embeddable assets without minification/gzip checks (user directive).
-- 2025-10-04 – Protocol info trigger is a single button aligned to the right of the protocol tablist; it always references the currently active protocol (user directive).
+- 2025-10-04 – Drawer width fixed at 520 px; opens from the right using the existing dark theme (owner directive).
+- 2025-10-04 – Follow standard workflow guardrails: spec-first, ≤30 min increments, Gradle gate per increment (owner directive).
+- 2025-10-04 – Use the supplied prompt as the UX/content baseline; all behaviours described there must ship (owner directive).
+- 2025-10-04 – React wrapper requirement was dropped; provide vanilla DOM integration guidance instead (owner directive).
+- 2025-10-04 – Size monitoring/minification is out of scope; just ship embeddable assets (owner directive).
+- 2025-10-04 – Protocol info trigger is a single right-aligned button referencing the active protocol (owner directive).
 
-## Branch & Scenario Matrix
+## Goals
+- G-021-01 – Deliver an accessible drawer/modal that surfaces per-protocol metadata, persists preferences, and supports
+  keyboard navigation/reduced-motion users.
+- G-021-02 – Provide schema-driven data ingestion, CustomEvent hooks, and embeddable assets/README so other apps reuse
+  the Protocol Info surface.
+- G-021-03 – Keep documentation/roadmap/knowledge map aligned with the new UX.
 
-| Scenario ID | Description / Expected outcome |
-|-------------|--------------------------------|
-| S21-01 | Operator console adds a single protocol info trigger tied to the active tab plus drawer scaffolding with placeholder content. |
-| S21-02 | Drawer content loads from JSON schema data, persists operator preferences via localStorage, and emits CustomEvents for telemetry/integration hooks. |
-| S21-03 | Drawer expands into an accessible modal with focus trap, keyboard shortcuts, and reduced-motion handling. |
-| S21-04 | Embeddable assets/demo + integration docs (vanilla DOM + optional React guidance) describe how other apps consume the Protocol Info surface. |
-| S21-05 | Roadmap/knowledge map/docs update to capture the new UX, with full Gradle verification to close the feature. |
+## Non-Goals
+- N-021-01 – Modify protocol execution logic or backend APIs.
+- N-021-02 – Add analytics pipelines beyond CustomEvents emitted in the browser.
+- N-021-03 – Introduce size budgets or bundle tooling beyond current build scripts.
 
 ## Functional Requirements
-| ID | Requirement | Acceptance Signal |
-|----|-------------|-------------------|
-| PIS-001 | Add a single icon-only "i" trigger positioned to the right of the protocol tablist. The button must expose aria-label="Protocol info", aria-haspopup="dialog", aria-controls, and aria-expanded, and it must always map to the currently active protocol. | Selenium/UI integration tests confirm trigger presence, accessible attributes, and active-protocol updates when tabs change. |
-| PIS-002 | Render a right-aligned drawer (520 px width, full height, non-modal) that opens via trigger click or "?" / Shift+/ hotkeys, preserves page scroll, and closes on Esc or outside click. | Tests simulate trigger, hotkeys, Esc/outside click and assert drawer visibility/toggle state. |
-| PIS-003 | Provide an "Expand" button in the drawer header that promotes the surface to a centered modal (role="dialog", aria-modal="true") with focus trap and focus-restoration to the trigger on close. | Selenium tests open modal, cycle focus, close, and verify focus returns to trigger. |
-| PIS-004 | Populate both drawer and modal with a five-section accordion (Overview default open; How it works list with 5–8 steps; Parameters & formats; Security notes & pitfalls; Specifications & test vectors with links). Accordion headers are <button> elements with aria-controls/aria-expanded and respond to keyboard toggles (Enter/Space). | Integration tests assert accordion semantics, default open panel, toggling behaviour, and content presence. |
-| PIS-005 | Load content from a JSON data source matching the schema in the original prompt, including sample entries for ocra, hotp, totp, emv, and fido2. Escape all strings before insertion; prohibit raw HTML injection. | Unit tests validate schema parsing, escaping, and rendering per protocol; sample data stored alongside implementation. |
-| PIS-006 | Persist state in localStorage using keys `protoInfo.v1.seen.<protocol>`, `protoInfo.v1.surface.<protocol>`, and `protoInfo.v1.panel.<protocol>`. Auto-open once per protocol on viewports ≥ 992 px and remember last surface/panel selections. | Automated tests stub localStorage, simulate viewport width, and ensure persistence logic behaves as specified. |
-| PIS-007 | Expose a framework-agnostic JS API (`ProtocolInfo`) with methods `mount`, `open`, `close`, and `setProtocol`, ensuring idempotent mounts and emitting the required CustomEvents (`protocolinfo:open`, `protocolinfo:close`, `protocolinfo:spec-click`). | Unit tests verify API methods, event emission, and absence of DOM leaks across repeated mounts. |
-| PIS-008 | Ship embeddable assets: `protocol-info.css` and `protocol-info.js` suitable for non-React environments. | Manual verification confirms the assets load without console integration and expose the ProtocolInfo API. |
-| PIS-009 | Deliver a standalone HTML demo file containing inline HTML/CSS/JS that mirrors production behaviour for manual QA. | Static asset checked into repository; reviewers can open locally to validate behaviour. |
-| PIS-010 | Document how to consume the ProtocolInfo DOM API from vanilla applications (mount lifecycle, event handling, persistence contract) with runnable examples. | Documentation section and demo confirm the guidance; integration instructions validated via manual QA checklist. |
-| PIS-011 | Provide documentation (README) describing Thymeleaf/Spring MVC integration, public API, data bootstrapping via `<script type="application/json" id="protocol-info-data">…</script>`, and an accessibility/test checklist. | README stored under project docs; review ensures instructions cover integration steps and QA checklist. |
-| PIS-012 | Update operator console to keep the drawer open and swap content when protocol tabs change, without interfering with existing evaluation interactions, while the single trigger reflects the new protocol. | Selenium tests navigate between tabs with drawer open, verifying state persistence and trigger state updates. |
+| ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
+|----|-------------|--------------|-----------------|--------------|--------------------|--------|
+| FR-021-01 | Render a single icon-only trigger (aria-label "Protocol info") to the right of the tablist; attributes reflect drawer state and tab focus. | Button appears in tablist header, toggles aria-expanded/aria-controls, inherits active protocol name in tooltip. | Selenium asserts aria attributes, focus order, and tab-to-button relationship. | Missing button or incorrect aria wiring blocks accessibility checks. | Emits `ui.protocolInfo.trigger.clicked` CustomEvent. | Clarifications. |
+| FR-021-02 | Drawer opens with 520 px width, left edge anchored to trigger, animates respecting reduced-motion, and can pin in “drawer” or expand to modal. | Drawer slides in/out, respects prefers-reduced-motion CSS. | Axe/keyboard tests verify focus trap, ESC/Enter shortcuts. | Drawer fails to open/close, focus trap broken, or motion preference ignored. | Emits `ui.protocolInfo.opened/closed`. | Clarifications. |
+| FR-021-03 | Content loads from `<script type="application/json" id="protocol-info-data">` schema (per protocol) and sanitises inline HTML (tensor-of escaped strings). | Data parser renders sections/accordions per schema. | Unit tests feed malformed schema to ensure fallback messaging. | Unescaped HTML or schema errors cause console warnings/test failures. | n/a | Spec baseline. |
+| FR-021-04 | Persist drawer state (last protocol + open/closed + accordion scope) in `localStorage` with per-protocol keys; auto-open each protocol once. | LocalStorage entries created, repeated visits auto-open once, respect opt-out. | Unit + Selenium tests toggle storage, simulate first-time visits. | Persistence errors log warnings and disable auto-open. | Emits `ui.protocolInfo.persistence.updated`. | Spec baseline. |
+| FR-021-05 | Swap drawer content when protocol tabs change without closing the drawer; trigger reflects current protocol. | With drawer open, clicking new tab updates content instantly. | Selenium ensures `aria-controls` and heading text change. | Drawer closes unexpectedly or shows stale content. | CustomEvent `ui.protocolInfo.protocol.changed`. | Clarifications. |
+| FR-021-06 | Provide vanilla DOM integration guide + standalone demo referencing embeddable `protocol-info.css/js` bundles. | README + demo page illustrate mounting ProtocolInfo with sample schema. | Manual QA checklist validated during self-review. | Missing docs/demo fails review checklist. | n/a | Spec baseline. |
+| FR-021-07 | Update knowledge map + roadmap to document the new UX and future protocol info workstreams. | Docs mention drawer/modal plus integration steps. | Spotless/doc lint passes after updates. | Docs lacking reference flagged in review. | n/a | Spec baseline. |
 
 ## Non-Functional Requirements
-| ID | Requirement | Target |
-|----|-------------|--------|
-| PIS-NFR-002 | Performance | Drawer open/close operations complete within 16 ms average on reference hardware; auto-open logic avoids blocking the main thread (>50 ms work). |
-| PIS-NFR-003 | Security | No inline event handlers; all external links use `rel="noopener"`; persisted data must not include secrets. |
-| PIS-NFR-004 | Maintainability | Code respects reflection prohibition, dependency guardrails, and existing module boundaries (`core` untouched, UI logic confined to `ui`/`rest-api` modules as appropriate). |
+| ID | Requirement | Driver | Measurement | Dependencies | Source |
+|----|-------------|--------|-------------|--------------|--------|
+| NFR-021-01 | Performance | Drawer open/close <16 ms average; auto-open work <50 ms on reference hardware. | Performance tests/manual profiling. | JS router/drawer code. | Clarifications. |
+| NFR-021-02 | Security | No inline event handlers; `rel="noopener"` for external links; persisted data excludes secrets. | ESLint/CSP review + unit tests. | JS modules/templates. | Clarifications. |
+| NFR-021-03 | Maintainability | Respect module boundaries (`core` untouched); no reflection/dependency changes. | Code review + ArchUnit/Spotless. | All modules. | Constitution. |
+
+## UI / Interaction Mock-ups
+```
+Tabs: [ HOTP ][ TOTP ][ OCRA ]...............[ Info ⓘ ]
+--------------------------------------------------------
+| Protocol Info Drawer (520px)                         |
+|  Header: "HOTP – Operator Guidance"                 |
+|  Sections:                                          |
+|   - Overview                                        |
+|   - Telemetry & troubleshooting                     |
+|   - Links                                           |
+|  [Open as modal] [Close]                             |
+--------------------------------------------------------
+Modal view overlays entire console with focus trap.
+```
+
+## Branch & Scenario Matrix
+| Scenario ID | Description / Expected outcome |
+|-------------|--------------------------------|
+| S-021-01 | Trigger + drawer scaffolding wired into `/ui/console`. |
+| S-021-02 | Schema-driven content, persistence, and CustomEvents land. |
+| S-021-03 | Accessible modal behaviour (focus trap, reduced motion). |
+| S-021-04 | Embeddable assets, demo, and integration docs published. |
+| S-021-05 | Roadmap/knowledge map/docs updated, Gradle gate green.
 
 ## Test Strategy
-- Extend Selenium/system tests to cover trigger/button presence, keyboard shortcuts, drawer/modal behaviour, accordion toggles, and per-protocol switching.
-- Add unit tests for the ProtocolInfo JS module covering data parsing, escaping, persistence, events, and API methods.
-- Implement React component tests (e.g., Jest + React Testing Library) verifying DOM structure parity and integration with shared assets.
-- Before implementation, add failing tests representing new behaviours to drive development.
+- **Selenium/UI:** Cover trigger aria attributes, keyboard shortcuts, drawer/modal toggles, per-protocol switching, and
+  persistence toggles.
+- **JS unit tests:** Validate schema parsing, escaping, persistence, CustomEvents, API methods.
+- **Docs:** Run `./gradlew spotlessApply check` to ensure README/how-to changes stay formatted.
 
-## Dependencies & Risks
-- Requires stable protocol tab structure from Feature 020; layout changes might affect trigger placement.
-- LocalStorage access must be guarded for SSR/non-browser environments (React component usage in tests). Ensure fallbacks exist.
-- Accessibility regressions could arise if drawer overlays interfere with existing focus order; testing must cover regression scenarios.
+## Interface & Contract Catalogue
+### Domain Objects
+| ID | Description | Modules |
+|----|-------------|---------|
+| DO-021-01 | `ProtocolInfoSchema` JSON describing sections, accordions, CTA links, reduced-motion hints. | rest-api (UI), ui JS |
+| DO-021-02 | `ProtocolInfoState` (protocol key, open/closed flag, accordions, auto-open flags). | JS router, ui |
 
-## Out of Scope
-- Introducing additional protocols beyond those listed (HOTP, TOTP, OCRA, EMV/CAP, FIDO2/WebAuthn, EUDIW entries).
-- Server-side rendering of accordion content beyond providing JSON data for client consumption.
-- Telemetry beyond CustomEvents; no backend analytics wiring in this feature.
+### API Routes / Services
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| — | — | No new backend routes; data bootstrapped inline via `<script>` block. | |
 
-## Verification
-- All new/updated tests pass along with `./gradlew spotlessApply check`.
-- Self-review confirms drawer/modal behaviour, persistence, and API contract across standalone, embeddable, and React variants.
+### CLI Commands / Flags
+| ID | Command | Behaviour |
+|----|---------|-----------|
+| — | — | No CLI changes. |
+
+### Telemetry Events
+| ID | Event name | Fields / Redaction rules |
+|----|-----------|---------------------------|
+| TE-021-01 | `ui.protocolInfo.trigger.clicked` | `protocol`, `source`. |
+| TE-021-02 | `ui.protocolInfo.opened` / `ui.protocolInfo.closed` | `protocol`, `entryPoint`, `durationMs`. |
+| TE-021-03 | `ui.protocolInfo.protocol.changed` | `fromProtocol`, `toProtocol`. |
+
+### Fixtures & Sample Data
+| ID | Path | Purpose |
+|----|------|---------|
+| FX-021-01 | `rest-api/src/main/resources/static/ui/protocol-info/protocol-info.js|.css` | Embeddable assets. |
+| FX-021-02 | `rest-api/src/main/resources/templates/ui/console/_protocol-info-data.html` | JSON bootstrap snippet for Thymeleaf. |
+| FX-021-03 | `rest-api/src/test/resources/.../ProtocolInfoSchemaTest.json` | Unit-test schemas. |
+
+### UI States
+| ID | State | Trigger / Expected outcome |
+|----|-------|---------------------------|
+| UI-021-01 | Drawer open | User clicks trigger; drawer slides in with content, focus moves to close button. |
+| UI-021-02 | Modal expanded | User selects "Open as modal"; overlay traps focus until closed. |
+| UI-021-03 | Auto-open once per protocol | First visit to protocol auto-opens drawer; subsequent visits respect stored preference. |
+
+## Telemetry & Observability
+- Hook into existing navigation telemetry by emitting CustomEvents (listed above) so future observers can bridge to
+  application telemetry.
+- Log persistence warnings in development mode to help diagnose storage exceptions.
+
+## Documentation Deliverables
+- Update README/integration guide, roadmap, and knowledge map with protocol info surface details.
+- Capture QA checklist (keyboard, screen reader, reduced motion) in the README.
+
+## Fixtures & Sample Data
+See FX-021-01..03 above; no additional fixtures required beyond schema snippets already referenced.
+
+## Spec DSL
+```
+domain_objects:
+  - id: DO-021-01
+    name: ProtocolInfoSchema
+    fields:
+      - name: protocol
+        type: string
+        constraints: hotp|totp|ocra|emv|fido2|eudi-openid4vp|eudi-iso18013-5|eudi-siopv2
+      - name: sections
+        type: list<section>
+  - id: DO-021-02
+    name: ProtocolInfoState
+    fields:
+      - name: isOpen
+        type: boolean
+      - name: lastProtocol
+        type: string
+cli_commands: []
+telemetry_events:
+  - id: TE-021-01
+    event: ui.protocolInfo.trigger.clicked
+  - id: TE-021-02
+    event: ui.protocolInfo.opened
+fixtures:
+  - id: FX-021-01
+    path: rest-api/src/main/resources/static/ui/protocol-info/protocol-info.js
+ui_states:
+  - id: UI-021-01
+    description: Drawer open state
+```
+
+## Appendix
+_None._

@@ -1,20 +1,50 @@
-# Feature 019 – Commit Message Hook Refactor Tasks
+# Feature 019 Tasks – Commit Message Hook Refactor
 
-_Status: Complete_
-_Last updated: 2025-10-04_
+_Status: Complete_  
+_Last updated: 2025-11-10_
 
-## Tasks
-| ID | Task | Related Requirements | Status |
-|----|------|----------------------|--------|
-| T1901 | Prepare sample commit message fixtures (e.g., via `mktemp`) to drive manual hook validation before implementation. | CMH-001 | ✅ (2025-10-04 – Created `/tmp/gitlint-pass.XSp1tL` and `/tmp/gitlint-fail.UaXqSh` for manual testing.) |
-| T1902 | Implement `githooks/commit-msg`, remove gitlint call from `githooks/pre-commit`, ensure scripts stay executable. | CMH-001, CMH-002 | ✅ (2025-10-04 – Added `githooks/commit-msg`, updated pre-commit header + scanners, set executable bits.) |
-| T1903 | Run manual hook checks (`githooks/commit-msg` with pass/fail fixtures, `githooks/pre-commit` on staged sample) and execute `./gradlew spotlessApply check`. | CMH-001, CMH-002 | ✅ (2025-10-04 – `githooks/commit-msg /tmp/gitlint-pass.XSp1tL` passed; `/tmp/gitlint-fail.UaXqSh` failed as expected; `githooks/pre-commit` and `./gradlew --no-daemon spotlessApply check` both succeeded after clearing `.gradle/configuration-cache`.) |
-| T1904 | Update documentation (runbook/contributor guidance), sync spec/plan/tasks, and clear resolved open question. | CMH-003 | ✅ (2025-10-04 – Updated runbook + AGENTS hook guard, synced roadmap/spec/plan/tasks, open questions log cleared.) |
-| T1905 | Implement Spotless stale-cache auto-recovery in `githooks/pre-commit` and validate with a simulated failure. | CMH-004 | ✅ (2025-10-04 – Added retry helper, staged `githooks/pre-commit`, stubbed `gradlew` to emit the stale-cache error once, confirmed the hook cleared `.gradle/configuration-cache` and reran Gradle successfully, then restored wrapper.) |
-| T1906 | Add repository `.gitlint`, update documentation (runbook/AGENTS/spec/plan), and verify gitlint accepts compliant and rejects non-compliant messages. | CMH-005 | ✅ (2025-10-04 – Added `.gitlint`, updated AGENTS/runbook/spec/plan; `gitlint --msg-filename /tmp/gitlint-pass.*` passes and `/tmp/gitlint-fail.*` fails on type/length rules.) |
-| T1907 | Integrate gitlint into CI workflow (`.github/workflows/ci.yml`) with fetch-depth 0 and dynamic commit range. | CMH-006 | ✅ (2025-10-04 – Added gitlint job in `ci.yml` with dynamic range selection.) |
-| T1908 | Restrict Spotless retry to exact stale-cache message and log retry success/failure. | CMH-004B | ✅ (2025-10-04 – Updated retry helper to match the exact signature and log success/failure.) |
-| T1909 | Warm configuration cache via `./gradlew --no-daemon help --configuration-cache` once per pre-commit run. | CMH-004C | ✅ (2025-10-04 – Added warm step using retry helper before other Gradle tasks.) |
+> Each task remained ≤30 minutes and staged validation before implementation. All verification commands were executed
+> during the original work; rerun them if future edits touch the hooks.
 
-Update the status column as tasks complete, keeping each increment ≤30 minutes and sequencing validation commands before code whenever feasible.
+## Checklist
+- [x] T-019-01 – Stage failing gitlint scenarios with temp message fixtures (FR-019-01, S-019-01).  
+  _Intent:_ Create `/tmp/gitlint-pass.*` and `/tmp/gitlint-fail.*` to drive commit-msg hook validation before implementation.  
+  _Verification commands:_  
+  - `printf "feat: pass" > /tmp/gitlint-pass.test`  
+  - `printf "Fix stuff" > /tmp/gitlint-fail.test`
 
+- [x] T-019-02 – Implement `githooks/commit-msg`, remove gitlint from pre-commit, and validate with fixtures (FR-019-01, FR-019-02, S-019-01).  
+  _Intent:_ Ensure gitlint always runs via commit-msg and pre-commit focuses on staged checks.  
+  _Verification commands:_  
+  - `githooks/commit-msg /tmp/gitlint-pass.test`  
+  - `githooks/commit-msg /tmp/gitlint-fail.test`  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-019-03 – Add Spotless stale-cache retry helper and validate via simulated failure (FR-019-03, S-019-02).  
+  _Intent:_ Automatically clear `.gradle/configuration-cache` and rerun once on the exact stale-cache message.  
+  _Verification commands:_  
+  - `SIMULATE_STALE_CACHE=1 githooks/pre-commit`
+
+- [x] T-019-04 – Warm the Gradle configuration cache at hook start and ensure the step runs once per invocation (FR-019-04, S-019-02).  
+  _Intent:_ Reduce first Gradle task latency during pre-commit.  
+  _Verification commands:_  
+  - `githooks/pre-commit` (observe warm-cache log entry)
+
+- [x] T-019-05 – Update documentation (AGENTS, runbook, spec/plan/tasks) with hook duties and gitlint prerequisites; rerun spotless (FR-019-07, S-019-03).  
+  _Intent:_ Keep governance docs synchronized with hook behaviour.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-019-06 – Add `.gitlint` + CI gitlint job; confirm failures on bad commit messages (FR-019-05, FR-019-06, S-019-04).  
+  _Intent:_ Enforce Conventional Commits locally and in CI.  
+  _Verification commands:_  
+  - `gitlint --msg-filename /tmp/gitlint-pass.test`  
+  - `gitlint --msg-filename /tmp/gitlint-fail.test`  
+  - Trigger GitHub Actions workflow (bad commit message expected to fail gitlint job)
+
+## Verification Log
+- 2025-10-04 – `githooks/pre-commit`, `githooks/commit-msg`, `gitlint --msg-filename …`, `./gradlew --no-daemon spotlessApply check`
+- 2025-11-10 – `./gradlew --no-daemon spotlessApply check` (template migration verification)
+
+## Notes / TODOs
+- Monitor hook runtimes; if Gradle workload grows, consider parallelising steps or adding a summary timer.

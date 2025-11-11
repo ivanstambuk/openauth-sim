@@ -1,55 +1,109 @@
 # Feature 032 – Palantir Formatter Adoption
 
-_Status: Complete_  
-_Last updated: 2025-10-19_
+| Field | Value |
+|-------|-------|
+| Status | Complete |
+| Last updated | 2025-11-10 |
+| Owners | Ivan (project owner) |
+| Linked plan | `docs/4-architecture/features/032/plan.md` |
+| Linked tasks | `docs/4-architecture/features/032/tasks.md` |
+| Roadmap entry | #13 – Toolchain & Quality Platform |
 
 ## Overview
-Replace the repository-wide Google Java Format policy with Palantir Java Format so Spotless, the managed pre-commit hook, and IDE contributors share a single formatter that supports 120-character lines and the Palantir continuation heuristics. This feature codifies the new formatting mandate, updates build tooling, and prepares the team for the inevitable whole-repo reformat required once the policy is approved.
-
-## Goals
-- Switch the Spotless Java target from `googleJavaFormat(...)` to `palantirJavaFormat(...)`, sourcing the agreed Palantir Java Format release via the version catalog.
-- Refresh dependency locks (root + subprojects) so Gradle consistently resolves the Palantir formatter artifact across Spotless and annotation-processor configurations.
-- Update the managed Git hooks, contributor docs (`AGENTS.md`, `CONTRIBUTING.md`, roadmap/knowledge artefacts), and IDE setup guidance to reflect the formatter policy change and the new 120-character wrap limit.
-- Capture the reformat rollout plan (tooling command, sequencing, expected diff magnitude, and conflict mitigation guidance) in the feature plan/tasks before running Spotless.
-
-## Non-Goals
-- Performing the actual repository-wide reformat (tracked as a follow-up increment once the spec is approved).
-- Adjusting PMD, Checkstyle, or SpotBugs rules beyond incidental documentation updates.
-- Introducing fallback formatters or per-module exceptions—the policy applies uniformly across all JVM modules.
+Adopt Palantir Java Format 2.78.0 as the canonical formatter across Spotless, managed Git hooks, and IDE contributor
+guidance so every JVM module follows the same 120-character style. The change swaps Spotless configuration, refreshes
+locks, updates documentation, and sequences the repository-wide reformat once the tooling change is verified.
 
 ## Clarifications
-1. Palantir Java Format version pin (2025-10-19 – Option B approved)
-   - Options:
-     - A) Pin to `2.74.0`, the latest GitHub release cut on 2025-09-11. Pros: Tagged release with changelog; aligns with the most recent documented drop that already bundles the 120-character default. Cons: Slightly older than Spotless’ published integration, may lag bug fixes that Palantir consumes internally before tagging.
-     - B) Pin to `2.78.0`, the latest version published to the Gradle Plugin Portal (2025-10-14). Pros: Reflects the formatter revision Spotless already exposes via `palantirJavaFormat`, includes the newest parser fixes; easier to mirror with IDE plugins that follow the same publishing cadence. Cons: Upstream GitHub release notes are not yet tagged, so changelog diffs require inspecting commit history; marginally higher risk if the plugin was cut ahead of a full release.
-   - Decision: **Option B** – Pin Spotless and dependency locks to Palantir Java Format 2.78.0 so Gradle builds, IDE integrations, and future Spotless upgrades stay in sync.
+- 2025-10-19 – Option B approved: pin Palantir Java Format to 2.78.0 (latest Spotless-supported release) and drop
+  google-java-format across the toolchain.
 
-## Architecture & Design
-- Update `gradle/libs.versions.toml` with a dedicated `palantirJavaFormat` entry and, if needed, remove or repurpose the current `googleJavaFormat` alias once migration completes.
-- Modify `build.gradle.kts` Spotless configuration to call `palantirJavaFormat(libsCatalog.version("palantirJavaFormat"))`, adjust the global `resolutionStrategy.force` list to reference the Palantir artifact, and ensure annotation-processor configurations no longer request Google Java Format.
-- Regenerate root and subproject `gradle.lockfile`s using `./gradlew --no-daemon --write-locks spotlessApply check` (and targeted module compile tasks if necessary) so the Palantir dependency is captured across all configurations.
-- Review the managed `githooks/pre-commit` script to verify no Google Java Format assumptions remain, updating log output or helper messages if they reference the prior formatter.
-- Produce guidance for IDE users (IntelliJ, VS Code) outlining how to install/configure Palantir Java Format and align formatter settings with the new policy; reference this guidance from the spec-linked how-to documents.
+## Goals
+- G-032-01 – Update Spotless + version catalog entries to use Palantir Java Format 2.78.0.
+- G-032-02 – Refresh dependency locks and managed Git hooks so automated tooling invokes Palantir consistently.
+- G-032-03 – Execute the staged repository-wide reformat under Palantir and verify with `spotlessApply check`.
+- G-032-04 – Document the formatter policy, IDE setup, and rebase guidance for contributors.
+
+## Non-Goals
+- N-032-01 – Adjusting other lint/quality tools (PMD, Checkstyle, SpotBugs) beyond incidental documentation edits.
+- N-032-02 – Introducing module-specific formatter exceptions or fallback formatters.
+- N-032-03 – Upgrading Java toolchains (remains Java 17).
+
+## Functional Requirements
+| ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
+|----|-------------|--------------|-----------------|--------------|--------------------|--------|
+| FR-032-01 | Spotless configuration uses `palantirJavaFormat("2.78.0")` with the pin recorded in `libs.versions.toml` (S-032-01). | Spotless tasks run Palantir formatter with 120-character wrap. | `./gradlew --no-daemon spotlessCheck` reports Palantir diffs pre-reformat. | Spotless still references google-java-format. | Build logs show Palantir invocation; no telemetry change. | Clarifications 2025-10-19. |
+| FR-032-02 | Dependency locks refresh to capture Palantir artifacts and drop google-java-format (S-032-02). | Root + module lockfiles include Palantir coordinates; Google formatter removed. | `./gradlew --no-daemon --write-locks spotlessApply check` regenerates locks; git diff confirms replacements. | Locks still reference google-java-format. | N/A. | G-032-02. |
+| FR-032-03 | Managed Git hooks and contributor tooling reference Palantir 2.78.0 (S-032-03). | `githooks/pre-commit` logs mention Palantir; dry run formats staged files via Spotless. | Manual hook run during the feature. | Hooks still refer to google-java-format. | Hook output states Palantir usage. | G-032-02. |
+| FR-032-04 | Repository-wide reformat executed with Palantir; `spotlessApply check` returns green (S-032-04). | `./gradlew --no-daemon spotlessApply` followed by `spotlessApply check` succeeds. | Command logs stored in tasks/plan. | Formatting violations remain or build fails. | N/A. | G-032-03. |
+| FR-032-05 | Documentation (AGENTS, CONTRIBUTING, roadmap, knowledge map, IDE guides) describes the Palantir policy and rollout plan (S-032-05). | Docs explain formatter pin, IDE setup, rebase guidance. | Documentation review + roadmap update. | Docs still mention google-java-format or lack guidance. | N/A. | G-032-04. |
+
+## Non-Functional Requirements
+| ID | Requirement | Driver | Measurement | Dependencies | Source |
+|----|-------------|--------|-------------|--------------|--------|
+| NFR-032-01 | Maintain a green build (`./gradlew --no-daemon spotlessApply check`) after the formatter swap. | Constitution QA requirement. | Command success + recorded logs. | Gradle, Spotless plugin. | Project constitution. |
+| NFR-032-02 | Provide IDE configuration guidance matching Palantir formatting. | Contributor experience. | Docs updated; IDE appendix references Palantir plugin. | Documentation stack. | G-032-04. |
+| NFR-032-03 | Keep dependency locks reproducible with Palantir artifacts pinned. | Deterministic builds. | Lockfiles diff show only Palantir additions. | Gradle lockfiles. | G-032-02. |
 
 ## Branch & Scenario Matrix
-
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
-| S32-01 | Spotless configuration switches to Palantir Java Format 2.78.0 with the formatter pin recorded in the version catalog. |
-| S32-02 | Dependency lockfiles and module compile locks refresh to remove google-java-format artifacts and capture the Palantir dependencies. |
-| S32-03 | Managed Git hooks and contributor tooling reference the Palantir formatter so pre-commit flows mirror CI. |
-| S32-04 | Repository-wide reformat runs under the new formatter, followed by spotless/check verification to confirm a clean tree. |
-| S32-05 | Documentation (AGENTS, CONTRIBUTING, roadmap, knowledge map) describes the formatter policy, IDE setup, and rollout plan. |
+| S-032-01 | Spotless + version catalog switch to Palantir Java Format 2.78.0. |
+| S-032-02 | Dependency locks refreshed to reflect Palantir artifacts. |
+| S-032-03 | Managed Git hooks + contributor tooling reference the new formatter. |
+| S-032-04 | Repository reformat executed and validated under Palantir. |
+| S-032-05 | Documentation/knowledge artefacts outline the policy, IDE setup, and rollout guidance. |
 
 ## Test Strategy
-- `./gradlew --no-daemon spotlessCheck` (ensures the Palantir integration configures correctly without applying changes).
-- `./gradlew --no-daemon spotlessApply check` (post-migration validation once the formatter swap is complete).
-- Targeted module compiles (`:core:compileJava`, `:rest-api:compileJava`, etc.) to confirm no annotation-processor classpath regressions after removing Google Java Format.
-- Optional: Run the managed pre-commit hook locally with staged sample files to ensure the Palantir formatter runs as expected before triggering the full repository reformat.
+- Pre-swap validation: `./gradlew --no-daemon spotlessCheck` (expect Palantir diffs).
+- Lock refresh: `./gradlew --no-daemon --write-locks spotlessApply check` plus targeted module `compileJava` tasks as needed.
+- Reformat verification: `./gradlew --no-daemon spotlessApply check` after applying Palantir format.
+- Manual hook dry-run to confirm Palantir invocation on staged files.
 
-## Rollout & Regression
-- Sequence the work in two increments: (1) toolchain swap + documentation updates (no source reformat), (2) whole-repo `spotlessApply` commit once the policy is approved. Communicate this plan in the feature tasks checklist.
-- Advise contributors to pause concurrent large diffs or be prepared for rebase conflicts; document recommended workflows (e.g., rebase after the formatter commit lands).
-- Monitor Spotless and Gradle plugin updates for any regressions; if Palantir releases a tagged follow-up (e.g., 2.78.x) before rollout, re-evaluate the pin before finalizing the migration.
-- Update roadmap, knowledge map, and session artefacts to reflect the formatter policy decision and implementation status.
-- ✅ 2025-10-19 – Palantir formatter policy landed; Spotless/Git hooks now run 2.78.0, repository was reformatted, docs/roadmap were updated, and quality gate (`spotlessApply check`) reran green.
+## Interface & Contract Catalogue
+### Build Artefacts
+| ID | Description | Modules |
+|----|-------------|---------|
+| BA-032-01 | `gradle/libs.versions.toml` entry `palantirJavaFormat = "2.78.0"`. | Root build |
+| BA-032-02 | Spotless configuration in `build.gradle.kts` referencing `palantirJavaFormat`. | Root build |
+| BA-032-03 | `githooks/pre-commit` messaging updated to Palantir reference. | Repository hook |
+
+## Documentation Deliverables
+- Update `AGENTS.md`, `CONTRIBUTING.md`, formatting how-tos, roadmap, knowledge map, `_current-session.md`, and migration plan with the Palantir policy and rollout sequencing.
+- Capture rebase/conflict mitigation notes in the feature plan/tasks.
+
+## Fixtures & Sample Data
+- Not applicable (formatter/tooling change only).
+
+## Spec DSL
+```
+scenarios:
+  - id: S-032-01
+    focus: spotless-config
+  - id: S-032-02
+    focus: dependency-locks
+  - id: S-032-03
+    focus: tooling-hooks
+  - id: S-032-04
+    focus: repo-reformat
+  - id: S-032-05
+    focus: documentation
+requirements:
+  - id: FR-032-01
+    maps_to: [S-032-01]
+  - id: FR-032-02
+    maps_to: [S-032-02]
+  - id: FR-032-03
+    maps_to: [S-032-03]
+  - id: FR-032-04
+    maps_to: [S-032-04]
+  - id: FR-032-05
+    maps_to: [S-032-05]
+non_functional:
+  - id: NFR-032-01
+    maps_to: [S-032-04]
+  - id: NFR-032-02
+    maps_to: [S-032-05]
+  - id: NFR-032-03
+    maps_to: [S-032-02]
+```

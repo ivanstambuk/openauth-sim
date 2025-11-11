@@ -1,86 +1,111 @@
 # Feature Plan 028 – IDE Warning Remediation
 
 _Linked specification:_ `docs/4-architecture/features/028/spec.md`  
+_Linked tasks:_ `docs/4-architecture/features/028/tasks.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-10-30
+_Last updated:_ 2025-11-10
 
-## Objective
-Eliminate the IDE diagnostics reported on 2025-10-18 by strengthening assertions/usages where variables were previously unused and by removing redundant assignments, while keeping module behaviour unchanged.
+## Vision & Success Criteria
+Eliminate the 2025-10-18 IDE diagnostics without altering runtime behaviour by converting unused locals into assertions,
+removing redundant assignments, and refreshing documentation/telemetry notes. Success requires:
+- FR-028-01 – Governance artefacts highlight the remediation scope and decisions.
+- FR-028-02 – Application/core modules (TOTP, WebAuthn, HOTP) run warning-free with stronger assertions.
+- FR-028-03 – CLI/REST/Selenium suites assert the values previously held in unused locals.
+- FR-028-04 – Toolchain updates (SpotBugs annotations, DTO extraction, transient fields, spotless) run to green with no
+  IDE warnings remaining.
 
-## Current Context
-- Application TOTP evaluation/replay command records contain redundant `evaluationInstant` assignments that trigger warnings without providing additional validation.
-- Several tests across CLI, REST, and Selenium scenarios retain locals or constants intended for future assertions; warnings highlight that they are currently unused.
-- Core FIDO2 verification and WebAuthn replay services decode metadata that should be leveraged for assertions/coverage but currently is not.
-- The IDE snapshot targets specific files; broader static analysis has not been requested for this increment.
+## Scope Alignment
+- **In scope:** Application/core/REST/CLI/Selenium tests touched by the IDE report, documentation/roadmap updates,
+  SpotBugs annotation export, DTO extraction, transient REST exception fields, regression gate reruns.
+- **Out of scope:** New behaviour, schema migrations, lint/tool upgrades beyond the annotation export, or unrelated UI/CLI
+  refactors.
 
-## Increment Breakdown (≤30 minutes each)
-1. **I1 – Governance sync and documentation updates**  
-   - Create spec/plan/tasks entries for Feature 028.  
-   - Update roadmap and current-session snapshot; capture the accepted clarification in the spec.  
-   - Log and resolve the corresponding open question.  
-   - _2025-10-18 – Completed: spec/plan/tasks created, roadmap/current-session updated, open question resolved with Option B, tasks checklist promoted to In Progress._
+## Dependencies & Interfaces
+- `CredentialStoreFactory`, WebAuthn replay/generation services, TOTP evaluation/replay commands, Totp CLI commands.
+- Selenium suites for operator UI; tests rely on deterministic selectors.
+- Gradle quality gate + dependency lockfiles used when exporting SpotBugs annotations.
 
-2. **I2 – Application TOTP command constructors**  
-   - Remove redundant `evaluationInstant` assignments from `TotpEvaluationApplicationService` and `TotpReplayApplicationService`.  
-   - Ensure optional semantics remain intact; run targeted application tests.  
-   - _2025-10-18 – Completed: redundant assignments removed, optional timestamp handling untouched, and `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.totp.*"` passed._
+## Assumptions & Risks
+- **Assumptions:** Existing tests cover all branches touched by new assertions; operators can still rely on unchanged
+  telemetry outputs.
+- **Risks & Mitigations:**
+  - Over-constraining Selenium/UI assertions → prefer visibility/attribute checks over brittle text equality.
+  - Nullability regressions when removing redundant assignments → re-run targeted module tests immediately after edits.
+  - Dependency lock churn from `spotbugs-annotations` export → stage narrow `--write-locks` commands per module.
 
-3. **I3 – Core/WebAuthn services**  
-   - Assert decoded `clientData` in `WebAuthnAttestationVerifier`.  
-   - Utilize `metadata` locals in `WebAuthnReplayService` for validation/telemetry assertions.  
-   - Drop obsolete suppressions in `WebAuthnPublicKeyDecoderTest`.  
-   - Execute core/application/REST unit tests.  
-   - _2025-10-18 – Completed: WebAuthn attestation verifier now validates client data fields post-parse, replay service folds metadata into error details, suppression removed by leveraging typed parsing, and targeted tests (`:core:test --tests "io.openauth.sim.core.fido2.WebAuthnAttestationVerifierTest"`, `:application:test --tests "io.openauth.sim.application.fido2.WebAuthnPublicKeyDecoderTest"`, `:rest-api:test --tests "io.openauth.sim.rest.Fido2ReplayEndpointTest"`) all pass._
+## Implementation Drift Gate
+- Evidence captured 2025-10-30:
+  - IDE inspection screenshots indicating zero warnings across application/core/cli/rest-api/ui modules.
+  - Gradle log: `./gradlew --no-daemon :application:test :core:test :cli:test :rest-api:test :ui:test spotlessApply check`.
+  - Documentation diffs for roadmap, knowledge map, and `docs/_current-session.md`.
+  - Notes on DTO extraction + transient REST exception fields.
+- Gate remains satisfied; rerun if future warnings emerge.
 
-4. **I4 – CLI and REST tests**  
-   - Update `TotpCliTest` and `Fido2AttestationEndpointTest` to assert on previously unused locals.  
-   - Run CLI and targeted REST tests.  
-   - _2025-10-18 – Completed: CLI now asserts the generated OTP with `TotpGenerator`, REST attestation tests validate credential IDs and payload content, and targeted runs (`:cli:test --tests "io.openauth.sim.cli.TotpCliTest"`, `:rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`) passed._
+## Increment Map
+1. **I1 – Governance & documentation sync (S-028-01)**
+   - Create spec/plan/tasks entries, update roadmap/current-session, resolve open question with Option B.
+   - Commands: docs edits + `./gradlew --no-daemon spotlessApply check`.
+   - Status: Completed 2025-10-18.
+2. **I2 – Application TOTP constructors (S-028-02)**
+   - Remove redundant `evaluationInstant` assignments; rerun TOTP tests.
+   - Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.totp.*"`.
+   - Status: Completed 2025-10-18.
+3. **I3 – Core/WebAuthn services assertions (S-028-02)**
+   - Assert decoded client data, consume metadata locals, drop suppressions.
+   - Commands: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAttestationVerifierTest"`,
+     `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnPublicKeyDecoderTest"`,
+     `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2ReplayEndpointTest"`.
+   - Status: Completed 2025-10-18.
+4. **I4 – CLI & REST unit tests (S-028-03)**
+   - Update `TotpCliTest`, `Fido2AttestationEndpointTest` to leverage unused locals.
+   - Commands: `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.TotpCliTest"`,
+     `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`.
+   - Status: Completed 2025-10-18.
+5. **I5 – Selenium assertions (S-028-03)**
+   - Convert unused variables in attestation Selenium suites into visibility/assertion checks.
+   - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*"`.
+   - Status: Completed 2025-10-18.
+6. **I6 – DTO extraction & SpotBugs annotation export (S-028-04)**
+   - Move `WebAuthnAssertionResponse` to its own file; promote `spotbugs-annotations` to `compileOnlyApi`; refresh
+     dependency locks; rerun compile tasks.
+   - Commands: targeted `./gradlew --no-daemon --write-locks …` invocations listed in tasks plus
+     `./gradlew --no-daemon :application:compileJava` / `:rest-api:compileJava`.
+   - Status: Completed 2025-10-19.
+7. **I7 – REST exception serialization warnings (S-028-03/S-028-04)**
+   - Mark `details`/`metadata` maps as `transient`; rerun compile/tests.
+   - Commands: `./gradlew --no-daemon :rest-api:compileJava` (+ optional `:rest-api:test`).
+   - Status: Completed 2025-10-19.
+8. **I8 – WebAuthn assertion lossy conversion fix (S-028-02)**
+   - Update `WebAuthnAssertionVerifierTest` to avoid implicit int-to-byte conversions.
+   - Commands: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAssertionVerifierTest"`.
+   - Status: Completed 2025-10-19.
+9. **I9 – WebAuthn replay/HOTP telemetry diagnostics (S-028-02/S-028-03)**
+   - Remove unused telemetry locals, guard trace helpers, add HOTP counter fallbacks, assert PS256 Selenium fixture.
+   - Commands: `./gradlew --no-daemon :application:test`, Selenium suites, `./gradlew --no-daemon spotlessApply check`.
+   - Status: Completed 2025-10-29.
+10. **I10 – Regression/IDE verification (S-028-04)**
+    - Run the full Gradle gate and re-check IDE inspections for zero warnings.
+    - Commands: `./gradlew --no-daemon :application:test :core:test :cli:test :rest-api:test :ui:test spotlessApply check`.
+    - Status: Completed 2025-10-30.
 
-5. **I5 – Selenium suites**  
-   - Convert unused UI element handles (`inlineSection`, `evaluateSelect`, `replaySelect`, `resultPanel`) and constants to explicit assertions in Selenium tests.  
-   - Execute the affected Selenium suites (`rest-api:test` with focused class filters).  
-   - _2025-10-18 – Completed: Selenium tests now assert inline sections hide/show, preset dropdown content, TOTP result panels, and HOTP preset labels; `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*"` finished green._
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-028-01 | I1 / T-028-01 | Governance + documentation alignment. |
+| S-028-02 | I2, I3, I8, I9 / T-028-02/03/07/10/11 | Application/core WebAuthn & TOTP updates. |
+| S-028-03 | I4, I5, I7, I9 / T-028-04/05/09/11 | CLI/REST/Selenium assertions + transient exceptions. |
+| S-028-04 | I6, I10 / T-028-06/08 | Toolchain, SpotBugs export, regression gate. |
 
-6. **I6 – Quality gate**  
-   - Run `./gradlew spotlessApply check` to confirm a clean build.  
-   - Update knowledge artefacts if additional follow-ups emerge.  
-   - _2025-10-18 – Completed: full `spotlessApply check` now passes after topping up TOTP REST coverage (`:core:test`, `:application:test`, `:cli:test`, `:rest-api:test`, and the aggregated jacoco verification all green`)._
+## Analysis Gate
+- Completed 2025-10-18 when Option B remediation approach was approved and the warning inventory documented.
+- No re-run needed unless new IDE diagnostics appear.
 
-7. **I7 – WebAuthn DTO + SpotBugs annotation export**  
-   - Extract `WebAuthnAssertionResponse` into its own source file to clear auxiliary-class warnings while keeping the DTO public.  
-   - Promote `spotbugs-annotations` to the application module’s exported compile classpath so downstream modules resolve `@SuppressFBWarnings`.  
-   - _2025-10-19 – Completed: DTO extracted to `WebAuthnAssertionResponse.java`, Gradle locks refreshed via targeted `--write-locks` runs, and full `./gradlew --no-daemon --write-locks spotlessApply check` + follow-up run confirmed warnings eliminated._
+## Exit Criteria
+- FR-028-01…FR-028-04 satisfied with test/documentation evidence.
+- IDE inspection snapshot shows zero outstanding warnings.
+- Final Gradle gate (`:application:test :core:test :cli:test :rest-api:test :ui:test spotlessApply check`) recorded in
+  tasks/plan log.
+- docs/_current-session.md and roadmap reference the completed remediation.
 
-8. **I8 – REST exception serialization warnings**  
-   - Mark REST exception `details`/`metadata` maps as `transient` to satisfy the compiler’s serial guideline.  
-   - Re-run `./gradlew --no-daemon :rest-api:compileJava` and spot-check associated controller tests.  
-   - _2025-10-19 – Completed: all HOTP/TOTP/WebAuthn REST exception map fields marked transient; `:rest-api:compileJava` finished cleanly._
-
-9. **I9 – WebAuthn assertion lossy conversion warning**  
-   - Update `WebAuthnAssertionVerifierTest` to avoid implicit int-to-byte XOR (e.g., cast constants before applying).  
-   - Execute `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAssertionVerifierTest"`.  
-   - _2025-10-19 – Completed: test now assigns an explicit byte-masked value; targeted `:core:test` run passed._
-
-10. **I10 – WebAuthn replay/HOTP telemetry diagnostics (2025-10-29)**  
-    - Remove the unused `telemetryCommand` local in `WebAuthnAttestationReplayApplicationService` while keeping telemetry payload fields intact.  
-    - Ensure `WebAuthnEvaluationApplicationService` trace helpers only dereference authenticator/client data when present to satisfy nullability analysis.  
-    - Safely surface HOTP matched counters without auto-unboxing `null` values and assert PS256 fixture usage inside `Fido2OperatorUiSeleniumTest`.  
-    - Re-run `./gradlew --no-daemon spotlessApply check` to confirm the IDE diagnostics clear.  
-    - _2025-10-29 – Completed: telemetry replay command removed, trace parsing wrapped in trace-only branch, HOTP metadata guards add safe fallbacks, Selenium now asserts PS256 fixture algorithm/challenge presence, and full `spotlessApply check` succeeded._
-
-## Dependencies
-- Application, core, CLI, and REST modules share telemetry and verification helpers; assertions must respect existing contracts.
-- Selenium tests rely on deterministic UI IDs; ensure selectors remain stable when adding assertions.
-- Gradle quality gate must pass to conclude the feature.
-
-## Risks & Mitigations
-- **Risk:** Adding assertions in tests could over-constrain behaviour if UI text changes.  
-  **Mitigation:** Prefer presence/visibility checks or telemetry verification rather than brittle text equality when possible.
-- **Risk:** Removing redundant assignments might inadvertently change null-handling semantics.  
-  **Mitigation:** Re-run targeted tests and rely on existing `defaultInstant` helpers to validate optional behaviour.
-
-## Validation
-- Run targeted Gradle commands per increment and finish with the full `spotlessApply check`.
-- Confirm IDE inspection no longer reports the original warnings.
-- 2025-10-30 – Final IDE sweep across active modules showed no diagnostics; no additional remediation required.
+## Follow-ups / Backlog
+- None; future IDE warning sweeps should be tracked under new features once diagnostics surface.

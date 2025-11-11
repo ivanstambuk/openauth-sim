@@ -40,7 +40,7 @@ Map each Branch & Scenario Matrix ID to the increments/tasks that implement it s
 
 | Scenario ID | Increment / Task reference | Notes |
 |-------------|---------------------------|-------|
-| S<NNN>-01 | I1 / T<taskId> | e.g., covered by HOTP console harness |
+| S-<NNN>-01 | I1 / T<taskId> | e.g., covered by HOTP console harness |
 
 ## Analysis Gate
 Record when the analysis gate was completed, who reviewed it, and any findings that must be addressed before implementation resumes.

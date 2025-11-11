@@ -1,56 +1,69 @@
 # Feature Plan 033 – Operator Console Naming Alignment
 
 _Linked specification:_ `docs/4-architecture/features/033/spec.md`  
+_Linked tasks:_ `docs/4-architecture/features/033/tasks.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-10-21
+_Last updated:_ 2025-11-10
 
 ## Vision & Success Criteria
-- Present the operator console as a protocol-agnostic surface by renaming legacy `Ocra*` UI components to neutral `OperatorConsole*` terminology.
-- Ensure telemetry emitted from the console matches the updated naming (event keys, endpoint paths) while preserving payload structure.
-- Keep documentation and architectural knowledge in sync so future contributors see the renamed controller reflected across plans, tasks, and maps.
+Rename the operator console’s internal components from `Ocra*` to neutral `OperatorConsole*` so code, telemetry, and
+documentation reflect the console’s multi-protocol scope. Success requires:
+- FR-033-01 – Controllers/beans/templates renamed.
+- FR-033-02 – Telemetry endpoints/loggers renamed, payloads unchanged.
+- FR-033-03 – Templates/JS/Selenium references updated and green.
+- FR-033-04 – Documentation/knowledge artefacts capture the change after a green analysis gate.
 
 ## Scope Alignment
-- **In scope:** Renaming Spring MVC controller, replay logger, telemetry endpoint, bean definitions, tests, Selenium suites, and Thymeleaf attributes to `OperatorConsole*`. Updating telemetry event keys/paths and corresponding documentation.
-- **Out of scope:** Changing REST API contracts outside the UI telemetry endpoint, rewriting protocol-specific sample-data helpers (`OcraOperatorSampleData`, etc.), or introducing new operator console features.
+- **In scope:** Spring MVC controller/bean rename, telemetry endpoint updates, template/JS changes, Selenium + MockMvc test
+  updates, documentation sync.
+- **Out of scope:** Protocol-specific sample data classes that intentionally remain OCRA-prefixed, REST contracts beyond
+  the UI telemetry endpoint, new console features.
 
 ## Dependencies & Interfaces
-- Spring MVC components in `rest-api/src/main/java/io/openauth/sim/rest/ui/`.
-- Operator console Thymeleaf templates and JavaScript assets under `rest-api/src/main/resources/templates/ui` and `static/ui`.
-- Telemetry adapters via `TelemetryContracts`.
-- Selenium and unit tests targeting the operator console (`rest-api/src/test/java/io/openauth/sim/rest/ui/`).
-- Documentation: knowledge map, current session snapshot, prior feature plans referencing the legacy names.
+- `rest-api` MVC components (`OperatorConsoleController`, telemetry logger, configuration beans).
+- Thymeleaf templates (`templates/ui/**`), console JS assets, Selenium tests.
+- Telemetry emits via `TelemetryContracts`.
+- Knowledge map, roadmap, `_current-session.md`, and related features referencing console naming.
 
-## Increment Breakdown (≤30 minutes each)
-1. **I1 – Documentation setup**  
-   - Add Feature 033 plan/tasks and update `docs/_current-session.md` with the new workstream.  
-   - Confirm clarification Option B is recorded in the spec and mark the open question as “Resolved”.
+## Assumptions & Risks
+- **Assumptions:** No external consumers rely on the legacy telemetry event key; Selenium harness can tolerate renamed
+  data attributes.
+- **Risks:**
+  - Missed template references → run targeted Selenium suites before closure.
+  - Telemetry consumers unaware of event key rename → document change in session snapshot/roadmap.
 
-2. **I2 – Controller & telemetry rename**  
-   - Rename `OcraOperatorUiController` → `OperatorConsoleController` (file/class/package references).  
-   - Update bean definitions (`OperatorConsoleUiConfiguration`), telemetry classes/endpoints (`OperatorConsoleTelemetryLogger`, `/ui/console/replay/telemetry`), and adjust imports/usages accordingly.  
-   - Update Java tests (unit, MockMvc) to reference the new types and event keys.
-   - _2025-10-21 – Renamed controller, configuration bean, telemetry logger, and replay request record; updated OCRA sample data, MockMvc coverage, and Selenium tests to compile against the new names._
+## Implementation Drift Gate
+- Evidence captured 2025-10-21: controller/bean rename diff, Selenium + MockMvc test logs, documentation updates, and
+  `./gradlew --no-daemon :rest-api:test spotlessApply check` outputs. Gate remains satisfied unless console naming changes again.
 
-3. **I3 – UI template & Selenium alignment**  
-   - Update Thymeleaf templates/JS modules and Selenium/MockMvc tests to expect the renamed attributes/endpoints.  
-   - Ensure telemetry event assertions match the new naming.
-   - _2025-10-21 – Moved shared console script to `static/ui/console/console.js`, updated template references, and refreshed Selenium flows to assert `/ui/console/replay/telemetry` + `event=ui.console.replay`._
+## Increment Map
+1. **I1 – Planning & clarification closure (S-033-04)**
+   - Create spec/plan/tasks, update `_current-session.md`, mark Option B resolved.
+2. **I2 – Controller/bean rename (S-033-01)**
+   - Rename `OcraOperatorUiController`/configuration beans; update references/tests.
+   - Commands: `./gradlew --no-daemon :rest-api:test` (targeted).
+3. **I3 – Telemetry endpoint/logger alignment (S-033-02)**
+   - Rename `/ui/console/replay/telemetry` endpoint + logger, update event keys, adjust MockMvc/Selenium assertions.
+4. **I4 – Template/JS/Selenium updates (S-033-03)**
+   - Refresh Thymeleaf templates/JS assets and Selenium selectors; ensure UI flows remain green.
+5. **I5 – Documentation & verification (S-033-04)**
+   - Update knowledge map/session snapshot/roadmap; rerun `./gradlew --no-daemon :rest-api:test` and `./gradlew --no-daemon spotlessApply check`.
 
-4. **I4 – Documentation & knowledge refresh**  
-   - Update relevant feature plans/tasks referencing the old controller name.  
-   - Refresh knowledge map and current-session snapshot with the new terminology.
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-033-01 | I2 / T-033-02 | Controller/bean rename. |
+| S-033-02 | I3 / T-033-03 | Telemetry endpoint/logger rename. |
+| S-033-03 | I4 / T-033-04 | Template/JS/Selenium alignment. |
+| S-033-04 | I1, I5 / T-033-01, T-033-05 | Docs + analysis gate. |
 
-5. **I5 – Verification & closure**  
-   - Run `./gradlew --no-daemon :rest-api:test :rest-api:integrationTest` (or targeted suites) followed by `./gradlew --no-daemon spotlessApply check`.  
-   - Record outcomes in plan/tasks and prepare the feature for closure.
-   - _2025-10-21 – Executed `./gradlew --no-daemon :rest-api:test` and `./gradlew --no-daemon spotlessApply check` (green after renaming `OperatorConsoleReplayEventRequest` to satisfy architecture tests)._
+## Analysis Gate
+- Completed 2025-10-21 with documentation updates and recorded Gradle runs; no open questions remain.
 
-## Risks & Mitigations
-- **Risk:** Selenium selectors or data attributes rely on the legacy endpoint path.  
-  **Mitigation:** Update selectors/tests concurrently with template changes; run targeted Selenium suite before full build.
-- **Risk:** Telemetry event key change could break log processing.  
-  **Mitigation:** Confirm no external consumers depend on the prior key; document change in session snapshot/roadmap.
+## Exit Criteria
+- All code/tests/docs reference `OperatorConsole*` naming.
+- Telemetry event keys updated and documented.
+- Targeted Gradle commands (`:rest-api:test`, `spotlessApply check`) pass.
 
-## Checkpoints
-- Run the analysis gate checklist once plan/tasks are in sync.
-- Maintain ≤30 minute increments, ensuring every change lands with a passing `spotlessApply check`.
+## Follow-ups / Backlog
+- None.

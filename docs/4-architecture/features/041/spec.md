@@ -1,90 +1,156 @@
 # Feature 041 – Operator Console JavaScript Modularization & Test Harness
 
-_Status: Draft_
-_Last updated: 2025-11-07_
+| Field | Value |
+|-------|-------|
+| Status | Draft |
+| Last updated | 2025-11-10 |
+| Owners | Ivan (project owner) |
+| Linked plan | `docs/4-architecture/features/041/plan.md` |
+| Linked tasks | `docs/4-architecture/features/041/tasks.md` |
+| Roadmap entry | #41 |
 
 ## Overview
-Operator-console behaviour currently lives in sprawling per-protocol JavaScript files plus inline Thymeleaf scripts. Only the EMV console logic has Node-based unit tests, leaving HOTP, TOTP, OCRA, FIDO2, and shared widgets (secret fields, verbose trace console, protocol switcher) dependent on slower Selenium coverage. This workstream modularises the console assets, establishes a shared DOM/test harness, and wires a consolidated Gradle task so every protocol script can be validated inside `./gradlew check`. The specification intentionally remains open so it can be amended whenever new protocols ship or when existing controllers gain functionality.
+Operator-console behaviour currently lives in large per-protocol JavaScript files plus inline Thymeleaf snippets. Only the EMV console logic has Node-based unit tests, leaving HOTP, TOTP, OCRA, FIDO2, and shared widgets (secret fields, verbose trace console, protocol switcher) dependent on slower Selenium coverage. This feature modularises the console assets, establishes a shared DOM/test harness, and wires a consolidated Gradle task so every protocol script runs inside `./gradlew check`. The spec remains in Draft until governance confirms all protocols conform to the harness.
 
 ## Clarifications
-- 2025-11-07 – This workstream stays in "Draft" until all existing console protocols adopt the shared harness; each new protocol or major console change must trigger a spec refresh (owner directive).
-- 2025-11-07 – Node-based tests must run through Gradle (e.g., `operatorConsoleJsTest`) so CI surfaces failures alongside JVM suites; the command may fan out to per-protocol test files (owner directive).
-- 2025-11-07 – Inline scripts embedded inside Thymeleaf templates (currently OCRA evaluate/replay fragments) need to move into standalone assets before we add tests; no new inline scripts may be introduced once extraction completes (owner directive).
-- 2025-11-07 – Shared helpers (SecretFieldBridge, VerboseTraceConsole, protocol tabs) should expose small, documented entry points so tests can stub dependencies without a browser (owner directive).
+- 2025-11-07 – Workstream remains Draft until every existing protocol adopts the harness; new protocols must update this spec before implementation (owner directive).
+- 2025-11-07 – Node-based tests must run through Gradle (`operatorConsoleJsTest`) so CI surfaces failures alongside JVM suites (owner directive).
+- 2025-11-07 – Inline Thymeleaf scripts (notably OCRA evaluate/replay fragments) must move into standalone assets before receiving tests; no new inline scripts allowed after extraction (owner directive).
+- 2025-11-07 – Shared helpers (SecretFieldBridge, VerboseTraceConsole, protocol tabs) must expose documented entry points so tests can stub dependencies without Selenium (owner directive).
 
-## Goals & Success Criteria
-1. All operator-console JavaScript loads from standalone files with clearly defined module seams and no duplicated protocol scaffolding.
-2. A reusable DOM harness (fixtures + helper APIs) enables Node unit tests to simulate user interactions without Selenium.
-3. Gradle `check` fails when any console unit test fails; the console test command surfaces per-protocol results for quick triage.
-4. Coverage extends to shared widgets plus HOTP, TOTP, OCRA, FIDO2, and EMV flows (Evaluate + Replay toggles, presets, seeding, verbose trace wiring, secret fields) before the workstream can close.
-5. Future protocols inherit the same harness and add tests as part of their feature gates; documentation explains how to plug into the pipeline.
+## Goals
+- Extract all operator-console JavaScript into standalone modules with composable helpers.
+- Provide a reusable DOM harness (fixtures + helper APIs) so Node unit tests simulate interactions deterministically.
+- Create a Gradle task that aggregates all console Node tests under `check`, with per-protocol filtering for local runs.
+- Expand coverage to HOTP, TOTP, OCRA, FIDO2, EMV, and shared widgets before closing the feature.
+- Document onboarding steps so future protocols hook into the harness.
 
-## Requirements
-### R1 – JavaScript modularization & contracts
-1. Extract remaining inline scripts (notably OCRA evaluate/replay fragments) into `rest-api/src/main/resources/static/ui/<protocol>/console.js` following the existing module pattern.
-2. Split oversized files into composable helpers (e.g., preset hydration, credential directory fetchers, seed orchestration) when logic exceeds 500 LOC, exposing pure functions wherever possible.
-3. Document the exported functions/initializers at the top of each file so future tests know which entry points to invoke.
-4. Ensure each protocol module guards against missing DOM nodes (enabling deterministic Node tests) and exports factory methods where meaningful (e.g., `createHotpConsoleController`).
+## Non-Goals
+- Introducing TypeScript, bundlers, or runtime module loaders.
+- Replacing Selenium entirely; browser tests remain for end-to-end assertions.
+- Building a full UI component library beyond the minimal helpers required for testing.
 
-### R2 – Shared Node test harness
-1. Create `rest-api/src/test/javascript/support/` with utilities for DOM stubs, event dispatch, fetch/CSRF simulators, and SecretFieldBridge mocks.
-2. Provide fixtures for preset payloads, credential directory responses, and verbose trace toggles so per-protocol suites only declare scenario-specific data.
-3. Offer helper assertions (e.g., `expectFieldHidden`, `collectFetchPayloads`) to keep suites concise.
-4. Document harness usage inside `docs/4-architecture/features/041/spec.md` and mirror the guidance in the feature plan/tasks so downstream contributors follow the same patterns.
+## Functional Requirements
 
-### R3 – Protocol test coverage rollout
-1. Port existing EMV Node tests to the shared harness and keep them as the reference implementation.
-2. Add HOTP, TOTP, and FIDO2 suites that prove:
-   - Mode persistence when switching between stored/inline tabs.
-   - Preset hydration + seed workflows (including disabled states).
-   - Secret-field encoding toggles and validation messaging.
-   - Verbose trace toggle wiring per protocol.
-3. Add OCRA suites that validate evaluate/replay controllers after extraction, covering credential directory fetch retries, preset hydration, and inline validation messaging.
-4. Track coverage for any new protocol introduced after this spec by updating the checklist in `docs/4-architecture/features/041/tasks.md` before merging.
+### FR41-01 – JavaScript modularization
+- **Requirement:** Extract remaining inline scripts (especially OCRA) into standalone files under `rest-api/src/main/resources/static/ui/<protocol>/`.
+- **Success path:** Each protocol exports factories/helpers (`createHotpConsoleController`, etc.) and guards against missing DOM nodes.
+- **Validation path:** Node harness throws descriptive errors when DOM hooks are absent; plan logs any residual inline snippets.
+- **Failure path:** Build fails if inline fragments remain or modules exceed documented boundaries (>500 LOC) without helper extraction.
 
-### R4 – Gradle integration & CI guardrails
-1. Replace the single `emvConsoleJsTest` task with a generalized `operatorConsoleJsTest` that enumerates all Node suites (or depends on target-specific Exec tasks) and wire it under `check`.
-2. Ensure the task supports parallelism or per-suite filtering (e.g., `-PconsoleTestFilter=fido2`) for local development without slowing CI.
-3. Update contributor docs (`README`, `CONTRIBUTING`, or relevant how-to guides) so running console tests becomes part of the documented workflow.
-4. Record intentional follow-ups (e.g., coverage thresholds, mutation testing for JS) in the feature plan before closing the workstream.
+### FR41-02 – Shared Node harness
+- **Requirement:** Create `rest-api/src/test/javascript/support/` utilities (DOM stubs, fetch spies, SecretFieldBridge/VerboseTrace mocks) and port EMV tests to prove the design.
+- **Success path:** Harness API documented; Node suites run deterministically without browser dependencies.
+- **Validation path:** EMV tests execute via `node --test` and through Gradle aggregator; harness README included.
+- **Failure path:** Harness missing features forces suites back to Selenium; feature cannot progress.
 
-### R5 – Lifecycle & governance
-1. Keep this specification in Draft until a governance review confirms all current and future protocols conform to the harness; add a "Rebuild required" note whenever new protocols are proposed.
-2. When new protocols land, append their coverage expectations to this spec before implementation begins; if the harness needs changes, describe them here first.
-3. Capture deviations (temporary skips, flaky suites) in `docs/4-architecture/tasks/feature-041-...` with owners and remediation dates.
+### FR41-03 – Protocol coverage rollout
+- **Requirement:** Add Node suites for HOTP, TOTP, OCRA, and FIDO2 covering evaluate/replay toggles, preset hydration, verbose trace routing, secret-field messaging, and credential directory fetches.
+- **Success path:** Each suite simulates DOM interactions and asserts shared widget behaviour; fixtures live alongside tests.
+- **Validation path:** Gradle task exposes per-protocol filtering; task log shows executed suites.
+- **Failure path:** Missing coverage blocks drift gate; spec remains Draft.
+
+### FR41-04 – Gradle integration
+- **Requirement:** Replace `emvConsoleJsTest` with `operatorConsoleJsTest`, wire it under `check`, and support filtering (`-PconsoleTestFilter=fido2`).
+- **Success path:** `./gradlew operatorConsoleJsTest check` runs Node suites; CI fails fast on JS regressions.
+- **Validation path:** Contributor docs describe how to run the task locally; plan logs command output.
+- **Failure path:** Task missing from `check` or lacking filtering prevents exit.
+
+### FR41-05 – Governance & lifecycle
+- **Requirement:** Keep this spec in Draft until governance verifies all protocols comply; document onboarding steps, drift gate expectations, and follow-ups.
+- **Success path:** Tasks file lists future-protocol checklist; knowledge map references harness relationships.
+- **Validation path:** Analysis gate confirms docs/how-tos updated; open questions logged/resolved.
+- **Failure path:** Missing governance artefacts block closure.
+
+## Non-Functional Requirements
+- **NFR41-01 – Determinism:** Node harness must avoid timers/non-deterministic DOM APIs; tests run identically on CI and local machines.
+- **NFR41-02 – Performance:** Console JS task should add ≤2 minutes to `./gradlew check`; support filtering for local focus.
+- **NFR41-03 – Maintainability:** Shared helpers documented with entry points + JSDoc-style comments so future protocols integrate quickly.
+
+## UI / Interaction Mock-ups
+- Console page retains existing layout but scripts now initialise via module factories. Documented pseudo-code:
+  ```
+  import { createHotpConsoleController } from './hotp/console.js';
+  createHotpConsoleController({ dom: getHotpDom(), harnessApi });
+  ```
+- Node harness mimics DOM tree using JSDOM; sample snippet lives in `support/harness.md`.
 
 ## Branch & Scenario Matrix
 
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
-| S41-01 | Existing EMV console Node suite continues to run (and fail fast) under the shared harness/Gradle aggregator so evaluate/replay flows remain deterministic. |
-| S41-02 | Shared DOM/test harness (SecretFieldBridge/VerboseTraceConsole mocks, fetch spies) enables protocol scripts to run without Selenium. |
-| S41-03 | HOTP & TOTP controllers expose pure helpers and gain Node suites covering mode toggles, preset hydration, preview windows, verbose trace routing, and secret-field messaging. |
-| S41-04 | FIDO2 console scripts (attestation/assertion evaluate/replay) run inside the harness, validating preset seeding, credential directory fetches, and verbose trace wiring. |
-| S41-05 | OCRA evaluate/replay controllers are extracted from Thymeleaf, load as modules, and gain Node coverage for credential directory retries, preset hydration, inline validation, and replay toggles. |
-| S41-06 | Shared widgets (SecretFieldBridge, VerboseTraceConsole, protocol tab switcher) have dedicated unit suites verifying DOM mutations and messaging consistency. |
+| S41-01 | Existing EMV console Node suite runs (and fails fast) under the shared harness/Gradle aggregator. |
+| S41-02 | Shared DOM/test harness (SecretFieldBridge/VerboseTrace mocks) enables protocol scripts to run without Selenium. |
+| S41-03 | HOTP & TOTP controllers expose pure helpers and gain Node suites covering evaluate/replay flows, presets, verbose traces, secret-field messaging. |
+| S41-04 | FIDO2 console scripts run inside the harness validating preset seeding, credential directory fetches, verbose trace wiring. |
+| S41-05 | OCRA controllers extracted from Thymeleaf, tested for credential directory retries, preset hydration, inline validation, replay toggles. |
+| S41-06 | Shared widgets (SecretFieldBridge, VerboseTraceConsole, protocol tab switcher) ship dedicated suites verifying DOM mutations and messaging. |
 | S41-07 | Gradle `operatorConsoleJsTest` replaces `emvConsoleJsTest`, wires into `check`, supports filtering, and fails CI on any console unit failure. |
-| S41-08 | Governance checklist enforces that every new protocol or console change registers harness coverage before merging, keeping this spec in Draft until compliance is confirmed. |
-
-## Non-Goals
-- Introducing TypeScript, bundlers, or runtime module loaders.
-- Replacing Selenium coverage; browser tests remain for end-to-end assertions.
-- Building a shared UI component library beyond the minimal helpers required for testing.
-
-## Dependencies
-- Existing console assets under `rest-api/src/main/resources/static/ui/`.
-- SecretFieldBridge and VerboseTraceConsole scripts (shared helpers) which must remain CommonJS-friendly for Node tests.
-- Gradle Node availability (CI environments already install Node 20+ for EMV tests).
+| S41-08 | Governance checklist enforces that every new protocol registers harness coverage before merging. |
 
 ## Test Strategy
-- Node unit tests per protocol + shared helper suites, executed via the new Gradle task.
-- Targeted Selenium tests remain for regressions but may shrink once confidence increases.
-- Linting/formatting (Spotless Palantir Java format) unchanged; JS style continues to follow repository eslint/prettier defaults when introduced.
+- Node unit tests per protocol + shared helper suites executed via `./gradlew operatorConsoleJsTest`.
+- Selenium regression tests remain but may shrink once harness stabilises.
+- JVM module tests unaffected but may stub harness integration points.
+- Spotless/ESLint (once adopted) ensure JS style consistency.
 
-## Open Questions
-_None at this time; add entries to `docs/4-architecture/open-questions.md` as soon as uncertainties surface._
+## Interface & Contract Catalogue
 
-## Exit Criteria
-- All requirements above satisfied and documented in the feature plan/tasks.
-- Coverage summary (which protocols + shared helpers are green) recorded in the Implementation Drift Gate when the workstream eventually closes.
-- Roadmap entry updated to "Complete" only after governance confirms the harness applies to every protocol and the spec no longer requires draft status.
+### Domain Objects
+| ID | Description | Modules |
+|----|-------------|---------|
+| DO-041-01 | `ConsoleControllerFactory` (per protocol entry point returning event handlers). | rest-api |
+| DO-041-02 | `DomHarnessContext` (fixtures + stubs passed to controller factories during Node tests). | rest-api tests |
+
+### API Routes / Services
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| API-041-01 | Static assets under `/ui/<protocol>/console.js` | Standalone JS modules initialising protocol consoles. | Loaded via existing Thymeleaf templates. |
+
+### CLI Commands
+| ID | Command | Behaviour |
+|----|---------|-----------|
+| CLI-041-01 | `./gradlew --no-daemon operatorConsoleJsTest` | Runs all Node-based console suites; supports filtering via `-PconsoleTestFilter=<protocol>`. |
+
+### Telemetry Events
+| ID | Event name | Fields / Redaction summary |
+|----|------------|----------------------------|
+| TE-041-01 | `build.console_js.test` | `protocol`, `durationMs`, `status`; emitted via Gradle logging or optional telemetry hook to monitor harness health. |
+
+### Fixtures & Sample Data
+| ID | Path | Description |
+|----|------|-------------|
+| FX-041-01 | `rest-api/src/test/javascript/support/fixtures/*.json` | Preset payloads, credential directory responses, verbose trace toggles for Node tests. |
+| FX-041-02 | `rest-api/src/test/javascript/<protocol>/*.test.js` | Canonical test suites per protocol. |
+
+### UI States
+| ID | State | Trigger / Expected outcome |
+|----|-------|----------------------------|
+| UI-041-01 | Console Evaluate mode initialised via module factory. | DOM harness ensures controllers render evaluate view without Selenium. |
+| UI-041-02 | Console Replay mode toggled in Node tests. | Harness verifies preset hydration + verbose trace wiring. |
+
+## Spec DSL
+```yaml
+harness:
+  task: operatorConsoleJsTest
+  protocols:
+    - hotp
+    - totp
+    - ocra
+    - fido2
+    - emv
+  shared_helpers:
+    - SecretFieldBridge
+    - VerboseTraceConsole
+filters:
+  property: consoleTestFilter
+  example: "-PconsoleTestFilter=fido2"
+assets:
+  ocra:
+    inline_scripts: false
+    entry_point: rest-api/src/main/resources/static/ui/ocra/console.js
+```
+
+## Appendix
+- DOM harness checklist (JSDOM version, fetch mock strategy) documented under `rest-api/src/test/javascript/support/README.md`.
+- Future protocol onboarding steps must append to `docs/4-architecture/features/041/tasks.md` before implementation.

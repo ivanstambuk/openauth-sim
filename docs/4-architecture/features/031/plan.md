@@ -1,47 +1,82 @@
 # Feature Plan 031 – Legacy Entry-Point Removal
 
-_Status: Complete_  
-_Last reviewed: 2025-10-21_
+_Linked specification:_ `docs/4-architecture/features/031/spec.md`  
+_Linked tasks:_ `docs/4-architecture/features/031/tasks.md`  
+_Status:_ Complete  
+_Last updated:_ 2025-11-10
 
-## Alignment
-- Specification: `docs/4-architecture/features/031/spec.md`
-- Related roadmap entry: Workstream 31 (pending)
-- Upstream dependencies: Feature 017 (operator console unification), Feature 024 (FIDO2 UI), Feature 026 (FIDO2 attestation telemetry), Feature 027 (unified credential store)
-- Downstream considerations: CLI telemetry consumers, operator console automation scripts, Selenium test harness
+## Vision & Success Criteria
+Retire the CLI/JS compatibility shims so telemetry, router state, and networking flows rely solely on the canonical APIs
+introduced in Features 017/024/026/027. Success requires:
+- FR-031-01 – CLI emits telemetry exclusively via adapters.
+- FR-031-02 – Operator console routing/query-state shims removed.
+- FR-031-03 – Console networking + FIDO2 bridges rely only on Fetch + canonical helpers.
+- FR-031-04 – WebAuthn legacy presets/docs cleaned up and analysis gate re-run.
 
-## Intent
-Retire the Java/JavaScript compatibility branches so there is a single telemetry format, router state contract, and networking pathway across all facades. This plan sequences test-first removal in ≤30 minute increments to keep the build green while we excise the legacy affordances.
+## Scope Alignment
+- **In scope:** CLI telemetry path, operator console router scripts, FIDO2 ceremony helpers, Selenium fetch polyfills,
+  WebAuthn generator presets, documentation sync.
+- **Out of scope:** REST payload validation changes, removal of unrelated test-only flags, new telemetry schemas.
 
-## Current Status
-- Specification drafted 2025-10-19 and promoted to complete on 2025-10-21 after reconfirming T3101–T3108 outcomes and documentation updates.
-- No open questions logged; REST contract tightening explicitly out of scope per product directive.
-- 2025-10-19 – T3105 removed the FIDO2 `legacySetMode` bridge, rewired the console to emit canonical tab/mode events, and refreshed Selenium coverage (`OperatorConsoleUnificationSeleniumTest.fido2ConsoleProvidesCanonicalApi`). Commands executed: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*"` and `./gradlew --no-daemon spotlessApply check`.
-- 2025-10-19 – T3106 replaced HOTP/TOTP/FIDO2 operator console XHR fallbacks with Fetch API calls, enabled HtmlUnit’s built-in fetch polyfill across Selenium harnesses, and revalidated UI suites (`:rest-api:test --tests "io.openauth.sim.rest.ui.*"`) plus `spotlessApply check`.
-- 2025-10-19 – T3107 aligned WebAuthn generator presets with W3C fixture identifiers (`packed-es256`, etc.), removed the legacy `generator-*` fallback, refreshed CLI/REST/operator documentation, and updated Selenium coverage. Commands executed: `./gradlew --no-daemon :application:test`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*"`.
-- 2025-10-19 – T3108 synced knowledge artefacts (roadmap, changelog, knowledge map, how-to guides, session snapshot), captured the HtmlUnit fetch polyfill requirement, and reran the analysis gate (`spotlessApply check` + targeted UI suites) to confirm a green baseline.
+## Dependencies & Interfaces
+- CLI modules (`OcraCli`), `TelemetryContracts` adapters.
+- UI router scripts under `rest-api/src/main/resources/static/ui/**` and Selenium harnesses.
+- WebAuthn generator fixtures and knowledge artefacts.
 
-## Increments
-1. T3101 – Update CLI telemetry tests to lock the structured adapter output; add regression for `OcraCli.emit` covering evaluate/verify cases only. _Tests first._
-2. T3102 – Remove `legacyEmit` path; ensure CLI integration tests emit structured frames exclusively.
-3. T3103 – In operator console router (`ui/console/console.js`), delete `__openauth*` shims and legacy query-param coercion; add targeted front-end unit test covering canonical params.
-4. T3104 – Mirror router cleanup in HOTP/TOTP consoles; adjust Selenium tests to navigate via canonical params.
-5. T3105 – Drop FIDO2 `legacySetMode` bridge and legacy mode persistence; update FIDO2 Selenium flows and HtmlUnit harness to use the canonical API.
-6. T3106 – Remove XMLHttpRequest fallbacks; enable HtmlUnit’s built-in `fetch` polyfill in Selenium harnesses; rerun impacted suites.
-7. T3107 – Prune WebAuthn legacy generator sample; update preset fixtures, docs, and UI tests so presets use W3C fixture identifiers (for example `packed-es256`) and sanitized synthetic keys where required.
-8. T3108 – Doc sync: refresh operator how-to, CLI telemetry reference, knowledge map, roadmap workstream, and `_current-session` summary; run analysis gate checklist.
+## Assumptions & Risks
+- **Assumptions:** Operators will update bookmarks/automation; HtmlUnit fetch polyfill available in Selenium harness.
+- **Risks:**
+  - CLI telemetry consumers parsing legacy text -> provide release notes + doc updates.
+  - HtmlUnit lacking fetch -> ensure harness enables built-in polyfill.
+  - Bookmark breakage -> document canonical param usage in how-tos.
 
-## Quality Gates
-- Every increment runs `./gradlew spotlessApply check` (document pass/fail per increment).
-- Touching UI routing or fetch logic triggers targeted suites: `:rest-api:test --tests "*OperatorUi*"` and `:rest-api:test --tests "*Fido2*"`.
-- Before closing the feature, re-run `./gradlew --no-daemon :rest-api:test` and ensure Selenium snapshots updated.
+## Implementation Drift Gate
+- Evidence captured 2025-10-19: CLI telemetry test diff, router/JS removal commits, Selenium fetch polyfill configuration,
+  WebAuthn preset updates, knowledge map + roadmap diffs, `./gradlew --no-daemon :rest-api:test` + `spotlessApply check`
+  logs. Gate remains satisfied; rerun only if legacy affordances reappear.
 
-## Risks & Mitigations
-- CLI telemetry consumers parsing legacy text: coordinate release notes and provide migration guidance before landing the breaking change.
-- HtmlUnit lacking native `fetch`: ensure tests inject a polyfill or swap to a driver with Fetch support.
-- Bookmark breakage: update documentation and changelog so operators adjust automation scripts.
+## Increment Map
+1. **I1 – CLI telemetry tests (S-031-01)**
+   - Add failing tests asserting adapter-only frames.
+   - Commands: `./gradlew --no-daemon :cli:test` (targeted).
+2. **I2 – Remove `legacyEmit` path (S-031-01)**
+   - Delete legacy branch, update integration tests.
+   - Commands: `./gradlew --no-daemon :cli:test`, `./gradlew spotlessApply check`.
+3. **I3 – Console router cleanup (S-031-02)**
+   - Remove `__openauth*` globals + legacy param coercion.
+   - Commands: `./gradlew --no-daemon :rest-api:test --tests "*OperatorUi*"`, `./gradlew spotlessApply check`.
+4. **I4 – HOTP/TOTP router parity (S-031-02)**
+   - Mirror cleanup across other protocol tabs; adjust Selenium nav.
+   - Commands: `./gradlew --no-daemon :rest-api:test --tests "*Hotp*" "*Totp*"`.
+5. **I5 – FIDO2 canonical API (S-031-03)**
+   - Drop `legacySetMode`, rely on canonical ceremony helpers.
+   - Commands: `./gradlew --no-daemon :rest-api:test --tests "*Fido2*"`.
+6. **I6 – Fetch-only networking (S-031-03)**
+   - Remove XMLHttpRequest fallbacks, enable HtmlUnit fetch polyfill, rerun UI suites.
+   - Commands: `./gradlew --no-daemon :rest-api:test --tests "*OperatorUi*"`, `./gradlew spotlessApply check`.
+7. **I7 – WebAuthn preset cleanup (S-031-04)**
+   - Prune legacy generator sample, align preset IDs, update docs/tests.
+   - Commands: `./gradlew --no-daemon :application:test`, `./gradlew --no-daemon :rest-api:test --tests "*WebAuthn*"`.
+8. **I8 – Documentation + knowledge sync (S-031-04)**
+   - Update how-to guides, roadmap, knowledge map, `_current-session`; rerun analysis gate.
+   - Commands: `./gradlew --no-daemon spotlessApply check`.
+
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-031-01 | I1, I2 / T-031-01, T-031-02 | CLI telemetry removal. |
+| S-031-02 | I3, I4 / T-031-03, T-031-04 | Router/query param cleanup. |
+| S-031-03 | I5, I6 / T-031-05, T-031-06 | Networking + canonical API. |
+| S-031-04 | I7, I8 / T-031-07, T-031-08 | WebAuthn presets + documentation sync. |
+
+## Analysis Gate
+- Completed 2025-10-19 (post T3108) after documentation, tests, and analysis checklist were updated; no open questions remain.
 
 ## Exit Criteria
-- No remaining references to `legacyEmit`, `legacySetMode`, `__openauth*` shims, or XMLHttpRequest fallbacks in production code.
-- Tests and docs reference only canonical parameters and samples.
-- Knowledge map records the simplified routing/telemetry relationships.
-- Feature recorded as shipped with roadmap + tasks updated.
+- No references to `legacyEmit`, `legacySetMode`, `__openauth*`, or XHR fallbacks in production.
+- Selenium/UI tests pass using canonical params + Fetch.
+- Knowledge artefacts reflect the simplified routing/telemetry flows.
+- Gradle gate (`./gradlew --no-daemon :rest-api:test spotlessApply check`) recorded as green.
+
+## Follow-ups / Backlog
+- None; future router or telemetry adjustments require new features.

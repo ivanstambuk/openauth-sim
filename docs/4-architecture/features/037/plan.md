@@ -1,64 +1,100 @@
-# Feature Plan 037 – Base32 Inline Secret Support
+# Feature Plan 037 - Base32 Inline Secret Support
 
-_Linked specification:_ `docs/4-architecture/features/037/spec.md`  
-_Status:_ Complete  
-_Last updated:_ 2025-11-01
+| Field | Value |
+|-------|-------|
+| Status | Complete |
+| Last updated | 2025-11-11 |
+| Linked specification | `docs/4-architecture/features/037/spec.md` |
+| Linked tasks | `docs/4-architecture/features/037/tasks.md` |
 
 ## Vision & Success Criteria
-- Enable operators to paste Base32 secrets across HOTP, TOTP, and OCRA inline flows without breaking existing hex-based automation or telemetry.
-- Preserve redaction guarantees and persistence schema while keeping the build green (`./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`).
+- Enable HOTP, TOTP, and OCRA inline flows to accept Base32 secrets without changing downstream persistence or telemetry.
+- Provide consistent tooling across REST, CLI, and UI by centralising Base32 conversion in a shared helper.
+- Keep documentation, knowledge map, and governance artefacts in sync so Base32 workflows stay self service.
+- Exit criteria: `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` stays green with updated fixtures and documentation.
 
 ## Scope Alignment
-- **In scope:** shared encoding helper, REST DTO/validation updates, CLI option wiring, operator UI UX adjustments, documentation/knowledge-map sync.
-- **Out of scope:** stored credential seeding format changes, QR/otpauth generation, additional encoding formats.
+- **In scope:** Encoding helper, REST DTO/service updates, CLI flag wiring, operator UI unified textarea + toggle, documentation/RUNBOOK updates, verification log maintenance.
+- **Out of scope:** Stored credential schema changes, QR or `otpauth://` generation, non-OTP protocol modifications.
 
 ## Dependencies & Interfaces
-- Shared helper likely belongs in `core` or `application` alongside existing OTP utilities.
-- REST DTO changes will affect OpenAPI snapshots and Selenium fixtures.
-- CLI commands use Picocli; help text and tests must reflect new options.
-- Operator console changes impact TypeScript modules and Selenium suites.
+- Existing inline HOTP/TOTP/OCRA flows and Selenium coverage.
+- Picocli command definitions and help text.
+- Operator console shared JS modules (`secret-fields.js`).
+- Telemetry adapters to ensure secrets remain hex only.
 
-## Increment Breakdown (≤30 minutes each)
-1. **I1 – Encoding helper & HOTP/TOTP REST scaffolding**  
-   - Implement Base32→hex helper with unit tests.  
-   - Add `sharedSecretBase32` fields to HOTP/TOTP inline DTOs with updated validation.  
-   - 2025-10-31 – REST HOTP/TOTP/OCRA inline DTOs/tests now share `InlineSecretInput`; OpenAPI snapshot refreshed after updating controller/service fixtures for `sharedSecretBase32`.  
-   - Commands: `./gradlew --no-daemon :core:test :rest-api:test`.
+## Assumptions & Risks
+- **Assumptions:** OTP modules already expose inline DTOs; telemetry sanitisation is enforced at helper boundaries; QA fixtures cover both success and validation paths.
+- **Risks:**
+  - Performance regression when converting large secrets -> Mitigated via helper unit tests and reused HOTP/TOTP benchmarks.
+  - UI desync between hex and Base32 fields -> Avoided by consolidating into a single textarea plus toggle.
+  - Documentation drift -> Addressed by final increment (I5/I7) and analysis gate review.
 
-2. **I2 – OCRA REST integration**  
-   - Extend OCRA evaluate/replay inline DTOs and services for Base32 conversion.  
-   - Update REST tests for Base32 success and validation errors.  
-   - 2025-10-31 – Added OCRA evaluation/verification Base32 success + invalid-path tests to confirm REST services route through `InlineSecretInput`.  
-   - Commands: `./gradlew --no-daemon :rest-api:test`.
+## Implementation Drift Gate
+- Evidence collected 2025-11-01:
+  - Helper-to-facade trace recorded in knowledge map and plan appendix.
+  - JSON diffs showing Base32 success and validation errors for HOTP and OCRA inline requests.
+  - Selenium screenshots proving toggle + dynamic hint behaviour.
+  - Telemetry sample verifying secrets remain hex only.
+- Gate outcome: no divergences; roadmap and knowledge map updated before marking feature complete.
 
-3. **I3 – CLI flag support**  
-   - Add Base32 options to HOTP/TOTP/OCRA inline commands with Picocli validation and tests.  
-   - 2025-10-31 – Picocli inline commands now honour `--secret-base32` exclusivity across TOTP/OCRA flows; `./gradlew --no-daemon :cli:test` passes with the new coverage.  
-   - Commands: `./gradlew --no-daemon :cli:test`.
+## Increment Map
+1. **I1 - Encoding helper and HOTP/TOTP REST scaffolding (T-037-01, T-037-02)**
+   - _Goal:_ Implement Base32 to hex helper, add `sharedSecretBase32` fields to HOTP/TOTP inline DTOs, and refresh OpenAPI hints.
+   - _Preconditions:_ Clarifications approved; inline DTOs already exist.
+   - _Steps:_ Build helper, add validation, wire into HOTP/TOTP services, write unit + REST tests.
+   - _Commands:_ `./gradlew --no-daemon :core:test :rest-api:test`.
+   - _Exit:_ 2025-10-31 - Helper shipped, HOTP/TOTP DTOs accept Base32, OpenAPI snapshot updated.
+2. **I2 - OCRA REST integration (T-037-02)**
+   - _Goal:_ Extend OCRA evaluate/verify inline requests and services.
+   - _Steps:_ Add Base32 fields, validation, tests for success/error cases.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test`.
+   - _Exit:_ 2025-10-31 - OCRA REST suites cover Base32 success + invalid paths.
+3. **I3 - CLI flag support (T-037-03)**
+   - _Goal:_ Add Base32 options to HOTP/TOTP/OCRA CLI commands with exclusivity enforcement.
+   - _Steps:_ Introduce Picocli options, reuse helper, update help text, run CLI tests.
+   - _Commands:_ `./gradlew --no-daemon :cli:test`.
+   - _Exit:_ 2025-10-31 - CLI tests green with Base32 flags.
+4. **I4 - Operator console UX & Selenium coverage (T-037-04)**
+   - _Goal:_ Sync Base32 and hex inputs across inline panels, update Selenium tests.
+   - _Steps:_ Implement shared JS helpers, update UI forms, refresh Selenium flows.
+   - _Commands:_ `./gradlew --no-daemon :ui:test :rest-api:test`.
+   - _Exit:_ 2025-10-31 - Selenium suites cover Base32 paths across all protocols.
+5. **I5 - Documentation & knowledge map sync (T-037-05)**
+   - _Goal:_ Update how tos, knowledge map, session snapshot, and run quality gate.
+   - _Steps:_ Document Base32 usage, capture telemetry notes, run full Gradle gate.
+   - _Commands:_ `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
+   - _Exit:_ 2025-10-31 - Docs updated and quality gate recorded.
+6. **I6 - Unified shared secret textarea (T-037-04)**
+   - _Goal:_ Replace dual inputs with a single textarea + toggle, wire validation messaging.
+   - _Steps:_ Update UI components, add toggle logic, extend Selenium coverage.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test :ui:test`.
+   - _Exit:_ 2025-11-01 - Unified textarea live in all inline panels.
+7. **I7 - Shared secret message consolidation (T-037-04)**
+   - _Goal:_ Collapse hint/warning rows into a single dynamic message that swaps between hint and validation text.
+   - _Steps:_ Extend JS helper, adjust CSS, refresh Selenium assertions.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test :ui:test`.
+   - _Exit:_ 2025-11-01 - Dynamic messaging verified via Selenium.
 
-4. **I4 – Operator console UX & Selenium coverage**  
-   - Introduce Base32 inputs and sync logic to operator UI inline panels.  
-   - Refresh Selenium coverage for Base32 paths and validation.  
-   - 2025-10-31 – Shared `secret-fields.js` keeps Base32/hex inputs in sync across HOTP/TOTP/OCRA consoles; Selenium suites assert Base32 success + conflict validation in all panels.  
-   - Commands: `./gradlew --no-daemon :ui:test :rest-api:test`.
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-037-01 | I1 / T-037-01 | Helper normalisation + telemetry masking. |
+| S-037-02 | I1-I2 / T-037-02 | REST DTO/service behaviour and validation. |
+| S-037-03 | I3 / T-037-03 | CLI flag exclusivity + helper reuse. |
+| S-037-04 | I4-I7 / T-037-04 | Operator UI textarea/toggle + messaging. |
+| S-037-05 | I5 / T-037-05 | Documentation, knowledge map, gate updates. |
 
-5. **I5 – Documentation & knowledge map**  
-   - Update how-to guides, knowledge map, analysis gate checklist if needed.  
-   - Run full quality command set and capture notes in `_current-session.md`.  
-   - 2025-10-31 – Docs/knowledge map refreshed; `Base32SecretCodecTest` now uses JUnit assertions, and the full quality suite passes (`./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`).  
-   - Commands: `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
+## Analysis Gate
+- Status: Complete (2025-11-01).
+- Findings: No drift; telemetry samples confirmed redaction, and knowledge map references were updated. Future UI work should reuse the shared textarea helper to avoid regressions.
 
-6. **I6 – Unified shared-secret textarea**  
-   - Replace dual inline secret textareas with a single textarea and Hex/Base32 toggle, reusing the shared conversion helper.  
-   - Update validation, telemetry sanitisation, and Selenium coverage to assert mode switching and failed conversions.  
-   - 2025-11-01 – Selenium suites updated for unified textarea; HOTP/TOTP assertions rely on API conflict injections while OCRA scenarios verify toggle controls and shared `SharedSecretField` helper coverage.  
-   - Commands: `./gradlew --no-daemon :rest-api:test :ui:test`.
+## Exit Criteria
+- Base32 helper + mutual exclusivity enforcement implemented across REST/CLI/UI.
+- Telemetry and persistence remain hex only.
+- Documentation and knowledge map updated.
+- Full Gradle gate passes with refreshed snapshots and Selenium evidence.
 
-7. **I7 – Shared-secret message consolidation**  
-   - Collapse the dual hint/warning rows into a single dynamic message that defaults to the conversion hint.  
-   - Extend `secret-fields.js` to bind error text into the shared message node and apply alert styling only while conversion fails.  
-   - 2025-11-01 – Dynamic hint/error messaging now powers HOTP/TOTP/OCRA panels; Selenium suites assert default hint, error swap, and reset behaviour (`./gradlew --no-daemon :rest-api:test :ui:test`).
-
-## Dependencies
-- Requires existing inline flows across protocols and passing Selenium suites.
-- Coordinate with Feature 029 PMD updates to ensure new helper complies with rule set.
+## Follow-ups / Backlog
+- Monitor upcoming UX features for inline secret presets to ensure they reuse the helper.
+- None otherwise; feature closed after template migration.

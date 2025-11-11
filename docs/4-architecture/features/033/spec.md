@@ -1,42 +1,108 @@
 # Feature 033 – Operator Console Naming Alignment
 
-_Status: Complete_
-_Last updated: 2025-10-21_
+| Field | Value |
+|-------|-------|
+| Status | Complete |
+| Last updated | 2025-11-10 |
+| Owners | Ivan (project owner) |
+| Linked plan | `docs/4-architecture/features/033/plan.md` |
+| Linked tasks | `docs/4-architecture/features/033/tasks.md` |
+| Roadmap entry | #31 – Operator Console Simplification |
 
 ## Overview
-The operator console hosted inside the `rest-api` module has grown from an OCRA-only surface to a unified control panel for HOTP, TOTP, and WebAuthn capabilities. Several Spring components, telemetry hooks, and documented references still carry legacy “Ocra” prefixes that no longer reflect the console’s scope. This feature aligns the terminology so future changes do not misinterpret the console as OCRA-specific.
-
-## Goals
-- Rename the primary MVC controller and related Spring beans to use neutral “OperatorConsole” naming.
-- Update telemetry endpoints, loggers, and emitted event identifiers to remove the OCRA-only prefix while keeping payload semantics unchanged.
-- Refactor unit, integration, and Selenium tests, along with Thymeleaf templates, so they reference the updated types and attributes.
-- Synchronise documentation (session snapshot, knowledge map, relevant feature plans) with the refreshed naming.
-
-## Non-Goals
-- Introducing new functionality to the operator console.
-- Modifying protocol-specific sample data classes that remain OCRA-only in purpose.
-- Changing REST endpoint paths beyond the dedicated UI telemetry hook.
-
-## Constraints
-- Continue emitting telemetry through `TelemetryContracts` without introducing bespoke loggers.
-- Preserve backwards compatibility for REST API endpoints already exposed to operators; only the internal UI telemetry hook may be renamed.
-- Maintain adherence to the naming conventions enforced by Spotless/Palantir formatting.
+The operator console hosted in `rest-api` evolved from an OCRA-only UI to a unified control panel for HOTP, TOTP, and
+WebAuthn flows. Several Spring components, telemetry hooks, and documentation still carry legacy `Ocra*` prefixes. This
+feature aligns the terminology so code, telemetry, and docs all reference the console generically as the “Operator
+Console.”
 
 ## Clarifications
-- 2025-10-21 – User selected Option B (“Comprehensive rename + telemetry alignment”), covering controller/bean renames, telemetry endpoint names, and related tests/templates. (Recorded in `docs/4-architecture/open-questions.md`.)
+- 2025-10-21 – Option B approved: perform a comprehensive rename (controllers, telemetry endpoints, templates/tests) so
+  only neutral `OperatorConsole*` terminology remains.
+
+## Goals
+- G-033-01 – Rename Spring MVC controllers/beans/templates from `Ocra*` to `OperatorConsole*` without altering behaviour.
+- G-033-02 – Update UI telemetry endpoint/logger identifiers to the new naming while preserving payload schemas.
+- G-033-03 – Refresh templates/JS assets/Selenium suites to reference the updated endpoints and remain green.
+- G-033-04 – Update documentation/knowledge artefacts and rerun the analysis gate with the new terminology.
+
+## Non-Goals
+- N-033-01 – Adding new operator console functionality.
+- N-033-02 – Renaming protocol-specific sample data classes that intentionally remain OCRA-only.
+- N-033-03 – Changing REST API contracts beyond the UI telemetry hook (`/ui/console/replay/telemetry`).
+
+## Functional Requirements
+| ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
+|----|-------------|--------------|-----------------|--------------|--------------------|--------|
+| FR-033-01 | Spring MVC controllers/beans/templates adopt `OperatorConsole*` naming with no lingering `Ocra` prefixes (S-033-01). | Controller classes, beans, and Thymeleaf templates reference `OperatorConsole*`. | Unit + MockMvc tests compile and assert the new class names. | Any production component still uses the `Ocra` prefix. | Telemetry unchanged; only naming updated. | Clarifications 2025-10-21. |
+| FR-033-02 | UI telemetry endpoint/logger identifiers switch to operator-console naming while keeping payload schemas (S-033-02). | Endpoint path `/ui/console/replay/telemetry`; event keys emit `ui.console.*`. | MockMvc/Selenium tests assert new endpoint/event names. | Legacy endpoint path or event key remains accessible. | TelemetryContracts adapters still emit existing payload fields. | G-033-02. |
+| FR-033-03 | Templates/JS assets/Selenium suites reference the new controller/endpoint names and remain green (S-033-03). | Thymeleaf templates + JS link to `OperatorConsole*`; Selenium suite passes. | `./gradlew --no-daemon :rest-api:test` targeted suites remain green. | Tests fail due to stale identifiers. | None. | G-033-03. |
+| FR-033-04 | Documentation (knowledge map, session snapshot, referenced feature plans) reflects the new naming and the analysis gate reruns green (S-033-04). | Docs mention “Operator Console” only; analysis gate run recorded. | Docs review + `spotlessApply check`. | Docs retain legacy names; gate not executed. | N/A. | G-033-04. |
+
+## Non-Functional Requirements
+| ID | Requirement | Driver | Measurement | Dependencies | Source |
+|----|-------------|--------|-------------|--------------|--------|
+| NFR-033-01 | Maintain a green Gradle gate after renaming (`./gradlew --no-daemon :rest-api:test spotlessApply check`). | Constitution QA rule. | Command logs stored in plan/tasks. | rest-api module, Spotless. | Project constitution. |
+| NFR-033-02 | Keep telemetry emission through `TelemetryContracts` (no bespoke loggers). | Architecture guardrail. | Code review ensures adapters remain. | application + rest-api modules. | Project constitution. |
+| NFR-033-03 | Documentation/knowledge map references stay in sync with the rename. | Governance traceability. | Doc diff review + session snapshot update. | docs hierarchy. | G-033-04. |
 
 ## Branch & Scenario Matrix
-
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
-| S33-01 | Spring MVC controllers/beans/templates adopt `OperatorConsole*` naming with no lingering `Ocra` prefixes. |
-| S33-02 | UI telemetry endpoint/logger identifiers switch to operator-console naming while preserving payload schemas. |
-| S33-03 | Thymeleaf templates, JS assets, and Selenium/MockMvc suites reference the new controller/endpoint names and remain green. |
-| S33-04 | Documentation (knowledge map, session snapshot, feature plans) reflects the naming change and the analysis gate reruns green. |
+| S-033-01 | Spring MVC controllers/beans/templates adopt `OperatorConsole*` naming. |
+| S-033-02 | UI telemetry endpoint/logger identifiers use operator-console naming while payload schemas stay unchanged. |
+| S-033-03 | Templates/JS assets/Selenium suites reference the new names and remain green. |
+| S-033-04 | Documentation/knowledge artefacts reflect the rename and the analysis gate reruns green. |
 
-## Acceptance Criteria
-1. All Spring MVC components, beans, and telemetry helpers referenced by the operator console use neutral `OperatorConsole*` naming.
-2. The UI telemetry endpoint path matches the new naming, and Selenium/UI tests continue to pass.
-3. Telemetry events emitted from the console report an updated event key (for example `event=ui.console.replay`) without altering existing metadata fields.
-4. Documentation (knowledge map, session snapshot, referenced feature plans) reflects the new naming, and no references to `OcraOperatorUiController` remain outside OCRA-specific sample data classes.
-5. `./gradlew spotlessApply check` completes successfully after the rename.
+## Test Strategy
+- CLI unaffected; focus on `rest-api` modules:
+  - `./gradlew --no-daemon :rest-api:test` (covers MockMvc + Selenium).
+  - `./gradlew --no-daemon spotlessApply check` to confirm formatting + naming updated.
+- Manual verification: confirm telemetry events logged as `ui.console.*` and no `OcraOperatorUiController` references remain.
+
+## Interface & Contract Catalogue
+### Controllers/Beans
+| ID | Description | Modules |
+|----|-------------|---------|
+| CT-033-01 | `OperatorConsoleController` – main MVC controller replacing `OcraOperatorUiController`. | rest-api |
+| CT-033-02 | `OperatorConsoleTelemetryLogger` – updated telemetry endpoint handler. | rest-api |
+
+### Templates & Assets
+| ID | Path | Notes |
+|----|------|-------|
+| UI-033-01 | `rest-api/src/main/resources/templates/ui/console/` | Templates reference canonical controller names. |
+
+## Documentation Deliverables
+- Update knowledge map, roadmap, and `_current-session.md` entries referencing the console; note the rename in migration plan.
+- Ensure feature plans/tasks citing the console adopt the new terminology.
+
+## Fixtures & Sample Data
+- None introduced; existing sample data remains OCRA-specific as appropriate.
+
+## Spec DSL
+```
+scenarios:
+  - id: S-033-01
+    focus: controller-renames
+  - id: S-033-02
+    focus: telemetry-endpoint
+  - id: S-033-03
+    focus: templates-tests
+  - id: S-033-04
+    focus: documentation
+requirements:
+  - id: FR-033-01
+    maps_to: [S-033-01]
+  - id: FR-033-02
+    maps_to: [S-033-02]
+  - id: FR-033-03
+    maps_to: [S-033-03]
+  - id: FR-033-04
+    maps_to: [S-033-04]
+non_functional:
+  - id: NFR-033-01
+    maps_to: [S-033-03]
+  - id: NFR-033-02
+    maps_to: [S-033-02]
+  - id: NFR-033-03
+    maps_to: [S-033-04]
+```

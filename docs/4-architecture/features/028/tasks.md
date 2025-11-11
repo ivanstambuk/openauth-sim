@@ -2,53 +2,70 @@
 
 _Linked plan:_ `docs/4-architecture/features/028/plan.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-10-30
+_Last updated:_ 2025-11-10
 
-☑ **T2801 – Governance sync**   (S28-01)
-  ☑ Create spec/plan/tasks files and capture Option B clarification in the spec.  
-  ☑ Update roadmap and current-session snapshot; resolve the maintenance open question entry.
+> Checklist mirrors the new plan increments; each task recorded its verification commands and references the relevant FR/S IDs.
 
-☑ **T2802 – Application constructors cleanup**   (S28-02)
-  ☑ Remove redundant `evaluationInstant` assignments in TOTP evaluation/replay command records.  
-  ☑ Run `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.totp.*"`.
+## Checklist
+- [x] T-028-01 – Governance sync (FR-028-01, S-028-01).  
+  _Intent:_ Create spec/plan/tasks, capture Option B clarification, update roadmap/knowledge map/current-session, and close the warning open question.  
+  _Verification:_ `./gradlew --no-daemon spotlessApply check` (2025-10-18).
 
-☑ **T2803 – Core/WebAuthn services assertions**   (S28-02)
-  ☑ Strengthen `WebAuthnAttestationVerifier` and `WebAuthnReplayService` assertions; remove obsolete suppressions.  
-  ☑ Run `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAttestationVerifierTest"`.  
-  ☑ Run `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnPublicKeyDecoderTest"` and `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2ReplayEndpointTest"`.
+- [x] T-028-02 – Application constructors cleanup (FR-028-02, S-028-02).  
+  _Intent:_ Remove redundant `evaluationInstant` assignments in TOTP evaluation/replay command records while keeping optional semantics.  
+  _Verification:_ `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.totp.*"` (2025-10-18).
 
-☑ **T2804 – CLI/REST unit tests**   (S28-03)
-  ☑ Update `TotpCliTest` and `Fido2AttestationEndpointTest` to leverage previously unused locals.  
-  ☑ Run `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.TotpCliTest"` and `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`.
+- [x] T-028-03 – Core/WebAuthn services assertions (FR-028-02, S-028-02).  
+  _Intent:_ Strengthen `WebAuthnAttestationVerifier`, `WebAuthnReplayService`, and supporting tests; drop obsolete suppressions.  
+  _Verification:_  
+  - `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAttestationVerifierTest"`  
+  - `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.fido2.WebAuthnPublicKeyDecoderTest"`  
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2ReplayEndpointTest"`
 
-☑ **T2805 – Selenium assertions**   (S28-03)
-  ☑ Convert unused Selenium locals/constants into explicit assertions across operator UI suites.  
-  ☑ Run `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*"` as needed.
+- [x] T-028-04 – CLI & REST unit tests (FR-028-03, S-028-03).  
+  _Intent:_ Update `TotpCliTest` & `Fido2AttestationEndpointTest` to leverage previously unused locals.  
+  _Verification:_  
+  - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.TotpCliTest"`  
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2AttestationEndpointTest"`
 
-☑ **T2806 – Quality gate**   (S28-04)
-  ☑ Execute `./gradlew --no-daemon spotlessApply check`.  
-  ☑ Note residual warnings, if any, for follow-up in the roadmap.
+- [x] T-028-05 – Selenium assertions (FR-028-03, S-028-03).  
+  _Intent:_ Convert unused Selenium locals/constants into explicit assertions across operator UI attestation suites.  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*"` (2025-10-18).
 
-☑ **T2807 – WebAuthn assertion DTO extraction**   (S28-02)
-  ☑ Move `WebAuthnAssertionResponse` into its own `rest-api` source file and adjust usages to match the public `WebAuthnGeneratedAssertion` contract.  
-  ☑ Run `./gradlew --no-daemon --no-configuration-cache :rest-api:compileJava` (after `clean`) to confirm the auxiliary-class warning is resolved.
+- [x] T-028-06 – DTO extraction & SpotBugs annotation export (FR-028-04, S-028-04).  
+  _Intent:_ Move `WebAuthnAssertionResponse` into its own file, promote `spotbugs-annotations` to `compileOnlyApi`, refresh dependency locks, and ensure downstream modules compile without warnings.  
+  _Verification:_  
+  - `./gradlew --no-daemon --write-locks :application:compileJava :application:compileTestJava :application:pmdTest`  
+  - `./gradlew --no-daemon --write-locks :rest-api:compileJava :rest-api:compileTestJava :cli:compileJava :cli:compileTestJava :ui:compileJava :ui:compileTestJava`  
+  - `./gradlew --no-daemon :application:compileJava` / `:rest-api:compileJava`  
+  - `./gradlew --no-daemon --write-locks spotlessApply check` followed by a non-locking rerun (2025-10-19).
 
-☑ **T2808 – SpotBugs annotation export**   (S28-04)
-  ☑ Promote `spotbugs-annotations` to the application module’s exported compile classpath (`compileOnlyApi`) and refresh dependency locks via targeted `--write-locks` runs.  
-  ☑ Execute `./gradlew --no-daemon --no-configuration-cache :application:compileJava`, `./gradlew --no-daemon --write-locks :application:compileJava :application:compileTestJava :application:pmdTest`, `./gradlew --no-daemon --write-locks :rest-api:compileJava :rest-api:compileTestJava :cli:compileJava :cli:compileTestJava :ui:compileJava :ui:compileTestJava`, and finish with `./gradlew --no-daemon --write-locks spotlessApply check` (followed by a non-locking re-run) to ensure downstream warnings are clear.
+- [x] T-028-07 – REST exception serialization warnings (FR-028-03, S-028-03/S-028-04).  
+  _Intent:_ Mark REST exception `details`/`metadata` maps as `transient` and verify compile/test passes.  
+  _Verification:_ `./gradlew --no-daemon :rest-api:compileJava` (2025-10-19).
 
-☑ **T2809 – REST exception serialization warnings**   (S28-03)
-  ☑ Mark REST exception `details`/`metadata` fields as `transient` so they comply with serialization guidelines.  
-  ☑ Run `./gradlew --no-daemon :rest-api:compileJava` (optionally `:rest-api:test`) to confirm the warning clears.
+- [x] T-028-08 – WebAuthn assertion lossy conversion fix (FR-028-02, S-028-02).  
+  _Intent:_ Update `WebAuthnAssertionVerifierTest` to avoid implicit int-to-byte conversions.  
+  _Verification:_ `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAssertionVerifierTest"` (2025-10-19).
 
-☑ **T2810 – WebAuthn assertion lossy conversion warning**   (S28-02)
-  ☑ Update `WebAuthnAssertionVerifierTest` to avoid implicit int-to-byte conversions during XOR.  
-  ☑ Execute `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.WebAuthnAssertionVerifierTest"`.
+- [x] T-028-09 – CLI/REST Selenium telemetry polish (FR-028-03, S-028-03).  
+  _Intent:_ Ensure Selenium fixtures assert seeded attestation metadata (PS256) and convert remaining unused locals.  
+  _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest*"` (2025-10-29).
 
-☑ **T2811 – WebAuthn replay/HOTP telemetry diagnostics**   (S28-02)
-  ☑ Drop the unused `telemetryCommand` variable in `WebAuthnAttestationReplayApplicationService` and confirm telemetry output remains unchanged.  
-  ☑ Guard `WebAuthnEvaluationApplicationService` trace helpers against null dereference warnings by populating authenticator/client data only inside trace blocks.  
-  ☑ Prevent HOTP matched counter auto-unboxing by supplying a safe fallback and assert the PS256 Selenium fixture to remove the unused local.  
-  ☑ Run `./gradlew --no-daemon spotlessApply check`.
-  
-2025-10-30 – IDE verification complete; no further remediation items remain.
+- [x] T-028-10 – WebAuthn replay/HOTP telemetry diagnostics (FR-028-02/03, S-028-02/S-028-03).  
+  _Intent:_ Drop the unused `telemetryCommand` local in replay services, guard trace helpers, and prevent HOTP matched counter auto-unboxing while asserting Selenium fixtures.  
+  _Verification:_ `./gradlew --no-daemon :application:test`, Selenium suites, `./gradlew --no-daemon spotlessApply check` (2025-10-29).
+
+- [x] T-028-11 – Regression & IDE verification (FR-028-04, S-028-04).  
+  _Intent:_ Run the full Gradle gate and capture the zero-warning IDE snapshot.  
+  _Verification:_ `./gradlew --no-daemon :application:test :core:test :cli:test :rest-api:test :ui:test spotlessApply check` (2025-10-30).
+
+## Verification Log
+- 2025-10-30 – `./gradlew --no-daemon :application:test :core:test :cli:test :rest-api:test :ui:test spotlessApply check`
+- 2025-10-29 – `./gradlew --no-daemon spotlessApply check` (post-WebAuthn telemetry cleanup)
+- 2025-10-19 – `./gradlew --no-daemon --write-locks spotlessApply check`
+- 2025-10-18 – `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.totp.*"`
+- 2025-11-10 – `./gradlew --no-daemon spotlessApply check` (template migration verification)
+
+## Notes / TODOs
+- IDE inspections dated 2025-10-30 confirm zero warnings across application/core/cli/rest-api/ui modules; no further action required.

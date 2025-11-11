@@ -1,63 +1,72 @@
 # Feature 011 Tasks – Reflection Policy Hardening
 
 _Status: Complete_  
-_Last updated: 2025-10-02_
+_Last updated: 2025-11-10_
+
+> Checklist mirrors the Feature 011 plan increments; entries remain checked for audit history while migrating templates. Reference FR/NFR/Scenario IDs to keep traceability intact.
 
 ## Checklist
-- [x] T1101 – Catalogue all reflection usage across modules and log findings in the plan (S11-01).
-  _Intent:_ Establish the scope of the ban and document every offending call site before refactoring.
-  _Verification commands:_
-  - `rg --hidden --glob "*.java" "java.lang.reflect"`
+- [x] T-011-01 – Catalogue all reflection usage across modules (FR-011-01, S-011-01).  
+  _Intent:_ Establish the full scope of the ban before refactoring.  
+  _Verification commands:_  
+  - `rg --hidden --glob "*.java" "java.lang.reflect"`  
+  - `rg --hidden --glob "*.kt" "Class.forName"`  
+  _Notes:_ Inventory recorded in plan notes (2025-10-01 snapshot).
 
-- [x] T1102 – Add failing ArchUnit test that forbids `java.lang.reflect` imports outside allowlists (S11-02).
-  _Intent:_ Create a red guard in `core-architecture-tests` so reflection regressions surface immediately.
-  _Verification commands:_
-  - `./gradlew --no-daemon :core-architecture-tests:test --tests "*ReflectionArchitectureTest"`
+- [x] T-011-02 – Add failing ArchUnit guard for `java.lang.reflect` imports (FR-011-01, FR-011-04, S-011-02).  
+  _Intent:_ Ensure reflective imports immediately fail the architecture suite.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :core-architecture-tests:test --tests "*ReflectionPolicyTest"`
 
-- [x] T1103 – Add failing regex/Gradle scan that flags reflective API names in strings (S11-03).
-  _Intent:_ Ensure build tooling also fails when reflection slips in via string-based lookups.
-  _Verification commands:_
+- [x] T-011-03 – Add failing regex/Gradle scan for reflective API strings (FR-011-01, FR-011-04, S-011-03).  
+  _Intent:_ Catch cases where reflection is invoked via string lookups.  
+  _Verification commands:_  
   - `./gradlew --no-daemon reflectionScan`
 
-- [x] T1104 – Implement the ArchUnit guard and drive it green after refactors (S11-01, S11-02).
-  _Intent:_ Replace reflection with explicit seams, then rerun the guard to confirm compliance.
-  _Verification commands:_
-  - `./gradlew --no-daemon :core-architecture-tests:test --tests "*ReflectionArchitectureTest"`
+- [x] T-011-04 – Remove reflection usage until the ArchUnit guard passes (FR-011-01, FR-011-02, S-011-01, S-011-02).  
+  _Intent:_ Replace reflective imports with explicit seams across modules.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :core-architecture-tests:test --tests "*ReflectionPolicyTest"`
 
-- [x] T1105 – Wire the regex scan into `qualityGate` with appropriate allowlists (S11-03).
-  _Intent:_ Make the regex guard part of the default pipeline so CI enforces the policy.
-  _Verification commands:_
+- [x] T-011-05 – Wire `reflectionScan` into `qualityGate` with necessary allowlists (FR-011-04, NFR-011-02, S-011-03).  
+  _Intent:_ Make the regex guard part of the default CI pipeline.  
+  _Verification commands:_  
   - `./gradlew --no-daemon reflectionScan qualityGate`
 
-- [x] T1106 – Introduce explicit CLI collaborator seams to replace reflective access (S11-01, S11-05).
-  _Intent:_ Provide dedicated interfaces/DTOs so CLI tests reach collaborators without reflection.
-  _Verification commands:_
+- [x] T-011-06 – Introduce explicit CLI collaborator seams (FR-011-02, S-011-05).  
+  _Intent:_ Let CLI tests hit collaborators directly instead of via reflection.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :cli:test --tests "*OcraCli*"`
+
+- [x] T-011-07 – Refactor maintenance CLI paths to structured DTOs (FR-011-02, S-011-05).  
+  _Intent:_ Maintain CLI behaviour while eliminating reflective inspection.  
+  _Verification commands:_  
   - `./gradlew --no-daemon :cli:test --tests "*MaintenanceCli*"`
 
-- [x] T1107 – Replace maintenance CLI reflection with structured DTOs and fixtures (S11-01, S11-05).
-  _Intent:_ Document the new seams and keep behaviour identical while eliminating reflective calls.
-  _Verification commands:_
-  - `./gradlew --no-daemon :cli:test --tests "*MaintenanceCli*"`
-
-- [x] T1108 – Refactor REST OCRA services/tests to remove reflection via shared seams (S11-01, S11-05).
-  _Intent:_ Ensure REST controllers rely on injectable services instead of reflective inspection.
-  _Verification commands:_
+- [x] T-011-08 – Remove reflection from REST services/tests (FR-011-02, S-011-05).  
+  _Intent:_ Update controllers and services to rely on injectable seams.  
+  _Verification commands:_  
   - `./gradlew --no-daemon :rest-api:test --tests "*Ocra*"`
 
-- [x] T1109 – Update core tests to use explicit fixtures while documenting any necessary seams (S11-01, S11-05).
-  _Intent:_ Keep domain coverage while ensuring zero reflection remains in the test suite.
-  _Verification commands:_
+- [x] T-011-09 – Remove reflection from core MapDB/OCRA fixtures (FR-011-02, S-011-05).  
+  _Intent:_ Introduce package-private helpers so domain tests stay deterministic without reflection.  
+  _Verification commands:_  
   - `./gradlew --no-daemon :core:test`
 
-- [x] T1110 – Update `AGENTS.md` and contributor docs with the anti-reflection policy (S11-04).
-  _Intent:_ Communicate the rule and mitigation guidance to future contributors.
-  _Verification commands:_
+- [x] T-011-10 – Update `AGENTS.md` and related docs with the reflection policy (FR-011-03, S-011-04).  
+  _Intent:_ Communicate the guardrails and mitigation steps to contributors.  
+  _Verification commands:_  
   - `rg -n "reflection" AGENTS.md`
 
-- [x] T1111 – Refresh roadmap/knowledge map, run `spotlessApply check`, and capture outcomes (S11-01, S11-02, S11-03, S11-04).
-  _Intent:_ Prove the rule landed cleanly and documentation/tests stayed in sync.
-  _Verification commands:_
+- [x] T-011-11 – Refresh knowledge map/roadmap/session log; run `spotlessApply check` (FR-011-01–FR-011-04, NFR-011-01, NFR-011-02, S-011-01–S-011-04).  
+  _Intent:_ Prove the gate stays green and documentation remains synced.  
+  _Verification commands:_  
   - `./gradlew --no-daemon spotlessApply check`
 
+## Verification Log (Optional)
+- 2025-10-01 – `./gradlew --no-daemon :core-architecture-tests:test --tests "*ReflectionPolicyTest"` (PASS after refactors).
+- 2025-10-01 – `./gradlew --no-daemon reflectionScan qualityGate` (PASS; guard wired into CI pipeline).
+- 2025-10-01 – `./gradlew --no-daemon spotlessApply check` (PASS on OpenJDK 17.0.16 with guards enabled).
+
 ## Notes / TODOs
-- Reflection ban is enforced via both ArchUnit and Gradle scan; future exemptions require updating this spec plus the allowlists.
+- Future exemptions must update both this specification and the guard allowlists; otherwise, the ArchUnit and regex tasks will block merges.

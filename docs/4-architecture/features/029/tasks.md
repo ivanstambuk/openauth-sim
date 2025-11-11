@@ -1,44 +1,67 @@
 # Feature 029 Tasks – PMD Rule Hardening
 
-_Linked plan:_ `docs/4-architecture/features/029/plan.md`  
-_Status:_ Planned  
-_Last updated:_ 2025-10-19
+| Field | Value |
+|-------|-------|
+| Status | Planned |
+| Last updated | 2025-11-10 |
+| Linked plan | `docs/4-architecture/features/029/plan.md` |
 
-☑ **T2901 – PMD 7 upgrade baseline**   (S29-01)
-  ☑ Update the PMD toolVersion in `gradle/libs.versions.toml` / `build.gradle.kts` to the latest 7.x release.  
-  ☑ Run `./gradlew --no-daemon --write-locks pmdMain pmdTest` to capture migration fallout and refresh dependency locks.  
-  ☑ Note CLI/reporting/property shifts in the feature plan before proceeding to rule additions.
+> Keep entries ≤90 minutes. Stage failing tests or PMD runs before implementation and capture verification commands beside each task.
 
-☐ **T2902 – Governance sync**   (S29-02)
-  ☐ Create spec/plan/tasks artefacts and record the Law-of-Demeter heuristic under clarifications.  
-  ☐ Add the roadmap entry and refresh `docs/_current-session.md` with the new workstream.
+## Checklist
+- [x] T2901 – PMD 7 upgrade baseline (S29-01).  
+  _Intent:_ Raise PMD to 7.17.0, refresh dependency locks, and archive baseline reports.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon --write-locks pmdMain pmdTest`  
+  _Notes:_ 2025-10-19 – Upgrade completed; baseline violations (`AssignmentInOperand`) captured and remediated.
 
-☑ **T2903 – Ruleset expansion & baseline**   (S29-02)
-  ☑ Append all targeted PMD rules (including `category/java/bestpractices.xml/NonExhaustiveSwitch`) to `config/pmd/ruleset.xml`.  
-  ☑ Run `./gradlew --no-daemon pmdMain pmdTest` across the full codebase to capture baseline violations.  
-    - 2025-10-19 – Temporary dry run showed 0 NonExhaustiveSwitch violations; rule reverted pending enforcement decision.  
-    - 2025-10-19 – Rule enabled permanently; `pmdMain pmdTest` stayed green.  
-  ☑ Log notable findings (modules, rule names) back into the plan/tasks.
+- [ ] T2902 – Governance sync (S29-02).  
+  _Intent:_ Finalise spec/plan/tasks, update roadmap and `_current-session`, and log clarifications.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check` (docs touched)  
+  _Notes:_ Pending after template migration.
 
-☐ **T2904 – Law-of-Demeter scoping**   (S29-03)
-  ☐ Add a whitelist resource for fluent interfaces (e.g., `config/pmd/law-of-demeter-excludes.txt`) and reference it via `<exclude-pattern>`.  
-  ☐ Restrict enforcement to domain/service packages; verify PMD only reports violations in those areas.  
-  ☐ Document any new exclude globs in the plan.
+- [x] T2903 – Ruleset expansion & baseline (S29-02).  
+  _Intent:_ Append approved rules (including `NonExhaustiveSwitch`) and run PMD to record baseline.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon pmdMain pmdTest`  
+  _Notes:_ 2025-10-19 – Dry run showed zero NonExhaustiveSwitch violations; rule enabled permanently.
 
-☐ **T2905 – Domain remediation**   (S29-04)
-  ☐ Address violations in `core/`, `core-ocra/`, and related domain modules.  
-  ☐ Add regression tests or refactor helpers where necessary.  
-  ☐ Run `./gradlew --no-daemon :core:test :core-ocra:test` and targeted PMD tasks to confirm fixes.
+- [ ] T2904 – Law-of-Demeter scoping (S29-03).  
+  _Intent:_ Add whitelist resource, restrict enforcement to domain/service packages, and document exclude patterns.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon pmdMain`  
+  _Notes:_ Capture glob rationale in the spec appendix.
 
-☐ **T2906 – Service & facade remediation**   (S29-05)
-  ☐ Resolve findings in `application/`, `infra-persistence/`, and facade modules (`cli/`, `rest-api/`, `ui/`).  
-  ☐ Extend Law-of-Demeter exclude patterns only when justified; note each addition in the tasks file.  
-  ☐ Run `./gradlew --no-daemon :application:test :cli:test :rest-api:test` (plus Selenium/UI suites as needed).
+- [ ] T2905 – Domain remediation (S29-04).  
+  _Intent:_ Fix findings in `core/`, `core-ocra/`, and related domain modules; add regression tests.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :core:test :core-ocra:test pmdMain`  
+  _Notes:_ Reference code pointers in the plan’s drift-gate appendix.
 
-☐ **T2907 – Documentation updates**   (S29-06)
-  ☐ Update `AGENTS.md`, relevant runbooks, and quality checklists with PMD rule guidance.  
-  ☐ Record quality automation relationships in `docs/4-architecture/knowledge-map.md` if they change.
+- [ ] T2906 – Service & facade remediation (S29-05).  
+  _Intent:_ Address violations in `application/`, `infra-persistence/`, `cli/`, `rest-api/`, `ui/`; justify any excludes.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain`  
+  _Notes:_ Track per-module summaries in this file for future audits.
 
-☐ **T2908 – Quality gate closure**   (S29-06)
-  ☐ Execute `./gradlew --no-daemon spotlessApply check`.  
-  ☐ Close out plan/tasks/current-session entries and summarise the work in the roadmap.
+- [ ] T2907 – Documentation updates (S29-06).  
+  _Intent:_ Refresh AGENTS, analysis-gate checklist, knowledge map, and how-to guides with PMD workflow.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check`  
+  _Notes:_ Include screenshot or snippet of updated docs in plan appendix.
+
+- [ ] T2908 – Quality gate closure (S29-06).  
+  _Intent:_ Run full Gradle gate, finalize roadmap/current-session notes, and archive drift-gate evidence.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check`  
+  - `./gradlew --no-daemon pmdMain pmdTest`  
+  _Notes:_ Capture final PMD report path for reference.
+
+## Verification log
+- 2025-10-19 – `./gradlew --no-daemon --write-locks pmdMain pmdTest`
+- 2025-10-19 – `./gradlew --no-daemon pmdMain pmdTest`
+- 2025-11-10 – `./gradlew --no-daemon spotlessApply check` (template migration doc verification)
+
+## Notes / TODOs
+- Determine if `NonExhaustiveSwitch` requires module-specific suppressions; track decisions in tasks before closing.

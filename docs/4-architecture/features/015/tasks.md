@@ -1,17 +1,55 @@
-# Feature 015 – SpotBugs Dead-State Enforcement Tasks
+# Feature 015 Tasks – SpotBugs Dead-State Enforcement
 
-_Status: Complete_
-_Last updated: 2025-10-03_
+_Status:_ Complete  
+_Last updated:_ 2025-11-10_
 
-## Tasks
-| ID | Task | Related Requirements | Status |
-|----|------|----------------------|--------|
-| T1501 | Register Feature 015 in roadmap/knowledge map, confirm `open-questions.md` stays empty. (S15-03) | SB-001–SB-003 | ✅ (2025-10-03 – Roadmap row added, knowledge map entry appended, open questions verified empty) |
-| T1502 | Add shared SpotBugs include filter + Gradle wiring; run `./gradlew :application:spotbugsMain --rerun-tasks` to observe the expected failure with current violations. (S15-01) | SB-001, SB-002 | ✅ (2025-10-03 – Added `config/spotbugs/dead-state-include.xml`, configured `SpotBugsExtension`, command failed with `URF_UNREAD_FIELD` on `clock`) |
-| T1503 | Remediate dead-state findings (e.g., unused `Clock`), rerun `./gradlew :application:spotbugsMain --rerun-tasks` then `./gradlew spotlessApply check` to verify green status. (S15-02) | SB-002 | ✅ (2025-10-03 – Removed unused `Clock` dependency via constructor signature update, spotbugs/check now pass) |
-| T1504 | Update documentation (analysis gate checklist + tooling guide) describing the new detectors and suppression policy; rerun `./gradlew spotlessApply check` post-doc changes. (S15-03) | SB-003 | ✅ (2025-10-03 – Updated analysis gate checklist + quality gate guide, reran `./gradlew spotlessApply check`) |
-| T1505 | Capture runtime impact/notes in feature plan and synchronise final artefacts (plan/tasks/spec). (S15-03) | SB-001–SB-003 | ✅ (2025-10-03 – Added command notes to feature plan and synced spec/plan/tasks) |
-| T1506 | Add PMD `UnusedPrivateField`, address violations (e.g., remove unused constants), rerun `./gradlew :rest-api:pmdTest` and `./gradlew check`. (S15-04) | SB-004 | ✅ (2025-10-03 – Rule added to PMD ruleset, removed `PIN_SUITE`, `:rest-api:pmdTest` green) |
-| T1507 | Add PMD `UnusedPrivateMethod`, remove dead helpers (e.g., `inlineCredential()`), rerun `./gradlew :rest-api:pmdTest` and `./gradlew check`. (S15-04) | SB-004 | ✅ (2025-10-03 – Rule enforced; commands rerun, no violations) |
+> Checklist mirrors the Feature 015 plan increments; boxes remain checked for audit history while migrating templates.
 
-Update the status column as tasks complete, keeping each increment ≤30 minutes and sequencing validation commands before code implementation when feasible.
+## Checklist
+- [x] T-015-01 – Register Feature 015 in roadmap/knowledge map, confirm `open-questions.md` stays empty (FR-015-01, FR-015-03, S-015-01, S-015-03).  
+  _Intent:_ Anchor the scope before wiring detectors.  
+  _Verification commands:_  
+  - `rg -n "Feature 015" docs/4-architecture/roadmap.md`  
+  - `rg -n "Feature 015" docs/4-architecture/knowledge-map.md`
+
+- [x] T-015-02 – Add shared SpotBugs include filter + Gradle wiring; capture the expected failing run (FR-015-01, FR-015-02, S-015-01).  
+  _Intent:_ Enable dead-state detectors across all JVM modules and observe the initial failure.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :application:spotbugsMain --rerun-tasks`
+
+- [x] T-015-03 – Remediate dead-state findings and rerun SpotBugs + `spotlessApply check` (FR-015-02, S-015-02).  
+  _Intent:_ Remove or justify unread/unwritten fields so detectors pass.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :application:spotbugsMain --rerun-tasks`  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-015-04 – Update documentation (analysis gate checklist + tooling guide) describing the detectors/suppression policy (FR-015-03, S-015-03).  
+  _Intent:_ Keep governance artefacts aligned with the new enforcement.  
+  _Verification commands:_  
+  - `rg -n "dead-state" docs/5-operations/analysis-gate-checklist.md`  
+  - `rg -n "dead-state" docs/3-reference/developer-tooling.md`
+
+- [x] T-015-05 – Log runtime impact and suppression policy in the feature plan, sync spec/plan/tasks (FR-015-03, S-015-03).  
+  _Intent:_ Preserve evidence for future auditors.  
+  _Verification commands:_  
+  - `rg -n "SpotBugs" docs/4-architecture/features/015/plan.md`
+
+- [x] T-015-06 – Enable PMD `UnusedPrivateField`, clean violations, rerun PMD (`pmdMain`/`pmdTest`) (FR-015-04, S-015-04).  
+  _Intent:_ Extend the guardrail to private fields across JVM modules.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :rest-api:pmdTest`  
+  - `./gradlew --no-daemon check`
+
+- [x] T-015-07 – Enable PMD `UnusedPrivateMethod`, remove dead helpers, rerun PMD + check (FR-015-04, S-015-04).  
+  _Intent:_ Ensure unused private methods also fail the gate.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :rest-api:pmdTest`  
+  - `./gradlew --no-daemon check`
+
+## Verification Log (Optional)
+- 2025-10-03 – `./gradlew --no-daemon :application:spotbugsMain --rerun-tasks` (FAIL → PASS after remediation).
+- 2025-10-03 – `./gradlew --no-daemon spotlessApply check` (PASS with detectors enabled).
+- 2025-10-03 – `./gradlew --no-daemon :rest-api:pmdTest` / `./gradlew --no-daemon check` (PASS with new PMD rules).
+
+## Notes / TODOs
+- SpotBugs runtime delta (+4%) recorded in the plan; suppressions must cite justification plus plan reference. Optional detector families remain future scope.

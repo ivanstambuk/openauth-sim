@@ -1,46 +1,87 @@
-# Feature Plan 038 – Evaluation Result Preview Table
+# Feature Plan 038 - Evaluation Result Preview Table
 
-_Linked specification:_ `docs/4-architecture/features/038/spec.md`  
-_Status:_ Complete  
-_Last updated:_ 2025-11-08 (I5 helper-text cleanup delivered)
+| Field | Value |
+|-------|-------|
+| Status | Complete |
+| Last updated | 2025-11-11 |
+| Linked specification | `docs/4-architecture/features/038/spec.md` |
+| Linked tasks | `docs/4-architecture/features/038/tasks.md` |
 
 ## Vision & Success Criteria
-- Surface evaluation previews (Δ-ordered OTPs) directly in REST payloads, operator UI result cards, and CLI outputs.
-- Maintain backward compatibility for existing callers while enriching telemetry and accessibility affordances.
-- Deliver a consistent highlight treatment (accent bar) for the evaluated row across protocols.
+- Surface Delta-ordered preview tables directly in REST payloads, CLI outputs, and operator UI result cards for HOTP/TOTP/OCRA evaluation flows.
+- Provide accessible highlighting (accent bar + bold text) for the evaluated row (Delta = 0) while keeping telemetry/persistence hex only.
+- Exit with a green aggregate build (`./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`) and updated documentation/knowledge map entries describing preview windows.
 
 ## Scope Alignment
-- **In scope:** REST response contract updates, OpenAPI regeneration, UI layout tweaks, CLI table formatting, accessibility checks, documentation refresh.
-- **Out of scope:** Replay result cards, changes to offset input widgets, persistence/history of previews.
+- **In scope:** REST DTO/contracts, OpenAPI snapshot, CLI flag/output updates, operator UI forms/result cards, telemetry metadata, documentation and knowledge map sync, helper-text removal for preview window controls.
+- **Out of scope:** Replay result cards, persistence schema changes, telemetry history visualisations, preview storage beyond the evaluation response.
 
 ## Dependencies & Interfaces
-- Builds on Feature 037 Base32 inline secret support (shared DTOs).  
-- Reuses application-level evaluation services for HOTP/TOTP/OCRA.  
-- Requires UI table components (operator console) and CLI formatting helpers.
+- Builds on Feature 037 inline-secret changes (shared DTOs).
+- Uses existing application evaluation services and CLI formatting helpers.
+- Operator UI table components and Selenium harness verify the result-card rendering.
+- Telemetry adapters emit metadata for `otp.evaluate.preview` events.
 
-## Increment Breakdown (≤30 minutes each)
-1. **I1 – REST schema scaffolding** _(completed 2025-11-02)_  
-   - Add request/response window models (HOTP/TOTP/OCRA), remove evaluation drift fields, and wire service tests.  
-   - Update OpenAPI snapshot.  
-   - Commands: `./gradlew --no-daemon :rest-api:test`.
-2. **I2 – Application/CLI contract alignment** _(completed 2025-11-01)_  
-   - Expose preview data from application services; add CLI window flags, drop evaluation drift options, render preview tables, and extend HOTP/TOTP/OCRA unit coverage.  
-   - Commands: `./gradlew --no-daemon :cli:test`, `./gradlew --no-daemon spotlessApply check`.  
-3. **I3 – Operator UI table integration** _(completed 2025-11-01)_  
-   - Rendered preview tables for HOTP/TOTP/OCRA evaluation cards with protocol accent bar, introduced `Preview window offsets` controls in stored/inline forms, preserved replay drift inputs, and refreshed Selenium coverage for offsets {0,0} and {1,1}.  
-   - Commands: `./gradlew --no-daemon :rest-api:test :ui:test`.
-4. **I4 – Accessibility & docs** _(completed 2025-11-01)_  
-   - Finalised accent styling via inset highlight, confirmed accessibility review (Δ = 0 remains perceivable without colour), refreshed Selenium coverage, updated operator how-to guides/roadmap/knowledge map, and prepared for full quality gate rerun.  
-   - Commands: `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon spotlessApply check`.
-5. **I5 – Preview offset helper-text cleanup** _(completed 2025-11-08)_  
-   - Removed the redundant descriptive sentence beneath the "Preview window offsets" controls on HOTP/TOTP/OCRA forms, dropped the unused `aria-describedby` bindings, and confirmed the aggregate `./gradlew --no-daemon spotlessApply check` pipeline (600 s timeout) stays green.  
+## Assumptions & Risks
+- **Assumptions:** Default window (0,0) is sufficient for most operators; preview assembly can reuse existing OTP calculators; telemetry sanitisation already removes OTP values.
+- **Risks / Mitigations:**
+  - Contract drift across facades -> mitigate via shared DTO definitions and snapshot tests.
+  - UI accessibility regressions -> run targeted accessibility review, keep bold+accent combination.
+  - CLI/help text confusion -> document new window flags and remove drift options simultaneously.
 
-## Risks & Mitigations
-- **Contract regressions:** cover with REST integration and CLI snapshot tests.  
-- **UI overflow:** design table to collapse gracefully on narrow widths; add responsive checks.  
-- **Accessibility:** ensure accent bar combined with Δ=0 label satisfies WCAG via tests/manual audit.
+## Implementation Drift Gate
+- Evidence captured 2025-11-08:
+  - Mapping of FR-038-01..04 to REST/CLI/UI commits and corresponding test suites.
+  - JSON payloads showing preview arrays for HOTP/OCRA plus CLI snapshot outputs.
+  - Selenium screenshots demonstrating accent styling for offsets {0,0} and {2,4}.
+  - Telemetry sample proving metadata-only emission.
+- Gate outcome: no divergences; knowledge map + how-to entries updated; open questions closed.
+
+## Increment Map
+0. **I0 - Governance sync (<=30 min)**
+   - _Goal:_ Record clarifications, update roadmap/current-session, confirm migration tracker context before implementation.
+   - _Commands:_ Documentation only.
+   - _Exit:_ 2025-10-31 - Clarifications logged; open questions cleared.
+1. **I1 - REST schema scaffolding (T-038-01, S-038-01)**
+   - _Goal:_ Add request `window` object, response `previews` array, remove evaluation drift fields, and update OpenAPI snapshot.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`.
+   - _Exit:_ 2025-11-02 - REST DTOs updated with placeholders pending service wiring.
+2. **I2 - Application + CLI propagation (T-038-02, S-038-02)**
+   - _Goal:_ Expose preview windows via application services, replace drift options, render ordered tables in CLI text/JSON outputs.
+   - _Commands:_ `./gradlew --no-daemon :application:test`, `./gradlew --no-daemon :cli:test`, `./gradlew --no-daemon spotlessApply check`.
+   - _Exit:_ 2025-11-01 - CLI window flags live; drift options removed.
+3. **I3 - Operator UI integration (T-038-03, S-038-03)**
+   - _Goal:_ Render preview tables with accent styling, add Preview window offsets controls (stored + inline), refresh Selenium coverage.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test :ui:test`.
+   - _Exit:_ 2025-11-01 - Result cards show previews for offsets {0,0} and {2,4}.
+4. **I4 - Accessibility, telemetry, docs (T-038-04, S-038-04)**
+   - _Goal:_ Complete accessibility review, document preview behaviour, update knowledge map/how-tos, capture telemetry evidence.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon spotlessApply check`.
+   - _Exit:_ 2025-11-01 - Docs/telemetry updated; analysis gate run.
+5. **I5 - Helper-text cleanup (T-038-05, S-038-05)**
+   - _Goal:_ Remove redundant helper sentence beneath Preview window offsets controls and rerun the aggregate Gradle gate.
+   - _Commands:_ `./gradlew --no-daemon spotlessApply check` (>=600s timeout).
+   - _Exit:_ 2025-11-08 - Forms slimmed down; build green.
+
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-038-01 | I1 / T-038-01 | REST contracts + default window behaviour. |
+| S-038-02 | I2 / T-038-02 | Application/CLI propagation and ordering. |
+| S-038-03 | I3 / T-038-03 | Operator UI controls + accent styling. |
+| S-038-04 | I4 / T-038-04 | Documentation, telemetry, accessibility. |
+| S-038-05 | I5 / T-038-05 | Helper-text cleanup, replay drift separation. |
+
+## Analysis Gate
+- Status: Complete (2025-11-01) after I4.
+- Findings: No open questions; telemetry confirmed metadata-only emission; future work should extend previews to replay result cards.
 
 ## Exit Criteria
-- All increments merged with green build (`./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`).  
-- Operator docs updated to describe preview visibility and accent highlight.  
-- Roadmap entry marked “Complete” with outcome documented.
+- REST/CLI/UI preview tables shipped with accessible highlight treatment and shared telemetry metadata.
+- Drift inputs limited to replay forms; evaluation flows use preview window controls instead.
+- Roadmap, knowledge map, and how-to guides updated; migration tracker logged.
+- Aggregate Gradle gate green after helper-text cleanup.
+
+## Follow-ups / Backlog
+- Extend preview tables to replay result cards (tracked as a future feature).
+- Consider persisted preview telemetry for audit once governance approves.

@@ -1,105 +1,20 @@
-# Feature 001 – Core Credential Domain Specification
+# Feature 001 – Core Credential Domain
 
-_Status:_ Complete  
-_Last updated:_ 2025-10-31
+| Field | Value |
+|-------|-------|
+| Status | Complete |
+| Last updated | 2025-11-10 |
+| Owners | Ivan (project owner) |
+| Linked plan | `docs/4-architecture/features/001/plan.md` |
+| Linked tasks | `docs/4-architecture/features/001/tasks.md` |
+| Roadmap entry | #1 |
 
 ## Overview
 Design an OCRA-focused credential domain inside the `core` module that normalises RFC 6287 credential descriptors, shared secret material, and evaluation helpers for downstream facades. The scope of Feature 001 is limited to OCRA; future protocol packages (FIDO2, EUDI wallets, EMV/CAP, generic credentials) will be delivered through separate specifications once prioritised. The domain must provide deterministic validation and transformation logic so CLI, REST, and UI surfaces consume OCRA data without duplicating cryptographic rules.
 
-
-## Goals
-- Model RFC 6287-compliant OCRA credential descriptors, validation rules, and shared-secret normalization inside the `core` module.
-- Provide deterministic evaluation helpers plus persistence-friendly envelopes so downstream facades can consume OCRA credentials without duplicating crypto logic.
-
-## Non-Goals
-- Does not introduce HOTP/TOTP/FIDO2/EMV credential models.
-- Does not wire CLI/REST/UI flows; those land in later features.
-
-## Branch & Scenario Matrix
-| Scenario ID | Description / Expected outcome |
-|-------------|--------------------------------|
-| S01-01 | Immutable OCRA credential descriptors capture suite metadata, optional counter/PIN fields, and reject malformed payloads with descriptive validation errors. |
-| S01-02 | Shared secret normalization converts RAW/HEX/Base64 inputs into a canonical representation without leaking material in errors or telemetry. |
-| S01-03 | Credential registry exposes capability metadata and factories so downstream modules query supported suites and required fields deterministically. |
-| S01-04 | Versioned persistence envelopes round-trip descriptors, upgrading legacy records through documented migration hooks without altering caller APIs. |
-| S01-05 | `OcraResponseCalculator` reproduces RFC 6287 OTPs (including S064/S128/S256/S512 session variants) for inline helpers and downstream facades. |
-
-
-## Objectives & Success Criteria
-- Provide immutable OCRA credential descriptors with clearly defined required and optional fields.
-- Canonicalise shared secret encodings (raw bytes, hexadecimal, Base64) ahead of descriptor construction.
-- Reject invalid OCRA payloads via validation rules with actionable error messages and redacted telemetry.
-- Supply serialization/deserialization helpers for persistence and caching layers using versioned envelopes.
-- Deliver an execution helper that produces RFC 6287-compliant OTP responses and expose results to core consumers.
-
-## Functional Requirements
-| ID | Requirement | Acceptance Signal |
-|----|-------------|-------------------|
-| FR-001 | Represent OCRA credentials with immutable descriptors capturing name, suite definition, shared secret, and optional counter/PIN metadata. | Constructing a descriptor with valid inputs succeeds; missing or malformed inputs produce descriptive validation failures. |
-| FR-002 | Normalise shared secret encodings (RAW/HEX/Base64) into a unified `SecretMaterial` representation. | Property-based tests confirm round-trips for valid encodings and reject malformed inputs with actionable errors. |
-| FR-003 | Expose credential factories and registry metadata describing required attributes, optional fields, and supported hash algorithms for OCRA. | Registry lookups return the correct capability metadata and factory references for OCRA credentials. |
-| FR-004 | Support persistence round-trips using versioned credential envelopes with upgrade hooks for legacy records. | Stored OCRA credentials reload without data loss; loading a legacy schema triggers the upgrade pipeline and preserves semantics. |
-| FR-005 | Provide an `OcraResponseCalculator` that evaluates RFC 6287 suites, including session-aware variants (S064/S128/S256/S512). | Compliance tests covering RFC 6287 Appendix C and IETF draft vectors pass using the calculator outputs. |
-| FR-006 | Emit structured validation telemetry that redacts shared secrets while signalling failure stages for downstream observers. | Telemetry capture tests confirm events include expected metadata and exclude sensitive payloads. |
-| FR-007 | Surface deterministic error diagnostics suitable for CLI/REST responses without leaking secret material. | Validation exceptions redact secret inputs and map to user-facing error identifiers. |
-| FR-008 | Ensure every OCRA credential exposes a globally unique `name` plus an extensible metadata map returned on lookup but ignored by crypto flows. | Creating credentials without a unique name or with malformed metadata fails fast with descriptive errors. |
-
-## Non-Functional Requirements
-| ID | Requirement | Target |
-|----|-------------|--------|
-| NFR-001 | JVM compatibility | Java 17; no preview features. |
-| NFR-002 | Performance | Constructing or validating a credential executes in ≤1 ms on a modern laptop (99th percentile, single-threaded). |
-| NFR-003 | Memory profile | Credential objects remain lightweight (≤16 KB per instance) to support caching thousands in memory. |
-| NFR-004 | Testability | Unit and property-based tests cover factories, validation, and serialization; ArchUnit enforces module boundaries. |
-| NFR-005 | Observability | Validation and transformation steps expose structured logs/events without secrets. |
-
-## User Stories
-- **Operator imports credential**: As an operator, I can import a credential definition via CLI passing names, metadata, and secret material so the core registry stores it for later simulations.
-- **REST automation**: As an integration test harness, I can call the REST API to look up credential capabilities and ensure the emulator supports required protocols.
-- **Performance testing**: As a load tester, I can script REST-based credential evaluations to warm caches without relying on UI flows.
-
-## Edge Cases & Failure Modes
-- Reject credential payloads missing required attributes or containing unsupported encodings.
-- Handle duplicate credential names by surfacing deterministic conflict errors.
-- Prevent serialization of secret material when persistence is configured to redact or encrypt secrets.
-- Guard against unsupported protocol identifiers by directing users to the generic credential type with warnings.
-
-## Observability & Telemetry
-- Emit debug-level logs when credential validation fails, referencing field names not values.
-- Provide metrics hooks for credential creation/validation success and failure counts to integrate with future observability modules.
-
-## Dependencies & Integrations
-- Persistence layer (MapDB facade) will rely on serialization formats defined here.
-- Facade modules must treat the core registry as read/write API and respect immutability contracts.
-- Future cryptographic helpers may depend on third-party libraries pending user approval.
-
-## Out of Scope
-- Persistence implementation specifics (handled in separate workstream).
-- REST, CLI, UI wiring beyond verifying they can consume the core API.
-- Protocol-specific network operations (e.g., actual WebAuthn ceremony simulation).
-
 ## Clarifications
-- 2025-09-27 – Persistence topology: Use a single shared MapDB store with a core-managed shared in-memory cache that all facades consume.
-- 2025-09-27 – EUDI wallet coverage: Support ISO/IEC 18013-5 mDL, ISO/IEC 23220-2 mdoc payloads, SD-JWT + W3C VC 2.0 formats, and lifecycle flows for OpenID4VCI issuance plus OpenID4VP/ISO/IEC 18013-7 presentations so both registration and authentication scenarios are simulatable.
-- 2025-09-27 – Protocol packaging cadence: Maintain one package per protocol (`io.openauth.sim.core.credentials.{ocra|fido2|eudiw|emvcap}`), deliver them as separate increments, and begin detailed design/implementation with OCRA while parking the other protocols until their dedicated plans are prepared.
-- 2025-09-27 – Cryptography extension point: Credential classes remain data/validation focused; all protocol cryptographic operations delegate to pluggable strategy interfaces (option 1: co-locate crypto in domain – rejected; option 2: pluggable strategies – accepted).
-- 2025-09-27 – Persistence evolution: Persist credentials using a versioned envelope with per-record `schemaVersion`, plus an upgrade pipeline that transforms stored documents into the current model during load (option 1: per-record versioned envelope – accepted; option 2: versioned collections – rejected; option 3: singleton registry flag – rejected).
-- 2025-09-27 – OCRA credential metadata: Minimum persisted fields are `name` (globally unique), `ocraSuite`, `sharedSecretKey`, optional `counterValue` when the suite specifies `C`, and optional `pinHash` when the suite specifies `P{hash}`; challenge, session, and timestamp inputs remain per-transaction values guided by the suite definition. Custom credential metadata is supported via an arbitrary key/value map that is returned on query operations but excluded from cryptographic material.
-- 2025-09-27 – OCRA test cadence: Commit Phase 1 test skeletons as disabled JUnit 5 cases capturing failing expectations; document the manual failure proof while keeping `./gradlew spotlessApply check` passing until the OCRA implementation lands.
-- 2025-09-27 – OCRA property tests: Phase 1/T005 delivers disabled property-based tests that exercise secret encoding/decoding scenarios; they remain annotated with `@Disabled` until the codec implementation (T009) is ready, at which point the annotation is removed and the assertions replace placeholder `fail(...)` calls.
-- 2025-09-27 – OCRA ArchUnit rules: Introduce ArchUnit tests under `core` that assert only designated entrypoints interact with `io.openauth.sim.core.credentials.ocra` internals. Suite re-enabled 2025-09-28 now that the package structure and public API are in place.
-- 2025-09-27 – OCRA descriptor parsing: Descriptor creation parses the RFC 6287 suite into structured components (hash algorithm, response length, data inputs, drift) so subsequent factories reuse the normalised view instead of reparsing.
-- 2025-09-27 – OCRA descriptor secret handling: Descriptors store secret material as the shared `SecretMaterial` type immediately; input normalisation happens ahead of descriptor construction to keep downstream code consistent.
-- 2025-09-27 – OCRA secret normalisation (T009): Shared secret inputs accept RAW, HEX, or Base64 encodings via helper utilities that canonicalise to `SecretMaterial` while surfacing descriptive validation errors for malformed input; property-based tests (T005) now execute against these helpers.
-- 2025-09-27 – Credential registry (T010): Introduced a core `CredentialRegistry` exposing `CredentialCapability` metadata and wiring the OCRA factory so facades can enumerate required attributes, optional fields, and supported hash functions for the protocol.
-- 2025-09-27 – OCRA Phase 1 test strategy for T008: Re-enable only the previously disabled unit tests from T004 once validation/factory utilities are ready; keep the property-based suite (T005) and ArchUnit guards (T006) disabled until the corresponding functionality lands in T009/T010.
-- 2025-09-28 – Persistence serialization bridge (T011): Define `VersionedCredentialRecord` schema version 1 and per-protocol adapters starting with OCRA, storing suite data under `ocra.*` keys and custom metadata under the `ocra.metadata.*` namespace ahead of MapDB integration.
-- 2025-09-28 – MapDB integration (T012): `MapDbCredentialStore` now persists `VersionedCredentialRecord` envelopes (schema v1), upgrades legacy schema-0 OCRA entries by namespacing attributes, and surface migration errors when no upgrade path exists; utility mapper converts between persisted envelopes and in-memory `Credential` aggregates.
-- 2025-09-28 – Validation telemetry (T013): Emit structured debug-level events named `ocra.validation.failure` with fields (`credentialName`, `suite`, `failureCode`, `messageId`) where `failureCode` denotes the failing stage (`CREATE_DESCRIPTOR`, `VALIDATE_CHALLENGE`, etc.) and payloads redact secrets; reuse this contract across facades for consistent observability.
 - 2025-09-28 – RFC 6287 vectors (T017–T018): Appendix C of RFC 6287 (Simplified BSD license) publishes the Standard, Challenge/Response, Mutual Challenge/Response, and Plain Signature OCRA suites with sample secrets (`31323334…` / `3132333435363738393031323334353637383930…`), counter/time/session inputs, and expected OTP outputs; we materialised these as test-only fixtures while placeholder tests asserted `UnsupportedOperationException` until the execution helper became available. citeturn1search5
-- 2025-09-28 – OCRA execution helper stub: `OcraResponseCalculator` exists as the eventual entry point for RFC 6287 evaluation and currently throws `UnsupportedOperationException`; placeholder tests enforce the TODO to swap in real OTP checks once the helper is implemented.
 - 2025-09-28 – OCRA response evaluation contract (T019): The execution helper MUST implement RFC 6287 Section 5 and Appendix A semantics by hashing the ASCII suite name, `0x00` delimiter, and enabled data inputs in the canonical order `C | question | password | session | timestamp`, encoding counters and timestamps as 8-byte big-endian values, challenge strings as UTF-8 rendered to uppercase hex, session inputs as uppercase hex padded to the declared `Snnn` byte length (default 64 when omitted), and PIN hashes with their declared digest; apply HOTP dynamic truncation using the suite’s declared digit length. citeturn1search0turn1search1turn1search5
-
 - 2025-09-28 – OCRA session coverage: Follow the IETF OCRA Internet-Draft test-vector guidance, which lists typical session lengths S064, S128, S256, and S512 and ships a reference generator; use it to derive additional fixtures (e.g., S128/S256) beyond RFC 6287 defaults for compliance tests. citeturn0search0turn0search5
 - 2025-09-28 – OCRA extended session vectors (T021): Ran the draft generator logic with the standard 32-byte demo key (`3132333435363738393031323334353637383930313233343536373839303132`) and alphanumeric challenge `SESSION01`, deriving session payloads by repeating the published S064 pattern to 64/128/256/512-byte lengths; the resulting OTPs (`17477202`, `18468077`, `77715695`, `05806151`) are captured as test fixtures for S064/S128/S256/S512 suites. citeturn0search0turn0search5
 - 2025-09-28 – OCRA session compliance (T022): Extended `OcraRfc6287ComplianceTest` to assert each S064/S128/S256/S512 vector produces its published OTP and that parsed suite metadata exposes the expected session byte lengths without leaking session payloads in validation errors. citeturn0search0turn0search5
@@ -107,7 +22,166 @@ Design an OCRA-focused credential domain inside the `core` module that normalise
 - 2025-09-28 – CLI session helper (T024): Added the `maintenance ocra` command accepting suite/key/challenge/session inputs, routing them through `OcraResponseCalculator`, printing redaction-friendly `suite=`/`otp=` output, and reusing the generator-derived S064/S128/S256/S512 vectors for regression coverage. citeturn0search0turn0search5
 - 2025-09-28 – Session helper rollout (next step): REST facade work moved to Feature 003, which tracks the synchronous evaluation endpoint reusing the CLI-tested calculator (Option A). citeturn0search0turn0search5
 
-## References
-- `docs/4-architecture/features/001/plan.md`
-- `docs/4-architecture/features/001/tasks.md`
-- `docs/5-operations/analysis-gate-checklist.md`
+## Goals
+- Model RFC 6287-compliant OCRA credential descriptors, validation rules, shared-secret normalisation, and metadata capture inside the `core` module.
+- Provide deterministic evaluation helpers plus persistence-friendly envelopes so downstream facades can consume OCRA credentials without duplicating crypto logic.
+- Canonicalise shared secret encodings (raw bytes, hexadecimal, Base64) ahead of descriptor construction and reject invalid payloads with actionable errors.
+- Supply serialization/deserialization helpers for persistence and caching layers using versioned envelopes with upgrade hooks.
+- Deliver an execution helper that produces RFC 6287-compliant OTP responses for baseline and session-aware suites and expose results to core consumers and CLI helpers.
+
+## Non-Goals
+- Introducing HOTP/TOTP/FIDO2/EMV credential models.
+- Wiring CLI/REST/UI flows beyond the shared maintenance helper; downstream facades consume this domain via separate features.
+- Adding persistence engines beyond the existing MapDB pipeline and versioned envelopes.
+
+## Functional Requirements
+
+| ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
+|----|-------------|--------------|-----------------|--------------|--------------------|--------|
+| FR-001-01 | Immutable OCRA descriptors capture suite metadata, optional counter/PIN/session inputs, and remain read-only once constructed. | Creating a descriptor with valid suite + metadata exposes deterministic getters for application/CLI/REST consumers. | Missing suite attributes, unsupported metadata keys, or invalid secret references raise descriptive validation errors while redacting sensitive fields. | Schema-upgrade conflicts or metadata collisions abort creation with structured error codes so registries stay consistent. | `core.ocra.validation` frames log `suite`, `credentialNameHash`, `stage`, and `reasonCode` for audit parity. | RFC 6287 Section 4; owner directive dated 2025-09-27. |
+| FR-001-02 | Shared-secret canonicalisation normalises RAW/HEX/Base64 inputs into the `SecretMaterial` value object used across modules. | Property-based tests prove round-trip encoding keeps entropy intact and downstream helpers only consume canonical byte arrays. | Codec enforces uppercase hex, Base64 padding, and minimum bit lengths before descriptors accept a secret. | Invalid encodings or entropy shortfalls halt descriptor construction and emit sanitized validation errors. | `core.ocra.secret.validation` frames capture encoding type, validation status, and hashed payload metadata. | RFC 4226/6287 guidance; Feature 001 plan tasks T-001-02/T-001-03. |
+| FR-001-03 | Registry metadata enumerates required attributes, optional fields, digests, and session lengths for every supported OCRA suite. | `OcraCredentialRegistry` lookups return deterministic capability descriptions that facades reuse for prompts and validation. | Unsupported suites or stale metadata versions raise structured exceptions that callsites can map to user-friendly errors. | Version mismatches fail closed and instruct operators to reload descriptors before proceeding. | `core.ocra.registry.lookup` frames (TE-001-03) log `suite`, `result`, and `reasonCode` without leaking metadata contents. | Feature 001 plan Phase 2; RFC 6287 Appendix A. |
+| FR-001-04 | Versioned persistence envelopes round-trip descriptors and apply upgrade hooks for legacy schema revisions. | Reading stored credentials upgrades them to the latest version transparently and logs each conversion. | Envelope readers validate checksums, metadata fields, and version numbers before applying migrations. | Unsupported envelope versions halt loading and instruct operators to trigger explicit upgrade helpers. | `core.ocra.validation` events tag the descriptor ID and envelope version whenever an upgrade occurs. | MapDB persistence constraints; Feature 001 plan T-001-05. |
+| FR-001-05 | `OcraResponseCalculator` reproduces RFC 6287 Appendix C + S064/S128/S256/S512 OTPs for inline helpers and downstream facades. | Given a descriptor and inputs, the calculator yields deterministic OTPs that match fixtures and feed CLI maintenance flows. | Compliance tests compare calculator outputs with published fixtures and assert telemetry coverage per scenario. | Missing fixtures or mismatched OTPs keep tests red until the helper is corrected; runtime failures emit structured diagnostics. | CLI helpers forward verbose trace IDs plus `core.ocra.execution` telemetry for every request. | RFC 6287 Appendix C; IETF draft guidance; Feature 001 plan T-001-06/T-001-07. |
+| FR-001-06 | Structured validation telemetry spans descriptor lifecycle, secret canonicalisation, and execution helpers. | Telemetry frames include suite identifiers, credential hashes, stages, reason codes, and timing metadata without exposing raw material. | Tests verify telemetry fields are emitted for success and failure paths and exclude sensitive bytes. | Missing telemetry fields fail ArchUnit contracts and block release until coverage is restored. | `core.ocra.validation` and `core.ocra.execution` events map to `TelemetryContracts`; verbose traces align with CLI maintenance logs. | Telemetry contract directives dated 2025-09-27. |
+| FR-001-07 | Deterministic error diagnostics support CLI/REST responses without leaking secret material. | Validation exceptions map to stable identifiers with translation-ready summaries for operators. | Unit tests assert error messages for missing suite elements, invalid encodings, and registry mismatches, keeping payloads redacted. | Exceptions that expose raw secrets fail dedicated redaction tests and cannot ship. | `core.ocra.validation` reason codes correlate with emitted diagnostics for downstream mapping. | Feature 001 plan T-001-07 and CLI helper design notes. |
+| FR-001-08 | Metadata and naming invariants ensure each OCRA credential exposes a globally unique `name` plus extensible metadata ignored by crypto flows. | Creating descriptors with unique names persists metadata for downstream registries without affecting execution results. | Collisions or malformed metadata trigger validation failures that reference offending keys while remaining sanitized. | Duplicate names are rejected with `ERR_DUPLICATE_CREDENTIAL_NAME`, requiring operators to rename before retrying. | Registry telemetry captures credential name hashes and failure causes during collisions. | Feature 001 goals; roadmap Workstream 1 alignment. |
+
+## Non-Functional Requirements
+
+| ID | Requirement | Driver | Measurement | Dependencies | Source |
+|----|-------------|--------|-------------|--------------|--------|
+| NFR-001-01 | Remain Java 17 compatible without preview features so Gradle 8.x builds stay deterministic. | Align with the workspace toolchain guardrail and constitution principle 3. | `./gradlew --no-daemon spotlessApply check` on Java 17 succeeds locally and in CI. | Gradle toolchain, Spotless Palantir 2.78.0, shared hooks. | Constitution Principle 3 (ratified 2025-09-27). |
+| NFR-001-02 | Constructing or validating a credential executes in <=1 ms at the 99th percentile (single thread). | Ensure registry lookups do not dominate CLI/REST evaluation latency. | Microbenchmarks and regression tests capture allocation and runtime budgets. | Future JMH harness, current unit tests with timing assertions. | Feature 001 objectives. |
+| NFR-001-03 | Credential objects stay <=16 KB per instance so thousands can be cached in memory. | Operator consoles preload registries to avoid on-demand allocations. | Heap sampling in tests plus instrumentation counters while caching large registries. | MapDB persistence layer and application cache configuration. | Persistence decision dated 2025-09-27. |
+| NFR-001-04 | Stage unit, property-based, and ArchUnit tests before implementation to enforce test-first cadence. | Governance requires test-first execution for every increment. | `./gradlew --no-daemon :core:test`, `:application:test`, and ArchUnit suites run prior to merges. | JUnit, jqwik property tests, ArchUnit guardrails. | Feature 001 plan increments and constitution principles. |
+| NFR-001-05 | Validation and transformation steps emit structured telemetry/logs without secrets. | Telemetry/observability parity across CLI/REST/UI is mandatory for audits. | Telemetry contract tests verify required fields, event names, and redaction rules. | `TelemetryContracts`, shared logging helpers, verbose trace instrumentation. | FR-001-06 / FR-001-07 references and telemetry directives dated 2025-09-27. |
+
+## UI / Interaction Mock-ups (not applicable)
+```
+Core-only domain feature; no UI elements are introduced in this scope.
+```
+
+## Branch & Scenario Matrix
+
+| Scenario ID | Description / Expected outcome |
+|-------------|--------------------------------|
+| S-001-01 | Immutable OCRA credential descriptors capture suite metadata, optional counter/PIN fields, and reject malformed payloads with descriptive validation errors. |
+| S-001-02 | Shared secret normalisation converts RAW/HEX/Base64 inputs into a canonical representation without leaking material in errors or telemetry. |
+| S-001-03 | Credential registry exposes capability metadata and factories so downstream modules query supported suites and required fields deterministically. |
+| S-001-04 | Versioned persistence envelopes round-trip descriptors, upgrading legacy records through documented migration hooks without altering caller APIs. |
+| S-001-05 | `OcraResponseCalculator` reproduces RFC 6287 OTPs (including S064/S128/S256/S512 session variants) for inline helpers and downstream facades. |
+
+## Test Strategy
+- **Core:** Property-based tests cover `SecretMaterial`, descriptor validation, and persistence envelopes; `OcraRfc6287ComplianceTest` exercises Appendix C + session vectors; ArchUnit guards package boundaries.
+- **Application:** Registry integration tests ensure application services consume descriptors without mutating `core` internals.
+- **REST:** Deferred to Feature 003; this spec mandates placeholder coverage only (red tests guarded elsewhere).
+- **CLI:** `maintenance ocra` tests assert sanitized output, verbose trace alignment, and failure paths using the shared fixtures.
+- **UI (JS/Selenium):** Not applicable for this feature; operator console interactions rely on downstream specs.
+- **Docs/Contracts:** Specification, plan, and tasks act as authoritative documentation; telemetry fields are mirrored in `TelemetryContracts` references.
+
+## Interface & Contract Catalogue
+
+### Domain Objects
+| ID | Description | Modules |
+|----|-------------|---------|
+| DO-001-01 | `OcraCredentialDescriptor` encapsulates suite metadata, counters, PIN policies, session requirements, and immutable metadata. | core |
+| DO-001-02 | `SecretMaterial` canonicalises RAW/HEX/Base64 secrets with redaction helpers. | core |
+| DO-001-03 | `CredentialEnvelopeV1` (and successors) wrap descriptors for persistence upgrades while preserving schema history. | core, application |
+
+### API Routes / Services
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| API-001-01 | Application service | `OcraCredentialRegistry` factory/lookups supplying descriptors to CLI/REST features. | Shared service consumed downstream; no external REST route in this feature. |
+
+### CLI Commands / Flags
+| ID | Command | Behaviour |
+|----|---------|-----------|
+| CLI-001-01 | `./bin/openauth maintenance ocra --suite <value> --secret <value> [--session …]` | Evaluates RFC 6287 suites via `OcraResponseCalculator`, printing sanitized `suite=`/`otp=` output and verbose trace IDs. |
+
+### Telemetry Events
+| ID | Event name | Fields / Redaction rules |
+|----|-----------|---------------------------|
+| TE-001-01 | `core.ocra.validation` | `suite`, `credentialNameHash`, `stage`, `reasonCode`; shared secrets hashed before emission. |
+| TE-001-02 | `core.ocra.execution` | `suite`, `sessionLength`, `otpHash`, `durationMs`; never emits raw OTP or secret bytes. |
+| TE-001-03 | `core.ocra.registry.lookup` | `suite`, `result`, `reasonCode`; capability metadata hashed before emission. |
+
+### Fixtures & Sample Data
+| ID | Path | Purpose |
+|----|------|---------|
+| FX-001-01 | `docs/test-vectors/ocra/rfc-6287/*.json` | Canonical RFC 6287 Appendix C fixtures plus derived S064/S128/S256/S512 session payloads. |
+| FX-001-02 | `core/src/test/resources/fixtures/ocra/session/*.json` | Derived IETF draft session vectors used by CLI/tests. |
+
+### UI States
+| ID | State | Trigger / Expected outcome |
+|----|-------|---------------------------|
+| — | Not applicable | Core-only feature; UI changes tracked in downstream specs. |
+
+## Telemetry & Observability
+`core.ocra.validation`, `core.ocra.secret.validation`, and `core.ocra.execution` events are emitted through `TelemetryContracts`. Each frame includes sanitized identifiers (suite name hash, credential name hash), `stage`/`reasonCode`, and optional `otpHash` fields for audit replay. Verbose trace integration is limited to CLI maintenance flows for now; REST/UI adoption is deferred to Feature 003.
+
+## Documentation Deliverables
+- Update `docs/1-concepts/ocra.md` (or equivalent) with the descriptor and secret handling narrative.
+- Keep `docs/4-architecture/knowledge-map.md` and `docs/architecture-graph.json` synchronized with registry/service relationships.
+- Capture telemetry expectations in `docs/5-operations/analysis-gate-checklist.md` references when the gate runs for this feature.
+
+## Fixtures & Sample Data
+- RFC 6287 Appendix C fixtures and IETF draft session vectors live under `docs/test-vectors/ocra/` and are mirrored in `core` test resources.
+- Secrets remain synthetic; plaintext values exist only inside fixture files checked into version control for test determinism.
+
+## Spec DSL
+```
+domain_objects:
+  - id: DO-001-01
+    name: OcraCredentialDescriptor
+    modules: [core]
+    links: [FR-001-01, FR-001-08]
+  - id: DO-001-02
+    name: SecretMaterial
+    modules: [core]
+    links: [FR-001-02]
+  - id: DO-001-03
+    name: CredentialEnvelopeV1
+    modules: [core, application]
+    links: [FR-001-04]
+routes:
+  - id: API-001-01
+    transport: application
+    description: OcraCredentialRegistry factories/lookups supplying descriptors to CLI/REST features.
+    links: [FR-001-03, FR-001-08]
+cli_commands:
+  - id: CLI-001-01
+    command: ./bin/openauth maintenance ocra --suite <value> --secret <value> [--session ...]
+    behaviour: Evaluates RFC 6287 suites via OcraResponseCalculator with sanitized output and verbose trace IDs.
+telemetry_events:
+  - id: TE-001-01
+    event: core.ocra.validation
+    fields: [suite, credentialNameHash, stage, reasonCode]
+  - id: TE-001-02
+    event: core.ocra.execution
+    fields: [suite, sessionLength, otpHash, durationMs]
+  - id: TE-001-03
+    event: core.ocra.registry.lookup
+    fields: [suite, result, reasonCode]
+fixtures:
+  - id: FX-001-01
+    path: docs/test-vectors/ocra/rfc-6287/*.json
+    purpose: RFC 6287 Appendix C fixtures
+  - id: FX-001-02
+    path: core/src/test/resources/fixtures/ocra/session/*.json
+    purpose: Derived IETF draft session vectors
+ui_states:
+  - id: UI-001-NA
+    description: Core-only feature; UI handled by downstream specs.
+scenarios:
+  - id: S-001-01
+    description: Immutable descriptors reject malformed payloads.
+  - id: S-001-02
+    description: Secret normalisation keeps telemetry sanitized.
+  - id: S-001-03
+    description: Registry metadata stays deterministic across suites.
+  - id: S-001-04
+    description: Persistence envelopes upgrade legacy records without data loss.
+  - id: S-001-05
+    description: OcraResponseCalculator reproduces RFC/IETF fixtures.
+```

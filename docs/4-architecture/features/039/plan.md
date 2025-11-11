@@ -1,8 +1,11 @@
 # Feature Plan 039 – EMV/CAP Simulation Services
 
-_Linked specification:_ `docs/4-architecture/features/039/spec.md`  
-_Status:_ In review  
-_Last updated:_ 2025-11-09 (Implementation Drift Gate captured)
+| Field | Value |
+|-------|-------|
+| Status | In review |
+| Last updated | 2025-11-10 |
+| Linked specification | `docs/4-architecture/features/039/spec.md` |
+| Linked tasks | `docs/4-architecture/features/039/tasks.md` |
 
 ## Vision & Success Criteria
 - Deliver deterministic EMV/CAP OTP generation **and replay validation** (Identify, Respond, Sign) across core, application, REST, CLI, and operator console facades with consistent telemetry and optional verbose traces.
@@ -22,12 +25,27 @@ _Last updated:_ 2025-11-09 (Implementation Drift Gate captured)
 - REST controller integrates with Spring Boot configuration and existing verbose trace toggles.
 - Test fixtures will live in `docs/test-vectors/emv-cap/` and be loaded by new test utilities.
 
-## Implementation Drift Gate – 2025-11-09
+## Implementation Drift Gate
+- **Checkpoint date:** 2025-11-09 (T3952).
 - **Traceability review (R1–R10):** Confirmed every specification branch is represented by executable coverage. `TraceSchemaAssertions`, `EmvCapEvaluationApplicationServiceTest`, `EmvCapReplayApplicationServiceTest`, `EmvCapEvaluationEndpointTest`, `EmvCapReplayEndpointTest`, `EmvCapReplayServiceTest`, and the Picocli suites (`EmvCliTest`, `EmvCliEvaluateStoredTest`, `EmvCliReplayTest`) lock the core/application/REST/CLI behaviours required by R1–R4 & R7–R9, including stored vs. inline parity, preview-window math, telemetry redaction, and includeTrace toggles. Node + Selenium harnesses (`rest-api/src/test/javascript/emv/console.test.js`, `EmvCapOperatorUiSeleniumTest`) enforce the UI layout rules in R5/R10 (mode selector placement, fieldset isolation, Replay CTA spacing, and verbose-trace dock alignment).
 - **Verbose trace schema (R2.4):** `EmvCapTraceProvenanceSchema`, `EmvCliTraceAssertions`, and the new provenance fixture assert all six provenance sections plus digest redaction semantics. Documented the dual-fixture requirement: keep `docs/test-vectors/emv-cap/trace-provenance-example.json` and `rest-api/docs/test-vectors/emv-cap/trace-provenance-example.json` in sync so application components, REST OpenAPI snapshots, Node tests, and Selenium stubs all consume the same contract until Feature 039 introduces an automated sync task.
 - **Quality evidence:** Reran `./gradlew --no-daemon spotlessApply check` after the documentation updates to prove the repo stays green atop the T3949 full-gate run (see `_current-session.md` for the full command log captured earlier today).
 - **Documentation sync:** Updated the roadmap, operator UI how-to guide, Feature 039 tasks checklist, and `_current-session.md` with the drift-gate outcome plus the fixture duplication guardrail so downstream teams inherit the operating notes.
 - **Outcome:** No drift identified; Feature 039 stands ready for owner acceptance while Feature 040 can resume at T4018 now that the trace provenance schema, docs, and fixtures align across every facade.
+
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S39-01 | I0–I19, T3932–T3935 | Deterministic evaluate flows across core/application/REST/CLI/UI. |
+| S39-02 | I38–I40, T3931 | Operator UI inline presets stay editable when loading vectors. |
+| S39-03 | I37, T3933–T3934 | Stored workflows hide secrets, rely on digests, and hydrate server-side. |
+| S39-04 | I19, seeding increments | MapDB seeding + credential directory parity. |
+| S39-05 | I18, I19A | Replay journeys highlight match deltas + mismatch diagnostics. |
+| S39-06 | I18, UI JS tasks | Preview offset controls + validation errors across facades. |
+| S39-07 | I41–I45 | Console layout parity (field grouping, spacing, CTA alignment). |
+| S39-08 | I50/I50a | Verbose trace schema + provenance rendering. |
+| S39-09 | I34–I35, sample-vector tasks | Sample selector spacing + styling parity. |
+| S39-10 | REST/CLI doc tasks | Contract/docs parity, includeTrace handling, telemetry redaction guidance. |
 
 ## Increment – I46 Preview-offset helper copy cleanup (completed 2025-11-08)
 - Removed the redundant helper sentence that trailed the "Preview window offsets" heading on EMV/CAP Evaluate and Replay forms so the control mirrors the HOTP/TOTP/OCRA layout.
@@ -393,11 +411,22 @@ Outcome: Feature 039 meets the Implementation Drift Gate. Proceed to acceptanc
 - Targeted suites executed: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCli*"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*"`, `./gradlew --no-daemon :ui:test`. Selenium EMV suite (`./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`) remained red pending T3917 because the panel-specific include-trace checkboxes still existed.
 - OpenAPI snapshots regenerated to capture the new `masterKeySha256` attribute on verbose traces; CLI/REST docs and tasks updated to record the change.
 
-## Risks & Mitigations
-- **Limited test vectors:** Mitigate by collaborating with the user for additional samples; enforce fixture-driven tests so new vectors drop in quickly.  
-- **Secret leakage in traces:** Redact sensitive fields in telemetry frames and guard verbose traces behind request toggles, extending SHA-256 hashing to EMV master keys across all facades while confirming session keys remain visible only in verbose traces.  
-- **UI toggle drift:** Removing EMV-specific controls must preserve `includeTrace` behaviour—add targeted UI/Selenium coverage so global toggle changes propagate to evaluation and replay requests.
-- **Crypto implementation errors:** Use independent derivation verification (double-check with calculator outputs) and add property-based tests for mask application.
+## Assumptions & Risks
+- **Assumptions:**
+  - Transcript fixtures (`docs/test-vectors/emv-cap/*.json`) remain authoritative and MapDB seeding stays in sync with their schema.
+  - Shared telemetry/trace infrastructure (TelemetryContracts, VerboseTraceConsole) remains available to all modules.
+  - Operator console tooling (Node harness + Selenium) continues to run in CI/local environments.
+- **Risks / Mitigations:**
+  - **Limited test vectors:** Coordinate with the owner for new samples; enforce fixture-driven tests so additional vectors drop in quickly.
+  - **Secret leakage in traces:** Redact sensitive fields in telemetry frames and guard verbose traces behind request toggles; extend SHA-256 hashing to EMV master keys while leaving session keys visible only in verbose traces.
+  - **UI toggle drift:** Removing EMV-specific controls must preserve `includeTrace` behaviour—add targeted UI/Selenium coverage so global toggle changes propagate to evaluation and replay requests.
+  - **Crypto implementation errors:** Use independent derivation verification (calculator outputs) and add property-based tests for mask application and MAC derivation.
+
+## Quality & Tooling Gates
+- Default gate: `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
+- UI harness: `node --test rest-api/src/test/javascript/emv/console.test.js` plus `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`.
+- CLI/REST OpenAPI parity: `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`.
+- Persistence hygiene: run `./gradlew --no-daemon :infra-persistence:test` whenever seeding logic changes.
 
 ## Analysis Gate
 - **Reviewed:** 2025-11-02 – Replay expansion review (spec/plan/tasks updated; implementation gated behind new red tests)

@@ -2,76 +2,99 @@
 
 _Linked specification:_ `docs/4-architecture/features/025/spec.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-10-12
+_Last updated:_ 2025-11-10
 
 ## Vision & Success Criteria
-- Present compact, attribute-focused dropdown labels for HOTP, TOTP, OCRA, and FIDO2 “Load a sample vector” controls without repeating the phrase “sample vector.”
-- Preserve current preset coverage and ordering while boosting scanability via a consistent `<source or scenario> - <key attributes>` pattern.
-- Keep Selenium/UI coverage and operator how-to docs in lockstep with the renamed entries.
+Deliver consistent, compact preset labels across HOTP, TOTP, OCRA, and FIDO2 operator panels so operators can scan
+sample data quickly while seeded/stored catalogues stay aligned. Success requires:
+- FR-025-01 / S-025-01 – Dropdowns + placeholders adopt the `<scenario – attributes>` format with Selenium coverage.
+- FR-025-02 / S-025-02 – HOTP inline and stored presets expose the full SHA/digit matrix with matching seeded data.
+- FR-025-03 / S-025-03 – RFC suffixes appear only where mandated.
+- FR-025-04 / S-025-04 – Docs/roadmap/session logs updated with a recorded green `./gradlew spotlessApply check`.
 
 ## Scope Alignment
-- In scope: Renaming inline preset labels and related metadata, adjusting placeholder copy where needed, updating dependent tests/documentation.
-- Out of scope: Adding/removing presets, altering seed catalogues, changing CLI/REST preset naming.
+- **In scope:** Operator console dropdown copy, placeholder text, seeded preset catalogues, Selenium/doc updates.
+- **Out of scope:** CLI/REST payload naming, new sample data, telemetry schema changes, directory renumbering (per migration directive).
 
 ## Dependencies & Interfaces
-- UI templates under `rest-api/src/main/resources/templates/ui/**/`.
-- Operator sample data helpers in `rest-api/src/main/java/io/openauth/sim/rest/ui/`.
-- Console scripts (`rest-api/src/main/resources/static/ui/**/console.js`) that hydrate preset data.
-- Selenium suites in `rest-api/src/test/java/io/openauth/sim/rest/ui/`.
-- Operator how-to docs under `docs/2-how-to/`.
+- Thymeleaf templates + JS under `rest-api/src/main/resources/templates/ui/**` and `.../static/ui/**/console.js`.
+- Sample data helpers (`HotpOperatorSampleData`, etc.) in `rest-api/src/main/java/io/openauth/sim/rest/ui/`.
+- Selenium suites in `rest-api/src/test/java/io/openauth/sim/rest/ui/` verifying dropdown content.
+- Operator how-to docs in `docs/2-how-to/` and roadmap entry #21.
 
-## Increment Breakdown (≤30 min each)
-1. **I1 – HOTP presets rename**
-   - Update `HotpOperatorSampleData`, `hotp/console.js`, and Thymeleaf templates with the new label format.
-   - Refresh HOTP Selenium tests and docs.
-   _2025-10-12 – Completed HOTP inline preset relabel, refreshed console script/tests, and updated the operator how-to copy._
-2. **I2 – TOTP presets rename**
-   - Apply the same pattern to TOTP sample data/helpers/templates.
-   - Adjust TOTP Selenium assertions and documentation references.
-   _2025-10-12 – TOTP inline presets now follow the `<source - attributes>` pattern with docs/tests synced._
-3. **I3 – OCRA presets rename**
-   - Rename suite labels within `OcraOperatorSampleData` and UI templates.
-   - Update dependent tests and docs.
-   _2025-10-12 – Renamed OCRA preset labels to `suite - attribute` format; no Selenium label assertions required._
-4. **I4 – FIDO2 presets rename**
-   - Update `Fido2OperatorSampleData`, inline/replay dropdown placeholders, and Selenium coverage.
-   - Confirm generator/replay telemetry snapshots and docs reflect the changes.
-   _2025-10-12 – Updated WebAuthn inline/replay labels to `<algorithm - UV status>`, adjusted placeholders/scripts/tests/docs._
-5. **I5 – Verification sweep**
-   - Run `./gradlew spotlessApply check` plus targeted Selenium suites.
-   - Sync roadmap, knowledge map (if relationships shift), and close tasks.
-   _2025-10-12 – Executed `spotlessApply check`; knowledge map unchanged because label-only edits introduce no new relationships._
+## Assumptions & Risks
+- **Assumptions:** Existing seeded credential data already covers SHA/digit combinations; only labels need alignment.
+- **Risks / Mitigations:**
+  - Missed Selenium assertions → rerun targeted suites per increment.
+  - Documentation drift → update docs in the same increment as code changes.
+  - Label truncation on small viewports → keep copy ≤ 40 characters and verify via UI tests.
 
-6. **I6 – HOTP seeded coverage expansion**
-   - Add a SHA-512 HOTP seeded credential entry and expose matching 6/8-digit inline presets.
-   - Update seeding fixtures, inline preset data, Selenium coverage, and how-to docs; rerun targeted tests.
-   _2025-10-12 – Added SHA-512 seeded credential + inline presets, refreshed tests/docs, and reran targeted :rest-api:test tasks._
+## Implementation Drift Gate
+- Map FR/NFR IDs to increments (see Scenario Tracking) and ensure each dropdown/test/doc change references the spec.
+- Capture verification evidence (commands + notes) in `docs/_current-session.md` and the tasks checklist once increments finish.
+- Rerun `./gradlew --no-daemon spotlessApply check` plus targeted `:rest-api:test --tests "*Operator*"` before marking the feature complete.
+- Document any future rename/renumbering blockers in `docs/migration_plan.md`.
 
-7. **I7 – Inline label compacting**
-   - Remove the “Seeded credential” prefix from inline dropdown labels across protocols, retaining only attribute text (add RFC annotations where applicable).
-   - Sync Selenium/API/doc assertions to the compact labels.
-   _2025-10-12 – Compacted HOTP/TOTP inline preset labels, updated Selenium/API expectations and docs, then reran `:rest-api:test` Hotp/Totp operator suites plus `spotlessApply check`._
+## Increment Map
+1. **I1 – HOTP preset relabel (S-025-01)**
+   - _Preconditions:_ Spec + clarifications approved; baseline Selenium coverage exists.
+   - _Steps:_ Update `HotpOperatorSampleData`, templates, console script, and Selenium assertions; refresh operator docs.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*HotpOperator*"`, `./gradlew --no-daemon spotlessApply check`.
+   - _Exit:_ HOTP dropdown shows concise labels; docs updated (completed 2025-10-12).
+2. **I2 – TOTP preset relabel (S-025-01)**
+   - _Steps:_ Mirror I1 for `TotpOperatorSampleData` + templates/tests/docs.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*TotpOperator*"`, `./gradlew spotlessApply check`.
+   - _Exit:_ TOTP dropdown copy aligned (completed 2025-10-12).
+3. **I3 – OCRA preset relabel (S-025-01)**
+   - _Steps:_ Rename OCRA inline placeholders + docs; ensure hints remain accurate.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*Ocra*"`, `./gradlew spotlessApply check`.
+   - _Exit:_ OCRA labels compact with RFC suffix plan in place (completed 2025-10-12).
+4. **I4 – FIDO2 preset relabel (S-025-01)**
+   - _Steps:_ Update `Fido2OperatorSampleData`, inline/replay placeholders, Selenium coverage, docs.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*Fido2Operator*"`, `./gradlew spotlessApply check`.
+   - _Exit:_ FIDO2 inline/replay dropdowns use `<algorithm – UV state>` (completed 2025-10-12).
+5. **I5 – Verification sweep (S-025-04)**
+   - _Steps:_ Run aggregate verification (`spotlessApply check`, targeted Selenium), sync roadmap/knowledge map, close plan entries.
+   - _Commands:_ `./gradlew --no-daemon spotlessApply check`, targeted Selenium suites.
+   - _Exit:_ Verification logged in docs/session snapshot (completed 2025-10-12).
+6. **I6 – HOTP seeded coverage expansion (S-025-02)**
+   - _Steps:_ Add SHA-512 seeded credential + matching inline presets; sync stored catalog + Selenium coverage.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*HotpOperator*"`, `./gradlew spotlessApply check`.
+   - _Exit:_ Six HOTP presets confirmed with stored alignment (completed 2025-10-12).
+7. **I7 – Inline label compacting (S-025-01)**
+   - _Steps:_ Remove “Seeded credential” prefixes, keep attribute-only labels, refresh copy/tests/docs.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*HotpOperator*" "*TotpOperator*"`, `./gradlew spotlessApply check`.
+   - _Exit:_ Compact labels verified across HOTP/TOTP (completed 2025-10-12).
+8. **I8 – HOTP digit coverage alignment (S-025-02)**
+   - _Steps:_ Ensure inline presets include SHA-1 8-digit + SHA-256/512 6-digit combos; stored seeding mirrors list.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*HotpOperator*"`, `./gradlew spotlessApply check`.
+   - _Exit:_ Dropdown counts/order identical between inline/stored (completed 2025-10-12).
+9. **I9 – OCRA RFC label parity (S-025-03)**
+   - _Steps:_ Append `(RFC 6287)` to inline presets referencing Appendix C; update docs/tests.
+   - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*OcraOperator*"`, `./gradlew spotlessApply check`.
+   - _Exit:_ Inline dropdown matches RFC attribution policy (completed 2025-10-12).
+10. **I10 – Stored RFC label parity (S-025-03, S-025-04)**
+    - _Steps:_ Ensure stored credential dropdowns/REST listings append `(RFC 6287)` as required; refresh controller tests + docs; rerun verification.
+    - _Commands:_ `./gradlew --no-daemon :rest-api:test --tests "*OcraCredentials*"`, `./gradlew spotlessApply check`.
+    - _Exit:_ Stored dropdown + docs + verification logs updated (completed 2025-10-12).
 
-8. **I8 – HOTP inline digit coverage expansion**
-   - Add seeded HOTP inline presets for SHA-1 (8 digits) plus SHA-256/SHA-512 (6 digits) so every stored credential variant is represented in the dropdowns.
-   - Refresh console metadata, Selenium assertions, REST expectations, and operator docs to reference the expanded preset set.
-   _2025-10-12 – Added the missing presets, trimmed the “seeded demo” suffix, expanded HOTP stored seeding to mirror every inline preset, refreshed HOTP Selenium coverage, updated inline doc guidance, and reran `:rest-api:test` (evaluate + replay) alongside `spotlessApply check`._
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-025-01 | I1, I2, I3, I4, I7 | Label + placeholder alignment across protocols.
+| S-025-02 | I6, I8 | HOTP seeded/inline catalogue parity.
+| S-025-03 | I9, I10 | RFC suffix alignment.
+| S-025-04 | I5, I10 | Documentation + verification logs.
 
-9. **I9 – OCRA RFC label parity**
-   - Append `(RFC 6287)` to RFC-backed OCRA inline presets while keeping the draft-only `C-QH64` unmarked.
-   - Update any Selenium/docs assertions that reference the affected labels.
+## Analysis Gate
+Completed 2025-10-12 after clarifications were captured in the spec; rerun only if preset scope changes again.
 
-10. **I10 – Stored RFC label parity**
-    - Ensure OCRA stored credential dropdowns append `(RFC 6287)` to RFC-backed seeds while leaving `C-QH64` unchanged.
-    - Adjust controller helpers/tests to reflect the stored label format.
-    _2025-10-12 – Annotated stored credential labels via controller helper, added regression test, reran `./gradlew spotlessApply check`._
+## Exit Criteria
+- All increments logged with passing `./gradlew spotlessApply check` runs.
+- Selenium suites for HOTP/TOTP/OCRA/FIDO2 dropdowns pass without label regressions.
+- Operator docs, roadmap entry #21, and migration/session trackers updated.
+- No outstanding clarifications in `docs/4-architecture/open-questions.md`.
 
-## Risks & Mitigations
-- **Missed test assertions:** audit every protocol-specific Selenium test for string expectations (mitigate with targeted test runs after each increment).
-- **Documentation drift:** update how-to guides in the same increment as code changes.
-
-## Telemetry & Observability
-- No new telemetry events. Ensure existing metadata fields referencing preset labels stay accurate after renaming.
-
-## Intent & Tooling Notes
-- Changes touch multiple previously completed features; track progress here to preserve traceability.
+## Follow-ups / Backlog
+- None; directory renumbering remains blocked until every feature adopts the refreshed templates per `docs/migration_plan.md`.
+EOF,workdir:.,max_output_tokens:6000}

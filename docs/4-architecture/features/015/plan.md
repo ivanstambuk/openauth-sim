@@ -1,54 +1,74 @@
 # Feature Plan 015 – SpotBugs Dead-State Enforcement
 
-_Status: Complete_
-_Last updated: 2025-10-03_
+_Linked specification:_ `docs/4-architecture/features/015/spec.md`  
+_Status:_ Complete  
+_Last updated:_ 2025-11-10
 
-## Objective
-Activate SpotBugs dead-state detectors (unread/unwritten/unused fields) across all JVM modules so latent state fails the quality gate. Work includes wiring a shared include filter, remediation of current violations, and updating runbooks to reflect the stricter guardrail.
+## Vision & Success Criteria
+- Shared SpotBugs include filter enables dead-state detectors (FR-015-01, S-015-01).
+- Remediation completes so SpotBugs tasks and `spotlessApply check` pass with detectors active (FR-015-02, S-015-02).
+- Documentation/runbooks capture detector configuration, commands, and suppression policy (FR-015-03, S-015-03).
+- PMD `UnusedPrivateField` / `UnusedPrivateMethod` rules run in the quality gate after code cleanup (FR-015-04, S-015-04).
 
-Reference specification: `docs/4-architecture/features/015/spec.md`.
+## Scope Alignment
+- **In scope:** SpotBugs include filter, Gradle wiring, violation cleanup, documentation updates, PMD rule enforcement.
+- **Out of scope:** Additional detector families, replacement of SpotBugs, major runtime refactors.
 
-## Success Criteria
-- SpotBugs include filter covers the approved detector list and is consumed by every `spotbugs*` task (SB-001).
-- Baseline violations (e.g., unused `Clock` field) are cleaned or justified, allowing `./gradlew spotlessApply check` to pass with the filter active (SB-002).
-- Quality documentation (analysis gate + tooling guide) explains the new detectors and suppression etiquette (SB-003).
+## Dependencies & Interfaces
+- Gradle SpotBugs plugin configuration for each JVM module.
+- PMD configuration shared across modules.
+- Documentation artefacts (`docs/5-operations/analysis-gate-checklist.md`, developer tooling guides).
 
-## Clarifications
-- 2025-10-03 – Detectors limited to `URF_UNREAD_FIELD`, `URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD`, `UUF_UNUSED_FIELD`, `UWF_UNWRITTEN_FIELD`, and `NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD`; additional patterns deferred.
-- 2025-10-03 – Suppressions require `@SuppressFBWarnings` with justification and must be logged in this plan’s Notes section when added.
+## Assumptions & Risks
+- **Assumptions:** Developers run SpotBugs tasks locally; CI uses the same include filter; detector runtime stays within the NFR target.
+- **Risks / Mitigations:**
+  - _Runtime increase:_ Monitor `./gradlew check` timings; if >15% delta, investigate caching/parallelism.
+  - _Suppressions:_ Enforce justification logging in this plan to prevent silent overrides.
+  - _Rule drift:_ Keep filter/ruleset centralized to avoid divergent module behaviour.
 
-## Proposed Increments
-- R1501 – Register Feature 015 across roadmap/tasks; confirm no open questions. ☑ (2025-10-03 – Added roadmap row 13, knowledge map link, tasks/spec synced, open questions verified empty)
-- R1502 – Add shared SpotBugs include filter with agreed bug patterns; wire Gradle tasks to consume it and verify failing run captures current violations. ☑ (2025-10-03 – Introduced `config/spotbugs/dead-state-include.xml`, configured SpotBugs tasks, command failed on `URF_UNREAD_FIELD` as expected)
-- R1503 – Remediate surfaced findings (unused/unwritten fields) or justify suppressions; rerun `spotlessApply check`. ☑ (2025-10-03 – Removed unused `Clock` dependency from verification service + call sites; SpotBugs and `spotlessApply check` green)
-- R1504 – Update documentation (analysis gate checklist + tooling guide) to include the new detectors and remediation guidance; sync knowledge map if necessary. ☑ (2025-10-03 – Documented detector list in analysis gate checklist and quality gate guide; reran `spotlessApply check` after edits)
-- R1505 – Record final command outputs and note detector adoption in plan Notes; ensure feature artefacts (spec/plan/tasks) reflect completion. ☑ (2025-10-03 – Notes capture failing/passing SpotBugs + check runs; spec/plan/tasks aligned)
-- R1506 – Add PMD `UnusedPrivateField`, remediate violations (e.g., `PIN_SUITE`), and rerun `pmdMain`/`pmdTest`. ☑ (2025-10-03 – Added rule to PMD ruleset, removed unused `PIN_SUITE`, `:rest-api:pmdTest` passes)
-- R1507 – Enable PMD `UnusedPrivateMethod`, clean up unused helpers (e.g., `inlineCredential()`), rerun `pmdMain`/`pmdTest`. ☑ (2025-10-03 – Rule active, no violations after cleanup; reran `:rest-api:pmdTest` and root `check`.)
+## Implementation Drift Gate
+- **Trigger:** After T-015-01–T-015-07 completed (2025-10-03).
+- **Evidence:** Filter file, Gradle configuration, SpotBugs/PMD outputs, documentation diffs, plan Notes capturing suppressions.
+- **Outcome:** Gate confirmed FR/NFR coverage; quality gate remains green with detectors active.
 
-Each increment should take ≤30 minutes with tests preceding implementation where applicable.
+## Increment Map
+1. **I1 – Governance & failing detector run** _(T-015-01–T-015-02)_  
+   - _Goal:_ Register the feature, add the shared SpotBugs include filter, wire Gradle tasks, and observe the expected red run.  
+   - _Commands:_ `./gradlew --no-daemon :application:spotbugsMain --rerun-tasks`.  
+   - _Exit:_ Filter referenced by all tasks; failing output captured in plan notes.
+2. **I2 – Remediation & verification** _(T-015-03)_  
+   - _Goal:_ Remove or justify violations, rerun SpotBugs, and execute `spotlessApply check`.  
+   - _Commands:_ `./gradlew --no-daemon :application:spotbugsMain --rerun-tasks`, `./gradlew --no-daemon spotlessApply check`.  
+   - _Exit:_ SpotBugs + check green with detectors enabled.
+3. **I3 – Documentation updates** _(T-015-04–T-015-05)_  
+   - _Goal:_ Update runbooks/tooling guides and log detector impact in the plan.  
+   - _Commands:_ `rg -n "dead-state" docs/5-operations/analysis-gate-checklist.md`.  
+   - _Exit:_ Docs describe detectors and suppression policy; feature artefacts synced.
+4. **I4 – PMD rule enforcement** _(T-015-06–T-015-07)_  
+   - _Goal:_ Enable PMD unused-field/method rules, remediate violations, rerun PMD + check.  
+   - _Commands:_ `./gradlew --no-daemon :rest-api:pmdTest`, `./gradlew --no-daemon check`.  
+   - _Exit:_ PMD rules active with clean results; quality gate remains green.
 
-## Checklist Before Implementation
-- [x] Specification drafted with clarifications.
-- [x] Open questions recorded/resolved (`docs/4-architecture/open-questions.md`).
-- [x] Tasks list created with tests-first ordering.
-- [x] Analysis gate rerun once plan/tasks synced.
-
-### Tooling Readiness
-- `./gradlew :application:spotbugsMain --rerun-tasks` – verify detectors trigger and later confirm green status.
-- `./gradlew spotlessApply check` – assure aggregate quality gate remains green post-remediation.
-
-## Notes
-Use this section to log detector findings, suppressions (with rationale), and runtime observations (e.g., delta in SpotBugs execution time) as work proceeds.
-- 2025-10-03 – `./gradlew :application:spotbugsMain --rerun-tasks` failed with `URF_UNREAD_FIELD` on `OcraVerificationApplicationService.clock`, confirming detector activation; rerun passed after removing the unused field.
-- 2025-10-03 – Full `./gradlew spotlessApply check` succeeded (≈3m16s) with no additional dead-state findings; SpotBugs warnings limited to existing serialVersionUID notices.
-- 2025-10-03 – Added PMD `UnusedPrivateField` (bestpractices); initial run flagged `PIN_SUITE` in REST test, removed constant, reran `:rest-api:pmdTest` (pass).
-- 2025-10-03 – Verified PMD `UnusedPrivateMethod` is active; `./gradlew :rest-api:pmdTest` and `./gradlew check` both green with rule enforced.
+## Scenario Tracking
+| Scenario ID | Increment / Task reference | Notes |
+|-------------|---------------------------|-------|
+| S-015-01 | I1 / T-015-01–T-015-02 | Shared filter + wiring. |
+| S-015-02 | I2 / T-015-03 | Remediation ensuring SpotBugs passes. |
+| S-015-03 | I3 / T-015-04–T-015-05 | Documentation updates. |
+| S-015-04 | I4 / T-015-06–T-015-07 | PMD unused-field/method rules enforced. |
 
 ## Analysis Gate (2025-10-03)
-- Specification completeness – PASS: Feature 015 spec defines objectives, requirements, clarifications (2025-10-03).
-- Open questions review – PASS: `docs/4-architecture/open-questions.md` has no entries for this feature.
-- Plan alignment – PASS: Plan references Feature 015 spec/tasks; success criteria map to SB-001–SB-003.
-- Tasks coverage – PASS: Tasks T1501–T1505 align with requirements and sequence validation commands ahead of implementation steps.
-- Constitution compliance – PASS: Work remains within existing tooling; no dependency changes planned.
-- Tooling readiness – PASS: Plan documents SpotBugs and `spotlessApply check` commands for validation.
+- ✅ Spec captured objectives/requirements/clarifications.
+- ✅ Open questions clear for this feature.
+- ✅ Plan/tasks mapped to FR/NFR IDs with ≤30-minute increments.
+- ✅ Tooling readiness recorded (SpotBugs, PMD, spotless/check commands).
+
+## Exit Criteria
+- SpotBugs filter wired across projects with detectors enabled.
+- Violations cleaned; SpotBugs + `spotlessApply check` pass.
+- Documentation/runbooks reference the enforcement and suppression policy.
+- PMD unused-field/method rules enforced with clean runs.
+
+## Follow-ups / Backlog
+- Evaluate enabling additional SpotBugs patterns (`SS_SHOULD_BE_STATIC`, `SI_INSTANCE_BEFORE_FINALS_ASSIGNED`) in a future feature.
+- Monitor build runtime impact; consider optimisations if quality gate approaches NFR limits.

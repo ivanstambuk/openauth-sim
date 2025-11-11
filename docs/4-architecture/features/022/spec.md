@@ -1,128 +1,170 @@
 # Feature 022 – HOTP Operator Support
 
-_Status: Complete_
-_Last updated: 2025-10-12_
+| Field | Value |
+|-------|-------|
+| Status | Complete |
+| Last updated | 2025-11-10 |
+| Owners | Ivan (project owner) |
+| Linked plan | `docs/4-architecture/features/022/plan.md` |
+| Linked tasks | `docs/4-architecture/features/022/tasks.md` |
+| Roadmap entry | #3 – HOTP Simulator & Tooling |
 
 ## Overview
-Deliver RFC 4226 HOTP capabilities across the simulator so operators can register and validate HOTP credentials alongside the existing OCRA flows. This feature introduces a dedicated HOTP domain model, persistence wiring, telemetry events, façade endpoints (CLI + REST), and operator console UI evaluation flows (stored + inline) while keeping issuance out of scope. All success criteria were satisfied on 2025-10-08 following stored-mode seeding coverage verification.
-
-
-
-## Goals
-- Add HOTP evaluation flows across REST, CLI, and operator UI surfaces, matching the OCRA behaviours.
-- Seed fixtures/tests so HOTP responses stay deterministic.
-
-## Non-Goals
-- Does not touch OCRA/TOTP implementations except for shared helpers.
-- Does not implement HOTP enrollment or provisioning workflows.
-
+Add RFC 4226 HOTP capability across the simulator so operators can evaluate stored and inline HOTP credentials in
+parallel with OCRA. Scope includes core domain/fixtures, shared persistence, application/telemetry services, CLI + REST
+facades, operator UI flows, replay tooling, and documentation. Issuance remains out of scope.
 
 ## Clarifications
-- 2025-10-06 – HOTP evaluate screen selects Inline parameters by default on initial load or refresh to mirror OCRA behaviour (user directive).
-- 2025-10-04 – Initial delivery must ship an end-to-end slice (core domain, application adapters, CLI commands, and REST endpoints) instead of a core-only milestone (user directive; Option B selected).
-- 2025-10-04 – HOTP credentials reuse the existing MapDB credential store/schema-v1 baseline alongside OCRA descriptors; no dedicated HOTP store is created (user directive; Option A selected).
-- 2025-10-04 – Telemetry coverage must match the OCRA parity level (issuance, evaluation, failure reasons) using the shared `TelemetryContracts` adapters (user directive; Option A selected).
-- 2025-10-04 – Application layer owns HOTP counter persistence and telemetry-ready metadata so CLI/REST facades remain thin; stored evaluations MUST increment the credential’s moving factor and persist the updated counter immediately after each successful OTP generation to keep state in sync across facades (user directive; Option A selected).
-- 2025-10-05 – HOTP telemetry events adopt the `hotp.evaluate` and `hotp.issue` namespaces via `TelemetryContracts` to keep parity with future facade integrations (worklog confirmation).
-- 2025-10-05 – Operator UI remains evaluation-only across all credential types; HOTP UI excludes issuance until a future roadmap decision revisits the scope (user directive).
-- 2025-10-05 – HOTP operator UI lives within the existing operator console tab, supporting stored credential evaluation and inline secret evaluation flows (options B + C selected).
-- 2025-10-05 – HOTP operator UI reuses existing REST telemetry events; no additional UI-specific telemetry frames are required (option A selected).
-- 2025-10-05 – Operator documentation will be updated to reflect HOTP UI availability and usage patterns (option A selected).
-- 2025-10-05 – HOTP operator UI acquires stored credentials via `/api/v1/hotp/credentials`, using the shared console CSRF token when invoking `/api/v1/hotp/evaluate` and `/api/v1/hotp/evaluate/inline` (implementation note).
-- 2025-10-05 – HOTP operator console reuses the evaluate/replay pill header with Evaluate active and a Replay tab present (currently without behaviour) to mirror OCRA styling while signalling future scope (option B confirmed).
-- 2025-10-05 – HOTP replay will ship a dedicated non-mutating REST endpoint (`POST /api/v1/hotp/replay`) handling stored and inline submissions without advancing counters (option A confirmed).
-- 2025-10-05 – HOTP operator replay UI will mirror the OCRA replay experience with stored and inline modes and sample data affordances (option A confirmed).
-- 2025-10-06 – HOTP operator replay UI removes the advanced context toggle/fields (label, notes) so replay submissions focus solely on credential inputs (user directive).
-- 2025-10-06 – HOTP replay inline sample loader must surface separate SHA-1 and SHA-256 presets using the same labels as the evaluate tab for consistency (user directive).
-- 2025-10-06 – HOTP replay panel must share the same vertical alignment baseline as the HOTP evaluate panel so toggling tabs does not shift the card position (user directive).
-- 2025-10-07 – Treat the Replay tab layout as the baseline and adjust HOTP Evaluate spacing to match its vertical offsets (user directive).
-- 2025-10-07 – HOTP inline preset hints (evaluate and replay) must use the sentence “Selecting a preset auto-fills the inline fields with illustrative data.” to stay consistent with OCRA copy (user directive; Option A confirmed).
-- 2025-10-07 – HOTP replay inline panel must omit the redundant “Inline replay” heading; the mode selector already signals the active view (user directive).
-- 2025-10-07 – HOTP replay success badges must apply the same green success styling as OCRA when the verification result is a match (user directive).
-- 2025-10-05 – HOTP replay interactions emit dedicated `hotp.replay` telemetry frames (REST and UI), keeping evaluation metrics separate (option A confirmed).
-- 2025-10-05 – Operator console deep links must mirror OCRA conventions by writing `protocol=hotp` and `tab=evaluate|replay` query parameters so HOTP views restore correctly on refresh (user confirmation).
-- 2025-10-13 – Extend HOTP deep links to include `mode=<inline|stored>` so evaluate/replay forms reopen with the previously selected mode, matching the shared protocol/tab/mode convention (user directive; Option B selected).
-- 2025-10-13 – When operators click the HOTP protocol tab, force the Evaluate tab with Inline mode active regardless of prior state so workflows start from the primary path (user directive).
-- 2025-10-05 – HOTP evaluation panels remove the stored/inline headings and hint copy so operators see the input fields immediately after selecting a mode (user directive).
-- 2025-10-07 – HOTP and OCRA evaluation result headings must share the HOTP font size to keep success summaries visually aligned (user directive).
-- 2025-10-05 – HOTP mode selection mirrors OCRA ordering with Inline parameters listed before Stored credential for consistent operator workflows (user directive).
-- 2025-10-07 – HOTP replay "Load sample data" action must prefill an OTP that matches the credential's current counter state so the immediate "Verify OTP" succeeds, even after prior verifications in the session (user directive).
-- 2025-10-09 – Align the stored replay “Load sample data” control placement with OCRA by rendering it directly beneath the “Stored credential” selector with consistent vertical spacing (user directive).
-- 2025-10-15 – HOTP stored replay selections now auto-fill curated sample data immediately; the “Load sample data” button is removed so credential picks hydrate OTP/counter context without extra clicks (user chose option B).
-- 2025-10-07 – HOTP stored replay keeps the counter input editable, pre-populating it with the credential's current moving factor (mirroring OCRA) so operators can adjust when needed while defaulting to a succeeding sample (user directive; Option C selected).
-- 2025-10-05 – HOTP replay hints read “Select a persisted credential, and replay the OTP without advancing counters.” and “Provide HOTP parameters directly for ad-hoc verification.” to align copy with operator guidance (user directive).
-- 2025-10-06 – HOTP replay stored credential selector label must read “Stored credential” to align the replay screen with the OCRA equivalent (user directive).
-- 2025-10-06 – HOTP replay stored credential panel omits the heading before the selector so the label is the first element, matching the OCRA replay layout (user directive).
-- 2025-10-06 – HOTP replay submit action button must display “Verify OTP” to align operator copy with credential verification intent (user directive).
-- 2025-10-06 – HOTP replay observed OTP field label must read “One-time password” to reflect operator terminology alignment (user directive).
-- 2025-10-06 – HOTP replay result card must render in the right-hand status column with the same layout as the OCRA replay panel (status badge, Reason Code row, Outcome row) instead of stacking beneath the form (user directive).
-- 2025-10-06 – HOTP replay UI must hide raw metadata/telemetry strings; only Reason Code and Outcome appear alongside the status badge (user directive).
-- 2025-10-06 – HOTP replay inline parameters (hash algorithm, digits, counter) must render in a single row matching the HOTP evaluate tab layout (user directive).
-- 2025-10-06 – HOTP inline replay requests omit operator-provided identifiers so REST and UI flows mirror the OCRA inline replay contract (user directive).
-- 2025-10-05 – HOTP inline evaluation no longer collects an operator-provided identifier; the REST/API surface accepts only secret, algorithm, digits, counter, and OTP for inline requests (user directive).
-- 2025-10-05 – HOTP Evaluate tab (stored and inline modes) must generate the OTP and display it without requiring operator input; OTP entry remains exclusive to the Replay tab (user directive; Option A selected).
-- 2025-10-05 – HtmlUnit `@SuppressFBWarnings` annotation dependency is added to the REST API test configuration (via `com.github.spotbugs:spotbugs-annotations` on the test classpath) so compilation warnings are suppressed without disabling linting (user directive; Option A selected).
-- 2025-10-05 – HOTP inline evaluate "Load a sample vector" control must offer multiple presets (e.g., RFC 4226 SHA-1 and an additional SHA-256 demo vector) so operators can exercise different hash digests during generation flows (user directive; Option B selected).
-- 2025-10-05 – HOTP inline evaluation result panel matches the OCRA layout: headline “Evaluation result,” OTP row rendered as “OTP: <value>,” status row rendered inline with “Status” label and value, the container width and padding align with the OCRA result panel, success badges use the green style adopted from HOTP across protocols, no ancillary metadata row, and the panel positioned at the top-right of the input form (user directive).
-- 2025-10-06 – HOTP inline evaluation form renders Hash algorithm, Digits, and Counter controls in a single compact row matching the OCRA policy builder layout so related inputs remain visible without consuming extra vertical space (user directive).
-- 2025-10-06 – HOTP evaluate UI must retain a vertical gap between the "Stored credential" selector and the "Load a sample vector" controls so the inline mode matches the OCRA evaluate layout (user directive).
-- 2025-10-06 – HOTP stored evaluation view positions the “Seed sample credentials” button above the stored credential selector to mirror the OCRA tab layout (user directive).
-- 2025-10-06 – HOTP stored evaluation seeding control maintains the same vertical spacing from the evaluation mode selector as the OCRA tab so the layout remains visually consistent (user directive).
-- 2025-10-12 – Task T2295 will introduce `docs/hotp_validation_vectors.json`, exposing RFC 4226 validation vectors so HOTP facades share parity with existing FIDO2 JSON fixtures; implementation pending scheduling.
-- 2025-10-13 – `docs/hotp_validation_vectors.json` must enumerate the canonical RFC 4226 sequences (counters 0–9) for both six- and eight-digit forms using fields `{ "vectorId", "secret", "secretEncoding", "algorithm", "digits", "counter", "otp" }` plus optional UI metadata (`label`, `notes`). Secrets are stored as hex, clients may derive Base32 where needed, and OTP strings remain zero-padded to the declared digit count. Downstream loaders will surface these records to core tests, CLI `--vector-id` options, REST sample endpoints, and operator presets without duplicating literals.
+- 2025-10-04 – Ship an end-to-end slice (core → application → CLI/REST/UI) in a single feature (Option B).
+- 2025-10-04 – HOTP reuses the existing schema-v1 credential store; no new MapDB schema (Option A).
+- 2025-10-04 – Telemetry parity must match OCRA using `TelemetryContracts` adapters (Option A).
+- 2025-10-04 – Application layer owns counter persistence and telemetry metadata; stored evaluations increment the
+  moving factor immediately after success (Option A).
+- 2025-10-05 – HOTP telemetry events use `hotp.evaluate`/`hotp.issue` namespaces.
+- 2025-10-05 – Operator console remains evaluation-only; no issuance UI.
+- 2025-10-05 – HOTP stored + inline evaluations live inside the unified operator console tab and reuse existing REST
+  telemetry.
+- 2025-10-05 – Operator documentation must explain HOTP usage patterns.
 
-- 2025-10-06 – HOTP operator console seeding button must provision both canonical stored credentials (`ui-hotp-demo` SHA-1/6 and `ui-hotp-demo-sha256` SHA-256/8) mirroring inline presets; reseeding appends missing entries without overwriting existing records (user directive; Option B selected).
-## Branch & Scenario Matrix
+## Goals
+- G-022-01 – Provide deterministic HOTP evaluation flows in core/application/CLI/REST with telemetry parity.
+- G-022-02 – Extend operator console with HOTP stored/inline evaluation + replay and deterministic seeding.
+- G-022-03 – Publish fixtures/catalogues/documentation so HOTP vectors remain shareable across modules.
 
-| Scenario ID | Description / Expected outcome |
-|-------------|--------------------------------|
-| S22-01 | Core HOTP domain, fixtures, and MapDB descriptors share schema v1 with OCRA while covering SHA-1/256/512 across 6- and 8-digit variants. |
-| S22-02 | Application services and telemetry adapters manage stored/inline evaluations plus replay flows, incrementing counters and emitting `hotp.*` events. |
-| S22-03 | CLI and REST facades expose HOTP evaluate/replay/import/list endpoints with regenerated OpenAPI artifacts and regression tests. |
-| S22-04 | Operator console delivers stored and inline HOTP evaluate/replay panels, sample loaders, and Selenium coverage mirroring OCRA parity. |
-| S22-05 | Documentation, roadmap, knowledge map, and fixture catalogues capture HOTP availability, validation vectors, and closing spotless/quality gates. |
+## Non-Goals
+- N-022-01 – HOTP issuance/provisioning remains deferred.
+- N-022-02 – Schema migrations/new stores.
+- N-022-03 – Adding non-RFC 4226 OTP variants (e.g., TOTP).
 
 ## Functional Requirements
-| ID | Requirement | Acceptance Signal |
-|----|-------------|-------------------|
-| HOS-001 | Introduce HOTP credential descriptors, generator, and validator aligned with RFC 4226 (configurable digits and moving factor) exposed through the core domain/application modules. | Unit tests cover boundary cases (counter rollovers, digit lengths, secret sizes) and mutation tests exercise success/failure paths. |
-| HOS-002 | Persist HOTP credentials using the shared MapDB store (`CredentialType.OATH_HOTP`) with schema-v1 metadata for counter state and issuance context. | Integration tests confirm HOTP records coexist with OCRA entries and are retrievable via the shared `CredentialStoreFactory`. |
-| HOS-003 | Provide CLI commands to create/list/evaluate HOTP credentials, mirroring OCRA command UX while emitting telemetry events. | Picocli tests verify command output/exit codes; telemetry assertions capture `hotp.command.*` frames. |
-| HOS-004 | Expose REST endpoints for HOTP evaluation (stored credential and inline secret modes) with OpenAPI updates and consistent telemetry; inline mode omits operator-provided identifiers. | Spring MVC tests confirm endpoint contracts; OpenAPI snapshots show HOTP sections; telemetry adapters emit `hotp.rest.*` frames and REST telemetry logs redact OTP material. |
-| HOS-005 | Document HOTP usage (how-to guides, roadmap, knowledge map) and highlight CLI/REST entry points plus schema reuse. | Docs updated under `docs/2-how-to/`, roadmap milestone notes mention HOTP delivery, knowledge map links HOTP modules to shared persistence/telemetry. |
-| HOS-006 | Surface HOTP evaluation in the operator UI by extending the existing console with stored credential selection and inline secret evaluation flows that call the REST API. Issuance remains out of scope. | UI integration tests (e.g., Spring/Selenium) cover stored + inline evaluation; UI links reuse REST telemetry without new event types; UX reflects documentation requirements. |
-| HOS-007 | Provide a HOTP operator console seeding control that appends canonical SHA-1/6 and SHA-256/8 demo credentials without overwriting existing records, and align REST/UI telemetry with the operation. | UI + REST tests confirm the button appears only in stored mode, seeds missing credentials idempotently, and telemetry/events mirror OCRA seeding behaviour. |
+| ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
+|----|-------------|--------------|-----------------|--------------|--------------------|--------|
+| FR-022-01 | Implement RFC 4226 HOTP generator/validator with counter rollover, digit variants, and shared fixtures. | Core tests pass for counters 0–9 (6/8 digits) using catalogued vectors. | Mutation/ArchUnit verification ensures correct domain boundaries. | `:core:test` fails or fixtures mismatched. | `hotp.evaluate` events carry sanitized fields. | Clarifications. |
+| FR-022-02 | Persist HOTP credentials alongside OCRA in schema-v1 MapDB without migrations. | Integration tests load OCRA + HOTP records via `CredentialStoreFactory`. | CLI/REST evaluation tests confirm counters update persistently. | Persistence mismatch or migrations required. | `hotp.issue`/`hotp.evaluate` telemetry share metadata. | Clarifications. |
+| FR-022-03 | Add CLI commands for HOTP import/list/evaluate with telemetry parity. | Picocli tests assert sanitized output, telemetry frames, exit codes. | Invalid inputs raise descriptive errors. | CLI command fails or telemetry missing. | `hotp.evaluate` CLI path. | Spec. |
+| FR-022-04 | Expose REST endpoints for HOTP evaluation (stored + inline) and replay, updating OpenAPI snapshots. | MockMvc/OpenAPI tests cover POST `/api/v1/hotp/evaluate` + `/replay`. | Stored replay leaves counters unchanged. | REST tests fail or counters mutate. | `hotp.evaluate`/`hotp.replay`. | Spec. |
+| FR-022-05 | Add operator UI HOTP stored/inline evaluation plus replay flows with telemetry parity. | Selenium tests run stored + inline flows, seeding control, replay UI. | Accessibility checks ensure keyboard focus + aria semantics. | UI missing flows or telemetry inconsistent. | relies on REST telemetry events. | Clarifications. |
+| FR-022-06 | Provide deterministic HOTP fixture catalogue (`docs/hotp_validation_vectors.json`) and shared loader consumed by core/CLI/REST/UI. | Loader feeds tests/presets; docs reference vector IDs. | Missing vector results cause failing tests/docs warnings. | CLI/REST/ UI fixtures inconsistent. | n/a | Clarifications. |
+| FR-022-07 | Update documentation (how-to, roadmap, knowledge map) to reflect HOTP availability, seeding, replay, and telemetry. | Docs mention HOTP flows, seeding controls, fixture catalogue. | Spotless/doc lint passes. | Documentation gaps flagged during review. | n/a | Clarifications. |
 
 ## Non-Functional Requirements
-| ID | Requirement | Target |
-|----|-------------|--------|
-| HOS-NFR-001 | Security | Secrets remain encrypted at rest when MapDB encryption is enabled; telemetry redacts OTP values similar to OCRA. |
-| HOS-NFR-002 | Compatibility | Changes to schema-v1 metadata maintain backward compatibility with existing stores and do not require migrations. |
-| HOS-NFR-003 | Quality | `./gradlew spotlessApply check` and `qualityGate` stay green; ArchUnit/SpotBugs/PMD suites cover new modules. |
+| ID | Requirement | Driver | Measurement | Dependencies | Source |
+|----|-------------|--------|-------------|--------------|--------|
+| NFR-022-01 | Security | Secrets encrypted at rest when MapDB encryption enabled; telemetry redacts OTP/secret fields. | Unit/integration tests confirm redaction + encryption guardrails. | MapDB, TelemetryContracts. | Spec. |
+| NFR-022-02 | Compatibility | Schema-v1 metadata remains backward compatible; no migrations triggered. | Regression tests run with legacy stores. | Core/application persistence. | Spec. |
+| NFR-022-03 | Quality | `./gradlew spotlessApply check` + quality gate stay green; ArchUnit/PMD/SpotBugs cover new modules. | CI build history. | Gradle tooling. | Spec. |
+
+## UI / Interaction Mock-ups
+```
+HOTP Evaluate Panel (Stored)
+-------------------------------------------
+| Stored credential: [ dropdown ] [Seed]  |
+| Counter (read-only)   OTP result card    |
+-------------------------------------------
+Inline Panel mirrors OCRA layout (secret, counter input, OTP output). Replay panel reuses sample data + telemetry hints.
+```
+
+## Branch & Scenario Matrix
+| Scenario ID | Description / Expected outcome |
+|-------------|--------------------------------|
+| S-022-01 | Core HOTP domain + shared persistence fixtures. |
+| S-022-02 | Application services + CLI/REST telemetry parity. |
+| S-022-03 | REST endpoints + OpenAPI snapshots for evaluation/replay. |
+| S-022-04 | Operator UI stored/inline/replay flows + seeding. |
+| S-022-05 | Fixture catalogue + documentation updates.
 
 ## Test Strategy
-- Extend core unit and property-based tests to validate HOTP generation/verification for common digit counts and counter progressions.
-- Add integration tests that open a MapDB store containing both OCRA and HOTP credentials to confirm shared persistence behaviour.
-- Expand CLI command tests (JUnit + Picocli) to cover new HOTP options and telemetry emission.
-- Update REST API tests (Spring MockMvc) and OpenAPI snapshot assertions to cover HOTP contracts.
-- Extend operator UI tests (integration/system) to cover HOTP stored + inline evaluation flows and ensure accessibility + telemetry expectations are met.
-- Add coverage around the HOTP credential directory endpoint feeding the operator UI so stored credential listings remain deterministic.
-- Re-run mutation, SpotBugs, and ArchUnit suites to guard against regressions in new code paths.
+- **Core:** RFC 4226 vector tests + mutation guard.
+- **Application:** Service + telemetry adapters verified via JUnit.
+- **CLI:** Picocli tests covering import/list/evaluate/replay.
+- **REST:** MockMvc + OpenAPI snapshot tests for evaluation/replay.
+- **UI:** Selenium/system tests for HOTP stored/inline/replay flows, seeding control, accessibility.
+- **Docs:** Spotless/doc lint after updates.
 
-## Dependencies & Risks
-- Introducing HOTP alongside OCRA increases credential-store surface area; ensure schema-v1 metadata remains additive to avoid migrations.
-- Telemetry volume may rise; validate event naming to prevent collisions with existing dashboards.
-- HOTP production-ready UI remains pending, so operator expectations must be managed via documentation.
+## Interface & Contract Catalogue
+### Domain Objects
+| ID | Description | Modules |
+|----|-------------|---------|
+| DO-022-01 | `HotpCredentialDescriptor` (suite metadata, counters, digits). | core, application |
+| DO-022-02 | `HotpEvaluationRequest` (inline/stored payload). | REST, CLI, application |
+| DO-022-03 | `HotpReplayRequest` (non-mutating evaluation). | REST, application |
 
-## Out of Scope
-- Adding HOTP support to the web UI or operator console (deferred to a later feature).
-- Implementing TOTP or other OTP variants.
-- Building migration tooling for legacy HOTP data outside the repo.
+### API Routes / Services
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| API-022-01 | REST POST `/api/v1/hotp/evaluate` | Stored + inline evaluations. | OpenAPI snapshot updated. |
+| API-022-02 | REST POST `/api/v1/hotp/replay` | Non-mutating replay. | Counters unchanged. |
+| API-022-03 | REST GET `/api/v1/hotp/credentials` | Stored credential listing for UI. | Shared with seeding. |
 
-## Verification
-- Core, application, CLI, and REST tests cover HOTP flows and pass in CI alongside existing suites.
-- Documentation reflects HOTP availability and persistence alignment.
-- Telemetry events for HOTP appear in automated tests and follow `TelemetryContracts` schemas.
-- `./gradlew spotlessApply check` succeeds after HOTP code and docs land (2025-10-05 verification reports Jacoco branch coverage ≈0.9002 / line coverage ≈0.9706).
+### CLI Commands / Flags
+| ID | Command | Behaviour |
+|----|---------|-----------|
+| CLI-022-01 | `maintenance hotp import` | Loads HOTP credentials. |
+| CLI-022-02 | `maintenance hotp evaluate` | Inline/stored evaluation. |
+| CLI-022-03 | `maintenance hotp replay` | Non-mutating evaluation. |
 
-Update this specification as further clarifications emerge.
+### Telemetry Events
+| ID | Event name | Fields / Redaction rules |
+|----|-----------|---------------------------|
+| TE-022-01 | `hotp.evaluate` | `credentialIdHash`, `mode`, `result`, sanitized inputs. |
+| TE-022-02 | `hotp.issue` | `credentialIdHash`, `result`. |
+| TE-022-03 | `hotp.replay` | `credentialIdHash`, `mode`, `result`. |
+
+### Fixtures & Sample Data
+| ID | Path | Purpose |
+|----|------|---------|
+| FX-022-01 | `docs/hotp_validation_vectors.json` | Canonical vectors for tests/presets. |
+| FX-022-02 | `core/src/test/resources/hotp/*.json` | Loader inputs for unit tests. |
+| FX-022-03 | `rest-api/src/test/resources/hotp/sample-requests/*.json` | REST test payloads. |
+
+### UI States
+| ID | State | Trigger / Expected outcome |
+|----|-------|---------------------------|
+| UI-022-01 | Stored evaluation | Select stored credential, generate OTP, counter increments. |
+| UI-022-02 | Inline evaluation | Enter shared secret/counter; OTP displayed without persistence. |
+| UI-022-03 | Replay | Evaluate stored/inline without counter increment. |
+
+## Telemetry & Observability
+- Telemetry emits via `TelemetryContracts` with sanitized hashes.
+- Replay path logs non-mutating evaluations for audit.
+
+## Documentation Deliverables
+- Update operator/CLI/REST how-to guides with HOTP usage, seeding, replay.
+- Refresh roadmap/knowledge map.
+
+## Fixtures & Sample Data
+See FX-022-01..03; no extra fixtures required beyond the shared catalogue.
+
+## Spec DSL
+```
+domain_objects:
+  - id: DO-022-01
+    name: HotpCredentialDescriptor
+    fields:
+      - name: digits
+        type: enum[6,8]
+      - name: counter
+        type: long
+  - id: DO-022-02
+    name: HotpEvaluationRequest
+    fields:
+      - name: credentialId
+        type: string
+      - name: mode
+        type: enum[stored,inline]
+cli_commands:
+  - id: CLI-022-01
+    command: maintenance hotp evaluate
+telemetry_events:
+  - id: TE-022-01
+    event: hotp.evaluate
+fixtures:
+  - id: FX-022-01
+    path: docs/hotp_validation_vectors.json
+ui_states:
+  - id: UI-022-01
+    description: HOTP stored evaluation panel
+```
+
+## Appendix
+_None._

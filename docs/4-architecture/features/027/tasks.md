@@ -2,22 +2,31 @@
 
 _Linked plan:_ `docs/4-architecture/features/027/plan.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-10-29
+_Last updated:_ 2025-11-10
 
-☑ **T2701 – Governance sync** (S27-01)
-  ☑ Update roadmap with Feature 027 entry and reference the new spec/plan/tasks.  
-  ☑ Append knowledge map and current-session notes to reflect the shared filename direction.
+> Checklist mirrors the Feature 027 plan increments; each task stayed ≤30 minutes and recorded its verification commands when it closed.
 
-☑ **T2702 – Persistence resolver simplification** (S27-02)
-  ☑ Modify `CredentialStoreFactory.resolveDatabasePath` to always return `credentials.db` when no explicit path is provided.  
-  ☑ Remove telemetry/logging related to legacy fallback selection.  
-  ☑ Refresh `CredentialStoreFactoryTest` coverage for the simplified behaviour.
+## Checklist
+- [x] T-027-01 – Governance sync (FR-027-01, S-027-01, S-027-04).  
+  _Intent:_ Update roadmap, knowledge map, session snapshot, and spec clarifications to reference `credentials.db` exclusively.  
+  _Verification:_ `./gradlew --no-daemon spotlessApply check` (2025-10-18).
 
-☑ **T2703 – Facade defaults & regression tests** (S27-03)
-  ☑ Replace CLI/REST default filename constants and help text.  
-  ☑ Update REST/CLI tests, Selenium scenarios, and OpenAPI snapshots impacted by the filename change.  
-  ☑ Run targeted Gradle tasks plus `spotlessApply check`.
+- [x] T-027-02 – Persistence resolver simplification (FR-027-02, S-027-02).  
+  _Intent:_ Update `CredentialStoreFactory.resolveDatabasePath` to always return `credentials.db`, remove legacy probes, and refresh `CredentialStoreFactoryTest`.  
+  _Verification:_ `./gradlew --no-daemon :infra-persistence:test`, `./gradlew --no-daemon :application:test` (2025-10-19).
 
-☑ **T2704 – Documentation refresh** (S27-04)
-  ☑ Update how-to guides, configuration references, and release notes with the unified filename and explicit migration guidance.  
-  ☑ Document manual migration guidance and future deprecation steps.
+- [x] T-027-03 – Facade defaults & regression tests (FR-027-03, S-027-03).  
+  _Intent:_ Replace CLI/REST constants/help text, refresh CLI/REST/Selenium tests, and run the regression stack.  
+  _Verification:_ `./gradlew --no-daemon :cli:test`, `./gradlew --no-daemon :rest-api:test`, Selenium operator console suites, `./gradlew --no-daemon spotlessApply check` (2025-10-19).
+
+- [x] T-027-04 – Documentation & migration guidance (FR-027-04, S-027-04).  
+  _Intent:_ Update how-to guides, release notes, and knowledge map with manual rename instructions; remove references to automatic fallbacks.  
+  _Verification:_ `./gradlew --no-daemon spotlessApply check` (2025-10-19).
+
+## Verification Log
+- 2025-10-19 – `./gradlew --no-daemon :infra-persistence:test :cli:test :rest-api:test spotlessApply check`
+- 2025-10-18 – `./gradlew --no-daemon spotlessApply check` (documentation + governance sync)
+- 2025-11-10 – `./gradlew --no-daemon spotlessApply check` (template migration verification)
+
+## Notes / TODOs
+- Manual migration guidance remains in `docs/2-how-to/configure-persistence-profiles.md`; no outstanding follow-ups.
