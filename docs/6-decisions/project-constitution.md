@@ -61,7 +61,7 @@ This constitution establishes the non-negotiable operating principles for the Op
 - **Amendments:** Propose constitution changes via pull request referencing this document. Classify version bumps as MAJOR (principle removal or incompatible rewrite), MINOR (new principle or substantial expansion), or PATCH (clarification without semantic change).
 - **Review cadence:** Reconfirm adherence during each session reset using `docs/5-operations/runbook-session-reset.md`.
 - **Exception handling:** Temporary deviations require written approval in the relevant feature plan and must include a restoration plan.
-- **Governance source of truth:** Feature 011 (`docs/4-architecture/features/011/{spec,plan,tasks}.md`) owns the authoritative policies for AGENTS/runbooks/hooks, gitlint, Palantir formatting, and governance verification logs. When those artefacts change, follow the Feature 011 plan/tasks to record `git config core.hooksPath`, hook dry-runs, and `./gradlew --no-daemon spotlessApply check`/`qualityGate` outputs in `_current-session.md` plus `docs/migration_plan.md`.
+- **Governance source of truth:** Feature 011 (`docs/4-architecture/features/011/{spec,plan,tasks}.md`) owns the authoritative policies for AGENTS/runbooks/hooks, gitlint, Palantir formatting, and governance verification logs. When those artefacts change, follow the Feature 011 plan/tasks to record `git config core.hooksPath`, hook dry-runs, and `./gradlew --no-daemon spotlessApply check`/`qualityGate` outputs in `_current-session.md`.
 
 ## Enforcement
 - `docs/5-operations/analysis-gate-checklist.md` must be executed once a spec, plan, and tasks exist to verify alignment before implementation.

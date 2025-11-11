@@ -23,7 +23,7 @@ Unify all assertion evaluation, replay, and attestation generation/verification 
 - **Risks / Mitigations:** Trust-anchor metadata growth could break persistence queries (mitigate by regression tests in `infra-persistence` and by caching via `WebAuthnMetadataCatalogue`); operator console toggles may regress (mitigate via targeted Selenium tests); OpenAPI snapshots might misalign with REST controllers (mitigate by running `OPENAPI_SNAPSHOT_WRITE=true ...` before the drift gate and logging the outputs in `_current-session.md`).
 
 ## Implementation Drift Gate
-Record the drift gate under `docs/4-architecture/features/004/plan.md` once I1–I3 increments finish. Re-run `docs/5-operations/analysis-gate-checklist.md` so every requirement in the spec matches an increment/task/test command, log the checklist results in the plan, and capture the verification commands plus hook guard in `_current-session.md` and `docs/migration_plan.md` per Feature 011 governance.
+Record the drift gate under `docs/4-architecture/features/004/plan.md` once I1–I3 increments finish. Re-run `docs/5-operations/analysis-gate-checklist.md` so every requirement in the spec matches an increment/task/test command, log the checklist results in the plan, and capture the verification commands plus hook guard in `_current-session.md` per Feature 011 governance.
 
 ## Increment Map
 1. **I1 – Assertion evaluation & replay coverage**  
@@ -50,9 +50,9 @@ Record the drift gate under `docs/4-architecture/features/004/plan.md` once I1�
      - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`  
    - _Exit:_ Attestation generation/replay commands emit `fido2.attest`/`fido2.attestReplay` telemetry with trust-anchor metadata and UI cards render `trustAnchorSummaries`.
 3. **I3 – Documentation, telemetry, and governance sync**  
-   - _Goal:_ Ensure knowledge artefacts document the merged workflow and all verification commands (hook guard, spotless, targeted suites) appear in `_current-session.md` + `docs/migration_plan.md`.  
+   - _Goal:_ Ensure knowledge artefacts document the merged workflow and all verification commands (hook guard, spotless, targeted suites) appear in `_current-session.md`.  
    - _Preconditions:_ I1/I2 tests are green; knowledge map snapshots available for update.  
-   - _Steps:_ Update the Feature 004 spec/plan/tasks per this migration, refresh `docs/4-architecture/knowledge-map.md` to reflect the new ownership, capture the hook guard command output, and note verification runs in `docs/migration_plan.md` plus `_current-session.md`.  
+   - _Steps:_ Update the Feature 004 spec/plan/tasks per this migration, refresh `docs/4-architecture/knowledge-map.md` to reflect the new ownership, and capture the hook guard/verification output inside `_current-session.md`.  
    - _Commands:_ `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`, and the targeted REST/UI commands listed earlier (document each in `_current-session.md`).  
    - _Exit:_ Docs, session log (docs/_current-session.md), and session snapshot describe the merged feature and recorded verification commands.
 
@@ -73,7 +73,7 @@ Log the gate results in this plan after the first clean `./gradlew --no-daemon s
 - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`.  
 - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` and `node --test rest-api/src/test/javascript/emv/console.test.js`.  
 - CLI and application attestation tests (`:cli:test --tests "*Fido2CliAttestationTest"`, `:application:test --tests "*WebAuthnAttestation*ServiceTest"`) succeed.  
-- `_current-session.md` and `docs/migration_plan.md` note the hook guard and these verification commands with timestamps.
+- `_current-session.md` notes the hook guard and these verification commands with timestamps.
 
 ## Follow-ups / Backlog
 - Future Features 007/008 will cover the mdoc/SIOPv2 simulators; ensure their specs reference Feature 004’s telemetry/fixture contracts when they reuse WebAuthn assets.  

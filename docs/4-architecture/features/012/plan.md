@@ -17,7 +17,7 @@ consistent persistence abstraction and operators understand how to configure/mai
 ## Scope
 - Fold the legacy persistence specs (Features 002/027/028) into the consolidated spec/plan/tasks.
 - Document verification commands (benchmarks, telemetry contract tests, maintenance CLI runs, doc linting) and log them in
-  `_current-session.md` + `docs/migration_plan.md`.
+  `_current-session.md`.
 - Remove `docs/4-architecture/features/012/legacy/` once the migration is captured.
 - Synchronise roadmap, knowledge map, and architecture graph entries with the new Feature 012 scope.
 
@@ -28,7 +28,7 @@ _Out of scope:_ Shipping new persistence code or changing credential-store behav
 |------------|-------|
 | `docs/test-vectors/ocra/`, `data/credentials.db` | Fixtures referenced by cache tuning + maintenance docs. |
 | `docs/4-architecture/knowledge-map.md`, `docs/architecture-graph.json`, `docs/4-architecture/roadmap.md` | Must highlight Feature 012 ownership. |
-| `_current-session.md`, `docs/migration_plan.md` | Receive log entries + command lists for each increment. |
+| `_current-session.md` | Receives log entries + command lists for each increment. |
 | `docs/2-how-to/configure-persistence-profiles.md` and related how-tos | Need updates referencing profiles, defaults, maintenance helpers, and manual migration steps. |
 
 ## Legacy Integration Tracker
@@ -81,7 +81,7 @@ execution in `_current-session.md`.
 - 2025-11-11 – Analysis gate rerun after updating roadmap/knowledge map/architecture graph/persistence how-to docs to cite Feature 012.
   - Spec/plan/tasks coverage confirmed; no open questions.
   - Verification commands logged alongside governance work: `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index git read-tree --empty; GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`, `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`.
-  - `_current-session.md` + `docs/migration_plan.md` include the outcomes plus the initial malformed `spotlessApply check,workdir:` invocation that was rerun immediately.
+- `_current-session.md` includes the outcomes plus the initial malformed `spotlessApply check,workdir:` invocation that was rerun immediately.
 
 ## Implementation Drift Gate
 Once Batch P3 closes, map FR-012-01..08 and NFR-012-01..05 to roadmap/knowledge map entries, CLI/REST documentation,

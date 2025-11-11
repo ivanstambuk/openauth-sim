@@ -17,7 +17,7 @@ When creating a new feature:
 - The catalogue is transitioning to 13 vertically sliced features (001–013). During the migration, some legacy artifacts
   remain under `docs/4-architecture/features/<NNN>/legacy/<old-id>/` (currently Features 001–008) so history is preserved
   without keeping the old top-level directories. Features 009–013 have finished their Phase 2 rewrites and no longer ship
-  `legacy/` subdirectories; consult Git history or `docs/migration_plan.md` for their archived content.
+  `legacy/` subdirectories; consult Git history for their archived content.
 - Batch P1 moved HOTP/TOTP/OCRA content into Features 001/002/003. Reference those specs for the authoritative
   requirements; consult the `legacy/` subdirectories only for historical context.
 - Batch P2 (in progress – 2025-11-11) freed Features 004–006 for WebAuthn, EMV/CAP, and EUDIW OpenID4VP by relocating the
@@ -30,7 +30,11 @@ When creating a new feature:
   operator-console scope, Feature 010 carries documentation & knowledge automation, Feature 011 governs governance/runbooks
   and hooks, Feature 012 centralises cryptography/persistence docs, and Feature 013 aggregates toolchain + quality
   automation. Their former staging directories (`operator-console/`, `docs-and-quality/`, `platform-foundations/`,
-  `new-010/`, `new-012/`) were removed after the Phase 2 verification gate; refer to `docs/migration_plan.md` for the
+  `new-010/`, `new-012/`) were removed after the Phase 2 verification gate; consult Git history for the
   command log and historical context.
+- The placeholder parking lots `features/credential-expansion/`, `features/next-gen-simulators/`, and
+  `features/ocra-simulator/` were retired on 2025-11-11. When Feature 014+ work begins, create the final directory
+  (`features/014/`, `features/015/`, etc.) from the templates and document clarifications there so numbering stays
+  consistent without separate holding areas.
 
 The legacy `docs/4-architecture/specs/`, `tasks/`, and `feature-plan-*.md` files have been relocated here to keep the top-level directory manageable.

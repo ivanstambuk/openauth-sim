@@ -15,7 +15,7 @@ _Last updated:_ 2025-11-11
 - [x] T-009-03 – Delete the now-empty staging folders from the operator-console migration and log the commands.
   - _Intent:_ Remove redundant directories while keeping the migration auditable.
   - _Verification commands:_ `rm -rf docs/4-architecture/features/operator-console docs/4-architecture/features/docs-and-quality docs/4-architecture/features/platform-foundations` (2025-11-11), followed by `./gradlew --no-daemon spotlessApply check`.
-  - _Notes:_ Commands/output recorded in `_current-session.md` and `docs/migration_plan.md` (Batch P3 Phase 2 legacy cleanup entry).
+  - _Notes:_ Commands/output recorded in `_current-session.md` (Batch P3 Phase 2 legacy cleanup entry).
 - [x] T-009-04 – Capture the Phase 2 gate reminder (Feature 010–013 rewrites + `spotlessApply check`/`qualityGate`) in the plan, tasks, and migration log.
   - _Intent:_ Keep the session log (docs/_current-session.md)/`_current-session.md` aware that the final Gradle gate awaits the remaining feature rewrites.
   - _Verification commands:_ `rg "Phase 2" docs/4-architecture/features/009/plan.md` (2025-11-11) confirms the reminder plus command list.
@@ -42,5 +42,5 @@ _Last updated:_ 2025-11-11
   - _Notes:_ Harness deletion + verification output logged with the Batch P3 Phase 2 migration summary on 2025-11-11.
 
 ## Notes / TODOs
-- Document Phase 2 status (Feature 009 spec rewrite complete but verification gate pending) inside `docs/migration_plan.md` and `_current-session.md` before moving to Features 010–013.
+- Document Phase 2 status (Feature 009 spec rewrite complete but verification gate pending) inside `_current-session.md` before moving to Features 010–013.
 - Keep the knowledge map/roadmap aligned with Feature 009 ownership; update references when upstream features change scope.

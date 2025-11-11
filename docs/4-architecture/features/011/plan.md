@@ -18,7 +18,7 @@ feature IDs. Feature 011 now documents the hook workflows (from legacy Feature
 ## Scope
 - Merge the legacy hook + formatter specs into the consolidated spec/plan/tasks (doc-only changes for Batch P3).
 - Document verification commands (hook guard, gitlint, Spotless/lock refresh, analysis gate) and ensure `_current-session.md`
-  plus `docs/migration_plan.md` log every governance increment.
+  logs every governance increment.
 - Remove `docs/4-architecture/features/011/legacy/{019,032}` once the requirements are embedded.
 - Stage remaining backlog/automation work (gitlint tuning, markdown lint) for future increments.
 
@@ -31,7 +31,7 @@ _Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; cha
 | `docs/6-decisions/project-constitution.md`, `docs/5-operations/analysis-gate-checklist.md` | Reference governance owner + gate steps. |
 | `.gitlint`, `githooks/pre-commit`, `githooks/commit-msg` | Managed hook scripts/policy enforced by this feature. |
 | `gradle/libs.versions.toml`, `build.gradle.kts` | Palantir formatter pin remains documented here. |
-| `_current-session.md`, `docs/migration_plan.md` | Receive command logs + migration summaries. |
+| `_current-session.md` | Receives command logs + migration summaries. |
 
 ## Legacy Integration Tracker
 | Legacy Feature(s) | Increment(s) | Status | Notes |
@@ -49,7 +49,7 @@ _Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; cha
 |-----------|--------|-------|--------|-------|
 | P3-I1 | Absorb legacy Features 019/032 into `spec.md` (hook workflows + Palantir formatter policy). | Ivan | Completed | FR/NFR tables updated; spec references hooks, gitlint, Palantir pin. |
 | P3-I2 | Refresh plan/tasks to list hook guard, gitlint, analysis gate, and `spotlessApply` verification commands. | Ivan | Completed | Plan + tasks now enumerate the governance command set, log destinations, and cross-links to `_current-session.md` / session log (docs/_current-session.md) updates. |
-| P3-I3 | Remove `docs/4-architecture/features/011/legacy/` after verifying the migration; log `rm -rf` + `ls` output in `_current-session.md` and `docs/migration_plan.md`. | Ivan | Pending | Execute once spec/plan/tasks reviewed. |
+| P3-I3 | Remove `docs/4-architecture/features/011/legacy/` after verifying the migration; log `rm -rf` + `ls` output in `_current-session.md`. | Ivan | Pending | Execute once spec/plan/tasks reviewed. |
 | P3-I4 | Sync governance artefacts (AGENTS/runbooks/constitution/analysis gate) and record commands in `_current-session.md`; prepare backlog items for post-migration automation. | Ivan | Pending | Requires doc updates + spotless run noted in logs. |
 
 ## Scenario Tracking
@@ -80,7 +80,7 @@ Run `docs/5-operations/analysis-gate-checklist.md` once P3-I4 finishes (docs syn
 - 2025-11-11 – Checklist rerun after cross-doc sync (AGENTS/runbooks/constitution/analysis-gate docs now reference Feature 011).
   - Spec/plan/tasks alignment confirmed; no open questions.
   - Governance commands logged: `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index git read-tree --empty; GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`, `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`.
-  - `_current-session.md` + `docs/migration_plan.md` capture the run plus the initial malformed `spotlessApply check,workdir:` invocation that was rerun without the typo.
+  - `_current-session.md` captures the run plus the initial malformed `spotlessApply check,workdir:` invocation that was rerun without the typo.
 
 ## Implementation Drift Gate
 After Batch P3 completes, ensure each FR/NFR from the spec maps to runbook entries, hook instructions, and recorded commands.

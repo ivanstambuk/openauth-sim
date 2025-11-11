@@ -33,7 +33,7 @@ and JS harness tests) under Feature 009 so future batches can evolve concrete 
 |-----------|--------|-------|--------|-------|
 | P3-I1 | Absorb the FR/NFR/verification content from legacy features 017/020/021/025/033–038/041 into Feature 009’s spec so the new template fully describes the operator console. | Ivan | Completed | `spec.md` now lists the new FRs, NFRs, scenarios, interfaces, and DSL entries. |
 | P3-I2 | Refresh the plan/tasks/doc gates to describe the new scope, scenario tracking, and tooling commands described by the legacy artefacts. | Ivan | Completed | Updated `plan.md` & `tasks.md` to match the consolidated spec. |
-| P3-I3 | Delete the emptied `docs/4-architecture/features/009/legacy/<old-id>/` directories, log the removals + command outputs in `_current-session.md`, and record the Batch P3 Phase 2 progress inside `docs/migration_plan.md`. | Ivan | Completed | Legacy tree removed, `_current-session.md` notes the command, and Phase 2 progress entry added to `migration_plan.md`. |
+| P3-I3 | Delete the emptied `docs/4-architecture/features/009/legacy/<old-id>/` directories and log the removals + command outputs in `_current-session.md`. | Ivan | Completed | Legacy tree removed and `_current-session.md` notes the command. |
 | P3-I4 | Once all features 009–013 absorb their legacy content, rerun `./gradlew --no-daemon spotlessApply check` and log the result alongside the Batch P3 Phase 2 entry; capture any follow-ups before handing off. | Ivan | Pending | Deferred until the remaining features finish their rewrites. |
 
 ## Scenario Tracking
@@ -63,7 +63,7 @@ and JS harness tests) under Feature 009 so future batches can evolve concrete 
 ## Assumptions & Risks
 - Legacy specs dot the landscape (017/020/021/025/033–038/041); this rewrite assumes no new functional details exist outside these folders.
 - Node harness/Gradle integration must stay deterministic; flaky JS suites would block the gate & require follow-up documentation.
-- Deleting the `legacy/` folders before verifying the content migrated would harm auditability; log the deletions in `_current-session.md` and `migration_plan.md` immediately after removal.
+- Deleting the `legacy/` folders before verifying the content migrated would harm auditability; log the deletions in `_current-session.md` immediately after removal.
 - Trace tiers and Base32 helpers must keep telemetry sanitised; any regression in `TelemetryContracts` (e.g., leaking secrets) is a high-risk failure.
 
 ## Quality & Tooling Gates
@@ -76,7 +76,7 @@ and JS harness tests) under Feature 009 so future batches can evolve concrete 
 - `./gradlew --no-daemon pmdMain pmdTest`
 
 ## Analysis Gate
-Run `docs/5-operations/analysis-gate-checklist.md` after the spec/plan/tasks mention Feature 009 as the single console owner, all scenarios trace to requirements, and `_current-session.md`/`migration_plan.md` log the directory removals.
+Run `docs/5-operations/analysis-gate-checklist.md` after the spec/plan/tasks mention Feature 009 as the single console owner, all scenarios trace to requirements, and `_current-session.md` logs the directory removals.
 
 ## Implementation Drift Gate
 Before closing this feature, confirm every FR/NFR (FR-009-01..FR-009-10, NFR-009-01..NFR-009-05) maps to code/tests (console shell, info drawer, presets, validation helper, verbose traces/tiers, Base32 inputs, preview windows, JS harness). Capture the drift report inside this plan once the gate runs.
@@ -89,4 +89,4 @@ Before closing this feature, confirm every FR/NFR (FR-009-01..FR-009-10, NFR-009
 
 ## Follow-ups
 - Repeat this legacy absorption process for Features 010–013 so their specs/plans/tasks become authoritative and the remaining `legacy/` trees are removed.
-- After all features migrate, rerun `./gradlew --no-daemon spotlessApply check`, log the Batch P3 Phase 2 result in `docs/migration_plan.md`, and update `_current-session.md` before handing off.
+- After all features migrate, rerun `./gradlew --no-daemon spotlessApply check`, log the Batch P3 Phase 2 result in `_current-session.md`, and update the session snapshot before handing off.

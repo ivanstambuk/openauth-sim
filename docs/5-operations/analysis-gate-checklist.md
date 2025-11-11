@@ -30,7 +30,7 @@ Use this checklist after a feature's specification, plan, and tasks exist but be
 6. **Tooling readiness**
    - [ ] Commands (`./gradlew spotlessApply check`) documented for the feature plan or runbook.
    - [ ] SpotBugs dead-state detectors (Feature 013 – Toolchain & Quality Platform) noted, including the module command used to validate `URF/UWF/UUF/NP` findings.
-   - [ ] Governance requirements from Feature 011 are satisfied: hook guard output logged (`git config core.hooksPath`), hook workflows referenced, and any mandated command logs stored in `_current-session.md` / `docs/migration_plan.md`.
+   - [ ] Governance requirements from Feature 011 are satisfied: hook guard output logged (`git config core.hooksPath`), hook workflows referenced, and mandated command logs stored in `_current-session.md`.
    - [ ] Analysis results recorded in the feature plan (copy this checklist with pass/fail notes).
 
 ## Implementation Drift Gate (Pre-Completion)

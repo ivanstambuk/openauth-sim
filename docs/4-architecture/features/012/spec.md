@@ -31,8 +31,7 @@ and operators can rely on a single governance source.
 - 2025-10-18/19 – IDE warning remediation keeps unused locals out of persistence-related code by strengthening assertions,
   promoting DTOs, and exporting SpotBugs annotations without altering behaviour; `spotbugs-annotations` remains
   `compileOnlyApi` in `application`.
-- 2025-11-11 – Batch P3 relocates legacy Features 002/027/028 into this spec and requires `_current-session.md` plus
-  `docs/migration_plan.md` to capture every documentation move and verification command.
+- 2025-11-11 – Batch P3 relocates legacy Features 002/027/028 into this spec and requires `_current-session.md` to capture every documentation move and verification command.
 
 ## Goals
 - G-012-01 – Document the shared credential-store contract (profiles, cache settings, telemetry, maintenance helpers,
@@ -119,7 +118,7 @@ and operators can rely on a single governance source.
 - Roadmap, knowledge map, and architecture graph mention Feature 012 as the persistence/polishing owner.
 - How-to guides (`docs/2-how-to/configure-persistence-profiles.md`, credential store maintenance docs) describe profiles,
   defaults, maintenance commands, encryption toggles, and manual migration steps.
-- `_current-session.md` and `docs/migration_plan.md` log each documentation change + verification command.
+- `_current-session.md` logs each documentation change + verification command.
 
 ## Spec DSL
 ```

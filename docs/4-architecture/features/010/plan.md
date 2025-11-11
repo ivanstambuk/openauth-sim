@@ -20,7 +20,7 @@ set with deterministic verification commands.
 - Keep roadmap, knowledge map, architecture graph, session log (docs/_current-session.md), and session quick reference aligned with documentation and
   automation changes.
 - Maintain the aggregated `qualityGate` task plus its CI workflow, report locations, skip flags, and troubleshooting guides.
-- Log every documentation/automation increment inside `_current-session.md` and `docs/migration_plan.md` with command history.
+- Log every documentation/automation increment inside `_current-session.md` with command history.
 
 _Out of scope:_ shipping runtime simulator changes, expanding the quality gate to non-OCRA modules, or introducing new
 publishing tooling.
@@ -51,8 +51,8 @@ publishing tooling.
 |-----------|--------|-------|--------|-------|
 | P3-I1 | Absorb the legacy operator documentation suite (Java/CLI/REST guides + README cross-links) into the consolidated spec. | Ivan | Completed | FR-010-01/02 captured from legacy Feature 007; spec now references guide paths and telemetry expectations. |
 | P3-I2 | Capture the quality automation charter (ArchUnit, Jacoco, PIT, aggregated `qualityGate`, CI workflow, troubleshooting docs). | Ivan | Completed | FR-010-04..09 + NFR entries incorporated from legacy Feature 008. |
-| P3-I3 | Remove `docs/4-architecture/features/010/legacy/{007,008}` after verifying the spec/plan/tasks contain the migrated content; log the deletion + command output in `_current-session.md` and `docs/migration_plan.md`. | Ivan | Completed | `rm -rf docs/4-architecture/features/010/legacy` executed and recorded; pending docs capture in session log (docs/_current-session.md)/session snapshot. |
-| P3-I4 | Record the Phase 2 summary (Feature 009–013) in `docs/migration_plan.md`, rerun `./gradlew --no-daemon spotlessApply check` (doc gate), and queue the final `qualityGate` run once Features 011–013 finish their rewrites. | Ivan | Pending | Requires remaining Batch P3 features to absorb their legacy content before executing the gate. |
+| P3-I3 | Remove `docs/4-architecture/features/010/legacy/{007,008}` after verifying the spec/plan/tasks contain the migrated content; log the deletion + command output in `_current-session.md`. | Ivan | Completed | `rm -rf docs/4-architecture/features/010/legacy` executed and recorded; pending docs capture in session log (docs/_current-session.md)/session snapshot. |
+| P3-I4 | Record the Phase 2 summary (Feature 009–013) inside `_current-session.md`, rerun `./gradlew --no-daemon spotlessApply check` (doc gate), and queue the final `qualityGate` run once Features 011–013 finish their rewrites. | Ivan | Pending | Requires remaining Batch P3 features to absorb their legacy content before executing the gate. |
 
 ## Scenario Tracking
 | Scenario | Description | Increment |
@@ -87,7 +87,7 @@ drift report inside this plan with links to verification commands.
 
 ## Exit Criteria
 - Feature 010 spec/plan/tasks fully describe the operator doc suite and quality automation guardrails (no `legacy/` references).
-- `docs/4-architecture/features/010/legacy/` removed and the deletion logged in `_current-session.md` + `docs/migration_plan.md`.
+- `docs/4-architecture/features/010/legacy/` removed and the deletion logged in `_current-session.md`.
 - Roadmap, knowledge map, architecture graph, session log (docs/_current-session.md), session quick reference, and `_current-session.md` cite Feature 010 for documentation and automation work.
 - `./gradlew --no-daemon spotlessApply check` recorded after the migration; final `qualityGate` queued once Features 011–013 integrate.
 

@@ -68,7 +68,7 @@ Feature 004 unifies the former WebAuthn assertion (legacy Feature 024) and attes
 - **REST:** `:rest-api:test --tests "io.openauth.sim.rest.Fido2*EndpointTest" --tests "io.openauth.sim.rest.OpenApiSnapshotTest" --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` validates controllers, OpenAPI snapshots, and operator Console Selenium flows.
 - **CLI:** `:cli:test --tests "*Fido2Cli*"` ensures maintenance commands (`evaluate`, `replay`, `seed`, `attest`, `attestReplay`, `seed-attestations`) trigger the correct services and telemetry.
 - **UI (JS / Selenium):** `node --test rest-api/src/test/javascript/emv/console.test.js` plus UI Selenium suites cover the evaluation/attestation panels, preset selectors, and trust-anchor metadata rendering.
-- **Docs / Contracts:** `./gradlew --no-daemon spotlessApply check` validates formatting, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` refreshes contract artifacts, and migration logs in `_current-session.md` and `docs/migration_plan.md` capture the verification milestones.
+- **Docs / Contracts:** `./gradlew --no-daemon spotlessApply check` validates formatting, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` refreshes contract artifacts, and `_current-session.md` captures the verification milestones.
 
 ## Interface & Contract Catalogue
 
@@ -135,7 +135,7 @@ Feature 004 unifies the former WebAuthn assertion (legacy Feature 024) and attes
 Every facade emits through `application.telemetry.TelemetryContracts`, reusing the hashed `credentialIdHash`, sanitized `trustAnchorId`, and explicit `scenarioId` so audit trails remain aligned even when CLI, REST, and UI clients revisit the same events. `fido2.evaluate`, `fido2.replay`, `fido2.attest`, and `fido2.attestReplay` all populate `mode`/`anchorSource` fields and avoid logging raw key material; instrumentation tests assert these shapes before the Increment Gate closes.
 
 ## Documentation Deliverables
-- Update `docs/4-architecture/roadmap.md`, `docs/4-architecture/knowledge-map.md`, `docs/migration_plan.md`, and `docs/_current-session.md` to describe the Feature 004 consolidation and the verification runs listed above.
+- Update `docs/4-architecture/roadmap.md`, `docs/4-architecture/knowledge-map.md`, and `docs/_current-session.md` to describe the Feature 004 consolidation and the verification runs listed above.
 - Refresh operator/CLI/REST how-to guides referencing WebAuthn fixtures, trust-anchor uploads, and CLI commands (`docs/2-how-to/`, `docs/3-reference/rest-openapi.*`).
 - Regenerate OpenAPI snapshots via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` and re-run `./gradlew --no-daemon spotlessApply check` as part of the batch gate.
 

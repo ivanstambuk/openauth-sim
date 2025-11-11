@@ -28,7 +28,7 @@ Checkstyle, gitleaks) that protects the OCRA stack and its supporting docs.
   cache hints so runtimes stay manageable (<10 minutes on developer laptops, comparable timing in CI).
 - 2025-11-11 – Batch P3 directs Feature 010 to absorb the legacy Feature 007/008 specs, plans, and tasks, remove the
   `legacy/` tree once the consolidated spec lands, and log the deletion plus verification commands inside
-  `docs/_current-session.md` and `docs/migration_plan.md`.
+  `docs/_current-session.md`.
 
 ## Goals
 - G-010-01 – Deliver accurate, runnable operator guides for Java/CLI/REST flows plus README cross-links that reflect the
@@ -50,14 +50,14 @@ Checkstyle, gitleaks) that protects the OCRA stack and its supporting docs.
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
 | FR-010-01 | Publish and maintain the operator doc suite (`docs/2-how-to/use-ocra-from-java.md`, `docs/2-how-to/use-ocra-cli-operations.md`, `docs/2-how-to/use-ocra-rest-operations.md`) with runnable snippets, telemetry expectations, and troubleshooting sections. | Operators follow prerequisites, copy commands, and reproduce OTP generation/replay flows without diving into source. | Spot-check snippets against the latest build; `./gradlew spotlessApply check` validates formatting; `_current-session.md` logs updates. | Outdated instructions block operators or contradict shipped behaviour. | No new telemetry; guides reference existing `core.ocra.*`, `cli.ocra.*`, `rest.ocra.*` frames. | Legacy Feature 007. |
 | FR-010-02 | Keep `README.md` and how-to landing pages focused on shipped functionality, include Swagger UI links, and cross-link the operator docs/quality-gate guidance. | README lists active simulators + `http://localhost:8080/swagger-ui/index.html`, points to how-to guides, and omits future/planned placeholders. | Manual review + linting; `_current-session.md` records diff summary. | README references stale content or omits critical docs. | None. | Legacy Feature 007. |
-| FR-010-03 | Synchronise roadmap, knowledge map, architecture graph, session quick reference, session log (docs/_current-session.md), and `_current-session.md` whenever documentation or automation scope changes. | Doc updates mention Feature 010; `_current-session.md` and `docs/migration_plan.md` log commands (moves, deletions, verification). | `rg "Feature 010"` across docs; reviewers confirm entries after each increment. | Cross-document drift forces manual archaeology. | None. | Goals G-010-02/03. |
+| FR-010-03 | Synchronise roadmap, knowledge map, architecture graph, session quick reference, and `_current-session.md` whenever documentation or automation scope changes. | Doc updates mention Feature 010; `_current-session.md` logs commands (moves, deletions, verification). | `rg "Feature 010"` across docs; reviewers confirm entries after each increment. | Cross-document drift forces manual archaeology. | None. | Goals G-010-02/03. |
 | FR-010-04 | Provide an aggregated Gradle task `./gradlew --no-daemon qualityGate` (with optional `-Ppit.skip=true`) that runs Spotless, Checkstyle, SpotBugs, ArchUnit, Jacoco aggregation, PIT mutation tests, and gitleaks in one command. | Running `qualityGate` locally matches CI output; reports land under `build/reports/quality/`, `build/reports/jacoco/aggregated/`, and `build/reports/pitest/`. | Observing Gradle output plus report folders; task wiring documented in plan/tasks. | Contributors must chain commands manually or miss required suites. | Build logs only; no runtime telemetry. | Legacy Feature 008. |
 | FR-010-05 | Enforce ArchUnit boundary rules that block CLI/REST/UI modules from touching `core` directly (outside the application seams). | Illegal dependencies break `qualityGate` with actionable messages. | ArchUnit tests seed forbidden imports; CI artifacts capture failures. | Architecture drift ships undetected. | None. | Legacy Feature 008. |
 | FR-010-06 | Maintain Jacoco aggregated coverage thresholds (≥90% line/branch) for OCRA code paths; failures block the gate until coverage is restored. | Jacoco reports meet thresholds locally and in CI; offenders listed when regressions occur. | Inspect `build/reports/jacoco/aggregated/index.html` + Gradle console when tests fail. | Coverage regressions pass unnoticed. | None. | Legacy Feature 008. |
 | FR-010-07 | Maintain PIT mutation score ≥85% for OCRA packages, surfaced via `qualityGate` with HTML reports for debugging. | PIT runs during the gate and exits non-zero when the score falls below 85%; skip flag `-Ppit.skip=true` documented for local triage. | Build output references `build/reports/pitest`; docs explain thresholds and skip usage. | Mutation regressions merge unnoticed or developers cannot triage failures. | None. | Legacy Feature 008. |
 | FR-010-08 | Ensure GitHub Actions runs the same `qualityGate` command (push + PR), caches Gradle/PIT/Jacoco artifacts, and uploads reports for auditing. | Workflow logs show identical command/flags; artifacts contain reports for inspection. | `.github/workflows/quality-gate.yml` (or successor) reviewed after edits; CI history tracked in `_current-session.md`. | Local and CI gates drift, causing false positives/negatives. | None. | Legacy Feature 008. |
 | FR-010-09 | Document gate usage, skip flags, report locations, and remediation steps in `docs/5-operations/session-quick-reference.md`, roadmap, knowledge map, and `_current-session.md`. | Contributors find the gate runbook quickly and follow remediation playbooks for ArchUnit/Jacoco/PIT failures. | `rg "qualityGate" docs/5-operations/session-quick-reference.md` etc.; doc reviews confirm instructions. | Gate failures lack guidance, delaying fixes. | None. | Legacy Feature 008. |
-| FR-010-10 | Log every documentation/automation migration in `_current-session.md` and `docs/migration_plan.md`, including commands executed (`rm -rf`, `spotlessApply`, `qualityGate`) and outstanding follow-ups. | Session log shows the command list + rationale; session log (docs/_current-session.md) includes Batch P3 entries for Feature 010. | Review `_current-session.md`, plan/tasks, and session log (docs/_current-session.md) while closing increments. | Auditors cannot trace what changed or which verification command ran. | None. | Goals G-010-02/04. |
+| FR-010-10 | Log every documentation/automation migration in `_current-session.md`, including commands executed (`rm -rf`, `spotlessApply`, `qualityGate`) and outstanding follow-ups. | Session log shows the command list + rationale; session log (docs/_current-session.md) includes Batch P3 entries for Feature 010. | Review `_current-session.md`, plan/tasks, and session log (docs/_current-session.md) while closing increments. | Auditors cannot trace what changed or which verification command ran. | None. | Goals G-010-02/04. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
@@ -89,7 +89,7 @@ Checkstyle, gitleaks) that protects the OCRA stack and its supporting docs.
   wall-clock time and report locations in plan/tasks.
 - **CI parity:** GitHub Actions workflow executes the same `qualityGate` command on push/PR and uploads Jacoco/PIT
   artifacts for audit.
-- **Logging:** `_current-session.md` records command output summaries; `docs/migration_plan.md` stores Batch P3 entries for Feature 010.
+- **Logging:** `_current-session.md` records command output summaries for Feature 010.
 
 ## Interface & Contract Catalogue
 ### Domain Objects
@@ -128,7 +128,7 @@ output, and the stored Jacoco/PIT/quality reports referenced above.
 - `docs/2-how-to/use-ocra-from-java.md`, `docs/2-how-to/use-ocra-cli-operations.md`, `docs/2-how-to/use-ocra-rest-operations.md` – operator
   guides kept current by this feature.
 - `README.md` – refreshed to reference only shipped functionality and entry points.
-- `docs/4-architecture/roadmap.md`, `docs/4-architecture/knowledge-map.md`, `docs/migration_plan.md`, `docs/_current-session.md`, and
+- `docs/4-architecture/roadmap.md`, `docs/4-architecture/knowledge-map.md`, `docs/_current-session.md`, and
   `docs/5-operations/session-quick-reference.md` – synchronized references + logging expectations for documentation and automation work.
 - `.github/workflows/quality-gate.yml` (or successor) – ensures CI parity for the quality gate.
 

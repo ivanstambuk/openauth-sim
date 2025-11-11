@@ -1,9 +1,39 @@
+# Implementation Roadmap
 
-- Consolidate features logically. I think we have too many and some may be combined. I don't want feature per change, rather feature should be standalone on its own merits.
-suggest an approach and give feedback on the idea.
-- 2025-11-11 – Renumbering Batch P1 complete: HOTP/TOTP/OCRA work now lives under Features 001/002/003 with their legacy specs preserved under each directory. Proceed to Batch P2 (WebAuthn + EMV/CAP + EUDIW) after verification notes land in `_current-session.md` and docs/migration_plan.md.
-- 2025-11-11 – Batch P2 redo: Features 004–006 now host the full WebAuthn, EMV/CAP, and OpenID4VP specs/plans/tasks inline (legacy Feature 024/026/039/040 content copied here 2025-11-11). Legacy directories are queued for deletion after spotless + targeted REST/UI verification, Features 007/008 remain placeholders for the upcoming mdoc/SIOPv2 simulators, and the migrated documentation/quality artifacts now live under `docs/4-architecture/features/010/legacy/007` and `docs/4-architecture/features/010/legacy/008` with Feature 010 owning their specification updates.
-- 2025-11-11 – Batch P3 kicked off: Feature 009 now consolidates the operator console scope (legacy Features 017/020/021/025/033–038/041 live under `docs/4-architecture/features/009/legacy/`). Next steps expand the same pattern to Features 010–013 before running the Batch P3 verification gate.
-- 2025-11-11 – Batch P3 doc/governance/toolchain migration in flight: Feature 010 now owns documentation & knowledge automation (legacy Features 007/008 archived under its `legacy/` folder), Feature 011 governs AGENTS/runbooks/hooks (legacy 019/032), Feature 012 centralises core cryptography & persistence docs (legacy 002/027/028), and Feature 013 aggregates toolchain + quality automation (legacy 010–015/029/030/031). Roadmap/knowledge-map/session quick reference now cite the refreshed ownership.
-- 2025-11-11 – Feature 011–013 cross-cutting sync: AGENTS, runbooks, constitution, analysis gate, knowledge map, architecture graph, and persistence how-to docs now point to `docs/4-architecture/features/011-013/{spec,plan,tasks}.md`, and the governance plan requires logging hook guard + spotless/qualityGate commands in `_current-session.md` and `docs/migration_plan.md`.
-- 2025-11-11 – Batch P3 Step 6 (global document sync): Roadmap, knowledge map, AGENTS, session quick reference, runbooks, and the impacted how-to guides now cite Features 009–013 as the canonical owners (operator console, documentation/knowledge automation, governance, persistence, and toolchain). `_current-session.md` and `docs/migration_plan.md` capture the command log while Step 7 (verification sweep) remains queued.
+_Last updated: 2025-11-11_
+
+This roadmap now mirrors the consolidated feature catalogue (001–013) plus the reserved placeholder slots for the next wave of work. Each feature row below maps directly to `docs/4-architecture/features/<NNN>/{spec,plan,tasks}.md`, keeping the roadmap aligned with the source documents instead of duplicating legacy numbering or migration callouts.
+
+## Guiding Principles
+
+- Specifications drive every increment; update the spec before refreshing plan/tasks or writing code.
+- Keep increments small and verifiable (≤90 minutes of planned effort) with `./gradlew spotlessApply check` after each slice.
+- Preserve traceability by logging hook guard + verification commands in `docs/_current-session.md`.
+
+## Consolidated Features (001–013)
+
+| ID | Name | Status | Scope Snapshot | References |
+|----|------|--------|----------------|------------|
+| 001 | HOTP Simulator & Tooling | Complete | RFC 4226 HOTP across core, application, CLI/REST, and operator console with telemetry parity. | [spec](features/001/spec.md) · [plan](features/001/plan.md) · [tasks](features/001/tasks.md) |
+| 002 | TOTP Simulator & Tooling | Complete | RFC 6238 TOTP flows (stored/inline/replay) plus fixtures, presets, and console helpers. | [spec](features/002/spec.md) · [plan](features/002/plan.md) · [tasks](features/002/tasks.md) |
+| 003 | OCRA Simulator & Replay | Complete | Unified OCRA domain, replay tooling, and UI/REST/CLI coverage replacing the legacy multi-feature set. | [spec](features/003/spec.md) · [plan](features/003/plan.md) · [tasks](features/003/tasks.md) |
+| 004 | FIDO2/WebAuthn Assertions & Attestations | Migrated (Batch P2) | Combined assertion + attestation simulator with deterministic fixtures, trust-anchor handling, and operator guidance. | [spec](features/004/spec.md) · [plan](features/004/plan.md) · [tasks](features/004/tasks.md) |
+| 005 | EMV/CAP Simulation Services | In review | End-to-end EMV CAP Identify/Respond/Sign flows with MapDB seeding, verbose traces, and operator presets. | [spec](features/005/spec.md) · [plan](features/005/plan.md) · [tasks](features/005/tasks.md) |
+| 006 | EUDIW OpenID4VP Simulator | Ready for implementation | HAIP-aligned remote OpenID4VP verifier/wallet simulator covering SD-JWT VCs and mdoc payloads. | [spec](features/006/spec.md) · [plan](features/006/plan.md) · [tasks](features/006/tasks.md) |
+| 007 | EUDIW mdoc PID Simulator | Placeholder | ISO/IEC 18013-5 mdoc PID wallet simulator sharing fixtures with Feature 006 (scope pending owner approval). | [spec](features/007/spec.md) · [plan](features/007/plan.md) · [tasks](features/007/tasks.md) |
+| 008 | EUDIW SIOPv2 Wallet Simulator | Placeholder | Deterministic SIOPv2 wallet experience for mixed SD-JWT + mdoc payloads across REST/CLI/UI. | [spec](features/008/spec.md) · [plan](features/008/plan.md) · [tasks](features/008/tasks.md) |
+| 009 | Operator Console Infrastructure | In migration (Batch P3) | Consolidates all operator-console UI work (tabs, verbose trace dock, fixture presets) under one governance hub. | [spec](features/009/spec.md) · [plan](features/009/plan.md) · [tasks](features/009/tasks.md) |
+| 010 | Documentation & Knowledge Automation | In migration (Batch P3) | Centralises docs/how-to automation, knowledge map upkeep, and documentation quality gates. | [spec](features/010/spec.md) · [plan](features/010/plan.md) · [tasks](features/010/tasks.md) |
+| 011 | Governance & Workflow Automation | In migration (Batch P3) | Owns AGENTS.md, constitution alignment, managed hooks, gitlint policy, and analysis-gate guidance. | [spec](features/011/spec.md) · [plan](features/011/plan.md) · [tasks](features/011/tasks.md) |
+| 012 | Core Cryptography & Persistence | In migration (Batch P3) | Shared persistence defaults, cache tuning, telemetry contracts, maintenance helpers, and encryption guidance. | [spec](features/012/spec.md) · [plan](features/012/plan.md) · [tasks](features/012/tasks.md) |
+| 013 | Toolchain & Quality Platform | In migration (Batch P3) | Aggregates CLI exit harnesses, reflection policy enforcement, quality gates, and Gradle/Spotless automation. | [spec](features/013/spec.md) · [plan](features/013/plan.md) · [tasks](features/013/tasks.md) |
+
+## Placeholder Queue (014+)
+
+The next wave of features keeps their numbering reserved so new specs can slot in without another renumbering effort.
+
+- **Features 014–018 – Credential expansion backlog.** These slots cover future credential families (for example, additional OTP profiles, passkey portability, or EMV follow-ons). When one of these efforts graduates from ideation, create `docs/4-architecture/features/014/` (or the matching ID) directly from the templates and capture the clarifications there; until then, record open questions or research stubs in `docs/4-architecture/open-questions.md` rather than a parking-lot directory.
+- **Features 019–022 – Next-gen simulator research.** Reserved for protocol simulators that extend beyond the current OTP/WebAuthn/EUDIW footprint. Seed notes via the same spec/plan/tasks pipeline once owners prioritise an item so the numbering remains contiguous without separate holding folders.
+- **Features 023+ – OCRA/legacy deep dives.** Historic artefacts that still require parity checks now live only in Git history; reintroduce them by authoring fresh specs under the next free feature ID instead of restoring the retired `ocra-simulator/` staging area.
+
+Update this document whenever a feature’s status changes or a placeholder graduates into an active spec so the roadmap always reflects the consolidated numbering scheme.

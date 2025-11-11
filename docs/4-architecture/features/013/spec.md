@@ -121,7 +121,7 @@ simulator’s tooling coherent.
 | ID | Artefact | Notes |
 |----|----------|-------|
 | DOC-013-01 | `docs/5-operations/analysis-gate-checklist.md` | References SpotBugs/PMD/reflection policies + verification commands.
-| DOC-013-02 | `docs/4-architecture/roadmap.md`, `docs/4-architecture/knowledge-map.md`, `docs/migration_plan.md` | Track toolchain ownership + migration notes.
+| DOC-013-02 | `docs/4-architecture/roadmap.md`, `docs/4-architecture/knowledge-map.md` | Track toolchain ownership + migration notes.
 | DOC-013-03 | `_current-session.md` | Logs commands for each toolchain increment.
 
 ## Documentation Deliverables

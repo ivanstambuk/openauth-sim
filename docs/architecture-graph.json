@@ -79,7 +79,7 @@
       "name": "Feature 011 – Governance",
       "observations": [
         "Spec/plan/tasks under docs/4-architecture/features/011 describe FR-011-01..08/NFR-011-01..05 covering AGENTS, constitution updates, runbooks, gitlint policies, Palantir formatter pin, and analysis-gate workflows.",
-        "Mandates logging hook guard commands (`git config core.hooksPath`, `githooks/pre-commit`, `githooks/commit-msg`) plus spotless/qualityGate runs in docs/_current-session.md and docs/migration_plan.md.",
+        "Mandates logging hook guard commands (`git config core.hooksPath`, `githooks/pre-commit`, `githooks/commit-msg`) plus spotless/qualityGate runs in docs/_current-session.md.",
         "Owns governance of managed hooks, gitlint, cache warm/retry behaviour, and documentation traceability requirements for Feature 011 increments." 
       ]
     },
@@ -98,7 +98,7 @@
       "observations": [
         "Aggregates CLI exit harness coverage, Maintenance CLI Jacoco buffer, reflection policy enforcement, Java 17 refactors, architecture harmonization, SpotBugs/PMD enforcement, and Gradle wrapper upgrades.",
         "Spec/plan/tasks under docs/4-architecture/features/013 enumerate the command suite (`./gradlew qualityGate`, Jacoco hotspots, `reflectionScan`, `spotbugsMain`, `pmdMain pmdTest`, wrapper --warning-mode sweeps) plus logging expectations.",
-        "Legacy toolchain directories were removed; verification commands now run as part of Batch P3 Phase 2 close-out with outputs recorded in docs/_current-session.md and docs/migration_plan.md." 
+        "Legacy toolchain directories were removed; verification commands now run as part of Batch P3 Phase 2 close-out with outputs recorded in docs/_current-session.md."
       ]
     },
     {

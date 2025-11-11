@@ -52,9 +52,9 @@ _Last updated:_ 2025-11-11
   _Notes:_ Document UI guidance in operator how-to docs.
 
 - [ ] **T-004-07 – Document & log the Feature 004 consolidation (I3).**  
-  _Intent:_ Refresh `docs/4-architecture/knowledge-map.md`, `docs/migration_plan.md`, and `_current-session.md` with the merged scope, verification commands, and hook guard output; ensure the feature plan/spec/tasks updates match the Consolidation Goal.  
+  _Intent:_ Refresh `docs/4-architecture/knowledge-map.md` and `_current-session.md` with the merged scope, verification commands, and hook guard output; ensure the feature plan/spec/tasks updates match the Consolidation Goal.  
   _Verification commands:_  
-  - `git config core.hooksPath` (log output in `_current-session.md` and `docs/migration_plan.md`)  
+- `git config core.hooksPath` (log output in `_current-session.md`)  
   - `./gradlew --no-daemon spotlessApply check`  
   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`  
   _Notes:_ Mention the Batch P2 redo verification runs (WebAuthn REST, EMV JS, Selenium, `:ui:test`).

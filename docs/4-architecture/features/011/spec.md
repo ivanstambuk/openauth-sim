@@ -27,7 +27,7 @@ runbooks they protect. No code changes ship in this migration; the goal is docum
 - 2025-10-19 – Palantir Java Format 2.78.0 is the canonical formatter across Spotless, hooks, IDE guidance, and repository
   lock files (120-character wrap, Java 17). The repository-wide reformat already landed; this spec records the policy.
 - 2025-11-11 – Batch P3 moves legacy Features 019/032 into this spec, removes the `legacy/` tree once absorbed, and requires
-  `_current-session.md` plus `docs/migration_plan.md` to log every governance change and verification command.
+  `_current-session.md` to log every governance change and verification command.
 
 ## Goals
 - G-011-01 – Keep AGENTS.md, session quick references, runbooks, and the constitution aligned with Feature 011 so new agents
@@ -37,7 +37,7 @@ runbooks they protect. No code changes ship in this migration; the goal is docum
 - G-011-03 – Preserve Palantir formatter adoption guidance (Spotless config, dependency locks, IDE setup, reformat history)
   so automated formatting stays deterministic.
 - G-011-04 – Ensure analysis-gate execution, hook verification, and doc migrations remain auditable via
-  `_current-session.md`, migration-plan entries, and recorded commands.
+  `_current-session.md` and recorded commands.
 
 ## Non-Goals
 - Editing hook scripts, Gradle configs, or formatter versions in this documentation-only increment.
@@ -54,7 +54,7 @@ runbooks they protect. No code changes ship in this migration; the goal is docum
 | FR-011-05 | Analysis gate usage (`docs/5-operations/analysis-gate-checklist.md`) is documented in plan/tasks with instructions to log when the gate runs, what it covered, and resulting follow-ups. | Plan/tasks link to the checklist; `_current-session.md` records gate executions. | Doc review; session log entries. | Analysis gates skipped or untracked. | None. | Goals G-011-04.
 | FR-011-06 | Spotless configuration, version catalog, and dependency locks pin Palantir Java Format 2.78.0; the spec documents repo-wide reformat expectations and IDE setup. | `build.gradle.kts` uses `palantirJavaFormat("2.78.0")`; locks reference Palantir artifacts; docs explain IDE steps. | `rg "palantir" build.gradle.kts gradle/libs.versions.toml githooks -n`; plan/tasks mention command history. | Formatter drift or conflicting instructions. | None. | Legacy Feature 032.
 | FR-011-07 | Managed hooks, runbooks, and README/CONTRIBUTING references mention Palantir formatting, rebase guidance, and cite the `./gradlew --no-daemon spotlessApply check` command required after doc/code changes. | `rg "Palantir" AGENTS.md CONTRIBUTING.md githooks -n` shows updated instructions; doc lint passes. | Manual review + spotless. | Contributors follow stale google-java-format guidance. | None. | Legacy Feature 032.
-| FR-011-08 | `_current-session.md` and `docs/migration_plan.md` log every governance change, including commands executed (`git config core.hooksPath`, `githooks/...`, `spotlessApply check`, repo reformat) and outstanding follow-ups/backlog items. | Session snapshot + session log (docs/_current-session.md) list each governance increment, command, and pending action. | Review logs after each increment. | Auditors cannot trace changes or verification commands. | None. | Goals G-011-04.
+| FR-011-08 | `_current-session.md` logs every governance change, including commands executed (`git config core.hooksPath`, `githooks/...`, `spotlessApply check`, repo reformat) and outstanding follow-ups/backlog items. | Session snapshot + session log (docs/_current-session.md) list each governance increment, command, and pending action. | Review logs after each increment. | Auditors cannot trace changes or verification commands. | None. | Goals G-011-04.
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
@@ -63,7 +63,7 @@ runbooks they protect. No code changes ship in this migration; the goal is docum
 | NFR-011-02 | Pre-commit runtime ≤30 s and commit-msg gitlint runtime ≤2 s on reference hardware; failures log actionable retry output. | Developer ergonomics | Hook log timestamps captured during dry runs. | githooks, Gradle wrapper, gitlint. | Legacy Feature 019.
 | NFR-011-03 | Deterministic formatting: Palantir version pin + locks guarantee identical results locally/CI. | Build reproducibility | `rg "palantirJavaFormat"` diff shows single version; lockfiles reviewed after updates. | Spotless, Gradle lockfiles. | Legacy Feature 032.
 | NFR-011-04 | CI mirrors local governance checks: gitlint job, Palantir formatting, and hook-equivalent Gradle commands must run in workflows. | CI parity | GitHub workflow logs show gitlint + Spotless runs; failures block merges. | `.github/workflows/**`. | Legacy Feature 019/032.
-| NFR-011-05 | Governance actions remain auditable: `_current-session.md` + session log (docs/_current-session.md) entries include command history, runtimes, and follow-ups for each increment. | Traceability | Logs updated per increment; reviewers verify before closing tasks. | `_current-session.md`, docs/migration_plan.md. | Goals G-011-04.
+| NFR-011-05 | Governance actions remain auditable: `_current-session.md` + session log (docs/_current-session.md) entries include command history, runtimes, and follow-ups for each increment. | Traceability | Logs updated per increment; reviewers verify before closing tasks. | `_current-session.md`. | Goals G-011-04.
 
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |
@@ -84,7 +84,7 @@ runbooks they protect. No code changes ship in this migration; the goal is docum
 - **Formatter policy:** `./gradlew --no-daemon --write-locks spotlessApply check` when updating locks; inspect diffs to verify
   Palantir artifacts only.
 - **CI parity:** Observe gitlint + Spotless steps in GitHub Actions logs whenever governance docs change.
-- **Logging:** Append executed commands and outcomes to `_current-session.md` and `docs/migration_plan.md` per increment.
+- **Logging:** Append executed commands and outcomes to `_current-session.md` per increment.
 
 ## Interface & Contract Catalogue
 ### Domain Objects
@@ -114,7 +114,7 @@ runbooks they protect. No code changes ship in this migration; the goal is docum
 - `AGENTS.md`, `docs/5-operations/runbook-session-reset.md`, `docs/5-operations/session-quick-reference.md`, and
   `docs/6-decisions/project-constitution.md` reference Feature 011 for governance.
 - `docs/5-operations/analysis-gate-checklist.md` cross-links Feature 011 when recording gate usage.
-- `_current-session.md` + `docs/migration_plan.md` log commands/deletions/verification runs for governance increments.
+- `_current-session.md` logs commands/deletions/verification runs for governance increments.
 - CONTRIBUTING/README sections describe gitlint + Palantir policies and command sequences.
 
 ## Spec DSL

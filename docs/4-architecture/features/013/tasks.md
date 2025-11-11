@@ -12,13 +12,13 @@ _Last updated:_ 2025-11-11
   - _Intent:_ Keep execution playbooks and backlog explicit for future agents.
   - _Verification commands:_ `rg "P3-I" docs/4-architecture/features/013/plan.md`, `rg "T-013" docs/4-architecture/features/013/tasks.md`.
   - _Notes:_ Include reminders to log wrapper updates and quality-gate runs in `_current-session.md`.
-- [x] T-013-03 – Remove `docs/4-architecture/features/013/legacy/` after review; log `rm -rf …`, `ls docs/4-architecture/features/013`, and queued verification commands (spotless/qualityGate) in `_current-session.md` + `docs/migration_plan.md`.
+- [x] T-013-03 – Remove `docs/4-architecture/features/013/legacy/` after review; log `rm -rf …`, `ls docs/4-architecture/features/013`, and queued verification commands (spotless/qualityGate) in `_current-session.md`.
   - _Intent:_ Complete the legacy absorption with audit logs.
   - _Verification commands:_ `rm -rf docs/4-architecture/features/013/legacy`, `ls docs/4-architecture/features/013`.
   - _Notes:_ Mention pending spotless/qualityGate reruns for Phase 2 close-out.
 - [x] T-013-04 – Update roadmap/knowledge map/architecture graph/session log (docs/_current-session.md) with toolchain ownership and verification notes; queue final `./gradlew --no-daemon spotlessApply check` + `./gradlew --no-daemon qualityGate` after Feature 013 migration completes.
   - _Intent:_ Keep cross-cutting docs synchronized and prep the Phase 2 close-out commands.
-  - _Verification commands:_ `rg "Feature 013" docs/4-architecture/roadmap.md docs/4-architecture/knowledge-map.md docs/migration_plan.md` (2025-11-11), `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`.
+  - _Verification commands:_ `rg "Feature 013" docs/4-architecture/roadmap.md docs/4-architecture/knowledge-map.md` (2025-11-11), `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`.
   - _Notes:_ Command outputs recorded in `_current-session.md`; session log (docs/_current-session.md) now includes the Batch P3 Phase 2 verification log.
 
 ### Legacy Coverage Checklist
@@ -32,7 +32,7 @@ _Last updated:_ 2025-11-11
   - _Notes:_ Logged in `_current-session.md` and referenced by the Batch P3 Phase 2 session log (docs/_current-session.md) entry.
 
 ## Verification Log
-- 2025-11-11 – `rg "Feature 013" docs/4-architecture/roadmap.md docs/4-architecture/knowledge-map.md docs/migration_plan.md`
+- 2025-11-11 – `rg "Feature 013" docs/4-architecture/roadmap.md docs/4-architecture/knowledge-map.md`
 - 2025-11-11 – `./gradlew --no-daemon spotlessApply check`
 - 2025-11-11 – `./gradlew --no-daemon qualityGate`
 

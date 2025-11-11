@@ -12,14 +12,14 @@ _Last updated:_ 2025-11-11
   - _Intent:_ Align plan/tasks with the consolidated scope and embed the commands that must be logged per increment.
   - _Verification commands:_ `rg "P3-I" docs/4-architecture/features/012/plan.md`, `rg "T-012" docs/4-architecture/features/012/tasks.md`.
   - _Notes:_ Ensure roadmap/knowledge map sync + `_current-session.md` logging are called out explicitly.
-- [x] T-012-03 – Remove `docs/4-architecture/features/012/legacy/` after reviewing the merged content; log `rm -rf …` + `ls` output in `_current-session.md` and `docs/migration_plan.md`.
+- [x] T-012-03 – Remove `docs/4-architecture/features/012/legacy/` after reviewing the merged content; log `rm -rf …` + `ls` output in `_current-session.md`.
   - _Intent:_ Finish the legacy absorption with a documented audit trail.
   - _Verification commands:_ `rm -rf docs/4-architecture/features/012/legacy`, `ls docs/4-architecture/features/012`.
-  - _Notes:_ Record the command list plus spotless run in both logs.
+  - _Notes:_ Record the command list plus spotless run in the session log.
 - [x] T-012-04 – Sync roadmap/knowledge map/architecture graph/how-to docs with the consolidated persistence story and log verification commands.
   - _Intent:_ Keep cross-cutting artefacts consistent and document the commands used (e.g., `rg credentials.db`, `spotlessApply`).
   - _Verification commands:_ `rg "credentials.db" docs` (2025-11-11), doc edits, and `./gradlew --no-daemon spotlessApply check` (captured with the governance/toolchain sweep).
-  - _Notes:_ Updates + command outputs recorded in `_current-session.md` and `docs/migration_plan.md` (Batch P3 Phase 2 entries).
+  - _Notes:_ Updates + command outputs recorded in `_current-session.md` (Batch P3 Phase 2 entries).
 
 ### Legacy Coverage Checklist
 - [x] T-012-L1 – Feature 002 (deployment profiles + telemetry contracts).

@@ -55,7 +55,7 @@ continues.
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-009-01 | Documentation traceability | Keep spec/plan/tasks linked to the console GH fragments, knowledge map, and session log (docs/_current-session.md) so auditors can track the renumbering. | Verified links + `_current-session.md` notes per increment. | docs/migration_plan.md, knowledge map, roadmap. | Constitution Principle 4 + Migration directive |
+| NFR-009-01 | Documentation traceability | Keep spec/plan/tasks linked to the console GH fragments, knowledge map, and session log (docs/_current-session.md) so auditors can track the renumbering. | Verified links + `_current-session.md` notes per increment. | Knowledge map, roadmap. | Constitution Principle 4 + Migration directive |
 | NFR-009-02 | Telemetry hygiene | Secrets or Base32 strings must never appear in structured logs; trace tiers mask attributes accordingly. | ArchUnit/telemetry guardrails + code review. | `TelemetryContracts`, masked logging helpers. | 036, 037, Constitution |
 | NFR-009-03 | Quality gate parity | `./gradlew --no-daemon spotlessApply check`, all JVM `:rest-api`/`:application`/`:cli`/`:ui` suites, Node harness, and PMD/Spotless must stay green. | Command logs recorded in `_current-session.md`. | Gradle toolchain, Node environment. | Constitution Principle 3 |
 | NFR-009-04 | Accessibility | Tablist focus, Info drawer, validation messaging, and preview accent styling meet WCAG/keyboard expectations. | Selenium/axe audits + manual review. | Thymeleaf templates, CSS tokens. | 020, 021, 034, 038 |
@@ -146,7 +146,7 @@ continues.
 Continue emitting `operator.console.*` frames through `TelemetryContracts` adapters. Verbose trace tiers emit `telemetry.trace.filtered`/`invalid_tier`, and preview telemetry uses `otp.evaluate.preview*`. The `build.console_js.test` event remains optional but available for monitoring the JS harness.
 
 ## Documentation Deliverables
-- Update `docs/4-architecture/roadmap.md`, `docs/4-architecture/knowledge-map.md`, and `docs/migration_plan.md` to describe the consolidated console scope (tabs, info drawer, trace tiers, Base32, preview windows, and JS harness).
+- Update `docs/4-architecture/roadmap.md` and `docs/4-architecture/knowledge-map.md` to describe the consolidated console scope (tabs, info drawer, trace tiers, Base32, preview windows, and JS harness).
 - Record the migration progress (deleted legacy directories, verification commands, and Phase 2 flag) inside `docs/_current-session.md`.
 - Align operator how-to guides (`docs/2-how-to/*.md`) and runbooks with the new spec, including Base32 instructions, trace usage, and console testing guidance.
 

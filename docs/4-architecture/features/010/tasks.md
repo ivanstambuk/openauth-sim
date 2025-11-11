@@ -17,15 +17,15 @@ _Last updated:_ 2025-11-11
 - [x] T-010-03 – Remove `docs/4-architecture/features/010/legacy/` after verifying the migration, then log `rm -rf ...` + `ls` output inside `_current-session.md`.
   - _Intent:_ Finish the legacy absorption and keep the deletion auditable.
   - _Verification commands:_ `rm -rf docs/4-architecture/features/010/legacy`, `ls docs/4-architecture/features/010`, append log to `_current-session.md`.
-  - _Notes:_ Migration plan must reference the removal in the Batch P3 Phase 2 section.
-- [x] T-010-04 – Update `docs/migration_plan.md` (Batch P3 Phase 2) and `_current-session.md` with the Feature 010 rewrite summary + verification commands.
+  - _Notes:_ Session snapshot must reference the removal in the Batch P3 Phase 2 section.
+- [x] T-010-04 – Update `_current-session.md` with the Feature 010 rewrite summary + verification commands (Batch P3 Phase 2).
   - _Intent:_ Preserve the audit trail for doc/automation changes.
-  - _Verification commands:_ `rg "Batch P3" docs/migration_plan.md`, `rg "Feature 010" docs/_current-session.md`, `./gradlew --no-daemon spotlessApply check` (doc gate) once entries land.
+  - _Verification commands:_ `rg "Batch P3" docs/_current-session.md`, `./gradlew --no-daemon spotlessApply check` (doc gate) once entries land.
   - _Notes:_ Include command list (spec rewrite, legacy deletion, spotless/quality gate status) in the session snapshot.
 - [x] T-010-05 – Stage the final Phase 2 gate (pending Features 011–013) by documenting the required commands.
   - _Intent:_ Remind future agents to rerun `./gradlew --no-daemon spotlessApply check` and `./gradlew --no-daemon qualityGate` when Batch P3 rewrites conclude.
-  - _Verification commands:_ Documentation updates + references in plan/tasks/migration log (2025-11-11) enumerating the gate commands and runtime expectations (<5 min for spotless, <10 min for qualityGate).
-  - _Notes:_ `_current-session.md` and `docs/migration_plan.md` now mention the pending gate; rerun the commands once Features 011–013 complete.
+  - _Verification commands:_ Documentation updates + references in plan/tasks/session log (2025-11-11) enumerating the gate commands and runtime expectations (<5 min for spotless, <10 min for qualityGate).
+  - _Notes:_ `_current-session.md` now mentions the pending gate; rerun the commands once Features 011–013 complete.
 
 ### Legacy Coverage Checklist
 - [x] T-010-L1 – Feature 007 (operator guides + README cross-links).

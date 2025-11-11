@@ -31,7 +31,7 @@ _Out of scope:_ Executing the verification suites during this documentation-only
 | `config/spotbugs/dead-state-include.xml`, `config/pmd/ruleset.xml`, `config/pmd/law-of-demeter-excludes.txt` | Shared static-analysis config referenced by the spec. |
 | `gradle/wrapper/gradle-wrapper.properties`, `gradle/libs.versions.toml` | Record Gradle 9/pugin versions. |
 | `docs/5-operations/analysis-gate-checklist.md`, `docs/5-operations/session-quick-reference.md`, `AGENTS.md` | Reference reflection policy, sealed hierarchies, and static-analysis expectations. |
-| `_current-session.md`, `docs/migration_plan.md`, roadmap, knowledge map, architecture graph | Receive updated toolchain ownership + command logs. |
+| `_current-session.md`, roadmap, knowledge map, architecture graph | Receive updated toolchain ownership + command logs. |
 
 ## Legacy Integration Tracker
 | Legacy Feature(s) | Increment(s) | Status | Notes |
@@ -81,7 +81,7 @@ commands executed and any outstanding TODOs in `_current-session.md` and this pl
 - 2025-11-11 – Analysis gate rerun after roadmap/knowledge map/architecture graph/session log (docs/_current-session.md) updates referencing Feature 013.
   - Spec/plan/tasks alignment confirmed; outstanding backlog items remain tracked under Follow-ups.
   - Logged commands: `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index git read-tree --empty; GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit` (dry-run), `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`.
-  - `_current-session.md` + `docs/migration_plan.md` document the outcomes plus the initial malformed `spotlessApply check,workdir:` command that was rerun without the stray argument.
+- `_current-session.md` documents the outcomes plus the initial malformed `spotlessApply check,workdir:` command that was rerun without the stray argument.
 
 ## Implementation Drift Gate
 Once Batch P3 closes, verify that FR-013-01..10 and NFR-013-01..05 map to the archived plan/tasks, roadmap/knowledge map
