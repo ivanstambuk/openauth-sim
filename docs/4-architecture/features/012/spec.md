@@ -68,6 +68,45 @@ and operators can rely on a single governance source.
 | NFR-012-04 | IDE hygiene: persistence-related modules stay warning-free and SpotBugs annotations compile everywhere without extra dependencies. | Developer experience | IDE inspection snapshots + regression gate results recorded in plan/tasks. | application, core, cli, rest-api, ui modules. | Legacy Feature 028.
 | NFR-012-05 | Documentation traceability: roadmap/knowledge-map/architecture-graph entries reference Feature 012; `_current-session.md` logs verification commands. | Governance | Doc review + session snapshot before closing tasks. | docs hierarchy. | Goals G-012-04.
 
+## UI / Interaction Mock-ups
+
+### Persistence Profile Selector (UI-012-01)
+```
+┌────────────── Persistence Profiles ──────────────┐
+│ Active profile: [ FILE ▼ ]                       │
+│ Description  : File-backed MapDB (150k entries)  │
+│ Cache config : expire-after-write 10m            │
+│                                                  │
+│ Profile cards                                   │
+│  ┌──────────┬──────────┬──────────┐             │
+│  │IN_MEMORY │   FILE   │ CONTAINER│             │
+│  │hits 92%  │hits 95%  │hits 97%  │             │
+│  │cache 250k│cache 150k│cache 500k│             │
+│  └──────────┴──────────┴──────────┘             │
+│ Overrides                                        │
+│  Path         [ data/credentials.db        ]     │
+│  Encryption   (•) Off  ( ) AES-GCM              │
+│  Buttons: [Save overrides] [Reset to default]   │
+└──────────────────────────────────────────────────┘
+```
+
+### Maintenance Helper Logs (UI-012-02)
+```
+┌────────────── Maintenance Helper ────────────────┐
+│ Operation: [ Compact ▼ ]   Profile: FILE        │
+│ Status   : [ RUNNING ]                          │
+│                                                  │
+│ Log stream (auto-scroll)                         │
+│  12:30:01 start compact data/credentials.db      │
+│  12:30:04 flushing cache window (30k entries)    │
+│  12:30:10 compaction chunk 2/3 (progress bar)    │
+│  12:30:14 finished; duration 13.2s               │
+│  12:30:14 telemetry id → persistence.credential… │
+│                                                  │
+│ Footer: [Download log] [Copy telemetry id]       │
+└──────────────────────────────────────────────────┘
+```
+
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
@@ -100,12 +139,28 @@ and operators can rely on a single governance source.
 | DO-012-03 | `MaintenanceCommand` CLI wiring (compact, verify). | cli, rest-api (future) |
 | DO-012-04 | `PersistenceEncryption` interface (enable/disable AES-GCM at-rest). | infra-persistence |
 
+### API Routes / Services
+| ID | Method | Path | Description |
+|----|--------|------|-------------|
+| API-012-01 | GET | `/api/v1/persistence/profiles` | Lists deployment profiles, cache defaults, and override knobs for UI/CLI consumers. |
+| API-012-02 | POST | `/api/v1/persistence/cache/compact` | Triggers shared compaction helper; logs telemetry/maintenance events. |
+| API-012-03 | POST | `/api/v1/persistence/cache/verify` | Runs integrity checks, reports status codes, and emits maintenance telemetry. |
+| API-012-04 | GET | `/api/v1/persistence/credentials/default-path` | Returns the canonical `credentials.db` filename + override guidelines for docs. |
+
 ### CLI / Commands
 | ID | Command | Behaviour |
 |----|---------|-----------|
 | CLI-012-01 | `./gradlew --no-daemon :cli:run --args="maintenance compact"` (or equivalent helper script) | Triggers compaction via shared maintenance helper.
 | CLI-012-02 | `./gradlew --no-daemon :cli:run --args="maintenance verify"` | Runs integrity check; logs structured result.
 | CLI-012-03 | `./gradlew --no-daemon spotlessApply check` / `:infra-persistence:test` | Verification commands recorded after doc updates.
+
+### Telemetry Events
+| ID | Event | Fields / Notes |
+|----|-------|----------------|
+| TE-012-01 | `persistence.credential.lookup` | `storeProfile`, `credentialNameHash`, `cacheHit`, `latencyMicros`, `redacted=true`. |
+| TE-012-02 | `persistence.credential.mutation` | Same fields plus `operation` (insert/update/delete). |
+| TE-012-03 | `persistence.credential.maintenance` | `operation` (compact/verify), `durationMicros`, `result`, `storeProfile`. |
+| TE-012-04 | `persistence.credential.profile.override` | Fired when `credentials.db` path or overrides change; includes `oldPath`, `newPath`, `owner`. |
 
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
@@ -114,11 +169,29 @@ and operators can rely on a single governance source.
 | FX-012-02 | `data/credentials.db` | Unified default path referenced in docs/tests.
 | FX-012-03 | Performance benchmark notes (appendix referenced from plan) | Record throughput/P99 measurements.
 
+### UI States
+| ID | State | Trigger / Expected outcome |
+|----|-------|---------------------------|
+| UI-012-01 | Persistence profile selector open | Admin UI, CLI docs, or README shows profile cards with cache/default descriptions (triggered via `/persistence/profiles`). |
+| UI-012-02 | Maintenance helper logs streaming | When `/persistence/cache/{compact,verify}` APIs run, UI/CLI output shows telemetry fields and allow download of reports. |
+
+## Telemetry & Observability
+
+Persistence telemetry uses the `TelemetryContracts` adapters so CLI/REST/UI logging stays consistent and secrets stay redacted:
+- `persistence.credential.lookup`/`mutation` events always include `storeProfile`, `credentialNameHash`, `cacheHit`, `latencyMicros`, and `redacted=true`; viewers compare them against benchmark targets and guard approver notes.
+- Maintenance helpers emit `persistence.credential.maintenance` (operation + duration + result) and `persistence.credential.profile.override` when `credentials.db` defaults change, ensuring audit trails for CLI/REST/Docs actions.
+- Telemetry contract tests (Core/Application) assert the fields, redaction flags, and optional `operation`/`result` combinations for success/failure branches before docs update; `docs/2-how-to` references these telemetry contracts to guide operator expectations.
+
 ## Documentation Deliverables
 - Roadmap, knowledge map, and architecture graph mention Feature 012 as the persistence/polishing owner.
 - How-to guides (`docs/2-how-to/configure-persistence-profiles.md`, credential store maintenance docs) describe profiles,
   defaults, maintenance commands, encryption toggles, and manual migration steps.
 - `_current-session.md` logs each documentation change + verification command.
+
+## Fixtures & Sample Data
+- `data/credentials.db` is the canonical default and appears in docs/test updates plus CLI/REST smoke tests.
+- `docs/test-vectors/ocra/` credential-store snapshots power cache tuning and maintenance regression suites, ensuring consistent fixture states.
+- Performance benchmark notes (see Feature 012 plan appendix) capture throughput/P99 metrics referenced by the documentation.
 
 ## Spec DSL
 ```
@@ -163,12 +236,40 @@ cli_commands:
     command: gradlew cli:run --args="maintenance compact"
   - id: CLI-012-02
     command: gradlew cli:run --args="maintenance verify"
+  - id: CLI-012-03
+    command: gradlew :cli:run --args="persistence profiles"
+routes:
+  - id: API-012-01
+    method: GET
+    path: /api/v1/persistence/profiles
+  - id: API-012-02
+    method: POST
+    path: /api/v1/persistence/cache/compact
+  - id: API-012-03
+    method: POST
+    path: /api/v1/persistence/cache/verify
+  - id: API-012-04
+    method: GET
+    path: /api/v1/persistence/credentials/default-path
 telemetry_events:
   - id: TE-012-01
     event: persistence.credential.lookup
   - id: TE-012-02
     event: persistence.credential.mutation
+  - id: TE-012-03
+    event: persistence.credential.maintenance
+  - id: TE-012-04
+    event: persistence.credential.profile.override
 fixtures:
   - id: FX-012-01
     path: data/credentials.db
+  - id: FX-012-02
+    path: docs/test-vectors/ocra/
+  - id: FX-012-03
+    path: docs/4-architecture/features/012/plan.md
+ui_states:
+  - id: UI-012-01
+    description: Persistence profile selector open.
+  - id: UI-012-02
+    description: Maintenance helper logs streaming.
 ```

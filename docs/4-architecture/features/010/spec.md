@@ -99,7 +99,9 @@ Checkstyle, gitleaks) that protects the OCRA stack and its supporting docs.
 | DO-010-02 | `QualityGateConfig` (thresholds, skip flags, report locations) stored in Gradle extensions/properties. | build logic |
 
 ### API Routes / Services
-_None – documentation and build automation only._
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| API-010-NA | n/a | Documentation-only scope; no REST/CLI services originate from this feature. | Reference existing simulator APIs as needed. |
 
 ### CLI Commands / Flags
 | ID | Command | Behaviour |
@@ -108,7 +110,9 @@ _None – documentation and build automation only._
 | CLI-010-02 | `./gradlew --no-daemon qualityGate [-Ppit.skip=true]` | Runs the aggregated quality automation gate locally/CI. |
 
 ### Telemetry Events
-_No new telemetry events; docs reference existing `core.ocra.*`, `cli.ocra.*`, and `rest.ocra.*` frames plus verbose trace options._
+| ID | Event name | Notes |
+|----|-----------|-------|
+| TE-010-NA | n/a | Documentation-only scope; relies on existing `core.ocra.*`, `cli.ocra.*`, and `rest.ocra.*` telemetry families. |
 
 ### Fixtures & Sample Data
 | ID | Path | Purpose |

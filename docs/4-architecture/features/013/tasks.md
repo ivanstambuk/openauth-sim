@@ -3,6 +3,9 @@
 _Status:_ In migration (Batch P3)  
 _Last updated:_ 2025-11-11
 
+> Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
+> When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
+
 ## Checklist
 - [x] T-013-01 – Merge legacy toolchain specs (Features 010–015/029/030/031) into the consolidated spec.
   - _Intent:_ Capture CLI exit harness, Maintenance coverage buffer, reflection policy, Java 17 refactor notes, architecture harmonization, SpotBugs/PMD enforcement, Gradle upgrades, and legacy-entry removal requirements plus verification commands.
@@ -21,16 +24,6 @@ _Last updated:_ 2025-11-11
   - _Verification commands:_ `rg "Feature 013" docs/4-architecture/roadmap.md docs/4-architecture/knowledge-map.md` (2025-11-11), `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`.
   - _Notes:_ Command outputs recorded in `_current-session.md`; session log (docs/_current-session.md) now includes the Batch P3 Phase 2 verification log.
 
-### Legacy Coverage Checklist
-- [x] T-013-L1 – Features 010/011/012/013/014/015 (CLI harness, maintenance buffers, reflection policy).
-  - _Intent:_ Ensure FR-013-01..06 and NFR-013-02/03 memorialize the CLI exit harness, maintenance CLI coverage buffer, reflection ban, and wrapper guidance migrated from these features.
-  - _Verification commands:_ `./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"`, `./gradlew --no-daemon qualityGate`, `./gradlew --no-daemon reflectionScan`.
-  - _Notes:_ `_current-session.md` entries from 2025-11-11 capture the command outputs tied to P3-I1/P3-I2.
-- [x] T-013-L2 – Features 029/030/031 (toolchain automation + quality gates).
-  - _Intent:_ Confirm FR-013-07..09 and NFR-013-01/04/05 represent the PMD/SpotBugs/pmdMain/pmdTest orchestration, configuration-cache requirements, and CI parity from these features.
-  - _Verification commands:_ `./gradlew --no-daemon pmdMain pmdTest`, `./gradlew --no-daemon spotbugsMain`, `./gradlew --no-daemon qualityGate`.
-  - _Notes:_ Logged in `_current-session.md` and referenced by the Batch P3 Phase 2 session log (docs/_current-session.md) entry.
-
 ## Verification Log
 - 2025-11-11 – `rg "Feature 013" docs/4-architecture/roadmap.md docs/4-architecture/knowledge-map.md`
 - 2025-11-11 – `./gradlew --no-daemon spotlessApply check`
@@ -40,3 +33,5 @@ _Last updated:_ 2025-11-11
 - Track Maintenance CLI coverage buffer restoration and spotbugs/pmd follow-ups once tooling work resumes.
 - Capture wrapper upgrade cadence + warning-mode sweeps each time Gradle versions bump.
 - Consider adding automation to block `legacyEmit` or router shim regressions.
+- Legacy Coverage – T-013-L1 (Features 010/011/012/013/014/015 CLI harness, maintenance buffers, reflection policy). _Intent:_ Ensure FR-013-01..06 and NFR-013-02/03 memorialize the CLI exit harness, maintenance CLI coverage buffer, reflection ban, and wrapper guidance migrated from these features. _Verification commands:_ `./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"`, `./gradlew --no-daemon qualityGate`, `./gradlew --no-daemon reflectionScan`. _Notes:_ `_current-session.md` entries from 2025-11-11 capture the command outputs tied to P3-I1/P3-I2.
+- Legacy Coverage – T-013-L2 (Features 029/030/031 toolchain automation + quality gates). _Intent:_ Confirm FR-013-07..09 and NFR-013-01/04/05 represent the PMD/SpotBugs/pmdMain/pmdTest orchestration, configuration-cache requirements, and CI parity from these features. _Verification commands:_ `./gradlew --no-daemon pmdMain pmdTest`, `./gradlew --no-daemon spotbugsMain`, `./gradlew --no-daemon qualityGate`. _Notes:_ Logged in `_current-session.md` and referenced by the Batch P3 Phase 2 session log (docs/_current-session.md) entry.

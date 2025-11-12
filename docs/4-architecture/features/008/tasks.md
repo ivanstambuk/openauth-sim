@@ -1,12 +1,12 @@
 # Feature 008 Tasks – EUDIW SIOPv2 Wallet Simulator
 
-| Field | Value |
-|-------|-------|
-| Status | Placeholder |
-| Last updated | 2025-11-11 |
-| Linked plan | `docs/4-architecture/features/008/plan.md` |
+_Status: Placeholder_  
+_Last updated: 2025-11-11_
 
-> Track each increment’s verification commands and notes.
+> Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
+> When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
+
+Linked plan: `docs/4-architecture/features/008/plan.md`
 
 ## Checklist
 - [ ] T-008-01 – Authorization parsing + consent summary
@@ -29,5 +29,5 @@
 ## Verification Log
 _Pending._
 
-## Notes
+## Notes / TODOs
 - Legacy OCRA quality automation tasks preserved under `docs/4-architecture/features/new-010/legacy/008/`.

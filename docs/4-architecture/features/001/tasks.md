@@ -3,7 +3,8 @@
 _Status: Complete_  
 _Last updated: 2025-11-10_
 
-> Tasks are recorded with verification commands for future reference; each originally stayed ≤30 minutes and staged tests first.
+> Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
+> When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
 
 ## Checklist
 - [x] T-001-01 – Add failing HOTP generator/validator tests with RFC 4226 vectors (S-001-01, FR-001-01).  

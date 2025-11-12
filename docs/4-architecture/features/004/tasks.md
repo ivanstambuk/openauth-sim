@@ -3,7 +3,8 @@
 _Status:_ Migrated (Batch P2)  
 _Last updated:_ 2025-11-11
 
-> Keep this checklist aligned with the feature plan increments and capture each verification command alongside its task. Stage tests (intent, command, exit criteria) before implementation and log long-running suites in the verification log below.
+> Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
+> When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
 
 ## Checklist
 - [ ] **T-004-01 – Stage core assertion evaluation & replay tests (FR-004-01, FR-004-02, S-004-01).**  

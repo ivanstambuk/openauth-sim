@@ -32,8 +32,8 @@ _Renumbering note:_ Batch P2 migrated this plan from Feature 040. The legacy
 - **Fixture authenticity**: clearly label synthetic vs conformance vectors; maintain provenance metadata to prevent confusion.  
 - **Telemetry privacy**: review event payloads for PII; add regression tests ensuring redaction toggles work.
 
-## Implementation Drift Gate (Pending)
-- Trigger when T-040-01–T-040-23 plus deferred follow-ups under this plan reach ✅ and the full Gradle stack is green.
+## Implementation Drift Gate
+- **Status:** Pending – trigger when T-040-01–T-040-23 plus deferred follow-ups reach ✅ and the full Gradle stack is green.
 - Evidence package:
   - Map every FR/NFR and scenario ID to code/test references inside an appendix table stored with this plan (re-use the Scenario Tracking grid as the source of truth, add code pointers).
   - Attach screenshots or JSON snippets for telemetry/trace parity (REST/CLI/UI) to demonstrate sanitized fields, hashed payloads, and Trusted Authority verdict alignment.
@@ -102,12 +102,8 @@ _Renumbering note:_ Batch P2 migrated this plan from Feature 040. The legacy
 | S-040-10 | I0, I6 | Trusted Authority metadata + telemetry redaction. |
 | S-040-11 | S7 | Multi-presentation result cards + trace IDs. |
 
-## Quality & Tooling Gates
-- Run `./gradlew --no-daemon spotbugsMain spotbugsTest` after changes to enforce the Feature 015 dead-state detectors (`URF`, `UWF`, `UUF`, `NP`) across modules touched during the increment.  
-- Each increment concludes with `./gradlew --no-daemon spotlessApply check`; targeted module test commands remain listed with their tasks above.  
-- Capture telemetry payload diffs via existing snapshot tests and document any deviations before implementation continues.
-
-## Analysis Gate (2025-11-06)
+## Analysis Gate
+- **Completed:** 2025-11-06 – Specification, plan, and tasks alignment checkpoint before implementation resumed.  
 - ✅ Specification completeness – Overview, goals, requirements FR-040-01…FR-040-33 documented; clarifications up to 2025-11-01 captured; Operator UI ASCII mock-ups included.  
 - ✅ Open questions review – `docs/4-architecture/open-questions.md` has no entries for Feature 040.  
 - ✅ Plan alignment – Plan links to the Feature 040 spec/tasks and mirrors scope/dependencies noted in the specification.  
@@ -127,3 +123,5 @@ _Renumbering note:_ Batch P2 migrated this plan from Feature 040. The legacy
 - T-040-25 – OpenID4VCI issuance simulator alignment for end-to-end wallet journeys.
 - T-040-26 – Trusted Authorities expansion (live TL updates, OpenID Federation resolution).
 - T-040-27 – Reinstate JaCoCo branch threshold ≥0.70 after coverage stabilises.
+- Quality guardrail – After any plan/task/spec change, run `./gradlew --no-daemon spotbugsMain spotbugsTest` plus `./gradlew --no-daemon spotlessApply check`; document deviations before proceeding.
+- Telemetry snapshot note – Capture payload diffs via existing snapshot tests each increment so sanitisation regressions surface before implementation resumes.

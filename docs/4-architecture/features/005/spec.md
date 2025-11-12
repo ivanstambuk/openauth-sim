@@ -13,15 +13,6 @@
 Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors the reference calculator workflows while fitting the OpenAuth Simulator architecture. Scope now covers reusable core derivation utilities, application orchestration, REST and CLI facades, operator console integration, and MapDB-backed credential seeding so every surface can evaluate Identify/Respond/Sign flows with consistent telemetry and traces. Documentation across REST, CLI, and operator UI guides captures the extended fixture set delivered in T3908c/T3909 so operators can reproduce reference flows end-to-end.
 
 
-## Goals
-- Deliver end-to-end EMV/CAP evaluation and replay flows across core, application, REST, CLI, and operator UI with verbose traces.
-- Provide MapDB seeding, fixtures, and telemetry redaction specific to EMV/CAP credentials.
-
-## Non-Goals
-- Does not simulate APDU/hardware-level exchanges—scope is application-layer derivation only.
-- Does not add issuer provisioning or account management workflows.
-
-
 ## Clarifications
 - 2025-11-11 – Batch P2 renumbering reassigned this scope from Feature 039 to Feature 005; the legacy spec was copied inline
   here, allowing `docs/4-architecture/features/005/legacy/039/spec.md` to be removed after verification (history remains in Git).
@@ -66,8 +57,29 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - 2025-11-08 – Session key derivation fieldsets must present Branch factor (b) and Height (H) on the same horizontal row for both Evaluate and Replay panels so operators can compare the tree parameters side-by-side even when stored presets hide other secrets (owner directive).
 - 2025-11-08 – ICC master key and Application Transaction Counter inputs must stretch edge-to-edge across their row inside the Session key derivation block (matching the other field widths) so no horizontal gutter remains between the fields (owner directive).
 
+## Goals
+- Deliver end-to-end EMV/CAP evaluation and replay flows across core, application, REST, CLI, and operator UI with verbose traces.
+- Provide MapDB seeding, fixtures, and telemetry redaction specific to EMV/CAP credentials.
+
+## Non-Goals
+- Does not simulate APDU/hardware-level exchanges—scope is application-layer derivation only.
+- Does not add issuer provisioning or account management workflows.
+
+
 ## Functional Requirements
-### FR-039-01
+| ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
+|----|-------------|--------------|-----------------|--------------|--------------------|--------|
+| FR-005-01 | Core EMV/CAP derivation domain that yields deterministic session keys, cryptograms, and OTP overlays for Identify/Respond/Sign. | Build `core.emv.cap` helpers for key derivation, Generate AC execution, decimalization, and metadata overlays while enforcing uppercase hex inputs. | Reject malformed hex, parity, or unsupported parameters with field-specific errors. | Surface structured `invalid_request`/`otp_mismatch` responses and halt derivation without leaking secrets. | `emv.cap.*` events plus verbose trace schema with masterKeySha256 and session key visibility. | Legacy Feature 039 / project requirement. |
+| FR-005-02 | Application orchestration + telemetry/trace assembly. | `EmvCapEvaluationApplicationService` wraps core helpers, handles overrides, emits sanitized telemetry, and enriches verbose trace provenance. | Enforce mode-specific inputs, override limits, and redaction guardrails before invoking core services. | Return problem-details payloads (missing challenge/reference/etc.) and log sanitized telemetry. | `TelemetryContracts.emvCap*` frames plus shared trace payload forwarded to all facades. | Legacy Feature 039. |
+| FR-005-03 | REST `POST /api/v1/emv/cap/evaluate` inline evaluation. | Endpoint accepts inline JSON (or stored credentials), honours `includeTrace`, and returns OTP/maskLength/trace/telemetry matching spec + OpenAPI snapshots. | Validate JSON schema, mode-specific inputs, preview offsets; reject bad payloads with problem-details entries. | Emit `invalid_request`/`invalid_scope` for missing secrets or preset conflicts. | REST telemetry `emv.cap.*` and verbose trace sanitized master keys (digests only). | Legacy Feature 039. |
+| FR-005-04 | Picocli `emv cap evaluate` command. | Supports inline/stored parameters, preview offsets, `--include-trace`, and JSON/text parity with REST responses. | Unit tests cover parameter validation, mode toggles, includeTrace flag, and preset hydration errors. | CLI exits with descriptive errors and retains sanitized telemetry when inputs fail. | `cli-emv-cap-*` telemetry adapters plus shared verbose trace output. | Legacy Feature 039. |
+| FR-005-05 | Operator console EMV/CAP Evaluate panel. | Reactivated tab mirrors shared two-column layout, preset dropdowns, and preview controls while hiding secrets in stored mode. | Selenium/JS tests assert DOM masking, preset hydration, accessibility, and error messaging. | Invalid inputs display inline errors; missing presets revert to inline mode without leaking data. | UI events reuse `emv.cap.*` telemetry and the shared verbose trace dock. | Legacy Feature 039. |
+| FR-005-06 | Credential persistence + seeding workflows. | MapDB store captures sanitized credential metadata, REST/CLI seeding endpoints populate fixtures, and UI stored-mode presets hydrate from sanitized summaries. | Seeding rejects malformed fixtures and ensures idempotent inserts; stored credential APIs validate access. | Failures return structured errors without persisting partial secrets. | `emv.cap.seed.*` telemetry calls + verbose trace limited to inline hydrations. | Legacy Feature 039. |
+| FR-005-07 | Replay orchestration service. | `EmvCapReplayApplicationService` recomputes OTPs across preview windows (stored + inline) and reports match/mismatch metadata. | Validate supplied OTP, drift bounds, and credential provenance before diffing. | Problem-details when OTP missing/invalid or preset not found; mismatch path returns `otp_mismatch`. | `emv.cap.replay.*` events plus trace overlays capturing comparison diagnostics. | Legacy Feature 039. |
+| FR-005-08 | REST `POST /api/v1/emv/cap/replay`. | Endpoint mirrors replay schema, supports stored/inline payloads, includes preview offsets, and updates OpenAPI artifacts. | Schema validation ensures OTP, drift, and credential inputs align with mode. | Returns `invalid_request`/`otp_mismatch` as appropriate with sanitized metadata. | REST telemetry + verbose trace toggled via `includeTrace`. | Legacy Feature 039. |
+| FR-005-09 | Picocli `emv cap replay` command. | Stored/inline flows, preview overrides, `--include-trace`, and JSON/text parity with REST. | Tests cover invalid combinations, OTP mismatch, mode-specific inputs, and preset hydration. | CLI exits with descriptive errors while masking sensitive output. | CLI telemetry + verbose traces aligned with REST. | Legacy Feature 039. |
+| FR-005-10 | Operator console EMV/CAP Replay panel. | Replay tab mirrors evaluate layout, supports stored presets + inline overrides, mismatch messaging, and verbose trace dock integration. | Selenium/JS suites assert OTP entry, drift controls, trace toggle, masked placeholders, and validation copy. | Invalid inputs show inline errors; mismatches render trace overlays without exposing raw secrets. | UI telemetry uses shared event family; traces flow through `VerboseTraceConsole`. | Legacy Feature 039. |
+**FR-005-01 implementation notes**
 - **Requirement:** Core EMV/CAP domain.
 - **Success path:**
   1. Add a `core.emv.cap` package encapsulating:
@@ -88,7 +100,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - **Source:** Project requirement.
 
 
-### FR-039-02
+**FR-005-02 implementation notes**
 - **Requirement:** Application orchestration & telemetry.
 - **Success path:**
   1. Introduce `EmvCapEvaluationApplicationService` (and supporting request/response records) that wrap the core domain utilities and enforce:
@@ -223,7 +235,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - **Source:** Project requirement.
 
 
-### FR-039-03
+**FR-005-03 implementation notes**
 - **Requirement:** REST EMV/CAP evaluate endpoint.
 - **Success path:**
   1. Add `POST /api/v1/emv/cap/evaluate` accepting JSON payload:
@@ -292,7 +304,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - **Source:** Project requirement.
 
 
-### FR-039-04
+**FR-005-04 implementation notes**
 - **Requirement:** CLI EMV/CAP evaluate command.
 - **Success path:**
   1. Extend the Picocli application with `emv cap evaluate` that accepts:
@@ -373,7 +385,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - **Source:** Project requirement.
 
 
-### FR-039-05
+**FR-005-05 implementation notes**
 - **Requirement:** Operator UI EMV/CAP console panel.
 - **Success path:**
   1. Activate the existing EMV/CAP tab in the operator console with:
@@ -396,7 +408,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - **Source:** Project requirement.
 
 
-### FR-039-06
+**FR-005-06 implementation notes**
 - **Requirement:** EMV/CAP credential persistence & seeding.
 - **Success path:**
   1. Persist EMV/CAP credentials in MapDB via `CredentialStore`, storing master key, derivation parameters, issuer data, and transaction templates under deterministic identifiers.
@@ -412,7 +424,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - **Source:** Project requirement.
 
 
-### FR-039-07
+**FR-005-07 implementation notes**
 - **Requirement:** Application replay orchestration & telemetry.
 - **Success path:**
   1. Introduce `EmvCapReplayApplicationService` that reuses the core derivation helpers to recompute OTP candidates across the configured preview window (backward/forward deltas) and validates operator-supplied OTPs for Identify, Respond, and Sign modes.
@@ -426,7 +438,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - **Source:** Project requirement.
 
 
-### FR-039-08
+**FR-005-08 implementation notes**
 - **Requirement:** REST EMV/CAP replay endpoint.
 - **Success path:**
   1. Add `POST /api/v1/emv/cap/replay` mirroring existing protocol replay schemas:
@@ -444,7 +456,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - **Source:** Project requirement.
 
 
-### FR-039-09
+**FR-005-09 implementation notes**
 - **Requirement:** CLI EMV/CAP replay command.
 - **Success path:**
   1. Add `emv cap replay` supporting stored and inline credentials:
@@ -459,7 +471,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - **Source:** Project requirement.
 
 
-### FR-039-10
+**FR-005-10 implementation notes**
 - **Requirement:** Operator UI EMV/CAP replay panel.
 - **Success path:**
   1. Mirror the Evaluate/Replay tab pattern from other protocols: add a Replay tab containing stored credential dropdown, inline parameter form, preview-window controls, OTP input, and a `[ Replay CAP OTP ]` action button—verbose tracing remains governed by the global toggle.
@@ -473,22 +485,27 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - **Source:** Project requirement.
 
 ## Non-Functional Requirements
+| ID | Requirement | Driver | Measurement | Dependencies | Source |
+|----|-------------|--------|-------------|--------------|--------|
+| NFR-005-01 | Master keys always redacted (digest + length) while session keys remain visible only in traces. | Prevent sensitive key exposure without losing troubleshooting detail. | `TraceSchemaAssertions`, telemetry snapshot review, and UI/CLI log inspections. | `TelemetryContracts`, `EmvCapTraceProvenanceSchema`, `VerboseTraceConsole`. | Project governance. |
+| NFR-005-02 | Fixture-driven executions remain deterministic across core/application/REST/CLI/UI. | Ensure reproducible coverage + debugging fidelity. | Regression suites comparing fixture outputs + seeded MapDB runs. | `docs/test-vectors/emv-cap/*.json`, MapDB credential store, application service tests. | Project governance. |
+| NFR-005-03 | REST/CLI/UI contracts stay synchronized (payloads, preview controls, documentation). | Preserve operator experience parity and documentation accuracy. | MockMvc, Picocli, Selenium/Node parity checks + doc updates per increment. | `EmvCapEvaluationEndpointTest`, `EmvCliTest`, `EmvCapOperatorUiSeleniumTest`, docs workflow. | Project governance. |
 
-### N-039-01
+### NFR-005-01
 - **Requirement:** Telemetry and verbose traces must redact master keys (hash + byte length only) while keeping session keys visible for troubleshooting.
 - **Driver:** Prevent long-term key exposure while preserving derivation transparency.
 - **Measurement:** `TraceSchemaAssertions`, telemetry snapshots, and manual drift-gate reviews confirm redaction across all facades.
 - **Dependencies:** `TelemetryContracts`, `EmvCapTraceProvenanceSchema`, `VerboseTraceConsole`.
 - **Source:** Project governance.
 
-### N-039-02
+### NFR-005-02
 - **Requirement:** Fixture-driven evaluations must remain deterministic so the same inputs yield identical session keys, cryptograms, OTPs, and traces across CLI/REST/UI.
 - **Driver:** Keep regression coverage stable and reproducible.
 - **Measurement:** Fixture smoke tests plus application/service suites assert deterministic outputs under seeded MapDB stores.
 - **Dependencies:** `docs/test-vectors/emv-cap/*.json`, MapDB credential store, `EmvCapEvaluationApplicationServiceTest`.
 - **Source:** Project governance.
 
-### N-039-03
+### NFR-005-03
 - **Requirement:** REST, CLI, and operator UI surfaces must stay contract-synchronized (JSON/text parity, preview controls, verbose toggles) with documentation updates per increment.
 - **Driver:** Maintain operator experience consistency and prevent facade drift.
 - **Measurement:** MockMvc, Picocli, Node, and Selenium suites compare payloads/layout, while roadmap/how-to docs are updated alongside the changes.
@@ -611,32 +628,33 @@ Legend: verbose trace remains optional; result metrics (mask length, ATC, etc.) 
 ```
 
 ## Branch & Scenario Matrix
-### Success Branches
+**Success branches**
 1. Stored or inline Evaluate flows compute deterministic CAP OTP previews across all facades.
 2. Replay journeys recompute preview windows, highlight match deltas, and emit telemetry/mismatch diagnostics.
 3. Credential seeding keeps MapDB synchronized so stored mode always reflects curated fixtures.
 
-### Validation Checks
+**Validation checks**
 - Reject invalid ICC/terminal payloads, malformed ATC inputs, or unsupported CAP modes.
 - Enforce sanitized stored-mode inputs and digest placeholders across REST/CLI/UI.
 - Verify replay submissions honor preview-window bounds and OTP formats.
 
-### Failure Paths
+**Failure paths**
 - Input validation issues → `invalid_request` with per-field violations.
 - Stored credential misses or digest mismatches → `invalid_scope`.
 - OTP mismatches during replay → `otp_mismatch` responses with verbose trace overlays.
 
-### Scenario Table
-| S39-01 | Stored or inline Identify/Respond/Sign evaluations compute deterministic CAP OTP previews, telemetry, and verbose traces across core, application, REST, CLI, and operator UI facades. |
-| S39-02 | Operator UI inline mode stays active when loading sample vectors, hydrates credential defaults on demand, and keeps inline inputs editable prior to submission. |
-| S39-03 | Stored credential workflows hide ICC secrets in the console, expose digest/length placeholders in directory APIs, and only hydrate sensitive fields server-side for inline requests. |
-| S39-04 | Credential seeding services/commands idempotently populate MapDB so stored Evaluate/Replay journeys share the curated EMV/CAP dataset without duplicating secrets. |
-| S39-05 | Replay flows recompute preview windows, report match deltas, and surface mismatch diagnostics/telemetry for stored and inline submissions across every surface. |
-| S39-06 | Replay controls expose backward/forward preview offsets, inline vs stored toggles, and validation errors (missing OTP, out-of-window inputs, invalid mode) consistently in REST, CLI, and UI. |
-| S39-07 | Operator UI Evaluate/Replay panels follow the shared two-column layout with grouped session-derivation, card, transaction, and customer-input fieldsets plus consistent CTA spacing. |
-| S39-08 | Verbose trace payloads include protocol context, key derivation, CDOL breakdown, IAD decoding, MAC transcript, and decimalization overlay rendered through the shared console on all facades. |
-| S39-09 | Sample vector selectors share labels, spacing, and styling with other protocols so Evaluate/Replay dropdowns remain accessible regardless of inline/stored mode. |
-| S39-10 | REST endpoints, Picocli commands, and documentation stay synchronized (evaluate, evaluate-stored, replay) with JSON/text parity, preview offset parameters, and telemetry redaction guidance. |
+| Scenario ID | Description / Expected outcome |
+|-------------|--------------------------------|
+| S-005-01 | Stored or inline Identify/Respond/Sign evaluations compute deterministic CAP OTP previews, telemetry, and verbose traces across core, application, REST, CLI, and operator UI facades. |
+| S-005-02 | Operator UI inline mode stays active when loading sample vectors, hydrates credential defaults on demand, and keeps inline inputs editable prior to submission. |
+| S-005-03 | Stored credential workflows hide ICC secrets in the console, expose digest/length placeholders in directory APIs, and only hydrate sensitive fields server-side for inline requests. |
+| S-005-04 | Credential seeding services/commands idempotently populate MapDB so stored Evaluate/Replay journeys share the curated EMV/CAP dataset without duplicating secrets. |
+| S-005-05 | Replay flows recompute preview windows, report match deltas, and surface mismatch diagnostics/telemetry for stored and inline submissions across every surface. |
+| S-005-06 | Replay controls expose backward/forward preview offsets, inline vs stored toggles, and validation errors (missing OTP, out-of-window inputs, invalid mode) consistently in REST, CLI, and UI. |
+| S-005-07 | Operator UI Evaluate/Replay panels follow the shared two-column layout with grouped session-derivation, card, transaction, and customer-input fieldsets plus consistent CTA spacing. |
+| S-005-08 | Verbose trace payloads include protocol context, key derivation, CDOL breakdown, IAD decoding, MAC transcript, and decimalization overlay rendered through the shared console on all facades. |
+| S-005-09 | Sample vector selectors share labels, spacing, and styling with other protocols so Evaluate/Replay dropdowns remain accessible regardless of inline/stored mode. |
+| S-005-10 | REST endpoints, Picocli commands, and documentation stay synchronized (evaluate, evaluate-stored, replay) with JSON/text parity, preview offset parameters, and telemetry redaction guidance. |
 
 ## Test Strategy
 - **Core**: Deterministic tests using transcript vector(s), verifying session key, generate AC result, OTP, masked overlay output per mode, and stored credential serialisation.
@@ -646,6 +664,52 @@ Legend: verbose trace remains optional; result metrics (mask length, ATC, etc.) 
 - **Operator UI**: JS unit tests and Selenium coverage validating Evaluate/Replay interactions, preset loading, OTP entry, global verbose toggle behaviour, mismatch messaging, DOM sanitisation, and error display.
 - **Security**: Negative tests covering invalid hex length/parity, lower-case input normalisation, branch factor/height bounds, and sanitisation of persisted/seeding data.
 - **Documentation**: Update `docs/2-how-to` catalogue with REST + CLI guidance, operator console instructions, and stored credential reference material.
+
+
+## Interface & Contract Catalogue
+
+### Domain Objects
+| ID | Description | Modules |
+|----|-------------|---------|
+| DO-005-01 | `EmvCapEvaluationRequest` (mode, ICC payload, terminal data, overrides) | REST, CLI, UI |
+| DO-005-02 | `EmvCapEvaluationResponse` (OTP preview, telemetry IDs, trace envelope) | REST, CLI, UI |
+| DO-005-03 | `EmvCapReplayRequest` (stored/inline inputs, preview offsets, supplied OTP) | REST, CLI, UI |
+| DO-005-04 | `EmvCapCredentialRecord` (masked ICC metadata for MapDB) | core, application, infra-persistence |
+| DO-005-05 | `EmvCapTracePayload` (provenance JSON shared across facades) | application, REST, CLI, UI |
+
+### API Routes / Services
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| API-005-01 | REST `POST /api/v1/emv/cap/evaluate` | Inline evaluation | Supports `includeTrace`, preview offsets |
+| API-005-02 | REST `POST /api/v1/emv/cap/evaluate/stored` | Stored evaluation | Hydrates MapDB entries, hides secrets |
+| API-005-03 | REST `POST /api/v1/emv/cap/replay` | Replay validation | Returns match/mismatch diagnostics |
+| API-005-04 | REST `POST /api/v1/emv/cap/credentials/seed` | Fixture ingestion | Records provenance, counts |
+
+### CLI Commands / Flags
+| ID | Command | Behaviour |
+|----|---------|-----------|
+| CLI-005-01 | `emv cap evaluate` | Inline/stored evaluation with preview controls + verbose toggle |
+| CLI-005-02 | `emv cap replay` | Replay OTPs with mismatch diagnostics |
+| CLI-005-03 | `emv cap seed` | Load fixture datasets into MapDB |
+
+### Telemetry Events
+| ID | Event name | Fields / Redaction rules |
+|----|-----------|---------------------------|
+| TE-005-01 | `emv.cap.identify` | Mode, ATC, maskLength, otpPreview (hashed), masterKey digest only |
+| TE-005-02 | `emv.cap.respond` | Adds challenge digest metadata |
+| TE-005-03 | `emv.cap.sign` | Includes amount/reference digests |
+| TE-005-04 | `emv.cap.replay.match` | Matched flag, preview offsets, otpHash |
+| TE-005-05 | `emv.cap.replay.mismatch` | Adds mismatchReason, expectedOtpHash |
+| TE-005-06 | `emv.cap.seed.completed` | Dataset id, inserted/updated counts |
+
+### UI States
+| ID | State | Trigger / Expected outcome |
+|----|-------|---------------------------|
+| UI-005-01 | Evaluate – inline | Inline mode active; preset loader keeps inputs editable |
+| UI-005-02 | Evaluate – stored | Stored mode hides secrets, shows digests |
+| UI-005-03 | Replay – success | Match badge + Δ table displayed |
+| UI-005-04 | Replay – mismatch | Mismatch messaging + trace overlay |
+| UI-005-05 | Verbose trace dock | Shared console renders provenance sections |
 
 
 ## Telemetry & Observability
@@ -667,117 +731,72 @@ Legend: verbose trace remains optional; result metrics (mask length, ATC, etc.) 
 - `docs/test-vectors/emv-cap/replay-mismatch.json` – Stored mismatch coverage.
 - `docs/test-vectors/emv-cap/credentials.json` – Seed dataset for stored credentials (digests only).
 
-## Interface & Contract Catalogue
-
-### Domain Objects
-| ID | Description | Modules |
-|----|-------------|---------|
-| DO-039-01 | `EmvCapEvaluationRequest` (mode, ICC payload, terminal data, overrides) | REST, CLI, UI |
-| DO-039-02 | `EmvCapEvaluationResponse` (OTP preview, telemetry IDs, trace envelope) | REST, CLI, UI |
-| DO-039-03 | `EmvCapReplayRequest` (stored/inline inputs, preview offsets, supplied OTP) | REST, CLI, UI |
-| DO-039-04 | `EmvCapCredentialRecord` (masked ICC metadata for MapDB) | core, application, infra-persistence |
-| DO-039-05 | `EmvCapTracePayload` (provenance JSON shared across facades) | application, REST, CLI, UI |
-
-### API Routes / Services
-| ID | Transport | Description | Notes |
-|----|-----------|-------------|-------|
-| API-039-01 | REST `POST /api/v1/emv/cap/evaluate` | Inline evaluation | Supports `includeTrace`, preview offsets |
-| API-039-02 | REST `POST /api/v1/emv/cap/evaluate/stored` | Stored evaluation | Hydrates MapDB entries, hides secrets |
-| API-039-03 | REST `POST /api/v1/emv/cap/replay` | Replay validation | Returns match/mismatch diagnostics |
-| API-039-04 | REST `POST /api/v1/emv/cap/credentials/seed` | Fixture ingestion | Records provenance, counts |
-
-### CLI Commands / Flags
-| ID | Command | Behaviour |
-|----|---------|-----------|
-| CLI-039-01 | `emv cap evaluate` | Inline/stored evaluation with preview controls + verbose toggle |
-| CLI-039-02 | `emv cap replay` | Replay OTPs with mismatch diagnostics |
-| CLI-039-03 | `emv cap seed` | Load fixture datasets into MapDB |
-
-### Telemetry Events
-| ID | Event name | Fields / Redaction rules |
-|----|-----------|---------------------------|
-| TE-039-01 | `emv.cap.identify` | Mode, ATC, maskLength, otpPreview (hashed), masterKey digest only |
-| TE-039-02 | `emv.cap.respond` | Adds challenge digest metadata |
-| TE-039-03 | `emv.cap.sign` | Includes amount/reference digests |
-| TE-039-04 | `emv.cap.replay.match` | Matched flag, preview offsets, otpHash |
-| TE-039-05 | `emv.cap.replay.mismatch` | Adds mismatchReason, expectedOtpHash |
-| TE-039-06 | `emv.cap.seed.completed` | Dataset id, inserted/updated counts |
-
-### UI States
-| ID | State | Trigger / Expected outcome |
-|----|-------|---------------------------|
-| UI-039-01 | Evaluate – inline | Inline mode active; preset loader keeps inputs editable |
-| UI-039-02 | Evaluate – stored | Stored mode hides secrets, shows digests |
-| UI-039-03 | Replay – success | Match badge + Δ table displayed |
-| UI-039-04 | Replay – mismatch | Mismatch messaging + trace overlay |
-| UI-039-05 | Verbose trace dock | Shared console renders provenance sections |
-
 ## Spec DSL
 ```
 domain_objects:
-  - id: DO-039-01
+  - id: DO-005-01
     name: EmvCapEvaluationRequest
     fields: [mode, presetId, iccPayload, terminalData, issuerApplicationData, masterKeyDigest, previewForward, previewBackward]
-  - id: DO-039-02
+  - id: DO-005-02
     name: EmvCapReplayRequest
     fields: [presetId, inlineOverrides, suppliedOtp, previewForward, previewBackward, includeTrace]
-  - id: DO-039-03
+  - id: DO-005-03
     name: EmvCapCredentialRecord
     fields: [credentialId, modes, masterKeySha256, maskedPan, cdol1, issuerApplicationData, issuerPolicy]
 routes:
-  - id: API-039-01
+  - id: API-005-01
     method: POST
     path: /api/v1/emv/cap/evaluate
-  - id: API-039-02
+  - id: API-005-02
     method: POST
     path: /api/v1/emv/cap/evaluate/stored
-  - id: API-039-03
+  - id: API-005-03
     method: POST
     path: /api/v1/emv/cap/replay
-  - id: API-039-04
+  - id: API-005-04
     method: POST
     path: /api/v1/emv/cap/credentials/seed
 cli_commands:
-  - id: CLI-039-01
+  - id: CLI-005-01
     command: emv cap evaluate
-  - id: CLI-039-02
+  - id: CLI-005-02
     command: emv cap replay
-  - id: CLI-039-03
+  - id: CLI-005-03
     command: emv cap seed
 telemetry_events:
-  - id: TE-039-01
+  - id: TE-005-01
     event: emv.cap.identify
-  - id: TE-039-02
+  - id: TE-005-02
     event: emv.cap.respond
-  - id: TE-039-03
+  - id: TE-005-03
     event: emv.cap.sign
-  - id: TE-039-04
+  - id: TE-005-04
     event: emv.cap.replay.match
-  - id: TE-039-05
+  - id: TE-005-05
     event: emv.cap.replay.mismatch
-  - id: TE-039-06
+  - id: TE-005-06
     event: emv.cap.seed.completed
 fixtures:
-  - id: FX-039-01
+  - id: FX-005-01
     path: docs/test-vectors/emv-cap/identify-baseline.json
-  - id: FX-039-02
+  - id: FX-005-02
     path: docs/test-vectors/emv-cap/respond-challenge4.json
-  - id: FX-039-03
+  - id: FX-005-03
     path: docs/test-vectors/emv-cap/sign-amount-50375.json
-  - id: FX-039-04
+  - id: FX-005-04
     path: docs/test-vectors/emv-cap/replay-mismatch.json
-  - id: FX-039-05
+  - id: FX-005-05
     path: docs/test-vectors/emv-cap/credentials.json
 ui_states:
-  - id: UI-039-01
+  - id: UI-005-01
     description: Evaluate inline mode
-  - id: UI-039-02
+  - id: UI-005-02
     description: Evaluate stored mode
-  - id: UI-039-03
+  - id: UI-005-03
     description: Replay success
-  - id: UI-039-04
+  - id: UI-005-04
     description: Replay mismatch diagnostics
-  - id: UI-039-05
+  - id: UI-005-05
     description: Verbose trace dock
 ```
 

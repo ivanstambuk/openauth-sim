@@ -54,65 +54,55 @@ Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiabl
 - OpenID4VCI issuance simulators or credential provisioning pipelines.
 - Trust list federation resolution beyond the initial Authority Key Identifier matching (future work will address `etsi_tl` and OpenID Federation).
 
-## Architecture & Design
-- Extend `core` with format adapters (`core.eudi.openid4vp`) for DCQL evaluation, SD-JWT VC cryptography (disclosure hashing, KB-JWT), and ISO mdoc DeviceResponse parsing using CBOR/COSE helpers. Inline credential submission reuses the same adapters to hydrate ad-hoc wallet inputs during Generate mode.
-- Introduce `application.eudi.openid4vp` services that assemble authorization requests, manage deterministic state (nonce, state, request identifiers), dispatch telemetry, and orchestrate wallet simulations against fixtures.
-- Reuse facade modules:
-  - `rest-api`: REST controllers for request creation, wallet simulation, and telemetry streams; integrate with existing problem-details handling and OpenAPI snapshots.
-  - `cli`: commands to create requests, render ASCII QR codes, drive simulated responses, and validate VP Tokens.
-  - `ui`: upgrade the EUDIW tab to render request metadata, ASCII QR preview, simulation actions, and trace inspection, reusing the global verbose dock and trace payload contract.
-- Fixtures under `docs/test-vectors/eudiw/openid4vp/` capture credential payloads, disclosures, DeviceResponse blobs, trust metadata, deterministic seeds, synthetic issuer/holder keys (stored under `keys/`), and stored presentation batches consumed by the seeding workflow.
-- Telemetry passes through `TelemetryContracts` with new `oid4vp.*` event families, ensuring PII redaction (hash or count metrics only) while allowing correlation via request identifiers.
-
 ## Functional Requirements
 The requirements below capture each behaviour with explicit sources.
 
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-040-01 | Authorization requests MUST use `response_type=vp_token` and include `nonce` for replay protection. | Authorization requests MUST use `response_type=vp_token` and include `nonce` for replay protection. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §5.2, §5.6, §14.1 |
-| FR-040-02 | Requests MUST supply a DCQL query (`dcql_query`) or `scope` alias; supplying both or neither returns `invalid_request`. | Requests MUST supply a DCQL query (`dcql_query`) or `scope` alias; supplying both or neither returns `invalid_request`. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §5.5, §6, §8.5 |
-| FR-040-03 | Cross-device transport MUST support QR/URL (request by value) and `request_uri` (request by reference with optional POST retrieval). | Cross-device transport MUST support QR/URL (request by value) and `request_uri` (request by reference with optional POST retrieval). | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §5.4, §5.7, §5.10 |
-| FR-040-04 | Response modes MUST include `fragment` (default) and `direct_post`; `direct_post.jwt` MUST be supported when HAIP mode is active. | Response modes MUST include `fragment` (default) and `direct_post`; `direct_post.jwt` MUST be supported when HAIP mode is active. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §8.2–§8.3 |
-| FR-040-05 | Signed requests MUST follow HAIP guidance (`x509_hash` client identifier prefix, JAR with `request_uri`). Toggle enables unsigned requests for baseline mode. | Signed requests MUST follow HAIP guidance (`x509_hash` client identifier prefix, JAR with `request_uri`). Toggle enables unsigned requests for baseline mode. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | HAIP §5.1 |
-| FR-040-06 | Simulator MUST implement DCQL Credential/Claims/Trusted Authorities queries with Claims Path Pointer semantics for JSON and ISO mdoc, and reject SD-JWT VC queries lacking `meta.vct_values` or mdoc queries lacking `meta.doctype_value`. | Simulator MUST implement DCQL Credential/Claims/Trusted Authorities queries with Claims Path Pointer semantics for JSON and ISO mdoc, and reject SD-JWT VC queries lacking `meta.vct_values` or mdoc queries lacking `meta.doctype_value`. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §6–§7 |
-| FR-040-07 | Wallet simulator MUST resolve DCQL credential IDs to fixture-backed presentations and return a VP Token keyed by credential ID. | Wallet simulator MUST resolve DCQL credential IDs to fixture-backed presentations and return a VP Token keyed by credential ID. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §8.1 |
-| FR-040-08 | SD-JWT VC responses MUST emit `application/dc+sd-jwt` payloads, optional KB-JWT (holder binding) with `sd_hash`, `aud`, `nonce`. | SD-JWT VC responses MUST emit `application/dc+sd-jwt` payloads, optional KB-JWT (holder binding) with `sd_hash`, `aud`, `nonce`. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | SD-JWT VC §3.1; SD-JWT §4.3 |
-| FR-040-09 | ISO/IEC 18013-5 flows MUST return DeviceResponse containers (`mso_mdoc`), one per credential query when multiple are requested, with descriptor identifiers preserved for UI rendering. | ISO/IEC 18013-5 flows MUST return DeviceResponse containers (`mso_mdoc`), one per credential query when multiple are requested, with descriptor identifiers preserved for UI rendering. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | HAIP §5.3.1; ISO/IEC 18013-5 §6 |
-| FR-040-10 | Verifier validation MUST verify SD-JWT signatures/disclosures, KB-JWT holder binding (`aud`, `nonce`, `sd_hash`), DeviceResponse COSE signatures/MSO hashes, and Claims Path Pointer selections, failing with `invalid_presentation` when any check fails. | Verifier validation MUST verify SD-JWT signatures/disclosures, KB-JWT holder binding (`aud`, `nonce`, `sd_hash`), DeviceResponse COSE signatures/MSO hashes, and Claims Path Pointer selections, failing with `invalid_presentation` when any check fails. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §8.6; SD-JWT §4.2; ISO/IEC 18013-5 |
-| FR-040-11 | Trusted Authorities filtering MUST at least implement Authority Key Identifier matching and return `invalid_request` when no issuers satisfy the query; placeholders for `etsi_tl` and OpenID Federation remain for follow-up. | Trusted Authorities filtering MUST at least implement Authority Key Identifier matching and return `invalid_request` when no issuers satisfy the query; placeholders for `etsi_tl` and OpenID Federation remain for follow-up. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §6.1.1 |
-| FR-040-12 | VP Token error handling MUST map to OID4VP §8.5 (`invalid_request`, `invalid_scope`, `wallet_unavailable`, `invalid_presentation`) with problem-details payloads across facades. | VP Token error handling MUST map to OID4VP §8.5 (`invalid_request`, `invalid_scope`, `wallet_unavailable`, `invalid_presentation`) with problem-details payloads across facades. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §8.5 |
-| FR-040-13 | Deterministic seed handling MUST ensure identical inputs yield identical nonces, request IDs, QR payloads, and wallet outputs. | Deterministic seed handling MUST ensure identical inputs yield identical nonces, request IDs, QR payloads, and wallet outputs. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Project requirement |
-| FR-040-14 | Telemetry MUST emit `oid4vp.request.created`, `oid4vp.request.qr.rendered`, `oid4vp.wallet.responded`, `oid4vp.response.validated`, `oid4vp.response.failed` with sanitized fields. | Telemetry MUST emit `oid4vp.request.created`, `oid4vp.request.qr.rendered`, `oid4vp.wallet.responded`, `oid4vp.response.validated`, `oid4vp.response.failed` with sanitized fields. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Project telemetry policy |
-| FR-040-15 | REST API MUST expose endpoints for request creation, wallet simulation, telemetry retrieval, and fixture ingestion, all covered by OpenAPI snapshots. | REST API MUST expose endpoints for request creation, wallet simulation, telemetry retrieval, and fixture ingestion, all covered by OpenAPI snapshots. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Project REST conventions |
-| FR-040-16 | CLI MUST provide commands to create requests, render QR ASCII, simulate wallet responses, and validate VP Tokens. | CLI MUST provide commands to create requests, render QR ASCII, simulate wallet responses, and validate VP Tokens. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | CLI parity directive |
-| FR-040-17 | Operator UI MUST present an updated tab with request metadata, ASCII QR preview, simulation controls, response traces, and status indicators. | Operator UI MUST present an updated tab with request metadata, ASCII QR preview, simulation controls, response traces, and status indicators. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | UI placeholder upgrade directive |
-| FR-040-18 | Fixture loader MUST support synthetic datasets and ingest official OpenID4VP conformance bundles with provenance metadata. | Fixture loader MUST support synthetic datasets and ingest official OpenID4VP conformance bundles with provenance metadata. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Feature clarification |
-| FR-040-19 | PID fixtures for namespace `eu.europa.ec.eudi.pid.1` MUST be available in both SD-JWT and mdoc encodings for end-to-end tests. | PID fixtures for namespace `eu.europa.ec.eudi.pid.1` MUST be available in both SD-JWT and mdoc encodings for end-to-end tests. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | PID Rulebook |
-| FR-040-20 | Encryption path MUST support `direct_post.jwt` using JWE `ECDH-ES` P-256 with `A128GCM`, gated behind HAIP flag but enabled by default. | Encryption path MUST support `direct_post.jwt` using JWE `ECDH-ES` P-256 with `A128GCM`, gated behind HAIP flag but enabled by default. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | HAIP §5; OID4VP §8.3 |
-| FR-040-21 | When HAIP-required encryption fails (missing keys, JWE error), the simulator MUST surface an `invalid_request` problem detail, log sanitized telemetry, and only offer a retry when HAIP enforcement is disabled. | When HAIP-required encryption fails (missing keys, JWE error), the simulator MUST surface an `invalid_request` problem detail, log sanitized telemetry, and only offer a retry when HAIP enforcement is disabled. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | HAIP §5; OID4VP §8.3 |
-| FR-040-22 | Simulator MUST accept and produce unsigned requests/responses when HAIP enforcement is disabled to support baseline experimentation, and the UI MUST display a prominent “Baseline (non-HAIP)” banner when this mode is active. | Simulator MUST accept and produce unsigned requests/responses when HAIP enforcement is disabled to support baseline experimentation, and the UI MUST display a prominent “Baseline (non-HAIP)” banner when this mode is active. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Implementation flexibility |
-| FR-040-23 | Facades MUST expose separate **Generate** (fixture-backed) and **Validate** (input VP Token) flows; UI MUST present these as Evaluate vs Replay sub-tabs, and validate mode MUST verify supplied VP Tokens and surface errors consistent with FR-040-10/FR-040-12. Inline vs stored selectors follow the project radio-button pattern. | Facades MUST expose separate **Generate** (fixture-backed) and **Validate** (input VP Token) flows; UI MUST present these as Evaluate vs Replay sub-tabs, and validate mode MUST verify supplied VP Tokens and surface errors consistent with FR-040-10/FR-040-12. Inline vs stored selectors follow the project radio-button pattern. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
-| FR-040-24 | When DCQL returns multiple credential presentations, the UI MUST render one collapsible section per presentation with descriptor identifiers and per-section copy controls, and traces MUST annotate presentations with matching IDs. | When DCQL returns multiple credential presentations, the UI MUST render one collapsible section per presentation with descriptor identifiers and per-section copy controls, and traces MUST annotate presentations with matching IDs. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
-| FR-040-25 | Generate mode MUST allow both preset wallet credentials (fixtures) and inline credential entry for SD-JWT (compact + disclosures + optional KB-JWT) and ISO mdoc DeviceResponse uploads before issuing presentations. | Generate mode MUST allow both preset wallet credentials (fixtures) and inline credential entry for SD-JWT (compact + disclosures + optional KB-JWT) and ISO mdoc DeviceResponse uploads before issuing presentations. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
-| FR-040-26 | UI MUST display a formatted DCQL JSON preview inline beneath the preset selector (read-only textarea matching existing styling) so operators can inspect credential IDs, claims, and Trusted Authorities before generation. | UI MUST display a formatted DCQL JSON preview inline beneath the preset selector (read-only textarea matching existing styling) so operators can inspect credential IDs, claims, and Trusted Authorities before generation. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
-| FR-040-27 | DCQL presets MUST include friendly issuer labels for Trusted Authorities (`aki`, `etsi_tl`, etc.) as metadata, and the UI MUST render the label alongside the hash/value in a read-only display (e.g., “EU PID Issuer (aki: s9tIpP…)”) while emitting standard DCQL payloads without the label attribute. | DCQL presets MUST include friendly issuer labels for Trusted Authorities (`aki`, `etsi_tl`, etc.) as metadata, and the UI MUST render the label alongside the hash/value in a read-only display (e.g., “EU PID Issuer (aki: s9tIpP…)”) while emitting standard DCQL payloads without the label attribute. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
-| FR-040-28 | Result panels MUST render the VP Token presentation JSON inline (read-only, monospaced, horizontal scrolling enabled) so operators can inspect the payload without relying on verbose traces. | Result panels MUST render the VP Token presentation JSON inline (read-only, monospaced, horizontal scrolling enabled) so operators can inspect the payload without relying on verbose traces. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
-| FR-040-29 | Fixture bundles MUST include synthetic issuer signing keys, holder binding keys, and trust anchors sufficient to regenerate SD-JWT VC, KB-JWT, and mdoc presentations deterministically; these keys must remain confined to test fixtures. | Fixture bundles MUST include synthetic issuer signing keys, holder binding keys, and trust anchors sufficient to regenerate SD-JWT VC, KB-JWT, and mdoc presentations deterministically; these keys must remain confined to test fixtures. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
-| FR-040-30 | Inline mode must expose a "Load sample vector" selector that pre-populates all inline fields (SD-JWT, disclosures, DeviceResponse) from fixtures; stored mode remains unaffected. | Inline mode must expose a "Load sample vector" selector that pre-populates all inline fields (SD-JWT, disclosures, DeviceResponse) from fixtures; stored mode remains unaffected. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
-| FR-040-31 | Console deep-links (`?protocol=eudiw&tab=<evaluate\|replay>&mode=<inline\|stored>`) MUST hydrate the EUDIW tab state just like other protocol tabs. | Deep-links restore presets, mode selection, baseline banner visibility, and inline/stored selectors so operators can share links reliably. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
-| FR-040-32 | REST/CLI verbose flags MUST reuse the shared `verbose` convention and emit traces via the existing `VerboseTracePayload` contract. | REST/CLI verbose flags MUST reuse the shared `verbose` convention and emit traces via the existing `VerboseTracePayload` contract. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Project telemetry policy |
-| FR-040-33 | Provide a stored presentation seeding workflow (UI action, CLI command, REST endpoint) that loads fixture presentations into the MapDB store for later selection in stored mode. | Provide a stored presentation seeding workflow (UI action, CLI command, REST endpoint) that loads fixture presentations into the MapDB store for later selection in stored mode. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
+| FR-006-01 | Authorization requests MUST use `response_type=vp_token` and include `nonce` for replay protection. | Authorization requests MUST use `response_type=vp_token` and include `nonce` for replay protection. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §5.2, §5.6, §14.1 |
+| FR-006-02 | Requests MUST supply a DCQL query (`dcql_query`) or `scope` alias; supplying both or neither returns `invalid_request`. | Requests MUST supply a DCQL query (`dcql_query`) or `scope` alias; supplying both or neither returns `invalid_request`. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §5.5, §6, §8.5 |
+| FR-006-03 | Cross-device transport MUST support QR/URL (request by value) and `request_uri` (request by reference with optional POST retrieval). | Cross-device transport MUST support QR/URL (request by value) and `request_uri` (request by reference with optional POST retrieval). | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §5.4, §5.7, §5.10 |
+| FR-006-04 | Response modes MUST include `fragment` (default) and `direct_post`; `direct_post.jwt` MUST be supported when HAIP mode is active. | Response modes MUST include `fragment` (default) and `direct_post`; `direct_post.jwt` MUST be supported when HAIP mode is active. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §8.2–§8.3 |
+| FR-006-05 | Signed requests MUST follow HAIP guidance (`x509_hash` client identifier prefix, JAR with `request_uri`). Toggle enables unsigned requests for baseline mode. | Signed requests MUST follow HAIP guidance (`x509_hash` client identifier prefix, JAR with `request_uri`). Toggle enables unsigned requests for baseline mode. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | HAIP §5.1 |
+| FR-006-06 | Simulator MUST implement DCQL Credential/Claims/Trusted Authorities queries with Claims Path Pointer semantics for JSON and ISO mdoc, and reject SD-JWT VC queries lacking `meta.vct_values` or mdoc queries lacking `meta.doctype_value`. | Simulator MUST implement DCQL Credential/Claims/Trusted Authorities queries with Claims Path Pointer semantics for JSON and ISO mdoc, and reject SD-JWT VC queries lacking `meta.vct_values` or mdoc queries lacking `meta.doctype_value`. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §6–§7 |
+| FR-006-07 | Wallet simulator MUST resolve DCQL credential IDs to fixture-backed presentations and return a VP Token keyed by credential ID. | Wallet simulator MUST resolve DCQL credential IDs to fixture-backed presentations and return a VP Token keyed by credential ID. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §8.1 |
+| FR-006-08 | SD-JWT VC responses MUST emit `application/dc+sd-jwt` payloads, optional KB-JWT (holder binding) with `sd_hash`, `aud`, `nonce`. | SD-JWT VC responses MUST emit `application/dc+sd-jwt` payloads, optional KB-JWT (holder binding) with `sd_hash`, `aud`, `nonce`. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | SD-JWT VC §3.1; SD-JWT §4.3 |
+| FR-006-09 | ISO/IEC 18013-5 flows MUST return DeviceResponse containers (`mso_mdoc`), one per credential query when multiple are requested, with descriptor identifiers preserved for UI rendering. | ISO/IEC 18013-5 flows MUST return DeviceResponse containers (`mso_mdoc`), one per credential query when multiple are requested, with descriptor identifiers preserved for UI rendering. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | HAIP §5.3.1; ISO/IEC 18013-5 §6 |
+| FR-006-10 | Verifier validation MUST verify SD-JWT signatures/disclosures, KB-JWT holder binding (`aud`, `nonce`, `sd_hash`), DeviceResponse COSE signatures/MSO hashes, and Claims Path Pointer selections, failing with `invalid_presentation` when any check fails. | Verifier validation MUST verify SD-JWT signatures/disclosures, KB-JWT holder binding (`aud`, `nonce`, `sd_hash`), DeviceResponse COSE signatures/MSO hashes, and Claims Path Pointer selections, failing with `invalid_presentation` when any check fails. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §8.6; SD-JWT §4.2; ISO/IEC 18013-5 |
+| FR-006-11 | Trusted Authorities filtering MUST at least implement Authority Key Identifier matching and return `invalid_request` when no issuers satisfy the query; placeholders for `etsi_tl` and OpenID Federation remain for follow-up. | Trusted Authorities filtering MUST at least implement Authority Key Identifier matching and return `invalid_request` when no issuers satisfy the query; placeholders for `etsi_tl` and OpenID Federation remain for follow-up. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §6.1.1 |
+| FR-006-12 | VP Token error handling MUST map to OID4VP §8.5 (`invalid_request`, `invalid_scope`, `wallet_unavailable`, `invalid_presentation`) with problem-details payloads across facades. | VP Token error handling MUST map to OID4VP §8.5 (`invalid_request`, `invalid_scope`, `wallet_unavailable`, `invalid_presentation`) with problem-details payloads across facades. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | OID4VP §8.5 |
+| FR-006-13 | Deterministic seed handling MUST ensure identical inputs yield identical nonces, request IDs, QR payloads, and wallet outputs. | Deterministic seed handling MUST ensure identical inputs yield identical nonces, request IDs, QR payloads, and wallet outputs. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Project requirement |
+| FR-006-14 | Telemetry MUST emit `oid4vp.request.created`, `oid4vp.request.qr.rendered`, `oid4vp.wallet.responded`, `oid4vp.response.validated`, `oid4vp.response.failed` with sanitized fields. | Telemetry MUST emit `oid4vp.request.created`, `oid4vp.request.qr.rendered`, `oid4vp.wallet.responded`, `oid4vp.response.validated`, `oid4vp.response.failed` with sanitized fields. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Project telemetry policy |
+| FR-006-15 | REST API MUST expose endpoints for request creation, wallet simulation, telemetry retrieval, and fixture ingestion, all covered by OpenAPI snapshots. | REST API MUST expose endpoints for request creation, wallet simulation, telemetry retrieval, and fixture ingestion, all covered by OpenAPI snapshots. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Project REST conventions |
+| FR-006-16 | CLI MUST provide commands to create requests, render QR ASCII, simulate wallet responses, and validate VP Tokens. | CLI MUST provide commands to create requests, render QR ASCII, simulate wallet responses, and validate VP Tokens. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | CLI parity directive |
+| FR-006-17 | Operator UI MUST present an updated tab with request metadata, ASCII QR preview, simulation controls, response traces, and status indicators. | Operator UI MUST present an updated tab with request metadata, ASCII QR preview, simulation controls, response traces, and status indicators. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | UI placeholder upgrade directive |
+| FR-006-18 | Fixture loader MUST support synthetic datasets and ingest official OpenID4VP conformance bundles with provenance metadata. | Fixture loader MUST support synthetic datasets and ingest official OpenID4VP conformance bundles with provenance metadata. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Feature clarification |
+| FR-006-19 | PID fixtures for namespace `eu.europa.ec.eudi.pid.1` MUST be available in both SD-JWT and mdoc encodings for end-to-end tests. | PID fixtures for namespace `eu.europa.ec.eudi.pid.1` MUST be available in both SD-JWT and mdoc encodings for end-to-end tests. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | PID Rulebook |
+| FR-006-20 | Encryption path MUST support `direct_post.jwt` using JWE `ECDH-ES` P-256 with `A128GCM`, gated behind HAIP flag but enabled by default. | Encryption path MUST support `direct_post.jwt` using JWE `ECDH-ES` P-256 with `A128GCM`, gated behind HAIP flag but enabled by default. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | HAIP §5; OID4VP §8.3 |
+| FR-006-21 | When HAIP-required encryption fails (missing keys, JWE error), the simulator MUST surface an `invalid_request` problem detail, log sanitized telemetry, and only offer a retry when HAIP enforcement is disabled. | When HAIP-required encryption fails (missing keys, JWE error), the simulator MUST surface an `invalid_request` problem detail, log sanitized telemetry, and only offer a retry when HAIP enforcement is disabled. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | HAIP §5; OID4VP §8.3 |
+| FR-006-22 | Simulator MUST accept and produce unsigned requests/responses when HAIP enforcement is disabled to support baseline experimentation, and the UI MUST display a prominent “Baseline (non-HAIP)” banner when this mode is active. | Simulator MUST accept and produce unsigned requests/responses when HAIP enforcement is disabled to support baseline experimentation, and the UI MUST display a prominent “Baseline (non-HAIP)” banner when this mode is active. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Implementation flexibility |
+| FR-006-23 | Facades MUST expose separate **Generate** (fixture-backed) and **Validate** (input VP Token) flows; UI MUST present these as Evaluate vs Replay sub-tabs, and validate mode MUST verify supplied VP Tokens and surface errors consistent with FR-006-10/FR-006-12. Inline vs stored selectors follow the project radio-button pattern. | Facades MUST expose separate **Generate** (fixture-backed) and **Validate** (input VP Token) flows; UI MUST present these as Evaluate vs Replay sub-tabs, and validate mode MUST verify supplied VP Tokens and surface errors consistent with FR-006-10/FR-006-12. Inline vs stored selectors follow the project radio-button pattern. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
+| FR-006-24 | When DCQL returns multiple credential presentations, the UI MUST render one collapsible section per presentation with descriptor identifiers and per-section copy controls, and traces MUST annotate presentations with matching IDs. | When DCQL returns multiple credential presentations, the UI MUST render one collapsible section per presentation with descriptor identifiers and per-section copy controls, and traces MUST annotate presentations with matching IDs. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
+| FR-006-25 | Generate mode MUST allow both preset wallet credentials (fixtures) and inline credential entry for SD-JWT (compact + disclosures + optional KB-JWT) and ISO mdoc DeviceResponse uploads before issuing presentations. | Generate mode MUST allow both preset wallet credentials (fixtures) and inline credential entry for SD-JWT (compact + disclosures + optional KB-JWT) and ISO mdoc DeviceResponse uploads before issuing presentations. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
+| FR-006-26 | UI MUST display a formatted DCQL JSON preview inline beneath the preset selector (read-only textarea matching existing styling) so operators can inspect credential IDs, claims, and Trusted Authorities before generation. | UI MUST display a formatted DCQL JSON preview inline beneath the preset selector (read-only textarea matching existing styling) so operators can inspect credential IDs, claims, and Trusted Authorities before generation. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
+| FR-006-27 | DCQL presets MUST include friendly issuer labels for Trusted Authorities (`aki`, `etsi_tl`, etc.) as metadata, and the UI MUST render the label alongside the hash/value in a read-only display (e.g., “EU PID Issuer (aki: s9tIpP…)”) while emitting standard DCQL payloads without the label attribute. | DCQL presets MUST include friendly issuer labels for Trusted Authorities (`aki`, `etsi_tl`, etc.) as metadata, and the UI MUST render the label alongside the hash/value in a read-only display (e.g., “EU PID Issuer (aki: s9tIpP…)”) while emitting standard DCQL payloads without the label attribute. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
+| FR-006-28 | Result panels MUST render the VP Token presentation JSON inline (read-only, monospaced, horizontal scrolling enabled) so operators can inspect the payload without relying on verbose traces. | Result panels MUST render the VP Token presentation JSON inline (read-only, monospaced, horizontal scrolling enabled) so operators can inspect the payload without relying on verbose traces. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
+| FR-006-29 | Fixture bundles MUST include synthetic issuer signing keys, holder binding keys, and trust anchors sufficient to regenerate SD-JWT VC, KB-JWT, and mdoc presentations deterministically; these keys must remain confined to test fixtures. | Fixture bundles MUST include synthetic issuer signing keys, holder binding keys, and trust anchors sufficient to regenerate SD-JWT VC, KB-JWT, and mdoc presentations deterministically; these keys must remain confined to test fixtures. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
+| FR-006-30 | Inline mode must expose a "Load sample vector" selector that pre-populates all inline fields (SD-JWT, disclosures, DeviceResponse) from fixtures; stored mode remains unaffected. | Inline mode must expose a "Load sample vector" selector that pre-populates all inline fields (SD-JWT, disclosures, DeviceResponse) from fixtures; stored mode remains unaffected. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
+| FR-006-31 | Console deep-links (`?protocol=eudiw&tab=<evaluate\|replay>&mode=<inline\|stored>`) MUST hydrate the EUDIW tab state just like other protocol tabs. | Deep-links restore presets, mode selection, baseline banner visibility, and inline/stored selectors so operators can share links reliably. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
+| FR-006-32 | REST/CLI verbose flags MUST reuse the shared `verbose` convention and emit traces via the existing `VerboseTracePayload` contract. | REST/CLI verbose flags MUST reuse the shared `verbose` convention and emit traces via the existing `VerboseTracePayload` contract. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Project telemetry policy |
+| FR-006-33 | Provide a stored presentation seeding workflow (UI action, CLI command, REST endpoint) that loads fixture presentations into the MapDB store for later selection in stored mode. | Provide a stored presentation seeding workflow (UI action, CLI command, REST endpoint) that loads fixture presentations into the MapDB store for later selection in stored mode. | Requests or presentations that violate this rule return the appropriate problem detail (see Scenario Matrix). | Simulator aborts processing and surfaces the matching error outcome (invalid_request / invalid_scope / invalid_presentation / wallet_unavailable). | Refer to `oid4vp.*` events in Telemetry & Observability; verbose traces capture the redacted payloads and diagnostics. | Operator directive |
 
 ## Non-Functional Requirements
 Quality constraints that must stay true regardless of transport/profile.
 
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-040-01 | Preserve deterministic behaviour under a fixed seed (nonce, state, key order, QR payloads). | Preserve deterministic behaviour under a fixed seed (nonce, state, key order, QR payloads). | Enforced via targeted tests, telemetry, or build tooling per plan/tasks references. | Core/application telemetry, build tooling, and scenario instrumentation. | Project governance |
-| NFR-040-02 | Honour the project’s no-reflection policy across production and tests. | Honour the project’s no-reflection policy across production and tests. | Enforced via targeted tests, telemetry, or build tooling per plan/tasks references. | Core/application telemetry, build tooling, and scenario instrumentation. | Project governance |
-| NFR-040-03 | Complete remote presentation round-trips in ≤200 ms in non-encrypted mode on a developer workstation; record encryption overhead metrics. | Complete remote presentation round-trips in ≤200 ms in non-encrypted mode on a developer workstation; record encryption overhead metrics. | Enforced via targeted tests, telemetry, or build tooling per plan/tasks references. | Core/application telemetry, build tooling, and scenario instrumentation. | Project governance |
-| NFR-040-04 | Redact PII in logs/telemetry (only hash claim structures and counts). | Redact PII in logs/telemetry (only hash claim structures and counts). | Enforced via targeted tests, telemetry, or build tooling per plan/tasks references. | Core/application telemetry, build tooling, and scenario instrumentation. | Project governance |
-| NFR-040-05 | Keep documentation/roadmap/knowledge map in sync; run `./gradlew --no-daemon spotlessApply check` after every increment. | Keep documentation/roadmap/knowledge map in sync; run `./gradlew --no-daemon spotlessApply check` after every increment. | Enforced via targeted tests, telemetry, or build tooling per plan/tasks references. | Core/application telemetry, build tooling, and scenario instrumentation. | Project governance |
+| NFR-006-01 | Preserve deterministic behaviour under a fixed seed (nonce, state, key order, QR payloads). | Preserve deterministic behaviour under a fixed seed (nonce, state, key order, QR payloads). | Enforced via targeted tests, telemetry, or build tooling per plan/tasks references. | Core/application telemetry, build tooling, and scenario instrumentation. | Project governance |
+| NFR-006-02 | Honour the project’s no-reflection policy across production and tests. | Honour the project’s no-reflection policy across production and tests. | Enforced via targeted tests, telemetry, or build tooling per plan/tasks references. | Core/application telemetry, build tooling, and scenario instrumentation. | Project governance |
+| NFR-006-03 | Complete remote presentation round-trips in ≤200 ms in non-encrypted mode on a developer workstation; record encryption overhead metrics. | Complete remote presentation round-trips in ≤200 ms in non-encrypted mode on a developer workstation; record encryption overhead metrics. | Enforced via targeted tests, telemetry, or build tooling per plan/tasks references. | Core/application telemetry, build tooling, and scenario instrumentation. | Project governance |
+| NFR-006-04 | Redact PII in logs/telemetry (only hash claim structures and counts). | Redact PII in logs/telemetry (only hash claim structures and counts). | Enforced via targeted tests, telemetry, or build tooling per plan/tasks references. | Core/application telemetry, build tooling, and scenario instrumentation. | Project governance |
+| NFR-006-05 | Keep documentation/roadmap/knowledge map in sync; run `./gradlew --no-daemon spotlessApply check` after every increment. | Keep documentation/roadmap/knowledge map in sync; run `./gradlew --no-daemon spotlessApply check` after every increment. | Enforced via targeted tests, telemetry, or build tooling per plan/tasks references. | Core/application telemetry, build tooling, and scenario instrumentation. | Project governance |
 
 ## UI / Interaction Mock-ups
 
@@ -239,13 +229,13 @@ When DCQL requests multiple credentials, the result view renders one collapsible
 
 
 ## Branch & Scenario Matrix
-### Success Branches
+**Success branches**
 1. Build DCQL query and authorization request (nonce/state, HAIP metadata).
 2. Render QR/deep link; wallet fetches request (URL or `request_uri` POST).
 3. Deterministic wallet composes SD-JWT VC or DeviceResponse, packages VP Token, returns via selected response mode.
 4. Verifier validates presentations, Trusted Authorities, records telemetry, and presents sanitized results (one section per presentation if multiple) to facades.
 
-### Validation Checks
+**Validation checks**
 - Reject requests missing DCQL/scope or supplying both.
 - Enforce nonce freshness and request ID uniqueness.
 - Ensure DCQL meta fields (`meta.vct_values`, `meta.doctype_value`) are present and well-formed.
@@ -253,33 +243,31 @@ When DCQL requests multiple credentials, the result view renders one collapsible
 - Verify encryption round-trip for `direct_post.jwt`.
 - Confirm multi-presentation responses render collapsible sections with matching trace identifiers.
 
-### Failure Paths
+**Failure paths**
 - Invalid request parameters → `invalid_request`.
 - Unsupported or missing Trusted Authorities match → `invalid_scope`.
 - Wallet simulator disabled or fixture missing → `wallet_unavailable`.
 - Presentation validation failure (signature, disclosure mismatch, claims pointer violation) → `invalid_presentation`.
 - Encryption failure or missing HAIP keys → `invalid_request` with actionable messaging.
 
-### Scenario Table
-
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
-| S-040-01 | HAIP authorization request (signed + encrypted) succeeds with deterministic nonce/state, QR/deep-link payloads, and telemetry `oid4vp.request.created`. |
-| S-040-02 | Missing DCQL vs scope conflict returns `invalid_request` problem details, surfaces the error inside the UI result card, and logs `oid4vp.auth.validation_failure`. |
-| S-040-03 | Wallet simulate (Evaluate inline, multi-presentation preset) emits deterministic VP Token JSON, per-presentation trace IDs, and consistent output across CLI/REST/UI. |
-| S-040-04 | Validation failures (disclosure mismatch / Trusted Authority miss) yield `invalid_presentation` or `invalid_scope`, highlight the failing credential, and propagate violations to CLI/REST/UI. |
-| S-040-05 | Global include-trace toggle disables verbose traces while telemetry records `includeTrace=false` and the UI hides the trace dock. |
-| S-040-06 | Baseline (unenforced) profile keeps encryption optional, shows the baseline warning banner, and preserves read-only DCQL previews. |
-| S-040-07 | Stored replay/evaluate journeys hydrate presets, keep sensitive fields hidden, and emit stored-presentation telemetry plus digest-only traces. |
-| S-040-08 | Inline “Load sample vector” fills SD-JWT inputs without switching modes and remains editable prior to submission. |
-| S-040-09 | Fixture ingestion toggles synthetic vs conformance bundles, captures provenance metadata, and publishes `oid4vp.fixtures.ingested`. |
-| S-040-10 | Trusted Authority metadata (labels, AKI, policy) flows through CLI/REST/UI traces without exposing raw secrets. |
-| S-040-11 | Multi-presentation results render collapsible sections with copy/download hooks and `data-trace-id` attributes aligned to the verbose trace dock. |
-| S-040-12 | Deep-link query params (`?protocol=eudiw&tab=…&mode=…`) hydrate Evaluate/Replay state and survive back/forward navigation history. |
-| S-040-13 | DeviceResponse (mdoc) simulations produce deterministic hashes, satisfy claim pointers, and trigger encryption hooks in HAIP mode. |
-| S-040-14 | HAIP encryption failures (missing verifier keys / decrypt errors) raise `invalid_request` with actionable messaging and matching telemetry. |
-| S-040-15 | Problem-details propagation keeps status codes, violation arrays, and telemetry aligned across CLI/REST/UI when validation fails. |
-| S-040-16 | Live Trusted Authority ingestion (ETSI TL / OpenID Federation) refreshes trusted metadata snapshots and emits provenance telemetry. _Pending scenario tracked via T-040-23._ |
+| S-006-01 | HAIP authorization request (signed + encrypted) succeeds with deterministic nonce/state, QR/deep-link payloads, and telemetry `oid4vp.request.created`. |
+| S-006-02 | Missing DCQL vs scope conflict returns `invalid_request` problem details, surfaces the error inside the UI result card, and logs `oid4vp.auth.validation_failure`. |
+| S-006-03 | Wallet simulate (Evaluate inline, multi-presentation preset) emits deterministic VP Token JSON, per-presentation trace IDs, and consistent output across CLI/REST/UI. |
+| S-006-04 | Validation failures (disclosure mismatch / Trusted Authority miss) yield `invalid_presentation` or `invalid_scope`, highlight the failing credential, and propagate violations to CLI/REST/UI. |
+| S-006-05 | Global include-trace toggle disables verbose traces while telemetry records `includeTrace=false` and the UI hides the trace dock. |
+| S-006-06 | Baseline (unenforced) profile keeps encryption optional, shows the baseline warning banner, and preserves read-only DCQL previews. |
+| S-006-07 | Stored replay/evaluate journeys hydrate presets, keep sensitive fields hidden, and emit stored-presentation telemetry plus digest-only traces. |
+| S-006-08 | Inline “Load sample vector” fills SD-JWT inputs without switching modes and remains editable prior to submission. |
+| S-006-09 | Fixture ingestion toggles synthetic vs conformance bundles, captures provenance metadata, and publishes `oid4vp.fixtures.ingested`. |
+| S-006-10 | Trusted Authority metadata (labels, AKI, policy) flows through CLI/REST/UI traces without exposing raw secrets. |
+| S-006-11 | Multi-presentation results render collapsible sections with copy/download hooks and `data-trace-id` attributes aligned to the verbose trace dock. |
+| S-006-12 | Deep-link query params (`?protocol=eudiw&tab=…&mode=…`) hydrate Evaluate/Replay state and survive back/forward navigation history. |
+| S-006-13 | DeviceResponse (mdoc) simulations produce deterministic hashes, satisfy claim pointers, and trigger encryption hooks in HAIP mode. |
+| S-006-14 | HAIP encryption failures (missing verifier keys / decrypt errors) raise `invalid_request` with actionable messaging and matching telemetry. |
+| S-006-15 | Problem-details propagation keeps status codes, violation arrays, and telemetry aligned across CLI/REST/UI when validation fails. |
+| S-006-16 | Live Trusted Authority ingestion (ETSI TL / OpenID Federation) refreshes trusted metadata snapshots and emits provenance telemetry. _Pending scenario tracked via T-006-23._ |
 
 
 ## Test Strategy
@@ -292,23 +280,16 @@ When DCQL requests multiple credentials, the result view renders one collapsible
 - **Fixtures & ingestion** – Tests ensuring synthetic vs conformance fixture toggles load the expected records, provenance metadata is captured, and seeding endpoints/commands remain idempotent.
 - **Performance/metrics** – Lightweight regression capturing latency for encrypted vs non-encrypted flows (≤200 ms target) with assertions on telemetry latency fields.
 
-## Dependency Considerations
-- Base implementation uses existing crypto helpers; however, HAIP encryption and mdoc COSE handling likely require additional libraries:
-  - Nimbus JOSE + JWT for `ECDH-ES` + `A128GCM` JWE handling.
-  - COSE-JAVA (or equivalent) and a CBOR parser for DeviceResponse.
-  - ZXing (optional) for QR PNG generation; ASCII QR renderer remains default.
-- Any new dependency must receive explicit owner approval before adoption; until approved, keep functionality behind interfaces so fixture-driven tests can operate with in-house stubs.
-
 ## Interface & Contract Catalogue
 
 ### Domain Objects
 | ID | Description | Modules |
 |----|-------------|---------|
-| DO-040-01 | `OpenId4VpAuthorizationRequest` (profile, responseMode, nonce/state, DCQL query metadata) | core, application, REST |
-| DO-040-02 | `OpenId4VpWalletPresentation` (SD-JWT/mDoc payloads, Trusted Authority verdicts, telemetry hashes) | core, application, REST, CLI, UI |
-| DO-040-03 | `TrustedAuthorityRecord` (AKI, ETSI TL/OpenID Federation metadata, friendly label) | core, application |
-| DO-040-04 | `FixtureDataset` (synthetic vs conformance provenance, stored presentations) | core, application, REST |
-| DO-040-05 | `Oid4vpTracePayload` (request/wallet/validation diagnostics, masked identifiers) | application, REST, CLI, UI |
+| DO-006-01 | `OpenId4VpAuthorizationRequest` (profile, responseMode, nonce/state, DCQL query metadata) | core, application, REST |
+| DO-006-02 | `OpenId4VpWalletPresentation` (SD-JWT/mDoc payloads, Trusted Authority verdicts, telemetry hashes) | core, application, REST, CLI, UI |
+| DO-006-03 | `TrustedAuthorityRecord` (AKI, ETSI TL/OpenID Federation metadata, friendly label) | core, application |
+| DO-006-04 | `FixtureDataset` (synthetic vs conformance provenance, stored presentations) | core, application, REST |
+| DO-006-05 | `Oid4vpTracePayload` (request/wallet/validation diagnostics, masked identifiers) | application, REST, CLI, UI |
 
 ### API Routes / Services
 
@@ -316,10 +297,10 @@ All endpoints live under `/api/v1/eudiw/openid4vp` and accept/return UTF-8 JSON.
 
 | ID | Transport | Description | Notes |
 |----|-----------|-------------|-------|
-| API-040-01 | REST `POST /api/v1/eudiw/openid4vp/requests` | Create HAIP-compliant authorization requests plus QR/deep-link payloads. | `includeQrAscii` toggles ASCII QR; `verbose=true` appends sanitized trace + telemetry echoes. |
-| API-040-02 | REST `POST /api/v1/eudiw/openid4vp/wallet/simulate` | Generate deterministic wallet responses for stored or inline credentials. | Inline SD-JWT/mdoc payloads override presets; optional Trusted Authority policy parameter. |
-| API-040-03 | REST `POST /api/v1/eudiw/openid4vp/validate` | Validate VP Tokens or DeviceResponses supplied by external wallets. | Accepts stored preset IDs or inline JSON; emits problem-details failures with violation arrays. |
-| API-040-04 | REST `POST /api/v1/eudiw/openid4vp/presentations/seed` | Seed stored presentations from synthetic or conformance fixtures. | Records provenance metadata, returns counts only, no trace payload. |
+| API-006-01 | REST `POST /api/v1/eudiw/openid4vp/requests` | Create HAIP-compliant authorization requests plus QR/deep-link payloads. | `includeQrAscii` toggles ASCII QR; `verbose=true` appends sanitized trace + telemetry echoes. |
+| API-006-02 | REST `POST /api/v1/eudiw/openid4vp/wallet/simulate` | Generate deterministic wallet responses for stored or inline credentials. | Inline SD-JWT/mdoc payloads override presets; optional Trusted Authority policy parameter. |
+| API-006-03 | REST `POST /api/v1/eudiw/openid4vp/validate` | Validate VP Tokens or DeviceResponses supplied by external wallets. | Accepts stored preset IDs or inline JSON; emits problem-details failures with violation arrays. |
+| API-006-04 | REST `POST /api/v1/eudiw/openid4vp/presentations/seed` | Seed stored presentations from synthetic or conformance fixtures. | Records provenance metadata, returns counts only, no trace payload. |
 
 #### `POST /api/v1/eudiw/openid4vp/requests`
 
@@ -453,17 +434,17 @@ The Picocli surface adopts three top-level commands under `eudiw` and mirrors RE
 
 | ID | Command | Behaviour |
 |----|---------|-----------|
-| CLI-040-01 | `eudiw request create` | Build HAIP/baseline authorization requests, optionally render ASCII QR, emit masked trace data when verbose. |
-| CLI-040-02 | `eudiw wallet simulate` | Replay fixture presets or inline SD-JWT/mdoc payloads with Trusted Authority policy overrides. |
-| CLI-040-03 | `eudiw validate` | Validate VP Tokens/DeviceResponses (preset or inline), emit problem-details on failure, mirror REST schema. |
+| CLI-006-01 | `eudiw request create` | Build HAIP/baseline authorization requests, optionally render ASCII QR, emit masked trace data when verbose. |
+| CLI-006-02 | `eudiw wallet simulate` | Replay fixture presets or inline SD-JWT/mdoc payloads with Trusted Authority policy overrides. |
+| CLI-006-03 | `eudiw validate` | Validate VP Tokens/DeviceResponses (preset or inline), emit problem-details on failure, mirror REST schema. |
 
-#### CLI-040-01 – `eudiw request create`
+**CLI-006-01 – `eudiw request create`**
 Required options: `--profile`, `--response-mode`, `--dcql-preset` _or_ `--dcql-json`. Optional toggles: `--unsigned` (disable HAIP JAR), `--qr` (render ASCII QR), `--seed <path>` (override deterministic seed). Returns request metadata and, when verbose, a trace section containing masked nonce/state and DCQL hash.
 
-#### CLI-040-02 – `eudiw wallet simulate`
+**CLI-006-02 – `eudiw wallet simulate`**
 Required: `--request-id`, `--profile`. Either `--wallet-preset <id>` or inline credential inputs via `--sdjwt <path>` / `--disclosure <path>` / `--kb-jwt <path>` / `--mdoc <path>`. Optional `--trusted-authority <policy-id>`. Text output summarises credential IDs, response mode, Trusted Authority matches; verbose output appends trace diagnostics (hashes, latency).
 
-#### CLI-040-03 – `eudiw validate`
+**CLI-006-03 – `eudiw validate`**
 Accepts `--preset <id>` or `--vp-token <path>` (inline JSON), optional `--response-mode-override` and `--trusted-authority`. Reports success/failure, problem-details when invalid, and verbose traces with per-credential diagnostics. Exit codes: `0` success, `2` validation failure, `3` request/setup error.
 
 Command help must reference the REST endpoints for cross-facade parity and highlight that verbose tracing exposes masked but still sensitive hashes.
@@ -472,36 +453,36 @@ Command help must reference the REST endpoints for cross-facade parity and highl
 
 | ID | Event name | Fields / Redaction summary |
 |----|------------|----------------------------|
-| TE-040-01 | `oid4vp.request.created` | `event`, `requestId`, `profile`, `responseMode`, `durationMs`, `haipEnforced`, masked nonce/state suffixes, Trusted Authority labels. |
-| TE-040-02 | `oid4vp.request.qr.rendered` | Adds `qrRendered`, `qrFormat`, and optional ASCII preview hash; never emits raw URIs. |
-| TE-040-03 | `oid4vp.wallet.responded` | `presentations` (count), `durationMs`, `trustedAuthorityDecision`, profile/mode metadata; hashed VP Token/KJ-JWT/deviceResponse values restricted to traces. |
-| TE-040-04 | `oid4vp.response.validated` | Mirrors wallet responded but scoped to validation flows; includes sanitized credential identifiers and Trusted Authority verdicts. |
-| TE-040-05 | `oid4vp.response.failed` | Same fields as TE-040-04 plus `failureReason` aligned to problem-details `type`. |
-| TE-040-06 | `oid4vp.fixtures.ingested` | Reports dataset source, count of records, provenance hash, `synthetic|conformance` flag; omits path-level details. |
+| TE-006-01 | `oid4vp.request.created` | `event`, `requestId`, `profile`, `responseMode`, `durationMs`, `haipEnforced`, masked nonce/state suffixes, Trusted Authority labels. |
+| TE-006-02 | `oid4vp.request.qr.rendered` | Adds `qrRendered`, `qrFormat`, and optional ASCII preview hash; never emits raw URIs. |
+| TE-006-03 | `oid4vp.wallet.responded` | `presentations` (count), `durationMs`, `trustedAuthorityDecision`, profile/mode metadata; hashed VP Token/KJ-JWT/deviceResponse values restricted to traces. |
+| TE-006-04 | `oid4vp.response.validated` | Mirrors wallet responded but scoped to validation flows; includes sanitized credential identifiers and Trusted Authority verdicts. |
+| TE-006-05 | `oid4vp.response.failed` | Same fields as TE-006-04 plus `failureReason` aligned to problem-details `type`. |
+| TE-006-06 | `oid4vp.fixtures.ingested` | Reports dataset source, count of records, provenance hash, `synthetic|conformance` flag; omits path-level details. |
 
 ### Fixtures & Sample Data
 
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-040-01 | `docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/sdjwt-vc/*.json` | SD-JWT VC cleartext claims, disclosures, KB-JWT payloads, metadata driving Generate mode. |
-| FX-040-02 | `docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/mdoc/*.json` | ISO/IEC 18013-5 DeviceResponse payloads plus diagnostic CBOR text for deterministic tests. |
-| FX-040-03 | `docs/test-vectors/eudiw/openid4vp/trust/**/*` | Trusted Authority anchors, policies, and snapshots (friendly labels + AKI metadata). |
-| FX-040-04 | `docs/test-vectors/eudiw/openid4vp/stored/presentations/*.json` | Stored VP Tokens mapped to presets for Replay mode. |
-| FX-040-05 | `docs/test-vectors/eudiw/openid4vp/provenance.json` + `presentations/seed` payloads | Fixture dataset provenance for ingestion, including source hashes and timestamps. |
+| FX-006-01 | `docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/sdjwt-vc/*.json` | SD-JWT VC cleartext claims, disclosures, KB-JWT payloads, metadata driving Generate mode. |
+| FX-006-02 | `docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/mdoc/*.json` | ISO/IEC 18013-5 DeviceResponse payloads plus diagnostic CBOR text for deterministic tests. |
+| FX-006-03 | `docs/test-vectors/eudiw/openid4vp/trust/**/*` | Trusted Authority anchors, policies, and snapshots (friendly labels + AKI metadata). |
+| FX-006-04 | `docs/test-vectors/eudiw/openid4vp/stored/presentations/*.json` | Stored VP Tokens mapped to presets for Replay mode. |
+| FX-006-05 | `docs/test-vectors/eudiw/openid4vp/provenance.json` + `presentations/seed` payloads | Fixture dataset provenance for ingestion, including source hashes and timestamps. |
 
 ### UI States
 
 | ID | State | Trigger / Expected outcome |
 |----|-------|---------------------------|
-| UI-040-01 | REST/CLI response payloads | Always include `status`, `profile`, `responseMode`, `presentations[].credentialId/format/trustedAuthorityMatch`, inline VP Token JSON (FR-040-28), and `telemetry`. `trace` only appears when `verbose=true`/`--verbose`, exposing masked `nonce`/`state`, `dcqlHash`, `vpTokenHash`, `kbJwtHash`, `trustedAuthorities[]`, latency, and per-credential diagnostics; absent otherwise. |
-| UI-040-02 | Operator UI result cards | Evaluate/Replay panels render status badge, response mode, credential summary rows, Trusted Authority labels, inline VP Token viewer, and per-presentation copy/download controls. Trace dock entries share `data-trace-id` values with card sections for cross-highlighting. |
-| UI-040-03 | Operator UI baseline banner | When profile ≠ `HAIP`, display “Baseline mode – HAIP enforcement disabled” banner in the result card and set `haipEnforced=false` in trace payloads for telemetry correlation. |
-| UI-040-04 | Verbose trace alerts | Global console verbose toggle governs the shared trace dock; when enabled, show the standard warning (“Verbose traces expose hashed identifiers and diagnostic metadata. Use only in trusted environments.”). No protocol-specific verbose checkbox is allowed on the EUDIW tab. |
+| UI-006-01 | REST/CLI response payloads | Always include `status`, `profile`, `responseMode`, `presentations[].credentialId/format/trustedAuthorityMatch`, inline VP Token JSON (FR-006-28), and `telemetry`. `trace` only appears when `verbose=true`/`--verbose`, exposing masked `nonce`/`state`, `dcqlHash`, `vpTokenHash`, `kbJwtHash`, `trustedAuthorities[]`, latency, and per-credential diagnostics; absent otherwise. |
+| UI-006-02 | Operator UI result cards | Evaluate/Replay panels render status badge, response mode, credential summary rows, Trusted Authority labels, inline VP Token viewer, and per-presentation copy/download controls. Trace dock entries share `data-trace-id` values with card sections for cross-highlighting. |
+| UI-006-03 | Operator UI baseline banner | When profile ≠ `HAIP`, display “Baseline mode – HAIP enforcement disabled” banner in the result card and set `haipEnforced=false` in trace payloads for telemetry correlation. |
+| UI-006-04 | Verbose trace alerts | Global console verbose toggle governs the shared trace dock; when enabled, show the standard warning (“Verbose traces expose hashed identifiers and diagnostic metadata. Use only in trusted environments.”). No protocol-specific verbose checkbox is allowed on the EUDIW tab. |
 
 When verbose tracing is enabled, facades must log the shared warning while keeping hashes masked; master keys and raw disclosures never appear.
 
 ## Telemetry & Observability
-- Emit JSON telemetry via `TelemetryContracts` with event families listed in FR-040-14 (see Interface & Contract Catalogue → Telemetry Events for the canonical matrix).
+- Emit JSON telemetry via `TelemetryContracts` with event families listed in FR-006-14 (see Interface & Contract Catalogue → Telemetry Events for the canonical matrix).
 - Include duration metrics, encryption flags, credential counts, and Trusted Authority decision results while masking nonces (show trailing six characters only).
 - Provide verbose trace payloads (disabled by default for REST/CLI, opt-in via query flag) showing sanitized request/response envelopes.
 
@@ -524,20 +505,6 @@ Validation flows (S5) inherit this policy: they must trigger the same telemetry 
 - Maintain how-to guides for REST, CLI, and operator UI (`docs/2-how-to/use-eudiw-*`).
 - Append telemetry snapshot reference (`docs/3-reference/eudiw-openid4vp-telemetry-snapshot.md`).
 
-### References
-- OpenID for Verifiable Presentations 1.0 (Final, 2025-07-09): response types, DCQL, response modes, validation, error semantics.
-- OpenID4VC High Assurance Interoperability Profile 1.0 (draft 05): HAIP profile, encryption, identifiers, Trusted Authorities use.
-- IETF draft-ietf-oauth-selective-disclosure-jwt-22: SD-JWT selective disclosure, KB-JWT structure.
-- IETF draft-ietf-oauth-sd-jwt-vc-12: SD-JWT VC media types (`application/dc+sd-jwt`).
-- ISO/IEC 18013-5 (mobile driving licence) – DeviceResponse enforcement.
-- EUDI PID Rulebook Annex 3.1: PID namespace `eu.europa.ec.eudi.pid.1`.
-- OpenID4VP conformance suite repository (OpenID Foundation).
-
-### Follow-up Items
-- Complete ETSI Trust List (`etsi_tl`) and OpenID Federation ingestion before extending further trust features (tracked by T3999/T40F3).
-- Evaluate conformance test automation to replay official OpenID4VP vectors regularly.
-- Track same-device/DC-API journeys as a separate specification once prioritized.
-
 ## Fixtures & Sample Data
 - Refer to Interface & Contract Catalogue → Fixtures & Sample Data for canonical IDs/paths.
 - Directory layout under `docs/test-vectors/eudiw/openid4vp/`:
@@ -554,83 +521,114 @@ Validation flows (S5) inherit this policy: they must trigger the same telemetry 
 ## Spec DSL
 ```
 domain_objects:
-  - id: DO-040-01
+  - id: DO-006-01
     name: OpenId4VpAuthorizationRequest
     fields: [profile, responseMode, dcqlPreset, dcqlOverride, signedRequest, includeQrAscii]
-  - id: DO-040-02
+  - id: DO-006-02
     name: OpenId4VpWalletPresentation
     fields: [credentialId, format, holderBinding, trustedAuthorityMatch, vpToken, deviceResponse]
-  - id: DO-040-03
+  - id: DO-006-03
     name: TrustedAuthorityRecord
     fields: [id, label, aki, source]
-  - id: DO-040-04
+  - id: DO-006-04
     name: FixtureDataset
     fields: [id, type, provenance, path]
-  - id: DO-040-05
+  - id: DO-006-05
     name: Oid4vpTracePayload
     fields: [requestId, profile, nonceFull, stateFull, dcqlHash, vpTokenHash, kbJwtHash, deviceResponseHash]
 routes:
-  - id: API-040-01
+  - id: API-006-01
     method: POST
     path: /api/v1/eudiw/openid4vp/requests
     description: Create authorization request, QR/deep link output
-  - id: API-040-02
+  - id: API-006-02
     method: POST
     path: /api/v1/eudiw/openid4vp/wallet/simulate
     description: Generate deterministic wallet responses
-  - id: API-040-03
+  - id: API-006-03
     method: POST
     path: /api/v1/eudiw/openid4vp/validate
     description: Validate external VP Tokens
-  - id: API-040-04
+  - id: API-006-04
     method: POST
     path: /api/v1/eudiw/openid4vp/presentations/seed
     description: Seed stored presentations from fixtures or conformance bundles
 cli_commands:
-  - id: CLI-040-01
+  - id: CLI-006-01
     command: eudiw request create
     description: Build authorization requests with HAIP toggles
-  - id: CLI-040-02
+  - id: CLI-006-02
     command: eudiw wallet simulate
     description: Replay fixture or inline credentials
-  - id: CLI-040-03
+  - id: CLI-006-03
     command: eudiw validate
     description: Verify VP Tokens / DeviceResponses
 telemetry_events:
-  - id: TE-040-01
+  - id: TE-006-01
     event: oid4vp.request.created
-  - id: TE-040-02
+  - id: TE-006-02
     event: oid4vp.request.qr.rendered
-  - id: TE-040-03
+  - id: TE-006-03
     event: oid4vp.wallet.responded
-  - id: TE-040-04
+  - id: TE-006-04
     event: oid4vp.response.validated
-  - id: TE-040-05
+  - id: TE-006-05
     event: oid4vp.response.failed
-  - id: TE-040-06
+  - id: TE-006-06
     event: oid4vp.fixtures.ingested
 fixtures:
-  - id: FX-040-01
+  - id: FX-006-01
     path: docs/test-vectors/eudiw/openid4vp/pid-sd-jwt.json
     description: Synthetic SD-JWT PID bundle
-  - id: FX-040-02
+  - id: FX-006-02
     path: docs/test-vectors/eudiw/openid4vp/pid-mdoc.json
     description: Synthetic ISO/IEC 18013-5 DeviceResponse bundle
-  - id: FX-040-03
+  - id: FX-006-03
     path: docs/test-vectors/eudiw/openid4vp/provenance.json
     description: Fixture dataset metadata for ingestion
 ui_states:
-  - id: UI-040-01
+  - id: UI-006-01
     description: Generate mode preset workflow (DCQL preview + baseline banner)
-  - id: UI-040-02
+  - id: UI-006-02
     description: Validate mode with VP Token JSON upload and error surfacing
-  - id: UI-040-03
+  - id: UI-006-03
     description: Multi-presentation result cards with collapsible sections and trace IDs
-  - id: UI-040-04
+  - id: UI-006-04
     description: Baseline vs HAIP banner + response mode toggle indicators
 ```
 
 ## Appendix
+
+### Architecture & Design Notes
+- Extend `core` with format adapters (`core.eudi.openid4vp`) for DCQL evaluation, SD-JWT VC cryptography (disclosure hashing, KB-JWT), and ISO mdoc DeviceResponse parsing using CBOR/COSE helpers. Inline credential submission reuses the same adapters to hydrate ad-hoc wallet inputs during Generate mode.
+- Introduce `application.eudi.openid4vp` services that assemble authorization requests, manage deterministic state (nonce, state, request identifiers), dispatch telemetry, and orchestrate wallet simulations against fixtures.
+- Reuse facade modules:
+  - `rest-api`: REST controllers for request creation, wallet simulation, and telemetry streams; integrate with existing problem-details handling and OpenAPI snapshots.
+  - `cli`: commands to create requests, render ASCII QR codes, drive simulated responses, and validate VP Tokens.
+  - `ui`: upgrade the EUDIW tab to render request metadata, ASCII QR preview, simulation actions, and trace inspection, reusing the global verbose dock and trace payload contract.
+- Fixtures under `docs/test-vectors/eudiw/openid4vp/` capture credential payloads, disclosures, DeviceResponse blobs, trust metadata, deterministic seeds, synthetic issuer/holder keys (stored under `keys/`), and stored presentation batches consumed by the seeding workflow.
+- Telemetry passes through `TelemetryContracts` with new `oid4vp.*` event families, ensuring PII redaction (hash or count metrics only) while allowing correlation via request identifiers.
+
+### Dependency Considerations
+- Base implementation uses existing crypto helpers; HAIP encryption and mdoc COSE handling may require:
+  - Nimbus JOSE + JWT for `ECDH-ES` + `A128GCM` JWE handling.
+  - COSE-JAVA (or equivalent) plus a CBOR parser for DeviceResponse validation.
+  - ZXing (optional) for QR PNG generation; ASCII QR renderer remains default.
+- Any new dependency needs explicit owner approval; until then, keep seams behind interfaces so fixture-driven tests can run against in-house stubs.
+
+### References
+- OpenID for Verifiable Presentations 1.0 (Final, 2025-07-09): response types, DCQL, response modes, validation, error semantics.
+- OpenID4VC High Assurance Interoperability Profile 1.0 (draft 05): HAIP profile, encryption, identifiers, Trusted Authorities use.
+- IETF draft-ietf-oauth-selective-disclosure-jwt-22: SD-JWT selective disclosure, KB-JWT structure.
+- IETF draft-ietf-oauth-sd-jwt-vc-12: SD-JWT VC media types (`application/dc+sd-jwt`).
+- ISO/IEC 18013-5 (mobile driving licence) – DeviceResponse enforcement.
+- EUDI PID Rulebook Annex 3.1: PID namespace `eu.europa.ec.eudi.pid.1`.
+- OpenID4VP conformance suite repository (OpenID Foundation).
+
+### Follow-up Items
+- Complete ETSI Trust List (`etsi_tl`) and OpenID Federation ingestion before extending further trust features (tracked by T3999/T40F3).
+- Evaluate conformance test automation to replay official OpenID4VP vectors regularly.
+- Track same-device/DC-API journeys as a separate specification once prioritized.
 
 ### Response & Profile Options
 - **Profile presets**: `HAIP` (default), `Baseline` (unenforced), future profile slots must be documented before use.

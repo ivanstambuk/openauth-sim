@@ -41,9 +41,48 @@ telemetry so operators can exercise verifier interoperability scenarios without 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-008-01 | Deterministic behaviour | Repeatable VP Tokens | Integration tests comparing payload hashes | Feature 006 verifier, Feature 007 fixtures | Placeholder |
-| NFR-008-02 | Observability | Telemetry/traces sanitize secrets | Telemetry capture tests | TelemetryContracts | Placeholder |
-| NFR-008-03 | Performance | Wallet simulation completes <250 ms per request | :application:test benchmarks | HAIP crypto helpers | Placeholder |
+| NFR-008-01 | Deterministic behaviour across SD-JWT + mdoc payloads | Repeatable VP Tokens | Integration tests comparing payload hashes | Feature 006 verifier, Feature 007 fixtures | Placeholder |
+| NFR-008-02 | Observability (telemetry/traces sanitize secrets) | Prevent PII leakage | Telemetry capture tests | TelemetryContracts | Placeholder |
+| NFR-008-03 | Performance (<250 ms per simulation) | Keep demos responsive | `:application:test` benchmarks | HAIP crypto helpers | Placeholder |
+
+## UI / Interaction Mock-ups
+Placeholder ASCII sketches keep the template structure intact until the final UX is confirmed.
+
+### Consent / Presentation Composition
+```
+┌─────────────────────────────────────┐
+│ SIOPv2 Wallet – Consent             │
+├─────────────────────────────────────┤
+│ Request summary                     │
+│   DCQL preset: pid-haip             │
+│   Trusted authority: EU PID (aki)   │
+│                                     │
+│ Credential mode                     │
+│   (•) Stored preset   ( ) Inline    │
+│   Preset: [ pid-sdjwt-01 ▼ ]        │
+│ Inline disclosures (JSON)           │
+│ [ Add disclosure ] [ Remove ]       │
+│                                     │
+│ Response mode                        │
+│   [ fragment ▼ ]                    │
+│                                     │
+│ [ Compose VP Token ]                │
+└─────────────────────────────────────┘
+```
+
+### VP Token Preview / Replay
+```
+┌─────────────────────────────────────┐
+│ SIOPv2 Wallet – Result              │
+├─────────────────────────────────────┤
+│ Status: READY                       │
+│ vp_token (read-only textarea)       │
+│ presentation_submission JSON        │
+│ Trusted authority decision: MATCH   │
+│ Trace ID: ABCD-1234 (link)          │
+│ [ Download JSON ] [ Copy vp_token ] │
+└─────────────────────────────────────┘
+```
 
 ## Branch & Scenario Matrix
 | Scenario ID | Description |
@@ -58,6 +97,43 @@ telemetry so operators can exercise verifier interoperability scenarios without 
 - **REST/CLI:** Contract tests ensuring CLI commands and REST endpoints wrap the wallet orchestrator correctly.
 - **UI:** Selenium flows for consent dialogs, preset selection, verbose traces.
 - **Docs:** `./gradlew spotlessApply check` with manual verification of commands.
+## Interface & Contract Catalogue
+
+### Domain Objects
+| ID | Description | Modules |
+|----|-------------|---------|
+| DO-008-01 | `SioPv2WalletRequest` placeholder capturing consent state. | application, REST |
+| DO-008-02 | `SioPv2WalletPresentation` placeholder for VP Token / DeviceResponse output. | application, REST, CLI, UI |
+
+### API Routes / Services
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| API-008-01 | REST `POST /api/v1/eudiw/wallet/request` | Create consent summaries for a DCQL request. | Placeholder mirrors Feature 006. |
+| API-008-02 | REST `POST /api/v1/eudiw/wallet/present` | Compose VP Tokens (SD-JWT / mdoc). | Placeholder. |
+
+### CLI Commands / Flags
+| ID | Command | Behaviour |
+|----|---------|-----------|
+| CLI-008-01 | `eudiw wallet request` | Shows consent summary for a request. |
+| CLI-008-02 | `eudiw wallet present` | Emits VP Tokens for selected presets. |
+
+### Telemetry Events
+| ID | Event name | Notes |
+|----|-----------|-------|
+| TE-008-01 | `oid4vp.wallet.request` | Placeholder fields: decision, taMatch. |
+| TE-008-02 | `oid4vp.wallet.present` | Placeholder fields: presetId, credentialMode. |
+
+### Fixtures & Sample Data
+| ID | Path | Purpose |
+|----|------|---------|
+| FX-008-01 | `docs/test-vectors/eudiw/sio/consent.json` | Sample request metadata. |
+| FX-008-02 | `docs/test-vectors/eudiw/sio/presentations/pid-sdjwt.json` | VP Token seed. |
+
+### UI States
+| ID | State | Trigger |
+|----|-------|---------|
+| UI-008-01 | Consent modal open | Operator views request summary + toggles presets. |
+| UI-008-02 | Result preview | VP Token ready; copy/download controls enabled. |
 
 ## Telemetry & Observability
 - Extend `oid4vp.wallet.*` event family with sanitized context (taMatch, credentialCount, includeTrace flag).
@@ -68,13 +144,8 @@ telemetry so operators can exercise verifier interoperability scenarios without 
 ## Fixtures & Sample Data
 - Share fixture catalogue with Feature 006 and Feature 007; annotate provenance metadata.
 
-## Interface & Contract Catalogue
-- **REST:** `POST /api/v1/eudiw/wallet/request`, `/wallet/present` (placeholder).
-- **CLI:** `eudiw wallet request`, `eudiw wallet present` commands.
-- **UI:** Operator console wallet consent panel.
-- **Telemetry:** `oid4vp.wallet.request`, `oid4vp.wallet.present`.
 
-## Spec DSL (placeholder)
+## Spec DSL
 ```yaml
 feature: F-008
 protocol: eudiw-wallet

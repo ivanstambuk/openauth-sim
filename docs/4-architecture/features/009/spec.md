@@ -61,6 +61,21 @@ continues.
 | NFR-009-04 | Accessibility | Tablist focus, Info drawer, validation messaging, and preview accent styling meet WCAG/keyboard expectations. | Selenium/axe audits + manual review. | Thymeleaf templates, CSS tokens. | 020, 021, 034, 038 |
 | NFR-009-05 | Node harness determinism | JS tests run consistently (no timers/non-deterministic APIs) and add ≤2 minutes to `./gradlew check`. | CI logs, harness README, filtering property. | Node + Gradle configuration. | 041 |
 
+## UI / Interaction Mock-ups
+
+```
++----------------------------------------------------------------------------------+
+| HOTP | TOTP | OCRA | EMV | FIDO2 | EUDI-OpenID4VP | EUDI-ISO18013-5 | EUDI-SIOPv2 | [Protocol Info] |
++----------------------------------------------------------------------------------+
+| Preset selector with `<scenario – key attributes>` hint        | Inline secret entry (Base32 ⇄ Hex toggle, SecretEncodings helper) |
+| Validation result card (message + copy/download)              | Preview window (Delta=0 accent, CLI/REST offset labels)         |
+| Verbose trace dock (tier filter, `normal/educational/lab-secrets` toggles)             |
+| Protocol Info drawer (schema accordion, persisted prefs, CustomEvents, copy links)     |
+| Node harness tip (`operatorConsoleJsTest`, `consoleTestFilter` prompt)                 |
+```
+
+The mock-up emphasises the consolidated tab list, inline secrets, validation/preview stack, verbose trace dock, and the right-rail Protocol Info drawer that surfaces schema + persistence content for every protocol.
+
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|

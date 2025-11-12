@@ -65,6 +65,50 @@ runbooks they protect. No code changes ship in this migration; the goal is docum
 | NFR-011-04 | CI mirrors local governance checks: gitlint job, Palantir formatting, and hook-equivalent Gradle commands must run in workflows. | CI parity | GitHub workflow logs show gitlint + Spotless runs; failures block merges. | `.github/workflows/**`. | Legacy Feature 019/032.
 | NFR-011-05 | Governance actions remain auditable: `_current-session.md` + session log (docs/_current-session.md) entries include command history, runtimes, and follow-ups for each increment. | Traceability | Logs updated per increment; reviewers verify before closing tasks. | `_current-session.md`. | Goals G-011-04.
 
+## UI / Interaction Mock-ups
+
+### Governance Runbook Panel (UI-011-01)
+```
+┌──────────────────────── Governance Runbook ───────────────────────┐
+│ Session Reset Checklist                                          │
+│  1. Read AGENTS.md                                               │
+│  2. Run hook guard (git config core.hooksPath)                   │
+│  3. Update docs/_current-session.md                              │
+│                                                                  │
+│ Commands                                                         │
+│  ┌────────────────────────────┐  ┌────────────────────────────┐  │
+│  │ git config core.hooksPath  │  │ githooks/pre-commit        │  │
+│  ├────────────────────────────┤  ├────────────────────────────┤  │
+│  │ githooks/commit-msg <msg>  │  │ ./gradlew spotlessApply…   │  │
+│  └────────────────────────────┘  └────────────────────────────┘  │
+│                                                                  │
+│ Output Log (read-only)                                          │
+│  • 12:01 hook guard → githooks                                  │
+│  • 12:04 spotlessApply check ✔                                  │
+│                                                                  │
+│ Footer actions: [Copy log] [Append to _current-session.md]      │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Analysis Gate Checklist (UI-011-02)
+```
+┌──────────────────────── Analysis Gate ────────────────────────────┐
+│ Status badge: [ IN PROGRESS ]                                    │
+│ Tasks                                                            │
+│  [ ] Hook guard recorded                                         │
+│  [ ] Spotless/Gradle run logged                                  │
+│  [ ] Docs synced (roadmap/knowledge-map/session quick ref)       │
+│                                                                  │
+│ Left column                              Right column            │
+│  Checklist items                          Command log            │
+│   - git config core.hooksPath             12:10 hook guard OK    │
+│   - githooks/pre-commit                   12:13 spotlessApply OK │
+│   - Update docs/_current-session.md       12:16 roadmap updated  │
+│                                                                  │
+│ Action bar: [Validate gate] [Copy summary] [Export to log]       │
+└──────────────────────────────────────────────────────────────────┘
+```
+
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
@@ -94,6 +138,12 @@ runbooks they protect. No code changes ship in this migration; the goal is docum
 | DO-011-02 | `HookWorkflow` describing `pre-commit` (cache warm, Spotless retry, staged checks) and `commit-msg` (gitlint). | githooks |
 | DO-011-03 | `FormatterPolicy` enumerating Palantir version pin, lockfile entries, IDE guidance, and reformat expectations. | build scripts, docs |
 
+### API Routes / Services
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| API-011-01 | Documentation | AGENTS.md + runbooks detail the governance workflow (hook guard, gitlint, Spotless) so operators know the sequence to run commands. | Linked from `docs/5-operations/runbook-session-reset.md`.
+| API-011-02 | Documentation | The analysis gate checklist documents how governance commands (hooks, spotless) come together before each increment. | Shares `docs/5-operations/analysis-gate-checklist.md`.
+
 ### CLI / Commands
 | ID | Command | Behaviour |
 |----|---------|-----------|
@@ -102,7 +152,14 @@ runbooks they protect. No code changes ship in this migration; the goal is docum
 | CLI-011-03 | `git config core.hooksPath` | Verification guard recorded per session (must return `githooks`).
 | CLI-011-04 | `./gradlew --no-daemon spotlessApply check` / `--write-locks spotlessApply check` | Doc/formatter verification gate recorded in plan/tasks.
 
-### Fixtures & Artefacts
+### Telemetry Events
+| ID | Event | Fields / Notes |
+|----|-------|----------------|
+| TE-011-01 | `telemetry.governance.hook.guard` | `hook`, `result`, `timestamp`; emitted when `git config core.hooksPath` confirms `githooks`.
+| TE-011-02 | `telemetry.governance.hook.retry` | `hook`, `stage`, `outcome`; emitted when `githooks/pre-commit` retries Spotless due to stale cache.
+| TE-011-03 | `telemetry.governance.formatter.version` | `formatter`, `version`, `wrapWidth`, `diffs` (summary); reported when `./gradlew --write-locks spotlessApply check` updates lock files.
+
+### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
 | FX-011-01 | `.gitlint` | Conventional Commit policy consumed by gitlint + CI.
@@ -110,12 +167,31 @@ runbooks they protect. No code changes ship in this migration; the goal is docum
 | FX-011-03 | `gradle/libs.versions.toml`, `build.gradle.kts` | Palantir formatter pin + Spotless config.
 | FX-011-04 | `build/reports/spotless/`, `.gradle/configuration-cache/` | Artefacts referenced in retry/warm documentation.
 
+### UI States
+| ID | State | Trigger / Expected outcome |
+|----|-------|---------------------------|
+| UI-011-01 | Governance runbook panel open | Opening AGENTS/runbook documents exposes required commands and expectation for logging; triggered by governance sprint reviews.
+| UI-011-02 | Analysis gate checklist view | Accessed when `docs/5-operations/analysis-gate-checklist.md` runs; shows the hook/Spotless checklist and requires `_current-session.md` updates.
+
+## Telemetry & Observability
+
+Governance-related frames stream through `TelemetryContracts` adapters to keep CLI/REST/UI logs sanitised and auditable:
+- `telemetry.governance.hook.guard` records `hook`, `result`, and `timestamp` whenever `git config core.hooksPath` confirms `githooks`; failures surface as telemetry warnings so reviewers spot hook-guard drift without reading hook output.
+- `telemetry.governance.hook.retry` tracks `hook`, `stage` (cacheWarm/spotlessRetry), and `outcome`; emitted when `githooks/pre-commit` detects a stale configuration cache, retries Spotless, and documents the retry result.
+- `telemetry.governance.formatter.version` reports `formatter`, `version`, `wrapWidth`, and `lockChanges` whenever `./gradlew --write-locks spotlessApply check` refreshes the Palantir formatter lockfiles so automation can correlate formatter updates with verification commands.
+
 ## Documentation Deliverables
 - `AGENTS.md`, `docs/5-operations/runbook-session-reset.md`, `docs/5-operations/session-quick-reference.md`, and
   `docs/6-decisions/project-constitution.md` reference Feature 011 for governance.
 - `docs/5-operations/analysis-gate-checklist.md` cross-links Feature 011 when recording gate usage.
 - `_current-session.md` logs commands/deletions/verification runs for governance increments.
 - CONTRIBUTING/README sections describe gitlint + Palantir policies and command sequences.
+
+## Fixtures & Sample Data
+- `.gitlint` defines the Conventional Commit policy that `githooks/commit-msg` and CI run.
+- `githooks/pre-commit` and `githooks/commit-msg` embody the managed hook sequences described in the governance docs.
+- `gradle/libs.versions.toml` and `build.gradle.kts` capture the Palantir formatter version pin and Spotless configuration referenced in this spec.
+- `build/reports/spotless/` and `.gradle/configuration-cache/` hold the verification outputs and cache warm artefacts that governance documentation cites.
 
 ## Spec DSL
 ```
@@ -154,9 +230,36 @@ cli_commands:
     command: githooks/pre-commit
   - id: CLI-011-03
     command: ./gradlew --no-daemon spotlessApply check
+  - id: CLI-011-04
+    command: ./gradlew --no-daemon --write-locks spotlessApply check
 fixtures:
   - id: FX-011-01
     path: .gitlint
   - id: FX-011-02
     path: githooks/pre-commit
+  - id: FX-011-03
+    path: githooks/commit-msg
+  - id: FX-011-04
+    path: gradle/libs.versions.toml
+  - id: FX-011-05
+    path: build/reports/spotless/
+routes:
+  - id: API-011-01
+    transport: documentation
+    description: AGENTS.md + runbooks detail the governance workflow (hook guard, gitlint, Spotless).
+  - id: API-011-02
+    transport: documentation
+    description: Analysis gate checklist documents hook/Spotless commands and follow-ups.
+telemetry_events:
+  - id: TE-011-01
+    event: telemetry.governance.hook.guard
+  - id: TE-011-02
+    event: telemetry.governance.hook.retry
+  - id: TE-011-03
+    event: telemetry.governance.formatter.version
+ui_states:
+  - id: UI-011-01
+    description: Governance runbook panel open.
+  - id: UI-011-02
+    description: Analysis gate checklist view.
 ```

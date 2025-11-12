@@ -74,7 +74,100 @@ so all OCRA behaviour, telemetry, and fixtures remain aligned while the catalogu
 | NFR-003-04 | Observability – Telemetry events, verbose trace toggles, and documentation stay aligned so operators can map console events to REST/CLI responses. | Troubleshooting + drift gate. | Telemetry contract tests + knowledge-map review during analysis gate. | TelemetryContracts, verbose trace dock. | Legacy Feature 016 + verbose trace guardrails. |
 | NFR-003-05 | Quality – Every increment follows Specification-Driven Development, retains scenario/task tables, and reruns `spotlessApply check` plus targeted module suites before closing. | Governance. | Logged commands in `_current-session.md`; session log (docs/_current-session.md) entries. | Gradle, runbooks. | Constitution + migration directive. |
 
-## UI / Interaction States
+## UI / Interaction Mock-ups
+Operator console Evaluate/Replay panels mirror the shared two-column layout (form on the left, result/trace on the right) so operators can swap between stored and inline descriptors without reloading the page.
+
+```
++-------------------------------------------------------------+
+| OCRA Evaluate (stored)                                      |
+| [Credential preset ▼] [Load sample] [Use current Unix secs] |
+|                                                             |
+| Challenge (C): [____________________]                       |
+| Session (S064…S512): [______________]                       |
+| PIN hash / Counter / Timestamp inputs (row aligned)         |
+|                                                             |
+| [ Evaluate ] [ Toggle verbose trace ]                       |
+|                                                             |
+| Result card: OTP preview table (Delta accent on 0)          |
+| Trace link → VerboseTraceConsole dock (data-trace-id)       |
++-------------------------------------------------------------+
+
++-------------------------------------------------------------+
+| OCRA Replay                                                 |
+| Stored credential ◉ / Inline secret ○  (radio toggle)       |
+| OTP input: [____________]  Challenge / Session fields       |
+|                                                             |
+| [ Verify OTP ] → Result badge (Match / Mismatch)            |
+|                                                             |
+| Trace reference: hashed context + copy-to-clipboard         |
++-------------------------------------------------------------+
+```
+
+### UI Mock-up notes
+- Evaluate mode highlights preset metadata, Unix-second helper, and OTP preview tables so operators can visualise counter deltas.
+- Replay mode keeps OTP inputs and challenge/session fields in one column, surfacing hashed telemetry references only in verbose trace mode to avoid leaking sensitive data.
+- Detailed UI states live under `### UI States` in the Interface & Contract Catalogue for reuse in plans, tasks, and tests.
+
+## Branch & Scenario Matrix
+| Scenario ID | Description / Expected outcome |
+|-------------|--------------------------------|
+| S-003-01 | Core descriptor + calculator reproduce RFC vectors and extended sessions (FR-003-01/02). |
+| S-003-02 | REST evaluation handles inline + stored payloads with telemetry parity (FR-003-04/05). |
+| S-003-03 | CLI/REST replay deliver deterministic match/mismatch flows (FR-003-06). |
+| S-003-04 | Operator console evaluation + replay mirror REST contracts and verbose trace wiring (FR-003-07). |
+| S-003-05 | Schema-v1 enforcement + documentation updates remain synchronized (FR-003-08/09). |
+
+## Test Strategy
+- **Core:** Property-based tests and RFC fixture sweeps cover `SecretMaterial`, descriptor normalisation, and `OcraResponseCalculator` branches (success, validation, failure).
+- **Application:** Service tests validate persistence lookups, credential ID resolution, and deterministic telemetry payloads for evaluate/replay flows.
+- **REST:** MockMvc/OpenAPI snapshot tests verify `POST /api/v1/ocra/evaluate` and `/verify` contracts, error envelopes, and telemetry IDs.
+- **CLI:** Picocli integration tests exercise stored/inline evaluation, replay mismatch paths, and verbose trace toggles with hashed context assertions.
+- **UI:** Selenium suites drive Evaluate/Replay tabs (stored vs inline, Unix seconds helper, trace dock), ensuring result cards and trace IDs stay aligned.
+- **Docs/Fixtures:** `./gradlew --no-daemon spotlessApply check` plus manual review keeps how-to guides, knowledge map links, and fixture catalogues consistent.
+
+## Interface & Contract Catalogue
+
+### Domain Objects
+| ID | Description | Modules |
+|----|-------------|---------|
+| DO-003-01 | `OcraCredentialDescriptor` – canonical definition of suite, secret material, counters, timestamps, and session payloads. | core, application |
+| DO-003-02 | `SecretMaterial` – shared helper for HEX/Base32/Base64 decoding and hashing. | core |
+| DO-003-03 | `OcraResponseCalculator` – deterministic calculator with diagnostics/fixture hooks. | core |
+| DO-003-04 | `OcraReplayRequest` – transport DTO for replay/verification flows. | core, application, cli, rest-api |
+| DO-003-05 | `OcraReplayResult` – structured replay outcome with hashed identifiers. | core, application, cli, rest-api |
+
+### API Routes / Services
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| API-003-01 | REST `POST /api/v1/ocra/evaluate` | Inline/stored evaluation endpoint returning OTP preview tables, verbose trace IDs, and hashed context. | Mirrors CLI/UI payloads; sanitizes secrets before logging. |
+| API-003-02 | REST `POST /api/v1/ocra/verify` | Deterministic replay / verification entry point that never mutates counters. | Emits match/mismatch reason codes + telemetry IDs. |
+
+### CLI Commands / Flags
+| ID | Command | Behaviour |
+|----|---------|-----------|
+| CLI-003-01 | `./bin/openauth maintenance ocra evaluate …` | Evaluates inline/stored descriptors, optionally outputs verbose trace payloads. |
+| CLI-003-02 | `./bin/openauth maintenance ocra verify …` | Verifies OTPs without counter mutation; returns hashed telemetry identifiers for auditing. |
+
+### Telemetry Events
+| ID | Event name | Fields / Notes |
+|----|-----------|----------------|
+| TE-003-01 | `core.ocra.validation` | `suite`, `inputType`, `reasonCode`, `redacted=true`. |
+| TE-003-02 | `core.ocra.execution` | `suite`, `otpHash`, `durationMs`, `traceId`. |
+| TE-003-03 | `rest.ocra.evaluate` | `credentialSource`, `hasSessionPayload`, `status`, `traceId`. |
+| TE-003-04 | `rest.ocra.verify` | `otpHash`, `status`, `reasonCode`, `traceId`. |
+| TE-003-05 | `cli.ocra.evaluate` | `command`, `outcome`, `traceId` (hashed identifiers only). |
+| TE-003-06 | `cli.ocra.verify` | `command`, `outcome`, `reasonCode`, `traceId`. |
+| TE-003-07 | `ui.ocra.evaluate` / `ui.ocra.replay` | `protocol`, `mode`, `traceId` forwarded from REST responses. |
+
+### Fixtures & Sample Data
+| ID | Path | Purpose |
+|----|------|---------|
+| FX-003-01 | `docs/test-vectors/ocra/rfc-6287/*.json` | Canonical RFC vectors plus extended sessions. |
+| FX-003-02 | `core/src/test/resources/fixtures/ocra/session/*.json` | Session payload fixtures consumed by domain + CLI tests. |
+| FX-003-03 | `core/src/test/resources/fixtures/ocra/replay/*.json` | Replay/verifier fixtures (match + mismatch cases). |
+| FX-003-04 | `docs/test-vectors/ocra/replay/*.json` | Operator/REST how-to samples and benchmark payloads. |
+
+### UI States
 | ID | State | Trigger / Expected outcome |
 |----|-------|---------------------------|
 | UI-003-01 | Evaluation tab (stored mode) | Select stored credential → seeding helper loads metadata, Evaluate submits to `/api/v1/ocra/evaluate`, counter increments, verbose trace ID appears in result card + trace dock. |
@@ -86,6 +179,12 @@ so all OCRA behaviour, telemetry, and fixtures remain aligned while the catalogu
 - `rest.ocra.evaluate` / `rest.ocra.verify` mirror status/outcome fields plus `credentialSource`, `hasSessionPayload`, `durationMs`, and hashed OTP/context fingerprints.
 - `cli.ocra.*` events include `command`, `outcome`, and hashed identifiers; CLI logs never print raw OTPs.
 - Operator console telemetry proxies REST traces, forwarding `data-trace-id` attributes so verbose trace dock stays in sync.
+
+## Documentation Deliverables
+- Update OpenAPI bundles under `docs/3-reference/rest-openapi.*` whenever request/response fields change.
+- Keep operator/CLI/REST how-to guides (Feature 010 ownership) referencing the consolidated OCRA flow, including preset labels and Unix-seconds helpers.
+- Refresh `docs/4-architecture/knowledge-map.md`, `docs/architecture-graph.json`, and `_current-session.md` entries when OCRA modules or telemetry contracts evolve.
+- Ensure roadmap + feature plan/task files link back to this spec when increments close to satisfy SDD traceability.
 
 ## Fixtures & Sample Data
 | ID | Path | Purpose |

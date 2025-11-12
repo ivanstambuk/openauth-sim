@@ -3,7 +3,8 @@
 _Status:_ In migration (Batch P3)  
 _Last updated:_ 2025-11-11
 
-> Keep each entry ≤90 minutes where possible, record verification commands, and log every executed command inside `_current-session.md`.
+> Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
+> When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
 
 ## Checklist
 - [x] T-010-01 – Consolidate the operator documentation + quality automation requirements into the refreshed spec (FR-010-01..10, NFR-010-01..05).
@@ -27,16 +28,6 @@ _Last updated:_ 2025-11-11
   - _Verification commands:_ Documentation updates + references in plan/tasks/session log (2025-11-11) enumerating the gate commands and runtime expectations (<5 min for spotless, <10 min for qualityGate).
   - _Notes:_ `_current-session.md` now mentions the pending gate; rerun the commands once Features 011–013 complete.
 
-### Legacy Coverage Checklist
-- [x] T-010-L1 – Feature 007 (operator guides + README cross-links).
-  - _Intent:_ Confirm FR-010-01/02 and NFR-010-01 fully describe the Java/CLI/REST guides, runnable snippets, telemetry notes, and troubleshooting flows migrated from Feature 007.
-  - _Verification commands:_ `./gradlew --no-daemon spotlessApply check`, manual validation of the `docs/2-how-to/*` procedures before publishing.
-  - _Notes:_ `_current-session.md` (2025-11-11) records the documentation sweep and spotless run that proved the migration.
-- [x] T-010-L2 – Feature 008 (quality automation charter).
-  - _Intent:_ Ensure FR-010-04..09 and NFR-010-02/03/05 capture ArchUnit/Jacoco/PIT aggregation, qualityGate triggers, troubleshooting docs, and reporting folders previously tracked in Feature 008.
-  - _Verification commands:_ `./gradlew --no-daemon qualityGate`, `./gradlew --no-daemon spotlessApply check`, inspection of `build/reports/{jacoco,pitest,quality}/`.
-  - _Notes:_ Plan increment P3-I2 plus `_current-session.md` log the command output and follow-ups.
-
 ## Verification Log
 - 2025-11-11 – `./gradlew --no-daemon spotlessApply check` (doc gate – Feature 010 legacy absorption, 24 s, configuration cache stored).
 - 2025-11-11 – Phase 2 gate commands documented (`./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`) for execution once the remaining features ship.
@@ -44,3 +35,5 @@ _Last updated:_ 2025-11-11
 ## Notes / TODOs
 - Capture knowledge-map regeneration steps when automation scripting begins.
 - Evaluate adding Markdown lint to the managed hook after Batch P3 closes.
+- Legacy Coverage – T-010-L1 (Feature 007 operator guides + README cross-links). _Intent:_ Confirm FR-010-01/02 and NFR-010-01 fully describe the Java/CLI/REST guides, runnable snippets, telemetry notes, and troubleshooting flows migrated from Feature 007. _Verification commands:_ `./gradlew --no-daemon spotlessApply check`, manual validation of the `docs/2-how-to/*` procedures before publishing. _Notes:_ `_current-session.md` (2025-11-11) records the documentation sweep and spotless run that proved the migration.
+- Legacy Coverage – T-010-L2 (Feature 008 quality automation charter). _Intent:_ Ensure FR-010-04..09 and NFR-010-02/03/05 capture ArchUnit/Jacoco/PIT aggregation, qualityGate triggers, troubleshooting docs, and reporting folders previously tracked in Feature 008. _Verification commands:_ `./gradlew --no-daemon qualityGate`, `./gradlew --no-daemon spotlessApply check`, inspection of `build/reports/{jacoco,pitest,quality}/`. _Notes:_ Plan increment P3-I2 plus `_current-session.md` log the command output and follow-ups.

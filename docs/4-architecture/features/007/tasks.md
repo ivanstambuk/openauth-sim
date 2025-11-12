@@ -1,12 +1,12 @@
 # Feature 007 Tasks – EUDIW ISO/IEC 18013-5 (mdoc PID) Simulator
 
-| Field | Value |
-|-------|-------|
-| Status | Placeholder |
-| Last updated | 2025-11-11 |
-| Linked plan | `docs/4-architecture/features/007/plan.md` |
+_Status: Placeholder_  
+_Last updated: 2025-11-11_
 
-> Keep tasks ≤90-minute slices; record verification commands for each entry.
+> Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
+> When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
+
+Linked plan: `docs/4-architecture/features/007/plan.md`
 
 ## Checklist
 - [ ] T-007-01 – Fixture ingestion + deterministic DeviceResponse generator
@@ -29,5 +29,5 @@
 ## Verification Log
 _Pending once implementation begins._
 
-## Notes
+## Notes / TODOs
 - Legacy operator documentation suite preserved under `docs/4-architecture/features/new-010/legacy/007/`.

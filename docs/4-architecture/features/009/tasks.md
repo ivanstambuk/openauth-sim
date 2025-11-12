@@ -3,6 +3,9 @@
 _Status:_ In migration (Batch P3)
 _Last updated:_ 2025-11-11
 
+> Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
+> When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
+
 ## Checklist (Batch P3 Phase 2)
 - [x] T-009-01 – Consolidate the functional/non-functional/verification content from legacy Features 017/020/021/025/033–038/041 into the refreshed spec template.
   - _Intent:_ Make Feature 009 the authoritative console spec and capture every interface/domain requirement from the migrated features.
@@ -27,20 +30,9 @@ _Last updated:_ 2025-11-11
 - 2025-11-11 – `node --test rest-api/src/test/javascript/emv/console.test.js`
 - 2025-11-11 – `./gradlew --no-daemon pmdMain pmdTest`
 
-### Legacy Coverage Checklist
-- [x] T-009-L1 – Features 017/020/021/025/033 (tabs, presets, Base32 helpers).
-  - _Intent:_ Confirm FR-009-01..03 and NFR-009-04 cover the unified tab shell, history routing, preset labels, and Base32 toggles inherited from these features.
-  - _Verification commands:_ `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"`, `./gradlew --no-daemon :application:test --tests "*VerboseTrace*"`.
-  - _Notes:_ Scenario S-009-01/S-009-03 plus `_current-session.md` (2025-11-11) record the verification output.
-- [x] T-009-L2 – Features 034/035/036/037/038 (info drawer, verbose traces, validation helpers).
-  - _Intent:_ Keep FR-009-04..08 and NFR-009-02 synchronized with the instrumentation/spec DSL migrated from these features.
-  - _Verification commands:_ `./gradlew --no-daemon :application:test --tests "*TraceDock*"`, `./gradlew --no-daemon :cli:test --tests "*VerboseTrace*"`, `node --test rest-api/src/test/javascript/emv/console.test.js`.
-  - _Notes:_ Plan increments P3-I1/P3-I2 reference these IDs; `_current-session.md` stores the command log.
-- [x] T-009-L3 – Feature 041 (operator console JS harness + preview windows).
-  - _Intent:_ Ensure FR-009-09 and NFR-009-05 encapsulate the harness, preview panes, and doc-sync requirements so the old scripts stay retired.
-  - _Verification commands:_ `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon pmdMain pmdTest`, `./gradlew --no-daemon :rest-api:test --tests "*OperatorUiSeleniumTest"`.
-  - _Notes:_ Harness deletion + verification output logged with the Batch P3 Phase 2 migration summary on 2025-11-11.
-
 ## Notes / TODOs
 - Document Phase 2 status (Feature 009 spec rewrite complete but verification gate pending) inside `_current-session.md` before moving to Features 010–013.
 - Keep the knowledge map/roadmap aligned with Feature 009 ownership; update references when upstream features change scope.
+- Legacy Coverage – T-009-L1 (Features 017/020/021/025/033 tabs, presets, Base32 helpers). _Intent:_ Confirm FR-009-01..03 and NFR-009-04 cover the unified tab shell, history routing, preset labels, and Base32 toggles inherited from these features. _Verification commands:_ `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"`, `./gradlew --no-daemon :application:test --tests "*VerboseTrace*"`. _Notes:_ Scenario S-009-01/S-009-03 plus `_current-session.md` (2025-11-11) record the verification output.
+- Legacy Coverage – T-009-L2 (Features 034/035/036/037/038 info drawer, verbose traces, validation helpers). _Intent:_ Keep FR-009-04..08 and NFR-009-02 synchronized with the instrumentation/spec DSL migrated from these features. _Verification commands:_ `./gradlew --no-daemon :application:test --tests "*TraceDock*"`, `./gradlew --no-daemon :cli:test --tests "*VerboseTrace*"`, `node --test rest-api/src/test/javascript/emv/console.test.js`. _Notes:_ Plan increments P3-I1/P3-I2 reference these IDs; `_current-session.md` stores the command log.
+- Legacy Coverage – T-009-L3 (Feature 041 operator console JS harness + preview windows). _Intent:_ Ensure FR-009-09 and NFR-009-05 encapsulate the harness, preview panes, and doc-sync requirements so the old scripts stay retired. _Verification commands:_ `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon pmdMain pmdTest`, `./gradlew --no-daemon :rest-api:test --tests "*OperatorUiSeleniumTest"`. _Notes:_ Harness deletion + verification output logged with the Batch P3 Phase 2 migration summary on 2025-11-11.

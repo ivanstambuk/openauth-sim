@@ -3,8 +3,8 @@
 _Status: Complete_  
 _Last updated: 2025-11-11_
 
-> The tasks below roll up the historical Feature 001/003/004/009/016/018 increments. Each entry keeps the original
-> verification commands so future agents can retrace the execution while the catalogue renumbers.
+> Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
+> When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
 
 ## Checklist
 - [x] T-003-01 – Stage failing RFC 6287/S064/S512 descriptor + calculator tests (S-003-01, FR-003-01/02).  

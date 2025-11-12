@@ -3,7 +3,8 @@
 _Status: Complete_  
 _Last updated: 2025-11-10_
 
-> Tasks reference the refreshed template with scenario IDs and verification commands for historical traceability.
+> Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
+> When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
 
 ## Checklist
 - [x] T-002-01 – Stage failing core TOTP generator/validator tests (SHA-1/256/512, digits, steps, drift) (S-002-01, FR-002-01).  

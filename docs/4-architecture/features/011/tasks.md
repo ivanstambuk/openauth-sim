@@ -3,6 +3,9 @@
 _Status:_ In migration (Batch P3)  
 _Last updated:_ 2025-11-11
 
+> Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
+> When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
+
 ## Checklist
 - [x] T-011-01 – Merge legacy governance specs (Features 019/032) into the consolidated spec template.
   - _Intent:_ Capture hook workflows (gitlint, cache warm/retry) and Palantir formatter policy directly in `spec.md`.
@@ -21,16 +24,6 @@ _Last updated:_ 2025-11-11
   - _Verification commands:_ `git config core.hooksPath` (2025-11-11), isolated `./githooks/pre-commit` dry-run via a temporary index, `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`.
   - _Notes:_ Command outputs captured in `_current-session.md`; governance docs updated to cite Feature 011.
 
-### Legacy Coverage Checklist
-- [x] T-011-L1 – Feature 019 (governance + hook guard).
-  - _Intent:_ Ensure FR-011-02/03 and NFR-011-02/04 capture hook guard logging, gitlint policy, analysis-gate logging, and session snapshot expectations migrated from Feature 019.
-  - _Verification commands:_ `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index git read-tree --empty; GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`, `./gradlew --no-daemon spotlessApply check`.
-  - _Notes:_ `_current-session.md` (2025-11-11) records the guard logs + spotless reruns that close this mapping.
-- [x] T-011-L2 – Feature 032 (formatter + workflow automation).
-  - _Intent:_ Confirm FR-011-06/07 and NFR-011-03/04 cover the Palantir formatter pin, spotless/qualityGate enforcement, and CI parity requirements inherited from Feature 032.
-  - _Verification commands:_ `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`, review `.github/workflows/*` outputs for gitlint/formatter parity.
-  - _Notes:_ Plan increment P3-I2 and the session log detail these commands before the legacy directory deletion.
-
 ## Verification Log
 - 2025-11-11 – `git config core.hooksPath`
 - 2025-11-11 – Temporary-index `./githooks/pre-commit` dry-run
@@ -40,3 +33,5 @@ _Last updated:_ 2025-11-11
 ## Notes / TODOs
 - Capture gitlint/markdown-lint automation backlog items in Feature 013 after Batch P3 closes.
 - Record hook runtime snapshots (pre-commit, commit-msg) in `_current-session.md` during future governance increments.
+- Legacy Coverage – T-011-L1 (Feature 019 governance + hook guard). _Intent:_ Ensure FR-011-02/03 and NFR-011-02/04 capture hook guard logging, gitlint policy, analysis-gate logging, and session snapshot expectations migrated from Feature 019. _Verification commands:_ `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index git read-tree --empty; GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`, `./gradlew --no-daemon spotlessApply check`. _Notes:_ `_current-session.md` (2025-11-11) records the guard logs + spotless reruns that close this mapping.
+- Legacy Coverage – T-011-L2 (Feature 032 formatter + workflow automation). _Intent:_ Confirm FR-011-06/07 and NFR-011-03/04 cover the Palantir formatter pin, spotless/qualityGate enforcement, and CI parity requirements inherited from Feature 032. _Verification commands:_ `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`, review `.github/workflows/*` outputs for gitlint/formatter parity. _Notes:_ Plan increment P3-I2 and the session log detail these commands before the legacy directory deletion.

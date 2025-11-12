@@ -45,6 +45,47 @@ verification stack so operators can mix-and-match mdoc and SD-JWT credentials in
 | NFR-007-02 | Observability | Telemetry + verbose traces must redact PID data | Telemetry capture tests | TelemetryContracts, REST/UI logging | Placeholder |
 | NFR-007-03 | Compatibility | Java 17 / Gradle 8.10 baseline | `./gradlew spotlessApply check` + targeted module tests | Gradle toolchain | Placeholder |
 
+## UI / Interaction Mock-ups
+Operator console tabs mirror the existing EUDIW layout: Evaluate drives deterministic generation, Replay validates pasted DeviceResponse payloads. ASCII sketches capture the placeholder UX so Selenium and docs can reference stable structures once implementation begins.
+
+### Evaluate Tab (Generate PID)
+```
+┌──────────────────────────────────────────────┐
+│ EUDIW PID – Evaluate                         │
+├──────────────────────────────────────────────┤
+│ Mode: (•) Inline credential  ( ) Stored preset│
+│ Preset: [ pid-haip-inline ▼ ]  [ Load sample ]│
+│ DeviceResponse overrides (CBOR hex textarea) │
+│ Metadata: [ Profile ▼ ] [ Trusted authority ▼ ]│
+│ Disclosure helpers: [ Add namespace ]        │
+│ [ Generate PID presentation ]                │
+│                                              │
+│ Result panel (right column)                  │
+│   • PID summary (name/date icons)            │
+│   • VP Token JSON (read-only, scrollable)    │
+│   • Trace link -> shared VerboseTraceConsole │
+└──────────────────────────────────────────────┘
+```
+
+### Replay Tab (Validate PID)
+```
+┌──────────────────────────────────────────────┐
+│ EUDIW PID – Replay                           │
+├──────────────────────────────────────────────┤
+│ Mode: (•) Inline VP Token  ( ) Stored preset │
+│ Paste DeviceResponse JSON                    │
+│ Trusted authority policy [ EU PID default ▼ ]│
+│ Response mode override [ fragment ▼ ]        │
+│ [ Validate PID presentation ]                │
+│                                              │
+│ Result panel                                 │
+│   • Status badge (VALID / INVALID)           │
+│   • Reason / telemetry ID                    │
+│   • Collapsible claim sections per namespace │
+│   • Trace link -> shared VerboseTraceConsole │
+└──────────────────────────────────────────────┘
+```
+
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
@@ -58,6 +99,44 @@ verification stack so operators can mix-and-match mdoc and SD-JWT credentials in
 - **REST/CLI:** Contract tests covering preset/stored/manual submissions plus telemetry assertions.
 - **UI:** Selenium coverage for Evaluate/Replay panels, preset hydration, and verbose trace toggles.
 - **Docs:** `./gradlew spotlessApply check` plus manual verification of command snippets.
+## Interface & Contract Catalogue
+
+### Domain Objects
+| ID | Description | Modules |
+|----|-------------|---------|
+| DO-007-01 | `MdocPidDescriptor` placeholder capturing namespace/claims + issuer metadata. | core, application |
+| DO-007-02 | `MdocPidPresentation` placeholder with DeviceResponse bytes, holder binding, Trusted Authority verdict. | application, REST, CLI, UI |
+
+### API Routes / Services
+| ID | Transport | Description | Notes |
+|----|-----------|-------------|-------|
+| API-007-01 | REST `POST /api/v1/eudiw/mdoc/generate` | Generate deterministic PID DeviceResponse payloads. | Placeholder – mirrors Feature 006 contracts. |
+| API-007-02 | REST `POST /api/v1/eudiw/mdoc/validate` | Validate inline/stored PID presentations. | Placeholder – telemetry + verbose trace parity with Feature 006. |
+
+### CLI Commands / Flags
+| ID | Command | Behaviour |
+|----|---------|-----------|
+| CLI-007-01 | `eudiw mdoc generate` | Generates PID DeviceResponse fixtures (inline/preset). |
+| CLI-007-02 | `eudiw mdoc validate` | Validates PID DeviceResponse payloads. |
+
+### Telemetry Events
+| ID | Event name | Fields / Notes |
+|----|-----------|----------------|
+| TE-007-01 | `oid4vp.mdoc.generate` | Placeholder fields: `presetId`, `credentialMode`, `status`. |
+| TE-007-02 | `oid4vp.mdoc.validate` | Placeholder fields: `status`, `reasonCode`, `trustedAuthorityMatch`. |
+
+### Fixtures & Sample Data
+| ID | Path | Purpose |
+|----|------|---------|
+| FX-007-01 | `docs/test-vectors/eudiw/mdoc/pid-inline.json` | Inline PID sample claims + namespaces. |
+| FX-007-02 | `docs/test-vectors/eudiw/mdoc/pid-stored.json` | Stored preset metadata for MapDB seeding. |
+
+### UI States
+| ID | State | Trigger / Expected outcome |
+|----|-------|---------------------------|
+| UI-007-01 | Evaluate – inline | Inline mode keeps disclosure fields editable, result panel shows VP Token. |
+| UI-007-02 | Evaluate – stored | Stored preset hides DeviceResponse secrets, exposes digest placeholders. |
+| UI-007-03 | Replay – inline | Paste VP Token, see validation badge + trace link. |
 
 ## Telemetry & Observability
 - Reuse `oid4vp.*` event family with `protocol=mdoc` annotations.
@@ -71,13 +150,8 @@ verification stack so operators can mix-and-match mdoc and SD-JWT credentials in
 - Seed curated PID fixtures with deterministic salts.
 - Document fixture IDs and provenance metadata.
 
-## Interface & Contract Catalogue
-- **REST:** `POST /api/v1/eudiw/mdoc/generate`, `POST /api/v1/eudiw/mdoc/validate` (placeholder).
-- **CLI:** `eudiw mdoc generate`, `eudiw mdoc validate` (placeholder).
-- **UI:** Operator console EUDIW tab (mdoc mode).
-- **Telemetry:** `oid4vp.mdoc.generate`, `oid4vp.mdoc.validate` events.
 
-## Spec DSL (placeholder)
+## Spec DSL
 ```yaml
 feature: F-007
 protocol: eudiw-mdoc
