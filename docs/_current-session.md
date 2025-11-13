@@ -55,3 +55,5 @@
 - Planning log (2025-11-13): Updated `docs/4-architecture/knowledge-map.md` to describe the steady-state ownership of Features 001–006/010 without referencing renumbering batches; documentation-only change.
 - Governance log (2025-11-13, commit/push request): `git config core.hooksPath` → `githooks` (session reset guard confirmed before evaluating the workspace state).
 - Verification log (2025-11-13l): `./gradlew --no-daemon spotlessApply check` (19 s, 96 tasks: 2 executed, 94 up-to-date; configuration cache reused) to confirm the workspace is green before staging the outstanding documentation updates.
+- Hook log (2025-11-13): `githooks/pre-commit` (docs governance commit) triggered `./gradlew help`, `./gradlew spotlessApply`, `./gradlew jacocoAggregatedReport`, and `./gradlew jacocoCoverageVerification`; all tasks reused cached configuration and reported UP-TO-DATE.
+- Verification log (2025-11-13m): `./gradlew --no-daemon spotlessApply check` (26 s, 96 tasks: 2 executed, 94 up-to-date) after updating `_current-session.md` with the latest hook log to keep the workspace green post-edit.
