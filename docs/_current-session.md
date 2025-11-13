@@ -47,6 +47,9 @@
 - Governance log (2025-11-13, Codex CLI session): `git config core.hooksPath` → `githooks` (verification repeated at session kickoff for the Feature 009 migration-task review request).
 - Governance log (2025-11-13, closure run): `git config core.hooksPath` → `githooks` and temporary-index `./githooks/pre-commit` dry-run (no staged changes) recorded for the Feature 011 completion gate.
 - Session focus (2025-11-13): Reviewing roadmap/feature plans/tasks/open-questions to deliver an up-to-date project status summary; no Gradle or Node commands executed yet.
+- Session focus (2025-11-13): Documenting outstanding Feature 004 scope at the user’s request; status-only review, no new commands required.
+- Session focus (2025-11-13, Feature 004 I3): Logged hook guard + verification commands, refreshed Feature 004 plan/tasks, and updated the knowledge map to close out the consolidation task.
+- Planning log (2025-11-13): Marked Feature 004 spec/plan/tasks and roadmap entry as Complete per owner approval; no additional commands required.
 - Planning log (2025-11-13): Refreshed Feature 004 spec/plan/tasks to drop the “Migrated (Batch P2)” wording, set the status to In review with current timestamps, and keep the checklist ready for upcoming implementation work; documentation-only change.
 - Planning log (2025-11-13): Updated Feature 003 spec/plan/tasks timestamps to reflect the latest review pass; documentation-only change.
 - Planning log (2025-11-13): Updated Feature 002 spec/plan/tasks timestamps to keep the completed feature aligned with the current documentation review; documentation-only change.
@@ -54,8 +57,15 @@
 - Planning log (2025-11-13): Updated the roadmap entry for Feature 004 to show “In review” so it matches the spec/plan/tasks status; documentation-only change.
 - Planning log (2025-11-13): Updated `docs/4-architecture/knowledge-map.md` to describe the steady-state ownership of Features 001–006/010 without referencing renumbering batches; documentation-only change.
 - Governance log (2025-11-13, commit/push request): `git config core.hooksPath` → `githooks` (session reset guard confirmed before evaluating the workspace state).
+- Governance log (2025-11-13, project status sync): `git config core.hooksPath` → `githooks` (ran at Codex session kickoff to document the current project status request).
 - Verification log (2025-11-13l): `./gradlew --no-daemon spotlessApply check` (19 s, 96 tasks: 2 executed, 94 up-to-date; configuration cache reused) to confirm the workspace is green before staging the outstanding documentation updates.
 - Hook log (2025-11-13): `githooks/pre-commit` (docs governance commit) triggered `./gradlew help`, `./gradlew spotlessApply`, `./gradlew jacocoAggregatedReport`, and `./gradlew jacocoCoverageVerification`; all tasks reused cached configuration and reported UP-TO-DATE.
 - Verification log (2025-11-13m): `./gradlew --no-daemon spotlessApply check` (26 s, 96 tasks: 2 executed, 94 up-to-date) after updating `_current-session.md` with the latest hook log to keep the workspace green post-edit.
 - Hook log (2025-11-13, session wrap): `githooks/pre-commit` (hook-log follow-up commit) reran the same Gradle guard sequence (`help`, `spotlessApply`, `jacocoAggregatedReport`, `jacocoCoverageVerification`) and all steps reused their cached configuration entries.
 - Verification log (2025-11-13n): `./gradlew --no-daemon spotlessApply check` re-run immediately after logging the second hook invocation to keep the docs-only change green (configuration cache reused, all tasks up-to-date).
+- Governance log (2025-11-13, Feature 004 I3): `git config core.hooksPath` → `githooks` (captured for the Feature 004 consolidation pass).
+- Verification log (2025-11-13o): `./gradlew --no-daemon spotlessApply check` (20 s, 96 tasks: 2 executed, 94 up-to-date) to revalidate the workspace before logging Feature 004 commands.
+- Verification log (2025-11-13p): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` (15 s, 14 tasks: 1 from cache, 13 up-to-date) covering the operator console regression suite.
+- Verification log (2025-11-13q): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*WebAuthn*"` (16 s, 14 tasks: 1 from cache, 13 up-to-date) to rerun the REST WebAuthn controller tests referenced in Feature 004.
+- Verification log (2025-11-13r): `node --test rest-api/src/test/javascript/emv/console.test.js` (0.2 s, 18 EMV operator-console assertions) so the Batch P2 redo suite stays current.
+- Verification log (2025-11-13s): `./gradlew --no-daemon :ui:test` (14 s, 6 tasks up-to-date) to confirm the UI module tests remain green alongside the console work.

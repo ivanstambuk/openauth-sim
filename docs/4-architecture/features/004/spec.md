@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | In review |
+| Status | Complete |
 | Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/004/plan.md` |

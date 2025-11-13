@@ -1,7 +1,7 @@
 # Feature Plan 004 – FIDO2/WebAuthn Assertions & Attestations
 
 _Linked specification:_ `docs/4-architecture/features/004/spec.md`  
-_Status:_ In review  
+_Status:_ Complete  
 _Last updated:_ 2025-11-13
 
 ## Vision & Success Criteria
@@ -24,6 +24,7 @@ Unify all assertion evaluation, replay, and attestation generation/verification 
 
 ## Implementation Drift Gate
 Record the drift gate under `docs/4-architecture/features/004/plan.md` once I1–I3 increments finish. Re-run `docs/5-operations/analysis-gate-checklist.md` so every requirement in the spec matches an increment/task/test command, log the checklist results in the plan, and capture the verification commands plus hook guard in `_current-session.md` per Feature 011 governance.
+2025-11-13 consolidation sweep: `git config core.hooksPath`, `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*WebAuthn*"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, `node --test rest-api/src/test/javascript/emv/console.test.js`, and `./gradlew --no-daemon :ui:test` were executed and logged in `_current-session.md`.
 
 ## Increment Map
 1. **I1 – Assertion evaluation & replay coverage**  
