@@ -1,12 +1,11 @@
 # Feature 006 Tasks – EUDIW OpenID4VP Simulator
 
-_Status: In progress_  
-_Last updated: 2025-11-11_
+_Status:_ In progress  
+_Last updated:_ 2025-11-13
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
 
-_Renumbering note:_ Batch P2 migrated this checklist from Feature 040. The verbatim legacy version was copied inline on 2025-11-11, so the `docs/4-architecture/features/006/legacy/040/` directory may be removed after verification (history is kept in Git).
 
 ## Checklist
 - [x] T-006-01 – Trusted list ingestion foundation (FR-040-18/25, S-040-10).

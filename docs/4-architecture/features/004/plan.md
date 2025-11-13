@@ -1,8 +1,8 @@
 # Feature Plan 004 – FIDO2/WebAuthn Assertions & Attestations
 
 _Linked specification:_ `docs/4-architecture/features/004/spec.md`  
-_Status:_ Migrated (Batch P2)  
-_Last updated:_ 2025-11-11
+_Status:_ In review  
+_Last updated:_ 2025-11-13
 
 ## Vision & Success Criteria
 Unify all assertion evaluation, replay, and attestation generation/verification work under Feature 004 so the CLI, REST, and UI surfaces derive their requirements from a single FR/NFR matrix, share fixtures, and emit the same sanitized telemetry events (`fido2.evaluate`, `fido2.replay`, `fido2.attest`, `fido2.attestReplay`). Success is measured by core/persistence assertion tests, attestation generator/metadata tests, Selenium coverage, and documentation/verification logs staying green after `./gradlew --no-daemon spotlessApply check`.

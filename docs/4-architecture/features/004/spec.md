@@ -2,8 +2,8 @@
 
 | Field | Value |
 |-------|-------|
-| Status | Migrated (Batch P2) |
-| Last updated | 2025-11-11 |
+| Status | In review |
+| Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/004/plan.md` |
 | Linked tasks | `docs/4-architecture/features/004/tasks.md` |
@@ -13,8 +13,7 @@
 Feature 004 unifies the former WebAuthn assertion (legacy Feature 024) and attestation (legacy Feature 026) streams so every core/application/CLI/REST/UI surface, telemetry signal, fixture catalogue, and document reference points to a single canonical source. The specification now spans deterministic assertion evaluation/replay, attestation generation/replay, trust-anchor handling, and the operator guidance that ties these flows together.
 
 ## Clarifications
-- 2025-11-11 – The Feature 024 and Feature 026 documents have been folded into this specification, and `docs/4-architecture/features/004/legacy/024` plus `legacy/026` are safe to delete once the verification suites described below succeed. Work on this increment prioritises template conformant content over verbatim legacy text.
-- 2025-11-11 – Targeted verification commands (`./gradlew --no-daemon spotlessApply check`, the WebAuthn REST controller tests, the Selenium/EMV UI suites, and `./gradlew --no-daemon :ui:test`) ran after the legacy folders were removed, so this spec now hosts the definitive FR/NFR/Scenario catalogue that all future increments reference.
+- 2025-11-13 – Feature 004 is the active source of truth for WebAuthn assertion/attestation flows; legacy references have been removed now that the merged spec/plan/tasks are current.
 
 ## Goals
 - Deliver deterministic WebAuthn assertion evaluation and replay plus attestation generation and verification across every module (core, application, persistence, CLI, REST, and operator console UI).

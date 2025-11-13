@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/features/003/spec.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-11-11
+_Last updated:_ 2025-11-13
 
 ## Vision & Success Criteria
 Deliver an end-to-end OCRA simulator stack that keeps the core credential domain, persistence envelopes, CLI/REST

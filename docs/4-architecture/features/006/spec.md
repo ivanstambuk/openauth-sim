@@ -2,8 +2,8 @@
 
 | Field | Value |
 |-------|-------|
-| Status | Ready for implementation |
-| Last updated | 2025-11-11 |
+| Status | In progress |
+| Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/006/plan.md` |
 | Linked tasks | `docs/4-architecture/features/006/tasks.md` |
@@ -13,9 +13,6 @@
 Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiable Presentations (OpenID4VP 1.0) flows that align with the High Assurance Interoperability Profile (HAIP). The simulator plays both verifier and wallet roles so REST, CLI, and operator UI facades can demonstrate complete presentation exchanges without external wallets. The scope includes SD-JWT VC (`application/dc+sd-jwt`) and ISO/IEC 18013-5 mdoc (`mso_mdoc`) credential formats, HAIP-mandated encryption for `direct_post.jwt`, Trusted Authorities filtering, and PID fixtures (`eu.europa.ec.eudi.pid.1`). Synthetic fixtures ship first with an ingestion seam for official EU conformance vectors once released.
 
 ## Clarifications
-- 2025-11-11 – Batch P2 renumbering migrated this scope from Feature 040 to Feature 006; the original documents are copied
-  inline below, so the former `docs/4-architecture/features/006/legacy/040/` directory can be removed once verification passes
-  (historical diffs remain in Git).
 - 2025-11-01 – Remote OpenID4VP redirect/QR flows only; DC-API journeys remain out of scope (user confirmation).
 - 2025-11-01 – Support both SD-JWT VC and ISO/IEC 18013-5 mdoc presentations with deterministic fixtures (user confirmation).
 - 2025-11-01 – Align behaviour with the HAIP profile (encryption, identifiers, trust marks) while allowing toggles for non-HAIP baseline testing (user confirmation).

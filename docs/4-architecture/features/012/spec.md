@@ -2,8 +2,8 @@
 
 | Field | Value |
 |-------|-------|
-| Status | In migration (Batch P3) |
-| Last updated | 2025-11-11 |
+| Status | Complete |
+| Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/012/plan.md` |
 | Linked tasks | `docs/4-architecture/features/012/tasks.md` |
@@ -12,9 +12,8 @@
 ## Overview
 Feature 012 aggregates every shared persistence guideline for the simulator: credential-store profiles, cache tuning,
 telemetry contracts, maintenance helpers, optional encryption, default filenames, and documentation of recent IDE warning
-remediation. Legacy Features 002 (persistence & caching hardening), 027 (unified credential-store naming), and 028 (IDE
-warning remediation) now live inside this consolidated spec/plan/tasks set so facade modules consume the same storage APIs
-and operators can rely on a single governance source.
+remediation. Facade modules consume the same storage APIs and operators rely on this specification as the single
+governance source for persistence guidance.
 
 ## Clarifications
 - 2025-09-28 – Persistence improvements land in the order: instrumentation/metrics → cache tuning → storage hygiene → optional
@@ -31,7 +30,7 @@ and operators can rely on a single governance source.
 - 2025-10-18/19 – IDE warning remediation keeps unused locals out of persistence-related code by strengthening assertions,
   promoting DTOs, and exporting SpotBugs annotations without altering behaviour; `spotbugs-annotations` remains
   `compileOnlyApi` in `application`.
-- 2025-11-11 – Batch P3 relocates legacy Features 002/027/028 into this spec and requires `_current-session.md` to capture every documentation move and verification command.
+- (none currently)
 
 ## Goals
 - G-012-01 – Document the shared credential-store contract (profiles, cache settings, telemetry, maintenance helpers,
@@ -43,7 +42,7 @@ and operators can rely on a single governance source.
   `_current-session.md` + session log (docs/_current-session.md) entries for every persistence documentation change.
 
 ## Non-Goals
-- Shipping new persistence code, storage backends, or schema changes in this migration.
+- Shipping new persistence code, storage backends, or schema changes in this documentation-only iteration.
 - Reintroducing automatic legacy-filename detection or fallback logic.
 - Modifying CLI/REST/UI behaviour beyond documenting persistence defaults, maintenance helpers, and telemetry.
 
@@ -57,7 +56,7 @@ and operators can rely on a single governance source.
 | FR-012-05 | Standardise the default credential-store filename (`credentials.db`) across all facades and document manual migration guidance (rename legacy files or supply explicit paths). | Factories default to `credentials.db`; CLI help/REST config/UI copy mention the shared default; docs explain manual migration steps. | `rg "credentials.db"` across docs; CLI/REST tests assert defaults; Selenium flows show updated copy. | Legacy filenames referenced or fallback logic reintroduced. | Logs only mention overrides (no noise for defaults). | Legacy Feature 027.
 | FR-012-06 | Remove legacy filename detection and require explicit overrides for custom paths; log overrides deterministically. | `CredentialStoreFactory` rejects implicit legacy file detection; logs structured override lines with `explicit=true`. | Unit tests assert default vs override cases; docs mention `--credential-store-path`. | Silent fallback occurs or logs spam defaults. | `persistence.defaultPathSelected` log (explicit only). | Legacy Feature 027.
 | FR-012-07 | Record IDE warning remediation steps (assertion tightening, DTO extraction, SpotBugs annotation export, transient REST exception fields) so persistence modules remain warning-free. | Docs capture remediation scope; application/core/CLI/REST/UI tests cover new assertions; SpotBugs annotations exported via `compileOnlyApi`. | `./gradlew --no-daemon :application:test :core:test :cli:test :rest-api:test :ui:test spotlessApply check`; IDE snapshot referenced in plan/tasks. | Warnings reappear or documentation omits context. | No telemetry change. | Legacy Feature 028.
-| FR-012-08 | Log every persistence documentation update (spec/plan/tasks, roadmap, knowledge map, architecture graph, session log (docs/_current-session.md)) and list executed commands in `_current-session.md`. | Session/migration logs mention commands (`rg`, `spotlessApply`, doc edits); open questions stay empty. | Manual review before closing tasks. | Auditors cannot trace persistence doc changes. | None. | Goals G-012-04.
+| FR-012-08 | Log every persistence documentation update (spec/plan/tasks, roadmap, knowledge map, architecture graph, session log (docs/_current-session.md)) and list executed commands in `_current-session.md`. | Session logs mention commands (`rg`, `spotlessApply`, doc edits); open questions stay empty. | Manual review before closing tasks. | Auditors cannot trace persistence doc changes. | None. | Goals G-012-04.
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
@@ -127,7 +126,7 @@ and operators can rely on a single governance source.
 - **Maintenance helpers:** CLI/Builder integration tests executing compaction/integrity operations, verifying logs.
 - **Encryption toggle:** Unit/integration tests enabling/disabling `PersistenceEncryption` and ensuring plaintext defaults.
 - **Defaults:** CLI/REST/UI regression suites assert `credentials.db` usage and override logging.
-- **IDE remediation:** Regression gate (`./gradlew --no-daemon :infra-persistence:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`) keeps warnings at zero; plan/tasks log command output.
+- **IDE remediation:** Regression gate (`./gradlew --no-daemon :infra-persistence:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check` plus `./gradlew --no-daemon :core:test --tests "*MapDbCredentialStoreTest*"` for encryption coverage) keeps warnings at zero; plan/tasks log command output.
 - **Documentation:** `./gradlew --no-daemon spotlessApply check` after doc edits; `_current-session.md` records commands per increment.
 
 ## Interface & Contract Catalogue
@@ -152,7 +151,7 @@ and operators can rely on a single governance source.
 |----|---------|-----------|
 | CLI-012-01 | `./gradlew --no-daemon :cli:run --args="maintenance compact"` (or equivalent helper script) | Triggers compaction via shared maintenance helper.
 | CLI-012-02 | `./gradlew --no-daemon :cli:run --args="maintenance verify"` | Runs integrity check; logs structured result.
-| CLI-012-03 | `./gradlew --no-daemon spotlessApply check` / `:infra-persistence:test` | Verification commands recorded after doc updates.
+| CLI-012-03 | `./gradlew --no-daemon spotlessApply check` / `:infra-persistence:test` / `:core:test --tests "*MapDbCredentialStoreTest*"` | Verification commands recorded after doc updates.
 
 ### Telemetry Events
 | ID | Event | Fields / Notes |

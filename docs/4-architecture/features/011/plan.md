@@ -2,22 +2,20 @@
 
 _Linked specification:_ `docs/4-architecture/features/011/spec.md`  
 _Linked tasks:_ `docs/4-architecture/features/011/tasks.md`  
-_Status:_ In migration (Batch P3)  
-_Last updated:_ 2025-11-11  
+_Status:_ Complete  
+_Last updated:_ 2025-11-13  
 _Owners:_ Ivan (project owner)  
 _Roadmap entry:_ #11 – Governance & Workflow Automation
 
 ## Vision & Success Criteria
 Keep governance policies—AGENTS.md, runbooks, constitution, managed hooks, gitlint/formatter guidance, and analysis-gate
 workflows—in sync so any contributor can reproduce the Specification-Driven Development cadence without chasing legacy
-feature IDs. Feature 011 now documents the hook workflows (from legacy Feature 019) and the Palantir formatter policy
-(legacy Feature 032) alongside the core governance artefacts.
+feature IDs. Feature 011 documents the hook workflows and the Palantir formatter policy alongside the core governance artefacts.
 
 ## Scope Alignment
-- Merge the legacy hook + formatter specs into the consolidated spec/plan/tasks (doc-only changes for Batch P3).
+- Keep the managed hook + formatter policies documented inside Feature 011’s spec/plan/tasks.
 - Document verification commands (hook guard, gitlint, Spotless/lock refresh, analysis gate) and ensure `_current-session.md`
   logs every governance increment.
-- Remove `docs/4-architecture/features/011/legacy/{019,032}` once the requirements are embedded.
 - Stage remaining backlog/automation work (gitlint tuning, markdown lint) for future increments.
 
 _Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; changing gitlint rules; adding new tooling.
@@ -37,19 +35,24 @@ _Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; cha
 - Hook runtimes must stay within ergonomic bounds (≤30 s for pre-commit, ≤2 s for commit-msg); monitor logs if behaviour drifts.
 
 ## Implementation Drift Gate
-After Batch P3 completes, ensure each FR/NFR from the spec maps to runbook entries, hook instructions, and recorded commands.
-Document drift findings (if any) in this plan’s appendix with links to remediation tasks.
+Ensure each FR/NFR from the spec maps to runbook entries, hook instructions, and recorded commands. Document drift findings (if any) in this plan’s appendix with links to remediation tasks.
+
+### Drift Report – 2025-11-13
+- **Scope review:** Spec/plan/tasks now describe steady-state governance coverage (AGENTS/runbooks/constitution, managed hooks, Palantir formatter, analysis gate logging) with no legacy references. Roadmap + knowledge map cite Feature 011 as the governance authority (FR-011-01..08, NFR-011-01..05, S-011-01..08).
+- **Hook & formatter alignment:** Managed hook behaviour (gitlint enforcement, cache warm/retry, hook guard logging) and Palantir formatter pin remain documented across spec/plan/tasks plus supporting docs. Guidance ties hooks to `./gradlew spotlessApply check` and `qualityGate` when needed.
+- **Audit logging:** `_current-session.md` logging expectations persist, and governance docs reference Feature 011 for hook guard + analysis gate procedures.
+- **Verification commands:** `./gradlew --no-daemon spotlessApply check` (2025-11-13, 10 s, 96 tasks: 2 executed, 94 up-to-date) recorded for this drift gate; prior hook guard + gitlint dry runs remain in the verification log and `_current-session.md` entries.
 
 
 ## Increment Map
-1. **P3-I1 – Hook + formatter absorption** (Owner: Ivan, Status: Completed)  
-   - Pulled legacy Features 019/032 into `spec.md`, updating FR/NFR tables plus hook + Palantir formatter references.  
-2. **P3-I2 – Governance command plan** (Owner: Ivan, Status: Completed)  
+1. **I1 – Hook + formatter documentation** (Owner: Ivan, Status: Completed)  
+   - Captured managed hook workflows (gitlint, cache warm/retry) and Palantir formatter policy directly in `spec.md`.  
+2. **I2 – Governance command plan** (Owner: Ivan, Status: Completed)  
    - Refreshed plan/tasks to enumerate hook guard, gitlint, analysis gate, and `spotlessApply` commands, logging destinations (`_current-session.md`, session log).  
-3. **P3-I3 – Legacy directory cleanup** (Owner: Ivan, Status: Pending)  
-   - Remove `docs/4-architecture/features/011/legacy/` after reviews and record `rm` + `ls` output in `_current-session.md`.  
-4. **P3-I4 – Governance artefact sync** (Owner: Ivan, Status: Pending)  
-   - Sync AGENTS/runbooks/constitution/analysis-gate docs, record commands, and capture backlog items for future automation.
+3. **I3 – Directory cleanup + audit log** (Owner: Ivan, Status: Completed on 2025-11-11)  
+   - Confirmed governance docs were synced and captured the directory cleanup plus verification commands in `_current-session.md`.  
+4. **I4 – Governance artefact sync** (Owner: Ivan, Status: Completed on 2025-11-11)  
+   - Synced AGENTS/runbooks/constitution/analysis-gate docs with the consolidated scope, logged the hook guard + pre-commit dry-run + quality gate commands, and filed remaining automation backlog items.
 
 _Verification commands:_ `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`, `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`, and manual `githooks/commit-msg` dry runs when policies change.
 
@@ -66,8 +69,7 @@ _Verification commands:_ `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_
 | S-011-08 | `_current-session.md` + session log (docs/_current-session.md) capture each governance increment. | P3-I3/P3-I4 |
 
 ## Analysis Gate
-Run `docs/5-operations/analysis-gate-checklist.md` once P3-I4 finishes (docs synced + hooks logged). Record the execution in
-`_current-session.md` and note any follow-ups in this plan.
+Run `docs/5-operations/analysis-gate-checklist.md` whenever governance artefacts change meaningfully. Record the execution in `_current-session.md` and note any follow-ups in this plan.
 
 - 2025-11-11 – Checklist rerun after cross-doc sync (AGENTS/runbooks/constitution/analysis-gate docs now reference Feature 011).
   - Spec/plan/tasks alignment confirmed; no open questions.
@@ -76,14 +78,14 @@ Run `docs/5-operations/analysis-gate-checklist.md` once P3-I4 finishes (docs syn
 
 ## Exit Criteria
 - `spec.md`/`plan.md`/`tasks.md` describe hook workflows, gitlint policy, Palantir formatter pin, and verification commands.
-- `docs/4-architecture/features/011/legacy/` removed; migration/session logs capture the deletion + spotless run.
 - Governance artefacts (AGENTS, runbooks, constitution, session log (docs/_current-session.md), `_current-session.md`) reference Feature 011 and list
   hook/analysis-gate expectations.
 - Spotless/quality gates rerun and logged when required by governance updates.
 
 ## Follow-ups / Backlog
-- Track gitlint rule tuning, markdown lint adoption, and governance automation backlog under Feature 013 once Batch P3 closes.
+- Track gitlint rule tuning, markdown lint adoption (with Feature 013 coordination), and governance automation backlog under Feature 013 as the next governance cycle begins.
 - Consider documenting timing metrics for `githooks/pre-commit` and `githooks/commit-msg` runs in `_current-session.md` to
   monitor ergonomics.
+- During the Phase 2 verification gate rerun, capture a fresh hook guard + managed hook runtime snapshot so we have a baseline before enabling any markdown lint or gitlint rule changes.
 
 $chunk

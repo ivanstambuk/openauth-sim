@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Complete |
-| Last updated | 2025-11-10 |
+| Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/001/plan.md` |
 | Linked tasks | `docs/4-architecture/features/001/tasks.md` |

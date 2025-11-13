@@ -1,10 +1,8 @@
 # Feature 006 Plan – EUDIW OpenID4VP Simulator
 
 _Linked specification:_ `docs/4-architecture/features/006/spec.md`  
-_Status:_ Ready for implementation  
-_Last updated:_ 2025-11-11
-_Renumbering note:_ Batch P2 migrated this plan from Feature 040. The legacy copy was imported inline on 2025-11-11, so the
-`docs/4-architecture/features/006/legacy/040/` directory can be removed after verification (Git history preserves it).
+_Status:_ In progress  
+_Last updated:_ 2025-11-13
 ## Vision & Success Criteria
 - Demonstrate HAIP-aligned remote OpenID4VP exchanges end to end (request → wallet response → validation) without external wallets.
 - Ship deterministic fixtures covering SD-JWT VC and ISO/IEC 18013-5 mdoc PID payloads, plus Trusted Authorities filtering.

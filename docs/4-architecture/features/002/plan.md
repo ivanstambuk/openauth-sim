@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/features/002/spec.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-11-10
+_Last updated:_ 2025-11-13
 
 ## Vision & Success Criteria
 Provide RFC 6238 TOTP evaluation/replay across core → persistence → application → CLI/REST → operator UI with telemetry

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |-------|-------|
-| Status | In migration (Batch P3) |
-| Last updated | 2025-11-11 |
+| Status | Complete |
+| Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/011/plan.md` |
 | Linked tasks | `docs/4-architecture/features/011/tasks.md` |
@@ -12,9 +12,9 @@
 ## Overview
 Feature 011 is the single source of truth for OpenAuth Simulator governance: AGENTS.md, the project constitution, session
 runbooks, analysis-gate instructions, managed Git hooks, gitlint policy, formatter adoption, and verification logging all
-flow through this specification. The feature absorbs the historical governance/tooling streams (legacy Features 019 and 032)
-so commit-message enforcement, pre-commit workflows, and Palantir Java Format adoption are documented alongside the
-runbooks they protect. No code changes ship in this migration; the goal is documentation parity and auditable workflows.
+flow through this specification so commit-message enforcement, pre-commit workflows, and Palantir Java Format adoption are
+documented alongside the runbooks they protect. No code changes ship in this documentation-only iteration; the goal is
+parity and auditable workflows.
 
 ## Clarifications
 - 2025-10-04 – Gitlint must run inside `githooks/commit-msg` using the message path provided by Git; the pre-commit hook
@@ -26,8 +26,7 @@ runbooks they protect. No code changes ship in this migration; the goal is docum
   run and logging the retry outcome.
 - 2025-10-19 – Palantir Java Format 2.78.0 is the canonical formatter across Spotless, hooks, IDE guidance, and repository
   lock files (120-character wrap, Java 17). The repository-wide reformat already landed; this spec records the policy.
-- 2025-11-11 – Batch P3 moves legacy Features 019/032 into this spec, removes the `legacy/` tree once absorbed, and requires
-  `_current-session.md` to log every governance change and verification command.
+- (none currently)
 
 ## Goals
 - G-011-01 – Keep AGENTS.md, session quick references, runbooks, and the constitution aligned with Feature 011 so new agents
@@ -36,7 +35,7 @@ runbooks they protect. No code changes ship in this migration; the goal is docum
   gitlint enforcement, cache warm/retry logic, and logging expectations.
 - G-011-03 – Preserve Palantir formatter adoption guidance (Spotless config, dependency locks, IDE setup, reformat history)
   so automated formatting stays deterministic.
-- G-011-04 – Ensure analysis-gate execution, hook verification, and doc migrations remain auditable via
+- G-011-04 – Ensure analysis-gate execution, hook verification, and documentation updates remain auditable via
   `_current-session.md` and recorded commands.
 
 ## Non-Goals

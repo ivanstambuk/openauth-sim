@@ -2,8 +2,8 @@
 
 _Linked specification:_ `docs/4-architecture/features/012/spec.md`  
 _Linked tasks:_ `docs/4-architecture/features/012/tasks.md`  
-_Status:_ In migration (Batch P3)  
-_Last updated:_ 2025-11-11  
+_Status:_ Complete  
+_Last updated:_ 2025-11-13  
 _Owners:_ Ivan (project owner)  
 _Roadmap entry:_ #12 – Core Cryptography & Persistence
 
@@ -13,11 +13,9 @@ maintenance helpers, optional encryption, unified filenames, and IDE remediation
 consistent persistence abstraction and operators understand how to configure/maintain credential stores.
 
 ## Scope Alignment
-- Fold the legacy persistence specs (Features 002/027/028) into the consolidated spec/plan/tasks.
-- Document verification commands (benchmarks, telemetry contract tests, maintenance CLI runs, doc linting) and log them in
-  `_current-session.md`.
-- Remove `docs/4-architecture/features/012/legacy/` once the migration is captured.
-- Synchronise roadmap, knowledge map, and architecture graph entries with the new Feature 012 scope.
+- Keep persistence profiles, telemetry contracts, maintenance helpers, encryption defaults, and IDE remediation steps current inside this spec/plan/tasks set.
+- Document verification commands (benchmarks, telemetry contract tests, maintenance CLI runs, doc linting) and log them in `_current-session.md`.
+- Synchronise roadmap, knowledge map, architecture graph, and how-to docs with the Feature 012 scope.
 
 _Out of scope:_ Shipping new persistence code or changing credential-store behaviour in this documentation-only increment.
 
@@ -34,24 +32,29 @@ _Out of scope:_ Shipping new persistence code or changing credential-store behav
 - Forgetting to log `credentials.db` usage or maintenance commands could reintroduce drift—mitigate by embedding the
   verification commands inside tasks.
 - Benchmarks/perf targets rely on existing tooling; skipping them would void NFR-012-01, so capture status in plan/tasks
-  even if they run outside this migration.
+  even if they run outside this planning cycle.
 
 ## Implementation Drift Gate
-Once Batch P3 closes, map FR-012-01..08 and NFR-012-01..05 to roadmap/knowledge map entries, CLI/REST documentation,
-benchmarks, and session logs; capture findings in this plan’s appendix.
+Ensure FR-012-01..08 and NFR-012-01..05 map to roadmap/knowledge map entries, CLI/REST documentation, benchmarks, and session logs; capture findings in this plan’s appendix.
+
+### Drift Report – 2025-11-13
+- **Scope review:** Spec/plan/tasks describe persistence profiles, telemetry contracts, maintenance helpers, optional encryption, unified `credentials.db` defaults, IDE remediation, and documentation logging without legacy references. Roadmap + knowledge map cite Feature 012 as the persistence authority (FR-012-01..08, NFR-012-01..05, S-012-01..08).
+- **Doc alignment:** How-to guides, roadmap, and knowledge map reflect the persistence scope; `_current-session.md` logging expectations remain in spec/plan/tasks (FR-012-05/06/08).
+- **Automation alignment:** Maintenance CLI guidance, telemetry contracts, and IDE remediation steps remain tied to verification commands listed in tasks, ensuring NFR-012 coverage.
+- **Verification commands:** `./gradlew --no-daemon spotlessApply check` (2025-11-13, 7 s, 96 tasks: 2 executed, 94 up-to-date) recorded for this drift gate (configuration cache reused).
 
 
 ## Increment Map
-1. **P3-I1 – Legacy Feature 002 absorption** (Owner: Ivan, Status: Completed)  
+1. **I1 – Persistence profile + telemetry documentation** (Owner: Ivan, Status: Completed)  
    - Captured deployment profiles, telemetry contracts, maintenance helpers, and encryption guidance (FR-012-01..04).  
-2. **P3-I2 – Legacy Features 027/028 absorption** (Owner: Ivan, Status: Completed)  
+2. **I2 – Unified defaults + remediation** (Owner: Ivan, Status: Completed)  
    - Documented unified `credentials.db`, IDE remediation steps, and benchmarks (FR-012-05..07).  
-3. **P3-I3 – Legacy directory cleanup** (Owner: Ivan, Status: Pending)  
-   - Remove `docs/4-architecture/features/012/legacy/` once reviews finish; log `rm` + `ls` output in `_current-session.md`.  
-4. **P3-I4 – Cross-doc sync + logging** (Owner: Ivan, Status: Pending)  
-   - Update roadmap/knowledge map/architecture graph/how-tos with the consolidated persistence story and record verification commands.
+3. **I3 – Directory cleanup** (Owner: Ivan, Status: Completed on 2025-11-11)  
+   - Recorded the filesystem cleanup + spotless outputs in `_current-session.md` and confirmed no lingering references to the earlier directories.  
+4. **I4 – Cross-doc sync + logging** (Owner: Ivan, Status: Completed on 2025-11-11)  
+   - Updated roadmap/knowledge map/architecture graph/how-to docs with the consolidated persistence story, captured `rg "credentials.db"` + `./gradlew --no-daemon spotlessApply check` outputs in the session log, and noted the remaining benchmark/encryption follow-ups for future phases.
 
-_Verification commands:_ `./gradlew --no-daemon :infra-persistence:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`, targeted maintenance CLI commands (compact/verify), and `rg "credentials.db" docs/` to enforce naming consistency.
+_Verification commands:_ `./gradlew --no-daemon :infra-persistence:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`, `./gradlew --no-daemon :core:test --tests "*MapDbCredentialStoreTest*"` (until infra-persistence ships encryption tests), targeted maintenance CLI commands (compact/verify), and `rg "credentials.db" docs/` to enforce naming consistency.
 
 ## Scenario Tracking
 | Scenario | Description | Increment |
@@ -63,11 +66,10 @@ _Verification commands:_ `./gradlew --no-daemon :infra-persistence:test :applica
 | S-012-05 | Unified `credentials.db` default + override logging documented. | P3-I2 |
 | S-012-06 | Manual migration guidance + documentation parity recorded. | P3-I2 |
 | S-012-07 | IDE warning remediation logged with verification commands. | P3-I2 |
-| S-012-08 | Cross-cutting docs + session/migration logs updated for persistence scope. | P3-I3/P3-I4 |
+| S-012-08 | Cross-cutting docs + session logs updated for persistence scope. | P3-I3/P3-I4 |
 
 ## Analysis Gate
-Run `docs/5-operations/analysis-gate-checklist.md` after P3-I4 completes (doc sync + logging finished) and record the
-execution in `_current-session.md`.
+Run `docs/5-operations/analysis-gate-checklist.md` whenever persistence docs or automation scope changes land and record the execution in `_current-session.md`.
 
 - 2025-11-11 – Analysis gate rerun after updating roadmap/knowledge map/architecture graph/persistence how-to docs to cite Feature 012.
   - Spec/plan/tasks coverage confirmed; no open questions.
@@ -77,7 +79,6 @@ execution in `_current-session.md`.
 ## Exit Criteria
 - Spec/plan/tasks describe persistence profiles, telemetry, maintenance, encryption, unified defaults, and IDE remediation
   with verification commands logged.
-- `docs/4-architecture/features/012/legacy/` removed; migration/session logs capture command history.
 - Roadmap/knowledge map/architecture graph/how-to docs mention Feature 012 with consistent terminology.
 - Spotless/doc lint gate rerun after documentation updates.
 
@@ -85,5 +86,6 @@ execution in `_current-session.md`.
 - Record benchmark results + telemetry dashboards once persistence perf work resumes.
 - Evaluate adding automated drift detection (scripted `rg credentials.db`) to Feature 013’s tooling backlog.
 - Track encryption key-management automation as a future increment once documentation stabilises.
+- Encryption verification currently uses `./gradlew --no-daemon :core:test --tests "*MapDbCredentialStoreTest*"`; promote equivalent coverage into `infra-persistence` once tests are available.
 
 $chunk

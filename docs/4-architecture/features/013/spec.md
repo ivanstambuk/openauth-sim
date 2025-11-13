@@ -2,20 +2,19 @@
 
 | Field | Value |
 |-------|-------|
-| Status | In migration (Batch P3) |
-| Last updated | 2025-11-11 |
+| Status | Complete |
+| Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/013/plan.md` |
 | Linked tasks | `docs/4-architecture/features/013/tasks.md` |
 | Roadmap entry | #13 – Toolchain & Quality Platform |
 
 ## Overview
-Feature 013 unifies every toolchain and quality-automation improvement from the legacy tooling backlog (Features 010–015 and
-029–031). The spec now covers CLI exit harnesses, Maintenance CLI coverage buffers, reflection policy enforcement,
-Java 17 language upgrades, architecture harmonization, SpotBugs dead-state detectors, PMD rule hardening, Gradle wrapper +
-plugin upgrades, and the removal of legacy CLI/JS entry points. No new code ships in this migration; instead, Feature 013
-becomes the authoritative documentation for the quality gates, verification commands, and governance rules that keep the
-simulator’s tooling coherent.
+Feature 013 unifies every toolchain and quality-automation improvement: CLI exit harnesses, Maintenance CLI coverage
+buffers, reflection policy enforcement, Java 17 language upgrades, architecture harmonization, SpotBugs dead-state
+detectors, PMD rule hardening, Gradle wrapper + plugin upgrades, and the removal of legacy CLI/JS entry points. No new
+code ships in this documentation-only iteration; instead, Feature 013 becomes the authoritative documentation for the
+quality gates, verification commands, and governance rules that keep the simulator’s tooling coherent.
 
 ## Clarifications
 - 2025-10-01 – CLI exit-code verification must avoid `SecurityManager`, using direct invocation for success paths and a
@@ -29,13 +28,13 @@ simulator’s tooling coherent.
 - 2025-10-01 – Architecture harmonization requires shared OCRA application services, persistence factories, telemetry
   adapters, DTO normalization, and `core` module splits with ArchUnit guards (legacy Feature 014).
 - 2025-10-03 – SpotBugs dead-state detectors (`URF_*`, `UUF_*`, `UWF_*`, `NP_UNWRITTEN_*`) and PMD unused-field/method rules must
-  run in every JVM module; suppressions require documented rationale (legacy Feature 015).
+  run in every JVM module; suppressions require documented rationale.
 - 2025-10-19 – PMD upgrade to 7.x, Law-of-Demeter scoping/whitelists, NonSerializableClass, and NonExhaustiveSwitch rules must be
-  captured alongside documentation for interpreting violations (legacy Feature 029).
+  captured alongside documentation for interpreting violations.
 - 2025-10-18 – Gradle wrapper upgrades (8.10 → 9.1), plugin bumps (e.g., PIT 1.19.0-rc.2), and configuration-cache validation
-  must be documented with `--warning-mode=all` sweeps (legacy Feature 030).
+  must be documented with `--warning-mode=all` sweeps.
 - 2025-10-19 – Legacy CLI/JS entry points and telemetry fallbacks were removed; only canonical telemetry adapters, router keys,
-  and Fetch APIs remain (legacy Feature 031).
+  and Fetch APIs remain.
 
 ## Goals
 - G-013-01 – Keep CLI tooling healthy (exit-harness rewrite, Maintenance CLI coverage buffer, corrupted-db tests) with

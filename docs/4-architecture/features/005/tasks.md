@@ -1,14 +1,13 @@
 # Feature 005 Tasks – EMV/CAP Simulation Services
 
-_Status: In review_  
-_Last updated: 2025-11-11_
+_Status:_ In review  
+_Last updated:_ 2025-11-13
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
 
 Linked plan: `docs/4-architecture/features/005/plan.md`
 
-_Renumbering note:_ This checklist previously lived under Feature 039. The verbatim content was copied inline on 2025-11-11, so the `docs/4-architecture/features/005/legacy/039/` directory may be removed after verification (history remains in Git).
 
 ## Checklist
 
@@ -192,7 +191,9 @@ _Renumbering note:_ This checklist previously lived under Feature 039. The ver
   - `pmdMain pmdTest`
   - `spotlessApply check`
   _Notes:_
-  > - [ ] T-005-24a – Planning sync (S39-08): reread spec R2.4 + fixture helper, document field-to-source mapping in the feature plan, and outline per-surface tasks/tests before touching code.
+  > - [x] T-005-24a – Planning sync (S39-08): reread spec R2.4 + fixture helper, documented the provenance field-to-source mapping inside `docs/4-architecture/features/005/plan.md` ("Provenance Field Mapping (T-005-24a)") and outlined the per-surface verification plan before resuming code work.
+  >   _Verification commands:_
+  >   - `docs/4-architecture/features/005/plan.md`
   > - [x] T-005-25b – Core/application builder (S39-08): extend verbose trace assembly to populate `trace.provenance` for evaluation + replay responses; start by updating `EmvCapEvaluationApplicationServiceTest`/`EmvCapReplayApplicationServiceTest` so they fail until provenance data flows, then run `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*Trace*"` (add `:core:test` if helper logic changes).
   > - Implemented `TraceAssembler` with protocol context, key-derivation, CDOL breakdown, IAD decoding, MAC transcript, and decimalization overlay builders that load issuer profile overrides when necessary (baseline fixture now matches `trace-provenance-example.json`).
   > - Extended `Trace` record with provenance data + ICC template/resolution, added issuer profile catalogue, and refreshed schema assertions to map the nested structure for `EmvCapEvaluation/ReplayApplicationServiceTest`.

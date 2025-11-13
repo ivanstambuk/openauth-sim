@@ -2,20 +2,19 @@
 
 | Field | Value |
 |-------|-------|
-| Status | In migration (Batch P3) |
-| Last updated | 2025-11-11 |
+| Status | Complete |
+| Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/010/plan.md` |
 | Linked tasks | `docs/4-architecture/features/010/tasks.md` |
 | Roadmap entry | #10 – Documentation & Knowledge Automation |
 
 ## Overview
-Feature 010 consolidates every operator-facing guide, roadmap/knowledge-map reference, session workflow, and build-quality
-automation note into a single specification. The feature merges the historical documentation suites (Features 007/008) with
-the quality-gate automation charter so that Java/CLI/REST guides, README messaging, roadmap snapshots, `_current-session.md`
-logs, and Gradle quality tasks all evolve in lockstep. Going forward, Feature 010 is the authoritative source for doc
-structure, knowledge-map automation, and the aggregated `qualityGate` pipeline (ArchUnit, Jacoco, PIT, Spotless, SpotBugs,
-Checkstyle, gitleaks) that protects the OCRA stack and its supporting docs.
+Feature 010 centralises every operator-facing guide, roadmap/knowledge-map reference, session workflow, and build-quality
+automation note into a single specification so Java/CLI/REST guides, README messaging, roadmap snapshots, `_current-session.md`
+logs, and Gradle quality tasks all evolve in lockstep. The feature is the authoritative source for doc structure,
+knowledge-map automation, and the aggregated `qualityGate` pipeline (ArchUnit, Jacoco, PIT, Spotless, SpotBugs, Checkstyle,
+gitleaks) that protects the OCRA stack and its supporting documentation.
 
 ## Clarifications
 - 2025-09-30 – Operator documentation must cover Java integration (`docs/2-how-to/use-ocra-from-java.md`), CLI operations
@@ -26,9 +25,7 @@ Checkstyle, gitleaks) that protects the OCRA stack and its supporting docs.
   contributors replicate CI locally.
 - 2025-09-30 – The GitHub Actions workflow mirrors the local `qualityGate`, uploads Jacoco/PIT/ArchUnit logs, and respects
   cache hints so runtimes stay manageable (<10 minutes on developer laptops, comparable timing in CI).
-- 2025-11-11 – Batch P3 directs Feature 010 to absorb the legacy Feature 007/008 specs, plans, and tasks, remove the
-  `legacy/` tree once the consolidated spec lands, and log the deletion plus verification commands inside
-  `docs/_current-session.md`.
+- (none currently)
 
 ## Goals
 - G-010-01 – Deliver accurate, runnable operator guides for Java/CLI/REST flows plus README cross-links that reflect the
@@ -57,7 +54,7 @@ Checkstyle, gitleaks) that protects the OCRA stack and its supporting docs.
 | FR-010-07 | Maintain PIT mutation score ≥85% for OCRA packages, surfaced via `qualityGate` with HTML reports for debugging. | PIT runs during the gate and exits non-zero when the score falls below 85%; skip flag `-Ppit.skip=true` documented for local triage. | Build output references `build/reports/pitest`; docs explain thresholds and skip usage. | Mutation regressions merge unnoticed or developers cannot triage failures. | None. | Legacy Feature 008. |
 | FR-010-08 | Ensure GitHub Actions runs the same `qualityGate` command (push + PR), caches Gradle/PIT/Jacoco artifacts, and uploads reports for auditing. | Workflow logs show identical command/flags; artifacts contain reports for inspection. | `.github/workflows/quality-gate.yml` (or successor) reviewed after edits; CI history tracked in `_current-session.md`. | Local and CI gates drift, causing false positives/negatives. | None. | Legacy Feature 008. |
 | FR-010-09 | Document gate usage, skip flags, report locations, and remediation steps in `docs/5-operations/session-quick-reference.md`, roadmap, knowledge map, and `_current-session.md`. | Contributors find the gate runbook quickly and follow remediation playbooks for ArchUnit/Jacoco/PIT failures. | `rg "qualityGate" docs/5-operations/session-quick-reference.md` etc.; doc reviews confirm instructions. | Gate failures lack guidance, delaying fixes. | None. | Legacy Feature 008. |
-| FR-010-10 | Log every documentation/automation migration in `_current-session.md`, including commands executed (`rm -rf`, `spotlessApply`, `qualityGate`) and outstanding follow-ups. | Session log shows the command list + rationale; session log (docs/_current-session.md) includes Batch P3 entries for Feature 010. | Review `_current-session.md`, plan/tasks, and session log (docs/_current-session.md) while closing increments. | Auditors cannot trace what changed or which verification command ran. | None. | Goals G-010-02/04. |
+| FR-010-10 | Log every documentation/automation increment in `_current-session.md`, including commands executed (`rm -rf`, `spotlessApply`, `qualityGate`) and outstanding follow-ups. | Session log shows the command list + rationale; session log (docs/_current-session.md) includes the latest Feature 010 activity. | Review `_current-session.md`, plan/tasks, and session log (docs/_current-session.md) while closing increments. | Auditors cannot trace what changed or which verification command ran. | None. | Goals G-010-02/04. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |

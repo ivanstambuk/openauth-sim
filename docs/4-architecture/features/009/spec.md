@@ -2,19 +2,18 @@
 
 | Field | Value |
 |-------|-------|
-| Status | In migration (Batch P3) |
-| Last updated | 2025-11-11 |
+| Status | Complete |
+| Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/009/plan.md` |
 | Linked tasks | `docs/4-architecture/features/009/tasks.md` |
 | Roadmap entry | #9 – Operator Console Infrastructure |
 
 ## Overview
-Feature 009 now serves as the single source of truth for every operator-console artefact—Thymeleaf shells, vanilla JS controllers,
-verbose-trace dock wiring, Node harnesses, and protocol-specific helpers. This feature absorbs the legacy console workstreams
-(017/020/021/025/033–038/041) so multi-protocol tabs, info surfaces, validation helpers, trace diagnostics, Base32 inputs,
-preview windows, and the modular JS test harness all share one consolidated spec/plan/tasks bundle before further feature work
-continues.
+Feature 009 is the single source of truth for every operator-console artefact—Thymeleaf shells, vanilla JS controllers,
+verbose-trace dock wiring, Node harnesses, and protocol-specific helpers. Multi-protocol tabs, info surfaces, validation helpers,
+trace diagnostics, Base32 inputs, preview windows, and the modular JS test harness all share one consolidated spec/plan/tasks bundle
+before further feature work continues.
 
 ## Clarifications
 - 2025-11-01 – `/ui/console` is the canonical entry point; legacy routes such as `/ui/ocra/*` redirect or 404 to avoid drift (owner directive).
@@ -50,7 +49,7 @@ continues.
 | FR-009-07 | Inline secrets accept Base32 input (mutually exclusive with hex) via the shared `SecretEncodings` helper, CLI flags, and UI toggle; docs cover conversion hints. | Helper uppercases/pads Base32, CLI commands expose `--shared-secret-base32`, REST DTOs support `sharedSecretBase32`, and the UI toggle keeps both encodings aligned. | REST/CLI/UI tests assert exclusivity, validation errors, and conversion results; OpenAPI snapshot documents the new field. | Missing validation, helpers fail, or docs lack guidance. | Telemetry events log only the sanitized hex string. | 037 |
 | FR-009-08 | Evaluation flows accept preview windows (`window.backward/forward`), render Delta-ordered tables (with accent on Delta = 0), and expose CLI/REST flags while keeping replay drift inputs unchanged. | CLI output, REST JSON, and UI tables render the ordered previews; invalid offsets return informative errors and blocks the request. | CLI/REST/Selenium tests cover {0,0} defaults, multi-row windows, accent styling, and helper-text removal. | Preview tables missing, delta accent absent, or helper text unexpectedly shown. | `otp.evaluate.preview`, `otp.evaluate.preview_invalid_window`. | 038 |
 | FR-009-09 | Static JS modules expose per-protocol controller factories, reuse shared helpers (SecretFieldBridge, VerboseTraceConsole), and run through the `operatorConsoleJsTest` Gradle task with filtering support. | Node harness suites (`node --test rest-api/src/test/javascript/...`) exercise HOTP, TOTP, OCRA, FIDO2, EMV, and shared widgets; `./gradlew operatorConsoleJsTest -PconsoleTestFilter=<protocol>` filters runs. | Gradle aggregators (`check`) fail when Node tests regress; docs describe harness onboarding. | Inline scripts remain, harness missing features, or Gradle task not wired under `check`. | Optional telemetry `build.console_js.test`. | 041 |
-| FR-009-10 | Documentation, knowledge map, session log (docs/_current-session.md), roadmap, and `_current-session.md` describe the consolidated console scope (tabs, traces, debug helpers, scripted tests) and reference the new feature as the exclusive source. | Docs mention Feature 009 for console ownership; migration tracker logs the rewrite and verifications. | `spotlessApply check` plus manual doc review confirm the entries; `_current-session.md` cites the deletion/completion log. | Legacy features still cited or docs unsynchronised. | n/a | G-009-04 |
+| FR-009-10 | Documentation, knowledge map, session log (docs/_current-session.md), roadmap, and `_current-session.md` describe the consolidated console scope (tabs, traces, debug helpers, scripted tests) and reference the new feature as the exclusive source. | Docs mention Feature 009 for console ownership | `spotlessApply check` plus manual doc review confirm the entries; `_current-session.md` cites the deletion/completion log. | Legacy features still cited or docs unsynchronised. | n/a | G-009-04 |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
@@ -162,7 +161,6 @@ Continue emitting `operator.console.*` frames through `TelemetryContracts` adapt
 
 ## Documentation Deliverables
 - Update `docs/4-architecture/roadmap.md` and `docs/4-architecture/knowledge-map.md` to describe the consolidated console scope (tabs, info drawer, trace tiers, Base32, preview windows, and JS harness).
-- Record the migration progress (deleted legacy directories, verification commands, and Phase 2 flag) inside `docs/_current-session.md`.
 - Align operator how-to guides (`docs/2-how-to/*.md`) and runbooks with the new spec, including Base32 instructions, trace usage, and console testing guidance.
 
 ## Fixtures & Sample Data

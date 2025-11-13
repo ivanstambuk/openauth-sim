@@ -3,10 +3,7 @@
 _Linked specification:_ `docs/4-architecture/features/005/spec.md`  
 _Linked tasks:_ `docs/4-architecture/features/005/tasks.md`  
 _Status:_ In review  
-_Last updated:_ 2025-11-11
-
-_Renumbering note:_ Batch P2 reassigned this plan from Feature 039 to Feature 005. The legacy snapshot was copied inline on
-2025-11-11, so the `docs/4-architecture/features/005/legacy/039/` directory can be removed (Git history retains the original).
+_Last updated:_ 2025-11-13
 
 ## Vision & Success Criteria
 - Deliver deterministic EMV/CAP OTP generation **and replay validation** (Identify, Respond, Sign) across core, application, REST, CLI, and operator console facades with consistent telemetry and optional verbose traces.
@@ -48,6 +45,29 @@ _Renumbering note:_ Batch P2 reassigned this plan from Feature 039 to Featur
   - **Reviewers:** Codex (GPT-5); Preconditions: all Feature 039 tasks complete with a green `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` (2025-11-05T20:40Z log).
   - **Spec alignment:** R5.4 (stored-mask sanitisation), R6.3–R6.4 (credential directory), and R7.2/R8.1 (stored replay hydration) now cite concrete code/tests: `rest-api/src/main/resources/static/ui/emv/console.js`, `EmvCapOperatorUiSeleniumTest`, `rest-api/src/test/javascript/emv/console.test.js`, `EmvCapCredentialDirectoryController{,Test}`, and replay Selenium coverage. Inline overrides + stored hydration flows remain covered in both JS and Selenium tests.
   - **Coverage:** Success, validation, and failure branches span REST, CLI, JS, and Selenium harnesses with digest/length assertions. No divergences identified; sanitisation helper pattern recommended for Feature 026. Artifacts synced across feature plan/tasks, knowledge map, and `_current-session.md`.
+
+## Provenance Field Mapping (T-005-24a)
+
+Spec R2.4 plus `EmvCapTraceProvenanceSchema` define a six-section provenance payload. Capturing the lineage here keeps future increments aligned without rereading `TraceAssembler` every time.
+
+| Provenance section | Field derivation | Validation anchors |
+|--------------------|------------------|--------------------|
+| **Protocol Context** | `TraceAssembler.protocolContext` fuses the inbound `EmvCapMode` (driving `profile` + `mode`) with constants (`EMV_VERSION`, `AC_TYPE`, `CID_LABEL`) and `IssuerProfile` metadata (`issuerPolicyId`, `issuerPolicyNotes`). | `EmvCapEvaluationApplicationServiceTest`/`EmvCapReplayApplicationServiceTest` assert all fields; CLI/REST JSON-parity tests keep serialized output identical. |
+| **Key Derivation** | Pulls master-key length/digest from `EvaluationRequest.masterKeyHex()`, masked PAN/PSN digests from `IssuerProfiles.resolve(masterKey)`, ATC/IV from the request, and session-key bytes/digest from `EmvCapResult.sessionKeyHex()`. | `EmvCapTraceProvenanceSchema.missingFields` (consumed by `EmvCliTraceAssertions` and application tests) fails fast if any field drops. |
+| **CDOL Breakdown** | Schema (tag order + lengths) comes from `EvaluationRequest.cdol1Hex()`, while offsets/raw hex derive from `EmvCapResult.generateAcInput().terminalHex()`; `decodeCdolField` stamps decoded labels. | MockMvc JSON snapshots (`EmvCapEvaluationEndpointTest`, `EmvCapReplayEndpointTest`) plus CLI replay tests ensure entries/arrays render exactly. |
+| **IAD Decoding** | `TraceAssembler.iadDecoding` slices `EvaluationRequest.issuerApplicationDataHex()` into `cvr`, optional `issuerActionCode`, and the derived `cdaSupported` boolean. | Application/REST suites compare values against fixtures; UI tests only assert section presence to avoid duplicating server assertions. |
+| **MAC Transcript** | Uses constants for algorithm/padding/IV/block count; `EmvCapResult.generateAcResultHex()` supplies `generateAcRaw` and the CID byte that yields `cidFlags`, while placeholder block labels document B0…B10. | CLI/REST snapshots plus operator-console verbose-trace assertions keep CID decoding + block metadata in sync. |
+| **Decimalization Overlay** | `buildDecimalizationSourceHex(request.atc, generateAc)` concatenates ATC + AC segments; ISO-0 decimalization and `result.bitmaskOverlay()/maskedDigitsOverlay()` produce `sourceDecimal`, `overlaySteps`, OTP, and digit count. Optional overrides flow from `IssuerProfile.decimalizationOverride()`. | Application trace tests verify the math; Node + Selenium suites ensure overlay labels render; fixture diffs catch format drift. |
+
+Golden fixtures: keep `docs/test-vectors/emv-cap/trace-provenance-example.json` and `rest-api/docs/test-vectors/emv-cap/trace-provenance-example.json` synchronized; `EmvCapTraceProvenanceSchema` loads the repo-root copy so every module/CLI test references the same canonical payload.
+
+### Surface verification plan (pre-implementation)
+
+1. **Core/Application:** Extend `EmvCapEvaluationApplicationServiceTest`/`EmvCapReplayApplicationServiceTest` plus helper coverage before wiring behaviour; target command `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*Trace*"` (add `:core:test` if schema helpers change).
+2. **REST facade:** Update `EmvCapEvaluationEndpointTest`, `EmvCapReplayEndpointTest`, and regenerate OpenAPI via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` once DTOs emit provenance.
+3. **CLI:** Keep `EmvCliEvaluateCommand`, `EmvCliReplayCommand`, and `EmvCliTraceAssertions` aligned; rerun `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.*Emv*Trace*"` after mapper updates.
+4. **Operator UI / JS:** Refresh `rest-api/src/main/resources/static/ui/emv/console.js`, `static/ui/shared/verbose-trace.js`, and `rest-api/src/test/javascript/emv/console.test.js`, then rerun Selenium via `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`.
+5. **Fixture & doc sync:** Update both provenance fixtures in lockstep, run `rg "trace-provenance-example" -n docs rest-api/docs` to double-check references, and log the edits in `_current-session.md` per Feature 011 governance guidance.
 
 ## Increment Map
 The active increment batch (I46–I50b) focuses on UI parity and the verbose trace provenance schema. Historical increments (I1–I45, T3916/T3917, early breakdown entries) now live in the appendix under `## Follow-ups / Backlog` to keep this section concise.

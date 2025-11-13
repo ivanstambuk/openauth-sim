@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | In review |
-| Last updated | 2025-11-11 |
+| Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/005/plan.md` |
 | Linked tasks | `docs/4-architecture/features/005/tasks.md` |
@@ -14,8 +14,6 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 
 
 ## Clarifications
-- 2025-11-11 – Batch P2 renumbering reassigned this scope from Feature 039 to Feature 005; the legacy spec was copied inline
-  here, allowing `docs/4-architecture/features/005/legacy/039/spec.md` to be removed after verification (history remains in Git).
 - 2025-11-01 – CLI parity will follow existing Picocli ergonomics: positional/flag inputs with optional `--output-json` mirroring the REST payload, plus an `--include-trace` toggle (owner decision).
 - 2025-11-01 – Operator console already contains an EMV/CAP tab; we will activate it with an inline result card and rely on the global verbose trace toggle shared across protocols (owner decision).
 - 2025-11-01 – EMV/CAP credentials must be persisted in MapDB alongside other protocols and support deterministic seeding commands akin to HOTP/TOTP/OCRA/FIDO2 (owner decision).

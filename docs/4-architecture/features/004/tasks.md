@@ -1,7 +1,7 @@
 # Feature 004 Tasks – FIDO2/WebAuthn Assertions & Attestations
 
-_Status:_ Migrated (Batch P2)  
-_Last updated:_ 2025-11-11
+_Status:_ In review  
+_Last updated:_ 2025-11-13
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).

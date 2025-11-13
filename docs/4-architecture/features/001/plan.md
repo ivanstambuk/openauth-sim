@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/features/001/spec.md`  
 _Status:_ Complete  
-_Last updated:_ 2025-11-10
+_Last updated:_ 2025-11-13
 
 ## Vision & Success Criteria
 Deliver RFC 4226 HOTP evaluation (core → persistence → application → CLI/REST → operator UI) with telemetry parity and

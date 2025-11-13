@@ -1,7 +1,7 @@
 # Feature 002 Tasks – TOTP Simulator & Tooling
 
-_Status: Complete_  
-_Last updated: 2025-11-10_
+_Status:_ Complete  
+_Last updated:_ 2025-11-13
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
