@@ -14,28 +14,8 @@ Feature 003 consolidates every OCRA-focused capability—core credential domain,
 persistence envelopes, CLI/REST facades, replay verification, and the operator-console flows—into a single
 specification that now serves as the source of truth for HOTP/TOTP-independent OTP work. The scope merges the
 previous Feature 001 (Core Credential Domain), Feature 003/004 (REST inline + stored evaluation), Feature 009
-(Replay & Verification), Feature 016 (Operator UI Replay workspace), and Feature 018 (schema-v0 migration retirement)
-so all OCRA behaviour, telemetry, and fixtures remain aligned while the catalogue renumbers to the new 001‑013 layout.
-
-## Clarifications
-- 2025-09-28 – RFC 6287 descriptors, secret canonicalisation (HEX, Base32, Base64), session payload lengths (S064/S128/
-  S256/S512), and suite metadata continue to be enforced at the core layer using `SecretMaterial` +
-  `OcraCredentialDescriptor`. (Legacy Feature 001, Option A.)
-- 2025-09-28 – `POST /api/v1/ocra/evaluate` remains the primary REST entry point. It accepts inline payloads, redacts
-  secrets, and produces JSON responses plus OpenAPI snapshots under `docs/3-reference/rest-openapi.*`. (Legacy
-  Feature 003, Option A.)
-- 2025-09-29 – Credential resolution adds an optional `credentialId` field; requests must supply exactly one of
-  `sharedSecretHex` or `credentialId`, and persistence lookups remain read-only. Validation reason codes
-  (`credential_not_found`, `credential_conflict`, `credential_missing`) must be preserved. (Legacy Feature 004, Option A.)
-- 2025-10-01 – Replay/verification flows enforce zero tolerance windows and deterministic mismatch handling; all facades
-  emit hashed OTP/context fingerprints without persisting replay receipts. (Legacy Feature 009, Option A.)
-- 2025-10-04 – Operator console tabs consolidate evaluation + replay panels with inline preset auto-fill, “Load sample”
-  helpers, and `Use current Unix seconds` toggles that quantise timestamps to each credential’s step size. (Legacy
-  Feature 016, user directive.)
-- 2025-10-05 – Telemetry for core/application/CLI/REST/UI must route through `TelemetryContracts` with sanitized fields;
-  verbose traces remain opt-in-only. (Legacy Features 001/009.)
-- 2025-10-07 – Schema-v0 migration code may be deleted; `OcraStoreMigrations.apply` is retained as the single entry
-  point but now only enforces schema-v1 invariants. (Legacy Feature 018, Option A.)
+(Replay & Verification), Feature 016 (Operator UI Replay workspace), and Feature 018 (schema-v0 migration retirement),
+keeping OCRA behaviour, telemetry, and fixtures aligned across modules.
 
 ## Goals
 - G-003-01 – Provide a canonical OCRA credential domain and calculation stack that reproduces every RFC 6287 vector and
@@ -45,7 +25,7 @@ so all OCRA behaviour, telemetry, and fixtures remain aligned while the catalogu
 - G-003-03 – Deliver replay/verification workflows (core, CLI, REST) that hash all sensitive context while documenting
   benchmarks and troubleshooting guidance.
 - G-003-04 – Keep fixtures, documentation, knowledge map links, and OpenAPI snapshots synchronised with the consolidated
-  feature so renumbering does not introduce drift.
+  feature so changes do not introduce drift.
 
 ## Non-Goals
 - Supporting HOTP/TOTP or wallet simulators (handled by Features 001/002/006+).
@@ -63,7 +43,7 @@ so all OCRA behaviour, telemetry, and fixtures remain aligned while the catalogu
 | FR-003-06 | CLI + REST replay (`ocra verify` / `POST /api/v1/ocra/verify`) reproduce OTPs without mutating state, hash OTP/context fields, and expose deterministic mismatch messaging. | Picocli + MockMvc tests cover stored/inline replay, timestamp/session validation, hashed telemetry, benchmark hooks. | Performance benchmark captured with host/JDK metadata; docs updated. | Counters mutate, tolerance windows added, or telemetry logs raw OTPs. | `core.ocra.verify`, `cli.ocra.verify`, `rest.ocra.verify` with `otpHash`, `contextFingerprint`. | Legacy Feature 009. |
 | FR-003-07 | Operator console evaluation + replay panels share inline presets, stored credential selectors, “Use current Unix seconds” toggles, verbose trace dock integration, and replay-only workspace referencing `/api/v1/ocra/verify`. | Selenium/UI unit tests exercise stored/inline flows, preset controls, timestamp toggles, CTA spacing, verbose trace wiring. | Accessibility checks ensure focus order + aria labels; docs capture user guidance. | UI diverges from REST contract or toggles drift. | `ui.ocra.evaluate` + `ui.ocra.replay` telemetry proxies. | Legacy Feature 016 + Feature 017 shell. |
 | FR-003-08 | Schema-v0 migration code removed; `OcraStoreMigrations.apply` enforces schema-v1 invariants and is called before every persistence operation. | Integration tests load legacy fixtures using test-only flag, verifying migrations short-circuit when already v1. | CLI/REST flows fail fast if mismatched schema encountered; documentation notes only schema-v1 supported. | Hidden schema-v0 paths remain or migrations skipped. | Telemetry logs `migrationApplied=false` for healthy stores. | Legacy Feature 018. |
-| FR-003-09 | Documentation (how-to, roadmap, knowledge map) and fixture catalogues remain synchronized with the new numbering, including references to `docs/test-vectors/ocra/*` and operator guides. | Spotless/doc lint runs; knowledge map entry lists new Feature 003. | Drift gate catches missing doc updates; session log (docs/_current-session.md) logs renumbering. | References still point to deleted Feature 001/003/009 paths. | n/a | Migration directive. |
+| FR-003-09 | Documentation (how-to, roadmap, knowledge map) and fixture catalogues remain synchronized with the consolidated OCRA feature, including references to `docs/test-vectors/ocra/*` and operator guides. | Spotless/doc lint runs; knowledge map entry lists Feature 003 as the OCRA source. | Drift gate catches missing doc updates; session log (`docs/_current-session.md`) logs relevant documentation commands. | References point to obsolete or incorrect paths. | n/a | Spec. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |

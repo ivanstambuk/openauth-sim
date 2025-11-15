@@ -13,7 +13,7 @@ Immediate actions:
 4. Inspect the active feature specification(s) in `docs/4-architecture/features/<NNN>/spec.md`.
 5. Inspect the corresponding feature plan(s) in `docs/4-architecture/features/<NNN>/plan.md`.
 6. Review the per-feature tasks in `docs/4-architecture/tasks/`.
-7. Check `docs/4-architecture/open-questions.md` for unresolved clarifications.
+7. Check `docs/4-architecture/open-questions.md` for unresolved questions.
 8. Consult `docs/_current-session.md` for the latest workstream snapshot; update it as you discover new status.
 9. Reconfirm the Specification-Driven Development cadence: spec updates lead, failing tests follow, then tasks and implementation proceed.
 10. Expect that parallel or prior sessions may introduce new files or directories; if you encounter unfamiliar or untracked paths, surface them for user guidance rather than removing them.
@@ -26,7 +26,7 @@ Diagnosis tree:
 
 Remediation:
 - Summarise project status back to the user (roadmap state, open questions, next suggested action).
-- Request clarifications where needed and wait for responses before coding.
+- Request clarifications where needed and wait for responses before coding; when answers arrive, update the governing feature spec’s requirements/NFR/behaviour/telemetry sections, mark the question as resolved in `docs/4-architecture/open-questions.md` with links to those sections, and create or reference an ADR for architecturally significant decisions.
 - Once direction is confirmed, ensure the analysis gate (`docs/5-operations/analysis-gate-checklist.md`) is satisfied, then proceed with planning/implementation per `AGENTS.md` guidelines.
 
 ## Handoff Prompt Template

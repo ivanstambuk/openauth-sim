@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Complete |
-| Last updated | 2025-11-13 |
+| Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/012/plan.md` |
 | Linked tasks | `docs/4-architecture/features/012/tasks.md` |
@@ -12,25 +12,16 @@
 ## Overview
 Feature 012 aggregates every shared persistence guideline for the simulator: credential-store profiles, cache tuning,
 telemetry contracts, maintenance helpers, optional encryption, default filenames, and documentation of recent IDE warning
-remediation. Facade modules consume the same storage APIs and operators rely on this specification as the single
-governance source for persistence guidance.
-
-## Clarifications
-- 2025-09-28 – Persistence improvements land in the order: instrumentation/metrics → cache tuning → storage hygiene → optional
-  encryption; all work stays within the existing `CredentialStore` abstraction and must sustain ≥10 000 read-heavy RPS with
-  cache-hit P99 ≤5 ms and MapDB-hit P99 ≤15 ms.
-- 2025-09-28 – Telemetry contract `persistence.credential.lookup|mutation` emits `storeProfile`, `credentialNameHash`,
-  `cacheHit`, `source`, `latencyMicros`, `operation`, `redacted=true`.
-- 2025-09-28 – Cached deployment profiles: `IN_MEMORY` (Caffeine 250k entries, expire-after-access 2 min), `FILE` (150k,
-  expire-after-write 10 min), `CONTAINER` (500k, expire-after-access 15 min) with documented overrides.
-- 2025-09-28 – Maintenance helpers expose compaction and integrity checks via `MapDbCredentialStore.Builder` plus CLI hooks
-  so operators avoid downtime.
-- 2025-10-18 – Shared default filename is `credentials.db` for all facades; legacy file probing was removed and operators must
-  manually rename or pass explicit paths.
-- 2025-10-18/19 – IDE warning remediation keeps unused locals out of persistence-related code by strengthening assertions,
-  promoting DTOs, and exporting SpotBugs annotations without altering behaviour; `spotbugs-annotations` remains
-  `compileOnlyApi` in `application`.
-- (none currently)
+remediation. It builds on ADR-0001 (Core Credential Store Stack: MapDB plus Caffeine) and codifies the deployment profiles
+(`IN_MEMORY`, `FILE`, `CONTAINER`) with their cache sizes and expiry policies, the
+`persistence.credential.lookup|mutation|maintenance|profile.override` telemetry fields (including `storeProfile`,
+`credentialNameHash`, `cacheHit`, `source`, `latencyMicros`, `operation`, `redacted=true`), maintenance helpers for
+compaction and integrity checks via `MapDbCredentialStore.Builder` and CLI hooks, the unified `credentials.db` default with
+explicit override logging, and IDE remediation steps (assertions, DTO extraction, SpotBugs annotations exported via
+`compileOnlyApi`). Persistence improvements remain layered instrumentation/metrics → cache tuning → storage hygiene →
+optional encryption inside the existing `CredentialStore` abstraction while sustaining the performance targets in
+NFR-012-01. Facade modules consume the same storage APIs and operators rely on this specification as the single governance
+source for persistence guidance.
 
 ## Goals
 - G-012-01 – Document the shared credential-store contract (profiles, cache settings, telemetry, maintenance helpers,
@@ -49,23 +40,23 @@ governance source for persistence guidance.
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-012-01 | Define deployment profiles (`IN_MEMORY`, `FILE`, `CONTAINER`) with curated Caffeine/MapDB settings and documented override hooks. | Builders expose profile enums + overrides; cache hit ratios stay >90% in smoke tests. | Unit/integration tests confirm profile settings; docs list defaults. | Profiles missing or overrides misconfigured. | `persistence.cache.profile` logs include `profileId`, overrides hash. | Legacy Feature 002.
-| FR-012-02 | Emit structured telemetry for credential lookups/mutations/maintenance without leaking secrets (fields per clarifications). | Telemetry events appear in tests with `redacted=true`; verbose traces reuse existing plumbing. | Contract tests assert fields + redaction; docs describe telemetry usage. | Logs leak secrets or omit fields. | `persistence.credential.lookup|mutation` events. | Legacy Feature 002.
-| FR-012-03 | Provide maintenance helpers (compaction/integrity/CLI entry points) surfaced via `MapDbCredentialStore.Builder` and documented CLI flows. | Operators trigger maintenance via CLI/Builder without stopping the simulator; docs explain commands and expected logs. | CLI integration tests + how-to walkthrough; plan/tasks list commands. | Maintenance steps undocumented or risky. | `persistence.credential.maintenance` logs. | Legacy Feature 002.
-| FR-012-04 | Offer optional AES-GCM at-rest encryption via `PersistenceEncryption` interface without changing default plaintext behaviour. | Enabling encryption stores redacted ciphertext while defaults remain plaintext; docs describe key management/risks. | Unit tests cover encryption on/off; documentation outlines configuration. | Encryption toggles misbehave or leak data. | Telemetry remains redacted; encryption logs note mode only. | Legacy Feature 002.
-| FR-012-05 | Standardise the default credential-store filename (`credentials.db`) across all facades and document manual migration guidance (rename legacy files or supply explicit paths). | Factories default to `credentials.db`; CLI help/REST config/UI copy mention the shared default; docs explain manual migration steps. | `rg "credentials.db"` across docs; CLI/REST tests assert defaults; Selenium flows show updated copy. | Legacy filenames referenced or fallback logic reintroduced. | Logs only mention overrides (no noise for defaults). | Legacy Feature 027.
-| FR-012-06 | Remove legacy filename detection and require explicit overrides for custom paths; log overrides deterministically. | `CredentialStoreFactory` rejects implicit legacy file detection; logs structured override lines with `explicit=true`. | Unit tests assert default vs override cases; docs mention `--credential-store-path`. | Silent fallback occurs or logs spam defaults. | `persistence.defaultPathSelected` log (explicit only). | Legacy Feature 027.
-| FR-012-07 | Record IDE warning remediation steps (assertion tightening, DTO extraction, SpotBugs annotation export, transient REST exception fields) so persistence modules remain warning-free. | Docs capture remediation scope; application/core/CLI/REST/UI tests cover new assertions; SpotBugs annotations exported via `compileOnlyApi`. | `./gradlew --no-daemon :application:test :core:test :cli:test :rest-api:test :ui:test spotlessApply check`; IDE snapshot referenced in plan/tasks. | Warnings reappear or documentation omits context. | No telemetry change. | Legacy Feature 028.
-| FR-012-08 | Log every persistence documentation update (spec/plan/tasks, roadmap, knowledge map, architecture graph, session log (docs/_current-session.md)) and list executed commands in `_current-session.md`. | Session logs mention commands (`rg`, `spotlessApply`, doc edits); open questions stay empty. | Manual review before closing tasks. | Auditors cannot trace persistence doc changes. | None. | Goals G-012-04.
+| FR-012-01 | Define deployment profiles (`IN_MEMORY`, `FILE`, `CONTAINER`) with curated Caffeine/MapDB settings and documented override hooks, including reference defaults: `IN_MEMORY` (250k entries, expire-after-access 2 min), `FILE` (150k entries, expire-after-write 10 min), `CONTAINER` (500k entries, expire-after-access 15 min). | Builders expose profile enums + overrides; cache hit ratios stay >90% in smoke tests. | Unit/integration tests confirm profile settings; docs list defaults. | Profiles missing or overrides misconfigured. | `persistence.cache.profile` logs include `profileId`, overrides hash. | Spec |
+| FR-012-02 | Emit structured telemetry for credential lookups/mutations/maintenance without leaking secrets (fields defined in the Telemetry & Observability section). | Telemetry events appear in tests with `redacted=true`; verbose traces reuse existing plumbing. | Contract tests assert fields + redaction; docs describe telemetry usage. | Logs leak secrets or omit fields. | `persistence.credential.lookup|mutation` events. | Spec |
+| FR-012-03 | Provide maintenance helpers (compaction/integrity/CLI entry points) surfaced via `MapDbCredentialStore.Builder` and documented CLI flows. | Operators trigger maintenance via CLI/Builder without stopping the simulator; docs explain commands and expected logs. | CLI integration tests + how-to walkthrough; plan/tasks list commands. | Maintenance steps undocumented or risky. | `persistence.credential.maintenance` logs. | Spec |
+| FR-012-04 | Offer optional AES-GCM at-rest encryption via `PersistenceEncryption` interface without changing default plaintext behaviour. | Enabling encryption stores redacted ciphertext while defaults remain plaintext; docs describe key management/risks. | Unit tests cover encryption on/off; documentation outlines configuration. | Encryption toggles misbehave or leak data. | Telemetry remains redacted; encryption logs note mode only. | Spec |
+| FR-012-05 | Standardise the default credential-store filename (`credentials.db`) across all facades and document manual migration guidance (rename legacy files or supply explicit paths). | Factories default to `credentials.db`; CLI help/REST config/UI copy mention the shared default; docs explain manual migration steps. | `rg "credentials.db"` across docs; CLI/REST tests assert defaults; Selenium flows show updated copy. | Legacy filenames referenced or fallback logic reintroduced. | Logs only mention overrides (no noise for defaults). | Spec |
+| FR-012-06 | Remove legacy filename detection and require explicit overrides for custom paths; log overrides deterministically. | `CredentialStoreFactory` rejects implicit legacy file detection; logs structured override lines with `explicit=true`. | Unit tests assert default vs override cases; docs mention `--credential-store-path`. | Silent fallback occurs or logs spam defaults. | `persistence.defaultPathSelected` log (explicit only). | Spec |
+| FR-012-07 | Record IDE warning remediation steps (assertion tightening, DTO extraction, SpotBugs annotation export, transient REST exception fields) so persistence modules remain warning-free. | Docs capture remediation scope; application/core/CLI/REST/UI tests cover new assertions; SpotBugs annotations exported via `compileOnlyApi`. | `./gradlew --no-daemon :application:test :core:test :cli:test :rest-api:test :ui:test spotlessApply check`; IDE snapshot referenced in plan/tasks. | Warnings reappear or documentation omits context. | No telemetry change. | Spec |
+| FR-012-08 | Log every persistence documentation update (spec/plan/tasks, roadmap, knowledge map, architecture graph, session log (docs/_current-session.md)) and list executed commands in `_current-session.md`. | Session logs mention commands (`rg`, `spotlessApply`, doc edits); open questions stay empty. | Manual review before closing tasks. | Auditors cannot trace persistence doc changes. | None. | Spec |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-012-01 | Performance: sustain ≥10 000 read-heavy RPS with cache-hit P99 ≤5 ms / MapDB-hit P99 ≤15 ms under documented profiles. | Persistence SLA | Benchmark notes stored in plan/tasks; regression tests reference targets. | `MapDbCredentialStore`, Caffeine caches. | Legacy Feature 002.
-| NFR-012-02 | Observability: telemetry + logs must redact secrets and remain consistent across facades. | Security/compliance | Contract tests enforce `redacted=true`; docs describe telemetry consumption. | TelemetryContracts, verbose traces. | Legacy Feature 002.
-| NFR-012-03 | Deterministic defaults: `credentials.db` remains the only implicit filename; overrides logged once per boot. | Operator predictability | Tests compare resolved path; docs mention manual migrations. | `CredentialStoreFactory`, CLI/REST config. | Legacy Feature 027.
-| NFR-012-04 | IDE hygiene: persistence-related modules stay warning-free and SpotBugs annotations compile everywhere without extra dependencies. | Developer experience | IDE inspection snapshots + regression gate results recorded in plan/tasks. | application, core, cli, rest-api, ui modules. | Legacy Feature 028.
-| NFR-012-05 | Documentation traceability: roadmap/knowledge-map/architecture-graph entries reference Feature 012; `_current-session.md` logs verification commands. | Governance | Doc review + session snapshot before closing tasks. | docs hierarchy. | Goals G-012-04.
+| NFR-012-01 | Performance: sustain ≥10 000 read-heavy RPS with cache-hit P99 ≤5 ms / MapDB-hit P99 ≤15 ms under documented profiles. | Persistence SLA | Benchmark notes stored in plan/tasks; regression tests reference targets. | `MapDbCredentialStore`, Caffeine caches. | Spec |
+| NFR-012-02 | Observability: telemetry + logs must redact secrets and remain consistent across facades. | Security/compliance | Contract tests enforce `redacted=true`; docs describe telemetry consumption. | TelemetryContracts, verbose traces. | Spec |
+| NFR-012-03 | Deterministic defaults: `credentials.db` remains the only implicit filename; overrides logged once per boot. | Operator predictability | Tests compare resolved path; docs mention manual migrations. | `CredentialStoreFactory`, CLI/REST config. | Spec |
+| NFR-012-04 | IDE hygiene: persistence-related modules stay warning-free and SpotBugs annotations compile everywhere without extra dependencies. | Developer experience | IDE inspection snapshots + regression gate results recorded in plan/tasks. | application, core, cli, rest-api, ui modules. | Spec |
+| NFR-012-05 | Documentation traceability: roadmap/knowledge-map/architecture-graph entries reference Feature 012; `_current-session.md` logs verification commands. | Governance | Doc review + session snapshot before closing tasks. | docs hierarchy. | Spec |
 
 ## UI / Interaction Mock-ups
 
@@ -156,7 +147,7 @@ governance source for persistence guidance.
 ### Telemetry Events
 | ID | Event | Fields / Notes |
 |----|-------|----------------|
-| TE-012-01 | `persistence.credential.lookup` | `storeProfile`, `credentialNameHash`, `cacheHit`, `latencyMicros`, `redacted=true`. |
+| TE-012-01 | `persistence.credential.lookup` | `storeProfile`, `credentialNameHash`, `cacheHit`, `source`, `latencyMicros`, `redacted=true`. |
 | TE-012-02 | `persistence.credential.mutation` | Same fields plus `operation` (insert/update/delete). |
 | TE-012-03 | `persistence.credential.maintenance` | `operation` (compact/verify), `durationMicros`, `result`, `storeProfile`. |
 | TE-012-04 | `persistence.credential.profile.override` | Fired when `credentials.db` path or overrides change; includes `oldPath`, `newPath`, `owner`. |
@@ -177,7 +168,7 @@ governance source for persistence guidance.
 ## Telemetry & Observability
 
 Persistence telemetry uses the `TelemetryContracts` adapters so CLI/REST/UI logging stays consistent and secrets stay redacted:
-- `persistence.credential.lookup`/`mutation` events always include `storeProfile`, `credentialNameHash`, `cacheHit`, `latencyMicros`, and `redacted=true`; viewers compare them against benchmark targets and guard approver notes.
+- `persistence.credential.lookup`/`mutation` events always include `storeProfile`, `credentialNameHash`, `cacheHit`, `source`, `latencyMicros`, and `redacted=true` (plus `operation` for mutations); viewers compare them against benchmark targets and guard approver notes.
 - Maintenance helpers emit `persistence.credential.maintenance` (operation + duration + result) and `persistence.credential.profile.override` when `credentials.db` defaults change, ensuring audit trails for CLI/REST/Docs actions.
 - Telemetry contract tests (Core/Application) assert the fields, redaction flags, and optional `operation`/`result` combinations for success/failure branches before docs update; `docs/2-how-to` references these telemetry contracts to guide operator expectations.
 

@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Complete |
-| Last updated | 2025-11-13 |
+| Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/010/plan.md` |
 | Linked tasks | `docs/4-architecture/features/010/tasks.md` |
@@ -11,21 +11,16 @@
 
 ## Overview
 Feature 010 centralises every operator-facing guide, roadmap/knowledge-map reference, session workflow, and build-quality
-automation note into a single specification so Java/CLI/REST guides, README messaging, roadmap snapshots, `_current-session.md`
-logs, and Gradle quality tasks all evolve in lockstep. The feature is the authoritative source for doc structure,
-knowledge-map automation, and the aggregated `qualityGate` pipeline (ArchUnit, Jacoco, PIT, Spotless, SpotBugs, Checkstyle,
-gitleaks) that protects the OCRA stack and its supporting documentation.
-
-## Clarifications
-- 2025-09-30 – Operator documentation must cover Java integration (`docs/2-how-to/use-ocra-from-java.md`), CLI operations
-  (`docs/2-how-to/use-ocra-cli-operations.md`), and REST workflows (`docs/2-how-to/use-ocra-rest-operations.md`) with
-  runnable examples, telemetry expectations, and troubleshooting tips; README references only shipped capabilities.
-- 2025-09-30 – A single Gradle entry point (`./gradlew --no-daemon qualityGate`) must run ArchUnit boundary checks,
-  Jacoco aggregation (≥90% line/branch), PIT mutation tests (≥85% score), Spotless, Checkstyle, SpotBugs, and gitleaks so
-  contributors replicate CI locally.
-- 2025-09-30 – The GitHub Actions workflow mirrors the local `qualityGate`, uploads Jacoco/PIT/ArchUnit logs, and respects
-  cache hints so runtimes stay manageable (<10 minutes on developer laptops, comparable timing in CI).
-- (none currently)
+automation note into a single specification so Java/CLI/REST guides, README messaging, roadmap snapshots, session quick
+reference, `_current-session.md` logs, and Gradle quality tasks all evolve in lockstep. This spec explicitly enumerates the
+required operator documentation set (`docs/2-how-to/use-ocra-from-java.md`, `docs/2-how-to/use-ocra-cli-operations.md`,
+`docs/2-how-to/use-ocra-rest-operations.md`) plus README guidance so only shipped capabilities are referenced and is backed
+by ADR-0004 (Documentation & Aggregated Quality Gate Workflow). It also defines the aggregated `./gradlew --no-daemon qualityGate`
+entry point (Spotless, Checkstyle, SpotBugs, ArchUnit, Jacoco aggregation with ≥90% line/branch, PIT ≥85% mutation score,
+gitleaks) and requires GitHub Actions workflows to invoke the same command with caching, report uploads, and optional local
+skip flags (`-Ppit.skip=true`). Every documentation/automation increment must log commands and outcomes in `_current-session.md`,
+keeping this feature the authoritative source for doc structure, knowledge-map automation, and the quality gate that protects
+the OCRA stack and its supporting documentation.
 
 ## Goals
 - G-010-01 – Deliver accurate, runnable operator guides for Java/CLI/REST flows plus README cross-links that reflect the
@@ -38,32 +33,32 @@ gitleaks) that protects the OCRA stack and its supporting documentation.
   local environments and GitHub Actions, including troubleshooting documentation and skip flags.
 
 ## Non-Goals
-- Shipping new simulator runtime behaviour (doc/automation-only scope for Batch P3).
+- Shipping new simulator runtime behaviour (this feature is documentation/automation-only).
 - Expanding quality automation to non-OCRA modules until future specs request it.
 - Introducing new documentation formats or publishing pipelines beyond Markdown/ASCII.
 
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-010-01 | Publish and maintain the operator doc suite (`docs/2-how-to/use-ocra-from-java.md`, `docs/2-how-to/use-ocra-cli-operations.md`, `docs/2-how-to/use-ocra-rest-operations.md`) with runnable snippets, telemetry expectations, and troubleshooting sections. | Operators follow prerequisites, copy commands, and reproduce OTP generation/replay flows without diving into source. | Spot-check snippets against the latest build; `./gradlew spotlessApply check` validates formatting; `_current-session.md` logs updates. | Outdated instructions block operators or contradict shipped behaviour. | No new telemetry; guides reference existing `core.ocra.*`, `cli.ocra.*`, `rest.ocra.*` frames. | Legacy Feature 007. |
-| FR-010-02 | Keep `README.md` and how-to landing pages focused on shipped functionality, include Swagger UI links, and cross-link the operator docs/quality-gate guidance. | README lists active simulators + `http://localhost:8080/swagger-ui/index.html`, points to how-to guides, and omits future/planned placeholders. | Manual review + linting; `_current-session.md` records diff summary. | README references stale content or omits critical docs. | None. | Legacy Feature 007. |
-| FR-010-03 | Synchronise roadmap, knowledge map, architecture graph, session quick reference, and `_current-session.md` whenever documentation or automation scope changes. | Doc updates mention Feature 010; `_current-session.md` logs commands (moves, deletions, verification). | `rg "Feature 010"` across docs; reviewers confirm entries after each increment. | Cross-document drift forces manual archaeology. | None. | Goals G-010-02/03. |
-| FR-010-04 | Provide an aggregated Gradle task `./gradlew --no-daemon qualityGate` (with optional `-Ppit.skip=true`) that runs Spotless, Checkstyle, SpotBugs, ArchUnit, Jacoco aggregation, PIT mutation tests, and gitleaks in one command. | Running `qualityGate` locally matches CI output; reports land under `build/reports/quality/`, `build/reports/jacoco/aggregated/`, and `build/reports/pitest/`. | Observing Gradle output plus report folders; task wiring documented in plan/tasks. | Contributors must chain commands manually or miss required suites. | Build logs only; no runtime telemetry. | Legacy Feature 008. |
-| FR-010-05 | Enforce ArchUnit boundary rules that block CLI/REST/UI modules from touching `core` directly (outside the application seams). | Illegal dependencies break `qualityGate` with actionable messages. | ArchUnit tests seed forbidden imports; CI artifacts capture failures. | Architecture drift ships undetected. | None. | Legacy Feature 008. |
-| FR-010-06 | Maintain Jacoco aggregated coverage thresholds (≥90% line/branch) for OCRA code paths; failures block the gate until coverage is restored. | Jacoco reports meet thresholds locally and in CI; offenders listed when regressions occur. | Inspect `build/reports/jacoco/aggregated/index.html` + Gradle console when tests fail. | Coverage regressions pass unnoticed. | None. | Legacy Feature 008. |
-| FR-010-07 | Maintain PIT mutation score ≥85% for OCRA packages, surfaced via `qualityGate` with HTML reports for debugging. | PIT runs during the gate and exits non-zero when the score falls below 85%; skip flag `-Ppit.skip=true` documented for local triage. | Build output references `build/reports/pitest`; docs explain thresholds and skip usage. | Mutation regressions merge unnoticed or developers cannot triage failures. | None. | Legacy Feature 008. |
-| FR-010-08 | Ensure GitHub Actions runs the same `qualityGate` command (push + PR), caches Gradle/PIT/Jacoco artifacts, and uploads reports for auditing. | Workflow logs show identical command/flags; artifacts contain reports for inspection. | `.github/workflows/quality-gate.yml` (or successor) reviewed after edits; CI history tracked in `_current-session.md`. | Local and CI gates drift, causing false positives/negatives. | None. | Legacy Feature 008. |
-| FR-010-09 | Document gate usage, skip flags, report locations, and remediation steps in `docs/5-operations/session-quick-reference.md`, roadmap, knowledge map, and `_current-session.md`. | Contributors find the gate runbook quickly and follow remediation playbooks for ArchUnit/Jacoco/PIT failures. | `rg "qualityGate" docs/5-operations/session-quick-reference.md` etc.; doc reviews confirm instructions. | Gate failures lack guidance, delaying fixes. | None. | Legacy Feature 008. |
-| FR-010-10 | Log every documentation/automation increment in `_current-session.md`, including commands executed (`rm -rf`, `spotlessApply`, `qualityGate`) and outstanding follow-ups. | Session log shows the command list + rationale; session log (docs/_current-session.md) includes the latest Feature 010 activity. | Review `_current-session.md`, plan/tasks, and session log (docs/_current-session.md) while closing increments. | Auditors cannot trace what changed or which verification command ran. | None. | Goals G-010-02/04. |
+| FR-010-01 | Publish and maintain the operator doc suite (`docs/2-how-to/use-ocra-from-java.md`, `docs/2-how-to/use-ocra-cli-operations.md`, `docs/2-how-to/use-ocra-rest-operations.md`) with runnable snippets, telemetry expectations, and troubleshooting sections. | Operators follow prerequisites, copy commands, and reproduce OTP generation/replay flows without diving into source. | Spot-check snippets against the latest build; `./gradlew spotlessApply check` validates formatting; `_current-session.md` logs updates. | Outdated instructions block operators or contradict shipped behaviour. | No new telemetry; guides reference existing `core.ocra.*`, `cli.ocra.*`, `rest.ocra.*` frames. | Spec |
+| FR-010-02 | Keep `README.md` and how-to landing pages focused on shipped functionality, include Swagger UI links, and cross-link the operator docs/quality-gate guidance. | README lists active simulators + `http://localhost:8080/swagger-ui/index.html`, points to how-to guides, and omits future/planned placeholders. | Manual review + linting; `_current-session.md` records diff summary. | README references stale content or omits critical docs. | None. | Spec |
+| FR-010-03 | Synchronise roadmap, knowledge map, architecture graph, session quick reference, and `_current-session.md` whenever documentation or automation scope changes. | Doc updates mention Feature 010; `_current-session.md` logs commands (moves, deletions, verification). | `rg "Feature 010"` across docs; reviewers confirm entries after each increment. | Cross-document drift forces manual archaeology. | None. | Spec |
+| FR-010-04 | Provide an aggregated Gradle task `./gradlew --no-daemon qualityGate` (with optional `-Ppit.skip=true`) that runs Spotless, Checkstyle, SpotBugs, ArchUnit, Jacoco aggregation, PIT mutation tests, and gitleaks in one command. | Running `qualityGate` locally matches CI output; reports land under `build/reports/quality/`, `build/reports/jacoco/aggregated/`, and `build/reports/pitest/`. | Observing Gradle output plus report folders; task wiring documented in plan/tasks. | Contributors must chain commands manually or miss required suites. | Build logs only; no runtime telemetry. | Spec |
+| FR-010-05 | Enforce ArchUnit boundary rules that block CLI/REST/UI modules from touching `core` directly (outside the application seams). | Illegal dependencies break `qualityGate` with actionable messages. | ArchUnit tests seed forbidden imports; CI artifacts capture failures. | Architecture drift ships undetected. | None. | Spec |
+| FR-010-06 | Maintain Jacoco aggregated coverage thresholds (≥90% line/branch) for OCRA code paths; failures block the gate until coverage is restored. | Jacoco reports meet thresholds locally and in CI; offenders listed when regressions occur. | Inspect `build/reports/jacoco/aggregated/index.html` + Gradle console when tests fail. | Coverage regressions pass unnoticed. | None. | Spec |
+| FR-010-07 | Maintain PIT mutation score ≥85% for OCRA packages, surfaced via `qualityGate` with HTML reports for debugging. | PIT runs during the gate and exits non-zero when the score falls below 85%; skip flag `-Ppit.skip=true` documented for local triage. | Build output references `build/reports/pitest`; docs explain thresholds and skip usage. | Mutation regressions merge unnoticed or developers cannot triage failures. | None. | Spec |
+| FR-010-08 | Ensure GitHub Actions runs the same `qualityGate` command (push + PR), caches Gradle/PIT/Jacoco artifacts, and uploads reports for auditing. | Workflow logs show identical command/flags; artifacts contain reports for inspection. | `.github/workflows/quality-gate.yml` (or successor) reviewed after edits; CI history tracked in `_current-session.md`. | Local and CI gates drift, causing false positives/negatives. | None. | Spec |
+| FR-010-09 | Document gate usage, skip flags, report locations, and remediation steps in `docs/5-operations/session-quick-reference.md`, roadmap, knowledge map, and `_current-session.md`. | Contributors find the gate runbook quickly and follow remediation playbooks for ArchUnit/Jacoco/PIT failures. | `rg "qualityGate" docs/5-operations/session-quick-reference.md` etc.; doc reviews confirm instructions. | Gate failures lack guidance, delaying fixes. | None. | Spec |
+| FR-010-10 | Log every documentation/automation increment in `_current-session.md`, including commands executed (`rm -rf`, `spotlessApply`, `qualityGate`) and outstanding follow-ups. | Session log shows the command list + rationale; session log (docs/_current-session.md) includes the latest Feature 010 activity. | Review `_current-session.md`, plan/tasks, and session log (docs/_current-session.md) while closing increments. | Auditors cannot trace what changed or which verification command ran. | None. | Spec |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-010-01 | Documentation rebuild workflow (spec/plan/tasks + guides) must execute within 5 minutes, relying on `./gradlew --no-daemon spotlessApply check`. | Productivity | Wall-clock timing logged in plan/tasks; `_current-session.md` notes slow runs. | Spotless, doc templates. | Legacy Feature 007, Goals. |
-| NFR-010-02 | `qualityGate` runtime stays ≤10 minutes on reference hardware via Gradle caching and optional PIT skip flag; CI caches mirror the local setup. | Developer ergonomics | Timing recorded in plan/tasks and CI job metadata. | Gradle caching, GitHub Actions workflow. | Legacy Feature 008. |
-| NFR-010-03 | Coverage/mutation thresholds, target packages, and skip flags are parameterised through Gradle properties so tuning never requires code rewrites. | Maintainability | Thresholds stored in `gradle.properties`/`qualityGate` extension; docs explain overrides. | Gradle build scripts. | Legacy Feature 008. |
-| NFR-010-04 | Templates and documentation remain ASCII/Markdown to avoid locale drift; linting keeps formatting consistent. | Consistency | `spotlessApply` + reviewer checks enforce ASCII. | Docs templates. | Clarifications 1. |
-| NFR-010-05 | PIT/Jacoco/ArchUnit artifacts stay in deterministic locations (`build/reports/jacoco/aggregated/`, `build/reports/pitest/`, `build/reports/quality/`) referenced by docs for troubleshooting. | Transparency | `rg "build/reports" docs/4-architecture/features/010/spec.md` and doc deliverables cite these paths. | Gradle reporting configuration. | Legacy Feature 008. |
+| NFR-010-01 | Documentation rebuild workflow (spec/plan/tasks + guides) must execute within 5 minutes, relying on `./gradlew --no-daemon spotlessApply check`. | Productivity | Wall-clock timing logged in plan/tasks; `_current-session.md` notes slow runs. | Spotless, doc templates. | Spec |
+| NFR-010-02 | `qualityGate` runtime stays ≤10 minutes on reference hardware via Gradle caching and optional PIT skip flag; CI caches mirror the local setup. | Developer ergonomics | Timing recorded in plan/tasks and CI job metadata. | Gradle caching, GitHub Actions workflow. | Spec |
+| NFR-010-03 | Coverage/mutation thresholds, target packages, and skip flags are parameterised through Gradle properties so tuning never requires code rewrites. | Maintainability | Thresholds stored in `gradle.properties`/`qualityGate` extension; docs explain overrides. | Gradle build scripts. | Spec |
+| NFR-010-04 | Templates and documentation remain ASCII/Markdown to avoid locale drift; linting keeps formatting consistent. | Consistency | `spotlessApply` + reviewer checks enforce ASCII. | Docs templates. | Spec |
+| NFR-010-05 | PIT/Jacoco/ArchUnit artifacts stay in deterministic locations (`build/reports/jacoco/aggregated/`, `build/reports/pitest/`, `build/reports/quality/`) referenced by docs for troubleshooting. | Transparency | `rg "build/reports" docs/4-architecture/features/010/spec.md` and doc deliverables cite these paths. | Gradle reporting configuration. | Spec |
 
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |

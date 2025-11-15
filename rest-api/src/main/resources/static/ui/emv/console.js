@@ -1675,16 +1675,14 @@
     var driftBackward = parseInteger(replayDriftBackwardInput);
     var driftForward = parseInteger(replayDriftForwardInput);
 
+    var includeTrace = isReplayTraceRequested();
     var payload = {
       mode: capMode,
       otp: otpText,
       driftBackward: typeof driftBackward === 'number' ? driftBackward : 0,
       driftForward: typeof driftForward === 'number' ? driftForward : 0,
+      includeTrace: includeTrace,
     };
-
-    if (!isReplayTraceRequested()) {
-      payload.includeTrace = false;
-    }
 
     if (credentialMode === 'stored' && credentialId) {
       payload.credentialId = credentialId;

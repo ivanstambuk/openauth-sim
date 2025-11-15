@@ -9,13 +9,10 @@
 | Linked tasks | `docs/4-architecture/features/<NNN>/tasks.md` |
 | Roadmap entry | #<workstream number> |
 
+> Guardrail: This specification is the single normative source of truth for the feature. Track high- and medium-impact questions in `docs/4-architecture/open-questions.md`, encode resolved answers directly in the Requirements/NFR/Behaviour/UI/Telemetry sections below (no per-feature `## Clarifications` sections), and use ADRs under `docs/6-decisions/` for architecturally significant clarifications (referencing their IDs from the relevant spec sections).
+
 ## Overview
 Summarise the problem, affected modules (core/application/CLI/REST/UI), and the user impact in 2–3 sentences. Call out any constitutional constraints (spec-first, telemetry, persistence) that drive this work.
-
-## Clarifications
-- YYYY-MM-DD – Question/decision summary (owner decision).
-
-Log every high- or medium-impact answer here. Remove the row from `docs/4-architecture/open-questions.md` once recorded.
 
 ## Goals
 List the concrete outcomes this feature must deliver (behavioural, quality, telemetry, documentation).

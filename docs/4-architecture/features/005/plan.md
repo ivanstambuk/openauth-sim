@@ -125,8 +125,8 @@ Historical increment notes (I1–I45, T3916/T3917, sample spacing tasks) reside 
 ## Analysis Gate
 - **Reviewed:** 2025-11-02 – Replay expansion review (spec/plan/tasks updated; implementation gated behind new red tests)
 - **Checklist status:**
-  - Specification completeness – Feature spec reflects latest clarifications, requirements, and operator UI ASCII mock-ups (PASS).
-  - Open questions – Log remains empty; all prior clarifications captured under `## Clarifications` (PASS).
+  - Specification completeness – Feature spec reflects the latest requirements, resolved questions, and operator UI ASCII mock-ups directly in its main sections (PASS).
+  - Open questions – Log remains empty; any future high- or medium-impact questions must be tracked in `docs/4-architecture/open-questions.md` and, once resolved, reflected in spec sections (with ADRs added for architectural decisions) (PASS).
 - Plan alignment – Plan references the correct spec/tasks and mirrors expanded scope through increments I1–I20 (PASS).
   - Tasks coverage – Task list maps to each requirement, sequences tests before implementation (red tests precede code in I10), and keeps increments ≤30 minutes (PASS).
   - Constitution compliance – Planned work adheres to spec-first, clarification, test-first, and documentation sync principles with small, straight-line increments (PASS).
@@ -145,7 +145,7 @@ Historical increment notes (I1–I45, T3916/T3917, sample spacing tasks) reside 
 2. **Advanced diagnostics (optional):** Investigate tiered verbose trace controls or additional telemetry analytics once EMV/CAP parity ships.  
 3. **Hardware exploration (optional):** Revisit APDU/card-emulation scope if future requirements demand it.
 
-### Historical increment appendix (legacy Feature 039)
+### Historical increment appendix
 #### Increment Breakdown (≤30 minutes each)
 1. **I1 – Fixture scaffolding & failing tests**  
    - Publish `docs/test-vectors/emv-cap/{identify,respond,sign}-baseline.json` seeded from emvlab.org outputs (Identify + Respond + Sign).  
@@ -204,16 +204,20 @@ Historical increment notes (I1–I45, T3916/T3917, sample spacing tasks) reside 
     - Make the EMV/CAP verbose trace panel reuse the shared console behaviour: show the panel when a trace exists, hide it when not, and expose the standard copy interaction.  
    - Ensure the `includeTrace` flag continues to flow through REST/CLI, and add UI/Selenium assertions that the trace displays when the global toggle is enabled.  
     - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+    - Task linkage: T-005-67 stages Node/Selenium coverage for the shared console toggle, and T-005-68 wires the shared console plumbing plus REST/CLI propagation.
+    - **Status (2025-11-14):** Inline replay payloads now set `includeTrace` based on the shared verbose toggle, and CLI/REST/application/Selenium/Node suites plus the full Gradle gate were rerun (see T-005-68 verification log) to confirm the shared console plumbing holds.
 
 11. **I9 – Documentation & final verification (full-scope)**  
    - Refresh how-to guides (REST, CLI, operator UI), knowledge map, roadmap, and OpenAPI snapshots; capture persistence guidance.  
    - Run full Gradle quality gate (`./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`).  
    - Update `_current-session.md` and close outstanding follow-ups.  
+   - Task linkage: T-005-69 handles the documentation + roadmap/knowledge-map refresh, while T-005-70 captures the verification run and session log updates.
 
 12. **I10 – Replay scaffolding & red tests (pending)**  
    - Update regression fixtures with replay/mismatch cases and stage failing unit/integration tests across application, REST, CLI, and UI layers to capture stored/inline replay expectations.  
    - Add Selenium placeholders for replay tab interactions (disabled until implementation).  
    - Commands to stage red coverage: `./gradlew --no-daemon :core:test :application:test :rest-api:test :cli:test :ui:test` (targeted classes noted in tasks).  
+   - Task linkage: T-005-71 captures fixture updates plus backend/CLI red tests, and T-005-72 stages the UI/Node/Selenium placeholders for replay interactions.
 
 13. **I11 – Application replay service (complete 2025-11-02)**  
    - Implement `EmvCapReplayApplicationService`, request/response records, telemetry adapters, and verbose trace assembly while driving red tests from I10 to green.  

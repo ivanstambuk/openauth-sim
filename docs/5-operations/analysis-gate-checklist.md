@@ -13,10 +13,11 @@ Use this checklist after a feature's specification, plan, and tasks exist but be
 ## Checklist
 1. **Specification completeness** 
    - [ ] Objectives, functional, and non-functional requirements are populated.
-   - [ ] Clarifications section reflects the latest answers for every high- and medium-impact question logged for this feature.
+   - [ ] Resolved high- and medium-impact questions for this feature are reflected directly in the spec’s normative sections (requirements, NFR, behaviour/UI, telemetry/policy).
    - [ ] UI-impacting work includes an ASCII mock-up in the spec (`docs/4-architecture/spec-guidelines/ui-ascii-mockups.md`).
 2. **Open questions review**
-   - [ ] No blocking `Open` entries remain for this feature. If any exist, pause and obtain clarification.
+   - [ ] No blocking `Open` entries remain for this feature in `docs/4-architecture/open-questions.md`. If any exist, pause and obtain clarification.
+   - [ ] For architecturally significant decisions (cross-feature/module boundaries, security/telemetry strategies, major NFR trade-offs), ADRs exist or are planned, and the spec/open-questions entries link to the corresponding ADR IDs.
 3. **Plan alignment**
    - [ ] Feature plan references the correct specification and tasks files.
    - [ ] Dependencies and success criteria match the specification wording.
@@ -27,6 +28,7 @@ Use this checklist after a feature's specification, plan, and tasks exist but be
 5. **Constitution compliance**
    - [ ] No planned work violates principles (spec-first, clarification gate, test-first, documentation sync, dependency control).
    - [ ] Planned increments minimise new control-flow complexity by extracting validation/normalisation into small helpers, keeping each change nearly straight-line.
+   - [ ] For the active feature, relevant ADRs (per their Related features/specs metadata) have been reviewed as part of this analysis.
 6. **Tooling readiness**
    - [ ] Commands (`./gradlew spotlessApply check`) documented for the feature plan or runbook.
    - [ ] SpotBugs dead-state detectors (Feature 013 – Toolchain & Quality Platform) noted, including the module command used to validate `URF/UWF/UUF/NP` findings.

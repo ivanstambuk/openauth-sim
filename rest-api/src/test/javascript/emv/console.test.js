@@ -1692,6 +1692,23 @@ test('inline verbose trace forwards provenance sections to the console', async (
   });
 });
 
+test('inline replay payload requests verbose trace when console toggle is enabled', async () => {
+  const env = createEnvironment({ verboseEnabled: true, includeReplay: true });
+  await flushMicrotasks();
+  if (typeof env.hooks.setActivePanel === 'function') {
+    env.hooks.setActivePanel('replay');
+  }
+  await flushMicrotasks();
+  const payload = env.hooks.buildReplayPayload();
+  assert.ok(payload, 'Replay payload builder should return a payload bundle');
+  assert.ok(payload.body, 'Replay payload bundle should include the request body');
+  assert.equal(
+    payload.body.includeTrace,
+    true,
+    'Replay payload should request verbose traces when the global toggle is enabled',
+  );
+});
+
 test('stored submission posts credential ID to stored endpoint when verbose enabled', async () => {
   const env = createEnvironment({ verboseEnabled: true });
   env.hooks.storedState.resetBaseline('emv-123');

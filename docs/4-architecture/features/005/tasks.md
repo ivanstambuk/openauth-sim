@@ -483,6 +483,63 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   > - 2025-11-05: REST `EmvCapCredentialDirectoryController` now emits only `masterKeySha256` + length metadata; JS helpers clear stored inputs, derive masks from length properties, and skip transmitting sensitive fields for stored replay; Selenium assertions confirm blank inputs plus digest/length placeholders in both evaluate and replay tabs.
   > - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapCredentialDirectoryControllerTest"`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`, `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`.
 
+- [x] T-005-67 – Verbose console red tests (S39-08): Stage Node + Selenium assertions that require the shared `VerboseTraceConsole` to appear only when `includeTrace` is enabled and disappears when disabled; cover both Evaluate and Replay flows so the shared toggle contract fails fast until wiring lands.
+  _Intent:_ Lock the expected shared-console behaviour (presence, copy CTA, provenance sections) in automated tests before updating implementation.
+  _Verification commands:_
+  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*Trace*"`
+  _Notes:_
+  > - 2025-11-14 Node coverage now asserts that inline replay payloads must set `includeTrace=true`; the new test fails because `buildReplayPayload` currently omits the flag (captured in `_current-session.md` log 2025-11-14a).
+  > - Selenium adds `inlineReplayDisplaysVerboseTrace` to confirm the shared verbose trace dock appears for inline replay when the global toggle is enabled; the suite passes today because REST already returns traces for stored + inline scenarios even though the payload omission still exists.
+  > - REST trace suites (`io.openauth.sim.rest.emv.cap.*Trace*`) were rerun after staging the new coverage to keep snapshots warm.
+
+- [x] T-005-68 – Verbose console integration (S39-08): Wire EMV/CAP responses through the shared `VerboseTraceConsole.handleResponse`, ensure `includeTrace` flows through REST/CLI/application seams, and update Node/Selenium tests plus CLI/REST trace assertions to go green.
+  _Intent:_ Deliver the functional changes demanded by I8b so every facade reuses the shared console controls while keeping trace payloads/parity intact.
+  _Verification commands:_
+  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*Trace*"`
+  - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCli*Trace*"`
+  - `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*Trace*"`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
+  - `./gradlew --no-daemon :ui:test`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/full-gate-credentials.db ./gradlew --no-daemon spotlessApply check`
+  _Notes:_
+  > - `buildReplayPayload` now sets `includeTrace` explicitly based on the verbose-toggle state, so inline replay submissions request traces just like evaluate/stored flows; the shared `VerboseTraceConsole` hook keeps rendering responses through `handleResponse`.
+  > - The full Gradle gate first timed out and then failed on a MapDB file lock; re-running `spotlessApply check` with a dedicated persistence path cleared `WebAuthnCredentialSanitisationTest` and produced a clean pass.
+
+- [ ] T-005-69 – Documentation refresh (S39-10): Update the EMV/CAP REST, CLI, and operator UI how-to guides, refresh the knowledge map + roadmap entry #5, and capture the I8b/I9 clarifications inside the feature spec/plan/tasks (including notes about the shared verbose console plus includeTrace handling).
+  _Intent:_ Keep all reference docs aligned with the new verbose console + replay guidance before the verification sweep.
+  _Verification commands:_
+  - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [ ] T-005-70 – Verification & session log (S39-10): Run the full Gradle quality gate after the documentation refresh and record the passing commands plus any follow-ups in `_current-session.md` and the Feature 005 plan/tasks.
+  _Intent:_ Provide the final green evidence for I9 and prove the docs/code/tests remain in sync.
+  _Verification commands:_
+  - `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`
+  - `./gradlew --no-daemon qualityGate` (if required by governance)
+  - Update `_current-session.md` with the command log (no command, tracked as a documentation step)
+
+- [ ] T-005-71 – Replay fixture scaffolding & backend red tests (S39-05): Extend `docs/test-vectors/emv-cap/*.json` with stored/inline mismatch cases, add failing assertions to `EmvCapReplayApplicationServiceTest`, `EmvCapReplayEndpointTest`, `EmvCapReplayServiceTest`, and `EmvCliReplayTest`, and document the expected telemetry/mismatch payloads.
+  _Intent:_ Capture the replay expectations (preview windows, mismatch deltas, trace payloads) before implementation.
+  _Verification commands:_
+  - `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.emv.cap.*Replay*"`
+  - `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*Replay*"`
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapReplayEndpointTest"`
+  - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliReplayTest"`
+  _Notes:_
+  > - These suites should remain red until the subsequent implementation increment lands; capture TODOs inside the tests referencing I10 follow-ups.
+
+- [ ] T-005-72 – Replay UI placeholders (S39-05): Add Replay tab placeholders in the operator console JS + Selenium suites (Evaluate/Replay drawer interactions, OTP mismatch messaging, includeTrace toggle) and guard them with `@Disabled`/TODO markers so they fail fast once re-enabled.
+  _Intent:_ Ensure UI automation is ready the moment replay implementation resumes, without blocking Feature 005’s current review.
+  _Verification commands:_
+  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
+  - `./gradlew --no-daemon :ui:test`
+  _Notes:_
+  > - Leave clear TODO references back to I10 so the disabled Selenium cases are reactivated once replay implementation begins.
+
 ## Verification log
 - 2025-11-09 – `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`
 - 2025-11-09 – `./gradlew --no-daemon --console=plain :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`

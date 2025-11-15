@@ -12,5 +12,4 @@ Use this file to capture every outstanding high- or medium-impact question or am
 
 When communicating options to the user—whether resolving an open question or proposing a general approach—enumerate them alphabetically (A, B, C …), include pros and cons for each, and call out the recommended choice with supporting rationale before requesting a decision.
 
-| Date | Context | Question | Status | Resolution |
 <!-- Add new rows below with Status set to Open only. Remove the row once resolved. -->

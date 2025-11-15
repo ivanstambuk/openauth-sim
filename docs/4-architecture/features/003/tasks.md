@@ -48,4 +48,3 @@ _Last updated:_ 2025-11-13
 - 2025-11-10 – `./gradlew --no-daemon spotlessApply check` (template migration)
 
 ## Notes / TODOs
-- Verbose trace enhancements move to Feature 035/040; the `legacy/` subdirectory preserves prior specs for auditors.

@@ -5,6 +5,7 @@ _Last updated: YYYY-MM-DD_
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
+> When new high- or medium-impact questions arise during execution, add them to `docs/4-architecture/open-questions.md` instead of informal notes, and treat a task as fully resolved only once the governing spec sections (requirements/NFR/behaviour/telemetry) and, when required, ADRs under `docs/6-decisions/` reflect the clarified behaviour.
 
 ## Checklist
 - [ ] T-<NNN>-01 – <Task title> (F-<NNN>-01, N-<NNN>-01, S-<NNN>-01).  

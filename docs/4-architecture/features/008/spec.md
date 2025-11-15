@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Placeholder (awaiting implementation) |
-| Last updated | 2025-11-11 |
+| Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/008/plan.md` |
 | Linked tasks | `docs/4-architecture/features/008/tasks.md` |
@@ -12,13 +12,10 @@
 ## Overview
 Deliver a deterministic SIOPv2 wallet simulator that emits SD-JWT VC and mdoc DeviceResponse payloads for cross-device
 (OpenID4VP) exchanges. This feature focuses on wallet-side request handling, consent UX, presentation composition, and
-telemetry so operators can exercise verifier interoperability scenarios without external wallets.
-
-## Clarifications
-- 2025-11-11 – Placeholder spec created during Batch P2 to free the numbering for mdoc/SIOPv2; the final requirements will
-  be captured once owner priorities are confirmed.
-- 2025-11-11 – Previous Feature 008 (OCRA quality automation) content lives under
-  `docs/4-architecture/features/new-010/legacy/008/`.
+telemetry so operators can exercise verifier interoperability scenarios without external wallets. The placeholder scope
+is governed by ADR-0006 (EUDIW OpenID4VP Architecture and Wallet Partitioning); final requirements remain pending owner
+approval, but the wallet must stay HAIP-aligned, share fixtures/telemetry contracts with Features 006/007, and inherit
+their Trusted Authority metadata to avoid duplicate maintenance locations.
 
 ## Goals
 - Simulate SIOPv2 wallet journeys (authorization, consent, presentation) for HAIP-aligned OpenID4VP requests.
@@ -33,17 +30,17 @@ telemetry so operators can exercise verifier interoperability scenarios without 
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-008-01 | Wallet parses SIOPv2 authorization requests (including HAIP encryption, Trusted Authorities, DCQL). | Simulator validates request, displays consent summary, and prepares the VP Token. | Missing parameters trigger `invalid_request`; encryption failures surface descriptive errors. | Wallet accepts malformed requests or leaks secrets. | `oid4vp.wallet.request` events capture decision, taMatch, encryption flags. | Placeholder |
-| FR-008-02 | Wallet composes SD-JWT VC and/or mdoc presentations with deterministic fixtures. | CLI/REST/UI flows produce reproducible VP Tokens referencing curated disclosures/DeviceResponse payloads. | Negative fixtures (tampered disclosures) fail validation tests. | Wallet produces inconsistent payloads. | `oid4vp.wallet.present` frames log presetId, credentialModes, sanitized hashes. | Placeholder |
-| FR-008-03 | Operators can toggle presets vs manual disclosure selection via CLI/REST/UI. | Presets hydrate common HAIP credential bundles while manual mode allows editing; telemetry tracks selection. | Selenium tests assert UI state + telemetry context. | Modes drift or fail to update telemetry. | Telemetry fields `presentationMode`, `credentialCount`. | Placeholder |
-| FR-008-04 | Documentation/how-to guides explain wallet simulation and troubleshooting. | Docs list prerequisites, commands, expected VP Token output, telemetry hints. | `./gradlew spotlessApply check` ensures formatting; manual review ensures accuracy. | Missing docs block operators. | Doc change log references telemetry events. | Placeholder |
+| FR-008-01 | Wallet parses SIOPv2 authorization requests (including HAIP encryption, Trusted Authorities, DCQL). | Simulator validates request, displays consent summary, and prepares the VP Token. | Missing parameters trigger `invalid_request`; encryption failures surface descriptive errors. | Wallet accepts malformed requests or leaks secrets. | `oid4vp.wallet.request` events capture decision, taMatch, encryption flags. | Spec |
+| FR-008-02 | Wallet composes SD-JWT VC and/or mdoc presentations with deterministic fixtures. | CLI/REST/UI flows produce reproducible VP Tokens referencing curated disclosures/DeviceResponse payloads. | Negative fixtures (tampered disclosures) fail validation tests. | Wallet produces inconsistent payloads. | `oid4vp.wallet.present` frames log presetId, credentialModes, sanitized hashes. | Spec |
+| FR-008-03 | Operators can toggle presets vs manual disclosure selection via CLI/REST/UI. | Presets hydrate common HAIP credential bundles while manual mode allows editing; telemetry tracks selection. | Selenium tests assert UI state + telemetry context. | Modes drift or fail to update telemetry. | Telemetry fields `presentationMode`, `credentialCount`. | Spec |
+| FR-008-04 | Documentation/how-to guides explain wallet simulation and troubleshooting. | Docs list prerequisites, commands, expected VP Token output, telemetry hints. | `./gradlew spotlessApply check` ensures formatting; manual review ensures accuracy. | Missing docs block operators. | Doc change log references telemetry events. | Spec |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-008-01 | Deterministic behaviour across SD-JWT + mdoc payloads | Repeatable VP Tokens | Integration tests comparing payload hashes | Feature 006 verifier, Feature 007 fixtures | Placeholder |
-| NFR-008-02 | Observability (telemetry/traces sanitize secrets) | Prevent PII leakage | Telemetry capture tests | TelemetryContracts | Placeholder |
-| NFR-008-03 | Performance (<250 ms per simulation) | Keep demos responsive | `:application:test` benchmarks | HAIP crypto helpers | Placeholder |
+| NFR-008-01 | Deterministic behaviour across SD-JWT + mdoc payloads | Repeatable VP Tokens | Integration tests comparing payload hashes | Feature 006 verifier, Feature 007 fixtures | Spec |
+| NFR-008-02 | Observability (telemetry/traces sanitize secrets) | Prevent PII leakage | Telemetry capture tests | TelemetryContracts | Spec |
+| NFR-008-03 | Performance (<250 ms per simulation) | Keep demos responsive | `:application:test` benchmarks | HAIP crypto helpers | Spec |
 
 ## UI / Interaction Mock-ups
 Placeholder ASCII sketches keep the template structure intact until the final UX is confirmed.
@@ -160,5 +157,4 @@ fixtures:
 ```
 
 ## Appendix
-- Detailed requirements pending owner approval; use this placeholder to anchor renumbering work.
-- Legacy quality automation artifacts preserved under `docs/4-architecture/features/new-010/legacy/008/`.
+- Detailed requirements pending owner approval; this placeholder captures the intended wallet scope until the feature is implemented.

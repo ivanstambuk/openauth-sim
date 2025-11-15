@@ -2,70 +2,50 @@
 
 > Keep this file up to date across all active chats. Treat it as the single source of truth for in-progress workstreams so every hand-off is instant. Replace the bracketed text and prune sections you do not need.
 
-- Date: 2025-11-13
+- Date: 2025-11-15
 - Primary branch: `main`
 - Other active branches: none
-- Verification log (2025-11-13a): `./gradlew --no-daemon spotlessApply check` (19 s, 96 tasks: 2 executed, 94 up-to-date) for the Feature 009 Implementation Drift Gate.
-- Verification log (2025-11-13b): `./gradlew --no-daemon spotlessApply check` (18 s, 96 tasks: 2 executed, 94 up-to-date) for the Feature 010 documentation/automation drift gate.
-- Verification log (2025-11-13c): `./gradlew --no-daemon spotlessApply check` (10 s, 96 tasks: 2 executed, 94 up-to-date) for the Feature 011 governance drift gate (configuration cache reused).
-- Verification log (2025-11-13d): `./gradlew --no-daemon qualityGate` (16 s, 40 tasks: 1 executed, 39 up-to-date) for the Feature 011 closure gate.
-- Verification log (2025-11-13e): `./gradlew --no-daemon spotlessApply check` (7 s, 96 tasks: 2 executed, 94 up-to-date) for the Feature 012 persistence drift gate (configuration cache reused).
-- Verification log (2025-11-13f): `./gradlew --no-daemon :application:test --tests "*MaintenanceCli*"` (FAILED – no tests matched; maintenance CLI tests live in the CLI module, so coverage was rerun there).
-- Verification log (2025-11-13g): `./gradlew --no-daemon :cli:test --tests "*MaintenanceCli*"` (23 s, 15 tasks: 1 executed, 14 up-to-date) covering the maintenance CLI scenarios referenced in Feature 012 tasks.
-- Verification log (2025-11-13h): `./gradlew --no-daemon :infra-persistence:test --tests "*Encryption*"` (FAILED – no tests matched; follow-up logged in Feature 012 tasks to keep using `:core:test` until new tests land).
-- Verification log (2025-11-13i): `./gradlew --no-daemon :core:test --tests "*MapDbCredentialStoreTest*"` (15 s, 8 tasks: 1 executed, 7 up-to-date) to provide the persistence encryption coverage until the infra-persistence tests land.
-- Verification log (2025-11-13j): `./gradlew --no-daemon spotlessApply check` (11 s, 96 tasks: 2 executed, 94 up-to-date) for the Feature 013 toolchain drift gate (configuration cache reused).
-- Verification log (2025-11-13k): `./gradlew --no-daemon qualityGate` (9 s, 40 tasks: 1 executed, 39 up-to-date) for the Feature 013 closure gate (configuration cache reused).
-- Verification log (2025-11-12): `./gradlew --no-daemon spotlessApply check` (30 s, 96 tasks: 8 executed, 88 up-to-date) after the plan updates, reran `./gradlew --no-daemon spotlessApply check` (9 s, 96 tasks: 2 executed, 94 up-to-date) after the final template alignment, and ran it again (21 s, 96 tasks: 2 executed, 94 up-to-date) after pruning `_current-session.md`.
-- Governance log (2025-11-12): `git config core.hooksPath` → `githooks` (verified during session reset).
-- Planning log (2025-11-13): Documented EMV provenance mapping (T-005-24a) in `docs/4-architecture/features/005/plan.md`; no commands were required for this planning-only update.
-- Planning log (2025-11-13): Reconciled Feature 011–013 plans (P3-I3/P3-I4 now marked complete with logged follow-ups); documentation-only edits, no build/test commands executed.
-- Planning log (2025-11-13): Removed residual “In migration/Batch P3” wording from Feature 011–013 specs/plans/tasks so active status reflects the current governance/toolchain state; text-only update.
-- Planning log (2025-11-13): Updated `docs/4-architecture/roadmap.md` to list Features 009–013 as Active instead of “In migration (Batch P3)” to keep portfolio status consistent across artefacts; documentation-only change.
-- Planning log (2025-11-13): Updated Feature 009 spec to mark the feature Active and drop the migration deliverable/Phase 2 logging requirement so plan/tasks/spec stay aligned; documentation-only change.
-- Planning log (2025-11-13): Cleared the Feature 009 task list of the one-time migration entries, set the status to Active, and left a placeholder note for the next scoped increments; documentation-only change.
-- Planning log (2025-11-13): Rewrote the Feature 009 spec overview to describe the consolidated console scope without referencing prior migrations; documentation-only change.
-- Planning log (2025-11-13): Updated `docs/4-architecture/knowledge-map.md` so the Feature 009 entry describes the steady-state console ownership (tabs, traces, Base32, preview windows, JS harness) without mentioning legacy migrations; documentation-only change.
-- Planning log (2025-11-13): Refreshed Feature 010 spec/plan/tasks to remove migration references, set the status to Active, and leave the task checklist ready for future increments (no legacy entries).
-- Planning log (2025-11-13): Updated `docs/4-architecture/knowledge-map.md` Feature 010 entries to describe steady-state documentation/quality automation ownership instead of pointing to legacy directories.
-- Planning log (2025-11-13): Recorded the Feature 010 Implementation Drift Gate inside `docs/4-architecture/features/010/plan.md` with FR/NFR coverage notes and the latest verification command.
-- Planning log (2025-11-13): Marked Feature 010 spec/plan/tasks and roadmap entry as Complete following the drift gate verification run; documentation-only change.
-- Planning log (2025-11-13): Refreshed Feature 011 spec/plan/tasks to remove legacy framing, added the 2025-11-13 drift report, reset the task checklist, and logged the latest verification command.
-- Planning log (2025-11-13): Marked Feature 011 spec/plan/tasks and roadmap entry as Complete after logging hook guard/pre-commit dry-run/qualityGate commands.
-- Planning log (2025-11-13): Refreshed Feature 012 spec/plan/tasks to remove legacy framing, added the 2025-11-13 drift report, reset the task checklist, and logged the latest verification command.
-- Planning log (2025-11-13): Executed the Feature 012 maintenance CLI + encryption verification commands, noted the missing `:infra-persistence:test --tests "*Encryption*"` coverage, documented the fallback to `:core:test --tests "*MapDbCredentialStoreTest*"`, and captured both attempts in the tasks checklist.
-- Planning log (2025-11-13): Updated Feature 012 verification guidance (spec/plan/tasks) so the official encryption check uses `./gradlew --no-daemon :core:test --tests "*MapDbCredentialStoreTest*"` until infra-persistence gains dedicated coverage.
-- Planning log (2025-11-13): Marked Feature 012 spec/plan/tasks and roadmap entry as Complete following the final verification updates; documentation-only change.
-- Planning log (2025-11-13): Refreshed Feature 013 spec/plan/tasks to remove legacy framing, added the 2025-11-13 drift report, reset the task checklist, and recorded new verification commands (spotlessApply + qualityGate).
-- Planning log (2025-11-13): Marked Feature 013 spec/plan/tasks and roadmap entry as Complete after the spotless/qualityGate runs; documentation-only change.
-- Planning log (2025-11-13): Cleaned up Feature 006 spec/plan/tasks to remove renumbering notes, set their statuses to In progress (instead of Ready for implementation) with updated timestamps, deleted `docs/4-architecture/features/006/legacy/040/`, and aligned the roadmap entry with the In-progress status; documentation-only change.
+
+## Governance & Tooling
+
+- Governance log (2025-11-15, current session): `git config core.hooksPath` → `githooks` (session reset guard; hooks path confirmed for this Codex CLI run).
+
+## Active workstreams
+
+### Feature 005 – EMV/CAP Simulation Services (In review)
+
+- Planning log (2025-11-13): Documented EMV provenance mapping (T-005-24a) in `docs/4-architecture/features/005/plan.md`; planning-only update.
 - Planning log (2025-11-13): Cleaned up Feature 005 spec/plan/tasks to remove renumbering notes, refreshed timestamps, and kept the status at In review to reflect the active verification state; documentation-only change.
-- Planning log (2025-11-13): Recorded the Feature 009 Implementation Drift Gate findings inside `docs/4-architecture/features/009/plan.md` covering FR/NFR alignment, documentation sync, and verification commands.
-- Planning log (2025-11-13): Marked Feature 009 spec/plan/tasks and roadmap entry as Complete now that the drift gate and verification run are recorded; documentation-only change.
-- Planning log (2025-11-13): Updated `docs/4-architecture/roadmap.md` heading/intro to drop the “Consolidated” wording so the feature table is labeled simply “Features (001–013)”.
-- Governance log (2025-11-13): `git config core.hooksPath` → `githooks` (session reset guard for the project status hand-off request).
-- Governance log (2025-11-13, Codex CLI session): `git config core.hooksPath` → `githooks` (verification repeated at session kickoff for the Feature 009 migration-task review request).
-- Governance log (2025-11-13, closure run): `git config core.hooksPath` → `githooks` and temporary-index `./githooks/pre-commit` dry-run (no staged changes) recorded for the Feature 011 completion gate.
-- Session focus (2025-11-13): Reviewing roadmap/feature plans/tasks/open-questions to deliver an up-to-date project status summary; no Gradle or Node commands executed yet.
-- Session focus (2025-11-13): Documenting outstanding Feature 004 scope at the user’s request; status-only review, no new commands required.
-- Session focus (2025-11-13, Feature 004 I3): Logged hook guard + verification commands, refreshed Feature 004 plan/tasks, and updated the knowledge map to close out the consolidation task.
-- Planning log (2025-11-13): Marked Feature 004 spec/plan/tasks and roadmap entry as Complete per owner approval; no additional commands required.
-- Planning log (2025-11-13): Refreshed Feature 004 spec/plan/tasks to drop the “Migrated (Batch P2)” wording, set the status to In review with current timestamps, and keep the checklist ready for upcoming implementation work; documentation-only change.
-- Planning log (2025-11-13): Updated Feature 003 spec/plan/tasks timestamps to reflect the latest review pass; documentation-only change.
-- Planning log (2025-11-13): Updated Feature 002 spec/plan/tasks timestamps to keep the completed feature aligned with the current documentation review; documentation-only change.
-- Planning log (2025-11-13): Updated Feature 001 spec/plan/tasks timestamps to keep the completed feature aligned with the current documentation review; documentation-only change.
-- Planning log (2025-11-13): Updated the roadmap entry for Feature 004 to show “In review” so it matches the spec/plan/tasks status; documentation-only change.
-- Planning log (2025-11-13): Updated `docs/4-architecture/knowledge-map.md` to describe the steady-state ownership of Features 001–006/010 without referencing renumbering batches; documentation-only change.
-- Governance log (2025-11-13, commit/push request): `git config core.hooksPath` → `githooks` (session reset guard confirmed before evaluating the workspace state).
-- Governance log (2025-11-13, project status sync): `git config core.hooksPath` → `githooks` (ran at Codex session kickoff to document the current project status request).
-- Verification log (2025-11-13l): `./gradlew --no-daemon spotlessApply check` (19 s, 96 tasks: 2 executed, 94 up-to-date; configuration cache reused) to confirm the workspace is green before staging the outstanding documentation updates.
-- Hook log (2025-11-13): `githooks/pre-commit` (docs governance commit) triggered `./gradlew help`, `./gradlew spotlessApply`, `./gradlew jacocoAggregatedReport`, and `./gradlew jacocoCoverageVerification`; all tasks reused cached configuration and reported UP-TO-DATE.
-- Verification log (2025-11-13m): `./gradlew --no-daemon spotlessApply check` (26 s, 96 tasks: 2 executed, 94 up-to-date) after updating `_current-session.md` with the latest hook log to keep the workspace green post-edit.
-- Hook log (2025-11-13, session wrap): `githooks/pre-commit` (hook-log follow-up commit) reran the same Gradle guard sequence (`help`, `spotlessApply`, `jacocoAggregatedReport`, `jacocoCoverageVerification`) and all steps reused their cached configuration entries.
-- Verification log (2025-11-13n): `./gradlew --no-daemon spotlessApply check` re-run immediately after logging the second hook invocation to keep the docs-only change green (configuration cache reused, all tasks up-to-date).
-- Governance log (2025-11-13, Feature 004 I3): `git config core.hooksPath` → `githooks` (captured for the Feature 004 consolidation pass).
-- Verification log (2025-11-13o): `./gradlew --no-daemon spotlessApply check` (20 s, 96 tasks: 2 executed, 94 up-to-date) to revalidate the workspace before logging Feature 004 commands.
-- Verification log (2025-11-13p): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` (15 s, 14 tasks: 1 from cache, 13 up-to-date) covering the operator console regression suite.
-- Verification log (2025-11-13q): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*WebAuthn*"` (16 s, 14 tasks: 1 from cache, 13 up-to-date) to rerun the REST WebAuthn controller tests referenced in Feature 004.
-- Verification log (2025-11-13r): `node --test rest-api/src/test/javascript/emv/console.test.js` (0.2 s, 18 EMV operator-console assertions) so the Batch P2 redo suite stays current.
-- Verification log (2025-11-13s): `./gradlew --no-daemon :ui:test` (14 s, 6 tasks up-to-date) to confirm the UI module tests remain green alongside the console work.
+- Planning log (2025-11-14): Added Feature 005 tasks T-005-67–T-005-72 for increments I8b/I9/I10, linked them from the plan, and recorded the upcoming documentation/verification scope; documentation-only change.
+- Planning log (2025-11-15): Updated `docs/4-architecture/features/005/plan.md` to remove Clarifications-specific checklist text and route future questions through spec sections, `docs/4-architecture/open-questions.md`, and ADRs as needed; documentation-only change.
+- Verification log (2025-11-14a): `node --test rest-api/src/test/javascript/emv/console.test.js` (FAILED – new inline replay verbose-trace assertion expects `includeTrace=true`, currently `undefined`; captured for T-005-67 red coverage).
+- Verification log (2025-11-14d): `node --test rest-api/src/test/javascript/emv/console.test.js` (PASS – inline replay payload now copies `includeTrace=true`, clearing the red coverage logged in 2025-11-14a).
+- Verification log (2025-11-14b): `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"` (PASS – Selenium suite now includes inline replay verbose-trace coverage).
+- Verification log (2025-11-14c): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*Trace*"` (PASS – REST trace contract suite rerun after staging the new tests).
+- Verification log (2025-11-14e): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*Trace*"` (PASS – reran after wiring includeTrace to confirm REST replay traces stay green).
+- Verification log (2025-11-14f): `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCli*Trace*"` (PASS – CLI replay trace assertions still succeed with the shared-console updates).
+- Verification log (2025-11-14g): `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*Trace*"` (PASS – application trace payloads remain green with the new includeTrace flow).
+- Verification log (2025-11-14h): `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"` (PASS – Selenium replay verbose-trace assertions hold with the UI fix).
+- Verification log (2025-11-14i): `./gradlew --no-daemon :ui:test` (PASS – UI module stayed green after the EMV console edit).
+
+### Feature 006 – EUDIW OpenID4VP Simulator (In progress)
+
+- Planning log (2025-11-13): Cleaned up Feature 006 spec/plan/tasks to remove renumbering notes, set their statuses to In progress (instead of Ready for implementation) with updated timestamps, deleted `docs/4-architecture/features/006/legacy/040/`, and aligned the roadmap entry with the In-progress status; documentation-only change.
+- Planning log (2025-11-15): Migrated the Feature 006 spec off the Clarifications section by folding the HAIP/baseline scope, UI behaviours, telemetry guidance, and fixture provenance into the Overview/UI/Telemetry/Fixtures sections and standardising FR Source cells to “Spec.” for the UI/fixture requirements; documentation-only change.
+
+## Next suggested actions
+
+> Keep this section synced as workstreams progress. When an item is completed, update it to point at the next actionable task for that workstream (or remove the subsection if the stream is idle).
+
+### Workstream – EMV/CAP console & traces
+
+- Next suggested action: Complete EMV/CAP documentation refresh and portfolio sync for the verbose trace/console work by driving T-005-69 – Documentation refresh (S39-10) to done (update EMV/CAP how-to guides, refresh knowledge map + roadmap entry #5, and fold I8b/I9 clarifications into the spec/plan/tasks).
+
+### Workstream – EUDIW OpenID4VP simulator
+
+- Next suggested action: Deliver live Trusted Authority ingestion by implementing T-006-23 – Live Trusted Authority ingestion (S-040-11), including `trust/snapshots/*.json` refresh, provenance telemetry, and conformance dataset exposure through `presentations/seed` plus the accompanying CLI/Operator UI copy and telemetry snapshot updates.
+
+## Completed Clarifications governance batch (historical summary)
+
+- Planning log (2025-11-15): Logged and resolved a Clarifications scope question (Option A selected for completing A1/A2/T1/T2, leaving ADR work optional) and reflected the outcome in `AGENTS.md`, the templates, and the open-questions log; documentation-only updates.
+- Historical note: Detailed verification logs for the Clarifications governance batch (Features 001–004 and 009–013, plus docs/runbook/AGENTS updates) have been pruned from this snapshot for readability. Consult git history and the per-feature specs/plans/tasks for the full drift-gate and verification record.

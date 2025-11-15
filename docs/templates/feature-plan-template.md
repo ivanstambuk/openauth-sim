@@ -4,6 +4,8 @@ _Linked specification:_ `docs/4-architecture/features/<NNN>/spec.md`
 _Status:_ Draft  
 _Last updated:_ YYYY-MM-DD
 
+> Guardrail: Keep this plan traceable back to the governing spec. Reference FR/NFR/Scenario IDs from `spec.md` where relevant, log any new high- or medium-impact questions in `docs/4-architecture/open-questions.md`, and assume clarifications are resolved only when the spec’s normative sections (requirements/NFR/behaviour/telemetry) and, where applicable, ADRs under `docs/6-decisions/` have been updated.
+
 ## Vision & Success Criteria
 Reiterate the user value, measurable success signals, and quality bars (telemetry parity, deterministic fixtures, etc.).
 

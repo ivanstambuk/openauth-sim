@@ -3,22 +3,24 @@
 _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `rest-api/`, `ui/`) sit on top, and long-form docs reside under `docs/`._ Read the project constitution in `docs/6-decisions/project-constitution.md` before acting.
 
 ## Before You Code
-- **Clarify ambiguity first.** Do not plan or implement until every requirement is understood. Ask the user, record unresolved items in `docs/4-architecture/open-questions.md`, and wait for answers. Capture accepted answers in the relevant specification under `## Clarifications`.
+- **Clarify ambiguity first.** Do not plan or implement until every requirement is understood. Ask the user, record unresolved items in `docs/4-architecture/open-questions.md`, and wait for answers. Capture accepted answers by updating the relevant specification’s requirements/NFR/behaviour/telemetry sections so the spec remains the single source of truth for behaviour.
   - Whenever you present alternative approaches—whether for open questions or general solution proposals—precede each clarification with a numbered heading (1., 2., …) and enumerate options alphabetically (A, B, C …); include pros and cons for each option and state the recommended choice (with rationale) before requesting a decision.
 - **Work in small steps.** During planning, break every change into logical, self-contained tasks that are expected to complete within ≤90 minutes. Execution can take longer if required; the goal is to plan manageable increments, run `./gradlew spotlessApply check`, and commit with a conventional message for each finished slice.
 - **Confirm prerequisites.** Ensure `JAVA_HOME` points to a Java 17 JDK before invoking Gradle or Git hooks.
 - **Hook guard.** Verify `git config core.hooksPath githooks` before staging changes; reapply the setting after fresh clones or tool resets so the managed pre-commit hook and `commit-msg` gitlint gate both execute. Feature 011 (`docs/4-architecture/features/011/{spec,plan,tasks}.md`) is the canonical reference for FR-011-01..08/NFR-011-01..05—when you run the guard commands (`git config core.hooksPath`, `githooks/pre-commit`, `githooks/commit-msg`) capture the output in `_current-session.md` as that feature requires.
 - **Prime the knowledge map.** Skim `docs/4-architecture/knowledge-map.md` and the up-to-date module snapshot in `docs/architecture-graph.json` before planning so new work reinforces the architectural relationships already captured there.
 - **Template usage.** Author new specifications, feature plans, and task checklists using `docs/templates/feature-spec-template.md`, `docs/templates/feature-plan-template.md`, and `docs/templates/feature-tasks-template.md` so structure, metadata, and verification notes stay uniform across features.
+ - **ADR context.** Before planning or implementation, skim ADRs under `docs/6-decisions/` whose related-features/specs entries reference the active feature ID so high-impact clarifications and architectural decisions are treated as required context alongside the roadmap, spec, plan, tasks, and knowledge map.
 
 ## Specification Pipeline
 - Start every feature by updating or creating its specification at `docs/4-architecture/features/<NNN>/spec.md`.
 - For any new UI feature or modification, include an ASCII mock-up in the specification (see `docs/4-architecture/spec-guidelines/ui-ascii-mockups.md`).
-- Capture every high-impact clarification question (and each medium-impact uncertainty) per feature; log them in `docs/4-architecture/open-questions.md` and record resolutions in the spec. Tidy lightweight ambiguities locally and note the adjustment in the governing spec/plan.
-- Generate or refresh the feature plan (`docs/4-architecture/features/<NNN>/plan.md`) only after the specification is current and clarifications resolved.
+- Capture every high-impact clarification question (and each medium-impact uncertainty) per feature; log them in `docs/4-architecture/open-questions.md` and, once resolved, record the outcome directly in the spec (requirements, NFR, behaviour/UI, telemetry/policy sections). For architecturally significant clarifications (cross-feature/module boundaries, security/telemetry strategy, major NFR trade-offs), create or update an ADR under `docs/6-decisions/` using `docs/templates/adr-template.md` after updating the spec, then mark the corresponding open-questions row as resolved with links to the spec sections and ADR ID. Tidy lightweight ambiguities locally and note the adjustment in the governing spec/plan.
+- Generate or refresh the feature plan (`docs/4-architecture/features/<NNN>/plan.md`) only after the specification is current and high-/medium-impact clarifications are resolved and recorded in the spec (plus ADRs where required).
 - Maintain a per-feature tasks checklist at `docs/4-architecture/features/<NNN>/tasks.md` that mirrors the plan, orders tests before code, and keeps planned increments ≤90 minutes by preferring finer-grained entries and documenting sub-steps when something nears the limit.
 - When revising a specification, only document fallback or compatibility behaviour if the user explicitly asked for it; if instructions are unclear, pause and request confirmation instead of assuming a fallback.
 - Run the analysis gate in `docs/5-operations/analysis-gate-checklist.md` once spec, plan, and tasks agree; address findings before implementation.
+ - Treat legacy per-feature `## Clarifications` sections as removed; do not reintroduce them. Resolved clarifications must be folded into the spec’s normative sections (requirements, NFR, behaviour/UI, telemetry/policy), with history captured via `docs/4-architecture/open-questions.md`, ADRs under `docs/6-decisions/`, and session/plan logs.
 
 ## Session Kickoff
 - Follow `docs/5-operations/runbook-session-reset.md` whenever a chat session starts without prior context.
@@ -60,8 +62,8 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 
 ## Tracking & Documentation
 - **Implementation plans.** Keep high-level plans in `docs/4-architecture/roadmap.md`, store each feature’s spec/plan/tasks inside `docs/4-architecture/features/<NNN>/`, and remove plans once work is complete.
-- **Open questions.** Log open questions in `docs/4-architecture/open-questions.md` and mark them resolved when answered.
-- **Decisions.** Record only confirmed architectural decisions as ADRs under `docs/6-decisions/`.
+- **Open questions.** Log high- and medium-impact open questions in `docs/4-architecture/open-questions.md` and remove each row as soon as it is resolved, ensuring the answer is captured first in the governing spec’s normative sections and, for high-impact clarifications, in an ADR.
+- **Decisions.** Record only confirmed architectural decisions and architecturally significant clarifications as ADRs under `docs/6-decisions/`, using `docs/templates/adr-template.md`, and reference those ADR IDs from the relevant spec sections and (when applicable) the open-questions log.
 - **Local overrides.** If a subdirectory requires different instructions, add an `AGENTS.md` there and reference it from the roadmap/feature plan.
 - **Quality gates.** Track upcoming additions for contract tests, mutation analysis, and security/“red-team prompt” suites in the plans until automated jobs exist.
 

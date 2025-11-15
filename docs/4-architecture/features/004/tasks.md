@@ -62,7 +62,7 @@ _Last updated:_ 2025-11-13
 
 ## Verification Log
 - 2025-11-11 – `./gradlew --no-daemon spotlessApply check` (baseline).  
-- 2025-11-11 – `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*WebAuthn*"` plus UI/Selenium suites after deleting `legacy/024`/`legacy/026`.  
+- 2025-11-11 – `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*WebAuthn*"` plus UI/Selenium suites.  
 - 2025-11-11 – `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, and `./gradlew --no-daemon :ui:test`.
 - 2025-11-13 – `git config core.hooksPath` (hooks confirmed as `githooks`), `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*WebAuthn*"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, `node --test rest-api/src/test/javascript/emv/console.test.js`, and `./gradlew --no-daemon :ui:test` to capture the Feature 004 consolidation runs.
 

@@ -27,7 +27,11 @@ This constitution establishes the non-negotiable operating principles for the Op
 ### Principle 2 – Clarification Gate
 - Resolve ambiguous scope before planning by capturing every high-impact question for the feature; escalate every medium-impact uncertainty the same way, while tidying low-level or lightweight ambiguities directly and noting the fixes in the governing spec/plan.
 - Record all high- and medium-impact open questions in `docs/4-architecture/open-questions.md`; do not plan or implement until the user answers them and the specification captures the resolution.
-- Document clarified answers in the specification under `## Clarifications`, including any low-level adjustments handled without escalation.
+- When a question is resolved:
+  - Update the governing specification’s normative sections (functional requirements, non-functional requirements, behaviour/flows/UI, telemetry/quality/policy) so the spec itself remains the single source of truth for behaviour.
+  - For architecturally significant clarifications (cross-feature/module boundaries, security/telemetry strategies, major non-functional trade-offs), create or update an ADR under `docs/6-decisions/` using `docs/templates/adr-template.md`. ADRs record the rationale and options; specs record the behaviour.
+  - Update the corresponding entry in `docs/4-architecture/open-questions.md` as resolved, including links to the updated spec sections and any ADRs.
+  - Keep the order of operations strict: spec first, then ADR (when required), then open-questions and plan/tasks updates.
 
 ### Principle 3 – Test-First Quality Discipline
 - Write or update executable tests (unit, integration, contract) before implementing behavior.
@@ -51,9 +55,9 @@ This constitution establishes the non-negotiable operating principles for the Op
 ### Principle 6 – Implementation Drift Gate
 - Before a feature can be marked complete, run an Implementation Drift Gate once all planned tasks are complete and tests are green.
 - Cross-check the approved specification, feature plan, tasks checklist, and code/tests to confirm every spec requirement has a corresponding implementation and that no implementation ships without documented intent.
-- Verify high-impact and medium-impact requirements explicitly trace from specification to implementation and tests; ensure low-level details remain consistent with the governing artefacts.
+- Verify that high-impact and medium-impact requirements explicitly trace from the specification’s normative sections (functional requirements, non-functional requirements, behaviour/flows/UI, telemetry/quality/policy) to implementation and tests; ensure low-level details remain consistent with the governing artefacts.
 - Produce a drift report (attach it to the governing feature plan) summarising matches, gaps, and speculative work; reference exact spec sections and code paths so reviewers can trace decisions.
-- Record every high- or medium-impact divergence as an open question in `docs/4-architecture/open-questions.md` for user direction; remediate lightweight or low-level drift yourself (typos, formatting, minor wording) and capture the adjustments in the drift report without escalating.
+- For every high- or medium-impact divergence discovered during the gate, record an open question in `docs/4-architecture/open-questions.md` for user direction; once resolved, update the relevant spec sections first, then create or update an ADR for architecturally significant decisions, and finally mark the open question resolved with links to the spec sections and ADR IDs. Remediate lightweight or low-level drift yourself (typos, formatting, minor wording) and capture the adjustments in the drift report without escalating.
 - Verify executable coverage alignment by confirming each spec branch has failing tests staged before implementation and green tests afterwards; call out any missing coverage as follow-up tasks.
 - Document lessons and reusable guidance surfaced during the gate so downstream features inherit the updated practices.
 

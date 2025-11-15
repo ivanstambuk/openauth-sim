@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Placeholder (awaiting implementation) |
-| Last updated | 2025-11-11 |
+| Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/007/plan.md` |
 | Linked tasks | `docs/4-architecture/features/007/tasks.md` |
@@ -12,13 +12,10 @@
 ## Overview
 Stand up a deterministic ISO/IEC 18013-5 mdoc PID simulator that mirrors the HAIP-compatible wallet experiences. The
 simulator must emit DeviceResponse payloads, enforce namespace/attribute selection, and integrate with the broader EUDIW
-verification stack so operators can mix-and-match mdoc and SD-JWT credentials inside OpenAuth Simulator facades.
-
-## Clarifications
-- 2025-11-11 – Placeholder specification added during Batch P2 renumbering; the authoritative requirements remain open
-  for owner approval, but the simulator must align with the HAIP profile and share fixtures with Feature 006 (OpenID4VP).
-- 2025-11-11 – All references to the former documentation-centric Feature 007 now reside under
-  `docs/4-architecture/features/new-010/legacy/007/` per the session log (docs/_current-session.md).
+verification stack so operators can mix-and-match mdoc and SD-JWT credentials inside OpenAuth Simulator facades. The
+placeholder scope is governed by ADR-0006 (EUDIW OpenID4VP Architecture and Wallet Partitioning); while detailed
+requirements still await owner approval, the simulator must stay HAIP-aligned, share fixtures/telemetry contracts with
+Feature 006 (OpenID4VP), and inherit its preset catalog to avoid duplicate maintenance locations.
 
 ## Goals
 - Provide deterministic mdoc PID generation and validation paths that integrate with Feature 006’s verifier.
@@ -33,17 +30,17 @@ verification stack so operators can mix-and-match mdoc and SD-JWT credentials in
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-007-01 | Deterministic DeviceResponse generator yields PID payloads using curated fixtures and editable overrides. | CLI/REST/UI export identical DeviceResponse JSON for the same preset; fixtures live under `docs/eudiw/mdoc/*.json`. | Invalid overrides trigger descriptive validation errors and red telemetry. | Generator emits inconsistent payloads or leaks secrets. | `oid4vp.mdoc.generate` events carry presetId, override flags, sanitized hashes. | Placeholder – to be expanded with final spec. |
-| FR-007-02 | Verifier validates signatures, namespaces, device authentication, and attribute disclosure per HAIP. | REST/CLI/UI verification accept the simulator’s DeviceResponse outputs and flag tampered payloads. | Negative fixtures (bad signatures, expired timestamps) fail with `invalid_presentation`. | Missing validations allow malformed payloads. | `oid4vp.mdoc.validate` frames capture reason codes and sanitized payload hashes. | Placeholder. |
-| FR-007-03 | Operators can choose preset/stored/manual credential modes across CLI/REST/UI. | Stored mode hydrates sanitized metadata; manual mode surfaces inline editors; presets seed common PID payloads. | Selenium tests toggle modes and assert UI state + telemetry context. | Modes drift or leak secret data. | Telemetry includes `credentialMode` and preset identifiers. | Placeholder. |
-| FR-007-04 | Documentation/how-to guides explain how to generate and validate mdoc PID payloads. | Docs include prerequisites, commands, fixture references, troubleshooting steps. | `./gradlew spotlessApply check` validates formatting; manual review ensures accuracy. | Missing docs block operators. | Doc change log ties back to telemetry references. | Placeholder. |
+| FR-007-01 | Deterministic DeviceResponse generator yields PID payloads using curated fixtures and editable overrides. | CLI/REST/UI export identical DeviceResponse JSON for the same preset; fixtures live under `docs/eudiw/mdoc/*.json`. | Invalid overrides trigger descriptive validation errors and red telemetry. | Generator emits inconsistent payloads or leaks secrets. | `oid4vp.mdoc.generate` events carry presetId, override flags, sanitized hashes. | Spec |
+| FR-007-02 | Verifier validates signatures, namespaces, device authentication, and attribute disclosure per HAIP. | REST/CLI/UI verification accept the simulator’s DeviceResponse outputs and flag tampered payloads. | Negative fixtures (bad signatures, expired timestamps) fail with `invalid_presentation`. | Missing validations allow malformed payloads. | `oid4vp.mdoc.validate` frames capture reason codes and sanitized payload hashes. | Spec |
+| FR-007-03 | Operators can choose preset/stored/manual credential modes across CLI/REST/UI. | Stored mode hydrates sanitized metadata; manual mode surfaces inline editors; presets seed common PID payloads. | Selenium tests toggle modes and assert UI state + telemetry context. | Modes drift or leak secret data. | Telemetry includes `credentialMode` and preset identifiers. | Spec |
+| FR-007-04 | Documentation/how-to guides explain how to generate and validate mdoc PID payloads. | Docs include prerequisites, commands, fixture references, troubleshooting steps. | `./gradlew spotlessApply check` validates formatting; manual review ensures accuracy. | Missing docs block operators. | Doc change log ties back to telemetry references. | Spec |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-007-01 | Deterministic outputs | Operators need reproducible fixtures | Integration tests compare payload hashes | Feature 006 verifier, shared fixture loaders | Placeholder |
-| NFR-007-02 | Observability | Telemetry + verbose traces must redact PID data | Telemetry capture tests | TelemetryContracts, REST/UI logging | Placeholder |
-| NFR-007-03 | Compatibility | Java 17 / Gradle 8.10 baseline | `./gradlew spotlessApply check` + targeted module tests | Gradle toolchain | Placeholder |
+| NFR-007-01 | Deterministic outputs | Operators need reproducible fixtures | Integration tests compare payload hashes | Feature 006 verifier, shared fixture loaders | Spec |
+| NFR-007-02 | Observability | Telemetry + verbose traces must redact PID data | Telemetry capture tests | TelemetryContracts, REST/UI logging | Spec |
+| NFR-007-03 | Compatibility | Java 17 / Gradle 8.10 baseline | `./gradlew spotlessApply check` + targeted module tests | Gradle toolchain | Spec |
 
 ## UI / Interaction Mock-ups
 Operator console tabs mirror the existing EUDIW layout: Evaluate drives deterministic generation, Replay validates pasted DeviceResponse payloads. ASCII sketches capture the placeholder UX so Selenium and docs can reference stable structures once implementation begins.

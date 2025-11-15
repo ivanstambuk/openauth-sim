@@ -12,19 +12,8 @@
 ## Overview
 Add RFC 6238 TOTP support across the simulator so operators can evaluate stored and inline TOTP credentials (plus replay)
 alongside existing HOTP/OCRA flows. Scope includes core domain, persistence descriptors, application services, CLI/REST
-facades, operator UI panels, shared fixtures, telemetry parity, and documentation. Issuance remains out of scope.
-
-## Clarifications
-- 2025-10-08 – Launch delivers an end-to-end slice (core → application → CLI/REST/UI) in a single feature (Option A).
-- 2025-10-08 – Support SHA-1, SHA-256, SHA-512, 6/8 digits, and at least 30 s/60 s steps at launch (Option A).
-- 2025-10-08 – Reuse schema-v1 MapDB store; no new schema (Option A).
-- 2025-10-08 – Evaluation exposes ± step drift windows + timestamp overrides; replay uses `/api/v1/totp/replay` with
-  non-mutating diagnostics (Option A).
-- 2025-10-08 – CLI + Java facades ship alongside REST/UI surfaces.
-- 2025-10-08 – Telemetry emits via `totp.evaluate`/`totp.replay` adapters.
-- 2025-10-11 – Operator console Evaluate tab defaults to inline mode for TOTP; replay removes “Load sample data” button
-  in favour of auto-applied samples (user directives).
-- 2025-10-28 – TOTP panels include “Use current Unix seconds” toggles and “Reset to now” helpers quantised to the step size.
+facades, operator UI panels, shared fixtures, telemetry parity, and documentation. This feature ships a single end-to-end
+slice spanning core → application → CLI/REST → operator console; issuance/enrolment remains out of scope.
 
 ## Goals
 - G-002-01 – Provide deterministic TOTP evaluation/replay with telemetry parity across core/application/CLI/REST.
@@ -39,19 +28,19 @@ facades, operator UI panels, shared fixtures, telemetry parity, and documentatio
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-002-01 | Implement RFC 6238 TOTP generator/validator across SHA-1/256/512, 6/8 digits, and configurable steps with drift windows. | Core tests with fixture catalogue pass; mutation/ArchUnit green. | Drift boundary tests ensure rejection when outside windows. | `:core:test` fails or drift logic incorrect. | `totp.evaluate` events sanitized via TelemetryContracts. | Clarifications. |
-| FR-002-02 | Persist TOTP credentials within schema-v1 MapDB with defaults (`SHA1`, `6`, `30s`, ±1 steps). | Integration tests mix HOTP/OCRA/TOTP descriptors. | CLI/REST evaluation updates counters/timestamps as expected. | Schema diff or migration required. | Telemetry includes credential hashes only. | Clarifications. |
-| FR-002-03 | Application services handle stored/inline evaluation, timestamp overrides, drift windows, replay (non-mutating), telemetry. | JUnit tests cover success/error paths, replay non-mutating. | Negative tests reject invalid inputs or drift. | Replay mutates counters or telemetry missing. | `totp.evaluate`/`totp.replay`. | Clarifications. |
-| FR-002-04 | CLI commands import/list/evaluate/replay TOTP credentials with drift/timestamp options. | Picocli tests assert outputs + telemetry, covering stored/inline/replay. | Invalid input tests produce descriptive errors. | CLI command fails or telemetry absent. | Telemetry parallels HOTP/OCRA. | Clarifications. |
-| FR-002-05 | REST endpoints (evaluate inline/stored, replay) expose schema + OpenAPI updates, accept drift/timestamp overrides, return OTP payloads. | MockMvc + OpenAPI tests pass; replay non-mutating. | Negative tests cover invalid drift, timestamp overrides. | REST tests fail or counters mutate. | `totp.evaluate`/`totp.replay`. | Clarifications. |
-| FR-002-06 | Operator console adds TOTP stored/inline/replay panels with presets, seeding, auto-fill toggles, inline-default Evaluate tab. | Selenium tests cover stored/inline/replay, seeding, timestamp controls, auto-applied samples. | Accessibility checks (aria roles, keyboard order). | UI missing flows or telemetry inconsistent. | Reuses REST telemetry. | Clarifications. |
-| FR-002-07 | Publish `docs/totp_validation_vectors.json` and shared loader; update CLI/REST/UI docs/how-to. | Fixture loader feeds tests/presets; docs reference vector IDs. | Missing vector causes tests/docs failures. | n/a | Clarifications. |
+| FR-002-01 | Implement RFC 6238 TOTP generator/validator across SHA-1/256/512, 6/8 digits, and configurable steps with drift windows. | Core tests with fixture catalogue pass; mutation/ArchUnit green. | Drift boundary tests ensure rejection when outside windows. | `:core:test` fails or drift logic incorrect. | `totp.evaluate` events sanitized via TelemetryContracts. | Spec. |
+| FR-002-02 | Persist TOTP credentials within schema-v1 MapDB with defaults (`SHA1`, `6`, `30s`, ±1 steps). | Integration tests mix HOTP/OCRA/TOTP descriptors. | CLI/REST evaluation updates counters/timestamps as expected. | Schema diff or migration required. | Telemetry includes credential hashes only. | Spec. |
+| FR-002-03 | Application services handle stored/inline evaluation, timestamp overrides, drift windows, replay (non-mutating), telemetry. | JUnit tests cover success/error paths, replay non-mutating. | Negative tests reject invalid inputs or drift. | Replay mutates counters or telemetry missing. | `totp.evaluate`/`totp.replay`. | Spec. |
+| FR-002-04 | CLI commands import/list/evaluate/replay TOTP credentials with drift/timestamp options. | Picocli tests assert outputs + telemetry, covering stored/inline/replay. | Invalid input tests produce descriptive errors. | CLI command fails or telemetry absent. | Telemetry parallels HOTP/OCRA. | Spec. |
+| FR-002-05 | REST endpoints (evaluate inline/stored, replay) expose schema + OpenAPI updates, accept drift/timestamp overrides, return OTP payloads. | MockMvc + OpenAPI tests pass; replay non-mutating. | Negative tests cover invalid drift, timestamp overrides. | REST tests fail or counters mutate. | `totp.evaluate`/`totp.replay`. | Spec. |
+| FR-002-06 | Operator console adds TOTP stored/inline/replay panels with presets, seeding, auto-fill toggles, inline-default Evaluate tab. | Selenium tests cover stored/inline/replay, seeding, timestamp controls, auto-applied samples. | Accessibility checks (aria roles, keyboard order). | UI missing flows or telemetry inconsistent. | Reuses REST telemetry. | Spec. |
+| FR-002-07 | Publish `docs/totp_validation_vectors.json` and shared loader; update CLI/REST/UI docs/how-to. | Fixture loader feeds tests/presets; docs reference vector IDs. | Missing vector causes tests/docs failures. | n/a | Spec. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-002-01 | Security | Secrets remain encrypted at rest; telemetry redacts OTP/secrets. | Tests + telemetry linting. | MapDB, TelemetryContracts. | Clarifications. |
-| NFR-002-02 | Compatibility | schema-v1 remains backward compatible; no migrations. | Legacy stores load successfully. | Persistence module. | Clarifications. |
+| NFR-002-01 | Security | Secrets remain encrypted at rest; telemetry redacts OTP/secrets. | Tests + telemetry linting. | MapDB, TelemetryContracts. | Spec. |
+| NFR-002-02 | Compatibility | schema-v1 remains backward compatible; no migrations. | Legacy stores load successfully. | Persistence module. | Spec. |
 | NFR-002-03 | Quality | `./gradlew qualityGate` + `spotlessApply` stay green. | CI pipeline. | Gradle tooling. | Spec. |
 
 ## UI / Interaction Mock-ups

@@ -30,4 +30,3 @@ Linked plan: `docs/4-architecture/features/008/plan.md`
 _Pending._
 
 ## Notes / TODOs
-- Legacy OCRA quality automation tasks preserved under `docs/4-architecture/features/new-010/legacy/008/`.

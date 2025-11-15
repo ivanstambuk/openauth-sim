@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Complete |
-| Last updated | 2025-11-13 |
+| Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/011/plan.md` |
 | Linked tasks | `docs/4-architecture/features/011/tasks.md` |
@@ -12,21 +12,18 @@
 ## Overview
 Feature 011 is the single source of truth for OpenAuth Simulator governance: AGENTS.md, the project constitution, session
 runbooks, analysis-gate instructions, managed Git hooks, gitlint policy, formatter adoption, and verification logging all
-flow through this specification so commit-message enforcement, pre-commit workflows, and Palantir Java Format adoption are
-documented alongside the runbooks they protect. No code changes ship in this documentation-only iteration; the goal is
-parity and auditable workflows.
-
-## Clarifications
-- 2025-10-04 – Gitlint must run inside `githooks/commit-msg` using the message path provided by Git; the pre-commit hook
-  stays focused on staged-content checks (Spotless, targeted Gradle tasks, gitleaks) while warming/clearing the Gradle
-  configuration cache as needed.
-- 2025-10-04 – The repository `.gitlint` profile enforces Conventional Commits, 100-character titles, and 120-character
-  body lines; CI must run the same rules for pushes/PRs.
-- 2025-10-04 – Pre-commit handles Spotless stale-cache retries by deleting `.gradle/configuration-cache/**` at most once per
-  run and logging the retry outcome.
-- 2025-10-19 – Palantir Java Format 2.78.0 is the canonical formatter across Spotless, hooks, IDE guidance, and repository
-  lock files (120-character wrap, Java 17). The repository-wide reformat already landed; this spec records the policy.
-- (none currently)
+flow through this specification so commit-message enforcement, pre-commit workflows, Checkstyle guardrails, and Palantir
+Java Format 2.78.0 adoption are documented alongside the runbooks they protect. It operationalises the constitution’s
+Clarification Gate and Implementation Drift Gate for governance artefacts and is backed by ADR-0002 (formatter/managed
+hooks) and ADR-0003 (governance workflow and drift gates). Gitlint runs inside `githooks/commit-msg` with the repository
+`.gitlint` profile (Conventional Commits, 100-character titles, 120-character body lines) and CI mirrors the same rules.
+`githooks/pre-commit` warms the Gradle configuration cache via `./gradlew --no-daemon help --configuration-cache`,
+retries Spotless once on stale-cache failures by deleting `.gradle/configuration-cache/**`, logs the retry outcome, and then
+executes Spotless, targeted Gradle tasks, and gitleaks. Palantir Java Format 2.78.0 (120-character wrap, Java 17) remains
+the canonical formatter across Spotless, hooks, IDE guidance, and lock files; Checkstyle tuning (for example, `WhitespaceAround`)
+must be recorded here and applied via shared configuration rather than per-feature specs. Every governance increment logs
+hook verdicts, `git config core.hooksPath githooks`, and verification commands in `_current-session.md` to keep these policies
+auditable.
 
 ## Goals
 - G-011-01 – Keep AGENTS.md, session quick references, runbooks, and the constitution aligned with Feature 011 so new agents
@@ -46,23 +43,23 @@ parity and auditable workflows.
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-011-01 | Governance docs (AGENTS.md, constitution, session quick reference, runbook-session-reset, analysis-gate checklist) cite Feature 011 as the owner and link back to this spec/plan/tasks. | `rg "Feature 011" AGENTS.md docs/5-operations/runbook-session-reset.md docs/6-decisions/project-constitution.md` shows canonical references; `_current-session.md` logs updates. | Manual doc review + `./gradlew --no-daemon spotlessApply check`. | Agents hunt legacy IDs to find governance rules. | None (doc-only). | Goals G-011-01.
-| FR-011-02 | `githooks/commit-msg` runs `gitlint` with `.gitlint` (Conventional Commits, 100/120 columns) on the message file Git provides, and CI executes the same rules on pushes/PRs. | Running `githooks/commit-msg .git/COMMIT_EDITMSG` blocks invalid commits; CI workflow lists gitlint job output. | Manual tests with compliant/non-compliant fixtures; CI log review. | Bad commit messages land or hooks fail silently. | Hook logs only; no new telemetry. | Legacy Feature 019.
-| FR-011-03 | `githooks/pre-commit` warms the Gradle configuration cache via `./gradlew --no-daemon help --configuration-cache`, retries Spotless once when stale-cache errors appear, and logs retry outcomes before running staged-content checks (Spotless, targeted Gradle tasks, gitleaks). | Pre-commit output shows cache warm + retry log; staged checks run afterwards. | Manual invocation on staged files; plan/tasks capture commands. | Hooks skip cache warm or silently swallow Spotless failures. | Hook log only. | Legacy Feature 019.
-| FR-011-04 | Contributors verify the hook guard (`git config core.hooksPath githooks`) before staging changes, and plan/tasks require recording the command plus results in `_current-session.md`. | `git config core.hooksPath` returns `githooks`; session log lists command output. | Checklist items reference guard; `_current-session.md` snapshot updated per session. | Hooks disabled or misconfigured without detection. | None. | Clarifications (2025-11-11).
-| FR-011-05 | Analysis gate usage (`docs/5-operations/analysis-gate-checklist.md`) is documented in plan/tasks with instructions to log when the gate runs, what it covered, and resulting follow-ups. | Plan/tasks link to the checklist; `_current-session.md` records gate executions. | Doc review; session log entries. | Analysis gates skipped or untracked. | None. | Goals G-011-04.
-| FR-011-06 | Spotless configuration, version catalog, and dependency locks pin Palantir Java Format 2.78.0; the spec documents repo-wide reformat expectations and IDE setup. | `build.gradle.kts` uses `palantirJavaFormat("2.78.0")`; locks reference Palantir artifacts; docs explain IDE steps. | `rg "palantir" build.gradle.kts gradle/libs.versions.toml githooks -n`; plan/tasks mention command history. | Formatter drift or conflicting instructions. | None. | Legacy Feature 032.
-| FR-011-07 | Managed hooks, runbooks, and README/CONTRIBUTING references mention Palantir formatting, rebase guidance, and cite the `./gradlew --no-daemon spotlessApply check` command required after doc/code changes. | `rg "Palantir" AGENTS.md CONTRIBUTING.md githooks -n` shows updated instructions; doc lint passes. | Manual review + spotless. | Contributors follow stale google-java-format guidance. | None. | Legacy Feature 032.
-| FR-011-08 | `_current-session.md` logs every governance change, including commands executed (`git config core.hooksPath`, `githooks/...`, `spotlessApply check`, repo reformat) and outstanding follow-ups/backlog items. | Session snapshot + session log (docs/_current-session.md) list each governance increment, command, and pending action. | Review logs after each increment. | Auditors cannot trace changes or verification commands. | None. | Goals G-011-04.
+| FR-011-01 | Governance docs (AGENTS.md, constitution, session quick reference, runbook-session-reset, analysis-gate checklist) cite Feature 011 as the owner and link back to this spec/plan/tasks. | `rg "Feature 011" AGENTS.md docs/5-operations/runbook-session-reset.md docs/6-decisions/project-constitution.md` shows canonical references; `_current-session.md` logs updates. | Manual doc review + `./gradlew --no-daemon spotlessApply check`. | Agents hunt legacy IDs to find governance rules. | None (doc-only). | Spec
+| FR-011-02 | `githooks/commit-msg` runs `gitlint` with `.gitlint` (Conventional Commits, 100/120 columns) on the message file Git provides, and CI executes the same rules on pushes/PRs. | Running `githooks/commit-msg .git/COMMIT_EDITMSG` blocks invalid commits; CI workflow lists gitlint job output. | Manual tests with compliant/non-compliant fixtures; CI log review. | Bad commit messages land or hooks fail silently. | Hook logs only; no new telemetry. | Spec
+| FR-011-03 | `githooks/pre-commit` warms the Gradle configuration cache via `./gradlew --no-daemon help --configuration-cache`, retries Spotless once when stale-cache errors appear, and logs retry outcomes before running staged-content checks (Spotless, targeted Gradle tasks, gitleaks). | Pre-commit output shows cache warm + retry log; staged checks run afterwards. | Manual invocation on staged files; plan/tasks capture commands. | Hooks skip cache warm or silently swallow Spotless failures. | Hook log only. | Spec
+| FR-011-04 | Contributors verify the hook guard (`git config core.hooksPath githooks`) before staging changes, and plan/tasks require recording the command plus results in `_current-session.md`. | `git config core.hooksPath` returns `githooks`; session log lists command output. | Checklist items reference guard; `_current-session.md` snapshot updated per session. | Hooks disabled or misconfigured without detection. | None. | Spec
+| FR-011-05 | Analysis gate usage (`docs/5-operations/analysis-gate-checklist.md`) is documented in plan/tasks with instructions to log when the gate runs, what it covered, and resulting follow-ups. | Plan/tasks link to the checklist; `_current-session.md` records gate executions. | Doc review; session log entries. | Analysis gates skipped or untracked. | None. | Spec
+| FR-011-06 | Spotless configuration, version catalog, and dependency locks pin Palantir Java Format 2.78.0; the spec documents repo-wide reformat expectations and IDE setup. | `build.gradle.kts` uses `palantirJavaFormat("2.78.0")`; locks reference Palantir artifacts; docs explain IDE steps. | `rg "palantir" build.gradle.kts gradle/libs.versions.toml githooks -n`; plan/tasks mention command history. | Formatter drift or conflicting instructions. | None. | Spec
+| FR-011-07 | Managed hooks, runbooks, and README/CONTRIBUTING references mention Palantir formatting, rebase guidance, and cite the `./gradlew --no-daemon spotlessApply check` command required after doc/code changes. | `rg "Palantir" AGENTS.md CONTRIBUTING.md githooks -n` shows updated instructions; doc lint passes. | Manual review + spotless. | Contributors follow stale google-java-format guidance. | None. | Spec
+| FR-011-08 | `_current-session.md` logs every governance change, including commands executed (`git config core.hooksPath`, `githooks/...`, `spotlessApply check`, repo reformat) and outstanding follow-ups/backlog items. | Session snapshot + session log (docs/_current-session.md) list each governance increment, command, and pending action. | Review logs after each increment. | Auditors cannot trace changes or verification commands. | None. | Spec
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-011-01 | Documentation remains ASCII/Markdown and follows project templates (AGENTS, runbooks, plans/tasks). | Consistency | `./gradlew --no-daemon spotlessApply check`; reviewer confirmation. | Docs templates, Spotless. | Clarifications 2025-11-11.
-| NFR-011-02 | Pre-commit runtime ≤30 s and commit-msg gitlint runtime ≤2 s on reference hardware; failures log actionable retry output. | Developer ergonomics | Hook log timestamps captured during dry runs. | githooks, Gradle wrapper, gitlint. | Legacy Feature 019.
-| NFR-011-03 | Deterministic formatting: Palantir version pin + locks guarantee identical results locally/CI. | Build reproducibility | `rg "palantirJavaFormat"` diff shows single version; lockfiles reviewed after updates. | Spotless, Gradle lockfiles. | Legacy Feature 032.
-| NFR-011-04 | CI mirrors local governance checks: gitlint job, Palantir formatting, and hook-equivalent Gradle commands must run in workflows. | CI parity | GitHub workflow logs show gitlint + Spotless runs; failures block merges. | `.github/workflows/**`. | Legacy Feature 019/032.
-| NFR-011-05 | Governance actions remain auditable: `_current-session.md` + session log (docs/_current-session.md) entries include command history, runtimes, and follow-ups for each increment. | Traceability | Logs updated per increment; reviewers verify before closing tasks. | `_current-session.md`. | Goals G-011-04.
+| NFR-011-01 | Documentation remains ASCII/Markdown and follows project templates (AGENTS, runbooks, plans/tasks). | Consistency | `./gradlew --no-daemon spotlessApply check`; reviewer confirmation. | Docs templates, Spotless. | Spec |
+| NFR-011-02 | Pre-commit runtime ≤30 s and commit-msg gitlint runtime ≤2 s on reference hardware; failures log actionable retry output. | Developer ergonomics | Hook log timestamps captured during dry runs. | githooks, Gradle wrapper, gitlint. | Spec |
+| NFR-011-03 | Deterministic formatting: Palantir version pin + locks guarantee identical results locally/CI. | Build reproducibility | `rg "palantirJavaFormat"` diff shows single version; lockfiles reviewed after updates. | Spotless, Gradle lockfiles. | Spec |
+| NFR-011-04 | CI mirrors local governance checks: gitlint job, Palantir formatting, and hook-equivalent Gradle commands must run in workflows. | CI parity | GitHub workflow logs show gitlint + Spotless runs; failures block merges. | `.github/workflows/**`. | Spec |
+| NFR-011-05 | Governance actions remain auditable: `_current-session.md` + session log (docs/_current-session.md) entries include command history, runtimes, and follow-ups for each increment. | Traceability | Logs updated per increment; reviewers verify before closing tasks. | `_current-session.md`. | Spec |
 
 ## UI / Interaction Mock-ups
 

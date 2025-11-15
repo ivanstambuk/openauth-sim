@@ -924,6 +924,107 @@ final class EmvCapOperatorUiSeleniumTest {
     }
 
     @Test
+    @DisplayName("Inline EMV/CAP replay reveals verbose trace when the global toggle is enabled")
+    void inlineReplayDisplaysVerboseTrace() {
+        EmvCapReplayFixtures.ReplayFixture fixture = EmvCapReplayFixtures.load("replay-respond-baseline");
+        EmvCapVector vector = EmvCapVectorFixtures.load(fixture.vectorId());
+
+        navigateToEmvConsole();
+        installHydrationListener();
+
+        WebElement verboseCheckbox = waitForClickable(By.cssSelector("[data-testid='verbose-trace-checkbox']"));
+        if (!verboseCheckbox.isSelected()) {
+            verboseCheckbox.click();
+        }
+
+        waitForClickable(By.cssSelector("[data-testid='emv-console-tab-replay']"))
+                .click();
+
+        WebElement replayModeToggle = waitForVisible(By.cssSelector("fieldset[data-testid='emv-replay-mode-toggle']"));
+        WebElement inlineReplayRadio = replayModeToggle.findElement(By.cssSelector("#emvReplayModeInline"));
+        assertThat(inlineReplayRadio.isSelected())
+                .as("Replay tab should default to inline mode")
+                .isTrue();
+
+        Select replayStoredSelect = waitForReplayStoredCredentialSelect();
+        waitForReplayCredential(replayStoredSelect, fixture.credentialId(), "CAP Respond baseline");
+        ((JavascriptExecutor) driver)
+                .executeScript(
+                        "var select = document.getElementById('emvReplayStoredCredentialId');"
+                                + "if (select) {"
+                                + "  select.value = arguments[0];"
+                                + "  select.dispatchEvent(new Event('change', { bubbles: true }));"
+                                + "}",
+                        fixture.credentialId());
+        driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
+        waitForReplayHydration(vector);
+
+        WebElement respondModeRadio = waitForClickable(By.cssSelector("input[data-testid='emv-replay-mode-respond']"));
+        if (!respondModeRadio.isSelected()) {
+            respondModeRadio.click();
+        }
+
+        setHexInput(By.id("emvReplayMasterKey"), vector.input().masterKeyHex());
+        setHexInput(By.id("emvReplayCdol1"), vector.input().cdol1Hex());
+        setHexInput(By.id("emvReplayIssuerBitmap"), vector.input().issuerProprietaryBitmapHex());
+        setHexInput(By.id("emvReplayIccTemplate"), vector.input().iccDataTemplateHex());
+        setHexInput(By.id("emvReplayIssuerApplicationData"), vector.input().issuerApplicationDataHex());
+        WebElement challengeInput = waitForVisible(By.id("emvReplayChallenge"));
+        challengeInput.clear();
+        if (vector.input().customerInputs().challenge() != null) {
+            challengeInput.sendKeys(vector.input().customerInputs().challenge());
+        }
+        WebElement referenceInput = waitForVisible(By.id("emvReplayReference"));
+        if (referenceInput.isEnabled()) {
+            referenceInput.clear();
+            if (vector.input().customerInputs().reference() != null) {
+                referenceInput.sendKeys(vector.input().customerInputs().reference());
+            }
+        }
+        WebElement amountInput = waitForVisible(By.id("emvReplayAmount"));
+        if (amountInput.isEnabled()) {
+            amountInput.clear();
+            if (vector.input().customerInputs().amount() != null) {
+                amountInput.sendKeys(vector.input().customerInputs().amount());
+            }
+        }
+        setNumericInput(By.id("emvReplayBranchFactor"), vector.input().branchFactor());
+        setNumericInput(By.id("emvReplayHeight"), vector.input().height());
+        setHexInput(By.id("emvReplayAtc"), vector.input().atcHex());
+
+        setNumericInput(
+                By.cssSelector("[data-testid='emv-replay-drift-backward'] input"),
+                fixture.previewWindow().backward());
+        setNumericInput(
+                By.cssSelector("[data-testid='emv-replay-drift-forward'] input"),
+                fixture.previewWindow().forward());
+
+        WebElement otpInput = waitForVisible(By.cssSelector("[data-testid='emv-replay-otp'] input[type='text']"));
+        otpInput.clear();
+        otpInput.sendKeys(fixture.otpDecimal());
+
+        waitForClickable(By.cssSelector("button[data-testid='emv-replay-submit']"))
+                .click();
+        driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
+
+        WebElement resultCard = waitForVisible(By.cssSelector("[data-testid='emv-replay-result-card']"));
+        WebElement statusBadge = resultCard.findElement(By.cssSelector("[data-testid='emv-replay-status']"));
+        assertThat(statusBadge.getText()).isEqualTo("Match");
+
+        WebElement tracePanel = waitForTracePanelVisibility(true);
+        assertThat(tracePanel.getAttribute("hidden"))
+                .as("Verbose trace panel should be visible after inline replay when verbose tracing is enabled")
+                .isNull();
+        WebElement traceContent = waitForVisible(By.cssSelector("[data-testid='verbose-trace-content']"));
+        String traceText = traceContent.getText();
+        assertThat(traceText)
+                .as("Inline replay verbose trace should surface inline credential metadata")
+                .contains("operation = emv.cap.replay")
+                .contains("metadata.credentialSource = inline")
+                .contains("suppliedOtp = " + fixture.otpDecimal());
+    }
+
+    @Test
     @DisplayName("Inline EMV/CAP replay with mismatched OTP renders mismatch status")
     void inlineReplayShowsMismatchOutcome() {
         EmvCapReplayFixtures.ReplayFixture fixture = EmvCapReplayFixtures.load("replay-respond-baseline");

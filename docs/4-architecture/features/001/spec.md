@@ -12,19 +12,8 @@
 ## Overview
 Add RFC 4226 HOTP capability across the simulator so operators can evaluate stored and inline HOTP credentials in
 parallel with OCRA. Scope includes core domain/fixtures, shared persistence, application/telemetry services, CLI + REST
-facades, operator UI flows, replay tooling, and documentation. Issuance remains out of scope.
-
-## Clarifications
-- 2025-10-04 – Ship an end-to-end slice (core → application → CLI/REST/UI) in a single feature (Option B).
-- 2025-10-04 – HOTP reuses the existing schema-v1 credential store; no new MapDB schema (Option A).
-- 2025-10-04 – Telemetry parity must match OCRA using `TelemetryContracts` adapters (Option A).
-- 2025-10-04 – Application layer owns counter persistence and telemetry metadata; stored evaluations increment the
-  moving factor immediately after success (Option A).
-- 2025-10-05 – HOTP telemetry events use `hotp.evaluate`/`hotp.issue` namespaces.
-- 2025-10-05 – Operator console remains evaluation-only; no issuance UI.
-- 2025-10-05 – HOTP stored + inline evaluations live inside the unified operator console tab and reuse existing REST
-  telemetry.
-- 2025-10-05 – Operator documentation must explain HOTP usage patterns.
+facades, operator UI flows, replay tooling, and documentation. This feature ships a single end-to-end slice spanning
+core → application → CLI/REST → operator console; issuance remains out of scope.
 
 ## Goals
 - G-001-01 – Provide deterministic HOTP evaluation flows in core/application/CLI/REST with telemetry parity.
@@ -32,20 +21,20 @@ facades, operator UI flows, replay tooling, and documentation. Issuance remains 
 - G-001-03 – Publish fixtures/catalogues/documentation so HOTP vectors remain shareable across modules.
 
 ## Non-Goals
-- N-001-01 – HOTP issuance/provisioning remains deferred.
+- N-001-01 – HOTP issuance/provisioning remains deferred; the operator console remains evaluation-only (no issuance UI).
 - N-001-02 – Schema migrations/new stores.
 - N-001-03 – Adding non-RFC 4226 OTP variants (e.g., TOTP).
 
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-001-01 | Implement RFC 4226 HOTP generator/validator with counter rollover, digit variants, and shared fixtures. | Core tests pass for counters 0–9 (6/8 digits) using catalogued vectors. | Mutation/ArchUnit verification ensures correct domain boundaries. | `:core:test` fails or fixtures mismatched. | `hotp.evaluate` events carry sanitized fields. | Clarifications. |
-| FR-001-02 | Persist HOTP credentials alongside OCRA in schema-v1 MapDB without migrations. | Integration tests load OCRA + HOTP records via `CredentialStoreFactory`. | CLI/REST evaluation tests confirm counters update persistently. | Persistence mismatch or migrations required. | `hotp.issue`/`hotp.evaluate` telemetry share metadata. | Clarifications. |
+| FR-001-01 | Implement RFC 4226 HOTP generator/validator with counter rollover, digit variants, and shared fixtures. | Core tests pass for counters 0–9 (6/8 digits) using catalogued vectors. | Mutation/ArchUnit verification ensures correct domain boundaries. | `:core:test` fails or fixtures mismatched. | `hotp.evaluate` events carry sanitized fields. | Spec. |
+| FR-001-02 | Persist HOTP credentials alongside OCRA in schema-v1 MapDB without migrations. | Integration tests load OCRA + HOTP records via `CredentialStoreFactory`. | CLI/REST evaluation tests confirm counters update persistently. | Persistence mismatch or migrations required. | `hotp.issue`/`hotp.evaluate` telemetry share metadata. | Spec. |
 | FR-001-03 | Add CLI commands for HOTP import/list/evaluate with telemetry parity. | Picocli tests assert sanitized output, telemetry frames, exit codes. | Invalid inputs raise descriptive errors. | CLI command fails or telemetry missing. | `hotp.evaluate` CLI path. | Spec. |
 | FR-001-04 | Expose REST endpoints for HOTP evaluation (stored + inline) and replay, updating OpenAPI snapshots. | MockMvc/OpenAPI tests cover POST `/api/v1/hotp/evaluate` + `/replay`. | Stored replay leaves counters unchanged. | REST tests fail or counters mutate. | `hotp.evaluate`/`hotp.replay`. | Spec. |
-| FR-001-05 | Add operator UI HOTP stored/inline evaluation plus replay flows with telemetry parity. | Selenium tests run stored + inline flows, seeding control, replay UI. | Accessibility checks ensure keyboard focus + aria semantics. | UI missing flows or telemetry inconsistent. | relies on REST telemetry events. | Clarifications. |
-| FR-001-06 | Provide deterministic HOTP fixture catalogue (`docs/hotp_validation_vectors.json`) and shared loader consumed by core/CLI/REST/UI. | Loader feeds tests/presets; docs reference vector IDs. | Missing vector results cause failing tests/docs warnings. | CLI/REST/ UI fixtures inconsistent. | n/a | Clarifications. |
-| FR-001-07 | Update documentation (how-to, roadmap, knowledge map) to reflect HOTP availability, seeding, replay, and telemetry. | Docs mention HOTP flows, seeding controls, fixture catalogue. | Spotless/doc lint passes. | Documentation gaps flagged during review. | n/a | Clarifications. |
+| FR-001-05 | Add operator UI HOTP stored/inline evaluation plus replay flows with telemetry parity. | Selenium tests run stored + inline flows, seeding control, replay UI. | Accessibility checks ensure keyboard focus + aria semantics. | UI missing flows or telemetry inconsistent. | relies on REST telemetry events. | Spec. |
+| FR-001-06 | Provide deterministic HOTP fixture catalogue (`docs/hotp_validation_vectors.json`) and shared loader consumed by core/CLI/REST/UI. | Loader feeds tests/presets; docs reference vector IDs. | Missing vector results cause failing tests/docs warnings. | CLI/REST/ UI fixtures inconsistent. | n/a | Spec. |
+| FR-001-07 | Update documentation (how-to, roadmap, knowledge map) to reflect HOTP availability, seeding, replay, and telemetry. | Docs mention HOTP flows, seeding controls, fixture catalogue. | Spotless/doc lint passes. | Documentation gaps flagged during review. | n/a | Spec. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
@@ -59,9 +48,10 @@ facades, operator UI flows, replay tooling, and documentation. Issuance remains 
 HOTP Evaluate Panel (Stored)
 -------------------------------------------
 | Stored credential: [ dropdown ] [Seed]  |
-| Counter (read-only)   OTP result card    |
+| Counter (read-only)   OTP result card   |
 -------------------------------------------
 Inline Panel mirrors OCRA layout (secret, counter input, OTP output). Replay panel reuses sample data + telemetry hints.
+HOTP stored + inline evaluations live inside the unified operator console tab and reuse existing REST telemetry events.
 ```
 
 ## Branch & Scenario Matrix
@@ -125,7 +115,9 @@ Inline Panel mirrors OCRA layout (secret, counter input, OTP output). Replay pan
 | UI-001-03 | Replay | Evaluate stored/inline without counter increment. |
 
 ## Telemetry & Observability
-- Telemetry emits via `TelemetryContracts` with sanitized hashes.
+- Telemetry emits via `TelemetryContracts` with sanitized hashes, matching OCRA parity.
+- Application layer owns HOTP counter persistence and telemetry metadata; stored evaluations increment the moving factor
+  immediately after successful evaluation.
 - Replay path logs non-mutating evaluations for audit.
 
 ## Documentation Deliverables

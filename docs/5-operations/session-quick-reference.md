@@ -6,12 +6,14 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 - [ ] Run `git status -sb` to review branch, staged changes, and repo cleanliness.
 - [ ] Confirm environment prerequisites: `JAVA_HOME` points to a Java 17 JDK and `git config core.hooksPath` returns `githooks`; log the command/output in `_current-session.md` so Feature 011 traceability stays intact.
 - [ ] Review current context: latest roadmap entry, active specification, feature plan, tasks checklist, and `docs/4-architecture/open-questions.md`.
+- [ ] Confirm that the active feature spec already encodes known decisions directly in its requirements/NFR/behaviour/telemetry sections (no per-feature `## Clarifications` appendices).
+- [ ] If new clarifications arise, record them in `docs/4-architecture/open-questions.md`, pause planning until answers are agreed, then update the spec sections and mark the questions as resolved with links to those sections; create or reference an ADR for architectural or other high‑impact decisions.
 - [ ] Console/UI changes now live under Feature 009 – consult `docs/4-architecture/features/009/{spec,plan,tasks}.md` (legacy operator-console features moved under `legacy/<old-id>/`).
 - [ ] Documentation/how-to automation (Feature 010), governance/runbooks/hooks (Feature 011), core cryptography & persistence docs (Feature 012), and toolchain/quality automation (Feature 013) each have consolidated spec/plan/tasks under `docs/4-architecture/features/<NNN>/`; check those folders when triaging Batch P3 work. Feature 011 specifically documents FR-011-01..08/NFR-011-01..05, including the required hook guard + spotless logging commands.
 - [ ] If scope introduces or modifies UI, confirm the spec includes an ASCII mock-up (`docs/4-architecture/spec-guidelines/ui-ascii-mockups.md`).
 - [ ] If the last build is stale or after syncing, run `./gradlew --no-daemon spotlessApply check` to ensure the baseline is green (capture or resolve any failures before proceeding).
 - [ ] Before running long Gradle workflows (`spotlessApply check`, `qualityGate`, full commits), set CLI tool timeouts to ≥600 s so the run doesn’t terminate mid-pipeline.
-- [ ] Check `docs/_current-session.md` for the active snapshot; refresh it with today’s status before you hand off.
+- [ ] Check `docs/_current-session.md` for the active snapshot; refresh it with today’s status and update the `## Next suggested actions` section before you hand off.
 - [ ] Confirm whether the user granted a compatibility exception; default is no fallbacks for any facade unless explicitly requested.
 
 ## Commit Protocol Reminder
@@ -25,7 +27,7 @@ You’re resuming work on [project/workstream identifier]. Core context:
 - Environment: repo at [path], Java 17 (`JAVA_HOME=[…]`), Gradle via `./gradlew --no-daemon …`, hooks installed at `githooks`. Follow docs/6-decisions/project-constitution.md and AGENTS.md.
 - Current status: roadmap entry #[…], spec […], plan […], tasks […]. Last green build(s): [commands + date].
 - Recent increments: [brief bullet list of the last completed increments, noting key files touched and outcomes].
-- Pending scope: [next planned increments/tasks], including failing tests to stage, implementation goals, telemetry/observability requirements, and documentation updates.
+- Pending scope: [next planned increments/tasks], including failing tests to stage, implementation goals, telemetry/observability requirements, and documentation updates (keep this aligned with the `## Next suggested actions` section in `docs/_current-session.md`).
 - Git state: [branch], staged files [list or “clean”], outstanding TODOs [if any].
 - Next steps you should take now: [ordered checklist, e.g., “1. Stage failing tests for … 2. Implement … 3. Update docs …”].
 - Reminders: keep planned tasks/increments ≤90 minutes by organising work into logical slices (execution may run longer if needed), update docs (spec/plan/tasks/roadmap), run `./gradlew --no-daemon spotlessApply check` before commits, capture telemetry/trust-anchor decisions (if relevant), and document open questions in `docs/4-architecture/open-questions.md`.

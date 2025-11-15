@@ -30,4 +30,3 @@ Linked plan: `docs/4-architecture/features/007/plan.md`
 _Pending once implementation begins._
 
 ## Notes / TODOs
-- Legacy operator documentation suite preserved under `docs/4-architecture/features/new-010/legacy/007/`.
