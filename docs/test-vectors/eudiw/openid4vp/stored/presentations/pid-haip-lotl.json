@@ -1,0 +1,18 @@
+{
+  "credentialId": "pid-haip-lotl",
+  "profile": "HAIP",
+  "format": "dc+sd-jwt",
+  "source": "fixtures/conformance/sdjwt-vc/pid-haip-lotl/",
+  "trustedAuthorities": [
+    "aki:s9tIpP7qrS9=",
+    "etsi_tl:lotl-373",
+    "etsi_tl:de-149",
+    "etsi_tl:si-78",
+    "openid_federation:https://haip.ec.europa.eu/trust-list"
+  ],
+  "metadata": {
+    "description": "EU LOTL ingestion sample derived from sequence 373 (Germany 149, Slovenia 78).",
+    "ingestId": "2025-11-15T13:11:59Z-optionA",
+    "lotlSequenceNumber": 373
+  }
+}

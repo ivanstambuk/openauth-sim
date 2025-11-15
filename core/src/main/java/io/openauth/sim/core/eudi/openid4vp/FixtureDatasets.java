@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,11 +26,13 @@ public final class FixtureDatasets {
         Objects.requireNonNull(source, "source");
         Path datasetRoot = resolveDatasetRoot(source);
         Map<String, Object> provenanceJson = readProvenance(datasetRoot);
+        Map<String, Object> metadata = readMetadata(provenanceJson, source);
         Provenance provenance = new Provenance(
                 requireString(provenanceJson, "source", source),
                 requireString(provenanceJson, "version", source),
                 requireString(provenanceJson, "sha256", source),
-                optionalString(provenanceJson, "description"));
+                optionalString(provenanceJson, "description"),
+                metadata);
         return new FixtureDataset(source, datasetRoot, provenance);
     }
 
@@ -59,6 +62,20 @@ public final class FixtureDatasets {
         @SuppressWarnings("unchecked")
         Map<String, Object> cast = (Map<String, Object>) map;
         return cast;
+    }
+
+    private static Map<String, Object> readMetadata(Map<String, Object> map, Source source) {
+        Object rawMetadata = map.get("metadata");
+        if (rawMetadata == null) {
+            return Map.of();
+        }
+        if (!(rawMetadata instanceof Map<?, ?> metadataMap)) {
+            throw new IllegalStateException(
+                    "Fixture dataset " + source.directoryName() + " metadata must be a JSON object");
+        }
+        Map<String, Object> copy = new LinkedHashMap<>();
+        metadataMap.forEach((key, value) -> copy.put(String.valueOf(key), value));
+        return Map.copyOf(copy);
     }
 
     private static String requireString(Map<String, Object> map, String key, Source source) {
@@ -101,12 +118,14 @@ public final class FixtureDatasets {
         }
     }
 
-    public record Provenance(String source, String version, String sha256, String description) {
+    public record Provenance(
+            String source, String version, String sha256, String description, Map<String, Object> metadata) {
         public Provenance {
             Objects.requireNonNull(source, "source");
             Objects.requireNonNull(version, "version");
             Objects.requireNonNull(sha256, "sha256");
             description = description == null ? "" : description;
+            metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
         }
     }
 }

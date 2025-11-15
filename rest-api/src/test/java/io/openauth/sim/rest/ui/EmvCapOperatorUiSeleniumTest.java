@@ -1138,6 +1138,76 @@ final class EmvCapOperatorUiSeleniumTest {
     }
 
     @Test
+    @DisplayName("Replay mismatch surfaces hashed OTP banner and CTA when verbose trace is disabled")
+    void replayMismatchDisplaysDiagnosticsBanner() {
+        EmvCapReplayFixtures.ReplayFixture fixture = EmvCapReplayFixtures.load("replay-respond-baseline");
+        EmvCapVector vector = EmvCapVectorFixtures.load(fixture.vectorId());
+
+        navigateToEmvConsole();
+        installHydrationListener();
+        waitForClickable(By.cssSelector("[data-testid='emv-console-tab-replay']"))
+                .click();
+
+        WebElement replayModeToggle = waitForVisible(By.cssSelector("fieldset[data-testid='emv-replay-mode-toggle']"));
+        WebElement inlineOption =
+                replayModeToggle.findElements(By.cssSelector(".mode-option")).get(0);
+        WebElement inlineRadio = inlineOption.findElement(By.cssSelector("input[type='radio']"));
+        assertThat(inlineRadio.isSelected()).isTrue();
+
+        Select replayStoredSelect = waitForReplayStoredCredentialSelect();
+        waitForReplayCredential(replayStoredSelect, fixture.credentialId(), "CAP Respond baseline");
+        ((JavascriptExecutor) driver)
+                .executeScript(
+                        "var select = document.getElementById('emvReplayStoredCredentialId');"
+                                + "if (select) {"
+                                + "  select.value = arguments[0];"
+                                + "  select.dispatchEvent(new Event('change', { bubbles: true }));"
+                                + "}",
+                        fixture.credentialId());
+        ((JavascriptExecutor) driver)
+                .executeScript(
+                        "if (window.EmvConsoleTestHooks && typeof window.EmvConsoleTestHooks.hydrateCredentialDetails === 'function') {"
+                                + "window.EmvConsoleTestHooks.hydrateCredentialDetails(arguments[0]);"
+                                + "}",
+                        fixture.credentialId());
+        driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
+        waitForReplayHydration(vector);
+
+        WebElement otpInput = waitForVisible(By.cssSelector("[data-testid='emv-replay-otp'] input[type='text']"));
+        otpInput.clear();
+        otpInput.sendKeys(fixture.mismatchOtpDecimal());
+
+        setNumericInput(
+                By.cssSelector("[data-testid='emv-replay-drift-backward'] input"),
+                fixture.previewWindow().backward());
+        setNumericInput(
+                By.cssSelector("[data-testid='emv-replay-drift-forward'] input"),
+                fixture.previewWindow().forward());
+
+        waitForClickable(By.cssSelector("button[data-testid='emv-replay-submit']"))
+                .click();
+        driver.getWebClient().waitForBackgroundJavaScript(WAIT_TIMEOUT.toMillis());
+
+        WebElement resultCard = waitForVisible(By.cssSelector("[data-testid='emv-replay-result-card']"));
+        WebElement placeholder =
+                resultCard.findElement(By.cssSelector("[data-testid='emv-replay-mismatch-placeholder']"));
+        assertThat(placeholder.getAttribute("hidden"))
+                .as("Replay mismatch placeholder should become visible once hashed OTP metadata is available")
+                .isNull();
+        WebElement placeholderCopy =
+                placeholder.findElement(By.cssSelector("[data-testid='emv-replay-mismatch-copy']"));
+        assertThat(placeholderCopy.getText())
+                .as("Replay mismatch placeholder should surface the hashed OTP digest")
+                .contains("sha256:");
+        WebElement placeholderCta =
+                placeholder.findElement(By.cssSelector("[data-testid='emv-replay-open-placeholder']"));
+        assertThat(placeholderCta.getAttribute("disabled"))
+                .as("Replay mismatch CTA should be enabled when diagnostics render")
+                .isNull();
+        assertThat(placeholderCta.getAttribute("aria-disabled")).isNull();
+    }
+
+    @Test
     @DisplayName("Inline EMV/CAP Sign replay hydrates presets and reports success")
     void inlineSignReplayMatchesPreset() {
         EmvCapReplayFixtures.ReplayFixture fixture = EmvCapReplayFixtures.load("replay-sign-baseline");

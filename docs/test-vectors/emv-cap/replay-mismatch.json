@@ -1,0 +1,23 @@
+{
+  "description": "Replay mismatch catalogue capturing stored and inline diagnostics for EMV/CAP baselines (2025-11-15)",
+  "cases": [
+    {
+      "id": "stored-respond-mismatch",
+      "fixtureId": "replay-respond-baseline",
+      "credentialSource": "stored",
+      "mode": "RESPOND",
+      "expectedOtpDecimal": "45233899",
+      "expectedOtpHash": "sha256:D645B39245BB16FB768BDC88FD3970A92F7B671D12073F9C7C7D9857A1B2FCFD",
+      "mismatchOtpDecimal": "45233801"
+    },
+    {
+      "id": "inline-sign-mismatch",
+      "fixtureId": "replay-sign-baseline",
+      "credentialSource": "inline",
+      "mode": "SIGN",
+      "expectedOtpDecimal": "9749267",
+      "expectedOtpHash": "sha256:B2FD07ADC412F4E432EF699D8C6304D8E980DE9055BD8DD170B2AAD1A190FAF2",
+      "mismatchOtpDecimal": "9749260"
+    }
+  ]
+}

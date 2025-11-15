@@ -1,6 +1,7 @@
 package io.openauth.sim.rest.eudi.openid4vp;
 
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpAuthorizationRequestService;
+import io.openauth.sim.application.eudi.openid4vp.OpenId4VpFixtureIngestionService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpValidationService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService;
 import io.openauth.sim.application.eudi.openid4vp.TrustedAuthorityEvaluator;
@@ -11,6 +12,7 @@ import io.openauth.sim.application.eudi.openid4vp.fixtures.FixtureSeedSequence;
 import io.openauth.sim.application.eudi.openid4vp.fixtures.FixtureStoredPresentationRepository;
 import io.openauth.sim.application.eudi.openid4vp.fixtures.FixtureWalletPresetRepository;
 import io.openauth.sim.application.eudi.openid4vp.fixtures.Oid4vpTelemetryPublisher;
+import io.openauth.sim.application.eudi.openid4vp.fixtures.OpenId4VpStoredPresentationFixtures;
 import io.openauth.sim.core.eudi.openid4vp.TrustedAuthorityFixtures;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,6 +48,11 @@ class Oid4vpApplicationConfiguration {
     @Bean
     FixtureQrCodeEncoder oid4vpQrCodeEncoder() {
         return new FixtureQrCodeEncoder();
+    }
+
+    @Bean
+    OpenId4VpStoredPresentationFixtures oid4vpStoredPresentationFixtures() {
+        return new OpenId4VpStoredPresentationFixtures();
     }
 
     @Bean
@@ -91,5 +98,13 @@ class Oid4vpApplicationConfiguration {
             Oid4vpTelemetryPublisher telemetryPublisher) {
         return new OpenId4VpValidationService(new OpenId4VpValidationService.Dependencies(
                 storedPresentationRepository, trustedAuthorityEvaluator, telemetryPublisher));
+    }
+
+    @Bean
+    OpenId4VpFixtureIngestionService oid4vpFixtureIngestionService(
+            OpenId4VpStoredPresentationFixtures storedPresentationFixtures,
+            Oid4vpTelemetryPublisher telemetryPublisher) {
+        return new OpenId4VpFixtureIngestionService(
+                new OpenId4VpFixtureIngestionService.Dependencies(storedPresentationFixtures, telemetryPublisher));
     }
 }

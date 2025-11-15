@@ -13,6 +13,9 @@ import io.openauth.sim.core.emv.cap.EmvCapMode;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -89,6 +92,7 @@ public final class EmvCapReplayApplicationService {
 
         List<Integer> deltas = previewDeltas(driftBackward, driftForward);
         Optional<EmvCapEvaluationApplicationService.Trace> lastTrace = Optional.empty();
+        String baselineOtp = null;
         for (int delta : deltas) {
             EvaluationRequest candidate = delta == 0 ? baseRequest : adjustAtc(baseRequest, delta);
             if (candidate == null) {
@@ -97,10 +101,14 @@ public final class EmvCapReplayApplicationService {
 
             EmvCapEvaluationApplicationService.EvaluationResult evaluation =
                     evaluationService.evaluate(candidate, verbose);
+            if (delta == 0) {
+                baselineOtp = evaluation.otp();
+            }
             if (verbose) {
                 lastTrace = evaluation.traceOptional();
             }
             if (otpMatches(evaluation.otp(), suppliedOtp)) {
+                String otpHash = otpHash(evaluation.otp());
                 TelemetrySignal telemetry = successTelemetry(
                         candidate,
                         credentialSource,
@@ -108,7 +116,8 @@ public final class EmvCapReplayApplicationService {
                         driftBackward,
                         driftForward,
                         delta,
-                        suppliedOtp.length());
+                        suppliedOtp.length(),
+                        otpHash);
 
                 Optional<EmvCapEvaluationApplicationService.Trace> trace =
                         verbose ? evaluation.traceOptional() : Optional.empty();
@@ -127,8 +136,15 @@ public final class EmvCapReplayApplicationService {
             }
         }
 
+        String expectedOtpHash = otpHash(baselineOtp);
         TelemetrySignal telemetry = mismatchTelemetry(
-                baseRequest, credentialSource, credentialId, driftBackward, driftForward, suppliedOtp.length());
+                baseRequest,
+                credentialSource,
+                credentialId,
+                driftBackward,
+                driftForward,
+                suppliedOtp.length(),
+                expectedOtpHash);
 
         return new ReplayResult(
                 telemetry,
@@ -259,12 +275,16 @@ public final class EmvCapReplayApplicationService {
             int driftBackward,
             int driftForward,
             int matchedDelta,
-            int suppliedOtpLength) {
+            int suppliedOtpLength,
+            String otpHash) {
 
         Map<String, Object> fields = baseTelemetryFields(
                 request, credentialSource, credentialId, driftBackward, driftForward, suppliedOtpLength);
         fields.put("matchedDelta", matchedDelta);
         fields.put("match", true);
+        if (otpHash != null && !otpHash.isBlank()) {
+            fields.put("otpHash", otpHash);
+        }
 
         return new TelemetrySignal(request.mode(), TelemetryStatus.SUCCESS, REASON_MATCH, null, true, fields);
     }
@@ -275,11 +295,16 @@ public final class EmvCapReplayApplicationService {
             Optional<String> credentialId,
             int driftBackward,
             int driftForward,
-            int suppliedOtpLength) {
+            int suppliedOtpLength,
+            String expectedOtpHash) {
 
         Map<String, Object> fields = baseTelemetryFields(
                 request, credentialSource, credentialId, driftBackward, driftForward, suppliedOtpLength);
         fields.put("match", false);
+        fields.put("mismatchReason", REASON_MISMATCH);
+        if (expectedOtpHash != null && !expectedOtpHash.isBlank()) {
+            fields.put("expectedOtpHash", expectedOtpHash);
+        }
 
         return new TelemetrySignal(request.mode(), TelemetryStatus.INVALID, REASON_MISMATCH, null, true, fields);
     }
@@ -304,6 +329,30 @@ public final class EmvCapReplayApplicationService {
         fields.put("ipbMaskLength", request.issuerProprietaryBitmapHex().length() / 2);
         fields.put("atc", request.atcHex());
         return fields;
+    }
+
+    private static String otpHash(String otp) {
+        if (otp == null) {
+            return null;
+        }
+        String normalized = otp.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        if (!normalized.matches("\\d+")) {
+            return null;
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashed = digest.digest(normalized.getBytes(StandardCharsets.UTF_8));
+            StringBuilder builder = new StringBuilder("sha256:");
+            for (byte value : hashed) {
+                builder.append(String.format(Locale.ROOT, "%02X", value));
+            }
+            return builder.toString();
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
     }
 
     /** Describes a replay invocation originating from a facade. */

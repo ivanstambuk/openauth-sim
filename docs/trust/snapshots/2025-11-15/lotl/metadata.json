@@ -1,0 +1,11 @@
+{
+  "sourceUrl": "https://ec.europa.eu/tools/lotl/eu-lotl.xml",
+  "retrievedAt": "2025-11-15T13:11:59Z",
+  "sha256": "e00b942e38fa340e4631aa7cacf9f528fc917441008f20e71b2670da45833df1",
+  "tslSequenceNumber": 373,
+  "listIssueDateTime": "2025-10-15T10:09:50Z",
+  "notes": [
+    "Option A ingestion per Feature 006 I8",
+    "Signature verification pending integration via DigestVerifier before publishing"
+  ]
+}

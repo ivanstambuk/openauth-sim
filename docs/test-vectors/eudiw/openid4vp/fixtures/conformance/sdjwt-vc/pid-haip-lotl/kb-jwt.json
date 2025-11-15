@@ -1,0 +1,17 @@
+{
+  "protected": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9",
+  "payload": {
+    "aud": "https://verifier.example.eu/openid4vp",
+    "nonce": "pid-haip-baseline-nonce",
+    "cnf": {
+      "jwk": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "V0lld0F0dFh6Z1FhaGJoV2R4WnMxYVdpc3RkUGRtU2Y=",
+        "y": "R1ZNTXpoa0lSY1k4eFJMSU5OZ2N6NjRDRnhWWk1DMlU=",
+        "kid": "pid-haip-baseline-holder"
+      }
+    }
+  },
+  "signature": "RW1UZXN0S0JKV1NpZ25hdHVyZVN0cmluZw=="
+}

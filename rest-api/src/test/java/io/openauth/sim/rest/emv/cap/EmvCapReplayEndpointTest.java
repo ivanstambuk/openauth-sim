@@ -16,6 +16,8 @@ import io.openauth.sim.application.emv.cap.EmvCapSeedSamples;
 import io.openauth.sim.application.emv.cap.EmvCapSeedSamples.SeedSample;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures.ReplayFixture;
+import io.openauth.sim.core.emv.cap.EmvCapReplayMismatchFixtures;
+import io.openauth.sim.core.emv.cap.EmvCapReplayMismatchFixtures.MismatchFixture;
 import io.openauth.sim.core.emv.cap.EmvCapTraceProvenanceSchema;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
@@ -250,6 +252,30 @@ final class EmvCapReplayEndpointTest {
                 .isNotBlank();
         assertEquals(provenanceOtp, expectedOtp);
         assertTraceSchema(trace);
+    }
+
+    @Test
+    @DisplayName("Stored replay mismatch metadata surfaces expectedOtpHash")
+    void storedReplayMismatchIncludesOtpHash() throws Exception {
+        MismatchFixture mismatch = EmvCapReplayMismatchFixtures.load("stored-respond-mismatch");
+        ReplayFixture fixture = mismatch.replayFixture();
+
+        String responseBody = mockMvc.perform(post("/api/v1/emv/cap/replay")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(storedRequestBody(fixture, true)
+                                .replace(fixture.otpDecimal(), mismatch.mismatchOtpDecimal())))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = JSON.readTree(responseBody);
+        assertEquals("mismatch", root.get("status").asText());
+        JsonNode metadata = root.get("metadata");
+        assertNotNull(metadata, "Metadata is required on mismatch responses");
+        JsonNode hashNode = metadata.get("expectedOtpHash");
+        assertNotNull(hashNode, "expectedOtpHash metadata should be populated for stored mismatches");
+        assertEquals(mismatch.expectedOtpHash(), hashNode.asText());
     }
 
     @Test

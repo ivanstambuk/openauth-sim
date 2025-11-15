@@ -437,7 +437,7 @@ Command help must reference the REST endpoints for cross-facade parity and highl
 | FX-006-02 | `docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/mdoc/*.json` | ISO/IEC 18013-5 DeviceResponse payloads plus diagnostic CBOR text for deterministic tests. |
 | FX-006-03 | `docs/test-vectors/eudiw/openid4vp/trust/**/*` | Trusted Authority anchors, policies, and snapshots (friendly labels + AKI metadata). |
 | FX-006-04 | `docs/test-vectors/eudiw/openid4vp/stored/presentations/*.json` | Stored VP Tokens mapped to presets for Replay mode. |
-| FX-006-05 | `docs/test-vectors/eudiw/openid4vp/provenance.json` + `presentations/seed` payloads | Fixture dataset provenance for ingestion, including source hashes and timestamps. |
+| FX-006-05 | `docs/trust/snapshots/<timestamp>/manifest.json` + `docs/test-vectors/eudiw/openid4vp/fixtures/*/provenance.json` + `presentations/seed` payloads | Fixture dataset provenance for ingestion, including source hashes, LOTL/Member TL sequences, and ingest timestamps surfaced via telemetry + REST metadata. |
 
 ### UI States
 

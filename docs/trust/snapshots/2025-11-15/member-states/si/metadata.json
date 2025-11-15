@@ -1,0 +1,12 @@
+{
+  "country": "SI",
+  "sourceUrl": "https://www.tl.gov.si/SI_TL.xml",
+  "retrievedAt": "2025-11-15T13:11:59Z",
+  "sha256": "d6a15fd63f28c01dc767d8103a2e9d0ec569d48838045bf372af559b9c7d2de3",
+  "tslSequenceNumber": 78,
+  "listIssueDateTime": "2025-07-02T08:20:21Z",
+  "notes": [
+    "Slovenia TL snapshot captured for HAIP pilot coverage",
+    "Refresh alongside LOTL updates"
+  ]
+}

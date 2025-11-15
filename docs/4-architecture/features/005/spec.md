@@ -2,8 +2,8 @@
 
 | Field | Value |
 |-------|-------|
-| Status | In review |
-| Last updated | 2025-11-13 |
+| Status | Complete |
+| Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/005/plan.md` |
 | Linked tasks | `docs/4-architecture/features/005/tasks.md` |
@@ -349,7 +349,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
      - Input groups for derivation parameters, customer inputs, ICC template, issuer application data, and mode selector radio buttons.
      - “Load a sample vector” dropdown mirroring other protocols (fed by MapDB persistence in R6).
      - Preview-window offset controls (`Backward`, `Forward`) matching the HOTP/TOTP/OCRA evaluation panels.
-  2. Rely exclusively on the global “Enable verbose tracing for the next request” control shared by all protocols; when unchecked, the trace pane remains hidden and the request omits the `trace` flag. Surface the shared warning copy (`Verbose traces expose raw secrets and intermediate buffers. Use only in trusted environments.`) beneath the global toggle.
+  2. Rely exclusively on the global “Enable verbose tracing for the next request” control shared by all protocols; when unchecked, the trace pane remains hidden and the request omits the `trace` flag. Surface the shared warning copy (`Verbose traces expose raw secrets and intermediate buffers. Use only in trusted environments.`) beneath the global toggle. The same toggle drives both Evaluate and Replay submissions: inline and stored replay requests must copy the toggle state into `includeTrace` before hitting the REST endpoints so CLI/REST/UI stay in sync, and the shared `VerboseTraceConsole` remains hidden unless the backend returned a trace payload for that request.
   3. Request layout mirrors HOTP/TOTP/OCRA: left column hosts the input form (including preview-window offsets that drive the evaluation result table), right column renders the result card. The result card surfaces only the OTP preview table (counter/Δ/OTP) and the status badge; all other metadata shifts to verbose trace.
   4. Stored credential mode hides preset-owned secrets entirely: ICC master key, CDOL1 payload, Issuer Proprietary Bitmap, ICC payload template, and Issuer Application Data inputs disappear so operators only see editable fields. Apply `hidden`/`aria-hidden="true"` to the surrounding `.field-group` containers and mask wrappers so neither labels nor helper copy render while stored mode is active; switching back to inline mode removes those attributes and restores the full editable set.
   5. Session key derivation fieldset mirrors the reference calculator: ICC master key + ATC occupy the first row, Branch factor (b) and Height (H) share the next horizontal row, and the IV spans the full width beneath them. The ICC master key **and** IV controls are single-line text inputs (no textareas) so the row stays compact without vertical scrolling; only the master key column hides in stored mode while the ATC and IV inputs remain visible. The inputs must each expand to the full width of their column without additional gutter spacing on the row, matching the sizing applied to branch/height. Branch/height inputs remain visible in stored mode (only secrets like the master key hide) so operators can audit the tree configuration at a glance. Selenium coverage asserts both rows keep their dedicated wrappers and width constraints.
@@ -671,7 +671,7 @@ Legend: verbose trace remains optional; result metrics (mask length, ATC, etc.) 
 
 ## Telemetry & Observability
 - `emv.cap.identify`, `emv.cap.respond`, and `emv.cap.sign` events capture mode, ATC, mask length, preview offsets, and sanitized credential metadata; master keys surface only as `sha256:<digest>` while session keys remain visible for troubleshooting.
-- `emv.cap.replay.match` and `emv.cap.replay.mismatch` emit replay outcomes with OTP hashes, preview offsets, and mismatch reasons without exposing raw OTP digits.
+- `emv.cap.replay.match` and `emv.cap.replay.mismatch` emit replay outcomes with OTP hashes, preview offsets, and mismatch reasons without exposing raw OTP digits; TE-005-05 (`emv.cap.replay.mismatch`) now includes both `mismatchReason` and `expectedOtpHash` fields across application, REST, CLI, and operator UI telemetry.
 - Verbose traces follow `EmvCapTraceProvenanceSchema`, rendering protocol context, key derivation, CDOL/IAD decoding, MAC transcript, and decimalization overlays via `VerboseTraceConsole`.
 - Telemetry snapshot tests (`TraceSchemaAssertions`) keep redaction policies aligned across REST, CLI, and UI.
 

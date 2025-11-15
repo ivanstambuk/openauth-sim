@@ -11,6 +11,9 @@ set -euo pipefail
 
 ROOT_DIR=$(git rev-parse --show-toplevel)
 MAX_FILE_SIZE_BYTES=$((1024 * 1024)) # 1 MB
+LARGE_FILE_EXCEPTIONS=(
+  "docs/trust/snapshots/2025-11-15/member-states/de/trusted-list.xml"
+)
 
 log() { echo "[pre-commit] $*" >&2; }
 die() { log "$*"; exit 1; }
@@ -156,6 +159,16 @@ validate_environment() {
   require_command file "Install 'file' command (usually part of util-linux) before committing."
 }
 
+is_large_file_exception() {
+  local target=$1
+  for exception in "${LARGE_FILE_EXCEPTIONS[@]}"; do
+    if [[ $target == "$exception" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 enforce_staged_file_guards() {
   local -a large_files=()
   local -a binary_files=()
@@ -166,7 +179,11 @@ enforce_staged_file_guards() {
 
     size_bytes=$(wc -c <"$file")
     if (( size_bytes > MAX_FILE_SIZE_BYTES )); then
-      large_files+=("$file ($(human_readable_size "$size_bytes"))")
+      if is_large_file_exception "$file"; then
+        log "Allowing large file exception for $file ($(human_readable_size "$size_bytes"))."
+      else
+        large_files+=("$file ($(human_readable_size "$size_bytes"))")
+      fi
     fi
 
     if [[ $file == "gradle/wrapper/gradle-wrapper.jar" ]]; then

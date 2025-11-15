@@ -149,6 +149,15 @@
   var replayReasonNode = replayResultPanel
       ? replayResultPanel.querySelector('[data-testid="emv-replay-reason"]')
       : null;
+  var replayMismatchPlaceholder = replayResultPanel
+      ? replayResultPanel.querySelector('[data-testid="emv-replay-mismatch-placeholder"]')
+      : null;
+  var replayMismatchCopyNode = replayMismatchPlaceholder
+      ? replayMismatchPlaceholder.querySelector('[data-testid="emv-replay-mismatch-copy"]')
+      : null;
+  var replayMismatchCta = replayMismatchPlaceholder
+      ? replayMismatchPlaceholder.querySelector('[data-testid="emv-replay-open-placeholder"]')
+      : null;
   var evaluateSensitiveFields = buildSensitiveFields([
     { input: masterKeyInput, mask: form.querySelector('[data-testid="emv-master-key-mask"]'), formatter: formatMasterKeyMask },
     { input: cdol1Input, mask: form.querySelector('[data-testid="emv-cdol1-mask"]'), formatter: formatHexMaskFactory('cdol1') },
@@ -1168,9 +1177,20 @@
       replayReferenceInput: replayReferenceInput,
       replayAmountInput: replayAmountInput,
       buildReplayPayload: buildReplayPayload,
+      renderReplaySuccess: renderReplaySuccess,
+      renderReplayFailure: renderReplayFailure,
       hydrateCredentialDetails: triggerCredentialHydration,
       listCredentials: function () {
         return credentialsList.slice();
+      },
+      getReplayMismatchPlaceholder: function () {
+        return replayMismatchPlaceholder;
+      },
+      getReplayMismatchCopy: function () {
+        return replayMismatchCopyNode;
+      },
+      getReplayMismatchCta: function () {
+        return replayMismatchCta;
       },
     };
     Object.keys(exportedHooks).forEach(function (key) {
@@ -1640,6 +1660,72 @@
       replayReasonNode.setAttribute('hidden', 'hidden');
       replayReasonNode.setAttribute('aria-hidden', 'true');
     }
+    resetReplayDiagnosticsPlaceholder();
+  }
+
+  // TODO(T-005-72): Replace placeholder wiring once replay mismatch diagnostics land (TE-005-05).
+  function resetReplayDiagnosticsPlaceholder() {
+    if (!replayMismatchPlaceholder) {
+      return;
+    }
+    replayMismatchPlaceholder.setAttribute('hidden', 'hidden');
+    replayMismatchPlaceholder.setAttribute('aria-hidden', 'true');
+    replayMismatchPlaceholder.removeAttribute('data-expected-otp-hash');
+    replayMismatchPlaceholder.removeAttribute('data-credential-source');
+    replayMismatchPlaceholder.removeAttribute('data-placeholder-pending');
+    if (replayMismatchCta) {
+      replayMismatchCta.setAttribute('disabled', 'disabled');
+      replayMismatchCta.setAttribute('aria-disabled', 'true');
+    }
+  }
+
+  function queueReplayDiagnosticsPlaceholder(metadata, requestContext) {
+    if (!replayMismatchPlaceholder) {
+      return;
+    }
+    var expectedHash = metadata && typeof metadata.expectedOtpHash === 'string'
+      ? metadata.expectedOtpHash.trim()
+      : '';
+    if (expectedHash) {
+      replayMismatchPlaceholder.setAttribute('data-expected-otp-hash', expectedHash);
+    } else {
+      replayMismatchPlaceholder.removeAttribute('data-expected-otp-hash');
+    }
+    var credentialSource = requestContext
+        && requestContext.metadata
+        && typeof requestContext.metadata.credentialSource === 'string'
+      ? requestContext.metadata.credentialSource
+      : '';
+    if (credentialSource) {
+      replayMismatchPlaceholder.setAttribute('data-credential-source', credentialSource);
+    } else {
+      replayMismatchPlaceholder.removeAttribute('data-credential-source');
+    }
+    replayMismatchPlaceholder.setAttribute('data-placeholder-pending', expectedHash ? 'true' : 'false');
+
+    if (!expectedHash) {
+      return;
+    }
+
+    if (isReplayTraceRequested()) {
+      return;
+    }
+
+    replayMismatchPlaceholder.removeAttribute('hidden');
+    replayMismatchPlaceholder.setAttribute('aria-hidden', 'false');
+
+    if (replayMismatchCopyNode) {
+      var parts = [];
+      parts.push('Replay mismatch detected.');
+      parts.push(' Expected OTP (sha256 digest): ' + expectedHash + '.');
+      parts.push(' Enable verbose tracing for the next request and replay to view mismatch diagnostics.');
+      updateText(replayMismatchCopyNode, parts.join(''));
+    }
+
+    if (replayMismatchCta) {
+      replayMismatchCta.removeAttribute('disabled');
+      replayMismatchCta.removeAttribute('aria-disabled');
+    }
   }
 
   function handleReplaySubmit() {
@@ -1734,6 +1820,7 @@
       replayResultPanel.removeAttribute('hidden');
       replayResultPanel.setAttribute('aria-hidden', 'false');
     }
+    resetReplayDiagnosticsPlaceholder();
 
     var status = body && body.status ? String(body.status) : 'unknown';
     updateText(replayStatusBadge, formatReplayStatus(status));
@@ -1767,6 +1854,7 @@
         replayReasonNode.removeAttribute('hidden');
         replayReasonNode.removeAttribute('aria-hidden');
       }
+      queueReplayDiagnosticsPlaceholder(responseMetadata, requestContext);
     } else {
       updateText(replayOtpNode, suppliedOtp ? 'Supplied OTP: ' + suppliedOtp : 'Supplied OTP');
       if (replayMatchedDeltaNode) {

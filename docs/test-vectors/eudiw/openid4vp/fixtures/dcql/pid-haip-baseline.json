@@ -15,6 +15,10 @@
     {
       "type": "aki",
       "values": [ "s9tIpP7qrS9=" ]
+    },
+    {
+      "type": "etsi_tl",
+      "values": [ "lotl-373", "de-149", "si-78" ]
     }
   ]
 }

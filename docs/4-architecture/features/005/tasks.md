@@ -144,14 +144,13 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-19 – Verbose trace schema documentation (2025-11-09) (S39-08): updated `docs/4-architecture/features/039/spec.md` with the authoritative `trace.provenance` JSON schema, refreshed `docs/4-architecture/features/039/plan.md` (I50 split into I50a/I50b), and noted the requirement in this tasks file so future increments have a fixed contract before staging tests. Documentation-only change; no Gradle commands executed.
-  _Intent:_ Verbose trace schema documentation (2025-11-09) (S39-08): updated
+- [x] T-005-19 – Verbose trace schema documentation (2025-11-09) (S39-08): documented the authoritative `trace.provenance` JSON schema in the EMV/CAP spec/plan (now owned by Feature 005) and recorded the requirement in this tasks file so future increments have a fixed contract before staging tests. Documentation-only change; no Gradle commands executed.
+  _Intent:_ Verbose trace schema documentation (2025-11-09) (S39-08): capture the `trace.provenance` schema in the governing EMV/CAP spec/plan so all modules share the same contract.
   _Verification commands:_
-  - `docs/4-architecture/features/039/spec.md`
-  - `docs/4-architecture/features/039/plan.md`
+  - Documentation updates only (no commands executed)
 
-- [x] T-005-20 – Implementation Drift Gate (S39-01, S39-05, S39-08): cross-checked Feature 039 spec R1–R10 against the implemented tests (core/application `EmvCap*ServiceTest`, REST MockMvc suites, Picocli tests, Node + Selenium harnesses, and the provenance schema helpers), documented the drift report in the feature plan, aligned the roadmap/how-to guides with the dual `trace-provenance-example.json` requirement, and reran `./gradlew --no-daemon spotlessApply check` after the documentation sweep. Feature 039 now sits in review pending owner acceptance while Feature 040 work may resume.
-  _Intent:_ Implementation Drift Gate (S39-01, S39-05, S39-08): cross-checked Feature 039 spec R1–R10 against the implemented tests (core/application
+- [x] T-005-20 – Implementation Drift Gate (S39-01, S39-05, S39-08): cross-checked the EMV/CAP provenance requirements (historically tracked under a separate provenance feature) against the implemented tests (core/application `EmvCap*ServiceTest`, REST MockMvc suites, Picocli tests, Node + Selenium harnesses, and the provenance schema helpers), documented the drift report in the Feature 005 plan, aligned the roadmap/how-to guides with the dual `trace-provenance-example.json` requirement, and reran `./gradlew --no-daemon spotlessApply check` after the documentation sweep.
+  _Intent:_ Implementation Drift Gate (S39-01, S39-05, S39-08): confirm the EMV/CAP provenance spec/plan (now consolidated under Feature 005) matches the shipped implementation and tests.
   _Verification commands:_
   - `./gradlew --no-daemon spotlessApply check`
 
@@ -508,37 +507,58 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   > - `buildReplayPayload` now sets `includeTrace` explicitly based on the verbose-toggle state, so inline replay submissions request traces just like evaluate/stored flows; the shared `VerboseTraceConsole` hook keeps rendering responses through `handleResponse`.
   > - The full Gradle gate first timed out and then failed on a MapDB file lock; re-running `spotlessApply check` with a dedicated persistence path cleared `WebAuthnCredentialSanitisationTest` and produced a clean pass.
 
-- [ ] T-005-69 – Documentation refresh (S39-10): Update the EMV/CAP REST, CLI, and operator UI how-to guides, refresh the knowledge map + roadmap entry #5, and capture the I8b/I9 clarifications inside the feature spec/plan/tasks (including notes about the shared verbose console plus includeTrace handling).
+- [x] T-005-69 – Documentation refresh (S39-10): Update the EMV/CAP REST, CLI, and operator UI how-to guides, refresh the knowledge map + roadmap entry #5, and capture the I8b/I9 clarifications inside the feature spec/plan/tasks (including notes about the shared verbose console plus includeTrace handling).
   _Intent:_ Keep all reference docs aligned with the new verbose console + replay guidance before the verification sweep.
   _Verification commands:_
   - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`
   - `./gradlew --no-daemon spotlessApply check`
+  _Notes:_ Rest/CLI/operator UI how-to guides now explain that Evaluate and Replay respect the single verbose-trace toggle (propagating `includeTrace`), the spec/plan capture that clarification for I8b/I9, and roadmap/knowledge-map entries highlight the shared `VerboseTraceConsole` behaviour.
 
-- [ ] T-005-70 – Verification & session log (S39-10): Run the full Gradle quality gate after the documentation refresh and record the passing commands plus any follow-ups in `_current-session.md` and the Feature 005 plan/tasks.
+- [x] T-005-70 – Verification & session log (S39-10): Run the full Gradle quality gate after the documentation refresh and record the passing commands plus any follow-ups in `_current-session.md` and the Feature 005 plan/tasks.
   _Intent:_ Provide the final green evidence for I9 and prove the docs/code/tests remain in sync.
   _Verification commands:_
   - `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`
   - `./gradlew --no-daemon qualityGate` (if required by governance)
   - Update `_current-session.md` with the command log (no command, tracked as a documentation step)
+  _Notes:_ Both commands passed (see `_current-session.md` 2025-11-15c/15d logs) and confirm the post-doc refresh build remains green across modules plus the governance `qualityGate` sweep.
 
-- [ ] T-005-71 – Replay fixture scaffolding & backend red tests (S39-05): Extend `docs/test-vectors/emv-cap/*.json` with stored/inline mismatch cases, add failing assertions to `EmvCapReplayApplicationServiceTest`, `EmvCapReplayEndpointTest`, `EmvCapReplayServiceTest`, and `EmvCliReplayTest`, and document the expected telemetry/mismatch payloads.
+- [x] T-005-71 – Replay fixture scaffolding & backend red tests (S39-05): Extend `docs/test-vectors/emv-cap/*.json` with stored/inline mismatch cases, add failing assertions to `EmvCapReplayApplicationServiceTest`, `EmvCapReplayEndpointTest`, `EmvCapReplayServiceTest`, and `EmvCliReplayTest`, and document the expected telemetry/mismatch payloads.
   _Intent:_ Capture the replay expectations (preview windows, mismatch deltas, trace payloads) before implementation.
   _Verification commands:_
-  - `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.emv.cap.*Replay*"`
-  - `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*Replay*"`
-  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapReplayEndpointTest"`
-  - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliReplayTest"`
+  - `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.EmvCapReplayApplicationServiceTest.storedReplayMismatchTelemetryIncludesExpectedOtpHash"` (PASS – telemetry now exposes `expectedOtpHash` + `mismatchReason`)
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapReplayEndpointTest.storedReplayMismatchIncludesOtpHash"` (PASS – REST metadata surfaces `expectedOtpHash` for stored mismatches)
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapReplayServiceTest.metadataIncludesExpectedOtpHash"` (PASS – REST metadata adapter propagates hashed OTP when telemetry provides it)
+  - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliReplayTest.inlineReplayMismatchReturnsMismatchStatus"` (PASS – CLI JSON metadata now includes `expectedOtpHash`)
   _Notes:_
-  > - These suites should remain red until the subsequent implementation increment lands; capture TODOs inside the tests referencing I10 follow-ups.
+  > - Added `docs/test-vectors/emv-cap/replay-mismatch.json` (FX-005-04) plus `EmvCapReplayMismatchFixtures` to keep hashed OTP expectations deterministic; the follow-up implementation (T-005-73) wires telemetry + metadata so `expectedOtpHash` and `mismatchReason` surface across application/REST/CLI as required by TE-005-05.
 
-- [ ] T-005-72 – Replay UI placeholders (S39-05): Add Replay tab placeholders in the operator console JS + Selenium suites (Evaluate/Replay drawer interactions, OTP mismatch messaging, includeTrace toggle) and guard them with `@Disabled`/TODO markers so they fail fast once re-enabled.
+- [x] T-005-72 – Replay UI placeholders (S39-05): Add Replay tab placeholders in the operator console JS + Selenium suites (Evaluate/Replay drawer interactions, OTP mismatch messaging, includeTrace toggle) and guard them with `@Disabled`/TODO markers so they fail fast once re-enabled.
   _Intent:_ Ensure UI automation is ready the moment replay implementation resumes, without blocking Feature 005’s current review.
   _Verification commands:_
   - `node --test rest-api/src/test/javascript/emv/console.test.js`
-  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
-  - `./gradlew --no-daemon :ui:test`
   _Notes:_
-  > - Leave clear TODO references back to I10 so the disabled Selenium cases are reactivated once replay implementation begins.
+  > - Replay result card now exposes a diagnostics banner with explicit `data-placeholder="T-005-72"` markup, the JS stores hashed OTP metadata and renders a hashed OTP guidance banner when mismatches occur and verbose tracing is disabled, and Node/Selenium suites now exercise the banner copy/CTA behaviour directly (tests were originally skipped/`@Disabled` and have been re-enabled now that TE-005-05 telemetry is wired).
+
+- [x] T-005-74 – Replay mismatch banner & UI coverage (S39-05): Activate the Replay mismatch banner, wire hashed OTP metadata and verbose-trace guidance into the operator console, and enable the T-005-72 Node/Selenium tests.
+  _Intent:_ Surface hashed OTP diagnostics and clear guidance in the UI when replay mismatches occur without verbose tracing, keeping operators aligned with the backend telemetry.
+  _Verification commands:_
+  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest.replayMismatchDisplaysDiagnosticsBanner"`
+  _Notes:_
+  > - The EMV/CAP replay result card now shows a visible banner on mismatch responses when telemetry includes `expectedOtpHash` but the global “Enable verbose tracing for the next request” toggle is disabled; the banner copy surfaces the `sha256:` digest and instructs operators to enable verbose tracing and replay for full diagnostics, and the CTA button becomes enabled (no longer `disabled`/`aria-disabled`) while leaving replay submission mechanics unchanged.
+
+- [x] T-005-73 – Replay mismatch telemetry & metadata wiring (S39-05): Wire `expectedOtpHash` + `mismatchReason` into EMV/CAP replay mismatch telemetry (TE-005-05), propagate hashed OTP metadata through REST/CLI responses, refresh OpenAPI snapshots, and rerun the full Gradle gate.
+  _Intent:_ Deliver the replay mismatch diagnostics required for backend/CLI parity so operators and the placeholder UI banner can rely on hashed OTP metadata without exposing raw digits.
+  _Verification commands:_
+  - `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.EmvCapReplayApplicationServiceTest.storedReplayMismatchTelemetryIncludesExpectedOtpHash"`
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapReplayServiceTest.metadataIncludesExpectedOtpHash"`
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapReplayEndpointTest.storedReplayMismatchIncludesOtpHash"`
+  - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliReplayTest.inlineReplayMismatchReturnsMismatchStatus"`
+  - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`
+  - `./gradlew --no-daemon spotlessApply check`
+  _Notes:_
+  > - `EmvCapReplayApplicationService` now computes an `otpHash` for successful replays and an `expectedOtpHash` for mismatches using a `sha256:` digest of the expected OTP, adding a `mismatchReason` field to mismatch telemetry events (`emv.cap.replay.mismatch`) without logging raw digits.
+  > - REST metadata (`EmvCapReplayMetadata`) and CLI JSON metadata both surface `expectedOtpHash` when telemetry provides it; OpenAPI snapshots were refreshed to document the new metadata field, and the full `spotlessApply check` pipeline passed with replay diagnostics in place (see `_current-session.md` logs for timestamps).
 
 ## Verification log
 - 2025-11-09 – `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`

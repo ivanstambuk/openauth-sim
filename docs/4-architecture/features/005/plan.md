@@ -37,12 +37,12 @@ _Last updated:_ 2025-11-13
 ## Implementation Drift Gate
 - **Checkpoint date:** 2025-11-09 (T3952).
 - **Traceability review (R1–R10):** Confirmed every specification branch is represented by executable coverage. `TraceSchemaAssertions`, `EmvCapEvaluationApplicationServiceTest`, `EmvCapReplayApplicationServiceTest`, `EmvCapEvaluationEndpointTest`, `EmvCapReplayEndpointTest`, `EmvCapReplayServiceTest`, and the Picocli suites (`EmvCliTest`, `EmvCliEvaluateStoredTest`, `EmvCliReplayTest`) lock the core/application/REST/CLI behaviours required by R1–R4 & R7–R9, including stored vs. inline parity, preview-window math, telemetry redaction, and includeTrace toggles. Node + Selenium harnesses (`rest-api/src/test/javascript/emv/console.test.js`, `EmvCapOperatorUiSeleniumTest`) enforce the UI layout rules in R5/R10 (mode selector placement, fieldset isolation, Replay CTA spacing, and verbose-trace dock alignment).
-- **Verbose trace schema (R2.4):** `EmvCapTraceProvenanceSchema`, `EmvCliTraceAssertions`, and the new provenance fixture assert all six provenance sections plus digest redaction semantics. Documented the dual-fixture requirement: keep `docs/test-vectors/emv-cap/trace-provenance-example.json` and `rest-api/docs/test-vectors/emv-cap/trace-provenance-example.json` in sync so application components, REST OpenAPI snapshots, Node tests, and Selenium stubs all consume the same contract until Feature 039 introduces an automated sync task.
+- **Verbose trace schema (R2.4):** `EmvCapTraceProvenanceSchema`, `EmvCliTraceAssertions`, and the new provenance fixture assert all six provenance sections plus digest redaction semantics. Documented the dual-fixture requirement: keep `docs/test-vectors/emv-cap/trace-provenance-example.json` and `rest-api/docs/test-vectors/emv-cap/trace-provenance-example.json` in sync so application components, REST OpenAPI snapshots, Node tests, and Selenium stubs all consume the same contract until a future fixture-sync automation task lands.
 - **Quality evidence:** Reran `./gradlew --no-daemon spotlessApply check` after the documentation updates to prove the repo stays green atop the T3949 full-gate run (see `_current-session.md` for the full command log captured earlier today).
-- **Documentation sync:** Updated the roadmap, operator UI how-to guide, Feature 039 tasks checklist, and `_current-session.md` with the drift-gate outcome plus the fixture duplication guardrail so downstream teams inherit the operating notes.
-- **Outcome:** No drift identified; Feature 039 stands ready for owner acceptance while Feature 040 can resume at T4018 now that the trace provenance schema, docs, and fixtures align across every facade.
+- **Documentation sync:** Updated the roadmap, operator UI how-to guide, Feature 005 tasks checklist, and `_current-session.md` with the drift-gate outcome plus the fixture duplication guardrail so downstream teams inherit the operating notes.
+- **Outcome:** No drift identified; the EMV/CAP provenance work captured in this feature stands ready for acceptance while downstream features can resume at T4018 now that the trace provenance schema, docs, and fixtures align across every facade.
 - **Report (2025-11-05):**
-  - **Reviewers:** Codex (GPT-5); Preconditions: all Feature 039 tasks complete with a green `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` (2025-11-05T20:40Z log).
+  - **Reviewers:** Codex (GPT-5); Preconditions: all EMV/CAP provenance tasks under Feature 005 complete with a green `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` (2025-11-05T20:40Z log).
   - **Spec alignment:** R5.4 (stored-mask sanitisation), R6.3–R6.4 (credential directory), and R7.2/R8.1 (stored replay hydration) now cite concrete code/tests: `rest-api/src/main/resources/static/ui/emv/console.js`, `EmvCapOperatorUiSeleniumTest`, `rest-api/src/test/javascript/emv/console.test.js`, `EmvCapCredentialDirectoryController{,Test}`, and replay Selenium coverage. Inline overrides + stored hydration flows remain covered in both JS and Selenium tests.
   - **Coverage:** Success, validation, and failure branches span REST, CLI, JS, and Selenium harnesses with digest/length assertions. No divergences identified; sanitisation helper pattern recommended for Feature 026. Artifacts synced across feature plan/tasks, knowledge map, and `_current-session.md`.
 
@@ -111,16 +111,16 @@ Historical increment notes (I1–I45, T3916/T3917, sample spacing tasks) reside 
 ## Scenario Tracking
 | Scenario ID | Increment / Task reference | Notes |
 |-------------|---------------------------|-------|
-| S39-01 | I0–I19, T3932–T3935 | Deterministic evaluate flows across core/application/REST/CLI/UI. |
-| S39-02 | I38–I40, T3931 | Operator UI inline presets stay editable when loading vectors. |
-| S39-03 | I37, T3933–T3934 | Stored workflows hide secrets, rely on digests, and hydrate server-side. |
-| S39-04 | I19, seeding increments | MapDB seeding + credential directory parity. |
-| S39-05 | I18, I19A | Replay journeys highlight match deltas + mismatch diagnostics. |
-| S39-06 | I18, UI JS tasks | Preview offset controls + validation errors across facades. |
-| S39-07 | I41–I45 | Console layout parity (field grouping, spacing, CTA alignment). |
-| S39-08 | I50/I50a | Verbose trace schema + provenance rendering. |
-| S39-09 | I34–I35, sample-vector tasks | Sample selector spacing + styling parity. |
-| S39-10 | REST/CLI doc tasks | Contract/docs parity, includeTrace handling, telemetry redaction guidance. |
+| S-005-01 | I0–I19, T3932–T3935 | Deterministic evaluate flows across core/application/REST/CLI/UI. |
+| S-005-02 | I38–I40, T3931 | Operator UI inline presets stay editable when loading vectors. |
+| S-005-03 | I37, T3933–T3934 | Stored workflows hide secrets, rely on digests, and hydrate server-side. |
+| S-005-04 | I19, seeding increments | MapDB seeding + credential directory parity. |
+| S-005-05 | I18, I19A | Replay journeys highlight match deltas + mismatch diagnostics. |
+| S-005-06 | I18, UI JS tasks | Preview offset controls + validation errors across facades. |
+| S-005-07 | I41–I45 | Console layout parity (field grouping, spacing, CTA alignment). |
+| S-005-08 | I50/I50a | Verbose trace schema + provenance rendering. |
+| S-005-09 | I34–I35, sample-vector tasks | Sample selector spacing + styling parity. |
+| S-005-10 | REST/CLI doc tasks | Contract/docs parity, includeTrace handling, telemetry redaction guidance. |
 
 ## Analysis Gate
 - **Reviewed:** 2025-11-02 – Replay expansion review (spec/plan/tasks updated; implementation gated behind new red tests)
@@ -202,22 +202,25 @@ Historical increment notes (I1–I45, T3916/T3917, sample spacing tasks) reside 
 
 10. **I8b – Verbose trace console parity (new)**  
     - Make the EMV/CAP verbose trace panel reuse the shared console behaviour: show the panel when a trace exists, hide it when not, and expose the standard copy interaction.  
-   - Ensure the `includeTrace` flag continues to flow through REST/CLI, and add UI/Selenium assertions that the trace displays when the global toggle is enabled.  
-    - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+    - Ensure the `includeTrace` flag continues to flow through REST/CLI, and add UI/Selenium assertions that the trace displays when the global toggle is enabled.  
+    - Commands: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.  
     - Task linkage: T-005-67 stages Node/Selenium coverage for the shared console toggle, and T-005-68 wires the shared console plumbing plus REST/CLI propagation.
     - **Status (2025-11-14):** Inline replay payloads now set `includeTrace` based on the shared verbose toggle, and CLI/REST/application/Selenium/Node suites plus the full Gradle gate were rerun (see T-005-68 verification log) to confirm the shared console plumbing holds.
+    - **Clarification (2025-11-15):** Evaluate and Replay submissions both read the single “Enable verbose tracing” toggle. Stored and inline replay payloads must copy that toggle state into `includeTrace` so REST + CLI traces only render when operators expect them, keeping the shared `VerboseTraceConsole` hidden whenever no trace returned.
+    - **2025-11-15 note:** Staged replay-mismatch fixtures (`docs/test-vectors/emv-cap/replay-mismatch.json`, FX-005-04) and red tests (T-005-71) asserting `expectedOtpHash` + `mismatchReason` telemetry fields across application/REST/CLI layers are now satisfied by the replay mismatch telemetry wiring (T-005-73); UI placeholder coverage (T-005-72) remains skipped/disabled until the banner surfaces hashed OTP guidance.
 
 11. **I9 – Documentation & final verification (full-scope)**  
    - Refresh how-to guides (REST, CLI, operator UI), knowledge map, roadmap, and OpenAPI snapshots; capture persistence guidance.  
    - Run full Gradle quality gate (`./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`).  
    - Update `_current-session.md` and close outstanding follow-ups.  
    - Task linkage: T-005-69 handles the documentation + roadmap/knowledge-map refresh, while T-005-70 captures the verification run and session log updates.
+   - **Clarification (2025-11-15):** Documentation updates must explicitly call out the shared verbose trace console, the cross-facade `includeTrace` toggle semantics (Evaluate + Replay + CLI flags), and the provenance fixture dual-storage requirement before the final verification sweep.
 
-12. **I10 – Replay scaffolding & red tests (pending)**  
-   - Update regression fixtures with replay/mismatch cases and stage failing unit/integration tests across application, REST, CLI, and UI layers to capture stored/inline replay expectations.  
-   - Add Selenium placeholders for replay tab interactions (disabled until implementation).  
-   - Commands to stage red coverage: `./gradlew --no-daemon :core:test :application:test :rest-api:test :cli:test :ui:test` (targeted classes noted in tasks).  
-   - Task linkage: T-005-71 captures fixture updates plus backend/CLI red tests, and T-005-72 stages the UI/Node/Selenium placeholders for replay interactions.
+12. **I10 – Replay scaffolding & red tests (complete 2025-11-15)**  
+   - Updated regression fixtures with replay/mismatch cases and staged failing unit/integration tests across application, REST, CLI, and UI layers to capture stored/inline replay expectations.  
+   - Added Selenium placeholders for replay tab interactions, then activated them once replay telemetry and mismatch diagnostics landed.  
+   - Commands used while staging and driving red coverage to green included: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.EmvCapReplayApplicationServiceTest.storedReplayMismatchTelemetryIncludesExpectedOtpHash"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapReplayEndpointTest.storedReplayMismatchIncludesOtpHash"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapReplayServiceTest.metadataIncludesExpectedOtpHash"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliReplayTest.inlineReplayMismatchReturnsMismatchStatus"`, `node --test rest-api/src/test/javascript/emv/console.test.js`, and targeted Selenium runs for `EmvCapOperatorUiSeleniumTest.replayMismatchDisplaysDiagnosticsBanner`.  
+   - Task linkage: T-005-71 captured fixture updates plus backend/CLI red tests, T-005-72 staged the UI/Node/Selenium placeholders for replay interactions, and T-005-73/T-005-74 delivered the replay mismatch telemetry/metadata wiring and banner coverage required by TE-005-05.
 
 13. **I11 – Application replay service (complete 2025-11-02)**  
    - Implement `EmvCapReplayApplicationService`, request/response records, telemetry adapters, and verbose trace assembly while driving red tests from I10 to green.  

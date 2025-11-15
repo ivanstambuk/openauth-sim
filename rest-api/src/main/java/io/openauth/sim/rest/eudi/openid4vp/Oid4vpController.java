@@ -3,12 +3,14 @@ package io.openauth.sim.rest.eudi.openid4vp;
 import io.openauth.sim.application.eudi.openid4vp.Oid4vpValidationException;
 import io.openauth.sim.application.eudi.openid4vp.Oid4vpVerboseTraceBuilder;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpAuthorizationRequestService;
+import io.openauth.sim.application.eudi.openid4vp.OpenId4VpFixtureIngestionService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpValidationService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService.Profile;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService.ResponseMode;
 import io.openauth.sim.application.eudi.openid4vp.TrustedAuthorityEvaluator;
 import io.openauth.sim.application.eudi.openid4vp.fixtures.FixtureSeedSequence;
+import io.openauth.sim.core.eudi.openid4vp.FixtureDatasets;
 import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.rest.VerboseTracePayload;
 import java.util.LinkedHashMap;
@@ -32,16 +34,19 @@ class Oid4vpController {
     private final OpenId4VpWalletSimulationService walletSimulationService;
     private final OpenId4VpValidationService validationService;
     private final FixtureSeedSequence seedSequence;
+    private final OpenId4VpFixtureIngestionService fixtureIngestionService;
 
     Oid4vpController(
             OpenId4VpAuthorizationRequestService authorizationRequestService,
             OpenId4VpWalletSimulationService walletSimulationService,
             OpenId4VpValidationService validationService,
-            FixtureSeedSequence seedSequence) {
+            FixtureSeedSequence seedSequence,
+            OpenId4VpFixtureIngestionService fixtureIngestionService) {
         this.authorizationRequestService = authorizationRequestService;
         this.walletSimulationService = walletSimulationService;
         this.validationService = validationService;
         this.seedSequence = seedSequence;
+        this.fixtureIngestionService = fixtureIngestionService;
     }
 
     @PostMapping("/requests")
@@ -99,10 +104,11 @@ class Oid4vpController {
 
     @PostMapping("/presentations/seed")
     ResponseEntity<SeedResponse> seedPresentations(@RequestBody SeedRequest payload) {
-        int requested =
-                payload.presentations() == null ? 0 : payload.presentations().size();
-        Map<String, Object> metadata = payload.metadata() == null ? Map.of() : payload.metadata();
-        SeedResponse response = new SeedResponse(payload.source(), requested, 0, metadata);
+        FixtureDatasets.Source source = resolveSource(payload.source());
+        List<String> requested = payload.presentations() == null ? List.of() : List.copyOf(payload.presentations());
+        var result = fixtureIngestionService.ingest(
+                new OpenId4VpFixtureIngestionService.IngestionRequest(source, requested));
+        SeedResponse response = SeedResponse.from(result, requested.size());
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -205,9 +211,57 @@ class Oid4vpController {
                 List<String> trustedAuthorityPolicies) {}
     }
 
+    private static FixtureDatasets.Source resolveSource(String value) {
+        if (value == null || value.isBlank()) {
+            return FixtureDatasets.Source.SYNTHETIC;
+        }
+        return FixtureDatasets.Source.valueOf(value.trim().toUpperCase(Locale.ROOT));
+    }
+
     private record SeedRequest(String source, List<String> presentations, Map<String, Object> metadata) {}
 
-    private record SeedResponse(String source, int createdCount, int updatedCount, Map<String, Object> metadata) {}
+    private record SeedResponse(
+            String source,
+            int requestedCount,
+            int ingestedCount,
+            Map<String, Object> provenance,
+            List<Map<String, Object>> presentations,
+            Map<String, Object> telemetry) {
+        static SeedResponse from(OpenId4VpFixtureIngestionService.IngestionResult result, int requestedCount) {
+            Map<String, Object> provenance = new LinkedHashMap<>();
+            provenance.put("source", result.provenance().source());
+            provenance.put("version", result.provenance().version());
+            provenance.put("sha256", result.provenance().sha256());
+            if (!result.provenance().metadata().isEmpty()) {
+                provenance.putAll(result.provenance().metadata());
+            }
+            List<Map<String, Object>> presentations = result.presentations().stream()
+                    .map(SeedResponse::mapPresentation)
+                    .toList();
+            Map<String, Object> telemetry = Map.of(
+                    "event",
+                    result.telemetry().event(),
+                    "fields",
+                    result.telemetry().fields());
+            return new SeedResponse(
+                    result.source().directoryName(),
+                    requestedCount,
+                    presentations.size(),
+                    Map.copyOf(provenance),
+                    presentations,
+                    telemetry);
+        }
+
+        private static Map<String, Object> mapPresentation(
+                OpenId4VpFixtureIngestionService.PresentationSummary summary) {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("presentationId", summary.presentationId());
+            map.put("credentialId", summary.credentialId());
+            map.put("format", summary.format());
+            map.put("trustedAuthorities", summary.trustedAuthorityPolicies());
+            return map;
+        }
+    }
 
     private record AuthorizationResponse(
             String requestId,

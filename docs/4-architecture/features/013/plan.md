@@ -2,8 +2,8 @@
 
 _Linked specification:_ `docs/4-architecture/features/013/spec.md`  
 _Linked tasks:_ `docs/4-architecture/features/013/tasks.md`  
-_Status:_ Complete  
-_Last updated:_ 2025-11-13  
+_Status:_ In review  
+_Last updated:_ 2025-11-15  
 _Owners:_ Ivan (project owner)  
 _Roadmap entry:_ #13 – Toolchain & Quality Platform
 
@@ -19,7 +19,7 @@ legacy entry points—so future increments know which commands to run and which 
 - Synchronize roadmap, knowledge map, architecture graph, session log (docs/_current-session.md), and `_current-session.md` entries with the
   refreshed toolchain ownership.
 
-_Out of scope:_ Executing the verification suites during this documentation-only increment or modifying build scripts.
+_Out of scope:_ Executing the verification suites during this documentation-only increment or modifying build scripts beyond the small, targeted automation tasks explicitly planned below.
 
 ## Dependencies & Interfaces
 | Dependency | Notes |
@@ -70,5 +70,21 @@ commands executed and any outstanding TODOs in `_current-session.md` and this pl
 - Monitor PMD Law-of-Demeter whitelist health + backlog of NonExhaustiveSwitch remediation.
 - Capture Gradle wrapper/plugin upgrade cadence for future releases.
 - Consider automation to ensure `legacyEmit`/router shims never reappear (simple `rg` guard in quality pipeline).
+- Add a lightweight fixture-sync helper for EMV/CAP trace provenance: Gradle tasks in `rest-api` to verify and sync `trace-provenance-example.json` between `docs/` and `rest-api/docs/` (see Feature 005 T-005-19..T-005-23, T-005-67 for context).
+
+## Active Increment – EMV/CAP provenance fixture sync
+
+1. **I013-EMV-1 – EMV trace fixture sync tasks (delivered 2025-11-15)**  
+   - Introduced dedicated typed Gradle tasks (`VerifyEmvTraceProvenanceFixture`, `SyncEmvTraceProvenanceFixture`) inside the `rest-api` module so the EMV/CAP trace provenance fixture stays mirrored between `docs/` and `rest-api/docs/`.  
+   - Tasks:  
+     - `:rest-api:verifyEmvTraceProvenanceFixture` – checks that `docs/test-vectors/emv-cap/trace-provenance-example.json` and `rest-api/docs/test-vectors/emv-cap/trace-provenance-example.json` remain byte-identical and produces a targeted remediation hint.  
+     - `:rest-api:syncEmvTraceProvenanceFixture` – copies the canonical fixture from `docs/` into `rest-api/docs/`, overwriting the module copy to restore parity.  
+   - Integration: `verifyEmvTraceProvenanceFixture` now sits on every `Test` task plus the `check` lifecycle goal so both `:rest-api:test` and `:rest-api:check` catch fixture drift automatically while remaining configuration-cache friendly.  
+   - Verification commands (2025-11-15):  
+     - `./gradlew --no-daemon :rest-api:verifyEmvTraceProvenanceFixture` (PASS – configuration cache stored)  
+     - `./gradlew --no-daemon :rest-api:syncEmvTraceProvenanceFixture` (PASS – logged copy path + configuration cache stored)  
+     - `./gradlew --no-daemon :rest-api:test` (PASS – verify task executed before tests)  
+     - `./gradlew --no-daemon spotlessApply check` (PASS – workspace-wide quality gate after build-logic updates)  
+   - Feature linkage: keeps the dual-fixture requirement documented in Feature 005 (T-005-19..T-005-23, T-005-67) enforceable via tooling instead of manual copy steps.
 
 $chunk

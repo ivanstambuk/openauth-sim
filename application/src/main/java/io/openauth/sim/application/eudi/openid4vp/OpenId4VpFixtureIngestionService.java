@@ -35,8 +35,17 @@ public final class OpenId4VpFixtureIngestionService {
         Map<String, Object> telemetryFields = new LinkedHashMap<>();
         telemetryFields.put("source", request.source().directoryName());
         telemetryFields.put("ingestedCount", summaries.size());
+        telemetryFields.put("provenanceSource", dataset.provenance().source());
         telemetryFields.put("provenanceVersion", dataset.provenance().version());
         telemetryFields.put("provenanceHash", dataset.provenance().sha256());
+        Map<String, Object> provenanceMetadata = dataset.provenance().metadata();
+        if (!provenanceMetadata.isEmpty()) {
+            provenanceMetadata.forEach((key, value) -> {
+                if (value != null) {
+                    telemetryFields.put(key, value);
+                }
+            });
+        }
 
         TelemetrySignal telemetry = dependencies
                 .telemetryPublisher()

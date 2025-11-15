@@ -1,6 +1,29 @@
 {
-  "source": "OpenID Foundation conformance bundle (placeholder)",
-  "version": "2025-10-15",
-  "sha256": "sha256:conformance-openid4vp-placeholder",
-  "description": "Reserved slot for imported EU/HAIP conformance vectors. Replace fields when official bundles are ingested."
+  "source": "EU LOTL + Member-State Trusted Lists (DE, SI)",
+  "version": "2025-11-15T13:11:59Z",
+  "sha256": "sha256:cb0dfbf7a8df9d7ea1b36bce46dbfc48ee5c40e8e6c6f43bae48e165b5bc69e5",
+  "description": "Ingested 2025-11-15 from ec.europa.eu/tools/lotl (sequence 373, 2025-10-15T10:09:50Z) plus Germany TL sequence 149 (2025-10-07T13:00:24Z) and Slovenia TL sequence 78 (2025-07-02T08:20:21Z).",
+  "metadata": {
+    "ingestId": "2025-11-15T13:11:59Z-optionA",
+    "manifest": "docs/trust/snapshots/2025-11-15/manifest.json",
+    "lotlSourceUrl": "https://ec.europa.eu/tools/lotl/eu-lotl.xml",
+    "lotlSequenceNumber": 373,
+    "lotlIssueDateTime": "2025-10-15T10:09:50Z",
+    "memberStates": [
+      {
+        "country": "DE",
+        "sourceUrl": "https://tl.bundesnetzagentur.de/TL-DE.xml",
+        "tslSequenceNumber": 149,
+        "listIssueDateTime": "2025-10-07T13:00:24Z",
+        "sha256": "sha256:aafe0e4520728b1e2c56d8d225480a0f5e159746a20da219bd4e9da97e51173a"
+      },
+      {
+        "country": "SI",
+        "sourceUrl": "https://www.tl.gov.si/SI_TL.xml",
+        "tslSequenceNumber": 78,
+        "listIssueDateTime": "2025-07-02T08:20:21Z",
+        "sha256": "sha256:d6a15fd63f28c01dc767d8103a2e9d0ec569d48838045bf372af559b9c7d2de3"
+      }
+    ]
+  }
 }

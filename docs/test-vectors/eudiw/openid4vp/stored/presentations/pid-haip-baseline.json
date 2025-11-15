@@ -5,11 +5,15 @@
   "source": "fixtures/synthetic/sdjwt-vc/pid-haip-baseline/",
   "trustedAuthorities": [
     "aki:s9tIpP7qrS9=",
-    "etsi_tl:EU-2025-09-TL",
+    "etsi_tl:lotl-373",
+    "etsi_tl:de-149",
+    "etsi_tl:si-78",
     "openid_federation:https://haip.ec.europa.eu/trust-list"
   ],
   "metadata": {
     "description": "Synthetic PID baseline presentation aligned with HAIP profile.",
-    "version": "2025-11-01"
+    "version": "2025-11-01",
+    "ingestId": "2025-11-15T13:11:59Z-optionA",
+    "lotlSequenceNumber": 373
   }
 }

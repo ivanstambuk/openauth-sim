@@ -1,0 +1,12 @@
+{
+  "ingestId": "2025-11-15T13:11:59Z-optionA",
+  "lotl": "lotl/metadata.json",
+  "memberStates": [
+    "member-states/de/metadata.json",
+    "member-states/si/metadata.json"
+  ],
+  "notes": [
+    "Initial live ingestion for Feature 006 Increment I8",
+    "Add additional Member-State TLs before closing T-006-23 if scope expands"
+  ]
+}

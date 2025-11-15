@@ -1,0 +1,12 @@
+{
+  "country": "DE",
+  "sourceUrl": "https://tl.bundesnetzagentur.de/TL-DE.xml",
+  "retrievedAt": "2025-11-15T13:11:59Z",
+  "sha256": "aafe0e4520728b1e2c56d8d225480a0f5e159746a20da219bd4e9da97e51173a",
+  "tslSequenceNumber": 149,
+  "listIssueDateTime": "2025-10-07T13:00:24Z",
+  "notes": [
+    "Fetched directly from Bundesnetzagentur TLS endpoint",
+    "To be revalidated on future LOTL sequence updates"
+  ]
+}

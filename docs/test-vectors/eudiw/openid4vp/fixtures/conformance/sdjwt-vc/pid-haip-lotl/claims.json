@@ -1,0 +1,22 @@
+{
+  "iss": "https://pid-issuer.example.eu/issuers/haip",
+  "sub": "did:example:holder-0001",
+  "iat": 1730851200,
+  "exp": 1762387200,
+  "aud": "https://verifier.example.eu/openid4vp",
+  "vc": {
+    "type": [
+      "VerifiableCredential",
+      "eu.europa.ec.eudi.pid.1"
+    ],
+    "credentialSubject": {
+      "family_name": "DOE",
+      "given_name": "JOANNA",
+      "birthdate": "1993-07-24",
+      "age_over_18": true,
+      "nationality": "DE",
+      "document_number": "X1234567",
+      "expiry_date": "2030-07-23"
+    }
+  }
+}

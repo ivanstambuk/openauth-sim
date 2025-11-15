@@ -181,6 +181,17 @@ final class EmvCapReplayService {
                 result.matchedDelta().isPresent() ? result.matchedDelta().getAsInt() : null;
         EvaluationRequest request = result.effectiveRequest().orElse(null);
 
+        String expectedOtpHash = null;
+        if (telemetryFields != null) {
+            Object value = telemetryFields.get("expectedOtpHash");
+            if (value != null) {
+                String text = value.toString().trim();
+                if (!text.isEmpty()) {
+                    expectedOtpHash = text;
+                }
+            }
+        }
+
         Integer branchFactor =
                 request != null ? request.branchFactor() : valueAsInteger(telemetryFields, "branchFactor");
         Integer height = request != null ? request.height() : valueAsInteger(telemetryFields, "height");
@@ -200,7 +211,8 @@ final class EmvCapReplayService {
                 height,
                 ipbMaskLength,
                 suppliedOtpLength,
-                telemetryId);
+                telemetryId,
+                expectedOtpHash);
     }
 
     private static EmvCapReplayVerboseTracePayload tracePayload(ReplayResult result, boolean mismatch) {

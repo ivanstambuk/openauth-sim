@@ -1,15 +1,24 @@
 # Feature 013 Tasks – Toolchain & Quality Platform
 
-_Status:_ Complete  
-_Last updated:_ 2025-11-13
+_Status:_ In review  
+_Last updated:_ 2025-11-15
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
 
 ## Checklist
-- _No active tasks._ Capture the next toolchain/quality increment (≤90 min plan effort) with explicit FR/NFR/Scenario references before editing docs or automation scripts.
+- [x] T-013-01 – EMV trace fixture sync automation (FR-013-05, S-013-04): add Gradle tasks in the `rest-api` module to verify and sync the EMV/CAP trace provenance fixture between the canonical docs path (`docs/test-vectors/emv-cap/trace-provenance-example.json`) and the REST module path (`rest-api/docs/test-vectors/emv-cap/trace-provenance-example.json`), wiring the verification task into the `:rest-api:test` / `:rest-api:check` pipeline.
+  _Intent:_ Replace the manual dual-storage guardrail for `trace-provenance-example.json` with a small, reproducible automation hook so drift is detected and corrected via Gradle tasks instead of ad-hoc copy steps.
+  _Verification commands:_
+  - `./gradlew --no-daemon :rest-api:verifyEmvTraceProvenanceFixture`
+  - `./gradlew --no-daemon :rest-api:syncEmvTraceProvenanceFixture`
+  - `./gradlew --no-daemon :rest-api:test`
 
 ## Verification Log
+- 2025-11-15 – `./gradlew --no-daemon :rest-api:verifyEmvTraceProvenanceFixture` (PASS – typed task verifies fixture parity before every REST test/check run)
+- 2025-11-15 – `./gradlew --no-daemon :rest-api:syncEmvTraceProvenanceFixture` (PASS – mirrors canonical docs fixture into rest-api/docs and logs copy locations)
+- 2025-11-15 – `./gradlew --no-daemon :rest-api:test` (PASS – verify task executes ahead of the suite; rerun with 420 s timeout to accommodate Selenium + OpenAPI snapshots)
+- 2025-11-15 – `./gradlew --no-daemon spotlessApply check` (PASS – workspace-wide formatting + verification sweep after build-logic updates)
 - 2025-11-13 – `./gradlew --no-daemon spotlessApply check` (toolchain drift gate; 11 s, 96 tasks: 2 executed, 94 up-to-date)
 - 2025-11-13 – `./gradlew --no-daemon qualityGate` (toolchain closure gate; 9 s, 40 tasks: 1 executed, 39 up-to-date)
 - 2025-11-11 – `rg "Feature 013" docs/4-architecture/roadmap.md docs/4-architecture/knowledge-map.md`

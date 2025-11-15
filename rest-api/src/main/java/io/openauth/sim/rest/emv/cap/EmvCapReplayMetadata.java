@@ -15,6 +15,7 @@ record EmvCapReplayMetadata(
         @JsonProperty("height") Integer height,
         @JsonProperty("ipbMaskLength") Integer ipbMaskLength,
         @JsonProperty("suppliedOtpLength") Integer suppliedOtpLength,
-        @JsonProperty("telemetryId") String telemetryId) {
+        @JsonProperty("telemetryId") String telemetryId,
+        @JsonProperty("expectedOtpHash") String expectedOtpHash) {
     // canonical metadata envelope
 }

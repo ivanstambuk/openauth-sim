@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures.ReplayFixture;
+import io.openauth.sim.core.emv.cap.EmvCapReplayMismatchFixtures;
+import io.openauth.sim.core.emv.cap.EmvCapReplayMismatchFixtures.MismatchFixture;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
 import io.openauth.sim.core.json.SimpleJson;
@@ -69,6 +71,7 @@ final class EmvCliReplayTest {
     void inlineReplayMismatchReturnsMismatchStatus() {
         ReplayFixture fixture = EmvCapReplayFixtures.load("replay-sign-baseline");
         EmvCapVector vector = EmvCapVectorFixtures.load(fixture.vectorId());
+        MismatchFixture mismatch = EmvCapReplayMismatchFixtures.load("inline-sign-mismatch");
         CommandHarness harness = CommandHarness.create(tempDir.resolve("emv-cap-inline.db"));
 
         int exitCode = harness.execute(
@@ -136,6 +139,13 @@ final class EmvCliReplayTest {
         Map<String, Object> decimalization = (Map<String, Object>) provenance.get("decimalizationOverlay");
         assertNotNull(decimalization, "Decimalization overlay should be present in provenance");
         assertEquals(decimalization.get("otp"), expectedOtp);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> metadata = (Map<String, Object>) root.get("metadata");
+        assertNotNull(metadata, "Metadata payload should exist on CLI JSON output");
+        assertEquals(
+                mismatch.expectedOtpHash(),
+                metadata.get("expectedOtpHash"),
+                "expectedOtpHash should surface alongside mismatch metadata");
     }
 
     @Test

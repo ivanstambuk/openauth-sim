@@ -805,6 +805,27 @@
                 </div>
                 <div class="result-message" data-result-message hidden aria-hidden="true"></div>
                 <p class="hint result-message__hint" data-testid="emv-replay-reason" hidden aria-hidden="true"></p>
+                <div
+                    class="stack-xs replay-placeholder"
+                    data-testid="emv-replay-mismatch-placeholder"
+                    data-placeholder="T-005-72"
+                    hidden="hidden"
+                    aria-hidden="true"
+                  >
+                  <p class="hint" data-testid="emv-replay-mismatch-copy">
+                    Replay diagnostics placeholder – replace this copy with hashed OTP guidance once TE-005-05 lands
+                    (T-005-72).
+                  </p>
+                  <button
+                      type="button"
+                      class="button-secondary"
+                      data-testid="emv-replay-open-placeholder"
+                      aria-disabled="true"
+                      disabled="disabled"
+                    >
+                    View mismatch diagnostics
+                  </button>
+                </div>
               </section>
             </div>
           </div>

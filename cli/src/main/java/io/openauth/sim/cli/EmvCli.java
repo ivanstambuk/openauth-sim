@@ -572,6 +572,16 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                     metadata.put("suppliedOtpLength", suppliedOtpLength);
                 }
 
+                if (fields != null) {
+                    Object expectedOtpHash = fields.get("expectedOtpHash");
+                    if (expectedOtpHash != null) {
+                        String text = expectedOtpHash.toString().trim();
+                        if (!text.isEmpty()) {
+                            metadata.put("expectedOtpHash", text);
+                        }
+                    }
+                }
+
                 metadata.put("telemetryId", telemetryId);
                 return metadata;
             }

@@ -22,6 +22,9 @@ final class TrustedAuthorityFixturesTest {
                 snapshot.storedPresentationIds().contains("pid-haip-baseline"),
                 "baseline snapshot must seed stored presentations for reuse");
         assertTrue(
+                snapshot.storedPresentationIds().contains("pid-haip-lotl"),
+                "baseline snapshot must record conformance ingestion preset");
+        assertTrue(
                 snapshot.authorities().stream().anyMatch(policy -> policy.type().equals("aki")),
                 "aki authorities missing");
         assertTrue(
@@ -33,9 +36,11 @@ final class TrustedAuthorityFixturesTest {
 
         assertTrustedAuthorityValue(snapshot, "aki", new TrustedAuthorityExpectation("s9tIpP7qrS9=", "EU PID Issuer"));
         assertTrustedAuthorityValue(
-                snapshot,
-                "etsi_tl",
-                new TrustedAuthorityExpectation("EU-2025-09-TL", "ETSI Trusted List – 2025-09 snapshot"));
+                snapshot, "etsi_tl", new TrustedAuthorityExpectation("lotl-373", "EU LOTL seq 373 (2025-10-15)"));
+        assertTrustedAuthorityValue(
+                snapshot, "etsi_tl", new TrustedAuthorityExpectation("de-149", "Germany TL seq 149 (2025-10-07)"));
+        assertTrustedAuthorityValue(
+                snapshot, "etsi_tl", new TrustedAuthorityExpectation("si-78", "Slovenia TL seq 78 (2025-07-02)"));
         assertTrustedAuthorityValue(
                 snapshot,
                 "openid_federation",

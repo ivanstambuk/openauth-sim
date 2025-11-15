@@ -130,7 +130,7 @@ final class Oid4vpRestContractTest {
     }
 
     @Test
-    @DisplayName("POST /presentations/seed returns counts for synthetic fixture ingestion")
+    @DisplayName("POST /presentations/seed returns ingestion metadata and telemetry")
     void presentationSeedReturnsCounts() throws Exception {
         String responseBody = mockMvc.perform(post("/api/v1/eudiw/openid4vp/presentations/seed")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -150,9 +150,19 @@ final class Oid4vpRestContractTest {
 
         JsonNode response = MAPPER.readTree(responseBody);
         assertEquals("synthetic", response.get("source").asText());
-        assertTrue(response.hasNonNull("createdCount"));
-        assertTrue(response.hasNonNull("updatedCount"));
-        assertTrue(response.get("metadata").get("requestedBy").asText().contains("Oid4vpRestContractTest"));
+        assertEquals(1, response.get("requestedCount").asInt());
+        assertEquals(1, response.get("ingestedCount").asInt());
+        JsonNode provenance = response.get("provenance");
+        assertTrue(provenance.get("version").asText().contains("2025"));
+        assertEquals("sha256:synthetic-openid4vp-v1", provenance.get("sha256").asText());
+        JsonNode presentations = response.get("presentations");
+        assertTrue(presentations.isArray());
+        assertTrue(presentations.get(0).get("trustedAuthorities").isArray());
+        JsonNode telemetry = response.get("telemetry");
+        assertEquals("oid4vp.fixtures.ingested", telemetry.get("event").asText());
+        assertEquals(
+                "Synthetic PID fixtures",
+                telemetry.get("fields").get("provenanceSource").asText());
     }
 
     @TestConfiguration

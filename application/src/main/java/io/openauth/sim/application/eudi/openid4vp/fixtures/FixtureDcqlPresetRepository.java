@@ -33,7 +33,7 @@ public final class FixtureDcqlPresetRepository implements OpenId4VpAuthorization
                         "pid-haip-baseline",
                         "x509_hash:pid-haip-verifier",
                         readDcqlJson("pid-haip-baseline"),
-                        List.of("aki:s9tIpP7qrS9=")));
+                        List.of("aki:s9tIpP7qrS9=", "etsi_tl:lotl-373", "etsi_tl:de-149", "etsi_tl:si-78")));
         return Map.copyOf(entries);
     }
 

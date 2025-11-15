@@ -1,9 +1,11 @@
 # Use the EMV/CAP CLI
 
 _Status: Draft_  
-_Last updated: 2025-11-02_
+_Last updated: 2025-11-15_
 
 The `emv cap` Picocli commands let you exercise the CAP engine without spinning up the REST facade. You can seed canonical fixtures, evaluate Identify/Respond/Sign inputs, replay stored or inline OTPs, and emit either human-readable output or full JSON payloads (including verbose traces) that mirror the REST contract.
+
+The CLI uses the same `includeTrace` toggle as the REST API and operator UI. The `--include-trace` flag defaults to `true` for Evaluate and Replay commands, which means CLI JSON output can be copied directly into the shared `VerboseTraceConsole` when troubleshooting. Set `--include-trace false` any time you want to suppress the provenance payload.
 
 ## Prerequisites
 - Java 17 with `JAVA_HOME` pointing at a JDK 17 install.
@@ -119,5 +121,6 @@ Mismatched OTPs print a `status=mismatch` summary while keeping all secrets reda
 - Input validation mirrors the REST layer. Invalid hex values, incorrect branch factors, or missing Sign fields return a non-zero exit code and print a `status=invalid_input` problem alongside sanitized telemetry.
 - Telemetry IDs are prefixed with `cli-emv-cap-*`; use them to cross-reference REST/UI events when reproducing issues.
 - Combine `--database` with CLI commands to point at a non-default MapDB location if you are testing isolated credential sets.
+- JSON emitted by `--output-json` is byte-for-byte compatible with the REST responses and the operator console’s `VerboseTraceConsole`. Toggle `--include-trace` to control whether that payload includes the provenance sections.
 
 See the operator UI guide to drive the same workflows through the EMV/CAP tab and to inspect verbose traces visually.

@@ -120,26 +120,70 @@ curl -s -H "Content-Type: application/json" \
 Validation failures raise RFC 7807 problem details (for example `invalid_scope` when the Trusted Authority filter is unmet). The response still includes sanitized telemetry in the `details` object.
 
 ## 4. Seed presentations (`POST /presentations/seed`)
-The ingestion pipeline (T4020/T4021) introduces dataset-aware seeding; the REST endpoint currently records the request metadata until the CLI wiring lands.
+`/presentations/seed` now drives `OpenId4VpFixtureIngestionService`, so every call returns the fixture summaries plus the provenance pulled from `docs/trust/snapshots/<timestamp>/`.
 ```bash
 curl -s -H "Content-Type: application/json" \
   http://localhost:8080/api/v1/eudiw/openid4vp/presentations/seed \
   -d '{
-        "source": "SYNTHETIC",
-        "presentations": ["pid-haip-baseline"],
-        "metadata": {
-          "sha256": "sha256:synthetic-openid4vp-v1",
-          "version": "2025-11-01"
-        }
-      }'
+        "source": "CONFORMANCE",
+        "presentations": ["pid-haip-lotl"]
+      }' | jq
 ```
-Fields:
-- `source`: `SYNTHETIC` or `CONFORMANCE` (matches `FixtureDatasets.Source`).
-- `presentations`: optional list of IDs to refresh (empty = ingest everything in the dataset).
-- `metadata`: provenance bundle (hash/version). Future increments will forward this payload to `OpenId4VpFixtureIngestionService` and emit `oid4vp.fixtures.ingested` telemetry.
+Sample response (2025-11-15 ingestion):
+```json
+{
+  "source": "conformance",
+  "requestedCount": 1,
+  "ingestedCount": 1,
+  "provenance": {
+    "source": "EU LOTL + Member-State Trusted Lists (DE, SI)",
+    "version": "2025-11-15T13:11:59Z",
+    "sha256": "sha256:cb0dfbf7a8df9d7ea1b36bce46dbfc48ee5c40e8e6c6f43bae48e165b5bc69e5",
+    "ingestId": "2025-11-15T13:11:59Z-optionA",
+    "lotlSequenceNumber": 373,
+    "lotlIssueDateTime": "2025-10-15T10:09:50Z",
+    "memberStates": [
+      { "country": "DE", "tslSequenceNumber": 149, "listIssueDateTime": "2025-10-07T13:00:24Z" },
+      { "country": "SI", "tslSequenceNumber": 78, "listIssueDateTime": "2025-07-02T08:20:21Z" }
+    ]
+  },
+  "presentations": [
+    {
+      "presentationId": "pid-haip-lotl",
+      "credentialId": "pid-haip-lotl",
+      "format": "dc+sd-jwt",
+      "trustedAuthorities": [
+        "aki:s9tIpP7qrS9=",
+        "etsi_tl:lotl-373",
+        "etsi_tl:de-149",
+        "etsi_tl:si-78",
+        "openid_federation:https://haip.ec.europa.eu/trust-list"
+      ]
+    }
+  ],
+  "telemetry": {
+    "event": "oid4vp.fixtures.ingested",
+    "fields": {
+      "source": "conformance",
+      "ingestedCount": 1,
+      "provenanceSource": "EU LOTL + Member-State Trusted Lists (DE, SI)",
+      "provenanceVersion": "2025-11-15T13:11:59Z",
+      "provenanceHash": "sha256:cb0dfbf7a8df9d7ea1b36bce46dbfc48ee5c40e8e6c6f43bae48e165b5bc69e5",
+      "ingestId": "2025-11-15T13:11:59Z-optionA",
+      "lotlSequenceNumber": 373,
+      "memberStates": ["DE", "SI"],
+      "telemetryId": "oid4vp-…" 
+    }
+  }
+}
+```
+Notes:
+- `source` still matches `FixtureDatasets.Source` (`synthetic` or `conformance`). The controller normalises case so either `"CONFORMANCE"` or `"conformance"` works.
+- `presentations` mirrors the stored preset metadata so operators can confirm which Trusted Authority policies each presentation satisfies before seeding a backing store.
+- `telemetry` is the raw `oid4vp.fixtures.ingested` frame (see the telemetry catalog below) so you can trace ingestion activity alongside other simulator events.
 
 ## Telemetry & troubleshooting
-- Request creation emits `oid4vp.request.created` with `haipMode`, masked nonce/state, and Trusted Authority labels. Wallet simulations emit `oid4vp.wallet.responded` plus the Trusted Authority verdict. Validation emits either `oid4vp.response.validated` (success) or `oid4vp.response.failed` (problem details). Fixture ingestion will emit `oid4vp.fixtures.ingested` once the REST endpoint is wired.
+- Request creation emits `oid4vp.request.created` with `haipMode`, masked nonce/state, and Trusted Authority labels. Wallet simulations emit `oid4vp.wallet.responded` plus the Trusted Authority verdict. Validation emits either `oid4vp.response.validated` (success) or `oid4vp.response.failed` (problem details). Fixture ingestion now emits `oid4vp.fixtures.ingested` with the same provenance metadata shown above.
 - All telemetry frames set `sanitized=true`. Hashes (`vpTokenHash`, `kbJwtHash`, disclosure hashes) appear in traces rather than telemetry, keeping sensitive payloads off the wire.
 - Trusted Authority mismatches return `invalid_scope` with a `violations[]` array describing which policy failed. Inspect the response trace (via `?verbose=true`) to confirm which policies were evaluated.
 - Baseline mode bypasses HAIP encryption. Use HAIP mode to exercise the `direct_post.jwt` encryption path (`DirectPostJwtEncryptionService`) and collect latency metrics via `telemetry.fields.durationMs`.

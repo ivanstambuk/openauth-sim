@@ -1,9 +1,11 @@
 # Operate the EMV/CAP REST API
 
 _Status: Draft_  
-_Last updated: 2025-11-04_
+_Last updated: 2025-11-15_
 
 The EMV/CAP evaluate endpoint derives CAP one-time passwords (Identify, Respond, Sign) on demand. It wraps the shared core engine, emits sanitized telemetry, and optionally returns a full derivation trace for diagnostics. The companion replay endpoint validates stored or ad-hoc OTPs against the same derivation pipeline so you can confirm calculator outputs. This guide shows how to call both endpoints, interpret the response payloads, and disable verbose traces when you only need the masked digits.
+
+REST, CLI, and operator UI clients all share the same verbose trace contract. The operator console’s “Enable verbose tracing for the next request” toggle simply flips the `includeTrace` flag for whichever EMV/CAP request (Evaluate or Replay) you submit; disable it—or pass `includeTrace: false` / `--include-trace false`—when you want responses without provenance data.
 
 ## Prerequisites
 - Java 17 with `JAVA_HOME` configured.
@@ -61,7 +63,7 @@ Key request notes:
     }
   }
   ```
-- Omit `includeTrace` (or set `true`) to receive derivation details; set `false` to return OTP + telemetry only.
+- Omit `includeTrace` (or set `true`) to receive derivation details; set `false` to return OTP + telemetry only. Operator UI submissions mirror the same flag so Evaluate/Replay runs from the console always match the API you would call via curl.
 
 Successful response (Identify baseline):
 ```json
@@ -245,3 +247,7 @@ Beyond the original Identify/Respond/Sign baselines, the simulator now ships six
 - `sign-amount-0845` and `sign-amount-50375` model low and high purchase amounts.
 
 All vectors power end-to-end regression tests in the core, application, and REST suites. Treat them as canonical references whenever you validate new CAP inputs or extend external tooling.
+
+## Shared verbose trace console
+- The JSON shown in REST responses is the exact payload rendered inside the operator console’s `VerboseTraceConsole` and printed by the CLI when `--output-json` is enabled. Expect identical sections (`Protocol Context`, `Key Derivation`, `CDOL Breakdown`, `IAD Decoding`, `MAC Transcript`, `Decimalization Overlay`) in every surface.
+- The global “Enable verbose tracing for the next request” toggle in the UI simply forwards `includeTrace=true` for both Evaluate and Replay submissions. Unchecked requests omit the `trace` object, and the console hides the verbose panel automatically—matching the behaviour you see when you call the REST endpoints directly with `includeTrace=false`.

@@ -165,7 +165,7 @@ _Last updated:_ 2025-11-13
   - `./gradlew --no-daemon spotlessApply check`
   _Notes:_ Authored the three how-to guides plus telemetry snapshot, bumped roadmap entry #15 to “In progress,” and reran the full gate (spotless run used a 900 s timeout).
 
-- [ ] T-006-23 – Live Trusted Authority ingestion (S-040-11).
+- [x] T-006-23 – Live Trusted Authority ingestion (S-040-11).
   _Intent:_ Build ETSI TL/OpenID Federation refresh that populates `trust/snapshots/*.json`, records provenance telemetry, and exposes conformance datasets through `presentations/seed`.
   _Verification commands:_
   - `./gradlew --no-daemon :core:test --tests "*FixtureDatasets*"`
@@ -173,7 +173,7 @@ _Last updated:_ 2025-11-13
   - `./gradlew --no-daemon :rest-api:test --tests "*Oid4vpRestContractTest*"`
   - `node --test rest-api/src/test/javascript/eudi/openid4vp/console.test.js`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EudiwOperatorUiSeleniumTest"`
-  _Notes:_ CLI/Operator UI copy updates plus telemetry snapshots must accompany this work; currently blocked pending conformance dataset availability.
+  _Notes:_ Captured EU LOTL seq 373 (DE 149, SI 78) snapshots under `docs/trust/snapshots/2025-11-15/`, updated fixture provenance/trust snapshots/DCQL presets/stored presentations, wired `presentations/seed` through `OpenId4VpFixtureIngestionService`, refreshed how-to + telemetry snapshot, and reran the Gradle/Node/Selenium suites above (spotless/quality gate to follow during drift gate).
 
 ## Verification Log (Optional)
 - 2025-11-08 – `./gradlew --no-daemon :application:test :cli:test :core:test :rest-api:test :ui:test`  

@@ -58,12 +58,14 @@ final class OpenId4VpFixtureIngestionServiceTest {
         assertEquals("2025-11-01", result.provenance().version());
         assertEquals("sha256:synthetic-openid4vp-v1", result.provenance().sha256());
         assertEquals(1, result.presentations().size());
+        assertTrue(result.provenance().metadata().isEmpty());
         PresentationSummary summary = result.presentations().get(0);
         assertEquals("pid-synthetic", summary.presentationId());
         assertEquals(List.of("aki:synthetic"), summary.trustedAuthorityPolicies());
         assertEquals("oid4vp.fixtures.ingested", telemetry.lastEvent);
         assertEquals("synthetic", telemetry.lastFields.get("source"));
         assertEquals(1, telemetry.lastFields.get("ingestedCount"));
+        assertEquals("Synthetic PID fixtures", telemetry.lastFields.get("provenanceSource"));
     }
 
     @Test
@@ -77,7 +79,7 @@ final class OpenId4VpFixtureIngestionServiceTest {
                 service.ingest(new IngestionRequest(FixtureDatasets.Source.CONFORMANCE, List.of("pid-conformance")));
 
         assertEquals(FixtureDatasets.Source.CONFORMANCE, result.source());
-        assertEquals("2025-10-15", result.provenance().version());
+        assertEquals("2025-11-15T13:11:59Z", result.provenance().version());
         assertEquals(1, result.presentations().size());
         PresentationSummary summary = result.presentations().get(0);
         assertEquals("pid-conformance", summary.presentationId());
@@ -86,6 +88,17 @@ final class OpenId4VpFixtureIngestionServiceTest {
         assertEquals("conformance", telemetry.lastFields.get("source"));
         assertEquals(1, telemetry.lastFields.get("ingestedCount"));
         assertEquals(List.of("pid-conformance"), telemetry.lastRequestedIds);
+        assertEquals(
+                "EU LOTL + Member-State Trusted Lists (DE, SI)",
+                result.provenance().source());
+        assertEquals(
+                "sha256:cb0dfbf7a8df9d7ea1b36bce46dbfc48ee5c40e8e6c6f43bae48e165b5bc69e5",
+                result.provenance().sha256());
+        assertEquals(
+                "2025-11-15T13:11:59Z-optionA", result.provenance().metadata().get("ingestId"));
+        assertEquals(373, ((Number) result.provenance().metadata().get("lotlSequenceNumber")).intValue());
+        assertEquals("2025-11-15T13:11:59Z-optionA", telemetry.lastFields.get("ingestId"));
+        assertEquals(373, ((Number) telemetry.lastFields.get("lotlSequenceNumber")).intValue());
     }
 
     private static void writePresentation(

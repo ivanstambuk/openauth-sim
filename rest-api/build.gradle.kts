@@ -1,10 +1,86 @@
+import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 plugins {
     java
+}
+
+abstract class VerifyEmvTraceProvenanceFixture : DefaultTask() {
+
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val canonicalFixture: RegularFileProperty
+
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val restApiFixture: RegularFileProperty
+
+    init {
+        group = LifecycleBasePlugin.VERIFICATION_GROUP
+        description =
+            "Verifies EMV/CAP trace-provenance fixture stays in sync between docs/ and rest-api/docs/."
+    }
+
+    @TaskAction
+    fun verify() {
+        val sourceFile = canonicalFixture.asFile.get()
+        val copyFile = restApiFixture.asFile.get()
+        if (!sourceFile.exists() || !copyFile.exists()) {
+            throw GradleException(
+                "EMV trace-provenance fixture missing in docs/ or rest-api/docs/. " +
+                    "Expected both $sourceFile and $copyFile to exist.")
+        }
+        val sourceBytes = sourceFile.readBytes()
+        val copyBytes = copyFile.readBytes()
+        if (!sourceBytes.contentEquals(copyBytes)) {
+            throw GradleException(
+                "EMV trace-provenance fixture is out of sync. " +
+                    "Run :rest-api:syncEmvTraceProvenanceFixture to copy the canonical docs/ version.")
+        }
+    }
+}
+
+abstract class SyncEmvTraceProvenanceFixture : DefaultTask() {
+
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val canonicalFixture: RegularFileProperty
+
+    @get:OutputFile
+    abstract val restApiFixture: RegularFileProperty
+
+    init {
+        group = LifecycleBasePlugin.VERIFICATION_GROUP
+        description = "Syncs EMV/CAP trace-provenance fixture from docs/ into rest-api/docs/."
+    }
+
+    @TaskAction
+    fun sync() {
+        val sourceFile = canonicalFixture.asFile.get()
+        val copyFile = restApiFixture.asFile.get()
+        if (!sourceFile.exists()) {
+            throw GradleException(
+                "Canonical EMV trace-provenance fixture is missing at $sourceFile. " +
+                    "Edit or restore the docs/ fixture before syncing.")
+        }
+        copyFile.parentFile.mkdirs()
+        sourceFile.copyTo(copyFile, overwrite = true)
+        logger.lifecycle(
+            "Synced EMV trace-provenance fixture from {} to {}",
+            sourceFile,
+            copyFile)
+    }
 }
 
 val libsCatalog = project.extensions.getByType<VersionCatalogsExtension>().named("libs")
@@ -59,4 +135,27 @@ tasks.register<Exec>("eudiwConsoleJsTest") {
 
 tasks.named("check") {
     dependsOn("emvConsoleJsTest", "eudiwConsoleJsTest")
+}
+
+val canonicalEmvTraceFixture = rootProject.layout.projectDirectory.file(
+    "docs/test-vectors/emv-cap/trace-provenance-example.json")
+val restApiEmvTraceFixture = layout.projectDirectory.file(
+    "docs/test-vectors/emv-cap/trace-provenance-example.json")
+
+tasks.register<VerifyEmvTraceProvenanceFixture>("verifyEmvTraceProvenanceFixture") {
+    canonicalFixture.set(canonicalEmvTraceFixture)
+    restApiFixture.set(restApiEmvTraceFixture)
+}
+
+tasks.register<SyncEmvTraceProvenanceFixture>("syncEmvTraceProvenanceFixture") {
+    canonicalFixture.set(canonicalEmvTraceFixture)
+    restApiFixture.set(restApiEmvTraceFixture)
+}
+
+tasks.withType<Test>().configureEach {
+    dependsOn("verifyEmvTraceProvenanceFixture")
+}
+
+tasks.named("check") {
+    dependsOn("verifyEmvTraceProvenanceFixture")
 }

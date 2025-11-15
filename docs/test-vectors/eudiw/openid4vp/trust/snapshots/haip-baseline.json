@@ -1,7 +1,8 @@
 {
   "presetId": "haip-baseline",
   "storedPresentationIds": [
-    "pid-haip-baseline"
+    "pid-haip-baseline",
+    "pid-haip-lotl"
   ],
   "authorities": [
     {
@@ -17,8 +18,16 @@
       "type": "etsi_tl",
       "values": [
         {
-          "value": "EU-2025-09-TL",
-          "label": "ETSI Trusted List – 2025-09 snapshot"
+          "value": "lotl-373",
+          "label": "EU LOTL seq 373 (2025-10-15)"
+        },
+        {
+          "value": "de-149",
+          "label": "Germany TL seq 149 (2025-10-07)"
+        },
+        {
+          "value": "si-78",
+          "label": "Slovenia TL seq 78 (2025-07-02)"
         }
       ]
     },

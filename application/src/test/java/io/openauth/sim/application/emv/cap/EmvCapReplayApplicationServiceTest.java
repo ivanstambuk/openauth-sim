@@ -14,6 +14,8 @@ import io.openauth.sim.application.emv.cap.EmvCapSeedApplicationService.SeedComm
 import io.openauth.sim.application.emv.cap.EmvCapSeedSamples.SeedSample;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures.ReplayFixture;
+import io.openauth.sim.core.emv.cap.EmvCapReplayMismatchFixtures;
+import io.openauth.sim.core.emv.cap.EmvCapReplayMismatchFixtures.MismatchFixture;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
 import io.openauth.sim.core.model.Credential;
@@ -119,6 +121,29 @@ final class EmvCapReplayApplicationServiceTest {
         assertEquals(fixture.previewWindow().forward(), result.driftForward());
         assertEquals(fixture.mode(), result.mode());
         assertEquals(TelemetryStatus.INVALID, result.telemetry().status(), "Telemetry should mark mismatch as invalid");
+    }
+
+    @org.junit.jupiter.api.Test
+    void storedReplayMismatchTelemetryIncludesExpectedOtpHash() {
+        MismatchFixture mismatch = EmvCapReplayMismatchFixtures.load("stored-respond-mismatch");
+        ReplayFixture fixture = mismatch.replayFixture();
+        ReplayCommand.Stored command = new ReplayCommand.Stored(
+                fixture.credentialId(),
+                fixture.mode(),
+                mismatch.mismatchOtpDecimal(),
+                fixture.previewWindow().backward(),
+                fixture.previewWindow().forward(),
+                Optional.empty());
+
+        ReplayResult result = service.replay(command, true);
+
+        assertFalse(result.match(), "Stored mismatch should not report a match");
+        String expectedHash = mismatch.expectedOtpHash();
+        Object hashField = result.telemetry().fields().get("expectedOtpHash");
+        assertEquals(expectedHash, hashField, "Telemetry should include expectedOtpHash when mismatch occurs");
+        Object mismatchReason = result.telemetry().fields().get("mismatchReason");
+        assertEquals(
+                "otp_mismatch", mismatchReason, "Telemetry should capture a mismatchReason for downstream metadata");
     }
 
     private static final class InMemoryCredentialStore implements CredentialStore {

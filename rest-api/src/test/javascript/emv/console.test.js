@@ -670,7 +670,48 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
   };
 
   const replayResultPanel = includeReplay
-      ? {
+    ? (() => {
+      const placeholderCopy = {
+        textContent: '',
+        setAttribute() {},
+        getAttribute() {
+          return null;
+        },
+        removeAttribute() {},
+      };
+      const placeholderCta = createButton();
+      const placeholderAttributes = new Map([
+        ['hidden', 'hidden'],
+        ['aria-hidden', 'true'],
+      ]);
+      const mismatchPlaceholder = {
+        setAttribute(name, value) {
+          placeholderAttributes.set(name, String(value));
+        },
+        getAttribute(name) {
+          return placeholderAttributes.has(name) ? placeholderAttributes.get(name) : null;
+        },
+        removeAttribute(name) {
+          placeholderAttributes.delete(name);
+        },
+        querySelector(selector) {
+          if (selector === '[data-testid="emv-replay-mismatch-copy"]') {
+            return placeholderCopy;
+          }
+          if (selector === '[data-testid="emv-replay-open-placeholder"]') {
+            return placeholderCta;
+          }
+          return null;
+        },
+      };
+
+      if (replayEnv) {
+        replayEnv.mismatchPlaceholder = mismatchPlaceholder;
+        replayEnv.mismatchCopy = placeholderCopy;
+        replayEnv.mismatchCta = placeholderCta;
+      }
+
+      return {
         hidden: true,
         setAttribute() {},
         removeAttribute() {},
@@ -678,22 +719,41 @@ function createEnvironment({ verboseEnabled, includeReplay = false }) {
           if (!replayEnv) {
             return null;
           }
-          if (selector === '[data-testid=\'emv-replay-status\']') {
+          if (
+            selector === '[data-testid="emv-replay-status"]'
+            || selector === "[data-testid='emv-replay-status']"
+          ) {
             return replayEnv.statusNode;
           }
-          if (selector === '[data-testid=\'emv-replay-otp\']') {
+          if (
+            selector === '[data-testid="emv-replay-otp"]'
+            || selector === "[data-testid='emv-replay-otp']"
+          ) {
             return replayEnv.otpResultNode;
           }
-          if (selector === '[data-testid=\'emv-replay-matched-delta\']') {
+          if (
+            selector === '[data-testid="emv-replay-matched-delta"]'
+            || selector === "[data-testid='emv-replay-matched-delta']"
+          ) {
             return replayEnv.matchedNode;
           }
-          if (selector === '[data-testid=\'emv-replay-reason\']') {
+          if (
+            selector === '[data-testid="emv-replay-reason"]'
+            || selector === "[data-testid='emv-replay-reason']"
+          ) {
             return replayEnv.reasonNode;
+          }
+          if (
+            selector === '[data-testid="emv-replay-mismatch-placeholder"]'
+            || selector === "[data-testid='emv-replay-mismatch-placeholder']"
+          ) {
+            return mismatchPlaceholder;
           }
           return null;
         },
-      }
-      : null;
+      };
+    })()
+    : null;
 
   const evaluatePanel = {
     setAttribute() {},
@@ -1745,4 +1805,80 @@ test('stored submission honours verbose toggle when disabled', async () => {
   assert.equal(env.fetchCalls.length, 1);
   const call = env.fetchCalls[0];
   assert.equal(call.body.includeTrace, false);
+});
+
+test('Replay mismatch placeholder surfaces hashed OTP guidance (T-005-72)', async () => {
+  const env = createEnvironment({ verboseEnabled: false, includeReplay: true });
+  await flushMicrotasks();
+  await waitForCredentialSummaries(env);
+  if (typeof env.hooks.setActivePanel === 'function') {
+    env.hooks.setActivePanel('replay');
+  }
+
+  const response = {
+    status: 'mismatch',
+    reasonCode: 'otp_mismatch',
+    metadata: {
+      expectedOtpHash: 'sha256:PLACEHOLDER-DIGEST',
+      credentialSource: 'inline',
+    },
+  };
+
+  env.hooks.renderReplaySuccess(response, {
+    suppliedOtp: '123456',
+    metadata: { credentialSource: 'inline' },
+  });
+
+  const placeholder = env.hooks.getReplayMismatchPlaceholder();
+  assert.ok(placeholder, 'Replay mismatch placeholder node should exist');
+  assert.equal(
+    placeholder.getAttribute('hidden'),
+    null,
+    'Replay mismatch placeholder should be visible once hashed OTP metadata is available',
+  );
+  const copyNode = env.hooks.getReplayMismatchCopy();
+  assert.ok(copyNode, 'Replay mismatch placeholder copy node should exist');
+  assert.match(
+    copyNode.textContent || '',
+    /sha256:/,
+    'Replay mismatch placeholder copy should surface the hashed OTP digest',
+  );
+  const ctaNode = env.hooks.getReplayMismatchCta();
+  assert.ok(ctaNode, 'Replay mismatch placeholder CTA should exist');
+  assert.equal(
+    ctaNode.getAttribute('aria-disabled'),
+    null,
+    'Replay mismatch CTA should be enabled so operators can launch verbose diagnostics',
+  );
+});
+
+test('Replay mismatch banner instructs operators to enable verbose tracing (T-005-72)', async () => {
+  const env = createEnvironment({ verboseEnabled: false, includeReplay: true });
+  await flushMicrotasks();
+  await waitForCredentialSummaries(env);
+  if (typeof env.hooks.setActivePanel === 'function') {
+    env.hooks.setActivePanel('replay');
+  }
+
+  const response = {
+    status: 'mismatch',
+    reasonCode: 'otp_mismatch',
+    metadata: {
+      expectedOtpHash: 'sha256:PENDING',
+      credentialSource: 'stored',
+    },
+  };
+
+  env.hooks.renderReplaySuccess(response, {
+    suppliedOtp: '00000000',
+    metadata: { credentialSource: 'stored' },
+  });
+
+  const copyNode = env.hooks.getReplayMismatchCopy();
+  assert.ok(copyNode, 'Replay mismatch copy node should exist');
+  assert.match(
+    copyNode.textContent || '',
+    /Enable verbose tracing/,
+    'Replay mismatch copy should guide operators to enable verbose tracing for diagnostics',
+  );
 });

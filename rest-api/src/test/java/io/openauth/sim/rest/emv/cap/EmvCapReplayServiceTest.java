@@ -11,6 +11,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.CustomerInputs;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.EvaluationRequest;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.TelemetrySignal;
@@ -22,6 +24,8 @@ import io.openauth.sim.application.emv.cap.EmvCapReplayApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapReplayApplicationService.ReplayCommand;
 import io.openauth.sim.application.emv.cap.EmvCapReplayApplicationService.ReplayResult;
 import io.openauth.sim.core.emv.cap.EmvCapMode;
+import io.openauth.sim.core.emv.cap.EmvCapReplayMismatchFixtures;
+import io.openauth.sim.core.emv.cap.EmvCapReplayMismatchFixtures.MismatchFixture;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -500,6 +504,65 @@ final class EmvCapReplayServiceTest {
         assertEquals("invalid_request", exception.reasonCode());
         assertEquals("Request body is required", exception.getMessage());
         assertTrue(exception.details().isEmpty());
+    }
+
+    @Test
+    @DisplayName("Metadata exposes expectedOtpHash when telemetry includes it")
+    void metadataIncludesExpectedOtpHash() {
+        MismatchFixture mismatch = EmvCapReplayMismatchFixtures.load("inline-sign-mismatch");
+        Map<String, Object> telemetryFields = new LinkedHashMap<>();
+        telemetryFields.put("telemetryId", "rest-emv-cap-inline");
+        telemetryFields.put("suppliedOtpLength", mismatch.mismatchOtpDecimal().length());
+        telemetryFields.put("branchFactor", 4);
+        telemetryFields.put("height", 8);
+        telemetryFields.put("ipbMaskLength", 16);
+        telemetryFields.put("expectedOtpHash", mismatch.expectedOtpHash());
+
+        TelemetrySignal signal = new TelemetrySignal(
+                mismatch.mode(), TelemetryStatus.INVALID, "otp_mismatch", "OTP mismatch", true, telemetryFields);
+
+        ReplayResult result = new ReplayResult(
+                signal,
+                false,
+                OptionalInt.empty(),
+                "inline",
+                Optional.empty(),
+                1,
+                1,
+                mismatch.mode(),
+                Optional.empty(),
+                Optional.empty());
+
+        when(applicationService.replay(any(ReplayCommand.class), any(Boolean.class)))
+                .thenReturn(result);
+
+        EmvCapReplayRequest request = new EmvCapReplayRequest(
+                null,
+                mismatch.mode().name(),
+                mismatch.mismatchOtpDecimal(),
+                1,
+                1,
+                Boolean.TRUE,
+                "0123456789ABCDEF0123456789ABCDEF",
+                "0001",
+                4,
+                8,
+                "00000000000000000000000000000000",
+                "9F0206",
+                "00001F00000000000FFFFF00000000008000",
+                new EmvCapReplayRequest.CustomerInputs("1234", "5678", "50375"),
+                new EmvCapReplayRequest.TransactionData(null, null),
+                "1000xxxxA50006040000",
+                "06770A03A48000");
+
+        EmvCapReplayResponse response = service.replay(request);
+
+        Map<String, Object> metadata =
+                new ObjectMapper().convertValue(response.metadata(), new TypeReference<Map<String, Object>>() {});
+        assertEquals(
+                mismatch.expectedOtpHash(),
+                metadata.get("expectedOtpHash"),
+                "expectedOtpHash should be present in REST metadata when telemetry provides it");
     }
 
     private static Trace.Provenance sampleProvenance() {
