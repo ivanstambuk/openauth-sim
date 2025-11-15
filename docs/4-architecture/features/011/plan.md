@@ -35,7 +35,50 @@ _Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; cha
 - Hook runtimes must stay within ergonomic bounds (≤30 s for pre-commit, ≤2 s for commit-msg); monitor logs if behaviour drifts.
 
 ## Implementation Drift Gate
-Ensure each FR/NFR from the spec maps to runbook entries, hook instructions, and recorded commands. Document drift findings (if any) in this plan’s appendix with links to remediation tasks.
+
+- Summary: Use this gate to ensure that governance artefacts (AGENTS, runbooks, constitution, analysis-gate docs, hooks, gitlint/formatter policy) and recorded commands remain aligned with FR-011-01..08 and NFR-011-01..05, and that every governance change is logged in `_current-session.md`.
+
+- **Checklist for future drift-gate runs (agents):**
+  - **Preconditions**
+    - [ ] `docs/4-architecture/features/011/{spec,plan,tasks}.md` updated to the current date; all clarifications are encoded in normative sections (no legacy “Clarifications” blocks).  
+    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 011.  
+    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+      - `git config core.hooksPath` (hook guard).  
+      - A pre-commit dry run using a temporary index (e.g., `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`).  
+      - `./gradlew --no-daemon spotlessApply check`.  
+      - `./gradlew --no-daemon qualityGate` when governance changes affect the quality pipeline.  
+
+  - **Spec ↔ governance docs mapping**
+    - [ ] For FR-011-01..FR-011-08 and NFR-011-01..05, confirm that:  
+      - `AGENTS.md`, `docs/5-operations/runbook-session-reset.md`, and `docs/5-operations/session-quick-reference.md` reference Feature 011 as the governance owner and describe hook guard expectations.  
+      - `docs/6-decisions/project-constitution.md` and `docs/5-operations/analysis-gate-checklist.md` align with Feature 011’s description of gates and logging.  
+      - `.gitlint`, `githooks/pre-commit`, and `githooks/commit-msg` behaviour matches what the spec/plan/tasks state (gitlint enforcement, cache warm/retry, hook outputs).  
+      - Palantir formatter version and usage are consistent across spec/plan/tasks, `gradle/libs.versions.toml`, and `build.gradle.kts`.  
+
+  - **Hooks & formatter behaviour**
+    - [ ] Verify that `githooks/pre-commit` still:  
+      - Guards the hooks path (`git config core.hooksPath`).  
+      - Runs Spotless + targeted tests + `check` with the documented flags.  
+      - Enforces size/binary guards and Gradle wrapper integrity.  
+    - [ ] Verify that `githooks/commit-msg` still invokes gitlint with `.gitlint` and fails on non-compliant messages.  
+    - [ ] Confirm Palantir Java Format is pinned to the documented version and used consistently by Spotless and any IDE guidance.  
+
+  - **Audit logging & analysis gate**
+    - [ ] Confirm that the analysis-gate workflow in `docs/5-operations/analysis-gate-checklist.md` matches the Feature 011 spec and that governance-related gates are recorded in `docs/_current-session.md`.  
+    - [ ] Check that `_current-session.md` contains entries for each governance increment, including:  
+      - Hook guard commands and outcomes.  
+      - Pre-commit / commit-msg dry runs when hooks or policies change.  
+      - `spotlessApply check` and `qualityGate` runs tied to governance updates.  
+
+  - **Drift capture & remediation**
+    - [ ] Any high-/medium-impact drift (e.g., AGENTS/runbooks contradict spec, hooks not enforcing policies as documented, missing logging) is:  
+      - Logged as an `Open` entry in `docs/4-architecture/open-questions.md` for Feature 011.  
+      - Captured as explicit tasks in `docs/4-architecture/features/011/tasks.md`.  
+    - [ ] Low-impact drift (typos, minor link fixes, small doc mismatches) is corrected directly, with a brief note added to this section or the plan’s verification log.  
+
+  - **Gate output**
+    - [ ] This section is updated with the latest drift gate run date, key commands executed, and a concise “matches vs gaps” summary plus remediation notes.  
+    - [ ] `docs/_current-session.md` logs that the Feature 011 Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
 
 ### Drift Report – 2025-11-13
 - **Scope review:** Spec/plan/tasks now describe steady-state governance coverage (AGENTS/runbooks/constitution, managed hooks, Palantir formatter, analysis gate logging) with no legacy references. Roadmap + knowledge map cite Feature 011 as the governance authority (FR-011-01..08, NFR-011-01..05, S-011-01..08).

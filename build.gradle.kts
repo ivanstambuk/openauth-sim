@@ -401,5 +401,5 @@ val qualityGate = tasks.register("qualityGate") {
 }
 
 tasks.named("check") {
-    dependsOn(architectureTest, jacocoCoverageVerification)
+    dependsOn(architectureTest, jacocoCoverageVerification, ":application:nativeJavaApiJavadoc")
 }

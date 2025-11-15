@@ -10,13 +10,44 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Native Java API seam for EUDIW wallet simulations (OpenID4VP Generate mode).
+ *
+ * <p>Used by Feature 006 – EUDIW OpenID4VP Simulator and Feature 014 – Native Java API Facade to
+ * drive wallet simulations from Java callers without going through CLI/REST/UI. Behaviour is
+ * specified in the Feature 006 spec (FR-006-07/08, FR-040-07..10/13/23) with cross-cutting
+ * governance in Feature 014 (FR-014-02/04) and ADR-0007; usage examples live in
+ * {@code docs/2-how-to/use-eudiw-from-java.md}. Callers construct {@link SimulateRequest}
+ * instances and consume {@link SimulationResult} as façade DTOs, reusing the same Trusted
+ * Authorities and telemetry surfaces as the REST/CLI/operator UI flows.
+ */
 public final class OpenId4VpWalletSimulationService {
     private final Dependencies dependencies;
 
+    /**
+     * Creates a new wallet simulation service backed by the supplied dependencies.
+     *
+     * @param dependencies collaborators for presets, Trusted Authorities evaluation, and telemetry
+     */
     public OpenId4VpWalletSimulationService(Dependencies dependencies) {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies");
     }
 
+    /**
+     * Simulates a wallet response for the given request.
+     *
+     * <p>Depending on the request, the service either hydrates a fixture-backed wallet preset or an
+     * inline SD-JWT payload, evaluates Trusted Authorities policies, and returns a single
+     * presentation plus trace and telemetry metadata.
+     *
+     * @param request simulation inputs (profile, response mode, wallet preset or inline SD-JWT, and
+     *     Trusted Authority policy)
+     * @return simulation result containing the VP Token, trace hashes, Trusted Authority verdict,
+     *     and telemetry signal
+     * @throws IllegalArgumentException if neither a preset nor inline SD-JWT payload is supplied
+     * @throws Oid4vpValidationException if Trusted Authorities evaluation yields problem-details
+     *     errors
+     */
     public SimulationResult simulate(SimulateRequest request) {
         Objects.requireNonNull(request, "request");
         WalletPreset preset = request.walletPresetId()
@@ -145,6 +176,10 @@ public final class OpenId4VpWalletSimulationService {
         }
     }
 
+    /**
+     * Simulation request describing the profile, response mode, and either a wallet preset or an
+     * inline SD-JWT payload to use for the wallet response.
+     */
     public record SimulateRequest(
             String requestId,
             Profile profile,
@@ -188,6 +223,9 @@ public final class OpenId4VpWalletSimulationService {
         }
     }
 
+    /**
+     * Inline SD-JWT bundle used when no wallet preset is referenced by the simulation request.
+     */
     public record InlineSdJwt(
             String credentialId,
             String format,

@@ -569,6 +569,12 @@ ui_states:
     description: Baseline vs HAIP banner + response mode toggle indicators
 ```
 
+### Native Java API
+| ID | Entry point | Description | Notes |
+|----|-------------|-------------|-------|
+| NJ-006-01 | `io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService` | Application-level wallet simulation service used as the Native Java API seam for generating HAIP/Baseline VP Tokens from presets or inline SD-JWT/mdoc payloads. | Mirrors CLI/REST wallet simulation semantics; callers construct `SimulateRequest` records and consume `SimulationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in `docs/2-how-to/use-eudiw-from-java.md`. |
+| NJ-006-02 | `io.openauth.sim.application.eudi.openid4vp.OpenId4VpValidationService` | Application-level validation service used as the Native Java API seam for validating VP Tokens/DeviceResponses and Trusted Authorities decisions. | Mirrors CLI/REST validate semantics; callers construct `ValidateRequest` records and consume `ValidationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in `docs/2-how-to/use-eudiw-from-java.md`. |
+
 ## Appendix
 
 ### Architecture & Design Notes

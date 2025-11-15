@@ -688,6 +688,11 @@ Legend: verbose trace remains optional; result metrics (mask length, ATC, etc.) 
 - `docs/test-vectors/emv-cap/replay-mismatch.json` – Stored mismatch coverage.
 - `docs/test-vectors/emv-cap/credentials.json` – Seed dataset for stored credentials (digests only).
 
+### Native Java API
+| ID | Entry point | Description | Notes |
+|----|-------------|-------------|-------|
+| NJ-005-01 | `io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService` | Application-level EMV/CAP evaluation service used as the Native Java API seam for Identify/Respond/Sign simulations. | Mirrors CLI/REST EMV/CAP evaluation semantics (including preview windows and verbose trace payloads); callers construct `EvaluationRequest` records and consume `EvaluationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in `docs/2-how-to/use-emv-cap-from-java.md`. |
+
 ## Spec DSL
 ```
 domain_objects:

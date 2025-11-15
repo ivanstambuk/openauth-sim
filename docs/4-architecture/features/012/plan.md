@@ -35,7 +35,39 @@ _Out of scope:_ Shipping new persistence code or changing credential-store behav
   even if they run outside this planning cycle.
 
 ## Implementation Drift Gate
-Ensure FR-012-01..08 and NFR-012-01..05 map to roadmap/knowledge map entries, CLI/REST documentation, benchmarks, and session logs; capture findings in this plan’s appendix.
+
+- Summary: Use this gate to ensure persistence and cryptography documentation (profiles, telemetry contracts, maintenance helpers, optional encryption, unified `credentials.db` defaults, IDE remediation, benchmarks) remain aligned with FR-012-01..08 and NFR-012-01..05 and with the actual behaviour of `core`/`infra-persistence`/`application`/CLI/REST.
+
+- **Checklist for future drift-gate runs (agents):**
+  - **Preconditions**
+    - [ ] `docs/4-architecture/features/012/{spec,plan,tasks}.md` updated to the current date; all clarifications encoded in normative sections.  
+    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 012.  
+    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+      - `./gradlew --no-daemon :infra-persistence:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`  
+      - `./gradlew --no-daemon :core:test --tests "*MapDbCredentialStoreTest*"` (or the equivalent once encryption tests move to `infra-persistence`).  
+
+  - **Spec ↔ docs/implementation mapping**
+    - [ ] For FR-012-01..08 and NFR-012-01..05, confirm:  
+      - Deployment profiles, cache tuning, and persistence defaults are described in `docs/2-how-to/configure-persistence-profiles.md` and match the actual configuration in `infra-persistence`/`application`.  
+      - Telemetry contracts for persistence operations are documented and implemented via `TelemetryContracts`.  
+      - Maintenance helpers/CLI flows (compact/verify, migrations) exist and match the how-to docs.  
+      - Optional encryption guidance aligns with tests and any existing flags/configuration.  
+      - Unified `credentials.db` defaults and override logging are documented and reflected in code and CLI/REST behaviour.  
+      - IDE remediation guidance (e.g., addressing persistence warnings) is backed by code/tests where applicable.  
+
+  - **Roadmap/knowledge map/architecture graph**
+    - [ ] Verify that roadmap, knowledge map, and architecture graph clearly attribute persistence ownership to Feature 012 and reflect current module boundaries.  
+    - [ ] Confirm references to persistence profiles, `credentials.db`, and maintenance helpers in those documents match their implementation.  
+
+  - **Drift capture & remediation**
+    - [ ] Any high-/medium-impact drift (e.g., docs promising encryption/perf behaviour that code does not implement, missing maintenance commands, inconsistent defaults) is:  
+      - Logged as an `Open` entry in `docs/4-architecture/open-questions.md` for Feature 012.  
+      - Captured as explicit tasks in `docs/4-architecture/features/012/tasks.md`.  
+    - [ ] Low-impact drift (typos, wording tweaks, small example corrections) is fixed directly, with a brief note added in this section or the plan’s verification log.  
+
+  - **Gate output**
+    - [ ] This section is updated with the latest drift gate run date, key commands executed, and a concise “matches vs gaps” summary plus remediation notes.  
+    - [ ] `docs/_current-session.md` logs that the Feature 012 Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
 
 ### Drift Report – 2025-11-13
 - **Scope review:** Spec/plan/tasks describe persistence profiles, telemetry contracts, maintenance helpers, optional encryption, unified `credentials.db` defaults, IDE remediation, and documentation logging without legacy references. Roadmap + knowledge map cite Feature 012 as the persistence authority (FR-012-01..08, NFR-012-01..05, S-012-01..08).

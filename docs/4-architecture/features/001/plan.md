@@ -32,11 +32,45 @@ shared fixtures so operators can manage HOTP credentials alongside OCRA. Success
   may need updates—document new event names for platform owners.
 
 ## Implementation Drift Gate
-- Map FR IDs to increments/tasks (see Scenario Tracking).
-- Capture fixture catalogue + loader references in docs.
-- Rerun `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check` before
-  closing the feature.
-- Update roadmap/knowledge map entries to reference HOTP flows.
+
+- Summary: Use this gate to ensure HOTP behaviour (core domain, persistence, application services, CLI/REST endpoints, operator UI flows, fixtures, and Native Java API) remains aligned with FR-001-01..07, Scenario S-001-01..05, and cross-cutting Feature 014 guidance.
+
+- **Checklist for future drift-gate runs (agents):**
+  - **Preconditions**
+    - [ ] `docs/4-architecture/features/001/{spec,plan,tasks}.md` updated to the current date; all clarifications encoded in normative sections.  
+    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 001.  
+    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+      - `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`  
+      - Any HOTP-specific OpenAPI snapshot updates when REST contracts change.  
+
+  - **Spec ↔ code/test mapping**
+    - [ ] For each HOTP FR and Scenario S-001-01..05, identify implementing classes in:  
+      - `core` (HOTP descriptors, generator, hash algorithms, fixtures).  
+      - `application` (HOTP evaluation/issuance/replay services, telemetry adapters).  
+      - `cli` (Picocli HOTP commands).  
+      - `rest-api` (HOTP endpoints, request/response models, OpenAPI snapshots).  
+      - `ui` (HOTP console panels and JS tests).  
+    - [ ] Ensure the Scenario Tracking table in this plan still maps Scenario IDs to increments/tasks and, where needed, add explicit code/test pointers.  
+
+  - **Native Java API & how-to**
+    - [ ] Confirm `HotpEvaluationApplicationService` and its DTOs (EvaluationCommand/EvaluationResult) behave as described in the Feature 001 spec and Feature 014 pattern.  
+    - [ ] Verify Javadoc for `HotpEvaluationApplicationService` and key DTOs labels it as a Native Java API seam, references Feature 001/014 FRs and ADR‑0007, and points to `docs/2-how-to/use-hotp-from-java.md`.  
+    - [ ] Ensure `use-hotp-from-java.md` uses the same types/methods, covers stored and inline evaluations, and reflects success/failure branches that appear in tests.  
+
+  - **Fixtures & docs**
+    - [ ] Check that `docs/hotp_validation_vectors.json` and any HOTP fixtures remain in sync with loader code and tests.  
+    - [ ] Confirm how-to guides and README references for HOTP still point to the correct commands/endpoints and fixture usage.  
+    - [ ] Update roadmap/knowledge map entries to reference HOTP flows if they changed since the last gate.  
+
+  - **Drift capture & remediation**
+    - [ ] Any high-/medium-impact drift (e.g., spec vs code mismatch, missing tests for documented flows, outdated fixtures) is:  
+      - Logged as an `Open` entry in `docs/4-architecture/open-questions.md` for Feature 001.  
+      - Captured as explicit tasks in `docs/4-architecture/features/001/tasks.md`.  
+    - [ ] Low-impact drift (typos, minor doc misalignments, small fixture tweaks) is corrected directly, with a brief note added in this section or the plan’s verification log.  
+
+  - **Gate output**
+    - [ ] This section is updated with the latest drift gate run date, key commands executed, and a concise “matches vs gaps” summary plus remediation notes.  
+    - [ ] `docs/_current-session.md` logs that the HOTP Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
 
 ## Increment Map
 1. **I1 – Core domain & fixtures (S-001-01)**
@@ -79,3 +113,4 @@ Completed 2025-10-04 when clarifications resolved; rerun only if scope changes.
 
 ## Follow-ups / Backlog
 - Future feature to cover HOTP issuance/provisioning once prioritized.
+- Align HOTP Native Java API with Feature 014 – Native Java API Facade and ADR-0007 by exposing a small, documented Java entry point (e.g., evaluation helper or application service) plus a `use-hotp-from-java.md` guide modelled on `use-ocra-from-java.md`.

@@ -319,6 +319,18 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`
   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapReplayEndpointTest"`
 
+- [x] T-005-47 – Design EMV/CAP Native Java API seam (FR-014-01/02, S-014-02).  
+  _Intent:_ Designate `io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService` (and its `EvaluationRequest` / `EvaluationResult` types) as the EMV/CAP Native Java API seam, document it in the Feature 005 Interface & Contract catalogue, and link it explicitly to Feature 014 and ADR-0007.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :application:test`  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-005-48 – Author `docs/2-how-to/use-emv-cap-from-java.md` and tests (FR-014-03/04, S-014-01/02).  
+  _Intent:_ Add an EMV/CAP `*-from-java` guide and tests that drive `EmvCapEvaluationApplicationService` as a façade seam, mirroring the HOTP/TOTP/OCRA/FIDO2 Native Java guides.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :application:test`  
+  - `./gradlew --no-daemon spotlessApply check`
+
 - [x] T-005-47 – CLI replay command (S39-05, S39-10): added `emv cap replay` Picocli command covering stored/inline flows, preview-window overrides, includeTrace toggle, JSON/text parity, and telemetry emission; CLI tests now assert match/mismatch outcomes and sanitized telemetry. Commands: `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliReplayTest"`, `./gradlew --no-daemon spotlessApply check` (still red pending UI replay).
   _Intent:_ CLI replay command (S39-05, S39-10): added
   _Verification commands:_

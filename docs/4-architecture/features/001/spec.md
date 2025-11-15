@@ -93,6 +93,11 @@ HOTP stored + inline evaluations live inside the unified operator console tab an
 | CLI-001-02 | `maintenance hotp evaluate` | Inline/stored evaluation. |
 | CLI-001-03 | `maintenance hotp replay` | Non-mutating evaluation. |
 
+### Native Java API
+| ID | Entry point | Description | Notes |
+|----|-------------|-------------|-------|
+| NJ-001-01 | `io.openauth.sim.application.hotp.HotpEvaluationApplicationService` | Application-level HOTP evaluation service used as the Native Java API seam for stored and inline requests. | Mirrors CLI/REST evaluation semantics; callers supply a `CredentialStore` and `EvaluationCommand` and consume `EvaluationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in `docs/2-how-to/use-hotp-from-java.md`. |
+
 ### Telemetry Events
 | ID | Event name | Fields / Redaction rules |
 |----|-----------|---------------------------|
@@ -122,6 +127,7 @@ HOTP stored + inline evaluations live inside the unified operator console tab an
 
 ## Documentation Deliverables
 - Update operator/CLI/REST how-to guides with HOTP usage, seeding, replay.
+- Publish a Native Java how-to guide (`docs/2-how-to/use-hotp-from-java.md`) that treats `HotpEvaluationApplicationService` as the façade seam and references Feature 014/ADR-0007.
 - Refresh roadmap/knowledge map.
 
 ## Fixtures & Sample Data

@@ -23,7 +23,49 @@ Unify all assertion evaluation, replay, and attestation generation/verification 
 - **Risks / Mitigations:** Trust-anchor metadata growth could break persistence queries (mitigate by regression tests in `infra-persistence` and by caching via `WebAuthnMetadataCatalogue`); operator console toggles may regress (mitigate via targeted Selenium tests); OpenAPI snapshots might misalign with REST controllers (mitigate by running `OPENAPI_SNAPSHOT_WRITE=true ...` before the drift gate and logging the outputs in `_current-session.md`).
 
 ## Implementation Drift Gate
-Record the drift gate under `docs/4-architecture/features/004/plan.md` once I1–I3 increments finish. Re-run `docs/5-operations/analysis-gate-checklist.md` so every requirement in the spec matches an increment/task/test command, log the checklist results in the plan, and capture the verification commands plus hook guard in `_current-session.md` per Feature 011 governance.
+
+- Summary: Use this gate to ensure FIDO2/WebAuthn behaviours (assertion evaluation/replay, attestation generation/replay, trust-anchor handling, operator UI flows, telemetry/docs, and the Native Java API seam) remain aligned with Feature 004 FR/NFRs, Scenario S-004-01..05, and cross-cutting Feature 014 guidance.
+
+- **Checklist for future drift-gate runs (agents):**
+  - **Preconditions**
+    - [ ] `docs/4-architecture/features/004/{spec,plan,tasks}.md` updated to the current date; all clarifications encoded in normative sections.  
+    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 004.  
+    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+      - `git config core.hooksPath` (hook guard).  
+      - `./gradlew --no-daemon spotlessApply check`.  
+      - Targeted WebAuthn tests from this plan (core/application/CLI/REST/UI, including Selenium).  
+
+  - **Spec ↔ code/test mapping**
+    - [ ] For each WebAuthn FR and Scenario S-004-01..05, identify implementing classes in:  
+      - `core` (verifier, attestation helpers, metadata catalogue, fixtures).  
+      - `infra-persistence` (WebAuthn persistence extensions).  
+      - `application` (assertion/attestation services and telemetry adapters).  
+      - `cli` (FIDO2 CLI commands).  
+      - `rest-api` (WebAuthn endpoints, request/response models, problem-details mappings).  
+      - `ui` (FIDO2 operator console panels and JS tests).  
+    - [ ] Ensure Scenario Tracking still maps scenarios to increments/tasks and, where helpful, add explicit code/test pointers.  
+
+  - **Native Java API & how-to**
+    - [ ] Confirm `WebAuthnEvaluationApplicationService` and its DTOs (EvaluationCommand/EvaluationResult) behave as described in the spec and Feature 014’s Native Java pattern.  
+    - [ ] Verify Javadoc for `WebAuthnEvaluationApplicationService` labels it as a Native Java API seam, references Feature 004/014 FRs and ADR‑0007, and points to `docs/2-how-to/use-fido2-from-java.md`.  
+    - [ ] Ensure `use-fido2-from-java.md` uses the same types/methods and reflects both success and failure paths covered by `WebAuthnNativeJavaApiUsageTest`.  
+
+  - **OpenAPI, fixtures, telemetry, UI**
+    - [ ] Re-run OpenAPI snapshots for FIDO2/WebAuthn endpoints when contracts change and confirm `rest-openapi` output matches the spec and controllers.  
+    - [ ] Verify fixtures (`docs/webauthn_w3c_vectors.json`, `docs/webauthn_assertion_vectors.json`, `docs/webauthn_attestation/*`) remain in sync with loader code and tests.  
+    - [ ] Confirm telemetry events (assertion/attestation) match documented event names and field redactions.  
+    - [ ] Check that the FIDO2 operator console flows (stored/inline assertions, attestation panels, trust-anchor summaries) behave as specified and are covered by Selenium/JS tests.  
+
+  - **Drift capture & remediation**
+    - [ ] Any high-/medium-impact drift (spec vs code mismatch, missing tests, broken UI fixtures, outdated OpenAPI snapshots) is:  
+      - Logged as an `Open` entry in `docs/4-architecture/open-questions.md` for Feature 004.  
+      - Captured as explicit tasks in `docs/4-architecture/features/004/tasks.md`.  
+    - [ ] Low-impact drift (typos, minor example updates, small fixture corrections) is corrected directly, with a short note added in this section or the plan’s verification log.  
+
+  - **Gate output**
+    - [ ] This section is updated with the latest drift gate run date, key commands executed, and a concise “matches vs gaps” summary plus remediation notes.  
+    - [ ] `docs/_current-session.md` logs that the WebAuthn Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
+
 2025-11-13 consolidation sweep: `git config core.hooksPath`, `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*WebAuthn*"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, `node --test rest-api/src/test/javascript/emv/console.test.js`, and `./gradlew --no-daemon :ui:test` were executed and logged in `_current-session.md`.
 
 ## Increment Map
@@ -80,3 +122,4 @@ Log the gate results in this plan after the first clean `./gradlew --no-daemon s
 - Future Features 007/008 will cover the mdoc/SIOPv2 simulators; ensure their specs reference Feature 004’s telemetry/fixture contracts when they reuse WebAuthn assets.  
 - Monitor `docs/4-architecture/knowledge-map.md` for new dependencies introduced by future trust-anchor catalog enhancements and add entries referencing `WebAuthnMetadataCatalogue`.  
 - Schedule a drift gate once Feature 004 wraps to verify no regression tests were skipped and to capture lessons in the plan appendix.
+- Align FIDO2/WebAuthn Native Java API seams with Feature 014 – Native Java API Facade and ADR-0007 by identifying a small set of public Java entry points (assertion/attestation helpers or application services), documenting them, and adding a `use-fido2-from-java.md` how-to when scheduled.

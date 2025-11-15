@@ -60,6 +60,17 @@ _Last updated:_ 2025-11-13
   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`  
   _Notes:_ Hook guard + verification commands (spotless, REST WebAuthn suites, Selenium, EMV Node harness, `:ui:test`) are logged in `_current-session.md`; knowledge map and plan now call out the consolidated Feature 004 ownership.
 
+- [x] T-004-08 – Design FIDO2/WebAuthn Native Java API seams (FR-014-01/02, S-014-02).  
+  _Intent:_ Designate `io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService` (and its `EvaluationCommand` / `EvaluationResult` types) as the Native Java API seam for WebAuthn assertion evaluation, document it in the Feature 004 Interface & Contract catalogue, and link it explicitly to Feature 014 and ADR-0007.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-004-09 – Author `docs/2-how-to/use-fido2-from-java.md` and supporting tests (FR-014-03/04, S-014-01/02).  
+  _Intent:_ Add a FIDO2/WebAuthn Native Java how-to guide and tests that treat `WebAuthnEvaluationApplicationService` as the façade seam for assertion evaluation, aligning docs and behaviour with Feature 014 and ADR-0007.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :core:test :application:test`  
+  - `./gradlew --no-daemon spotlessApply check`
+
 ## Verification Log
 - 2025-11-11 – `./gradlew --no-daemon spotlessApply check` (baseline).  
 - 2025-11-11 – `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*WebAuthn*"` plus UI/Selenium suites.  

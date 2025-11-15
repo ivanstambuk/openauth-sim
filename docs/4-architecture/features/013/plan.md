@@ -36,7 +36,48 @@ _Out of scope:_ Executing the verification suites during this documentation-only
 - Risk: forgetting to log wrapper updates/command outputs reduces auditability; tasks checklist enforces logging.
 
 ## Implementation Drift Gate
-Verify that FR-013-01..10 and NFR-013-01..05 map to the archived plan/tasks, roadmap/knowledge map entries, and command logs. Document findings in this plan’s appendix with links to remediation tasks as needed.
+
+- Summary: Use this gate to ensure that toolchain and quality automation (Spotless, Checkstyle, SpotBugs, PMD, Jacoco, PIT, reflectionScan, wrapper/Gradle versioning, CLI exit harnesses) remain aligned with FR-013-01..10 and NFR-013-01..05, and that all verification commands and wrapper upgrades are properly logged.
+
+- **Checklist for future drift-gate runs (agents):**
+  - **Preconditions**
+    - [ ] `docs/4-architecture/features/013/{spec,plan,tasks}.md` updated to the current date; all clarifications encoded in normative sections.  
+    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 013.  
+    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+      - `./gradlew --no-daemon spotlessApply check`  
+      - `./gradlew --no-daemon qualityGate` (with documented skip flags if used).  
+      - `./gradlew --no-daemon reflectionScan` (when reflection policies change).  
+      - `./gradlew --no-daemon :core-ocra:spotbugsMain :core-ocra:pmdMain pmdTest` or equivalent module-specific SpotBugs/PMD runs when rules change.  
+
+  - **Spec ↔ toolchain mapping**
+    - [ ] Confirm FR-013 and NFR-013 requirements are reflected in:  
+      - Static-analysis configs (`config/spotbugs/*.xml`, `config/pmd/*.xml`).  
+      - `build.gradle.kts` toolchain wiring (Spotless, Checkstyle, PMD, SpotBugs, Jacoco, PIT, reflectionScan, jacocoAggregatedReport, jacocoCoverageVerification, mutationTest, qualityGate).  
+      - Gradle wrapper properties and `gradle/libs.versions.toml` versions.  
+      - Docs (`AGENTS.md`, `docs/5-operations/analysis-gate-checklist.md`, `docs/5-operations/session-quick-reference.md`) describing how to run/interpret the toolchain.  
+
+  - **Quality gates & static analysis**
+    - [ ] Verify `qualityGate` still depends on the expected tasks (Spotless, `check`, reflectionScan) and that `check` depends on architecture tests and aggregated Jacoco verification as documented.  
+    - [ ] Ensure Jacoco thresholds and PIT settings match FR/NFR expectations (line/branch coverage and mutation score).  
+    - [ ] Confirm SpotBugs/PMD are applied to intended modules with the documented filters and suppression etiquette.  
+
+  - **CLI exit harness & maintenance tasks**
+    - [ ] Check that CLI exit harnesses and Maintenance CLI coverage buffers described in the spec remain present and wired into the quality pipeline where required.  
+    - [ ] Verify any helper tasks introduced by this feature (e.g., EMV trace fixture sync in `rest-api`) still align with their owning features (e.g., Feature 005) and operate as documented.  
+
+  - **Wrapper and plugin upgrades**
+    - [ ] Confirm Gradle wrapper and plugin versions match what the spec/plan describe and that upgrade steps (including warning-mode and configuration-cache validation) are still documented and repeatable.  
+    - [ ] Ensure any wrapper or plugin upgrades are logged in `docs/_current-session.md` with commands and outcomes.  
+
+  - **Drift capture & remediation**
+    - [ ] Any high-/medium-impact drift (e.g., missing or outdated qualityGate components, reflectionScan not enforced as documented, coverage thresholds silently reduced) is:  
+      - Logged as an `Open` entry in `docs/4-architecture/open-questions.md` for Feature 013.  
+      - Captured as explicit tasks in `docs/4-architecture/features/013/tasks.md`.  
+    - [ ] Low-impact drift (typos, stale command snippets, minor option mismatches) is corrected directly, with a short note added in this section or the plan’s verification log.  
+
+  - **Gate output**
+    - [ ] This section is updated with the date of the latest drift gate run, listing key commands executed and a concise “matches vs gaps” summary plus remediation notes.  
+    - [ ] `docs/_current-session.md` logs that the Feature 013 Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
 
 ### Drift Report – 2025-11-13
 - **Scope review:** Spec/plan/tasks document CLI exit harness coverage, Maintenance CLI buffers, reflection ban, Java 17 refactors, architecture harmonization, SpotBugs/PMD enforcement, Gradle upgrades, and legacy entry removal without migration framing. Roadmap + knowledge map cite Feature 013 for toolchain ownership.

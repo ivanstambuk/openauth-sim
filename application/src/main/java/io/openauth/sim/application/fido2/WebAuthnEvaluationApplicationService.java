@@ -38,7 +38,15 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Application-level coordinator for WebAuthn assertion verification + telemetry emission. */
+/**
+ * Native Java API seam for WebAuthn assertion evaluation.
+ *
+ * <p>Used by Feature 004 – FIDO2/WebAuthn Assertions &amp; Attestations and Feature 014 – Native
+ * Java API Facade to drive stored and inline WebAuthn assertion verification from Java callers
+ * without going through CLI/REST/UI. Behaviour is specified in the Feature 004 spec
+ * (FR-004-01/02) with cross-cutting governance in Feature 014 (FR-014-02/04) and ADR-0007; usage
+ * examples live in {@code docs/2-how-to/use-fido2-from-java.md}.
+ */
 public final class WebAuthnEvaluationApplicationService {
 
     private final CredentialStore credentialStore;
@@ -54,6 +62,14 @@ public final class WebAuthnEvaluationApplicationService {
     private static final Pattern TOKEN_BINDING_FIELD_PATTERN =
             Pattern.compile("\\\"(status|id)\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
 
+    /**
+     * Creates a new WebAuthn evaluation service backed by the supplied credential store and
+     * verifier collaborators.
+     *
+     * <p>Callers are expected to obtain a {@link CredentialStore} via the shared persistence
+     * infrastructure (for example, {@code infra-persistence.CredentialStoreFactory}) and reuse
+     * the same verifier/persistence components as the REST/CLI facades.
+     */
     public WebAuthnEvaluationApplicationService(
             CredentialStore credentialStore,
             WebAuthnAssertionVerifier verifier,
@@ -61,6 +77,9 @@ public final class WebAuthnEvaluationApplicationService {
         this(credentialStore, verifier, persistenceAdapter, WebAuthnSignaturePolicy.observeOnly());
     }
 
+    /**
+     * Creates a new WebAuthn evaluation service with an explicit signature policy.
+     */
     public WebAuthnEvaluationApplicationService(
             CredentialStore credentialStore,
             WebAuthnAssertionVerifier verifier,
@@ -72,10 +91,24 @@ public final class WebAuthnEvaluationApplicationService {
         this.signaturePolicy = Objects.requireNonNull(signaturePolicy, "signaturePolicy");
     }
 
+    /**
+     * Evaluates a WebAuthn assertion using the supplied command.
+     *
+     * <p>This is the primary Native Java entry point: callers construct either a stored or inline
+     * {@link EvaluationCommand} and receive an {@link EvaluationResult} whose telemetry can be
+     * bridged via {@link Fido2TelemetryAdapter}. See {@code docs/2-how-to/use-fido2-from-java.md}
+     * for examples.
+     */
     public EvaluationResult evaluate(EvaluationCommand command) {
         return evaluate(command, false);
     }
 
+    /**
+     * Evaluates a WebAuthn assertion with optional verbose tracing.
+     *
+     * @param command stored or inline evaluation command
+     * @param verbose when {@code true}, attaches a {@link VerboseTrace} to the result
+     */
     public EvaluationResult evaluate(EvaluationCommand command, boolean verbose) {
         Objects.requireNonNull(command, "command");
 
@@ -1173,8 +1206,67 @@ public final class WebAuthnEvaluationApplicationService {
         return value != null && !value.trim().isEmpty();
     }
 
+    /**
+     * Result DTO returned by the Native Java WebAuthn API, including verification outcome and
+     * optional verbose trace metadata.
+     */
+    public record EvaluationResult(
+            TelemetrySignal telemetry,
+            boolean valid,
+            boolean credentialReference,
+            String credentialId,
+            String relyingPartyId,
+            WebAuthnSignatureAlgorithm algorithm,
+            boolean userVerificationRequired,
+            Optional<WebAuthnVerificationError> error,
+            VerboseTrace trace) {
+
+        public EvaluationResult {
+            Objects.requireNonNull(telemetry, "telemetry");
+            error = error == null ? Optional.empty() : error;
+        }
+
+        public TelemetryFrame evaluationFrame(Fido2TelemetryAdapter adapter, String telemetryId) {
+            return telemetry.emit(adapter, telemetryId);
+        }
+
+        public Optional<VerboseTrace> verboseTrace() {
+            return Optional.ofNullable(trace);
+        }
+    }
+
+    public record TelemetrySignal(
+            TelemetryStatus status, String reasonCode, String reason, boolean sanitized, Map<String, Object> fields) {
+
+        public TelemetrySignal {
+            status = Objects.requireNonNull(status, "status");
+            reasonCode = reasonCode == null ? "unspecified" : reasonCode;
+            fields = Map.copyOf(new LinkedHashMap<>(fields == null ? Map.of() : fields));
+        }
+
+        public TelemetryFrame emit(Fido2TelemetryAdapter adapter, String telemetryId) {
+            Objects.requireNonNull(adapter, "adapter");
+            Objects.requireNonNull(telemetryId, "telemetryId");
+            String eventStatus =
+                    switch (status) {
+                        case SUCCESS -> "success";
+                        case INVALID -> "invalid";
+                        case ERROR -> "error";
+                    };
+            return adapter.status(eventStatus, telemetryId, reasonCode, sanitized, reason, fields);
+        }
+    }
+
+    /**
+     * Command type used by the Native Java WebAuthn API to describe stored and inline assertion
+     * evaluations.
+     */
     public sealed interface EvaluationCommand permits EvaluationCommand.Stored, EvaluationCommand.Inline {
 
+        /**
+         * Describes a stored WebAuthn assertion evaluation referencing a credential in the
+         * {@link CredentialStore}.
+         */
         record Stored(
                 String credentialId,
                 String relyingPartyId,
@@ -1221,6 +1313,10 @@ public final class WebAuthnEvaluationApplicationService {
             }
         }
 
+        /**
+         * Describes an inline WebAuthn assertion with an explicit credential, public key, and
+         * assertion payloads supplied directly by the caller.
+         */
         record Inline(
                 String credentialName,
                 String relyingPartyId,
@@ -1282,53 +1378,6 @@ public final class WebAuthnEvaluationApplicationService {
             public byte[] signature() {
                 return signature.clone();
             }
-        }
-    }
-
-    public record EvaluationResult(
-            TelemetrySignal telemetry,
-            boolean valid,
-            boolean credentialReference,
-            String credentialId,
-            String relyingPartyId,
-            WebAuthnSignatureAlgorithm algorithm,
-            boolean userVerificationRequired,
-            Optional<WebAuthnVerificationError> error,
-            VerboseTrace trace) {
-
-        public EvaluationResult {
-            Objects.requireNonNull(telemetry, "telemetry");
-            error = error == null ? Optional.empty() : error;
-        }
-
-        public TelemetryFrame evaluationFrame(Fido2TelemetryAdapter adapter, String telemetryId) {
-            return telemetry.emit(adapter, telemetryId);
-        }
-
-        public Optional<VerboseTrace> verboseTrace() {
-            return Optional.ofNullable(trace);
-        }
-    }
-
-    public record TelemetrySignal(
-            TelemetryStatus status, String reasonCode, String reason, boolean sanitized, Map<String, Object> fields) {
-
-        public TelemetrySignal {
-            status = Objects.requireNonNull(status, "status");
-            reasonCode = reasonCode == null ? "unspecified" : reasonCode;
-            fields = Map.copyOf(new LinkedHashMap<>(fields == null ? Map.of() : fields));
-        }
-
-        public TelemetryFrame emit(Fido2TelemetryAdapter adapter, String telemetryId) {
-            Objects.requireNonNull(adapter, "adapter");
-            Objects.requireNonNull(telemetryId, "telemetryId");
-            String eventStatus =
-                    switch (status) {
-                        case SUCCESS -> "success";
-                        case INVALID -> "invalid";
-                        case ERROR -> "error";
-                    };
-            return adapter.status(eventStatus, telemetryId, reasonCode, sanitized, reason, fields);
         }
     }
 

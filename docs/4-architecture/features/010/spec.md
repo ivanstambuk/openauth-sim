@@ -10,17 +10,18 @@
 | Roadmap entry | #10 – Documentation & Knowledge Automation |
 
 ## Overview
-Feature 010 centralises every operator-facing guide, roadmap/knowledge-map reference, session workflow, and build-quality
-automation note into a single specification so Java/CLI/REST guides, README messaging, roadmap snapshots, session quick
-reference, `_current-session.md` logs, and Gradle quality tasks all evolve in lockstep. This spec explicitly enumerates the
-required operator documentation set (`docs/2-how-to/use-ocra-from-java.md`, `docs/2-how-to/use-ocra-cli-operations.md`,
+Feature 010 centralises every operator-facing guide, roadmap/knowledge-map reference, session workflow, knowledge-automation
+configuration, and build-quality automation note into a single specification so Java/CLI/REST guides, README messaging,
+roadmap snapshots, session quick reference, `_current-session.md` logs, Gradle quality tasks, and DeepWiki steering all
+evolve in lockstep. This spec explicitly enumerates the required operator documentation set
+(`docs/2-how-to/use-ocra-from-java.md`, `docs/2-how-to/use-ocra-cli-operations.md`,
 `docs/2-how-to/use-ocra-rest-operations.md`) plus README guidance so only shipped capabilities are referenced and is backed
 by ADR-0004 (Documentation & Aggregated Quality Gate Workflow). It also defines the aggregated `./gradlew --no-daemon qualityGate`
 entry point (Spotless, Checkstyle, SpotBugs, ArchUnit, Jacoco aggregation with ≥90% line/branch, PIT ≥85% mutation score,
 gitleaks) and requires GitHub Actions workflows to invoke the same command with caching, report uploads, and optional local
-skip flags (`-Ppit.skip=true`). Every documentation/automation increment must log commands and outcomes in `_current-session.md`,
-keeping this feature the authoritative source for doc structure, knowledge-map automation, and the quality gate that protects
-the OCRA stack and its supporting documentation.
+skip flags (`-Ppit.skip=true`). Every documentation/automation increment—including updates to `.devin/wiki.json` for DeepWiki—
+must log commands and outcomes in `_current-session.md`, keeping this feature the authoritative source for doc structure,
+knowledge-map automation, DeepWiki steering, and the quality gate that protects the OCRA stack and its supporting documentation.
 
 ## Goals
 - G-010-01 – Deliver accurate, runnable operator guides for Java/CLI/REST flows plus README cross-links that reflect the
@@ -42,7 +43,7 @@ the OCRA stack and its supporting documentation.
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
 | FR-010-01 | Publish and maintain the operator doc suite (`docs/2-how-to/use-ocra-from-java.md`, `docs/2-how-to/use-ocra-cli-operations.md`, `docs/2-how-to/use-ocra-rest-operations.md`) with runnable snippets, telemetry expectations, and troubleshooting sections. | Operators follow prerequisites, copy commands, and reproduce OTP generation/replay flows without diving into source. | Spot-check snippets against the latest build; `./gradlew spotlessApply check` validates formatting; `_current-session.md` logs updates. | Outdated instructions block operators or contradict shipped behaviour. | No new telemetry; guides reference existing `core.ocra.*`, `cli.ocra.*`, `rest.ocra.*` frames. | Spec |
 | FR-010-02 | Keep `README.md` and how-to landing pages focused on shipped functionality, include Swagger UI links, and cross-link the operator docs/quality-gate guidance. | README lists active simulators + `http://localhost:8080/swagger-ui/index.html`, points to how-to guides, and omits future/planned placeholders. | Manual review + linting; `_current-session.md` records diff summary. | README references stale content or omits critical docs. | None. | Spec |
-| FR-010-03 | Synchronise roadmap, knowledge map, architecture graph, session quick reference, and `_current-session.md` whenever documentation or automation scope changes. | Doc updates mention Feature 010; `_current-session.md` logs commands (moves, deletions, verification). | `rg "Feature 010"` across docs; reviewers confirm entries after each increment. | Cross-document drift forces manual archaeology. | None. | Spec |
+| FR-010-03 | Synchronise roadmap, knowledge map, architecture graph, DeepWiki steering config (`.devin/wiki.json`), session quick reference, and `_current-session.md` whenever documentation or automation scope changes. | Doc updates mention Feature 010; `_current-session.md` logs commands (moves, deletions, verification) and DeepWiki updates; `.devin/wiki.json` remains aligned with the feature catalogue and architecture docs. | `rg "Feature 010"` across docs; reviewers confirm entries after each increment; DeepWiki wiki regeneration matches the documented page outline. | Cross-document drift or stale DeepWiki steering forces manual archaeology. | None. | Spec |
 | FR-010-04 | Provide an aggregated Gradle task `./gradlew --no-daemon qualityGate` (with optional `-Ppit.skip=true`) that runs Spotless, Checkstyle, SpotBugs, ArchUnit, Jacoco aggregation, PIT mutation tests, and gitleaks in one command. | Running `qualityGate` locally matches CI output; reports land under `build/reports/quality/`, `build/reports/jacoco/aggregated/`, and `build/reports/pitest/`. | Observing Gradle output plus report folders; task wiring documented in plan/tasks. | Contributors must chain commands manually or miss required suites. | Build logs only; no runtime telemetry. | Spec |
 | FR-010-05 | Enforce ArchUnit boundary rules that block CLI/REST/UI modules from touching `core` directly (outside the application seams). | Illegal dependencies break `qualityGate` with actionable messages. | ArchUnit tests seed forbidden imports; CI artifacts capture failures. | Architecture drift ships undetected. | None. | Spec |
 | FR-010-06 | Maintain Jacoco aggregated coverage thresholds (≥90% line/branch) for OCRA code paths; failures block the gate until coverage is restored. | Jacoco reports meet thresholds locally and in CI; offenders listed when regressions occur. | Inspect `build/reports/jacoco/aggregated/index.html` + Gradle console when tests fail. | Coverage regressions pass unnoticed. | None. | Spec |

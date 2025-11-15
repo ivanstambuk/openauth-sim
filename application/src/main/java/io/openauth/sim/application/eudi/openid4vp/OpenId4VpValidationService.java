@@ -10,15 +10,45 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-/** Validation-mode entry point for OpenID4VP verifier flows (Feature 040, task T4013). */
+/**
+ * Native Java API seam for EUDIW OpenID4VP validation (Validate mode).
+ *
+ * <p>Used by Feature 006 – EUDIW OpenID4VP Simulator and Feature 014 – Native Java API Facade to
+ * drive VP Token/DeviceResponse validation from Java callers without going through CLI/REST/UI.
+ * Behaviour is specified in the Feature 006 spec (FR-006-01..06/11..13, FR-040-14..23) with
+ * cross-cutting governance in Feature 014 (FR-014-02/04) and ADR-0007; usage examples live in
+ * {@code docs/2-how-to/use-eudiw-from-java.md}. Callers construct {@link ValidateRequest}
+ * instances and consume {@link ValidationResult} as façade DTOs.
+ */
 public final class OpenId4VpValidationService {
 
     private final Dependencies dependencies;
 
+    /**
+     * Creates a new validation service backed by the supplied dependencies.
+     *
+     * @param dependencies collaborators for stored presentations, Trusted Authorities evaluation,
+     *     and telemetry
+     */
     public OpenId4VpValidationService(Dependencies dependencies) {
         this.dependencies = Objects.requireNonNull(dependencies, "dependencies");
     }
 
+    /**
+     * Validates a stored or inline VP Token request.
+     *
+     * <p>Exactly one of {@link ValidateRequest#storedPresentationId()} or
+     * {@link ValidateRequest#inlineVpToken()} must be provided. On success, the method returns a
+     * {@link ValidationResult} containing one or more presentations plus trace and telemetry
+     * metadata; on failure, it emits a telemetry signal via the {@code responseFailed} callback and
+     * throws {@link Oid4vpValidationException} with RFC&nbsp;7807 problem-details content.
+     *
+     * @param request validation request describing the stored or inline VP Token and Trusted
+     *     Authority policies
+     * @return validation result for the supplied request
+     * @throws Oid4vpValidationException if validation fails (invalid request, Trusted Authorities
+     *     miss, or presentation-level errors)
+     */
     public ValidationResult validate(ValidateRequest request) {
         Objects.requireNonNull(request, "request");
 
@@ -238,6 +268,10 @@ public final class OpenId4VpValidationService {
         }
     }
 
+    /**
+     * Validation request describing a stored or inline VP Token plus associated Trusted Authority
+     * policies and optional DCQL preview.
+     */
     public record ValidateRequest(
             String requestId,
             OpenId4VpWalletSimulationService.Profile profile,
@@ -258,6 +292,10 @@ public final class OpenId4VpValidationService {
         }
     }
 
+    /**
+     * Inline VP Token payload used when validating ad-hoc OpenID4VP presentations rather than
+     * stored fixtures.
+     */
     public record InlineVpToken(
             String credentialId,
             String format,
@@ -276,6 +314,10 @@ public final class OpenId4VpValidationService {
         }
     }
 
+    /**
+     * Stored presentation snapshot loaded from the repository and used as validation input when
+     * {@link ValidateRequest#storedPresentationId()} is supplied.
+     */
     public record StoredPresentation(
             String presentationId,
             String credentialId,

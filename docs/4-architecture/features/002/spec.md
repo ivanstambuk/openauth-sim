@@ -91,6 +91,11 @@ Replay panel mirrors Evaluate but never mutates counters.
 | CLI-002-01 | `maintenance totp evaluate` | Evaluates stored/inline credentials (drift/timestamp). |
 | CLI-002-02 | `maintenance totp replay` | Non-mutating replay. |
 
+### Native Java API
+| ID | Entry point | Description | Notes |
+|----|-------------|-------------|-------|
+| NJ-002-01 | `io.openauth.sim.application.totp.TotpEvaluationApplicationService` | Application-level TOTP evaluation service used as the Native Java API seam for stored and inline flows. | Mirrors CLI/REST evaluation semantics (including drift windows and timestamp overrides); callers supply a `CredentialStore` and `EvaluationCommand` and consume `EvaluationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in `docs/2-how-to/use-totp-from-java.md`. |
+
 ### Telemetry Events
 | ID | Event name | Fields / Redaction rules |
 |----|-----------|---------------------------|

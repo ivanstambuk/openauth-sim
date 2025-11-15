@@ -39,11 +39,61 @@ facades, replay workflows, and operator-console panels aligned after renumbering
   roadmap/knowledge map/session snapshot.
 
 ## Implementation Drift Gate
-- Map FR IDs to increments/tasks (see Scenario Tracking).
-- Keep `legacy/` subdirectories intact for auditability while ensuring the new spec/plan/tasks own the authoritative
-  requirements.
-- Run `./gradlew --no-daemon spotlessApply check :core:test :application:test :cli:test :rest-api:test :ui:test`
-  whenever OCRA modules change; capture command history in `_current-session.md`.
+
+- **Drift Gate – Template for OCRA Simulator & Replay**
+
+  - Summary: When (re)validating Feature 003, use this gate to confirm that the OCRA spec, plan, tasks, code/tests, and documentation remain aligned across core, application, CLI, REST, UI, and the Native Java API; ensure no undocumented flows or untested branches have crept in since the last review.
+
+  - **Preconditions**
+    - [ ] `docs/4-architecture/features/003/{spec,plan,tasks}.md` updated to the current date with all clarifications folded into normative sections (no legacy “Clarifications” appendices).  
+    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 003.  
+    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+      - `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`  
+      - Any OCRA-focused quality checks captured in Feature 013 (e.g., Jacoco/SpotBugs for OCRA packages) when relevant.  
+
+  - **FR ↔ increment ↔ code/test mapping**
+    - [ ] For each OCRA FR and NFR in the Feature 003 spec:  
+      - Identify the implementing classes in `core` (descriptors, calculators, replay/verifier helpers).  
+      - Identify the application/CLI/REST/UI entry points that consume those helpers.  
+      - Identify tests that cover success, validation, and failure paths (core calculators, REST endpoints, CLI commands, UI flows).  
+    - [ ] Ensure the Scenario Tracking table in this plan still maps FR IDs to increments/tasks and, where necessary, augment it with explicit code/test pointers.  
+
+  - **Seam inventory & contract check (facades + Native Java)**
+    - [ ] Confirm the following OCRA surfaces behave as specified and stay consistent with each other:  
+      - Native Java API (as documented in `docs/2-how-to/use-ocra-from-java.md` and Feature 014).  
+      - CLI (`ocra` commands for evaluate/verify/replay).  
+      - REST endpoints (`/api/v1/ocra/evaluate`, `/api/v1/ocra/verify`).  
+      - Operator console OCRA panels (stored/inline/replay).  
+    - [ ] For each surface, verify:  
+      - Supported request shapes (stored vs inline, replay payloads).  
+      - Validation semantics (mutually exclusive fields, missing fields, malformed inputs).  
+      - Telemetry behaviour (hashed OTPs, reason codes, trace IDs).  
+
+  - **Legacy `legacy/` artefacts**
+    - [ ] Confirm that `docs/4-architecture/features/003/legacy/` remains present for historical reference but does not contain authoritative requirements; the live spec/plan/tasks outside `legacy/` must govern behaviour.  
+    - [ ] Ensure references in roadmap/knowledge map and how-to docs point to Feature 003 (not legacy IDs) for current behaviour.  
+
+  - **How-to guides, telemetry, and OpenAPI**
+    - [ ] Check that OCRA how-to guides (CLI/REST/UI/Native Java) reference the correct commands/endpoints and use request/response examples that match current DTOs and JSON payloads.  
+    - [ ] Verify telemetry documentation (e.g., OCRA telemetry snapshots) matches actual `ocra.*` events emitted by the application and facades (hashed fields, status/reason codes).  
+    - [ ] Re-run and validate OpenAPI snapshots for OCRA endpoints when behaviour changes (`OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshotTest"`), and confirm the spec still matches the generated contract.  
+
+  - **UI & replay behaviour**
+    - [ ] Confirm operator console OCRA flows (stored/inline/replay) match REST/CLI semantics for:  
+      - Input fields and validation messages.  
+      - Replay workflows and mismatch diagnostics.  
+      - Verbose trace dock wiring (trace IDs, payload snippets).  
+    - [ ] Verify UI tests (including any Selenium/JS harnesses) still cover the key scenarios listed in the Scenario Tracking table.  
+
+  - **Drift capture & remediation**
+    - [ ] Any high-/medium-impact drift (e.g., spec vs code mismatch, missing tests for a documented flow, telemetry discrepancies) is:  
+      - Logged as an `Open` row in `docs/4-architecture/open-questions.md` for Feature 003.  
+      - Captured as explicit tasks in `docs/4-architecture/features/003/tasks.md` (and, if cross-cutting, in related cross-feature plans).  
+    - [ ] Low-impact drift (typos, minor doc tweaks, small test naming mismatches) is corrected directly in spec/plan/tasks/docs, with a short note added to this section or the plan’s verification log.  
+
+  - **Gate output**
+    - [ ] This section is updated with the date of the latest drift gate run, the key commands executed, and a short summary of “matches vs gaps” plus remediation notes.  
+    - [ ] `docs/_current-session.md` logs that the OCRA Implementation Drift Gate was executed (with date, commands, and reference to this plan section).  
 
 ## Increment Map
 1. **I1 – Core domain & fixtures (S-003-01)**
@@ -88,4 +138,6 @@ because the consolidated spec/plan/tasks now govern the same scope.
 - The session log (docs/_current-session.md) records the Batch P1 execution, commands, and verification results.
 
 ## Follow-ups / Backlog
-- None for OCRA after renumbering; future work moves to the roadmap once new requirements emerge.
+- Native Java API reference note – OCRA’s existing Native Java usage (see `docs/2-how-to/use-ocra-from-java.md`) acts as
+  the reference pattern for Feature 014 – Native Java API Facade and ADR-0007; no additional OCRA-specific backlog is
+  required unless future features extend the Native Java surface.

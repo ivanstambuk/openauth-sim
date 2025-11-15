@@ -9,5 +9,5 @@ Auto-generated API, CLI, and schema references land here as surfaces come online
 - `eudiw-openid4vp-telemetry-snapshot.md` – New telemetry catalog for Feature 040 covering `oid4vp.request.created`, `oid4vp.wallet.responded`, `oid4vp.response.*`, and `oid4vp.fixtures.ingested`. Refresh after major simulator or ingestion changes.
 
 ## Pending Artifacts
-- `core` Javadoc (to be generated once APIs stabilise)
+- Native Java API Javadoc index under `docs/3-reference/native-java-api/` (curated index still pending; generate full Javadoc with `./gradlew --no-daemon :application:nativeJavaApiJavadoc`, which runs `:core:javadoc` and `:application:javadoc` and writes HTML to `core/build/docs/javadoc` and `application/build/docs/javadoc`).
 - Open standard specifications (FIDO2/WebAuthn, OATH/OCRA, EUDI wallet, EMV) via external links captured in future documentation updates.

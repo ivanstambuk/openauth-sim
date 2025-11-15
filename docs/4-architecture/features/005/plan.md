@@ -144,6 +144,7 @@ Historical increment notes (I1–I45, T3916/T3917, sample spacing tasks) reside 
 1. **Fixture expansion (future):** Capture additional hardware transcripts beyond the six shipped vectors when new calculator inputs surface and fold them into regression tests.  
 2. **Advanced diagnostics (optional):** Investigate tiered verbose trace controls or additional telemetry analytics once EMV/CAP parity ships.  
 3. **Hardware exploration (optional):** Revisit APDU/card-emulation scope if future requirements demand it.
+4. **Native Java API alignment (future):** Align EMV/CAP Native Java seams with Feature 014 – Native Java API Facade and ADR-0007 by exposing a small evaluation/replay entry point for Java callers and adding a `use-emv-cap-from-java.md` guide when prioritised.
 
 ### Historical increment appendix
 #### Increment Breakdown (≤30 minutes each)

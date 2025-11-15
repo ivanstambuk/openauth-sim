@@ -32,7 +32,52 @@ and JS harness tests) under Feature 009 so future batches can evolve concrete 
 
 
 ## Implementation Drift Gate
-Before closing this feature, confirm every FR/NFR (FR-009-01..FR-009-10, NFR-009-01..NFR-009-05) maps to code/tests (console shell, info drawer, presets, validation helper, verbose traces/tiers, Base32 inputs, preview windows, JS harness). Capture the drift report inside this plan once the gate runs.
+
+- Summary: Use this gate to ensure that the operator console (tabs, info drawer, presets, validation helper, verbose traces/tiers, Base32 inputs, preview windows, JS harness) remains aligned with FR-009-01..10 and NFR-009-01..05 and with the corresponding REST/CLI/application behaviours.
+
+- **Checklist for future drift-gate runs (agents):**
+  - **Preconditions**
+    - [ ] `docs/4-architecture/features/009/{spec,plan,tasks}.md` updated to the current date, with console scope (tabs, presets, validation helper, traces, Base32, preview windows, JS harness) fully captured.  
+    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 009.  
+    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+      - `./gradlew --no-daemon spotlessApply check` (includes JVM tests and Node-based `operatorConsoleJsTest`).  
+      - Any focused UI/REST test targets referenced in this plan/tasks when console behaviour changes.  
+
+  - **Spec ↔ console code/test mapping**
+    - [ ] For FR-009-01..10 and NFR-009-01..05, identify corresponding:  
+      - Templates/controllers and JS modules under `rest-api` that implement tab layout, info drawer, preset wiring, validation helper, trace tiers, Base32 inputs, preview windows.  
+      - JVM tests and JS/Node tests (`operatorConsoleJsTest`) that cover the described behaviours.  
+    - [ ] Ensure the Scenario Tracking table reflects current console scope and, where needed, augment it with links to specific tests/files.  
+
+  - **Tab shell, info drawer, presets**
+    - [ ] `/ui/console` tab order and labels (HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW/… as per spec) match the Feature 009 spec and roadmap.  
+    - [ ] Protocol Info drawer behaviour (open/close, per-protocol content, preference persistence) matches spec and how-to docs.  
+    - [ ] Preset dropdowns across protocols show correct labels and seed the correct stored/inline data; tests verify preset consistency.  
+
+  - **Validation helper, traces, Base32, preview windows**
+    - [ ] Validation helper messaging and result cards for invalid responses match REST/CLI semantics and telemetry (no extra or missing cases).  
+    - [ ] Verbose trace tiers (normal/educational/lab-secrets) apply the same masking rules as other facades and emit the expected telemetry events.  
+    - [ ] Inline shared secret inputs accept Base32/hex as described; mutual exclusivity and helper text match tests and docs.  
+    - [ ] Preview windows (Delta tables, offsets) display correct data and helper text; REST/CLI flags map cleanly into the UI.  
+
+  - **JS harness & determinism**
+    - [ ] `operatorConsoleJsTest` still covers: tab activation, deep-link routing, preset behaviour, validation helper, verbose-trace integration, and preview windows.  
+    - [ ] Node/Gradle integration for console JS tests remains deterministic (no flaky tests); any flakiness is documented and tracked as tasks.  
+
+  - **Docs & telemetry alignment**
+    - [ ] Console how-to docs (if present) and references in README/how-to landing pages match the current tab set and console behaviour.  
+    - [ ] Telemetry documentation and snapshots reflect the console’s use of `TelemetryContracts` (no extra raw secrets or missing events).  
+    - [ ] Roadmap, knowledge map, and `_current-session.md` still refer to Feature 009 as the operator-console authority and describe the console scope correctly.  
+
+  - **Drift capture & remediation**
+    - [ ] Any high-/medium-impact drift (e.g., console behaviour not matching spec, missing trace tiers, outdated presets) is:  
+      - Logged as an `Open` entry in `docs/4-architecture/open-questions.md` for Feature 009.  
+      - Captured as explicit tasks in `docs/4-architecture/features/009/tasks.md`.  
+    - [ ] Low-impact drift (typos, minor UI text mismatches, small doc changes) is corrected directly, with a brief note added in this section or the plan’s verification log.  
+
+  - **Gate output**
+    - [ ] This section is updated with the latest drift gate run date, listing key commands executed and a concise “matches vs gaps” summary plus remediation notes.  
+    - [ ] `docs/_current-session.md` logs that the Feature 009 Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
 
 ### Drift Report – 2025-11-13
 - **Scope review:** Spec/plan/tasks now describe the steady-state operator console (tabs, info drawer, presets, validation helper, verbose traces + tiers, Base32 inline secrets, preview windows, JS harness, documentation duties). No migration references remain, and roadmap/knowledge map/session log all cite Feature 009 as the sole console authority (covers FR-009-01..10, S-009-01..10, FR-009-10).

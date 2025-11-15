@@ -1,10 +1,10 @@
 # OpenAuth Simulator
 
-OpenAuth Simulator is a Java&nbsp;17, Gradle-based lab environment for emulating contemporary authentication credentials and protocols (FIDO2/WebAuthn, OATH/OCRA, EUDI wallet artefacts, EMV/CAP, and future additions). The project is intentionally greenfield and non-production; we optimise for fast iteration by AI agents, incremental steps under ten minutes, and the ability to crush and rebuild APIs as requirements evolve.
+OpenAuth Simulator is a Java&nbsp;17, Gradle-based lab environment for emulating contemporary authentication credentials and protocols (FIDO2/WebAuthn, OATH/OCRA, EUDI wallet artefacts, EMV/CAP, and future additions). The project is intentionally greenfield and non-production; we optimise for fast iteration by AI agents, incremental steps under ten minutes, and the ability to crush and rebuild APIs as requirements evolve. The simulator can be consumed via four surfaces: a Native Java API, CLI commands, REST API endpoints, and an operator console web UI.
 
 ## Current status (2025-09-30)
 
-- ✅ `core` provides the OCRA credential domain, persistence adapters, and ArchUnit guards used by all facades.
+- ✅ `core` provides the OCRA credential domain and Native Java API seam, plus persistence adapters and ArchUnit guards used by all other facades.
 - ✅ `cli` ships Picocli commands for importing, listing, deleting, evaluating credentials, and running MapDB maintenance tasks.
 - ✅ `rest-api` exposes `/api/v1/ocra/evaluate` and `/api/v1/ocra/credentials`, publishes OpenAPI snapshots, and serves Swagger UI at `http://localhost:8080/swagger-ui/index.html` when booted locally.
 - ✅ `ui` hosts the operator console at `/ui/console`, reusing the REST endpoints for inline and stored-credential evaluations.
@@ -14,7 +14,7 @@ OpenAuth Simulator is a Java&nbsp;17, Gradle-based lab environment for emulating
 
 | Module    | Purpose                                                          |
 |-----------|------------------------------------------------------------------|
-| `core`    | OCRA credential domain, crypto helpers, persistence abstractions |
+| `core`    | OCRA credential domain, crypto helpers, persistence abstractions, Native Java API seam |
 | `cli`     | Picocli tooling for credential lifecycle, evaluation, maintenance |
 | `rest-api`| Spring Boot facade exposing OCRA evaluation and credential directory |
 | `ui`      | Server-rendered operator console built atop the REST API         |

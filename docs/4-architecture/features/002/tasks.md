@@ -44,6 +44,17 @@ _Last updated:_ 2025-11-13
 - [x] T-002-18 – Update operator/CLI/REST how-to guides, roadmap, knowledge map; rerun spotless (S-002-05, FR-002-07).  
   _Verification:_ `./gradlew --no-daemon spotlessApply check`
 
+- [x] T-002-19 – Design TOTP Native Java API seam (FR-014-01/02, S-014-02).  
+  _Intent:_ Designate `io.openauth.sim.application.totp.TotpEvaluationApplicationService` (and its `EvaluationCommand` / `EvaluationResult` types) as the TOTP Native Java API seam, document it in the Feature 002 Interface & Contract catalogue, and link it explicitly to Feature 014 and ADR-0007.  
+  _Verification:_  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-002-20 – Author `docs/2-how-to/use-totp-from-java.md` and tests (FR-014-03/04, S-014-01/02).  
+  _Intent:_ Add a TOTP `*-from-java` how-to guide and tests that treat `TotpEvaluationApplicationService` (with `EvaluationCommand` / `EvaluationResult`) as façade seams for stored and inline flows, mirroring the OCRA and HOTP Java guides.  
+  _Verification:_  
+  - `./gradlew --no-daemon :core:test :application:test`  
+  - `./gradlew --no-daemon spotlessApply check`
+
 ## Verification Log
 - 2025-10-18 – `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`
 - 2025-11-10 – `./gradlew --no-daemon spotlessApply check` (template migration verification)

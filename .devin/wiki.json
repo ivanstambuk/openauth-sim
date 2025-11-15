@@ -1,0 +1,262 @@
+{
+  "repo_notes": [
+    {
+      "content": "This repository contains the OpenAuth Simulator, a multi-protocol authentication and signing simulator used for education, experimentation, and conformance-style testing. It is implemented as a Gradle 8 multi-module Java 17 workspace with a layered architecture: `core` and related core-* modules hold protocol/domain logic and fixtures, `application` orchestrates flows and telemetry, and a Native Java API seam in `core` plus facades in `cli`, `rest-api`, and `ui` expose simulator capabilities to operators. Documentation under `docs/` is governed by a Specification-Driven Development (SDD) workflow: every feature has a spec/plan/tasks trio under `docs/4-architecture/features/<NNN>/`, roadmap and knowledge maps live under `docs/4-architecture/`, and governance/quality automation are captured in ADRs under `docs/6-decisions/` plus Feature 010/011/013.\n\nThe wiki should prioritise explaining: (1) supported protocols (HOTP, TOTP, OCRA, EMV/CAP, FIDO2/WebAuthn, and EUDIW OpenID4VP), (2) how the layered architecture keeps behaviour consistent across the Native Java API, CLI, REST API, and operator console UI, (3) how SDD artefacts (specs, plans, tasks, ADRs, roadmap, knowledge map) map to concrete modules, endpoints, and tests, and (4) how governance and quality gates (Feature 010, 011, 013) keep the workspace reproducible. Assume the reader is an experienced software engineer or IAM / security architect comfortable with cryptographic protocols and Java/Gradle, but new to this repository.",
+      "author": "Repo owner"
+    }
+  ],
+  "pages": [
+    {
+      "title": "Overview",
+      "purpose": "Structure this page as the primary landing page for the project. Start with a clear 'Purpose and Scope' section that explains what the OpenAuth Simulator is, who it is for, and which protocols it covers. Follow with a concise 'System Architecture Overview' section that summarises the layered architecture (Core, Application, Facades). Only after that, introduce cross-cutting concerns such as telemetry and observability, fixture-driven testing and quality automation, unified credential store and persistence, and future protocol expansion.",
+      "page_notes": [
+        {
+          "content": "Ensure the first section on this page is 'Purpose and Scope', not telemetry. Telemetry and observability should appear later as a cross-cutting quality attribute, with links to the dedicated 'Telemetry System' and 'Quality Automation & Governance' pages. Cross-link to docs/4-architecture/roadmap.md, docs/4-architecture/knowledge-map.md, and docs/architecture-graph.json so readers can pivot from this overview into deeper architecture and feature documentation."
+        }
+      ]
+    },
+    {
+      "title": "System Architecture",
+      "purpose": "Describe the layered architecture and module structure of the OpenAuth Simulator. Explain how core modules (core, core-ocra, core-shared, core-architecture-tests) encapsulate protocol and crypto logic, how application coordinates flows and telemetry, and how facades (cli, rest-api, ui) expose functionality. Highlight the unified credential store and how data flows across layers. Emphasize that specs under docs/4-architecture drive these designs.",
+      "page_notes": [
+        {
+          "content": "Reference docs/architecture-graph.json and docs/4-architecture/knowledge-map.md for module relationships, and call out Feature 012 (Core Cryptography & Persistence) and Feature 013 (Toolchain & Quality Platform) where they define module boundaries and quality automation."
+        }
+      ]
+    },
+    {
+      "title": "Protocol Implementations",
+      "purpose": "Provide an overview of all supported protocols and how they share a consistent implementation pattern. For each protocol, summarise where its core domain logic lives, which application services orchestrate flows, and which facades expose it. Highlight the role of shared fixtures and telemetry across all protocols.",
+      "page_notes": [
+        {
+          "content": "Group the six protocol families (HOTP, TOTP, OCRA, EMV/CAP, FIDO2/WebAuthn, EUDIW OpenID4VP) and link each to its Feature spec in docs/4-architecture/features/<NNN>/ (001–006) plus relevant how-to guides under docs/2-how-to/ where available."
+        }
+      ]
+    },
+    {
+      "title": "OCRA (Challenge-Response)",
+      "purpose": "Document the OCRA implementation (RFC 6287) with emphasis on suite parsing, session key derivation, evaluation and replay flows, and the OCRA credential factory. Explain how OCRA support is structured between core, application, and facades, and how fixtures ensure deterministic behaviour.",
+      "parent": "Protocol Implementations",
+      "page_notes": [
+        {
+          "content": "Point to Feature 003 spec/plan/tasks (docs/4-architecture/features/003/) for the OCRA simulator and to OCRA how-to guides under docs/2-how-to/ plus relevant test vectors in docs/test-vectors/ocra/."
+        }
+      ]
+    },
+    {
+      "title": "HOTP (Counter-Based OTP)",
+      "purpose": "Document the HOTP implementation (RFC 4226), including how counters are managed, how state mutation semantics are handled, and how seed operations and evaluate/replay flows work across CLI, REST, and UI. Highlight any shared helpers and telemetry events.",
+      "parent": "Protocol Implementations",
+      "page_notes": [
+        {
+          "content": "Link to Feature 001 spec/plan/tasks (docs/4-architecture/features/001/) and to any HOTP-specific how-to documentation under docs/2-how-to/ (Java, CLI, REST operations)."
+        }
+      ]
+    },
+    {
+      "title": "TOTP (Time-Based OTP)",
+      "purpose": "Document the TOTP implementation (RFC 6238), focusing on time window handling, clock skew tolerance, timestamp-based validation rules, and how these behaviours are exposed via CLI, REST, and UI surfaces. Describe how deterministic fixtures and tests validate these behaviours.",
+      "parent": "Protocol Implementations",
+      "page_notes": [
+        {
+          "content": "Reference Feature 002 spec/plan/tasks (docs/4-architecture/features/002/) and any TOTP how-to guides under docs/2-how-to/, plus relevant test vectors in docs/test-vectors/."
+        }
+      ]
+    },
+    {
+      "title": "FIDO2/WebAuthn",
+      "purpose": "Document the FIDO2/WebAuthn implementation, including registration (attestation) and authentication (assertion) workflows. Cover trust anchor resolution, signature validation, attestation formats, fixture ingestion, and how the simulator integrates W3C test vectors. Explain how these flows are surfaced through CLI, REST, and UI.",
+      "parent": "Protocol Implementations",
+      "page_notes": [
+        {
+          "content": "Point to Feature 004 spec/plan/tasks (docs/4-architecture/features/004/), WebAuthn-related docs under docs/2-how-to/ and docs/webauthn_attestation/, and highlight where attestation/assertion fixtures live."
+        }
+      ]
+    },
+    {
+      "title": "EMV/CAP (Session Keys)",
+      "purpose": "Document the EMV/CAP simulation, including session key derivation, Identify/Respond/Sign modes, bitmask application, and how customer inputs are modelled. Explain how deterministic verbose traces and fixtures support debugging and education.",
+      "parent": "Protocol Implementations",
+      "page_notes": [
+        {
+          "content": "Reference Feature 005 spec/plan/tasks (docs/4-architecture/features/005/) and any EMV/CAP how-to guides and fixtures under docs/test-vectors/."
+        }
+      ]
+    },
+    {
+      "title": "EUDIW OpenID4VP",
+      "purpose": "Document the EUDIW OpenID4VP simulator, including authorization request generation, wallet simulation, DCQL queries, SD-JWT VC and mdoc formats, Trusted Authority evaluation, and HAIP baseline behaviour. Explain how fixtures and trusted list snapshots drive deterministic flows.",
+      "parent": "Protocol Implementations",
+      "page_notes": [
+        {
+          "content": "Focus on Feature 006 spec/plan/tasks (docs/4-architecture/features/006/) and the EUDIW/OpenID4VP fixtures and trusted list snapshots under docs/test-vectors/eudiw/openid4vp/ and docs/trust/. Highlight how Evaluate/Replay flows and Trusted Authorities filtering are exposed in the operator console and REST API."
+        }
+      ]
+    },
+    {
+      "title": "Shared Infrastructure",
+      "purpose": "Document the core shared infrastructure used across all protocols: the credential domain model, persistence layer, telemetry system, and test fixture architecture. Emphasize how these cross-cutting concerns allow protocols to share storage, tracing, and testing practices.",
+      "page_notes": [
+        {
+          "content": "Anchor this page in Feature 012 (Core Cryptography & Persistence) and Feature 013 (Toolchain & Quality Platform) specs/plans/tasks, plus docs/4-architecture/knowledge-map.md for cross-cutting links."
+        }
+      ]
+    },
+    {
+      "title": "Credential Domain",
+      "purpose": "Explain the unified credential model and registry used across protocols. Describe how different protocol credentials coexist in the same store, how factories create and evolve credential records, and how versioned persistence records are handled.",
+      "parent": "Shared Infrastructure",
+      "page_notes": [
+        {
+          "content": "Reference Feature 012 spec/plan/tasks (docs/4-architecture/features/012/) and any persistence/credential docs under docs/2-how-to/ and docs/4-architecture/. Highlight where the CredentialStoreFactory is defined and how it is consumed by application and facade modules."
+        }
+      ]
+    },
+    {
+      "title": "Persistence Layer",
+      "purpose": "Document the persistence infrastructure: MapDB credential store, Caffeine caching, schema versioning, persistence adapters, and seeding operations for each protocol. Explain default profiles and how operators can configure persistence.",
+      "parent": "Shared Infrastructure",
+      "page_notes": [
+        {
+          "content": "Link to docs/2-how-to/configure-persistence-profiles.md, Feature 012 spec/plan/tasks, and any persistence-related ADRs that describe default credentials.db locations and maintenance workflows."
+        }
+      ]
+    },
+    {
+      "title": "Telemetry System",
+      "purpose": "Document the telemetry system, including TelemetryContracts adapters, sanitisation strategies, verbose tracing, and how telemetry flows from all facades with consistent metadata. Emphasize privacy and redaction behaviour.",
+      "parent": "Shared Infrastructure",
+      "page_notes": [
+        {
+          "content": "Reference TelemetryContracts and telemetry adapter classes in application, plus docs that describe telemetry events (e.g., Feature 012/013 docs and any telemetry catalogues under docs/2-how-to/ or docs/3-reference/)."
+        }
+      ]
+    },
+    {
+      "title": "Test Fixtures & Vectors",
+      "purpose": "Document the test vector catalogues and fixture repositories under docs/test-vectors/ and related directories. Explain how fixtures support deterministic testing and reproducible traces across protocols and facades.",
+      "parent": "Shared Infrastructure",
+      "page_notes": [
+        {
+          "content": "Call out the main fixture directories (docs/test-vectors/ocra/, docs/test-vectors/eudiw/openid4vp/, docs/webauthn_attestation/, EMV traces, etc.) and how tests in core/application/rest-api/ui consume them."
+        }
+      ]
+    },
+    {
+      "title": "User Interfaces",
+      "purpose": "Provide an overview of the three main interaction facades: Operator Console (web UI), REST API, and CLI. Explain their design patterns, how they map onto the underlying application services, and how they maintain behaviour parity across protocols.",
+      "page_notes": [
+        {
+          "content": "Reference Feature 009 spec/plan/tasks for operator console guidance, REST API docs under docs/3-reference/ (OpenAPI), and CLI docs under docs/2-how-to/."
+        }
+      ]
+    },
+    {
+      "title": "Native Java API",
+      "purpose": "Explain how to consume the simulator directly from Java code as a programmatic API. Highlight the OCRA Native Java API in detail (credential creation via OcraCredentialFactory, evaluation via OcraResponseCalculator, and telemetry behaviour) and outline the roadmap for similar surfaces for HOTP, TOTP, FIDO2/WebAuthn, EMV/CAP, and EUDIW OpenID4VP. Clarify how this in-process Java facade relates to the REST, CLI, and operator console surfaces.",
+      "parent": "User Interfaces",
+      "page_notes": [
+        {
+          "content": "Cross-link to docs/2-how-to/use-ocra-from-java.md and any future *-from-java guides. Emphasise that the Native Java API is an in-process programmatic facade, distinct from networked facades (REST, CLI, UI), and that OCRA is currently the best-documented example while other protocol-specific Java APIs remain work in progress."
+        }
+      ]
+    },
+    {
+      "title": "Operator Console",
+      "purpose": "Document the unified operator console UI: protocol tab navigation, evaluate vs replay workflows, inline vs stored credential modes, VerboseTraceConsole integration, and overall UI state management. Highlight how the console supports all protocol families, including EUDIW OpenID4VP.",
+      "parent": "User Interfaces",
+      "page_notes": [
+        {
+          "content": "Link to Feature 009 spec/plan/tasks (docs/4-architecture/features/009/), Selenium tests for the operator UI in rest-api/ui modules, and any UI how-to docs under docs/2-how-to/."
+        }
+      ]
+    },
+    {
+      "title": "REST API",
+      "purpose": "Document REST endpoints for all protocols, referencing the OpenAPI specification and key request/response structures. Explain error handling via RFC 7807 problem details, endpoint naming conventions, and how the REST API maps to application services and fixtures.",
+      "parent": "User Interfaces",
+      "page_notes": [
+        {
+          "content": "Reference docs/3-reference/rest-openapi.yaml or rest-openapi.json, REST controller classes under rest-api, and any REST how-to guides under docs/2-how-to/."
+        }
+      ]
+    },
+    {
+      "title": "Command Line Interface",
+      "purpose": "Document CLI commands for each protocol: parameters, options, typical workflows, telemetry emission, exit codes, and output formatting. Emphasize how CLI commands mirror REST and UI behaviour for evaluate/replay and other flows.",
+      "parent": "User Interfaces",
+      "page_notes": [
+        {
+          "content": "Link to CLI entry points under cli/ (Picocli commands) and any CLI how-to docs under docs/2-how-to/, plus notes about telemetry events emitted from CLI flows."
+        }
+      ]
+    },
+    {
+      "title": "Build System & Dependencies",
+      "purpose": "Document the Gradle multi-module structure, version catalog, dependency management strategy, lockfile usage, and custom build tasks (e.g., qualityGate, reflectionScan, EMV trace verification). Explain how contributors should reason about module dependencies and keep the build stable.",
+      "page_notes": [
+        {
+          "content": "Reference settings.gradle.kts, build.gradle.kts files, the version catalog (if present), ADRs that explain toolchain/quality decisions (e.g., ADR-0002, ADR-0003, ADR-0004), and Feature 013 spec/plan/tasks."
+        }
+      ]
+    },
+    {
+      "title": "Quality Automation & Governance",
+      "purpose": "Document the quality automation and governance model for the repo: quality gates, testing pyramid, reflection policies, and SDD process. Explain how governance docs, runbooks, and hooks work together to keep the workspace reproducible and auditable.",
+      "page_notes": [
+        {
+          "content": "Tie this page directly to Feature 010 (Documentation & Knowledge Automation), Feature 011 (Governance & Workflow Automation), and Feature 013 (Toolchain & Quality Platform) specs/plans/tasks. Reference docs/6-decisions/project-constitution.md, ADR-0004, and docs/5-operations/* runbooks."
+        }
+      ]
+    },
+    {
+      "title": "Quality Gates",
+      "purpose": "Document the qualityGate task and associated checks: Spotless formatting, Checkstyle, PMD, SpotBugs, ArchUnit boundary enforcement, Jacoco coverage thresholds, PIT mutation testing, reflection scanning, and gitleaks. Explain expectations for contributors and typical troubleshooting.",
+      "parent": "Quality Automation & Governance",
+      "page_notes": [
+        {
+          "content": "Reference Feature 010 and 013 specs/plans/tasks, docs/5-operations/quality-gate.md, and the Gradle tasks (qualityGate, reflectionScan, spotbugsMain, pmdMain, pmdTest, jacocoTestReport)."
+        }
+      ]
+    },
+    {
+      "title": "Testing Strategy",
+      "purpose": "Document the testing pyramid and strategy: unit tests, integration tests, Selenium UI tests, mutation testing, and ArchUnit rules. Explain how fixture-backed regression tests and coverage evolution keep behaviours stable across protocols and facades.",
+      "parent": "Quality Automation & Governance",
+      "page_notes": [
+        {
+          "content": "Highlight where key tests live in core, application, rest-api, ui, and where Selenium/Node tests reside. Reference the scenario tracking sections in feature plans and tasks files, especially for Features 005, 006, 010–013."
+        }
+      ]
+    },
+    {
+      "title": "Development Workflow",
+      "purpose": "Document the Specification-Driven Development workflow and related governance: clarification gate, analysis gate checklist, implementation drift gate, and the agent playbook in AGENTS.md. Explain how specs, plans, tasks, ADRs, roadmap, knowledge map, and session logs fit together.",
+      "parent": "Quality Automation & Governance",
+      "page_notes": [
+        {
+          "content": "Reference docs/6-decisions/project-constitution.md, AGENTS.md, docs/5-operations/runbook-session-reset.md, docs/5-operations/analysis-gate-checklist.md, docs/5-operations/session-quick-reference.md, and Feature 011 spec/plan/tasks."
+        }
+      ]
+    },
+    {
+      "title": "CI/CD Pipeline",
+      "purpose": "Document GitHub Actions workflows and how they run quality gates in CI, enforce pre-commit hooks and gitlint, and gate merges. Explain how CI mirrors local commands and where to find build artifacts and reports.",
+      "parent": "Quality Automation & Governance",
+      "page_notes": [
+        {
+          "content": "Reference .github/workflows/*, especially quality-gate workflows, and call out the relationship between managed pre-commit hooks (githooks/), gitlint configuration (.gitlint), and CI enforcement."
+        }
+      ]
+    },
+    {
+      "title": "Development Guidelines",
+      "purpose": "Summarise key principles for contributors: architectural boundaries (core vs facades), test-first discipline, documentation sync requirements, constitutional principles, and expectations for telemetry and fixture hygiene.",
+      "page_notes": [
+        {
+          "content": "Reference AGENTS.md, docs/6-decisions/project-constitution.md, Feature 011 spec/plan/tasks, and docs/5-operations/session-quick-reference.md so this page becomes a high-level entry point for new contributors."
+        }
+      ]
+    }
+  ]
+}

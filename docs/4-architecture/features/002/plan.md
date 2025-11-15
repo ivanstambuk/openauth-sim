@@ -30,9 +30,45 @@ parity and deterministic fixtures. Success requires:
   - Replay must stay non-mutating; integration tests enforce counter integrity.
 
 ## Implementation Drift Gate
-- Track FR/S scenarios against increments (see Scenario Tracking).
-- Capture fixture catalogue references + doc diffs before close.
-- Rerun `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check` prior to handoff.
+
+- Summary: Use this gate to ensure TOTP behaviour (core domain, persistence, application services, CLI/REST endpoints, operator UI flows, fixtures, and Native Java API) remains aligned with FR-002-01..07, Scenario S-002-01..05, and cross-cutting Feature 014 guidance.
+
+- **Checklist for future drift-gate runs (agents):**
+  - **Preconditions**
+    - [ ] `docs/4-architecture/features/002/{spec,plan,tasks}.md` updated to the current date; all clarifications encoded in normative sections.  
+    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 002.  
+    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+      - `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`  
+      - Any TOTP-specific OpenAPI snapshot updates when REST contracts change.  
+
+  - **Spec ↔ code/test mapping**
+    - [ ] For each TOTP FR and Scenario S-002-01..05, identify implementing classes in:  
+      - `core` (TOTP descriptors, generator, clock/window logic, fixtures).  
+      - `application` (TOTP evaluation/replay/seed services, telemetry adapters).  
+      - `cli` (Picocli TOTP commands).  
+      - `rest-api` (TOTP endpoints, request/response models, OpenAPI snapshots).  
+      - `ui` (TOTP console panels and JS tests).  
+    - [ ] Ensure the Scenario Tracking table still maps Scenario IDs to increments/tasks, with code/test pointers where helpful.  
+
+  - **Native Java API & how-to**
+    - [ ] Confirm `TotpEvaluationApplicationService` and its DTOs (EvaluationCommand/EvaluationResult) behave as described in the Feature 002 spec and Feature 014 pattern.  
+    - [ ] Verify Javadoc for `TotpEvaluationApplicationService` and key DTOs labels it as a Native Java API seam, references Feature 002/014 FRs and ADR‑0007, and points to `docs/2-how-to/use-totp-from-java.md`.  
+    - [ ] Ensure `use-totp-from-java.md` uses the same types/methods, covers stored and inline flows (including out-of-window failures), and reflects the behaviour tested in `TotpNativeJavaApiUsageTest`.  
+
+  - **Fixtures & docs**
+    - [ ] Check that `docs/totp_validation_vectors.json` and any TOTP fixtures remain in sync with loader code and tests.  
+    - [ ] Confirm how-to guides and README references for TOTP still point to the correct commands/endpoints and fixture usage.  
+    - [ ] Update roadmap/knowledge map entries to reference TOTP flows if they changed since the last gate.  
+
+  - **Drift capture & remediation**
+    - [ ] Any high-/medium-impact drift (spec vs code mismatch, missing tests for documented flows, outdated fixtures) is:  
+      - Logged as an `Open` entry in `docs/4-architecture/open-questions.md` for Feature 002.  
+      - Captured as explicit tasks in `docs/4-architecture/features/002/tasks.md`.  
+    - [ ] Low-impact drift (typos, minor doc misalignments, small fixture tweaks) is corrected directly, with a brief note added in this section or the plan’s verification log.  
+
+  - **Gate output**
+    - [ ] This section is updated with the latest drift gate run date, key commands executed, and a concise “matches vs gaps” summary plus remediation notes.  
+    - [ ] `docs/_current-session.md` logs that the TOTP Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
 
 ## Increment Map
 1. **I1 – Core domain & persistence (S-002-01)**
@@ -75,3 +111,4 @@ Completed 2025-10-08 when clarifications resolved; rerun only if scope changes.
 
 ## Follow-ups / Backlog
 - Future feature to deliver TOTP issuance/enrollment and possible clock-source configuration.
+- Align TOTP Native Java API with Feature 014 – Native Java API Facade and ADR-0007 by exposing a documented Java entry point for TOTP evaluation (mirroring OCRA’s pattern) and adding a `use-totp-from-java.md` how-to once prioritised.

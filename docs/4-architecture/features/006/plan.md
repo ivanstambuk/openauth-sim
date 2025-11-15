@@ -31,14 +31,70 @@ _Last updated:_ 2025-11-13
 - **Telemetry privacy**: review event payloads for PII; add regression tests ensuring redaction toggles work.
 
 ## Implementation Drift Gate
-- **Status:** Pending – trigger when T-040-01–T-040-23 plus deferred follow-ups reach ✅ and the full Gradle stack is green.
-- Evidence package:
-  - Map every FR/NFR and scenario ID to code/test references inside an appendix table stored with this plan (re-use the Scenario Tracking grid as the source of truth, add code pointers).
-  - Attach screenshots or JSON snippets for telemetry/trace parity (REST/CLI/UI) to demonstrate sanitized fields, hashed payloads, and Trusted Authority verdict alignment.
-  - Capture coverage deltas from `jacocoTestReport` (temporary branch floor ≥0.60) and `spotbugsMain spotbugsTest` outputs.
-- Required commands before sign-off: `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`, `./gradlew --no-daemon jacocoTestReport`, `./gradlew --no-daemon spotbugsMain spotbugsTest`, and Selenium/Node harness invocations referenced in the tasks checklist.
-- Verification log (2025-11-15): `./gradlew --no-daemon jacocoTestReport` (PASS – coverage aggregates refreshed, branch floor held at the temporary 0.60 target while preparing the drift gate packet).
-- Deliverables: update this plan with a drift gate summary (matches vs. gaps, remediation notes), link to refreshed telemetry snapshot/how-to docs, and record any unresolved divergences as open questions before closing the feature.
+
+- **Status:** Pending – trigger the full gate once the Feature 006 tasks for Generate/Validate flows (including Trusted Authorities ingestion and UI wiring) are ✅ and the Gradle stack is green.
+
+- **Drift Gate – Template for EUDIW OpenID4VP Simulator**
+
+  - Summary: When ready to close Feature 006, run this gate to confirm that the spec, plan, tasks, code/tests, how-to guides, and telemetry/trace snapshots for the EUDIW OpenID4VP simulator (Generate/Validate flows) match, and that no undocumented behaviour or missing coverage remains.
+
+  - **Preconditions**
+    - [ ] `docs/4-architecture/features/006/{spec,plan,tasks}.md` updated to the current date with all decisions folded into normative sections (FR/NFR/behaviour/telemetry) and no legacy “Clarifications” sections.  
+    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 006.  
+    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+      - `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`  
+      - `./gradlew --no-daemon jacocoTestReport` (temporary branch floor ≥0.60 until coverage improvements restore 0.70).  
+      - `./gradlew --no-daemon spotbugsMain spotbugsTest` (at minimum for `core`, `application`, `rest-api`, `ui`).  
+      - EUDIW console/REST harness commands referenced from the tasks checklist (Node/Selenium-based UI tests and telemetry snapshot generation).  
+
+  - **Spec ↔ code/test mapping**
+    - [ ] For each high-/medium-impact FR-006-XX and FR-040-XX requirement:  
+      - Identify the implementing classes in `core` (e.g. DCQL evaluators, TrustedAuthorityFixtures, OpenID4VP helpers) and `application.eudi.openid4vp` (authorization request builder, wallet simulation, validation services).  
+      - Identify tests that cover the success, validation, and failure branches (Generate/Validate, TA match/miss, invalid requests/presentations).  
+    - [ ] Extend or refine the Scenario Tracking grid in this plan (or an appendix table) to include explicit code and test pointers for each FR/NFR/Scenario row.  
+
+  - **Seam inventory & contract check (Generate/Validate, Native Java & facades)**
+    - [ ] Confirm that application-level services (`OpenId4VpAuthorizationRequestService`, `OpenId4VpWalletSimulationService`, `OpenId4VpValidationService`, and any related helpers) implement the flows described in the spec (HAIP/Baseline toggles, QR URLs, `request_uri`, Trusted Authorities, DCQL preview).  
+    - [ ] Verify that REST, CLI, and operator UI controllers use those services without bypassing their validation/telemetry behaviour.  
+    - [ ] For the Native Java seams (`OpenId4VpWalletSimulationService`, `OpenId4VpValidationService`):  
+      - Javadoc labels them as Native Java APIs, references Feature 006/014 FRs and ADR‑0007/0008, and points to `docs/2-how-to/use-eudiw-from-java.md`.  
+      - DTOs used in the Native Java API (e.g., `SimulateRequest`, `InlineSdJwt`, `ValidateRequest`, `InlineVpToken`, `StoredPresentation`) match the how-to guide examples.  
+
+  - **How-to guides & telemetry/trace docs**
+    - [ ] `docs/2-how-to/use-eudiw-from-java.md` and other EUDIW how-to guides (REST/CLI/UI) use the same types, method names, and semantics as the application services and fixtures.  
+    - [ ] Telemetry documentation (e.g., `docs/3-reference/eudiw-openid4vp-telemetry-snapshot.md` or equivalent) matches the actual `oid4vp.*` events emitted by the application (`TelemetryContracts` adapters for Generate/Validate).  
+    - [ ] Operator UI docs describe the HAIP/Baseline toggles, DCQL preview panel, Trusted Authorities labels, and trace dock integration in a way that matches the UI JS tests and actual behaviour.  
+
+  - **Tests & quality coverage**
+    - [ ] Generate/Validate behaviour is covered by tests across layers:  
+      - `core` (DCQL evaluation, fixtures, TrustedAuthorities/DeviceResponse helpers).  
+      - `application` (Generate/Validate services, TrustedAuthorityEvaluator, wallet simulation).  
+      - `rest-api` (OpenID4VP endpoints, problem-details mapping).  
+      - `ui` (EUDIW console JS tests for Evaluate/Replay, HAIP/Baseline toggles, Trusted Authorities labels).  
+    - [ ] Native Java usage test (`OpenId4VpNativeJavaApiUsageTest`) covers at least:  
+      - A successful Generate + Validate path using presets or inline SD‑JWT.  
+      - A failure path (e.g., Trusted Authority miss or invalid request VP Token).  
+    - [ ] `jacocoTestReport` shows acceptable coverage for the EUDIW packages; any shortfalls against FR‑006/FR‑040 scenarios are captured as follow-up tasks.  
+    - [ ] `spotbugsMain spotbugsTest` reports are clean for EUDIW-related packages or known issues are converted into explicit tasks.  
+
+  - **Telemetry, traces, and fixtures**
+    - [ ] Telemetry events (`oid4vp.request.*`, `oid4vp.wallet.*`, `oid4vp.response.*`, `oid4vp.fixtures.ingested`) include only synthetic or redacted payloads as documented, with sensitive fields hashed or summarised.  
+    - [ ] Verbose traces link back to operator UI result cards via consistent trace IDs and presentation identifiers.  
+    - [ ] Fixture loaders (`TrustedAuthorityFixtures`, `SyntheticKeyFixtures`, stored presentations) remain in sync with `docs/test-vectors/eudiw/openid4vp/` metadata; any changes are reflected in both code and docs.  
+
+  - **Drift capture & remediation**
+    - [ ] Any high-/medium-impact drift (missing flows, misaligned telemetry, untested branches, discrepancies between docs and behaviour) is:  
+      - Logged as an `Open` entry in `docs/4-architecture/open-questions.md` with links to spec/plan sections.  
+      - Captured as explicit tasks in `docs/4-architecture/features/006/tasks.md` (and, if cross-cutting, in the relevant cross-feature plans).  
+    - [ ] Low-impact drift (typos, minor wording, small doc mismatches) is corrected directly in the spec/plan/tasks/docs, and the change is noted briefly in this section.  
+
+  - **Gate output**
+    - [ ] This section is updated with the gate run date, commands executed (with outcomes), and a short summary of “matches vs gaps” plus remediation notes.  
+    - [ ] `docs/_current-session.md` logs the EUDIW Implementation Drift Gate run (date, commands, and reference to this plan section).  
+    - [ ] Once no high- or medium-impact divergences remain and mandatory follow-ups are scheduled, Feature 006 can move toward completion status subject to owner sign-off.  
+
+- **Verification log (partial runs to date)**  
+  - 2025-11-15 – `./gradlew --no-daemon jacocoTestReport` (PASS – coverage aggregates refreshed for the EUDIW package, temporary 0.60 branch floor held while preparing the eventual drift gate evidence packet).  
 
 ## Increment Map
 0. **I0 – Trusted list ingestion foundation (FR-040-18/25)**  
@@ -188,3 +244,4 @@ _Last updated:_ 2025-11-13
 - T-040-27 – Reinstate JaCoCo branch threshold ≥0.70 after coverage stabilises.
 - Quality guardrail – After any plan/task/spec change, run `./gradlew --no-daemon spotbugsMain spotbugsTest` plus `./gradlew --no-daemon spotlessApply check`; document deviations before proceeding.
 - Telemetry snapshot note – Capture payload diffs via existing snapshot tests each increment so sanitisation regressions surface before implementation resumes.
+- Native Java API alignment – Completed 2025-11-15 via T-006-28/29: EUDIW OpenID4VP Native Java seams now use `OpenId4VpWalletSimulationService` and `OpenId4VpValidationService` as façade entry points, with usage captured in `docs/2-how-to/use-eudiw-from-java.md` and `OpenId4VpNativeJavaApiUsageTest`; future Javadoc/CI wiring remains under Feature 014.

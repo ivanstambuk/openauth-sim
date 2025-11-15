@@ -48,6 +48,17 @@ _Last updated:_ 2025-11-13
 - [x] T-001-20 – Update CLI/REST/operator docs with HOTP guidance, rerun spotless (S-001-05, FR-001-07).  
   _Verification:_ `./gradlew --no-daemon spotlessApply check`
 
+- [x] T-001-21 – Design HOTP Native Java API seam (FR-014-01/02, S-014-02).  
+  _Intent:_ Designate `io.openauth.sim.application.hotp.HotpEvaluationApplicationService` (and its `EvaluationCommand` / `EvaluationResult` types) as the HOTP Native Java API seam, document it in the Feature 001 Interface & Contract catalogue, and link it explicitly to Feature 014 and ADR-0007.  
+  _Verification:_  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-001-22 – Author `docs/2-how-to/use-hotp-from-java.md` and tests (FR-014-03/04, S-014-01/02).  
+  _Intent:_ Add a HOTP `*-from-java` how-to guide modelled on `use-ocra-from-java.md` and tests that treat `HotpEvaluationApplicationService` (with `EvaluationCommand` / `EvaluationResult`) as the façade seam for stored and inline evaluations.  
+  _Verification:_  
+  - `./gradlew --no-daemon :core:test :application:test`  
+  - `./gradlew --no-daemon spotlessApply check`
+
 ## Verification Log
 - 2025-10-05 – `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`
 - 2025-10-13 – Fixture catalogue + UI updates verified with `./gradlew --no-daemon :rest-api:test --tests "*Hotp*"` and `./gradlew spotlessApply check`

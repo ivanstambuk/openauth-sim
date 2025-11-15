@@ -26,9 +26,31 @@ and exposes operator-friendly surfaces across CLI/REST/UI.
   - **Tooling drift:** Keep CLI/REST/UI verification commands aligned with Feature 006 to avoid diverging consent flows.
 
 ## Implementation Drift Gate
-- **Status:** Pending – run once all placeholder increments (authorization parsing through docs telemetry) are complete and full Gradle verification is green.
-- **Evidence package:** Map every FR/NFR + scenario to code/tests, capture telemetry snapshots for consent/presentation payloads, and record Jacoco/SpotBugs outputs before closing the feature.
-- **Required commands:** `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`, `./gradlew --no-daemon spotbugsMain spotbugsTest`, Selenium/Node consent harnesses, and any OpenAPI snapshot updates.
+
+- **Status:** Pending – placeholder feature (SIOPv2 wallet simulator) not yet implemented.
+
+- Summary: Once Feature 008 becomes active and implements SIOPv2 wallet flows, use this gate to ensure consent/authorization, presentation composition, CLI/REST/UI flows, telemetry, and documentation are aligned with the spec and upstream EUDIW practices (Feature 006).
+
+- **Checklist for future drift-gate runs (agents):**
+  - **Preconditions**
+    - [ ] `docs/4-architecture/features/008/{spec,plan,tasks}.md` updated from placeholder to active status with full FR/NFR/Scenario coverage.  
+    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 008.  
+    - [ ] The following commands have been run in the increment and logged in `docs/_current-session.md`:  
+      - `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`  
+      - `./gradlew --no-daemon spotbugsMain spotbugsTest`  
+      - Selenium/Node consent harnesses and any OpenAPI snapshot updates relevant to SIOPv2.  
+
+  - **Spec ↔ code/test mapping (once implemented)**
+    - [ ] For each FR/NFR/Scenario, map from the spec to concrete classes and tests in core/application/REST/CLI/UI.  
+    - [ ] Ensure Scenario Tracking includes code/test pointers for SIOPv2 consent and presentation flows.  
+
+  - **Drift capture & remediation**
+    - [ ] High-/medium-impact drift is logged in `docs/4-architecture/open-questions.md` and captured as tasks in `docs/4-architecture/features/008/tasks.md`.  
+    - [ ] Low-impact drift is fixed directly with a short note in this section or the plan’s verification log.  
+
+  - **Gate output**
+    - [ ] This section is updated with the gate run date, key commands, and “matches vs gaps” summary.  
+    - [ ] `docs/_current-session.md` logs that the Feature 008 Implementation Drift Gate was executed (date, commands, reference back to this section).  
 
 ## Increment Map
 _Target duration: ≤90 minutes per entry._

@@ -20,7 +20,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-/** Application-level HOTP evaluation orchestrator (tests drive implementation). */
+/**
+ * Native Java API seam for HOTP evaluation.
+ *
+ * <p>Used by Feature 001 – HOTP Simulator &amp; Tooling and Feature 014 – Native Java API Facade to
+ * drive stored and inline HOTP evaluations from Java callers without going through CLI/REST/UI.
+ * Behaviour is specified in the Feature 001 spec (FR-001-01..07) with cross-cutting governance in
+ * Feature 014 (FR-014-02/04) and ADR-0007; usage examples live in
+ * {@code docs/2-how-to/use-hotp-from-java.md}.
+ */
 public final class HotpEvaluationApplicationService {
 
     private static final String ATTR_ALGORITHM = "hotp.algorithm";
@@ -37,14 +45,35 @@ public final class HotpEvaluationApplicationService {
 
     private final CredentialStore credentialStore;
 
+    /**
+     * Creates a new HOTP evaluation service backed by the supplied credential store.
+     *
+     * <p>Callers are expected to obtain a {@link CredentialStore} via the shared persistence
+     * infrastructure (for example, {@code infra-persistence.CredentialStoreFactory}) or an
+     * equivalent in-memory implementation in tests.
+     */
     public HotpEvaluationApplicationService(CredentialStore credentialStore) {
         this.credentialStore = Objects.requireNonNull(credentialStore, "credentialStore");
     }
 
+    /**
+     * Evaluates a HOTP request using the supplied command.
+     *
+     * <p>This is the primary Native Java entry point: callers construct either a stored or inline
+     * {@link EvaluationCommand} and receive an {@link EvaluationResult} whose telemetry can be
+     * bridged via {@link HotpTelemetryAdapter}. See
+     * {@code docs/2-how-to/use-hotp-from-java.md} for examples.
+     */
     public EvaluationResult evaluate(EvaluationCommand command) {
         return evaluate(command, false);
     }
 
+    /**
+     * Evaluates a HOTP request with optional verbose tracing.
+     *
+     * @param command stored or inline evaluation command
+     * @param verbose when {@code true}, attaches a {@link VerboseTrace} to the result
+     */
     public EvaluationResult evaluate(EvaluationCommand command, boolean verbose) {
         Objects.requireNonNull(command, "command");
 
@@ -57,12 +86,18 @@ public final class HotpEvaluationApplicationService {
         throw new IllegalStateException("Unsupported HOTP evaluation command: " + command);
     }
 
+    /**
+     * Command type used by the Native Java HOTP API to describe stored and inline evaluations.
+     */
     public sealed interface EvaluationCommand permits EvaluationCommand.Stored, EvaluationCommand.Inline {
 
         int windowBackward();
 
         int windowForward();
 
+        /**
+         * Describes a stored HOTP evaluation identified by credential name and evaluation window.
+         */
         record Stored(String credentialId, int windowBackward, int windowForward) implements EvaluationCommand {
 
             public Stored {
@@ -73,6 +108,9 @@ public final class HotpEvaluationApplicationService {
             }
         }
 
+        /**
+         * Describes an inline HOTP evaluation with an explicit shared secret, algorithm, and counter.
+         */
         record Inline(
                 String sharedSecretHex,
                 HotpHashAlgorithm algorithm,
@@ -94,6 +132,12 @@ public final class HotpEvaluationApplicationService {
         }
     }
 
+    /**
+     * Result DTO returned by the Native Java HOTP API.
+     *
+     * <p>Contains the generated OTP, counter values, optional previews, and the telemetry signal
+     * that can be bridged through {@link HotpTelemetryAdapter}.
+     */
     public record EvaluationResult(
             TelemetrySignal telemetry,
             boolean credentialReference,

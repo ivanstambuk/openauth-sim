@@ -27,12 +27,13 @@ This roadmap mirrors the feature catalogue (001–013) plus the reserved placeho
 | 011 | Governance & Workflow Automation | Complete | Owns AGENTS.md, constitution alignment, managed hooks, gitlint policy, and analysis-gate guidance. | [spec](features/011/spec.md) · [plan](features/011/plan.md) · [tasks](features/011/tasks.md) |
 | 012 | Core Cryptography & Persistence | Complete | Shared persistence defaults, cache tuning, telemetry contracts, maintenance helpers, and encryption guidance. | [spec](features/012/spec.md) · [plan](features/012/plan.md) · [tasks](features/012/tasks.md) |
 | 013 | Toolchain & Quality Platform | Complete | Aggregates CLI exit harnesses, reflection policy enforcement, quality gates, and Gradle/Spotless automation. | [spec](features/013/spec.md) · [plan](features/013/plan.md) · [tasks](features/013/tasks.md) |
+| 014 | Native Java API Facade | Complete | Cross-cutting Native Java facade governance and per-protocol API pattern for HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW, referencing ADR-0007 and seeding backlog work in features 001, 002, 004, 005, and 006. | [spec](features/014/spec.md) · [plan](features/014/plan.md) · [tasks](features/014/tasks.md) |
 
 ## Placeholder Queue (014+)
 
 The next wave of features keeps their numbering reserved so new specs can slot in without another renumbering effort.
 
-- **Features 014–018 – Credential expansion backlog.** These slots cover future credential families (for example, additional OTP profiles, passkey portability, or EMV follow-ons). When one of these efforts graduates from ideation, create `docs/4-architecture/features/014/` (or the matching ID) directly from the templates and capture the clarifications there; until then, record open questions or research stubs in `docs/4-architecture/open-questions.md` rather than a parking-lot directory.
+- **Features 015–018 – Credential expansion backlog.** These slots cover future credential families (for example, additional OTP profiles, passkey portability, or EMV follow-ons). When one of these efforts graduates from ideation, create `docs/4-architecture/features/<NNN>/` directly from the templates and capture the clarifications there; until then, record open questions or research stubs in `docs/4-architecture/open-questions.md` rather than a parking-lot directory.
 - **Features 019–022 – Next-gen simulator research.** Reserved for protocol simulators that extend beyond the current OTP/WebAuthn/EUDIW footprint. Seed notes via the same spec/plan/tasks pipeline once owners prioritise an item so the numbering remains contiguous without separate holding folders.
 - **Features 023+ – OCRA/legacy deep dives.** Historic artefacts that still require parity checks now live only in Git history; reintroduce them by authoring fresh specs under the next free feature ID instead of restoring the retired `ocra-simulator/` staging area.
 

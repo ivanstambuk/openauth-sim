@@ -98,6 +98,11 @@ Feature 004 unifies the former WebAuthn assertion (legacy Feature 024) and attes
 | CLI-004-05 | `maintenance fido2 attest-replay` | Replay attestation payloads (stored/manual/inline) and output metadata summaries. |
 | CLI-004-06 | `maintenance fido2 seed-attestations` | Seed attestation credentials from fixture bundles and document their metadata. |
 
+### Native Java API
+| ID | Entry point | Description | Notes |
+|----|-------------|-------------|-------|
+| NJ-004-01 | `io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService` | Application-level WebAuthn assertion evaluation service used as the Native Java API seam for stored and inline flows. | Mirrors CLI/REST assertion evaluation semantics (including signature/counter checks, token binding, and verbose traces); callers supply a `CredentialStore` and `EvaluationCommand` and consume `EvaluationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in `docs/2-how-to/use-fido2-from-java.md`. |
+
 ### Telemetry Events
 | ID | Event name | Fields / Redaction rules |
 |----|-----------|---------------------------|

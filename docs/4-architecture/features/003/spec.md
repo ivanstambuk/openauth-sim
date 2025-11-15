@@ -166,6 +166,17 @@ Operator console Evaluate/Replay panels mirror the shared two-column layout (for
 - Refresh `docs/4-architecture/knowledge-map.md`, `docs/architecture-graph.json`, and `_current-session.md` entries when OCRA modules or telemetry contracts evolve.
 - Ensure roadmap + feature plan/task files link back to this spec when increments close to satisfy SDD traceability.
 
+### Native Java API (reference)
+- OCRA’s existing Native Java API (documented in `docs/2-how-to/use-ocra-from-java.md`) acts as the reference pattern
+  for Feature 014 – Native Java API Facade and ADR-0007:
+  - Entry-point helpers live under `core` and `application` (for example, `OcraCredentialFactory` +
+    `OcraResponseCalculator`), using simple request/response DTOs and avoiding direct persistence coupling.
+  - Error handling relies on `IllegalArgumentException` and domain-specific runtime failures surfaced through clear
+    messages rather than checked exceptions.
+  - Telemetry flows through existing `TelemetryContracts` adapters; no separate Native-Java-only logging surface exists.
+- Future Native Java seams for other protocols (HOTP, TOTP, FIDO2/WebAuthn, EMV/CAP, EUDIW) MUST follow the governance,
+  naming, and Javadoc rules codified in Feature 014, treating this OCRA API as the canonical precedent.
+
 ## Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|

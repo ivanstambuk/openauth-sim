@@ -22,13 +22,37 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-/** Application-level orchestration for EMV/CAP simulations. */
+/**
+ * Native Java API seam for EMV/CAP simulations.
+ *
+ * <p>Used by Feature 005 – EMV/CAP Simulation Services and Feature 014 – Native Java API Facade
+ * to drive Identify/Respond/Sign evaluations from Java callers without going through CLI/REST/UI.
+ * Behaviour is specified in the Feature 005 spec (FR-005-01..07) with cross-cutting governance in
+ * Feature 014 (FR-014-02/04) and ADR-0007; usage examples live in
+ * {@code docs/2-how-to/use-emv-cap-from-java.md}. Callers construct {@link EvaluationRequest}
+ * records and consume {@link EvaluationResult} as façade DTOs.
+ */
 public final class EmvCapEvaluationApplicationService {
 
+    /**
+     * Evaluates an EMV/CAP request with default (non-verbose) tracing.
+     *
+     * @param request evaluation inputs (mode, ATC, masks, PAN, and preview window)
+     * @return evaluation result containing the OTP, masked digits count, previews, and telemetry
+     */
     public EvaluationResult evaluate(EvaluationRequest request) {
         return evaluate(request, false);
     }
 
+    /**
+     * Evaluates an EMV/CAP request with optional verbose trace payloads.
+     *
+     * @param request evaluation inputs (mode, ATC, masks, PAN, and preview window)
+     * @param verboseTrace when {@code true}, attaches verbose trace data to the result where
+     *     available
+     * @return evaluation result containing the OTP, masked digits count, previews, telemetry, and
+     *     optional trace
+     */
     public EvaluationResult evaluate(EvaluationRequest request, boolean verboseTrace) {
         Objects.requireNonNull(request, "request");
         int previewBackward = Math.max(0, request.previewWindowBackward());

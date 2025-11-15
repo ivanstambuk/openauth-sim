@@ -184,3 +184,11 @@ _Last updated:_ 2025-11-13
 - [ ] T-006-25 – OpenID4VCI issuance simulator alignment for end-to-end wallet journeys.
 - [ ] T-006-26 – Trusted Authorities expansion (live TL updates, OpenID Federation resolution enhancements).
 - [ ] T-006-27 – Reinstate JaCoCo branch threshold ≥0.70 after new coverage lands (temporary drop to 0.60 on 2025-11-06).
+- [x] T-006-28 – Design EUDIW Native Java API seam (FR-014-01/02, S-014-02) by identifying application-level entry points for authorization, wallet simulation, and validation flows that follow Feature 014/ADR-0007.  
+  _Intent:_ Designate `OpenId4VpWalletSimulationService` and `OpenId4VpValidationService` as the Native Java API seams for wallet simulation and validation, document them in the Feature 006 Interface & Contract catalogue, and link them explicitly to Feature 014 and ADR-0007.  
+- [x] T-006-29 – Author `docs/2-how-to/use-eudiw-from-java.md` and supporting tests (FR-014-03/04, S-014-01/02), treating the chosen entry points as façade seams.  
+  _Intent:_ Provide a Native Java how-to guide for EUDIW OpenID4VP that mirrors the REST/CLI/operator UI flows, references fixture presets (`pid-haip-baseline`, `pid-mdoc`) and Trusted Authority policies, and treats the wallet/validation services as façade seams governed by Feature 014/ADR-0007.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.eudi.openid4vp.OpenId4VpNativeJavaApiUsageTest"`  
+  - `./gradlew --no-daemon spotlessApply check`  
+  _Notes:_ 2025-11-15 – Refined `docs/2-how-to/use-eudiw-from-java.md` with fixture and TrustedAuthorityEvaluator examples, kept usage tests light (`OpenId4VpNativeJavaApiUsageTest`), and aligned references with Feature 006/014 and ADR-0007.

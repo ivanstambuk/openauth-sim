@@ -26,7 +26,27 @@ exercise HAIP-compliant workflows without external wallets.
   - **Tooling drift:** Keep CLI/REST/UI verification commands aligned with Feature 006 to avoid divergent harness behaviour.
 
 ## Implementation Drift Gate
-- Before closing the feature, verify every FR/NFR is satisfied and documented; attach drift report to this plan.
+
+- Summary: This feature is still a placeholder. When it becomes active and approaches completion, use this gate to ensure mdoc PID simulator behaviour (fixtures, validation harness, CLI/REST/UI flows, telemetry/docs) stays aligned with FR-007/NFR-007 and with upstream EUDIW conventions from Feature 006.
+
+- **Checklist for future drift-gate runs (agents):**
+  - **Preconditions**
+    - [ ] `docs/4-architecture/features/007/{spec,plan,tasks}.md` updated from placeholder to active status with full FR/NFR/Scenario coverage.  
+    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 007.  
+    - [ ] The following commands have been run in the increment and logged in `docs/_current-session.md`:  
+      - `./gradlew --no-daemon :core:test :application:test :rest-api:test :ui:test spotlessApply check` (with EUDIW/mdoc-focused tests enabled).  
+
+  - **Spec ↔ code/test mapping (once implemented)**
+    - [ ] For each FR/NFR/Scenario in the future Feature 007 spec, identify implementing classes in core/application/REST/CLI/UI and the tests that cover them.  
+    - [ ] Ensure Scenario Tracking in this plan lists Scenario IDs with increment/task and code/test pointers.  
+
+  - **Drift capture & remediation**
+    - [ ] Any high-/medium-impact drift discovered during the gate is logged as `Open` in `docs/4-architecture/open-questions.md` and captured as tasks in `docs/4-architecture/features/007/tasks.md`.  
+    - [ ] Low-impact drift is fixed directly in spec/plan/tasks/docs, with a short note added to this section or the plan’s verification log.  
+
+  - **Gate output**
+    - [ ] This section is updated with the gate run date, key commands, and “matches vs gaps” summary.  
+    - [ ] `docs/_current-session.md` logs that the Feature 007 Implementation Drift Gate was executed (date, commands, reference back to this section).  
 
 
 ## Increment Map

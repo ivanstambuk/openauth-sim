@@ -3,23 +3,24 @@
 | Field | Value |
 |-------|-------|
 | Status | Complete |
-| Last updated | 2025-11-13 |
+| Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
 | Specification | `docs/4-architecture/features/010/spec.md` |
 | Tasks checklist | `docs/4-architecture/features/010/tasks.md` |
 | Roadmap entry | #10 – Documentation & Knowledge Automation |
 
 ## Vision & Success Criteria
-Centralise every operator-facing guide, roadmap/knowledge-map reference, and quality-automation workflow under one feature so
-all documentation and the aggregated `qualityGate` evolve together. Success means the Java/CLI/REST guides, README, roadmap,
-knowledge map, `_current-session.md`, session log (docs/_current-session.md), and GitHub Actions workflow share a single authoritative spec/plan/tasks
-set with deterministic verification commands.
+Centralise every operator-facing guide, roadmap/knowledge-map reference, DeepWiki steering config (`.devin/wiki.json`), and
+quality-automation workflow under one feature so all documentation and the aggregated `qualityGate` evolve together. Success
+means the Java/CLI/REST guides, README, roadmap, knowledge map, `_current-session.md`, session log (docs/_current-session.md),
+DeepWiki page outline, and GitHub Actions workflow share a single authoritative spec/plan/tasks set with deterministic
+verification commands.
 
 ## Scope Alignment
-- Maintain the operator documentation suite (Java/CLI/REST guides, README, roadmap/knowledge map references, `_current-session.md`, session quick reference) inside Feature 010’s spec/plan/tasks so these artefacts evolve together.
-- Keep roadmap, knowledge map, architecture graph, session log (docs/_current-session.md), and session quick reference aligned with documentation and automation changes.
+- Maintain the operator documentation suite (Java/CLI/REST guides, README, roadmap/knowledge map references, `_current-session.md`, session quick reference) and DeepWiki steering config (`.devin/wiki.json`) inside Feature 010’s spec/plan/tasks so these artefacts evolve together.
+- Keep roadmap, knowledge map, architecture graph, DeepWiki page outline, session log (docs/_current-session.md), and session quick reference aligned with documentation and automation changes.
 - Maintain the aggregated `qualityGate` task plus its CI workflow, report locations, skip flags, and troubleshooting guides.
-- Log every documentation/automation increment inside `_current-session.md` with command history.
+- Log every documentation/automation increment—including changes to `.devin/wiki.json`—inside `_current-session.md` with command history.
 
 _Out of scope:_ shipping runtime simulator changes, expanding the quality gate to non-OCRA modules, or introducing new
 publishing tooling.
@@ -40,8 +41,57 @@ publishing tooling.
 - Risk: PIT/Jacoco runtimes can exceed NFR limits if cache hints regress—monitor timings inside tasks/plan notes.
 
 ## Implementation Drift Gate
-Periodically cross-check FR-010-01..FR-010-10 and NFR-010-01..05 against the operator guides, README, roadmap/knowledge map entries,
-`_current-session.md` logs, and `qualityGate` configuration/report folders. Log each drift report inside this plan with links to verification commands before closing an increment.
+
+- Summary: Use this gate to ensure the docs/automation surface (operator guides, README, roadmap/knowledge map, session logs, DeepWiki steering, `qualityGate` and CI wiring) stays aligned with FR-010-01..10 and NFR-010-01..05, and that every change to documentation or automation is reflected consistently across artefacts and logged in `_current-session.md`.
+
+- **Checklist for future drift-gate runs (agents):**
+  - **Preconditions**
+    - [ ] `docs/4-architecture/features/010/{spec,plan,tasks}.md` updated to the current date; all clarifications are encoded in normative sections (no ad-hoc “Clarifications” appendices).  
+    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 010.  
+    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+      - `./gradlew --no-daemon spotlessApply check`  
+      - `./gradlew --no-daemon qualityGate` (with `-Ppit.skip=true` only when explicitly allowed by the spec/plan).  
+
+  - **Spec ↔ docs/automation mapping**
+    - [ ] For FR-010-01..FR-010-10 and NFR-010-01..05, confirm the spec’s expectations are reflected in:  
+      - Operator how-to guides (Java/CLI/REST, and any other documented surfaces).  
+      - `README.md` and `docs/2-how-to/README.md` landing pages.  
+      - Roadmap (`docs/4-architecture/roadmap.md`) and knowledge map (`docs/4-architecture/knowledge-map.md`).  
+      - Session quick reference (`docs/5-operations/session-quick-reference.md`).  
+      - Session log (`docs/_current-session.md`) and any related logs referenced in the spec.  
+    - [ ] Ensure `.devin/wiki.json` mirrors the current docs structure and feature catalogue (including the Feature 010 role) and that DeepWiki descriptions match the spec’s view of docs/automation responsibilities.  
+
+  - **Operator docs alignment**
+    - [ ] Operator guides for Java/CLI/REST (and any other shipped guides) still:  
+      - Match current module behaviour and telemetry expectations.  
+      - Use examples that compile or are trivially fixable against the current code.  
+      - Reference troubleshooting and quality-gate guidance where the spec requires it.  
+    - [ ] README no longer references retired directories or legacy features, and its list of simulators, URLs, and how-to links matches the actual set of shipped features.  
+
+  - **Automation & quality-gate alignment**
+    - [ ] `qualityGate` definition in `build.gradle.kts` still matches the spec:  
+      - Includes Spotless, Checkstyle, SpotBugs, ArchUnit, Jacoco aggregated coverage, PIT (subject to skip flags), and gitleaks.  
+      - Uses thresholds and skip flags consistent with FR-010/NFR-010.  
+    - [ ] `.github/workflows/ci.yml` invokes `./gradlew --no-daemon qualityGate` (or the documented equivalent) and uploads or references reports as described in the spec/plan.  
+    - [ ] Any helper scripts or runbooks referenced in the spec (e.g., how to run `qualityGate`, how to bypass PIT when allowed) still exist and match the documented instructions.  
+
+  - **Governance & logging**
+    - [ ] Feature 011 hook/constitution requirements referenced from this spec are still honoured:  
+      - `git config core.hooksPath` logs appear in `docs/_current-session.md`.  
+      - Pre-commit and commit-msg hooks enforce Spotless, tests, secret scanning, and gitlint as described.  
+    - [ ] Every documentation/automation increment has a corresponding entry in `docs/_current-session.md` that mentions:  
+      - What changed (guides, roadmap/knowledge map, session quick reference, CI wiring, etc.).  
+      - The commands executed (at least `spotlessApply check`, and `qualityGate` for automation changes).  
+
+  - **Drift capture & remediation**
+    - [ ] Any high-/medium-impact drift (e.g., guides contradicting behaviour, `qualityGate` behaviour diverging from docs, missing logging of key commands) is:  
+      - Logged as an `Open` row in `docs/4-architecture/open-questions.md` for Feature 010.  
+      - Captured as explicit tasks in `docs/4-architecture/features/010/tasks.md` (and, if cross-cutting, in other features’ plans).  
+    - [ ] Low-impact drift (typos, minor link fixes, small doc mismatches) is corrected directly in docs/plan/tasks, with a brief note added to this section or the plan’s verification log.  
+
+  - **Gate output**
+    - [ ] This section is updated with the date of the latest drift gate run, listing key commands executed and a short “matches vs gaps” summary plus remediation notes.  
+    - [ ] `docs/_current-session.md` logs that the Feature 010 Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
 
 ### Drift Report – 2025-11-13
 - **Scope review:** Spec/plan/tasks describe the steady-state documentation + knowledge automation scope (Java/CLI/REST guides, README, roadmap/knowledge map, session quick reference, `_current-session.md`, `qualityGate` automation). No legacy references remain and roadmap/knowledge-map entries point to Feature 010 as the authority (covers FR-010-01..10, NFR-010-01..05, Scenarios S-010-01..10).
@@ -88,5 +138,6 @@ Run `docs/5-operations/analysis-gate-checklist.md` whenever major doc/automation
 - Script knowledge-map regeneration to reduce manual edits (capture timing + instructions in Feature 010 tasks once designed).
 - Evaluate adding Markdown lint to the managed hook after Batch P3 verification.
 - Expand `qualityGate` coverage beyond the OCRA stack in a future feature once this migration stabilises.
+- Coordinate with Feature 014 – Native Java API Facade for cross-protocol Native Java API entry points, Javadoc surfaces, and `*-from-java` guides per protocol; keep Feature 010 focused on documentation/automation while the cross-cutting spec governs runtime API stability and facade ownership. Feature 010 now also tracks the `:application:nativeJavaApiJavadoc` aggregation task as part of the documentation automation surface.
 
 $chunk
