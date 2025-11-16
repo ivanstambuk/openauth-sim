@@ -2,7 +2,7 @@
 
 > Keep this file up to date across all active chats. Treat it as the single source of truth for in-progress workstreams so every hand-off is instant. Replace the bracketed text and prune sections you do not need.
 
-- Date: 2025-11-15
+- Date: 2025-11-16
 - Primary branch: `main`
 - Other active branches: none
 
@@ -17,7 +17,10 @@
 - Governance log (2025-11-15, commit/push prep): `git config core.hooksPath` → `githooks` (pre-commit guard re-confirmed before packaging outstanding work).
 - Governance log (2025-11-15, user request "DeepWiki wiki.json steering"): `git config core.hooksPath` → `githooks` (session reset guard for this Codex CLI run).
 - Governance log (2025-11-15, user hand-off "Feature 014 Native Java API facade"): `git config core.hooksPath` → `githooks` (session reset guard for this Codex CLI run).
+- Governance log (2025-11-15, user request "JMeter/Neoload Native Java docs"): `git config core.hooksPath` → `githooks` (session reset guard before planning new how-to guides).
 - Environment log (2025-11-15, current session): `JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64`; `java -version` → `openjdk version "17.0.16"` (Java 17 JDK confirmed for Gradle/Javadoc runs).
+- Governance log (2025-11-16, session reset "read initial project context"): `git config core.hooksPath` → `githooks` (session reset guard for this Codex CLI run).
+- Governance log (2025-11-16, user request "Commit and push all changes"): `git config core.hooksPath` → `githooks` (pre-commit guard re-confirmed before packaging outstanding work); `./gradlew --no-daemon spotlessApply check` (PASS – workspace-wide formatter + verification sweep before commit/push for the JMeter/Neoload Native Java documentation updates and external-dependency reference).
 
 ## Active workstreams
 
@@ -96,6 +99,14 @@
  - Planning log (2025-11-15e): Added an open question under Feature 010 plus follow-up/backlog notes in `plan.md`/`tasks.md` proposing a future Feature 014 – Native Java API Facade to specify cross-protocol Java entry points, Javadoc surfaces, and `*-from-java` guides so programmatic usage becomes a governed facade alongside CLI/REST/UI.
  - Decision log (2025-11-15): Resolved the Native Java API governance question by accepting ADR-0007 (Native Java API Facade Strategy), which adopts per-protocol Native Java APIs governed by cross-cutting rules (future Feature 014) instead of a single monolithic Java SDK; removed the corresponding open-questions entries after recording this outcome in the ADR and Feature 010 plan/tasks.
  - Planning log (2025-11-15f): Scaffolded Feature 014 (`docs/4-architecture/features/014/{spec,plan,tasks}.md`) as a cross-cutting Native Java API facade spec referencing ADR-0007, defined the per-protocol pattern, updated the roadmap to add Feature 014 as a placeholder, and seeded backlog items in Features 001, 002, 004, 005, and 006 plans to mirror OCRA's Native Java API over time.
+ - Implementation log (2025-11-15g): Extended Feature 010 spec/plan for FR-010-11 and authored `docs/3-reference/external-dependencies-by-facade-and-scenario.md` plus the `docs/3-reference/README.md` entry so operators can see, per protocol/facade/flow/credential source, which major external dependencies (MapDB/Caffeine, Spring Boot/Thymeleaf/Springdoc, Picocli, test-only Node/Selenium) are exercised and where inline flows avoid hitting MapDB altogether.
+- Verification log (2025-11-15g): `./gradlew --no-daemon spotlessApply check` (PASS – documentation-only verification run after adding the external-dependency matrix reference and updating Feature 010 spec/plan).
+- Documentation log (2025-11-15h): Refined `docs/3-reference/external-dependencies-by-facade-and-scenario.md` to express all external dependencies as explicit Maven coordinates per facade/flow/credential source, removed cross-references such as “same as Evaluate/Inline” and “via REST API calls”, and formatted multi-dependency cells with one coordinate per line using `<br>` for readability.
+- Verification log (2025-11-15h): `./gradlew --no-daemon spotlessApply check` (PASS – documentation-only verification run after the external-dependency reference refinements).
+- Documentation log (2025-11-15i): Trimmed the TOTP section in `docs/3-reference/external-dependencies-by-facade-and-scenario.md` by removing the descriptive “TOTP mirrors HOTP’s dependency split; it reuses the same facades and persistence stack.” line so the reference stays purely tabular and focused on explicit facade/flow/credential-source dependency matrices.
+- Verification log (2025-11-15i): `./gradlew --no-daemon spotlessApply check` (PASS – documentation-only verification run after the TOTP section copy tweak).
+- Documentation log (2025-11-15j): Restructured the top of `docs/3-reference/external-dependencies-by-facade-and-scenario.md` so the table of contents sits immediately after the metadata block and the descriptive introduction (including the dependency category bullets and MapDB/Caffeine note) lives under a dedicated `## Overview` section.
+- Verification log (2025-11-15j): `./gradlew --no-daemon spotlessApply check` (PASS – documentation-only verification run after the external-dependencies overview/Table-of-Contents restructuring).
 
 ## Next suggested actions
 
@@ -115,3 +126,10 @@
 
 - Planning log (2025-11-15): Logged and resolved a Clarifications scope question (Option A selected for completing A1/A2/T1/T2, leaving ADR work optional) and reflected the outcome in `AGENTS.md`, the templates, and the open-questions log; documentation-only updates.
 - Historical note: Detailed verification logs for the Clarifications governance batch (Features 001–004 and 009–013, plus docs/runbook/AGENTS updates) have been pruned from this snapshot for readability. Consult git history and the per-feature specs/plans/tasks for the full drift-gate and verification record.
+
+### Feature 010 / Feature 014 – Native Java API from JMeter/Neoload
+
+- Documentation log (2025-11-15): Added per-protocol how-to guides for consuming the Native Java facade from JMeter (Groovy JSR223 samplers) and Neoload scripts: `docs/2-how-to/use-hotp-from-jmeter.md`, `use-hotp-from-neoload.md`, `use-totp-from-jmeter.md`, `use-totp-from-neoload.md`, `use-ocra-from-jmeter.md`, `use-ocra-from-neoload.md`, `use-fido2-from-jmeter.md`, `use-fido2-from-neoload.md`, `use-emv-cap-from-jmeter.md`, `use-emv-cap-from-neoload.md`, `use-eudiw-from-jmeter.md`, and `use-eudiw-from-neoload.md`. Updated Feature 010 and Feature 014 specs to document per-protocol JMeter/Neoload coverage, and extended `docs/2-how-to/README.md` to link these guides under “Native Java API from JMeter/Neoload”.
+- Documentation log (2025-11-15b): Refined all JMeter how-to guides (`use-hotp-from-jmeter.md`, `use-totp-from-jmeter.md`, `use-ocra-from-jmeter.md`, `use-fido2-from-jmeter.md`, `use-emv-cap-from-jmeter.md`, `use-eudiw-from-jmeter.md`) so each example is self-contained (no external helper classes) and uses inline or in-memory-backed Native Java flows purely for calculation/evaluation (no replay semantics). For HOTP, TOTP, and WebAuthn, added explicit stored-credential JSR223 snippets alongside inline flows; for WebAuthn specifically, switched the JMeter examples from the verification seam (`WebAuthnEvaluationApplicationService`) to the assertion generation seam (`WebAuthnAssertionGenerationApplicationService`) so Evaluate always means “generate assertion” consistently with the operator UI; for EUDIW, restricted the JMeter guide to wallet simulation only (no validation script), to match the “calculation-only” requirement.
+- Documentation log (2025-11-15b): Refined all JMeter how-to guides (`use-hotp-from-jmeter.md`, `use-totp-from-jmeter.md`, `use-ocra-from-jmeter.md`, `use-fido2-from-jmeter.md`, `use-emv-cap-from-jmeter.md`, `use-eudiw-from-jmeter.md`) so each example is self-contained (no external helper classes) and uses inline or in-memory-backed Native Java flows purely for calculation/evaluation (no replay semantics). For HOTP, TOTP, and WebAuthn, added explicit stored-credential JSR223 snippets alongside inline flows; for WebAuthn specifically, switched the JMeter examples from the verification seam (`WebAuthnEvaluationApplicationService`) to the assertion generation seam (`WebAuthnAssertionGenerationApplicationService`) so Evaluate always means “generate assertion” consistently with the operator UI; for OCRA and EMV/CAP, added explicit “stored descriptor/preset” sections alongside inline examples; for EUDIW, added separate stored-preset vs inline SD-JWT wallet simulation snippets and kept the guide limited to wallet simulation (no validation script), to match the “calculation-only” requirement.
+- Verification log (2025-11-15b): `./gradlew --no-daemon spotlessApply check` (PASS – workspace-wide formatter + verification sweep after converting all JMeter how-to snippets to self-contained JSR223 Groovy scripts, adding stored-credential/examples for HOTP/TOTP/WebAuthn/OCRA/EMV/CAP/EUDIW, aligning WebAuthn with the generation seam, and trimming the EUDIW validation example, and updating the session log entry).

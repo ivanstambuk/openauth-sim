@@ -30,6 +30,7 @@ publishing tooling.
 |------------|-------|
 | Docs templates (`docs/templates/*.md`) | Govern structure for specs/plans/tasks and operator guides. |
 | Operator guides (`docs/2-how-to/*.md`) + README | Must reflect current simulator behaviour and telemetry expectations. |
+| External dependency matrix (`docs/3-reference/external-dependencies-by-facade-and-scenario.md`) | Documents, per protocol/facade/flow/credential source, which major external dependencies (MapDB/Caffeine, Spring Boot/Thymeleaf/Springdoc, Picocli, etc.) are exercised so consumers understand stack composition even when using a single fat JAR. |
 | Roadmap / knowledge map / session log (docs/_current-session.md) / `_current-session.md` | Need synchronized references and command logs per increment. |
 | Gradle build logic (`qualityGate` task, Spotless, ArchUnit, Jacoco, PIT, SpotBugs, Checkstyle, gitleaks) | Provide the automation enforced by this feature. |
 | GitHub Actions workflow (`.github/workflows/quality-gate.yml`) | Mirrors local gate execution and uploads reports. |
@@ -42,7 +43,7 @@ publishing tooling.
 
 ## Implementation Drift Gate
 
-- Summary: Use this gate to ensure the docs/automation surface (operator guides, README, roadmap/knowledge map, session logs, DeepWiki steering, `qualityGate` and CI wiring) stays aligned with FR-010-01..10 and NFR-010-01..05, and that every change to documentation or automation is reflected consistently across artefacts and logged in `_current-session.md`.
+- Summary: Use this gate to ensure the docs/automation surface (operator guides, README, external-dependency reference, roadmap/knowledge map, session logs, DeepWiki steering, `qualityGate` and CI wiring) stays aligned with FR-010-01..11 and NFR-010-01..05, and that every change to documentation or automation is reflected consistently across artefacts and logged in `_current-session.md`.
 
 - **Checklist for future drift-gate runs (agents):**
   - **Preconditions**
@@ -53,9 +54,10 @@ publishing tooling.
       - `./gradlew --no-daemon qualityGate` (with `-Ppit.skip=true` only when explicitly allowed by the spec/plan).  
 
   - **Spec ↔ docs/automation mapping**
-    - [ ] For FR-010-01..FR-010-10 and NFR-010-01..05, confirm the spec’s expectations are reflected in:  
+    - [ ] For FR-010-01..FR-010-11 and NFR-010-01..05, confirm the spec’s expectations are reflected in:  
       - Operator how-to guides (Java/CLI/REST, and any other documented surfaces).  
       - `README.md` and `docs/2-how-to/README.md` landing pages.  
+      - External dependency matrix reference (`docs/3-reference/external-dependencies-by-facade-and-scenario.md`).  
       - Roadmap (`docs/4-architecture/roadmap.md`) and knowledge map (`docs/4-architecture/knowledge-map.md`).  
       - Session quick reference (`docs/5-operations/session-quick-reference.md`).  
       - Session log (`docs/_current-session.md`) and any related logs referenced in the spec.  

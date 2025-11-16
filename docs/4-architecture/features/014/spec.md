@@ -16,9 +16,10 @@ Define Native Java API usage as a first-class facade across the OpenAuth Simulat
 drive protocol flows in-process without going through CLI/REST/UI, while keeping the project’s greenfield constraints and
 spec-first workflow intact. Rather than a single monolithic SDK, each protocol feature (HOTP, TOTP, OCRA, FIDO2/WebAuthn,
 EMV/CAP, EUDIW OpenID4VP) exposes its own Native Java entry points in `core` and/or `application`, following a shared
-pattern for APIs, Javadoc, and `*-from-java` guides. This feature codifies that pattern, ties it to ADR-0007 (Native Java
-API Facade Strategy), and mandates incremental backlog work in Features 001, 002, 004, 005, and 006 to mirror the existing
-OCRA Native Java API.
+pattern for APIs, Javadoc, and `*-from-java` guides, plus matching per-protocol how-to guides for JMeter (Groovy) and Neoload
+that demonstrate calculation-only usage from load-testing tools. This feature codifies that pattern, ties it to ADR-0007
+(Native Java API Facade Strategy), and mandates incremental backlog work in Features 001, 002, 004, 005, and 006 to mirror
+the existing OCRA Native Java API.
 
 ## Goals
 - G-014-01 – Treat Native Java usage as a facade alongside CLI, REST, and operator UI, with clear documentation and
