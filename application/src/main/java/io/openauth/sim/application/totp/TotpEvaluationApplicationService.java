@@ -35,11 +35,10 @@ import javax.crypto.spec.SecretKeySpec;
 /**
  * Native Java API seam for TOTP evaluation.
  *
- * <p>Used by Feature 002 – TOTP Simulator &amp; Tooling and Feature 014 – Native Java API Facade
- * to drive stored and inline TOTP evaluations (including drift windows and timestamp overrides)
- * from Java callers without going through CLI/REST/UI. Behaviour is specified in the Feature 002
- * spec (FR-002-01..07) with cross-cutting governance in Feature 014 (FR-014-02/04) and ADR-0007;
- * usage examples live in {@code docs/2-how-to/use-totp-from-java.md}.
+ * <p>This entry point lets Java callers run stored or inline TOTP evaluations (including drift
+ * windows and timestamp overrides) without touching the CLI/REST/UI facades. Behaviour mirrors the
+ * TOTP simulator specification and the Native Java facade guidance captured in ADR-0007; usage
+ * examples live in {@code docs/2-how-to/use-totp-from-java.md}.
  */
 public final class TotpEvaluationApplicationService {
 

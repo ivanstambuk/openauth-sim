@@ -35,7 +35,10 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/** HAIP `direct_post.jwt` encryption/decryption helper for Feature 040. */
+/**
+ * HAIP `direct_post.jwt` encryption/decryption helper shared by the EUDIW OpenID4VP Native Java
+ * facade.
+ */
 public final class DirectPostJwtEncryptionService {
 
     private static final String CURVE_NAME = "secp256r1";

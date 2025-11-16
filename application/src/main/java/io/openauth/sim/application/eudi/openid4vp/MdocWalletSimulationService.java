@@ -10,9 +10,10 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Placeholder wallet service for ISO/IEC 18013-5 (mdoc) presentations.
- * <p>
- * Tests in T4006 expect this type to exist; the implementation will arrive with task T4007.
+ * Native Java helper for ISO/IEC 18013-5 (mdoc) presentations used by the EUDIW wallet simulator.
+ *
+ * <p>The service hydrates inline payloads or stored presets, evaluates Trusted Authorities
+ * policies, and assembles presentation diagnostics shared by the wallet simulation facade.
  */
 public final class MdocWalletSimulationService {
 

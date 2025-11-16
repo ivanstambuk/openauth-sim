@@ -23,10 +23,9 @@ import java.util.Optional;
 /**
  * Native Java API seam for HOTP evaluation.
  *
- * <p>Used by Feature 001 – HOTP Simulator &amp; Tooling and Feature 014 – Native Java API Facade to
- * drive stored and inline HOTP evaluations from Java callers without going through CLI/REST/UI.
- * Behaviour is specified in the Feature 001 spec (FR-001-01..07) with cross-cutting governance in
- * Feature 014 (FR-014-02/04) and ADR-0007; usage examples live in
+ * <p>This entry point lets Java callers run stored or inline HOTP evaluations without going
+ * through the CLI/REST/UI facades. Behaviour mirrors the HOTP simulator specification and the
+ * Native Java facade guidance captured in ADR-0007; usage examples live in
  * {@code docs/2-how-to/use-hotp-from-java.md}.
  */
 public final class HotpEvaluationApplicationService {

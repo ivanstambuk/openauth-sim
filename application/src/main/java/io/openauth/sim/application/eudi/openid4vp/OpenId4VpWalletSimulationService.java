@@ -13,10 +13,9 @@ import java.util.Optional;
 /**
  * Native Java API seam for EUDIW wallet simulations (OpenID4VP Generate mode).
  *
- * <p>Used by Feature 006 – EUDIW OpenID4VP Simulator and Feature 014 – Native Java API Facade to
- * drive wallet simulations from Java callers without going through CLI/REST/UI. Behaviour is
- * specified in the Feature 006 spec (FR-006-07/08, FR-040-07..10/13/23) with cross-cutting
- * governance in Feature 014 (FR-014-02/04) and ADR-0007; usage examples live in
+ * <p>This entry point drives wallet simulations from Java callers without going through the
+ * CLI/REST/UI facades. Behaviour mirrors the EUDIW OpenID4VP simulator specification and the
+ * Native Java facade guidance captured in ADR-0007; usage examples live in
  * {@code docs/2-how-to/use-eudiw-from-java.md}. Callers construct {@link SimulateRequest}
  * instances and consume {@link SimulationResult} as façade DTOs, reusing the same Trusted
  * Authorities and telemetry surfaces as the REST/CLI/operator UI flows.

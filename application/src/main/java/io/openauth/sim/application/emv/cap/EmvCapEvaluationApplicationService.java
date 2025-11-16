@@ -25,10 +25,9 @@ import java.util.Optional;
 /**
  * Native Java API seam for EMV/CAP simulations.
  *
- * <p>Used by Feature 005 – EMV/CAP Simulation Services and Feature 014 – Native Java API Facade
- * to drive Identify/Respond/Sign evaluations from Java callers without going through CLI/REST/UI.
- * Behaviour is specified in the Feature 005 spec (FR-005-01..07) with cross-cutting governance in
- * Feature 014 (FR-014-02/04) and ADR-0007; usage examples live in
+ * <p>This entry point drives Identify/Respond/Sign evaluations from Java callers without touching
+ * the CLI/REST/UI facades. Behaviour mirrors the EMV/CAP simulator specification and the Native
+ * Java facade guidance captured in ADR-0007; usage examples live in
  * {@code docs/2-how-to/use-emv-cap-from-java.md}. Callers construct {@link EvaluationRequest}
  * records and consume {@link EvaluationResult} as façade DTOs.
  */

@@ -52,6 +52,7 @@ HTML publication at this time. Instead, we will:
 - Rely on future Maven publishing configuration to:
   - Produce a `-javadoc.jar` artifact for the Native Java facade.
   - Provide IDE-integrated Javadoc for consumers without requiring a GitHub-hosted HTML site.
+- Enforce a public Javadoc hygiene rule (Feature 014 / NFR-014-04) that forbids internal roadmap identifiers (Feature/FR/NFR/T IDs) from appearing in aggregated Native Java Javadoc, backed by a `core-architecture-tests` guard that scans the generated sources.
 
 If a future feature explicitly requires:
 
@@ -73,6 +74,9 @@ will be scoped to publishing/hosting only, reusing the same underlying Gradle Ja
   build `-javadoc.jar` artifacts without special GitHub logic.
 - **Early error detection.** Because Javadoc now runs as part of `check`, broken `@link` references, malformed tags,
   or doclint problems are caught both locally (pre-commit) and in GitHub CI builds.
+- **Public hygiene.** The Feature 014 policy + `core-architecture-tests` guard ensure public Javadoc never leaks internal
+  Feature/FR/NFR/T identifiers, keeping published docs consumer-friendly while architecture artefacts retain full
+  traceability.
 
 ### Negative
 
@@ -145,4 +149,3 @@ will be scoped to publishing/hosting only, reusing the same underlying Gradle Ja
   - ADR-0007 – Native Java API Facade Strategy
 - Related CI configuration:
   - `.github/workflows/ci.yml` (`./gradlew --no-daemon qualityGate`)
-

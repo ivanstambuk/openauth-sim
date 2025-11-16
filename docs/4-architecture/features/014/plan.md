@@ -57,6 +57,7 @@ keeping per-protocol ownership intact. Success means:
     - [ ] `docs/4-architecture/open-questions.md` has no `Open` rows for Feature 014.  
     - [ ] Latest commands have been run locally and logged in `docs/_current-session.md`:  
       - `./gradlew --no-daemon :application:test --tests "*NativeJavaApiUsageTest"` (or individual per-protocol tests).  
+      - `./gradlew --no-daemon :core-architecture-tests:test --tests "*NativeJavaJavadocPolicyTest"` (or equivalent guard).  
       - `./gradlew --no-daemon :application:nativeJavaApiJavadoc`.  
       - `./gradlew --no-daemon spotlessApply check`.  
 
@@ -66,8 +67,8 @@ keeping per-protocol ownership intact. Success means:
       - Names and packages as documented in Feature 014 and the protocol spec/plan.  
       - Request/response types correspond to what the `*-from-java` guides describe.  
     - [ ] Javadoc on the seam class and key DTOs:  
-      - Clearly label it as a “Native Java API seam”.  
-      - Reference governing FR IDs (protocol feature + FR‑014‑02/04) and ADR‑0007.  
+      - Clearly label it as a “Native Java API seam” and cite ADR‑0007 / relevant public standards or how-to docs.  
+      - Explicitly avoid internal roadmap identifiers (Feature numbers, FR/NFR IDs, task IDs).  
       - Point to the correct `docs/2-how-to/use-*-from-java.md` guide.  
     - [ ] `docs/2-how-to/use-*-from-java.md` examples:  
       - Use the same types and method names as the seam.  

@@ -41,11 +41,10 @@ import java.util.regex.Pattern;
 /**
  * Native Java API seam for WebAuthn assertion evaluation.
  *
- * <p>Used by Feature 004 – FIDO2/WebAuthn Assertions &amp; Attestations and Feature 014 – Native
- * Java API Facade to drive stored and inline WebAuthn assertion verification from Java callers
- * without going through CLI/REST/UI. Behaviour is specified in the Feature 004 spec
- * (FR-004-01/02) with cross-cutting governance in Feature 014 (FR-014-02/04) and ADR-0007; usage
- * examples live in {@code docs/2-how-to/use-fido2-from-java.md}.
+ * <p>This entry point drives stored and inline WebAuthn assertion verification from Java callers
+ * without going through CLI/REST/UI. Behaviour mirrors the FIDO2/WebAuthn simulator specification
+ * and the Native Java facade guidance captured in ADR-0007; usage examples live in
+ * {@code docs/2-how-to/use-fido2-from-java.md}.
  */
 public final class WebAuthnEvaluationApplicationService {
 

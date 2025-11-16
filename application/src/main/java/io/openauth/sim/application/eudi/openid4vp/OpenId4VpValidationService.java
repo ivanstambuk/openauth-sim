@@ -13,10 +13,9 @@ import java.util.Optional;
 /**
  * Native Java API seam for EUDIW OpenID4VP validation (Validate mode).
  *
- * <p>Used by Feature 006 – EUDIW OpenID4VP Simulator and Feature 014 – Native Java API Facade to
- * drive VP Token/DeviceResponse validation from Java callers without going through CLI/REST/UI.
- * Behaviour is specified in the Feature 006 spec (FR-006-01..06/11..13, FR-040-14..23) with
- * cross-cutting governance in Feature 014 (FR-014-02/04) and ADR-0007; usage examples live in
+ * <p>This entry point drives VP Token and DeviceResponse validation from Java callers without
+ * going through CLI/REST/UI. Behaviour mirrors the EUDIW OpenID4VP simulator specification and the
+ * Native Java facade guidance captured in ADR-0007; usage examples live in
  * {@code docs/2-how-to/use-eudiw-from-java.md}. Callers construct {@link ValidateRequest}
  * instances and consume {@link ValidationResult} as façade DTOs.
  */

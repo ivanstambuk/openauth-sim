@@ -54,6 +54,7 @@ the existing OCRA Native Java API.
 | NFR-014-01 | Consistent API style | Reduce friction for Java consumers by aligning naming, packaging, and error-handling across protocol APIs. | Code review of new Native Java APIs; style guidelines captured in Feature 014 plan/tasks. | `core`, `application` modules; Java 17 language features. | ADR-0007. |
 | NFR-014-02 | Documentation parity | Native Java APIs ship with how-to guides and, when feasible, Javadoc published in `docs/3-reference/`. | Presence of `*-from-java` how-to guides and a documented Javadoc generation command in Feature 014 plan/tasks. | Gradle Javadoc tasks, docs/3-reference. | Spec, ADR-0007. |
 | NFR-014-03 | Governance & stability | Native Java entry points remain changeable under the greenfield constitution but may only change via spec/ADR updates and with docs/tests kept in sync. | Protocol specs/plans reference this feature when changing Native Java APIs; review of ADRs and `_current-session.md` logs shows deliberate changes. | Feature specs 001–006, ADR-0007, Feature 010. | Constitution, ADR-0007. |
+| NFR-014-04 | Public Javadoc hygiene | Keep public-facing Javadoc (as published via `:core:javadoc`, `:application:javadoc`, and `:application:nativeJavaApiJavadoc`) free of internal roadmap identifiers (Feature/FR/NFR/T numbers); describe behaviour via protocol names, standards, and how-to docs instead. | Automated guard in `core-architecture-tests` scans aggregated Javadoc for forbidden identifiers; manual spot checks compare Javadoc to `docs/2-how-to/*-from-java.md`. | Gradle Javadoc tasks, core-architecture-tests module, docs/2-how-to. | Spec, ADR-0008. |
 
 ## UI / Interaction Mock-ups
 This feature has no UI-facing changes; operator console behaviour remains governed by existing protocol features and
@@ -164,7 +165,7 @@ This section defines what “Native Java API” means in this repository and how
 ### Javadoc & docs integration
 - Entry-point classes and their public methods MUST include concise Javadoc that:
   - Summarises behaviour and inputs/outputs.
-  - References the governing feature spec ID(s) and, where relevant, FR/NFR IDs.
+  - Cites publicly consumable references only (protocol/standard names, how-to guides, ADR-0007, etc.) and MUST NOT mention internal roadmap identifiers such as Feature numbers, FR/NFR IDs, or task IDs.
 - Javadoc generation and publication follow this pattern:
   - Gradle remains the source of truth for Javadoc: `:core:javadoc` documents low-level helpers (for example, OCRA
     credential factories), while `:application:javadoc` documents Native Java entry points (`HotpEvaluationApplicationService`,
@@ -177,4 +178,5 @@ This section defines what “Native Java API” means in this repository and how
     summaries) rather than full HTML trees; the full Javadoc output stays in `build/docs/javadoc` artefacts.
 - `docs/2-how-to/*-from-java.md` guides SHOULD reuse the same terminology and types as the Javadoc and avoid duplicating
   low-level details; they act as entry-level runbooks rather than full API references and SHOULD link to the Native Java
-  API reference in `docs/3-reference/native-java-api/` once it is available.
+  API reference in `docs/3-reference/native-java-api/` once it is available. These guides remain the preferred location
+  for referencing feature/task identifiers when needed because they are internal artefacts.

@@ -10,10 +10,11 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Loads ISO/IEC 18013-5 mdoc DeviceResponse fixtures for Feature 040.
- * <p>
- * This is a placeholder to unblock failing tests staged for T4006; the implementation will
- * populate fields from docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/mdoc/ in a follow-up.
+ * Loads ISO/IEC 18013-5 mdoc DeviceResponse fixtures used by the EUDIW OpenID4VP simulator.
+ *
+ * <p>Each preset exposes metadata, encoded DeviceResponse bytes, and claims-path pointers sourced
+ * from `docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/mdoc/` for reuse across Native Java
+ * wallet simulation tests.
  */
 public final class MdocDeviceResponseFixtures {
 

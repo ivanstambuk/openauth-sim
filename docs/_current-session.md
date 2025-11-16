@@ -24,6 +24,12 @@
 
 ## Active workstreams
 
+### Feature 014 – Native Java Javadoc policy cleanup
+
+- Specification log (2025-11-16): Updated Feature 014 spec/plan to add NFR-014-04 (public Javadoc hygiene), clarified that Native Java Javadoc may only cite public references (protocol standards, how-to docs, ADR-0007), and recorded the new guard requirement in the Implementation Drift Gate. ADR-0008 now documents the hygiene policy/guard as part of the Native Java Javadoc CI strategy.
+- Implementation log (2025-11-16): Scrubbed all Native Java-facing Javadoc in `core` and `application` (HOTP/TOTP/WebAuthn/EMV/CAP/EUDIW seams plus supporting fixtures/helpers) so public docs no longer mention Feature/FR/NFR/T identifiers; kept references to ADR-0007 and the relevant `docs/2-how-to/*-from-java.md` guides. Added `NativeJavaJavadocPolicyTest` under `core-architecture-tests` to scan `:application:nativeJavaApiJavadoc` sources for forbidden roadmap identifiers.
+- Verification log (2025-11-16): `./gradlew --no-daemon :core-architecture-tests:test --tests "*NativeJavaJavadocPolicyTest"` (PASS – guard confirms no identifiers leaked); `./gradlew --no-daemon spotlessApply check` (PASS – workspace-wide formatter + verification sweep with Native Java guard/tests active).
+
 ### Feature 014 / Feature 001 – Native Java API (HOTP seam)
 
 - Implementation log (2025-11-15): Designated `io.openauth.sim.application.hotp.HotpEvaluationApplicationService` (with its `EvaluationCommand` / `EvaluationResult` types) as the Native Java API seam for HOTP by updating Feature 001 and Feature 014 specs/tasks, added Javadoc describing the seam and its governance references (FR-001-01..07, FR-014-02/04, ADR-0007), and introduced `HotpNativeJavaApiUsageTest` to exercise stored and inline evaluations via the Native Java entry point including a validation-failure branch for missing counters.
